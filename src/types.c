@@ -3523,11 +3523,12 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         std_conv->type_qualifiers_added = TRUE;
       }  /* if */
     }  /* if */
-  } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode) &&
+  } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
+             (C_mode() && microsoft_mode)) &&
 	     is_integral_or_enum(source_type) && !suppress_extensions) {
-    /* In pcc mode and SVR4 C compatibility mode, allow integer --> pointer
-       with a warning.  The null pointer constant --> pointer case has been
-       handled above and does not come here. */
+    /* In pcc, SVR4, and Microsoft C compatibility modes, allow
+       integer --> pointer with a warning.  The null pointer constant -->
+       pointer case has been handled above and does not come here. */
     okay = TRUE;
     std_conv->warning_suggested = default_warning_code;
   } else if (is_error(source_type)) {
@@ -3941,11 +3942,12 @@ See conversion_possible.
           }  /* if */
         }  /* if */
       }  /* if */
-    } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode) &&
+    } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
+                (C_mode() && microsoft_mode)) &&
                is_pointer(source_type) &&
                is_integral_or_enum(dest_type)) {
-      /* In pcc mode, allow pointer --> integer (even if the integer is not
-         big enough).  Issue a warning. */
+      /* In pcc, SVR4, or Microsoft C modes, allow pointer --> integer
+         (even if the integer is not big enough).  Issue a warning. */
       okay = TRUE;
       std_conv->warning_suggested = default_warning_code;
     } else {
