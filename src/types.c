@@ -4099,7 +4099,7 @@ union or enum type or is a type tree containing such a type.
                                                TTT_SKIP_TYPEREFS);
 
   return (traverse_type_tree(type_ptr, ttt_is_local_type, ttt_flags));
-}  /* is_or_constains_local_type */
+}  /* is_or_contains_local_type */
 
 
 a_boolean is_or_contains_unnamed_or_local_type(a_type_ptr  type_ptr,
@@ -4285,7 +4285,7 @@ a new tree is to contain it is built.
   a_param_type_ptr        ptp, new_ptp, prev_ptp;
   a_type_ptr              new_return_type, new_this_param_type;
   a_type_ptr              first_new_type_for_param_types_list;
-  int                     reusable_param_types;
+  unsigned long           reusable_param_types;
   a_memory_region_number  region_to_switch_back_to;
 
   /* Traverse the tree. */
@@ -4368,7 +4368,7 @@ make_new_type:
            ptp != NULL;
            ptp = ptp->next) {
         if (reusable_param_types > 0) {
-          /* We have already called modification routine for this parameter
+          /* We have already called the modification routine for this parameter
              and we know we can reuse the existing type. */
           tp = ptp->type;
           --reusable_param_types;
