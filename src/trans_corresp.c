@@ -3127,20 +3127,22 @@ are not checked.
         for (; rle != NULL && corresp_rle != NULL;
              rle = skip_generated_friend_routine(rle->next),
              corresp_rle = skip_generated_friend_routine(corresp_rle->next)) {
+          /* This may be the only opportunity to set a correspondence. */
           a_routine_ptr  routine = rle->routine,
                          corresp_routine = corresp_rle->routine;
-          /* This may be the only opportunity to set a correspondence. */
-          if ((trans_unit_corresp_of(routine) == NULL ||
+          a_symbol_ptr  friend_sym = (a_symbol_ptr)routine
+                                                   ->source_corresp.assoc_info,
+                        corresp_friend_sym = (a_symbol_ptr)corresp_routine
+                                                   ->source_corresp.assoc_info;
+          if (same_name(routine, corresp_routine) &&
+              (trans_unit_corresp_of(routine) == NULL ||
                trans_unit_corresp_of(corresp_routine) == NULL) &&
-              !routine->source_corresp.is_class_member &&
-              !corresp_routine->source_corresp.is_class_member &&
+              (friend_sym->is_invisible || corresp_friend_sym->is_invisible) &&
               may_have_correspondence(
                            (a_symbol_ptr)routine->source_corresp.assoc_info) &&
               may_have_correspondence(
                    (a_symbol_ptr)corresp_routine->source_corresp.assoc_info) &&
-              same_entities(
-                       routine->source_corresp.parent.namespace_ptr,
-                       corresp_routine->source_corresp.parent.namespace_ptr) &&
+              same_parents(friend_sym, corresp_friend_sym) &&
               (param_types_are_compatible(
                                        routine->type, corresp_routine->type,
                                        TCF_REDECLARATION | TCF_SEEK_CORRESP) ||
@@ -3170,8 +3172,6 @@ are not checked.
           if (same_name(cle->class_type, corresp_cle->class_type) &&
               (trans_unit_corresp_of(cle->class_type) == NULL ||
                trans_unit_corresp_of(corresp_cle->class_type) == NULL) &&
-              !cle->class_type->source_corresp.is_class_member &&
-              !corresp_cle->class_type->source_corresp.is_class_member &&
               (friend_sym->is_invisible || corresp_friend_sym->is_invisible) &&
               same_parents(friend_sym, corresp_friend_sym)) {
             set_trans_unit_corresp(iek_type, cle->class_type,
