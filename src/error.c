@@ -1361,7 +1361,7 @@ error code.
       m = "implicitly generated constructor for class %t cannot initialize %n";
       break;
     case ec_no_ctor_but_const_or_ref_member:
-      m = "%n defines no constructor to initialize const or reference members";
+      m = "%n defines no constructor to initialize:";
       break;
     case ec_var_with_uninitialized_field:
       if (C_dialect == C_dialect_cplusplus) {
@@ -1519,6 +1519,12 @@ error code.
     case ec_ambiguous_conversion_to_builtin:
       m =
         "more than one conversion function from %t to a built-in type applies";
+      break;
+    case ec_const_member:
+      m = "const %n";
+      break;
+    case ec_reference_member:
+      m = "reference %n";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
@@ -3747,31 +3753,6 @@ fill-in for the source position reflected in error_position.
 }  /* type_start_error */
 
 
-void pos_sy_start_error(an_error_code     error_code,
-                        a_source_position *error_pos,
-                        struct a_symbol   *symbol)
-/*
-Begin a multiple message error with the specified error code, source
-position and symbol fill-in.
-*/
-{
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_error, dck_primary);
-}  /* pos_sy_start_error */
-
-
-void sym_start_error(an_error_code   error_code,
-                     struct a_symbol *symbol)
-/*
-Begin a multiple message error with the specified error code and symbol
-fill-in for the source position reflected in error_position.
-*/
-{
-  pos_sy_start_error(error_code, &error_position, symbol);
-}  /* sym_start_error */
-
-
 void str_add_diag_info(an_error_code error_code,
                        char          *error_string)
 /*
@@ -3798,6 +3779,45 @@ multiple message diagnostic being processed.
 }  /* str_add_diag_info */
 
 #if !STANDALONE_UTILITY_PROGRAM
+
+void pos_sy_start_error(an_error_code     error_code,
+                        a_source_position *error_pos,
+                        struct a_symbol   *symbol)
+/*
+Begin a multiple message error with the specified error code, source
+position and symbol fill-in.
+*/
+{
+  init_error_params();
+  error_msg_syms[1] = symbol;
+  diag_message(error_code, error_pos, es_error, dck_primary);
+}  /* pos_sy_start_error */
+
+
+void pos_sy_start_warning(an_error_code     error_code,
+                          a_source_position *error_pos,
+                          struct a_symbol   *symbol)
+/*
+Begin a multiple message warning with the specified error code, source
+position and symbol fill-in.
+*/
+{
+  init_error_params();
+  error_msg_syms[1] = symbol;
+  diag_message(error_code, error_pos, es_warning, dck_primary);
+}  /* pos_sy_start_warning */
+
+
+void sym_start_error(an_error_code   error_code,
+                     struct a_symbol *symbol)
+/*
+Begin a multiple message error with the specified error code and symbol
+fill-in for the source position reflected in error_position.
+*/
+{
+  pos_sy_start_error(error_code, &error_position, symbol);
+}  /* sym_start_error */
+
 
 void sym_add_diag_info(an_error_code   error_code,
                        struct a_symbol *symbol)
