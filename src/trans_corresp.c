@@ -384,8 +384,8 @@ this routine will create such a correspondence entry.
 #if CHECKING
       ++(*tcp2)->count;
 #endif /* CHECKING */
+      change_canonical_entry(*tcp2, entity2);
     }  /* if */
-    change_canonical_entry(*tcp2, entity2);
   } else if (*tcp1 != NULL && *tcp1 != *tcp2) {
     /* Both entity1 and entity2 have correspondence sets already.  One of
        them must be a singleton and can therefore be freed. */
