@@ -2774,9 +2774,13 @@ not compared.  flags is a set of bit flags that modify the comparison.
   list2 = rtsp2->param_type_list;
   list1_prototyped = rtsp1->prototyped;
   list2_prototyped = rtsp2->prototyped;
-  if (rtsp1->has_ellipsis != rtsp2->has_ellipsis) {
+  if (rtsp1->has_ellipsis != rtsp2->has_ellipsis &&
+      !(gcc_mode && (rtsp1->has_ellipsis || !list1_prototyped) == 
+                                 (rtsp2->has_ellipsis || !list2_prototyped))) {
     /* One has a variable length parameter list and the other does not, so
-       they cannot be compatible. */
+       they cannot be compatible.  (Except in GNU C mode, where an unprototyped
+       definition can be provided for a routine that was previously declared
+       with a prototype.) */
     compatible = FALSE;
   } else if (C_mode() && !list1_prototyped && !list2_prototyped) {
      /* Both parameter lists are old-style -- in C mode they are compatible. */
