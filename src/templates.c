@@ -6148,9 +6148,6 @@ as the current token; otherwise, it is consumed.
        before the scope is pushed so that any pragma associated with the
        tok_template token will be processed in the current scope. */
     (void)get_token();
-    (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
-                     (a_type_ptr)NULL, (a_routine_ptr)NULL);
-    number_of_template_decl_scopes++;
     /* Create a template declaration information entry for this declaration.
        A pointer to this entry will be stored in the template cache entries
        that contain tokens from this declaration. */
@@ -6159,10 +6156,14 @@ as the current token; otherwise, it is consumed.
                                          scope_stack[decl_scope_level].number;
     template_decl_info->enclosing_scope = enclosing_scope;
     if (curr_token == tok_lt) {
-      /* The template parameters. */
+      (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
+                       (a_type_ptr)NULL, (a_routine_ptr)NULL);
+      number_of_template_decl_scopes++;
       template_param_list = scan_template_param_list(template_decl_info,
                                                      nesting_depth);
       template_decl_info->parameters = template_param_list;
+    } else {
+      error(ec_missing_template_param_list);
     }  /* if */
   }  /* for */
   if (curr_token_sequence_number !=
