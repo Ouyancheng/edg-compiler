@@ -605,8 +605,7 @@ EXTERN an_integer_kind
 #define TARG_MINIMUM_STRUCT_ALIGNMENT targ_minimum_struct_alignment
 #define TARG_JMP_BUF_NUM_ELEMENTS targ_jmp_buf_num_elements
 #define TARG_JMP_BUF_ELEMENT_INT_KIND targ_jmp_buf_element_int_kind
-#endif REDEFINE_TARG_VALUE_NAMES
-
+#endif /* REDEFINE_TARG_VALUE_NAMES */
 
 #if CHECKING
 void check_target_configuration(void);
