@@ -1,5 +1,20 @@
 Version 3.4
 
+2/5/04  Warning issued on dependent friend function declarations
+
+A warning is now issued if a dependent friend declaration (not a definition)
+appears in a class template when guiding declarations are disabled.  Such
+a declaration is almost always a mistake (a missing <> that would cause
+the declaration to make a template specialization a friend).  The message
+can be disabled by setting the DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND
+configuration macro to FALSE (and, of course, by the --diag_suppress
+command-line option).
+
+  template <class T> void f(T){}
+  template <class T> struct A {
+    friend void f(T);  // f<> intended
+  };
+
 2/5/04  Partial ordering problem with pointer-to-member types
 
 Partial ordering would sometimes fail for function templates containing

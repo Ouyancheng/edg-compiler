@@ -1241,6 +1241,21 @@ Used only in C++ mode.
 #endif /* ifndef DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE */
 
 /*
+Flag that is TRUE if a diagnostic should be issued when a dependent friend
+function declaration appears in a class template, and that declaration is
+not a definition (and guiding declarations are disabled).  Such declarations
+are seldom what was intended.  For example:
+
+  template <class T> void f(T){}
+  template <class T> struct A {
+    friend void f(T);  // f<> intended
+  };
+*/
+#ifndef DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND
+#define DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND TRUE
+#endif /* ifndef DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND */
+
+/*
 Flag that is TRUE if, in default mode, an assignment operator for class A
 with parameter of type "B", "B&", or "const B&" is viewed as a copy
 assignment operator when B is a base class of A.  The effect is that a

@@ -5698,6 +5698,15 @@ instantiations are recorded in the IL.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
+    /* A dependent friend declaration that is not a definition.  If this
+       is neither a qualified name or a template-id, issue a warning as
+       it is probably not what was intended. */
+    if (warning_on_non_template_friend && !guiding_decls_allowed &&
+        !locator->is_qualified_name && !locator->is_template_id &&
+        is_or_contains_template_param(function_type)) {
+      pos_sy_warning(ec_probable_guiding_friend, &locator->source_position,
+                     sym);
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (ssep != NULL && prototype_instantiations_in_il) {
       /* Point to it from a secondary source sequence_entry: */

@@ -1180,6 +1180,15 @@ EXTERN a_boolean
 			/* TRUE if guiding-declarations of template functions
 			   are allowed. */
 
+EXTERN a_boolean warning_on_non_template_friend
+#if VAR_INITIALIZERS
+                                      = DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE if a message should be issued indicating that
+			   a friend declaration was probably intended to be
+		           a guiding declaration. */
+
 EXTERN a_boolean
 		old_specializations_allowed
 #if VAR_INITIALIZERS
