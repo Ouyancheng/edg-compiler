@@ -130,6 +130,24 @@ are instantiated.
 
 #if DO_IL_LOWERING
 
+
+static void add_externalized_trans_unit_corresp(a_source_correspondence *scp,
+                                                an_il_entry_kind        kind)
+/*
+The entity with the indicated source correspondence has just been externalized.
+Add a trans_unit_corresp to it (externally-linked entities are supposed
+to have one).  The entity has the indicated kind.
+*/
+{
+  a_trans_unit_corresp_ptr tucp = alloc_trans_unit_corresp();
+
+  tucp->kind = kind;
+  tucp->canonical = (char *)scp;
+  if (!in_secondary_trans_unit(scp)) tucp->primary = (char *)scp;
+  scp->trans_unit_corresp = tucp;
+}  /* add_externalized_trans_unit_corresp */
+
+
 static void externalize_statics_for_exported_templates(a_scope_ptr scope);
 
 
@@ -174,6 +192,8 @@ referenced by exported templates.
 #if MAINTAIN_NEEDED_FLAGS
       mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
 #endif /* MAINTAIN_NEEDED_FLAGS */
+      add_externalized_trans_unit_corresp(&rout->source_corresp,
+                                          iek_routine);
     }  /* if */
   }  /* for */
   /* Local static variables do not get externalized. */
@@ -187,6 +207,8 @@ referenced by exported templates.
 #if MAINTAIN_NEEDED_FLAGS
         mark_as_needed((char *)var, (an_il_entry_kind)iek_variable);
 #endif /* MAINTAIN_NEEDED_FLAGS */
+        add_externalized_trans_unit_corresp(&var->source_corresp,
+                                            iek_variable);
       }  /* if */
     }  /* for */
   }  /* if */
