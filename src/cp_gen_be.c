@@ -3929,8 +3929,19 @@ is the one associated with the pragma.
     set_output_position(&pp->position);
     disable_line_wrapping();
     write_str("#pragma ");
-    check_assertion_str(pp->pragma_text != NULL,
-                        "gen_pragma: NULL pragma_text");
+    switch (pp->kind) {
+#if IDENT_DIRECTIVE_AND_PRAGMA
+      case pk_ident:
+        write_str("ident ");
+        dump_constant(pp->variant.ident_string);
+        break;
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+      default:
+        check_assertion_str(pp->pragma_text != NULL,
+                            "dump_pragma: NULL pragma_text");
+        write_str(pp->pragma_text);
+        break;
+    }  /* switch */
     write_str(pp->pragma_text);
     enable_line_wrapping();
     end_output_line();
