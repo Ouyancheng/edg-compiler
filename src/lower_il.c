@@ -6488,8 +6488,7 @@ pointer to the routine.
   (void)strcpy(name+prefix_len, module_id);
   /* Make a type and routine entry for the routine. */
   init_rout = make_rout_entry(name, (a_storage_class)sc_unspecified,
-                              integer_type((an_integer_kind)ik_char),
-                              (a_type_ptr)NULL);
+                              void_type(), (a_type_ptr)NULL);
   /* Make a memory region, scope, and block for the init routine definition. */
   *init_rout_scope = make_routine_definition(init_rout, /*make_return=*/TRUE,
                                              il_region);
