@@ -601,10 +601,11 @@ and for the instantiation of template functions.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_param_id_ptr                 orig_param_id = NULL;
   a_boolean                      instantiate_param_declared_type = FALSE;
+  a_boolean                      is_real_instantiation;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_ptr                    scope_ptr;
   a_struct_stmt_stack_state      saved_sss_state;
-  a_boolean                      is_instantiation, is_real_instantiation;
+  a_boolean                      is_instantiation;
   a_param_type_ptr               ptp;
   a_namespace_ptr                nsp = NULL;
   a_boolean                      is_function_try_block = FALSE;
@@ -629,8 +630,10 @@ and for the instantiation of template functions.
   rout_type = skip_typerefs(rout_ptr->type);
   rtsp = rout_type->variant.routine.extra_info;
   is_instantiation = (flags & SFB_IS_INSTANTIATION) != 0;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   is_real_instantiation = is_instantiation &&
                    !scope_stack[depth_scope_stack].in_prototype_instantiation;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (instantiate_extern_inline && rout_ptr->is_inline &&
       rout_ptr->storage_class == (a_storage_class)sc_unspecified) {
     /* When inline functions are instantiated like templates, add the function
