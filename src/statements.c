@@ -4504,14 +4504,17 @@ locates the corresponding following colon.
   db_enter(4, "add_switch_clause");
 
   check_assertion(constant_ptr == NULL || is_error_constant(constant_ptr) ||
-                  constant_ptr->kind == (a_constant_repr_kind)ck_integer);
+                  constant_ptr->kind == (a_constant_repr_kind)ck_integer ||
+                  constant_ptr->kind ==
+                                     (a_constant_repr_kind)ck_template_param);
   /* Set any_exec_statement_seen manually.  Normally, it is set when a
      statement is added to the IL, but case labels don't have an associated
      IL statement. */
   top_sssep->any_exec_statement_seen = TRUE;
   new_largest_case = FALSE;
   if (constant_ptr == NULL || !is_error_constant(constant_ptr)) {
-    if (constant_ptr != NULL) {
+    if (constant_ptr != NULL &&
+        constant_ptr->kind != (a_constant_repr_kind)ck_template_param) {
       /* Keep track of the maximum value seen to speed up the test if the
          values are generally in ascending order. */
       if (sssep->switch_max_case_value == NULL ||
@@ -4550,8 +4553,10 @@ locates the corresponding following colon.
           }  /* if */
           for (; cp != NULL; cp = cp->next) {
             if (!is_error_constant(cp)) {
-              check_assertion(cp->kind == (a_constant_repr_kind)ck_integer);
-              if (cmp_integer_constants(cp, constant_ptr) == 0) {
+              check_assertion(
+                         cp->kind == (a_constant_repr_kind)ck_integer ||
+                         cp->kind == (a_constant_repr_kind)ck_template_param);
+              if (eq_constants(cp, constant_ptr)) {
                 pos_error(ec_case_label_appears_more_than_once,
                           label_position);
                 err = TRUE;
@@ -4701,12 +4706,18 @@ locates the corresponding following colon.
       /* Add an error constant at the end of the list. */
       add_at_end = TRUE;
     } else {
-      check_assertion(constant_ptr->kind == (a_constant_repr_kind)ck_integer);
+      check_assertion(
+          constant_ptr->kind == (a_constant_repr_kind)ck_integer ||
+          constant_ptr->kind == (a_constant_repr_kind)ck_template_param);
     }  /* if */
     if (add_at_end) {
       /* Add at the end of the existing list. */
       prev_cp = sssep->last_const_in_last_switch_clause;
       cp = NULL;
+    } else if (constant_ptr->kind == (a_constant_repr_kind)ck_template_param) {
+      /* A template dependent constant: accumulate them at the start of the
+         list.  (Their mutual ordering does not matter.) */
+      prev_cp = cp = NULL;
     } else {
       /* Find the right spot for insertion. */
       for (prev_cp = NULL, cp = scp->constant_list;
@@ -4714,9 +4725,11 @@ locates the corresponding following colon.
            prev_cp = cp, cp = cp->next) {
         /* Stop when an error constant is seen (they are accumulated at the
            end of the list) or when the value exceeds that of the constant
-           being added. */
-        if (is_error_constant(cp) ||
-            cmp_integer_constants(cp, constant_ptr) > 0) break;
+           being added.  (Skip any template dependent constants that might
+           have been accumulated at the start of the list.) */
+        if (cp->kind != (a_constant_repr_kind)ck_template_param &&
+            (is_error_constant(cp) ||
+             cmp_integer_constants(cp, constant_ptr) > 0)) break;
       }  /* for */
     }  /* if */
     /* Insert after prev_cp (in front of the constant that stopped the
@@ -4898,7 +4911,8 @@ Scan a case label definition.  The syntax is:
     /* Error; constant_ptr is left NULL. */
   } else {
 #if CHECKING
-    if (constant.kind != (a_constant_repr_kind)ck_integer) {
+    if (constant.kind != (a_constant_repr_kind)ck_integer &&
+        constant.kind != (a_constant_repr_kind)ck_template_param) {
       internal_error("case_label: case value not int");
     }  /* if */
 #endif /* CHECKING */
