@@ -836,9 +836,14 @@ If not, *failed is set.
         break;
       case stmk_return:
         /* Returns are allowed only as the last thing in the routine. */
-        /* Find the last statement in the top block. */
+        /* Find the last statement in the top block.  Do that repeatedly
+           so we can find a return that is the last statement in a block
+           that is the last statement in the block ... that is the last
+           statement in the top level block of the function. */
         stmt = routine_scope_being_inlined->assoc_block;
-        stmt = last_statement_in_block(stmt);
+        do {
+          stmt = last_statement_in_block(stmt);
+        } while (stmt->kind == (a_statement_kind)stmk_block);
         if (stmt == statement) {
           /* Yes, this return is the last in the top block, so it can be
              inlined. */
