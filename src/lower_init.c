@@ -832,7 +832,10 @@ cannot be a bitfield selection.
     entity_node = add_cast(entity_node, make_pointer_type(entity_type));
     /* Because of the cast, we're using the object's address as a real
        address, not just as an lvalue address, so set the address taken
-       flag if appropriate. */
+       flag if appropriate.  Note that the interpretation of the
+       address_taken flag has changed a few times, so the processing
+       here is conservative -- it sets the flag in all cases, which
+       guarantees it will work. */
     if (!ipdp->indirect_through_variable) {
       set_variable_address_taken(ipdp->variable);
     }  /* if */
@@ -867,20 +870,10 @@ TRUE, the entity is the destination of an initialization operation.
       /* Add a field selection.  ("au_" for possibly from anonymous union.) */
       a_field_ptr field = modifiers->curr_field;
       entity_node = au_field_lvalue_selection_expr(entity_node, field);
-      if (using_as_dest) {
-        /* The entity will be used as the destination of an initialization, so
-           drop "const" (if present) from the type to make it modifiable. */
-        if (field->is_bit_field) {
-          /* Bit field.  We can't fix this by casting the address to const.
-             We trust that a back end will be able to do this assignment
-             anyway.  We can do nothing else; in particular, we cannot
-             change the type of the bit field to drop the "const" because
-             the field is still active in the compilation. */
-        } else {
-          /* Non-bitfield.  Drop const if present. */
-          entity_node = drop_const_on_init_entity_node(entity_node, ipdp);
-        }  /* if */
-      }  /* if */
+      /* We don't drop const from the type here.  Most back ends won't care
+         if we assign to a const member, the C-generating back end drops
+         const on member declarations, and there's no way to rewrite
+         bitfield cases anyway (because you can't take their addresses). */
     } else if (modifiers->curr_base != NULL) {
       /* Add a base class selection. */
       entity_node = make_base_class_lvalue(entity_node, modifiers->curr_base,

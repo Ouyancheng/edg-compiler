@@ -2326,7 +2326,13 @@ Output the definition of the indicated struct or union type.
       if (!field->is_bit_field) {
         /* Not a bit field. */
         /* Note that a name will be generated for an anonymous union in C++. */
-        dump_declaration_using_type(field->type, &field->source_corresp);
+        /* Note that "const" is dropped; that's important so that
+           initialization code rewritten as executable code by IL lowering
+           can assign to this member and the overall struct. */
+        dump_general_declaration_using_type(field->type,
+                                            &field->source_corresp,
+                                            NO_VARIABLE, NO_TEMP,
+                                            /*suppress_const=*/TRUE);
         write_tok_ch(';');
       } else {
         /* Bit field. */
@@ -2371,7 +2377,10 @@ Output the definition of the indicated struct or union type.
               check_assertion(local_type.kind == (a_type_kind)tk_integer);
               local_type.variant.integer.int_kind = eff_ikind;
             }  /* if */
-            dump_declaration_using_type(eff_type, &field->source_corresp);
+            dump_general_declaration_using_type(eff_type,
+                                                &field->source_corresp,
+                                                NO_VARIABLE, NO_TEMP,
+                                                /*suppress_const=*/TRUE);
             write_tok_ch(';');
           }  /* if */
         } else
@@ -2379,10 +2388,9 @@ Output the definition of the indicated struct or union type.
         {
           /* Put out a bit field declaration. */
           /* Generate the bit field type to match the signedness. */
-          /* Note that any type qualifiers on the field are dropped.  That's
-             important when a bitfield is initialized by executable code
-             generated in a constructor -- if the bitfield were const,
-             some constructs couldn't be generated. */
+          /* Note that "const" is dropped; that's important so that
+             initialization code rewritten as executable code by IL lowering
+             can assign to this member and the overall struct. */
           write_tok_str(field->bit_field_is_signed ?
 #if C_GEN_BE_GENERATES_ANSI_C
                                        "signed int" : "unsigned int"
