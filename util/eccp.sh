@@ -49,8 +49,7 @@ automatic_instantiation=1
 # Other variables used in automatic instantiation mode
 #
 if [ $automatic_instantiation -eq 1 ] ; then
-  instantiation_command_line="$0 -c"
-  directory=`pwd`
+  compile_command=$0
   instantiation_libraries="/edg/cpfe/lib/libC.a"
 fi
 #
@@ -188,11 +187,18 @@ do
       cc_only=1;
       add_to_instantiation_command=0
       ;;
+    -command)
+#     The command name to be used in the .ii file in place of what is
+#     found in argument 0.
+      shift
+      compile_command=$1
+      used_two_params=1
+      add_to_instantiation_command=0
     -o)
 #     Explicitly name the executable.
       shift;
-      executable=$1;
       used_two_params=1
+      executable=$1;
       add_to_instantiation_command=0
       ;;
     -w)
@@ -416,6 +422,14 @@ do
   fi
   shift;
 done
+
+# Put the command name on the beginning of the instantiation command line.
+# This is done here because a different name can be supplied on the
+# command line.  This is useful when the compile command is a script that
+# sets some environment variables before invoking this script.
+if [ $automatic_instantiation -eq 1 ] ; then
+  instantiation_command_line="$compile_command -c"$instantiation_command_line
+fi
 
 if [ $error -eq 1 ]
 then
