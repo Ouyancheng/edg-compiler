@@ -3544,6 +3544,52 @@ because the feature is used to implement offsetof, a standard feature.
 }  /* scan_intaddr_operator */
 
 
+static a_routine_ptr select_delete_routine(a_type_ptr        delete_type,
+                                           a_boolean         use_global_delete,
+                                           a_boolean         array_delete,
+                                           a_source_position *delete_position)
+/*
+Determine the delete routine to be used to delete an object of type
+delete_type, and return a pointer to the routine entry.  If use_global_delete
+is TRUE, return ::operator delete.  If array_delete is TRUE, return the
+right delete routine for an array.  The symbol is marked as referenced
+at *delete_position, but the IL entry is not marked as referenced.
+*/
+{
+  a_symbol_ptr     operator_delete_symbol = NULL;
+  a_symbol_locator locator_for_delete;
+
+  /* Select the proper "delete" routine.  If the type is a class type and
+     the class has a "delete" operator, use it.  However, if use_global_delete
+     or array_delete is TRUE, use the global ::operator delete. */
+  if (!use_global_delete && !array_delete &&
+      is_class_struct_union_type(delete_type)) {
+    operator_delete_symbol = opname_member_function_symbol(
+                                                    (an_opname_kind)onk_delete,
+                                                    delete_type);
+    if (operator_delete_symbol != NULL) {
+      make_locator_for_symbol(operator_delete_symbol, &locator_for_delete);
+      locator_for_delete.source_position = *delete_position;
+      check_ambiguity_and_verify_access(&locator_for_delete);
+      operator_delete_symbol = fundamental_symbol_of(operator_delete_symbol);
+    }  /* if */
+  }  /* if */
+  if (operator_delete_symbol == NULL) {
+    /* Use the global operator "delete". */
+    operator_delete_symbol= opname_function_symbol((an_opname_kind)onk_delete);
+  }  /* if */
+  /* Since delete cannot be overloaded, the symbol should not be
+     overloaded or a function template. */
+  check_assertion(operator_delete_symbol->kind == (a_symbol_kind)sk_routine ||
+                  operator_delete_symbol->kind ==
+                                            (a_symbol_kind)sk_member_function);
+  /* Mark the routine symbol referenced, but not the IL entry (yet). */
+  reference_to_symbol(srk_reference, operator_delete_symbol,
+                      delete_position, /*update_il_entry=*/FALSE);
+  return operator_delete_symbol->variant.routine.ptr;
+}  /* select_delete_routine */
+
+
 static a_dynamic_init_ptr add_array_nonconstant_aggregate_init(
                                          a_dynamic_init_ptr element_dip,
                                          a_type_ptr         elem_type,
@@ -3901,7 +3947,7 @@ specification allow a variable-sized array as the top type.
     an_expr_node_ptr            new_node;
     a_new_delete_supplement_ptr ndsp;
     a_dynamic_init_ptr          dip;
-    a_routine_ptr               new_routine;
+    a_routine_ptr               new_routine, delete_routine;
     a_boolean                   access_error_reported;
 
     /* Use an enk_new_delete node to represent the "new". */
@@ -3988,11 +4034,23 @@ specification allow a variable-sized array as the top type.
     /* Avoid freeing the lists twice. */
     arg_operand_list = NULL;
     arg_match_list = NULL;
+    /* If exceptions are enabled, record the delete routine to be used to
+       undo the allocation if an exception is thrown. */
+    delete_routine = NULL;
+    if (exceptions_enabled && new_routine != NULL) {
+      delete_routine = select_delete_routine(base_new_type,
+                                             use_global_new,
+                                             array_new,
+                                             &placement_position);
+      /* Mark the routine referenced. */
+      if_evaluating_mark_routine_referenced(delete_routine);
+    }  /* if */
     /* Put the routine and argument list into the supplement.  Note that
        the argument list is present even when the routine is NULL -- that's
        necessary so that the array size is available when the number of
        elements is nonconstant. */
     ndsp->routine = new_routine;
+    ndsp->delete_routine = delete_routine;
     ndsp->arg = arg_expr_list;
     /* Make an operand for the result. */
     make_expression_operand(new_node, ptr_new_type, result);
@@ -4032,12 +4090,10 @@ As an anachronism, allow an expression inside the [ ].
   an_expr_node_ptr   ptr_node, delete_node;
   a_boolean          use_global_delete = FALSE, is_constant, array_delete;
   a_boolean          err = FALSE;
-  a_symbol_ptr       operator_delete_symbol;
   a_routine_ptr      delete_routine, dtor_routine;
   an_operand         operand;
   a_constant         constant;
   an_expr_node_ptr   expr;
-  a_symbol_locator   locator_for_delete;
   a_dynamic_init_ptr dip;
   a_routine_type_supplement_ptr
                      delete_routine_rtsp;
@@ -4154,35 +4210,10 @@ As an anachronism, allow an expression inside the [ ].
          the class has a "delete" operator, use it.  However, if "::" preceded
          the keyword "delete", always use the global ::delete.  Also use the
          global ::delete for arrays of class objects. */
-      operator_delete_symbol = NULL;
-      if (is_class_struct_union_type(delete_type) && !use_global_delete &&
-          !array_delete) {
-        operator_delete_symbol = opname_member_function_symbol(
-                                                    (an_opname_kind)onk_delete,
-                                                    delete_type);
-        if (operator_delete_symbol != NULL) {
-          make_locator_for_symbol(operator_delete_symbol, &locator_for_delete);
-          locator_for_delete.source_position = delete_position;
-          check_ambiguity_and_verify_access(&locator_for_delete);
-          operator_delete_symbol =
-                                 fundamental_symbol_of(operator_delete_symbol);
-        }  /* if */
-      }  /* if */
-      if (operator_delete_symbol == NULL) {
-        /* Use the global operator "delete". */
-        operator_delete_symbol =
-                            opname_function_symbol((an_opname_kind)onk_delete);
-      }  /* if */
-      /* Mark the routine symbol used, but not the IL entry (yet). */
-      reference_to_symbol(srk_reference, operator_delete_symbol,
-                          &delete_position, /*update_il_entry=*/FALSE);
-      /* Since delete cannot be overloaded, the symbol should not be
-         overloaded or a function template. */
-      check_assertion(operator_delete_symbol->kind ==
-                                                   (a_symbol_kind)sk_routine ||
-                      operator_delete_symbol->kind ==
-                                            (a_symbol_kind)sk_member_function);
-      delete_routine = operator_delete_symbol->variant.routine.ptr;
+      delete_routine = select_delete_routine(delete_type,
+                                             use_global_delete,
+                                             array_delete,
+                                             &delete_position);
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
       if (dtor_routine != NULL) {
         a_type_ptr unqual_base_delete_type = skip_typerefs(base_delete_type);
@@ -6515,7 +6546,12 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
   a_variable_ptr   this_var, operand_var;
   an_expr_node_ptr operand_expr;
 
-  if (is_an_rvalue(operand) && is_expression_operand(operand)) {
+  /* Assignment to "this" is not allowed if exceptions are enabled.
+     For one thing, the code in IL lowering does not know how to build the
+     right region table if there are several assignments to "this" in one
+     constructor. */
+  if (allow_anachronisms && !exceptions_enabled &&
+      is_an_rvalue(operand) && is_expression_operand(operand)) {
     operand_expr = operand->variant.expression;
     if (is_variable_node(operand_expr)) {
       /* The operand is an rvalue that is the value of a simple variable. */
@@ -6598,7 +6634,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
       do_operand_transformations(operand_1,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
 #if ASSIGNMENT_TO_THIS_ALLOWED
-      if (C_dialect == C_dialect_cplusplus && !exceptions_enabled &&
+      if (C_dialect == C_dialect_cplusplus &&
           is_an_rvalue(operand_1) &&  /* For speed. */
           check_assignment_to_this_pointer(operand_1)) {
         /* Anachronism -- assigning to the "this" pointer. */
