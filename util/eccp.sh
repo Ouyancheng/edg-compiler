@@ -30,6 +30,12 @@ CPFE=${CPFE-$EDG_BASE/bin/cfe}
 #
 PATCH=${EDG_PATCH_PATH-$EDG_BASE/lib/patch}
 #
+# edg_decode (demangler) executable.  If no edg_decode is available,
+# use /bin/cat.  The script will work properly, you just won't get
+# demangled names in linker output messages.
+#
+EDG_DECODE=${EDG_DECODE_PATH-$EDG_BASE/lib/edg_decode}
+#
 # "munch" executable
 #
 MUNCH=${EDG_MUNCH_PATH-$EDG_BASE/lib/edg_munch}
@@ -681,7 +687,7 @@ then
 #
 #     Link the executable
 #
-      $link_command $link_command_suffix
+      $link_command $link_command_suffix 2>&1 | $EDG_DECODE
       status=$?
       if [ $status = 0 -a $cmode -eq 0 ]
       then
@@ -711,7 +717,7 @@ then
             exit $status
           fi
 #         Do the link again.
-          $link_command $tmpfile.o $link_command_suffix
+          $link_command $tmpfile.o $link_command_suffix 2>&1 | $EDG_DECODE
           status=$?
           rm -f $tmpfile.c $tmpfile.o
         fi
