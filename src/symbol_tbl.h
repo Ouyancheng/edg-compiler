@@ -82,8 +82,8 @@ typedef struct a_symbol_locator {
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
 			   if this pointer is non-NULL, it is the result of
-			   the most recent unconstrained lookup of this
-			   identifier (e.g., by normal_id_lookup). */
+			   the most recent lookup of this identifier (e.g.,
+			   by normal_id_lookup). */
 } a_symbol_locator;
 
 /*
