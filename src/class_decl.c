@@ -5879,8 +5879,8 @@ declared member functions.
                                   (a_boolean)func_info->is_definition);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!compiler_generated) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     if (func_info->is_definition) {
       /* For a definition enter the function type as the "declared_type" in
          the routine entry itself. Avoid adding a redundant type to the IL
