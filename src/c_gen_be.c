@@ -2046,8 +2046,9 @@ static void dump_type_declaration(a_type_ptr type,
 /*
 Dump out one type declaration.  Print out the line on which it was declared.
 The only types that can be declared are enumerations, structs, unions, and
-typedefs.  Dump only structs/unions if bodies is TRUE; otherwise, dump
-all types, but for structs/unions put out only a forward reference.
+typedefs.  When bodies == FALSE (first pass), dump enums, and structs/unions
+as declarations.  When bodies == TRUE (second pass), dump typedefs, and
+structs/unions as definitions (if they are defined).
 */
 {
   switch (type->kind) {
@@ -2058,6 +2059,7 @@ all types, but for structs/unions put out only a forward reference.
         internal_error("dump_type_declaration: non-enum integer type");
       }  /* if */
 #endif /* CHECKING */
+      /* Dump enums only on the first pass. */
       if (!bodies) dump_enum(type);
       break;
     case tk_struct:
@@ -2067,9 +2069,8 @@ all types, but for structs/unions put out only a forward reference.
       dump_union(type, bodies);
       break;
     case tk_typeref:
-      if (!bodies) {
-        dump_typedef(type);
-      }  /* if */
+      /* Dump typedefs only on the second pass. */
+      if (bodies) dump_typedef(type);
       break;
 #if CHECKING
     default:
@@ -2085,17 +2086,23 @@ all types, but for structs/unions put out only a forward reference.
 #endif /* ifndef CFE */
 static void dump_all_type_declarations(a_type_ptr type_list)
 /*
-Dump all types declared within one scope.  Do not emit types that do not have a
-symbol associated with them.
+Dump all types declared within one scope.
 */
 {
 #ifdef CFE
   a_type_ptr type;
   a_boolean  bodies;
 
-  /* Do two iterations.  The first dumps all types, but only forward references
-     for structs/unions. The second dumps the bodies of structs/unions.  This
-     is necessary to get the ordering right. */
+  /* Do two iterations.  The first outputs declarations for only those types
+     that can be declared before they are defined (structs, unions, and enums).
+     Enums are output with definitions, since it's nonstandard to put them
+     out as forward declarations, and the definitions can't depend on
+     other types anyway.  The second pass dumps all types except enums,
+     with definitions for structs/unions.  This two-pass process is necessary
+     to get the ordering right in the output, because structs/unions/enums
+     appear only once on the types list (at the point of definition) even
+     though they may appear at several points in the original source
+     program. */
   /* On both passes, ignore unnamed types that are not tags.  There probably
      aren't any of these, but if there are, they should be ignored. */
   bodies = FALSE;
