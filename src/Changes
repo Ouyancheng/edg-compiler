@@ -1,5 +1,22 @@
 Version 3.2
 
+3/18/03  Missing access error in compiler-generated function
+
+If a compiler-generated function was produced during the instantiation
+of a template, the access of the template could affect the access checking
+done during the generation of the function.  This could result in missing
+access errors.  Now fixed.
+
+  template <class T> class B {
+      B() {}
+  public:
+      static B * f() { return new T; }
+  };
+  class D : public B<D> { };
+  int main(void) {
+    B<D> * p = B<D>::f();
+  }
+
 3/18/03  Multiple --preinclude and --preinclude_macros options
 
 The use of multiple --preinclude and/or --preinclude_macros options

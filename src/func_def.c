@@ -2206,6 +2206,7 @@ empty statement block.
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */
   } else {
+    a_scope_depth	saved_innermost_scope_that_affects_access;
     a_scope_ptr  class_scope = class_type->variant.
                                     class_struct_union.extra_info->assoc_scope;
     a_symbol_ptr rout_sym;
@@ -2214,6 +2215,12 @@ empty statement block.
     check_assertion(class_scope != NULL);
     /* Switch translation units if necessary. */
     trans_unit_pushed = push_translation_unit_if_needed(rout_sym);
+    /* Reset the innermost scope that affects access control so that any
+       existing context on the scope stack does not affect the generation
+       of the function. */
+    saved_innermost_scope_that_affects_access =
+                         depth_of_innermost_scope_that_affects_access_control;
+    depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
     /* Push a class symbol reactivation scope, to make class member names
        visible for processing the function definition. */
     push_class_and_template_reactivation_scope(
@@ -2261,6 +2268,8 @@ empty statement block.
     pop_scope();
     /* Terminate the class reactivation scope. */
     pop_class_reactivation_scope();
+    depth_of_innermost_scope_that_affects_access_control =
+                                    saved_innermost_scope_that_affects_access;
     /* Mark the symbol for this routine "defined". */
     rout_sym->defined = TRUE;
     /* Notify the correspondence routines that a definition of this function
