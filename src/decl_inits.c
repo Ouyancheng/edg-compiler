@@ -898,6 +898,7 @@ ref field of a class object (or an array of same) remains uninitialized.
 
 static a_boolean scan_initializer_list(a_type_ptr          *type,
                                        a_variable_ptr      vp,
+                                       a_boolean           static_lifetime,
                                        a_constant_ptr      *init_con,
                                        a_dynamic_init_ptr  *init_dip,
                                        a_source_position   *err_pos)
@@ -905,14 +906,15 @@ static a_boolean scan_initializer_list(a_type_ptr          *type,
 Scan an initializer list for an aggregate initialization.  Usually it is a
 brace-enclosed list of initializers, but the case of initializing an
 array-of-char with a string is also handled here.  *type points to the type
-of the variable being initialized, and vp points to the variable.  (*type is
-passed independently because it may be modified as part of initializer
-processing, but the variable should not necessarily be updated.)  Either
-*init_con or *init_dip (but not both) will be updated, depending on whether
-this is an instance of dynamic initialization.  *err_pos indicates the
-source position for diagnostics.  The function returns TRUE unless there
-were errors in the scan (other than those reporting the detection of
-uninitialized fields).
+of the variable being initialized, and vp (which may be NULL in error cases)
+points to the variable.  (*type is passed independently because it may be
+modified as part of initializer processing, but the variable should not
+necessarily be updated.)  static_lifetime is TRUE for global and local static
+variables.  Either *init_con or *init_dip (but not both) will be updated,
+depending on whether this is an instance of dynamic initialization.  *err_pos
+indicates the source position for diagnostics.  The function returns TRUE
+unless there were errors in the scan (other than those reporting the
+detection of uninitialized fields).
 */
 {
   a_boolean          any_member_uninitialized = FALSE;
@@ -921,18 +923,22 @@ uninitialized fields).
   a_boolean          nothing_taken;
   a_boolean          err = FALSE;
 
+  db_enter(3, "scan_initializer_list");
   /* Scan the initializer list. */
 #if DEBUG
   if (debug_level == 4) {
     fputs("scanning initializer list for variable \"", f_debug);
-    db_name(&vp->source_corresp);
+    if (vp == NULL) {
+      fputs("<null>", f_debug);
+    } else {
+      db_name(&vp->source_corresp);
+    }  /* if */
     fputs("\", type = ", f_debug);
     db_abbreviated_type(*type);
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-  *init_con = get_initializer(type, /*top_level=*/TRUE,
-                              has_static_storage_duration(vp->storage_class),
+  *init_con = get_initializer(type, /*top_level=*/TRUE, static_lifetime,
                               &any_member_uninitialized,
                               &any_const_or_ref_member_uninitialized,
                               &initialization_is_dynamic, &nothing_taken);
@@ -951,21 +957,24 @@ uninitialized fields).
                       (*init_con)->kind == (a_constant_repr_kind)ck_aggregate);
 #endif /* CHECKING */
     }  /* if */
-    if (any_const_or_ref_member_uninitialized) {
-      /* A const or ref field was not initialized. */
-      if (is_union_type(*type)) {
-        /* No diagnostic for unions. */
-      } else {
-        a_symbol_ptr  sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
-        if (C_mode()) {
-          pos_sy_warning(ec_var_with_uninitialized_field, err_pos, sym);
+    if (vp != NULL) {
+      if (any_const_or_ref_member_uninitialized) {
+        /* A const or ref field was not initialized. */
+        if (is_union_type(*type)) {
+          /* No diagnostic for unions. */
         } else {
-          pos_sy_error(ec_var_with_uninitialized_member, err_pos, sym);
+          a_symbol_ptr  sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+          if (C_mode()) {
+            pos_sy_warning(ec_var_with_uninitialized_field, err_pos, sym);
+          } else {
+            pos_sy_error(ec_var_with_uninitialized_member, err_pos, sym);
+          }  /* if */
         }  /* if */
       }  /* if */
+      if (any_member_uninitialized) vp->is_partially_initialized = TRUE;
     }  /* if */
-    if (any_member_uninitialized) vp->is_partially_initialized = TRUE;
   }  /* if */
+  db_exit();
   return !err;
 }  /* scan_initializer_list */
 
@@ -1227,7 +1236,7 @@ returned set to TRUE.
   a_variable_ptr                    vp = NULL;
   a_type_ptr                        vp_type = NULL;
   a_boolean                         var_err, init_err;
-  a_boolean                         static_lifetime = FALSE;
+  a_boolean                         static_lifetime;
   a_boolean                         brace_flag = FALSE;
   a_constant                        constant;
   a_constant_ptr                    init_con = NULL;
@@ -1250,6 +1259,7 @@ returned set to TRUE.
        initializer -- e.g., void f(int i = 1) -- are handled elsewhere.) */
     pos_error(ec_initializer_in_param, source_pos);
     var_err = TRUE;
+    static_lifetime = FALSE;
   } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
     vp = symbol_ptr->variant.variable.ptr;
     static_lifetime = has_static_storage_duration(vp->storage_class);
@@ -1260,6 +1270,9 @@ returned set to TRUE.
     /* Not a variable (for example, might be a typedef). */
     pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
     var_err = TRUE;
+    /* Set static_lifetime to a fake value that will be consistent with where
+       the declaration appears. */
+    static_lifetime = (depth_innermost_function_scope == NULL);
   }  /* if */
   if (!var_err) {
     vp_type = vp->type;
@@ -1315,8 +1328,8 @@ returned set to TRUE.
     /* The initializer of a static data member is scanned with the original
        class reactivated. */
     push_class_reactivation_scope(symbol_ptr->class_of_which_a_member);
-  } else if (static_lifetime && vp->source_corresp.is_local_to_function &&
-             long_lifetime_temps) {
+  } else if (static_lifetime && long_lifetime_temps &&
+             depth_innermost_function_scope != DEPTH_OF_FILE_SCOPE) {
     /* This is the initialization of a local static variable, and the user
        has opted for long-lifetime temporaries.  Push an expr-temporary
        lifetime to help handle the case. */
@@ -1404,8 +1417,8 @@ returned set to TRUE.
       /* Ordinary C-style aggregate initialization, usually with a brace-
          enclosed list of values.  Except that in C++ such lists may include
          non-constants. */
-      if (scan_initializer_list(&vp_type, vp, &init_con, &init_dip,
-                                source_pos)) {
+      if (scan_initializer_list(&vp_type, vp, static_lifetime, &init_con,
+                                &init_dip, source_pos)) {
         /* The scan was successful. */
         if (!var_err) {
           /* Copy the type back into the variable.  It might have been changed
