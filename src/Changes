@@ -1,5 +1,36 @@
 Version 2.35
 
+1/29/97 Enumerator with value larger than int range should be error (for now)
+
+The front end has failed to diagnose enumerator expressions whose
+values are outside of the int/unsigned int range.  Values in the int
+range are okay, and values that are acceptable as unsigned ints but
+not as ints are accepted as an extension.  However, values outside
+that range should get an error, and didn't.  Now fixed.  From a
+practical point of view, this failure had little significance
+on many versions, because if int and long have the same size the
+only way to get invalid values is to have long long configured
+in and use a long long constant.  But on versions with, say,
+16-bit integers and 32-bit longs, the problem was easy to provoke.
+
+This is an interim fix: at some point, we will be implementing the
+WP rules, which allow enums to have base types larger than int.
+But until then, we are following the C and ARM C++ rules, which
+limit enums to the int range, and we should be issuing this error.
+(And the check will continue to be needed in C mode.)
+
+Failure to detect this error caused a later internal error on the
+following case, when "long long" is allowed and is bigger than int
+and bigger than 32 bits:
+
+  enum {
+    Fosc = 100000000000,
+    Ft0 = Fosc/12
+  };
+
+On versions with 16-bit ints and 32-bit longs, the same abort can be
+gotten with a value of 100000 in the above example.
+
 1/29/97 Specializing a partial specialization of a member template
 
 Formerly, it was not possible to provide a partial specialization of
