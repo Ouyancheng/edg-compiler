@@ -5231,8 +5231,7 @@ static a_routine_ptr make_covariant_return_type_entry_routine(
                                      a_routine_ptr         overridden_function,
                                      a_base_class_ptr      rabcp,
                                      a_targ_ptrdiff_t      delta,
-                                     a_virtual_table_index vcall_index,
-                                     a_boolean             should_exist)
+                                     a_virtual_table_index vcall_index)
 /*
 Create or find a routine for an entry wrapper that handles "this" adjustments
 and/or covariant return types.  The routine is a version of
@@ -5240,7 +5239,7 @@ overriding_function that can be used in place of overridden_function (i.e., it
 has the return type of the overridden function).  When used for IA-64
 thunks, rabcp, delta, and vcall_index provide the description of the
 function of the thunk.  The generated routine is not given a definition
-yet.  If should_exist is TRUE, the routine should exist already.
+yet.
 */
 {
   a_routine_ptr         rout, entry_routine;
@@ -5307,21 +5306,6 @@ yet.  If should_exist is TRUE, the routine should exist already.
       goto end_of_routine;
     }  /* if */
   }  /* for */
-#if CHECKING
-  if (should_exist) {
-#if DEBUG
-    fprintf(f_debug, "overriding_function:\n");
-    db_entity_info((char *)overriding_function, iek_routine);
-    fprintf(f_debug, "overridden_function:\n");
-    db_entity_info((char *)overridden_function, iek_routine);
-    fprintf(f_debug, "rabcp:\n");
-    db_base_class(rabcp, TRUE);
-    fprintf(f_debug, "delta: %ld\n", (long)delta);
-    fprintf(f_debug, "vcall_index: %ld\n", (long)vcall_index);
-#endif /* DEBUG */
-    internal_error("thunk for routine should have been created previously");
-  }  /* if */
-#endif /* CHECKING */
   /* Add a new routine, with the parameters of the overriding function
      (including the right "this" parameter type), and the return type of the
      overridden function. */
@@ -5831,15 +5815,13 @@ table.
           func_to_call = make_covariant_return_type_entry_routine(
                                              func_to_call,
                                              override_list->primary_function,
-                                             rabcp, delta, vcall_index,
-                                             /*should_exist=*/IA64_ABI);
+                                             rabcp, delta, vcall_index);
 #if IA64_ABI
           if (second_func_to_call != NULL) {
             second_func_to_call = make_covariant_return_type_entry_routine(
                                              second_func_to_call,
                                              override_list->primary_function,
-                                             rabcp, delta, vcall_index,
-                                             /*should_exist=*/TRUE);
+                                             rabcp, delta, vcall_index);
           }  /* if */
           /* The function called adjusts "this" so we do not have to do it. */
           delta = 0;
@@ -15090,13 +15072,11 @@ when a base class return type is needed.  Definitions will be put out later.
                                                                          ) {
           /* The adjustment offset is non-NULL, or the base class is
              virtual, so an entry/wrapper routine is needed. */
-          (void)make_covariant_return_type_entry_routine(
-                                                       routine,
-                                                       ovf->primary_function,
-                                                       adjustment_bcp,
-                                                       delta,
-                                                       vcall_index,
-                                                       /*should_exist=*/FALSE);
+          (void)make_covariant_return_type_entry_routine(routine,
+                                                         ovf->primary_function,
+                                                         adjustment_bcp,
+                                                         delta,
+                                                         vcall_index);
 #if IA64_ABI
           /* Add thunks for any alternate entry points. */
           if (routine->special_kind ==
@@ -15111,13 +15091,11 @@ when a base class return type is needed.  Definitions will be put out later.
               arouto = alternate_entry_point(ovf->primary_function,
                                              arout->ctor_dtor_kind,
                                              /*define_now=*/FALSE);
-              (void)make_covariant_return_type_entry_routine(
-                                                       arout,
-                                                       arouto,
-                                                       adjustment_bcp,
-                                                       delta,
-                                                       vcall_index,
-                                                       /*should_exist=*/FALSE);
+              (void)make_covariant_return_type_entry_routine(arout,
+                                                             arouto,
+                                                             adjustment_bcp,
+                                                             delta,
+                                                             vcall_index);
             }  /* for */
           }  /* if */
 #endif /* IA64_ABI */
