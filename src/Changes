@@ -1,5 +1,13 @@
 Version 2.41
 
+1/25/99   Cast like int() allowed as constant expression
+
+A functional-notation cast with no arguments, which for scalar
+types is equivalent to casting a constant zero to the scalar type,
+is now allowed as part of a constant expression.
+
+  int a[int()+1];  // Same as int a[1]
+
 1/25/99   Template argument deduction, arrays passed to references
 
 When an array actual argument is passed to a reference parameter of

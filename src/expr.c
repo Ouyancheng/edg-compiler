@@ -7750,51 +7750,49 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       if (err) {
         /* Some previous error. */
         make_error_operand(result);
-      } else if (curr_expr_kind_is_const()) {
-        /* This cast is inherently non-constant.  If it has not been
-           rejected for some other reason in a constant expression,
-           reject it now. */
-        pos_error(ec_expr_not_constant, &lparen_pos);
-        make_error_operand(result);
       } else if (is_reference_type(type_cast_to)) {
         /* Disallow a cast to a reference type without operands; you
            can't default-initialize a reference. */
         pos_error(ec_bad_cast, &lparen_pos);
         make_error_operand(result);
-      } else if (is_void_type(type_cast_to)) {
-        /* void(). */
+      } else {
+        /* See if the cast is valid in the current expression kind by
+           seeing whether a constant zero can be cast to the destination
+           type. */
         make_integer_constant_operand(result, 0L);
-        cast_operand_to_void(result, type_cast_to);
-      } else if (is_class_struct_union_type(type_cast_to)) {
-        /* A class with no constructor, followed by (), e.g., "A()". */
-        an_expr_node_ptr temp_init_node =
+        if (!cast_is_valid_in_current_expression_kind(result, type_cast_to,
+                                                      local_options,
+                                                      start_position)) {
+          /* This cast is not valid in this kind of expression. */
+          err = TRUE;
+        } else if (is_void_type(type_cast_to)) {
+          /* void(). */
+          cast_operand_to_void(result, type_cast_to);
+        } else if (is_class_struct_union_type(type_cast_to)) {
+          /* A class with no constructor, followed by (), e.g., "A()". */
+          an_expr_node_ptr temp_init_node =
                   create_expr_temporary(type_cast_to,
                                         /*result_is_addr=*/FALSE,
                                         start_position);
-        a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
-        if (reference_to_trivial_default_constructor(type_cast_to,
-                                                     &lparen_pos)) {
-          /* The class is a non-POD with an assumed trivial constructor.
-             The initialization conceptually calls the constructor, which is
-             a no-op. */
-          set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_none);
+          a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
+          if (reference_to_trivial_default_constructor(type_cast_to,
+                                                       &lparen_pos)) {
+            /* The class is a non-POD with an assumed trivial constructor.
+               The initialization conceptually calls the constructor, which is
+               a no-op. */
+            set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_none);
+          } else {
+            /* The class is a POD.  Initialization is to zero. */
+            set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
+            /* Check for uninitialized const members within the class. */
+            check_for_missing_initializer((a_symbol_ptr)NULL, type_cast_to);
+          }  /* if */
+          make_expression_operand(temp_init_node, temp_init_node->type,
+                                  result);
         } else {
-          /* The class is a POD.  Initialization is to zero. */
-          set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
-          /* Check for uninitialized const members within the class. */
-          check_for_missing_initializer((a_symbol_ptr)NULL, type_cast_to);
-        }  /* if */
-        make_expression_operand(temp_init_node, temp_init_node->type, result);
-      } else {
-        /* A non-class type followed by (); generate the value a static
-           object of that type would get by default (WP _expr.type.conv_),
-           which is to say zero converted to the type. */
-        make_integer_constant_operand(result, 0L);
-        if (is_void_type(type_cast_to)) {
-          /* Use an expression for the void case, because a constant cannot
-             be cast to void. */
-          cast_operand_to_void(result, type_cast_to);
-        } else {
+          /* A scalar type followed by (); generate the value a static
+             object of that type would get by default (WP _expr.type.conv_),
+             which is to say zero converted to the type. */
           cast_operand(type_cast_to, result, /*check_cast_access=*/FALSE,
                        /*is_implicit_cast=*/FALSE,
                        /*is_reinterpret_cast=*/FALSE);
