@@ -235,10 +235,6 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
 static a_boolean equiv_template_arg_lists(a_template_arg_ptr  list1,
                                           a_template_arg_ptr  list2,
                                           a_boolean           is_func_template)
-#if 0
-/* If this ends up only being called for template classes, we can remove the
-   third parameter and simplify some of the logic. */
-#endif /* if 0 */
 /*
 Return TRUE if the two linked lists of template arguments for a given template
 class or template function are equivalent -- that is, if corresponding type
@@ -309,7 +305,7 @@ only type arguments.
 
 
 a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
-                                 a_template_arg_ptr  new_list,
+                                 a_template_arg_ptr  *new_list,
                                  a_source_position   *source_pos)
 /*
 Given a symbol for a class template and a template argument list (that is,
@@ -355,7 +351,7 @@ no need to actually instantiate X<int> in the example above.
        already been created.  See if the list passed in matches it. */
     old_list = sym->variant.type->
                      variant.class_struct_union.extra_info->template_arg_list;
-    if (equiv_template_arg_lists(old_list, new_list,
+    if (equiv_template_arg_lists(old_list, *new_list,
                                  /*is_func_template=*/FALSE)) {
       /* We've found a match.  Remove the found symbol from its current
          position in the instantiation list and add it to the front. */
@@ -389,7 +385,7 @@ no need to actually instantiate X<int> in the example above.
        until a full instantiation takes place -- or, if there is none, in
        pop_scope, as with ordinary classes. */
     class_type->variant.class_struct_union.extra_info->
-                                            template_arg_list = new_list;
+                                            template_arg_list = *new_list;
     set_source_corresp(&(class_type->source_corresp), sym);
     /* All template instantiations have C++ external linkage, but mark it as
        internally linked for now.  The name linkage will be fixed up later,
@@ -404,9 +400,10 @@ no need to actually instantiate X<int> in the example above.
     }  /* if */
 #endif /* DEBUG */
   } else {
-    /* We are reusing a class type that already exists, so new_list will not
+    /* We are reusing a class type that already exists, so *new_list will not
        be used.  Return the entries to the available list for reuse. */
-    free_template_arg_list(new_list);
+    free_template_arg_list(*new_list);
+    *new_list = NULL;
   }  /* if */
   db_exit();
   return sym;
@@ -874,9 +871,9 @@ templ_sym).
 }  /* make_template_function */
 
 
-a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
-                                    a_type_ptr          curr_type,
-                                    a_source_position   *source_pos)
+a_symbol_ptr matching_template_function(a_symbol_ptr        templ_sym,
+                                        a_type_ptr          curr_type,
+                                        a_source_position   *source_pos)
 /*
 Search for a template function based on the function template represented
 by templ_sym and the type pointed to by curr_type.  If no such template
@@ -891,10 +888,10 @@ return a pointer to the symbol; otherwise, return NULL.
   a_param_type_ptr                    ptp, other_ptp;
   a_template_arg_ptr                  templ_arg_list = NULL;
 
-  db_enter(3, "find_template_function");
+  db_enter(3, "matching_template_function");
 #if CHECKING
   if (!is_function_type(curr_type)) {
-    internal_error("find_template_function: expected routine type");
+    internal_error("matching_template_function: expected routine type");
   }  /* if */
 #endif /* CHECKING */
   curr_type = skip_typerefs(curr_type);
@@ -984,6 +981,64 @@ get_next_sym:;
 done:
   if (sym == NULL && templ_arg_list != NULL) {
     free_template_arg_list(templ_arg_list);
+  }  /* if */
+  db_exit();
+  return sym;
+}  /* matching_template_function */
+
+
+a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
+                                    a_template_arg_ptr  *new_list,
+                                    a_source_position   *source_pos)
+{
+  a_symbol_ptr                        sym;
+  a_template_symbol_supplement_ptr    tssp;
+  a_function_instantiation_entry_ptr  fiep, prev_fiep;
+
+  db_enter(3, "find_template_function");
+  /* Make a pass over the entries representing instantiations of the function
+     template. */
+  tssp = templ_sym->variant.template.extra_info ;
+  fiep = tssp->variant.function.instantiations;
+  prev_fiep = NULL;
+  for (; fiep != NULL; fiep = fiep->next) {
+    if (equiv_template_arg_lists(fiep->arg_list, *new_list,
+                                 /*is_func_template=*/TRUE)) {
+      /* We've found a match.  Remove the found function instantiation entry
+         from its current position in the instantiation list and add it to
+         the front. */
+      if (prev_fiep != NULL) {
+        prev_fiep->next = fiep->next;
+        fiep->next = tssp->variant.function.instantiations;
+        tssp->variant.function.instantiations = fiep;
+      }
+      sym = fiep->routine_sym;
+#if DEBUG
+      if (debug_level >= 3) db_symbol(sym, "found: ", 2);
+#endif /* DEBUG */
+      break;
+    }  /* if */
+    prev_fiep = fiep;
+  }  /* for */
+  if (fiep == NULL) {
+    /* No match was found, so create a new template function.  That means
+       create a symbol entry, a routine entry, a routine type entry, and a
+       function instantiation entry, and linking all these appropriately.
+       Note that the symbol will not be added to the symbol table, since it
+       is accessed through the list of function instantiation entries. */
+    sym = make_template_function(templ_sym, (a_type_ptr)NULL, *new_list,
+                                 source_pos);
+#if DEBUG
+    if (debug_level >= 3) {
+      db_symbol(sym, "created: ", 2);
+      db_symbol(templ_sym, "template: ", 2);
+    }  /* if */
+#endif /* DEBUG */
+  } else {
+    /* We are reusing a template function that already exists, so *new_list
+       will not be used.  Return it to the available list for reuse. */
+    free_template_arg_list(*new_list);
+    *new_list = NULL;
   }  /* if */
   db_exit();
   return sym;
