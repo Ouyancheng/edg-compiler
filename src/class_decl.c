@@ -5867,66 +5867,62 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
           /* There's no declarator following the declaration specifier.  This
              is okay sometimes.  When it is, skip over declarator processing
              to the next declaration. */
-          if (friend_specified) {
-            if ((dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) &&
-                !is_enum_type(member_type)) {
-              /* This is a friend class declaration, of the form:
-                         friend class A;
-                 (which is the only form the ARM (see 11.4) allows. */
-              if (is_nonreal_instantiation) {
-                /* The friend declaration is not processed during prototype
-                   instantiation -- it`s meaningless until a real instantiation
-                   is done. */
-              } else {
-                (void)decl_friend_class(class_type, member_type);
+          if (local_defines_something && !local_declares_something &&
+              member_type->kind == (a_type_kind)tk_union &&
+              is_unnamed_class_symbol((a_symbol_ptr)member_type->
+                                                source_corresp.assoc_info) &&
+              !friend_specified &&
+              member_storage_class != (a_storage_class)sc_typedef) {
+            /* An anonymous union -- "union { int i, j; };" */
+            is_anonymous_union = TRUE;
+            /* Note that in this case we don't just skip on to the next
+               declaration -- decl_nonstatic_data_member needs to be called. */
+          } else {
+            if (friend_specified) {
+              if ((dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) &&
+                  !is_enum_type(member_type)) {
+                /* This is a friend class declaration, of the form:
+                           friend class A;
+                   (which is the only form the ARM (see 11.4) allows. */
+                if (is_nonreal_instantiation) {
+                  /* The friend declaration is not processed during prototype
+                     instantiation -- it's meaningless until a real
+                     instantiation is done. */
+                } else {
+                  (void)decl_friend_class(class_type, member_type);
+                }  /* if */
+              } else if (!is_error_type(member_type)) {
+                /* Invalid friend declaration. */
+                pos_error(ec_bad_friend_decl, &decl_start_pos);
               }  /* if */
-            } else if (!is_error_type(member_type)) {
-              /* Invalid friend declaration. */
-              pos_error(ec_bad_friend_decl, &decl_start_pos);
-            }  /* if */
-            (void)get_token();
-            goto next_declaration;
-          }  /* if */
-          if (local_declares_something) {
-            /* This is a free standing declaration of a class, struct, union,
-               or enum type entry.  It will already have been recorded on the
-               types list for the current class.  No need to complain about a
-               missing identifier.  Just bypass the semicolon, after checking
-               for some errors. */
-            if (member_storage_class != (a_storage_class)sc_unspecified) {
-              if (member_storage_class == (a_storage_class)sc_typedef) {
-                /* A case like "typedef struct S { int i; };" */
-                pos_diagnostic(strict_ansi_mode ?
-                                 strict_ansi_error_severity : es_warning,
-                               ec_missing_typedef_name, &pos_curr_token);
-              } else {
-                pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+            } else if (local_declares_something) {
+              /* This is a free standing declaration of a class, struct,
+                 union, or enum type entry.  It will already have been
+                 recorded on the types list for the current class.  No need
+                 to complain about a missing identifier.  Just bypass the
+                 semicolon, after checking for some errors. */
+              if (member_storage_class != (a_storage_class)sc_unspecified) {
+                if (member_storage_class == (a_storage_class)sc_typedef) {
+                  /* A case like "typedef struct S { int i; };" */
+                  pos_diagnostic(strict_ansi_mode ?
+                                   strict_ansi_error_severity : es_warning,
+                                 ec_missing_typedef_name, &pos_curr_token);
+                } else {
+                  pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+                }  /* if */
               }  /* if */
-            }  /* if */
-            if (inline_specified) {
-              pos_error(ec_inline_not_allowed, &decl_start_pos);
-            }  /* if */
-            if (is_qualified_type(member_type)) {
-              pos_error(ec_useless_type_qualifiers, &decl_start_pos);
-            }  /* if */
-            (void)get_token();
-            goto next_declaration;
-          }  /* if */
-          if (member_storage_class == (a_storage_class)sc_typedef) {
-            /* A case like "typedef int;" or "typedef struct { int i; };" */
-            pos_diagnostic(strict_ansi_mode ?
-                             strict_ansi_error_severity : es_warning,
-                           ec_missing_typedef_name, &pos_curr_token);
-            (void)get_token();
-            goto next_declaration;
-          }  /* if */
-          if (local_defines_something) {
-            if (member_type->kind == (a_type_kind)tk_union &&
-                is_unnamed_class_symbol((a_symbol_ptr)member_type->
-                                                 source_corresp.assoc_info)) {
-              /* An anonymous union -- "union { int i, j; };" */
-              is_anonymous_union = TRUE;
-            } else {
+              if (inline_specified) {
+                pos_error(ec_inline_not_allowed, &decl_start_pos);
+              }  /* if */
+              if (is_qualified_type(member_type)) {
+                pos_error(ec_useless_type_qualifiers, &decl_start_pos);
+              }  /* if */
+            } else if (member_storage_class == (a_storage_class)sc_typedef) {
+              /* A case like "typedef int;" or "typedef struct { int i; };" */
+              pos_diagnostic(strict_ansi_mode ?
+                               strict_ansi_error_severity : es_warning,
+                             ec_missing_typedef_name, &pos_curr_token);
+            } else if (local_defines_something) {
               /* A declaration with no declarator that defines a type but does
                  not declare a name -- something like "struct { int i; };" or
                  "enum {};".  */
@@ -5944,13 +5940,14 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                  enum and class specifiers.  Just issue a warning. */
               pos_warning (ec_useless_decl, &decl_start_pos);
 #endif /* if 0 */
-              (void)get_token();
-              goto next_declaration;
+            } else {
+              /* A case like "int;" is explictly disallowed by language in
+                 ARM 9.2. */
+              pos_error(ec_useless_decl, &decl_start_pos);
             }  /* if */
-          } else {
-            /* A case like "int;" is explictly disallowed by language in
-               ARM 9.2.  Fall though and call declarator, which will issue
-               an expected-an-identifier syntax error. */
+            /* Bypass the semicolon and skip to the next declaration. */
+            (void)get_token();
+            goto next_declaration;
           }  /* if */
         }  /* if */
         /* A declarator list should be present.  Scan it. */
