@@ -109,11 +109,11 @@ Traverse the list of alias fixups and set the alias fields as needed.
       }  /* if */
     }  /* for */
     if (aliased_sym == NULL) {
-      pos_error(ec_error_aliased_name_undeclared,
-                &entry->alias->decl_position);
+      pos_st_error(ec_error_aliased_name_undeclared,
+                   &entry->alias->decl_position, entry->aliased_name);
     } else if (aliased_sym->kind != entry->alias->kind) {
-      pos_error(ec_error_aliased_name_bad_kind,
-                &entry->alias->decl_position);
+      pos_sy_error(ec_error_aliased_name_bad_kind,
+                   &entry->alias->decl_position, aliased_sym);
     } else {
       switch (entry->alias->kind) {
         case sk_routine:
