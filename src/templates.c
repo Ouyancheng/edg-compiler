@@ -4106,6 +4106,15 @@ instantiation of a given template instance.
   if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
     specific_def = tip->instance_sym->defined;
     template_def = tip->template_sym->defined;
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+    if (!template_def && implicit_template_inclusion_mode) {
+      /* If a template definition is not present, attempt to include a
+         source file that will provide the definition.  Then check
+         again to see if a template definition is present. */
+      do_implicit_include_if_needed(tip);
+      template_def = tip->template_sym->defined;
+    }  /* if */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   } else {
     a_symbol_ptr		      template_sym;
     a_template_symbol_supplement_ptr  tssp;
