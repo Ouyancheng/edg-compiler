@@ -747,13 +747,13 @@ declaration position to eliminate redundant file names in a diagnostic.
       goto symbol_name;
     case sk_static_data_member:
       type = fund_sym->variant.static_data_member.variable->type;
-      entity_kind = "member ";
+      entity_kind = "static data member ";
       is_declaration_like = TRUE;
       goto symbol_name;
     case sk_field:
       type = fund_sym->variant.field.ptr->type;
       if (C_dialect == C_dialect_cplusplus) {
-        entity_kind = "member ";
+        entity_kind = "nonstatic data member ";
         is_declaration_like = TRUE;
       } else {
         entity_kind = "field ";
