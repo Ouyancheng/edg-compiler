@@ -16,7 +16,7 @@ entry for 12/8/97.)
 
 When IL lowering generates code to initialize an entity, and the entity
 is "const", a cast is added to the entity address expression to
-eliminate the "const" so that the addres can be used to store into the
+eliminate the "const" so that the address can be used to store into the
 entity.  This processing has heretofore dropped all cv-qualifiers, not just
 "const".  Now, it drops only "const", thus preserving machine-specific
 cv-qualifiers.
