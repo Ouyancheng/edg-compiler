@@ -10783,7 +10783,10 @@ to be returned to the caller.
           /* Advance past the optional semicolon. */
           (void)get_token();
         }  /* if */
-        if (class_state->is_nonreal_instantiation) {
+        if (class_state->is_nonreal_instantiation &&
+            !class_type->variant.class_struct_union.is_specialized) {
+          /* The test of is_specialized is done to exclude Microsoft
+             mode specializations in a class template scope. */
           if (friend_specified) {
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
             /* A template cache segment entry is created for a friend function
