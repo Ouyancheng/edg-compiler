@@ -6314,6 +6314,9 @@ or implicit) controlling the declaration.
                                         extra_info->class_member_using_decls;
         class_type->variant.class_struct_union.extra_info->
                                             class_member_using_decls = cmudp;
+        /* Record the class that was actually specified in the qualified
+           name in the source. */
+        cmudp->class_specified_in_qualifier = declared_sym->parent.class_type;
         /* Update cross-reference and source sequence info, if required. */
         record_class_member_using_decl(cmudp, fund_sym,
                                        &locator_for_curr_id.source_position);
