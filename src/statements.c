@@ -365,7 +365,7 @@ dump_control_flow has been enabled at the command line.
 */
 {
   fprintf(f_debug, "SS-%.4d    %*.10s", (int)pos_curr_token.seq,
-         strlen(str)+2*depth_stmt_stack, str);
+          (int)(strlen(str)+2*depth_stmt_stack), str);
   switch (kind) {
     case ssk_compound:   str = "compound";   break;
     case ssk_if:         str = "if";         break;
@@ -2994,8 +2994,8 @@ pointer is NULL).
 {
   while (olp != function_scope_object_lifetime) {
     if (olp->kind == (an_object_lifetime_kind)olk_block ||
-        (olp->kind == (an_object_lifetime_kind)olk_block_after_label) &&
-         !is_useless_object_lifetime(olp)) {
+        ((olp->kind == (an_object_lifetime_kind)olk_block_after_label) &&
+         !is_useless_object_lifetime(olp))) {
       break;
     }  /* if */
     olp = olp->parent_lifetime;
