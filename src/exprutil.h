@@ -177,7 +177,7 @@ typedef struct an_operand {
 
 /*
 Entry describing a function that is a candidate instance of an overloaded
-function.  This entry is used is resolving overloaded function calls.
+function.  This entry is used in resolving overloaded function calls.
 */
 typedef struct a_candidate_function *a_candidate_function_ptr;
 typedef struct a_candidate_function {
@@ -265,6 +265,14 @@ some of the transformations.
 			/* Suppress the check for indefinite functions. */
 #define TOPT_NO_OPTIONS 0
 typedef int a_transformation_options_set;
+
+
+/*
+Variable that is TRUE while scanning a default argument expression,
+FALSE otherwise.
+*/
+EXTERN a_boolean
+		inside_default_arg_expression;
 
 
 /* Copy an operand. */

@@ -106,6 +106,7 @@ Precedence level 0 is used to bracket a complete expression.
 #define EOPT_NO_OPTIONS 0
 typedef int a_local_expr_options_set;
 
+
 /* Forward declaration. */
 static void scan_expr_full(an_operand               *result,
                            an_operand               *bound_function_selector,
@@ -5809,9 +5810,15 @@ operand is built in *operand.  It's an lvalue for the field.
 
 static a_boolean bad_nested_function_variable_ref(a_symbol_ptr sym_ptr)
 /*
-Return TRUE if sym_ptr is a symbol for a nonstatic variable from a function
-enclosing a local class we're inside of.  A reference to such a symbol
-is not allowed.  The symbol may be a member of an anonymous union.
+sym_ptr is a symbol for a variable being referenced in an expression.
+Return TRUE if the reference is invalid because either
+
+(1)  we are inside a local class, and the variable is a nonstatic variable
+from an enclosing function (ARM 9.8), or
+(2)  we are inside a default argument expression, and the variable is a
+local variable of an enclosing function (ARM 8.2.6).
+
+The symbol may be a member of an anonymous union.
 */
 {
   a_boolean      bad_ref = FALSE;
@@ -5819,8 +5826,9 @@ is not allowed.  The symbol may be a member of an anonymous union.
   a_variable_ptr var;
 
   /* This sort of bad reference is only possible when we are inside a local
-     class (the class itself or one of its member functions). */
-  if (inside_local_class) {
+     class (the class itself or one of its member functions) or a
+     default argument expression. */
+  if (inside_local_class || inside_default_arg_expression) {
     if (sym_ptr->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
       /* A reference to the file scope is okay. */
     } else if (sym_ptr->class_of_which_a_member != NULL) {
@@ -5848,8 +5856,9 @@ is not allowed.  The symbol may be a member of an anonymous union.
         a_scope_kind skind;
         if (scope_stack[sd].number == sym_ptr->decl_scope) break;
         skind = scope_stack[sd].kind;
-        if (skind == (a_scope_kind)sck_class_struct_union ||
-            skind == (a_scope_kind)sck_class_reactivation) {
+        if (inside_local_class &&
+            (skind == (a_scope_kind)sck_class_struct_union ||
+             skind == (a_scope_kind)sck_class_reactivation)) {
           /* We've hit a class and we haven't hit the variable yet, so the
              variable must be a local variable of some function that
              contains the class. */
@@ -5861,6 +5870,15 @@ is not allowed.  The symbol may be a member of an anonymous union.
                it exists to help back-end aliasing analysis. */
             var->referenced_non_locally = TRUE;
           }  /* if */
+          break;
+        } else if (inside_default_arg_expression &&
+                   skind == (a_scope_kind)sck_func_prototype) {
+          /* We've hit the function prototype scope, so the variable must
+             be a local variable of some function that contains the
+             function prototype.  Note that the ARM doesn't draw a
+             distinction between static and nonstatic variables in this
+             case. */
+          bad_ref = TRUE;
           break;
         }  /* if */
 #if CHECKING
@@ -6028,9 +6046,11 @@ bound_function_selector to the associated "this" pointer.
           } else {
             /* Nonconstant expression. */
             /* If we're inside a local class, we are not allowed to reference
-               non-static variables of the containing function.  Check for
-               that. */
-            if (inside_local_class &&
+               non-static variables of the containing function.  If we're
+               inside a default argument expression, we're not allowed to
+               reference local variables of any containing function.
+               Check for those. */
+            if ((inside_local_class || inside_default_arg_expression) &&
                 bad_nested_function_variable_ref(sym_ptr)) {
               error_and_make_error_operand(ec_ref_to_nested_function_var,
                                            result);
@@ -6067,9 +6087,11 @@ normal_function:
           if (sym_ptr->variant.field.anonymous_union_variable != NULL) {
             /* This field is a member of a top-level anonymous union. */
             /* If we're inside a local class, we are not allowed to reference
-               non-static variables of the containing function.  Check for
-               that. */
-            if (inside_local_class &&
+               non-static variables of the containing function.  If we're
+               inside a default argument expression, we're not allowed to
+               reference local variables of any containing function.
+               Check for those. */
+            if ((inside_local_class || inside_default_arg_expression) &&
                 bad_nested_function_variable_ref(sym_ptr)) {
               error_and_make_error_operand(ec_ref_to_nested_function_var,
                                            result);
@@ -6214,11 +6236,10 @@ nonstatic_member_function:
           }  /* if */
           break;
         case sk_parameter:
-          /* This must be a C++ default argument expression.  Parameters are
-             not allowed (ARM 8.2.6). */
-#if CHECKING
-          /* What is the appropriate internal error check? */
-#endif /* CHECKING */
+          /* This is a parameter referenced within its own prototype scope,
+             e.g., in a C++ default argument expression, which is an error
+             (ARM 8.2.6).  Once the parameter becomes a real variable,
+             its sk_parameter type becomes sk_variable. */
           error_and_make_error_operand(ec_param_not_allowed, result);
           break;
 #if CHECKING
@@ -6713,12 +6734,16 @@ a prior error) just do the scan.
 {
   an_operand       result;
   an_expr_node_ptr node;
+  a_boolean        save_inside_default_arg_expression;
 
   db_enter(3, "scan_default_arg_expr");
 
   /* Scan the expression. */
+  save_inside_default_arg_expression = inside_default_arg_expression;
+  inside_default_arg_expression = TRUE;
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
             EOPT_NO_OPTIONS | EOPT_DISALLOW_COMMA_OPERATOR);
+  inside_default_arg_expression = save_inside_default_arg_expression;
   if (ptp != NULL) {
     /* Convert to the required type. */
     prep_argument_operand(&result, ptp, ec_bad_default_arg_type,

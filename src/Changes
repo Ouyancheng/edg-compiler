@@ -1,5 +1,16 @@
 Version 2.07
 
+6/25/92  Error now issued for reference to local variable in default
+         argument expression.
+
+The following is now correctly diagnosed:
+
+  void f()
+  {
+    int i;
+    extern void g(int x = i);  // error
+  }
+
 6/25/92  Bug fix -- initialization of signed/unsigned char array with
          string.
 
