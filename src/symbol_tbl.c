@@ -6674,21 +6674,15 @@ which instantiations are required.
       }  /* if */
     } else {
       /* Static data member definition. */
-      a_symbol_ptr  sym;
       sdmdp = tdp->variant.static_data_member_def;
-      sym = sdmdp->static_data_member_sym;
-      if (sym->defined) {
+      if (sdmdp->static_data_member_sym->defined) {
         /* Already defined.  No further action required. */
       } else {
+        define_template_static_data_member(sdmdp);
 #if 0
-        /* Initialization is not yet implemented. */
         /* Note that there are recursion possibilities that we need to
            guard against -- e.g., template <int I> A<I>::s = A<I+1>::s;
            Also indirect recursion. */
-        /* When there no explicit initializer we'll still need to call
-           def_initializer. */
-#else
-        sym->defined = TRUE;
 #endif /* if 0 */
       }  /* if */
     }  /* if */
