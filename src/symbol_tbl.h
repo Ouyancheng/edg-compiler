@@ -1065,6 +1065,10 @@ extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
 
 extern void member_check_ambiguity_and_verify_access(a_symbol_locator *loc);
 
+extern void overload_check_ambiguity_and_verify_access(
+                                           a_symbol_locator *locator,
+                                           a_symbol_ptr     overloaded_symbol);
+
 /*
 Check to see if a symbol found is ambiguous or inaccessible.  Ambiguity
 checking precedes access control (ARM, 10.1.1).  Only class members

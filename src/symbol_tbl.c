@@ -2134,9 +2134,8 @@ It cannot be used for checking access (see have_access_to_symbol).
 
   if (fundamental_symbol_of(sym_ptr)->kind ==
                                        (a_symbol_kind)sk_overloaded_function) {
-    /* Overloaded function.  Access is unknown at this point because we don't
-       know which function is being called.  The access will be checked
-       later. */
+    /* Overloaded function.  Cannot tell what the access is; leave it
+       to be checked later. */
     access = (an_access_specifier)as_public;
   } else if (sym_ptr->kind == (a_symbol_kind)sk_projection) {
     /* Projection symbol. */
@@ -2302,18 +2301,170 @@ Programming Language", 2nd Edition, and 11.5 in the ARM.
 }  /* have_protected_member_access_privilege */
 
 
-a_boolean have_access_to_symbol(a_symbol_ptr symbol)
+a_boolean have_proj_access_to_symbol(a_symbol_ptr symbol,
+                                     a_symbol_ptr fundamental_symbol)
 /*
 Return TRUE if the indicated symbol is accessible from the current location
-in the source program.
+in the source program.  If the symbol is a projection symbol, its
+fundamental symbol is assumed to be the fundamental symbol of
+fundamental_symbol.  fundamental_symbol == symbol except when checking
+access for a specific function of an overload set where the overload set
+is projected into a derived class.
 */
 {
   a_boolean             accessible;
   a_type_ptr            curr_type;
   a_derivation_step_ptr dsp, temp_dsp;
   an_access_specifier   access, min_access_needed;
-  a_symbol_ptr          fundamental_symbol;
   a_boolean             any_protected;
+
+  /* If the symbol is a projection symbol, determine the fundamental symbol
+     and the derivation path to get there.  Note that projection symbols
+     created for access declarations are considered to be members of the
+     derived class and therefore the derivation is not considered. */
+  dsp = NULL;
+  if (symbol->kind == (a_symbol_kind)sk_projection &&
+      !symbol->variant.projection.access_adjustment_made) {
+    /* Projection symbol. */
+    reduce_projection_symbol_to_fundamental_symbol(fundamental_symbol);
+    dsp = symbol->variant.projection.extra_info->
+                                            fundamental_base_class->derivation;
+  }  /* if */
+  access = access_for_symbol(fundamental_symbol);
+  /* As we go, we keep track of the minimum access we will require on
+     the fundamental symbol to preserve any access in the derived class.
+     The value is a threshold: when we get to the fundamental symbol,
+     we have access if its access is equal to or greater than the
+     min_access_needed. */
+  /* See if we have some special member access privilege to the class
+     we're starting from, in which case the minimum access needed
+     is lower. */
+  curr_type = symbol->class_of_which_a_member;
+  min_access_needed = (an_access_specifier)as_public;
+  if (have_member_access_privilege(curr_type)) {
+    /* We have member access privilege for the current type, so we
+       can access its private members. */
+    min_access_needed = (an_access_specifier)as_private;
+  } else {
+    /* If the symbol for which we're trying to determine access is
+       protected, or there are any protected derivation steps, we have
+       to look for any derived classes of the starting point to which we
+       have access, because they might give us some special access
+       to the starting type.  Note that this is checked only on the
+       starting type. */
+#if 0
+    /* Checking is too permissive; the restrictions of ARM 11.5 are
+       not implemented. */
+#endif
+    any_protected = FALSE;
+    if (access == (an_access_specifier)as_protected) {
+      any_protected = TRUE;
+    } else {
+      /* See if there are any protected derivation steps on the
+         derivation. */
+      for (temp_dsp = dsp; temp_dsp != NULL; temp_dsp = temp_dsp->next) {
+        if (temp_dsp->base_class->access ==
+                                           (an_access_specifier)as_protected) {
+          any_protected = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    if (any_protected && have_protected_member_access_privilege(curr_type)) {
+      /* We have member access to a derived class of the current class
+         such that we have access to protected members of the current
+         class. */
+      min_access_needed = (an_access_specifier)as_protected;
+    }  /* if */
+  }  /* if */
+  /* If the member is inherited from a base class, work down the derivation
+     from the projection symbol to the fundamental symbol to see if the
+     base class is accessible.  Along the way, keep track of the minimum
+     access required on the fundamental symbol. */
+  for (; dsp != NULL; dsp = dsp->next) {
+    /* The rules for derivation are as follows:  If the derivation
+       access for the class is "public", the access of public and
+       protected members stays as it is; if it is "protected", public
+       members become protected and protected members are unaffected;
+       if it is "private", public and protected symbols become private.
+       Members private to the base class become inaccessible to the
+       derived class in every case. (ARM 11.2.)  The following table
+       summarizes the transformations:
+
+                  derivation:
+                         private        protected      public
+       symbol:        -----------------------------------------------
+         public       |  private        protected      public
+                      |
+         protected    |  private        protected      protected
+                      |
+         private      |  inaccessible   inaccessible   inaccessible
+                      |
+         inaccessible |  inaccessible   inaccessible   inaccessible
+
+       Here, we work with the transformation in the other direction,
+       i.e., given the access we have in the derived class and the
+       kind of derivation, what access do we have in the base class:
+
+                  derivation:
+       access            private        protected      public
+       in derived:    -----------------------------------------------
+         public       |  impossible     impossible     public
+                      |
+         protected    |  impossible     protected      protected
+                      |
+         private      |  protected      protected      protected
+
+       (These access levels are thresholds; a particular value indicates
+       we have access to all members of a class that have access values
+       at or above the indicated access.)
+    */
+    /* Look at the this step in the derivation and see how it affects
+       our access at the next level. */
+    /* Detect the "impossible" cases, the ones where there is no
+       access in the base class that will produce the minimum access
+       needed in the current (derived) class. */
+    if (is_more_accessible(min_access_needed, dsp->base_class->access)) {
+      /* We need more access than is possible.  Therefore the symbol
+         is inaccessible. */
+      accessible = FALSE;
+      goto access_determined;
+    }  /* if */
+    /* If the minimum access needed is private, we will need at least
+       protected access in the base class. */
+    if (min_access_needed == (an_access_specifier)as_private) {
+      min_access_needed = (an_access_specifier)as_protected;
+    }  /* if */
+    /* See if the base class is accessible. */
+    if (!is_accessible_base_class(dsp->base_class, curr_type)) {
+      /* The base class is inaccessible. */
+      accessible = FALSE;
+      goto access_determined;
+    }  /* if */
+    /* The base class is accessible; continue at the next level. */
+    curr_type = dsp->base_class->type;
+    /* See if we have any special privilege at this level that
+       increases our access to the current class. */
+    if (have_member_access_privilege(curr_type)) {
+      /* We have member access privilege for the current type, so we
+         can access its private members. */
+      min_access_needed = (an_access_specifier)as_private;
+    }  /* if */
+  }  /* for */
+  /* If we have the minimum access needed, we have access to the symbol. */
+  accessible = !is_more_accessible(min_access_needed, access);
+access_determined:
+  return accessible;
+}  /* have_proj_access_to_symbol */
+
+
+a_boolean have_access_to_symbol(a_symbol_ptr symbol)
+/*
+Return TRUE if the indicated symbol is accessible from the current location
+in the source program.
+*/
+{
+  a_boolean accessible;
 
   if (access_for_symbol(symbol) == (an_access_specifier)as_public) {
     /* The member is public, so we don't need to know whether or not we have
@@ -2323,144 +2474,9 @@ in the source program.
        declarations. */
     accessible = TRUE;
   } else {
-    /* If the symbol is a projection symbol, determine the fundamental symbol
-       and the derivation path to get there.  Note that projection symbols
-       created for access declarations are considered to be members of the
-       derived class and therefore the derivation is not considered. */
-    fundamental_symbol = symbol;
-    dsp = NULL;
-    if (symbol->kind == (a_symbol_kind)sk_projection &&
-        !symbol->variant.projection.access_adjustment_made) {
-      /* Projection symbol. */
-      reduce_projection_symbol_to_fundamental_symbol(fundamental_symbol);
-      dsp = symbol->variant.projection.extra_info->
-                                            fundamental_base_class->derivation;
-    }  /* if */
-    access = access_for_symbol(fundamental_symbol);
-    /* As we go, we keep track of the minimum access we will require on
-       the fundamental symbol to preserve any access in the derived class.
-       The value is a threshold: when we get to the fundamental symbol,
-       we have access if its access is equal to or greater than the
-       min_access_needed. */
-    /* See if we have some special member access privilege to the class
-       we're starting from, in which case the minimum access needed
-       is lower. */
-    curr_type = symbol->class_of_which_a_member;
-    min_access_needed = (an_access_specifier)as_public;
-    if (have_member_access_privilege(curr_type)) {
-      /* We have member access privilege for the current type, so we
-         can access its private members. */
-      min_access_needed = (an_access_specifier)as_private;
-    } else {
-      /* If the symbol for which we're trying to determine access is
-         protected, or there are any protected derivation steps, we have
-         to look for any derived classes of the starting point to which we
-         have access, because they might give us some special access
-         to the starting type.  Note that this is checked only on the
-         starting type. */
-#if 0
-      /* Checking is too permissive; the restrictions of ARM 11.5 are
-         not implemented. */
-#endif
-      any_protected = FALSE;
-      if (access == (an_access_specifier)as_protected) {
-        any_protected = TRUE;
-      } else {
-        /* See if there are any protected derivation steps on the
-           derivation. */
-        for (temp_dsp = dsp; temp_dsp != NULL; temp_dsp = temp_dsp->next) {
-          if (temp_dsp->base_class->access ==
-                                           (an_access_specifier)as_protected) {
-            any_protected = TRUE;
-            break;
-          }  /* if */
-        }  /* for */
-      }  /* if */
-      if (any_protected && have_protected_member_access_privilege(curr_type)) {
-        /* We have member access to a derived class of the current class
-           such that we have access to protected members of the current
-           class. */
-        min_access_needed = (an_access_specifier)as_protected;
-      }  /* if */
-    }  /* if */
-    /* If the member is inherited from a base class, work down the derivation
-       from the projection symbol to the fundamental symbol to see if the
-       base class is accessible.  Along the way, keep track of the minimum
-       access required on the fundamental symbol. */
-    for (; dsp != NULL; dsp = dsp->next) {
-      /* The rules for derivation are as follows:  If the derivation
-         access for the class is "public", the access of public and
-         protected members stays as it is; if it is "protected", public
-         members become protected and protected members are unaffected;
-         if it is "private", public and protected symbols become private.
-         Members private to the base class become inaccessible to the
-         derived class in every case. (ARM 11.2.)  The following table
-         summarizes the transformations:
-
-                    derivation:
-                           private        protected      public
-         symbol:        -----------------------------------------------
-           public       |  private        protected      public
-                        |
-           protected    |  private        protected      protected
-                        |
-           private      |  inaccessible   inaccessible   inaccessible
-                        |
-           inaccessible |  inaccessible   inaccessible   inaccessible
-
-         Here, we work with the transformation in the other direction,
-         i.e., given the access we have in the derived class and the
-         kind of derivation, what access do we have in the base class:
-
-                    derivation:
-         access            private        protected      public
-         in derived:    -----------------------------------------------
-           public       |  impossible     impossible     public
-                        |
-           protected    |  impossible     protected      protected
-                        |
-           private      |  protected      protected      protected
-
-         (These access levels are thresholds; a particular value indicates
-         we have access to all members of a class that have access values
-         at or above the indicated access.)
-      */
-      /* Look at the this step in the derivation and see how it affects
-         our access at the next level. */
-      /* Detect the "impossible" cases, the ones where there is no
-         access in the base class that will produce the minimum access
-         needed in the current (derived) class. */
-      if (is_more_accessible(min_access_needed, dsp->base_class->access)) {
-        /* We need more access than is possible.  Therefore the symbol
-           is inaccessible. */
-        accessible = FALSE;
-        goto access_determined;
-      }  /* if */
-      /* If the minimum access needed is private, we will need at least
-         protected access in the base class. */
-      if (min_access_needed == (an_access_specifier)as_private) {
-        min_access_needed = (an_access_specifier)as_protected;
-      }  /* if */
-      /* See if the base class is accessible. */
-      if (!is_accessible_base_class(dsp->base_class, curr_type)) {
-        /* The base class is inaccessible. */
-        accessible = FALSE;
-        goto access_determined;
-      }  /* if */
-      /* The base class is accessible; continue at the next level. */
-      curr_type = dsp->base_class->type;
-      /* See if we have any special privilege at this level that
-         increases our access to the current class. */
-      if (have_member_access_privilege(curr_type)) {
-        /* We have member access privilege for the current type, so we
-           can access its private members. */
-        min_access_needed = (an_access_specifier)as_private;
-      }  /* if */
-    }  /* for */
-    /* If we have the minimum access needed, we have access to the symbol. */
-    accessible = !is_more_accessible(min_access_needed, access);
+    /* Look for special member access. */
+    accessible = have_proj_access_to_symbol(symbol, symbol);
   }  /* if */
-access_determined:
   return accessible;
 }  /* have_access_to_symbol */
 
@@ -2475,6 +2491,7 @@ is set to an error locator.
 {
   a_symbol_ptr symbol = locator->specific_symbol;
 
+  /* This routine looks like overload_check_ambiguity_and_verify_access. */
   /* Issue an error if the symbol is ambiguous.  Only a symbol projected
      into a derived class by inheritance can be ambiguous.  Ambiguity checking
      must precede access control (ARM, 10.1.1). */
@@ -2487,6 +2504,39 @@ is set to an error locator.
     pos_error(ec_no_access_to_name, &locator->source_position);
   }  /* if */
 }  /* member_check_ambiguity_and_verify_access */
+
+
+void overload_check_ambiguity_and_verify_access(
+                                            a_symbol_locator *locator,
+                                            a_symbol_ptr     overloaded_symbol)
+/*
+Verify that the function symbol indicated in the locator (a specific
+function from an overload set) is not ambiguous and that we have
+access to it when it is viewed from the vantage point of overloaded_symbol;
+issue an error if appropriate.  In case of an ambiguity,
+the locator is set to an error locator.  overloaded_symbol is either
+the sk_overloaded_function symbol containing the locator symbol, or
+a projection symbol pointing to that sk_overloaded_function symbol.
+*/
+{
+  /* This routine looks like member_check_ambiguity_and_verify_access. */
+  if (overloaded_symbol->class_of_which_a_member == NULL) {
+    /* Non-class-members cannot be ambiguous and are always accessible. */
+  } else {
+    /* Issue an error if the symbol is ambiguous.  Only a symbol projected
+       into a derived class by inheritance can be ambiguous.  Ambiguity
+       checking must precede access control (ARM, 10.1.1). */
+    if (overloaded_symbol->kind == (a_symbol_kind)sk_projection &&
+        overloaded_symbol->variant.projection.ambiguous) {
+      pos_error(ec_ambiguous_name, &locator->source_position);
+      set_to_error_locator(*locator);
+    } else if (!have_proj_access_to_symbol(overloaded_symbol,
+                                           locator->specific_symbol)) {
+      /* The symbol is not accessible. */
+      pos_error(ec_no_access_to_name, &locator->source_position);
+    }  /* if */
+  }  /* if */
+}  /* overload_check_ambiguity_and_verify_access */
 
 
 /* Declaration needed because of mutual recursion: */
