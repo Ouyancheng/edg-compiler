@@ -10725,6 +10725,7 @@ of local variables (and types, etc.) of functions and in blocks.
          attributes are standalone attributes.  This also sets ms_attributes
          to NULL. */
       verify_standalone_attributes(&ms_attributes);
+      cannot_bind_to_curr_construct();
       goto advance_past_final_token;
     }  /* if */
   }  /* if */

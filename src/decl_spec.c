@@ -5513,6 +5513,7 @@ Returns TRUE if there is an error in the specifiers.
                                         (input_flags & DSI_IS_PARAMETER)!= 0);
           goto no_get_token;
         }  /* if */
+        /*NOTREACHED*/
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
