@@ -16,7 +16,9 @@ error.h -- Declarations related to error reporting.
 /* Avoid including these declarations more than once: */
 #ifndef ERROR_H
 #define ERROR_H 1
-
+#ifndef LANG_FEAT_H
+#include "lang_feat.h"
+#endif /* LANG_FEAT_H */
 
 /*
 Internal coding used for error severities.
@@ -513,6 +515,22 @@ EXTERN an_error_severity
                         /* Strict ANSI mode violations are reported at this
                            error severity.  It is expected that this will
                            either be es_error or es_warning. */
+
+
+EXTERN an_error_severity
+                anachronism_error_severity
+#if VAR_INITIALIZERS
+#if DEFAULT_ALLOW_ANACHRONISMS
+                                           = es_warning
+#else
+			                   = es_error
+#endif /* DEFAULT_ALLOW_ANACHRONISMS */
+#endif /* VAR_INITIALIZERS */
+                                                     ;
+                        /* Use of anachronisms are reported at this
+                           error severity.  It is expected that this will
+                           either be es_error or es_warning.  This can be
+                           modified by a command line option. */
 
 
 

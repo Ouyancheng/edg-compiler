@@ -491,11 +491,25 @@ unknown_option:
     if (cfront_compatibility_mode) {
       command_line_error("strict ANSI mode is incompatible with cfront mode");
     }  /* if */
+    /* Strict ANSI mode is incompatible with allowing anachronisms.  Don't
+       give an error if allow anachronisms is the default -- quietly
+       set the flag to not allow anachronisms. */
+    if (allow_anachronisms) {
+#if DEFAULT_ALLOW_ANACHRONISMS
+      allow_anachronisms = FALSE;
+#else
+      command_line_error
+        ("strict ANSI mode is incompatible with allowing anachronisms");
+#endif
+    }  /* if */
     if ((int)error_threshold > (int)es_warning) {
       /* Make sure warnings come out. */
       error_threshold = es_warning;
     }  /* if */
   }  /* if */
+  /* Determine the appropriate error level for anachronism messages based
+     on whether anachronisms are to be allowed. */
+  anachronism_error_severity = allow_anachronisms ? es_warning : es_error;
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */
