@@ -4747,6 +4747,9 @@ diagnostics that can be emitted based on this information.
 }  /* scan_inheritance_kind */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* type only used when Microsoft extensions are enabled. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean check_base_class_type(a_type_ptr        type,
                                        a_type_ptr        base_type)
 /*
@@ -9671,6 +9674,10 @@ respectively.
 
 #if DECL_MODIFIERS_IN_USE
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* class_type and member_type only used when Microsoft extensions
+                are enabled. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void check_declspec_for_field(a_member_decl_info_ptr  decl_info,
                                      a_symbol_locator        *locator,
                                      a_type_ptr              class_type,
