@@ -819,7 +819,7 @@ and thus is eligible for a special substitution.
 
 
 static a_boolean add_substitution_if_available(
-                                             void                     *entity,
+                                             char                     *entity,
                                              an_il_entry_kind         kind,
                                              a_mangling_control_block *mctl)
 /*
@@ -3078,7 +3078,7 @@ supplies the usual nesting_level == 1.
       a_class_type_supplement_ptr ctsp;
       tmpl = class_template_of(type);
       if (tmpl != NULL &&
-          add_substitution_if_available(tmpl, iek_template, mctl)) {
+          add_substitution((char *)tmpl, iek_template, mctl)) {
         ctsp = type->variant.class_struct_union.extra_info;
         mangled_template_arguments(ctsp->template_arg_list,
                                    /*partial_spec=*/FALSE,
@@ -3253,7 +3253,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   if (is_immediate_class_type(type)) {
     tmpl = class_template_of(type);
     if (tmpl != NULL && 
-        add_substitution_if_available(tmpl, iek_template, mctl)) {
+        add_substitution((char *)tmpl, iek_template, mctl)) {
       ctsp = type->variant.class_struct_union.extra_info;
       mangled_template_arguments(ctsp->template_arg_list,
                                  /*partial_spec=*/FALSE,
@@ -3354,7 +3354,7 @@ Add to the mangled name the encoding for the type "type".
 
 #if IA64_ABI
   /* If the type has appeared previously, use a substitution for it. */
-  if (add_substitution_if_available(type, iek_type, mctl)) {
+  if (add_substitution_if_available((char *)type, iek_type, mctl)) {
     goto end_of_routine;
   }  /* if */
 #endif /* IA64_ABI */
@@ -3383,7 +3383,7 @@ Add to the mangled name the encoding for the type "type".
     mangled_encoding_for_type_qualifiers(qualifiers, mctl);
   }  /* if */
 #if IA64_ABI
-  if (add_substitution_if_available(type, iek_type, mctl)) {
+  if (add_substitution_if_available((char *)type, iek_type, mctl)) {
     goto add_substitution_for_qualified_type;
   }  /* if */
 #endif /* IA64_ABI */
