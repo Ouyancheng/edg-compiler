@@ -470,7 +470,8 @@ next_function:;
 }  /* require_definitions_of_virtual_functions_on_routine_list */
 
 
-void require_definitions_of_virtual_functions_in_class(a_type_ptr class_type)
+static void require_definitions_of_virtual_functions_in_class(
+                                                         a_type_ptr class_type)
 /*
 Require definitions for all virtual functions in class_type (including
 those from its base classes that are not overridden).  This includes
@@ -1189,8 +1190,10 @@ and for the instantiation of template functions.
 #if ASM_FUNCTION_ALLOWED
   if (rout_ptr->storage_class == (a_storage_class)sc_asm) {
     scope_ptr->assoc_block = scan_asm_function_body();
-  } else {
+  } else
 #endif /* ASM_FUNCTION_ALLOWED */
+  /* Do not insert code here. */
+  {
     /* Scan the compound statement defining the function.  The closing "}"
        is not swallowed by compound_statement, so that the pop_scope call
        can be done to get any errors out right on the "}". */
@@ -1198,9 +1201,7 @@ and for the instantiation of template functions.
         compound_statement(/*at_function_level=*/TRUE,
                            (flags & SFB_IMPLICITLY_DECLARED_RETURN_TYPE) == 0,
                            /*is_catch_clause=*/FALSE);
-#if ASM_FUNCTION_ALLOWED
   }  /* if */
-#endif /* ASM_FUNCTION_ALLOWED */
 #if USER_CONTROL_OF_STRUCT_PACKING
   /* Restore defaults for packing class members in a struct definition to
      what it was before the routine body was entered. */
@@ -1998,7 +1999,8 @@ operator routine or do bitwise assignment.
        operation on each direct base class (direct assignment or calling
        the base class's assignment function), and then do the appropriate
        copy of each member. */
-    if (is_const_qualified_type(type_pointed_to(source_var->type))) {
+    a_type_ptr source_type = type_pointed_to(source_var->type);
+    if (is_const_qualified_type(source_type)) {
       qualifiers = TQ_CONST;
     } else {
       qualifiers = TQ_NONE;
@@ -2062,7 +2064,7 @@ operator routine or do bitwise assignment.
         /* If this is an array, we need the element type. */
         if (is_array_type(tp)) {
           array_type = tp;
-          tp = skip_typerefs(underlying_array_element_type(tp));
+          tp = f_skip_typerefs(underlying_array_element_type(tp));
         } else {
           array_type = NULL;
         }  /* if */
