@@ -849,7 +849,7 @@ typedef struct a_template_param {
 			   that the constant involves a template parameter.
 			   It will also be set TRUE if the type of the
 			   constant involves a template parameter. */
-  bitfield_to_avoid_codecenter_warnings();
+  bitfield_to_avoid_codecenter_warnings()
   union {
     /* When param_symbol->kind = sk_type. */
     a_type_ptr
@@ -869,7 +869,7 @@ typedef struct a_template_param {
 			/* TRUE if the type entry associated with the
 			   parameter constant involves (anywhere in its
 			   type tree) a tk_template_param type entry. */
-      bitfield_to_avoid_codecenter_warnings();
+      bitfield_to_avoid_codecenter_warnings()
     } constant;
   } variant;
   union {
