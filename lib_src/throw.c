@@ -492,16 +492,15 @@ Print the contents of a region description entry.
       if (ehrdp->flags & RDF_NEW_ALLOCATION) fprintf(__f_debug, " new");
       if (ehrdp->flags & RDF_BASE_CLASS_SUBOBJECT) {
         fprintf(__f_debug, " subobject");
-        /* The SUBOBJECT_VTABLE and GUARD_VAR flags share the same bit.
+        /* The SUBOBJECT_VTABLE and LET_THIS flags share the same bit.
            The meaning depends on the setting of the BASE_CLASS_SUBOBJECT
            flag. */
         if (ehrdp->flags & RDF_SUBOBJECT_VTABLE) {
           fprintf(__f_debug, " subobject vtable");
         }  /* if */
-      } else {
-        if (ehrdp->flags & RDF_GUARD_VAR_FOR_LOCAL_STATIC) {
-          fprintf(__f_debug, " local static guard");
-        }  /* if */
+      }  /* if */
+      if (ehrdp->flags & RDF_GUARD_VAR_FOR_LOCAL_STATIC) {
+        fprintf(__f_debug, " local static guard");
       }  /* if */
     }  /* if */
     fprintf(__f_debug, "  destr/delete=%p\n",
@@ -664,8 +663,7 @@ requires cleanup.
     }  /* if */
 #endif /* DEBUG */
     /* Do the actual cleanup of the object. */
-    if ((flags & RDF_GUARD_VAR_FOR_LOCAL_STATIC) != 0 &&
-        (flags & RDF_BASE_CLASS_SUBOBJECT) == 0) {
+    if ((flags & RDF_GUARD_VAR_FOR_LOCAL_STATIC) != 0) {
       /* The cleanup object is the variable that is set when a local static
          variable is initialized.  When such an entry is on the cleanup list
          it means that the exception was thrown while the local static was
