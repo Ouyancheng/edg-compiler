@@ -9685,6 +9685,7 @@ position.
   temp_init_node = create_expr_temporary(temp_type,
                                          result_is_addr,
                                          is_explicit_cast,
+                                         /*suppress_abstract_test=*/FALSE,
                                          position);
   dip = temp_init_node->variant.init.dynamic_init;
   /* Use a dik_constructor to call the constructor routine. */
@@ -9714,6 +9715,7 @@ an explicit cast.
   temp_init_node = create_expr_temporary(operand->type,
                                          result_is_addr,
                                          is_explicit_cast,
+                                         /*suppress_abstract_test=*/FALSE,
                                          &operand->position);
   dip = temp_init_node->variant.init.dynamic_init;
   conv_lvalue_to_rvalue(operand);

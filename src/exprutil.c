@@ -5401,6 +5401,7 @@ in a number of ways, e.g., if the source operand is an lvalue.
         a_dynamic_init_ptr dip;
         expr = create_expr_temporary(dest_type, /*result_is_addr=*/FALSE,
                                      /*is_explicit_cast=*/!is_implicit_cast,
+                                     /*suppress_abstract_test=*/FALSE,
                                      &orig_operand.position);
         dip = expr->variant.init.dynamic_init;
         /* A dik_constructor with a NULL constructor is used for generic
@@ -6314,10 +6315,12 @@ is TRUE if this node represents an explicit cast.
 }  /* alloc_temp_init_node */
 
 
-an_expr_node_ptr create_expr_temporary(a_type_ptr        temp_type,
-                                       a_boolean         result_is_addr,
-                                       a_boolean         is_explicit_cast,
-                                       a_source_position *position)
+an_expr_node_ptr create_expr_temporary(
+                                      a_type_ptr        temp_type,
+                                      a_boolean         result_is_addr,
+                                      a_boolean         is_explicit_cast,
+                                      a_boolean         suppress_abstract_test,
+                                      a_source_position *position)
 /*
 Create an enk_temp_init node and return a pointer to it.  The implied
 temporary has type temp_type.  A dynamic initialization entry indicating
@@ -6325,7 +6328,9 @@ no initialization (but indicating destruction if appropriate) is attached
 under the enk_temp_init node.  The value of the enk_temp_init is the address
 (rather than the value) of the temporary if result_is_addr is TRUE.
 is_explicit_cast is TRUE if this node represents an explicit cast.
-*position is the position of the reference.  Only used in C++.
+An error is issued if the temporary has an abstract class type unless
+suppress_abstract_test is TRUE.  *position is the position of the reference.
+Only used in C++.
 */
 {
   a_dynamic_init_ptr dip;
@@ -6337,7 +6342,7 @@ is_explicit_cast is TRUE if this node represents an explicit cast.
   /* Make an enk_temp_init node that points at the dynamic init entry. */
   temp_init_node = alloc_temp_init_node(temp_type, dip, result_is_addr,
                                         is_explicit_cast);
-  if (!result_is_addr && !microsoft_bugs &&
+  if (!suppress_abstract_test && !result_is_addr && !microsoft_bugs &&
       is_abstract_class_type(temp_type)) {
     /* It's an error to create a temporary of an abstract class type. */
     report_abstract_class_error(ec_abstract_class_object_not_allowed,
@@ -6429,9 +6434,12 @@ an explicit or implicit conversion (e.g., a conversion function call).
   call_node->variant.operation.is_conversion_call = is_conversion;
   rtsp = function_type->variant.routine.extra_info;
   if (rtsp->value_returned_by_cctor) {
+    /* An error was already issued for a function returning an abstract
+       class type, so do not issue another on a call of such a function. */
     temp_init_node = create_expr_temporary(return_type,
                                            /*result_is_addr=*/FALSE,
                                            /*is_explicit_cast=*/FALSE,
+                                           /*suppress_abstract_test=*/TRUE,
                                            err_pos);
     dip = temp_init_node->variant.init.dynamic_init;
     set_dynamic_init_kind(dip,

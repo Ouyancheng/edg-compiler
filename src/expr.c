@@ -8713,6 +8713,9 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
                   create_expr_temporary(type_cast_to,
                                         /*result_is_addr=*/FALSE,
                                         /*is_explicit_cast=*/TRUE,
+                                        /* Abstract class test done
+                                           previously. */
+                                        /*suppress_abstract_test=*/TRUE,
                                         start_position);
           a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
           if (reference_to_trivial_default_constructor(type_cast_to,
