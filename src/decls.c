@@ -6448,10 +6448,16 @@ current scope.
     } else if (sym == NULL) {
       str_error(ec_undefined_identifier,
                 locator_for_curr_id.symbol_header->identifier);
-    } else if (!locator_for_curr_id.is_qualified_name ||
-               locator_for_curr_id.is_class_member) {
-      /* An unqualified name or a class-qualified name is not allowed here. */
+    } else if (!locator_for_curr_id.is_qualified_name) {
+      /* An unqualified name is not allowed here. */
       error(ec_namespace_qualified_name_required);
+    } else if (locator_for_curr_id.is_class_member) {
+      /* A class-qualified name is not allowed here. */
+      error(ec_class_qualified_name_not_allowed);
+    } else if (locator_for_curr_id.is_template_id) {
+      /* A template-id (that is, template-name<template-args>) is not allowed
+         here. */
+      error(ec_template_id_not_allowed);
     } else if ((nsp = qualifier_namespace_ptr(locator_for_curr_id)) != NULL &&
                ssep->il_scope != NULL &&
                ssep->il_scope->kind == (a_scope_kind)sck_namespace &&
