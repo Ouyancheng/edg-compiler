@@ -226,7 +226,7 @@ static a_boolean		suppress_compilation = FALSE;
    the assumption that we've run into an instantiation loop. */
 static a_boolean		limit_recursion = TRUE;
 
-static char message_prefix[] = "C++ prelink";
+static char message_prefix[] = "C++ prelinker";
 
 
 #if DEBUG
