@@ -1,5 +1,15 @@
 Version 3.2
 
+2/5/03   Deduction should fail if creating a void parameter type
+
+An attempt to create a void parameter type as a result of template argument
+substitution should cause deduction to fail.  Formerly, this resulted in
+a "unexpected function type" error during template instantiation.
+
+  template <class T> char f(T*, void (*)(typename T::value_type) = 0);
+  struct X { typedef void value_type; };
+  char x = f((X*)0);
+
 2/4/03   GNU compatibility: "deprecated" and "used" attributes
 
 In both GNU C and GNU C++ modes, the front end now supports the GNU

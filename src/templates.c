@@ -6820,6 +6820,11 @@ make_new_type:
                  add_to_param_id_list was called. */
                tp = make_unqualified_type(tp);
             }  /* if */
+            if (is_void_type(tp)) {
+              /* The result of the substitution is a void type.  This is
+                 not allowed. */
+              *copy_error = TRUE;
+            }  /* if */
           }  /* if */
           /* Allocate the param type entry and copy default arg info. */
           new_ptp = make_param_type(tp, &null_source_position);
