@@ -3910,6 +3910,49 @@ namespace-extension scope.
 }  /* qualified_name_redecl_sym */
 
 
+static void move_variable_to_end_of_list(a_variable_ptr  var,
+                                         a_symbol_ptr    linked_decl)
+/*
+The given variable is being redeclared (and defined).  Move the corresponding
+IL entry to the end of the associated scope list.  linked_decl is a symbol
+representing the previous declaration; in Sun and Microsoft modes it could
+be a using-declaration.
+*/
+{
+  a_scope_depth  depth;
+  a_boolean      namespace_scope_reopened = FALSE;
+
+  if (var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
+    /* Variables with C linkage are always placed on the file scope list. */
+    depth = DEPTH_OF_FILE_SCOPE;
+  } else {
+    if ((sun_mode || microsoft_mode) &&
+        depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+        linked_decl != NULL &&
+        linked_decl->kind == (a_symbol_kind)sk_namespace_projection) {
+      /* In Sun and Microsoft modes it is possible to redeclare a variable
+         outside its namespace when that variable is visible through a
+         namespace declaration.  In that case, we must push that namespace
+         scope so that the associated variable can be found by
+         remove_from_variables_list and add_to_variables_list. */
+      a_namespace_ptr  nsp = fundamental_symbol_of(linked_decl)
+                                                       ->parent.namespace_ptr;
+      if (nsp != NULL) {
+        namespace_scope_reopened = TRUE;
+        f_push_namespace_extension_scope(nsp, TRUE);
+      }  /* if */
+    }  /* if */
+    depth = depth_innermost_namespace_scope;
+  }  /* if */
+  check_assertion(in_file_scope(var));
+  remove_from_variables_list(var, depth);
+  add_to_variables_list(var, depth);
+  if (namespace_scope_reopened) {
+    pop_namespace_extension_scope();
+  }  /* if */
+}  /* move_variable_to_end_of_list */
+
+
 #if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* decl_modifiers, attributes, and/or asm_name are not 
                   used in some configurations. */
@@ -4295,35 +4338,7 @@ declaration.
            variables, since it is only by means of a prior extern declaration
            or (in C mode only) a prior tentative definition that we can be
            defining a variable that has already been declared. */
-        a_scope_depth  depth, reactivation_to_undo = FALSE;
-
-        if ((sun_mode || microsoft_mode) && redeclaration &&
-            depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-            idlb.linked_symbol != NULL &&
-            idlb.linked_symbol->kind ==
-                                     (a_symbol_kind)sk_namespace_projection) {
-          /* In Sun and Microsoft modes it is possible to redeclare a variable
-             outside its namespace when that variable is visible through a
-             namespace declaration.  In that case, we must push that namespace
-             scope so that the associated variable can be found by
-             remove_from_variables_list and add_to_variables_list. */
-          a_namespace_ptr  nsp = linked_symbol->parent.namespace_ptr;
-          if (nsp != NULL) {
-            reactivation_to_undo = TRUE;
-            f_push_namespace_extension_scope(nsp, TRUE);
-          }  /* if */
-        }  /* if */
-        depth = depth_innermost_namespace_scope;
-        if (variable_ptr->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_external) {
-          depth = DEPTH_OF_FILE_SCOPE;
-        }  /* if */
-        check_assertion(in_file_scope(variable_ptr));
-        remove_from_variables_list(variable_ptr, depth);
-        add_to_variables_list(variable_ptr, depth);
-        if (reactivation_to_undo) {
-          pop_namespace_extension_scope();
-        }  /* if */
+        move_variable_to_end_of_list(variable_ptr, idlb.linked_symbol);
       }  /* if */
     }  /* if */
   }  /* if */
