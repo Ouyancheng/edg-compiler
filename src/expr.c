@@ -4658,19 +4658,9 @@ Syntax:
     /* The type cast to must be a pointer or reference to a complete class
        type, or void*. */
     cast_type_okay = FALSE;
-    if (is_template_dependent_context() &&
-        is_or_contains_template_param(cast_type)) {
-      /* Casting to a template parameter type is okay in a prototype
-         instantiation. */
-      template_param_case = TRUE;
-      /* ... but avoid saying something like T[] is okay. */
-      if (is_template_param_type(cast_type) ||
-          is_ptr_or_ref_type(cast_type)) {
-        cast_type_okay = TRUE;
-      }  /* if */
-    } else if (is_ptr_or_ref_type(cast_type)) {
-      reference_case = is_reference_type(cast_type);
+    if (is_ptr_or_ref_type(cast_type)) {
       underlying_cast_type = type_pointed_to(cast_type);
+      reference_case = is_reference_type(cast_type);
       if (is_class_struct_union_type(underlying_cast_type)) {
         /* Casting to a pointer to a complete class type is okay. */
         complete_class_type_is_needed(underlying_cast_type);
@@ -4680,16 +4670,39 @@ Syntax:
 	     typeinfo for the class is defined. */
           require_definitions_of_virtual_functions_in_class(
                                                         underlying_cast_type);
+        } else if (f_skip_typerefs(underlying_cast_type)->
+                                 variant.class_struct_union.is_nonreal_class) {
+          /* Casting to a pointer or reference to a nonreal type is okay
+             in a prototype instantiation. */
         }  /* if */
       } else if (!reference_case && is_void_type(underlying_cast_type)) {
         /* Casting to void * is okay. */
         cast_type_okay = TRUE;
+      } else if (is_template_param_type(underlying_cast_type)) {
+        /* Casting to a pointer or reference to a template parameter type
+           is okay in a prototype instantiation. */
+        cast_type_okay = TRUE;
+        template_param_case = TRUE;
       }  /* if */
+    } else if (is_template_param_type(cast_type)) {
+      /* Casting to a template parameter type is okay in a prototype
+         instantiation (it might be a pointer or reference type). */
+      cast_type_okay = TRUE;
+      template_param_case = TRUE;
+      underlying_cast_type = type_of_unknown_templ_param_nontype;
     } else {
       /* cast_type is not a pointer or reference type; error. */
       cast_type_okay = FALSE;
     }  /* if */
-    if (!cast_type_okay) {
+    if (cast_type_okay) {
+      /* The operation type for the cast is the type specified, except that
+         for a cast to a reference type it is the corresponding pointer
+         type. */
+      operation_type = cast_type;
+      if (reference_case) {
+        operation_type = make_pointer_type(underlying_cast_type);
+      }  /* if */
+    } else {
       /* Bad dynamic cast type. */
       err = TRUE;
       if (!is_error_type(cast_type)) {
@@ -4701,15 +4714,11 @@ Syntax:
     /* Check the type of the operand. */
     operand_type = operand.type;
     operand_type_okay = FALSE;
-    operation_type = cast_type;
     if (is_template_dependent_context() &&
         is_or_contains_template_param(operand_type)) {
       /* An operand of unknown type, in a prototype instantiation. */
       operand_type_okay = TRUE;
       template_param_case = TRUE;
-      if (reference_case) {
-        operation_type = make_pointer_type(underlying_cast_type);
-      }  /* if */
     } else if (!reference_case) {
       /* When casting to a pointer type, the operand is treated as an
          rvalue. */
@@ -4737,7 +4746,6 @@ Syntax:
       }  /* if */
     } else {
       /* Reference case. */
-      operation_type = make_pointer_type(underlying_cast_type);
       /* The source operand must be an lvalue of a complete class type. */
       if (is_an_lvalue(&operand) &&
           is_class_struct_union_type(operand_type)) {
