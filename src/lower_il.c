@@ -2362,19 +2362,31 @@ Determine the lowered representation of the indicated pointer-to-data-member
 constant, and return information about it in *delta.
 */
 {
-  a_field_ptr field;
+  a_field_ptr      field;
+  a_targ_ptrdiff_t offset = 0;
 
   field = constant->variant.ptr_to_member.variant.field;
   /* Use offset == 0 for NULL, otherwise the field offset. */
-  if (field == NULL) {
-    *delta = 0;
-  } else {
+  if (field != NULL) {
+    /* Determine the offset of the field within the class. */
+    /* If the field is a member of an anonymous union, add in the offset of
+       the anonymous union.  Several may be nested inside one another. */
+    for (;;) {
+      a_type_ptr field_class = field->source_corresp.class_of_which_a_member;
+      a_class_type_supplement_ptr
+                 ctsp = field_class->variant.class_struct_union.extra_info;
+      offset += (a_targ_ptrdiff_t)(field->bit_offset / TARG_CHAR_BIT);
+      if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
+        break;
+      }  /* if */
+      field = ctsp->anonymous_union_field;
+    }  /* for */
     /* Add the offset of the field class relative to the pointer-to-member
        class and the offset of the field relative to its class.  Final
        "+1" is to reserve zero for NULL pointers. */
-    *delta = pm_cast_offset(constant) +
-             (field->bit_offset / TARG_CHAR_BIT) + 1;
+    offset = pm_cast_offset(constant) + offset + 1;
   }  /* if */
+  *delta = offset;
 }  /* repr_for_ptr_to_data_member_constant */
 
 

@@ -1,5 +1,10 @@
 Version 2.22
 
+2/23/94  IL lowering computation of anonymous union pointer-to-member offset
+
+IL lowering now correctly computes the offset for a pointer-to-data-member
+for a member that is inside an anonymous union.
+
 2/23/94  Bug with compiler-generated assignment operators
 
 A bug has been fixed in the code produced when a compiler-generated
