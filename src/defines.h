@@ -108,8 +108,6 @@ Flags to be set when using the KAI inliner.
 /* Does not always work right. */
 #define GUARD_MACRO2_FOR_VA_LIST "_SYS_VA_LIST_H"
 #endif /* 0 */
-#else /* ifndef __SUNPRO_C */
-#define GCC_IS_C_GEN_BE_TARGET 1
 #endif /* ifdef __SUNPRO_C */
 
 #else /* !defined(SOLARIS) */

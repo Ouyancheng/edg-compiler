@@ -64,7 +64,6 @@ Definitions for Solaris:
 #define __ANSIC__ 1
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
-#define USE_INIT_SECTION_IN_GENERATED_C 1
 #define LONG_LONG_ALLOWED 1
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
@@ -77,6 +76,20 @@ Definitions for Solaris:
 #ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 1
 #endif /* indef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+
+/*
+Determine the C compiler being used to configure initialization handling
+in the C generating back end.
+*/
+#ifdef __SUNPRO_C
+#else /* ifndef __SUNPRO_C */
+#ifdef __GNUC__
+#define GCC_IS_C_GEN_BE_TARGET 1
+#else /* ifndef __GNUC__ */
+#define USE_INIT_SECTION_IN_GENERATED_C 1
+#endif /* ifdef __GNUC__ */
+#endif /* ifdef __SUNPRO_C */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
