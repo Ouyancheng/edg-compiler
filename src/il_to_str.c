@@ -2670,11 +2670,13 @@ confusion.  Do the output in the way described by octl.
     case ck_aggregate:
       octl->output_str("{");
       { a_constant_ptr sub_con = constant->variant.aggregate.first_constant;
-        while (sub_con != NULL) {
+        for (; sub_con != NULL; sub_con = sub_con->next) {
           form_constant(sub_con, /*need_parens=*/FALSE, octl);
-          sub_con = sub_con->next;
-          if (sub_con != NULL) octl->output_str(", ");
-        }  /* while */
+          if (sub_con->next != NULL &&
+              sub_con->kind != (a_constant_repr_kind)ck_designator) {
+            octl->output_str(", ");
+          }  /* if */
+        }  /* for */
       }
       octl->output_str("}");
       break;
