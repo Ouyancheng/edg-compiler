@@ -1176,6 +1176,32 @@ Enter the predeclared functions for Microsoft mode.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+static void enter_upc_predefined_macros(void)
+/*
+Enter macros as requires by the UPC specification.  Called in UPC modes only.
+*/
+{
+  (void)enter_predef_macro("1", "__UPC__",
+                           /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("200310L", "__UPC_VERSION__", 
+                           /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  if (upc_dynamic_threads()) {
+    (void)enter_predef_macro("1", "__UPC_DYNAMIC_THREADS__",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  } else {
+    (void)enter_predef_macro("1", "__UPC_STATIC_THREADS__",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+}  /* enter_upc_predefined_macros */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
 void enter_system_specific_predeclared_symbols(void)
 /*
 Enter predeclared symbols as required by the implementation.
@@ -1262,6 +1288,11 @@ Enter predeclared symbols as required by the implementation.
     enter_microsoft_predeclared_functions();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode) {
+    enter_upc_predefined_macros();
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* enter_system_specific_predeclared_symbols */
 
 
