@@ -1978,7 +1978,7 @@ is created when the primary source file is reopened between the two fixups.
 }  /* pch_fixup_part_2 */
 
 
-void restore_precompiled_header_information(void)
+static void restore_precompiled_header_information(void)
 /*
 Reload the compiler state information so that a precompiled header file
 may be used.
