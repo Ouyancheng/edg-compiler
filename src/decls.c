@@ -10331,7 +10331,8 @@ The attributes are appended to the list pointed to by *attributes
   if (gnu_mode) {
     /* Look for an asm() symbol name tag.  It is ignored on typedefs (with
        a warning). */
-    a_source_position	asm_start_pos = pos_curr_token;
+    a_source_position asm_start_pos;
+    asm_start_pos = pos_curr_token;
     asm_sym_name = scan_asm_name(asm_name_pos);
     if (asm_sym_name != NULL &&
         declared_storage == (a_storage_class)sc_typedef) {
