@@ -6578,7 +6578,7 @@ by a string literal.  The syntax (from ARM 7.4) is:
       extern string-literal declaration
 
 Since linkage specifications nest, the current linkage specifier is saved
-in in a local variable, the new one is established by updating a global
+in a local variable, the new one is established by updating a global
 variable, the declaration(s) are processed, and then the original linkage
 specifier is restored.
 */
