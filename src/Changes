@@ -1,5 +1,13 @@
 Version 2.35
 
+2/11/97 INT_VALUE_PARTS_PER_INTEGER_VALUE when host and target byte sizes
+        differ
+
+The computation of INT_VALUE_PARTS_PER_INTEGER_VALUE, which is used when
+the the largest target integer is larger than the largest host integer,
+was incorrect when the number of bits in a byte on the host and target
+differed.  This has been fixed.
+
 2/11/97 Concatenation of adjacent string literals
 
 When wchar_t is configured to have the same underlying representation as

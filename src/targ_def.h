@@ -382,11 +382,37 @@ typedef unsigned long a_host_large_unsigned;
 #define MAX_HOST_LARGE_INTEGER LONG_MAX
 #define MIN_HOST_LARGE_INTEGER LONG_MIN
 #define MAX_HOST_LARGE_UNSIGNED LONG_UMAX
+
+/* Define a macro that has the same value as TARG_CHAR_BIT.  This is done
+   because TARG_CHAR_BIT cannot be used outside of targ_def.h (it gets
+   undefined below).  The simulated integer routines to not support 
+   implementations on which targ_char_bit can be changed. */
+#ifndef INTERNAL_TARG_CHAR_BIT
+#if TARG_CHAR_BIT == 8
+#define INTERNAL_TARG_CHAR_BIT 8
+#else /* TARG_CHAR_BIT != 8 */
+#if TARG_CHAR_BIT == 16
+#define INTERNAL_TARG_CHAR_BIT 16
+#else /* TARG_CHAR_BIT != 16 */
+#if TARG_CHAR_BIT == 24
+#define INTERNAL_TARG_CHAR_BIT 24
+#else /* TARG_CHAR_BIT != 24 */
+#if TARG_CHAR_BIT == 32
+#define INTERNAL_TARG_CHAR_BIT 32
+#else /* TARG_CHAR_BIT != 32 */
+ #error -- do not know how to set INTERNAL_TARG_CHAR_BIT
+#endif /* TARG_CHAR_BIT == 32 */
+#endif /* TARG_CHAR_BIT == 24 */
+#endif /* TARG_CHAR_BIT == 16 */
+#endif /* TARG_CHAR_BIT == 8 */
+#endif /* ifndef INTERNAL_TARG_CHAR_BIT */
+
 #define BITS_IN_HOST_LARGE_INTEGER (sizeof(a_host_large_integer)*CHAR_BIT)
 /* The array is made up of elements of type an_int_value_part.
    Figure out how many. */
 #define INT_VALUE_PARTS_PER_INTEGER_VALUE                             \
-  (TARG_SIZEOF_LARGEST_INTEGER/SIZEOF_INT_VALUE_PART)
+  ((TARG_SIZEOF_LARGEST_INTEGER*INTERNAL_TARG_CHAR_BIT)/	      \
+   (SIZEOF_INT_VALUE_PART*CHAR_BIT))
 /* This is an array inside a struct instead of just an array so that
    its address behaves in a predictable way. */
 typedef struct an_integer_value {
