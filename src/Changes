@@ -2,6 +2,16 @@ Version 2.26
 
 10/10/94 IL version number changed to 2.18
 
+10/10/94 Version build date and time information
+
+The version.h file now includes variables called build_date and
+build_time that contain the date and time at which the front end
+was built.  This information is used to determine whether
+a precompiled header file was built by a compatible version of
+the front end.  As with other global variables, these variables
+are defined by the compilation of fe_init.c (so they only change
+when fe_init.c is recompiled).
+
 10/10/94 A(x) and (A)x mean the same thing and allow user-defined
          conversions on x
 
