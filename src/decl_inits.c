@@ -1039,9 +1039,10 @@ the source position for an error (dynamic initialization is in
 unreachable code).
 */
 {
-  a_statement_ptr         init_stmt;
-  a_boolean               static_lifetime;
-  a_boolean               at_file_scope;
+  a_statement_ptr                   init_stmt;
+  a_boolean                         static_lifetime;
+  a_boolean                         at_file_scope;
+  a_local_static_variable_init_ptr  lsvip;
 
   db_enter(4, "gen_dynamic_initialization");
   at_file_scope = (depth_stmt_stack < 0);
@@ -1077,15 +1078,15 @@ unreachable code).
     check_assertion(in_file_scope(vp) == static_lifetime);
     check_assertion(!in_file_scope(dip));
     if (static_lifetime) {
-      /* Dynamic initialization of a local static variable -- since the
-         dynamic init entry is in the function scope memory region, the
-         variable can't have a pointer to it.  Instead we use a special entry
-         to record the initialization. */
-      a_local_static_variable_init_ptr  lsvip;
-
+      /* Dynamic initialization of a local static variable.  Since the dynamic
+         init entry is in the function scope memory region, the variable can't
+         have a pointer to it.  Instead, create a local-static-variable-init
+         entry to point to the initializer -- it is added to a list associated
+         with the current function or block scope. */
       lsvip = alloc_local_static_variable_init((an_init_kind)initk_dynamic);
       lsvip->initializer.dynamic = dip;
       add_to_local_static_variable_inits_list(lsvip);
+      /* Mark the variable as having cross-scope initialization. */
       vp->init_kind = (an_init_kind)initk_function_local;
     } else {
       /* Make the variable point at the dynamic initialization. */
@@ -1097,6 +1098,7 @@ unreachable code).
                                           &vp->source_corresp.decl_position);
     init_stmt->variant.dynamic_init = dip;
   } else {
+    /* An initialization of a file-scope variable. */
     check_assertion(in_file_scope(vp));
     check_assertion(in_file_scope(dip));
     /* Make the variable point at the dynamic initialization. */
@@ -1199,16 +1201,18 @@ an error on an incomplete type, *incomplete_type_error_reported will be
 returned set to TRUE.
 */
 {
-  a_variable_ptr                 vp = NULL;
-  a_type_ptr                     vp_type = NULL;
-  a_boolean                      var_err, init_err;
-  a_boolean                      static_lifetime = FALSE;
-  a_boolean                      brace_flag = FALSE;
-  a_constant                     constant;
-  a_constant_ptr                 init_con = NULL;
-  a_dynamic_init_ptr             init_dip = NULL;
-  a_class_symbol_supplement_ptr  cssp = NULL;
-  a_boolean                      nonconstant_allowed;
+  a_variable_ptr                    vp = NULL;
+  a_type_ptr                        vp_type = NULL;
+  a_boolean                         var_err, init_err;
+  a_boolean                         static_lifetime = FALSE;
+  a_boolean                         brace_flag = FALSE;
+  a_constant                        constant;
+  a_constant_ptr                    init_con = NULL;
+  a_dynamic_init_ptr                init_dip = NULL;
+  a_class_symbol_supplement_ptr     cssp = NULL;
+  a_boolean                         nonconstant_allowed;
+  a_local_static_variable_init_ptr  lsvip;
+  a_memory_region_number            region_to_switch_back_to;
 
   db_enter(3, "initializer");
   /* There are a number of tests to determine whether the variable can take
@@ -1456,17 +1460,19 @@ returned set to TRUE.
       if (init_con->kind == (a_constant_repr_kind)ck_aggregate) {
         /* Aggregate-constant initialization.  Since the aggregate constant
            is in the local memory region, the variable can't have a pointer
-           to it.  Instead, we use a special entry to record the
-           initialization. */
-        a_local_static_variable_init_ptr  lsvip;
-
+           to it.  Instead, create a local-static-variable-init entry to point
+           to the initializer -- it is added to a list associated with the
+           current function or block scope. */
         lsvip = alloc_local_static_variable_init((an_init_kind)initk_static);
         lsvip->initializer.constant = init_con;
         add_to_local_static_variable_inits_list(lsvip);
+        /* Mark the variable as having cross-scope initialization. */
         vp->init_kind = (an_init_kind)initk_function_local;
       } else {
-        a_memory_region_number  region_to_switch_back_to;
-
+        /* The initializer is a simple constant, so it can just be attached
+           the the variable.  However, the variable is in file scope memory
+           and init_con was allocated in function scope memory; therefore,
+           copy the constant to the correct memory region. */
         switch_to_file_scope_region(&region_to_switch_back_to);
         vp->initializer.constant = copy_unshared_constant(init_con);
         switch_back_to_original_region(region_to_switch_back_to);
