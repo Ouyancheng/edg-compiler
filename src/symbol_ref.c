@@ -79,12 +79,8 @@ should only be called if cross-reference information is being generated
     /* Ignore symbols for unnamed classes and enums. */
   } else if (source_position->seq == 0) {
     /* This symbol is not associated with any particular source position. */
-  } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
-             (sym_ptr->is_template_param ||
-              scope_stack[depth_scope_stack].in_prototype_instantiation)) {
-    /* Ignore template parameter symbols encountered during template
-       instantiation and any symbols encountered during prototype
-       instantiation. */
+  } else if (is_template_dependent_context()) {
+    /* Ignore any symbols encountered during prototype instantiations. */
   } else {
     /* The record written to the file is a text line that looks like
 
