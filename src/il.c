@@ -3076,7 +3076,6 @@ and return a pointer to it.
   num_template_param_type_descrs_allocated++;
 #endif
   tptdp->class_type = NULL;
-  tptdp->member_scope_number = NO_SCOPE_NUMBER;
   return tptdp;
 }  /* alloc_template_param_type_descr */
 

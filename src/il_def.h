@@ -1460,11 +1460,6 @@ typedef struct a_template_param_type_descr {
 			   is will be entered as a member that can be
 			   found by subsequent lookups.  Pointer is NULL
 			   if no class use has been  encountered. */
-  a_scope_number
-		member_scope_number;
-			/* If class_type is non-NULL, the number of the
-			   declaration scope for members of class_type;
-			   otherwise NO_SCOPE_NUMBER. */
 } a_template_param_type_descr;
 
 
