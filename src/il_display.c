@@ -3223,12 +3223,12 @@ Display the indicated template.
   }  /* switch */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ptr->template_decl != NULL) {
-    disp_template_decl("template_decl", ptr->template_decl);
+    disp_ptr("template_decl", (char *)ptr->template_decl, iek_template_decl);
   }  /* if */
   switch (ptr->kind) {
     case templk_class:
     case templk_member_class:
-      disp_ptr("class", (char *)ptr->prototype_instantiation.class,
+      disp_ptr("class", (char *)ptr->prototype_instantiation.type,
                iek_type);
       break;
     case templk_function:
