@@ -983,6 +983,8 @@ encoding, return NULL.
     s = "()";
   } else if (start_of_id_is("vc", ptr)) {
     s = "[]";
+  } else if (start_of_id_is("qs", ptr)) {
+    s = "?";
   } else if (start_of_id_is("cs", ptr)) {
     s = "cast";
     *takes_type = TRUE;

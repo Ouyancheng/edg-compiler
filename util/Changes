@@ -1,3 +1,11 @@
+Version 2.45
+
+12/13/00 Demangling of "?" operator in template names
+
+The name demangler now correctly handles the "?" operator in
+expressions in nontype template arguments.
+
+-------------------------------------------------------------------------------
 Version 2.44, August 1, 2000
 
 3/22/00  eccp: environment variable changes
