@@ -7653,7 +7653,7 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
 
 void scan_integral_constant_expression(a_constant *constant)
 /*
-Scan an integral constant expression.  See section 3.4 in the standard.
+Scan an integral constant expression.  See section 3.4 in the C standard.
 */
 {
   an_operand          result;
@@ -7668,6 +7668,11 @@ Scan an integral constant expression.  See section 3.4 in the standard.
   do_operand_transformations(&result, TOPT_NO_OPTIONS,
                              (an_expression_kind)ek_integral_constant);
   extract_constant_from_operand(&result, constant);
+  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+    /* Use an error constant for a template parameter constant within
+       a prototype instantiation. */
+    set_error_constant(constant);
+  }  /* if */
   pop_expr_stack();
 
 #if DEBUG
