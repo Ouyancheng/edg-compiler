@@ -4509,17 +4509,18 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
 
   orig_operand = *operand;
   check_assertion(!is_reference_type(dest_type));
-  if (curr_expr_kind_is_const() ||
-      (is_constant_operand(operand) &&
-       !is_class_struct_union_type(dest_type) &&
-       !is_class_struct_union_type(operand->type))) {
+  if (is_error_operand(operand)) {
+    /* Leave an error operand alone. */
+  } else if (curr_expr_kind_is_const() ||
+             (is_constant_operand(operand) &&
+              !is_class_struct_union_type(dest_type) &&
+              !is_class_struct_union_type(operand->type))) {
     /* In a constant expression, cast the constant rather than building
        an expression tree.  Note that we don't use cast_operand or
        type_change_constant, because this conversion might be highly
        invalid. */
     do_generic_operand_transformations(operand);
-    check_assertion_str(is_constant_operand(operand) ||
-                        is_error_operand(operand),
+    check_assertion_str(is_constant_operand(operand),
                         "generic_cast_operand: non-const operand");
     if (!il_identical_types(operand->type, dest_type)) {
       a_type_ptr con_dest_type = dest_type;
