@@ -158,6 +158,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,num_array_elements)*/
 /*lint -esym(765,num_array_elements)*/
 #endif /* !DO_IL_LOWERING */
+#if !DEBUG
+/*lint -esym(749,pfs_last)*/
+#endif /* !DEBUG */
 #if !INCLUDE_EDG_TEST_PRAGMAS
 /*lint -esym(528,add_other_pragma_kind_description)*/
 #endif /* !INCLUDE_EDG_TEST_PRAGMAS */
