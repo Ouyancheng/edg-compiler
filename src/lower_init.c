@@ -3453,6 +3453,7 @@ in this routine must be FALSE in that case.
   a_boolean          expr_is_lvalue, local_keep_dynamic_init = FALSE;
   a_boolean          constructor_array_init = FALSE;
   a_variable_ptr     local_static_guard_var;
+  a_boolean          do_simple_constant_init_opt = FALSE;
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -3480,6 +3481,14 @@ in this routine must be FALSE in that case.
   /* Initializations of static variables (whether global or function-local)
      require some special processing. */
   static_var_init = init_pos_is_static(ipdp);
+  /* Decide whether the optimization of rewriting a dynamic initialization
+     to a constant as a static initialization to the constant is allowed.
+     It is not allowed if the variable is automatic and the context is
+     something other than an stmk_init (that's the keep_dynamic_init test). */
+  if (variable != NULL && dip->kind == (a_dynamic_init_kind)dik_constant &&
+      (static_var_init || keep_dynamic_init != NULL)) {
+    do_simple_constant_init_opt = TRUE;
+  }  /* if */
   if (variable != NULL &&
       (variable->init_kind == (an_init_kind)initk_function_local
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
@@ -3494,9 +3503,6 @@ in this routine must be FALSE in that case.
 #endif /* LOWER_EXTERN_INLINE */
                                               )) {
     /* The variable is a local static. */
-    /* Add a first-time flag and a test. */
-    add_first_time_test(variable, insert_location, &block_stmt,
-                        &local_static_guard_var);
     /* Find the local-static-variable-init entry that describes the
        initialization. */
     if (variable->init_kind == (an_init_kind)initk_function_local) {
@@ -3504,7 +3510,13 @@ in this routine must be FALSE in that case.
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 #if LOWER_EXTERN_INLINE
     } else if (options & LDIO_EXTERN_INLINE_LOCAL_STATIC) {
-     /* Don't look for the local static variable initialization entry. */
+     /* Local static variable promoted out of an extern inline function.
+        Don't look for the local static variable initialization entry,
+        because the initialization is already directly in the variable.
+     /* Don't allow this case to be turned into a simple constant
+        initialization, because we want the variable to be a tentative
+        definition. */
+     do_simple_constant_init_opt = FALSE;
 #endif /* LOWER_EXTERN_INLINE */
     } else {
       /* When local static variables are promoted, the local static variable
@@ -3517,6 +3529,12 @@ in this routine must be FALSE in that case.
       check_assertion_str(lsvip != NULL,
                           "lower_dynamic_init: local static init not found");
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
+    }  /* if */
+    if (!do_simple_constant_init_opt) {
+      /* Add a first-time flag and a test, but not if the initialization
+         will be turned into a constant initialization. */
+      add_first_time_test(variable, insert_location, &block_stmt,
+                          &local_static_guard_var);
     }  /* if */
   }  /* if */
   if (dip->lifetime != NULL) {
@@ -3676,21 +3694,9 @@ in this routine must be FALSE in that case.
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
       lower_constant(dip->variant.constant);
-      /* If there is a whole variable, this dynamic initialization can be
-         rendered in C IL without generating an assignment.  It's probably
-         here as a dynamic initialization because it has a destructor call
-         too. */
-      /* Don't allow this optimization if the caller doesn't permit the
-         option of keeping the dynamic init entry, e.g., in a condition
-         declaration. */
-      if (variable != NULL && (static_var_init || keep_dynamic_init != NULL)
-#if LOWER_EXTERN_INLINE
-        /* Also don't do it for a local static variable promoted out of an
-           extern inline function, since we want that to be a tentative
-           definition (i.e., uninitialized). */
-          && !(options & LDIO_EXTERN_INLINE_LOCAL_STATIC)
-#endif /* LOWER_EXTERN_INLINE */
-                                                         ) {
+      /* If there is a whole variable of the right kind, this dynamic
+         initialization can be rendered as a static initialization. */
+      if (do_simple_constant_init_opt) {
         simple_constant_init = TRUE;
         simple_constant = dip->variant.constant;
         break;
@@ -5044,12 +5050,10 @@ Generate code for a stmk_init (dynamic initialization) statement.
     /* Initialization that wraps a lifetime around the initialization (because
        there are temporaries created in it). */
     non_C_case = TRUE;
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
-  } else if (var->promoted_local_static_init) {
-    /* Initialization of a local static variable promoted out of a function.
-       Code must be used to initialize it. */
+  } else if (has_static_storage_duration(var->storage_class)) {
+    /* Initialization of a local static variable cannot be dynamic in C.
+       Code must be used to do the initialization. */
     non_C_case = TRUE;
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   }  /* if */
   switch (dip->kind) {
     case dik_none:
@@ -5060,12 +5064,6 @@ Generate code for a stmk_init (dynamic initialization) statement.
     case dik_constant:
       break;
     case dik_expression:
-      if (var->storage_class == (a_storage_class)sc_static) {
-        /* Initialization of a local static variable to an expression, as in
-               int f() {static int i = j+1;}
-        */
-        non_C_case = TRUE;
-      }  /* if */
       break;
     case dik_call_returning_class_via_cctor:
       /* Initialization from class returned via copy constructor. */
