@@ -1,5 +1,20 @@
 Version 2.28
 
+2/15/95  Missing ambiguity error
+
+An ambiguity error was not being issued when the first component of a
+qualified name was ambiguous.  This has been corrected.
+
+  struct A {
+    struct N { static int M(); };
+  };
+  struct B {
+    struct N { static int M(); };
+  };
+  struct C : public A, public B {
+    int f() { return N::M(); }  // ambiguous
+  };
+
 2/15/95  Bug in -I- option processing
 
 The -I- option had a bug when more than one directory was specified
