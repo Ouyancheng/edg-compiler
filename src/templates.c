@@ -15597,23 +15597,26 @@ that follows.
             check_assertion(rp->declared_type == NULL);
             set_routine_declared_type(rp, declared_type);
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
             if (rp->source_corresp.source_sequence_entry != NULL &&
-#if !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-                scope_stack[depth_scope_stack].kind ==
-                                        (a_scope_kind)sck_class_struct_union &&
-#endif /* !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
                 (an_il_entry_kind)rp->source_corresp.source_sequence_entry->
                                                                  entity.kind ==
                              (an_il_entry_kind)iek_src_seq_secondary_decl) {
-              /* This must be a member or friend function definition inside
-                 the definition of a nonlocal class.  A source sequence
-                 entry representing the function definition will be inserted
-                 following the class definition and a secondary source
-                 sequence entry has been put out here. */
+              /* Even though this is a definition, record_symbol_declaration
+                 (called above) left the routine pointing to a secondary source
+                 sequence entry.  This must therefore be a member or friend
+                 function definition inside the definition of a nonlocal class
+                 (a source sequence entry representing the function definition
+                 will be inserted following the class definition and a
+                 secondary source sequence entry has been put out here).
+                 In fact, since this is a specialization, it must be an
+                 in-class specialization of a member function template (a
+                 Microsoft extension). */
               (void)update_src_seq_secondary_decl(
                                           (char *)rp, declared_type, name_ref,
                                           flags, &decl_pos_block);
             }  /* if */
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
           } else {
             (void)update_src_seq_secondary_decl((char *)rp, declared_type,
