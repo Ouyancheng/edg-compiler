@@ -16,6 +16,7 @@ fe_wrapup.c - End of front end processing.
 #include "basics.h"
 #include "host_envir.h"
 #include "symbol_tbl.h"
+#include "templates.h"
 #include "mem_manage.h"
 #include "error.h"
 #include "cmd_line.h"
