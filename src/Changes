@@ -10,8 +10,8 @@ template while parsing that class template.  For example:
   template<class T> struct S {
     void f1() { S<int> s; s.f2(0); }  // Causes the instantiation of
                                       // S<int>::f2(int) while parsing S<T>
-    void f2(int) {}  // Abort in func_def.c on this function
-  };
+    void f2(int) {}  // Abort in func_def.c on this function when parsing
+  };                 // of function templates is enabled (e.g., with -A)
 
 This is now fixed.
 
