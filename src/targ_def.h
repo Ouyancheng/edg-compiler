@@ -957,6 +957,14 @@ to targ_size_t_max.
 #define TARG_MAX_BASE_CLASS_OFFSET 0
 #endif /* ifndef TARG_MAX_BASE_CLASS_OFFSET */
 
+/*
+If this is TRUE, dead expressions under conditional operators "&&", "||",
+and "?" are eliminated.  For example, "1 ? i : j" becomes simply "i".
+*/
+#ifndef ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
+#define ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS FALSE
+#endif /* ifndef ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
+
 #if BACK_END_IS_C_GEN_BE
 /*
 Switch that is TRUE if the C-generating back end should generate code for

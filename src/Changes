@@ -1,5 +1,13 @@
 Version 2.29
 
+5/13/95  Dead expressions under conditional operators are retained
+
+Dead expressions under the conditional operators &&, ||, and ? are
+now retained.  For example, "1 ? i : j" is no longer transformed
+into simply "i".  This is more in keeping with our general philosophy
+of not altering or optimizing the program.  The old behavior can be
+gotten by setting ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS to TRUE.
+
 5/13/95  Spurious used-before-set warning eliminated
 
 A spurious used-before-set warning has been eliminated for cases like

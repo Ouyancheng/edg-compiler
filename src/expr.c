@@ -6655,8 +6655,10 @@ standard.
   an_operand            operand_2;
   a_source_position     operator_position;
   a_boolean             operand_1_is_false = FALSE;
+#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
   long                  local_result;
   a_boolean             known_result       = FALSE;
+#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
   a_token_kind          save_token;
   a_type_ptr            result_type;
   a_boolean             processed = FALSE;
@@ -6716,14 +6718,18 @@ standard.
         operand_1_is_false = op_is_false_constant(operand_1);
         if (save_token == tok_and_and && operand_1_is_false) {
           /* 0 && something -- this always evaluates to a zero/false value. */
+#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
           local_result = 0;
           known_result = TRUE;
+#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
           expr2_evaluated = FALSE;
         } else if (save_token == tok_or_or && !operand_1_is_false) {
           /* non-zero || something -- this always evaluates to a value of
              1/true. */
+#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
           local_result = 1;
           known_result = TRUE;
+#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
           expr2_evaluated = FALSE;
         }  /* if */
       }  /* if */
@@ -6775,11 +6781,14 @@ standard.
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     (void)check_boolean_controlling_expr(&operand_2);
     result_type = boolean_result_type();
+#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
     if (!known_result) {
+#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
       /* Normal case: the result is not known. */
       op = which_binary_operator(save_token, result_type);
       do_binary_operation(op, operand_1, &operand_2, result_type, result,
                           &operator_position);
+#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
     } else {
       /* The expression evaluates to a constant. */
       make_integer_constant_operand(result, local_result);
@@ -6792,6 +6801,7 @@ standard.
         result->variant.constant.null_pointer_constant_ruled_out = TRUE;
       }  /* if */
     }  /* if */
+#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
   }  /* if */
 
   /* Set the error position to the starting position. */
@@ -7339,6 +7349,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   if (err || is_error_operand(operand_1)) {
     make_error_operand(result);
+#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
   } else if (operand_1_is_const) {
     an_operand *other_operand;
     if (operand_1_is_false) {
@@ -7359,8 +7370,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       /* The result is not a null pointer constant. */
       result->variant.constant.null_pointer_constant_ruled_out = TRUE;
     }  /* if */
+#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
   } else {
-    /* The first operand is not a constant, so build the expression. */
+    /* Build the expression. */
     if (result_is_an_lvalue) {
       /* If the result is an lvalue, the type of the "?" node must be a
          pointer. */
