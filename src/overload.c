@@ -1968,6 +1968,37 @@ done:
 }  /* function_template_matches_operand_list */
 
 
+static a_type_ptr drop_tiebreaker_ref_ptr_types(
+                                           a_type_ptr               param_type,
+                                           an_arg_match_summary_ptr arg)
+/*
+Drop a reference type from the top of the indicated type, or a pointer
+type if this is a "this" parameter (since that is reference-like).  Also
+drop any pointer type levels under that.  Then, return the modified type.
+This is used in preparing a parameter type for comparison in the const
+tie-breaker processing.  arg is the argument match entry for the parameter,
+which indicates whether or not the parameter is a "this" parameter.
+*/
+{
+  /* Drop a first-level reference (or the similar pointer in the "this"
+     parameter case). */
+  if (is_reference_type(param_type) ||
+      (arg->is_match_for_this_param && is_pointer_type(param_type))) {
+    param_type = type_pointed_to(param_type);
+    if (any_cfront_mode()) {
+      /* In cfront mode, ignore arrays under references.  There's a
+         case like that in the NIH libraries. */
+      if (is_array_type(param_type)) {
+        param_type = underlying_array_element_type(param_type);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Drop any pointer types. */
+  while (is_pointer_type(param_type)) param_type = type_pointed_to(param_type);
+  return param_type;
+}  /* drop_tiebreaker_ref_ptr_types */
+
+
 static int compare_argument_tiebreakers(a_candidate_function_ptr cfp1,
                                         a_candidate_function_ptr cfp2)
 /*
@@ -1984,7 +2015,7 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
 {
   int                      cmp = 0;
   an_arg_match_summary_ptr arg1, arg2;
-  a_type_ptr               param_type1, param_type2, under_type1, under_type2;
+  a_type_ptr               param_type1, param_type2;
 
   /* We're looking for cases like
        void f(const int *);
@@ -2011,48 +2042,31 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
       param_type2 = arg2->param_type;
       /* Some arguments have no parameter type (e.g., an ellipsis match). */
       if (param_type1 != NULL && param_type2 != NULL) {
-        /* Note that the test here allows one to be a pointer, the other a
-           reference, for some cases that compare a "this" parameter
-           pointer match with a reference match.  This seems to be common
-           practice for some other cases as well; there's a pointer/reference
-           case in the NIH library. */
-        if (is_ptr_or_ref_type(param_type1) &&
-            is_ptr_or_ref_type(param_type2)) {
-          /* Both parameters are pointers or references. */
-          under_type1 = type_pointed_to(param_type1);
-          under_type2 = type_pointed_to(param_type2);
-          if (any_cfront_mode()) {
-            /* In cfront mode, ignore arrays under references.  There's a
-               case like that in the NIH libraries. */
-            if (is_reference_type(param_type1) && is_array_type(under_type1)) {
-              under_type1 = underlying_array_element_type(under_type1);
-            }  /* if */
-            if (is_reference_type(param_type2) && is_array_type(under_type2)) {
-              under_type2 = underlying_array_element_type(under_type2);
-            }  /* if */
+        /* Drop a reference type from the top of the parameter types,
+           if present. */
+        param_type1 = drop_tiebreaker_ref_ptr_types(param_type1, arg1);
+        param_type2 = drop_tiebreaker_ref_ptr_types(param_type2, arg2);
+        if (types_are_compatible_ignoring_qualifiers(param_type1,
+                                                     param_type2)) {
+          /* The underlying types are the same, so tie-breaker differences
+             are subsequence differences. */
+          int prev_cmp = cmp;
+          if (arg1->conversion.std.type_qualifiers_added) {
+            /* Argument 1 has added type qualifiers and argument 2 does not,
+               so arg_match2 is the better match. */
+            cmp = -1;
+          } else {
+            /* Argument 2 has added type qualifiers and argument 1 does not,
+               so arg_match1 is the better match. */
+            cmp = 1;
           }  /* if */
-          if (types_are_compatible_ignoring_qualifiers(under_type1,
-                                                       under_type2)) {
-            /* The underlying types are the same, so tie-breaker differences
-               are subsequence differences. */
-            int prev_cmp = cmp;
-            if (arg1->conversion.std.type_qualifiers_added) {
-              /* Argument 1 has added type qualifiers and argument 2 does not,
-                 so arg_match2 is the better match. */
-              cmp = -1;
-            } else {
-              /* Argument 2 has added type qualifiers and argument 1 does not,
-                 so arg_match1 is the better match. */
-              cmp = 1;
-            }  /* if */
-            /* This tie-breaker applies only if no other arguments contradict
-               it, so keep going and look at the rest of the arguments. */
-            if (prev_cmp != 0 && prev_cmp != cmp) {
-              /* This contradicts a previous argument, so the tie-breaker does
-                 not apply. */
-              cmp = 0;
-              break;
-            }  /* if */
+          /* This tie-breaker applies only if no other arguments contradict
+             it, so keep going and look at the rest of the arguments. */
+          if (prev_cmp != 0 && prev_cmp != cmp) {
+            /* This contradicts a previous argument, so the tie-breaker does
+               not apply. */
+            cmp = 0;
+            break;
           }  /* if */
         }  /* if */
       }  /* if */
