@@ -2875,7 +2875,14 @@ constants in other scopes.
        can never be an orphan, so member constants are not recorded as
        orphans. */
     if (!constant->source_corresp.is_class_member) {
+#if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
+      /* When an IL file is being written, the IL walk when writing will
+         mark all the orphans properly.  We don't want to mark them now if
+         we're going to discard the function scope memory region because
+         it turns out not to be needed. */
+#else /* !(IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT) */
       add_orphaned_file_scope_il_entry((char *)constant, iek_constant);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
     }  /* if */
   } else {
     lower_constant(constant);

@@ -646,6 +646,17 @@ reference to another scope, and is recorded as a potential orphan
 to be processed later.  Note that a class member can never be
 an orphan, so member types are not recorded as orphans.
 */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
+/* When an IL file is being written, the IL walk when writing will
+   mark all the orphans properly.  We don't want to mark them now if
+   we're going to discard the function scope memory region because
+   it turns out not to be needed. */
+#define lower_os_type(type)                                           \
+{ if (lowering_file_scope) {                                          \
+    lower_type(type);                                                 \
+  }  /* if */                                                         \
+}  /* lower_os_type */
+#else /* !(IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT) */
 #define lower_os_type(type)                                           \
 { if (!lowering_file_scope) {                                         \
     if (!type->source_corresp.is_class_member) {                      \
@@ -656,6 +667,7 @@ an orphan, so member types are not recorded as orphans.
     lower_type(type);                                                 \
   }  /* if */                                                         \
 }  /* lower_os_type */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
 
 
 extern void lower_expr_list(an_expr_node_ptr expr_list,
