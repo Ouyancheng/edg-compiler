@@ -1435,7 +1435,6 @@ empty statement block.
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */
   } else {
-    curr_object_lifetime = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime;
     /* Push a class symbol reactivation scope, to make class member names
        visible for processing the function definition. */
     push_class_reactivation_scope(class_type);
