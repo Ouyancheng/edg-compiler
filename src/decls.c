@@ -2127,24 +2127,25 @@ declaration of this symbol.
 
 
 static a_boolean is_default_operator_new(a_symbol_locator *locator,
-                                                a_type_ptr       type)
+                                         a_type_ptr       type)
 /*
 Return TRUE if the locator is for an operator new() and the type indicates
-that it is the default operator new().
+that it is the default operator new() (i.e., if it has exactly one parameter,
+which elsewhere is confirmed to have type size_t).
 */
 {
   a_boolean         match = FALSE;
+  a_param_type_ptr  ptp;
 
   if (locator->is_operator_name &&
       locator->variant.opname == (an_opname_kind)onk_new) {
 #if CHECKING
     if (!is_function_type(type)) {
       internal_error("is_default_operator_new: bad type");
-    } else if (type->variant.routine.extra_info->param_type_list == NULL) {
-      internal_error("is_default_operator_new: bad param type list");
     }  /* if */
 #endif /* CHECKING */
-    if (type->variant.routine.extra_info->param_type_list->next == NULL) {
+    ptp = type->variant.routine.extra_info->param_type_list;
+    if (ptp != NULL && ptp->next == NULL) {
       match = TRUE;
     }  /* if */
   }  /* if */
