@@ -7332,17 +7332,37 @@ constant is allocated (as a shareable constant).
       !constant->implicit_cast && constant->variant.address.offset == 0) {
     abkind = constant->variant.address.kind;
     if (abkind == (an_address_base_kind)abk_routine) {
-      /* The constant is the address of a function; use an address-of-function
-         expression node. */
-      node = alloc_expr_node((an_expr_node_kind)enk_routine_address);
-      node->variant.routine = constant->variant.address.variant.routine;
-      goto have_node;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      if (constant->expr != NULL &&
+          !is_routine_address_node(constant->expr)) {
+        /* Use the constant form if there's extra information in it on the
+           expression that generated the constant. */
+      } else
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+      /* Do not insert code here. */
+      {
+        /* The constant is the address of a function; use an address-of-
+           function expression node. */
+        node = alloc_expr_node((an_expr_node_kind)enk_routine_address);
+        node->variant.routine = constant->variant.address.variant.routine;
+        goto have_node;
+      }  /* if */
     } else if (abkind == (an_address_base_kind)abk_variable) {
-      /* The constant is the address of a variable; use an address-of-variable
-         expression node. */
-      node = alloc_expr_node((an_expr_node_kind)enk_variable_address);
-      node->variant.variable = constant->variant.address.variant.variable;
-      goto have_node;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      if (constant->expr != NULL &&
+          !is_variable_address_node(constant->expr)) {
+        /* Use the constant form if there's extra information in it on the
+           expression that generated the constant. */
+      } else
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+      /* Do not insert code here. */
+      {
+        /* The constant is the address of a variable; use an address-of-
+           variable expression node. */
+        node = alloc_expr_node((an_expr_node_kind)enk_variable_address);
+        node->variant.variable = constant->variant.address.variant.variable;
+        goto have_node;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Normal case: allocate a shareable constant and make an expression node
