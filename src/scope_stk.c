@@ -2589,7 +2589,6 @@ template_sym is the template that is being instantiated.
 }  /* is_nested_in_prototype_instantiation */
 
 
-
 void push_template_instantiation_scope(
                             a_template_decl_info_ptr	decl_info,
                             a_type_ptr			assoc_type,
@@ -4544,6 +4543,33 @@ discarded right after they have been generated.
     if (keep_function_body_for_possible_inlining(routine)) {
       /* ... but keep inline functions so we can inline from them. */
       discard = FALSE;
+    }  /* if */
+  }  /* if */
+  if (!discard && routine->source_corresp.is_local_to_function) {
+    /* Member functions of local classes must be discarded if the surrounding
+       function is discarded. */
+    a_scope_depth depth;
+    /* Find the entry for "routine" in the scope stack.  The loop is
+       necessary for recursive calls to this routine. */
+    for (depth = depth_scope_stack;
+         ;
+         depth = scope_stack[depth].previous_scope) {
+      check_assertion(depth != NO_SCOPE_DEPTH);
+      if (scope_stack[depth].kind == (a_scope_kind)sck_function &&
+          scope_stack[depth].assoc_routine == routine) break;
+    }  /* for */
+    check_assertion(depth != NO_SCOPE_DEPTH);
+    /* Found the routine.  The next entry on the stack tells us the
+       innermost function scope depth for the surrounding function, if any. */
+    depth = scope_stack[depth].previous_scope;
+    depth = scope_stack[depth].depth_innermost_function_scope;
+    if (depth != NO_SCOPE_DEPTH) {
+      /* This routine is inside another routine.  Do a recursive call to
+         find out whether that routine is to be discarded. */
+      a_routine_ptr encl_routine = scope_stack[depth].assoc_routine;
+      if (function_body_should_be_discarded(encl_routine)) {
+        discard = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return discard;
