@@ -2065,7 +2065,7 @@ rdcp points to a required destructor call being generated.  We are currently
 inside a conditional operand of a "?", "&&", or "||" operation.  Since
 the construction is conditional, we add a temporary variable, initialize
 it to zero at the beginning of the current block, and insert an assignment
-to set the temporary to 1 before insert_location.  The destruction generated
+to set the temporary to 1 at insert_location.  The destruction generated
 later will be made conditional on the temporary.
 */
 {
@@ -2074,7 +2074,6 @@ later will be made conditional on the temporary.
   a_constant          zero_constant;
   a_statement_ptr     stmk_init_stmt, block, label_statement;
   a_switch_clause_ptr scp;
-  an_insert_location  insert_before_location;
 
   rdcp->first_time_test_var = temp =
                  make_lowered_temporary(integer_type((an_integer_kind)ik_int));
@@ -2140,23 +2139,12 @@ later will be made conditional on the temporary.
     }  /* if */
   }  /* if */
   /* Make and insert an assignment statement to set the temporary to 1.
-     The insertion is done before the indicated location, which is presumably
-     the expression already generated to do the initialization. */
-  /* Note that lower_temp_init recognizes this assignment so it can
-     optimize around it. */
-  insert_before_location = *insert_location;
-#if CHECKING
-  if (!insert_before_location.expr_insert ||
-      insert_before_location.variant.expr.insert_before) {
-    internal_error("add_conditional_destruction_temp: bad insert loc");
-  }  /* if */
-#endif /* CHECKING */
-  insert_before_location.variant.expr.insert_before = TRUE;
+     This is inserted after the initialization code. */
   (void)insert_var_assignment_statement(temp,
                                         (an_expr_operator_kind)eok_iassign,
                                         node_for_integer_constant(1L,
                                                       (an_integer_kind)ik_int),
-                                        &insert_before_location);
+                                        insert_location);
 }  /* add_conditional_destruction_temp */
 
 
@@ -3163,7 +3151,7 @@ Do IL lowering of an enk_temp_init expression node.
   /* Generate code for the dynamic init. */
   set_var_init_pos_descr(dip->variable, &ipd);
   /* Any code generated for the dynamic initialization will be
-     inserted before the original expression. */
+     inserted before the (modified) original expression. */
   set_expr_insert_location(expr, &insert_location);
   lower_dynamic_init(dip, &ipd,
                      /*first_time_test_var=*/(a_variable_ptr)NULL,
@@ -3180,15 +3168,23 @@ Do IL lowering of an enk_temp_init expression node.
   if ((result_is_addr &&
       dip->kind == (a_dynamic_init_kind)dik_constructor) ||
       result_is_not_used) {
-    an_expr_node_ptr comma_expr = expr, first_operand;
-    check_assertion(is_operation_node(comma_expr) &&
-                    comma_expr->variant.operation.kind ==
-                                             (an_expr_operator_kind)eok_comma);
-    first_operand = comma_expr->variant.operation.operands;
-    check_assertion(result_is_addr ? 
-                      is_variable_address_node(first_operand->next) :
-                      is_variable_node(first_operand->next));
-    overwrite_node(comma_expr, first_operand);
+    /* Check for the form (ctor-call(args),  temp)
+                       or (ctor-call(args), &temp) as appropriate.
+       Note that we do not do the optimization if some other terms have
+       been inserted (e.g., setting a conditional destruction flag). */
+    if (is_operation_node(expr) &&
+        expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
+      an_expr_node_ptr first_operand = expr->variant.operation.operands;
+      an_expr_node_ptr second_operand = first_operand->next;
+      if (is_operation_node(first_operand) &&
+          first_operand->variant.operation.kind ==
+                                             (an_expr_operator_kind)eok_call &&
+          (result_is_addr ? is_variable_address_node(second_operand) :
+                            is_variable_node(second_operand))) {
+        /* The optimization is possible. */
+        overwrite_node(expr, first_operand);
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* lower_temp_init */
 
