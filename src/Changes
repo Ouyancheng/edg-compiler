@@ -1,5 +1,13 @@
 Version 2.32
 
+4/26/96 Default on ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C to FALSE
+
+The default value for the configuration switch
+ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C has been changed to FALSE.
+This follows the conservative assumption that a function declarator
+of "(...)" will not be acceptable to an underlying C compiler when
+C code is being generated.
+
 4/23/96 Declaring the current template to be a friend of itself
 
 A bug has been fixed that made it impossible to declare the current
