@@ -1736,11 +1736,17 @@ Read the existing instantiation assignment information from the
         /* Read the command line. */
         pl_read_input_line(f_info);
         lines_read++;
-        /* Read the directory name. */
-        pl_read_input_line(f_info);
-        lines_read++;
-        /* See if the .ii file was built in the current directory. */
-        pifp->is_local_file = strcmp(pl_input_line, curr_dir_name) == 0;
+        if (lines_read <= reserved_info_file_lines) {
+          /* Read the directory name. */
+          pl_read_input_line(f_info);
+          lines_read++;
+          /* See if the .ii file was built in the current directory. */
+          pifp->is_local_file = strcmp(pl_input_line, curr_dir_name) == 0;
+        } else {
+          /* If we are using the old .ii format with no directory name,
+             assume this to be a local file. */
+          pifp->is_local_file = TRUE;
+        }  /* if */
         /* Skip over any additional reserved lines. */
         for (; lines_read < reserved_info_file_lines; ++lines_read) {
           pl_read_input_line(f_info);
