@@ -33,6 +33,10 @@ lower_init.c -- IL lowering: initializations and new/delete.
 /* Additional header files. */
 #include "expr.h"
 #include "exprutil.h"
+#if MAINTAIN_NEEDED_FLAGS
+#include "il_walk.h"
+#endif /* MAINTAIN_NEEDED_FLAGS */
+
 
 static a_routine_ptr
 		file_scope_init_routine;
