@@ -86,6 +86,13 @@ typedef struct a_throw_stack_entry {
 			   handler.  It is at this point that the
 			   object can be rethrown. */
   a_byte_boolean
+		object_evaluation_complete;
+			/* TRUE when the evaluation of the thrown object has
+			   been completed, but before the object has been
+			   copied to the EH temporary.  If the copy to the EH
+			   temporary is elided, then this flag is set when
+			   the execution of __throw begins. */
+  a_byte_boolean
 		object_copy_complete;
 			/* Set to FALSE when __throw_alloc is called and
 			   set to TRUE when __throw is called.  This
@@ -802,6 +809,24 @@ top of the throw stack.
 }  /* destroy_thrown_object */
 
 
+EXTERN_C void __exception_started()
+/*
+Marks the point at which an exception that is thrown is considered
+"uncaught".  This is the point after the evaluation of the thrown
+object, but before the object is copied to the EH temporary.  If the
+copy to the temporary is elided, this point is after both the evaluation
+and the copy that is integrated into the evaluation.
+*/
+{
+  a_throw_stack_entry_ptr	tsep = curr_throw_stack_entry;
+
+  /* Link the throw processing marker onto the EH stack. */
+  tsep->throw_marker.next = __curr_eh_stack_entry;
+  __curr_eh_stack_entry = &tsep->throw_marker;
+  tsep->object_evaluation_complete = TRUE;
+}  /* exception_started */
+
+
 EXTERN_C int __throw(void)
 /*
 Process a throw.  This routine looks through the stack entries for
@@ -820,6 +845,11 @@ a try block with a catch that matches the type of the object thrown.
   an_access_flag_string         access_flags;
   a_boolean			use_access_flags;
 
+  if (!curr_throw_stack_entry->object_evaluation_complete) {
+    /* If the __exception_started routine was not explicitly called by the
+       code generated at the throw site, call it now. */
+    __exception_started();
+  }  /* if */
   /* When __throw is called we know that the object has been copied and
      must be destroyed when the throw stack entry is popped. */
   curr_throw_stack_entry->object_copy_complete = TRUE;
@@ -1058,11 +1088,9 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->discard_entry = FALSE;
   tsep->in_handler = FALSE;
   tsep->object_copy_complete = FALSE;
+  tsep->object_evaluation_complete = FALSE;
   tsep->throw_marker.next = NULL;
   tsep->throw_marker.kind = ehsek_throw_processing_marker;
-  /* Link the throw processing marker onto the EH stack. */
-  tsep->throw_marker.next = __curr_eh_stack_entry;
-  __curr_eh_stack_entry = &tsep->throw_marker;
 }  /* push_throw_stack */
 
 
