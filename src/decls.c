@@ -119,31 +119,6 @@ abstract or real declarator.
     is_ptr_to_member_declarator_start()))
 
 
-a_boolean is_declarator_id(void)
-/*
-Return TRUE if the current token is an identifier that serve as a
-declarator.
-*/
-{
-  a_symbol_ptr  sym;
-  a_boolean     result = TRUE;
-
-  check_assertion(curr_token == tok_identifier);
-  if (locator_for_curr_id.has_been_coalesced) {
-    sym = locator_for_curr_id.specific_symbol;
-    if (sym != NULL && is_template_class_symbol(sym)) {
-      result = FALSE;
-    }  /* if */
-  } else if (next_token() == tok_lt) {
-    sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-    if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
-      result = FALSE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_declarator_id */
-
-
 static a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                                      a_boolean in_prescan)
 /*
@@ -2545,7 +2520,7 @@ scope is that of a class definition.
         if (dangling_type_specifier ||
             C_mode() ? curr_token == tok_ellipsis :
                        (is_error_locator(param_locator) &&
-                        curr_token == tok_identifier && !is_declarator_id())) {
+                        identifier_is_template_id())) {
           /* A dangling type specifier is detected by decl_specifiers
              when a comma is omitted between the end of a type specifier
              and the start of the next.  This is pretty unlikely, but the
@@ -10422,8 +10397,7 @@ continue_with_declaration:
         /* A storage class can only be specified for an object or a function
            (ARM 7.1.1). */
         if (storage_class != (a_storage_class)sc_unspecified) {
-          diagnostic(C_dialect == C_dialect_cplusplus && strict_ansi_mode ?
-                       strict_ansi_error_severity : es_warning,
+          diagnostic(C_dialect == C_dialect_cplusplus ? es_error : es_warning,
                      ec_storage_class_not_allowed);
         }  /* if */
         /* ARM 7.1.6 implies that the absence of a object in this declaration
@@ -10448,8 +10422,7 @@ continue_with_declaration:
     }  /* if */
     discard_curr_construct_pragmas();
   } else if (dangling_type_specifier ||
-             (!C_mode() && curr_token == tok_identifier &&
-              !is_declarator_id())) {
+             (!C_mode() && identifier_is_template_id())) {
     /* A class, struct, union, or enum definition was followed by a type
        specifier keyword.  Issue a missing-semicolon error, since the type
        specifier can be taken as introducing a new declaration. */
