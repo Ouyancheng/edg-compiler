@@ -1277,7 +1277,6 @@ the associated il statement.
   sssep->any_exec_statement_seen
                               = FALSE;
   sssep->for_init             = FALSE;
-  sssep->init_count           = 0;
   if (kind != ssk_compound || sp->dependent_statement) {
     /* For statements other than blocks, copy down the any_exec_statement_seen
        flag.  It's really being maintained for the block containing this
@@ -1509,6 +1508,7 @@ block is being created to surround a dependent statement in C++.
 {
   a_boolean cfront_dependent_statement = 
                               cfront_compatibility_mode && dependent_statement;
+  a_struct_stmt_kind          kind = struct_stmt_stack[depth_stmt_stack].kind;
 
   *block = add_statement((a_statement_kind)stmk_block);
   if (cfront_dependent_statement) {
@@ -1533,6 +1533,9 @@ block is being created to surround a dependent statement in C++.
                      (a_type_ptr)NULL, (a_routine_ptr)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_template_arg_ptr)NULL);
+    if (kind == ssk_while || kind == ssk_do || kind == ssk_for) {
+      scope_stack[decl_scope_level].is_loop_scope = TRUE;
+    }  /* if */
   }  /* if */
 }  /* start_block_statement */
 
@@ -3079,6 +3082,9 @@ rescan_statement:
           check_for_jump_over_initialization(label->variant.exec_stmt,
                                              &label->
                                                 source_corresp.decl_position);
+          check_assertion(depth_innermost_function_scope > 0);
+          scope_stack[depth_innermost_function_scope].last_label_decl_seq =
+                   ((a_symbol_ptr)label->source_corresp.assoc_info)->decl_seq;
         }  /* if */
 #if CHECKING
         if (curr_token != tok_colon) {
