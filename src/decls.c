@@ -660,55 +660,6 @@ function parameter and return types.
 }  /* promote_float_to_double */
 
 
-static a_boolean ptr_to_member_in_derived_type(a_type_ptr  derived_type,
-                                               a_type_ptr  bottom_derived_type)
-/*
-Examine the derived type list headed by derived_type (bottom_derived_type
-is its last member) and return TRUE if any of the types in the sequence is
-a pointer-to-member type.
-*/
-{
-  a_boolean    ptr_to_member_type_found;
-  a_type_ptr   tp;
-
-  if (is_ptr_to_member_type(bottom_derived_type)) {
-    ptr_to_member_type_found = TRUE;
-  } else {
-    ptr_to_member_type_found = FALSE;
-    bottom_derived_type = make_unqualified_type(bottom_derived_type);
-    tp = make_unqualified_type(derived_type);
-    while (tp != bottom_derived_type) {
-      switch (tp->kind) {
-        case tk_ptr_to_member:
-          ptr_to_member_type_found = TRUE;
-          goto done;
-        case tk_array:
-          tp = tp->variant.array.element_type;
-          break;
-        case tk_pointer:
-          tp = tp->variant.pointer.type;
-          break;
-        case tk_routine:
-          tp = tp->variant.routine.return_type;
-          break;
-        case tk_typeref:
-          tp = tp->variant.typeref.type;
-          break;
-        case tk_error:
-          goto done;
-#if CHECKING
-        default:
-          internal_error("ptr_to_member_in_derived_type_list: bad type kind");
-#endif /* CHECKING */
-      }  /* switch */
-      tp = make_unqualified_type(tp);
-    }  /* while */
-  }  /* if */
-done:
-  return ptr_to_member_type_found;
-}  /* ptr_to_member_in_derived_type_list */
-
-
 static void add_to_derived_type_list(a_type_ptr new_type_ptr,
                                      a_type_ptr *derived_type,
                                      a_type_ptr *bottom_derived_type)
@@ -2543,6 +2494,7 @@ created; the caller must set it.
     ext_sym = enter_symbol(ext_sym_kind, &ext_locator, DEPTH_OF_FILE_SCOPE,
                            /*suppress_error=*/TRUE);
     esdp = ext_sym->variant.extern_symbol_descr;
+    esdp->type = type_ptr;
     /* The pointer to the variable or routine IL entry is filled in later,
        by the caller of this routine. */
   }  /* if */
