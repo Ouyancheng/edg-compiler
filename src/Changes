@@ -1,5 +1,22 @@
 Version 2.46
 
+4/16/01  Enumerator expression that is template-dependent member of
+         class, in prototype instantation
+
+The processing for the expression of an enumerator was incorrect in
+a prototype instantiation of a template when the expression is
+a template-dependent member of a class.  One consequence was an
+abort in end_of_scope_symbol_check ("il-entry parent-class mismatch").
+Now fixed.
+
+  template <class T> struct A {
+    enum { a = 1 };
+  };
+  template <class T> void f() {
+    enum { x = A<T>::a };  // Aborted with --parse_templates or
+                           // --strict
+  }
+
 4/16/01  IL write-read error caused by reference to member qualified with
          dependent type
 

@@ -3039,6 +3039,16 @@ to indicate whether an enumeration is actually defined.
         }  /* if */
         /* Assign the value to the enumeration constant. */
         switch_to_file_scope_region(&region_to_switch_back_to);
+        if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+          /* Add a do-nothing cast to a ck_template_constant so as
+             to avoid problems with using the same constant entry for
+             the enumerator and its value (e.g., class membership
+             information for the value as a tpck_member constant
+             conflicts with the class membership of the enumerator). */
+          make_template_param_cast_constant(&constant, &constant,
+                                            constant.type,
+                                            /*is_explicit=*/FALSE);
+        }  /* if */
         enum_con = alloc_unshared_constant(&constant);
         /* Switch back from the file scope memory region to whatever region
            was current upon entry. */
