@@ -1,5 +1,17 @@
 Version 3.5
 
+6/16/04  Refinement of protected member access checking
+
+The processing to perform the access check of section 11.5 of the
+C++ standard has been improved to match the proposed resolution
+of core issue 385.  The check is now done on the basis of whether
+the member is a protected member of the class in which it is named,
+rather than simply because the member declaration is protected.
+That means that a using-declaration that makes a protected member
+public will now suppress this check when the member is used
+in the class with the using-declaration or in some derived class
+thereof.
+
 6/16/04  C++-generating back end: Address expression not treated as constant
          by Microsoft C compiler
 

@@ -3513,21 +3513,10 @@ Throw away any deferred access entries.
   }  /* if */								\
 }
 
-extern void f_check_protected_member_access(a_symbol_ptr      sym,
-				            a_source_position *err_pos,
-                                            a_type_ptr        access_class);
-/*
-If the symbol specified by locator is a protected member, do the access
-check of ARM 11.5.  The symbol is being accessed through an object or
-pointer of class class_type.
-*/
-#define check_protected_member_access(sym, err_pos, class_type)       \
-{ if (access_for_symbol(fundamental_symbol_of(sym)) ==                \
-                                (an_access_specifier)as_protected) {  \
-    f_check_protected_member_access(sym, err_pos, class_type);        \
-  }  /* if */                                                         \
-}  /* check_protected_member_access */
-
+extern void check_protected_member_access(a_symbol_ptr      sym,
+                                          a_symbol_ptr      proj_sym,
+                                          a_source_position *err_pos,
+                                          a_type_ptr        access_class);
 
 /*
 If symbol is a projection symbol, change it to the fundamental symbol pointed

@@ -2786,8 +2786,7 @@ user-defined conversions.
                                        &access_error_reported);
           if (ptr_to_member_case) {
             /* Make an operand for the pointer-to-member case. */
-            make_ptr_to_member_constant_operand(fundamental_symbol_of(
-                                                              function_symbol),
+            make_ptr_to_member_constant_operand(function_symbol,
                                                 overloaded_function_symbol,
                                                 &orig_operand.position,
                                                 !access_error_reported,
@@ -6837,7 +6836,7 @@ void make_ptr_to_member_constant_operand(
                                     an_operand        *result)
 /*
 Make an operand for a constant representing a C++ pointer to member.
-member_sym is the member (not overloaded, not a projection symbol).
+member_sym is the member (not overloaded, possibly a projection symbol).
 member_proj_sym is the same as member_sym, or is the overloaded function
 symbol that contains member_sym, or it can be a projection symbol for
 either of those.  *position gives the source position to put into the
@@ -6849,7 +6848,8 @@ is_operand_of_address_of is TRUE.  If the member is a bit field,
 issue an error.  
 */
 {
-  a_constant constant;
+  a_symbol_ptr base_member_sym = fundamental_symbol_of(member_sym);
+  a_constant   constant;
 
   /* The ARM only allows this when a qualified name is preceded by a "&" (5.3).
      We allow it without "&" or without a qualified name as an extension --
@@ -6879,14 +6879,14 @@ issue an error.
       && !microsoft_mode
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                   ) {
-    check_protected_member_access(member_sym, position,
+    check_protected_member_access(member_sym, member_proj_sym, position,
                                   member_proj_sym->parent.class_type);
   }  /* if */
   /* No need to instantiate the class; since we have a member of it, it must
      be instantiated already. */
-  if (member_sym->kind == (a_symbol_kind)sk_field) {
+  if (base_member_sym->kind == (a_symbol_kind)sk_field) {
     /* Pointer to nonstatic data member. */
-    a_field_ptr field = member_sym->variant.field.ptr;
+    a_field_ptr field = base_member_sym->variant.field.ptr;
     if (field->is_bit_field) {
       /* Cannot make a pointer-to-member of a bit field. */
       pos_error(ec_address_of_bit_field, position);
@@ -6895,12 +6895,12 @@ issue an error.
   } else {
     a_routine_ptr rout;
 #if CHECKING
-    if (member_sym->kind != (a_symbol_kind)sk_member_function) {
+    if (base_member_sym->kind != (a_symbol_kind)sk_member_function) {
       internal_error("make_ptr_to_member_constant_operand: bad kind");
     }  /* if */
 #endif /* CHECKING */
     /* Pointer to nonstatic member function. */
-    rout = member_sym->variant.routine.ptr;
+    rout = base_member_sym->variant.routine.ptr;
     set_ptr_to_member_function_constant(rout, &constant);
     if (!rout->is_virtual) {
       /* Force the routine to be instantiated or generated. */
@@ -9127,14 +9127,13 @@ to member constant.
 */
 {
   an_operand   orig_operand;
-  a_symbol_ptr member_sym, member_proj_sym;
+  a_symbol_ptr member_sym;
 
   orig_operand = *operand;
   check_assertion(is_sym_for_member_operand(operand));
-  member_proj_sym = operand->variant.symbol;
-  member_sym = fundamental_symbol_of(member_proj_sym);
+  member_sym = operand->variant.symbol;
   /* Make an operand for a pointer-to-member constant. */
-  make_ptr_to_member_constant_operand(member_sym, member_proj_sym,
+  make_ptr_to_member_constant_operand(member_sym, member_sym,
                                       &orig_operand.position,
                                       !operand->access_control_error_reported,
                                       (a_boolean)operand->is_qualified_name,

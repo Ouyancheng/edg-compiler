@@ -5406,15 +5406,16 @@ left-operand class, and baseward casts are needed.  operand_1 is the left
 operand.  *is_arrow_operator is TRUE for "->", FALSE for "." (it will be set
 to TRUE on return if the operation is normalized into "->" form).
 member_sym is the referenced member (possibly a projection symbol, but the
-presence or absence of a projection is ignored).  projection_member_sym is
-either the same as member_sym or a projection thereof, or, for a reference
-to an overloaded function, the symbol for the overload set or a projection
-thereof -- it identifies the symbol that was actually named in the member
-reference, and a projection symbol on it is significant.
-access_control_error_reported is TRUE if an access control error has
-already been reported.  do_protected_member_check is TRUE if the
-protected member access check of ARM 11.5 should be done.  *member_pos
-gives the source position of the member name reference.
+presence or absence of a projection is largely ignored).
+projection_member_sym is either the same as member_sym or a projection
+thereof, or, for a reference to an overloaded function, the symbol for
+the overload set or a projection thereof -- it identifies the symbol
+that was actually named in the member reference, and a projection
+symbol on it is significant.  access_control_error_reported is TRUE if
+an access control error has already been reported.
+do_protected_member_check is TRUE if the protected member access check
+of 11.5 in the C++ standard should be done.  *member_pos gives the
+source position of the member name reference.
 */
 {
   a_type_ptr       desired_class = projection_member_sym->parent.class_type;
@@ -5454,8 +5455,8 @@ gives the source position of the member name reference.
       /* If the member is protected, it can only be accessed through an object
          or pointer of a type to which we have member access (ARM 11.5). */
       if (do_protected_member_check && !access_control_error_reported) {
-        check_protected_member_access(member_sym, member_pos,
-                                      class_struct_union_type);
+        check_protected_member_access(member_sym, projection_member_sym,
+                                      member_pos, class_struct_union_type);
       }  /* if */
       /* Do nothing if the type is already okay (which it almost always
          will be; only in cases involving qualified names can it be

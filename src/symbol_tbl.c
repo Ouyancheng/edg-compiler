@@ -7587,12 +7587,7 @@ by the stack of entries in virtual_step_stack.
 }  /* access_to_end_of_virtual_step_stack */
 
 
-/* Declaration needed because of forward declaration. */
-static a_boolean have_access_across_derivations(a_symbol_ptr symbol,
-                                                a_symbol_ptr view_sym);
-
-
-static a_boolean have_access_across_path(
+static an_access_specifier access_across_path(
                              a_symbol_ptr                   sym,
                              a_type_ptr                     viewpoint_class,
                              a_derivation_step_ptr          path,
@@ -7600,42 +7595,29 @@ static a_boolean have_access_across_path(
                              a_symbol_ptr                   proj_sym,
                              a_virtual_step_stack_entry_ptr virtual_step_stack)
 /*
-Return TRUE if the symbol sym is accessible at the current location
-in the source program when viewed from the class viewpoint_class.
-path is the derivation path from viewpoint_class to sym;
-it is NULL if sym is in viewpoint_class.  If non-NULL, it is part of
-the path of the base class derivation bcdp.  proj_sym is the projection
-symbol from which we started this access check, or an updated one picked
-up during the recursive descent through the derivation; it is ignored if
-path == NULL, but otherwise it must be a projection symbol (although
-its fundamental symbol might not be sym, i.e., in the overloaded
-function case; in that case sym might be a projection symbol as well).
-virtual_step_stack is a pointer to a linked list that describes a stack
-of virtual steps being expanded by invocations of this routine above
-this one.
+Return the statically-determined best access to the symbol sym when
+viewed from the class viewpoint_class.  path is the derivation path
+from viewpoint_class to sym; it is NULL if sym is in viewpoint_class.
+If non-NULL, it is part of the path of the base class derivation bcdp.
+proj_sym is the projection symbol from which we started this access
+check, or an updated one picked up during the recursive descent
+through the derivation; it is ignored if path == NULL, but otherwise
+it must be a projection symbol (although its fundamental symbol might
+not be sym, i.e., in the overloaded function case; in that case sym
+might be a projection symbol as well).  See have_access_across_path
+for a description of virtual_step_stack.
 */
 {
-  a_boolean             have_access = FALSE, base_class_accessible;
-  a_boolean             need_to_compute_access;
-  an_access_specifier   access, base_class_deriv;
-  a_symbol_ptr          step_proj_sym;
-  a_boolean             have_member_access, determined_member_access;
-  a_boolean             have_protected_member_access;
-  a_boolean             determined_protected_member_access;
-  a_base_class_ptr      bcp;
-  a_virtual_step_stack_entry
-                        vsse;
-  a_boolean             virtual_step;
-  a_derivation_step_ptr path_next;
+  an_access_specifier access;
+  a_symbol_ptr        fund_proj_sym, step_proj_sym;
+  a_boolean           need_to_compute_access;
 
-  /* Determine the effective access to the fundamental symbol from the
-     viewpoint class. */
   if (path == NULL) {
     /* No derivation path, so the access is the access for the symbol. */
     access = access_for_symbol(sym);
   } else {
-    a_symbol_ptr fund_proj_sym;
-    /* Determine the effective access in the viewpoint class. */
+    /* A derivation path, so determine the effective access across the
+       path. */
 #if CHECKING
     if (proj_sym == NULL) {
       internal_error("have_access_across_path: proj_sym is NULL");
@@ -7713,6 +7695,53 @@ this one.
       access = access_to_end_of_path(access, path, bcdp);
     }  /* if */
   }  /* if */
+  return access;
+}  /* access_across_path */
+
+
+/* Declaration needed because of forward reference: */
+static a_boolean have_access_across_derivations(a_symbol_ptr symbol,
+                                                a_symbol_ptr view_sym);
+
+
+static a_boolean have_access_across_path(
+                             a_symbol_ptr                   sym,
+                             a_type_ptr                     viewpoint_class,
+                             a_derivation_step_ptr          path,
+                             a_base_class_derivation_ptr    bcdp,
+                             a_symbol_ptr                   proj_sym,
+                             a_virtual_step_stack_entry_ptr virtual_step_stack)
+/*
+Return TRUE if the symbol sym is accessible at the current location
+in the source program when viewed from the class viewpoint_class.
+path is the derivation path from viewpoint_class to sym;
+it is NULL if sym is in viewpoint_class.  If non-NULL, it is part of
+the path of the base class derivation bcdp.  proj_sym is the projection
+symbol from which we started this access check, or an updated one picked
+up during the recursive descent through the derivation; it is ignored if
+path == NULL, but otherwise it must be a projection symbol (although
+its fundamental symbol might not be sym, i.e., in the overloaded
+function case; in that case sym might be a projection symbol as well).
+virtual_step_stack is a pointer to a linked list that describes a stack
+of virtual steps being expanded by invocations of this routine above
+this one.
+*/
+{
+  a_boolean             have_access = FALSE, base_class_accessible;
+  an_access_specifier   access, base_class_deriv;
+  a_boolean             have_member_access, determined_member_access;
+  a_boolean             have_protected_member_access;
+  a_boolean             determined_protected_member_access;
+  a_base_class_ptr      bcp;
+  a_virtual_step_stack_entry
+                        vsse;
+  a_boolean             virtual_step;
+  a_derivation_step_ptr path_next;
+
+  /* Determine the effective access to the fundamental symbol from the
+     viewpoint class. */
+  access = access_across_path(sym, viewpoint_class, path, bcdp, proj_sym,
+                              virtual_step_stack);
   /* We now have the effective access to the member in the viewpoint class,
      statically determined.  See if we have access. */
   /* The expensive determinations are only done if needed. */
@@ -7893,8 +7922,10 @@ this one.
 }  /* have_access_across_path */
 
 
-static a_boolean have_access_across_derivations(a_symbol_ptr symbol,
-                                                a_symbol_ptr view_sym)
+static a_boolean have_access_across_derivations_helper(
+                                                 a_symbol_ptr        symbol,
+                                                 a_symbol_ptr        view_sym,
+                                                 an_access_specifier *p_access)
 /*
 Return TRUE if the symbol "symbol" is accessible at the current location
 in the source program when viewed from the class of which view_sym is a
@@ -7902,22 +7933,54 @@ member.  If view_sym is an overloaded function symbol or a projection
 thereof, symbol is the specific symbol chosen from that overload set
 (and possibly a projection symbol); otherwise symbol is not a projection
 symbol, and view_sym is either the same as symbol or a projection thereof.
+If p_access is non-NULL, *p_access is set to the statically-determined
+best access for symbol, and the dynamic access determination is not
+done (and therefore the return value is meaningless).
 */
 {
   a_boolean                   have_access = FALSE;
+  an_access_specifier         access;
   a_base_class_ptr            bcp;
   a_base_class_derivation_ptr derivations, preferred_derivation, bcdp;
   a_derivation_step_ptr       preferred_path;
   a_type_ptr                  viewpoint_class;
+  a_symbol_ptr                fund_view_sym;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (view_sym->is_super_reference) {
-    /* When a symbol is access via a Microsoft super, ignore the projection
+    /* When a symbol is accessed via a Microsoft super, ignore the projection
        symbol and treat it as a reference to the underlying symbol. */
     symbol = fundamental_symbol_of(symbol);
     view_sym = symbol;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  fund_view_sym = fundamental_symbol_of(view_sym);
+  if (fund_view_sym->kind == (a_symbol_kind)sk_overloaded_function &&
+      symbol->kind == (a_symbol_kind)sk_member_function &&
+      symbol->variant.routine.ptr->template_arg_list != NULL &&
+      symbol->parent.class_type != fund_view_sym->parent.class_type) {
+    a_symbol_ptr sym;
+    /* When symbol is an instance of a member function template, and
+       the overload set is in a different class (i.e., it comes from a
+       using-declaration), find the symbol in the overload set that
+       corresponds to symbol, because we need a projection symbol to
+       compute the access.  Template cases are special because the
+       instance symbol is generated rather than looked up (the template
+       was looked up, not the instance). */
+    /* Go back to the template symbol. */
+    a_symbol_ptr templ_sym= symbol->variant.routine.instance_ptr->template_sym;
+    for (sym = fund_view_sym->variant.overloaded_function.symbols;
+         ;
+         sym = sym->next) {
+      check_assertion_str2(sym != NULL,
+                           "have_access_across_derivations_helper:",
+                           "sym not found in overload set");
+      if (fundamental_symbol_of(sym) == templ_sym) {
+        symbol = sym;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   if (view_sym->kind == (a_symbol_kind)sk_projection) {
     /* The view symbol is a projection symbol. */
     bcp = view_sym->variant.projection.extra_info->fundamental_base_class;
@@ -7937,34 +8000,101 @@ symbol, and view_sym is either the same as symbol or a projection thereof.
     derivations = preferred_derivation = NULL;
     preferred_path = NULL;
   }  /* if */
-  /* Check the preferred derivation (the one that gives the most access
-     statically).  preferred_derivation and preferred_path are NULL if the
-     view class is the same class as the class of the viewed symbol. */
   viewpoint_class = view_sym->parent.class_type;
-  if (have_access_across_path(symbol, viewpoint_class,
-                              preferred_path, preferred_derivation,
-                              view_sym,
-                              (a_virtual_step_stack_entry_ptr)NULL)) {
-    /* The preferred derivation gives access. */
-    have_access = TRUE;
+  if (p_access == NULL) {
+    /* Called from have_access_across_derivations to determine whether we
+       have dynamic access. */
+    /* Check the preferred derivation (the one that gives the most access
+       statically).  preferred_derivation and preferred_path are NULL if the
+       view class is the same class as the class of the viewed symbol. */
+    if (have_access_across_path(symbol, viewpoint_class,
+                                preferred_path, preferred_derivation,
+                                view_sym,
+                                (a_virtual_step_stack_entry_ptr)NULL)) {
+      /* The preferred derivation gives access. */
+      have_access = TRUE;
+    } else {
+      /* The preferred derivation does not give access.  Check all the other
+         derivations, if any.  Only virtual base classes can have more than
+         one derivation. */
+      for (bcdp = derivations; bcdp != NULL; bcdp = bcdp->next) {
+        if (!bcdp->preferred) {
+          if (have_access_across_path(symbol, viewpoint_class,
+                                      bcdp->path, bcdp, view_sym,
+                                      (a_virtual_step_stack_entry_ptr)NULL)) {
+            /* This derivation gives access. */
+            have_access = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
   } else {
-    /* The preferred derivation does not give access.  Check all the other
-       derivations, if any.  Only virtual base classes can have more than
-       one derivation. */
-    for (bcdp = derivations; bcdp != NULL; bcdp = bcdp->next) {
+    /* Called from access_across_derivations to determine the best static
+       access to the symbol. */
+    have_access = FALSE;  /* Arbitrary. */
+    access = access_across_path(symbol, viewpoint_class,
+                                preferred_path, preferred_derivation,
+                                view_sym,
+                                (a_virtual_step_stack_entry_ptr)NULL);
+    /* Check all the other derivations, if any.  Only virtual base classes
+       can have more than one derivation.  Remember the best access. */
+    for (bcdp = derivations;
+         bcdp != NULL && access != (an_access_specifier)as_public;
+         bcdp = bcdp->next) {
       if (!bcdp->preferred) {
-        if (have_access_across_path(symbol, viewpoint_class, bcdp->path, bcdp,
-                                    view_sym,
-                                    (a_virtual_step_stack_entry_ptr)NULL)) {
-          /* This derivation gives access. */
-          have_access = TRUE;
-          break;
+        an_access_specifier other_access =
+                     access_across_path(symbol, viewpoint_class,
+                                        bcdp->path, bcdp,
+                                        view_sym,
+                                        (a_virtual_step_stack_entry_ptr)NULL);
+        if (is_more_accessible(other_access, access)) {
+          access = other_access;
         }  /* if */
       }  /* if */
     }  /* for */
+    *p_access = access;
   }  /* if */
   return have_access;
+}  /* have_access_across_derivations_helper */
+
+
+static a_boolean have_access_across_derivations(a_symbol_ptr symbol,
+                                                a_symbol_ptr view_sym)
+/*
+Return TRUE if the symbol "symbol" is accessible at the current location
+in the source program when viewed from the class of which view_sym is a
+member.  If view_sym is an overloaded function symbol or a projection
+thereof, symbol is the specific symbol chosen from that overload set
+(and possibly a projection symbol); otherwise symbol is not a projection
+symbol, and view_sym is either the same as symbol or a projection thereof.
+*/
+{
+  a_boolean have_access;
+
+  have_access = have_access_across_derivations_helper(symbol, view_sym,
+                                                  (an_access_specifier *)NULL);
+  return have_access;
 }  /* have_access_across_derivations */
+
+
+static an_access_specifier access_across_derivations(a_symbol_ptr symbol,
+                                                     a_symbol_ptr view_sym)
+/*
+Return the statically-determined best access for the symbol "symbol"
+when viewed from the class of which view_sym is a member.  If view_sym is
+an overloaded function symbol or a projection thereof, symbol is the
+specific symbol chosen from that overload set (and possibly a projection
+symbol); otherwise symbol is not a projection symbol, and view_sym is
+either the same as symbol or a projection thereof.  This is similar
+to access_for_symbol, but deals with the overloaded function case.
+*/
+{
+  an_access_specifier access;
+
+  (void)have_access_across_derivations_helper(symbol, view_sym, &access);
+  return access;
+}  /* access_across_derivations */
 
 
 a_boolean have_access_to_symbol(a_symbol_ptr symbol)
@@ -8356,33 +8486,6 @@ kinds of symbols.
     /* Non-class-members are always accessible. */
   } else {
     a_symbol_ptr symbol = locator->specific_symbol;
-    if (overloaded_symbol->kind == (a_symbol_kind)sk_overloaded_function &&
-        symbol->kind == (a_symbol_kind)sk_member_function &&
-        symbol->variant.routine.ptr->template_arg_list != NULL &&
-        symbol->parent.class_type != overloaded_symbol->parent.class_type) {
-      a_symbol_ptr sym;
-      /* When symbol is an instance of a member function template, and
-         the overload set is in a different class (i.e., it comes from a
-         using-declaration), find the symbol in the overload set that
-         corresponds to symbol, because we need a projection symbol to
-         compute the access.  Template cases are special because the
-         instance symbol is generated rather than looked up (the template
-         was looked up, not the instance). */
-      /* Go back to the template symbol. */
-      a_symbol_ptr templ_sym =
-                            symbol->variant.routine.instance_ptr->template_sym;
-      for (sym = overloaded_symbol->variant.overloaded_function.symbols;
-           ;
-           sym = sym->next) {
-        check_assertion_str2(sym != NULL,
-                             "overload_check_ambiguity_and_verify_access:",
-                             "sym not found in overload set");
-        if (fundamental_symbol_of(sym) == templ_sym) {
-          overloaded_symbol = sym;
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
     /* See if we have access to the symbol.  Note that we do not strip
        projection symbols from the specific symbol. */
     if (!have_access_across_derivations(symbol, overloaded_symbol)) {
@@ -8415,69 +8518,6 @@ value of the most accessible of the functions.
   }  /* while */
   return max_access;
 }  /* max_access_of_overloaded_function */
-
-
-static a_boolean have_derived_class_access_from_befriending_list(
-                                       a_class_list_entry_ptr befriending_list,
-                                       a_type_ptr             class_type)
-/*
-We have member access privilege to the classes on the given befriending list.
-Return TRUE if that means that we have member access to any derived
-class of class_type.  This is used for the ARM 11.5 protected member
-access check.
-*/
-{
-  a_boolean accessible = FALSE;
-
-  for (; befriending_list != NULL; befriending_list = befriending_list->next) {
-    if (find_base_class_of(befriending_list->class_type, class_type) != NULL) {
-      accessible = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return accessible;
-}  /* have_derived_class_access_from_befriending_list */
-
-
-static a_boolean have_derived_class_access_from_class_scope(
-                                            a_type_ptr              class_type,
-                                            a_scope_stack_entry_ptr ssep)
-/*
-We have member access privilege to the class indicated by the scope stack
-entry pointed to by ssep.  Return TRUE if that means that we have member
-access to any derived class of class_type.  This is used for the ARM 11.5
-protected member access check.
-*/
-{
-  a_boolean  have_derived_class_access = FALSE;
-  a_type_ptr scope_class = ssep->assoc_type;
-
-  if (find_base_class_of(scope_class, class_type) != NULL) {
-    /* We are in a class that is a derived class of class_type. */
-    have_derived_class_access = TRUE;
-  } else if (have_derived_class_access_from_befriending_list(scope_class->
-                    variant.class_struct_union.extra_info->befriending_classes,
-                                                                 class_type)) {
-    /* We are in a class that is a friend of a derived class of class_type. */
-    have_derived_class_access = TRUE;
-  }  /* if */
-  return have_derived_class_access;
-}  /* have_derived_class_access_from_class_scope */
-
-
-static a_boolean have_member_access_to_derived_class(a_type_ptr class_type)
-/*
-Return TRUE if we have member access to some derived class of class_type.
-This is used for the ARM 11.5 protected member access check.
-*/
-{
-  a_boolean have_member_privilege =
-                 have_particular_member_access_privilege(
-                               class_type,
-                               have_derived_class_access_from_befriending_list,
-                               have_derived_class_access_from_class_scope);
-  return have_member_privilege;
-}  /* have_member_access_to_derived_class */
 
 
 static a_boolean have_member_access_to_some_class_on_derivation(
@@ -8519,35 +8559,52 @@ have_accessibility:
 }  /* have_member_access_to_some_class_on_derivation */
 
 
-void f_check_protected_member_access(a_symbol_ptr      sym_param,
-				     a_source_position *err_pos,
-                                     a_type_ptr        access_class)
+void check_protected_member_access(a_symbol_ptr      sym,
+                                   a_symbol_ptr      proj_sym,
+                                   a_source_position *err_pos,
+                                   a_type_ptr        access_class)
 /*
-This routine implements the access control check mandated by ARM 11.5, which
-requires that a protected nonstatic member accessed from a friend or member
-function of a derived class be accessed through an object of the derived
-class or a class further derived from that.  sym_param points to the
-symbol being referenced, which may be a projection symbol.
-access_class is the class of the pointer or object through which the
-member is being accessed.  access_class is NULL if we don't know the object
-type (which will cause an error).  access_class may also be an error type
-(which will cause no error).  *err_pos is the source position for an error.
-See the macro check_protected_member_access for a convenient way to invoke
-this function.  This routine is only called for protected nonstatic members.
+This routine implements the access control check mandated by 11.5 of
+the C++ standard, which requires that a protected nonstatic member
+accessed from a friend or member function of a derived class be
+accessed through an object of the derived class or a class further
+derived from that.  sym is the member (not overloaded, possibly a
+projection symbol).  proj_sym is the same as sym, or is the overloaded
+function symbol that contains sym, or it can be a projection symbol
+for either of those.  The class of proj_sym is the "naming class" of
+the reference, as defined by the standard.  access_class is the class
+of the pointer or object through which the member is being accessed.
+access_class is NULL if we don't know the object type (which will
+cause an error).  access_class may also be an error type (which will
+cause no error).  *err_pos is the source position for an error.  This
+routine is called only for nonstatic members, but it has not yet been
+established that the member is protected in the naming class.
 */
 {
   a_boolean        have_access;
-  a_symbol_ptr	   sym = fundamental_symbol_of(sym_param);
-  a_type_ptr       base_class = sym->parent.class_type;
+  a_type_ptr       base_class;
   a_base_class_ptr bcp;
 
-  if (access_class == NULL) {
+  /* The old test here (still done in some modes) is that the member is
+     declared protected.  The new test (see core issue 385) is that the
+     member is protected in the naming class.  That in particular allows
+     using-declarations to make this check no longer apply by making the
+     inherited member public. */
+  if ((any_cfront_mode() ?
+                        access_for_symbol(fundamental_symbol_of(sym)) :
+                        access_across_derivations(sym, proj_sym)) !=
+                                           (an_access_specifier)as_protected) {
+    /* The member is not protected, so the check does not apply. */
+    have_access = TRUE;
+  } else if (access_class == NULL) {
     /* Class is unknown; error. */
     have_access = FALSE;
   } else if (is_error_type(access_class)) {
     /* Class is an error type; no error. */
     have_access = TRUE;
   } else {
+    sym = fundamental_symbol_of(sym);
+    base_class = sym->parent.class_type;
     access_class = skip_typerefs(access_class);
     /* Try to find a class class_type such that
          (1)  class_type is on the derivation list between base_class
@@ -8587,26 +8644,10 @@ this function.  This routine is only called for protected nonstatic members.
     }  /* if */
   }  /* if */
   if (!have_access) {
-    /* The fact that this routine is called means that the protected
-       member is accessible under the normal rules.  (If an accessibility
-       error is issued, the call of this routine is suppressed.)
-       Ordinarily, that means we know we are in a friend of member of
-       a class derived from the class of the protected member, or in a friend
-       or member of the member class itself.  Namespace using declarations
-       in classes, however, bring up the strange case that a protected
-       member can be made public in a derived class, which means we might
-       get to this routine even though we do not have any special member
-       access to the protected member.  Check for that, and suppress the
-       error if so. */
-    if (!have_member_access_to_derived_class(base_class)) {
-      have_access = TRUE;
-    }  /* if */
-  }  /* if */
-  if (!have_access) {
     pos_syty_diagnostic(es_discretionary_error, ec_protected_access_problem,
                         err_pos, sym, access_class);
   }  /* if */
-}  /* f_check_protected_member_access */
+}  /* check_protected_member_access */
 
 
 a_boolean is_accessible_base_class(a_base_class_ptr bcp)
