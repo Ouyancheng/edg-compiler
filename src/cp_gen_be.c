@@ -2308,6 +2308,12 @@ is non-NULL, in which case that is the function scope.
         if (param->default_arg_expr != NULL) {
           write_tok_str(" = ");
           gen_expr_with_parens(param->default_arg_expr);
+#if 0
+#else /* 0 */
+          /* Temporary trick -- put out the default argument expression only
+             once. */
+          param->default_arg_expr = NULL;
+#endif /* 0 */
         }  /* if */
         param = param->next;
         if (param == NULL) break;
