@@ -4921,7 +4921,7 @@ typedef struct a_routine {
 			   syntax. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	declared_only_as_friend:1;
-			/* TRUE if this routine has only be declared as a
+			/* TRUE if this routine has only been declared as a
 			   friend.  In that case, Microsoft compilers will
 			   not treat this as a specialization of any
 			   template. */
