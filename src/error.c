@@ -2371,6 +2371,17 @@ declaration position to eliminate redundant file names in a diagnostic.
       } else {
         entity_kind = "field ";
       }  /* if */
+      goto symbol_name;
+    case sk_class_template:
+      entity_kind = "class template";
+      /* There is no specific type information available; this entity cannot
+         be expressed as a declaration. */
+      goto symbol_name;
+    case sk_function_template:
+      entity_kind = "class template";
+      /* There is no specific type information available; this entity cannot
+         be expressed as a declaration. */
+      goto symbol_name;
 symbol_name:
       /* Add the entity kind if not specified as name only or full type for
          a declaration like entity. */
