@@ -5084,6 +5084,14 @@ in-class member function declarations.)
     rtn->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
     rtn->storage_class = (a_storage_class)sc_extern;
   }  /* if */
+  if (!is_error_locator(*locator)) {
+    /* Update cross-reference information, etc. */
+    if (func_info->is_definition) {
+      mark_defined(sym, &locator->source_position);
+    } else {
+      mark_declared(sym, &locator->source_position);
+    }  /* if */
+  }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
     rtn->special_kind = (a_special_function_kind)sfk_operator;
@@ -8494,6 +8502,7 @@ following the member declaration.
         decl_member_function_template(&locator, class_type, local_type,
                                       &func_info, class_state, &decl_info);
         rout_sym = decl_info.member_sym;
+        remove_stop_token(tok_comma);
         goto next_declaration;
       } else {
         /* Must be a member function declaration. */
