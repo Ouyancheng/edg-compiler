@@ -2926,7 +2926,11 @@ before lowering and needed flag marking of the primary IL.
 #if DO_IL_LOWERING
             if (!first_pass && any_lowering_needed() &&
                 !il_entry_prefix_of(sp).il_lowering_flag) {
-              /* Do any required lowering etc. */
+              /* Do any required lowering etc.  Lowering is delayed on
+                 some instantiations in the primary translation unit when
+                 there are exported templates so that we can rewrite any
+                 references to secondary translation unit entities before
+                 the lowering is done. */
               finish_function_body_processing(sp,
                                               /*discard_function_body=*/FALSE);
             }  /* if */
