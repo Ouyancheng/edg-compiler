@@ -1,3 +1,12 @@
+Version 2.30
+
+9/1/95   Changes for namespaces
+
+typeinfo.h, stdexcept.h, new.h, and exception.h have been changed to
+put standard types in namespace std, but only if the front-end flag
+RUNTIME_USES_NAMESPACES is set to TRUE.
+
+-----------------------------------------------------------------------------
 Version 2.29, May 24, 1995
 
 5/4/95   C++ standard header files: typeinfo.h, exception.h, stdexcept.h
