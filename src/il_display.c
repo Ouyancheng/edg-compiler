@@ -2505,11 +2505,27 @@ Display the indicated pragma entry.
   disp_ptr("next", (char *)ptr->next, iek_pragma);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
-  disp_name("kind")
+  disp_name("kind");
   switch (ptr->kind) {
     case pk_none:
       (void)printf("pk_none\n");
       break;
+#if 0
+#else
+    /* Temporary, for testing purposes. */
+    case pk_test_next_statement:
+      (void)printf("pk_test_next_statement\n");
+      break;
+    case pk_test_next_decl:
+      (void)printf("pk_test_next_decl\n");
+      break;
+    case pk_test_immediate:
+      (void)printf("pk_test_immediate\n");
+      break;
+    case pk_test_other:
+      (void)printf("pk_test_other\n");
+      break;
+#endif /* if 0 */
     default:
       (void)printf("**BAD PRAGMA KIND**\n");
   }  /* switch */
