@@ -408,9 +408,13 @@ Process the arguments on the command line that invoked the compiler.
         C_dialect = C_dialect_cplusplus;
         break;
       case 'x':
+#if 0
         /* Toggle the value (use the non-default value) of the flag that
            determines whether support for exceptions is disabled. */
         exceptions_disabled = !DEFAULT_EXCEPTIONS_DISABLED;
+#else
+/* Temporarily make it impossible to enable support for exceptions. */
+#endif /* if 0 */
         break;
       case 'I':
         /* Include file directory, add to list. */
