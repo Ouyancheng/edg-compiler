@@ -1,5 +1,18 @@
 Version 2.12
 
+11/13/92 Goto to label of enclosing function
+
+In a case like the following, the label in the outer function is
+now not seen from the inner function.  Formerly, it was seen and used,
+which caused an abort later.
+
+  void f() {
+    label1:;
+    class A {
+      void g() { goto label1; }
+    };
+  }
+
 11/13/92 int_kind_is_signed
 
 The function int_kind_is_signed, formerly in const_ints.c, has been
