@@ -2012,6 +2012,8 @@ qualified_name_check:
             projection_member_sym = locator_for_curr_id.specific_symbol;
             member_sym = fundamental_symbol_of(projection_member_sym);
             if (class_struct_union_type->
+                                 variant.class_struct_union.is_nonreal_class ||
+                projection_member_sym->parent.class_type->
                                  variant.class_struct_union.is_nonreal_class) {
               /* Skip the check for a nonreal class in a prototype
                  instantiation. */
