@@ -192,10 +192,13 @@ has not yet been examined for a matching entry in another translation unit.
 #define set_no_trans_unit_corresp(ptr)                                  \
   set_trans_unit_corresp((char*)(ptr), (char*)(ptr))
 
+#define set_unvisited_trans_unit_corresp(ptr)                           \
+  set_trans_unit_corresp((ptr), NULL)
+
 #define clear_trans_unit_corresp(ptr, visited)                          \
   /*lint --e(506)*/                                                     \
   ((visited) ? set_no_trans_unit_corresp(ptr)                           \
-             : set_trans_unit_corresp(ptr, NULL))
+             : set_unvisited_trans_unit_corresp(ptr))
 
 static void f_record_trans_unit_corresp(char *entity1,
                                         char *entity2)
@@ -1732,7 +1735,7 @@ are not checked.
               templ->kind != corresp_templ->kind) {
             /* Could only be due to an error.  Record the correspondence
                so a diagnostic can be issued. */
-            clear_trans_unit_corresp(templ, /*visited=*/FALSE);
+            set_unvisited_trans_unit_corresp(templ);
             record_trans_unit_corresp(templ, corresp_templ);
             process_bad_trans_unit_corresp(templ);
           } else {
@@ -1762,7 +1765,7 @@ are not checked.
           if (!has_correspondence(mem_type)) {
             /* Could only be due to an error.  Record the correspondence
                so a diagnostic will be issued. */
-            clear_trans_unit_corresp(mem_type, /*visited=*/FALSE);
+            set_unvisited_trans_unit_corresp(mem_type);
             record_trans_unit_corresp(mem_type, corresp_mem_type);
             expect_error();
           } else if (is_immediate_class_type(mem_type)) {
@@ -2018,7 +2021,7 @@ entities.
         if (in_secondary_trans_unit(root)) {
           corresp_type = type;
           type = root;
-          clear_trans_unit_corresp(type, /*visited=*/FALSE);
+          set_unvisited_trans_unit_corresp(type);
           set_no_trans_unit_corresp(corresp_type);
         } else {
           corresp_type = root;
@@ -2465,7 +2468,7 @@ entities.
         if (in_secondary_trans_unit(root)) {
           corresp_templ = templ;
           templ = root;
-          clear_trans_unit_corresp(templ, /*visited=*/FALSE);
+          set_unvisited_trans_unit_corresp(templ);
           set_no_trans_unit_corresp(corresp_templ);
         } else {
           corresp_templ = root;
