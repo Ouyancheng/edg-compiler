@@ -737,7 +737,9 @@ gcc (the GNU C compiler).
 #ifndef GCC_IS_C_GEN_BE_TARGET
 #define GCC_IS_C_GEN_BE_TARGET FALSE
 #endif /* !defined(GCC_IS_C_GEN_BE_TARGET) */
+#endif /* BACK_END_IS_C_GEN_BE */
 
+#if BACK_END_IS_C_GEN_BE
 /*
 Switch that is TRUE if the C-generating back end should generate ANSI C
 instead of K&R C.
@@ -751,6 +753,7 @@ instead of K&R C.
 #endif /* !defined(C_GEN_BE_GENERATES_ANSI_C) */
 #endif /* BACK_END_IS_C_GEN_BE */
 
+#if BACK_END_IS_C_GEN_BE
 /*
 If SUPPRESS_CONST_IN_GENERATED_C is TRUE, "const" will not be put out when
 the C-generating back end generates ANSI C.  (const is never put out when
@@ -759,7 +762,9 @@ generating K&R C.)
 #ifndef SUPPRESS_CONST_IN_GENERATED_C
 #define SUPPRESS_CONST_IN_GENERATED_C FALSE
 #endif /* !defined(SUPPRESS_CONST_IN_GENERATED_C) */
+#endif /* BACK_END_IS_C_GEN_BE */
 
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
 When generating C or C++ code, add extra braces around "if" statements
 without an "else" to avoid the "dangling else" problem.  This is necessary
@@ -768,6 +773,7 @@ only if customer code modifies the IL statement tree.
 #ifndef ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
 #define ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C FALSE
 #endif /* ifndef ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 #if DO_IL_LOWERING
 
