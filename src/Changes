@@ -384,6 +384,19 @@ written without braces.  If the last line of xxx.h had been
 
 the PCH file would have been generated correctly.  Now both forms work.
 
+11/7/97   Abort when a nontype argument is not explicitly specified
+
+An abort could occur when a call explicitly specifies some template
+arguments but leaves a nontype template argument unspecified.  This has
+been fixed.
+
+  template <class T, int I> struct A { };
+  template <class T, int I> void f(A<T,I>);
+  int main() {
+    A<int,1> a1;
+    f<int>(a1);
+  }
+
 11/3/97   Abort scanning invalid template argument list
 
 Certain unusual invalid template argument lists could result in an
