@@ -1876,8 +1876,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           (scp->visible_as_unqualified_name ||
            scope_is_in_name_context_stack(nsp->variant.assoc_scope))) {
         /* A qualified name is not needed, because we're inside a name context
-           for the namespace and the name is either not hidden or that of the
-           declarator itself. */
+           for the namespace and either the name is not hidden or we are
+           generating the declaration of that name. */
       } else if (msvc_is_generated_code_target &&
                  (options & GN_BOUND_MEMBER) && (options & GN_QUALIFIER)) {
         /* Microsoft compilers do not accept namespace qualifiers after a
