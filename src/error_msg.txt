@@ -1202,6 +1202,7 @@ ec_mangled_name_too_long;;"mangled name is too long"
 ec_aliased_name_undeclared;;"declaration aliased to unknown entity %sq"
 ec_aliased_name_bad_kind;;"declaration does not match its alias %n"
 ec_alias_cannot_have_definition;;"entity declared as alias cannot have definition"
+ec_vla_size_ignored;;"variable-length array field type will be treated as zero-length array field type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

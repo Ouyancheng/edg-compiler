@@ -520,6 +520,32 @@ is nonconstant.
 }  /* is_vla_type */
 
 
+#if GNU_EXTENSIONS_ALLOWED
+
+void replace_vla_by_array_of_zero_length(a_type_ptr  tp)
+/*
+Replace variable-length array types within tp by zero-length array types.
+*/
+{
+  check_assertion(gcc_mode);
+  if (is_array_type(tp)) {
+    do {
+      tp = skip_typerefs(tp);
+      if (array_is_vla(tp)) {
+        tp->variant.array.is_variable_size_array = FALSE;
+        tp->variant.array.is_vla = FALSE;
+        tp->variant.array.has_assoc_vla_dimension = FALSE;
+        tp->variant.array.bound_is_zero = TRUE;
+        tp->variant.array.variant.number_of_elements = 0;
+      }  /* if */
+      tp = array_element_type(tp);
+    } while (tp != NULL && is_array_type(tp));
+  }  /* if */
+}  /* replace_vla_by_array_of_zero_length */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+
 a_boolean is_char_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an array of (any type of) character.

@@ -11029,6 +11029,12 @@ the IL, the template header is passed via template_decl.
         *last_prefix_attribute = attributes;
         /* And compute what's now the end of the prefix attributes. */
         last_prefix_attribute = last_attribute_link(last_prefix_attribute);
+        if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+          /* GNU C allows VLA fields in local classes.  We will scan such
+             fields in GNU C mode, but issue a warning that the field will
+             be treated as an array of length zero. */
+          di_flags |= DI_VLA_ALLOWED;
+        }  /* if */
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Pass the class's type pointer to declarator if this might be a
@@ -11041,6 +11047,14 @@ the IL, the template header is passed via template_decl.
                  &locator, &local_type, &decl_info.declarator_ssep,
                  &func_info, &decl_info.decl_pos_block,
                  (an_attribute_ptr *)NULL);
+#if GNU_EXTENSIONS_ALLOWED
+      if (gcc_mode && depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+          is_vla_type(local_type)) {
+        /* A VLA field: treat it as a zero-length array and issue a warning. */
+        warning(ec_vla_size_ignored);
+        replace_vla_by_array_of_zero_length(local_type);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       if (!C_mode()) {
         remove_stop_token(tok_lbrace);
         check_completed_member_type(&local_type, &locator, class_state,
