@@ -495,7 +495,7 @@ the next call of this routine.
       old_name = source_corresp->name;
       new_name = name_buffer;
       while ((ch = *old_name++) != '\0') {
-        if (lower_case && isupper(ch)) ch = tolower(ch);
+        if (lower_case && isupper((unsigned char)ch)) ch = tolower(ch);
         *new_name++ = ch;
       }  /* while */
       /* Add a trailing underscore to the external name.  This is so, for
@@ -3952,7 +3952,7 @@ Dump the indicated character as part of a string literal or character constant.
 Handle unprintable characters and necessary escapes.
 */
 {
-  if (isprint(ch)
+  if (isprint((unsigned char)ch)
 #ifdef sun
     /* The Sun cc (4.1.2) in -O mode when outputting assembly language
        has a bug that transforms quote into accent grave.  Avoid it. */
@@ -7969,7 +7969,7 @@ Output the upper-cased version of the indicated string.
   char ch;
   for (; *str != '\0'; str++) {
     ch = *str;
-    if (islower(ch)) ch = toupper(ch);
+    if (islower((unsigned char)ch)) ch = toupper(ch);
     fputc(ch, f_C_output);
   }  /* for */
 }  /* dump_upper_cased_string */
@@ -8402,7 +8402,7 @@ static void change_non_id_characters(char *str)
 Change any non-identifier characters in the indicated string to underscores.
 */
 {
-  for (; *str != '\0'; str++) if (!isalnum(*str)) *str = '_';
+  for (; *str != '\0'; str++) if (!isalnum((unsigned char)*str)) *str = '_';
 }  /* change_non_id_characters */
 
 
