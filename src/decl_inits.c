@@ -2570,6 +2570,9 @@ returned set to TRUE.
   }  /* if */
   if (!var_err) {
     vp_type = vp->type;
+    if (vp_type->kind == (a_type_kind)tk_template_param) {
+      vp_type = proxy_class_for_template_param(vp_type);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (vp->decl_modifiers & DM_DLLIMPORT) {
       /* A variable declared __declspec(dllimport) cannot be initialized. */
@@ -2672,7 +2675,9 @@ returned set to TRUE.
        S is a class type name or an initialization of a scalar like int i(0).
        This form of initialization is allowed in C++ mode only.  Note that
        the opening parenthesis has already been scanned in the caller. */
-    if (cssp != NULL && cssp->constructor != NULL) {
+    if (cssp != NULL &&
+        (cssp->constructor != NULL ||
+         cssp->template_param_for_proxy_class != NULL)) {
       /* It's a class type and there's a constructor. */
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
@@ -2680,10 +2685,15 @@ returned set to TRUE.
 
       /* Use the source position of the first argument as the call position. */
       pos = pos_curr_token;
-      scan_class_parenthesized_initializer(vp_type, vp_type,
-                                           /*force_object_lifetime=*/FALSE,
-                                           &pos, /*fill_in_dtor=*/TRUE,
-                                           &init_dip);
+      if (cssp->template_param_for_proxy_class != NULL) {
+        scan_dependent_type_parenthesized_initializer(
+                                  /*force_object_lifetime=*/FALSE, &init_dip);
+      } else {
+        scan_class_parenthesized_initializer(vp_type, vp_type,
+                                             /*force_object_lifetime=*/FALSE,
+                                             &pos, /*fill_in_dtor=*/TRUE,
+                                             &init_dip);
+      }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (decl_pos_block != NULL) {
         decl_pos_block->var_init_range.end = curr_construct_end_position;
@@ -3505,6 +3515,7 @@ initialized.  These are addressed in the course of the processing.
     add_stop_token(tok_lbrace);
     /* Loop through the comma-separated list of initializers. */
     do {
+      a_boolean          template_param_init = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       a_source_position  init_start_pos;
 
@@ -3560,6 +3571,11 @@ initialized.  These are addressed in the course of the processing.
                                       ? ilm_qualified_ctor_initializer_name
                                       : ilm_ctor_initializer_name,
                                     &gid_err);
+          if (is_type_template_param_symbol(member_or_base_sym) &&
+              type_symbol_type(member_or_base_sym)->kind ==
+                                             (a_type_kind)tk_template_param) {
+            template_param_init = TRUE;
+          }  /* if */
           if ((!class_name_injection_enabled || microsoft_mode) &&
               !is_error_locator(locator_for_curr_id) &&
               !locator_for_curr_id.is_qualified_name) {
@@ -3761,9 +3777,11 @@ initialized.  These are addressed in the course of the processing.
              entry to which the initializer should be attached.  It has been
              located in or inserted into the list of such entries at a spot
              corresponding to its declaration order. */
-        } else if (is_class_symbol(member_or_base_sym)) {
+        } else if (is_class_symbol(member_or_base_sym) ||
+                   template_param_init) {
           /* It is a base class of the current class for which initialization
-             is to be done. */
+             is to be done.  (In a prototype instantiation, this could look
+             like the initialization of a template parameter.) */
           a_boolean  indirect_nonvirtual_base_class_found = FALSE;
           if (locator_for_curr_id.is_semivisible_nested_type) {
             /* The symbol in the locator is a nested class that is not
@@ -3775,6 +3793,9 @@ initialized.  These are addressed in the course of the processing.
                            locator_for_curr_id.specific_symbol);
           }  /* if */
           init_type = type_symbol_type(member_or_base_sym);
+          if (template_param_init) {
+            init_type = proxy_class_for_template_param(init_type);
+          }  /* if */
           if (is_qualified_type(init_type)) {
             bcp = NULL;
           } else {
@@ -3808,19 +3829,39 @@ initialized.  These are addressed in the course of the processing.
             bcp = found_bcp;
           }  /* if */
           if (bcp == NULL) {
-            /* No match found. */
-            if (indirect_nonvirtual_base_class_found) {
-              /* Actually, a match was found, but it was not a direct or
-                 virtual base class. */
-              error(ec_indirect_nonvirtual_base_class_not_allowed);
+            if (!member_or_base_sym->is_template_param &&
+                template_param_init) {
+              /* A reference to a dependent base, but not a template
+                 parameter itself (presumably, a dependent qualified name).
+                 We cannot tell whether this refers to a virtual or nonvirtual
+                 base; so just treat it as nonvirtual. */
+              new_cip = alloc_ctor_init(
+                              (a_constructor_init_kind)cik_direct_base_class);
+              new_cip->variant.base_class = alloc_base_class();
+              new_cip->variant.base_class->type = init_type;
+              if (direct_list == NULL) {
+                /* Start a new list. */
+                direct_list = new_cip;
+              } else {
+                /* Add to end of list. */
+                end_of_direct_list->next = new_cip;
+              }  /* if */
+              end_of_direct_list = new_cip;
             } else {
-              /* Not a base class of the class for which a constructor is
-                 being defined. */
-              pos_stty_error(ec_not_a_field_or_base_class, &error_position,
-                             member_or_base_sym->header->identifier,
-                             class_type);
+              /* No match found. */
+              if (indirect_nonvirtual_base_class_found) {
+                /* Actually, a match was found, but it was not a direct or
+                   virtual base class. */
+                error(ec_indirect_nonvirtual_base_class_not_allowed);
+              } else {
+                /* Not a base class of the class for which a constructor is
+                   being defined. */
+                pos_stty_error(ec_not_a_field_or_base_class, &error_position,
+                               member_or_base_sym->header->identifier,
+                               class_type);
+              }  /* if */
+              init_type = error_type();
             }  /* if */
-            init_type = error_type();
           } else {
             /* The base class was found.  Now look on the appropriate list of
                constructor initializers. */
@@ -3855,33 +3896,40 @@ scan_paren:
           } else {
             cssp = NULL;
           }  /* if */
-          if (cssp != NULL && cssp->constructor != NULL) {
+          if ((cssp != NULL && cssp->constructor != NULL) ||
+              template_param_init) {
             /* This is either a base class or a field of class type.  In
                either case, it will be initialized by a constructor call if
                a constructor exists.  Otherwise, it will be initialized
                like any scalar. */
-            a_type_ptr        object_class_type;
-
-            /* If it is a base class, the object being constructed is the
-               whole class (and the base class is a subobject thereof).
-               If it is a field, the object being constructed is field
-               itself.  Set the object class type accordingly. */
-            if (new_cip->kind == (a_constructor_init_kind)cik_field) {
-              object_class_type = init_type;
+            if (template_param_init) {
+              check_assertion(cssp != NULL);
+              scan_dependent_type_parenthesized_initializer(
+                                        /*force_object_lifetime=*/TRUE, &dip);
             } else {
-              object_class_type = class_type;
-            }  /* if */
-            /* This is treated like an initialization of the form
-               S x (arg [, ...]), where S is a class type name.  Depending
-               on the arguments present, a constructor will be selected and
-               returned.  The scan function returns dip set to NULL if it
-               finds no constructor for which the arguments match. */
-            scan_class_parenthesized_initializer(
+              a_type_ptr        object_class_type;
+  
+              /* If it is a base class, the object being constructed is the
+                 whole class (and the base class is a subobject thereof).
+                 If it is a field, the object being constructed is field
+                 itself.  Set the object class type accordingly. */
+              if (new_cip->kind == (a_constructor_init_kind)cik_field) {
+                object_class_type = init_type;
+              } else {
+                object_class_type = class_type;
+              }  /* if */
+              /* This is treated like an initialization of the form
+                 S x (arg [, ...]), where S is a class type name.  Depending
+                 on the arguments present, a constructor will be selected and
+                 returned.  The scan function returns dip set to NULL if it
+                 finds no constructor for which the arguments match. */
+              scan_class_parenthesized_initializer(
                                            init_type, object_class_type,
                                            /*force_object_lifetime=*/TRUE,
                                            &lparen_pos,
                                            /*fill_in_dtor=*/exceptions_enabled,
                                            &dip);
+            }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
             if (new_cip != NULL) {
               new_cip->ctor_init_range.start = init_start_pos;
