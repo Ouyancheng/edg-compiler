@@ -8818,22 +8818,22 @@ standard.
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     (void)check_boolean_controlling_expr(&operand_2);
     result_type = boolean_result_type();
-    if (!known_result
+    if (!known_result ||
+        /* In constant expressions we must always fold. */
+        (!curr_expr_kind_is_const() &&
 #if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
-        /* Don't remove dead code that might contain destructions, because
-           we don't want to run through the expression to find the destruction
-           to unlink it. */
-        || (curr_object_lifetime != NULL &&
-            curr_object_lifetime->destructions != NULL)
+         /* Don't remove dead code that might contain destructions, because
+            we don't want to run through the expression to find the destruction
+            to unlink it. */
+         curr_object_lifetime != NULL &&
+         curr_object_lifetime->destructions != NULL
 #else /* !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
-        /* When the first operand is constant and determines the result,
-           but the second operand is not constant, retain the dead expression.
-           When scanning a constant expression, however, we must force a
-           constant result even if the second looks nonconstant because
-           it was not evaluated (and therefore wasn't folded to a constant). */
-        || (!curr_expr_kind_is_const() && !is_constant_operand(&operand_2))
+         /* When the first operand is constant and determines the result,
+            but the second operand is not constant, retain the dead
+            expression. */
+         !is_constant_operand(&operand_2)
 #endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
-                                                                 ) {
+                                         )) {
       /* Make an expression. */
       op = which_binary_operator(save_token, result_type);
       do_binary_operation(op, operand_1, &operand_2, result_type, result,
@@ -9420,25 +9420,24 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   if (err || is_error_operand(operand_1)) {
     make_error_operand(result);
-  } else if (operand_1_is_const
+  } else if (operand_1_is_const &&
+             /* In constant expressions we must always fold. */
+             (curr_expr_kind_is_const() ||
 #if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
-             /* Don't remove dead code that might contain destructions,
-                because we don't want to run through the expression to
-                find the destruction to unlink it. */
-             && (curr_object_lifetime == NULL ||
-                 curr_object_lifetime->destructions == NULL)
+              /* Don't remove dead code that might contain destructions,
+                 because we don't want to run through the expression to
+                 find the destruction to unlink it. */
+              curr_object_lifetime == NULL ||
+              curr_object_lifetime->destructions == NULL
 #else /* !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
-             /* When the first operand is constant and determines the result,
-                but the second operand or third operand is not constant, retain
-                the dead expression.  When scanning a constant expression,
-                however, we must force a constant result even if an operand
-                looks nonconstant because it was not evaluated (and therefore
-                wasn't folded to a constant). */
-             && (curr_expr_kind_is_const() ||
-                 (is_constant_operand(&operand_2) &&
-                  is_constant_operand(&operand_3)))
+              /* When the first operand is constant and determines the result,
+                 but the second operand or third operand is not constant,
+                 retain the dead expression. */
+              (is_constant_operand(&operand_2) &&
+               is_constant_operand(&operand_3))
 #endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
-                                                   ) {
+                                               )) {
+    /* Fold the operation to a constant. */
     an_operand *other_operand;
     if (operand_1_is_false) {
       /* The first operand is false; return the third operand as the result. */
