@@ -1,5 +1,17 @@
 Version 3.4
 
+4/15/04  Microsoft compatibility: "&" ignored in front of string literal
+
+MSVC++ ignores the "&" operator when it appears in front of a string
+literal.  This is now emulated in Microsoft mode.
+
+  void f(const char *p);
+  void g(void) {
+    f(&"ok");  // Accepted in Microsoft bugs mode (C or C++)
+               // &"ok" should have type "pointer to array[3] of const char",
+               // not "pointer to const char"
+  }
+
 4/15/04  GNU C++ compatibility: disambiguation problem with attributes
 
 In g++ mode the front end would incorrectly disambiguate declarations

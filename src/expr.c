@@ -40,6 +40,7 @@ expr.c -- Expression scanning routines.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /* Forward declarations. */
+static a_boolean operand_is_string_literal(an_operand *operand);
 static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
                                      a_boolean  has_explicit_cv_qualifiers,
@@ -3752,6 +3753,13 @@ operation is a pointer-to-member (see ARM 5.3).
                than "pointer to array" as in ANSI. */
             pos_warning(ec_pcc_address_of_array, &start_position);
             conv_array_operand_to_pointer_operand(&operand);
+          } else if (microsoft_bugs &&
+                     operand_is_string_literal(&operand)) {
+            /* MSVC++ ignores "&" in front of a string literal (wide or
+               narrow, in parentheses or not) in both C and C++ mode. 
+               Note that the type of &"abc" is supposed to be a pointer
+               to array, whereas "abc" decays to pointer to char. */
+            conv_array_operand_to_pointer_operand(&operand);
           } else {
             if (!C_mode() && was_rvalue &&
                 is_class_struct_union_type(operand.type)) {
@@ -3761,6 +3769,7 @@ operation is a pointer-to-member (see ARM 5.3).
             /* Convert the lvalue operand to an rvalue operand for the
                pointer. */
             take_address_of_lvalue(&operand);
+            operand.is_simple_string_literal = FALSE;
           }  /* if */
           /* Note that the copy preserves ref_entries_list. */
           copy_operand(&operand, result);
