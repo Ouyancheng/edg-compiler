@@ -1419,7 +1419,8 @@ of each compilation.
 {
   catastrophe_has_occurred = FALSE;
   clear_file_index_list();
-  memzero(recorded_diagnostic_table, sizeof(recorded_diagnostic_table));
+  memzero((char *)recorded_diagnostic_table,
+          sizeof(recorded_diagnostic_table));
 }  /* error_init */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
