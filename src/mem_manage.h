@@ -169,7 +169,7 @@ switching between translation units.
 
 
 /*
-Macro used to register a array that is related to a specific translation
+Macro used to register an array that is related to a specific translation
 unit.  This is used to save and restore the contents of the array when
 switching between translation units.
 */
