@@ -1032,8 +1032,8 @@ static a_boolean is_best_derivation(a_base_class_ptr  bcp,
                                     a_type_ptr        class_type)
 {
   a_boolean                 is_best_path;
-  a_virtual_derivation_ptr  vdp;
-  a_derivation_step_ptr     step, path;
+  a_base_class_derivation_ptr  bcdp;
+  a_derivation_step_ptr     step;
 
   if (derived_bcp == NULL) {
 #if CHECKING
@@ -1052,23 +1052,17 @@ static a_boolean is_best_derivation(a_base_class_ptr  bcp,
                                              (a_base_class_ptr)NULL);
       /* Return TRUE if a step pointing to derived_bcp is on the derivation
          for bcp. */
-      path = bcp->derivation;
+      bcdp = bcp->derivation;
       is_best_path = FALSE;
-      do {
-        for (step = path; step != NULL; step = step->next) {
-          if (step->base_class == bcp) {
+      while (!bcdp->direct) {
+        for (step = bcdp->path; step != NULL; step = step->next) {
+          if (step->base_class == derived_bcp) {
             is_best_path = TRUE;
             goto done;
           }  /* if */
         }  /* for */
-        if (!path->base_class->is_virtual ||
-            first_virtual_derivation_of(path->base_class)->direct) {
-          goto done;
-        }  /* if */
-        vdp = path->base_class->paths_to_virtual_base_class;
-        while (!vdp->first) vdp = vdp->next;
-        path = vdp->derivation;
-      } while (!vdp->direct);
+        bcdp = bcdp->path->base_class->derivation;
+      }  /* for */
 #if 0
       /* Checking based on the derivation path is not really right.  If the
          need arises we'll have to beef this up. */
@@ -1304,7 +1298,7 @@ is not shared (i.e., where the pointer from a base class is not used).
        are put out in declaration order. */
 
     for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->is_virtual && first_virtual_derivation_of(bcp)->direct &&
+      if (bcp->is_virtual && first_derivation_is_direct(bcp) &&
           bcp->pointer_base_class == NULL &&
           has_virtual_base_class_with_null_pointer_base_class(
                                                     bcp, lob->class_type)) {
@@ -1517,7 +1511,7 @@ base class of class_type, and allocate space for the latter.
           if (bcp->type->variant.class_struct_union.any_virtual_base_classes) {
             break;
           }  /* if */
-        } else if (first_virtual_derivation_of(bcp)->direct &&
+        } else if (first_derivation_is_direct(bcp) &&
                    bcp->type->
                         variant.class_struct_union.any_virtual_base_classes &&
                    bcp->data_section_base_class == NULL) {
