@@ -1267,9 +1267,12 @@ front end.
   cast_clong_double_to_ilong_double = NULL;
 
   /* Create lowered complex types. */
-  (void)lowered_complex_type((a_float_kind)fk_float);
-  (void)lowered_complex_type((a_float_kind)fk_double);
-  (void)lowered_complex_type((a_float_kind)fk_long_double);
+  if (c99_il_lowering_needed()) {
+    /* Don't create the types if they won't be needed. */
+    (void)lowered_complex_type((a_float_kind)fk_float);
+    (void)lowered_complex_type((a_float_kind)fk_double);
+    (void)lowered_complex_type((a_float_kind)fk_long_double);
+  }  /* if */
 }  /* lower_c99_init */
 
 
