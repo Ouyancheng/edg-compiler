@@ -1,5 +1,10 @@
 Version 2.28
 
+1/25/95  __builtin_va_alist handling in C-generating back end on Sun
+
+A static variable with the name __builtin_va_alist is no longer mangled
+by the C_generating back end configured for a Sun.
+
 1/25/95  Freeing of storage on exception for uninitialized "new"
 
 The freeing_of_storage_on_exception action for a "new" shouldn't
@@ -21,6 +26,13 @@ correctly (rather than with some other kind of error).
 
 According to WP 14.3.3, the return type of operator-> must be valid if,
 among other things, the function's address is taken.  Now checked.
+
+1/25/95  Braces around for-init statement from C-generating back end
+
+The C-generating back end now puts braces around a for-init statement
+and its associated "for".  The absence of braces is a problem only when
+customer code transforms the IL, but it's a safe change in c_gen_be.c
+and useful when transformations are done.
 
 1/24/95  Instantiation of left operand of "="
 
