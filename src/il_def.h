@@ -863,6 +863,14 @@ typedef struct a_routine_type_supplement {
   unsigned int  prototyped:1;
                         /* TRUE if the function interface is a prototyped
                            interface, FALSE if it is old-style. */
+  unsigned int  old_style_params_scanned:1;
+			/* For functions with old-style param declarations
+			   (i.e., for which prototyped is FALSE), TRUE if the
+			   param list has been scanned.  This allows one to
+			   distinguish between old-style param lists that are
+			   NULL because the parameters have yet to be scanned
+			   and those that are NULL because there are no
+			   parameters.  For front-end use only. */
   unsigned int  lint_argsused_flag:1;
                         /* TRUE if this function declaration is subject
                            to a lint-style "argsused" flag, indicating that

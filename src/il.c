@@ -3016,8 +3016,9 @@ to default values.
                                      = NULL;
       rtsp->prototype_scope          = NULL;
       rtsp->assoc_routine            = NULL;
-      rtsp->prototyped               = FALSE;
       rtsp->has_ellipsis             = FALSE;
+      rtsp->prototyped               = FALSE;
+      rtsp->old_style_params_scanned = FALSE;
       rtsp->lint_argsused_flag       = FALSE;
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (an_arg_pragma_kind)apk_none;
