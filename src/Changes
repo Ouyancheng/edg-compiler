@@ -1,5 +1,23 @@
 Version 2.23
 
+5/18/94  Destruction of expression temporaries on goto/at label
+
+IL lowering has always destroyed expression temporaries at labels.
+That is now improved by using the new reachable_by_fall_through flag
+in the label (see below) to suppress the code when it's not needed.
+Also, expression temporaries are now destroyed on forward gotos in the block
+in which the temporaries are created (formerly, they were only destroyed
+on gotos backward and out of the block).  Note that when the new
+standard for temporary lifetime (destroy at end of full expression)
+is implemented, the above behavior will remain as the "cfront
+compatible" behavior.
+
+5/18/94  IL CHANGE: reachable_by_fall_through added to a_label
+
+A new flag, reachable_by_fall_through, has been added to the a_label
+entry.  It indicates whether a label can be reached by flowing into it
+from the code immediately preceding.
+
 5/17/94  Declaring a function as a template after it has been called
 
 In examples such as the following, in which a function template is declared
