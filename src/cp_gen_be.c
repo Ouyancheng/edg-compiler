@@ -3455,7 +3455,8 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   if (suppress_virtual && rout->is_virtual) {
     /* The routine being called is a virtual function, and we're supposed
        to suppress its virtual-ness in this call, so use a qualified name. */
-    gen_qualified_name(&rout->source_corresp, iek_routine);
+    gen_class_qualifier(naming_class);
+    gen_unqualified_name(&rout->source_corresp, iek_routine);
   } else {
     /* Normal case. */
     /* Use a qualified name if the class in which we want to name the member
