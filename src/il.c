@@ -210,7 +210,7 @@ Dump a field entry, for debug purposes.
 */
 {
   fputc(' ', f_debug);
-  if (C_dialect = C_dialect_cplusplus) {
+  if (C_dialect == C_dialect_cplusplus) {
     fputc(' ', f_debug);
     db_access_control(fp->source_corresp.access);
   }  /* if */
@@ -2532,21 +2532,21 @@ default values.
 #if DEBUG
   num_scopes_allocated++;
 #endif /* DEBUG */
-  sp->next            = NULL;
-  sp->assoc_routine   = NULL;
-  sp->parameters      = NULL;
-  sp->assoc_block     = NULL;
-  sp->constants       = NULL;
-  sp->types           = NULL;
-  sp->variables       = NULL;
-  sp->labels          = NULL;
-  sp->routines        = NULL;
-  sp->scopes          = NULL;
+  sp->next                = NULL;
+  sp->assoc_routine       = NULL;
+  sp->parameters          = NULL;
+  sp->this_param_variable = NULL;
+  sp->assoc_block         = NULL;
+  sp->constants           = NULL;
+  sp->types               = NULL;
+  sp->variables           = NULL;
+  sp->labels              = NULL;
+  sp->routines            = NULL;
+  sp->scopes              = NULL;
 #ifdef FIL
-  sp->function_result_var =
-                        NULL;
-  sp->entries         = NULL;
-  sp->namelist_groups = NULL;
+  sp->function_result_var = NULL;
+  sp->entries             = NULL;
+  sp->namelist_groups     = NULL;
 #endif /* ifdef FIL */
 
   db_exit();
