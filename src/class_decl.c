@@ -5510,7 +5510,6 @@ and "class_type" indicates the class in which the declaration occurs.
          the IL. */
       aap = new_access_adjustment(sym, access);
       /* Attach it the class type entry. */
-      ctsp = class_type->variant.class_struct_union.extra_info;
       aap->next = ctsp->access_adjustments;
       ctsp->access_adjustments = aap;
     }  /* for */
