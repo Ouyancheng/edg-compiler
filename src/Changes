@@ -1,5 +1,13 @@
 Version 3.3
 
+7/11/03  Error on \x with no following hex digit in string/character literal
+
+The sequence \x in a string or character literal should be followed
+by at least one hexadecimal digit.  If it isn't, an error is now issued
+(except in pcc mode).  Formerly, only a warning was issued.
+
+  int f() { return '\x'; }
+
 7/11/03  Incorrect mangling for promoted local types
 
 The mangled names generated in the Cfront-like ABI for types

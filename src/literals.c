@@ -638,7 +638,13 @@ get_another:
         /* Hexadecimal escape.  There can be many digits, but there must be
            at least one.  If not, treat as just "x". */
         if (!isxdigit((unsigned char)*lptr)) {
-          unrecognized = TRUE;
+          conv_line_loc_to_source_pos(*temp_ptr+2, &error_position);
+          if (C_dialect == C_dialect_pcc) {
+            warning(ec_bad_hex_digit);
+          } else {
+            error(ec_bad_hex_digit);
+          }  /* if */
+          targ_ch = (unsigned char)'x';
         } else {
           targ_ch = hexvalue(*lptr);  /* First digit. */
           while (tch = *(++lptr), isxdigit(tch)) {
