@@ -4886,13 +4886,11 @@ of the function, and again overloading is a possibility.
           set_to_named_error_locator(*locator);
         }  /* if */          
       }  /* if */
-      /* Default storage class setting. */
-      storage_class = (a_storage_class)sc_extern;
+      storage_class = decl_info->storage_class;
       if (microsoft_mode &&
-          decl_info->storage_class != (a_storage_class)sc_unspecified) {
+          storage_class != (a_storage_class)sc_unspecified) {
         /* In Microsoft mode "extern" and "static" are permitted on a
            nonmember friend declaration. */
-        storage_class = decl_info->storage_class;
         if (storage_class != (a_storage_class)sc_static &&
             storage_class != (a_storage_class)sc_extern) {
           /* The storage class of a function has to be extern or static. */
