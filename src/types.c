@@ -877,14 +877,13 @@ in 16-bit Microsoft mode).
   return is_far;
 }  /* is_far_type */
 
-#endif /* NEAR_AND_FAR_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 
 a_type_qualifier_set get_original_type_qualifiers(a_type_ptr type)
 /*
 Get and return the type qualifiers of the indicated type, including any
 memory attributes that were explicit in the source but are implicit in
-the type itself.  This is used only in 16-bit Microsoft mode.
+the type itself.  This routine only called when support for near and far is
+enabled (e.g., Microsoft 16-bit mode).
 */
 {
   a_type_qualifier_set qualifiers = TQ_NONE;
@@ -893,14 +892,12 @@ the type itself.  This is used only in 16-bit Microsoft mode.
   for (;;) {
     if (type->kind == (a_type_kind)tk_typeref) {
       qualifiers |= type->variant.typeref.qualifiers;
-#if NEAR_AND_FAR_ALLOWED
       if (type->variant.typeref.explicit_memory_attribute_made_implicit) {
         /* A memory attribute was explicitly specified in the source but
            it's implied in the typeref.  Add it in. */
         qualifiers |= is_far_type(type->variant.typeref.type) ? TQ_FAR :
                                                                 TQ_NEAR;
       }  /* if */
-#endif /* NEAR_AND_FAR_ALLOWED */
       type = type->variant.typeref.type;
     } else if (type->kind == (a_type_kind)tk_array) {
       /* If an array appears, the new qualifiers must be compatible with those
@@ -913,7 +910,7 @@ the type itself.  This is used only in 16-bit Microsoft mode.
   return qualifiers;
 }  /* get_original_type_qualifiers */
     
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_abstract_class_type(a_type_ptr  tp)
