@@ -54,72 +54,69 @@ pointer type to another and casting integer constants to pointer types.
 
 
 static void get_integer_attributes(a_constant      *cp,
-                                   unsigned long   *sign_bit,
-                                   unsigned long   *mask)
+                                   an_integer_kind *ikind,
+                                   a_boolean       *is_signed,
+                                   int             *bit_size)
 /*
-For the integer type given by cp->type, return in *sign_bit a mask for
-the sign bit, and in *mask a mask that can be used to truncate a value
-to the right number of bytes.
+For the integer type given by cp->type, return in *ikind the integer kind,
+in *is_signed whether or not the type is signed, and in *bit_size the
+size in bits of the integral type.
 */
 {
   a_type_ptr    int_type = skip_typerefs(cp->type);
   a_targ_size_t size;
 
+#if CHECKING
+  if (int_type->kind != (a_type_kind)tk_integer) {
+    internal_error("get_integer_attributes: not integral type");
+  }  /* if */
+#endif /* CHECKING */
+  *ikind = int_type->variant.integer.int_kind;
+  *is_signed = int_kind_is_signed[*ikind];
   size = int_type->size;
 #if CHECKING
   if (size == 0) internal_error("get_integer_attributes: zero-sized integer");
 #endif /* CHECKING */
-  /* Build the required bit masks. */
-  *sign_bit = (unsigned long)1 << (unsigned long)((size * TARG_CHAR_BIT)-1);
-  *mask = *sign_bit | (*sign_bit-1);
+  *bit_size = size * TARG_CHAR_BIT;
 }  /* get_integer_attributes */
 
 
-static void trunc_and_store_integer(long              result_value,
-                                    a_constant        *result,
-                                    an_error_code     *err_code,
-                                    an_error_severity *err_severity)
+static void trunc_and_set_integer(an_integer_value  *result_value,
+                                  a_constant        *result,
+                                  an_error_code     *err_code,
+                                  an_error_severity *err_severity)
 /*
-Truncate the integer result_value and store it in *result.  Set *err_code
-and *err_severity to indicate any truncation error.  If *err_code is
-already set to an error code, do not change it.
+Truncate the integer result_value and store it in *result.  result->type
+is already set to an integer type.  Set *err_code and *err_severity to
+indicate any truncation error.  If *err_code is already set to an error
+code, do not change it.
 */
 {
-  unsigned long sign_bit, mask;
-  long          max_val, min_val;
-  a_boolean     result_signed;
+  an_integer_kind  ikind;
+  a_boolean        is_signed;
+  int              bit_size;
+  an_integer_value mask;
 
-  get_integer_attributes(result, &sign_bit, &mask);
-  result_signed = int_constant_is_signed(result);
+  /* Put the integer value into the result constant. */
+  set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+  result->variant.integer_value = *result_value;
+  get_integer_attributes(result, &ikind, &is_signed, &bit_size);
   /* Do the error checks only if there's no previous error code. */
   if (*err_code == ec_no_error) {
-    if (result_signed) {
-      /* Destination is a signed integer. */
-      /* Use variables here because some C compilers throw away the cast
-         to long. */
-      max_val = sign_bit-1;
-      min_val = ~max_val;  /* Assuming twos' complement. */
-      if (result_value > max_val || result_value < min_val) {
-        /* The value will not fit in the destination integer type. */
-        *err_code = ec_integer_overflow;
-        *err_severity = ES_INT_OVERFLOW;
-      }  /* if */
-    } else {
-      /* Destination is an unsigned integer. */
-      if ((unsigned long)result_value > mask) {
-        /* The value will not fit in the destination integer type. */
-        *err_code = ec_integer_overflow;
-        *err_severity = ES_INT_OVERFLOW;
-      }  /* if */
+    if (!in_range_for_integer_kind(result, result, ikind)) {
+      /* The value will not fit in the destination integer type. */
+      *err_code = ec_integer_overflow;
+      *err_severity = ES_INT_OVERFLOW;
     }  /* if */
   }  /* if */
   /* Truncate the value to the right size. */
-  result_value &= mask;
-  /* Sign-extend a signed negative result. */
-  if (result_signed && (result_value & sign_bit)) result_value |= ~mask;
-  set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  result->variant.integer_value = result_value;
-}  /* trunc_and_store_integer */
+  make_integer_value_mask(&mask, bit_size);
+  and_integer_values(&result->variant.integer_value, &mask);
+  /* Sign-extend a signed result. */
+  if (is_signed) {
+    sign_extend_integer_value(&result->variant.integer_value, bit_size);
+  }  /* if */
+}  /* trunc_and_set_integer */
 
 
 static void conv_integer_to_integer(a_constant        *old_constant,
@@ -132,73 +129,90 @@ Convert an integral constant of some kind (in *old_constant) to a new
 integral constant in *new_constant, with type as indicated therein.  Return
 *err_code and *err_severity set to indicate any error/warning detected,
 or *err_code == ec_no_error if everything went fine.  If is_implicit_cast
-is TRUE, suppress any warnings.
+is FALSE, suppress any warnings.
 */
 {
-  long          old_value = old_constant->variant.integer_value;
-  long          new_value;
-  a_boolean     old_signed, new_signed;
-  unsigned long new_sign_bit, new_mask, old_sign_bit, old_mask;
+  an_integer_value mask, old_value_copy;
+  an_integer_kind  new_ikind, old_ikind;
+  a_boolean        new_signed, old_signed;
+  int              new_bit_size, old_bit_size;
+  a_boolean        is_sign_change;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  /* Determine attributes (size, signedness) of the old/new integer kinds. */
-  old_signed = int_constant_is_signed(old_constant);
-  new_signed = int_constant_is_signed(new_constant);
-  get_integer_attributes(new_constant, &new_sign_bit, &new_mask);
-
-  /* NOTE: This routine is designed to work only when the host and
-     target computers are twos complement. */
-
-  new_value = old_value;
-  /* Do any necessary truncation. */
-  new_value &= new_mask;
-  /* Sign-extend the result if necessary. */
-  if (new_signed && (new_value & new_sign_bit)) new_value |= ~new_mask;
+  /* Copy the old value to the new value. */
+  set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
+  new_constant->variant.integer_value = old_constant->variant.integer_value;
+  /* Determine attributes (size, signedness) of the new integer kind. */
+  get_integer_attributes(new_constant, &new_ikind, &new_signed, &new_bit_size);
+  /* Truncate the new value to the right size. */
+  /* Note that the mask created here is used again later in this routine. */
+  make_integer_value_mask(&mask, new_bit_size);
+  and_integer_values(&new_constant->variant.integer_value, &mask);
+  /* Sign-extend the new value if necessary. */
+  if (new_signed) {
+    sign_extend_integer_value(&new_constant->variant.integer_value,
+                              new_bit_size);
+  }  /* if */
   if (is_implicit_cast) {
-    /* If the value changed, a warning is in order.  The value has changed
-       if the bit pattern changed ... */
-    if (new_value != old_value ||
-        /* ... or if the new sign is different than the old sign. */
-        ((new_signed && new_value < 0) != (old_signed && old_value < 0))) {
+    /* If the value changed, a warning is in order. */
+    if (cmp_integer_constants(new_constant, old_constant) != 0) {
       /* The new value is different than the old value.  See if the change
          is a truncation (dropping bits) or a sign change. */
-      get_integer_attributes(old_constant, &old_sign_bit, &old_mask);
-      if (new_mask >= old_mask) {  /* i.e., new size >= old size */
+      is_sign_change = FALSE;
+      get_integer_attributes(old_constant, &old_ikind, &old_signed,
+                             &old_bit_size);
+      if (new_bit_size >= old_bit_size) {
         /* The new size is at least as big as the old size, so no truncation
            is possible.  Therefore, this must be a sign change. */
+        is_sign_change = TRUE;
+      } else {
+        /* The new size is smaller than the old size, which means truncation
+           is possible.  See if the significant part of the new value is the
+           same as the old value.  If so, no bits have been lost, and
+           this is a sign change. */
+        old_value_copy = old_constant->variant.integer_value;
+        if (old_signed && sign_of_integer_constant(old_constant) < 0) {
+          /* Old constant is negative.  Turn on all the bits of the copy of
+             the old constant down to where the sign bit is (or would be) in
+             the new size.  If that gives a value that is equal to the
+             old constant, then no information was lost, i.e., there is
+             no interesting information -- just sign extension -- in the
+             bits that don't fit into the new size. */
+          make_integer_value_mask(&mask, new_bit_size-1);
+          complement_integer_value(&mask);
+          or_integer_values(&old_value_copy, &mask);
+        } else {
+          /* Old constant is unsigned or nonnegative.  Mask off all the
+             bits of the old constant that do not fit in the new size.
+             If that gives a value that is equal to the old constant,
+             then no information was lost. */
+          /* make_integer_value_mask(&mask, new_bit_size); -- already set. */
+          and_integer_values(&old_value_copy, &mask);
+        }  /* if */
+        if (cmp_integer_values(&old_value_copy, old_signed,
+                               &old_constant->variant.integer_value,
+                               old_signed) == 0) {
+          /* No significant bits were dropped, so this must be a sign
+             change. */
+          is_sign_change = TRUE;
+        }  /* if */
+      }  /* if */
+      if (is_sign_change) {
+        /* Sign change. */
         /* Do not issue this warning for non-arithmetic constants. */
         if (!old_constant->non_arithmetic) {
           *err_code = ec_integer_sign_change;
           *err_severity = es_warning;
         }  /* if */
       } else {
-        /* The new size is smaller than the old size, which means truncation
-           is possible.  See if the significant part of the new value is the
-           same as the old value.  If so, no bits have been lost, and
-           this is a sign change.  Note that the old value must have all
-           zero bits outside of the bits saved in the new value for
-           this to be so. */
-        if ((new_value & new_mask) == old_value) {
-          /* The significant bit pattern is the same, so this is
-             a sign change. */
-          /* Do not issue this warning for non-arithmetic constants. */
-          if (!old_constant->non_arithmetic) {
-            *err_code = ec_integer_sign_change;
-            *err_severity = es_warning;
-          }  /* if */
-        } else {
-          /* Some part of the significant bit pattern has changed, so this
-             is a truncation. */
-          *err_code = ec_integer_truncated;
-          *err_severity = es_warning;
-        }  /* if */
+        /* Truncation. */
+        *err_code = ec_integer_truncated;
+        *err_severity = es_warning;
       }  /* if */
     }  /* if */
   }  /* if */
-  set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
-  new_constant->variant.integer_value = new_value;
 }  /* conv_integer_to_integer */
 
 
@@ -226,18 +240,28 @@ in *new_constant, with type as indicated therein.  Return *err_code and
 
   if (int_constant_is_signed(old_constant)) {
     /* The source is a signed integer value. */
-    old_value = old_constant->variant.integer_value;
-    fp_long_to_float(float_kind, old_value,
-                     &new_constant->variant.float_value, &err);
+#if 0
+    /* This needs to handle larger integer values. */
+#endif /* 0 */
+    old_value = value_of_integer_constant(old_constant, &err);
+    if (!err) {
+      fp_long_to_float(float_kind, old_value,
+                       &new_constant->variant.float_value, &err);
+    }  /* if */
   } else {
     /* The source is an unsigned integer value. */
-    unsigned_old_value = (unsigned long)old_constant->variant.integer_value;
-    fp_unsigned_long_to_float(float_kind, unsigned_old_value, 
-                              &new_constant->variant.float_value, &err);
+#if 0
+    /* This needs to handle larger integer values. */
+#endif /* 0 */
+    unsigned_old_value = unsigned_value_of_integer_constant(old_constant,
+                                                            &err);
+    if (!err) {
+      fp_unsigned_long_to_float(float_kind, unsigned_old_value, 
+                                &new_constant->variant.float_value, &err);
+    }  /* if */
   }  /* if */
   if (err) {
-    /* Some error.  This is probably impossible unless integers and floats
-       are defined in some very strange way. */
+    /* Some error. */
     *err_code = ec_integer_to_float_conversion;
     *err_severity = es_error;
   }  /* if */
@@ -255,30 +279,37 @@ in *new_constant, with type as indicated therein.  Return *err_code and
 *err_code == ec_no_error if everything went fine.
 */
 {
-  long          result_value;
-  unsigned long unsigned_result_value;
-  a_boolean     result_signed;
-  a_boolean     err;
-  a_float_kind  float_kind =
+  long             int_value;
+  unsigned long    unsigned_int_value;
+  an_integer_value result_value;
+  a_boolean        err;
+  a_float_kind     float_kind =
                          skip_typerefs(old_constant->type)->variant.float_kind;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  result_signed = int_constant_is_signed(new_constant);
-  if (result_signed) {
+  if (int_constant_is_signed(new_constant)) {
     /* Destination is a signed integer. */
     fp_to_long(float_kind,
-               &old_constant->variant.float_value, &result_value, &err);
+               &old_constant->variant.float_value, &int_value, &err);
+#if 0
+    /* This needs to handle larger integers. */
+#endif /* 0 */
+    if (!err) set_integer_value(&result_value, int_value);
   } else {
     /* Destination is an unsigned integer. */
     fp_to_unsigned_long(float_kind,
                         &old_constant->variant.float_value,
-                        &unsigned_result_value, &err);
-    if (!err) result_value = unsigned_result_value;
+                        &unsigned_int_value, &err);
+#if 0
+    /* This needs to handle larger integers. */
+#endif /* 0 */
+    if (!err) set_unsigned_integer_value(&result_value, unsigned_int_value);
   }  /* if */
-  if (err) result_value = 0;
-  trunc_and_store_integer(result_value, new_constant, err_code, err_severity);
+  if (!err) {
+    trunc_and_set_integer(&result_value, new_constant, err_code, err_severity);
+  }  /* if */
   if (err || *err_code != ec_no_error) {
     /* Float value is too big to fit in the integer. */
     *err_code = ec_float_to_integer_conversion;
@@ -318,47 +349,48 @@ in *new_constant, with type as indicated therein.  Return *err_code and
 }  /* conv_float_to_float */
 
 
-static a_targ_ptrdiff_t pointer_offset(a_constant_ptr constant)
+static void get_pointer_offset(a_constant_ptr constant,
+                               a_constant_ptr offset)
 /*
-Retrieve and return the offset part of the given pointer constant.
-Note that this routine must work when applied to an address constant
-that has been cast to an integral type.
+Retrieve and return the offset part of the given pointer constant in
+integer constant form.  Note that this routine works when
+applied to an address constant that has been cast to an integral type.
 */
 {
-  a_targ_ptrdiff_t offset;
-
   switch (constant->kind) {
     case ck_address:
       /* Address of a routine, variable, or constant, plus some offset. */
-      offset = constant->variant.address.offset;
+      set_integer_constant(offset, constant->variant.address.offset,
+                           (an_integer_kind)TARG_PTRDIFF_T_INT_KIND);
       break;
     case ck_integer:
       /* Integer cast to a pointer type (probably 0/NULL). */
-      offset = constant->variant.integer_value;
+      *offset = *constant;
       break;
 #if CHECKING
     default:
-      internal_error("pointer_offset: bad kind");
+      internal_error("get_pointer_offset: bad kind");
 #endif /* CHECKING */
   }  /* switch */
-  return (offset);
-}  /* pointer_offset */
+}  /* get_pointer_offset */
 
 
-static void set_pointer_offset(a_constant_ptr   constant,
-                               a_targ_ptrdiff_t offset)
+static void set_pointer_offset(a_constant_ptr constant,
+                               a_constant_ptr offset,
+                               a_boolean      *err)
 /*
-Put the indicated offset into the pointer constant.
-Note that this routine must work when applied to an address constant
-that has been cast to an integral type.
+Put the indicated offset into the pointer constant.  Return *err TRUE
+if the value will not fit in the pointer constant.  Note that this routine
+works when applied to an address constant that has been cast to an
+integral type.
 */
 {
   switch (constant->kind) {
-    case ck_integer:
-      constant->variant.integer_value = offset;
-      break;
     case ck_address:
-      constant->variant.address.offset = offset;
+      constant->variant.address.offset= value_of_integer_constant(offset, err);
+      break;
+    case ck_integer:
+      *constant = *offset;
       break;
 #if CHECKING
     default:
@@ -402,7 +434,7 @@ it points to the variable, routine, or constant entry.
 #endif /* CHECKING */
     }  /* switch */
   }  /* if */
-  return (object);
+  return object;
 }  /* base_object */
 
 
@@ -421,10 +453,11 @@ operation cannot be folded, *did_not_fold is returned TRUE.  If there
 is an error, issue it at *err_pos.  result->type need not be set on entry.
 */
 {
-  a_boolean             access_okay;
+  a_boolean             access_okay, err;
   a_type_ptr            orig_type, curr_type, new_type;
   a_derivation_step_ptr dsp;
-  a_targ_ptrdiff_t      offset;
+  a_constant            offset;
+  an_integer_value      base_class_offset;
   a_base_class_ptr      base_class;
 
   *did_not_fold = FALSE;
@@ -458,8 +491,9 @@ is an error, issue it at *err_pos.  result->type need not be set on entry.
       }  /* if */
       /* Adjust the address to reflect the cast to the next level. */
       curr_type = base_class->type;
-      offset = pointer_offset(constant_1);
-      if (offset == 0 && base_object(constant_1) == NULL) {
+      get_pointer_offset(constant_1, &offset);
+      if (cmplit_integer_constant(&offset, 0L) == 0 &&
+          base_object(constant_1) == NULL) {
         /* Preserve a NULL pointer. */
       } else {
         if (base_class->any_virtual_steps_in_derivation) {
@@ -481,11 +515,13 @@ is an error, issue it at *err_pos.  result->type need not be set on entry.
         }  /* if */
         /* Take the pointer offset, ... */
         /* ... add the offset to the base class, ... */
-        offset += base_class->offset;
+        set_unsigned_integer_value(&base_class_offset, base_class->offset);
+        add_integer_values(&offset.variant.integer_value, &base_class_offset,
+                           int_constant_is_signed(&offset), &err);
         /* ... and put the offset into the result pointer constant.  Note
            that no overflow/object-size checking is needed, since the base
            class has to be within the underlying object. */
-        set_pointer_offset(result, offset);
+        set_pointer_offset(result, &offset, &err);
       }  /* if */
     }  /* for */
     /* Set the constant type.  It includes all the type qualifiers from the
@@ -509,7 +545,9 @@ desired derived type.  If there is an error, it is issued at *err_pos.
 */
 {
   a_type_ptr       new_type = result->type, derived_class_type;
-  a_targ_ptrdiff_t offset;
+  a_constant       offset;
+  an_integer_value base_class_offset;
+  a_boolean        err;
 
   /* The code here looks like add_derived_class_casts. */
   derived_class_type = f_skip_typerefs(type_pointed_to(new_type));
@@ -526,8 +564,9 @@ desired derived type.  If there is an error, it is issued at *err_pos.
   } else {
     copy_constant(constant_1, result);
     /* Determine the offset and adjust it for the cast. */
-    offset = pointer_offset(result);
-    if (offset == 0 && base_object(result) == NULL) {
+    get_pointer_offset(result, &offset);
+    if (cmplit_integer_constant(&offset, 0L) == 0 &&
+        base_object(result) == NULL) {
       /* Preserve a NULL pointer. */
     } else {
 #if CHECKING
@@ -537,11 +576,14 @@ desired derived type.  If there is an error, it is issued at *err_pos.
 #endif /* CHECKING */
       /* Take the pointer offset, ... */
       /* ... subtract the offset to the base class, ... */
-      offset -= bcp->offset;
+      set_unsigned_integer_value(&base_class_offset, bcp->offset);
+      subtract_integer_values(&offset.variant.integer_value,
+                              &base_class_offset,
+                              int_constant_is_signed(&offset), &err);
       /* ... and put the offset into the result pointer constant.  Note
          that no overflow/object-size checking is needed, since the base
          class has to be within the underlying object. */
-      set_pointer_offset(result, offset);
+      set_pointer_offset(result, &offset, &err);
     }  /* if */
     implicit_cast(result, new_type);
   }  /* if */
@@ -773,7 +815,7 @@ Convert an integer constant to a pointer constant of type as specified by
   *err_code = ec_no_error;
   *err_severity = es_warning;
   if (is_implicit_cast) {
-    if (old_constant->variant.integer_value != 0) {
+    if (cmplit_integer_constant(old_constant, 0L) != 0) {
       /* Any value other than zero (NULL).  Issue a warning. */
       *err_code = ec_non_zero_int_conv_to_pointer;
       *err_severity = es_warning;
@@ -1023,7 +1065,7 @@ expressions in statements and the ?:, &&, and || operators.
     case ck_integer:
       /* Either an integer zero or a zero cast to a pointer type is
          acceptable, so it is not necessary to check the constant type. */
-      is_zero = (constant->variant.integer_value == 0);
+      is_zero = (cmplit_integer_constant(constant, 0L) == 0);
       break;
     case ck_float:
       float_kind = skip_typerefs(constant->type)->variant.float_kind;
@@ -1036,7 +1078,7 @@ expressions in statements and the ?:, &&, and || operators.
       break;
   }  /* switch */
 
-  return (is_zero);
+  return is_zero;
 }  /* is_zero_constant */
 
 
@@ -1105,18 +1147,21 @@ static void do_inegate(a_constant        *constant,
 Do the negate operation on all types of integers.
 */
 {
-  long operand_value, result_value;
+  an_integer_value result_value;
+  a_boolean        err, is_signed;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  operand_value = constant->variant.integer_value;
-  result_value = (long)(-((unsigned long)operand_value));
-  if (int_constant_is_signed(constant)) {
+  /* Compute 0 - constant. */
+  set_integer_value(&result_value, 0L);
+  is_signed = int_constant_is_signed(constant);
+  subtract_integer_values(&result_value, &constant->variant.integer_value,
+                          is_signed, &err);
+  if (is_signed) {
     /* Negation of a signed integer. */
-    if ((operand_value < 0) == (result_value < 0) &&
-	operand_value != 0) {
-      /* Result has the same sign as the operand: overflow. */
+    if (err) {
+      /* Folding error. */
       /* Suppress this error for non-arithmetic constants in K&R mode. */
       if (C_dialect != C_dialect_pcc || !constant->non_arithmetic) {
         *err_code = ec_integer_overflow;
@@ -1131,7 +1176,7 @@ Do the negate operation on all types of integers.
        twos complement machines; it avoids a warning. */
     result->non_arithmetic = TRUE;
   }  /* if */
-  trunc_and_store_integer(result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, err_code, err_severity);
 
 #if DEBUG
   db_unary_operation("i-", constant, result, *err_code);
@@ -1180,13 +1225,14 @@ static void do_complement(a_constant        *constant,
 Do the complement operation on all type of integers.
 */
 {
-  long result_value;
+  an_integer_value result_value;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  result_value = (long)(~(unsigned long)constant->variant.integer_value);
-  trunc_and_store_integer(result_value, result, err_code, err_severity);
+  result_value = constant->variant.integer_value;
+  complement_integer_value(&result_value);
+  trunc_and_set_integer(&result_value, result, err_code, err_severity);
   result->non_arithmetic = TRUE;
 
 #if DEBUG
@@ -1201,30 +1247,9 @@ static void do_not(a_constant        *constant,
 Do the "!" (not) operation on all types of scalars.
 */
 {
-  long         result_value;
-  a_float_kind float_kind;
-
-  switch (constant->kind) {
-    case ck_integer:
-      result_value = !constant->variant.integer_value;
-      break;
-    case ck_float:
-      float_kind = skip_typerefs(constant->type)->variant.float_kind;
-      result_value = !fp_is_zero_constant(float_kind,
-                                          &constant->variant.float_value);
-      break;
-    case ck_address:
-      /* A pointer to a variable, routine, or constant.  Always non-NULL, so
-           the "not" is 0. */
-      result_value = 0;
-      break;
-#if CHECKING
-    default:
-      internal_error("do_not: bad constant kind");
-#endif /* CHECKING */
-  }  /* switch */
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  result->variant.integer_value = result_value;
+  set_integer_value(&result->variant.integer_value,
+                    (long)is_zero_constant(constant));
 
 #if DEBUG
   db_unary_operation("!", constant, result, ec_no_error);
@@ -1355,64 +1380,26 @@ static void do_iadd(a_constant        *constant_1,
 Do the addition operation on all types of integers.
 */
 {
-  long result_value, value_1, value_2;
+  an_integer_value result_value;
+  a_boolean        is_signed, err;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  value_1 = constant_1->variant.integer_value;
-  value_2 = constant_2->variant.integer_value;
-  result_value = (long)((unsigned long)value_1 + (unsigned long)value_2);
-  if (int_constant_is_signed(result)) {
-    /* Addition of signed integers. */
-    /* Check overflow possibilities. */
-    if (value_1 >= 0 && value_2 >= 0) {
-      if (result_value < 0) {
-        /* Nonnegative + nonnegative produced negative: overflow. */
-        *err_code = ec_integer_overflow;
-        *err_severity = ES_INT_OVERFLOW;
-      }  /* if */
-    } else if (value_1 < 0 && value_2 < 0) {
-      if (result_value >= 0) {
-        /* Negative + negative produced positive: overflow. */
-        *err_code = ec_integer_overflow;
-        *err_severity = ES_INT_OVERFLOW;
-      }  /* if */
-    }  /* if */
+  result_value = constant_1->variant.integer_value;
+  is_signed = int_constant_is_signed(constant_1);
+  add_integer_values(&result_value, &constant_2->variant.integer_value,
+                     is_signed, &err);
+  if (err && is_signed) {
+    *err_code = ec_integer_overflow;
+    *err_severity = ES_INT_OVERFLOW;
   }  /* if */
-  trunc_and_store_integer(result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, err_code, err_severity);
 
 #if DEBUG
   db_binary_operation("i+", constant_1, constant_2, result, *err_code);
 #endif /* DEBUG */
 }  /* do_iadd */
-
-
-static a_boolean subtract_protected(long      value_1,
-                                    long      value_2,
-                                    long      *result_value)
-/*
-Do "*result_value = value_1*value_2", with overflow checking.  Return
-TRUE if there is no overflow, FALSE if there is overflow.
-*/
-{
-  a_boolean err = FALSE;
-
-  *result_value = (long)((unsigned long)value_1 - (unsigned long)value_2);
-  /* Check overflow possibilities. */
-  if (value_1 >= 0 && value_2 < 0) {
-    if (*result_value < 0) {
-      /* Nonnegative - negative produced negative: overflow. */
-      err = TRUE;
-    }  /* if */
-  } else if (value_1 < 0 && value_2 >= 0) {
-    if (*result_value >= 0) {
-      /* Negative - nonnegative produced nonnegative: overflow. */
-      err = TRUE;
-    }  /* if */
-  }  /* if */
-  return !err;
-}  /* subtract_protected */
 
 
 static void do_isubtract(a_constant        *constant_1,
@@ -1424,97 +1411,26 @@ static void do_isubtract(a_constant        *constant_1,
 Do the subtract operation on all types of integers.
 */
 {
-  long result_value, value_1, value_2;
+  an_integer_value result_value;
+  a_boolean        is_signed, err;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  value_1 = constant_1->variant.integer_value;
-  value_2 = constant_2->variant.integer_value;
-  if (int_constant_is_signed(result)) {
-    /* Subtraction of signed integers. */
-    if (!subtract_protected(value_1, value_2, &result_value)) {
-      *err_code = ec_integer_overflow;
-      *err_severity = ES_INT_OVERFLOW;
-    }  /* if */
-  } else {
-    /* Subtraction of unsigned integers. */
-    result_value = (long)((unsigned long)value_1 - (unsigned long)value_2);
+  result_value = constant_1->variant.integer_value;
+  is_signed = int_constant_is_signed(constant_1);
+  subtract_integer_values(&result_value, &constant_2->variant.integer_value,
+                          is_signed, &err);
+  if (err && is_signed) {
+    *err_code = ec_integer_overflow;
+    *err_severity = ES_INT_OVERFLOW;
   }  /* if */
-  trunc_and_store_integer(result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, err_code, err_severity);
 
 #if DEBUG
   db_binary_operation("i-", constant_1, constant_2, result, *err_code);
 #endif /* DEBUG */
 }  /* do_isubtract */
-
-
-static long divide_integers(long value_1,
-                            long value_2)
-/*
-Divide value_1 by value_2 and return the quotient.  This routine forces
-truncation toward zero on division involving negative numbers, which
-is not guaranteed by C.  The caller must ensure that value_2 is not zero
-and that if value_2 == -1, value_1 != LONG_MIN on a twos' complement
-machine.
-*/
-{
-  long result_value = value_1 / value_2;
-
-  /* If either of the values is negative, check for truncation away from zero
-     and compensate for it.  Since by definition
-       (value_1/value_2)*value_2 + value_1%value_2 == value_1,
-     if the sign of value_1%value_2 is different than the sign of value_1
-     truncation was away from zero. */
-  if (value_1 < 0) {
-    if (value_1 % value_2 > 0) result_value++;
-  } else if (value_2 < 0) {
-    if (value_1 % value_2 < 0) result_value++;
-  }  /* if */
-  return result_value;
-}  /* divide_integers */
-
-
-static a_boolean multiply_protected(long      value_1,
-                                    long      value_2,
-                                    long      *result_value)
-/*
-Do "*result_value = value_1*value_2", with overflow checking.  Return
-TRUE if there is no overflow, FALSE if there is overflow.
-*/
-{
-  a_boolean err = FALSE;
-
-  *result_value = (long)((unsigned long)value_1 * (unsigned long)value_2);
-  /* Check overflow possibilities. */
-  if (value_1 > 0 && value_2 > 0) {
-    /* divide_integers is not needed here, since both numbers are positive. */
-    if (LONG_MAX / value_2 < value_1) err = TRUE;
-  } else if (value_1 > 0 && value_2 < -1) {
-    /* As an example of the kind of problem that calls for divide_integers,
-       on a 32-bit twos' complement machine:
-         value_1 == 715827883, value_2 == -3 -- product overflows.
-         LONG_MIN == -2147483648
-       on a machine where truncation is not towards zero,
-         LONG_MIN / value_2 == 715827883
-         LONG_MIN % value_2 == 1
-       which fulfills the definition
-         (LONG_MIN/value_2)*value_2 + LONG_MIN%value_2 == LONG_MIN
-       but LONG_MIN/value_2 == value_1, so no error is detected. */
-    if (divide_integers(LONG_MIN, value_2) < value_1) err = TRUE;
-  } else if (value_1 < -1 && value_2 > 0) {
-    if (divide_integers(LONG_MIN, value_1) < value_2) err = TRUE;
-  } else if (value_1 < -1 && value_2 < 0) {
-    if (divide_integers(LONG_MAX, value_1) > value_2) err = TRUE;
-  } else if ((LONG_MIN + LONG_MAX) < 0 &&
-             ((value_1 == -1 && value_2 == LONG_MIN) ||
-              (value_1 == LONG_MIN && value_2 == -1))) {
-    /* -1 times the smallest integer is an overflow on a 2's complement
-       machine. */
-    err = TRUE;
-  }  /* if */
-  return !err;
-}  /* multiply_protected */
 
 
 static void do_imultiply(a_constant        *constant_1,
@@ -1526,24 +1442,21 @@ static void do_imultiply(a_constant        *constant_1,
 Do the multiply operation on all types of integers.
 */
 {
-  long result_value, value_1, value_2;
+  an_integer_value result_value;
+  a_boolean        is_signed, err;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  value_1 = constant_1->variant.integer_value;
-  value_2 = constant_2->variant.integer_value;
-  if (int_constant_is_signed(result)) {
-    /* Multiplication of signed integers. */
-    if (!multiply_protected(value_1, value_2, &result_value)) {
-      *err_code = ec_integer_overflow;
-      *err_severity = ES_INT_OVERFLOW;
-    }  /* if */
-  } else {
-    /* Multiplication of unsigned integers. */
-    result_value = (long)((unsigned long)value_1 * (unsigned long)value_2);
+  result_value = constant_1->variant.integer_value;
+  is_signed = int_constant_is_signed(constant_1);
+  multiply_integer_values(&result_value, &constant_2->variant.integer_value,
+                          is_signed, &err);
+  if (err && is_signed) {
+    *err_code = ec_integer_overflow;
+    *err_severity = ES_INT_OVERFLOW;
   }  /* if */
-  trunc_and_store_integer(result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, err_code, err_severity);
 
 #if DEBUG
   db_binary_operation("i*", constant_1, constant_2, result, *err_code);
@@ -1560,37 +1473,28 @@ static void do_idivide(a_constant        *constant_1,
 Do the divide operation on all types of integers.
 */
 {
-  long result_value, value_1, value_2;
+  an_integer_value result_value;
+  a_boolean        is_signed, err;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  value_1 = constant_1->variant.integer_value;
-  value_2 = constant_2->variant.integer_value;
-  if (value_2 == 0) {
-    *err_code = ec_divide_by_zero;
-    *err_severity = es_error;
-    result_value = 0;
-  } else {
-    if (int_constant_is_signed(result)) {
-      /* Division of signed integers. */
-      /* Check for overflow possibility on a twos' complement machine. */
-      if ((LONG_MIN + LONG_MAX) < 0 &&
-          value_1 == LONG_MIN && value_2 == -1) {
-        /* Smallest integer / -1 -- Overflow on 2's complement machines. */
-        *err_code = ec_integer_overflow;
-        *err_severity = es_error;
-        result_value = 0;
-      } else {
-        /* No overflow. */
-        result_value = value_1 / value_2;
-      }  /* if */
-    } else {
-      /* Division of unsigned integers. */
-      result_value = (long)((unsigned long)value_1 / (unsigned long)value_2);
+  result_value = constant_1->variant.integer_value;
+  is_signed = int_constant_is_signed(constant_1);
+  divide_integer_values(&result_value, &constant_2->variant.integer_value,
+                        is_signed, &err);
+  if (err) {
+    if (cmplit_integer_constant(constant_2, 0L) == 0) {
+      /* Division by zero. */
+      *err_code = ec_divide_by_zero;
+      *err_severity = es_error;
+    } else if (is_signed) {
+      /* Other overflow. */
+      *err_code = ec_integer_overflow;
+      *err_severity = ES_INT_OVERFLOW;
     }  /* if */
   }  /* if */
-  trunc_and_store_integer(result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, err_code, err_severity);
 
 #if DEBUG
   db_binary_operation("i/", constant_1, constant_2, result, *err_code);
@@ -1607,36 +1511,28 @@ static void do_remainder(a_constant        *constant_1,
 Do the remainder operation ("%") on all types of integers.
 */
 {
-  long result_value, value_1, value_2;
+  an_integer_value result_value;
+  a_boolean        is_signed, err;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  value_1 = constant_1->variant.integer_value;
-  value_2 = constant_2->variant.integer_value;
-  if (value_2 == 0) {
-    *err_code = ec_mod_by_zero;
-    *err_severity = es_error;
-    result_value = 0;
-  } else {
-    if (int_constant_is_signed(result)) {
-      /* Remainder on signed integers. */
-      if (value_2 == -1) {
-        /* x % -1 is always 0.  Done as a special case to avoid potential
-           problems when evaluating smallest-int % -1 on a two's complement
-           machine.  The corresponding division overflows, but % is
-           well-defined. */
-        result_value = 0;
-      } else {
-        /* No overflow. */
-        result_value = value_1 % value_2;
-      }  /* if */
-    } else {
-      /* Remainder on unsigned integers. */
-      result_value = (long)((unsigned long)value_1 % (unsigned long)value_2);
+  result_value = constant_1->variant.integer_value;
+  is_signed = int_constant_is_signed(constant_1);
+  remainder_integer_values(&result_value, &constant_2->variant.integer_value,
+                           is_signed, &err);
+  if (err) {
+    if (cmplit_integer_constant(constant_2, 0L) == 0) {
+      /* Division (remainder) by zero. */
+      *err_code = ec_mod_by_zero;
+      *err_severity = es_error;
+    } else if (is_signed) {
+      /* Other overflow. */
+      *err_code = ec_integer_overflow;
+      *err_severity = ES_INT_OVERFLOW;
     }  /* if */
   }  /* if */
-  trunc_and_store_integer(result_value, result, err_code, err_severity);
+  trunc_and_set_integer(&result_value, result, err_code, err_severity);
 
 #if DEBUG
   db_binary_operation("%", constant_1, constant_2, result, *err_code);
@@ -1649,7 +1545,7 @@ void check_shift_count(a_constant    *shift_count_constant,
                        an_error_code *err_code)
 /*
 shift_count_constant is the constant shift count for a shift operation.
-The entity being shifted has the type operand_1_type.  Check the shift
+The entity being shifted has the type operand_type.  Check the shift
 count to see if it is valid.  If so, return *err_code set to ec_no_error;
 if not, return *err_code set to the proper error code.
 */
@@ -1669,7 +1565,7 @@ if not, return *err_code set to the proper error code.
 #endif /* CHECKING */
   size = operand_type->size * TARG_CHAR_BIT;
 
-  if (cmplit_integer_constant(shift_count_constant, 0L) < 0) {
+  if (sign_of_integer_constant(shift_count_constant) < 0) {
     /* Negative shift count. */
     *err_code = ec_negative_shift_count;
   } else if (cmplit_integer_constant(shift_count_constant, (long)size) >= 0) {
@@ -1693,9 +1589,9 @@ indicate any error/warning detected, or *err_code == ec_no_error if
 everything went fine.
 */
 {
-  a_boolean     is_signed, ovflo;
-  long          value_1, value_2, result_value;
-  unsigned long mask;
+  an_integer_value result_value;
+  a_boolean        is_signed, err;
+  int              value_2;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
@@ -1705,43 +1601,20 @@ everything went fine.
     /* Something wrong with the shift count. */
     *err_severity = es_error;
   } else {
-    set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-    value_1 = constant_1->variant.integer_value;
-    value_2 = value_of_integer_constant(constant_2, &ovflo);
-    /* No need to check ovflo because check_shift_count has already
+    result_value = constant_1->variant.integer_value;
+    value_2 = value_of_integer_constant(constant_2, &err);
+    /* No need to check err because check_shift_count has already
        established that the shift count is reasonable. */
-    /* The operand to be shifted is either signed or unsigned, and the
-       shift must be done accordingly. */
-    is_signed = int_constant_is_signed(constant_1);
     if (shift_right) {
-      if (is_signed) {
-        result_value = value_1 >> value_2;
-        if (value_1 < 0) {
-          /* The operand shifted is signed and negative. */
-          /* Just in case the host C shifts do not match the target,
-             adjust for proper target sign extension. */
-          /* Make a mask with zeroes at the top and "value_2" one bits at
-             the bottom. */
-          mask = (~(unsigned long)0) >> value_2;
-#if TARG_RIGHT_SHIFT_IS_ARITHMETIC
-          /* Ensure that the sign bit is propagated on the shift. */
-          result_value |= ~mask;
-#else /* !TARG_RIGHT_SHIFT_IS_ARITHMETIC */
-          /* Ensure that the bits shifted in are zeroed. */
-          result_value &= mask;
-#endif /* TARG_RIGHT_SHIFT_IS_ARITHMETIC */
-        }  /* if */
-      } else {
-	result_value = (unsigned long)value_1 >> value_2;
-      }  /* if */
+      /* Shift right. */
+      is_signed = int_constant_is_signed(constant_1);
+      shift_right_integer_value(&result_value, value_2, is_signed,
+                               /*sign_extend=*/TARG_RIGHT_SHIFT_IS_ARITHMETIC);
     } else {
-      if (is_signed) {
-        result_value = value_1 << value_2;
-      } else {
-        result_value = (unsigned long)value_1 << value_2;
-      }  /* if */
+      /* Shift left. */
+      shift_left_integer_value(&result_value, value_2, &err);
     }  /* if */
-    result->variant.integer_value = result_value;
+    trunc_and_set_integer(&result_value, result, err_code, err_severity);
   }  /* if */
 }  /* do_shift */
 
@@ -1813,7 +1686,7 @@ operator "op", and return a 0 or 1 integer in "result".
 #endif /* CHECKING */
   }  /* switch */
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  result->variant.integer_value = result_value;
+  set_integer_value(&result->variant.integer_value, result_value);
 
 #if DEBUG
   db_binary_operation(db_operator_names[op],
@@ -1829,9 +1702,12 @@ static void do_and(a_constant    *constant_1,
 Do the bitwise "and" operation on all types of integers.
 */
 {
+  an_integer_value result_value;
+
+  result_value = constant_1->variant.integer_value;
+  and_integer_values(&result_value, &constant_2->variant.integer_value);
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  result->variant.integer_value = constant_1->variant.integer_value &
-	                          constant_2->variant.integer_value;
+  result->variant.integer_value = result_value;
   result->non_arithmetic = TRUE;
 #if DEBUG
   db_binary_operation("&", constant_1, constant_2, result, ec_no_error);
@@ -1846,9 +1722,12 @@ static void do_or(a_constant    *constant_1,
 Do the bitwise "or" operation on all types of integers.
 */
 {
+  an_integer_value result_value;
+
+  result_value = constant_1->variant.integer_value;
+  or_integer_values(&result_value, &constant_2->variant.integer_value);
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  result->variant.integer_value = constant_1->variant.integer_value |
-	                          constant_2->variant.integer_value;
+  result->variant.integer_value = result_value;
   result->non_arithmetic = TRUE;
 #if DEBUG
   db_binary_operation("|", constant_1, constant_2, result, ec_no_error);
@@ -1863,9 +1742,12 @@ static void do_xor(a_constant    *constant_1,
 Do the bitwise "xor" operation on all types of integers.
 */
 {
+  an_integer_value result_value;
+
+  result_value = constant_1->variant.integer_value;
+  xor_integer_values(&result_value, &constant_2->variant.integer_value);
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  result->variant.integer_value = constant_1->variant.integer_value ^
-	                          constant_2->variant.integer_value;
+  result->variant.integer_value = result_value;
   result->non_arithmetic = TRUE;
 #if DEBUG
   db_binary_operation("^", constant_1, constant_2, result, ec_no_error);
@@ -1877,12 +1759,13 @@ static void do_land(a_constant    *constant_1,
 		    a_constant    *constant_2,
 		    a_constant    *result)
 /*
-Do the logical "and" operation on integers, floats, and pointers.
+Do the logical "and" (&&) operation on integers, floats, and pointers.
 */
 {
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  result->variant.integer_value = !is_zero_constant(constant_1) &&
-                                  !is_zero_constant(constant_2);
+  set_integer_value(&result->variant.integer_value,
+                    !is_zero_constant(constant_1) &&
+                    !is_zero_constant(constant_2));
 #if DEBUG
   db_binary_operation("&&", constant_1, constant_2, result, ec_no_error);
 #endif /* DEBUG */
@@ -1893,12 +1776,13 @@ static void do_lor(a_constant    *constant_1,
 		   a_constant    *constant_2,
 		   a_constant    *result)
 /*
-Do the logical "or" operation on integers, floats, and pointers.
+Do the logical "or" (||) operation on integers, floats, and pointers.
 */
 {
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  result->variant.integer_value = !is_zero_constant(constant_1) ||
-                                  !is_zero_constant(constant_2);
+  set_integer_value(&result->variant.integer_value,
+                    !is_zero_constant(constant_1) ||
+                    !is_zero_constant(constant_2));
 #if DEBUG
   db_binary_operation("||", constant_1, constant_2, result, ec_no_error);
 #endif /* DEBUG */
@@ -2082,7 +1966,7 @@ relational operator "op", and return a 0 or 1 integer in "result".
     }  /* switch */
   }  /* if */
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  result->variant.integer_value = result_value;
+  set_integer_value(&result->variant.integer_value, result_value);
 
 #if DEBUG
   db_binary_operation(db_operator_names[op],
@@ -2145,7 +2029,7 @@ the object.
       valid = FALSE;
     } else if (object_size != 0) {
       /* The offset right after the object is allowed.
-         ANSI allows that for arrays to simplify some coding.  That
+         ANSI C allows that for arrays to simplify some coding.  That
          subscript value is flagged later as an error by using_lvalue
          (it calls this routine again). */
       valid = (constant->variant.address.offset <= object_size);
@@ -2156,7 +2040,7 @@ the object.
     }  /* if */
   }  /* if */
 
-  return (valid);
+  return valid;
 }  /* valid_address_constant */
 
 
@@ -2178,10 +2062,10 @@ in that case, the operator is eok_iadd or eok_isubtract.
 detected, or *err_code == ec_no_error if everything went fine.
 */
 {
-  a_targ_size_t    size, incr_val;
-  a_targ_ptrdiff_t offset;
-  a_boolean        negative_incr_val;
-  a_boolean        just_past_end;
+  a_targ_size_t    size;
+  an_integer_value op2;
+  a_constant       offset;
+  a_boolean        err, offset_is_signed, op2_is_signed, just_past_end;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
@@ -2197,76 +2081,37 @@ detected, or *err_code == ec_no_error if everything went fine.
     if (size == 0) internal_error("do_padd: size is zero");
 #endif /* CHECKING */
   }  /* if */
-  /* Get the increment constant.  Process it properly if it's unsigned. */
-#if CHECKING
-  if (constant_2->kind != (a_constant_repr_kind)ck_integer) {
-    internal_error("do_padd: constant_2 not integer");
-  }  /* if */
-#endif /* CHECKING */
-  negative_incr_val = FALSE;
-  if (int_constant_is_signed(constant_2)) {
-    if ((long)constant_2->variant.integer_value < 0) {
-      negative_incr_val = TRUE;
-      /* Negate the constant in such a way that the smallest integer
-         does not cause an overflow. */
-      incr_val = -(unsigned long)constant_2->variant.integer_value;
+  /* Multiply the increment constant by the size. */
+  set_unsigned_integer_value(&op2, size);
+  op2_is_signed = int_constant_is_signed(constant_2);
+  multiply_integer_values(&op2, &constant_2->variant.integer_value,
+                          op2_is_signed, &err);
+  if (!err) {
+    /* Get the offset from the first constant. */
+    get_pointer_offset(constant_1, &offset);
+    offset_is_signed = int_constant_is_signed(&offset);
+    /* Add/subtract the increment to/from the original offset. */
+    if (op == (an_expr_operator_kind)eok_psubtract ||
+        op == (an_expr_operator_kind)eok_isubtract) {
+      subtract_mixed_signed_integer_values(&offset.variant.integer_value,
+                                           offset_is_signed,
+                                           &op2, op2_is_signed, &err);
     } else {
-      incr_val = constant_2->variant.integer_value;
+      add_mixed_signed_integer_values(&offset.variant.integer_value,
+                                      offset_is_signed,
+                                      &op2, op2_is_signed, &err);
     }  /* if */
-  } else {
-    /* Unsigned constant. */
-    incr_val = constant_2->variant.integer_value;
   }  /* if */
-  /* Subtraction is just adding a negative. */
-  if (op == (an_expr_operator_kind)eok_psubtract ||
-      op == (an_expr_operator_kind)eok_isubtract) {
-    negative_incr_val = !negative_incr_val;
+  if (!err) {
+    /* Build the result pointer constant. */
+    copy_constant(constant_1, result);
+    set_pointer_offset(result, &offset, &err);
   }  /* if */
-  /* Scale incr_val by the size of the object pointed to.  Watch for
-     overflow cases.  Note that both size and incr_val are unsigned. */
-  if ((TARG_SIZE_T_MAX / size) < incr_val) {
+  if (err) {
+    /* Some folding error. */
     *err_code = ec_integer_overflow;
     *err_severity = es_error;
   } else {
-    incr_val = incr_val * size;
-  }  /* if */
-  /* Add the scaled incr_val to the offset from constant_1 (or subtract, as
-     appropriate).  Note that offset is signed and incr_val is unsigned. */
-  offset = pointer_offset(constant_1);
-  if (negative_incr_val) {
-    /* We want offset -= incr_val.  The overflow check is for integer
-       underflow.  To check
-         offset - incr_val >= LONG_MIN
-       we check
-         offset >= LONG_MIN + incr_val
-       where the addition can't overflow.
-    */
-    if (offset >= (long)((unsigned long)LONG_MIN + incr_val)) {
-      offset -= incr_val;
-    } else {
-      *err_code = ec_integer_overflow;
-      *err_severity = es_error;
-    }  /* if */
-  } else {
-    /* We want offset += incr_val.  The overflow check is for integer 
-       overflow.  To check
-         offset + incr_val <= LONG_MAX
-       we check
-         offset <= LONG_MAX - incr_val
-       where the subtraction can't overflow.
-    */
-    if (offset <= (long)(LONG_MAX - incr_val)) {
-      offset += incr_val;
-    } else {
-      *err_code = ec_integer_overflow;
-      *err_severity = es_error;
-    }  /* if */
-  }  /* if */
-
-  if (*err_code == ec_no_error) {
-    /* Build the result pointer constant. */
-    copy_constant(constant_1, result);
-    set_pointer_offset(result, offset);
     /* Check that the offset lies within the base object. */
     if (!valid_address_constant(result, &just_past_end)) {
       /* Use a different error message for cases where the original pointer
@@ -2303,8 +2148,10 @@ to indicate any error/warning detected, or *err_code == ec_no_error
 if everything went fine.
 */
 {
-  a_targ_ptrdiff_t offset_1, offset_2, difference;
+  a_constant       offset_2, offset_1;
+  an_integer_value difference, size_intval;
   a_type_ptr       object_type;
+  a_boolean        err, offset_1_is_signed, offset_2_is_signed;
 
   *did_not_fold = FALSE;
   *err_code = ec_no_error;
@@ -2315,10 +2162,17 @@ if everything went fine.
     *did_not_fold = TRUE;
   } else {
     /* The pointers are in the same base object, so the difference of
-       their offsets can be taken.  It's a signed quantity. */
-    offset_1 = pointer_offset(constant_1);
-    offset_2 = pointer_offset(constant_2);
-    if (subtract_protected(offset_1, offset_2, &difference)) {
+       their offsets can be taken. */
+    get_pointer_offset(constant_1, &offset_1);
+    offset_1_is_signed = int_constant_is_signed(&offset_1);
+    get_pointer_offset(constant_2, &offset_2);
+    offset_2_is_signed = int_constant_is_signed(&offset_2);
+    difference = offset_1.variant.integer_value;
+    subtract_mixed_signed_integer_values(&difference,
+                                         offset_1_is_signed,
+                                         &offset_2.variant.integer_value,
+                                         offset_2_is_signed, &err);
+    if (!err) {
       /* Divide the difference by the size of the objects pointed to.
          The caller has already checked that the type pointed to is
          not incomplete, so the size is not zero. */
@@ -2329,17 +2183,14 @@ if everything went fine.
         internal_error("do_pdiff: size of object pointed to is zero");
       }  /* if */
 #endif /* CHECKING */
-      /* The cast in the following is to ensure that the division is
-         a signed division, since difference might be negative. */
-      difference /= (a_targ_ptrdiff_t)object_type->size;
-      if (difference >= TARG_PTRDIFF_T_MIN &&
-          difference <= TARG_PTRDIFF_T_MAX) {
-        set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-        result->variant.integer_value = difference;
-      } else {
-        *err_code = ec_integer_overflow;
-        *err_severity = es_error;
-      }  /* if */
+      set_unsigned_integer_value(&size_intval, object_type->size);
+      /* Note that we treat &difference as signed here even if it was unsigned
+         above, since the difference is defined to be signed. */
+      divide_integer_values(&difference, &size_intval,
+                            /*is_signed=*/TRUE, &err);
+    }  /* if */
+    if (!err) {
+      trunc_and_set_integer(&difference, result, err_code, err_severity);
     } else {
       *err_code = ec_integer_overflow;
       *err_severity = es_error;
@@ -2373,8 +2224,9 @@ constant_2 are compared according to the indicated operator, and
 set if the operation cannot be folded.
 */
 {
-  a_targ_ptrdiff_t offset_1, offset_2;
-  long             result_value;
+  a_constant offset_1, offset_2;
+  long       result_value;
+  int        cmp;
 
   *did_not_fold = FALSE;
   *err_code = ec_no_error;
@@ -2393,36 +2245,23 @@ set if the operation cannot be folded.
     *did_not_fold = TRUE;
   } else {
     /* The pointers are in the same base object, so they can be compared. */
-    offset_1 = pointer_offset(constant_1);
-    offset_2 = pointer_offset(constant_2);
+    get_pointer_offset(constant_1, &offset_1);
+    get_pointer_offset(constant_2, &offset_2);
+    /* Compare the offsets, then generate a result value. */
+    cmp = cmp_integer_constants(&offset_1, &offset_2);
     switch (op) {
-      case eok_peq:
-        result_value = (offset_1 == offset_2);
-        break;
-      case eok_pne:
-        result_value = (offset_1 != offset_2);
-        break;
-      case eok_pgt:
-        result_value = (offset_1 > offset_2);
-        break;
-      case eok_plt:
-        result_value = (offset_1 < offset_2);
-        break;
-      case eok_pge:
-        result_value = (offset_1 >= offset_2);
-        break;
-      case eok_ple:
-        result_value = (offset_1 <= offset_2);
-        break;
+      case eok_peq:  result_value = (cmp == 0); break;
+      case eok_pne:  result_value = (cmp != 0); break;
+      case eok_pgt:  result_value = (cmp >  0); break;
+      case eok_plt:  result_value = (cmp <  0); break;
+      case eok_pge:  result_value = (cmp >= 0); break;
+      case eok_ple:  result_value = (cmp <= 0); break;
 #if CHECKING
-      default:
-        internal_error("do_pcompare: bad operator kind");
+      default:       internal_error("do_pcompare: bad operator");
 #endif /* CHECKING */
     }  /* switch */
-  }  /* if */
-  if (!*did_not_fold) {
     set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-    result->variant.integer_value = result_value;
+    set_integer_value(&result->variant.integer_value, result_value);
   }  /* if */
 #if DEBUG
   if (debug_level  >= 5) {
@@ -2706,24 +2545,31 @@ This folding operation is not done through the usual interface because a
 field cannot be passed as a constant.
 */
 {
-  a_targ_ptrdiff_t offset;
+  a_constant       offset;
+  an_integer_value field_offset;
+  a_boolean        err;
 
   *did_not_fold = FALSE;
   copy_constant(constant_1, result);
   if (is_error_constant(constant_1)) {
     /* An error constant stays the same. */
   } else if (field->bit_size != 0) {
-    /* Cannot fold bit-field selection. */
+    /* Cannot fold a bit-field selection. */
     *did_not_fold = TRUE;
   } else {
     /* Take the pointer offset, ... */
-    offset = pointer_offset(constant_1);
+    get_pointer_offset(constant_1, &offset);
     /* ... add the offset of the field (converting from bits to bytes), ... */
-    offset += field_byte_offset(field);
+    set_unsigned_integer_value(&field_offset,
+                               field->bit_offset / TARG_CHAR_BIT);
+    add_mixed_signed_integer_values(&offset.variant.integer_value,
+                                    int_constant_is_signed(&offset),
+                                    &field_offset,
+                                    /*is_signed=*/FALSE, &err);
     /* ... and put the offset into the result pointer constant.  Note that
        no overflow/object-size checking is needed, since the field has
        to be within the underlying object. */
-    set_pointer_offset(result, offset);
+    set_pointer_offset(result, &offset, &err);
     implicit_cast(result, result_type);
   }  /* if */
 #if DEBUG
@@ -2732,7 +2578,9 @@ field cannot be passed as a constant.
     if (*did_not_fold) {
       fprintf(f_debug, "did not fold\n");
     } else {
-      fprintf(f_debug, "offset = %lu\n", (unsigned long)offset);
+      fprintf(f_debug, "offset = ");
+      db_constant(&offset);
+      fprintf(f_debug, "\n");
     }  /* if */
   }  /* if */
 #endif /* CHECKING */
