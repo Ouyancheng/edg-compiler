@@ -293,7 +293,7 @@ extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
    types_are_strictly_compatible when an error type is incompatible with any
    type, including an error type; use types_are_compatible_ignoring_qualifiers
    to check compatibility while ignoring first-level qualifiers; use
-   entity_types_are_compatible for types of entities where top-level
+   routine_types_are_compatible for types of routine where top-level
    qualifiers might be ignored. */
 #define types_are_compatible(t1, t2) \
 	 ((t1) == (t2) ||            \
@@ -307,7 +307,7 @@ extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
    f_types_are_compatible((t1), (t2),                                 \
                           TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |   \
                           TCF_IGNORE_TYPE_QUALIFIERS))
-#define entity_types_are_compatible(t1, t2) \
+#define routine_types_are_compatible(t1, t2) \
 	 ((t1) == (t2) ||            \
           f_types_are_compatible((t1), (t2),                          \
                                  TCF_ALLOW_DEFAULT_CALLING_CONVENTION))
