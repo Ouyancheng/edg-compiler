@@ -282,6 +282,10 @@ typedef struct a_symbol {
 		decl_position;
 			/* Source position of the declaration of this
 			   symbol. */
+  a_symbol_ptr	immediate_progenitor;
+			/* For a symbol inherited from a base class, this
+			   points to the symbol from which the current symbol
+			   was inherited.  NULL in all other cases. */
   a_symbol_kind kind;
                 	/* The kind of symbol. */
   unsigned int	referenced:1;
@@ -294,6 +298,15 @@ typedef struct a_symbol {
 			/* TRUE if the symbol is a class member by inheritance
 			   and may still be overridden by a local symbol of
 			   the same name. */
+  unsigned int	ambiguous:1;
+			/* TRUE if the symbol is a class member whose name
+			   is ambiguous, i.e., there's another symbol in the
+			   same scope with the same name, and no reason to
+			   prefer one over the other. */
+  unsigned int /*an_access_specifier*/
+		access:2;
+			/* Access to this symbol, for class members.  For
+			   other symbols, as_public. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
