@@ -420,7 +420,7 @@ ec_var_with_uninitialized_member;;"%n has an uninitialized const or reference me
 ec_var_with_uninitialized_field;;"%n has an uninitialized const field"
 ec_missing_const_assignment_operator;;"class %t has no assignment operator to copy a const object"
 ec_no_suitable_assignment_operator;;"class %t has no suitable assignment operator"
-ec_ambiguous_copy_assignment_operator;;"ambiguous copy assignment operator for class %t"
+ec_ambiguous_assignment_operator;;"ambiguous assignment operator for class %t"
 ec_const_volatile_not_allowed;;"const or volatile qualifier is not allowed"
 ec_missing_typedef_name;;"declaration requires a typedef name"
 REMOVED;ec_missing_object_name;;"unknown error"
@@ -831,7 +831,6 @@ ec_hidden_by_old_for_init;;"reference is to %nd1 -- under old for-init scoping r
 ec_cl_for_init_diff_warning_option_only_in_cplusplus;;"option to control warnings on for-init differences can be used only when compiling C++"
 ec_unnamed_class_virtual_function_def_missing;;"definition of virtual %n is required here"
 ec_svr4_token_pasting_comment;;"empty comment interpreted as token-pasting operator \"##\""
-ec_ambiguous_assignment_operator;;"ambiguous assignment operator for class %t"
 ec_storage_class_in_friend_decl;;"a storage class is not allowed in a friend declaration"
 ###############################################################################
 #                                                             \  ___  /       #
