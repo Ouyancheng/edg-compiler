@@ -24,6 +24,8 @@ def_arg.h -- Declarations related to def_arg.c (having to do with
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
+
+/* Note: a_def_arg_expr_fixup_ptr is defined in symbol_tbl.h. */
 #ifndef SYMBOL_TBL_H
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
