@@ -410,6 +410,12 @@ static a_boolean
 			   are not references to both the specialized and
 			   unspecialized versions of a name. */
 
+static a_boolean
+		suppress_dependency_checking = FALSE;
+			/* TRUE if the prelinker should not do dependency
+			   checking of files used to define exported
+			   templates. */
+
 static char	**L_directories;
                         /* Pointer to an array of library directories
 			   specified with the -L option. */
@@ -2706,7 +2712,9 @@ the file is flagged as requiring recompilation.
       a_pl_symbol_ptr	prev_psp;
       /* If there is dependency information, see if the object file is
          up-to-date. */
-      if (pifp->dependencies != NULL && pl_check_dependencies(pifp)) {
+      if (pifp->dependencies != NULL && 
+          !suppress_dependency_checking &&
+          pl_check_dependencies(pifp)) {
         /* The file is out of date.  Set the request_file_updated flag
            to force the file to be recompiled. */
         pifp->request_file_updated = TRUE;
@@ -3686,7 +3694,7 @@ int main(int argc, char *argv[])
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
-#define OPTION_LIST "a:bc:d:f:il:mno:qrs:vuB:DL:NOR:SW:"
+#define OPTION_LIST "a:bc:d:ef:il:mno:qrs:vuB:DL:NOR:SW:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'a':
@@ -3711,6 +3719,11 @@ int main(int argc, char *argv[])
       case 'D':
         /* Do not assign instantiations to nonlocal object files. */
         do_not_assign_to_nonlocal_objects = TRUE;
+        break;
+      case 'e':
+        /* Supress dependency checking of files used to define exported
+           templates. */
+        suppress_dependency_checking = TRUE;
         break;
       case 'f':
         /* Specifies the nm line format to be expected. */
