@@ -2055,7 +2055,7 @@ Display the indicated switch clause.
 }  /* disp_switch_clause */
 
 
-static void disp_throw_specification(an_throw_specification_ptr ptr)
+static void disp_throw_specification(a_throw_specification_ptr ptr)
 /*
 Display the indicated throw-specification entry.
 */
