@@ -1,5 +1,11 @@
 Version 2.44
 
+7/3/00   C++-generating back end: "inline" suppressed in some cases
+
+The C++-generating back end now suppresses the keyword "inline"
+on function definitions that appear within a class definition (such
+functions are implicitly inline).
+
 7/3/00   Microsoft out-of-class member function redeclarations
 
 The Changes entry of 11/22/99 reported that in Microsoft mode the front end

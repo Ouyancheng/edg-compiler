@@ -8108,7 +8108,14 @@ TRUE if the declaration following this one is such a continuation.
     /* Put out the storage class determined above. */
     gen_storage_class(storage_class);
     /* Generate other leading specifiers. */
-    if (rout->is_inline && !decl_within_function) write_tok_str("inline ");
+    if (rout->is_inline && !decl_within_function &&
+        /* A definition within a class is implicitly "inline", so it's
+           not necessary to put out the keyword.  This is needed to avoid
+           a bug in the Sun C++ 5.0 compiler regarding "inline" on
+           constructor definitions. */
+        !(decl_within_class && is_definition)) {
+      write_tok_str("inline ");
+    }  /* if */
     if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
     if (rout->is_explicit_constructor && decl_within_class) {
       write_tok_str("explicit ");
