@@ -1,5 +1,18 @@
 Version 2.30
 
+6/22/95  Overloaded function templates as arguments to function templates
+
+An abort has been corrected on the case where a set of overloaded functions,
+one of which is a function template, is passed as an argument to a function
+template for a parameter that is a pointer to function.
+
+  template <class T> void f(T **) {}
+  void f(int) {}
+  template <class T> void g(void (*)(T)) {}
+  main () {
+    g(f);
+  }
+
 6/22/95  IL lowering of constructors: improvement to aid minimal inlining
 
 The process of wrapping a constructor inside an "if" statement, done
