@@ -89,7 +89,6 @@ the release should contain no defines.
 #else /* !defined(_WIN32) */
 
 /* Options for UnixWare test version. */
-#define USE_MMAP_FOR_MEMORY_REGIONS 0  /* temporary */
 #define __ANSIC__ 1
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define INCLUDE_EDG_TEST_PRAGMAS 1
