@@ -1791,13 +1791,13 @@ allocated immediately preceding the entry.
 void add_orphaned_file_scope_il_list(a_type_ptr     types,
                                      a_variable_ptr variables)
 /*
-Create an_orphaned_il_list IL entry to track of local types and local static
-variable IL lists in a function scope IL entry.  Each list, connected by
-their respective "next" pointers, will have been allocated in the
-file scope memory region.  This IL entry, part of a chain pointed to by 
-"il_header", will be used later to remap the "next" pointer in the type
-list and static variable list, as needed.  Each IL entry will be individually
-added to the orphaned_file_scope_il_entries array.
+Create an_orphaned_il_list IL entry to keep track of the local types and local
+static variable IL lists for a function or block scope IL entry.  The
+entry is allocated in the file scope and is added to the list of such
+entries headed by il_header.orphaned_il_list.  The types and variables
+lists are also traversed, and each entry on those lists is recorded as
+a potentially orphaned entry (by calling add_orphaned_file_scope_il_entry).
+If both pointers (types and variables) are NULL, this routine does nothing.
 */
 {
   an_orphaned_il_list_ptr
