@@ -1,5 +1,13 @@
 Version 2.41
 
+2/23/99  On exception in constructor, destroy virtual base class only if
+         constructed
+
+When an exception is thrown in a constructor, the base classes
+of the object are destroyed.  Virtual base classes should be destroyed
+only if they are constructed at this level, i.e., only if the object
+being constructed is a complete object.
+
 2/22/99  IL file reading problem in one-instantiation-per-object mode
 
 When running in one-instantiation-per-object mode, in a complicated

@@ -4104,7 +4104,11 @@ do_assignment:;
       } else {
         /* Update the cleanup information so that this entity will be
            destroyed at the appropriate time. */
-        add_dyn_init_cleanup(dip, ipdp, /*set_cond_flag_if_any=*/TRUE,
+        /* Do not set the conditional flag to TRUE for virtual base
+           class constructor inits; the flag is shared among all virtual
+           base class initializations and is already set. */
+        add_dyn_init_cleanup(dip, ipdp,
+                             /*set_cond_flag_if_any=*/(ctor_init == NULL),
                              eff_context, eff_insert_location);
       }  /* if */
     }  /* if */
@@ -5943,6 +5947,10 @@ constructor, but may instead be after an assignment to "this".
   a_variable_ptr         primary_vtbl_var, vtbl_var;
   a_source_position      saved_error_position, saved_code_pos;
   a_variable_ptr         construction_vtbls_var = NULL;
+  a_variable_ptr         complete_var;
+#if DO_FULL_PORTABLE_EH_LOWERING
+  a_handle_number        complete_var_handle;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the constructor routine.  Lines enclosed in [...]
@@ -5950,8 +5958,10 @@ constructor, but may instead be after an assignment to "this".
      lines are the code added to the constructor routine.
 
      [If current class has any virtual base classes:]
-       If the first added parameter == NULL (indicating a complete object is
-           being initialized and virtual base classes must be constructed):
+       int complete = (first added parameter == NULL);
+         (indicating a complete object is being initialized and virtual base
+          classes must be constructed)
+       If complete:
          Set the construction_vtbls temp to point to a local static array
            containing vtbl pointer values to be used for a complete object.
          [For each virtual base class of the current class:]
@@ -6050,7 +6060,9 @@ constructor, but may instead be after an assignment to "this".
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
     /* Put out code that tests whether or not the virtual base classes need
        to be initialized.  This is done by testing whether or not the
-       first added parameter is NULL. */
+       first added parameter is NULL.  A local variable (called "complete"
+       in the pseudocode above) is initialized to TRUE if a complete
+       object is being initialized. */
     vbase_param_var = this_param_var->next;
     /* Make a NULL pointer constant of the right type. */
     make_zero_of_proper_type(vbase_param_var->type, &null_constant);
@@ -6063,11 +6075,32 @@ constructor, but may instead be after an assignment to "this".
     compare_node = make_operator_node((an_expr_operator_kind)eok_peq,
                                       integer_type((an_integer_kind)ik_int),
                                       vbase_param_node);
+    /* Set the local variable. */
+    complete_var = make_lowered_temporary(
+                                        integer_type((an_integer_kind)ik_int));
+    (void)insert_var_assignment_statement(complete_var,
+                                          (an_expr_operator_kind)eok_iassign,
+                                          compare_node,
+                                          insert_location);
+#if DO_FULL_PORTABLE_EH_LOWERING
+    if (exceptions_enabled) {
+      an_init_pos_descr ipd;
+      /* Assign the object address table slot for the conditional
+         variable. */
+      complete_var_handle = object_addr_table_index();
+      /* Put the address of the variable into the object address table. */
+      set_var_init_pos_descr(complete_var, &ipd);
+      init_object_addr_table_entry(&ipd, complete_var_handle,
+                                   insert_location);
+    }  /* if */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+    
     /* Make an "if" statement with a block statement under it:
-         if (param == NULL) {}
-                             ^--- additional statements will be inserted.
+         if (complete) {}
+                        ^--- additional statements will be inserted.
     */
-    insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
+    insert_if_statement(var_rvalue_expr(complete_var),
+                        /*is_initialization_guard=*/FALSE,
                         insert_location, (a_statement_ptr *)NULL,
                         &insert_location2, &else_insert_location);
     /* Inserting under insert_location2, in the "then" part of the "if"
@@ -6128,6 +6161,18 @@ constructor, but may instead be after an assignment to "this".
     for (; ctor_init != NULL &&
             ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class;
          ctor_init = ctor_init->next) {
+      /* Add complete_var as a conditional flag.  The virtual base
+         class should be destroyed only if it was constructed in this
+         constructor. */
+      a_destructible_entity_descr_ptr dedp = 
+                             ctor_init->initializer->destructible_entity_descr;
+      check_assertion(dedp != NULL);
+      dedp->conditional_flag_var = complete_var;
+#if DO_FULL_PORTABLE_EH_LOWERING
+      if (exceptions_enabled) {
+        dedp->conditional_flag_handle = complete_var_handle;
+      }  /* if */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
       lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/TRUE,
                       class_type, construction_vtbls_var, &insert_location2);
     }  /* for */
