@@ -322,12 +322,13 @@ extern void issue_warning_from_arg_match_summary(
                                             a_source_position        *err_pos);
 
 extern a_symbol_ptr find_addr_of_overloaded_function_match(
-                                               a_symbol_ptr       ovl_sym,
-                                               a_type_ptr         dest_type,
-                                               a_boolean          is_cast,
-                                               an_arg_match_level *match_level,
-                                               a_std_conv_descr   *std_conv,
-                                               a_boolean          *ambiguous);
+                                          a_symbol_ptr       ovl_sym,
+                                          a_template_arg_ptr template_arg_list,
+                                          a_type_ptr         dest_type,
+                                          a_boolean          is_cast,
+                                          an_arg_match_level *match_level,
+                                          a_std_conv_descr   *std_conv,
+                                          a_boolean          *ambiguous);
 
 extern void selector_match_with_this_param(
                                an_operand           *bound_function_selector,

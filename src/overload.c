@@ -70,24 +70,28 @@ Clear a conversion description.
 
 
 a_symbol_ptr find_addr_of_overloaded_function_match(
-                                               a_symbol_ptr       ovl_sym,
-                                               a_type_ptr         dest_type,
-                                               a_boolean          is_cast,
-                                               an_arg_match_level *match_level,
-                                               a_std_conv_descr   *std_conv,
-                                               a_boolean          *ambiguous)
+                                          a_symbol_ptr       ovl_sym,
+                                          a_template_arg_ptr template_arg_list,
+                                          a_type_ptr         dest_type,
+                                          a_boolean          is_cast,
+                                          an_arg_match_level *match_level,
+                                          a_std_conv_descr   *std_conv,
+                                          a_boolean          *ambiguous)
 /*
-ovl_sym is the symbol from an indefinite function operand representing the
-address of an overloaded function.  It is being converted to a destination type
-dest_type.  If dest_type is a pointer, reference, or pointer-to-member type
-that could be a pointer/reference to one of the overloaded functions, return
+ovl_sym is the symbol from an indefinite function operand representing
+the address of an overloaded function.  template_arg_list is the
+argument list if ovl_sym is a template and the reference has an explicit
+template argument list; otherwise, template_arg_list is NULL.  The
+indefinite function is being converted to a destination type dest_type.
+If dest_type is a pointer, reference, or pointer-to-member type that
+could be a pointer/reference to one of the overloaded functions, return
 a pointer to that function's symbol (possibly a projection symbol);
-otherwise, return NULL.  Also set *match_level to indicate whether or not
-any conversion is needed after the coercion to a specific function pointer
-and set *std_conv to indicate any such conversion.  If more than one function
-matches, return NULL and *ambiguous TRUE.  See WP [over.over], and ARM 13.3,
-"Address of Overloaded Function".  If is_cast is TRUE, this disambiguation
-is being done via an explicit cast.
+otherwise, return NULL.  Also set *match_level to indicate whether or
+not any conversion is needed after the coercion to a specific function
+pointer and set *std_conv to indicate any such conversion.  If more than
+one function matches, return NULL and *ambiguous TRUE.  See WP
+[over.over], and ARM 13.3, "Address of Overloaded Function".  If is_cast
+is TRUE, this disambiguation is being done via an explicit cast.
 */
 {
   a_boolean        is_ptr = FALSE, is_ref = FALSE, is_ptr_to_member = FALSE;
@@ -190,7 +194,7 @@ is being done via an explicit cast.
         if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template. */
           if (has_matching_template_function(sym, dest_underlying_type,
-                                             (a_template_arg_ptr)NULL,
+                                             template_arg_list,
                                              /*is_decl_context=*/FALSE)) {
             /* This template can generate an instance of the appropriate
                type.  Add the matching template to a list of matching
@@ -205,17 +209,22 @@ is being done via an explicit cast.
            the partial ordering rules.  If a best match cannot be selected,
            an arbitrary member of the unordered set of templates will be
            returned and the ambiguous flag will be set. */
-        a_boolean		ambiguous;
-        a_template_arg_ptr	templ_arg_list;
+        a_boolean	   ambiguous;
+        a_template_arg_ptr templ_arg_list;
+
         select_best_partial_order_candidate(
                            candidate_list, (a_symbol_ptr)NULL, &sym,
                            &templ_arg_list, &ambiguous);
-        /* Generate a partial instantiation of the matching instance. */
-        match_sym = matching_template_function(sym, dest_underlying_type,
-                                               (a_template_arg_ptr)NULL,
-                                               /*is_decl_context=*/FALSE);
-        *match_level = aml_exact;
-        number_of_matches = ambiguous ? 2 : 1;
+        if (ambiguous) {
+          number_of_matches = 2;
+        } else {
+          /* Generate a partial instantiation of the matching instance. */
+          match_sym = matching_template_function(sym, dest_underlying_type,
+                                                 template_arg_list,
+                                                 /*is_decl_context=*/FALSE);
+          *match_level = aml_exact;
+          number_of_matches = 1;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (number_of_matches == 0 && !is_ref) {
@@ -1431,6 +1440,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
          designator or pointer to function; for the reference case it
          must be a function designator. */
       if (find_addr_of_overloaded_function_match(arg_operand->variant.symbol,
+                                                 arg_operand->
+                                                             template_arg_list,
                                                  orig_param_type,
                                                  /*is_cast=*/FALSE,
                                                  &arg_summary->match_level,
@@ -6888,6 +6899,7 @@ rewritten) for use in error messages.
 
       if (find_addr_of_overloaded_function_match(
                                            source_operand->variant.symbol,
+                                           source_operand->template_arg_list,
                                            dest_type,
                                            /*is_cast=*/FALSE,
                                            &match_level,
@@ -8083,6 +8095,8 @@ direct binding is "possible" and not whether it is "valid".
 
     *function_symbol =
         find_addr_of_overloaded_function_match(source_operand->variant.symbol,
+                                               source_operand->
+                                                             template_arg_list,
                                                dest_type,
                                                /*is_cast=*/FALSE,
                                                &match_level,

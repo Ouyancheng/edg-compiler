@@ -1140,6 +1140,7 @@ values.
   operand->position.seq = 0;
   operand->position.column = SP_COL_UNKNOWN;
   operand->ref_entries_list = NULL;
+  operand->template_arg_list = NULL;
   set_operand_kind(operand, kind);
 }  /* clear_operand */
 
@@ -1539,14 +1540,18 @@ operand position.
 }  /* make_expression_operand */
 
 
-void make_indefinite_function_operand(a_symbol_ptr routine_sym,
-                                      a_boolean    is_qualified_name,
-                                      an_operand   *operand)
+void make_indefinite_function_operand(a_symbol_ptr       routine_sym,
+                                      a_boolean          is_qualified_name,
+                                      a_template_arg_ptr template_arg_list,
+                                      an_operand         *operand)
 /*
 Make an operand for a C++ overloaded function symbol.  routine_sym points
 to the symbol entry for the function (possibly a projection symbol).
 is_qualified_name is TRUE if the function was named by a qualified name
-(e.g., "A::f").  The operand is put into *operand and is a function designator.
+(e.g., "A::f").  template_arg_list is the template argument list, for
+explicit specification of function templates, or NULL if there is no
+template argument list.  The operand is put into *operand and is a
+function designator.
 */
 {
   clear_operand((an_operand_kind)ok_indefinite_function, operand);
@@ -1554,6 +1559,7 @@ is_qualified_name is TRUE if the function was named by a qualified name
   operand->type = unknown_type();
   operand->is_qualified_name = is_qualified_name;
   operand->variant.symbol = routine_sym;
+  operand->template_arg_list = template_arg_list;
   copy_source_position(pos_curr_token, operand->position);
 }  /* make_indefinite_function_operand */
 
@@ -2157,6 +2163,7 @@ user-defined conversions.
           overloaded_function_symbol = operand->variant.symbol;
           function_symbol = find_addr_of_overloaded_function_match(
                                                     overloaded_function_symbol,
+                                                    operand->template_arg_list,
                                                     new_type,
                                                     /*is_cast=*/
                                                              !is_implicit_cast,

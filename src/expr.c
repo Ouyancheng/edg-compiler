@@ -1620,7 +1620,9 @@ Syntax:
       /* We can use an indefinite function operand whether the operator()
          function is overloaded or not. */
       make_indefinite_function_operand(member_function_symbol,
-                                       /*is_qualified_name=*/FALSE, operand);
+                                       /*is_qualified_name=*/FALSE,
+                                       (a_template_arg_ptr)NULL,
+                                       operand);
       bind_member_function_operand_to_selector(operand,
                                                bound_function_selector);
       /* The function position is the position of the "(". */
@@ -2155,6 +2157,7 @@ object (usually, a copy of operand_1) is placed in *bound_function_selector.
     /* Overloaded function or member template. */
     make_indefinite_function_operand(locator->specific_symbol,
                                      (a_boolean)locator->is_qualified_name,
+                                     locator->template_arg_list,
                                      result);
   } else {
     /* Non-overloaded function. */
@@ -2603,15 +2606,6 @@ qualified_name_check:
        functions, this checks ambiguity but not access (which can be different
        for each function in the set). */
     check_ambiguity_and_verify_access(&locator_for_curr_id);
-    if (locator_for_curr_id.is_template_id &&
-        !is_error_locator(locator_for_curr_id) &&
-        !is_class_struct_union_symbol(member_sym)) {
-      /* At the moment, explicit template arguments on functions are not
-         supported in expressions. */
-      pos_error(ec_explicit_template_args_in_expr,
-                &locator_for_curr_id.source_position);
-      set_to_error_locator(locator_for_curr_id);
-    }  /* if */
     if (is_error_locator(locator_for_curr_id)) {
       /* Some error in ambiguity or access control checking. */
       make_error_operand(result);
@@ -2720,6 +2714,7 @@ nonstatic_member_function:
           make_indefinite_function_operand(
                               locator_for_curr_id.specific_symbol,
                               (a_boolean)locator_for_curr_id.is_qualified_name,
+                              locator_for_curr_id.template_arg_list,
                               result);
           break;
         case sk_function_template:
@@ -6156,6 +6151,7 @@ to select one of the functions in the overload set.  See [over.over].
   a_boolean          ambiguous;
 
   if (find_addr_of_overloaded_function_match(operand->variant.symbol,
+                                             operand->template_arg_list,
                                              type_cast_to,
                                              /*is_cast=*/TRUE,
                                              &match_level,
@@ -9610,15 +9606,6 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
        functions, this checks ambiguity but not access (which can be different
        for each function in the set). */
     check_ambiguity_and_verify_access(&locator_for_curr_id);
-    if (locator_for_curr_id.is_template_id &&
-        !is_error_locator(locator_for_curr_id) &&
-        !is_class_struct_union_symbol(sym_ptr)) {
-      /* At the moment, explicit template arguments on functions are not
-         supported in expressions. */
-      pos_error(ec_explicit_template_args_in_expr,
-                &locator_for_curr_id.source_position);
-      set_to_error_locator(locator_for_curr_id);
-    }  /* if */
     if (is_error_locator(locator_for_curr_id)) {
       /* Some kind of error in the ambiguity and access control checking. */
       make_error_operand(result);
@@ -9884,6 +9871,8 @@ normal_function:
             make_indefinite_function_operand(projection_sym_ptr,
                                              (a_boolean)locator_for_curr_id.
                                                              is_qualified_name,
+                                             locator_for_curr_id.
+                                                             template_arg_list,
                                              result);
           }  /* if */
           break;
@@ -9897,6 +9886,8 @@ normal_function:
             make_indefinite_function_operand(projection_sym_ptr,
                                              (a_boolean)locator_for_curr_id.
                                                              is_qualified_name,
+                                             locator_for_curr_id.
+                                                             template_arg_list,
                                              result);
           }  /* if */
           break;

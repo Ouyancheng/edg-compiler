@@ -240,6 +240,11 @@ typedef struct an_operand {
 			   address computations, whose reference kinds might
 			   be changed once the full context surrounding the
 			   operand is known. */
+  a_template_arg_ptr
+		template_arg_list;
+			/* A template argument list to be applied to
+			   variant.symbol, if one is needed (e.g., for
+			   explicit specification of function templates). */
   union {
     /* When kind == ok_error, no variant fields. */
     /* When kind == ok_expression: */
@@ -793,9 +798,11 @@ extern void make_expression_operand(an_expr_node_ptr node,
                                     a_type_ptr       type,
 			            an_operand       *operand);
 
-extern void make_indefinite_function_operand(a_symbol_ptr routine_sym,
-                                             a_boolean    is_qualified_name,
-                                             an_operand   *operand);
+extern void make_indefinite_function_operand(
+                                      a_symbol_ptr       routine_sym,
+                                      a_boolean          is_qualified_name,
+                                      a_template_arg_ptr template_arg_list,
+                                      an_operand         *operand);
 
 extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
                                         a_boolean       is_qualified_name,
