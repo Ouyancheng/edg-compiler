@@ -1,5 +1,29 @@
 Version 2.09
 
+9/13/92  Fixed bug in choosing base class assignment operator
+
+For a compiler-generated assignment operator the front-end must choose
+the correct base class assignment operators to call.  There was one
+obscure (and possibly controversial) case in which the selection failed
+to detect an ambiguity, e.g.:
+
+  class A {
+  public:
+    A();
+    A& operator=(A);
+    A& operator=(const A&);
+  };
+  class B : public A { };
+  B a, b;
+  void main()
+  {
+    a = b;             // Error in trying to create operator=(const B&)
+  }
+
+When the body for operator=(const B&) is created an error is now issued
+in select_assignment_operator: both operator=(A) and operator=(const A&)
+are equally appropriate.
+
 9/13/92  Removed change on overload resolution cost
 
 The change of 8/15/92, which made a base class cast on the "this"
