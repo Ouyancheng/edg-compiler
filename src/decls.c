@@ -1389,15 +1389,38 @@ by id_linkage.
         kind != (a_symbol_kind)sk_function_template &&
         kind != (a_symbol_kind)sk_overloaded_function) {
       if (!C_mode() && kind == (a_symbol_kind)sk_namespace_projection) {
-        /* Check for a case like:
-             namespace N { void f(int); }
-             using N::f;
-             void f();
-           for which we'll need to form an overload set with N::f and ::f. */
         kind = fundamental_symbol_of(other_decl)->kind;
         if (kind == (a_symbol_kind)sk_routine ||
             kind == (a_symbol_kind)sk_function_template) {
+          /* In a case like:
+               namespace N { void f(int); }
+               using N::f;
+               void f();
+             we'll need to form an overload set with N::f and ::f. */
           *overload_symbol = other_decl;
+        } else if (kind == (a_symbol_kind)sk_variable &&
+                   depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+          /* This is a variable declaration at file/namespace scope.  We need
+             to deal with a case like this:
+                 namespace N { extern "C" int i; }
+                 using N::i;
+                 extern "C" int i;
+             [namespace.udecl] says a declaration can coexist with a
+             using-declaration as long as they refer to the same entity.
+             We know the other declaration was in fact a using-declaration,
+             so check whether both declarations refer to extern "C"
+             variables of the same type. */
+          a_variable_ptr  vp = fundamental_symbol_of(other_decl)->
+                                                  variant.variable.ptr;
+          if (vp->source_corresp.name_linkage ==
+                                    (a_name_linkage_kind)nlk_external &&
+              scope_stack[depth_scope_stack].default_name_linkage ==
+                                    (a_name_linkage_kind)nlk_external &&
+              identical_types(vp->type, type)) {
+            /* Remove other_decl from the symbol table.  It will be replaced
+               by the current variable declaration. */
+            remove_symbol(other_decl);
+          }
         }  /* if */
       }  /* if */
       other_decl = NULL;

@@ -2,14 +2,16 @@ Version 2.36
 
 3/5/97   Spurious error when using-declaration refers to extern "C" variable
 
-A spurious error (complaining that the name has already been declared in
-the current scope) has been eliminated in the following:
+Spurious errors (complaining that the name has already been declared in
+the current scope) have been eliminated in the following:
 
   namespace N {
-    extern "C" int i;
+    extern "C" int i, j;
   }
   extern "C" int i;
   using N::i;                  // Error is no longer issued
+  using N::j;
+  extern "C" int j;            // Error is no longer issued
 
 3/5/97   Namespace operator lookup and using-declarations
 
