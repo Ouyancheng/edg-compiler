@@ -6260,7 +6260,9 @@ typedef struct a_variable {
 			/* TRUE if the variable has a type with a flexible
 			   array member and the variable is initialized with
 			   an aggregate initializer that includes values for
-			   the flexible array member. */
+			   the flexible array member.  This may require a
+			   back end to allocate more storage for the variable
+			   that what is indicated by its type's size. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
   an_init_kind	init_kind;
