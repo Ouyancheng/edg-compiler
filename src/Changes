@@ -1,5 +1,22 @@
 Version 2.33
 
+9/16/96 IL for pointer comparisons: avoid dropping cv-qualifiers
+
+When pointers are compared, the cv-qualifiers of the types need not
+match up.  In the past, the front end has dealt with such mismatches
+by casting one operand to the type of the other.  Now, it casts
+both to a common type that contains all the cv-qualifiers of both
+operands.  For example:
+
+  const int *p1;
+  volatile int *p2;
+  p1 == p2;  // was p1 == (const int *)p2
+             // now (const volatile int *)p1 == (const volatile int *)p2
+
+This distinction is mostly moot, but it does matter when near/far
+pointers are supported: it's important that if a pointer-to-near and a
+pointer-to-far are compared, they are compared as pointers-to-far.
+
 9/16/96 Simplify porting of certain directory manipulation routines
 
 The host_envir.c and host_envir.h have been changed to make

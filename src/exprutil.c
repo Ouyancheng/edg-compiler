@@ -2675,6 +2675,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
   a_boolean        okay = FALSE;
   a_type_ptr       operand_1_type = operand_1->type;
   a_type_ptr       operand_2_type = operand_2->type;
+  a_type_ptr       local_operation_type;
   a_boolean        operand_1_is_pointer = is_pointer_type(operand_1_type);
   a_boolean        operand_2_is_pointer = is_pointer_type(operand_2_type);
   a_boolean        suppress_extensions;
@@ -2709,7 +2710,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                                          suppress_extensions,
                                          ec_incompatible_operands,
                                          &std_conv)) {
-        *operation_type = operand_1_type;
+        local_operation_type = operand_1_type;
         okay = TRUE;
         break;
       }  /* if */
@@ -2735,7 +2736,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                                          suppress_extensions,
                                          ec_incompatible_operands,
                                          &std_conv)) {
-        *operation_type = operand_2_type;
+        local_operation_type = operand_2_type;
         okay = TRUE;
         break;
       }  /* if */
@@ -2745,6 +2746,25 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
     /* Go back for the second iteration with extensions allowed. */
     suppress_extensions = FALSE;
   }  /* for */
+  if (okay && operand_1_is_pointer && operand_2_is_pointer &&
+      operand_1_type != operand_2_type) {
+    /* Make sure the operation type has all the cv-qualifiers present on
+       each of the operands. */
+    a_type_ptr type_pointed_to_1 = type_pointed_to(operand_1_type);
+    a_type_ptr type_pointed_to_2 = type_pointed_to(operand_2_type);
+    a_type_ptr operation_type_pointed_to;
+    if (local_operation_type == operand_1_type) {
+      operation_type_pointed_to =
+                      type_plus_qualifiers_from_second_type(type_pointed_to_1,
+                                                            type_pointed_to_2);
+    } else {
+      check_assertion(local_operation_type == operand_2_type);
+      operation_type_pointed_to =
+                      type_plus_qualifiers_from_second_type(type_pointed_to_2,
+                                                            type_pointed_to_1);
+    }  /* if */
+    local_operation_type = make_pointer_type(operation_type_pointed_to);
+  }  /* if */
   if (okay) {
     a_boolean nonstd_case = FALSE;
     if (strict_ansi_mode && C_dialect == C_dialect_ANSI) {
@@ -2808,8 +2828,9 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
     /* The operands are not compatible. */
     pos_ty2_error(ec_incompatible_operands, operator_position,
                   operand_1_type, operand_2_type);
-    *operation_type = error_type();
+    local_operation_type = error_type();
   }  /* if */
+  *operation_type = local_operation_type;
   return okay;
 }  /* check_compatibility_of_pointer_operands */
 
