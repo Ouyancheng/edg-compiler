@@ -31,8 +31,10 @@ expr.c -- Expression scanning routines.
 #include "preproc.h"
 
 
-/* Forward declaration. */
+/* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
+static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
+                                     a_boolean  *cast_to_func_ptr);
 
 
 static a_boolean operation_has_side_effects(an_expr_node_ptr node,
@@ -3810,15 +3812,18 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
 }  /* scan_typeid_operator */
 
 
-static void scan_new_style_cast(a_type_ptr        *cast_type,
-                                a_source_position *type_position,
-                                an_operand        *operand)
+static a_boolean scan_new_style_cast(a_type_ptr        *cast_type,
+                                     a_source_position *type_position,
+                                     an_operand        *operand)
 /*
 Scan the sequence "< type-id > ( expression )" as part of a new-style cast.
 Return the type in *cast_type (and its position in *type_position) and
-the expression in *operand.  An error is issued if the type defines something.
+the expression in *operand.  Various error cases are checked for (e.g.,
+the type defines something); FALSE is returned if there is an error.
 */
 {
+  a_boolean err = FALSE, cast_to_func_ptr;
+
   /* Check for and pass over the "<". */
   (void)required_token(tok_lt, ec_exp_lt);
   add_stop_token(tok_gt);
@@ -3826,6 +3831,8 @@ the expression in *operand.  An error is issued if the type defines something.
      in the type-id. */
   *type_position = pos_curr_token;
   type_name(cast_type);
+  /* Do initial checking on the type. */
+  err = cast_type_pre_check(cast_type, &cast_to_func_ptr);
   /* Check for and pass over the ">". */
   (void)required_token(tok_gt, ec_exp_gt);
   remove_stop_token(tok_gt);
@@ -3837,6 +3844,7 @@ the expression in *operand.  An error is issued if the type defines something.
   /* Check for and pass over the ")". */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
+  return !err;
 }  /* scan_new_style_cast */
 
 
@@ -3876,7 +3884,9 @@ Syntax:
   /* Advance past dynamic_cast. */
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
-  scan_new_style_cast(&cast_type, &type_position, &operand);
+  if (!scan_new_style_cast(&cast_type, &type_position, &operand)) {
+    err = TRUE;
+  }  /* if */
   if (!err) {
     /* The type cast to must be a pointer or reference to a complete class
        type, or void*. */
@@ -4996,31 +5006,23 @@ only done in pcc mode.
 }  /* lvalue_cast */
 
 
-static a_boolean cast_type_pre_check(
-                                   a_type_ptr               *p_type_cast_to,
-                                   a_boolean                *int_to_ptr_case,
-                                   a_boolean                *cast_to_func_ptr,
-                                   a_boolean                *templ_cast_to_ptr,
-                                   a_local_expr_options_set local_options)
+static a_boolean cast_type_pre_check(a_type_ptr *p_type_cast_to,
+                                     a_boolean  *cast_to_func_ptr)
 /*
 Do a first check on the destination type of a cast to see if it is legal.
-That is, do a check that the type is legal as the destination type of a
-cast without regard to the source type.  Return TRUE if there is an error.
-*p_type_cast_to is the destination type of the cast.  On return,
-*int_to_ptr_case is TRUE if the destination type is a pointer
-type in a context that requires that the source type be an integral type,
-*cast_to_func_ptr is TRUE if the cast is to a pointer-to-function type
-in C++, and *templ_cast_to_ptr is true if the cast is to a pointer or
-pointer-to-member type in a template argument.  This routine is called
-for both C-style casts and C++ functional-notation type conversions.
+This is very top-level checking applicable to all casts.  Return TRUE if
+there is an error.  *p_type_cast_to is the destination type of the cast,
+which may be updated on return if the cast should be to some other type.
+On return, *cast_to_func_ptr is TRUE if the cast is to a pointer-to-function
+type in C++.  This routine is called for both C-style casts and C++ functional-
+notation type conversions.  The current error_position must be set to the
+source position of the type.
 */
 {
   a_boolean  err = FALSE;
   a_type_ptr type_cast_to = *p_type_cast_to;
 
-  *int_to_ptr_case = FALSE;
   *cast_to_func_ptr = FALSE;
-  *templ_cast_to_ptr = FALSE;
   /* Instantiate the type if it is a template class. */
   check_for_uninstantiated_template_class(type_cast_to);
   /* Check the type to see if it's permissible. */
@@ -5031,77 +5033,33 @@ for both C-style casts and C++ functional-notation type conversions.
        a template parameter type, i.e., we don't know what it is.  Assume
        it's okay and go on. */
   } else if (is_incomplete_type(type_cast_to) && !is_void_type(type_cast_to)) {
-    /* This check catches incomplete enum types.  Except for being
-       incomplete, they look like integral types. */
+    /* This check catches incomplete enum types. */
     error(ec_incomplete_type_not_allowed);
     err = TRUE;
-  } else if (curr_expr_kind_is(ek_integral_constant)) {
-    /* Only casts to integral types are permitted in integral constant
-       expressions.  When the cast is the immediate operand of another
-       cast, allow integer --> pointer as an extension. */
-    if (!is_integral_type(type_cast_to)) {
-      if ((local_options & EOPT_OPERAND_OF_CAST) && 
-          is_pointer_type(type_cast_to)) {
-        *int_to_ptr_case = TRUE;
-        if (strict_ansi_mode) {
-          diagnostic(strict_ansi_error_severity, ec_cast_not_integral);
-        }  /* if */
-      } else {
-        error(ec_cast_not_integral);
-        err = TRUE;
-      }  /* if */
-    }  /* if */
-  } else if (curr_expr_kind_is(ek_init_constant)) {
-    /* Only casts to arithmetic or pointer types are allowed in initializer
-       constants. */
-    if (!is_scalar_type(type_cast_to)) {
-      error(ec_cast_not_scalar);
+  } else if (!C_mode() && is_class_struct_union_type(type_cast_to)) {
+    /* In C++, a cast to a class is allowed. */
+    /* But not a cast to an abstract class. */
+    if (skip_typerefs(type_cast_to)->variant.class_struct_union.abstract) {
+      error(ec_cast_to_abstract_class);
       err = TRUE;
     }  /* if */
-  } else if (curr_expr_kind_is(ek_template_arg)) {
-    /* Only casts to arithmetic types are allowed in nontype template
-       arguments. */
-    if (!is_arithmetic_type(type_cast_to)) {
-      /* However, a cast of a zero to a pointer or pointer-to-member type is
-         allowed.  The other half of the check is in do_cast. */
-      if (is_pointer_type(type_cast_to) ||
-          is_ptr_to_member_type(type_cast_to)) {
-        *templ_cast_to_ptr = TRUE;
-      } else {
-        error(ec_non_arith_operation_in_templ_arg);
-        err = TRUE;
-      }  /* if */
-    }  /* if */
-  } else {
-    /* Not a special expression kind. */
-    if (is_scalar_type(type_cast_to) || is_void_type(type_cast_to)) {
-      /* Casting to a scalar type or void is always allowed. */
-    } else if (C_dialect == C_dialect_cplusplus &&
-               is_class_struct_union_type(type_cast_to)) {
-      /* In C++, a cast to a class is allowed. */
-      /* But not a cast to an abstract class. */
-      if (skip_typerefs(type_cast_to)->variant.class_struct_union.abstract) {
-        error(ec_cast_to_abstract_class);
-        err = TRUE;
-      }  /* if */
-    } else if (is_reference_type(type_cast_to)) {
-      /* Casting to a reference type in C++. */
-    } else if (is_ptr_to_member_type(type_cast_to)) {
-      /* In C++, a cast to a pointer-to-member type is allowed. */
-    } else if (cfront_2_1_mode && is_array_type(type_cast_to)) {
-      /* In C++, treat a cast to an array type as a cast to a pointer to
-         the array element type.  This is an extension to match cfront 2.1
-         and is only accepted in cfront compatibility mode.   A warning is
-         issued even in cfront mode because this is a questionable
-         practice. */
+  } else if (is_array_type(type_cast_to)) {
+    /* Casting to an array type is not allowed. */
+    if (cfront_2_1_mode) {
+      /* In cfront 2.1 mode, treat a cast to an array type as a cast to
+         a pointer to. */
+      type_warning(ec_nonstd_array_cast, type_cast_to);
       *p_type_cast_to = type_cast_to =
                       type_after_array_to_pointer_transformation(type_cast_to);
-      type_warning(ec_nonstd_array_cast, type_cast_to);
     } else {
-      /* Invalid destination type for cast. */
+      /* Normal case.  Casting to an array type is an error. */
       type_error(ec_cast_to_bad_type, type_cast_to);
       err = TRUE;
     }  /* if */
+  } else if (is_function_type(type_cast_to)) {
+    /* Casting to a function type is not allowed. */
+    type_error(ec_cast_to_bad_type, type_cast_to);
+    err = TRUE;
   }  /* if */
   if (!err) {
     /* Casting to a qualified type, though valid, is pointless. */
@@ -5148,14 +5106,144 @@ to void.  type_cast_to gives the (possibly qualified) void type.
 }  /* cast_operand_to_void */
 
 
-static void do_cast(a_type_ptr         type_cast_to,
-                    an_operand         *operand,
-                    an_operand         *bound_function_selector,
-                    a_boolean          err,
-                    a_boolean          int_to_ptr_case,
-                    a_boolean          cast_to_func_ptr,
-                    a_boolean          templ_cast_to_ptr,
-                    a_source_position  *start_position)
+static a_boolean cast_is_valid_in_current_expression_kind(
+                                     an_operand               *operand,
+                                     a_type_ptr               dest_type,
+                                     a_local_expr_options_set local_options,
+                                     a_source_position        *type_position)
+/*
+Return TRUE if a cast of operand to dest_type is valid in the current kind
+of expression.  local_options is the set of local expression options.
+type_position gives the source position of the type in the cast.
+Note that this routine does not do all validity checking.  It only checks
+for certain restrictions that apply in certain kinds of expressions,
+but apply for all kinds of casts.  If the operand is supposed to undergo
+array --> pointer (etc.) transformations, they should have been done before
+this routine is called.
+*/
+{
+  a_boolean  err = FALSE;
+  a_type_ptr source_type = operand->type;
+
+  if (is_error_type(source_type) || is_error_type(dest_type)) {
+    /* There was a previous error.  Do no further checking. */
+    err = TRUE;
+  } else if (is_template_param_type(dest_type)) {
+    /* Casting to a template parameter (unknown) type.  Assume okay,
+       but produce an error operand. */
+    err = TRUE;
+  } else if (curr_expr_kind_is(ek_integral_constant)) {
+    /* Only casts from arithmetic to integral types are permitted in
+       integral constant expressions. */
+    if (is_integral_type(dest_type)) {
+      /* Okay, cast is to integral type. */
+      /* The cast should be from an arithmetic type. */
+      if (is_arithmetic_type(source_type)) {
+        /* Okay. */
+      } else if (is_pointer_type(source_type) &&
+                 is_constant_operand(operand) &&
+                 operand->variant.constant.kind ==
+                                            (a_constant_repr_kind)ck_integer) {
+        /* As an extension, allow pointer --> int for pointer constants
+           that come from casting an integer constant to a pointer type,
+           as in (int)(char *)1. */
+        if (strict_ansi_mode) {
+          pos_diagnostic(strict_ansi_error_severity, ec_expr_not_arithmetic,
+                         &operand->position);
+          err = (strict_ansi_error_severity == es_error);
+        }  /* if */
+      } else {
+        /* The destination type is integral, but the source type is not
+           arithmetic. */
+        pos_error(ec_expr_not_arithmetic, &operand->position);
+        err = TRUE;
+      }  /* if */
+    } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
+               is_integral_type(source_type) &&
+               is_pointer_type(dest_type)) {
+      /* When the cast is the immediate operand of another cast, allow
+         integer --> pointer as an extension. */
+      if (strict_ansi_mode) {
+        pos_diagnostic(strict_ansi_error_severity, ec_cast_not_integral,
+                       type_position);
+        err = (strict_ansi_error_severity == es_error);
+      }  /* if */
+    } else {
+      /* Casting to a non-integral type in an integral constant expression. */
+      pos_error(ec_cast_not_integral, type_position);
+      err = TRUE;
+    }  /* if */
+  } else if (curr_expr_kind_is(ek_init_constant)) {
+    /* Initializer constant expression: arithmetic --> arithmetic
+       and scalar --> pointer are allowed, pointer --> integral as
+       an extension. */
+    if (is_arithmetic_type(dest_type)) {
+      /* Casting to arithmetic; source must be arithmetic. */
+      if (is_arithmetic_type(source_type)) {
+        /* Okay. */
+      } else if (is_pointer_type(source_type) &&
+                 is_integral_type(dest_type)) {
+        /* Pointer --> integral.  Allowed as an extension.  The check
+           that the integral type is large enough is done in
+           reinterpret_cast_conversion_possible. */
+        if (strict_ansi_mode) {
+          pos_diagnostic(strict_ansi_error_severity, ec_expr_not_arithmetic,
+                         &operand->position);
+          err = (strict_ansi_error_severity == es_error);
+        }  /* if */
+      } else {
+        /* Non-arithmetic --> arithmetic. */
+        pos_error(ec_expr_not_arithmetic, &operand->position);
+        err = TRUE;
+      }  /* if */
+    } else if (is_pointer_type(dest_type)) {
+      /* Casting to pointer; source must be scalar. */
+      if (!is_scalar_type(source_type)) {
+        pos_error(ec_expr_not_scalar, &operand->position);
+        err = TRUE;
+      }  /* if */
+    } else {
+      /* Casting to a non-scalar type in an initializer expression. */
+      pos_error(ec_cast_not_scalar, type_position);
+      err = TRUE;
+    }  /* if */
+  } else if (curr_expr_kind_is(ek_template_arg)) {
+    /* Only casts to arithmetic types are allowed in nontype template
+       arguments. */
+    if (is_arithmetic_type(dest_type)) {
+      /* Destination is arithmetic.  Source should be also. */
+      if (is_arithmetic_type(source_type)) {
+        /* Okay. */
+      } else {
+        /* Cast from non-arithmetic to arithmetic in a nontype template
+           argument. */
+        pos_error(ec_non_arith_operation_in_templ_arg, &operand->position);
+        err = TRUE;
+      }  /* if */
+    } else if ((is_pointer_type(dest_type) ||
+                is_ptr_to_member_type(dest_type)) &&
+               is_constant_operand(operand) &&
+               is_null_pointer_constant(&operand->variant.constant)) {
+      /* Cast of a null pointer constant to a pointer or pointer-to-member
+         type.  Allowed as an extension. */
+    } else {
+      /* Cast to a non-arithmetic type in a nontype template argument. */
+      pos_error(ec_non_arith_operation_in_templ_arg, type_position);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  return !err;
+}  /* cast_is_valid_in_current_expression_kind */
+
+
+static void do_cast(a_type_ptr               type_cast_to,
+                    an_operand               *operand,
+                    an_operand               *bound_function_selector,
+                    a_local_expr_options_set local_options,
+                    a_boolean                err,
+                    a_boolean                cast_to_func_ptr,
+                    a_source_position        *type_position,
+                    a_source_position        *start_position)
 /*
 Do a cast operation.  The operand *operand is to be cast to the type
 type_cast_to.  If it is a bound function (only in C++),
@@ -5163,15 +5251,13 @@ type_cast_to.  If it is a bound function (only in C++),
 will be TRUE in that case, indicating a cast of a bound function pointer
 to a normal function pointer, an anachronism).  err is TRUE if it has
 already been determined that the cast is invalid (this routine does
-additional checking).  int_to_ptr_case is TRUE if cast_type_pre_check
-determined that the source type must be integral (that must be checked
-here).  templ_cast_to_ptr is TRUE if the cast is to a pointer or pointer-
-to-member type in a template argument.  start_position is the source
-position of the start of the cast.  This routine is called for both
-C-style casts and C++ functional-notation type conversions.
+additional checking).  type_position is the source position of the
+destination type in the cast.  start_position is the source position
+of the start of the cast.  This routine is called for both C-style casts
+and C++ functional-notation type conversions.
 */
 {
-  a_type_ptr       source_type;
+  a_type_ptr       source_type, orig_type_cast_to = type_cast_to;
   an_error_code    warning_suggested;
   a_boolean        cast_to_reference = FALSE, processed = FALSE, failed;
   a_conv_descr     conversion, ctor_arg_conversion;
@@ -5258,7 +5344,31 @@ C-style casts and C++ functional-notation type conversions.
     }  /* if */
     if (!processed) {
       /* No user-defined conversion applies. */
-      if (cast_to_reference) {
+      if (!cast_to_reference) {
+        /* Normal case (not a cast to reference). */
+        /* Do array --> pointer and function --> pointer conversions.
+           They must be done now because they affect the type of the operand.
+           Don't do lvalue --> rvalue yet because of the lvalue cast case. */
+        /* Keep indefinite functions too, since a particular function can
+           be chosen by a cast to a pointer or pointer-to-member type. */
+        do_operand_transformations(operand,
+                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                  TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+      }  /* if */
+      /* Check for casts that aren't valid in this kind of expression.
+         Note that this check is done after the operand transformations
+         (e.g., turning arrays into pointers), but before the reference
+         rewriting or anything else that changes type_cast_to. */
+      if (!cast_is_valid_in_current_expression_kind(operand, type_cast_to,
+                                                    local_options,
+                                                    type_position)) {
+        /* This cast is not valid in this kind of expression. */
+        err = TRUE;
+      }  /* if */
+      /* Do any rewriting that changes the destination type. */
+      if (err) {
+        /* Some previous error. */
+      } else if (cast_to_reference) {
         /* In C++, "An object may be explicitly converted to a reference type
            X& if a pointer to that object may be explicitly converted
            to an X*" (ARM 5.4).  Rewrite the cast in that form. */
@@ -5282,106 +5392,10 @@ C-style casts and C++ functional-notation type conversions.
             error_in_operand(ec_expr_not_an_lvalue, operand);
           }  /* if */
         }  /* if */
-      } else {
-        /* Normal case (not a cast to reference). */
-        /* Do array --> pointer and function --> pointer conversions.
-           They must be done now because they affect the type of the operand.
-           Don't do lvalue --> rvalue yet because of the pcc lvalue cast
-           case. */
-        /* Keep indefinite functions too, since a particular function can
-           be chosen by a cast to a pointer or pointer-to-member type. */
-        do_operand_transformations(operand,
-                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                                  TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
       }  /* if */
       /* Get the source type after the transformations. */
       source_type = operand->type;
-      /* cast_type_pre_check has already verified that the destination type
-         is legal in broad terms.  Check for casts that are allowed in
-         general but disallowed in specific modes. */
-      if (is_error_type(source_type)) {
-        /* There was a previous error.  Do no further checking. */
-        err = TRUE;
-      } else if (is_template_param_type(type_cast_to)) {
-        /* Casting to a template parameter (unknown) type.  Assume okay,
-           but produce an error operand. */
-        err = TRUE;
-      } else if (curr_expr_kind_is(ek_integral_constant)) {
-        /* Integral constant expression: only arithmetic --> integral
-           is standard.  cast_type_pre_check has already checked that the
-           target type is integral (except that when this cast is the
-           immediate operand of another cast, integer --> pointer is
-           allowed as an extension). */
-        if (int_to_ptr_case) {
-          /* This is the extension case let by.  The source must be
-             integral. */
-          if (!is_integral_type(source_type)) {
-            error(ec_expr_not_integral);
-            err = TRUE;
-          }  /* if */
-        } else if (!is_arithmetic_type(source_type)) {
-          /* As an extension, allow pointer --> int for pointer constants
-             that come from casting an integer constant to a pointer type,
-             as in (int)(char *)1. */
-          if (is_pointer_type(source_type) && is_constant_operand(operand) &&
-              operand->variant.constant.kind ==
-                                            (a_constant_repr_kind)ck_integer) {
-            if (strict_ansi_mode) {
-              diagnostic(strict_ansi_error_severity, ec_expr_not_arithmetic);
-            }  /* if */
-          } else {
-            error(ec_expr_not_arithmetic);
-            err = TRUE;
-          }  /* if */
-        }  /* if */
-      } else if (curr_expr_kind_is(ek_init_constant)) {
-        /* Initializer constant expression: arithmetic --> arithmetic
-           and scalar --> pointer are allowed, pointer --> integral as
-           an extension.  The code above has already checked that the
-           target type is scalar (arithmetic or pointer).  Check that a
-           cast to arithmetic converts from an arithmetic type (see 3.4).
-           The usual checks on the scalar --> pointer case are done below
-           (to catch, e.g., float --> pointer). */
-        if (is_arithmetic_type(type_cast_to)) {
-          /* Casting to arithmetic, source must be arithmetic. */
-          if (!is_arithmetic_type(source_type)) {
-            if (is_pointer_type(source_type) &&
-                is_integral_type(type_cast_to)) {
-              /* Pointer --> integral.  Allowed as an extension.  The check
-                 that the integral type is large enough is done below in the
-                 call of expl_conversion_possible. */
-              if (strict_ansi_mode) {
-                diagnostic(strict_ansi_error_severity, ec_expr_not_arithmetic);
-              }  /* if */
-            } else {
-              /* Non-arithmetic --> arithmetic. */
-              error(ec_expr_not_arithmetic);
-              err = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      } else if (curr_expr_kind_is(ek_template_arg)) {
-        /* Only casts between arithmetic types are allowed in nontype template
-           arguments, except for a cast of a zero to a pointer or
-           pointer-to-member type. */
-        if (templ_cast_to_ptr) {
-          if (is_constant_operand(operand) &&
-              is_null_pointer_constant(&operand->variant.constant)) {
-            /* Cast of a null pointer constant to a pointer or
-               pointer-to-member type.  Okay. */
-          } else {
-            /* Cast to a pointer or pointer-to-member type, but the source is
-               not a null pointer constant. */
-            error(ec_non_arith_operation_in_templ_arg);
-            err = TRUE;
-          }  /* if */
-        } if (!is_arithmetic_type(source_type)) {
-          error(ec_non_arith_operation_in_templ_arg);
-          err = TRUE;
-        }  /* if */
-      }  /* if */
-      /* The combination of the source and target types has been checked.
-         If it's okay, do the cast. */
+      /* Check for different types of casts and do the cast. */
       if (!err) {
         a_boolean      operand_is_constant = is_constant_operand(operand);
         a_constant_ptr operand_con = NULL;
@@ -5451,11 +5465,6 @@ C-style casts and C++ functional-notation type conversions.
             pos_sy_error(ec_indeterminate_overloaded_function,
                          &operand->position, operand->variant.symbol);
           }  /* if */
-        } else if (is_void_type(type_cast_to)) {
-          /* Anything --> void, allowed. */
-          conv_lvalue_to_rvalue(operand);
-          /* Do the cast to void as an expression. */
-          cast_operand_to_void(operand, type_cast_to);
         } else if (any_cfront_mode() && operand_is_constant &&
                    operand_con->kind ==
                                       (a_constant_repr_kind)ck_ptr_to_member &&
@@ -5484,12 +5493,6 @@ C-style casts and C++ functional-notation type conversions.
                                            operand);
           conv_function_designator_to_ptr_to_function(operand);
           cast_operand(type_cast_to, operand, /*is_implicit_cast=*/FALSE);
-        } else if (!is_scalar_type(source_type) &&
-                   !is_ptr_to_member_type(type_cast_to)) {
-          /* Not casting to void or a class, and not casting to a
-             pointer-to-member type, so the source type must be scalar. */
-          error(ec_expr_not_scalar);
-          err = TRUE;
         } else if (expl_conversion_possible(source_type, operand_is_constant,
                                             operand_con, type_cast_to,
                                             ec_bad_cast, &warning_suggested)) {
@@ -5497,15 +5500,20 @@ C-style casts and C++ functional-notation type conversions.
           if (warning_suggested != ec_no_error) {
             pos_warning(warning_suggested, start_position);
           }  /* if */
-          /* In pcc, SVR4 C, or Microsoft mode, some lvalues cast to
-             same-sized types remain lvalues (e.g., int to unsigned). */
-          if ((C_dialect == C_dialect_pcc || SVR4_C_mode
+          if (is_void_type(type_cast_to)) {
+            /* Cast to void. */
+            conv_lvalue_to_rvalue(operand);
+            /* Do the cast to void as an expression. */
+            cast_operand_to_void(operand, type_cast_to);
+          } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                                       || microsoft_mode
+                                                 || microsoft_mode
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                        ) &&
+                                                                  ) &&
               is_an_lvalue(operand) &&
               still_an_lvalue(source_type, type_cast_to)) {
+            /* In pcc, SVR4 C, or Microsoft mode, some lvalues cast to
+               other types remain lvalues (e.g., int to unsigned). */
             /* Use a special "lvalue cast" operator.  Always do the cast on
                an expression node, even if the lvalue address is currently
                given by a constant.  This is because all lvalue casts should
@@ -5518,7 +5526,7 @@ C-style casts and C++ functional-notation type conversions.
                case). */
             lvalue_cast(type_cast_to, operand);
           } else {
-            /* Not an lvalue cast. */
+            /* Not an lvalue cast or a cast to void. */
             /* Convert lvalue --> rvalue unless casting to a reference type
                (in that case, the operand has already been turned into a
                pointer; the conversion here wouldn't hurt, but it's not
@@ -5535,11 +5543,18 @@ C-style casts and C++ functional-notation type conversions.
             }  /* if */
           }  /* if */
         } else {
-          /* Not a valid conversion. */
-          /* Note:  If this is changed to display the types involved,
-             remember to check cast_to_reference. */
+          /* Not a valid cast. */
           err = TRUE;
-          pos_error(ec_bad_cast, start_position);
+          if (is_class_struct_union_type(orig_type_cast_to)) {
+            /* Use a special clearer message for casting to a class. */
+            pos_ty_error(ec_cast_to_bad_type, type_position,
+                         orig_type_cast_to);
+          } else {
+            /* Generic message. */
+            /* Note: If this is changed to display the types involved,
+               use orig_type_cast_to (because of the reference rewrite). */
+            pos_error(ec_bad_cast, start_position);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5603,11 +5618,10 @@ or
 
 */
 {
-  a_source_position start_position;
+  a_source_position start_position, type_position;
   a_type_ptr        type_cast_to;
   a_boolean         err = FALSE;
-  a_boolean         int_to_ptr_case, cast_to_func_ptr;
-  a_boolean         templ_cast_to_ptr;
+  a_boolean         cast_to_func_ptr;
   an_operand        local_bound_function_selector;
 
   db_enter(4, "scan_cast_or_expr");
@@ -5633,12 +5647,10 @@ or
                            DFS_IS_CAST)) {
     /* This is a cast operation. */
     /* Get the type to cast to. */
+    type_position = pos_curr_token;
     type_name(&type_cast_to);
-    /* Check the type to see if it is valid.  This is done early to get a
-       better error position. */
-    err = cast_type_pre_check(&type_cast_to, &int_to_ptr_case,
-                              &cast_to_func_ptr, &templ_cast_to_ptr,
-                              local_options);
+    /* Check the type to see if it is valid in general terms. */
+    err = cast_type_pre_check(&type_cast_to, &cast_to_func_ptr);
 
     /* The next token should be the closing rparen. */
     (void)required_token(tok_rparen, ec_exp_rparen);
@@ -5649,8 +5661,8 @@ or
                          /*allow_comma=*/TRUE, PREC_CAST,
                          result, &local_bound_function_selector);
     /* Check compatibility of the types and do the cast. */
-    do_cast(type_cast_to, result, &local_bound_function_selector, err,
-            int_to_ptr_case, cast_to_func_ptr, templ_cast_to_ptr,
+    do_cast(type_cast_to, result, &local_bound_function_selector,
+            local_options, err, cast_to_func_ptr, &type_position,
             &start_position);
   } else {
     /* This is an expression in parentheses.  The parentheses do not
@@ -5729,8 +5741,7 @@ See _expr.type.conv_ in the WP.
 {
   a_source_position             start_position, lparen_pos;
   a_boolean                     err = FALSE;
-  a_boolean                     int_to_ptr_case;
-  a_boolean                     cast_to_func_ptr, templ_cast_to_ptr;
+  a_boolean                     cast_to_func_ptr;
   a_symbol_ptr                  ctor_sym;
   an_expr_node_ptr              arg_expr_list;
   a_routine_ptr                 ctor_routine;
@@ -5742,11 +5753,9 @@ See _expr.type.conv_ in the WP.
 
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
-  /* Check the type to see if it is valid.  This is done early to get a
-     better error position.  Note that this even does a worthwhile check
-     for the class case (abstract class). */
-  err = cast_type_pre_check(&type_cast_to, &int_to_ptr_case, &cast_to_func_ptr,
-                            &templ_cast_to_ptr, local_options);
+  /* Check the type to see if it is valid in general terms.  Note that
+     this does a worthwhile check even in the class case (abstract class). */
+  err = cast_type_pre_check(&type_cast_to, &cast_to_func_ptr);
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
     cssp = symbol_supplement_for_class(type_cast_to);
@@ -5840,8 +5849,8 @@ See _expr.type.conv_ in the WP.
                            /*allow_comma=*/FALSE, PREC_LOWEST, result,
                            &local_bound_function_selector);
       /* Check compatibility of the types and do the cast. */
-      do_cast(type_cast_to, result, &local_bound_function_selector, err,
-              int_to_ptr_case, cast_to_func_ptr, templ_cast_to_ptr,
+      do_cast(type_cast_to, result, &local_bound_function_selector,
+              local_options, err, cast_to_func_ptr, &start_position,
               &start_position);
     }  /* if */
     /* Check for the closing parenthesis. */
