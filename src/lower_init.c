@@ -3442,7 +3442,7 @@ in this routine must be FALSE in that case.
   a_variable_ptr     local_static_guard_var;
   a_boolean          do_simple_constant_init_opt = FALSE;
 #if LOWER_EXTERN_INLINE
-  a_boolean          local_static_promoted_out_of_extern_inline;
+  a_boolean          local_static_promoted_out_of_extern_inline = FALSE;
 #endif /* LOWER_EXTERN_INLINE */
 
   saved_code_pos = code_pos_for_lowering;
@@ -3471,49 +3471,37 @@ in this routine must be FALSE in that case.
   /* Initializations of static variables (whether global or function-local)
      require some special processing. */
   static_var_init = init_pos_is_static(ipdp);
-  /* Decide whether the optimization of rewriting a dynamic initialization
-     to a constant as a static initialization to the constant is allowed.
-     It is not allowed if the variable is automatic and the context is
-     something other than an stmk_init (that's the keep_dynamic_init test). */
-  if (variable != NULL && dip->kind == (a_dynamic_init_kind)dik_constant &&
-      (static_var_init || keep_dynamic_init != NULL)) {
-    do_simple_constant_init_opt = TRUE;
-  }  /* if */
+  if (variable != NULL) {
+    /* Decide whether the optimization of rewriting a dynamic initialization
+       to a constant as a static initialization to the constant is allowed.
+       It is not allowed if the variable is automatic and the context is
+       something other than an stmk_init (that's the keep_dynamic_init
+       test). */
+    if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+        (static_var_init || keep_dynamic_init != NULL)) {
+      do_simple_constant_init_opt = TRUE;
+    }  /* if */
 #if LOWER_EXTERN_INLINE
-  /* See if this is a local static variable promoted out of an extern inline
-     function. */
-  local_static_promoted_out_of_extern_inline =
-                  (variable != NULL &&
-                   variable->promoted_local_static &&
-                   variable->storage_class == (a_storage_class)sc_unspecified);
+    /* See if this is a local static variable promoted out of an extern inline
+       function. */
+    if (variable->promoted_local_static &&
+        variable->storage_class == (a_storage_class)sc_unspecified) {
+      local_static_promoted_out_of_extern_inline = TRUE;
+      /* Don't allow this case to be turned into a simple constant
+         initialization, because we want the variable to be a tentative
+         definition (and therefore it must be uninitialized). */
+      do_simple_constant_init_opt = FALSE;
+    }  /* if */
 #endif /* LOWER_EXTERN_INLINE */
-  if (variable != NULL &&
-      (variable->init_kind == (an_init_kind)initk_function_local ||
-       /* If local entities are being promoted out of functions, the
-          variable may already have been promoted out. */
-       variable->promoted_local_static_init
-#if LOWER_EXTERN_INLINE
-       || local_static_promoted_out_of_extern_inline
-#endif /* LOWER_EXTERN_INLINE */
-                                                    )) {
-    /* The variable is a local static. */
-    /* Find the local-static-variable-init entry that describes the
-       initialization. */
+    /* For local static variables, find the associated local static variable
+       initialization entry. */
     if (variable->init_kind == (an_init_kind)initk_function_local) {
       lsvip = find_local_static_variable_init(variable, curr_context->scope);
-#if LOWER_EXTERN_INLINE
-    } else if (local_static_promoted_out_of_extern_inline) {
-     /* Local static variable promoted out of an extern inline function.
-        Don't look for the local static variable initialization entry,
-        because the initialization is already directly in the variable. */
-     /* Don't allow this case to be turned into a simple constant
-        initialization, because we want the variable to be a tentative
-        definition. */
-     do_simple_constant_init_opt = FALSE;
-#endif /* LOWER_EXTERN_INLINE */
-    } else {
-      /* When local static variables are promoted, the local static variable
-         initialization entries are saved on a list. */
+    } else if (variable->promoted_local_static_init) {
+      /* This is an initialized local static variable that has already been
+         promoted to the file scope (see
+         promote_static_variables_out_of_function).  Its local static
+         initialization entry was unlinked and saved on a list. */
       for (lsvip = promoted_local_static_variable_inits;
            lsvip != NULL;
            lsvip = lsvip->next) {
@@ -3522,11 +3510,21 @@ in this routine must be FALSE in that case.
       check_assertion_str(lsvip != NULL,
                           "lower_dynamic_init: local static init not found");
     }  /* if */
-    if (!do_simple_constant_init_opt) {
-      /* Add a first-time flag and a test, but not if the initialization
-         will be turned into a constant initialization. */
-      add_first_time_test(variable, insert_location, &block_stmt,
-                          &local_static_guard_var);
+    /* For local static variables, add a first-time flag and a test,
+       but not if the initialization will be turned into a constant
+       initialization. */
+    if (lsvip != NULL
+#if LOWER_EXTERN_INLINE
+        /* Add the first-time test also to local statics initialized to
+           constant values and being promoted out of extern inline
+           functions. */
+        || local_static_promoted_out_of_extern_inline
+#endif /* LOWER_EXTERN_INLINE */
+                                                     ) {
+      if (!do_simple_constant_init_opt) {
+        add_first_time_test(variable, insert_location, &block_stmt,
+                            &local_static_guard_var);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (dip->lifetime != NULL) {
@@ -3913,9 +3911,9 @@ do_assignment:;
           set_block_start_insert_location(block_stmt, &insert_location2);
           entity_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
                                               /*using_as_dest=*/TRUE);
-          check_assertion(dip->variant.constant->kind ==
+          check_assertion(simple_constant->kind ==
                           (a_constant_repr_kind)ck_aggregate);
-          init_val_node = make_node_for_il_constant(dip->variant.constant);
+          init_val_node = make_node_for_il_constant(simple_constant);
           (void)insert_assignment_statement(entity_node,
                                             (an_expr_operator_kind)eok_sassign,
                                             init_val_node,

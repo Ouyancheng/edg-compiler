@@ -9791,14 +9791,13 @@ Promote the static variables in the indicated scope (a function or block
 scope that is part of the indicated routine) to the file scope.
 */
 {
-  a_variable_ptr variable, next_variable;
+  a_variable_ptr variable;
 
   /* See if there are local static variables to promote. */
-  variable = scope->variables;
-  if (variable != NULL) {
-    /* Promote local static variables to file scope. */
-    for (; variable != NULL; variable = next_variable) {
-      next_variable = variable->next;
+  if (scope->variables != NULL) {
+    while (scope->variables != NULL) {
+      /* Promote a local static variable to file scope. */
+      variable = scope->variables;
 #if DEBUG
       if (debug_level >= 4) {
         (void)fprintf(f_debug, "Promoting local variable out of routine ");
@@ -9808,6 +9807,8 @@ scope that is part of the indicated routine) to the file scope.
         (void)fprintf(f_debug, "\n");
       }  /* if */
 #endif /* DEBUG */
+      /* Remove the variable from the scope list. */
+      scope->variables = variable->next;
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
       mangle_promoted_entity_name(&variable->source_corresp, routine, scope);
@@ -9825,12 +9826,32 @@ scope that is part of the indicated routine) to the file scope.
       add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
       variable->promoted_local_static = TRUE;
       /* If the variable has an associated local-static-variable-init
-         entry, transfer any initialization to the variable itself. */
+         entry, transfer the initialization to the variable itself. */
       if (variable->init_kind == (an_init_kind)initk_function_local) {
-        a_local_static_variable_init_ptr lsvip =
-                              find_local_static_variable_init(variable, scope);
-        variable->init_kind = lsvip->init_kind;
+        a_local_static_variable_init_ptr lsvip, prev_lsvip;
+
+        /* Find the local static initialization entry. */
+        for (prev_lsvip = NULL, lsvip = scope->local_static_variable_inits;
+             ;
+             prev_lsvip = lsvip, lsvip = lsvip->next) {
+          check_assertion_str2(lsvip != NULL,
+                               "promote_static_variables_out_of_function:",
+                               "local static init not found");
+          if (lsvip->variable == variable) break;
+        }  /* for */
+        /* Remove the local static initialization entry from the scope list,
+           and save it on the promoted_local_static_variable_inits list so it
+           can still be found (see lower_dynamic_init for one use). */
+        if (prev_lsvip == NULL) {
+          scope->local_static_variable_inits = lsvip->next;
+        } else {
+          prev_lsvip->next = lsvip->next;
+        }  /* if */
+        lsvip->next = promoted_local_static_variable_inits;
+        promoted_local_static_variable_inits = lsvip;
         variable->promoted_local_static_init = TRUE;
+        /* Transfer the initialization information to the variable itself. */
+        variable->init_kind = lsvip->init_kind;
         switch (lsvip->init_kind) {
           case initk_none:
           case initk_zero:
@@ -9882,26 +9903,14 @@ scope that is part of the indicated routine) to the file scope.
         lower_constant_init_of_static_in_extern_inline(variable, scope);
 #endif /* LOWER_EXTERN_INLINE */
       }  /* if */
-    }  /* for */
-    /* Clear the variables list now that all variables have been promoted. */
-    scope->variables = NULL;
+    }  /* while */
+    /* Clear the scope stack pointer to the last static variable now that
+       the whole list has been cleared. */
     { a_scope_depth depth = scope->depth_in_scope_stack;
       if (depth != NO_SCOPE_DEPTH) {
         assoc_pointers_block_of(&scope_stack[depth])->last_variable = NULL;
       }  /* if */
     }
-    /* Clear the list of local static initializations, but keep the entries
-       around (on the promoted_local_static_variable_inits list) so they
-       can be found (see lower_dynamic_init for one use). */
-    if (scope->local_static_variable_inits != NULL) {
-      a_local_static_variable_init_ptr last_entry;
-      for (last_entry = scope->local_static_variable_inits;
-           last_entry->next != NULL;
-           last_entry = last_entry->next) {}
-      last_entry->next = promoted_local_static_variable_inits;
-      promoted_local_static_variable_inits= scope->local_static_variable_inits;
-      scope->local_static_variable_inits = NULL;
-    }  /* if */
   }  /* if */
 }  /* promote_static_variables_out_of_function */
 
