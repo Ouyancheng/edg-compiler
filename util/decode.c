@@ -114,9 +114,13 @@ static char *full_demangle_name(char                       *ptr,
 /*
 Interface to full_demangle_name for the simple case.
 */
-#define demangle_name(ptr, nchars, dctl)                              \
-  full_demangle_name((ptr), (nchars), (char *)NULL,                   \
+#define demangle_name(ptr, dctl)                                      \
+  full_demangle_name((ptr), (unsigned long)0, (char *)NULL,           \
                      (a_template_param_block_ptr)NULL, (dctl))
+static char *demangle_name_with_preceding_length(
+                                char                       *ptr,
+                                a_template_param_block_ptr temp_par_info,
+                                a_decode_control_block_ptr dctl);
 static char *demangle_operation(char                       *ptr,
                                 a_decode_control_block_ptr dctl);
 static char *demangle_operator(char      *ptr,
@@ -455,10 +459,11 @@ position following what was demangled.
   */
   if (isdigit((unsigned char)*p)) {
     /* A name preceded by its length, e.g., "3abc".  Put out "&name". */
-    p = get_number(p, &nchars, dctl);
     write_id_ch('&', dctl);
-    /* Process the name. */
-    p = demangle_name(p, nchars, dctl);
+    /* Process the length and name. */
+    p = demangle_name_with_preceding_length(p,
+                                            (a_template_param_block_ptr)NULL,
+                                            dctl);
   } else if (*p == 'L') {
     if (p[1] != 'M') {
       /* Normal literal constant.  Form is something like
@@ -568,10 +573,10 @@ position following what was demangled.
            pointer-to-member. */
         (void)demangle_type_name(type+2, dctl);
         write_id_str("::", dctl);
-        /* Scan the length of the name. */
-        p = get_number(p, &nchars, dctl);
-        /* Demangle the name. */
-        p = demangle_name(p, nchars, dctl);
+        /* Demangle the length and name. */
+        p = demangle_name_with_preceding_length(p,
+                                              (a_template_param_block_ptr)NULL,
+                                                dctl);
       } else {
         /* Not a non-virtual function.  The encoding for the third component
            should be simply "0". */
@@ -993,6 +998,27 @@ a block of information related to template parameter processing.
 }  /* note_specialization */
 
 
+static char get_char(char          *ptr,
+                     char          *base_ptr,
+                     unsigned long nchars)
+/*
+Get and return the character pointed to by ptr.  However, if nchars is
+non-zero, the string from which the character is to be extracted starts
+at base_ptr and has length nchars.  An attempt to get a character past
+the end of the string returns a null character.
+*/
+{
+  char ch;
+
+  if (nchars > 0 && ptr >= base_ptr+nchars) {
+    ch = '\0';
+  } else {
+    ch = *ptr;
+  }  /* if */
+  return ch;
+}  /* get_char */
+
+
 static char *full_demangle_name(char                       *ptr,
                                 unsigned long              nchars,
                                 char                       *mclass,
@@ -1021,11 +1047,6 @@ simple case.
   char      *demangled_name;
   int       mangled_length;
 
-  /* Macro to fetch characters from the string.  When nchars > 0,
-     the macro returns null characters for character positions after the
-     indicated end. */
-#define char_from_name(chptr) \
-  (nchars == 0 || (((chptr) - ptr) < nchars) ? *(chptr) : '\0')
   /* See if the name is special in some way. */
   if ((nchars == 0 || nchars >= 4) && ptr[0] == '_' && ptr[1] == '_') {
     /* Name beginning with two underscores. */
@@ -1083,7 +1104,7 @@ simple case.
        Also look for template-related things that terminate the name
        earlier. */
     for (p = ptr; ; p++) {
-      char ch = char_from_name(p);
+      char ch = get_char(p, ptr, nchars);
       /* Stop at the end of the string (real, or as indicated by nchars). */
       if (ch == '\0') break;
       /* Stop on a double underscore, but not one at the start of the string.
@@ -1091,19 +1112,19 @@ simple case.
          so that something like the name for "void f_()" (i.e., "f___Fv")
          can be demangled successfully. */
       if (ch == '_' && p != ptr &&
-          char_from_name(p+1) == '_' &&
-          char_from_name(p+2) != '_' &&
+          get_char(p+1, ptr, nchars) == '_' &&
+          get_char(p+2, ptr, nchars) != '_' &&
           /* When the length is known, stop only on "__tm", "__ps", "__pt",
              or "__S".  Double underscores can appear in the middle of some
              names, e.g., member names used as template arguments. */
           (nchars == 0 ||
-           (char_from_name(p+2) == 't' &&
-            char_from_name(p+3) == 'm') ||
-           (char_from_name(p+2) == 'p' &&
-            char_from_name(p+3) == 's') ||
-           (char_from_name(p+2) == 'p' &&
-            char_from_name(p+3) == 't') ||
-           char_from_name(p+2) == 'S')) {
+           (get_char(p+2, ptr, nchars) == 't' &&
+            get_char(p+3, ptr, nchars) == 'm') ||
+           (get_char(p+2, ptr, nchars) == 'p' &&
+            get_char(p+3, ptr, nchars) == 's') ||
+           (get_char(p+2, ptr, nchars) == 'p' &&
+            get_char(p+3, ptr, nchars) == 't') ||
+           get_char(p+2, ptr, nchars) == 'S')) {
         break;
       }  /* if */
     }  /* for */
@@ -1135,9 +1156,9 @@ simple case.
     is_partial_spec = TRUE;
   }  /* if */
   /* If there's a specialization indication ("__S"), ignore it. */
-  if (char_from_name(end_ptr)   == '_' &&
-      char_from_name(end_ptr+1) == '_' &&
-      char_from_name(end_ptr+2) == 'S') {
+  if (get_char(end_ptr, ptr, nchars)   == '_' &&
+      get_char(end_ptr+1, ptr, nchars) == '_' &&
+      get_char(end_ptr+2, ptr, nchars) == 'S') {
     note_specialization(end_ptr, temp_par_info);
     end_ptr += 3;
   }  /* if */
@@ -1162,9 +1183,9 @@ simple case.
                                           temp_par_info, dctl);
     if (partial_spec_output_suppressed) dctl->suppress_id_output--;
     /* If there's a(nother) specialization indication ("__S"), ignore it. */
-    if (char_from_name(end_ptr)   == '_' &&
-        char_from_name(end_ptr+1) == '_' &&
-        char_from_name(end_ptr+2) == 'S') {
+    if (get_char(end_ptr, ptr, nchars)   == '_' &&
+        get_char(end_ptr+1, ptr, nchars) == '_' &&
+        get_char(end_ptr+2, ptr, nchars) == 'S') {
       note_specialization(end_ptr, temp_par_info);
       end_ptr += 3;
     }  /* if */
@@ -1178,8 +1199,29 @@ simple case.
     bad_mangled_name(dctl);
   }  /* if */
   return end_ptr;
-#undef char_from_name
 }  /* full_demangle_name */
+
+
+static char *demangle_name_with_preceding_length(
+                                   char                       *ptr,
+                                   a_template_param_block_ptr temp_par_info,
+                                   a_decode_control_block_ptr dctl)
+/*
+Demangle a name that is preceded by a length, e.g., "3abc" for the type
+name "abc".  Return a pointer to the character position following what
+was demangled.  When temp_par_info != NULL, it points to a block that
+controls output of extra information on template parameters.
+*/
+{
+  char          *p = ptr;
+  unsigned long nchars;
+
+  /* Get the length. */
+  p = get_number(p, &nchars, dctl);
+  /* Demangle the name. */
+  p = full_demangle_name(p, nchars, (char *)NULL, temp_par_info, dctl);
+  return p;
+}  /* demangle_name_with_preceding_length */
 
 
 static char *demangle_simple_type_name(
@@ -1188,13 +1230,13 @@ static char *demangle_simple_type_name(
                                    a_decode_control_block_ptr dctl)
 /*
 Demangle a type name (or namespace name) consisting of a length followed
-by the name.  The name is not a nested name, but it can have template
+by the name.  Return a pointer to the character position following what
+was demangled.  The name is not a nested name, but it can have template
 arguments.  When temp_par_info != NULL, it points to a block that
 controls output of extra information on template parameters.
 */
 {
-  char          *p = ptr;
-  unsigned long nchars;
+  char *p = ptr;
 
   if (*p == 'Z') {
     /* A template parameter name. */
@@ -1202,10 +1244,7 @@ controls output of extra information on template parameters.
   } else {
     /* A simple mangled type name consists of digits indicating the length of
        the name followed by the name itself, e.g., "3abc". */
-    /* Accumulate the count. */
-    p = get_number(p, &nchars, dctl);
-    /* Write the type name. */
-    p = full_demangle_name(p, nchars, (char *)NULL, temp_par_info, dctl);
+    p = demangle_name_with_preceding_length(p, temp_par_info, dctl);
   }  /* if */
   return p;
 }  /* demangle_simple_type_name */
@@ -1726,7 +1765,7 @@ start_of_mangled_name:
        cases like
          extern "C" int operator +(A, A);
        which gets mangled as "__pl".  Just write out the name and stop. */
-    end_ptr = demangle_name(origname, (unsigned long)0, dctl);
+    end_ptr = demangle_name(origname, dctl);
   } else {
     /* There's more.  There should be a "__" between the name and the
        additional mangled information. */
@@ -1760,7 +1799,7 @@ start_of_mangled_name:
          used by cfront (in the cfront scheme, the __L1 is at the end, and
          the number is different). */
       /* Put out the entity name (the first part of the mangled name). */
-      (void)demangle_name(origname, (unsigned long)0, dctl);
+      (void)demangle_name(origname, dctl);
       write_id_str(" in", dctl);
       /* Get the block number and put it out.  Block 0 is the top-level block
          of the function, and need not be identified. */
