@@ -1,5 +1,17 @@
 Version 2.46
 
+6/17/01  Spurious error on typename std::X when using --ignore_std
+
+When using the g++ compatibility feature "--ignore_std", which treats
+the std namespace as an alias for the global namespace, an error would
+be issued on a typename specifier in which the qualifier named the
+std namespace.  This has been fixed.
+
+  namespace std {
+    template <class T> class A {};
+  }
+  template <class T> void f(typename std::A<T>);
+
 6/17/01  Extra source positions on operands of "?" operator
 
 The extra source positions recorded when EXTRA_SOURCE_POSITIONS_IL_IL

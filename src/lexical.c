@@ -10973,7 +10973,6 @@ wrapup:
            namespace. */
         locator_for_curr_id.parent.namespace_ptr = NULL;
         is_file_scope_qualified_name = TRUE;
-        is_global_qualified_name = TRUE;
       } else {
         locator_for_curr_id.parent.namespace_ptr = qualifier_namespace;
       }  /* if */
