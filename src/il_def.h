@@ -1603,6 +1603,8 @@ enum a_type_qualifier_tag {
 #endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tqt_unaligned,	/* Microsoft __unaligned qualifier. */
+  tqt_near,		/* near */
+  tqt_far,		/* far */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tqt_last		/* Must be last. */
 };
@@ -1623,6 +1625,10 @@ Definitions of the bits in bit sets of type a_type_qualifier_set.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define TQ_UNALIGNED	(1 << (int)tqt_unaligned)
 			/* This bit is set to represent __unaligned. */
+#define TQ_NEAR		(1 << (int)tqt_near)
+			/* This bit is set to represent near. */
+#define TQ_FAR		(1 << (int)tqt_far)
+			/* This bit is set to represent far. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -1965,11 +1971,6 @@ are used to create bit masks that are used to represent the modifiers.
 */
 enum a_decl_modifier_tag {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* The pointer modifiers must be first. */
-  dmt_near,
-  dmt_far,
-  /* Pointer modifiers must precede this point. */
-  dmt_last_pointer_modifier = dmt_far,
   dmt_dllimport,
   dmt_dllexport,
   dmt_thread,
@@ -1984,8 +1985,6 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 #if VAR_INITIALIZERS
 = {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* dmt_near */		"near",
-  /* dmt_far */			"far",
   /* dmt_dllimport */		"dllimport",
   /* dmt_dllexport */		"dllexport",
   /* dmt_thread */		"thread",
@@ -2005,14 +2004,6 @@ about variables and routines.
 #define DM_NONE	0x0
 			/* No decl modifiers. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define DM_NEAR		(1 << (int)dmt_near)
-			/* TRUE if the variable or routine must be allocated
-			   in a near segment.  On pointers, indicates a near
-			   pointer. */
-#define DM_FAR		(1 << (int)dmt_far)
-			/* TRUE if the variable or routine must be allocated
-			   in a far segment.  On pointers, indicates a far
-			   pointer. */
 #define DM_DLLIMPORT	(1 << (int)dmt_dllimport)
 			/* TRUE if the declaration includes the
 			   Microsoft __declspec(dllimport) specifier. */
@@ -2029,11 +2020,6 @@ about variables and routines.
 			(1 << (int)dmt_microsoft_inline)
 			/* TRUE if the declaration includes the
 			   Microsoft __inline specifier. */
-/*
-Size of the bit field needed to contain a set of pointer modifiers:
-*/
-#define NUM_BITS_FOR_POINTER_MODIFIER ((int)dmt_last_pointer_modifier+1)
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -3013,15 +2999,10 @@ typedef struct a_type {
 			   the current pointer type is really a "based
 			   pointer"; the variable must itself be of pointer
 			   type.  Used only when microsoft_mode is TRUE. */
-      a_bit_field
-		modifiers:NUM_BITS_FOR_POINTER_MODIFIER;
-			/* Set of modifiers on the pointer (near/far), used
-			   only in 16-bit mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      a_bit_field
-		is_reference:1;
+      a_byte_boolean
+		is_reference;
 			/* If TRUE, this type is a C++ reference type. */
-      bitfield_to_avoid_codecenter_warnings()
 #endif /* ifdef CIL */
     } pointer;
     /* When kind == tk_routine: */
