@@ -15,11 +15,6 @@ struct/class tag kinds in cfront compatibility mode:
   union S { int i, j; };
   struct S x;              // Only a warning in cfront mode
 
-5/16/95  Uninitialized const object of empty-class type
-
-We used to issue no diagnostic on an uninitialized const object if its
-type was an empty class.  Now we issue a warning (or in -A mode an error).
-
 5/16/95  Using typedef names in explicit destructor calls
 
 In cfront mode, typedef names may now be used in explicit destructor
