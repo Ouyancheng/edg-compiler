@@ -12338,7 +12338,7 @@ any non-empty template parameter lists that were scanned.
     complete_il_template_entry(decl_state, sym, p_template_body_cache);
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
   } else {
-    /* Since we record a prototype instantiation, remove the source sequence
+    /* Since we recorded a prototype instantiation, remove the source sequence
        entry for the corresponding a_template entry.  (We never want both in
        the IL.) */
     a_source_correspondence_ptr scp = 
