@@ -481,6 +481,24 @@ non-null template argument list.
 }  /* is_template_class_type */
 
 
+a_boolean is_polymorphic_class_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a class type with virtual functions
+(including any that may be in base classes).
+*/
+{
+  register a_boolean                    result = FALSE;
+  tp = skip_typerefs(tp);
+  if (tp->kind == (a_type_kind)tk_class ||
+      tp->kind == (a_type_kind)tk_struct ||
+      tp->kind == (a_type_kind)tk_union) {
+    result = tp->variant.class_struct_union.
+                              any_virtual_functions_including_in_base_classes;
+  }  /* if */
+  return result;
+}  /* is_polymorphic_class_type */
+
+
 a_type_ptr array_element_type(a_type_ptr array_type)
 /*
 Return the element type of the given array type.
