@@ -1738,7 +1738,7 @@ come out on the closing "}".
      does not allocate the IL scope yet. */
   if (!at_function_level) {
     (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
-                     (a_type_ptr)NULL);
+                     (a_type_ptr)NULL, (a_routine_ptr)NULL);
   }  /* if */
 
   /* Scan the optional declarations. */
