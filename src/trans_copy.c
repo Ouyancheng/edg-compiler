@@ -852,8 +852,8 @@ source correspodence field is scp and whose kind is "kind" are consistent.
   if (tucp == NULL) {
     /* An entry without a correspondence should not have external linkage. */
     if (scp->name != NULL &&
-        scp->name_linkage != (a_name_linkage_kind)nlk_external &&
-        scp->name_linkage != (a_name_linkage_kind)nlk_cplusplus_external) {
+        (scp->name_linkage == (a_name_linkage_kind)nlk_external ||
+         scp->name_linkage == (a_name_linkage_kind)nlk_cplusplus_external)) {
 #if DEBUG
       db_entity_info((char *)scp, kind);
 #endif /* DEBUG */
