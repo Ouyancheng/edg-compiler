@@ -70,10 +70,10 @@ type.
   /* Convert the number. */
   errno = 0;
   temp = atof(str);
+  *err = (errno != 0);
   /* Use memcpy to copy the value since float_value might not be correctly
      aligned. */
   memcpy((char *)float_value, (char *)&temp, sizeof(double));
-  *err = (errno != 0);
   /* Check that it will fit in the specified float kind. */
   if (!*err) fp_check_fit(kind, float_value, err);
 }  /* fp_string_to_float */
