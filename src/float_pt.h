@@ -56,6 +56,7 @@ extern int number_of_bits_in_mantissa(a_mantissa_ptr	mp,
 extern void round_hex_fp_value(a_mantissa_ptr	mp,
 			       long		*exponent,
 			       int		value_bits,
+			       a_boolean	is_fixed_point,
 			       a_boolean	is_signed,
 			       a_boolean	*inexact);
 

@@ -531,7 +531,8 @@ the value is already known to be too large.  Set *err on overflow.  Set
     if (mantissa_bits > value_bits) *inexact = TRUE;
     /* Round the value to the nearest representable value. */
     round_hex_fp_value(mp, &exponent, value_bits + sign_bits,
-                       !fxp_descr->is_unsigned, inexact);
+                       /*is_fixed_point=*/TRUE, !fxp_descr->is_unsigned,
+                       inexact);
     /* Recompute the shift count and mantissa bits after rounding. */
     shift_count = nonfract_bits - exponent;
     mantissa_bits = number_of_bits_in_mantissa(mp, /*normalize=*/TRUE);

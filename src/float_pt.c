@@ -883,13 +883,15 @@ Return a mask that can be used to test bit number "bit" of a mantissa.
 void round_hex_fp_value(a_mantissa_ptr	mp,
 		        long		*exponent,
 		        int		value_bits,
+			a_boolean	is_fixed_point,
 			a_boolean	is_signed,
 		        a_boolean	*inexact)
 /*
 Round the floating point value specified by "mp" and "exponent" to the
-nearest value that can be represented by "value_bits" bits.  "is_signed"
-is TRUE if the mantissa has a high-order sign bit.  This is used when
-rounding fixed-point values.
+nearest value that can be represented by "value_bits" bits.  "is_fixed_point"
+is TRUE when the value being rounded represents a fixed-point value.
+"is_signed" is TRUE if the mantissa has a high-order sign bit.  This is
+only used when rounding fixed-point values.
 */
 {
   an_fp_value_part	part;
@@ -912,6 +914,10 @@ rounding fixed-point values.
     /* No rounding neeed. */
   } else if (part > half_way_value) {
     /* Round up. */
+    round_up = TRUE;
+  } else if (is_fixed_point) {
+    /* Always round fixed-point values up if the value is equal to the
+       half-way value. */
     round_up = TRUE;
   } else {
     /* This part is equal to the half-way value.  Check the remaining
@@ -1581,7 +1587,8 @@ because the exponent was out of range).
   }  /* if */
   if (any_digits) {
     /* Round the value to the nearest representable value. */
-    round_hex_fp_value(mp, &exponent, mant_dig, /*signed=*/FALSE, inexact);
+    round_hex_fp_value(mp, &exponent, mant_dig, /*is_fixed_point=*/FALSE,
+                       /*signed=*/FALSE, inexact);
     if (kind != (a_float_kind)fk_long_double ||
         !long_double_has_no_implicit_bit) {
       /* Shift one bit further to have an implied initial one bit.  This is
