@@ -1668,6 +1668,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 #endif /* DEBUG */
   *pointer_normalization_needed = FALSE;
   *warning_suggested = ec_no_error;
+  source_type = skip_typerefs(source_type);
+  dest_type = skip_typerefs(dest_type);
 #if CHECKING
   if (!is_pointer_type(dest_type)) {
     internal_error("impl_pointer_conversion: dest_type is not pointer");
@@ -1996,6 +1998,12 @@ by the time they get here.
     /* This catches incomplete enums for completeness.  The caller probably
        ruled out incomplete types anyway. */
     /* okay = FALSE; -- already set. */
+  } else if (C_dialect == C_dialect_cplusplus &&
+             is_integral(source_type) && is_enum(dest_type)) {
+    /* In C++, integral --> enum can only be done by explicit conversion.
+       In C, it's allowed as an implicit conversion and therefore need not
+       be checked again here. */
+    okay = TRUE;
   } else if (is_pointer(source_type) && is_integral(dest_type) &&
              dest_of_ptr_cast_big_enough(source_type, dest_type)) {
     /* Pointer --> integral is okay if the integer is big enough. */
