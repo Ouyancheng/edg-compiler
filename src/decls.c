@@ -3442,10 +3442,8 @@ the symbol and its linkage (which is always "none").
         sym->variant.static_data_member.variable->specific_def = TRUE;
       }  /* if */
       srk_flags = SRK_DECLARATION | SRK_DEFINITION;
-      if (has_initializer) {
+      if (has_initializer || type_has_default_constructor(var->type)) {
         srk_flags |= SRK_INITIALIZATION;
-      } else if (type_has_default_constructor(var->type)) {
-        srk_flags |= SRK_INITIALIZATION | SRK_IMPLICIT;
       }  /* if */
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                 ssep);
@@ -5605,7 +5603,7 @@ continue_with_declaration:
           if (local_storage_class != (a_storage_class)sc_extern) {
             is_variable_def = TRUE;
             if (type_has_default_constructor(local_type_ptr)) {
-              srk_flags |= SRK_INITIALIZATION | SRK_IMPLICIT;
+              srk_flags |= SRK_INITIALIZATION;
             }  /* if */
           }  /* if */
         } else {
