@@ -856,6 +856,7 @@ Put out a scope kind name (for debugging).
     case sck_template_instantiation: s = "template instantiation";   break;
     case sck_pragma:		     s = "pragma";		     break;
     case sck_function_access:	     s = "function access";	     break;
+    case sck_condition:              s = "condition";                break;
     default:                         s = "***UNKNOWN SCOPE KIND***"; break;
   }  /* switch */
   fputs(s, f_debug);
@@ -7048,6 +7049,17 @@ specific version of the template.
         sp->depth_in_scope_stack = depth_scope_stack;
       }  /* if */
       break;
+    case sck_condition:
+      /* A C++ condition scope is only created when there is a declaration,
+         so we know an IL scope will be required. */
+      check_assertion_str(curr_il_region_number != FILE_SCOPE_REGION_NUMBER,
+                          "push_scope_full: bad region number for condition");
+      sp = alloc_scope((a_scope_kind)sck_condition, ssep->number,
+                       (a_routine_ptr)NULL);
+      ssep->il_memory_region = curr_il_region_number;
+      /* Add it to the scopes list for the enclosing scope. */
+      add_to_scopes_list(sp, ssep-1);
+      break;
     default:
       /* For scopes for which a new memory region is not begun, the associated
          memory region is the same as for the enclosing scope (there must be an
@@ -7394,7 +7406,8 @@ specific version of the template.
     }  /* if */
     if (kind == (a_scope_kind)sck_file ||
         kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_block) {
+        kind == (a_scope_kind)sck_block ||
+        kind == (a_scope_kind)sck_condition) {
       /* This is the sort of scope for which a new object lifetime is
          pushed. */
       push_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
@@ -8200,9 +8213,11 @@ End a name scope by popping an entry off the scope stack.
        file scope object lifetime yet, though, because we need it in IL
        lowering; see below */
     if (kind == (a_scope_kind)sck_block ||
-        kind == (a_scope_kind)sck_function) {
-      /* For a function or block scope, pop the current object lifetime, which
-         ought to be the one created when this scope was pushed. */
+        kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_condition) {
+      /* For a function, block, or condition scope, pop the current object
+         lifetime, which ought to be the one created when this scope was
+         pushed. */
       check_assertion_str2(curr_object_lifetime ==
                                           ssep->curr_scope_object_lifetime,
                            "pop_scope: unexpected curr_object_lifetime",
