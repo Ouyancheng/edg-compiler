@@ -4433,6 +4433,49 @@ an existing entry if possible.
 }  /* make_reference_type */
 
 
+static a_type_ptr copy_array_type_with_substitution(a_type_ptr  old_array,
+                                                    a_type_ptr  element_type)
+/*
+old_array is an array type that needs to be copied, but with a new element
+type (one that may, e.g., differ from the existing element type in its
+type qualifiers).  Make the copy, allowing for multidimensional arrays,
+and return a pointer to the new array type.
+*/
+{
+  a_type_ptr  tp, new_array = NULL, prev = NULL;
+
+  for (;;) {
+    /* Drop typedefs; there shouldn't be any typerefs. */
+    old_array = skip_typerefs(old_array);
+    /* Allocate a new array type and copy the old one into it.  Note that
+       some of the source correspondence information should not be preserved
+       in the copy. */
+    tp = alloc_type((a_type_kind)tk_array);
+    copy_type(old_array, tp);
+    break_source_corresp(&tp->source_corresp);
+    /* Either tp becomes the top of the new array type or is added on as
+       a subarray. */
+    if (new_array == NULL) {
+      new_array = tp;
+    } else {
+      prev->variant.array.element_type = tp;
+    }  /* if */
+    prev = tp;
+    /* Advance to the element type (which may also be an array type). */
+    old_array = old_array->variant.array.element_type;
+    if (is_array_type(old_array)) {
+      /* Keep looping -- the old element type was itself an array type. */
+    } else {
+      /* Done.  The new element type is attached to the bottom of the new
+         chain of array types. */
+      tp->variant.array.element_type = element_type;
+      break;
+    }  /* if */
+  }  /* for */
+  return new_array;
+}  /* copy_array_type_with_substitution */
+
+
 a_type_ptr make_qualified_type(a_type_ptr base_type,
                                a_boolean  is_const,
                                a_boolean  is_volatile)
@@ -4443,10 +4486,8 @@ an existing entry if possible.  The qualifiers are added only if
 they are not already present.
 */
 {
-  a_type_ptr        orig_base_type, ptr, prev_new_array, top_new_array;
-  a_type_ptr        old_array, new_array;
+  a_type_ptr        orig_base_type, ptr;
   a_based_type_kind kind;
-  a_boolean         base_type_const_qualified, base_type_volatile_qualified;
   a_boolean         set_const_qualified, set_volatile_qualified;
 
   orig_base_type = base_type;
@@ -4457,15 +4498,6 @@ they are not already present.
      to the ultimate element type.  This can only happen with typedefs,
      as in "typedef int A[2][3]; const A a;", which makes "a" an
      array of array of const int. */
-#if 0
-  while (is_array_type(base_type)) {
-    base_type = array_element_type(base_type);
-  }  /* while */
-  base_type_const_qualified    = is_const_qualified_type(base_type);
-  base_type_volatile_qualified = is_volatile_qualified_type(base_type);
-  set_const_qualified  = is_const && !base_type_const_qualified;
-  set_volatile_qualified = is_volatile && !base_type_volatile_qualified;
-#endif /* if 0 */
   set_const_qualified = is_const && !is_const_qualified_type(base_type);
   set_volatile_qualified =
                         is_volatile && !is_volatile_qualified_type(base_type);
@@ -4500,34 +4532,10 @@ they are not already present.
          to it in the based_types list. */
       add_based_type_list_member(base_type, kind, ptr);
     }  /* if */
-    /* For the strange array case, the array type entries must be
-       copied in order to avoid changing the typedef type. */
     if (base_type != orig_base_type) {
-      prev_new_array = NULL;
-      for (old_array = orig_base_type;
-           old_array != base_type;
-           old_array = old_array->variant.array.element_type) {
-        /* Drop typedefs; there shouldn't be any typerefs. */
-        old_array = skip_typerefs(old_array);
-#if CHECKING
-        if (old_array->kind != (a_type_kind)tk_array) {
-          internal_error("make_qualified_type: not array in loop");
-        }  /* if */
-#endif /* CHECKING */
-        new_array = alloc_type((a_type_kind)tk_array);
-        copy_type(old_array, new_array);
-        break_source_corresp(&new_array->source_corresp);
-        if (prev_new_array == NULL) {
-          top_new_array = new_array;
-        } else {
-          prev_new_array->variant.array.element_type = new_array;
-        }  /* if */
-        prev_new_array = new_array;
-      }  /* for */
-      /* The new qualified type is attached to the bottom of the new chain
-         of array types. */
-      prev_new_array->variant.array.element_type = ptr;
-      ptr = top_new_array;
+      /* For the strange array case, the array type entries must be
+         copied in order to avoid changing the typedef type. */
+      ptr = copy_array_type_with_substitution(orig_base_type, ptr);
     }  /* if */
   } else {
     /* No qualifiers to add, so return the original type. */
@@ -4580,12 +4588,18 @@ a_type_ptr make_unqualified_type(a_type_ptr type)
 Return a type that is the unqualified version of the type given by type.
 */
 {
+  a_type_ptr  element_type;
+
   /* Remove the minimum number of typerefs that will produce an unqualified
      type, in order to save typedefs if possible. */
-  while (is_top_level_qualified_type(type)) {
-    type = type->variant.typeref.type;
-  }  /* while */
-
+  if (C_mode() || !is_array_type(type)) {
+    while (is_top_level_qualified_type(type)) {
+      type = type->variant.typeref.type;
+    }  /* while */
+  } else if (type->kind == (a_type_kind)tk_typeref) {
+    element_type = make_unqualified_type(underlying_array_element_type(type));
+    type = copy_array_type_with_substitution(type, element_type);
+  }  /* if */
   return type;
 }  /* make_unqualified_type */
 
@@ -4609,10 +4623,10 @@ discarding typedefs.
   if (is_qualified_type(tp1) && is_qualified_type(tp2)) {
     /* Both types have type qualifiers.  Record exactly how they are
        qualified. */
-    type1_is_const = is_top_level_const_qualified_type(tp1);
-    type1_is_volatile = is_top_level_volatile_qualified_type(tp1);
-    type2_is_const = is_top_level_const_qualified_type(tp2);
-    type2_is_volatile = is_top_level_volatile_qualified_type(tp2);
+    type1_is_const = is_const_qualified_type(tp1);
+    type1_is_volatile = is_volatile_qualified_type(tp1);
+    type2_is_const = is_const_qualified_type(tp2);
+    type2_is_volatile = is_volatile_qualified_type(tp2);
     /* Strip off the qualifiers. */
     tp1 = skip_typerefs(tp1);
     tp2 = skip_typerefs(tp2);
