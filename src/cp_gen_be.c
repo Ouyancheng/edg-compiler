@@ -3294,8 +3294,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* C++ "->*" operator. */
           gen_ampersand(type_pointed_to(expr->type));
           write_tok_ch('(');
-          gen_expr_with_parens(operand_1);
-          write_tok_str("->*");
+          gen_lvalue(operand_1);
+          write_tok_str(".*");
           gen_expr_with_parens(operand_2);
           write_tok_ch(')');
           goto done_with_operation;
