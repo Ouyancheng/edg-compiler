@@ -1,5 +1,16 @@
 Version 3.4
 
+12/1/03  C++-generating back end: Function declarations using GNU typeof
+
+In GNU mode, the C++-generating back end incorrectly rendered some function
+declarations that used the GNU typeof construct.  For example:
+
+  void f();
+  typeof(f) g; // Previously rendered as: typeof(void(void)) g();
+               // Now corrected as: typeof(void(void)) g;
+
+This is now fixed.
+
 11/26/03 Exception handling cleanup in constructor/destructor function
          try blocks
 
