@@ -8357,9 +8357,14 @@ to be acceptable, and *conversion describes it.
        reference-to-const, but it's fabricated.  There's no real need to
        add "const" in the cases where the original object is bound to,
        so use the dest type with the original object cv-qualifiers. */
-    result_ptr_type = make_pointer_type(
+    if (skip_typerefs(base_dest_type) == skip_typerefs(orig_source_type)) {
+      /* Preserve a typedef from the original source type. */
+      result_ptr_type = make_pointer_type(orig_source_type);
+    } else {
+      result_ptr_type = make_pointer_type(
                             make_identically_qualified_type(base_dest_type,
                                                             orig_source_type));
+    }  /* if */
   }  /* if */
   operand_was_rvalue = is_an_rvalue(source_operand);
   if (is_error_operand(source_operand)) {
