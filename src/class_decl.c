@@ -862,14 +862,16 @@ Process the default argument expressions for the indicated class.
            It will be the innermost active namespace scope that is a parent
            of class_type. */
         scope_depth = scope_depth_for_class_ss_list(class_type);
-        /* Save the instantiation insert point in that scope (so it can be
-           restored later) and replace it with the source sequence entry for
-           the class, so that specializations will be inserted before the
-           class in the source sequence list. */
-        orig_insert_point =
+        if (scope_depth != NO_SCOPE_DEPTH) {
+          /* Save the instantiation insert point in that scope (so it can be
+             restored later) and replace it with the source sequence entry for
+             the class, so that specializations will be inserted before the
+             class in the source sequence list. */
+          orig_insert_point =
                  scope_stack[scope_depth].ss_list_instantiation_insert_point;
-        scope_stack[scope_depth].ss_list_instantiation_insert_point =
+          scope_stack[scope_depth].ss_list_instantiation_insert_point =
                            class_type->source_corresp.source_sequence_entry;
+        }  /* if */
         if (depth_innermost_namespace_scope != NO_SCOPE_DEPTH) {
           /* Reactivate the class (and the file-scope memory region). */
           push_class_and_template_reactivation_scope(
@@ -1233,12 +1235,13 @@ nested class.
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    insert_point = orig_insert_point = NULL;
     scope_depth = scope_depth_for_class_ss_list(class_type);
-    orig_insert_point = scope_stack[scope_depth].
+    if (scope_depth != NO_SCOPE_DEPTH) {
+      orig_insert_point = scope_stack[scope_depth].
                                         ss_list_instantiation_insert_point;
-    scope_stack[scope_depth].ss_list_instantiation_insert_point = NULL;
-    insert_point = NULL;
-
+      scope_stack[scope_depth].ss_list_instantiation_insert_point = NULL;
+    }  /* if */
     if (!class_type->source_corresp.is_local_to_function &&
         !is_nonreal_template_instantiation) {
       /* Temporarily remove source sequence entries, if any that have been
@@ -1256,7 +1259,8 @@ nested class.
       a_src_seq_end_of_construct_ptr  sseocp;
 
       /* Check the end of the source sequence list. */
-      if (class_type->source_corresp.source_sequence_entry != NULL) {
+      if (scope_depth != NO_SCOPE_DEPTH &&
+          class_type->source_corresp.source_sequence_entry != NULL) {
         /* Unless the last entry on the source sequence list is an
            end-of-construct entry that corresponds to the end of the
            definition of class_type, back up until it's found. */
@@ -1304,6 +1308,7 @@ nested class.
           tip = rfp->symbol->variant.routine.instance_ptr;
           check_assertion(tip != NULL && tip->partial_instantiation != NULL);
           ssep = tip->partial_instantiation;
+          check_assertion(scope_depth != NO_SCOPE_DEPTH);
           insert_src_seq_list(ssep, ssep, scope_depth, insert_point);
           rfp->symbol->variant.routine.ptr->
                          source_corresp.source_sequence_entry = ssep;
@@ -1345,23 +1350,6 @@ nested class.
              there is no reason to preserve the tokens for friend functions
              during prototype instantiation. */
           discard_token_cache(&rfp->function_body_token_cache);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-          if (!is_friend && !rfp->is_specialization &&
-               rfp->func_info.param_id_list != NULL) {
-            /* Be sure any source sequence entries created while scanning
-               the declaration of this function have been removed. */
-            a_param_id_ptr         pid = rfp->func_info.param_id_list;
-
-            for (; pid != NULL; pid = pid->next) {
-              if (pid->source_sequence_entry != NULL) {
-                check_assertion(ss_entry_kind(pid->source_sequence_entry) ==
-                                                  (an_il_entry_kind)iek_none);
-                remove_from_src_seq_list(pid->source_sequence_entry);
-                pid->source_sequence_entry = NULL;
-              }  /* if */
-            }  /* for */
-          }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode &&
                    is_real_template_instantiation && is_friend) {
@@ -1413,6 +1401,7 @@ nested class.
             add_to_source_sequence_list((char *)rp,
                                         (an_il_entry_kind)iek_routine);
             ssep = rp->source_corresp.source_sequence_entry;
+            check_assertion(scope_depth != NO_SCOPE_DEPTH);
             if (insert_point != NULL || scope_depth != depth_scope_stack) {
               f_move_src_seq_list(ssep, ssep, depth_scope_stack,
                                   insert_point, scope_depth);
@@ -1463,8 +1452,10 @@ nested class.
               pop_class_reactivation_scope();
               curr_scope_class_type = NULL;
             }  /* if  */
-            scope_stack[scope_depth].
+            if (scope_depth != NO_SCOPE_DEPTH) {
+              scope_stack[scope_depth].
                            ss_list_instantiation_insert_point = insert_point;
+            }  /* if */
           }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1481,9 +1472,11 @@ nested class.
     }  /* if  */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    /* Restore the insert-point state. */
-    scope_stack[scope_depth].
+    if (scope_depth != NO_SCOPE_DEPTH) {
+      /* Restore the insert-point state. */
+      scope_stack[scope_depth].
                   ss_list_instantiation_insert_point = orig_insert_point;
+    }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* The delayed scan fixup entries have been freed, so clear the
