@@ -43,10 +43,6 @@ typedef struct an_instance_lookup_entry {
 			   the instantiation list file.  This will typically
 			   be the mangled name of the function or static
 			   data member. */
-  a_byte_boolean
-		referenced_from_other_file;
-			/* TRUE if this name is referenced from a file other
-			   than the one currently being compiled. */
 } an_instance_lookup_entry;
 
 #define INSTANCE_LOOKUP_TABLE_SIZE 127
@@ -3433,7 +3429,7 @@ updated but not removed from the list.
 {
   a_symbol_ptr   sym;
 
-  if (value) {
+  if (value && (instantiation_mode != tim_can_instantiate)) {
     if (!tip->already_instantiated) {
       sym = tip->instance_sym;
       if (sym == tip->template_sym) {
@@ -3471,10 +3467,12 @@ updated but not removed from the list.
   } else {
     tip->instantiation_required = FALSE;
   }  /* if */
-  /* The entry is always added to the instantiations list because certain
-     entries for which instantiation is not required need to be processed
-     for automatic instantiation processing. */
-  add_to_instantiations_required_list(tip);
+  if (!in_instantiation_wrapup) {
+    /* The entry is always added to the instantiations list because certain
+       entries for which instantiation is not required need to be processed
+       for automatic instantiation processing. */
+    add_to_instantiations_required_list(tip);
+  }  /* if */
 }  /* update_instantiation_required_flag */
 
 
@@ -3522,7 +3520,6 @@ to it.
                                 alloc_fe(sizeof(an_instance_lookup_entry));
   ilp->next = NULL;
   ilp->name = NULL;
-  ilp->referenced_from_other_file = FALSE;
   return ilp;
 }  /* alloc_instance_lookup_entry */
 
@@ -3655,12 +3652,7 @@ were entered in the hash table; otherwise returns FALSE.
     /* The variable do_auto_instantiation indicates that an instantiation
        list file is present. */
     while ((line = read_info_file()) != NULL) {
-      /* The first character of the line is "0" if the name is not
-         referenced from outside of the current file or "1" if it
-         is referenced.  This is used later to determine whether the
-         instantiation is really needed. */
-      ilp = find_instance(&line[1], /*add=*/TRUE);
-      ilp->referenced_from_other_file = line[0] == '1';
+      ilp = find_instance(line, /*add=*/TRUE);
       result = TRUE;
     }  /* while */
   }  /* if */
@@ -3727,11 +3719,12 @@ is responsible for setting the appropriate flags.
   tip = instantiations_required;
   for (; tip != NULL; tip = tip->next_in_instantiation_list) {
     char	*name;
-    a_symbol_ptr	instance_sym = tip->instance_sym;
-    a_routine_ptr	routine;
-    a_variable_ptr	variable;
-    a_boolean		is_static_data_member;
-    a_boolean		can_instantiate;
+    a_symbol_ptr			instance_sym = tip->instance_sym;
+    a_routine_ptr			routine;
+    a_variable_ptr			variable;
+    a_boolean				is_static_data_member;
+    a_boolean				can_instantiate;
+    an_instance_lookup_entry_ptr	ilp = NULL;
 
 #if DEBUG
     if (debug_level >= 4) {
@@ -3750,7 +3743,6 @@ is responsible for setting the appropriate flags.
       routine = instance_sym->variant.routine.ptr;
     }  /* if */
     if (instantiations_needed && can_instantiate) {
-      an_instance_lookup_entry_ptr	ilp;
       /* If an instantiation list is present and if this template could
          be instantiated then check whether it was present in the
          instantiation list file. */
@@ -3760,16 +3752,17 @@ is responsible for setting the appropriate flags.
         name = get_mangled_function_name(routine);
       }  /* if */
       ilp = find_instance(name, /*add=*/FALSE);
-      if (ilp != NULL &&
-          (tip->instantiation_required || ilp->referenced_from_other_file)) {
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, " instantiation_required=%d\n",
+              tip->instantiation_required);
+      fprintf(f_debug, " explicit_can_instantiate=%d\n",
+              tip->explicit_can_instantiate);
+    }  /* if */
+#endif /* DEBUG */
+      if (ilp != NULL) {
         /* The name was in the instantiation list.  Generate an
-           instantiation.  An instantiation is generated if needed by this
-           file (as indicated by the instantiation_required flag) or if
-           needed by another file (as indicated by the flag read from the
-           instantiation list file).  If neither flag is set then suppress
-           the instantiation.  This would be the case when an instantiation
-           that was once needed by this file is no longer required because
-           the reference in this file was eliminated. */
+           instantiation. */
         if (is_static_data_member) {
           define_template_static_data_member(tip);
         } else {
@@ -3793,13 +3786,13 @@ is responsible for setting the appropriate flags.
       if (!tip->already_instantiated && !tip->specific_def) {
         variable->can_be_instantiated = can_instantiate;
       }  /* if */
-      variable->instance_required = !variable->can_be_instantiated;
+      variable->instance_required = tip->instantiation_required;
       variable->do_not_instantiate = tip->explicit_do_not_instantiate;
     } else {
       if (!tip->already_instantiated && !tip->specific_def) {
         routine->can_be_instantiated = can_instantiate;
       }  /* if */
-      routine->instance_required = !routine->can_be_instantiated;
+      routine->instance_required = tip->instantiation_required;
       routine->do_not_instantiate = tip->explicit_do_not_instantiate;
     }  /* if */
   }  /* for */
@@ -3855,6 +3848,10 @@ specific definition that made it unnecessary.
     }  /* if */
   }  /* for */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+  /* Reset the flag that indicates that we are doing instantiation wrapup
+     processing.  During automatic instantiation processing we once again
+     want entries added to the instantiation required list. */
+  in_instantiation_wrapup = FALSE;
   /* Do processing related to automatic instantiation processing. */
   automatic_instantiation();
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
