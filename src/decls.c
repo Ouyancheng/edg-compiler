@@ -349,15 +349,17 @@ error checking and type adjustments as required.
 }  /* check_and_adjust_parameter_type */
 
 
-a_boolean check_operator_arrow_return_type(a_routine_ptr      rout_ptr,
-                                           a_boolean          is_expr_use,
-                                           a_source_position  *error_pos)
+void check_operator_arrow_return_type(a_routine_ptr      rout_ptr,
+                                      a_boolean          is_expr_use,
+                                      a_source_position  *error_pos)
 /*
 rout_ptr points to the routine entry for an operator-> member function.
 is_expr_use is TRUE if this is a call of the function (possible only if
 it is a member of template class) and FALSE otherwise (i.e., if it is a
 declaration or a fixup of a previous declaration).  *error_pos is the
-source position for a diagnostic.
+source position for a diagnostic.  Check to be sure the return type is
+valid.  In a class template declaration, the check is postponed until a
+class is made.
 */
 {
   a_boolean                      err = FALSE;
@@ -440,7 +442,6 @@ source position for a diagnostic.
       rout_type->variant.routine.extra_info->value_returned_by_cctor = FALSE;
     }  /* if */
   }  /* if */
-  return !err;
 }  /* check_operator_arrow_return_type */
 
 
