@@ -935,6 +935,7 @@ ec_inheritance_kind_already_set;;"pointer-to-member representation has already b
 ec_bad_constructor_type;;"%t1 cannot be used to designate constructor for %t2"
 ec_bad_suffix;;"invalid suffix on integral constant"
 ec_uuidof_requires_uuid_class_type;;"operand of __uuidof must have a class type for which __declspec(uuid(\"...\")) has been specified"
+ec_bad_uuid_string;;"invalid GUID string in __declspec(uuid(\"...\"))"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

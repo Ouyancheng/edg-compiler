@@ -27,6 +27,74 @@ decl_spec.c -- Scanning of declaration specifiers.
 /* Additional header files. */
 #include "folding.h"
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static char *check_GUID_hex_digits(char      *str,
+                                   int       ndigits,
+                                   a_boolean *err)
+/*
+As part of checking a GUID string, check for ndigits hexadecimal digits
+beginning at str.  Set *err to TRUE if the digits do not appear.  Return str,
+advanced past the digits that do appear.
+*/
+{
+  for (; ndigits > 0; ndigits--, str++) {
+    if (!isxdigit((unsigned char)*str)) {
+      *err = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return str;
+}  /* check_GUID_hex_digits */
+
+
+static char *check_GUID_hyphen(char      *str,
+                               a_boolean *err)
+/*
+As part of checking a GUID string, check that *str is a hyphen character.
+If not, set *err to TRUE.  Return str, advanced past the hyphen if one is
+present.
+*/
+{
+  if (*str != '-') {
+    *err = TRUE;
+  } else {
+    str++;
+  }  /* if */
+  return str;
+}  /* check_GUID_hyphen */
+
+
+static a_boolean is_valid_GUID_string(char          *str,
+                                      a_targ_size_t length)
+/*
+Check the indicated string to see if it is a valid Microsoft GUID string.
+Such a string must have the form
+
+  hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+
+where "h" is a hex digit.  length is the length of the string (it is not
+necessarily null-terminated).
+*/
+{
+  char      *orig_str = str;
+  a_boolean err = FALSE;
+
+  str = check_GUID_hex_digits(str, 8, &err);
+  str = check_GUID_hyphen(str, &err);
+  str = check_GUID_hex_digits(str, 4, &err);
+  str = check_GUID_hyphen(str, &err);
+  str = check_GUID_hex_digits(str, 4, &err);
+  str = check_GUID_hyphen(str, &err);
+  str = check_GUID_hex_digits(str, 4, &err);
+  str = check_GUID_hyphen(str, &err);
+  str = check_GUID_hex_digits(str, 12, &err);
+  /* Check that the string ends at the right place. */
+  if (str != orig_str+length) err = TRUE;
+  return !err;
+}  /* is_valid_GUID_string */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 void scan_microsoft_extended_decl_modifiers(
@@ -165,12 +233,33 @@ keyword (or a memory attribute keyword).
                 if (required_token(tok_lparen, ec_exp_lparen)) {
                   if (curr_token != tok_string_literal) {
                     /* Error. */
+                    syntax_error(ec_bad_uuid_string);
                   } else {
-                    char *str = const_for_curr_token.variant.string.value;
+                    char          *str =
+                                     const_for_curr_token.variant.string.value;
+                    a_targ_size_t length = /* Without null. */
+                                  const_for_curr_token.variant.string.length-1;
+
+                    if (*str == '{') {
+                      /* Has surrounding braces. */
+                      /* Check for matching closing brace. */
+                      if (str[length-1] != '}') {
+                        error(ec_bad_uuid_string);
+                        goto end_of_uuid_string;
+                      }  /* if */
+                      str++;
+                      length -= 2;
+                    }  /* if */
                     /* Do error checking on the string. */
-                    decl_modifiers->uuid_string = alloc_il((sizeof_t)
-                                   const_for_curr_token.variant.string.length);
-                    (void)strcpy(decl_modifiers->uuid_string, str);
+                    if (is_valid_GUID_string(str, length)) {
+                      decl_modifiers->uuid_string=alloc_il((sizeof_t)length+1);
+                      (void)memcpy(decl_modifiers->uuid_string, str,
+                                   size_t_arg(length));
+                      decl_modifiers->uuid_string[length] = '\0';
+                    } else {
+                      error(ec_bad_uuid_string);
+                    }  /* if */
+end_of_uuid_string:
                     (void)get_token();
                   }  /* if */
                   (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
@@ -1527,7 +1616,8 @@ the template.
     }  /* if */
     if (decl_modifiers.uuid_string != NULL) {
       if (ctsp->uuid_string != NULL) {
-        /* Issue an error if they aren't identical. */
+        /* Issue an error if __declspec(uuid(...)) strings are present and
+           they aren't identical. */
         if (strcmp(ctsp->uuid_string, decl_modifiers.uuid_string) != 0) {
           pos_diagnostic(es_discretionary_error,
                          ec_decl_modifiers_incompatible_with_previous_decl,
