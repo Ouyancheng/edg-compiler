@@ -2404,7 +2404,7 @@ static void give_unnamed_namespace_a_name(a_namespace_ptr nsp)
 If the indicated namespace is unnamed, give it a name.
 */
 {
-  char     *name;
+  char     *name, *prefix;
   sizeof_t name_len;
 
   /* Note that we may be changing a namespace that is not being lowered yet,
@@ -2448,15 +2448,16 @@ If the indicated namespace is unnamed, give it a name.
         check_assertion(module_id != NULL);
       }  /* if */
     }  /* if */
-    name_len = 3 + strlen(module_id) + 1;
-    name = alloc_lowered_name_string(name_len);
 #if IA64_ABI
     /* g++ uses "_GLOBAL__N_" and recognizes that in its demangler. */
-    (void)strcpy(name, "_GLOBAL__N_");
+    prefix = "_GLOBAL__N_";
 #else /* !IA64_ABI */
-    (void)strcpy(name, "__N");
+    prefix = "__N";
 #endif /* IA64_ABI */
-    (void)strcpy(name+strlen(name), module_id);
+    name_len = strlen(prefix) + strlen(module_id) + 1;
+    name = alloc_lowered_name_string(name_len);
+    (void)strcpy(name, prefix);
+    (void)strcpy(name+strlen(prefix), module_id);
     nsp->source_corresp.name = name;
     nsp->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
