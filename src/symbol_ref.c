@@ -1228,13 +1228,16 @@ created for this entity; otherwise, it is NULL.
              instantiations that are inserted in front of the class; if
              there is no insertion, the entry will be removed eventually. */
           a_boolean                     add_secondary_decl;
-          a_type_ptr                    class_type;
+          a_type_ptr                    class_type = type_symbol_type(sym_ptr);
           an_il_entry_kind              kind;
           a_class_type_supplement_ptr   parent_ctsp;
           a_src_seq_secondary_decl_ptr  sssdp;
 
-          if (scptr->is_local_to_function) {
-            /* Can't be done for local functions. */
+          if (scptr->is_local_to_function ||
+              class_type->variant.class_struct_union.originally_unnamed) {
+            /* Can't be done for local functions.  It cannot be done for
+               classes that got their name through a typedef either because
+               the following is not legal: struct X; typedef struct {} X; */
             add_secondary_decl = FALSE;
           } else if (!scptr->is_class_member) {
             /* Okay for all classes that aren't nested. */
@@ -1249,7 +1252,6 @@ created for this entity; otherwise, it is NULL.
                                      depth_in_scope_stack == NO_SCOPE_DEPTH);
           }  /* if */
           if (add_secondary_decl) {
-            class_type = sym_ptr->variant.class_struct_union.type;
             kind = (an_il_entry_kind)iek_type;
             sssdp = make_source_sequence_secondary_decl((char *)class_type,
                                                         kind, class_type);
