@@ -1583,11 +1583,13 @@ grcontext is a local variable used to save state for later restoration.
   grcontext->curr_cleanup_region_number = curr_cleanup_region_number;
   grcontext->nearest_function_scope = nearest_function_scope;
   nearest_function_scope = scope;
+  { an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
+    curr_object_lifetime = il_header.primary_scope->lifetime;
+    push_object_lifetime(iek_scope, (char *)(scope),
+                         (an_object_lifetime_kind)olk_block);
+    curr_object_lifetime = saved_curr_object_lifetime;
+  }
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
-  curr_object_lifetime = il_header.primary_scope->lifetime;
-  push_object_lifetime(iek_scope, (char *)(scope),
-                       (an_object_lifetime_kind)olk_block);
-  curr_context->lifetime = curr_object_lifetime;
 }  /* push_generated_routine_context */
 
 
@@ -1599,11 +1601,14 @@ static void pop_generated_routine_context(
 Pop function corresponding to push_generated_routine_context.
 */
 {
-  pop_object_lifetime();
-  /* Note that the pop_context call restore the proper previous value of
-     curr_object_lifetime, ignoring the value established after the
-     pop_object_lifetime call. */
   pop_context();
+  /* Restore and pop the lifetime attached to the scope so that it can be
+     deleted if it is empty. */
+  { an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
+    curr_object_lifetime = scope->lifetime;
+    pop_object_lifetime();
+    curr_object_lifetime = saved_curr_object_lifetime;
+  }
   clean_up_all_object_lifetimes(scope);
   nearest_function_scope = grcontext->nearest_function_scope;
   curr_cleanup_region_number = grcontext->curr_cleanup_region_number;

@@ -440,16 +440,19 @@ scope, or the lifetime from the parent context, will be used.
   context->lifetime = lifetime;
   context->new_lifetime = new_lifetime;
   /* If this context begins a new object lifetime, set curr_object_lifetime.
-     Also save the old value for restoration by pop_context.  Likewise for
+     Also save the old value for restoration by pop_context.  Likewise save
      curr_cleanup_region_number. */
   if (new_lifetime) {
-    if (parent_context != NULL) {
-      parent_context->lifetime = curr_object_lifetime;
-      parent_context->curr_cleanup_region_number = curr_cleanup_region_number;
-    }  /* if */
+    context->saved_curr_object_lifetime = curr_object_lifetime;
+    context->saved_curr_cleanup_region_number = curr_cleanup_region_number;
     curr_object_lifetime = lifetime;
+#if CHECKING
+  } else {
+    /* Clear entries to be neat, even though they are not used. */
+    context->saved_curr_object_lifetime = NULL;
+    context->saved_curr_cleanup_region_number = NULL;
+#endif /* CHECKING */
   }  /* if */
-  context->curr_cleanup_region_number = null_eh_region_number; /* Arbitrary. */
   /* The destructions list starts at NULL for a new object lifetime, or is
      inherited from the parent if there is no new object lifetime. */
   context->destructions = NULL;
@@ -466,24 +469,21 @@ void pop_context(void)
 Pop an entry off the context stack.
 */
 {
-  a_context_ptr parent_context = curr_context->parent;
+  a_context_ptr context = curr_context, parent_context = context->parent;
 
-  if (curr_context->new_lifetime) {
+  if (context->new_lifetime) {
     /* This context has its own object lifetime, so curr_object_lifetime
-       is reset on returning to the parent.  Likewise
-       curr_cleanup_region_number. */
-    if (parent_context != NULL) {
-      curr_object_lifetime = parent_context->lifetime;
-      curr_cleanup_region_number = parent_context->curr_cleanup_region_number;
-    } else {
-      curr_object_lifetime = NULL;
-      curr_cleanup_region_number = null_eh_region_number; /* Arbitrary. */
-    }  /* if */
+       and curr_cleanup_region_number are restored to what they were
+       at push_context time. */
+    curr_object_lifetime = context->saved_curr_object_lifetime;
+    curr_cleanup_region_number = context->saved_curr_cleanup_region_number;
   } else {
     /* This context does not have its own object lifetime, so the
        destructions pointer is propagated up to the parent (it's
        lifetime-related). */
-    parent_context->destructions = curr_context->destructions;
+    if (parent_context != NULL) {
+      parent_context->destructions = context->destructions;
+    }  /* if */
   }  /* if */
   /* Pop to the surrounding context. */
   curr_context = parent_context;

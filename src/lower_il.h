@@ -277,8 +277,7 @@ typedef struct a_context {
 			   If the context doesn't define a lifetime, the
 			   lifetime is inherited from the parent.  NULL
 			   only if there are no lifetimes at all, all
-			   the way up.  Used to save/restore
-			   curr_object_lifetime over a push/pop_context. */
+			   the way up. */
   a_byte_boolean
 		new_lifetime;
 			/* TRUE if this context entry defines a new object
@@ -289,8 +288,13 @@ typedef struct a_context {
 			/* The current position in the destructions list
 			   of the lifetime, i.e., the latest encountered
 			   dynamic initialization requiring destruction. */
+  an_object_lifetime_ptr
+		saved_curr_object_lifetime;
+			/* Used to save/restore the global variable
+			   curr_object_lifetime over push_context/
+			   pop_context. */
   a_cleanup_region_number
-		curr_cleanup_region_number;
+		saved_curr_cleanup_region_number;
 			/* Used to save/restore the global variable
 			   curr_cleanup_region_number over push_context/
 			   pop_context. */
