@@ -1,0 +1,49 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+lower_name.h -- Declarations related to lower_name.c (name mangling for
+                IL lowering).
+
+*/
+
+/* Avoid including these declarations more than once: */
+#ifndef LOWER_NAME_H
+#define LOWER_NAME_H 1
+
+#ifndef IL_H
+#include "il.h"
+#endif /* ifndef IL_H */
+
+extern sizeof_t mangled_basic_class_name(a_type_ptr type,
+                                         char       *store_at);
+
+extern sizeof_t mangled_vtbl_name(a_type_ptr       class_type,
+                                  a_base_class_ptr bcp,
+                                  char             *store_at);
+
+extern void mangle_promoted_entity_name(a_source_correspondence *scp,
+                                        a_routine_ptr           routine);
+
+extern void do_memory_region_name_mangling(a_scope_ptr scope);
+
+extern void name_lower_init(void);
+
+#endif /* ifndef LOWER_NAME_H */
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
