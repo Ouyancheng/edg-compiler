@@ -1127,6 +1127,9 @@ the file scope.  If it is a local class or non-real, return NO_SCOPE_DEPTH.
   a_namespace_ptr                nsp;
   a_scope_depth                  scope_depth = NO_SCOPE_DEPTH;
   a_class_symbol_supplement_ptr  cssp;
+#if EXPENSIVE_CHECKING
+  a_type_ptr                     orig_class_type = class_type;
+#endif /* EXPENSIVE_CHECKING */
 
   if (!class_type->source_corresp.is_local_to_function &&
       !(cssp = symbol_supplement_for_class(class_type))->is_nonreal_class) {
@@ -1149,31 +1152,32 @@ the file scope.  If it is a local class or non-real, return NO_SCOPE_DEPTH.
        not (i.e., if its scope was popped), the associated source sequence
        entries will have migrated to a containing namespace scope or out to
        the file scope.  Find the innermost currently active namespace. */
-    for (;;) {
-      if (nsp != NULL) {
-        nsp = skip_namespace_aliases(nsp);
-        scope_depth = nsp->variant.assoc_scope->depth_in_scope_stack;
-        if (scope_depth != NO_SCOPE_DEPTH &&
-            (scope_stack[scope_depth].kind == (a_scope_kind)sck_namespace ||
-             scope_stack[scope_depth].
-                                 explicitly_declared_namespace_extension)) {
+    if (nsp == NULL) {
+      scope_depth = DEPTH_OF_FILE_SCOPE;
+    } else {
+      nsp = skip_namespace_aliases(nsp);
+      scope_depth = nsp->variant.assoc_scope->depth_in_scope_stack;
+      if (scope_depth == NO_SCOPE_DEPTH) {
+        /* nsp is no longer active on the stack.  Use the innermost enclosing
+           namespace. */
+        scope_depth = depth_innermost_namespace_scope;
+      }  /* if */
+      while (scope_depth != DEPTH_OF_FILE_SCOPE) {
+        if (scope_stack[scope_depth].kind == (a_scope_kind)sck_namespace ||
+            scope_stack[scope_depth].explicitly_declared_namespace_extension) {
           /* Found a currently active namespace scope among the namespace
              parents of class_type.  Note that namespace extension scopes
              qualify as "active" only when they correspond to an explicit
              extension-namespace-definition (7.3.1). */
           break;
         } else {
-          /* nsp is no longer active on the stack.  Advance to the enclosing
+          /* Must not be an active namespace scope.  Advance to the enclosing
              namespace. */
-          nsp = nsp->source_corresp.parent.namespace_ptr;
+          scope_depth = scope_stack[scope_depth-1].
+                                           depth_innermost_namespace_scope;
         }  /* if */
-      } else {
-        /* No currently active parent namespace, so return the depth of
-           the file scope. */
-        scope_depth = DEPTH_OF_FILE_SCOPE;
-        break;
-      }  /* if */
-    }  /* for */
+      }  /* while */
+    }  /* if */
 #if EXPENSIVE_CHECKING
     /* Verify that the source sequence entry for class_type really is on the
        list at the inferred scope depth. */
@@ -1181,7 +1185,7 @@ the file scope.  If it is a local class or non-real, return NO_SCOPE_DEPTH.
       for (ssep = scope_stack[scope_depth].source_sequence_list;
            ssep != NULL;
            ssep = ssep->next) {
-        if (ss_entry_ptr(ssep, a_type_ptr) == class_type) break;
+        if (ss_entry_ptr(ssep, a_type_ptr) == orig_class_type) break;
       }  /* for */
       check_assertion(ssep != NULL);
     }

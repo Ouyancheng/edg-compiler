@@ -1,5 +1,23 @@
 Version 2.42
 
+4/16/99  Source sequence lists: internal error in default argument fixup
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was TRUE,
+an internal could appear during default argument processing of member
+functions of a compiler-generated class template specialization; now
+fixed.  A complex set of conditions was required to expose the bug, e.g.:
+
+  namespace N {
+    template <class T> struct A { void f(int=0); };
+    template <class T> struct B { T t; };
+    template <class T> struct C { inline ~C(); };
+    C<A<char> > x;
+    template <class T> inline C<T>::~C() { B<T> b; }
+  }
+  namespace M {
+    N::C<N::A<char> > y;    // Internal error fixed
+  }
+
 4/15/99  IL lowering: internal error in lower_il.c (promotion of local types)
 
 A problem in IL lowering could cause an internal error in lower_il.c
