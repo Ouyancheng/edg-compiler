@@ -2608,6 +2608,8 @@ fields, and return a pointer to it.
   hnp->entity.ptr                       = NULL;
   hnp->qualification_needed             = FALSE;
   hnp->elaborated_type_specifier_needed = FALSE;
+  hnp->partially_hidden_by_microsoft_injected_class_name
+                                        = FALSE;
 #if CHECKING
   hnp->avoid_codecenter_warnings        = 0;
 #endif /* CHECKING */

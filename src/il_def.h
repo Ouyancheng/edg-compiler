@@ -7124,6 +7124,11 @@ typedef struct a_hidden_name {
 			   name is redeclared by a nontype declaration in the
 			   current scope, so that the hiding can be defeated
 			   by using an elaborated type specifier. */
+  a_bit_field	partially_hidden_by_microsoft_injected_class_name:1;
+			/* Used in Microsoft mode only.  Microsoft only sees
+			   injected class names when doing qualified lookup.
+			   However, they do not allow qualification with a
+			   class whose closing brace has not yet been seen. */
   bitfield_to_avoid_codecenter_warnings()
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */

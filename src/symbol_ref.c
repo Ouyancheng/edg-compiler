@@ -366,6 +366,18 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
           hnp->elaborated_type_specifier_needed = TRUE;
         }  /* if */
         if (hidden_class_or_namespace_member) {
+          a_symbol_ptr  fund_hiding_sym = fundamental_symbol_of(hidden_by);
+
+          if (microsoft_mode &&
+              fund_hiding_sym->kind == (a_symbol_kind)sk_type &&
+              fund_hiding_sym->variant.type.is_injected_class_name) {
+            /* In Microsoft compilers an injected class name is only visible
+               through qualified lookup.  Furthermore, Microsoft does not
+               accept (redundant) qualification with a class whose closing
+               brace has not yet been seen.  Setting the following flag
+               notifies consumers of this special "partial hiding" case. */
+            hnp->partially_hidden_by_microsoft_injected_class_name = TRUE;
+          }  /* if */
           check_assertion(in_file_scope(entity));
           hnp->qualification_needed = TRUE;
         }  /* if */
