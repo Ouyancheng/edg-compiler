@@ -1,5 +1,17 @@
 Version 2.43
 
+9/27/99  Spurious error when a preprocessing directive appears in
+         a qualified name
+
+An optimization used in a lookahead to determine if a given name is
+part of a qualified name did not work properly if a preprocessing
+directive appeared in the middle of the qualified name.  Now fixed.
+
+  struct A { void f(); };
+  void A
+  #line 3
+  ::f() {}
+
 9/27/99  Support for long long size_t and ptrdiff_t
 
 The front end did not work properly when configured to have "long" be
