@@ -855,7 +855,7 @@ then
         if [ $driver_debug -ne 0 ] ; then
           echo $command
         fi
-        $command
+        eval $command
       fi
 #
 #     When the --prelink_copy_if_nonlocal option is used, the prelinker outputs
