@@ -6331,6 +6331,8 @@ One-time initialization for statements.c static variables.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  register_trans_unit_variable(control_flow_descr_list);
+  register_trans_unit_variable(end_of_control_flow_descr_list);
   register_trans_unit_variable(struct_stmt_stack);
   register_trans_unit_variable(depth_stmt_stack);
   register_trans_unit_variable(struct_stmt_stack_container);
