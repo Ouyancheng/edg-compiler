@@ -6446,6 +6446,21 @@ type being declared.
 }  /* remove_any_inherited_type_synonym */
 
 
+static void set_name_linkage_for_enumerators(a_type_ptr  tp)
+/*
+The given type should be an enumeration type.  This routine ensures its
+associated enumerator constants are assigned the same name linkage as the
+type itself.
+*/
+{
+  a_constant_ptr  enumerator = tp->variant.integer.enum_info.constant_list;
+
+  for (; enumerator != NULL; enumerator = enumerator->next) {
+    enumerator->source_corresp.name_linkage = tp->source_corresp.name_linkage;
+  }  /* for */
+}  /* if */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -6591,9 +6606,10 @@ return a pointer to it in *symbol_ptr.
        typedef name will serve as the "name for linkage purposes" (WP 7.1.3
        [dcl.typedef]).  If so, set the name pointer in the type entry to
        point to the same name as the current typedef name. */
+    a_boolean  is_class_or_enum = is_immediate_class_type(type_ptr) ||
+                                  is_immediate_enum_type(type_ptr);
     tp = NULL;
-    if (is_immediate_class_type(type_ptr) ||
-        is_immediate_enum_type(type_ptr)) {
+    if (is_class_or_enum) {
       if (type_ptr->source_corresp.name == NULL) {
         /* A class/struct/union or enum type with no name. */
         tp = type_ptr;
@@ -6655,11 +6671,18 @@ return a pointer to it in *symbol_ptr.
            reenter the symbol into the symbol table; this keeps the typedef
            name from being used in an elaborated type specifier (7.1.3 para 5,
            9.1 para 5). */
-        if (tp->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none) {
+        if (is_class_or_enum) {
             /* Note that in non-cfront mode this is done only for types that
                actually do have linkage. */
           tp->source_corresp.name = locator->symbol_header->identifier;
         }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Recompute the name linkage. */
+    if (is_class_or_enum) {
+      set_name_linkage_for_type(tp);
+      if (is_immediate_enum_type(tp)) {
+        set_name_linkage_for_enumerators(tp);
       }  /* if */
     }  /* if */
   }  /* if */

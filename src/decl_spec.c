@@ -1376,7 +1376,7 @@ done:
 }  /* scan_tag_name */
 
 
-static void set_name_linkage_for_type(a_type_ptr  tp)
+void set_name_linkage_for_type(a_type_ptr  tp)
 /*
 Set the name_linkage field of the class or enum type pointed to by tp.
 */
@@ -1384,7 +1384,11 @@ Set the name_linkage field of the class or enum type pointed to by tp.
   a_source_correspondence  *scp = &tp->source_corresp;
 
   check_assertion(is_immediate_class_type(tp) || is_immediate_enum_type(tp));
-  if (scp->is_class_member) {
+  if (!has_name(tp)) {
+    /* Name linkage requires a name.  (Note that this can change if the type
+       acquires a name through a typedef declaration.) */
+    scp->name_linkage = (a_name_linkage_kind)nlk_none;
+  } else if (scp->is_class_member) {
     /* A nested class or enum has the same linkage as the class of which it
        is a member. */
     scp->name_linkage = scp->parent.class_type->source_corresp.name_linkage;
@@ -3040,6 +3044,8 @@ to indicate whether an enumeration is actually defined.
            was current upon entry. */
         switch_back_to_original_region(region_to_switch_back_to);
         set_source_corresp(&(enum_con->source_corresp), enum_sym);
+        enum_con->source_corresp.name_linkage =
+                                       enum_type->source_corresp.name_linkage;
         enum_sym->variant.constant = enum_con;
         if (C_mode()) {
           enum_con->type = enum_con_type;

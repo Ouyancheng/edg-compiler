@@ -84,6 +84,8 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
                                  a_decl_modifiers_block_ptr  decl_modifiers,
                                  a_decl_pos_block_ptr        decl_pos_block);
 
+extern void set_name_linkage_for_type(a_type_ptr  tp);
+
 extern void decl_spec_one_time_init(void);
 
 /* Constants defining bits in the input bit vector used in calls to

@@ -850,6 +850,34 @@ is in fact valid.
 }  /* verify_constant_correspondence */
 
 
+static void check_for_enumerator_conflicts(a_type_ptr  type)
+/*
+Check whether the enumerators attached to the given enum type conflict with
+other entities.
+*/
+{
+  check_assertion(is_immediate_enum_type(type));
+  if (!type->source_corresp.is_class_member) {
+    a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list;
+    for (; enumerator != NULL; enumerator = enumerator->next) {
+      a_symbol_ptr  enum_sym = (a_symbol_ptr)enumerator
+                                                   ->source_corresp.assoc_info,
+                    sym = enum_sym->header->inactive_symbols;
+      /* Look through the symbol table for any entities with linkage that may
+         conflict with an enumerator. */
+      for (; sym != NULL; sym = sym->next) {
+        if (sym->decl_scope != enum_sym->decl_scope &&
+            may_have_correspondence(sym) &&
+            same_parents(sym, enum_sym)) {
+          f_report_bad_trans_unit_corresp((char*)enumerator,
+                                          &sym->decl_position);
+        }  /* if */
+      }  /* for */
+    }  /* for */
+  }
+}  /* check_for_enumerator_conflicts */
+
+
 static a_boolean verify_enum_type_correspondence(a_type_ptr  type)
 /*
 Check that the recorded translation unit correspondence for the given enum
@@ -1203,6 +1231,9 @@ is in fact valid.
   if (!has_correspondence(type)) {
     match = TRUE;
     set_no_trans_unit_corresp(type);
+    if (is_immediate_enum_type(type)) {
+      check_for_enumerator_conflicts(type);
+    }  /* if */
   } else if (type_sym == NULL) {
     /* This must be a placeholder type. */
     check_assertion(
@@ -1700,7 +1731,10 @@ unit correspondence pointer if one is found.
             establish_trans_unit_correspondences_for_enum(type);
           }  /* if */
           break;
-        } else if (is_tag_symbol(sym) && is_tag_symbol(type_sym)) {
+        } else if (!is_tag_symbol(type_sym) ||
+                   (is_type_symbol(sym) ||
+                    is_template_symbol(sym) ||
+                    is_namespace_symbol(sym))) {
           /* Not a match, but record the correspondence so that the error
              reporting code knows which entity conflicts. */
           a_type_ptr  corresp_type = type_symbol_type(sym);
