@@ -8610,13 +8610,33 @@ following the member declaration.
           /* Look for a pure specifier ("= 0"), which may appear on virtual
              functions. */
           scan_pure_specifier(rout_sym, class_type, &decl_info);
-        } else if (!friend_specified && class_state->is_local_class) {
-          /* A member function declared in a local class definition (which is
-             the current case) must be defined within the class definition
-             if it is used.  If this is a virtual function, issue the error
-             here; otherwise, issue the error when it is referenced. */
+        } else if (!friend_specified) {
           if (rout_sym->variant.routine.ptr->is_virtual) {
-            sym_error(ec_local_class_function_def_missing, rout_sym);
+            /* Virtual member function. */
+            if (class_state->is_local_class) {
+              /* A member function declared in a local class definition
+                 (which is the current case) must be defined within the class
+                 definition if it is used -- virtual functions are assumed to
+                 be used (e.g., because an address is needed for a vtbl).
+                 (For a non-virtual function we issue the error when it is
+                 referenced.) */
+              sym_error(ec_local_class_function_def_missing, rout_sym);
+            } else {
+              /* An undefined virtual member function in an unnamed class (or
+                 in a named class that is nested in an unnamed class) cannot
+                 be defined later (there's no way to name it), so issue an
+                 error. */
+              a_type_ptr  tp = class_type;
+              for (;;) {
+                if (tp->variant.class_struct_union.originally_unnamed) {
+                  sym_error(ec_unnamed_class_virtual_function_def_missing,
+                            rout_sym);
+                  break;
+                }  /* if */
+                if (!tp->source_corresp.is_class_member) break;
+                tp = tp->source_corresp.parent.class_type;
+              }  /* for */
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
