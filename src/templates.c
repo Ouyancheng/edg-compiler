@@ -7492,6 +7492,8 @@ access errors that were detected.
 	 			saved_instantiation_mode = instantiation_mode;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
 
+  /* Pragmas cannot bind to explicit instantiations. */
+  cannot_bind_to_curr_construct();
   add_stop_token(tok_semicolon);
   if (ssep->kind != (a_scope_kind)sck_file &&
       ssep->kind != (a_scope_kind)sck_namespace &&
