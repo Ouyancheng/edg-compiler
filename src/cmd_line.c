@@ -778,6 +778,9 @@ Initialize the option information table.
                          "no_nonstd_using_decl",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_system_include_dir, "sys_include", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1563,6 +1566,7 @@ common_cfront_mode_settings:
         suppress_used_before_set_warnings = TRUE;
         break;
       case optk_include_directory:
+      case optk_system_include_dir:
         /* Include file directory, add to list. */
         if (*opt_arg == '-') {
           /* -I- marks the dividing line between directories for "..."
@@ -1573,7 +1577,7 @@ common_cfront_mode_settings:
           put_dir_of_each_opened_source_file_on_incl_search_path = FALSE;
         } else {
           /* Normal -I directive. */
-          add_to_include_search_path(opt_arg);
+          add_to_include_search_path(opt_arg, kind == optk_system_include_dir);
         }  /* if */
         break;
       case optk_preinclude:

@@ -1639,25 +1639,28 @@ valid only with certain configurations.
 
 
 /* Push a file onto the input stack. */
-extern void open_file_and_push_input_stack (char      *file_name,
-                                            a_boolean use_search_path,
-                                            a_boolean is_include_file,
-                                            a_boolean is_system_include,
-                                            a_boolean is_preinclude);
-extern FILE *open_file_for_input(char      *file_name,
+extern void open_file_and_push_input_stack(char      *file_name,
+                                           a_boolean use_search_path,
+                                           a_boolean is_include_file,
+                                           a_boolean is_system_include,
+                                           a_boolean is_preinclude);
+extern FILE *open_file_for_input(char     *file_name,
                                  a_boolean use_search_path,
                                  a_boolean is_system_include,
                                  a_boolean replace_suffix,
                                  char      **full_file_name,
-                                 char      **display_name);
-extern void push_input_stack (FILE      		  *new_input_file,
-                              char      		  *name_as_written,
-                              char      		  *display_name,
-                              char     			  *full_file_name,
-			      a_boolean                   is_include_file,
-			      a_boolean                   is_system_include,
-                              a_boolean                   is_preinclude,
-			      an_include_file_history_ptr ifhp);
+                                 char      **display_name,
+				 a_boolean *from_system_include_dir);
+extern void push_input_stack(
+			FILE			    *new_input_file,
+                        char			    *name_as_written,
+                        char			    *display_name,
+                        char     		    *full_file_name,
+			a_boolean                   is_include_file,
+			a_boolean                   is_system_include,
+                        a_boolean                   is_preinclude,
+			a_boolean		    from_system_include_dir,
+			an_include_file_history_ptr ifhp);
 
 extern void pop_input_stack(void);
 

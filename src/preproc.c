@@ -1054,7 +1054,9 @@ may have extra operand at end).
                                 (a_boolean)actual_sfp->is_include_file,
                                 (a_boolean)actual_sfp->
                                                    included_by_system_include,
-                                (a_boolean)actual_sfp->included_by_preinclude);
+                                (a_boolean)actual_sfp->included_by_preinclude,
+                                (a_boolean)actual_sfp->
+                                                      from_system_include_dir);
   }
   if (generate_pp_output) {
     /* Generate the line-identifying directive if necessary for preprocessing

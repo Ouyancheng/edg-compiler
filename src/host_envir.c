@@ -359,21 +359,26 @@ The space is allocated in general (not IL or FE) memory.
     avail_directory_name_entries = avail_directory_name_entries->next;
   }  /* if */
   entry_ptr->dir_name = NULL;
+  entry_ptr->system_include_dir = FALSE;
   entry_ptr->next     = NULL;
   return (entry_ptr);
 }  /* alloc_directory_name_entry */
 
 
-void add_to_include_search_path(char *dir_name)
+void add_to_include_search_path(char		*dir_name,
+				a_boolean	system_include_dir)
 /*
 Add the indicated directory to the end of the include file search
-path.  The directory name string should be allocated in general memory.
+path.  If system_include_dir is TRUE the directory should be marked as
+a "system" include directory.  The directory name string should be
+allocated in general memory.
 */
 {
   a_directory_name_entry_ptr new_search_path;
 
   new_search_path = alloc_directory_name_entry();
   new_search_path->dir_name = dir_name;
+  new_search_path->system_include_dir = system_include_dir;
   new_search_path->next     = NULL;
   if (incl_search_path == NULL) {
     incl_search_path = new_search_path;
@@ -417,7 +422,7 @@ include files to the end of the search path lists.
   /* Add the default directory to the end of the normal search path. */
   usr_include = getenv("USR_INCLUDE");
   if (usr_include == NULL) usr_include = DEFAULT_USR_INCLUDE;
-  add_to_include_search_path(usr_include);
+  add_to_include_search_path(usr_include, /*system_include_dir=*/TRUE);
 #endif /* NO_USR_INCLUDE */
 #if __VMS__
   /* For VMS, add the current directory to the search path. */

@@ -163,6 +163,11 @@ typedef struct a_source_file {
   a_bit_field	included_by_preinclude:1;
 			/* TRUE if this is a file that was included using the
 			   --preinclude command-line option. */
+  a_bit_field	from_system_include_dir:1;
+			/* TRUE if this source file was found in an include
+			   directory marked as a "system" include directory.
+			   Warnings are suppressed when processing system
+			   include directories. */
 } a_source_file;
 
 /*

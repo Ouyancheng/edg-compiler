@@ -592,6 +592,9 @@ Display a_source_file entry.
   if (ptr->included_by_preinclude) {
     disp_boolean("included_by_preinclude", TRUE);
   }  /* if */
+  if (ptr->from_system_include_dir) {
+    disp_boolean("from_system_include_dir", TRUE);
+  }  /* if */
 }  /* disp_source_file */
 
 

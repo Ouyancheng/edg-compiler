@@ -1,5 +1,16 @@
 Version 2.42
 
+4/20/99  Suppressing warnings from system include files
+
+The front end now suppresses warnings from "system" include files.  A
+system include file is a file found using a search path entry
+associated with a system include directory.  The default include
+directory specified by the USR_INCLUDE environment variable is
+considered a system include directory as are any directories specified
+using the new --sys_include option.  Include directories specified with
+the -I or --include_directory option are not considered system include
+directories.
+
 4/19/99  Minimal inlining: argument passing tweaks
 
 The decision to use a temporary to pass an argument expression to

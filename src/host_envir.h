@@ -1377,6 +1377,11 @@ typedef struct a_directory_name_entry *a_directory_name_entry_ptr;
 typedef struct a_directory_name_entry {
   char		*dir_name;
 			/* The directory name. */
+  a_boolean	system_include_dir;
+			/* TRUE if the directory is considered a "system"
+			   include directory.  Warnings are suppressed
+			   when processing files from system include
+			   directories. */
   a_directory_name_entry_ptr
 		next;
 			/* The next entry on the search path list, or NULL
@@ -1416,7 +1421,8 @@ EXTERN a_directory_name_entry_ptr
 /* Add the default system include file search path. */
 extern void add_default_include_search_path(void);
 /* Add a directory to the end of the include file search path. */
-extern void add_to_include_search_path(char *dir_name);
+extern void add_to_include_search_path(char		*dir_name,
+                                       a_boolean	sys_include_dir);
 /* Add a directory to the front of the include file search path. */
 extern void add_to_front_of_include_search_path(char *dir_name);
 

@@ -2746,6 +2746,8 @@ current source position and severity or restore the previously saved settings.
 {
   static a_source_position  saved_error_position;
   static an_error_severity  saved_severity = (an_error_severity)es_default;
+  static an_error_severity  saved_error_threshold;
+  an_error_severity	    error_threshold_to_use;
 
 #if CHECKING
   /* The saved severity level should be es_default if and only if this is a
@@ -2758,22 +2760,39 @@ current source position and severity or restore the previously saved settings.
     internal_error("check_severity: bad saved severity");
   }  /* if */
 #endif /* CHECKING */
-  if (diag_kind == (a_diagnostic_category_kind)dck_standalone) {
-    /* Just use the severity and error position specified. */
+  if (diag_kind == (a_diagnostic_category_kind)dck_standalone ||
+      diag_kind == (a_diagnostic_category_kind)dck_primary ||
+      diag_kind == (a_diagnostic_category_kind)dck_context_primary) {
+    /* A standalone message or the start of a list. */
     check_for_overridden_severity(error_code, severity);
-  } else if (diag_kind == (a_diagnostic_category_kind)dck_primary ||
-             diag_kind == (a_diagnostic_category_kind)dck_context_primary) {
-    /* The principal message of a multiple message diagnostic.  Save the
-       arguments for later calls. */
-    check_for_overridden_severity(error_code, severity);
-    copy_source_position(**error_pos, saved_error_position);
-    saved_severity = *severity;
+    /* Check whether we are inside a "system" include file in which
+       warnings should be suppressed. */
+    error_threshold_to_use = error_threshold;
+    { a_source_file_ptr	sfp;
+      a_boolean		at_end_of_source;
+      a_line_number	line_number;
+      unsigned long	nesting_depth;
+      sfp = source_file_for_seq((*error_pos)->seq, &line_number,
+                                &at_end_of_source, &nesting_depth,
+                               /*physical_line=*/FALSE);
+      if (sfp != NULL && sfp->from_system_include_dir) {
+        error_threshold_to_use = es_discretionary_error;
+      }  /* if */
+    }
+    if (diag_kind != (a_diagnostic_category_kind)dck_standalone) {
+      /* The principal message of a multiple message diagnostic.  Save the
+         arguments for later calls. */
+      copy_source_position(**error_pos, saved_error_position);
+      saved_severity = *severity;
+      saved_error_threshold = error_threshold_to_use;
+    }  /* if */
   } else if (diag_kind == (a_diagnostic_category_kind)dck_list ||
              diag_kind == (a_diagnostic_category_kind)dck_end_list ||
              diag_kind == (a_diagnostic_category_kind)dck_end_context) {
     /* Reuse the error position and severity from the primary diagnostic. */
     *error_pos = &saved_error_position;
     *severity = saved_severity;
+    error_threshold_to_use = saved_error_threshold;
 #if CHECKING
     if (diag_kind == (a_diagnostic_category_kind)dck_end_list ||
         diag_kind == (a_diagnostic_category_kind)dck_end_context) {
@@ -2782,7 +2801,7 @@ current source position and severity or restore the previously saved settings.
 #endif /* CHECKING */
   }  /* if */
   /* Return FALSE if the current severity is below the threshold. */
-  return ((int)*severity >= (int)error_threshold);
+  return ((int)*severity >= (int)error_threshold_to_use);
 }  /* check_severity */
 
 

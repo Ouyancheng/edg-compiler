@@ -2083,7 +2083,8 @@ void record_start_of_source_file(a_source_file_ptr parent_file,
 			         a_source_file_ptr *new_file,
                                  a_boolean	   is_include_file,
 				 a_boolean	   is_system_include,
-                                 a_boolean         is_preinclude)
+                                 a_boolean         is_preinclude,
+				 a_boolean	   from_system_include_dir)
 /*
 Create a source file entry in the intermediate language, to record the
 start of a new source file (either the primary source file or an include file).
@@ -2097,7 +2098,8 @@ instantiation, name_as_written is also NULL.  is_include_file is TRUE for
 files that are explicitly or implicitly included.  is_system_include is TRUE
 for files included with the #include <file.h> notation and FALSE for all other
 files.  is_preinclude is TRUE for files included via the --preinclude
-command-line option.
+command-line option.  from_system_include_dir is TRUE if the file was found
+in a directory marked as a system include directory.
 */
 {
   register a_source_file_ptr sfp;
@@ -2119,6 +2121,7 @@ command-line option.
   sfp->is_include_file = is_include_file;
   sfp->included_by_system_include = is_system_include;
   sfp->included_by_preinclude = is_preinclude;
+  sfp->from_system_include_dir = from_system_include_dir;
   /* Link the parent or the preceding sibling file to this one. */
   if (parent_file == NULL) {
     /* No parent, so link the il_header to this primary source file. */

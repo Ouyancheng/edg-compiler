@@ -11389,6 +11389,7 @@ file we simply return.
   char			*full_file_name, *display_name;
   FILE			*f_source;
   a_boolean		is_system_include;
+  a_boolean		from_system_include_dir;
 #if DEBUG
   a_boolean		print_debug_info = FALSE;
 #endif /* DEBUG */
@@ -11429,7 +11430,8 @@ file we simply return.
                                      /*use_search_path=*/TRUE,
                                      is_system_include,
 				     /*replace_suffix=*/TRUE,
-				     &full_file_name, &display_name);
+				     &full_file_name, &display_name,
+				     &from_system_include_dir);
       if (f_source != NULL) {
         an_include_file_history_ptr	ifhp;
         /* A related source file was found.  Make sure that the name of the
@@ -11457,7 +11459,8 @@ file we simply return.
 	  } else {
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
-                             is_system_include, /*is_preinclude=*/FALSE, ifhp);
+                             is_system_include, /*is_preinclude=*/FALSE,
+                             from_system_include_dir, ifhp);
             scan_implicitly_included_template_definition_file();
             if (in_instantiation_wrapup ) {
               /* Set a flag if this implicit inclusion was done during

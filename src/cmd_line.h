@@ -178,6 +178,7 @@ typedef enum /*an_option_kind*/ {
   optk_arg_dependent_lookup,
   optk_friend_injection,
   optk_nonstandard_using_decl,
+  optk_system_include_dir,
   optk_last		/* Must be last. */
 } an_option_kind;
 
