@@ -5290,7 +5290,7 @@ void namespace_declaration(a_boolean  extern_implied)
       }  /* if */
     }  /* if */
     remove_stop_token(tok_semicolon);
-    required_token(tok_semicolon, ec_exp_semicolon);
+    (void)required_token(tok_semicolon, ec_exp_semicolon);
   } else {
     /* Namespace definition. */
     if (required_token(tok_lbrace, ec_exp_lbrace)) {
@@ -5312,11 +5312,13 @@ void namespace_declaration(a_boolean  extern_implied)
         nsp = sym->variant.namespace_info.ptr;
         (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
       }  /* if */
+      add_stop_token(tok_rbrace);
       while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
         declaration(/*function_definition_allowed=*/TRUE, extern_implied,
                     /*is_old_style_param_decl=*/FALSE,
                     /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
       }  /* while */
+      remove_stop_token(tok_rbrace);
       (void)required_token(tok_rbrace, ec_exp_rbrace);
       pop_scope();
     }  /* if */
