@@ -8984,6 +8984,9 @@ elision in C++ mode.
 {
   a_user_conv_descr user_conversion;
 
+  *conversion_routine = NULL;
+  *arg_expr_list = NULL;
+  *class_bitwise_copy = FALSE;
   /* Look for a constructor to convert the expression to the required
      class type. */
   if (conversion_possible(source_operand, dest_type,
@@ -8999,9 +9002,6 @@ elision in C++ mode.
                                   &user_conversion,
                                   conversion_routine, arg_expr_list,
                                   class_bitwise_copy);
-  } else {
-    *conversion_routine = NULL;
-    *arg_expr_list = NULL;
   }  /* if */
 }  /* prep_elision_initializer_operand */
 
