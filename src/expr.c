@@ -8628,6 +8628,8 @@ see expr.h).
       break;
     case tok_int_constant:
     case tok_char_constant:
+    case tok_true:
+    case tok_false:
       make_constant_operand(&const_for_curr_token, &local_result);
       (void)get_token();
       break;
