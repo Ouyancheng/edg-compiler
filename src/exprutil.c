@@ -5380,7 +5380,7 @@ return without setting *optimized_case to TRUE.
         an_integer_kind ikind = char_type->variant.integer.int_kind;
         long char_value = string_constant->variant.string.value[offset];
         /* Remove any sign extension. */
-        char_value &= ~((~0L) << targ_char_bit);
+        char_value &= (long)(~((~(unsigned long)0) << targ_char_bit));
         clear_operand((an_operand_kind)ok_constant, operand);
         set_integer_constant(&operand->variant.constant, char_value, ikind);
         /* Sign-extend the character if necessary. */
@@ -5409,7 +5409,7 @@ not an lvalue, it is left alone.
 {
   an_expr_node_ptr node;
   an_operand       orig_operand;
-  an_expr_node_ptr operand_node, cast_node;
+  an_expr_node_ptr operand_node, cast_expr;
   a_type_ptr       operand_type, cast_orig_type;
   a_boolean        constant_case = FALSE, qualifiers_dropped = FALSE;
   a_constant_ptr   con_value;
@@ -5512,9 +5512,9 @@ not an lvalue, it is left alone.
              This is indicated by casting the lvalue address to
              pointer-to-new-type using an eok_lvalue_cast.  Here, turn
              such a case back into an ordinary cast on the rvalue. */
-          cast_node = node;
-          operand_node = cast_node->variant.operation.operands;
-          cast_orig_type = type_pointed_to(cast_node->type);
+          cast_expr = node;
+          operand_node = cast_expr->variant.operation.operands;
+          cast_orig_type = type_pointed_to(cast_expr->type);
           /* Save the cast node on the side, and make the operand back
              into the lvalue it was before the lvalue cast.  Then convert
              that lvalue to an rvalue (by a recursive call), and
@@ -5531,14 +5531,14 @@ not an lvalue, it is left alone.
                          /*is_reinterpret_cast=*/FALSE);
           } else {
             /* The cast node can be reused (usual case). */
-            operand->type = cast_node->type = cast_orig_type;
-            cast_node->variant.operation.kind =
+            operand->type = cast_expr->type = cast_orig_type;
+            cast_expr->variant.operation.kind =
                                                (an_expr_operator_kind)eok_cast;
             /* The expression pointer may have been changed in the 
                conversion to lvalue, so put it in the cast node again. */
-            cast_node->variant.operation.operands =
+            cast_expr->variant.operation.operands =
                                                    operand->variant.expression;
-            operand->variant.expression = cast_node;
+            operand->variant.expression = cast_expr;
           }  /* if */
         } else {
           /* Normal expression case (not an lvalue cast). */
