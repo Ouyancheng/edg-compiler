@@ -257,7 +257,7 @@ Flags to be set when using the KAI inliner.
 
 /* Linux test version definitions. */
 #define INCLUDE_EDG_TEST_PRAGMAS 1
-#define FFE 1
+#define FIL 1
 #ifndef CHECKING
 #define CHECKING 1
 #endif /* ifndef CHECKING */
@@ -438,7 +438,7 @@ Flags to be set when using the KAI inliner.
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_JMP_BUF_NUM_ELEMENTS 10
 #define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS 0
-#define FFE 1
+#define FIL 1
 #ifndef CHECKING
 #define CHECKING 1
 #endif /* ifndef CHECKING */
