@@ -2695,7 +2695,7 @@ a mistake.  Both these warnings should perhaps be remarks.
                             &slep->symbol->decl_position,
                             slep->symbol, orep->overridden_sym);
           }  /* for */
-          if (orep->override_failures) {
+          if (orep->override_failures != NULL) {
             /* No need to issue any more diagnostics on this name. */
             remove_name_from_override_registry(orep);
           }  /* if */
