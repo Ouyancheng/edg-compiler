@@ -56,11 +56,9 @@ set to TRUE.
 1/24/00  Microsoft compatibility: use of #import directory
 
 In Microsoft compatibility mode, the import directory name (specified with the
-option --import_dir or "." by default) used to be combined with the include
+option --import_dir, or "." by default) used to be combined with the include
 search path if it was a relative name.  This is no longer the case: a relative
-import directory name is relative with respect to the current directory.
-Hence the default "." refers to just the current directory and not all the
-directories specified in the include search path.
+import directory name is now simply relative to the current directory.
 
 1/21/00  Copy constructor elision for generated bitwise copy constructor
 
