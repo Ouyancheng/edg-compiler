@@ -548,20 +548,120 @@ for unions and aggregates at that level).
 }  /* get_initializer */
 
 
+/* Declaration needed because of mutual recursion: */
+static a_boolean dynamic_init_has_side_effects(a_dynamic_init_ptr dip);
+
+
+static a_boolean init_con_has_side_effects(a_constant_ptr con)
+/*
+Return TRUE if the indicated constant (part of an initialization)
+has side effects.
+*/
+{
+  a_boolean      has_side_effects = FALSE;
+  a_constant_ptr subcon;
+
+  if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+    /* For aggregates, visit the enclosed constants. */
+    for (subcon = con->variant.aggregate.first_constant;
+         subcon != NULL;
+         subcon = subcon->next) {
+      if (init_con_has_side_effects(subcon)) {
+        has_side_effects = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  } else if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+    /* For dynamic init entries, check the dynamic initialization. */
+    has_side_effects =
+                      dynamic_init_has_side_effects(con->variant.dynamic_init);
+  } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
+    /* For a repeat, look at the repeated constant. */
+    has_side_effects =
+                  init_con_has_side_effects(con->variant.init_repeat.constant);
+  }  /* if */
+  return has_side_effects;
+}  /* init_con_has_side_effects */
+
+
+static a_boolean dynamic_init_has_side_effects(a_dynamic_init_ptr dip)
+/*
+Return TRUE if the indicated dynamic initialization has side effects,
+i.e., it does something other than just return a value for the initialization.
+*/
+{
+  a_boolean has_side_effects = FALSE;
+
+  if (dip->destructor != NULL) {
+    /* A destructor call causes side effects. */
+    has_side_effects = TRUE;
+  } else {
+    switch (dip->kind) {
+      case dik_none:
+      case dik_constant:
+        /* No side effects. */
+        break;
+      case dik_expression:
+        /* An expression might have side effects.  See if it does. */
+        has_side_effects = node_has_side_effects(dip->variant.expression);
+        break;
+      case dik_constructor:
+        /* A constructor call causes side effects. */
+        has_side_effects = TRUE;
+        break;
+      case dik_nonconstant_aggregate:
+        /* A non-constant aggregate must be examined recursively. */
+        has_side_effects =
+                  init_con_has_side_effects(dip->variant.aggregate.aggr_const);
+        break;
+#if CHECKING
+      case dik_member_copy:
+      case dik_base_class_copy:
+      default:
+        internal_error("dynamic_init_has_side_effects: bad dyn init kind");
+#endif /* CHECKING */
+    }  /* switch */
+  }  /* if */
+  return has_side_effects;
+}  /* dynamic_init_has_side_effects */
+
+
 static void gen_dynamic_initialization(a_variable_ptr      vp,
-                                       a_dynamic_init_ptr  dip)
+                                       a_dynamic_init_ptr  dip,
+                                       a_source_position   *source_pos)
 /*
 Generate a dynamic initialization of the variable vp.  If
 kind == dik_constant, constant points to the initial value constant;
 if kind == dik_expression, expression points to the initial value expression.
 Except for a dynamic initialization at file scope (possible only in C++),
 also create an stmk_init statement at the current point in the code.
+*source_pos is the source position for an error (dynamic initialization is
+in unreachable code).
 */
 {
   a_dynamic_init_ptr      new_dip;
   a_statement_ptr         init_stmt;
+  a_symbol_ptr            assoc_sym;
 
   db_enter(4, "gen_dynamic_initialization");
+  if (depth_stmt_stack >= 0) {
+    /* We are in executable code (i.e., inside a function or block rather
+       than at file scope). */
+    if (dip->kind != (a_dynamic_init_kind)dik_none) {
+      /* The initialization is not just a destruction. */
+      /* Issue a warning for a dynamic initialization in an unreachable
+         block. */
+      if (!curr_code_reachable()) {
+        pos_warning(ec_initialization_not_reachable, source_pos);
+      }  /* if */
+    }  /* if */
+    /* If this dynamic init appears after some executable code
+       in its block, set a flag to that effect in the dynamic
+       init entry (it identifies the initialization as a C++ case). */
+    if (struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen) {
+      dip->follows_an_exec_statement = TRUE;
+    }  /* if */
+  }  /* if */
   /* Build the dynamic initialization entry. */
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
@@ -586,7 +686,15 @@ also create an stmk_init statement at the current point in the code.
      referenced flag unset when the initialization (e.g., by constructor)
      may have side effects. */
   vp->source_corresp.referenced = TRUE;
-
+  /* Also set the referenced flag in the associated symbol if the
+     initialization has side effects.  That suppresses a warning that the
+     symbol is declared but never referenced. */
+  assoc_sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+  if (assoc_sym != NULL) {
+    if (dynamic_init_has_side_effects(dip)) {
+      assoc_sym->referenced = TRUE;
+    }  /* if */
+  }  /* if */
   db_exit();
 }  /* gen_dynamic_initialization */
 
@@ -686,7 +794,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
   if (is_parameter) {
     /* Parameter declarations cannot contain an initializer.  (Declarations
        for which is_parameter is TRUE are old-style C parameter declarations.
-       A C++ default argument, which looks a bit like a parameter with an
+       C++ default arguments, which look a bit like a parameter with an
        initializer -- e.g., void f(int i = 1) -- are handled elsewhere.) */
     error(ec_initializer_in_param);
     err = TRUE;
@@ -741,7 +849,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
     push_class_reactivation_scope(symbol_ptr->class_of_which_a_member);
 #if CHECKING
     /* Though static data members may be given storage class of extern or
-       unspecified, that fixup up should not have taken place yet. */
+       unspecified, that fixup should not have taken place yet. */
     if (vp != NULL && vp->storage_class != (a_storage_class)sc_static) {
       internal_error("initializer: bad storage class for static data member");
     }  /* if */
@@ -942,26 +1050,9 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
       }  /* if */
     }  /* if */
     if (initialization_is_dynamic || dynamic_init_required) {
-      if (dynamic_init_required && !err) {
-        if (depth_stmt_stack >= 0) {
-          /* We are in executable code (i.e., inside a function or block
-             rather than at file scope). */
-          /* Issue a warning for a dynamic initialization in an unreachable
-             block. */
-          if (!curr_code_reachable()) {
-            pos_warning(ec_initialization_not_reachable, source_pos);
-          }  /* if */
-          /* If this dynamic init appears after some executable code
-             in its block, set a flag to that effect in the dynamic
-             init entry (it identifies the initialization as a C++ case). */
-          if (struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen) {
-            local_di.follows_an_exec_statement = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
       /* Generate a dynamic initialization entry (based on local_di) and
          attach it to the variable, and generate an stmk_init statement. */
-      gen_dynamic_initialization(vp, &local_di);
+      gen_dynamic_initialization(vp, &local_di, source_pos);
     } else {
       /* Neither the variable nor the initializer require initialization to be
          dynamic. */
@@ -1089,7 +1180,7 @@ the default constructor (if one exists) is called.
             repeat_constructor_init(ctor_dip, &local_di, count);
           }  /* if */
           /* Build the repeat construct. */
-          gen_dynamic_initialization(var, &local_di);
+          gen_dynamic_initialization(var, &local_di, err_pos);
           def_init_performed = TRUE;
 #if DEBUG
           if (debug_level >= 3) {
@@ -1122,7 +1213,7 @@ the default constructor (if one exists) is called.
           /* Build the repeat construct. */
           repeat_constructor_init(dtor_dip, &local_di, count);
         }  /* if */
-        gen_dynamic_initialization(var, &local_di);
+        gen_dynamic_initialization(var, &local_di, err_pos);
         /* Don't set def_init_performed.  A dik_none dynamic initialization
            doesn't count as initialization. */
       }  /* if */
