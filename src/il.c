@@ -5503,7 +5503,16 @@ of the front end.
   curr_initial_il_walk_flag_setting = curr_fs_initial_il_walk_flag_setting =
                                                    0;  /* Arbitrary: 0 or 1. */
   /* Variable in il_def.h: */
-#if CHECKING && DEBUG
+#if CHECKING
+#if ORPHANED_PROCESSING_NEEDED
+  /* Check that the table of il-entry sizes is correctly initialized, i.e.,
+     that the enumeration an_il_entry_kind and the array sizeof_il_entry
+     are in sync. */
+  if (sizeof_il_entry[(int)iek_last] != IEK_LAST_CHECK_SIZE) {
+    internal_error("il_init: bad initialization of sizeof_il_entry");
+  }  /* if */
+#endif /* if ORPHANED_PROCESSING_NEEDED */
+#if DEBUG
   /* Check that the table of storage class names is correctly initialized.
      This guards against someone changing the enumeration and forgetting to
      update db_storage_class_names. */
@@ -5520,7 +5529,8 @@ of the front end.
       strcmp(db_operator_names[(int)eok_last], "last") != 0) {
     internal_error("il_init: incorrect initialization of db_operator_names");
   }  /* if */
-#endif /* CHECKING && DEBUG */
+#endif /* DEBUG */
+#endif /* CHECKING */
 
   /* Static variables in il.c: */
   /* Depending on NULL represented as zero bits here. */
