@@ -248,6 +248,9 @@ optimization is suppressed.
   if (is_storage_class()) {
     /* A storage-class-specifier. */
     is_start = TRUE;
+  } else if (curr_token == tok_template) {
+    /* Probably an error. */
+    is_start = TRUE;
   } else if (is_type_start()) {
     /* Is start of type. */
     is_start = TRUE;
@@ -5722,7 +5725,7 @@ Returns TRUE if there is an error in the specifiers.
 
   enum {bt_none, bt_void, bt_char, bt_int,
         bt_float, bt_double, bt_typedef,
-        bt_struct_union, bt_enum, bt_no_type}  basic_type = bt_none;
+        bt_struct_union, bt_enum, bt_no_type, bt_error} basic_type = bt_none;
   enum {sign_none, sign_signed, sign_unsigned} sign       = sign_none;
   enum {size_none, size_short, size_long
 #if LONG_LONG_ALLOWED
@@ -6448,6 +6451,45 @@ operator_or_conversion_name:
           }  /* if */
         }  /* if */
         goto exit_loop;
+      case tok_template:
+        {
+        a_boolean     local_err = FALSE;
+
+        if (next_token() == tok_lt ||
+            (basic_type == bt_typedef && num_specifiers == 1)) {
+          /* This appears to be a template declaration inside another
+             declaration.  Go ahead and scan the template declaration. */
+          if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+            /* Error will be issued in template_declaration. */
+            local_err = TRUE;
+          } else if (basic_type != bt_typedef) {
+            error(ec_template_not_allowed);
+            local_err = TRUE;
+          }  /* if */
+          (void)template_declaration(&defines_something);
+          if (basic_type == bt_typedef) {
+#if CHECKING
+            internal_error(
+                   "decl_specifiers: typedef of template not yet implemented");
+#endif /* CHECKING */
+          } else {
+            defines_something = TRUE;
+          }  /* if */
+        } else {
+          local_err = TRUE;
+          error(ec_template_not_allowed);
+          (void)get_token();
+        }  /* if */
+        if (local_err) {
+          err = TRUE;
+          if (basic_type == bt_typedef) {
+            *type_ptr = error_type();
+          } else {
+            basic_type = bt_error;
+          }  /* if */
+        }  /* if */
+        }
+        goto no_get_token;
       case tok_compl:
         if (is_member_decl) {
           if (num_specifiers == 0) {
@@ -6761,6 +6803,11 @@ exit_loop:
     } else if (basic_type == bt_no_type) {
       /* No specifiers type declared (constructor, destructor, or conversion
          operator). */
+    } else if (basic_type == bt_error) {
+      /* Error, already diagnosed. */
+      kind = (a_type_kind)tk_error;
+      err = TRUE;
+      *type_ptr = NULL;
     } else {
       /* Error, not an acceptable combination. */
       bad_combination_of_type_specifiers = TRUE;
@@ -7879,7 +7926,15 @@ of local variables (and types, etc.) of functions and in blocks.
                             is_old_style_param_decl, param_id_list);
       goto return_point;
     } else if (curr_token == tok_template) {
-      template_declaration();
+      symbol_ptr = template_declaration(&defines_something);
+      if (symbol_ptr != NULL &&
+          (symbol_ptr->kind == (a_symbol_kind)sk_function_template ||
+           defines_something)) {
+        /* No trailing semicolon expected. */
+      } else {
+        /* Check for final semicolon. */
+        (void)required_token(tok_semicolon, ec_exp_semicolon);
+      }  /* if */
       goto return_point;
     }  /* if */
   }  /* if */

@@ -5725,7 +5725,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         local_defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         local_declares_something = dso_flags & DSO_DECLARES_SOMETHING;
-        if (local_defines_something) {
+        if (local_defines_something && !is_error_type(member_type)) {
 #if CHECKING
           if (C_dialect == C_dialect_cplusplus) {
             /* Should be a nested class, struct, union, or enum definition.

@@ -1879,10 +1879,12 @@ structure.
 
 
 
-static a_boolean class_template_declaration(a_template_param_ptr templ_params,
-                                            a_symbol_ptr         *p_sym_ptr,
-                                            a_boolean            *resolution,
-                                            a_type_ptr           *new_type)
+static a_boolean class_template_declaration(
+                                    a_template_param_ptr templ_params,
+                                    a_symbol_ptr         *p_sym_ptr,
+                                    a_boolean            *resolution,
+                                    a_type_ptr           *new_type,
+                                    a_boolean            *defines_something)
 /*
 If this turns out to be a class template declaration, scan it and return
 TRUE, setting *p_sym_ptr to the class template symbol.  If it is not a class
@@ -1904,6 +1906,7 @@ that make up the declaration and do a prototype instantiation.
   a_template_arg_ptr                tap, *append_addr;
   a_template_param_ptr              tpp;
   a_boolean			    err;
+  a_stop_token_array                save_stop_token_array;
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_class || curr_token == tok_struct ||
@@ -2008,7 +2011,7 @@ that make up the declaration and do a prototype instantiation.
       tssp->declaration_scope = scope_stack[decl_scope_level].number;
     }  /* if */
     if (is_definition) {
-      sym->defined = TRUE;
+      *defines_something = sym->defined = TRUE;
       prototype_sym = make_template_class_symbol(sym, &sym->decl_position);
       /* Add the new symbol to the head of the instantiation list. */
       prototype_sym->next = tssp->variant.class_template.instantiations;
@@ -2033,6 +2036,9 @@ that make up the declaration and do a prototype instantiation.
         *append_addr = tap;
         append_addr = &tap->next;
       }  /* for */
+      /* Save the current stop token state, and reinitialize it. */
+      copy_stop_tokens(stop_token_array, save_stop_token_array);
+      clear_stop_tokens();
       /* This is a class template definition, so scan all the tokens that
          comprise it and cache them away. */
       add_stop_token(tok_semicolon);
@@ -2062,31 +2068,40 @@ that make up the declaration and do a prototype instantiation.
       /* Add an end-of-source token to the end of the token cache to assure
          that we don't scan past the end of the cache in the actual scan. */
       terminate_token_cache(&tssp->token_cache);
+      /* Restore the stop token state. */
+      copy_stop_tokens(save_stop_token_array, stop_token_array);
+      /* Note that the semicolon is not cached. */
     } else {
       /* This is not a class template definition, so we have no need to
          cache the tokens. */
     }  /* if */
-    /* Note that the semicolon is not cached. */
-    (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
 done:;
-  db_exit();
   *p_sym_ptr = sym;
   *new_type = prototype_type;
+
+  db_exit();
   return is_class_template_decl;
 }  /* class_template_declaration */
 
 
 static void cache_function_template_tokens(a_token_cache  *p_token_cache,
-                                           a_boolean      is_constructor)
+                                           a_boolean      is_constructor,
+                                           a_boolean      *defines_something)
 /*
 Scan a function body and cache the tokens so that they can be rescanned
 for the instantiation.
 */
 {
+  a_stop_token_array  save_stop_token_array;
+
   db_enter(3, "cache_function_template_tokens");
   if (curr_token == tok_lbrace ||
       (curr_token == tok_colon && is_constructor)) {
+    *defines_something = TRUE;
+    /* Save the current stop token state, and reinitialize it. */
+    copy_stop_tokens(stop_token_array, save_stop_token_array);
+    clear_stop_tokens();
     if (curr_token == tok_colon) {
       add_stop_token(tok_lbrace);
       add_stop_token(tok_semicolon);
@@ -2112,10 +2127,11 @@ for the instantiation.
          assure that we don't scan past the end of the cache in the actual
          scan. */
       terminate_token_cache(p_token_cache);
+      /* Restore the stop token state. */
+      copy_stop_tokens(save_stop_token_array, stop_token_array);
     }  /* if */
   } else {
-    /* No body to cache.  Check for final semicolon. */
-    (void)required_token(tok_semicolon, ec_exp_semicolon);
+    /* No body to cache. */
   }  /* if */
   db_exit();
 }  /* cache_function_template_tokens */
@@ -2139,6 +2155,15 @@ to represent the template parameters.
   int                  template_param_list_pos = 0;
 
   db_enter(3, "scan_template_param_list");
+  /* Check for an bypass the "<". */
+  if (curr_token != tok_lt) {
+    error(ec_exp_lt);
+  } else {
+    (void)get_token();
+  }  /* if */
+  add_stop_token(tok_semicolon);
+  add_stop_token(tok_lbrace);
+  add_stop_token(tok_gt);
   /* Loop through the comma-separated list of template parameter
      declarations. */
   do {
@@ -2176,7 +2201,7 @@ to represent the template parameters.
       sym->variant.type = template_param_type;
       /* Bypass the identifier. */
       (void)get_token();
-    } else {
+    } else if (curr_token != tok_template) {
       /* Not a type-argument, so treat it as an arg-declaration.  If this
          template declaration happens to be of a function rather than a class,
          arg-declarations are not allowed.  That will be detected later. */
@@ -2226,6 +2251,31 @@ to represent the template parameters.
       sym->variant.constant->type = param_type_ptr;
       sym->variant.constant->variant.list_position = template_param_list_pos;
       set_source_corresp(&sym->variant.constant->source_corresp, sym);
+    } else {
+      /* Error case, but scan it as a template declaration anyway. */
+      a_boolean  defines_something;
+
+      sym = template_declaration(&defines_something);
+      set_to_error_locator(locator_for_curr_id);
+      if (sym != NULL &&
+          sym->kind == (a_symbol_kind)sk_class_template) {
+        /* It's a class declaration in the template param list.  Just to be
+           complete, be sure there's a full declaration. */
+        if (!defines_something) error(ec_exp_declaration);
+        /* Enter a dummy param type. */
+        sym = enter_symbol((a_symbol_kind)sk_type, &locator_for_curr_id,
+                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
+        sym->variant.type = error_type();
+      } else {
+        /* It's not a class declaration, so (whatever it might be) treat it
+           as a constant. */
+        sym = enter_symbol((a_symbol_kind)sk_constant, &locator_for_curr_id,
+                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
+        sym->variant.constant =
+                         fs_constant((a_constant_repr_kind)ck_template_param);
+        sym->variant.constant->type = error_type();
+        sym->variant.constant->variant.list_position = template_param_list_pos;
+      }  /* if */
     }  /* if */
     /* Allocate a template parameter and set its fields based on sym. */
     template_param = alloc_template_param(sym);
@@ -2239,6 +2289,18 @@ to represent the template parameters.
     remove_stop_token(tok_comma);
     /* Keep looping on a comma. */
   } while (loop_token(tok_comma));
+  if (template_param_list == NULL) {
+    error(ec_missing_template_param);
+  }  /* if */
+  remove_stop_token(tok_gt);
+  remove_stop_token(tok_lbrace);
+  remove_stop_token(tok_semicolon);
+  /* Check for an bypass the ">". */
+  if (curr_token != tok_gt) {
+    error(ec_exp_gt);
+  } else {
+    (void)get_token();
+  }  /* if */
   db_exit();
   return template_param_list;
 }  /* scan_template_param_list */
@@ -2347,7 +2409,7 @@ parameter types to see if tparam_type appears in it.
 }  /* template_param_appears_in_param_list */
 
 
-void template_declaration(void)
+a_symbol_ptr template_declaration(a_boolean  *defines_something)
 /*
 Scan a C++ template declaration.  Syntax:
 
@@ -2382,6 +2444,7 @@ entry is pushed on the scope stack.
     internal_error("template_declaration: expected tok_template");
   }  /* if */
 #endif /* CHECKING */
+  *defines_something = FALSE;
   if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
     /* template declarations may appear at file scope only (ARM 14.1). */
     error(ec_nonglobal_template_declaration);
@@ -2389,27 +2452,19 @@ entry is pushed on the scope stack.
   (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
                    (a_type_ptr)NULL, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
                    (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
-  add_stop_token(tok_semicolon);
-  add_stop_token(tok_lbrace);
   /* Bypass "template".  The next token should be "<". */
   (void)get_token();
-  if (required_token(tok_lt, ec_exp_lt)) {
-    add_stop_token(tok_gt);
-    template_param_list = scan_template_param_list();
-    if (template_param_list == NULL) {
-      error(ec_missing_template_param);
-    }  /* if */
-    remove_stop_token(tok_gt);
-  }  /* if */
-  /* Check for an bypass the ">". */
-  (void)required_token(tok_gt, ec_exp_gt);
-  remove_stop_token(tok_lbrace);
-  remove_stop_token(tok_semicolon);
+  /* The the template parameters. */
+  template_param_list = scan_template_param_list();
+  /* See if it is a class template declaration.  If it is, scan the tokens
+     of the definition (if any) and cache them away of later reference. */
   if (class_template_declaration(template_param_list, &sym, &tag_resolution,
-                                 &prototype_type)) {
+                                 &prototype_type, defines_something)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
-  } else {
+  } else if (is_decl_start(/*expr_context=*/FALSE,
+                           /*real_declarator_allowed=*/TRUE) ||
+             is_declarator_start()) {
     /* Not a class template declaration.  Check for a function template
        declaration or a static data member template definition. */
     a_storage_class    storage_class;
@@ -2431,9 +2486,14 @@ entry is pushed on the scope stack.
                            DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                            DSI_STORAGE_CLASS_SPECIFIER_ALLOWED),
                            &dso_flags, &storage_class, &type);
-    declarator(DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
-               &do_flags, type, (a_type_ptr)NULL, &locator, &type,
-               &bottom_derived_type, &func_info, &dim_expr_ptr);
+    if (is_error_type(type) && !is_declarator_start()) {
+      /* Error of some sort. */
+      set_to_error_locator(locator);
+    } else {
+      declarator(DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
+                 &do_flags, type, (a_type_ptr)NULL, &locator, &type,
+                 &bottom_derived_type, &func_info, &dim_expr_ptr);
+    }  /* if */
     remove_stop_token(tok_lbrace);
     remove_stop_token(tok_semicolon);
     remove_stop_token(tok_colon);
@@ -2481,7 +2541,6 @@ entry is pushed on the scope stack.
             terminate_token_cache(&tssp->token_cache);
           }  /* if */
         }  /* if */
-        required_token(tok_semicolon, ec_exp_semicolon);
         /* If there have already been instantiations of the parent template
            class, update the instantiations_required list for each instance
            of the static data member. */
@@ -2511,7 +2570,8 @@ entry is pushed on the scope stack.
       if (err) {
         a_token_cache  local_token_cache;
         clear_token_cache(&local_token_cache);
-        cache_function_template_tokens(&local_token_cache, /*is_ctor=*/TRUE);
+        cache_function_template_tokens(&local_token_cache, /*is_ctor=*/TRUE,
+                                       defines_something);
         discard_token_cache(&local_token_cache);
       } else {
         tssp = sym->variant.template_info;
@@ -2519,7 +2579,8 @@ entry is pushed on the scope stack.
         tssp->parameters = template_param_list;
         tssp->declaration_scope = scope_stack[decl_scope_level].number;
         cache_function_template_tokens(&tssp->token_cache,
-                                       is_constructor_symbol(sym));
+                                       is_constructor_symbol(sym),
+                                       defines_something);
       }  /* if */
       if (sym->class_of_which_a_member != NULL) {
         /* Out-of-line definition of a member function of a class template.
@@ -2549,9 +2610,10 @@ entry is pushed on the scope stack.
       if (!is_error_locator(locator)) {
         pos_error(ec_bad_template_declaration, &decl_start_pos);
       }  /* if */
-      /* Flush tokens to end of declaration. */
-      (void)required_token(tok_semicolon, ec_exp_semicolon);
     }  /* if */
+  } else {
+    /* Template parameters are declared, but the declaration is missing. */
+    pos_error(ec_exp_declaration, &pos_curr_token);
   }  /* if */
   /* Note that the template declaration scope must be popped before doing the
      prototype instantiation. */
@@ -2584,6 +2646,7 @@ entry is pushed on the scope stack.
   }  /* if */
 #endif /* DEBUG */
   db_exit();
+  return sym;
 }  /* template_declaration */
 
 /******************************************************************************
