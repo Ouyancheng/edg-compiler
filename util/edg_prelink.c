@@ -435,10 +435,10 @@ exit status.
 Determine whether getcwd or getwd should be used to get the current
 directory.  getwd is used on BSD, getcwd on other systems.
 */
-#if __MSDOS__
+#if __MICROSOFT_OS__
 #define USE_GETCWD 1
 #include <direct.h>
-#else /* !__MSDOS___ */
+#else /* !__MICROSOFT_OS___ */
 #if __BSD__
 #include <sys/param.h>
 EXTERN_C char* getwd(char *pathname);
@@ -447,7 +447,7 @@ EXTERN_C char* getwd(char *pathname);
 #include <unistd.h>
 #define USE_GETCWD 1
 #endif /* __BSD__ */
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
 
 
 static a_boolean pl_is_absolute_file_name(char *file_name)
@@ -2295,7 +2295,7 @@ in file_name.  Returns NULL if file_name contains no directory name.
   char	*ptr;
 
   ptr = strrchr(file_name, '/');
-#if __MSDOS__
+#if __MICROSOFT_OS__
   {
     /* Under MS-DOS, allow both forward and backward slashes.  If the
        name includes both kinds of slashes, use the last one as the
@@ -2304,7 +2304,7 @@ in file_name.  Returns NULL if file_name contains no directory name.
     ptr2 = strrchr(file_name, '\\');
     if (ptr2 != NULL && (ptr == NULL || ptr2 > ptr)) ptr = ptr2;
   }
-#endif /* __MSDOS__ */
+#endif /* __MICROSOFT_OS__ */
   return ptr;
 }  /* last_dir_separator */
 
