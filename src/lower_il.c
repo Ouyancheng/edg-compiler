@@ -14665,7 +14665,13 @@ Do IL lowering of the indicated scope and everything under it.
     }  /* if */
 #endif /* MINIMAL_INLINING */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-    if (routine->covariant_return_virtual_override) {
+    if (routine->
+#if IA64_ABI
+                 is_virtual
+#else /* !IA64_ABI */
+                 covariant_return_virtual_override
+#endif /* !IA64_ABI */
+                                                  ) {
       /* This routine is an overriding virtual function with a covariant
          return type.  Generate declarations for the entry/wrapper functions
          used to call this routine when a base class return type is
