@@ -635,11 +635,10 @@ a_symbol_ptr find_template_function(a_symbol_ptr        function_template_sym,
      template to see if any of them match the current type signature. */
   fiep = tssp->variant.function.instantiations;
   for (; fiep != NULL; fiep = fiep->next) {
-    if (fiep->specialization_seen) {
-      /* A function that matches this template but has a user definition
-         rather than definition by instantiation.  If it is the function we
-         seek it will already have been found directly -- ignore such cases
-         in this search. */
+    if (fiep->specific_decl) {
+      /* A function that matches this template but has a user declaration.
+         If it is the function we seek it will already have been found
+         directly -- ignore such cases in this search. */
       goto get_next_sym;
     }  /* if */
     sym = fiep->routine_sym;

@@ -2550,7 +2550,7 @@ will be involved in overloading.
                                              &locator->source_position);
                 if (sym != NULL) {
                   *linked_symbol = other_decl = sym;
-                  if (sym->variant.routine.instance_ptr->specialization_seen) {
+                  if (sym->variant.routine.instance_ptr->specific_decl) {
                     *overload_symbol = NULL;
                   }  /* if */
                   goto determine_linkage;
@@ -3172,7 +3172,7 @@ otherwise, set *ext_sym to NULL.
   a_source_correspondence
                     *source_corresp_ptr;
   a_scope_depth     effective_decl_level = decl_scope_level;
-  a_boolean         template_function_specialization = FALSE;
+  a_boolean         template_function_specific_decl = FALSE;
 
   db_enter(3, "decl_var_or_routine");
 #if CHECKING
@@ -3228,10 +3228,10 @@ otherwise, set *ext_sym to NULL.
        to which this declaration is linked. */
     if (is_function && linked_symbol->kind == (a_symbol_kind)sk_routine &&
         linked_symbol->variant.routine.instance_ptr != NULL &&
-        !linked_symbol->variant.routine.instance_ptr->specialization_seen) {
+        !linked_symbol->variant.routine.instance_ptr->specific_decl) {
       /* This is not actually a redeclaration -- linked_symbol refers to a
          function template instantiation. */
-      template_function_specialization = TRUE;
+      template_function_specific_decl = TRUE;
     } else {
       /* The new declaration must be compatible with the old. */
       redeclaration = TRUE;
@@ -3354,10 +3354,14 @@ otherwise, set *ext_sym to NULL.
            distinguishable" for a reason given by the error code returned. */
         pos_error(error_code, &locator->source_position);
         redecl_error_already_issued = TRUE;
-      } else if (template_function_specialization) {
+      } else if (template_function_specific_decl) {
         sym = linked_symbol;
         overload_symbol = add_symbol_to_overload_list(sym, homonym_symbol);
-        sym->variant.routine.instance_ptr->specialization_seen = TRUE;
+        sym->variant.routine.instance_ptr->specific_decl = TRUE;
+        if (is_function_def_with_body) {
+          sym->variant.routine.instance_ptr->specific_def = TRUE;
+          sym->variant.routine.instance_ptr->instantiation_required = FALSE;
+        }  /* if */
       } else {
         /* Overloaded function.  Create the new symbol, which will be on the
            list of functions connected to an sk_overloaded symbol. */

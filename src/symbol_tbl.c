@@ -501,13 +501,21 @@ and indentation is the indentation desired.
           fiep = tssp->variant.function.instantiations;
           while (fiep != NULL) {
             fprintf(f_debug, "%*sinstantiation", indentation, "");
-            if (fiep->instantiation_required || fiep->specialization_seen) {
+            if (fiep->instantiation_required || fiep->specific_decl ||
+                fiep->specific_def) {
+              char* comma = "";
               fputs(" (", f_debug);
               if (fiep->instantiation_required) {
-                fprintf(f_debug, "body req'd%s",
-                                 fiep->specialization_seen ? ", " : "");
+                fputs("instantiation req'd", f_debug);
+                comma = ", ";
               }  /* if */
-              if (fiep->specialization_seen) fputs("specialization", f_debug);
+              if (fiep->specific_decl) {
+                fprintf(f_debug, "%sspecific decl", comma);
+                comma = ", ";
+              }  /* if */
+              if (fiep->specific_def) {
+                fprintf(f_debug, "%sspecific def", comma);
+              }  /* if */
               fputc(')', f_debug);
             }  /* if */
             fputs(":\n", f_debug);
@@ -5106,7 +5114,7 @@ NULL.
       a_function_instantiation_entry_ptr fiep;
       fiep = sym->variant.template.extra_info->variant.function.instantiations;
       for (; fiep != NULL; fiep = fiep->next) {
-        if (fiep->specialization_seen) {
+        if (fiep->specific_decl) {
           /* A user declaration was provided, so the associated symbol should
              be on the overload list -- ignore it here. */
         } else {
@@ -5903,7 +5911,8 @@ Allocate a new function instantiation entry and return a pointer to it.
   ptr->template_sym = NULL;
   ptr->arg_list = NULL;	
   ptr->instantiation_required = FALSE;
-  ptr->specialization_seen = FALSE;
+  ptr->specific_decl = FALSE;
+  ptr->specific_def = FALSE;
 
   db_exit();
   return ptr;

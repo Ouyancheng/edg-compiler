@@ -515,12 +515,21 @@ typedef struct a_function_instantiation_entry {
                            functions this points to the same argument list as
                            the argument list in the class type supplement. */
   unsigned int  instantiation_required:1;
-                        /* TRUE if the routine associated with this
-                           instantiation is needed by this compilation
-                           and a specialization has not been seen. */
-  unsigned int  specialization_seen:1;
-                        /* TRUE if a specialization of this routine has
-                           been encountered. */
+			/* TRUE if the routine body associated with this
+			   instantiation needs to be generated.  This flag is
+			   FALSE if an explicit definition has been provided
+			   by the user (i.e., if specific_def is set). */
+  unsigned int  specific_decl:1;
+			/* TRUE if this instance of the template function
+			   has been explicitly declared.  When this flag is
+			   set, routine_sym has been added to the overload
+			   list for this name. */
+  unsigned int  specific_def:1;
+			/* TRUE if this instance of the template function
+			   has been explicitly defined.  When this flag is
+			   set, no implicitly instantiation will be done.
+			   The specific_decl flag will always be TRUE when
+			   this flag is set. */
 } a_function_instantiation_entry;
 
 
