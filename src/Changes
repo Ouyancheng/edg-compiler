@@ -1,5 +1,21 @@
 Version 2.23
 
+5/15/94 Elimination of extra parentheses in type output
+
+Several pieces of very similar code that generate source-form
+representations of types have been reworked to avoid the generation
+of unnecessary parentheses in the type declarators.  The pieces
+of code are in
+
+-- c_gen_be.c: generation of C code.
+-- cp_gen_be.c: generation of C or C++ code.
+-- decode.c: demangling of names.
+-- il_display.c: display of intermediate language files.
+-- error.c: compilation diagnostics.
+
+In the error.c case, the output was already close to right, but the
+code has been changed to use the same techniques as in the other files.
+
 5/2/94  Inheritance of assignment operators
 
 Under certain circumstance the inheritance of assignment operators was
