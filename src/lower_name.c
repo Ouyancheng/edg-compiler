@@ -2785,14 +2785,6 @@ should be put out.
     /* See if template arguments are needed.  For partial specializations,
        there are two argument lists. */
     template_args = ctsp->template_arg_list;
-#if IA64_ABI
-    if (template_args != NULL) {
-      a_template_ptr tmpl = class_template_of(type);
-      check_assertion(tmpl != NULL);
-      /* Create a substitution entry for the template.  */
-      (void)add_substitution((char *)tmpl, iek_template, mctl);
-    }  /* if */
-#endif /* IA64_ABI */
     /* Always start with the name of the class, which applies even in the
        template class case. */
     name = unmangled_name_of(&type->source_corresp);
