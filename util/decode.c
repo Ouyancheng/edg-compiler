@@ -79,6 +79,9 @@ typedef struct a_template_param_block {
 			   incremented to suppress everything else, and
 			   gets decremented temporarily when correspondences
 			   are output. */
+  a_boolean	first_correspondence;
+			/* TRUE until the first template parameter/argument
+			   correspondence is put out. */
 } a_template_param_block;
 
 
@@ -663,6 +666,7 @@ Clear the fields of the indicated template parameter block.
   tpbp->set_final_specialization = FALSE;
   tpbp->actual_template_args_until_final_specialization = FALSE;
   tpbp->output_only_correspondences = FALSE;
+  tpbp->first_correspondence = FALSE;
 }  /* clear_template_param_block */
 
 
@@ -714,8 +718,14 @@ extra information on template parameters.
            in general, and is turned on briefly here. */
         dctl->suppress_id_output--;
         unskipped = TRUE;
-        /* Put out a comma between entries and preceding the first entry. */
-        write_id_str(", ", dctl);
+        /* Put out a comma between entries and a left bracket preceding the
+           first entry. */
+        if (temp_par_info->first_correspondence) {
+          write_id_str(" [with ", dctl);
+          temp_par_info->first_correspondence = FALSE;
+        } else {
+          write_id_str(", ", dctl);
+        }  /* if */
       }  /* if */
       /* Write the template parameter name. */
       write_template_parameter_name(temp_par_info->nesting_level, position,
@@ -1178,24 +1188,33 @@ a few special quirks.
 }  /* demangle_vtbl_class_name */
 
 
-static char *demangle_type_qualifiers(char                       *ptr,
-                                      a_decode_control_block_ptr dctl)
+static char *demangle_type_qualifiers(
+                                     char                       *ptr,
+                                     a_boolean                  trailing_space,
+                                     a_decode_control_block_ptr dctl)
 /*
 Demangle any type qualifiers (const/volatile) at the indicated location.
 Return a pointer to the character position following what was demangled.
+If trailing_space is TRUE, add a space at the end if any qualifiers were
+put out.
 */
 {
-  char *p = ptr;
+  char      *p = ptr;
+  a_boolean any_quals = FALSE;
 
   for (;; p++) {
     if (*p == 'C') {
-      write_id_str("const ", dctl);
+      if (any_quals) write_id_ch(' ', dctl);
+      write_id_str("const", dctl);
     } else if (*p == 'V') {
-      write_id_str("volatile ", dctl);
+      if (any_quals) write_id_ch(' ', dctl);
+      write_id_str("volatile", dctl);
     } else {
       break;
     }  /* if */
+    any_quals = TRUE;
   }  /* for */
+  if (any_quals && trailing_space) write_id_ch(' ', dctl);
   return p;
 }  /* demangle_type_qualifiers */
 
@@ -1210,7 +1229,7 @@ to the character position following what was demangled.
   char *p = ptr, *s;
 
   /* Process type qualifiers. */
-  p = demangle_type_qualifiers(p, dctl);
+  p = demangle_type_qualifiers(p, /*trailing_space=*/TRUE, dctl);
   if (isdigit((unsigned char)*p) || *p == 'Q') {
     /* Named type, like class or enum, e.g., "3abc". */
     p = demangle_type_name(p, dctl);
@@ -1378,7 +1397,7 @@ not empty, because it contains a name or a derived type).
       write_id_ch('*', dctl);
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
-    (void)demangle_type_qualifiers(qualp, dctl);
+    (void)demangle_type_qualifiers(qualp, /*trailing_space=*/TRUE, dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, e.g., "M1Ai" is pointer to member of A of
        type int. */
@@ -1393,7 +1412,7 @@ not empty, because it contains a name or a derived type).
     (void)demangle_type_name(classp, dctl);
     write_id_str("::*", dctl);
     /* Output the type qualifiers on the pointer, if any. */
-    (void)demangle_type_qualifiers(qualp, dctl);
+    (void)demangle_type_qualifiers(qualp, /*trailing_space=*/TRUE, dctl);
   } else if (kind == 'F') {
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types (except
@@ -1487,7 +1506,7 @@ use of parentheses around parts of the declarator.)
        so let it be. */
     if (*qualp != 'F') {
       write_id_ch(' ', dctl);
-      (void)demangle_type_qualifiers(qualp, dctl);
+      (void)demangle_type_qualifiers(qualp, /*trailing_space=*/FALSE, dctl);
     }  /* if */
     if (*p == '_' && p[1] != '_') {
       /* Process the return type. */
@@ -1641,9 +1660,10 @@ a pointer to the character position following what was demangled.
                                           /*under_lhs_declarator=*/FALSE,
                                           dctl);
     }  /* if */
-    if (member_function && temp_par_info.nesting_level != 0) {
+    if (temp_par_info.nesting_level != 0) {
       /* Put out correspondences for template parameters, e.g, "T=int". */
       temp_par_info.nesting_level = 0;
+      temp_par_info.first_correspondence = TRUE;
       temp_par_info.output_only_correspondences = TRUE;
       /* Output is suppressed in general, and turned on only where
          appropriate. */
@@ -1662,6 +1682,10 @@ a pointer to the character position following what was demangled.
       (void)full_demangle_name(origname, (unsigned long)0, pname,
                                &temp_par_info, dctl);
       dctl->suppress_id_output--;
+      if (!temp_par_info.first_correspondence) {
+        /* End the list of correspondences. */
+        write_id_ch(']', dctl);
+      }  /* if */
     }  /* if */
   }  /* if */
 end_of_routine:
