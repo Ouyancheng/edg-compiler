@@ -1228,6 +1228,7 @@ caution when modifying this routine.
             if (next_token() == tok_semicolon && !is_ref_within_new_expr &&
                 (*is_friend_decl || microsoft_bugs)) {
               if (*is_friend_decl) {
+                *locator = locator_for_curr_id;
                 goto done;
               } else {
                 tag_sym = tag_sym->variant.template_info
