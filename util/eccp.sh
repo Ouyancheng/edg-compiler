@@ -441,6 +441,7 @@ check_abbreviation()
 --arg_dep_lookup
 --array_new_and_delete
 --auto_instantiation
+--base_assign_op_is_default
 --bool
 --brief_diagnostics
 --building_runtime
@@ -517,6 +518,7 @@ check_abbreviation()
 --no_arg_dep_lookup
 --no_array_new_and_delete
 --no_auto_instantiation
+--no_base_assign_op_is_default
 --no_bool
 --no_brief_diagnostics
 --no_class_name_injection
@@ -1016,6 +1018,8 @@ process_option()
          --no_extended_variadic_macros | \
          --compound_literals | \
          --no_compound_literals | \
+         --base_assign_op_is_default | \
+         --no_base_assign_op_is_default | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
