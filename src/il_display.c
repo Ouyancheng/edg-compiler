@@ -2893,10 +2893,10 @@ static void disp_base_class_derivation(a_base_class_derivation_ptr ptr)
 Display the indicated base class derivation entry.
 */
 {
-  disp_ptr("next", (char *)ptr->next, iek_virtual_derivation);
+  disp_ptr("next", (char *)ptr->next, iek_base_class_derivation);
   if (ptr->direct) disp_boolean("direct", TRUE);
   if (ptr->preferred) disp_boolean("preferred", TRUE);
-  disp_derivation_step_list("path", ptr->derivation);
+  disp_derivation_step_list("path", ptr->path);
 }  /* disp_base_class_derivation */
 
 
