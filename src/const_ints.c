@@ -91,7 +91,7 @@ Extract a host large integer from an_integer_value.  is_signed indicates
 whether the integer value should be considered signed or unsigned.  If
 is_signed is TRUE the value returned in "value" will be signed, otherwise
 the value returned in "value" will be unsigned.  Set err to
-TRUE if the value cannot be represented is a host large integer (or host
+TRUE if the value cannot be represented in a host large integer (or host
 large unsigned if is_signed is FALSE) otherwise set err to FALSE.
 */
 {
