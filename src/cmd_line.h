@@ -128,9 +128,7 @@ typedef enum /*an_option_kind*/ {
   optk_array_new_and_delete,
   optk_namespaces,
   optk_implicit_using_std,
-#if MAINTAIN_NEEDED_FLAGS
   optk_remove_unneeded_entities,
-#endif /* MAINTAIN_NEEDED_FLAGS */
   optk_last		/* Must be last. */
 } an_option_kind;
 
