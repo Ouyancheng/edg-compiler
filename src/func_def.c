@@ -1220,9 +1220,8 @@ member declaration (allowed in Microsoft mode only).
     set_source_corresp(&(rp->source_corresp), sym);
     set_class_membership(sym, &rp->source_corresp, class_type);
     if (other_rp != NULL) {
-      rp->special_kind = other_rp->special_kind;
-      rp->opname_or_builtin.opname_kind =
-	other_rp->opname_or_builtin.opname_kind;
+      set_routine_special_kind(rp, other_rp->special_kind);
+      rp->variant = other_rp->variant;
     }  /* if */
     *old_type = type_ptr;
   } else {
@@ -2232,7 +2231,7 @@ empty statement block.
       /* Assignment operator case. */
       check_assertion(rout_ptr->special_kind ==
                                    (a_special_function_kind)sfk_operator &&
-                      rout_ptr->opname_or_builtin.opname_kind == 
+                      rout_ptr->variant.opname_kind == 
 		                   (an_opname_kind)onk_assign);
       check_default_assignment_operator(class_type);
       make_default_assignment_body(scope);
@@ -2275,7 +2274,7 @@ whose definition has not yet been generated, force the definition now.
       if (skind == (a_special_function_kind)sfk_constructor ||
           skind == (a_special_function_kind)sfk_destructor  ||
           (skind == (a_special_function_kind)sfk_operator &&
-           rp->opname_or_builtin.opname_kind == (an_opname_kind)onk_assign)) {
+           rp->variant.opname_kind == (an_opname_kind)onk_assign)) {
         define_special_member_function(rp);
       }  /* if */
     }  /* if */

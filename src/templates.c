@@ -3629,6 +3629,11 @@ Instantiate the body of the template function associated with tip.
       rout_ptr->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_internal;
     }  /* if */
+#if DO_IL_LOWERING && IA64_ABI
+    if (func_info_ptr->is_inline) {
+      rout_ptr->inline_in_class_definition = TRUE;
+    }  /* if */
+#endif /* DO_IL_LOWERING && IA64_ABI */
   }  /* if */
   /* In case the source position in the routine instance is different from
      that of the defining template declaration, copy the latter to the
@@ -7735,10 +7740,12 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
        accord with the settings in the template. */
     rp->type = rout_type;
     rp->storage_class = templ_rout->storage_class;
-    rp->special_kind = templ_rout->special_kind;
-    rp->opname_or_builtin.opname_kind = 
-      templ_rout->opname_or_builtin.opname_kind;
+    set_routine_special_kind(rp, templ_rout->special_kind);
+    rp->variant = templ_rout->variant;
     rp->is_inline = templ_rout->is_inline;
+#if DO_IL_LOWERING && IA64_ABI
+    rp->inline_in_class_definition = templ_rout->inline_in_class_definition;
+#endif /* DO_IL_LOWERING && IA64_ABI */
     rp->is_explicit_constructor = templ_rout->is_explicit_constructor;
     rp->is_template_function = TRUE;
     set_source_corresp(&rp->source_corresp, sym);
@@ -7794,7 +7801,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     make_locator_for_symbol(sym, &locator);
     if (rp->special_kind == (a_special_function_kind)sfk_operator) {
       locator.is_operator_name = TRUE;
-      locator.variant.opname = rp->opname_or_builtin.opname_kind;
+      locator.variant.opname = rp->variant.opname_kind;
     } else if (rp->special_kind == (a_special_function_kind)sfk_conversion) {
       locator.is_conversion_name = TRUE;
       locator.variant.conversion_result_type = NULL;

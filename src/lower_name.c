@@ -2589,7 +2589,7 @@ types; just put out the base encoded name.
     conversion_type = routine_type->variant.routine.return_type;
   }  /* if */
   mangled_function_base_name(&routine->source_corresp, routine->special_kind,
-                             routine->opname_or_builtin.opname_kind, 
+                             routine->variant.opname_kind, 
 			     conversion_type, mctl);
   if (mangle_as_template) {
     if (is_template_specialization) {

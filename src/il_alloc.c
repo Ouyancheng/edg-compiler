@@ -1889,6 +1889,37 @@ region.
 }  /* alloc_exception_specification_type */
 
 
+void set_routine_special_kind(a_routine_ptr           rp,
+                              a_special_function_kind special_kind)
+/*
+Set the special_kind field of the indicated routine to the indicated
+value.  Also clear related variant fields to default values.
+*/
+{
+  rp->special_kind = special_kind;
+  switch (special_kind) {
+    case sfk_operator:
+      rp->variant.opname_kind = (an_opname_kind)onk_none;
+      break;
+    case sfk_none:
+#if GNU_EXTENSIONS_ALLOWED
+      rp->variant.builtin_function_kind = (a_builtin_function_kind)bfk_none;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      break;
+    case sfk_constructor:
+    case sfk_destructor:
+#if IA64_ABI && DO_IL_LOWERING
+      rp->variant.ctor_dtor.alternate_entry_points = 
+                                                (a_routine_list_entry_ptr)NULL;
+      rp->variant.ctor_dtor.base_name_offset = 0;
+#endif /* IA64_ABI && DO_IL_LOWERING */
+      break;
+    default:
+      unexpected_condition_str("set_routine_special_kind: bad kind");
+  }  /* switch */
+}  /* set_routine_special_kind */
+
+
 a_routine_ptr alloc_routine(void)
 /*
 Allocate a routine entry, clear it to default values, and return a pointer
@@ -1908,13 +1939,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->type                        = NULL;
   rp->assoc_scope                 = NULL_region_number;
   rp->storage_class               = (a_storage_class)sc_unspecified;
-  rp->special_kind                = (a_special_function_kind)sfk_none;
-  rp->opname_or_builtin.opname_kind
-                                  = (an_opname_kind) onk_none;
-#if GNU_EXTENSIONS_ALLOWED
-  rp->opname_or_builtin.builtin_function_kind 
-                                  = (a_builtin_function_kind)bfk_none;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  set_routine_special_kind(rp, (a_special_function_kind)sfk_none);
   rp->address_taken               = FALSE;
   rp->is_virtual                  = FALSE;
   rp->pure_virtual                = FALSE;

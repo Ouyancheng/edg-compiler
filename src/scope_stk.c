@@ -3515,8 +3515,10 @@ NULL.
                                   (a_special_function_kind)sfk_constructor ||
                           rp->special_kind ==
                                   (a_special_function_kind)sfk_destructor ||
-                          rp->opname_or_builtin.opname_kind == 
-                                  (an_opname_kind)onk_assign) &&
+                          (rp->special_kind ==
+                                  (a_special_function_kind)sfk_operator && 
+                           rp->variant.opname_kind == 
+                                  (an_opname_kind)onk_assign)) &&
                          !routine_defined(rp))) {
               report_unreferenced((a_symbol_ptr)rp->source_corresp.assoc_info,
                                   ec_declared_but_not_referenced,

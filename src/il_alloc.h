@@ -110,6 +110,9 @@ extern an_exception_specification_ptr alloc_exception_specification(void);
 extern an_exception_specification_type_ptr
                                   alloc_exception_specification_type(void);
 
+extern void set_routine_special_kind(a_routine_ptr           rp,
+                                     a_special_function_kind special_kind);
+
 extern a_routine_ptr alloc_routine(void);
 
 extern an_asm_entry_ptr alloc_asm_entry(void);

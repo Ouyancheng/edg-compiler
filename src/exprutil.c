@@ -6906,11 +6906,10 @@ gives the source position of the call.
   if (function_node->kind == (an_expr_node_kind)enk_routine_address &&
       function_node->variant.routine->special_kind == 
                                   (a_special_function_kind)sfk_none &&
-      function_node->variant.routine->
-          opname_or_builtin.builtin_function_kind !=
+      function_node->variant.routine->variant.builtin_function_kind !=
                                     (a_builtin_function_kind)bfk_none) {
     rout = function_node->variant.routine;
-    switch (rout->opname_or_builtin.builtin_function_kind) {
+    switch (rout->variant.builtin_function_kind) {
       case bfk_constant_p:
 	if (function_node->next == NULL) {
 	  pos_error(ec_too_few_arguments, call_pos);

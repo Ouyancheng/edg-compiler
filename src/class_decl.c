@@ -6623,15 +6623,15 @@ declared member functions.
   }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
-    rtn->special_kind = (a_special_function_kind)sfk_operator;
-    rtn->opname_or_builtin.opname_kind = locator->variant.opname;
+    set_routine_special_kind(rtn, (a_special_function_kind)sfk_operator);
+    rtn->variant.opname_kind = locator->variant.opname;
   } else if (locator->is_conversion_name) {
     /* User-defined conversion function. */
-    rtn->special_kind = (a_special_function_kind)sfk_conversion;
+    set_routine_special_kind(rtn, (a_special_function_kind)sfk_conversion);
   } else if (decl_info->is_constructor) {
-    rtn->special_kind = (a_special_function_kind)sfk_constructor;
+    set_routine_special_kind(rtn, (a_special_function_kind)sfk_constructor);
   } else if (decl_info->is_destructor) {
-    rtn->special_kind = (a_special_function_kind)sfk_destructor;
+    set_routine_special_kind(rtn, (a_special_function_kind)sfk_destructor);
   }  /* if */
   if (compiler_generated) {
     rtn->compiler_generated = TRUE;
@@ -6872,19 +6872,16 @@ declared member functions.
     if (locator->is_operator_name) {
       /* If this is an assignment operator, record a pointer to it in the
          symbol -- to facilitate generating default assignment operators. */
-      if (rtn->opname_or_builtin.opname_kind == (an_opname_kind)onk_assign) {
+      if (rtn->variant.opname_kind == (an_opname_kind)onk_assign) {
         record_assignment_operator_in_class_symbol(cssp, sym, overload_sym);
-      } else if (rtn->opname_or_builtin.opname_kind == 
-		 (an_opname_kind)onk_new) {
+      } else if (rtn->variant.opname_kind == (an_opname_kind)onk_new) {
         cssp->has_operator_new = TRUE;
-      } else if (rtn->opname_or_builtin.opname_kind ==
-		 (an_opname_kind)onk_array_new) {
+      } else if (rtn->variant.opname_kind == (an_opname_kind)onk_array_new) {
         cssp->has_operator_array_new = TRUE;
-      } else if (rtn->opname_or_builtin.opname_kind ==
-		 (an_opname_kind)onk_delete) {
+      } else if (rtn->variant.opname_kind == (an_opname_kind)onk_delete) {
         cssp->has_operator_delete = TRUE;
-      } else if (rtn->opname_or_builtin.opname_kind ==
-		 (an_opname_kind)onk_array_delete) {
+      } else if (rtn->variant.opname_kind == 
+                                            (an_opname_kind)onk_array_delete) {
         cssp->has_operator_array_delete = TRUE;
       }  /* if */
     } else if (locator->is_conversion_name) {
@@ -7164,11 +7161,11 @@ in-class member function declarations.)
   }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
-    rtn->special_kind = (a_special_function_kind)sfk_operator;
-    rtn->opname_or_builtin.opname_kind = locator->variant.opname;
+    set_routine_special_kind(rtn, (a_special_function_kind)sfk_operator);
+    rtn->variant.opname_kind = locator->variant.opname;
   } else if (locator->is_conversion_name) {
     /* User-defined conversion function. */
-    rtn->special_kind = (a_special_function_kind)sfk_conversion;
+    set_routine_special_kind(rtn, (a_special_function_kind)sfk_conversion);
   }  /* if */
   if (overload_sym != NULL) {
     set_mixed_static_nonstatic_flag(overload_sym);
@@ -7180,7 +7177,7 @@ in-class member function declarations.)
     if (locator->is_operator_name) {
       /* If this is an assignment operator, record a pointer to it in the
          symbol -- to facilitate generating default assignment operators. */
-      switch(rtn->opname_or_builtin.opname_kind) {
+      switch (rtn->variant.opname_kind) {
         case onk_assign:
           record_assignment_operator_in_class_symbol(cssp, sym, overload_sym);
           break;
@@ -7205,7 +7202,7 @@ in-class member function declarations.)
       add_to_conversion_list(sym, cssp);
     }  /* if */
     if (decl_info->is_constructor) {
-      rtn->special_kind = (a_special_function_kind)sfk_constructor;
+      set_routine_special_kind(rtn, (a_special_function_kind)sfk_constructor);
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */
       if (cssp->constructor == NULL) {
@@ -7662,7 +7659,7 @@ Return TRUE if sym represents a copy assignment operator.
   if (sym->kind == (a_symbol_kind)sk_member_function) {
     rp = sym->variant.routine.ptr;
     if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-        rp->opname_or_builtin.opname_kind == (an_opname_kind)onk_assign &&
+        rp->variant.opname_kind == (an_opname_kind)onk_assign &&
         is_assignment_operator_for_copy(sym, &is_ref_arg,
                                         &qualifiers_accepted,
                                         &is_base_class_match)) {
@@ -10057,8 +10054,7 @@ the new declaration.
                                symbol_supplement_for_class(class_type));
       } else if (rp->special_kind ==
                                (a_special_function_kind)sfk_operator &&
-                 rp->opname_or_builtin.opname_kind == 
-		               (an_opname_kind)onk_assign) {
+                 rp->variant.opname_kind == (an_opname_kind)onk_assign) {
         /* Record the assignment operator in the symbol. */
         record_assignment_operator_in_class_symbol(
                                  symbol_supplement_for_class(class_type),

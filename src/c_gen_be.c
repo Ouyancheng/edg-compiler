@@ -7643,7 +7643,7 @@ if this routine has a body (dump nothing if it has no body).
 #endif /* SGIC */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (rout->special_kind == (a_special_function_kind)sfk_none &&
-             rout->opname_or_builtin.builtin_function_kind != 
+             rout->variant.builtin_function_kind != 
                                          (a_builtin_function_kind)bfk_none) {
     /* GNU builtin functions should not be declared or defined. */
 #endif /* GNU_EXTENSIONS_ALLOWED */

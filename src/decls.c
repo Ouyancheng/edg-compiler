@@ -1022,8 +1022,8 @@ consistent with that of the previous declaration.
          if this is a redeclaration of what may be a library new or delete
          routine: the relaxation is to ease the upgrading of old code. */
       if (is_redecl && rp != NULL && !rp->source_corresp.is_class_member &&
-          (is_new_operator(rp->opname_or_builtin.opname_kind) ||
-           is_delete_operator(rp->opname_or_builtin.opname_kind))) {
+          (is_new_operator(rp->variant.opname_kind) ||
+           is_delete_operator(rp->variant.opname_kind))) {
         /* Set the severity, depending on the strict mode setting. */
         severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       }  /* if */
@@ -5588,8 +5588,9 @@ skip_overloading:;
     routine_ptr = make_routine(type_ptr, storage_class, scope_depth);
     if (C_dialect == C_dialect_cplusplus) {
       if (locator->is_operator_name) {
-        routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
-        routine_ptr->opname_or_builtin.opname_kind = locator->variant.opname;
+        set_routine_special_kind(routine_ptr,
+                                 (a_special_function_kind)sfk_operator);
+        routine_ptr->variant.opname_kind = locator->variant.opname;
       }  /* if */
     }  /* if */
     if (!linked_redecl_error && *ext_sym != NULL &&
@@ -5650,8 +5651,8 @@ skip_overloading:;
       if (routine_ptr->special_kind ==
                              (a_special_function_kind)sfk_operator) {
         check_assertion_str
-             (is_new_operator(routine_ptr->opname_or_builtin.opname_kind) ||
-	      is_delete_operator(routine_ptr->opname_or_builtin.opname_kind),
+             (is_new_operator(routine_ptr->variant.opname_kind) ||
+	      is_delete_operator(routine_ptr->variant.opname_kind),
 	      "decl_routine: bad opname kind");
       }  /* if */
 #endif /* CHECKING */
@@ -6496,8 +6497,9 @@ is a template specialization declaration.
     rout_ptr->storage_class = storage_class;
     rout_ptr->is_inline = func_info->is_inline;
     if (locator->is_operator_name) {
-      rout_ptr->special_kind = (a_special_function_kind)sfk_operator;
-      rout_ptr->opname_or_builtin.opname_kind = locator->variant.opname;
+      set_routine_special_kind(rout_ptr,
+                               (a_special_function_kind)sfk_operator);
+      rout_ptr->variant.opname_kind = locator->variant.opname;
     }  /* if */
     check_assertion(is_error_locator(*locator) ||
                     !locator->is_conversion_name);

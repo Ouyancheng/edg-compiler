@@ -5840,8 +5840,7 @@ may an overload symbol instead.
                   op_new_sym->kind == (a_symbol_kind)sk_member_function);
   *ambiguous = FALSE;
   rp = op_new_sym->variant.routine.ptr;
-  delete_opname_kind = (rp->opname_or_builtin.opname_kind == 
-			                        (an_opname_kind)onk_new) ?
+  delete_opname_kind = (rp->variant.opname_kind == (an_opname_kind)onk_new) ?
                          (an_opname_kind)onk_delete :
                          (an_opname_kind)onk_array_delete;
   if (class_type != NULL)  {
@@ -7556,7 +7555,7 @@ Issue the appropriate error on the inaccessibility of sym.
         rp->special_kind == (a_special_function_kind)sfk_destructor ||
         rp->special_kind == (a_special_function_kind)sfk_conversion ||
         (rp->special_kind == (a_special_function_kind)sfk_operator &&
-         rp->opname_or_builtin.opname_kind == (an_opname_kind)onk_assign)) {
+         rp->variant.opname_kind == (an_opname_kind)onk_assign)) {
       error_code = ec_inaccessible_special_function;
     }  /* if */
   } else if (is_type_symbol(sym)) {

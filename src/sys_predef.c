@@ -138,7 +138,7 @@ the function takes a variable number of arguments.
 					 param2_type, param3_type,
 					 param4_type);
   rout = sym->variant.routine.ptr;
-  rout->opname_or_builtin.builtin_function_kind = bfk;
+  rout->variant.builtin_function_kind = bfk;
   if (is_varargs) {
     rtsp = rout->type->variant.routine.extra_info;
     rtsp->has_ellipsis = TRUE;

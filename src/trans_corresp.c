@@ -2027,8 +2027,8 @@ array variants) and marked as compiler-generated.
 
   if (routine->compiler_generated &&
       routine->special_kind == (a_special_function_kind)sfk_operator &&
-      (is_new_operator(routine->opname_or_builtin.opname_kind) ||
-       is_delete_operator(routine->opname_or_builtin.opname_kind))) {
+      (is_new_operator(routine->variant.opname_kind) ||
+       is_delete_operator(routine->variant.opname_kind))) {
     result = TRUE;
   }  /* if */
   return result;

@@ -6392,14 +6392,34 @@ typedef struct a_routine {
 			   the special function kind is sfk_operator; onk_none
 			   otherwise. */
 #if GNU_EXTENSIONS_ALLOWED
-    /* When special_kind != sfk_operator. */
+    /* When special_kind == sfk_none. */
     a_builtin_function_kind
                 builtin_function_kind;
 			/* An enumerator indicating the kind of
 			   builtin function; bfk_none for an ordinary
 			   function. */ 
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  } opname_or_builtin;
+#if IA64_ABI && DO_IL_LOWERING
+    /* When special_kind == sfk_constructor or sfk_destructor. */
+    struct {
+      a_routine_list_entry_ptr
+		alternate_entry_points;
+			/* When ctor_or_dtor_kind == cdk_none, the other
+			   constructor and destructor entry points. */
+      sizeof_t	base_name_offset;
+			/* When ctor_or_dtor_kind != cdk_none, the offset into
+			   the mangled name for this constructor that
+			   indicates the location of the "C" that indicates
+			   that this entity is a constructor.  (This value is
+			   used when calculating the mangled name for
+			   alternate entry points; see
+			   default_version_of_routine.)	 Invalid until the
+			   routine name has been mangled either in
+			   mangle_function_name or in
+			   get_mangled_function_name. */
+    } ctor_dtor;
+#endif /* IA64_ABI */
+  } variant;
   a_bit_field	address_taken:1;
 			/* TRUE if the address of this routine has been
 			   taken somewhere. */
