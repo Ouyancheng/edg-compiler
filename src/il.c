@@ -9764,8 +9764,7 @@ it needs to be marked as autonomous.
     /* A match.  Clear the one flag and set the other. */
     sssdp->declared_in_func_prototype = FALSE;
     sssdp->autonomous_tag_decl = TRUE;
-    ssep = ssep->next;
-  }  /* while */
+  }  /* for */
 }  /* mark_func_prototype_decl_tags_autonomous */
 
 
