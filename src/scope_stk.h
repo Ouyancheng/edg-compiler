@@ -797,11 +797,14 @@ is_template_dependent_context, but excludes nonreal instantiations.
 
 /*
 TRUE if we are in the instantiation of a template in a translation unit
-loaded for the purpose of instantiating exported templates.
+loaded for the purpose of instantiating exported templates.  Note that
+this will be FALSE for an instantiation performed during the initial scan
+of a translation unit (which should only occur for prototype instantiations).
 */
 #define in_exported_template_instantiation()				\
   (translation_unit_needed_only_for_exported_templates &&		\
-   depth_innermost_instantiation_scope != NO_SCOPE_DEPTH)
+   depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
+   scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation)
 
 
 EXTERN a_scope_stack_entry_ptr
