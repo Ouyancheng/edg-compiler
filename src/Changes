@@ -1,5 +1,15 @@
 Version 3.0
 
+3/4/01   Sun compatibility: default arg. in member of class template
+
+The Sun compiler allows a default argument to be specified on the
+definition of a member function of a class template that appears outside
+of its class (the standard requires that such default arguments be specified
+on the declaration in the class).  This is now accepted in Sun mode.
+
+  template <class T> struct A { void f(T); };
+  template <class T> void A<T>::f(T value = T() )  { }
+
 3/4/02   Internal error in reactivate_class_scope with --parse_templates
 
 An internal error could occur in reactivate_class_scope when doing

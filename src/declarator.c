@@ -1597,7 +1597,7 @@ declaration.
                 /* A member function declaration of a template class outside
                    of the class declaration.  This is not allowed, except
                    in Microsoft mode. */
-                if (microsoft_mode) {
+                if (microsoft_mode || sun_mode) {
                   /* This is a template case, so the default should be
                      cached. */
                   cache_default_arg = TRUE;
