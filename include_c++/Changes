@@ -1,5 +1,10 @@
 Version 2.33
 
+9/25/96 uncaught_exception has been added to exception.h
+
+The routine std::uncaught_exception that is specified by the Working
+Paper has been added to exception.h.
+
 9/19/96 Exception specifications are now provided for operator new
 
 Exception specifications, as specified by the WP, are now provided on
