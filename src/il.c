@@ -252,10 +252,12 @@ Dump the name of a type.  If it's a class generated on the basis of a
 template, dump the template arguments, too.
 */
 {
+  a_class_type_supplement_ptr ctsp;
+
   db_name(&tp->source_corresp);
   if (is_class_struct_union_type(tp)) {
-    db_template_arg_list(tp->variant.class_struct_union.extra_info->
-                                                         template_arg_list);
+    ctsp = tp->variant.class_struct_union.extra_info;
+    if (ctsp != NULL) db_template_arg_list(ctsp->template_arg_list);
   }  /* if */
 }  /* db_type_name */
 
