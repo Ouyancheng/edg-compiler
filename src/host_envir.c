@@ -2030,6 +2030,8 @@ Set module_id to the string.
   a_variable_ptr	variable;
   a_routine_ptr		routine;
   char			*external_name = NULL;
+  char			*compilation_time = NULL;
+  char			*curr_dir = NULL;
 
   /* Only generate the module ID the first time that this routine is called
      for a given primary source file. */
@@ -2047,6 +2049,9 @@ Set module_id to the string.
           variable->init_kind != (an_init_kind)initk_none &&
 	  variable->source_corresp.name[0] != '_' &&
 	  variable->source_corresp.name[1] != '_') {
+        /* Don't use template static data members.  Some implementations
+           may generate these in multiple files. */
+        if (variable->is_template_static_data_member) continue;
         external_name = variable->source_corresp.name;
         check_assertion(external_name != NULL);
         break;
@@ -2057,32 +2062,41 @@ Set module_id to the string.
       for (routine = scope->routines;
            routine != NULL; routine = routine->next) {
         if (routine->storage_class == (a_storage_class)sc_unspecified) {
+          /* Don't use template functions.  Some implementations
+             may generate these in multiple files. */
+          if (routine->is_template_function) continue;
           external_name = routine->source_corresp.name;
           check_assertion(external_name != NULL);
-          /* If this is not a template function then stop now.  If it is
-             a template function, remember the name in case no better
-             alternative is found, but keep looking for a nontemplate.
-             This is done just in case the front end is being used in
-             a mode where template instances may be generated in more than
-             one compilation unit and then filtered out later. */
-          if (!routine->is_template_function) break;
         }  /* if */
       }  /* for */
     }  /* if */
     if (external_name == NULL) {
       /* In the very unlikely event that the file does not define any
-         externally visible variables or routines, only the file
-         name is used in the module ID. */
+         externally visible variables or routines, use the time of
+         compilation and current directory name. */
       external_name = "";
+      compilation_time = il_header.time_of_compilation;
+      curr_dir = current_directory_name;
+    } else {
+      compilation_time = "";
+      curr_dir = "";
     }  /* if */
     /* The identifier is made of the primary source file name plus the
        name of an externally defined variable or routine (or the
-       current date and time if no such externally visible name exists), with
-       non-identifier characters changed to underscores. */
-    module_id = alloc_general(file_name_len + 1 + strlen(external_name) + 1);
+       current date, time and current directory if no such externally
+       visible name exists), with non-identifier characters changed to
+       underscores. */
+    module_id = alloc_general(file_name_len + 1 +
+                              strlen(external_name) + 1 +
+                              strlen(compilation_time) + 1 +
+                              strlen(curr_dir) + 1);
     (void)strcpy(module_id, file_name);
-    module_id[file_name_len] = '_';
-    (void)strcpy(module_id+file_name_len+1, external_name);
+    (void)strcat(module_id, "_");
+    (void)strcat(module_id, external_name);
+    (void)strcat(module_id, "_");
+    (void)strcat(module_id, compilation_time);
+    (void)strcat(module_id, "_");
+    (void)strcat(module_id, curr_dir);
     /* Change non-identifier characters to "_". */
     change_non_id_characters(module_id);
   }  /* if */

@@ -1,5 +1,15 @@
 Version 2.37
 
+10/8/97   Revised module ID generation
+
+The front end generates a module ID, which is appended to certain
+names to guarantee that they are unique across an entire program.
+Template entities are no longer used as a component of the module ID.
+This change was made because some implementations generate template
+instantiations in more than one file.  When no external symbol is
+available for use in the module ID, the compilation time and current
+directory are now included.
+
 10/8/97   Applying a type qualifier to a function type is not allowed
 
 A discretionary error (a warning in Microsoft and cfront compatibility
