@@ -1166,27 +1166,7 @@ is unnamed, generate a name.  Never generate a qualified name.
       if (tap != NULL) {
         /* This is a template class name.  Put out the template argument
            list, e.g., "<int, float>". */
-#if 0
-#else /* 0 */
-        internal_error(
-           "Templates are not yet implemented in the C++-generating back end");
-#endif /* 0 */
-        write_tok_ch('<');
-        for (;;) {
-          if (tap->is_type) {
-            /* Type argument. */
-            gen_type(tap->variant.type);
-          } else {
-            /* Nontype argument. */
-            gen_constant(tap->variant.constant, /*need_parens=*/FALSE);
-          }  /* if */
-          tap = tap->next;
-          /* Stop after the last argument. */
-          if (tap == NULL) break;
-          /* Put a comma between arguments. */
-          write_tok_str(", ");
-        }  /* for */
-        write_tok_ch('>');
+        form_template_args(tap, &octl);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1590,7 +1570,13 @@ A reference is not the definition unless the type is unnamed.
     /* In C++, don't use "class X" instead of "X" unless that is required,
        e.g., because there's something else called "X" in the same scope. */
     if (il_header.source_language == sl_Cplusplus &&
-        type->declaration_put_out &&
+        /* You can't omit the "class" etc. on a first use that's a declaration,
+           except for a template entity (the declaration will have been put
+           out, but declaration_put_out is not set). */
+        (type->declaration_put_out ||
+         (is_class_type_kind(type->kind) &&
+          type->variant.class_struct_union.extra_info->
+                                                 template_arg_list != NULL)) &&
         !type->definition_delayed &&
         !type->elaborated_type_specifier_needed) {
       /* Use just the type name. */
@@ -3847,6 +3833,48 @@ is the one associated with the pragma.
 }  /* gen_pragma */
 
 
+static void gen_template(void)
+/*
+Generate a declaration for a template.  The current source sequence entry
+is the one associated with the template.
+*/
+{
+  a_template_ptr tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
+  char           *p, *eol;
+
+  /* Advance past the source sequence entry for the template. */
+  adv_curr_source_sequence_entry();
+  set_output_position(&tp->source_corresp.decl_position);
+  /* Write the template string.  Newline characters in the string indicate
+     new source lines. */
+  p = tp->text;
+  for (; (eol = strchr(p, '\n')) != NULL; p = eol+1) {
+    /* Write a sequence of characters ending with a newline. */
+    *eol = '\0';
+    write_str(p);
+    end_output_line();
+    *eol = '\n';
+  }  /* for */
+  write_str(p);
+}  /* gen_template */
+
+
+static void gen_macro(void)
+/*
+Generate a declaration for a macro.  The current source sequence entry
+is the one associated with the macro.
+*/
+{
+  a_macro_ptr mp = ss_entry_ptr(curr_source_sequence_entry, a_macro_ptr);
+
+  /* Advance past the source sequence entry for the macro. */
+  adv_curr_source_sequence_entry();
+  set_output_position(&mp->source_corresp.decl_position);
+  /* Write the macro string. */
+  write_str(mp->text);
+}  /* gen_macro */
+
+
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch,
                                a_statement_ptr *last_statement)
@@ -5011,6 +5039,12 @@ sequence entry.
       break;
     case iek_pragma:
       gen_pragma();
+      break;
+    case iek_template:
+      gen_template();
+      break;
+    case iek_macro:
+      gen_macro();
       break;
     default:
       unexpected_condition_str(
