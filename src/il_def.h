@@ -4841,7 +4841,7 @@ typedef struct a_template {
 #if RECORD_MACROS_IN_IL
 
 /*
-An entry containing the text of a macro (not yet implemented).
+An entry containing the text of a macro..
 */
 typedef struct a_macro *a_macro_ptr;
 typedef struct a_macro {
@@ -4850,14 +4850,13 @@ typedef struct a_macro {
                 source_corresp;
                         /* Information on the source entity that corresponds
                            to this entity. */
-  a_macro_ptr
-		next;
+  a_macro_ptr	next;
 			/* Next in a linked list of macro declarations; NULL
 			   for the last on the list. */
   char		*text;
 			/* A null-terminated string representing the text of
 			   the macro declaration, starting with the keyword
-			   "macro". */
+			   "#define". */
 } a_macro;
 
 #endif /* RECORD_MACROS_IN_IL */
