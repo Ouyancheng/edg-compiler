@@ -1711,9 +1711,9 @@ Switch that is TRUE if the C-generating or C++-generating back end should
 generate code for the GNU C compiler (gcc or g++).
 */
 #ifndef GCC_IS_GENERATED_CODE_TARGET
-#ifdef GCC_IS_C_GEN_BE_TARGET
+#if defined(GCC_IS_C_GEN_BE_TARGET) && BACK_END_IS_C_GEN_BE
 #define GCC_IS_GENERATED_CODE_TARGET GCC_IS_C_GEN_BE_TARGET
-#endif /* ifdef GCC_IS_C_GEN_BE_TARGET */
+#endif /* defined(GCC_IS_C_GEN_BE_TARGET) && BACK_END_IS_C_GEN_BE */
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 
 #ifndef GCC_IS_GENERATED_CODE_TARGET
