@@ -7,18 +7,19 @@ typeinfo.h -- Include file for type information (18.5.1)
 
 #include <stdexcept.h>
 
-/*
-If bool is not supported, use a typedef for bool.
-*/
-#ifdef _BOOL
-typedef bool _bool;
-#else /* ifndef _BOOL */
-typedef int _bool;
-#endif /* ifdef _BOOL */
-
 #if __EDG_RUNTIME_USES_NAMESPACES
 namespace std {
 #endif /* __EDG_RUNTIME_USES_NAMESPACES */
+
+  /*
+  If bool is not supported, use a typedef for bool.
+  */
+  #ifdef _BOOL
+  typedef bool _bool;
+  #else /* ifndef _BOOL */
+  typedef int _bool;
+  #endif /* ifdef _BOOL */
+
 /* The following pragma is used so that the compiler knows that this definition
    of type_info is the one that corresponds to the type returned by typeid. */
 #pragma define_type_info
