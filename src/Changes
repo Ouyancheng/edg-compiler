@@ -1,5 +1,22 @@
 Version 2.36
 
+4/25/97   Spurious error on instantiation in template declaration
+
+When the instantiation of a class is caused by a reference in a template
+declaration, the instantiation of the default arguments and bodies
+of friend functions defined within the class was not being handled
+properly, and could result in spurious errors, or possibly incorrect
+execution.  This has been fixed.
+
+  template <class S> struct A {
+    struct B {};
+    A(int = S());
+  };
+
+template <class T> void foo(T, A<int>::B);
+
+
+
 4/23/97   Microsoft compatibility: default template arguments can be
           redefined
 

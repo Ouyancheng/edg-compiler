@@ -4229,7 +4229,6 @@ are not reactivated.
      instances. */
   is_template = is_template_instance_class_symbol(class_sym) &&
                 !is_template_instance_specific_def_symbol(class_sym) &&
-                depth_template_declaration_scope == NO_SCOPE_DEPTH &&
                 reactivate_template_params;
   if (is_template) {
     a_symbol_ptr			template_sym;
