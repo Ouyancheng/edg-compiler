@@ -487,8 +487,8 @@ do
 	 --short_lifetime_temps | \
          --wchar_t_keyword | \
          --no_wchar_t_keyword | \
-         --alternate_tokens | \
-         --no_alternate_tokens | \
+         --alternative_tokens | \
+         --no_alternative_tokens | \
          --inlining | \
          --no_inlining | \
          --svr4 | \
