@@ -5319,12 +5319,6 @@ typedef struct a_scope {
 			   block scope.  Always NULL at file scope.  Variables
 			   on this list will be allocated in the function
 			   scope's memory region. */
-  a_local_static_variable_init_ptr
-		local_static_variable_inits;
-			/* List of local static variable initializations in
-			   function or block scope; always NULL at file scope.
-			   Only dynamic and aggregate-constant initializations
-			   are represented. */
 #endif /* ifdef CIL */
   a_label_ptr   labels; /* List of local labels of this scope, NULL
                            if none.  Only used at the function scope level
@@ -5359,6 +5353,12 @@ typedef struct a_scope {
 			   anywhere, stmk_init statements are used to indicate
 			   the points within the code where each initialization
 			   should be done. */
+  a_local_static_variable_init_ptr
+		local_static_variable_inits;
+			/* List of local static variable initializations in
+			   function or block scope; always NULL at file scope.
+			   Only dynamic and aggregate-constant initializations
+			   are represented. */
 #endif /* ifdef CIL */
   a_pragma_ptr	pragmas;
 			/* A linked list of pragma entries.  They may be
