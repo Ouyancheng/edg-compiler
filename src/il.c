@@ -1182,6 +1182,15 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
           for (a = 0; a < level; a++) fputs(" ", f_debug);
           db_constructor_initializer(dip, level);
           break;
+        case dik_none:
+          for (a = 0; a < level; a++) fputs(" ", f_debug);
+          fputs("no initializer", f_debug);
+          if (dip->destructor != NULL) {
+            fputs(", ", f_debug);
+            db_destructor(dip->destructor);
+          }  /* if */
+          (void)fputc('\n', f_debug);
+          break;
 #if CHECKING
         default:
           fputs("**UNEXPECTED DYNAMIC INIT KIND**\n", f_debug);
