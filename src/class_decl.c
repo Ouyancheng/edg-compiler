@@ -5404,6 +5404,7 @@ of the function, and again overloading is a possibility.
         add_friend_function_to_lookup_list_for_class(sym, class_type);
       }  /* if */
     } else {
+      /* The friend function is a class member. */
       if (sym->parent.class_type == class_type) {
         /* It's a member function of the very class that is according it
            friendship.  Issue a diagnostic. */
@@ -5462,15 +5463,17 @@ of the function, and again overloading is a possibility.
                                         /*is_redecl=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!func_info->is_definition) {
-            a_routine_ptr  rp = sym->variant.routine.ptr;
-
+            a_routine_ptr         rp = sym->variant.routine.ptr;
+            a_name_reference_ptr  name_ref = NULL;
+#if RECORD_FORM_OF_NAME_REFERENCE
+            name_ref = make_name_reference(locator, &rp->source_corresp);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
             /* Since this is a non-defining entry, it is represented by a
                secondary-decl entry in the source sequence list.  Enter the
                current function type. */
-            (void)update_src_seq_secondary_decl((char *)rp,
-                                                func_info->declared_type,
-                                                SSSD_FRIEND_DECL,
-                                                &decl_info->decl_pos_block);
+            (void)update_src_seq_secondary_decl(
+                               (char *)rp, func_info->declared_type, name_ref,
+                               SSSD_FRIEND_DECL, &decl_info->decl_pos_block);
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
@@ -6479,6 +6482,13 @@ declared member functions.
   if (!compiler_generated) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (func_info->is_definition) {
+#if RECORD_FORM_OF_NAME_REFERENCE
+      /* A definition is always the primary declaration.  Record the form of
+         the associated declarator. */
+      a_name_reference_ptr
+                 name_ref = make_name_reference(locator, &rtn->source_corresp);
+      name_ref->used_in_primary_declarator = TRUE;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       /* For a definition enter the function type as the "declared_type" in
          the routine entry itself. Avoid adding a redundant type to the IL
          if possible. */
@@ -6510,6 +6520,10 @@ declared member functions.
                                                   ) {
       /* A non-defining entry is represented by a
          secondary-decl entry in the source sequence list. */
+      a_name_reference_ptr  name_ref = NULL;
+#if RECORD_FORM_OF_NAME_REFERENCE
+      name_ref = make_name_reference(locator, &rtn->source_corresp);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
       if (func_info->is_movable_member_or_friend_def) {
         /* Set the flag that indicates the definition appears outside the
@@ -6598,7 +6612,7 @@ declared member functions.
       /* Update the secondary-declaration entry.  A member function
          declaration within a class definition is always the initial
          declaration. */
-      if (!update_src_seq_secondary_decl((char *)rtn, tp,
+      if (!update_src_seq_secondary_decl((char *)rtn, tp, name_ref,
                                          SSSD_FIRST_DECLARATION,
                                          &decl_info->decl_pos_block)) {
         /* No source-sequence secondary declaration entity was found, which
@@ -7200,8 +7214,11 @@ information about the class definition and specific information about the
 member declaration, respectively.
 */
 {
-  a_symbol_ptr    sym, prototype_tag_sym;
-  a_variable_ptr  var;
+  a_symbol_ptr          sym, prototype_tag_sym;
+  a_variable_ptr        var;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_name_reference_ptr  name_ref = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "decl_static_data_member");
   if (is_void_type(member_type)) {
@@ -7308,7 +7325,11 @@ member declaration, respectively.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  (void)update_src_seq_secondary_decl((char *)var, member_type, SSSD_NO_FLAGS,
+#if RECORD_FORM_OF_NAME_REFERENCE
+  name_ref = make_name_reference(locator, &var->source_corresp);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  (void)update_src_seq_secondary_decl((char *)var, member_type, name_ref,
+                                      SSSD_NO_FLAGS,
                                       &decl_info->decl_pos_block);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current

@@ -14527,6 +14527,7 @@ that follows.
           an_sssd_flag_set  flags = SSSD_AUTONOMOUS_TAG_DECL |
                                     SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
           (void)update_src_seq_secondary_decl((char *)type, type,
+                                              (a_name_reference_ptr)NULL,
                                               flags, &decl_pos_block);
         }  /* if */
       }
@@ -14731,16 +14732,28 @@ that follows.
                                          decl_state);
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+        a_name_reference_ptr  name_ref = NULL;
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
         if (!is_definition) {
           an_sssd_flag_set  flags = SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
-
+#if RECORD_FORM_OF_NAME_REFERENCE
+          if (!C_mode()) {
+            name_ref = make_name_reference(&locator, scp);
+          }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
           if (first_decl) flags |= SSSD_FIRST_DECLARATION;
-          (void)update_src_seq_secondary_decl((char *)vp, type, flags, 
-                                              &decl_pos_block);
+          (void)update_src_seq_secondary_decl((char *)vp, type, name_ref,
+                                              flags, &decl_pos_block);
         } else {
-          /* The defining declaration of the variable.  Record the type.  */
+          /* The defining declaration of the variable.  Record the type and
+             the form of the declarator.  */
+#if RECORD_FORM_OF_NAME_REFERENCE
+          if (!C_mode()) {
+            name_ref = make_name_reference(&locator, scp);
+            name_ref->used_in_primary_declarator = TRUE;
+          }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
           if (vp->declared_type == NULL) vp->declared_type = type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -14779,14 +14792,25 @@ that follows.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
-        { a_type_ptr        declared_type;
-          an_sssd_flag_set  flags = SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
+        { a_type_ptr            declared_type;
+          an_sssd_flag_set      flags = SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
+          a_name_reference_ptr  name_ref = NULL;
 
           declared_type = form_declared_type(type, &func_info);
+#if RECORD_FORM_OF_NAME_REFERENCE
+          if (!C_mode()) {
+            name_ref = make_name_reference(&locator, scp);
+          }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
           if (first_decl) flags |= SSSD_FIRST_DECLARATION;
           if (is_definition) {
             /* The defining declaration of the routine.  Record the declared
-               type. */
+               type and the form of the declarator. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+            if (name_ref != NULL) {
+              name_ref->used_in_primary_declarator = TRUE;
+            }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
             check_assertion(rp->declared_type == NULL);
             set_routine_declared_type(rp, declared_type);
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -14799,13 +14823,15 @@ that follows.
                  entry representing the function definition will be inserted
                  following the class definition and a secondary source
                  sequence entry has been put out here. */
-              (void)update_src_seq_secondary_decl((char *)rp, declared_type,
-                                                  flags, &decl_pos_block);
+              (void)update_src_seq_secondary_decl(
+                                          (char *)rp, declared_type, name_ref,
+                                          flags, &decl_pos_block);
             }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
           } else {
             (void)update_src_seq_secondary_decl((char *)rp, declared_type,
-                                                flags, &decl_pos_block);
+                                                name_ref, flags,
+                                                &decl_pos_block);
           }  /* if */
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

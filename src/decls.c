@@ -4037,6 +4037,7 @@ declaration.
   a_boolean                is_variable_def = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr               declared_type;
+  a_name_reference_ptr     name_ref = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_id_linkage_block      idlb;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4459,17 +4460,28 @@ declaration.
      represent the current declaration.  Note that declaration_ssep is not
      used, since it may have been replaced (e.g., when a file scope entity
      is declared in a local scope and a sublist is generated). */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  if (!C_mode()) {
+    name_ref = make_name_reference(locator, source_corresp_ptr);
+  }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
-    an_sssd_flag_set              flags = SSSD_NO_FLAGS;
+    an_sssd_flag_set  flags = SSSD_NO_FLAGS;
 #if GNU_EXTENSIONS_ALLOWED
     if (decl_modifiers->marked_as_gnu_extension) {
       flags |= SSSD_MARKED_AS_GNU_EXTENSION;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     (void)update_src_seq_secondary_decl((char *)variable_ptr, declared_type,
-                                        flags, decl_pos_block);
+                                        name_ref, flags, decl_pos_block);
   } else {
-    /* The defining declaration of the variable.  Record the type. */
+    /* The defining declaration of the variable.  Record the type and the
+       form of the declarator. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+    if (name_ref != NULL) {
+      name_ref->used_in_primary_declarator = TRUE;
+    }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     if (variable_ptr->declared_type == NULL) {
       variable_ptr->declared_type = declared_type;
     }  /* if */
@@ -4653,6 +4665,7 @@ type entry if appropriate, otherwise using the indicated declared_type.
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 a_boolean update_src_seq_secondary_decl(char                  *il_entry_ptr,
                                         a_type_ptr            declared_type,
+                                        a_name_reference_ptr  name_ref,
                                         an_sssd_flag_set      flags,
                                         a_decl_pos_block_ptr  decl_pos_block)
 /*
@@ -4672,7 +4685,7 @@ decl_pos_info supplement of the secondary-decl entry.
     sssdp = NULL;
   } else {
     sssdp = set_src_seq_secondary_decl_fields(il_entry_ptr, declared_type,
-                                              flags);
+                                              name_ref, flags);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (sssdp != NULL && decl_pos_block != NULL) {
       /* Update source range information in the secondary-decl entry. */
@@ -4754,6 +4767,7 @@ declaration.
   a_boolean                set_invisible = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
   a_boolean                first_decl = FALSE;
+  a_name_reference_ptr     name_ref = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
   an_id_linkage_block      idlb;
   a_boolean                suppress_inline_body = FALSE;
@@ -5919,9 +5933,19 @@ skip_overloading:;
      represent the current declaration.  Note that declaration_ssep is not
      used, since it may have been replaced (e.g., when a file scope entity
      is declared in a local scope and a sublist is generated). */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  if (!C_mode()) {
+    name_ref = make_name_reference(locator, source_corresp_ptr);
+  }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (is_function_def) {
     /* The defining declaration of the function.  Set a pointer to the
-       declared type. */
+       declared type and record the form of reference. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+    if (name_ref != NULL) {
+      name_ref->used_in_primary_declarator = TRUE;
+    }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     set_routine_declared_type(routine_ptr, func_info->declared_type);
     if (is_friend_decl) {
       /* If there were any default arguments, they still need to be scanned.
@@ -5945,9 +5969,8 @@ skip_overloading:;
        entry that is put out within the class definition is a secondary-decl;
        the primary source sequence entry is put out after the class definition
        is complete. */
-    an_sssd_flag_set              flags = SSSD_NO_FLAGS;
-    a_type_ptr                    declared_type;
-
+    an_sssd_flag_set      flags = SSSD_NO_FLAGS;
+    a_type_ptr            declared_type;
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
     if (func_info->is_movable_member_or_friend_def) {
       /* Remove default arguments, if any, from the type associated with
@@ -5972,7 +5995,7 @@ skip_overloading:;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     (void)update_src_seq_secondary_decl((char *)routine_ptr, declared_type,
-                                        flags, decl_pos_block);
+                                        name_ref, flags, decl_pos_block);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_function_def) {
@@ -7092,9 +7115,10 @@ return a pointer to it in *symbol_ptr.
                                     declarator_ssep);
           if (!(ref_kind & SRK_DEFINITION)) {  /*lint !e774*/
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-            (void)update_src_seq_secondary_decl((char *)sym->variant.type.ptr,
-                                                type_ptr, SSSD_NO_FLAGS,
-                                                decl_pos_block);
+            (void)update_src_seq_secondary_decl(
+                                          (char *)sym->variant.type.ptr,
+                                          type_ptr, (a_name_reference_ptr)NULL,
+                                          SSSD_NO_FLAGS, decl_pos_block);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           } else {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -9865,6 +9889,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
           tp->autonomous_primary_tag_decl = TRUE;
         } else {
           (void)set_src_seq_secondary_decl_fields((char *)tp, (a_type_ptr)NULL,
+                                                  (a_name_reference_ptr)NULL,
                                                   SSSD_AUTONOMOUS_TAG_DECL);
         }  /* if */
       }
@@ -9960,6 +9985,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
           } else {
             (void)set_src_seq_secondary_decl_fields((char *)tp,
                                                     (a_type_ptr)NULL,
+                                                    (a_name_reference_ptr)NULL,
                                                     SSSD_AUTONOMOUS_TAG_DECL);
           }  /* if */
         }  /* if */

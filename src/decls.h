@@ -341,10 +341,11 @@ extern void set_routine_declared_type(a_routine_ptr  routine_ptr,
                                       a_type_ptr     declared_type);
 
 extern a_boolean update_src_seq_secondary_decl(
-                                        char                 *il_entry_ptr,
-                                        a_type_ptr           declared_type,
-                                        an_sssd_flag_set     flags,
-                                        a_decl_pos_block_ptr decl_pos_block);
+                                        char                  *il_entry_ptr,
+                                        a_type_ptr            declared_type,
+                                        a_name_reference_ptr  name_ref,
+                                        an_sssd_flag_set      flags,
+                                        a_decl_pos_block_ptr  decl_pos_block);
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 

@@ -3072,6 +3072,9 @@ and return a pointer to it.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   sssdp->entity.kind                 = (a_byte_il_entry_kind)iek_none;
   sssdp->entity.ptr                  = NULL;
+#if RECORD_FORM_OF_NAME_REFERENCE
+  sssdp->name_reference              = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   sssdp->declared_type               = NULL;
   sssdp->autonomous_tag_decl         = FALSE;
   sssdp->friend_decl                 = FALSE;
@@ -3364,6 +3367,9 @@ Initialize the fields of a name reference entry.
   nrp->is_global_qualified_name = FALSE;
   nrp->is_template_id = FALSE;
   nrp->is_super_qualified = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  nrp->used_in_primary_declarator = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* clear_name_reference */
 
 

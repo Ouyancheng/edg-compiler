@@ -350,10 +350,8 @@ static void gen_general_declaration_using_type(
                              a_src_seq_secondary_decl_ptr sec_decl,
                              a_type_qualifier_set         added_qualifiers,
                              a_boolean                    suppress_specifiers,
-                             a_gen_decl_options_set       options);
-static void gen_declaration_using_type(a_type_ptr              type,
-                                       a_source_correspondence *scp,
-                                       an_il_entry_kind        entry_kind);
+                             a_gen_decl_options_set       options,
+                             a_name_reference_ptr         name_ref);
 static void gen_variable_decl(a_boolean is_condition,
                               a_boolean for_init,
                               a_boolean suppress_specifiers,
@@ -2047,6 +2045,37 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 
 #if RECORD_FORM_OF_NAME_REFERENCE
 
+static a_name_reference_ptr get_current_name_ref(void)
+/*
+Return the form of reference for the declarator associated with the current
+source sequence entry (NULL if no such reference was recorded).
+*/
+{
+  a_name_reference_ptr          result;
+  a_src_seq_secondary_decl_ptr  sec_decl;
+
+  if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
+    /* A secondary declaration: Get the name reference directly from the
+       associated secondary source sequence entry. */
+    result = sec_decl->name_reference;
+  } else {
+    /* A primary declaration (e.g., a definition): Look through the name
+       references used for the associated IL entry to find the one that
+       was used for the primary declaration (if any). */
+    a_source_correspondence_ptr
+      scp = ss_entry_ptr(curr_source_sequence_entry,
+                         a_source_correspondence_ptr);
+    result = scp->name_references;
+    for (;result != NULL; result = result->next) {
+      if (result->used_in_primary_declarator) {
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* get_current_name_ref */
+
+
 static void gen_name_qualifier_list(a_name_qualifier_ptr nqp)
 /*
 Put out the list of name qualifiers indicated by nqp.  If nqp is NULL,
@@ -3349,7 +3378,8 @@ default arguments should be suppressed (needed for template specializations).
                                           (a_src_seq_secondary_decl_ptr)NULL,
                                           TQ_NONE,
                                           /*suppress_specifiers=*/FALSE,
-                                          GDO_NO_OPTIONS);
+                                          GDO_NO_OPTIONS,
+                                          (a_name_reference_ptr)NULL);
 #if GNU_EXTENSIONS_ALLOWED
           write_variable_attributes(param_var);
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -3489,7 +3519,8 @@ static void gen_general_declaration_using_type(
                               a_src_seq_secondary_decl_ptr sec_decl,
                               a_type_qualifier_set         added_qualifiers,
                               a_boolean                    suppress_specifiers,
-                              a_gen_decl_options_set       options)
+                              a_gen_decl_options_set       options,
+                              a_name_reference_ptr         name_ref)
 /*
 Output a declaration built around a type.  The argument scp is the source
 correspondence entry for the entity being declared, or NULL if there is
@@ -3505,7 +3536,8 @@ set to the source position indicated in *scp.  If options &
 GDO_FUNCTION_FRIEND_DECL is TRUE, this is a friend declaration for
 a function.  If options & GDO_FORCE_UNQUALIFIED_NAME is TRUE,
 use an unqualified name when naming the entity in the declarator.
-*/
+name_ref represents the form of the declarator (or NULL if it wasn't
+recorded).*/
 {
   a_boolean force_unqualified_name =
                                    (options & GDO_FORCE_UNQUALIFIED_NAME) != 0;
@@ -3531,6 +3563,12 @@ use an unqualified name when naming the entity in the declarator.
       set_decl_position(scp, sec_decl);
     }  /* if */
     /* Write the name. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+    if (name_ref != NULL) {
+      gen_name_from_name_reference(name_ref, scp, entry_kind);
+    } else
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+    /* Do not insert code here. */
     if (options & GDO_FUNCTION_FRIEND_DECL) {
       /* Friend declaration (using typedef type).  The rules for using
          qualified names are different than for ordinary declarations. */
@@ -3566,7 +3604,8 @@ scp is NULL).
                                      (a_src_seq_secondary_decl_ptr)NULL,
                                      TQ_NONE,
                                      /*suppress_specifiers=*/FALSE,
-                                     GDO_NO_OPTIONS);
+                                     GDO_NO_OPTIONS,
+                                     (a_name_reference_ptr)NULL);
 }  /* gen_declaration_using_type */
 
 
@@ -3956,7 +3995,8 @@ declaration following this one is such a continuation.
                                      (a_src_seq_secondary_decl_ptr)NULL,
                                      TQ_NONE,
                                      suppress_specifiers,
-                                     GDO_NO_OPTIONS);
+                                     GDO_NO_OPTIONS,
+                                     (a_name_reference_ptr)NULL);
   if (field->is_bit_field) {
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
@@ -4260,7 +4300,8 @@ declaration following this one is such a continuation.
                                          &type->source_corresp,
                                          iek_type, sec_decl, TQ_NONE,
                                          suppress_specifiers,
-                                         GDO_NO_OPTIONS);
+                                         GDO_NO_OPTIONS,
+                                         (a_name_reference_ptr)NULL);
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit any attributes associated with the type. */
       write_type_attributes(under_type);
@@ -7775,7 +7816,7 @@ Generate code for a class member or nonmember using-declaration.
   }  /* if */
   gen_unqualified_name(scp, entry_kind);
   write_tok_ch(';');
-}  /* gen_using_decl */
+}  /* gen_using_declaration */
 
 
 static void gen_using_directive_or_declaration(void)
@@ -7809,7 +7850,8 @@ static void gen_routine_specifiers_and_declaration(
                           a_scope_ptr                  scope,
                           a_boolean                    suppress_specifiers,
                           a_boolean                    *context_pop_needed,
-                          a_source_sequence_scan_state *saved_state);
+                          a_source_sequence_scan_state *saved_state,
+                          a_name_reference_ptr         name_ref);
 
 
 static void gen_instantiation_directive(void)
@@ -7824,6 +7866,7 @@ Generate code for an instantiation directive.
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_boolean                      put_out = TRUE;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  a_name_reference_ptr           name_ref = get_current_name_ref();
 
   /* Advance past the source sequence entry for the instantiation directive. */
   adv_curr_source_sequence_entry();
@@ -7864,7 +7907,8 @@ Generate code for an instantiation directive.
                                          (a_scope_ptr)NULL,
                                          /*suppress_specifiers=*/FALSE,
                                          &context_pop_needed,
-                                         (a_source_sequence_scan_state *)NULL);
+                                         (a_source_sequence_scan_state *)NULL,
+                                         name_ref);
           /* Pop the name context for a class/namespace member. */
           if (context_pop_needed) {
             pop_name_context_if_member(&rout->source_corresp);
@@ -7881,7 +7925,8 @@ Generate code for an instantiation directive.
                                             (a_src_seq_secondary_decl_ptr)NULL,
                                              TQ_NONE,
                                              /*suppress_specifiers=*/FALSE,
-                                             GDO_SUPPRESS_POSITION);
+                                             GDO_SUPPRESS_POSITION,
+                                             name_ref);
           write_tok_ch(';');
         }
         break;
@@ -8946,9 +8991,10 @@ declaration following this one is such a continuation.
   a_template_decl_ptr          template_decl = NULL;
   a_template_ptr	       assoc_template;
 #if GNU_EXTENSIONS_ALLOWED
-  a_boolean                     marked_as_gnu_extension = FALSE;
+  a_boolean                    marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                             
+  a_name_reference_ptr         name_ref = get_current_name_ref();
+                            
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     if (ss_entry_kind(sec_decl) == iek_template) {
@@ -9140,7 +9186,8 @@ declaration following this one is such a continuation.
                                      suppress_specifiers,
                                      force_unqualified_name ?
                                                    GDO_FORCE_UNQUALIFIED_NAME :
-                                                   GDO_NO_OPTIONS);
+                                                   GDO_NO_OPTIONS,
+                                     name_ref);
 #if GNU_EXTENSIONS_ALLOWED
   /* Emit any user-specified assembly symbol for this variable. */
   if (var->asm_name_is_valid) {
@@ -9336,6 +9383,10 @@ flags on the classes found on an earlier call.
 }  /* gen_typedefs_for_template_classes_in_default_arguments */
 
 
+#if !RECORD_FORM_OF_NAME_REFERENCE
+/*ARGSUSED*/ /* name_ref is not used unless the form of name references is
+                recorded in the IL. */
+#endif /* !RECORD_FORM_OF_NAME_REFERENCE */
 static void gen_routine_specifiers_and_declaration(
                           a_routine_ptr                rout,
                           a_type_ptr                   rout_type,
@@ -9348,7 +9399,8 @@ static void gen_routine_specifiers_and_declaration(
                           a_scope_ptr                  scope,
                           a_boolean                    suppress_specifiers,
                           a_boolean                    *context_pop_needed,
-                          a_source_sequence_scan_state *saved_state)
+                          a_source_sequence_scan_state *saved_state,
+                          a_name_reference_ptr         name_ref)
 /*
 Generate the type specifiers and declarator for a declaration of the
 routine rout.  Its type is rout_type (that may differ from rout->type for
@@ -9366,10 +9418,12 @@ is not exactly the same as suppressing the return type).  If this
 routine does a name context push for a member, *context_pop_needed
 will be returned TRUE.  For a definition, the current scan state will
 be saved in *saved_state before the transition to the source sequence
-list for the function definition.
+list for the function definition.  name_ref represents the form of the
+declarator (or NULL if it wasn't recorded).
 */
 {
-  a_type_ptr qual_rout_type = rout_type;
+  a_type_ptr                   qual_rout_type = rout_type;
+  a_source_correspondence_ptr  scp = &rout->source_corresp;
 
   *context_pop_needed = FALSE;
   /* Determine the effective routine type by starting from the routine
@@ -9390,10 +9444,9 @@ list for the function definition.
     check_assertion(!is_definition);
     gen_general_declaration_using_type(qual_rout_type, 
                                        (a_type_mode_kind)tmk_none,
-                                       &rout->source_corresp,
-                                       iek_routine, sec_decl, TQ_NONE,
+                                       scp, iek_routine, sec_decl, TQ_NONE,
                                        suppress_specifiers,
-                                       options);
+                                       options, name_ref);
   } else {
     /* Normal routine case.  Do the declaration in a special way because
        (a) function definitions use information from the function parameter
@@ -9419,20 +9472,25 @@ list for the function definition.
     }  /* if */
     if (!instantiation_directive) {
       /* Position the output file to the declaration position (again). */
-      set_decl_position(&rout->source_corresp, sec_decl);
+      set_decl_position(scp, sec_decl);
     }  /* if */
     /* Write the routine name. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+    if (name_ref != NULL) {
+      gen_name_from_name_reference(name_ref, scp, iek_routine);
+    } else
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+    /* Do not insert code here. */
     if (friend_decl) {
       /* Friend declaration.  The rules for using qualified names are
          different than for ordinary declarations. */
-      gen_friend_function_decl_name(&rout->source_corresp, is_definition);
+      gen_friend_function_decl_name(scp, is_definition);
     } else {
-      gen_decl_name(&rout->source_corresp, iek_routine,
-                    force_unqualified_name);
+      gen_decl_name(scp, iek_routine, force_unqualified_name);
     }  /* if */
     if (!force_unqualified_name) {
       /* Push the name context for a class/namespace member. */
-      push_name_context_if_member(&rout->source_corresp);
+      push_name_context_if_member(scp);
       *context_pop_needed = TRUE;
     }  /* if */
     if (is_definition) {
@@ -9495,6 +9553,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean                     discard_declaration = FALSE;
+  a_name_reference_ptr          name_ref = get_current_name_ref();
 
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -9811,7 +9870,7 @@ TRUE if the declaration following this one is such a continuation.
                                          scope,
                                          suppress_specifiers,
                                          &context_pop_needed,
-                                         &saved_state);
+                                         &saved_state, name_ref);
   if (need_to_unset_typedefs) {
     (void)gen_typedefs_for_template_classes_in_default_arguments(
                                                       rtsp->param_type_list,

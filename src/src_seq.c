@@ -1764,10 +1764,15 @@ that refers to the IL entity identified by entity.
 }  /* last_matching_source_sequence_entry */
 
 
+#if !RECORD_FORM_OF_NAME_REFERENCE
+/*ARGSUSED*/ /* name_ref is not used unless the form of name references is
+                recorded in the IL. */
+#endif /* !RECORD_FORM_OF_NAME_REFERENCE */
 a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_fields(
-                                             char              *il_entry_ptr,
-                                             a_type_ptr        declared_type,
-                                             an_sssd_flag_set  flags)
+                                           char                  *il_entry_ptr,
+                                           a_type_ptr            declared_type,
+                                           a_name_reference_ptr  name_ref,
+                                           an_sssd_flag_set      flags)
 /*
 Set the declared_type field and various flags in the secondary-decl source
 sequence entry associated with il_entry_ptr; the source sequence entry is
@@ -1789,6 +1794,9 @@ in the secondary source sequence entry that need to be set.
       check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
       sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
       if (declared_type != NULL) sssdp->declared_type = declared_type;
+#if RECORD_FORM_OF_NAME_REFERENCE
+      if (name_ref != NULL) sssdp->name_reference = name_ref;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       if (flags & SSSD_AUTONOMOUS_TAG_DECL) {
         sssdp->autonomous_tag_decl = TRUE;
       }  /* if */

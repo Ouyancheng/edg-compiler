@@ -1640,6 +1640,9 @@ new expression and should therefore not be treated as a declaration.
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr        attributes = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_name_reference_ptr    name_ref = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -2278,6 +2281,11 @@ new expression and should therefore not be treated as a declaration.
        secondary declaration entry.  The corresponding field in the class
        symbol supplement will already have been set for definitions, if
        appropriate. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+    if (!C_mode()) {
+      name_ref = make_name_reference(&locator, &class_type->source_corresp);
+    }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     if (!is_class_definition) {
       an_sssd_flag_set              flags = SSSD_FIRST_DECLARATION;
 #if GNU_EXTENSIONS_ALLOWED
@@ -2285,10 +2293,16 @@ new expression and should therefore not be treated as a declaration.
         flags |= SSSD_MARKED_AS_GNU_EXTENSION;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      (void)set_src_seq_secondary_decl_fields((char *)class_type,
-                                              (a_type_ptr)NULL, flags);
+      (void)set_src_seq_secondary_decl_fields(
+                                         (char *)class_type, (a_type_ptr)NULL,
+                                         name_ref, flags);
 #if GNU_EXTENSIONS_ALLOWED
     } else {
+#if RECORD_FORM_OF_NAME_REFERENCE
+      if (name_ref != NULL) {
+        name_ref->used_in_primary_declarator = TRUE;
+      }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       class_type->source_corresp.marked_as_gnu_extension =
                                                       marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2377,13 +2391,20 @@ new expression and should therefore not be treated as a declaration.
            invisible symbol.  Set the first_declaration flag in the
            associated source-sequence secondary declaration entry. */
         an_sssd_flag_set              flags = SSSD_FIRST_DECLARATION;
+#if RECORD_FORM_OF_NAME_REFERENCE
+        if (!C_mode()) {
+          name_ref = make_name_reference(&locator,
+                                         &class_type->source_corresp);
+        }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if GNU_EXTENSIONS_ALLOWED
         if (marked_as_gnu_extension) {
           flags |= SSSD_MARKED_AS_GNU_EXTENSION;
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        (void)set_src_seq_secondary_decl_fields((char *)class_type,
-                                                (a_type_ptr)NULL, flags);
+        (void)set_src_seq_secondary_decl_fields(
+                                         (char *)class_type, (a_type_ptr)NULL,
+                                         name_ref, flags);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
@@ -2646,6 +2667,9 @@ to indicate whether an enumeration is actually defined.
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr             attributes;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_name_reference_ptr         name_ref = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "enum_specifier");
 
@@ -2831,8 +2855,13 @@ to indicate whether an enumeration is actually defined.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Set the first_declaration flag in the associated source-sequence
            secondary declaration entry. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+        if (!C_mode()) {
+          name_ref = make_name_reference(&locator, &enum_type->source_corresp);
+        }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
         (void)set_src_seq_secondary_decl_fields((char *)enum_type,
-                                                (a_type_ptr)NULL,
+                                                (a_type_ptr)NULL, name_ref,
                                                 SSSD_FIRST_DECLARATION);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */

@@ -695,6 +695,13 @@ typedef struct a_decl_position_supplement {
 } a_decl_position_supplement;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+/*
+The type "pointer-to-name-reference" is used in secondary source sequence
+entries.  The complete a_name_reference type is defined later.  (Note that
+this pointer type is defined even when RECORD_FORM_OF_NAME_REFERENCE is
+FALSE because the type appears in some function declarations.)
+*/
+typedef struct a_name_reference *a_name_reference_ptr;
 
 /*
 The type "pointer-to-source-sequence-entry" is defined even if the
@@ -775,6 +782,12 @@ typedef struct a_src_seq_secondary_decl {
 			   needn't be.  It appears on secondary declarations
 			   for typedefs, but NULL for secondary declarations
 			   of class, struct, union, and enum types. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  a_name_reference_ptr
+		name_reference;
+			/* The form of the declarator used in the declaration
+			   referred to by this entry. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_bit_field	autonomous_tag_decl:1;
 			/* If entity refers to a type entry representing a
 			   class, struct, union, or enum, this flag is TRUE if
@@ -985,7 +998,6 @@ typedef struct a_per_instantiation_needed_flags_entry {
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 typedef struct a_name_qualifier *a_name_qualifier_ptr;
-typedef struct a_name_reference *a_name_reference_ptr;
 
 #if RECORD_FORM_OF_NAME_REFERENCE
 
@@ -1041,6 +1053,11 @@ typedef struct a_name_reference {
   a_bit_field	is_super_qualified:1;
 			/* TRUE if the name is prefixed by the Microsoft
 			   __super keyword (e.g., __super::x). */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_bit_field	used_in_primary_declarator:1;
+			/* TRUE if the primary declaration specified the
+			   name in this form. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_name_reference;
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */

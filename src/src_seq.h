@@ -164,9 +164,10 @@ typedef unsigned int an_sssd_flag_set;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_fields(
-                                             char              *il_entry_ptr,
-                                             a_type_ptr        declared_type,
-                                             an_sssd_flag_set  flags);
+                                           char                  *il_entry_ptr,
+                                           a_type_ptr            declared_type,
+                                           a_name_reference_ptr  name_ref,
+                                           an_sssd_flag_set      flags);
 
 extern a_type_ptr type_from_src_seq_declaration(
                                              a_source_sequence_entry_ptr ssep);
