@@ -3492,9 +3492,11 @@ is the one associated with the definition of the class.
     push_name_context(ctsp->assoc_scope);
     /* Keep track of the current access category, in order to emit a change
        when necessary. */
-    if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
+    if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field ||
+        (!has_name_before_mangling(type) &&
+                                         type->autonomous_primary_tag_decl)) {
       /* An anonymous union starts with the same access as the enclosing
-         class. */
+         class.  (Also nonstandard anonymous unions.) */
       curr_name_context->access = curr_name_context->next->access;
     } else {
       /* Normal case (not an anonymous union).  Start with the default
