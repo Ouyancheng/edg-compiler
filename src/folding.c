@@ -23,6 +23,16 @@ folding.c -- Folding routines.
 #include "float_pt.h"
 #include "cmd_line.h"
 
+/*
+Determine the severity (error or warning) to be used for integer
+operation overflows.
+*/
+#if TARG_NO_ERROR_ON_INTEGER_OVERFLOW
+#define ES_INT_OVERFLOW es_warning
+#else /* !TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
+#define ES_INT_OVERFLOW es_error
+#endif /* TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
+
 
 void implicit_cast(a_constant_ptr cp,
                    a_type_ptr     new_type)
@@ -105,14 +115,14 @@ already set to an error code, do not change it.
       if (result_value > max_val || result_value < min_val) {
         /* The value will not fit in the destination integer type. */
         *err_code = ec_integer_overflow;
-        *err_severity = es_error;
+        *err_severity = ES_INT_OVERFLOW;
       }  /* if */
     } else {
       /* Destination is an unsigned integer. */
       if ((unsigned long)result_value > mask) {
         /* The value will not fit in the destination integer type. */
         *err_code = ec_integer_overflow;
-        *err_severity = es_error;
+        *err_severity = ES_INT_OVERFLOW;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -671,7 +681,7 @@ Do the negate operation on all types of integers.
       /* Suppress this error for non-arithmetic constants in K&R mode. */
       if (C_dialect != C_dialect_pcc || !constant->non_arithmetic) {
         *err_code = ec_integer_overflow;
-        *err_severity = es_error;
+        *err_severity = ES_INT_OVERFLOW;
       }  /* if */
     }  /* if */
   } else {
@@ -920,13 +930,13 @@ Do the addition operation on all types of integers.
       if (result_value < 0) {
         /* Nonnegative + nonnegative produced negative: overflow. */
         *err_code = ec_integer_overflow;
-        *err_severity = es_error;
+        *err_severity = ES_INT_OVERFLOW;
       }  /* if */
     } else if (value_1 < 0 && value_2 < 0) {
       if (result_value >= 0) {
         /* Negative + negative produced positive: overflow. */
         *err_code = ec_integer_overflow;
-        *err_severity = es_error;
+        *err_severity = ES_INT_OVERFLOW;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -985,7 +995,7 @@ Do the subtract operation on all types of integers.
     /* Subtraction of signed integers. */
     if (!subtract_protected(value_1, value_2, &result_value)) {
       *err_code = ec_integer_overflow;
-      *err_severity = es_error;
+      *err_severity = ES_INT_OVERFLOW;
     }  /* if */
   } else {
     /* Subtraction of unsigned integers. */
@@ -1087,7 +1097,7 @@ Do the multiply operation on all types of integers.
     /* Multiplication of signed integers. */
     if (!multiply_protected(value_1, value_2, &result_value)) {
       *err_code = ec_integer_overflow;
-      *err_severity = es_error;
+      *err_severity = ES_INT_OVERFLOW;
     }  /* if */
   } else {
     /* Multiplication of unsigned integers. */
