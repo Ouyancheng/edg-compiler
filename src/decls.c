@@ -8954,6 +8954,14 @@ and for the instantiation of template functions.
   /* The lint "argsused" and "varargs" flags last only one declaration;
      clear them before entering the function body. */
   clear_decl_lint_and_pragma_globals();
+  /* If return value optimization may be possible (i.e., if the routine
+     returns a class value via a copy constructor) set the flag to TRUE.
+     (It is also required that all the return statements return a single local
+     variable -- if that turns out not to be the case, the flag will be
+     cleared again.) */
+  if (rtsp->value_returned_by_cctor) {
+    scope_stack[depth_scope_stack].return_value_optimization_possible = TRUE;
+  }  /* if */
   if (class_type != NULL && rtsp->implicit_this_param_type != NULL) {
     a_variable_ptr  vp = make_param_variable(rtsp->implicit_this_param_type,
                                              (a_storage_class)sc_auto);
