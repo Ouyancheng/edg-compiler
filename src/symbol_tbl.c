@@ -3152,7 +3152,7 @@ the latter will be NULL for variables.
 {
   a_symbol_header_ptr hdr_ptr;
   a_symbol_ptr        sym;
-  a_namespace_ptr     nsp = NULL;
+  a_namespace_ptr     nsp;
 
   db_enter(4, "find_external_symbol");
   /* Start with the external locator the same as the normal locator.  This
@@ -3229,7 +3229,9 @@ the latter will be NULL for variables.
     }  /* if */
     /* See if there is already an external symbol with this name and belonging
        to the appropriate namespace. */
-    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+    nsp = qualifier_namespace_ptr(*location);
+    if (nsp == NULL &&
+        depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
       nsp = scope_stack[depth_innermost_namespace_scope].
                                            il_scope->variant.assoc_namespace;
     }  /* if */
