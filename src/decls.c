@@ -6014,13 +6014,12 @@ extern_implied is TRUE when this declaration is inside a linkage specification
 block.
 */
 {
-  a_source_position           namespace_pos, pos;
+  a_source_position           namespace_pos;
   a_namespace_ptr             nsp;
   a_symbol_ptr                ns_sym = NULL, sym;
   a_symbol_locator            locator;
   a_boolean                   is_unnamed_namespace = FALSE;
   a_boolean                   is_namespace_alias = FALSE;
-  a_boolean                   original_def = FALSE;
   a_scope_pointers_block_ptr  pointers_block;
   a_boolean                   err = FALSE;
   a_symbol_reference_kind     srk_flags = SRK_DECLARATION;
@@ -6186,9 +6185,7 @@ block.
                               /*suppress_redecl_error=*/TRUE);
       }  /* if */
       if (ns_sym->variant.namespace_info.ptr == NULL) {
-        /* Original definition. */
-        original_def = TRUE;
-        /* Allocate the namespace entry. */
+        /* Original definition -- allocate the namespace entry. */
         nsp = alloc_namespace(/*is_alias=*/FALSE);
         set_source_corresp(&nsp->source_corresp, ns_sym);
         if (is_unnamed_namespace) nsp->source_corresp.name = NULL;
@@ -6201,6 +6198,28 @@ block.
         /* Push a scope for the scanning the namespace body. */
         (void)push_namespace_scope((a_scope_kind)sck_namespace, nsp);
         nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
+        if (is_unnamed_namespace) {
+          /* The model for the initial definition of an unnamed namespace
+               namespace { ... }
+             is this:
+               namespace UNIQUE { }
+               using namespace UNIQUE;
+               namespace UNINQUE { ... }
+             This enables this sort of code to work:
+               namespace {
+                 int i;
+                 int j = ::i;       // lookup rules find UNIQUE::i
+               }
+             The model is implemented by immediately popping the
+             original definition of the unnamed namespace, inserting the
+             implicit using directive, and then reopening the namespace as
+             as an extension. */
+          pop_scope();
+          /* Do an implicit "using" directive of the unnamed namespace. */
+          make_using_directive(nsp, &pos_curr_token);
+          (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                                     nsp);
+        }  /* if */
         srk_flags |= SRK_DEFINITION;
       } else {
         /* An extension of the original definition of this namespace -- push
@@ -6226,15 +6245,9 @@ block.
                                         (a_byte_il_entry_kind)iek_namespace);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       remove_stop_token(tok_rbrace);
-      /* Save the source position of the right brace, in case it's needed. */
-      pos = pos_curr_token;
       (void)required_token(tok_rbrace, ec_exp_rbrace);
       /* Pop the namespace or namespace-extension scope. */
       pop_scope();
-      if (original_def && is_unnamed_namespace) {
-        /* Do an implicit "using" directive of the unnamed namespace. */
-        make_using_directive(nsp, &pos);
-      }  /* if */
     }  /* if */
   }  /* if */
 }  /* namespace_declaration */
