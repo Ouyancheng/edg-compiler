@@ -2090,9 +2090,20 @@ new_bcp is the base class being created in new_class.
         new_ovfp_base_class = find_direct_base_class_of(new_class,
                                                         old_class);
       } else {
+        /* Be sure to select the right base class (its type could appear
+           multiple times in the object hierarchy). */
+        a_base_class_ptr  disambiguator = NULL;
+        if (!new_bcp->is_virtual) {
+          /* If the base class is virtual, no disambiguator is needed.
+             Otherwise, there is only one derivation path and we can search
+             for a disambiguator along that path. */
+          disambiguator = find_disambiguator(
+                                        new_bcp->derivation->path->base_class,
+                                        ovfp_to_copy->base_class);
+        }  /* if */
         new_ovfp_base_class = 
-                  corresponding_base_class(ovfp_to_copy->base_class, new_class,
-                                           (a_base_class_ptr)NULL);
+                 corresponding_base_class(ovfp_to_copy->base_class, new_class,
+                                          disambiguator);
       }  /* if */
       if (check_new_list) {
         for (ovfp_from_new_list = new_bcp->overriding_virtual_functions;
