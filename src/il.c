@@ -8485,8 +8485,57 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
   a_src_seq_secondary_decl_ptr  sssdp;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-  clear_class_type_supplement(class_type->
-                               variant.class_struct_union.extra_info);
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  if (ctsp != NULL) {
+    a_type_ptr                   friend_class;
+    a_class_type_supplement_ptr  friend_ctsp;
+    a_routine_ptr                friend_rout;
+    a_class_list_entry_ptr       clep, prev_clep, next_clep;
+    while (ctsp->friend_classes != NULL) {
+      friend_class = ctsp->friend_classes->class_type;
+      friend_ctsp = friend_class->variant.class_struct_union.extra_info;
+      if (friend_ctsp != NULL) {
+        prev_clep = NULL;
+        clep = friend_ctsp->befriending_classes;
+        for (; clep != NULL; clep = next_clep) {
+          next_clep = clep->next;
+          if (clep->class_type == class_type) {
+            /* A match -- link around it. */
+            if (prev_clep == NULL) {
+              friend_ctsp->befriending_classes = next_clep;
+            } else {
+              prev_clep->next = next_clep;
+            }  /* if */
+            break;
+          }  /* if */
+          /* No match -- keep looping. */
+          prev_clep = clep;
+        }  /* for */
+      }  /* if */
+      ctsp->friend_classes = ctsp->friend_classes->next;
+    }  /* while */
+    while (ctsp->friend_routines != NULL) {
+      friend_rout = ctsp->friend_routines->routine;
+      prev_clep = NULL;
+      clep = friend_rout->befriending_classes;
+      for (; clep != NULL; clep = next_clep) {
+        next_clep = clep->next;
+        if (clep->class_type == class_type) {
+          /* A match -- link around it. */
+          if (prev_clep == NULL) {
+            friend_rout->befriending_classes = next_clep;
+          } else {
+            prev_clep->next = next_clep;
+          }  /* if */
+          break;
+        }  /* if */
+        /* No match -- keep looping. */
+        prev_clep = clep;
+      }  /* for */
+      ctsp->friend_routines = ctsp->friend_routines->next;
+    }  /* if */
+    clear_class_type_supplement(ctsp);
+  }  /* if */
   class_type->variant.class_struct_union.field_list = NULL;
   class_type->variant.class_struct_union.any_const_member = FALSE;
   class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;
@@ -8539,6 +8588,17 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
                                           entity.ptr == ssep->entity.ptr) {
         break;
       }  /* if */
+      if (last_ssep->entity.kind ==
+                     (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
+        sssdp = (a_src_seq_secondary_decl_ptr)last_ssep->entity.ptr;
+        if (sssdp->friend_decl &&
+            sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
+          a_routine_ptr rp = (a_routine_ptr)sssdp->entity.ptr;
+          if (rp->source_corresp.source_sequence_entry == last_ssep) {
+            rp->source_corresp.source_sequence_entry = NULL;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       last_ssep = last_ssep->next;
     }  /* for */
     ssep->next = last_ssep->next;
@@ -8551,6 +8611,7 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
     ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
     sssdp->decl_position = class_type->source_corresp.decl_position;
     sssdp->declared_type = class_type;
+    sssdp->autonomous_tag_decl = class_type->autonomous_primary_tag_decl;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   class_type->variant.class_struct_union.
@@ -8558,34 +8619,24 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
 }  /* turn_class_definition_into_declaration */
 
 
-void eliminate_unneeded_class_definitions(a_scope_ptr  scope)
+static void eliminate_unneeded_class_definitions(a_type_ptr  class_type)
 /*
 */
 {
-  a_namespace_ptr              nsp;
-  a_type_ptr                   tp;
   a_class_type_supplement_ptr  ctsp;
 
-  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
-    if (!nsp->is_namespace_alias) {
-      eliminate_unneeded_class_definitions(nsp->variant.assoc_scope);
-    }  /* if */
-  }  /* for */
-  for (tp = scope->types; tp != NULL; tp = tp->next) {
-    if (is_immediate_class_type(tp)) {
-      if (tp->source_corresp.needed ||
-          scope->kind == (a_scope_kind)sck_class_struct_union) {
-        ctsp = tp->variant.class_struct_union.extra_info;
-        if (ctsp->assoc_scope != NULL) {
-          if (!tp->variant.class_struct_union.definition_needed) {
-            turn_class_definition_into_declaration(tp);
-          } else {
-            eliminate_unneeded_class_definitions(ctsp->assoc_scope);
-          }  /* if */
-        }  /* if */
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  if (ctsp->assoc_scope != NULL) {
+    a_type_ptr  tp = ctsp->assoc_scope->types;
+    for (; tp != NULL; tp = tp->next) {
+      if (is_immediate_class_type(tp)) {
+        eliminate_unneeded_class_definitions(tp);
       }  /* if */
+    }  /* for */
+    if (!class_type->variant.class_struct_union.definition_needed) {
+      turn_class_definition_into_declaration(class_type);
     }  /* if */
-  }  /* for */
+  }  /* if */
 }  /* eliminate_unneeded_class_definitions */
 
 
@@ -8770,6 +8821,9 @@ eliminated, if appropriate.
         tp->variant.class_struct_union.extra_info = NULL;
       }  /* if */
     } else {
+      if (is_immediate_class_type(tp)) {
+        eliminate_unneeded_class_definitions(tp);
+      }  /* if */
       prev_tp = tp;
     }  /* if */
   }  /* for */
