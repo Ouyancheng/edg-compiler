@@ -146,8 +146,10 @@ extern void remap_il_header_pointers(a_remap_function_ptr remap_function);
 extern void remap_orphaned_file_scope_entry_array_ptrs(
                                        a_remap_function_ptr remap_function);
 
+#if !ALTERNATE_IL_FILE_FORMAT
 extern void remap_orphaned_il_list_next_pointers(
                                        a_remap_function_ptr remap_function);
+#endif /* !ALTERNATE_IL_FILE_FORMAT */
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 extern char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind);

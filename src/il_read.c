@@ -653,9 +653,11 @@ necessary to make it directly accessible in memory.
     walk_file_scope_il((an_entry_process_function_ptr)NULL,
                        (a_string_entry_process_function_ptr)NULL,
                        ptr_remap_function);
+#if ORPHAN_PROCESSING_NEEDED
     /* Remap the "next" pointers in orphaned file scope IL entries for
        local types and local static variables of functions scope blocks. */
     remap_orphaned_il_list_next_pointers(ptr_remap_function);
+#endif /* ORPHAN_PROCESSING_NEEDED */
 
     /* Save the remap list for this region as the file-scope remap list. */
     fs_block_remap_list = block_remap_list;

@@ -1625,8 +1625,8 @@ Remap the pointers in il_header by running them through remap_function.
   remap_func = prev_remap_func;
 }  /* remap_il_header_pointers. */
 
-
 #if ORPHAN_PROCESSING_NEEDED
+
 /*
 Macros to facilitate remapping the pointers to IL entries in the orphaned
 file-scope IL entry table.
@@ -1754,6 +1754,9 @@ them through remap_function.
 #undef remap_orphan_entry_first
 #undef remap_orphan_entry_last
 
+#endif /* ORPHAN_PROCESSING_NEEDED */
+#if !ALTERNATE_IL_FILE_FORMAT
+#if ORPHAN_PROCESSING_NEEDED
 
 void remap_orphaned_il_list_next_pointers(a_remap_function_ptr remap_function)
 /*
@@ -1797,6 +1800,7 @@ entry lists for some local block.
 }  /* remap_orphaned_il_list_next_pointers */
  
 #endif /* ORPHAN_PROCESSING_NEEDED */
+#endif /* !ALTERNATE_IL_FILE_FORMAT */
 
 char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind)
 /*
