@@ -627,9 +627,9 @@ extern a_type_ptr make_mptr_type(void);
 
 extern a_type_ptr pointer_to_vtbl_type(void);
 
+#if IA64_ABI
 extern a_targ_size_t vtbl_entry_size(void);
 
-#if IA64_ABI
 extern a_type_ptr make_virtual_table_table_pointer_type(void);
 
 extern a_boolean contains_ptr_to_data_member(a_type_ptr type);

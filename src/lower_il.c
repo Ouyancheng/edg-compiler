@@ -1187,6 +1187,7 @@ tables are const.
   return type;
 }  /* pointer_to_vtbl_type */
 
+#if IA64_ABI
 
 a_targ_size_t vtbl_entry_size(void)
 /*
@@ -1196,7 +1197,6 @@ Return the size of an entry in a virtual function table.
   return make_vtbl_entry_type()->size;
 }  /* vtbl_entry_size */
 
-#if IA64_ABI
 
 a_type_ptr make_virtual_table_table_pointer_type(void)
 /*
