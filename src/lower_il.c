@@ -4035,46 +4035,134 @@ will not fit in an integer of kind TARG_DELTA_INT_KIND.
 }  /* set_delta_constant */
 
 
+static void repr_for_ptr_to_data_member_constant(a_constant_ptr   constant, 
+                                                 a_targ_ptrdiff_t *delta)
+/*
+Determine the lowered representation of the indicated pointer-to-data-member
+constant, and return information about it in *delta.
+*/
+{
+  a_field_ptr field;
+  a_type_ptr  class_of_pm, field_class_type;
+
+  /* Get the class type for which this is a pointer-to-member. */
+  /* Note that by the time this routine is called the constant->type
+     may have been lowered already; it cannot be used here. */
+  class_of_pm = constant->variant.ptr_to_member.class_of_which_a_member;
+  prelower_class_type(class_of_pm);
+  field = constant->variant.ptr_to_member.variant.field;
+  /* Use offset == 0 for NULL, otherwise the field offset. */
+  if (field == NULL) {
+    *delta = 0;
+  } else {
+    /* Add the offset of the field class relative to the pointer-to-member
+       class and the offset of the field relative to its class.  Final
+       "+1" is to reserve zero for NULL pointers. */
+    field_class_type = field->source_corresp.class_of_which_a_member;
+    *delta = related_class_offset(class_of_pm, field_class_type) +
+             (field->bit_offset / TARG_CHAR_BIT) + 1;
+  }  /* if */
+}  /* repr_for_ptr_to_data_member_constant */
+
+
+static void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
+                                                     a_targ_ptrdiff_t *delta,
+                                                     a_targ_ptrdiff_t *index,
+                                                     a_routine_ptr    *func,
+                                                     a_targ_ptrdiff_t *offset)
+/*
+Determine the lowered representation of the indicated pointer-to-member
+function constant, and return information about it in *delta, *index,
+*func, and *offset.  *offset is only meaningful if *func is returned
+NULL.
+*/
+{
+  a_type_ptr    class_of_pm, routine_class_type;
+  a_routine_ptr routine;
+
+  /* Get the class type for which this is a pointer-to-member. */
+  /* Note that by the time this routine is called the constant->type
+     may have been lowered already; it cannot be used here. */
+  class_of_pm = constant->variant.ptr_to_member.class_of_which_a_member;
+  prelower_class_type(class_of_pm);
+  routine = constant->variant.ptr_to_member.variant.routine;
+  /* The first field is the delta value, the offset of the class of the
+     routine relative to the class pointed to by the pointer-to-member. */
+  if (routine == NULL) {
+    /* For a NULL ptr-to-member, delta is zero. */
+    *delta = 0;
+  } else {
+    routine_class_type = routine->source_corresp.class_of_which_a_member;
+    *delta = related_class_offset(class_of_pm, routine_class_type);
+  }  /* if */
+  /* The second field is
+       0 for a NULL pointer;
+       an index into the virtual function table (>0) is the function is
+         virtual;
+       -1 if the function is non-virtual.
+  */
+  if (routine == NULL) {
+    /* For a NULL ptr-to-member, index is zero. */
+    *index = 0;
+  } else if (!routine->is_virtual) {
+    /* For a non-virtual function, index is -1. */
+    *index = (-1);
+  } else {
+    /* For a virtual function, index is the index in the virtual function
+       table.  No "+1" to reserve the value zero for NULL pointers is
+       needed, because the indices start with 1. */
+    *index = routine->virtual_function_number;
+  }  /* if */
+  /* The third field is
+       NULL for a null pointer;
+       the offset of the virtual function table pointer in the class of
+         the routine if the function is virtual;
+       a pointer to the function if the function is non-virtual.
+  */
+  *offset = 0;
+  if (routine == NULL) {
+    /* For a NULL ptr-to-member, *func == NULL, *offset == 0. */
+    *func = NULL;
+  } else if (!routine->is_virtual) {
+    /* For a non-virtual function, *func points to the routine. */
+    *func = routine;
+  } else {
+    /* For a virtual function, the offset of the virtual function table
+       pointer in the class of the routine is returned in *offset,
+       *func == NULL. */
+    *offset = routine_class_type->variant.class_struct_union.extra_info->
+                                                  virtual_function_info_offset;
+    *func = NULL;
+  }  /* if */
+}  /* repr_for_ptr_to_member_function_constant */
+
+
 static void lower_ptr_to_member_constant(a_constant_ptr constant)
 /*
 Do IL lowering of a pointer-to-member constant.
 */
 {
-  a_type_ptr       class_of_pm, routine_class_type;
   a_routine_ptr    routine;
-  a_field_ptr      field;
   a_constant_ptr   constant_next = constant->next;
   char             *constant_assoc_info = constant->source_corresp.assoc_info;
   a_boolean        did_not_fold;
   a_constant_ptr   delta_con, index_con, func_con;
-  a_targ_ptrdiff_t delta, index;
+  a_targ_ptrdiff_t delta, index, offset;
 
-  /* Note that by the time this routine is called the constant->type
-     may have been lowered already; it cannot be used here. */
-  /* Get the class type for which this is a pointer-to-member. */
-  class_of_pm = constant->variant.ptr_to_member.class_of_which_a_member;
-  prelower_class_type(class_of_pm);
   /* A pointer-to-data-member becomes a short; a pointer-to-member-function
      becomes a ck_aggregate to initialize a struct.  Clearly, the places
      that reference such a ck_aggregate constant must be changed if they
      aren't static initializations. */
   if (constant->variant.ptr_to_member.is_function_ptr) {
     /* Pointer to member function. */
-    routine = constant->variant.ptr_to_member.variant.routine;
+    repr_for_ptr_to_member_function_constant(constant, &delta, &index,
+                                             &routine, &offset);
     /* Make sure the struct type used to represent a pointer-to-member-function
        is allocated. */
     (void)make_mptr_type();
     /* Allocate the constants for the initial values. */
     /* The first field is the delta value, the offset of the class of the
        routine relative to the class pointed to by the pointer-to-member. */
-    if (routine == NULL) {
-      /* For a NULL ptr-to-member, delta is zero. */
-      delta = 0;
-    } else {
-      routine_class_type = routine->source_corresp.class_of_which_a_member;
-      prelower_class_type(routine_class_type);
-      delta = related_class_offset(class_of_pm, routine_class_type);
-    }  /* if */
     delta_con = alloc_constant((a_constant_repr_kind)ck_integer);
     set_delta_constant(delta, delta_con);
     /* The second field is
@@ -4083,18 +4171,6 @@ Do IL lowering of a pointer-to-member constant.
            virtual;
          -1 if the function is non-virtual.
     */
-    if (routine == NULL) {
-      /* For a NULL ptr-to-member, index is zero. */
-      index = 0;
-    } else if (!routine->is_virtual) {
-      /* For a non-virtual function, index is -1. */
-      index = (-1);
-    } else {
-      /* For a virtual function, index is the index in the virtual function
-         table.  No "+1" to reserve the value zero for NULL pointers is
-         needed, because the indices start with 1. */
-      index = routine->virtual_function_number;
-    }  /* if */
     index_con = alloc_constant((a_constant_repr_kind)ck_integer);
     set_delta_constant(index, index_con);
     /* The third field is
@@ -4106,30 +4182,23 @@ Do IL lowering of a pointer-to-member constant.
        type since they're initializing the first field of the union, which
        has that type. */
     func_con = alloc_constant((a_constant_repr_kind)ck_address);
-    if (routine == NULL) {
-      /* For a NULL ptr-to-member, pointer is NULL. */
-      make_zero_of_proper_type(vptp_type, func_con);
+    if (routine != NULL) {
+      /* For a non-virtual function, a pointer to the routine. */
+      func_con->variant.address.kind = (an_address_base_kind)abk_routine;
+      func_con->variant.address.variant.routine = routine;
+      func_con->type = make_pointer_type(routine->type);
     } else {
-      if (!routine->is_virtual) {
-        /* For a non-virtual function, a pointer to the routine. */
-        func_con->variant.address.kind = (an_address_base_kind)abk_routine;
-        func_con->variant.address.variant.routine = routine;
-        func_con->type = make_pointer_type(routine->type);
-      } else {
-        /* For a virtual function, the offset of the virtual function table
-           pointer in the class of the routine. */
-        delta = routine_class_type->variant.class_struct_union.extra_info->
-                                                  virtual_function_info_offset;
-        set_delta_constant(delta, func_con);
-      }  /* if */
-      /* Convert the pointer or offset to the generic pointer-to-function
-         type vptp.  is_implicit_cast must be FALSE to suppress a warning
-         on converting a non-zero integer to a pointer. */
-      type_change_constant(func_con, vptp_type,
-                           /*is_implicit_cast=*/FALSE,
-                           /*constant_context=*/TRUE, &did_not_fold,
-                           &error_position);
+      /* For a virtual function, the offset of the virtual function table
+         pointer in the class of the routine.  Also handles the NULL case. */
+      set_delta_constant(offset, func_con);
     }  /* if */
+    /* Convert the pointer or offset to the generic pointer-to-function
+       type vptp.  is_implicit_cast must be FALSE to suppress a warning
+       on converting a non-zero integer to a pointer. */
+    type_change_constant(func_con, vptp_type,
+                         /*is_implicit_cast=*/FALSE,
+                         /*constant_context=*/TRUE, &did_not_fold,
+                         &error_position);
     /* Change the original constant into a ck_aggregate constant. */
     set_constant_kind(constant, (a_constant_repr_kind)ck_aggregate);
     constant->variant.aggregate.first_constant = delta_con;
@@ -4138,18 +4207,7 @@ Do IL lowering of a pointer-to-member constant.
     constant->variant.aggregate.last_constant = func_con;
   } else {
     /* Pointer to data member. */
-    field = constant->variant.ptr_to_member.variant.field;
-    /* Use offset == 0 for NULL, otherwise the field offset. */
-    if (field == NULL) {
-      delta = 0;
-    } else {
-      /* Add the offset of the field class relative to the pointer-to-member
-         class and the offset of the field relative to its class.  Final
-         "+1" is to reserve zero for NULL pointers. */
-      delta = related_class_offset(class_of_pm,
-                                field->source_corresp.class_of_which_a_member)
-              + (field->bit_offset / TARG_CHAR_BIT) + 1;
-    }  /* if */
+    repr_for_ptr_to_data_member_constant(constant, &delta);
     set_delta_constant(delta, constant);
   }  /* if */
   constant->next = constant_next;
