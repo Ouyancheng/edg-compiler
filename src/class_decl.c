@@ -2719,8 +2719,13 @@ or struct definition.  The syntax is
       syntax_error(ec_exp_identifier);
     } else {
       /* Scan the base class name. */
+      a_boolean	err = FALSE;
       base_class_decl_pos = pos_curr_token;
-      sym = curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE);
+      /* Look up the identifier for the base class.  Only identifiers
+         that could be classes (including typedefs to classes and template
+         parameters) are considered in the lookup. */
+      sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+                                                       ilm_class, &err);
       /* Be sure a type symbol was found and that it identifies a class. */
       if (sym == NULL || !is_class_symbol(sym)) {
         /* Not a class symbol.  In most cases, issue and error and skip it.

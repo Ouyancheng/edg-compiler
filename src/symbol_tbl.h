@@ -1551,6 +1551,14 @@ typedef struct a_symbol {
 			/* TRUE for synthesized namespace projection symbols
 			   that are generated as a result of an instantiation
 			   context lookup. */
+  a_bit_field	must_be_class_lookup:1;
+			/* TRUE for synthesized namespace projection symbols
+			   that were generated as a result of an
+			   IDL_MUST_BE_CLASS lookup. */
+  a_bit_field	must_be_namespace_lookup:1;
+			/* TRUE for synthesized namespace projection symbols
+			   that were generated as a result of an
+			   IDL_MUST_BE_NAMESPACE lookup. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
@@ -2486,6 +2494,13 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
    (sym)->kind == (a_symbol_kind)sk_namespace ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
     is_template_param_type((sym)->variant.type)))
+
+/* Return TRUE if a symbol is a class symbol, a class template symbol,
+   or a type template parameter. */
+#define is_class_or_class_proxy_symbol(sym)                               \
+  (is_class_symbol(sym) ||					      \
+   (sym)->kind == (a_symbol_kind)sk_class_template ||		      \
+   ((sym)->kind == (a_symbol_kind)sk_type && (sym)->is_template_param))
 
 /* Return TRUE if the symbol is a template class symbol. */
 #define is_template_class_symbol(sym)				      \

@@ -152,7 +152,10 @@ the options being used for the lookup.
        may be reused. */
     a_boolean		must_be_class_or_namespace
                              = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
-    a_boolean		must_be_tag   = (options & IDL_MUST_BE_TAG) != 0;
+    a_boolean		must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
+    a_boolean		must_be_class = (options & IDL_MUST_BE_CLASS) != 0;
+    a_boolean		must_be_namespace
+                                      = (options & IDL_MUST_BE_NAMESPACE) != 0;
     a_boolean		tentative_type_lookup
                                   = (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
     a_scope_number	scope_number = scope_stack[depth_scope_stack].number;
@@ -171,6 +174,8 @@ the options being used for the lookup.
           sym->instantiation_context_lookup ==
                                               instantiation_context_lookup &&
           sym->tentative_type_lookup == tentative_type_lookup &&
+          sym->must_be_namespace_lookup == must_be_namespace &&
+          sym->must_be_class_lookup == must_be_class &&
           sym->must_be_tag_lookup == must_be_tag) {
         /* If this is not a qualified lookup, the decl_scope of the symbol
            must match the current scope. */
@@ -481,6 +486,7 @@ macro returns FALSE then the noreal class member must not be a type.
 #define nonreal_member_must_be_type(options)			\
   ((options & IDL_MUST_BE_CLASS_OR_NAMESPACE ||			\
     options & IDL_MUST_BE_TAG ||				\
+    options & IDL_MUST_BE_CLASS ||				\
     options & IDL_TYPENAME_LOOKUP) ||				\
    (implicit_typename_enabled && (options & IDL_TENTATIVE_TYPE_LOOKUP)))
 
@@ -963,6 +969,9 @@ typedef struct a_lookup_state {
   a_boolean	must_be_namespace;
 			/* TRUE if the IDL_MUST_BE_NAMESPACE option
 			   was specified for this lookup. */
+  a_boolean	must_be_class;
+			/* TRUE if the IDL_MUST_BE_CLASS option
+			   was specified for this lookup. */
   a_boolean	tentative_type_lookup;
 			/* TRUE if the IDL_TENTATIVE_TYPE_LOOKUP option
 			   was specified for this lookup. */
@@ -1044,6 +1053,7 @@ value.
   cleared_lookup_state.must_be_class_or_namespace    = FALSE;
   cleared_lookup_state.must_be_tag                   = FALSE;
   cleared_lookup_state.must_be_namespace             = FALSE;
+  cleared_lookup_state.must_be_class                 = FALSE;
   cleared_lookup_state.tentative_type_lookup         = FALSE;
   cleared_lookup_state.is_linkage_lookup             = FALSE;
   cleared_lookup_state.terminate_lookup              = FALSE;
@@ -1079,6 +1089,8 @@ Macro that initializes a lookup state variable.
     symbol_may_precede_qualifier(fund_sym)) &&                          \
    (!(lookup_state).must_be_tag   ||				        \
     is_tag_or_tag_proxy_symbol(fund_sym)) &&				\
+   (!(lookup_state).must_be_class ||					\
+    is_class_or_class_proxy_symbol(fund_sym)) && 			\
    (!(lookup_state).must_be_namespace || is_namespace_symbol(fund_sym)))
 
 
@@ -1100,7 +1112,9 @@ are needed to use is_acceptable_symbol.
             (!((options & IDL_MUST_BE_TAG) != 0) ||
              is_tag_or_tag_proxy_symbol(fund_sym)) &&
             (!((options & IDL_MUST_BE_NAMESPACE) != 0) ||
-             is_namespace_symbol(fund_sym)));
+             is_namespace_symbol(fund_sym)) &&
+            (!((options & IDL_MUST_BE_CLASS) != 0) ||
+             is_class_or_class_proxy_symbol(fund_sym)));
   return result;
 }  /* sym_matches_lookup_options */
 
@@ -1115,8 +1129,7 @@ Look for a symbol, as described by locator, that is in a namespace whose
 scope_depth_at_which_using_directive_applies matches the scope depth of ssep.
 
 sym_from_scope points to a symbol found in ssep by the normal_id_lookup,
-and may be NULL.  must_be_class_or_namespace and must_be_tag are flags
-passed by normal_id_lookup that are used to constrain the lookup.
+and may be NULL.
 
 If no additional symbols are found then the value of sym_from_scope
 is returned to the caller.  If any additional symbols are found,
@@ -1782,6 +1795,7 @@ C and C++.
                                (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
     lookup_state.must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
     lookup_state.must_be_namespace = (options & IDL_MUST_BE_NAMESPACE) != 0;
+    lookup_state.must_be_class = (options & IDL_MUST_BE_CLASS) != 0;
     lookup_state.tentative_type_lookup =
                                     (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
     lookup_state.is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
@@ -2125,6 +2139,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   a_boolean    must_be_class_or_namespace
                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
   a_boolean    must_be_tag = (options & IDL_MUST_BE_TAG);
+  a_boolean    must_be_class = (options & IDL_MUST_BE_CLASS);
   a_class_symbol_supplement_ptr
                cssp;
   a_symbol_ptr insert_sym;
@@ -2137,6 +2152,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
    (sym)->parent.class_type == class_type &&                          \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(sym)) &&	     		      \
+   (!must_be_class ||						      \
+    is_class_or_class_proxy_symbol(sym)) &&	     		      \
    (!must_be_tag || is_tag_or_tag_proxy_symbol(sym)))
 
   db_enter(4, "class_qualified_id_lookup");
@@ -2434,9 +2451,10 @@ namespace_qualified_id_lookup.
 {
   a_symbol_ptr	sym;
   a_symbol_ptr	tag_symbol;
-  a_boolean   	 must_be_class_or_namespace
+  a_boolean   	must_be_class_or_namespace
                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
   a_boolean    	must_be_tag = (options & IDL_MUST_BE_TAG);
+  a_boolean    	must_be_class = (options & IDL_MUST_BE_CLASS);
   a_boolean	is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP);
 
 /* Local macro that tests whether or not a symbol is acceptable. */
@@ -2444,7 +2462,9 @@ namespace_qualified_id_lookup.
   ((!(sym)->is_class_member) &&                                       \
    (sym)->parent.namespace_ptr == ns_ptr &&                           \
    (!must_be_class_or_namespace ||				      \
-    symbol_may_precede_qualifier(fund_sym)) &&      \
+    symbol_may_precede_qualifier(fund_sym)) &&     		      \
+   (!must_be_class ||				     		      \
+    is_class_or_class_proxy_symbol(fund_sym)) &&      		      \
    (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym)))
 
   db_enter(4, "lookup_in_namespace");
@@ -2564,6 +2584,7 @@ file scope.
   a_boolean     must_be_class_or_namespace
                                   = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
   a_boolean     must_be_tag = (options & IDL_MUST_BE_TAG);
+  a_boolean     must_be_class = (options & IDL_MUST_BE_CLASS);
   a_symbol_ptr	synth_sym = NULL;
   a_boolean	any_errors = FALSE;
   a_boolean	is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP);
@@ -2577,7 +2598,9 @@ file scope.
   ((sym)->decl_scope == FILE_SCOPE_NUMBER &&                          \
    (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) &&       \
    (!must_be_class_or_namespace ||				      \
-    symbol_may_precede_qualifier(fund_sym)) &&      \
+    symbol_may_precede_qualifier(fund_sym)) && 			      \
+   (!must_be_class ||				      		      \
+    is_class_or_class_proxy_symbol(fund_sym)) &&      		      \
    (!must_be_tag || is_tag_symbol(fund_sym)))
 
   db_enter(4, "file_scope_id_lookup");

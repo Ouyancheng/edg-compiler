@@ -2505,6 +2505,8 @@ the options being used for the lookup.
                               (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
   sym_ptr->must_be_tag_lookup = (options & IDL_MUST_BE_TAG) != 0;
   sym_ptr->tentative_type_lookup = (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
+  sym_ptr->must_be_class_lookup = (options & IDL_MUST_BE_CLASS) != 0;
+  sym_ptr->must_be_namespace_lookup = (options & IDL_MUST_BE_NAMESPACE) != 0;
   return sym_ptr;
 }  /* enter_synthesized_projection_symbol */
 
@@ -2523,6 +2525,8 @@ the symbol pointed to by "from" to the symbol pointed to by "to".
                                      = from->must_be_class_or_namespace_lookup;
   to->must_be_tag_lookup             = from->must_be_tag_lookup;
   to->do_not_reuse                   = from->do_not_reuse;
+  to->must_be_class_lookup           = from->must_be_class_lookup;
+  to->must_be_namespace_lookup       = from->must_be_namespace_lookup;
 }  /* copy_symbol_lookup_flags */
 
 
@@ -7029,6 +7033,8 @@ are handled in symbol_tbl_init.)
   cleared_symbol.tentative_type_lookup             = FALSE;
   cleared_symbol.do_not_reuse                      = FALSE;
   cleared_symbol.instantiation_context_lookup      = FALSE;
+  cleared_symbol.must_be_class_lookup              = FALSE;
+  cleared_symbol.must_be_namespace_lookup          = FALSE;
   cleared_symbol.ambiguous                         = FALSE;
   /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for
      precompiled headers */

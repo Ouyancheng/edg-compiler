@@ -83,6 +83,9 @@ represented as a bit set:
 				   proxy or nonreal class, this flag forces
 				   any symbol that may be created to be a
 				   type symbol. */
+#define IDL_MUST_BE_CLASS     0x1000
+				/* The symbol must be a class, struct, union,
+                                   or a typedef of one of those. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
@@ -93,6 +96,8 @@ reused later.
 #define is_reusable_using_directive_lookup(option)			\
   ((options & ~(IDL_MUST_BE_TAG |					\
                 IDL_MUST_BE_CLASS_OR_NAMESPACE |			\
+                IDL_MUST_BE_NAMESPACE |					\
+                IDL_MUST_BE_CLASS |					\
 		IDL_INSTANTIATION_CONTEXT |				\
                 IDL_TENTATIVE_TYPE_LOOKUP |				\
                 IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) == 0)
