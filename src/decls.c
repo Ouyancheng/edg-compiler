@@ -6892,6 +6892,10 @@ to indicate whether an enumeration is actually defined.
     /* Do processing required for any pragmas that are bound to the current
        declaration. */
     process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
+  } else {
+    /* Issue diagnostics on pragmas that are trying to bind to an unnamed
+       enum. */
+    cannot_bind_to_curr_construct();
   }  /* if */
   if (curr_token == tok_lbrace) {
     /* Scan the enumeration itself.  Since the enumeration type entry is
@@ -9157,31 +9161,30 @@ definition.
   a_pending_pragma_ptr           ppp;
   a_routine_type_supplement_ptr  rtsp = NULL;
   
+  rtsp = rout_sym->variant.routine.ptr->type->variant.routine.extra_info;
   /* Determine whether a lint argsused comment immediately preceded this
      function definition. */
   ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_argsused, rout_sym,
                                  (a_statement_ptr)NULL);
   if (ppp != NULL) {
     /* There is a currenly active argsused comment. */
-    rtsp = rout_sym->variant.routine.ptr->type->variant.routine.extra_info;
     rtsp->lint_argsused_flag = TRUE;
     /* The pending-pragma entry has been unlinked from the scope stack entry
        list, but it still must be returned to the available list. */
     free_pending_pragma_list(ppp);
   }  /* if */
-  /* Determine whether a lint varargs count comment immediately preceded this
-     function definition. */
-  ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_varargs_count,
-                                 rout_sym, (a_statement_ptr)NULL);
-  if (ppp != NULL) {
-    /* There is a currenly active varargs comment. */
-    if (rtsp == NULL) {
-      rtsp = rout_sym->variant.routine.ptr->type->variant.routine.extra_info;
+  if (!rtsp->prototyped) {
+    /* Determine whether a lint varargs count comment immediately preceded this
+       function definition. */
+    ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_varargs_count,
+                                   rout_sym, (a_statement_ptr)NULL);
+    if (ppp != NULL) {
+      /* There is a currenly active varargs comment. */
+      rtsp->lint_varargs_count = ppp->variant.lint_varargs_count;
+      /* The pending-pragma entry has been unlinked from the scope stack entry
+         list, but it still must be returned to the available list. */
+      free_pending_pragma_list(ppp);
     }  /* if */
-    rtsp->lint_varargs_count = ppp->variant.lint_varargs_count;
-    /* The pending-pragma entry has been unlinked from the scope stack entry
-       list, but it still must be returned to the available list. */
-    free_pending_pragma_list(ppp);
   }  /* if */
 }  /* record_lint_argsused_and_varargs_state */
 
@@ -9528,6 +9531,9 @@ specifier is restored.
      repeatedly.  If no brace follows, call declaration just once to pick
      up the rest of the current declaration. */
   if (curr_token == tok_lbrace) {
+    /* Issue diagnostics on pragmas that are trying to bind to the
+       extern "C" (or whatever) construct. */
+    cannot_bind_to_curr_construct();
     /* Advance past the left brace. */
     (void)get_token();
     add_stop_token(tok_rbrace);
@@ -9967,6 +9973,8 @@ of local variables (and types, etc.) of functions and in blocks.
   } else if (!function_definition_allowed) {
     /* Called while processing a routine -- select_curr_construct_pragmas
        will already have been called. */
+  } else if (curr_token == tok_template) {
+    /* Will be done in template_declaration. */
   } else {
     /* Move cached #pragma declarations (if any) to the current scope stack
        entry so they can be examined and acted upon in subsequent
@@ -10071,6 +10079,7 @@ of local variables (and types, etc.) of functions and in blocks.
       }  /* if */
       /* Give up on scanning a declaration (assume we're at the end of one). */
       if (curr_token == tok_semicolon) (void)get_token();
+      discard_curr_construct_pragmas();
       goto return_point;
     }  /* if */
   }  /* if */
@@ -10205,6 +10214,7 @@ continue_with_declaration:
       error(ec_exp_identifier);
     }  /* if */
     error(ec_exp_semicolon);
+    discard_curr_construct_pragmas();
     goto return_point;
   } else if (curr_token == tok_void && C_dialect == C_dialect_pcc && 
              storage_class == (a_storage_class)sc_typedef &&
