@@ -450,6 +450,21 @@ EXTERN_C char* getwd(char *pathname);
 #endif /* __MSDOS__ */
 
 
+static a_boolean pl_is_absolute_file_name(char *file_name)
+/*
+Test whether or not a file name is absolute (a full path name).
+*/
+{
+#if __MICROSOFT_OS__
+  return ((file_name)[0] == DIRECTORY_SEPARATOR) ||
+         ((file_name)[0] == '\\') ||
+         (isalpha((unsigned char)(file_name)[0]) && ((file_name)[1] == ':'));
+#else /* !__MICROSOFT_OS__ */
+  return (file_name)[0] == DIRECTORY_SEPARATOR;
+#endif /* __MICROSOFT_OS__ */
+}  /* pl_is_absolute_file_name */
+
+
 static void pl_get_curr_dir_name(void)
 /*
 Get the current directory name and save it in curr_dir_name.
@@ -2349,7 +2364,7 @@ and update pifp to point to the new file.
      absolute, just keep the original name.  Otherwise, add the
      original directory name and write out the updated path name.*/
   pl_read_input_line(f_old_info);
-  if (is_absolute_file_name(pl_input_line)) {
+  if (pl_is_absolute_file_name(pl_input_line)) {
     /* Write the original absolute path name. */
     pl_write_output_line(f_new_info, pl_input_line);
   } else {
