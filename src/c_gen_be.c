@@ -1111,6 +1111,12 @@ Print the name of the indicated variable.
     m_write_ch('_');
     m_write_ch('_');
     m_write_str(module_id);
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+    if (needed_flag_bit_number != 0) {
+      write_ch('_');
+      write_unsigned_num(needed_flag_bit_number);
+    }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   } else {
     /* Nothing special about this case. */
