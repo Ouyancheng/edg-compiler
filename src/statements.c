@@ -1279,7 +1279,6 @@ See also 3.6.6.4.
   register a_statement_ptr sp;
   a_routine_ptr            rout;
   a_type_ptr               return_type;
-  a_boolean                err;
 
   db_enter(3, "return_statement");
   check_for_unreachable_code();
@@ -1299,7 +1298,6 @@ See also 3.6.6.4.
     check_void_return_okay();
   } else {
     /* The expression is present. */
-    sp->expr = scan_expression(&err);
     /* Get a pointer to the current routine entry, and get its return
        type. */
     rout = current_routine_entry();
@@ -1313,13 +1311,12 @@ See also 3.6.6.4.
         /* A void function may not return a value. */
         error(ec_value_returned_in_void_function);
       }  /* if */
-      sp->expr = NULL;
-    } else {
-      /* Cast the expression to the return type, if necessary, with semantics
-         the same as for assignment. */
-      node_prepare_assignment(&sp->expr, return_type, ec_bad_return_value_type,
-                              &err);
+      return_type = error_type();
     }  /* if */
+    /* Scan the return expression and convert it to the function type. */
+    sp->expr = scan_required_type_expression(return_type,
+                                             /*allow_top_level_comma=*/TRUE,
+                                             ec_bad_return_value_type);
   }  /* if */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
