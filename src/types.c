@@ -2358,7 +2358,11 @@ static a_boolean change_to_canonical_types(a_type_ptr  *type_1,
 /*
 If the given types have a canonical correspondence in another translation
 unit change the pointers to point to those entries and return TRUE.
-Otherwise, return FALSE.
+Otherwise, return FALSE.  If seek_corresp is TRUE, the two types are
+expected to correspond, but the correspondence might not have been found
+through the symbol table because the types are unnamed (e.g., when unnamed
+class types are used in the declaration of entities with linkage in C).
+In that case, type_1 will have its correspondence set to type_2.
 */
 {
   a_boolean   changed = FALSE;
@@ -2394,6 +2398,7 @@ Otherwise, return FALSE.
   }  /* if */
   return changed;
 }  /* change_to_canonical_types */
+
 
 a_boolean f_identical_types(a_type_ptr      type_1,
                             a_type_ptr      type_2,
@@ -2483,7 +2488,7 @@ for more information.
             /* The types are expected to be identical, but because they are
                presumably defined in two different translation units, the
                correspondence of their inner structure must be checked. */
-              identical = seek_type_corresp(type_1, type_2);
+            identical = seek_type_corresp(type_1, type_2);
           }  /* if */
           break;
         case tk_float:
