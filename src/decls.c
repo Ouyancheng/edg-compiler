@@ -1496,7 +1496,8 @@ static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_symbol_locator  *locator,
                                 a_type_ptr        member_function_parent_type,
                                 a_boolean         is_nonstatic_member_function,
-                                a_boolean         is_constructor_or_destructor)
+                                a_boolean         is_constructor,
+                                a_boolean         is_destructor)
 /*
 Scan a function declarator (3.5.4.3), or an array declarator in an
 abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
@@ -1538,12 +1539,16 @@ scope is that of a class definition.
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
   extra_info = (*new_type_ptr)->variant.routine.extra_info;
-  extra_info->constructor_or_destructor = is_constructor_or_destructor;
+  extra_info->constructor_or_destructor = (is_constructor || is_destructor);
   /* If a pragma indicating special argument checking appeared (e.g.,
      for printf args), remember that in the function type. */
   extra_info->arg_pragma = arg_pragma;
   arg_pragma = (an_arg_pragma_kind)apk_none;
   extra_info->param_type_list = NULL;
+  if (is_destructor && curr_token != tok_rparen) {
+    /* Destructors are allowed no arguments. */
+    error(ec_too_many_args_for_destructor);
+  }  /* if */
   if (curr_token == tok_rparen) {
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ f() is equivalent to f(void).  Leave param_type_list empty. */
@@ -1654,8 +1659,13 @@ scope is that of a class definition.
           /* Adjust the type if necessary (for example, "array of x"
              becomes "pointer to x"). */
           adjust_parameter_type(&param_type_ptr);
-          if (C_dialect == C_dialect_cplusplus &&
-              is_illegal_abstract_class_type(param_type_ptr)) {
+          if (is_constructor &&
+              identical_types(member_function_parent_type,
+                              skip_typerefs(param_type_ptr))) {
+            /* X::X(X) is not allowed -- ARM 12.1. */
+            pos_error(ec_bad_constructor_arg, &param_type_pos);
+          } else if (C_dialect == C_dialect_cplusplus &&
+                     is_illegal_abstract_class_type(param_type_ptr)) {
             /* Abstract class may not be used as an arg type (ARM 10.3). */
             pos_error(ec_abstract_class_object_not_allowed,
                       is_error_locator(param_locator) ?
@@ -1844,7 +1854,7 @@ scope is that of a class definition.
            other than a nonstatic member function (ARM 8.2.5).  We just
            issue a warning since it is harmless. */
         pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
-      } else if (is_constructor_or_destructor) {
+      } else if (is_constructor || is_destructor) {
         /* A qualifier appearing on a constructor or destructor is not
            allowed (ARM 9.3.1). */
         pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
@@ -4204,7 +4214,7 @@ otherwise it is NULL.  The syntax is:
   a_boolean       is_name_start;
   a_symbol_header_ptr
                   class_symbol_header;
-  a_boolean       is_constructor_or_destructor;
+  a_boolean       is_constructor = FALSE, is_destructor = FALSE;
   a_boolean       is_nonstatic_member_function = FALSE;
   a_boolean       nonconstant_dimension_allowed;
   a_boolean       parenthesized_initializer_allowed;
@@ -4215,10 +4225,9 @@ otherwise it is NULL.  The syntax is:
   *output_flags = DO_NO_OUTPUT_FLAGS;
   real_declarator_allowed = input_flags & DI_REAL_DECLARATOR_ALLOWED;
   abstract_declarator_allowed = input_flags & DI_ABSTRACT_DECLARATOR_ALLOWED;
-  is_constructor_or_destructor = (input_flags & DI_IS_CONSTRUCTOR) != 0;
+  is_constructor = (input_flags & DI_IS_CONSTRUCTOR) != 0;
   parenthesized_initializer_allowed =
-                      (C_dialect == C_dialect_cplusplus &&
-                       !is_constructor_or_destructor &&
+                      (C_dialect == C_dialect_cplusplus && !is_constructor &&
                        (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED));
   nonconstant_dimension_allowed =
                             (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED);
@@ -4332,7 +4341,6 @@ otherwise it is NULL.  The syntax is:
         *locator = locator_for_curr_id;
         (void)get_token();
       } else if (get_destructor_name(&class_symbol_header)) {
-        a_boolean destructor_okay = FALSE;
         /* A destructor name, like "~A".  It must have the same name as
            the class currently being defined, it must be followed by a
            left paren, and the specifiers must include no type. */
@@ -4359,16 +4367,16 @@ otherwise it is NULL.  The syntax is:
               error(ec_bad_destructor_decl);
             } else {
               /* Valid destructor declaration. */
-              destructor_okay = TRUE;
               member_parent_type = ssep->il_scope->variant.assoc_type;
-              is_constructor_or_destructor = TRUE;
+              is_destructor = TRUE;
+              parenthesized_initializer_allowed = FALSE;
               *locator = locator_for_curr_id;
             }  /* if */
           }  /* if */
         }  /* if */
         /* Advance past the destructor. */
         (void)get_token();
-        if (!destructor_okay) {
+        if (!is_destructor) {
           /* Invalid destructor name. */
           set_to_error_locator(*locator);
         } else if (curr_token != tok_lparen) {
@@ -4445,7 +4453,7 @@ otherwise it is NULL.  The syntax is:
       copy_source_position(pos_curr_token, lparen_pos);
       /* Advance past the left parenthesis. */
       (void)get_token();
-      if (parenthesized_initializer_allowed && !is_constructor_or_destructor) {
+      if (parenthesized_initializer_allowed) {
         if (curr_token != tok_rparen && curr_token != tok_ellipsis &&
             !is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
                               /*real_declarator_allowed=*/TRUE)) {
@@ -4526,8 +4534,8 @@ function_lparen:
           }  /* if */
         }  /* if */
         func_info = NULL;
-        is_constructor_or_destructor = FALSE;
-      } else if (is_constructor_or_destructor) {
+        is_constructor = is_destructor = FALSE;
+      } else if (is_constructor || is_destructor) {
         is_nonstatic_member_function = TRUE;
       } else {
         if (input_flags & DI_NONSTATIC_MEMBER) {
@@ -4543,7 +4551,7 @@ function_lparen:
       }  /* if */
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
-                          is_constructor_or_destructor);
+                          is_constructor, is_destructor);
       if (is_member_function_def) {
         pop_class_reactivation_scope();
       }  /* if */
