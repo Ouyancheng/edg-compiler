@@ -3548,9 +3548,7 @@ char_compare:
       } else
 #endif /* ifdef FFE */
       {
-        return_type = skip_typerefs(
-                 skip_typerefs(type_pointed_to(operand_1->type))->
-                      variant.routine.return_type);
+        return_type = skip_typerefs(expr->type);
 #ifdef FFE
         /* See if this call has any alternate return arguments. */
         any_alt_returns = FALSE;
