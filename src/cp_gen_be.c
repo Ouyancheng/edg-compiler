@@ -2383,7 +2383,7 @@ suppress_def_args is TRUE if default arguments should be suppressed
             gen_storage_class(param_var->storage_class);
           }  /* if */
           /* Watch out for unnamed parameters in C++. */
-          gen_declaration_using_type(param_var->type,
+          gen_declaration_using_type(param_var->declared_type,
                                      has_name(param_var) ?
                                              &param_var->source_corresp : NULL,
                                      iek_variable);
