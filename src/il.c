@@ -7599,9 +7599,11 @@ expression copy will be inside a conditional part of an expression.
   an_expr_copy_options_set options = CE_NO_OPTIONS;
   an_expr_node_ptr	   expr;
 
-  if (ptp->has_unevaluated_template_default &&
-      /* Avoid an error recovery problem. */
-      rout != NULL) {
+  if (rout == NULL) {
+    check_assertion_str(total_errors != 0,
+                        "copy_default_arg_expr: rout NULL, no error");
+    /* Avoid an error recovery problem. */
+  } else if (ptp->has_unevaluated_template_default) {
     /* This is a parameter of a function template, or a member function of a
        template class, and the default value has not yet been instantiated.
        Instantiate it now. */
