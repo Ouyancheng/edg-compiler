@@ -2054,7 +2054,10 @@ symbol.  Otherwise, return NULL.
   if (assoc_symbol != NULL) {
     /* Make sure that the lookup was not ambiguous. */
     check_for_ambiguity(locator);
-    if (assoc_symbol->is_template_param) {
+#if 0
+    /* Use of template parameters in elaborated type specifiers is now
+       disabled because it has been disallowed by X3J16/WG21. */ 
+   if (assoc_symbol->is_template_param) {
       a_type_ptr   	tp;
       a_symbol_ptr	new_sym;
       /* We are within a template instantiation, so the name may map to a
@@ -2086,12 +2089,17 @@ symbol.  Otherwise, return NULL.
         assoc_symbol = NULL;
       }  /* if */
     }  /* if */
+#endif /* 0 */
     if (assoc_symbol == NULL) {
       /* A NULL symbol resulted from an error above. */
+#if 0
+    /* Use of template parameters in elaborated type specifiers is now
+       disabled because it has been disallowed by X3J16/WG21. */
     } else if (assoc_symbol->kind == (a_symbol_kind)sk_type) {
       /* This must be a symbol for a template parameter, and we must be in
          the midst of a prototype instantiation.  Return the symbol that
          was found. */
+#endif /* 0 */
     } else if (assoc_symbol->kind != tag_kind &&
                assoc_symbol->decl_scope !=
                         scope_stack[decl_scope_level].number) {

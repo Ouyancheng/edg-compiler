@@ -2661,6 +2661,9 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
    (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
    (sym)->kind == (a_symbol_kind)sk_enum_tag)
 
+#if 0
+/* Use of template parameters in elaborated type specifiers is now
+   disabled because it has been disallowed by X3J16/WG21. */
 /* Return TRUE if a symbol is a tag symbol, a class template symbol,
    or a type template parameter. */
 #define is_tag_or_tag_proxy_symbol(sym)                               \
@@ -2669,6 +2672,14 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
    (sym)->kind == (a_symbol_kind)sk_enum_tag ||			      \
    (sym)->kind == (a_symbol_kind)sk_class_template ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type && (sym)->is_template_param))
+#else /* 0 */
+/* Return TRUE if a symbol is a tag symbol, a class template symbol. */
+#define is_tag_or_tag_proxy_symbol(sym)                               \
+  ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
+   (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
+   (sym)->kind == (a_symbol_kind)sk_enum_tag ||			      \
+   (sym)->kind == (a_symbol_kind)sk_class_template)
+#endif /* 0 */
 
 /* Return TRUE if a symbol is a type symbol.   A type symbol is
    one defined as a typedef, or, in C++, as a class, struct, union,
