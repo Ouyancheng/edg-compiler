@@ -7460,6 +7460,37 @@ is set to point to the original statement in its new location.
 }  /* turn_statement_into_block */
 
 
+void turn_statement_into_block_transferring_pragma(
+                                        a_statement_ptr        statement,
+                                        an_insert_location_ptr insert_location,
+                                        a_statement_ptr        *orig_statement,
+                                        a_scope_ptr            scope)
+/*
+Turn a statement into a block containing a copy of the statement, and
+set *insert_location so that statements can be inserted at the beginning
+of the block (i.e., in front of the original statement).  *orig_statement
+is set to point to the original statement in its new location.  If the
+original statement has an associated pragma, move it to the copy.
+scope points to the scope immediately surrounding the original statement.
+*/
+{
+  turn_statement_into_block(statement, insert_location, orig_statement);
+  if (statement->has_associated_pragma) {
+    /* The original statement has an associated pragma (or list of pragmas).
+       Reattach it/them to the copy. */
+    a_pragma_ptr assoc_pragma, prev_assoc_pragma = NULL;
+    while ((assoc_pragma = find_assoc_pragma((char *)statement,
+                                             scope,
+                                             (a_type_ptr)NULL,
+                                             prev_assoc_pragma)) != NULL) {
+      /* Relink the pragma to the copy of the original statement. */
+      assoc_pragma->entity.ptr = (char *)orig_statement;
+      prev_assoc_pragma = assoc_pragma;
+    }  /* while */
+  }  /* if */
+}  /* turn_statement_into_block_transferring_pragma */
+
+
 void turn_branch_into_block(a_statement_ptr        statement,
                             an_insert_location_ptr insert_location,
                             a_statement_ptr        *orig_statement)
@@ -8037,8 +8068,10 @@ handled).
         dep_statement = statement->variant.loop_statement;
       }  /* if */
       block_stmt = dep_statement;
-      turn_statement_into_block(dep_statement, &insert_location,
-                                &dep_statement);
+      turn_statement_into_block_transferring_pragma(dep_statement,
+                                                    &insert_location,
+                                                    &dep_statement,
+                                                    csp->scope);
       /* Create a break label for the loop.  If the loop has a break statement
          already, use it instead of creating a new one. */
       { a_statement_ptr next_statement = statement->next;
