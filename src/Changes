@@ -2,7 +2,7 @@ Version 2.43
 
 12/7/99  Microsoft compatibility: template class names are not injected
 
-In Microsoft mode, the name of a template class is not injected into
+In Microsoft bugs mode, the name of a template class is not injected into
 its own scope.
 
   namespace N {

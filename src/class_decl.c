@@ -11330,9 +11330,9 @@ nested classes when their definition appears outside of the class template.
       if (class_name_injection_enabled) {
         /* In C++ the name of the class is entered into the scope of the
            class; enter an sk_type symbol. */
-        if (microsoft_mode &&
+        if (microsoft_bugs &&
             class_type->variant.class_struct_union.is_template_class) {
-          /* In Microsoft mode, template class names are not injected. */
+          /* In Microsoft bugs mode, template class names are not injected. */
         } else {
           enter_injected_class_name_symbol(tag_sym);
         }  /* if */
