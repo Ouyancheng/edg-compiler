@@ -4635,6 +4635,8 @@ is inserted at *insert_location.
     make_dtor_init_region_table_entries(next_dip, insert_location);
   }  /* if */
   /* Do the first entry on the list. */
+  curr_cleanup_region_number =
+                            dip->destructible_entity_descr->next_region_number;
   make_dtor_region_table_entry(dip, insert_location);
 #if CHECKING
   check_assertion_str(dip->destructible_entity_descr->conditional_flag_var ==
