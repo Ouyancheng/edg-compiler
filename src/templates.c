@@ -69,6 +69,13 @@ typedef struct an_instance_lookup_entry {
 		in_definition_list_file;
 			/* TRUE if the name is present in the definition
 			   list file. */
+  a_byte_boolean
+		instantiation_requested;
+			/* TRUE if an instantiation of this entity has been
+			   requested as a result of its presence in the
+			   request file.  This is used to prevent multiple
+			   instantiations in the presence of multiple
+			   translation units. */
 } an_instance_lookup_entry;
 
 /*
@@ -14974,6 +14981,7 @@ to it.
   ilp->name = NULL;
   ilp->in_request_file = FALSE;
   ilp->in_definition_list_file = FALSE;
+  ilp->instantiation_requested = FALSE;
   return ilp;
 }  /* alloc_instance_lookup_entry */
 
@@ -15215,8 +15223,11 @@ object or library with which this file is being linked).
   name = get_mangled_name_for_symbol(tip->instance_sym);
   ilp = find_instance(name, /*add=*/FALSE);
   if (ilp != NULL && ilp->in_request_file) {
-    /* The entity was named in the instantiation request file. */
-    *instantiate = TRUE;
+    if (!ilp->instantiation_requested) {
+      /* The entity was named in the instantiation request file. */
+      *instantiate = TRUE;
+      ilp->instantiation_requested = TRUE;
+    }  /* if */
   } else if (definition_list_file_name != NULL &&
              tip->instantiation_required && !tip->already_instantiated &&
              (ilp == NULL || !ilp->in_definition_list_file)) {
@@ -17843,13 +17854,6 @@ One-time initialization for templates.c static variables.
   register_trans_unit_variable(inline_function_list);
   register_trans_unit_variable(entries_updated_during_instantiation_wrapup);
   register_trans_unit_variable(can_instantiate_list);
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  register_trans_unit_variable(request_file_check_needed);
-  register_trans_unit_variable(instantiation_request_file_name);
-  register_trans_unit_variable(f_instantiation_request);
-  register_trans_unit_variable(f_template_info);
-  register_trans_unit_array(instance_lookup_table);
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if CHECKING
   register_trans_unit_variable(any_friend_state_changed);
 #endif /* CHECKING */
@@ -17883,15 +17887,6 @@ given translation unit.
   set_type_size(type_of_unknown_templ_param_nontype);
   type_of_unknown_templ_param_nontype->variant.template_param.kind = 
                                       (a_template_param_type_kind)tptk_unknown;
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  request_file_check_needed = FALSE;
-  instantiation_request_file_name = NULL;
-  f_instantiation_request = NULL;
-  f_template_info = NULL;
-  f_exported_template = NULL;
-  remove_exported_template_file = FALSE;
-  memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_trans_unit_init */
 
 
@@ -17916,6 +17911,13 @@ Initializations for template.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #endif /* DEBUG */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+  request_file_check_needed = FALSE;
+  instantiation_request_file_name = NULL;
+  f_instantiation_request = NULL;
+  f_template_info = NULL;
+  f_exported_template = NULL;
+  remove_exported_template_file = FALSE;
+  memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
   /* Allocate a buffer used to read the various template files. */
   file_read_buffer = alloc_text_buffer(1024);
   memzero((char *)template_lookup_table, sizeof(template_lookup_table));
