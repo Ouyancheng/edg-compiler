@@ -6767,7 +6767,8 @@ mode) at *err_pos if not.
   a_boolean    class_bitwise_copy;
 
   /* The diagnostics here are issued only in strict mode. */
-  if (strict_ansi_mode) {
+  /* Avoid problems when the source is an error. */
+  if (strict_ansi_mode && !is_error_type(source_type)) {
     cctor_sym = find_copy_constructor(class_type,
                                       get_type_qualifiers(source_type),
                                       &ambiguous, &class_bitwise_copy);
