@@ -4595,7 +4595,7 @@ skip_overloading:;
   }  /* if */
   if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
       !redeclaration && !template_function_specific_decl &&
-      !locator->is_qualified_name && !locator->is_template_id) {
+      !explicit_template_reference) {
     /* Set the namespace parent in the symbol and IL entry. */
     add_namespace_parent_pointer(sym, source_corresp_ptr);
   }  /* if */
