@@ -1655,21 +1655,6 @@ from the structured statement stack entry.
 }  /* wrapup_decl_statement */
 
 
-void set_vla_size_statement(a_vla_dimension_ptr  vdp,
-                            a_source_position    *pos)
-/*
-Generate a stmk_set_vla_size statement for a variable length array
-(represented by vdp) to indicate when (at runtime) the VLA dimension
-expression is to be evaluated to fix the size of the array.
-*/
-{
-  a_statement_ptr          vla_stmt;
-
-  vla_stmt = add_statement_at_stmt_pos(stmk_set_vla_size, pos);
-  vla_stmt->variant.vla_dimension = vdp;
-}  /* set_vla_size_statement */
-
-
 static void stmt_update_source_sequence_list(a_statement_ptr  sp)
 /*
 Allocate a source sequence entry for statement sp and add it to the list for
@@ -1693,6 +1678,21 @@ the current function scope.
 #define stmt_update_source_sequence_list(sp)       /* Nothing */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+void set_vla_size_statement(a_vla_dimension_ptr  vdp,
+                            a_source_position    *pos)
+/*
+Generate a stmk_set_vla_size statement for a variable length array
+(represented by vdp) to indicate when (at runtime) the VLA dimension
+expression is to be evaluated to fix the size of the array.
+*/
+{
+  a_statement_ptr          vla_stmt;
+
+  vla_stmt = add_statement_at_stmt_pos(stmk_set_vla_size, pos);
+  vla_stmt->variant.vla_dimension = vdp;
+}  /* set_vla_size_statement */
+
 
 void warn_if_code_is_unreachable(an_error_code      error_code,
                                  a_source_position  *err_pos)
