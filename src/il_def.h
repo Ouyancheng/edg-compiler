@@ -1204,15 +1204,14 @@ typedef struct a_source_correspondence {
   a_bit_field	mangled_name_cannot_be_included_in_other_name:1;
 			/* TRUE if the name has been mangled in such a way that
 			   the mangled form cannot be used as part of another
-			   mangled name.  This happens for nested classes,
-			   compression, and truncation.  When this is TRUE,
+			   mangled name.  This happens for compressed and
+			   truncated names.  When this is TRUE,
 			   final_name_mangling_pending will be FALSE. */
   a_bit_field	final_name_mangling_pending:1;
 			/* TRUE if part of the name mangling has been done,
 			   but the final name mangling, which may or may not
 			   change the name, has not been done yet.  Final name
-			   mangling might do compression, truncation, or
-			   special encoding, e.g., for nested types. */
+			   mangling might do compression or truncation. */
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	qualification_needed:1;
