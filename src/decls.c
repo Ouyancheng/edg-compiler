@@ -523,6 +523,7 @@ new fields are set properly.
   int                            param_count;
   a_param_type_ptr               ptp;
   a_boolean                      any_class_type_params = FALSE;
+  a_boolean                      any_template_param_type_params = FALSE;
   a_type_ptr                     tp;
   a_boolean                      is_nonstatic_member_function;
   an_error_code                  error_code = ec_no_error;
@@ -579,6 +580,7 @@ new fields are set properly.
       tp = ptp->type;
       if (is_reference_type(tp)) tp = type_pointed_to(tp);
       if (is_class_struct_union_type(tp)) any_class_type_params = TRUE;
+      if (is_template_param_type(tp)) any_template_param_type_params = TRUE;
     }  /* if */
     if (is_new_operator(opname) ||
 #if 0
@@ -599,7 +601,7 @@ new fields are set properly.
       } else if (opname != (an_opname_kind)onk_function_call) {
         ptp = rout_type->variant.routine.extra_info->param_type_list;
         tp = ptp->type;
-        if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
+        if (!is_error_type(tp)) {
           if (is_new_operator(opname)) {
             /* operator new or operator new[]. */
             if (!is_integral_type(tp) ||
@@ -754,7 +756,7 @@ new fields are set properly.
     if (is_new_operator(opname) || is_delete_operator(opname)) {
       /* Check return type. */
       tp = rout_type->variant.routine.return_type;
-      if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
+      if (!is_error_type(tp)) {
         if (is_new_operator(opname)) {
           /* operator new or operator new[]: return type must be "void *". */
           if (!is_void_star_type(tp)) {
@@ -776,7 +778,8 @@ new fields are set properly.
       /* If operator function is not a nonstatic member and does not have
          operands of class type or reference-to-class type, issue an error.
          This restriction does not apply to new and delete, however. */
-      if (!is_nonstatic_member_function && !any_class_type_params) {
+      if (!is_nonstatic_member_function && !any_class_type_params &&
+          !any_template_param_type_params) {
         pos_error(ec_no_args_with_class_type, &locator->source_position);
         err = TRUE;
       }  /* if */
@@ -785,6 +788,30 @@ new fields are set properly.
   if (err) set_to_error_locator(*locator);
   db_exit();
 }  /* check_operator_function_params */
+
+
+void check_scope_for_new_or_delete(a_symbol_locator  *locator)
+/*
+Issue an error on declaring an operator new or delete function that is a
+namespace member.
+*/
+{
+  if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
+      locator->is_operator_name && !locator->is_class_member &&
+      (!locator->is_qualified_name ||
+       !locator->is_file_scope_qualified_name)) {
+    /* This operator declaration either appears inside a namespace or else
+       has the effect of injecting a declaration into a namespace.  Be sure
+       it's not operator new, new[], delete, or delete[]. */
+    if (is_new_operator(locator->variant.opname)) {
+      error(ec_allocation_operator_in_namespace);
+      set_to_named_error_locator(*locator);
+    } else if (is_delete_operator(locator->variant.opname)) {
+      error(ec_deallocation_operator_in_namespace);
+      set_to_named_error_locator(*locator);
+    }  /* if */
+  }  /* if */
+}  /* check_scope_for_new_or_delete */
 
 
 void check_exception_specification(a_type_ptr         new_rout_type,
@@ -3557,21 +3584,7 @@ on for use in generating cross-reference output describing this declaration.
        argument list. */
     check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                    locator);
-    if (locator->is_operator_name &&
-        depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
-        (!locator->is_qualified_name ||
-         locator->is_file_scope_qualified_name)) {
-      /* This operator declaration either appears inside a namespace or else
-         has the effect of injecting a declaration into a namespace.  Be sure
-         it's not operator new, new[], delete, or delete[]. */
-      if (is_new_operator(locator->variant.opname)) {
-        error(ec_allocation_operator_in_namespace);
-        set_to_named_error_locator(*locator);
-      } else if (is_delete_operator(locator->variant.opname)) {
-        error(ec_deallocation_operator_in_namespace);
-        set_to_named_error_locator(*locator);
-      }  /* if */
-    }  /* if */
+    check_scope_for_new_or_delete(locator);
   }  /* if */
   if (func_info->is_implicit_declaration) {
     check_assertion_str(srk_flags & SRK_IMPLICIT,
@@ -4256,6 +4269,13 @@ is not a template declaration scope.
   effective_decl_level =
               compute_friend_effective_decl_level(orig_decl_level);
   is_friend_decl = effective_decl_level != orig_decl_level;
+  /* If this is an overloaded operator, check for errors in the
+     argument list. */
+  check_operator_function_params(type_ptr, qualifier_class_type(*locator),
+                                 locator);
+  /* If it's a new or delete operator, be sure the scope is not a
+     namespace scope. */
+  check_scope_for_new_or_delete(locator);
   if (locator->is_qualified_name && locator->is_class_member &&
       locator->specific_symbol != NULL) {
     /* Member function template. */
