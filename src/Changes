@@ -67,6 +67,11 @@ the following will not be explicitly initialized to zero:
     char* p;
   } a;
 
+5/14/99  Diagnostic on invalid nontype template parameter declarations
+
+The standard does not permit a class type to be used as the type
+of a nontype parameter.  A diagnostic is now issued for such usage.
+
 5/13/99  Microsoft compatibility: allow __declspec on explicit specialization
          of template
 
