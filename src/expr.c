@@ -5381,9 +5381,6 @@ type is passed in as type_cast_to.  The result is returned in *result.
         an_expr_node_ptr temp_init_node =
                   create_expr_temporary(type_cast_to,
                                         /*result_is_addr=*/FALSE,
-                                        curr_expr_is_evaluated(),
-                                        (a_boolean)expr_stack->
-                                                 in_return_by_cctor_expression,
                                         &start_position);
         a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
         set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);

@@ -5419,11 +5419,7 @@ been adjusted, etc.).
 #endif /* CHECKING */
   class_type = ctor_routine->source_corresp.class_of_which_a_member;
   /* Create the dynamic initialization entry and the enk_temp_init node. */
-  temp_init_node = create_expr_temporary(class_type, result_is_addr,
-                                         curr_expr_is_evaluated(),
-                                         (a_boolean)expr_stack->
-                                                 in_return_by_cctor_expression,
-                                         position);
+  temp_init_node = create_expr_temporary(class_type, result_is_addr, position);
   dip = temp_init_node->variant.init.dynamic_init;
   /* Use a dik_constructor to call the constructor routine. */
   set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
@@ -6013,9 +6009,6 @@ of the temporary.  Only used in C++ mode.
        operand into the temporary. */
     /* Allocate the dynamic initialization entry and the enk_temp_init node. */
     temp_init_node = create_expr_temporary(temp_type, /*result_is_addr=*/TRUE,
-                                           curr_expr_is_evaluated(),
-                                           (a_boolean)expr_stack->
-                                                 in_return_by_cctor_expression,
                                            &operand->position);
     dip = temp_init_node->variant.init.dynamic_init;
     conv_lvalue_to_rvalue(operand);

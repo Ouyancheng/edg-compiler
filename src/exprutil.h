@@ -635,6 +635,10 @@ extern void assemble_function_call(an_operand       *function_operand,
                                    an_expr_node_ptr argument_list,
                                    an_operand       *result);
 
+extern an_expr_node_ptr create_expr_temporary(a_type_ptr        temp_type,
+                                              a_boolean         result_is_addr,
+                                              a_source_position *position);
+
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);
 

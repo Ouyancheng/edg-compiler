@@ -3723,6 +3723,8 @@ on function_type.  *call_pos gives the source position of the call.
                              curr_expr_is_potentially_evaluated(),
                              (a_boolean)expr_stack->
                                                  in_return_by_cctor_expression,
+                             (a_boolean)expr_stack->
+                                                 inside_conditional_expression,
                              call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
@@ -3787,6 +3789,31 @@ in *result.
   }  /* if */
   result->position = function_operand->position;
 }  /* assemble_function_call */
+
+
+an_expr_node_ptr create_expr_temporary(a_type_ptr        temp_type,
+                                       a_boolean         result_is_addr,
+                                       a_source_position *position)
+/*
+Create an enk_temp_init node and return a pointer to it.  The implied
+temporary has type temp_type.  A dynamic initialization entry indicating
+no initialization (but indicating destruction if appropriate) is attached
+under the enk_temp_init node.  The value of the enk_temp_init is the address
+(rather than the value) of the temporary if result_is_addr is TRUE.
+*position is the position of the reference.  Only used in C++.
+*/
+{
+  an_expr_node_ptr temp_init_node;
+
+  temp_init_node = make_temp_init(temp_type, result_is_addr,
+                                  curr_expr_is_evaluated(),
+                                  (a_boolean)expr_stack->
+                                                 in_return_by_cctor_expression,
+                                  (a_boolean)expr_stack->
+                                                 inside_conditional_expression,
+                                  position);
+  return temp_init_node;
+}  /* create_expr_temporary */
 
 
 void using_lvalue(an_operand *operand)
