@@ -9681,7 +9681,7 @@ the position indicated by the given locator.
     pos_diagnostic(severity, err_code, &locator->source_position);
   }  /* if */
   if (microsoft_mode && !C_mode() && is_class_struct_union_type(member_type)) {
-    /* Microsoft compiler warn when fields of certain non-DLL class types are
+    /* Microsoft compilers warn when fields of certain non-DLL class types are
        used as members of classes with a DLL interface.  Specifically, a
        warning is issued if the member type has a virtual function or a
        constructor. */
