@@ -243,22 +243,22 @@ typedef enum /*an_option_kind*/ {
 /* C_dialect is in basics.h. */
 
 EXTERN a_boolean
-		strict_ansi_mode /* = FALSE */;
+		strict_ansi_mode;
 			/* -A option: issue warnings on nonstandard
 			   features used, disable features that conflict
 			   with ANSI C (i.e., asm). */
 
 EXTERN a_boolean
-                cfront_2_1_mode /* = FALSE */;
+                cfront_2_1_mode;
                         /* Accept language features supported
                            by cfront release 2.1. */
 EXTERN a_boolean
-                cfront_3_0_mode /* = FALSE */;
+                cfront_3_0_mode;
                         /* Accept language features supported
                            by cfront release 3.0. */
 
 EXTERN a_boolean
-                trans_unit_test_mode /* = FALSE */;
+                trans_unit_test_mode;
                         /* Enable mode to test compilation of multiple
                            (possibly identical) translation units. */
 
@@ -268,138 +268,122 @@ Macro that is TRUE if any cfront mode has been selected.
 #define any_cfront_mode() (cfront_2_1_mode || cfront_3_0_mode)
 
 EXTERN a_boolean
-		pcc_preprocessing_mode /* = FALSE */;
+		pcc_preprocessing_mode;
 			/* TRUE if old-style (Reiser cpp) preprocessing
 			   should be done. */
 EXTERN a_boolean
-                allow_anachronisms
-#if VAR_INITIALIZERS
-                          = DEFAULT_ALLOW_ANACHRONISMS
-#endif /* VAR_INITIALIZERS */
-                                                      ;
+                allow_anachronisms;
                         /* Indicates whether anachronisms should be
                            accepted.  The default is supplied by a
                            configuration parameter. */
 EXTERN a_boolean
-                allow_nonconst_call_anachronism
-#if VAR_INITIALIZERS
-                          = DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM
-#endif /* VAR_INITIALIZERS */
-                                                                   ;
+                allow_nonconst_call_anachronism;
 			/* Indicates whether the anachronism of calling
 			   a non-const function on a const object should
 			   be accepted. */
 
 #if DEBUG
-EXTERN int	init_debug_level /* = 0 */;
+EXTERN int	init_debug_level;
 			/* Initial debug level: n in -dn option, or 0
 			   by default. */
 #endif /* DEBUG */
 EXTERN a_boolean
-		do_preprocessing_only /* = FALSE */;
+		do_preprocessing_only;
 			/* If TRUE, the compiler is to act like cpp: the
 			   source is preprocessed, but not compiled. */
 EXTERN a_boolean
-                pp_output_file_needed /* = FALSE */;
+                pp_output_file_needed;
                         /* If TRUE, the compiler will output information to
 			   the preprocessing output file.  This could be
 			   preprocessed text, makefile dependency information,
 			   etc. */
 EXTERN a_boolean
-		generate_pp_output /* = FALSE */;
+		generate_pp_output;
 			/* If TRUE, the preprocessing step should generate
 			   a textual output file of the preprocessed text.
 			   FALSE when do_preprocessing_only is FALSE. */
 EXTERN a_boolean
-		keep_comments_in_pp_output /* = FALSE */;
+		keep_comments_in_pp_output;
 			/* If TRUE, comments should be retained in
 			   preprocessing output.  Meaningful only when
 			   generate_pp_output is TRUE. */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 EXTERN a_boolean
-		gen_old_style_line_dirs /* = FALSE */;
+		gen_old_style_line_dirs;
 			/* If TRUE, generate old-style line directives in
 			   generated C/C++ output, i.e., "# nnn" instead of
 			   "#line nnn". */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 EXTERN a_boolean
-		gen_line_info_in_pp_output /* = FALSE */;
+		gen_line_info_in_pp_output;
 			/* If TRUE, generate #line directives in
 			   preprocessing output.  Meaningful only when
 			   generate_pp_output is TRUE. */
-EXTERN FILE	*f_pp_output /* = NULL */;
+EXTERN FILE	*f_pp_output;
 			/* File to which preprocessing output is written.
 			   Meaningful only when generate_pp_output is
 			   TRUE. */
-EXTERN char	*pp_file_name /* = NULL */;
+EXTERN char	*pp_file_name;
 			/* Name of the preprocessing output file to be
 			   opened, or NULL if no such file is needed or if
 			   a default file should be used. */
 EXTERN a_boolean
-		list_included_files /* = FALSE */;
+		list_included_files;
 			/* When TRUE, write the names of #included files to
 			   stdout. */
 EXTERN a_boolean
-		list_makefile_dependencies /* = FALSE */;
+		list_makefile_dependencies;
 			/* When TRUE, write dependency lines for "make" to
 			   stdout (for #include files encountered). */
-EXTERN FILE	*f_raw_listing /* = NULL */;
+EXTERN FILE	*f_raw_listing;
 			/* If non-NULL (-L option), raw source lines and
 			   context information are written to this file.
 			   Such information could be read later by a program
 			   to generate an interspersed listing. */
-EXTERN FILE	*f_xref_info /* = NULL */;
+EXTERN FILE	*f_xref_info;
 			/* If non-NULL (-X option), cross-reference information
 			   is written to this file.  Such information could
 			   be read and sorted later to produce a cross-
 			   reference listing. */
 EXTERN a_boolean
-		suppress_back_end /* = FALSE */;
+		suppress_back_end;
 			/* TRUE if the back end should not be called.  The
 			   -n option sets this to TRUE, and it is also TRUE
 			   whenever do_preprocessing_only is TRUE. */
 #if DO_IL_LOWERING
 EXTERN a_boolean
-		suppress_il_lowering /* = FALSE */;
+		suppress_il_lowering;
 			/* TRUE if IL lowering should not be done. */
 #endif /* DO_IL_LOWERING */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 EXTERN a_boolean
-		suppress_il_file_write /* = FALSE */;
+		suppress_il_file_write;
 			/* TRUE if the writing of the IL file should be
 			   suppressed. */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 EXTERN enum {vfd_normal, vfd_suppress, vfd_force} /*lint !e659*/
 		/*lint -esym(769,vfd_normal)*/
-		virtual_function_table_definition /* = vfd_normal */;
+		virtual_function_table_definition;
 			/* If the heuristic used to determine whether a virtual
 			   function table should be defined cannot
 			   conclusively make such a determination, vfd_suppress
 			   indicates that the definition should NOT be
 			   made, and vfd_force indicates that it should. */
 EXTERN a_boolean
-		suppress_used_before_set_warnings /* = FALSE */;
+		suppress_used_before_set_warnings;
 			/* TRUE if used-before-set warnings should not be
 			   issued on automatic local variables that are used
 			   before a value is assigned to them; FALSE by
 			   default.  Set by the -j command line option. */
 
 EXTERN a_boolean
-		addr_of_bit_field_allowed
-#if VAR_INITIALIZERS
-                                          = ADDR_OF_BIT_FIELD_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                     ;
+		addr_of_bit_field_allowed;
 			/* TRUE if the address of a bit field may be taken
 			   (provided it has a size and alignment that matches
 			   some integral type). */
 
 EXTERN a_boolean
-		exceptions_enabled
-#if VAR_INITIALIZERS
-                                    = DEFAULT_EXCEPTIONS_ENABLED
-#endif /* VAR_INITIALIZERS */
-                                                                ;
+		exceptions_enabled;
 			/* TRUE if a C++ source program should be compiled
 			   with support for exception handling.  If it is
 			   FALSE, an error will be issued whenever an
@@ -412,16 +396,7 @@ EXTERN a_boolean
 
 
 EXTERN a_boolean
-		rtti_enabled
-#if VAR_INITIALIZERS
-                             =
-#if RTTI_ENABLING_POSSIBLE
-                               DEFAULT_RTTI_ENABLED
-#else /* !RTTI_ENABLING_POSSIBLE */
-                               FALSE
-#endif /* RTTI_ENABLING_POSSIBLE */
-#endif /* VAR_INITIALIZERS */
-                                                   ;
+		rtti_enabled;
 			/* TRUE if support for runtime type identification
 			   (RTTI) is enabled.  Significant only in C++ mode.
 			   RTTI cannot be enabled if the extended typeinfo
@@ -429,11 +404,7 @@ EXTERN a_boolean
 
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI
 EXTERN a_boolean
-		generate_rtti_typeinfo
-#if VAR_INITIALIZERS
-                                       = TRUE
-#endif /* VAR_INITIALIZERS */
-                                             ;
+		generate_rtti_typeinfo;
 			/* TRUE if the typeinfo tables that support RTTI
 			   should be generated.  If FALSE, typeinfo tables
 			   will be generated only for types used in exceptions.
@@ -442,157 +413,88 @@ EXTERN a_boolean
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI */
 
 EXTERN a_boolean
-		array_new_and_delete_enabled
-#if VAR_INITIALIZERS
-                             =
-#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
-                               DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED
-#else /* !ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
-                               FALSE
-#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
-#endif /* VAR_INITIALIZERS */
-                                                                   ;
+		array_new_and_delete_enabled;
 			/* TRUE if support for array new and delete is
 			   enabled.  Significant only in C++ mode.  They
 			   cannot be enabled if the ABI changes for them
 			   are not enabled. */
 EXTERN a_boolean
-		explicit_keyword_enabled
-#if VAR_INITIALIZERS
-                                         = DEFAULT_EXPLICIT_KEYWORD_ENABLED
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
+		explicit_keyword_enabled;
 			/* TRUE if the "explicit" keyword is recognized.
 			   Significant only in C++ mode. */
 EXTERN a_boolean
-		namespaces_enabled
-#if VAR_INITIALIZERS
-                                   = DEFAULT_NAMESPACES_ENABLED
-#endif /* VAR_INITIALIZERS */
-                                                               ;
+		namespaces_enabled;
 			/* TRUE if support for namespaces is enabled.
 			   Significant only in C++ mode. */
 EXTERN a_boolean
-		implicit_using_std
-#if VAR_INITIALIZERS
-                                   = DEFAULT_IMPLICIT_USING_STD
-#endif /* VAR_INITIALIZERS */
-                                                                ;
+		implicit_using_std;
 			/* TRUE if the runtime should implicitly do a
 			   "using namespace std".  Significant only in
 			    C++ mode. */
 
 EXTERN a_boolean
-		typename_enabled
-#if VAR_INITIALIZERS
-                                  = DEFAULT_TYPENAME_ENABLED
-#endif /* VAR_INITIALIZERS */
-                                                               ;
+		typename_enabled;
 			/* TRUE if support for typename is enabled.
 			   Significant only in C++ mode. */
 
 EXTERN a_boolean
-		implicit_typename_enabled
-#if VAR_INITIALIZERS
-                                          = DEFAULT_IMPLICIT_TYPENAME_ENABLED
-#endif /* VAR_INITIALIZERS */
-                                                               ;
+		implicit_typename_enabled;
 			/* TRUE if the front end should determine from context
 			   whether a template parameter dependent name is a
 			   type or nontype.  Significant only in C++ mode. */
 
 EXTERN a_boolean
-		extern_inline_allowed
-#if VAR_INITIALIZERS
-                                      = DEFAULT_EXTERN_INLINE_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                     ;
+		extern_inline_allowed;
 			/* TRUE if inline functions are allowed to have
 			   external linkage (as specified by the standard) and
 			   FALSE if they imply internal linkage (as specified
 			   in the ARM).  Significant only in C++ mode. */
 
 EXTERN a_boolean
-		floating_point_template_parameters_allowed
-#if VAR_INITIALIZERS
-                          = DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		floating_point_template_parameters_allowed;
 			/* TRUE if template parameters of floating-point type
 			   are allowed (which is nonstandard). */
 
 EXTERN a_boolean
-		vla_enabled
-#if VAR_INITIALIZERS
-                            = DEFAULT_VLA_ENABLED
-#endif /* VAR_INITIALIZERS */
-                                                 ;
+		vla_enabled;
 			/* TRUE if support for variable length arrays (VLAs)
 			   is enabled.  Always FALSE in C++ mode.  Controlled
 			   by command-line options --[no_]vla. */
 
 EXTERN a_boolean
-		vla_dealloc_statements_in_il
-#if VAR_INITIALIZERS
-                                             = VLA_DEALLOC_STATEMENTS_IN_IL
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
+		vla_dealloc_statements_in_il;
 			/* TRUE if stmk_vla_dealloc statements should be
 			   generated to mark the points at which VLA objects
 			   pass out of scope and may be deallocated. */
 
 EXTERN a_boolean
-		operator_overloading_on_enums_enabled
-#if VAR_INITIALIZERS
-                                       = DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		operator_overloading_on_enums_enabled;
 			/* TRUE if operator functions can be used to
 			   overload operations on enums. */
 
 EXTERN a_boolean
-		string_literals_are_const
-#if VAR_INITIALIZERS
-                                           = DEFAULT_STRING_LITERALS_ARE_CONST
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		string_literals_are_const;
 			/* TRUE if string literals are const, i.e.,
 			   array[n] of const char.  Also controls wide
 			   string literals. */
 
 EXTERN a_boolean
-		class_name_injection_enabled
-#if VAR_INITIALIZERS
-                                             = DEFAULT_CLASS_NAME_INJECTION
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		class_name_injection_enabled;
 			/* TRUE if class names are injected into the scope
 			   of the class. */
 
 EXTERN a_boolean
-		arg_dependent_lookup_enabled
-#if VAR_INITIALIZERS
-                                             = DEFAULT_ARG_DEPENDENT_LOOKUP
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
+		arg_dependent_lookup_enabled;
 			/* TRUE if argument dependent lookup of function
 			   names should be performed. */
 
 EXTERN a_boolean
-		friend_injection_enabled
-#if VAR_INITIALIZERS
-                                             = DEFAULT_FRIEND_INJECTION
-#endif /* VAR_INITIALIZERS */
-                                                                       ;
+		friend_injection_enabled;
 			/* TRUE if names first declared in friend declarations
 			   are visible. */
 
 EXTERN a_boolean
-		do_dependent_name_processing
-#if VAR_INITIALIZERS
-                                        = DEFAULT_DEPENDENT_NAME_PROCESSING
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		do_dependent_name_processing;
 			/* TRUE if special processing for dependent names
 			   in templates should be done.  This also enables
 			   prototype instantiations of function bodies and
@@ -615,11 +517,7 @@ EXTERN a_boolean
 			   in g++ and Microsoft modes. */
 
 EXTERN a_boolean
-		nonclass_prototype_instantiations
-#if VAR_INITIALIZERS
-                                        = DEFAULT_DEPENDENT_NAME_PROCESSING
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
+		nonclass_prototype_instantiations;
 			/* TRUE if nonclass template declarations should
 			   have prototype instantiations performed on them.
 			   This is initialized to the same value as
@@ -633,91 +531,44 @@ EXTERN a_boolean
 			   function is used. */
 
 EXTERN a_boolean
-		nonstandard_using_decl_allowed
-#if VAR_INITIALIZERS
-                                      = DEFAULT_NONSTANDARD_USING_DECL_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		nonstandard_using_decl_allowed;
 			/* TRUE if a nonstandard nonmember using-declaration
                            that uses an unqualified name should be accepted. */
 
 EXTERN a_boolean
-		designators_allowed
-#if VAR_INITIALIZERS
-                                             =
-#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
-                                               DEFAULT_DESIGNATORS_ALLOWED
-#else /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-                                               FALSE
-#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		designators_allowed;
 			/* TRUE if '.x' and '[expr]' designators should be
 			   accepted. */
 
 EXTERN a_boolean
-		extended_designators_allowed
-#if VAR_INITIALIZERS
-                                        =
-#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
-                                          DEFAULT_EXTENDED_DESIGNATORS_ALLOWED
-#else /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-                                          FALSE
-#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		extended_designators_allowed;
 			/* TRUE if 'x:' and '[expr ... expr]' designators
 			   should be accepted. */
 
 EXTERN a_boolean
-		variadic_macros_allowed
-#if VAR_INITIALIZERS
-                                             = DEFAULT_VARIADIC_MACROS_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		variadic_macros_allowed;
 			/* TRUE if '#define VM(x, ...) __VA_ARGS__' should be
 			   accepted. */
 
 EXTERN a_boolean
-		extended_variadic_macros_allowed
-#if VAR_INITIALIZERS
-                                    = DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		extended_variadic_macros_allowed;
 			/* TRUE if '#define EVM(args ...) args' should be
 			   accepted. */
 
 EXTERN a_boolean
-		compound_literals_allowed
-#if VAR_INITIALIZERS
-                                          = DEFAULT_COMPOUND_LITERALS_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		compound_literals_allowed;
 			/* TRUE if C99 compound literals, which look like a
 			   cast including a brace-enclosed initializer, e.g.,
 			   (int []){1, 2, 3}, should be accepted. */
 
 EXTERN a_boolean
-		fixed_point_enabled
-#if VAR_INITIALIZERS
-		                    =
-#if FIXED_POINT_ALLOWED
-		                      DEFAULT_FIXED_POINT_ENABLED
-#else /* !FIXED_POINT_ALLOWED */
-		                      FALSE
-#endif /* FIXED_POINT_ALLOWED */
-#endif /* VAR_INITIALIZERS */
-                                                                 ;
+		fixed_point_enabled;
 			/* TRUE if the fixed-point extensions of ISO TR 18037
 			   (aka. "Embedded C") should be accepted. */
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
 EXTERN a_boolean
-		named_address_spaces_enabled
-#if VAR_INITIALIZERS
-		                  = DEFAULT_NAMED_ADDRESS_SPACES_ENABLED
-#endif /* VAR_INITIALIZERS */
-                                                                        ;
+		named_address_spaces_enabled;
 			/* TRUE if the extension of ISO TR 18037 (aka.
 			   "Embedded C") for named address spaces should be
 			    accepted. */
@@ -725,11 +576,7 @@ EXTERN a_boolean
 
 #if NAMED_REGISTERS_ALLOWED
 EXTERN a_boolean
-		named_registers_enabled
-#if VAR_INITIALIZERS
-		                        = DEFAULT_NAMED_REGISTERS_ENABLED
-#endif /* VAR_INITIALIZERS */
-		                                                         ;
+		named_registers_enabled;
 			/* TRUE if the extension of ISO TR 18037 (aka.
 			   "Embedded C") for named-register storage classes
 			    should be accepted. */
@@ -737,31 +584,19 @@ EXTERN a_boolean
 
 #if DO_IL_LOWERING
 EXTERN a_boolean
-		pointer_to_member_call_optimization_allowed
-#if VAR_INITIALIZERS
-                         = DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		pointer_to_member_call_optimization_allowed;
 			/* TRUE if optimized code can be generated for certain
 			   pointer to member calls.  The C++ standard disallows
 			   this optimization. */
 #endif /* DO_IL_LOWERING */
 
 EXTERN a_boolean
-		no_access_check_on_friend_declarator_ids
-#if VAR_INITIALIZERS
-			= DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS
-#endif /* VAR_INITIALIZERS */
-                                                                          ;
+		no_access_check_on_friend_declarator_ids;
 			/* TRUE if no access check should be performed on
 			   declarator-ids of friend function declarators. */
 
 EXTERN a_boolean
-		special_subscript_cost
-#if VAR_INITIALIZERS
-                                       = DEFAULT_SPECIAL_SUBSCRIPT_COST
-#endif /* VAR_INITIALIZERS */
-                                                                       ;
+		special_subscript_cost;
 			/* TRUE if the cost of the subscript operator []'s
 			   integral operand is always considered a standard
 			   conversion in overload resolution.  This is
@@ -769,49 +604,27 @@ EXTERN a_boolean
 			   depend on it. */
 
 EXTERN a_boolean
-		long_preserving_rules
-#if VAR_INITIALIZERS
-                                      = DEFAULT_LONG_PRESERVING_RULES
-#endif /* VAR_INITIALIZERS */
-                                                                     ;
+		long_preserving_rules;
 			/* TRUE if the K&R rules for usual arithmetic
 			   conversions involving "long" should be used.
 			   This means the rules described in the K&R I book,
 			   not the rules used by the pcc compiler. */
 
-EXTERN an_integer_kind
-		plain_char_int_kind;
-			/* Integer kind for a "plain" char, dependent on
-			   the setting of targ_has_signed_chars. */
-EXTERN a_boolean
-		string_literals_shared;
-			/* TRUE if string literals can be shared.  FALSE
-			   if string literals are not shared because they
-			   might be writable (as in pcc mode). */
-
 EXTERN a_def_undef_string_ptr
-		defs_from_cmd_line   /* = NULL */,
-		undefs_from_cmd_line /* = NULL */;
+		defs_from_cmd_line,
+		undefs_from_cmd_line;
 			/* The list of -D and -U options from the command
 			   line, defining and undefining macro symbols. */
 
 
 EXTERN a_boolean
-                allow_dollar_in_id_chars
-#if VAR_INITIALIZERS
-			          = DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS
-#endif /* VAR_INITIALIZERS */
-                                                                    ;
+                allow_dollar_in_id_chars;
                         /* Specifies whether dollar signs are allowed
                            in identifiers.  The default is supplied by
                            a configuration parameter. */
 
 EXTERN a_boolean
-                display_compilation_time
-#if VAR_INITIALIZERS
-			          = FALSE
-#endif /* VAR_INITIALIZERS */
-                                                                         ;
+                display_compilation_time;
                         /* TRUE if compilation timing statistics should be
 			   displayed. */
 
@@ -842,69 +655,53 @@ typedef enum /*a_template_instantiation_mode*/ {
 
 
 EXTERN a_template_instantiation_mode
-                instantiation_mode
-#if VAR_INITIALIZERS
-			           = DEFAULT_INSTANTIATION_MODE
-#endif /* VAR_INITIALIZERS */
-                                                               ;
+                instantiation_mode;
                         /* The default template instantiation mode. */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 EXTERN a_boolean
-                automatic_instantiation_mode
-#if VAR_INITIALIZERS
-                          = DEFAULT_AUTOMATIC_INSTANTIATION_MODE
-#endif /* VAR_INITIALIZERS */
-                                                                ;
+                automatic_instantiation_mode;
                         /* Should automatic instantiation processing be
 			   performed.  This includes both the generation of
  			   the instantiation flags and the processing of the
 			   instantiation list. */
 
 EXTERN a_boolean
-		suppress_instantiation_flags /* = FALSE */;
+		suppress_instantiation_flags;
 			/* Should the instantiation flags that are normally
 			   generated as part of the automatic instantiation
 			   process be suppressed. */
 
-EXTERN char	*ii_file_name /* = NULL */;
+EXTERN char	*ii_file_name;
 			/* Name of the instantiation information file to
 			   be used, or NULL if the default file name
 			   should be used. */
 
 EXTERN a_boolean
-		instantiation_flags_in_template_info_file
-#if VAR_INITIALIZERS
-                          = INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		instantiation_flags_in_template_info_file;
 			/* TRUE if the flags used by automatic instantiation
 			   should be placed in the template information file
 			   instead of in the object file as variables. */
 
 EXTERN a_boolean
-		use_template_info_file
-#if VAR_INITIALIZERS
-                          = USE_TEMPLATE_INFO_FILE
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		use_template_info_file;
 			/* TRUE if a template information file should be
 			   created for information such as the names of
 			   instantiation files created in one instantiation
 			   per object mode, and for instantiation flags when
 			   they are not put in the object file. */
 
-EXTERN char	*template_info_file_name /* = NULL*/;
+EXTERN char	*template_info_file_name;
 			/* The name of a file into which the front end should
 			   write a list of files that were created that contain
 			   instantiations. */
 
-EXTERN char	*exported_template_file_name /* = NULL*/;
+EXTERN char	*exported_template_file_name;
 			/* The name of a file into which the front end should
 			   write information about the exported templates
 			   defined by the compilation. */
 
-EXTERN char	*definition_list_file_name /* = NULL*/;
+EXTERN char	*definition_list_file_name;
 			/* The name of a file containing a list of functions
 			   and static data members that are defined in the
 			   objects and libraries with which the current file
@@ -916,11 +713,7 @@ EXTERN char	*definition_list_file_name /* = NULL*/;
 
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
 EXTERN a_boolean
-                implicit_template_inclusion_mode
-#if VAR_INITIALIZERS
-                          = DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE
-#endif /* VAR_INITIALIZERS */
-                                                                    ;
+                implicit_template_inclusion_mode;
                         /* Should the front end attempt to implicitly include
 			   a source file (e.g., .c file) to find the
 			   definition of a template. */
@@ -941,30 +734,30 @@ EXTERN a_boolean
 
 
 EXTERN a_boolean
-		display_error_number /* = FALSE */;
+		display_error_number;
 			/* Should the diagnostic message output include the
 		           error number. */
 
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-EXTERN char	*gen_c_file_name /* = NULL */;
+EXTERN char	*gen_c_file_name;
 			/* Points to a string specifying the name of the
 			   generated C file to be created.  The front end
 			   will generate a name if this string is NULL. */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 EXTERN a_boolean
-		precompiled_header_processing_required /* = FALSE */;
+		precompiled_header_processing_required;
 			/* TRUE if any kind of precompiled header
 			   processing is required by this compilation. */
 
 EXTERN a_boolean
-		create_precompiled_header /* = FALSE */;
+		create_precompiled_header;
 			/* TRUE if this compilation should create a
 			   precompiled header file. */
 
 EXTERN a_boolean
-		use_precompiled_header /* = FALSE */;
+		use_precompiled_header;
 			/* TRUE if this compilation should use a specified
 			   precompiled header file. */
 
@@ -979,19 +772,19 @@ EXTERN char	*pch_output_file_name;
                            file to be created. */
 
 EXTERN a_boolean
-		automatic_pch_processing /* = FALSE */;
+		automatic_pch_processing;
 			/* TRUE if the compiler should automatically
 			   determine whether to build and/or use a
 			   precompiled header file. */
 
 EXTERN a_boolean
-		suppress_pch_messages /* = FALSE */;
+		suppress_pch_messages;
 			/* TRUE if messages regarding the creation and
 			   use of precompiled header files should be
 			   suppressed. */
 
 EXTERN a_boolean
-		verbose_pch_messages /* = FALSE */;
+		verbose_pch_messages;
 			/* TRUE if extra messages regarding the creation and
 			   use of precompiled header files should be
 			   suppressed. */
@@ -1001,37 +794,29 @@ EXTERN sizeof_t	pch_mem_size;
 			/* Size of the preallocated PCH memory area. */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
-EXTERN char	*pch_dir_name /* = NULL*/;
+EXTERN char	*pch_dir_name;
 			/* Directory in which PCH files are to be stored.
 			   NULL if no directory has been specified. */
 
 EXTERN a_boolean
-		restrict_enabled /* = FALSE */;
+		restrict_enabled;
 			/* TRUE if support for the restricted pointers is
 			   provided.  This is TRUE if any form of the
 			   restrict keyword is allowed. */
 
 EXTERN a_boolean
-		restrict_keyword_enabled
-#if VAR_INITIALIZERS
-                                 = DEFAULT_RESTRICT_ENABLED
-#endif /* VAR_INITIALIZERS */
-                                                           ;
+		restrict_keyword_enabled;
 			/* TRUE if support for the restricted pointers is
 			   provided, in which case "restrict" is recognized
 			   as a keyword. */
 
 EXTERN a_boolean
-		gnu_restrict_keyword_enabled /* = FALSE */;
+		gnu_restrict_keyword_enabled;
 			/* TRUE if the GNU __restrict variant of the restrict
 			   keyword is recognized. */
 
 EXTERN a_boolean
-		long_lifetime_temps
-#if VAR_INITIALIZERS
-                                    = FALSE
-#endif /* VAR_INITIALIZERS */
-                                           ;
+		long_lifetime_temps;
 			/* If FALSE, temporaries have lifetimes that end at
 			   end of full expression.  If TRUE, temporaries
 			   have lifetimes that end at end of scope, label,
@@ -1039,11 +824,7 @@ EXTERN a_boolean
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention
-		default_calling_convention
-#if VAR_INITIALIZERS
-                                           = (a_calling_convention)cc_cdecl
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
+		default_calling_convention;
 			/* The default calling convention.  cc_default is
 			   considered compatible with this calling
 			   convention. */
@@ -1051,11 +832,7 @@ EXTERN a_calling_convention
 
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 EXTERN a_boolean
-		allow_nonstandard_anonymous_unions
-#if VAR_INITIALIZERS
-                                = DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-#endif /* VAR_INITIALIZERS */
-                                                                            ;
+		allow_nonstandard_anonymous_unions;
 			/* If TRUE, a set of extensions is supported that
 			   permits features similar to C++ anonymous unions
 			   (1) in C mode and (2) with structs (in both C
@@ -1066,32 +843,14 @@ EXTERN a_boolean
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 EXTERN a_boolean
-		wchar_t_is_keyword
-#if VAR_INITIALIZERS
-                             =
-#if WCHAR_T_ENABLING_POSSIBLE
-                               DEFAULT_WCHAR_T_IS_KEYWORD
-#else /* !WCHAR_T_ENABLING_POSSIBLE */
-                               FALSE
-#endif /* WCHAR_T_ENABLING_POSSIBLE */
-#endif /* VAR_INITIALIZERS */
-                                                               ;
+		wchar_t_is_keyword;
 			/* Indicates whether wchar_t is to be considered a
                            keyword.  Once command line processing has been
 			   completed, this value must only be TRUE in C++
                            mode. */
 
 EXTERN a_boolean
-		bool_is_keyword
-#if VAR_INITIALIZERS
-                             =
-#if BOOL_ENABLING_POSSIBLE
-                               DEFAULT_BOOL_IS_KEYWORD
-#else /* !BOOL_ENABLING_POSSIBLE */
-                               FALSE
-#endif /* BOOL_ENABLING_POSSIBLE */
-#endif /* VAR_INITIALIZERS */
-                                                               ;
+		bool_is_keyword;
 			/* Indicates whether bool is to be considered a
 			   keyword in C++.  Also indicates that the result
 			   type of comparisons is bool.  FALSE in C99,
@@ -1099,7 +858,7 @@ EXTERN a_boolean
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 EXTERN a_targ_alignment
-		default_max_member_alignment /* = 0*/;
+		default_max_member_alignment;
 			/* If nonzero, the maximum alignment of any nonstatic
 			   data member of a class, struct, or union, unless a
 			   "#pragma pack" overrides it.  Its value is based
@@ -1109,11 +868,7 @@ EXTERN a_targ_alignment
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 EXTERN a_boolean
-                alternative_tokens_allowed
-#if VAR_INITIALIZERS
-                                         = DEFAULT_ALTERNATIVE_TOKENS_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
+                alternative_tokens_allowed;
                         /* TRUE if the C++ operator keywords (such as
 			   "and", "or", "not", etc.) and digraphs should
 			   be allowed.  This flag is automatically set
@@ -1121,63 +876,39 @@ EXTERN a_boolean
 
 #if DO_IL_LOWERING && MINIMAL_INLINING
 EXTERN a_boolean
-		inlining_enabled
-#if VAR_INITIALIZERS
-                                 = TRUE
-#endif /* VAR_INITIALIZERS */
-                                       ;
+		inlining_enabled;
 			/* TRUE if minimal inlining should be done by IL
 			   lowering. */
 #endif /* DO_IL_LOWERING && MINIMAL_INLINING */
 
 EXTERN a_boolean
-                SVR4_C_mode
-#if VAR_INITIALIZERS
-                            = DEFAULT_SVR4_C_MODE
-#endif /* VAR_INITIALIZERS */
-                                                 ;
+                SVR4_C_mode;
                         /* TRUE if the C++ operator keywords (such as
 			   "and", "or", "not", etc.) and digraphs should
 			   be allowed. */
 
 EXTERN a_boolean
-		address_of_ellipsis_allowed
-#if VAR_INITIALIZERS
-                            = DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                           ;
+		address_of_ellipsis_allowed;
 			/* TRUE if "&..." is accepted. */
 
 EXTERN a_boolean
-		allow_ellipsis_only_param_in_C_mode
-#if VAR_INITIALIZERS
-                            = DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
-#endif /* VAR_INITIALIZERS */
-                                                   ;
+		allow_ellipsis_only_param_in_C_mode;
 			/* TRUE if an ellipsis alone is allowed as a parameter
 			   list in C mode (e.g., "void f(...)"). */
 
 EXTERN a_boolean
-                allow_nonconst_ref_anachronism
-#if VAR_INITIALIZERS
-                            = DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM
-#endif /* VAR_INITIALIZERS */
-                                               ;
+                allow_nonconst_ref_anachronism;
                         /* TRUE if a reference to nonconst can be bound to
 			   a class rvalue. */
 
 EXTERN a_boolean
-		building_runtime /* = FALSE*/;
+		building_runtime;
 			/* TRUE if we are compiling the runtime library.
 			   Causes additional predefined macros to be
 			   defined. */
 
 EXTERN a_boolean
-		remove_unneeded_entities
-#if VAR_INITIALIZERS
-                                         = DEFAULT_REMOVE_UNNEEDED_ENTITIES
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
+		remove_unneeded_entities;
 			/* When TRUE unneeded entities may be pruned from the
 			   IL tree; otherwise, pruning is suppressed even if
 			   entities are determined to be unneeded. Always
@@ -1193,11 +924,7 @@ EXTERN a_boolean
 			   new translation unit is started. */
 
 EXTERN a_boolean
-		use_nonstandard_for_init_scope
-#if VAR_INITIALIZERS
-                                   = DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
+		use_nonstandard_for_init_scope;
 			/* TRUE if the scope of a name declared in a C++
 			   for-init statement extends to the end of the scope
 			   in which the for-statement appears and FALSE if
@@ -1205,7 +932,7 @@ EXTERN a_boolean
 			   the latter is standard-conforming behavior. */
 
 EXTERN a_boolean
-		microsoft_type_dependent_for_init_scope /* = FALSE */;
+		microsoft_type_dependent_for_init_scope;
 			/* TRUE if the scope of a variable declared in a C++
 			   for-init statement should be handled as the default
 			   MSVC++ 7.1 behavior: Variables with destructors
@@ -1215,11 +942,7 @@ EXTERN a_boolean
 
 
 EXTERN a_boolean
-		warning_on_for_init_difference
-#if VAR_INITIALIZERS
-                                   = DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
+		warning_on_for_init_difference;
 			/* TRUE if the new C++ for-init scoping rules are in
 			   effect and if a diagnostic should be issued when a
 			   name that is visible with the new rules would be
@@ -1227,11 +950,7 @@ EXTERN a_boolean
 			   the old rules. */
 
 EXTERN a_boolean
-		allow_copy_assignment_op_with_base_class_param
-#if VAR_INITIALIZERS
-                    = DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM
-#endif /* VAR_INITIALIZERS */
-                                                                            ;
+		allow_copy_assignment_op_with_base_class_param;
 			/* TRUE if, in default mode, an assignment operator
 			   for class A with parameter of type "B", "B&", or
 			   "const B&" should be viewed as a copy assignment
@@ -1239,39 +958,23 @@ EXTERN a_boolean
 			   the standard-conforming setting. */
 
 EXTERN a_boolean
-		guiding_decls_allowed
-#if VAR_INITIALIZERS
-                                      = DEFAULT_GUIDING_DECLS_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                     ;
+		guiding_decls_allowed;
 			/* TRUE if guiding-declarations of template functions
 			   are allowed. */
 
-EXTERN a_boolean warning_on_non_template_friend
-#if VAR_INITIALIZERS
-                                      = DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+EXTERN a_boolean warning_on_non_template_friend;
 			/* TRUE if a message should be issued indicating that
 			   a friend declaration was probably intended to be
 		           a guiding declaration. */
 
 EXTERN a_boolean
-		old_specializations_allowed
-#if VAR_INITIALIZERS
-                                       = DEFAULT_OLD_SPECIALIZATIONS_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                            ;
+		old_specializations_allowed;
 			/* TRUE if old-style template specialization
 			   declarations are permitted (i.e., if "template <>"
 			   syntax is not required). */
 
 EXTERN a_boolean
-		impl_conv_between_c_and_cpp_function_ptrs_allowed
-#if VAR_INITIALIZERS
-                 = DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                            ;
+		impl_conv_between_c_and_cpp_function_ptrs_allowed;
 			/* TRUE if implicit conversion between pointers to
 			   extern "C" and extern "C++" function types is
 			   permitted.  It is set to FALSE in strict mode or if
@@ -1279,27 +982,19 @@ EXTERN a_boolean
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 EXTERN a_boolean
-		multibyte_chars_in_source_enabled
-#if VAR_INITIALIZERS
-                 = DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED
-#endif /* VAR_INITIALIZERS */
-                                                            ;
+		multibyte_chars_in_source_enabled;
 			/* TRUE if multibyte characters are allowed in
 			   source code (in comments, string literals, and
 			   character constants). */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 EXTERN a_boolean
-		null_chars_allowed_in_source
-#if VAR_INITIALIZERS
-                                      = DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE
-#endif /* VAR_INITIALIZERS */
-                                                                            ;
+		null_chars_allowed_in_source;
 			/* TRUE if null (zero) characters should be allowed
 			   in source lines. */
 
 EXTERN a_boolean
-		report_embedded_cplusplus_noncompliance /* = FALSE */;
+		report_embedded_cplusplus_noncompliance;
 			/* TRUE to enforce the restricted version of C++
 			   called "Embedded C++" (no namespaces, templates,
 			   exceptions, RTTI, new-style casts, etc.).  The
@@ -1307,11 +1002,7 @@ EXTERN a_boolean
 			   by the discretionary-error mechanism. */
 
 EXTERN a_boolean
-		ptr_to_unknown_bound_array_allowed_in_param_type
-#if VAR_INITIALIZERS
-                  = DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE
-#endif /* VAR_INITIALIZERS */
-                                                                            ;
+		ptr_to_unknown_bound_array_allowed_in_param_type;
 			/* TRUE if in C++ a function parameter type may
 			   include a pointer or reference to an array of
 			   unknown size.  The standard disallows such param
@@ -1319,11 +1010,7 @@ EXTERN a_boolean
 			   and (reportedly) other C++ compilers. */
 
 EXTERN a_boolean
-		nonstandard_qualifier_deduction
-#if VAR_INITIALIZERS
-                  = DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION
-#endif /* VAR_INITIALIZERS */
-                                                                            ;
+		nonstandard_qualifier_deduction;
 			/* TRUE if the nonstandard deduction using the
 			   qualifier portion of a qualified name should be
 			   performed.  This permits T to be deduced in
@@ -1334,11 +1021,7 @@ EXTERN a_boolean
 			   elsewhere. */
 
 EXTERN a_boolean
-		do_late_ovl_res_tiebreaker
-#if VAR_INITIALIZERS
-                                          = DEFAULT_DO_LATE_OVL_RES_TIEBREAKER
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		do_late_ovl_res_tiebreaker;
 			/* TRUE if the tiebreaker processing in overload
 			   resolution (e.g., to decide between "void f(int &)"
 			   and "void f(const int &)") should be done late.
@@ -1346,11 +1029,7 @@ EXTERN a_boolean
 			   conformance. */
 
 EXTERN a_boolean
-		single_ref_qual_ovl_res_tiebreaker
-#if VAR_INITIALIZERS
-                                  = DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		single_ref_qual_ovl_res_tiebreaker;
 			/* TRUE if, in overload resolution tiebreaker
 			   processing, two matches can be compared for the
 			   "addition of cv-qualifier under reference"
@@ -1359,11 +1038,7 @@ EXTERN a_boolean
 			   conformance.  Ignored in cfront mode. */
 
 EXTERN a_boolean
-		late_template_ovl_res_tiebreaker
-#if VAR_INITIALIZERS
-                                                 = TRUE
-#endif /* VAR_INITIALIZERS */
-                                                       ;
+		late_template_ovl_res_tiebreaker;
 			/* TRUE if, in overload resolution tiebreaker
 			   processing, the template vs. non-template test
 			   is to be done after all the other tests.
@@ -1373,27 +1048,19 @@ EXTERN a_boolean
 			   ways, and it's what EDG has always done. */
 
 EXTERN a_boolean
-		one_instantiation_per_object
-#if VAR_INITIALIZERS
-                                             = FALSE
-#endif /* VAR_INITIALIZERS */
-                                                    ;
+		one_instantiation_per_object;
 			/* TRUE if each externally linked function and static
 			   data member should be generated in its own object
 			   file. */
 
 #if ONE_INSTANTIATION_PER_OBJECT
-EXTERN char	*instantiation_dir_name /* = NULL*/;
+EXTERN char	*instantiation_dir_name;
 			/* The name of the directory in which the instantiation
 			   files should be created when one instantiation is
 			   being put into each file. */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-EXTERN a_boolean stdc_zero_in_nonstrict_mode
-#if VAR_INITIALIZERS
-                                             = STDC_ZERO_IN_NONSTRICT_MODE
-#endif /* VAR_INITIALIZERS */
-									  ;
+EXTERN a_boolean stdc_zero_in_nonstrict_mode;
 			/* TRUE if __STDC__ should be defined to 0
 			   in nonstrict mode and 1 in strict mode.
 			   This flag affects both ANSI C and C++ mode
@@ -1402,30 +1069,26 @@ EXTERN a_boolean stdc_zero_in_nonstrict_mode
 			   will be defined even in Microsoft mode. */
 
 EXTERN unsigned long
-		max_pending_instantiations
-#if VAR_INITIALIZERS
-                                         = DEFAULT_MAX_PENDING_INSTANTIATIONS
-#endif /* VAR_INITIALIZERS */
-									     ;
+		max_pending_instantiations;
 			/* The maximum number of pending instantiations
 			   of a given template that may be in process
 			   at a given time.  This is used to detect
 			   runaway recursive instantiations. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-EXTERN char	*import_dir_name /* = NULL */;
+EXTERN char	*import_dir_name;
 			/* The name of the directory in which files should be
 			   sought for the Microsoft #import directive. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean
-		enum_types_can_be_larger_than_int /* = FALSE */;
+		enum_types_can_be_larger_than_int;
 			/* TRUE when an enumerator type can be based on an
 			   integer type that is larger than an int.  Always
 			   FALSE in C mode; usually TRUE in C++ mode. */
 
 EXTERN a_boolean
-		enum_types_can_be_smaller_than_int /* = FALSE */;
+		enum_types_can_be_smaller_than_int;
 			/* TRUE when an enumerator type can be based on an
 			   integer type that is smaller than an int.  Always
 			   FALSE if targ_enum_types_can_be_smaller_than_int
@@ -1434,11 +1097,7 @@ EXTERN a_boolean
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 EXTERN a_boolean
-	       instantiations_permitted_in_class_src_seq_list
-#if VAR_INITIALIZERS
-                    = DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST
-#endif /* VAR_INITIALIZERS */
-                                                                            ;
+	       instantiations_permitted_in_class_src_seq_list;
 			/* Flag that indicates whether a source sequence
 			   entry representing a template instantiation is
 			   permitted within the portion of the source
@@ -1448,66 +1107,46 @@ EXTERN a_boolean
 
 #if NEED_NAME_MANGLING && !IA64_ABI
 EXTERN a_boolean
-		compress_mangled_names
-#if VAR_INITIALIZERS
-                                       = DEFAULT_COMPRESS_MANGLED_NAMES
-#endif /* VAR_INITIALIZERS */
-                                                                       ;
+		compress_mangled_names;
 			/* Indicates whether mangled names should be compressed
 			   to reduce their size. */
 #endif /* NEED_NAME_MANGLING && !IA64_ABI */
 
 #if NEED_NAME_MANGLING
 EXTERN sizeof_t
-		max_mangled_name_length
-#if VAR_INITIALIZERS
-                                        = DEFAULT_MAX_MANGLED_NAME_LENGTH
-#endif /* VAR_INITIALIZERS */
-                                                                         ;
+		max_mangled_name_length;
 			/* Maximum allowed length for a mangled name.
 			   Zero means no limit. */
 #endif /* NEED_NAME_MANGLING */
 
 EXTERN char
-		*include_file_suffixes
-#if VAR_INITIALIZERS
-                                        = DEFAULT_INCLUDE_FILE_SUFFIX_LIST
-#endif /* VAR_INITIALIZERS */
-                                                                          ;
+		*include_file_suffixes;
 			/* The file suffixes to be used when searching for an
 			   include file name specified with no suffix.  This
 			   is a colon-separated list of suffixes (but without
 			   the "." delimiter). */
 
 EXTERN char
-		*curr_command_line_macro_def
-#if VAR_INITIALIZERS
-                                             = NULL
-#endif /* VAR_INITIALIZERS */
-                                                   ;
+		*curr_command_line_macro_def;
 			/* Non-NULL if and only if we are processing a
 			   command-line macro definition option of the form
 			   -D<def>.  In that case it points to the null-
 			   terminated byte string <def>. */
 
 EXTERN a_boolean
-		ignore_std_namespace
-#if VAR_INITIALIZERS
-                                      = FALSE
-#endif /* VAR_INITIALIZERS */
-                                              ;
+		ignore_std_namespace;
 			/* TRUE when the "std" namespace is treated as a
 			   synonym for the global namespace.  This is a
 			   g++ compatibility feature. */
 
 EXTERN a_boolean
-		end_of_line_comments_allowed /* = FALSE */;
+		end_of_line_comments_allowed;
 			/* TRUE if "//" is accepted as a comment delimiter
 			   (e.g., in C++, C99, and microsoft modes).  See
 			   also END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE. */
 
 EXTERN a_boolean
-		flexible_array_members_allowed /* = FALSE */;
+		flexible_array_members_allowed;
 			/* TRUE if the final field of a struct may be an
 			   incomplete array type.  This is part of the C99
 			   standard and is permitted as an extension in C
@@ -1515,25 +1154,25 @@ EXTERN a_boolean
 			   (both C and C++). */
 
 EXTERN a_boolean
-		universal_character_names_allowed /* = FALSE*/;
+		universal_character_names_allowed;
 			/* TRUE if universal character names should be
 			   accepted.  Permitted in C++ and C99 modes. */
 
 EXTERN a_boolean
-		va_copy_macro_allowed /* = FALSE*/;
+		va_copy_macro_allowed;
 			/* TRUE if the va_copy macro should be accepted.
 			   It is permitted in C99 mode.  This is only
 			   meaningful when passing stdarg references in
 			   the generated code. */
 
 EXTERN a_boolean
-		long_long_is_standard /* = FALSE*/;
+		long_long_is_standard;
 			/* TRUE if the long long type is should be considered
 			   a standard data type (i.e., not an extension).
 			   This is true in C99 mode. */
 
 EXTERN a_boolean
-		long_long_promotion_allowed /* = FALSE*/;
+		long_long_promotion_allowed;
 			/* TRUE if a constant that is larger than a signed long
 			   should have type long long instead of type
 			   unsigned long.  This is usually FALSE except in
@@ -1541,7 +1180,7 @@ EXTERN a_boolean
 			   C99 mode). */
 
 EXTERN a_boolean
-		hex_floating_point_constants_allowed /* = FALSE*/;
+		hex_floating_point_constants_allowed;
 			/* TRUE if hexadecimal floating point constants
 			   are allowed (e.g., 0xabc.def).  This is true in
 			   C99 mode. */
@@ -1572,18 +1211,14 @@ EXTERN a_boolean
 
 #if DEBUG
 EXTERN a_boolean
-		display_space_used /* = 0 */;
+		display_space_used;
 			/* TRUE if the space used information should be
 			   shown at the end of compilation. */
 #endif /* DEBUG */
 
 #if IA64_ABI
 EXTERN a_boolean
-		emulate_gnu_abi_bugs
-#if VAR_INITIALIZERS
-			= DEFAULT_EMULATE_GNU_ABI_BUGS
-#endif /* VAR_INITIALIZERS */
-			                              ;
+		emulate_gnu_abi_bugs;
 			/* TRUE if the IA-64 ABI implementation should be
 			   modified to emulate early GNU implementations of
 			   that ABI. */
@@ -1596,11 +1231,7 @@ EXTERN a_boolean
 			   TRUE. */
 
 EXTERN unsigned long
-		gnu_abi_version
-#if VAR_INITIALIZERS
-			= DEFAULT_GNU_ABI_VERSION
-#endif /* VAR_INITIALIZERS */
-			                         ;
+		gnu_abi_version;
 			/* The version of GNU C++ whose ABI is to be
 			   emulated.  This value must be at least 30200
 			   (i.e., g++ version 3.2). */
@@ -1612,22 +1243,14 @@ EXTERN a_boolean
 			   of its base class. */
 
 EXTERN a_boolean
-		targ_reuse_tail_padding
-#if VAR_INITIALIZERS
-			= TARG_REUSE_TAIL_PADDING
-#endif /* VAR_INITIALIZERS */
-			                         ;
+		targ_reuse_tail_padding;
 			/* TRUE if the IA-64 ABI can reuse tail-padding from
 			   base classes for other subobjects of the derived
 			   class. */
 #endif /* IA64_ABI */
 
 EXTERN a_boolean
-		IEEE_handling_on_float_operation_exceptions
-#if VAR_INITIALIZERS
-                                                = TARG_HAS_IEEE_FLOATING_POINT
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
+		IEEE_handling_on_float_operation_exceptions;
 			/* TRUE if exceptions in compile-time floating-point
 			   conversions and operation folding (e.g., division
 			   by zero) should be handled according to the IEEE
@@ -1638,19 +1261,11 @@ EXTERN a_boolean
 #if UPC_EXTENSIONS_ALLOWED
 
 EXTERN a_boolean
-		upc_mode
-#if VAR_INITIALIZERS
-			= DEFAULT_UPC_MODE
-#endif /* VAR_INITIALIZERS */
-			                  ;
+		upc_mode;
 			/* TRUE if UPC extensions are to be accepted. */
 
 EXTERN a_host_large_integer
-		upc_num_threads
-#if VAR_INITIALIZERS
-			= 0
-#endif /* VAR_INITIALIZERS */
-			   ;
+		upc_num_threads;
 			/* Indicates the compile-time number of threads.
 			   If zero, indicates the number is determined at
 			   run time. */
@@ -1659,22 +1274,14 @@ EXTERN a_host_large_integer
 
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 EXTERN a_boolean
-		gnu_init_priority_attribute_enabled
-#if VAR_INITIALIZERS
-			= DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED
-#endif /* VAR_INITIALIZERS */
-			                                             ;
+		gnu_init_priority_attribute_enabled;
 			/* TRUE if the GNU "init_priority" attribute should be
 			   accepted. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 EXTERN a_boolean
-		gnu_visibility_attribute_enabled
-#if VAR_INITIALIZERS
-			= DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED
-#endif /* VAR_INITIALIZERS */
-			                                          ;
+		gnu_visibility_attribute_enabled;
 			/* TRUE if the GNU "visibility" attribute should be
 			   accepted. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -1686,11 +1293,7 @@ EXTERN a_boolean
 			   class template. */
 
 EXTERN a_boolean
-		use_microsoft_specialization_scope
-#if VAR_INITIALIZERS
-			= FALSE
-#endif /* VAR_INITIALIZERS */
-			       ;
+		use_microsoft_specialization_scope;
 			/* TRUE if a template instantiation scope should be
 			   pushed before the class definition scope for
 			   a specialized template class and for class
@@ -1698,53 +1301,33 @@ EXTERN a_boolean
 			   This is also used in Sun mode. */
 
 EXTERN a_boolean
-		elab_type_lookup_finds_typedefs
-#if VAR_INITIALIZERS
-			= FALSE
-#endif /* VAR_INITIALIZERS */
-			       ;
+		elab_type_lookup_finds_typedefs;
 			/* TRUE if the lookup done in an elaborated type
 			   specifier should find typedef names.  In general,
 			   this is TRUE in C++ and not in C, but it is FALSE
 			   in some C++ modes. */
 
 EXTERN a_boolean
-		value_initialization_enabled
-#if VAR_INITIALIZERS
-			= TRUE
-#endif /* VAR_INITIALIZERS */
-			      ;
+		value_initialization_enabled;
 			/* TRUE if value-initialization should be done.
 			   Value-initialization was added after the C++98
 			   standard and some compilers don't do it. */
 
 EXTERN a_boolean
-		emulate_msvc_value_initialization_bugs
-#if VAR_INITIALIZERS
-			= DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS
-#endif /* VAR_INITIALIZERS */
-			                                                ;
+		emulate_msvc_value_initialization_bugs;
 			/* TRUE if bugs in MSVC++ regarding
 			   value-initialization should be emulated.  This
 			   is desirable in products that are trying to
 			   detect uninitialized values, but not in general. */
 EXTERN a_boolean
-		emulate_gnu_value_initialization_bugs
-#if VAR_INITIALIZERS
-			= DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS
-#endif /* VAR_INITIALIZERS */
-			                                               ;
+		emulate_gnu_value_initialization_bugs;
 			/* TRUE if bugs in g++ regarding
 			   value-initialization should be emulated.  This
 			   is desirable in products that are trying to
 			   detect uninitialized values, but not in general. */
 
 EXTERN a_boolean
-		thread_local_storage_specifier_enabled
-#if VAR_INITIALIZERS
-			= DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED
-#endif /* VAR_INITIALIZERS */
-			                                                ;
+		thread_local_storage_specifier_enabled;
 			/* TRUE if the "__thread" specifier should be accepted
 			   to indicate that a variable should reside in thread-
 			   local storage. */

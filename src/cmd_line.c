@@ -45,12 +45,12 @@ extern long gethostid(void);
 
 
 static a_def_undef_string_ptr
-		last_defs_from_cmd_line = NULL;
+		last_defs_from_cmd_line;
 			/* Points to the last element in the list
 			   defs_from_cmd_line. */
 
 static a_def_undef_string_ptr
-		last_undefs_from_cmd_line = NULL;
+		last_undefs_from_cmd_line;
 			/* Points to the last element in the list
 			   undefs_from_cmd_line. */
 
@@ -106,7 +106,7 @@ static an_option_description
 		option_descriptions[SIZE_OF_OPTION_DESCRIPTIONS];
 			/* Pointer to a linked list of option descriptions. */
 
-static int	option_descriptions_used = 0;
+static int	option_descriptions_used;
 			/* The number of entries that are used in the option
 			   description array. */
 
@@ -114,11 +114,10 @@ static a_byte_boolean
 		option_kind_used[(int)optk_last+1];
 			/* An array indexed by option kind that indicates
 			   whether the option kind has been specified in
-			   the command line.  Initialized to zero by
-			   static initialization. */
+			   the command line. */
 
 static a_boolean
-		old_style_preprocessing = FALSE;
+		old_style_preprocessing;
 			/* TRUE if old-style preprocessing should be
 			   used in ANSI C or C++ mode. */
 
@@ -1144,7 +1143,7 @@ to is the option letter.
 static char	*opt_arg;
 			/* Returned from get_option -- Pointer to the current
 			   option argument. */
-static int	opt_ind = 1;
+static int	opt_ind;
 			/* Index of the current option in argv. */
 
 static void invalid_argument_error(int	argc,
@@ -1160,6 +1159,13 @@ Issue a invalid command line argument diagnostic.
   /* This call terminates the program. */
   str_command_line_error(ec_cl_invalid_option, opt_arg);
 }  /* invalid_argument_error */
+
+
+static char
+		*optchar;
+				/* The character position containing the
+				   next option letter to be examined, or NULL
+				   if a new argument should be begun. */
 
 
 static an_option_description_ptr get_option(int     argc,
@@ -1192,10 +1198,6 @@ The following option formats are supported:
 			   equals sign).
 */
 {
-  static char			*optchar = NULL;
-				/* The character position containing the
-				   next option letter to be examined, or NULL
-				   if a new argument should be begun. */
   a_boolean			is_keyword_option = FALSE;
   sizeof_t			keyword_length = 0;
   an_option_description_ptr	odp = NULL;
@@ -4504,12 +4506,263 @@ proc_command_line handles the first file directly.
 
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 
-void cmd_line_early_init(void)
+static void cmd_line_static_var_init(void)
 /*
-One time initialization that must take place early on in the front end.
-This is done before command line processing.
+Initialize static variables declared in this file and external
+variables declared in cmd_line.h.
 */
 {
+  /* Static variables declared in this file. */
+  option_descriptions_used = 0;
+  opt_ind = 1;
+  last_defs_from_cmd_line = NULL;
+  last_undefs_from_cmd_line = NULL;
+  optchar = NULL;
+  memzero(option_kind_used, sizeof(option_kind_used));
+  old_style_preprocessing = FALSE;
+#if COMPILE_MULTIPLE_SOURCE_FILES || COMPILE_MULTIPLE_TRANSLATION_UNITS
+  argc_file_list = 0;
+  argv_file_list = NULL;
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES ||
+          COMPILE_MULTIPLE_TRANSLATION_UNITS */
+#if EXPORT_ENABLING_POSSIBLE
+  /* External variables declared in cmd_line.h. */
+  strict_ansi_mode = FALSE;
+  cfront_2_1_mode = FALSE;
+  cfront_3_0_mode = FALSE;
+  trans_unit_test_mode = FALSE;
+  pcc_preprocessing_mode = FALSE;
+  allow_anachronisms = DEFAULT_ALLOW_ANACHRONISMS;
+  allow_nonconst_call_anachronism = DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM;
+#if DEBUG
+  init_debug_level = 0;
+#endif /* DEBUG */
+  do_preprocessing_only = FALSE;
+  pp_output_file_needed = FALSE;
+  generate_pp_output = FALSE;
+  keep_comments_in_pp_output = FALSE;
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+  gen_old_style_line_dirs = FALSE;
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+  gen_line_info_in_pp_output = FALSE;
+  f_pp_output = NULL;
+  pp_file_name = NULL;
+  list_included_files = FALSE;
+  list_makefile_dependencies = FALSE;
+  f_raw_listing = NULL;
+  f_xref_info = NULL;
+  suppress_back_end = FALSE;
+#if DO_IL_LOWERING
+  suppress_il_lowering = FALSE;
+#endif /* DO_IL_LOWERING */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  suppress_il_file_write = FALSE;
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  virtual_function_table_definition = vfd_normal;
+  suppress_used_before_set_warnings = FALSE;
+  addr_of_bit_field_allowed = ADDR_OF_BIT_FIELD_ALLOWED;
+  exceptions_enabled = DEFAULT_EXCEPTIONS_ENABLED;
+  rtti_enabled = 
+#if RTTI_ENABLING_POSSIBLE
+                 DEFAULT_RTTI_ENABLED;
+#else /* !RTTI_ENABLING_POSSIBLE */
+                 FALSE;
+#endif /* RTTI_ENABLING_POSSIBLE */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI
+  generate_rtti_typeinfo = TRUE;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI */
+  array_new_and_delete_enabled =
+#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
+                                 DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED;
+#else /* !ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
+                                 FALSE;
+#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
+  explicit_keyword_enabled = DEFAULT_EXPLICIT_KEYWORD_ENABLED;
+  namespaces_enabled = DEFAULT_NAMESPACES_ENABLED;
+  implicit_using_std = DEFAULT_IMPLICIT_USING_STD;
+  typename_enabled = DEFAULT_TYPENAME_ENABLED;
+  implicit_typename_enabled = DEFAULT_IMPLICIT_TYPENAME_ENABLED;
+  extern_inline_allowed = DEFAULT_EXTERN_INLINE_ALLOWED;
+  floating_point_template_parameters_allowed =
+                            DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED;
+  vla_enabled = DEFAULT_VLA_ENABLED;
+  vla_dealloc_statements_in_il = VLA_DEALLOC_STATEMENTS_IN_IL;
+  operator_overloading_on_enums_enabled =
+                                         DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS;
+  string_literals_are_const = DEFAULT_STRING_LITERALS_ARE_CONST;
+  class_name_injection_enabled = DEFAULT_CLASS_NAME_INJECTION;
+  arg_dependent_lookup_enabled = DEFAULT_ARG_DEPENDENT_LOOKUP;
+  friend_injection_enabled = DEFAULT_FRIEND_INJECTION;
+  do_dependent_name_processing = DEFAULT_DEPENDENT_NAME_PROCESSING;
+  gpp_dependent_name_lookup = FALSE;
+  friend_class_decl_can_find_using_dir = FALSE;
+  nonclass_prototype_instantiations = DEFAULT_DEPENDENT_NAME_PROCESSING;
+  defer_friend_instantiation = TRUE;
+  nonstandard_using_decl_allowed = DEFAULT_NONSTANDARD_USING_DECL_ALLOWED;
+  designators_allowed =
+#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+                        DEFAULT_DESIGNATORS_ALLOWED;
+#else /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+                        FALSE;
+#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+  extended_designators_allowed =
+#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+                                DEFAULT_EXTENDED_DESIGNATORS_ALLOWED;
+#else /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+                                FALSE;
+#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+  variadic_macros_allowed = DEFAULT_VARIADIC_MACROS_ALLOWED;
+  extended_variadic_macros_allowed = DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED;
+  compound_literals_allowed = DEFAULT_COMPOUND_LITERALS_ALLOWED;
+  fixed_point_enabled =
+#if FIXED_POINT_ALLOWED
+		       DEFAULT_FIXED_POINT_ENABLED;
+#else /* !FIXED_POINT_ALLOWED */
+		       FALSE;
+#endif /* FIXED_POINT_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  named_address_spaces_enabled = DEFAULT_NAMED_ADDRESS_SPACES_ENABLED;
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+  named_registers_enabled = DEFAULT_NAMED_REGISTERS_ENABLED;
+#endif /* VAR_INITIALIZERS */
+#endif /* NAMED_REGISTERS_ALLOWED */
+#if DO_IL_LOWERING
+  pointer_to_member_call_optimization_allowed =
+                           DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED;
+#endif /* DO_IL_LOWERING */
+  no_access_check_on_friend_declarator_ids =
+                              DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS;
+  special_subscript_cost = DEFAULT_SPECIAL_SUBSCRIPT_COST;
+  long_preserving_rules = DEFAULT_LONG_PRESERVING_RULES;
+  defs_from_cmd_line = NULL;
+  undefs_from_cmd_line = NULL;
+  allow_dollar_in_id_chars = DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS;
+  display_compilation_time = FALSE;
+  instantiation_mode = DEFAULT_INSTANTIATION_MODE;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  automatic_instantiation_mode = DEFAULT_AUTOMATIC_INSTANTIATION_MODE;
+  suppress_instantiation_flags = FALSE;
+  ii_file_name = NULL;
+  instantiation_flags_in_template_info_file =
+                                     INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE;
+  use_template_info_file = USE_TEMPLATE_INFO_FILE;
+  template_info_file_name = NULL;
+  exported_template_file_name = NULL;
+  definition_list_file_name = NULL;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+  implicit_template_inclusion_mode = DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE;
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  display_error_number = FALSE;
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+  gen_c_file_name = NULL;
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+  precompiled_header_processing_required = FALSE;
+  create_precompiled_header = FALSE;
+  use_precompiled_header = FALSE;
+  pch_input_file_name = NULL;
+  pch_output_file_name = NULL;
+  automatic_pch_processing = FALSE;
+  suppress_pch_messages = FALSE;
+  verbose_pch_messages = FALSE;
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+  pch_mem_size = 0;
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  pch_dir_name = NULL;
+  restrict_enabled = FALSE;
+  restrict_keyword_enabled = DEFAULT_RESTRICT_ENABLED;
+  gnu_restrict_keyword_enabled = FALSE;
+  long_lifetime_temps = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  default_calling_convention = (a_calling_convention)cc_cdecl;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  allow_nonstandard_anonymous_unions =
+                                    DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS;
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  wchar_t_is_keyword =
+#if WCHAR_T_ENABLING_POSSIBLE
+                       DEFAULT_WCHAR_T_IS_KEYWORD;
+#else /* !WCHAR_T_ENABLING_POSSIBLE */
+                       FALSE;
+#endif /* WCHAR_T_ENABLING_POSSIBLE */
+  bool_is_keyword = 
+#if BOOL_ENABLING_POSSIBLE
+                    DEFAULT_BOOL_IS_KEYWORD;
+#else /* !BOOL_ENABLING_POSSIBLE */
+                    FALSE;
+#endif /* BOOL_ENABLING_POSSIBLE */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  default_max_member_alignment = 0;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  alternative_tokens_allowed = DEFAULT_ALTERNATIVE_TOKENS_ALLOWED;
+#if DO_IL_LOWERING && MINIMAL_INLINING
+  inlining_enabled = TRUE;
+#endif /* DO_IL_LOWERING && MINIMAL_INLINING */
+  SVR4_C_mode = DEFAULT_SVR4_C_MODE;
+  address_of_ellipsis_allowed = DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED;
+  allow_ellipsis_only_param_in_C_mode =
+                                   DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE;
+  allow_nonconst_ref_anachronism = DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM;
+  building_runtime = FALSE;
+  remove_unneeded_entities = DEFAULT_REMOVE_UNNEEDED_ENTITIES;
+  use_nonstandard_for_init_scope = DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE;
+  microsoft_type_dependent_for_init_scope = FALSE;
+  warning_on_for_init_difference = DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE;
+  allow_copy_assignment_op_with_base_class_param =
+                        DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM;
+  guiding_decls_allowed = DEFAULT_GUIDING_DECLS_ALLOWED;
+  warning_on_non_template_friend = DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND;
+  old_specializations_allowed = DEFAULT_OLD_SPECIALIZATIONS_ALLOWED;
+  impl_conv_between_c_and_cpp_function_ptrs_allowed =
+                     DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  multibyte_chars_in_source_enabled =
+                                     DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+  null_chars_allowed_in_source = DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE;
+  report_embedded_cplusplus_noncompliance = FALSE;
+  ptr_to_unknown_bound_array_allowed_in_param_type =
+                      DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE;
+  nonstandard_qualifier_deduction = DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION;
+  do_late_ovl_res_tiebreaker = DEFAULT_DO_LATE_OVL_RES_TIEBREAKER;
+  single_ref_qual_ovl_res_tiebreaker =
+                                    DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER;
+  late_template_ovl_res_tiebreaker = TRUE;
+  one_instantiation_per_object = FALSE;
+#if ONE_INSTANTIATION_PER_OBJECT
+  instantiation_dir_name = NULL;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+  stdc_zero_in_nonstrict_mode = STDC_ZERO_IN_NONSTRICT_MODE;
+  max_pending_instantiations = DEFAULT_MAX_PENDING_INSTANTIATIONS;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  import_dir_name = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  enum_types_can_be_larger_than_int = FALSE;
+  enum_types_can_be_smaller_than_int = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  instantiations_permitted_in_class_src_seq_list =
+                        DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if NEED_NAME_MANGLING && !IA64_ABI
+  compress_mangled_names = DEFAULT_COMPRESS_MANGLED_NAMES;
+#endif /* NEED_NAME_MANGLING && !IA64_ABI */
+#if NEED_NAME_MANGLING
+  max_mangled_name_length = DEFAULT_MAX_MANGLED_NAME_LENGTH;
+#endif /* NEED_NAME_MANGLING */
+  include_file_suffixes = DEFAULT_INCLUDE_FILE_SUFFIX_LIST;
+  curr_command_line_macro_def = NULL;
+  ignore_std_namespace = FALSE;
+  end_of_line_comments_allowed = FALSE;
+  flexible_array_members_allowed = FALSE;
+  universal_character_names_allowed = FALSE;
+  va_copy_macro_allowed = FALSE;
+  long_long_is_standard = FALSE;
+  long_long_promotion_allowed = FALSE;
+  hex_floating_point_constants_allowed = FALSE;
 #if EXPORT_ENABLING_POSSIBLE
   export_template_allowed = DEFAULT_EXPORT_TEMPLATE_ALLOWED;
 #else /* !EXPORT_ENABLING_POSSIBLE */
@@ -4518,11 +4771,50 @@ This is done before command line processing.
   export_template_allowed = FALSE;
 #endif /* EXPORT_ENABLING_POSSIBLE */
   export_keyword_enabled = TRUE;
-  curr_command_line_macro_def = NULL;
-  gpp_dependent_name_lookup = FALSE;
-  defer_friend_instantiation = TRUE;
+  suppress_inline_corresp_check = FALSE;
+  allow_anon_types_in_anon_unions = FALSE;
+#if DEBUG
+  display_space_used = FALSE;
+#endif /* DEBUG */
+#if IA64_ABI
+  emulate_gnu_abi_bugs = DEFAULT_EMULATE_GNU_ABI_BUGS;
+  emulate_unsafe_gnu_abi_bugs = FALSE;
+  gnu_abi_version = DEFAULT_GNU_ABI_VERSION;
+  warn_about_tail_padding_use = FALSE;
+  targ_reuse_tail_padding = TARG_REUSE_TAIL_PADDING;
+#endif /* IA64_ABI */
+  IEEE_handling_on_float_operation_exceptions = TARG_HAS_IEEE_FLOATING_POINT;
+#if UPC_EXTENSIONS_ALLOWED
+  upc_mode = DEFAULT_UPC_MODE;
+  upc_num_threads = 0;
+#endif /* UPC_EXTENSIONS_ALLOWED */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  gnu_init_priority_attribute_enabled =
+                                   DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  gnu_visibility_attribute_enabled = DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   allow_default_arg_on_template_member_definition = FALSE;
-  friend_class_decl_can_find_using_dir = FALSE;
+  use_microsoft_specialization_scope = FALSE;
+  elab_type_lookup_finds_typedefs = FALSE;
+  value_initialization_enabled = TRUE;
+  emulate_msvc_value_initialization_bugs =
+                                DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS;
+  emulate_gnu_value_initialization_bugs =
+                                 DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS;
+  thread_local_storage_specifier_enabled =
+                                DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED;
+}  /* cmd_line_static_var_init */
+
+
+void cmd_line_early_init(void)
+/*
+One time initialization that must take place early on in the front end.
+This is done before command line processing.
+*/
+{
+  cmd_line_static_var_init();
   /* Unless requested otherwise (using a command-line option or a pragma),
      ILP64 porting diagnostics should be remarks. */
   (void)set_severity_for_error_number((int)ec_ilp64_will_narrow, es_remark,

@@ -1226,6 +1226,19 @@ EXTERN a_boolean
 
 #endif /* BACK_END_IS_CP_GEN_BE */
 
+EXTERN an_integer_kind
+		plain_char_int_kind;
+			/* Integer kind for a "plain" char, dependent on
+			   the setting of targ_has_signed_chars. */
+
+EXTERN a_boolean
+		string_literals_shared;
+			/* TRUE if string literals can be shared.  FALSE
+			   if string literals are not shared because they
+			   might be writable (as in pcc mode). */
+
+
+
 /* Aside from occasional references in targ_def.h, the following values
    should be used *only* to initialize the variables declared in this file.
    To enforce this convention, they are undefined at this time.  (This is
