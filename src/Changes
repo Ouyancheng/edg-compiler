@@ -1,5 +1,13 @@
 Version 2.28
 
+1/19/95  Internal error when flushing tokens after an error in a macro
+         invocation
+
+An internal error could occur if, after an error in a macro invocation
+has been diagnosed (such as two many arguments), the flush_tokens
+routine encounters a construct that could be a class template reference.
+This has been corrected.
+
 1/17/95  Internal error in lowering global-scope "new" with exceptions
          enabled in long lifetime temporaries mode
 

@@ -536,14 +536,15 @@ references.
   a_boolean	result = FALSE;
   a_symbol_ptr  sym;
 
-  /* Back up to the identifier. */
-  unget_token();
-  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-  if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
-    result = TRUE;
+  if (!fetch_pp_tokens) {
+    /* This test can only be done when not fetching preprocessing
+       tokens.  It is not possible to do the ID lookup in fetch_pp_tokens
+       mode. */
+    sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
+      result = TRUE;
+    }  /* if */
   }  /* if */
-  /* Return to the token that was the current token when we were called. */
-  (void)get_token();
   return result;
 }  /* is_template_reference */
 
