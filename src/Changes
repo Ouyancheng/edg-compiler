@@ -1,5 +1,17 @@
 Version 3.3
 
+6/23/03  Sun compatibility: spurious error in class template specialization
+
+In Sun mode, we emulate a Sun bug that makes template parameters visible
+in class template specializations.  A consequence of our emulation was
+that a spurious error was issued in Sun mode if the name of the template
+parameter was redeclared within the specialization.  This has been fixed.
+
+  template <class T> struct A {};
+  template <> struct A <void> {
+    typedef void T;
+  };
+
 6/23/03  Diagnostic for duplicate member typedef declaration
 
 In strict ANSI C++ mode, the front end now issues an error on duplicate

@@ -13072,21 +13072,10 @@ classes.
       a_scope_depth  depth;
 
       push_instantiation_scope_for_class(
-                      class_type, /*is_microsoft_specialization_scope=*/FALSE);
+                      class_type, /*is_microsoft_specialization_scope=*/TRUE);
       instantiation_scope_pushed = TRUE;
       depth = depth_scope_stack;
       scope_stack[depth].microsoft_specialization_instantiation_scope = TRUE;
-      while (scope_stack[depth].nested_instantiation) {
-        /* This specialization is nested.  Walk up the scope stack to find
-           the specialization it's nested inside of and set the flag there,
-           too. */
-        do {
-          depth--;
-          check_assertion(depth > DEPTH_OF_FILE_SCOPE);
-        } while (scope_stack[depth].kind !=
-                              (a_scope_kind)sck_template_instantiation);
-        scope_stack[depth].microsoft_specialization_instantiation_scope = TRUE;
-      }  /* while */
     } else if (delayed_nested_class_def && !is_template_instantiation) {
       /* This is a definition of a C++ nested class that appears outside the
          scope of the parent class definition itself.  Reactivate the

@@ -6138,6 +6138,8 @@ the class symbol supplement points to the partial specialization).
        ones).  The Sun compiler has only the wrong ones visible, but
        we don't emulate that exactly (we do the same as in Microsoft
        mode). */
+    a_scope_depth		orig_depth = depth_scope_stack;
+    a_scope_stack_entry_ptr	ssep;
     if (class_type->source_corresp.is_class_member) {
       /* Reactivate the parent class. */
       a_type_ptr	parent_class;
@@ -6155,7 +6157,9 @@ the class symbol supplement points to the partial specialization).
                                     (a_routine_ptr)NULL, class_sym,
                                     template_sym, template_arg_list,
 				    PS_MICROSOFT_SPECIALIZATION);
-    scope_stack[depth_scope_stack].nested_instantiation = TRUE;
+    ssep = scope_stack_entry_for(depth_scope_stack);
+    ssep->nested_instantiation = TRUE;
+    ssep->orig_depth = orig_depth;
   } else {
     a_push_scope_options_set		options;
     options = PS_NO_OPTIONS;
