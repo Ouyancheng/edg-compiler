@@ -49,6 +49,7 @@ typedef enum /*a_token_kind*/ {
   tok_digit_sequence,
   tok_cpp_quote,
   tok_class_qualifier,	/* C++ only */
+  tok_ptr_to_memberr,	/* C++ only */
   /* Operators (standard, 3.1.5; sizeof appears with keywords): */
   tok_lbracket          /* [ */,    tok_rbracket           /* ] */,
   tok_lparen            /* ( */,    tok_rparen             /* ) */,
@@ -122,6 +123,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 = {"identifier", "float constant", "int constant", "char constant",
    "string literal", "end of source", "newline", "header name",
    "pp number", "digit sequence", "cpp quote", "class qualifier",
+   "ptr to member", 
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==",
    "!=", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
@@ -212,6 +214,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_digit_sequence */
    (an_opname_kind)onk_none,          /* tok_cpp_quote */
    (an_opname_kind)onk_none,          /* tok_class_qualifier */
+   (an_opname_kind)onk_none,          /* tok_ptr_to_member */
    (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbrace */
    (an_opname_kind)onk_none,          /* tok_rbrace */
    (an_opname_kind)onk_function_call, /* operator() starts with tok_lparen */
@@ -861,7 +864,7 @@ typedef struct a_reusable_cache_entry {
 
 /*
 Contains information about the current class qualifier.  Valid only when
-the current token is tok_class_qualifier.
+the current token is tok_class_qualifier or tok_ptr_to_member.
 */
 typedef struct a_class_qualifier *a_class_qualifier_ptr;
 typedef struct a_class_qualifier {
@@ -1005,6 +1008,7 @@ extern a_boolean get_qualified_name(an_id_lookup_options_set options);
    name.  Don't be fooled by "::new" or "::delete". */
 #define is_qualified_name_start()                                        \
   (curr_token == tok_identifier || curr_token == tok_class_qualifier ||  \
+   curr_token == tok_ptr_to_member ||					 \
    (curr_token == tok_colon_colon && !is_global_new_or_delete()))
 /* Same thing for use in switch statements, in the form
      case QUALIFIED_NAME_START_CASE:
@@ -1012,11 +1016,48 @@ extern a_boolean get_qualified_name(an_id_lookup_options_set options);
 */
 #define QUALIFIED_NAME_START_CASE tok_identifier:	\
                              case tok_colon_colon:	\
-                             case tok_class_qualifier
+                             case tok_class_qualifier:	\
+			     case tok_ptr_to_member
 
 /* Get a C++ qualified name or a normal id. */
 extern a_symbol_ptr get_normal_id_or_qualified_name(
                                              an_id_lookup_options_set options);
+
+/* Flags used to specify how identifiers are to be scanned by the
+   generalized identifier routines.   is_generalized_identifier_start
+   recognizes only the GID_TEMPLATE_ARGS_OPTIONAL and
+   GID_DTOR_RECOGNIZED flags. */
+typedef int an_identifier_options_set;
+#define GID_TEMPLATE_ARGS_OPTIONAL    0x01
+			/* Normally if a class template name is seen it must
+			   be followed by a template argument list, otherwise
+			   an error is issued.  This flag allows the
+			   template argument list to be omitted. */
+#define GID_DTOR_RECOGNIZED           0x02
+			/* Enables recognition of destructor names
+			   ("~" followed by an identifier).  The default
+			   is to not recognize "~" as the start of an
+			   identifier (no error is issued). */
+#define GID_DISALLOW_QUALIFIED_NAME   0x04
+			/* Causes an error to be issued if the identifier
+			   is a qualified name (either A::B or ::i). */
+#define GID_DISALLOW_GLOBAL_QUALIFIER 0x08
+			/* Causes an error to be issued if the identifier
+			   is a global qualifier (::A::B or ::i). */
+#define GID_DISALLOW_OPERATOR_NAME    0x10
+			/* Causes an error to be issued if the identifier
+			   is an operator name of the form "operator =" or
+			   "operator int"). */
+
+/* Lookup modes supported by coalesce_and_lookup_generalized_identifier. */
+typedef enum /* an_identifier_lookup_mode */ {
+  ilm_normal,		/* Find any symbol. */
+  ilm_class,		/* Find only class names. */
+  ilm_tag,		/* Find only tag names. */
+  ilm_tenatative_type	/* Uses IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME
+			   to do the lookup. */
+} an_identifier_lookup_mode;
+
 
 /* Push a file onto the input stack. */
 extern void push_input_stack (char                       *file_name,
