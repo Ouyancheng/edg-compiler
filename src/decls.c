@@ -2125,7 +2125,6 @@ that it is the default operator new().
 */
 {
   a_boolean         match = FALSE;
-  a_param_type_ptr  ptp;
 
   if (locator->is_operator_name &&
       locator->variant.opname == (an_opname_kind)onk_new) {
@@ -2140,6 +2139,7 @@ that it is the default operator new().
       match = TRUE;
     }  /* if */
   }  /* if */
+  return match;
 }  /* is_default_operator_new */
 
 
@@ -2169,6 +2169,7 @@ will be involved in overloading.
   a_boolean          is_object, is_function, file_scope, decls_at_same_scope;
   a_boolean          is_list, is_friend_decl = FALSE;
   a_symbol_ptr       other_decl, sym;
+  a_boolean          is_default_global_operator_new = FALSE;
 
   *linked_symbol = NULL;
   *overload_symbol = NULL;
@@ -2201,6 +2202,7 @@ will be involved in overloading.
                is_default_operator_new(locator, type)) {
       /* Default global operator new must always be entered at file scope. */
       *effective_decl_level = DEPTH_OF_FILE_SCOPE;
+      is_default_global_operator_new = TRUE;
     } else {
       *effective_decl_level = decl_scope_level;
       while (scope_stack[*effective_decl_level].kind ==
@@ -2227,6 +2229,11 @@ will be involved in overloading.
           if (other_decl->class_of_which_a_member != NULL) {
             /* This is a member of a class scope.  Ignore it and keep looking
                till a match in an enclosing scope is found. */
+          } else if (is_default_global_operator_new &&
+                     other_decl->decl_scope != FILE_SCOPE_NUMBER) {
+            /* This is a non-default global operator new that was not
+               declared at file scope.  Skip over it and look for a file
+               scope symbol. */
           } else {
             if (other_decl->kind != (a_symbol_kind)sk_variable &&
                 other_decl->kind != (a_symbol_kind)sk_routine &&
