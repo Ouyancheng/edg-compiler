@@ -4868,6 +4868,34 @@ of the front end.
       }  /* switch */
     }  /* if */
   }  /* for */
+  /* Compute opname_names from opname_kind_for_token and token_names. */
+  memzero((char *)opname_names, (int)sizeof(opname_names));
+  { int  tok_kind, opname_kind;
+    char *str;
+
+    for (tok_kind = 0; tok_kind < (int)tok_last; tok_kind++) {
+      opname_kind = opname_kind_for_token[tok_kind];
+      if (opname_kind != (int)onk_none) {
+        str = token_names[tok_kind];
+        /* A few opname kinds are made up of two tokens and require some
+           special handling. */
+        if (opname_kind == (int)onk_function_call) {
+          str = "()";
+        } else if (opname_kind == (int)onk_subscript) {
+          str = "[]";
+        }  /* if */
+        opname_names[opname_kind] = str;
+      }  /* if */
+    }  /* for */
+    /* Make sure all the slots were initialized. */
+    for (opname_kind = (int)onk_none+1;
+         opname_kind < (int)onk_last;
+         opname_kind++) {
+      if (opname_names[opname_kind] == NULL) {
+        internal_error("lexical_init: bad init of opname_names");
+      }  /* if */
+    }  /* for */
+  }
 }  /* lexical_init */
 
 

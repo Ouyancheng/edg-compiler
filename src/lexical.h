@@ -195,7 +195,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_or,
    (an_opname_kind)onk_and_and,
    (an_opname_kind)onk_or_or,
-   (an_opname_kind)onk_none,          /* tok_quest_mark */
+   (an_opname_kind)onk_question,      /* Used only in front end. */
    (an_opname_kind)onk_none,          /* tok_colon */
    (an_opname_kind)onk_assign,
    (an_opname_kind)onk_times_assign,
@@ -273,6 +273,11 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
   }
 #endif /* VAR_INITIALIZERS */
 ;
+/*
+Array giving the token name for each opname kind.
+*/
+EXTERN char	*opname_names[(int)onk_last];
+
 
 /*
 Variables pertaining to the input stack (for include files and the
