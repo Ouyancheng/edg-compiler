@@ -3513,10 +3513,20 @@ supplement for an instantiation that matches inst.
       }  /* if */
     }  /* if */
   }  /* for */
-  /* Find and remove the guard: */
+  /* Remove the guard and restore the list to its original state
+     (possibly with some added new entries): */
   guard_ptr = &tssp->all_instantiations;
   while (*guard_ptr != &guard) { guard_ptr = &(*guard_ptr)->next; }
-  *guard_ptr = guard.next;
+  if (guard.next == NULL) {
+    /* The guard is already in the last position. */
+    *guard_ptr = NULL;
+  } else {
+    /* Move the segment after the guard to the front of the list. */
+    while (*last_ptr != NULL) { last_ptr = &(*last_ptr)->next; }
+    *guard_ptr = NULL;
+    *last_ptr = tssp->all_instantiations;
+    tssp->all_instantiations = guard.next;
+  }  /* if */
   return result;
 }  /* find_class_template_instantiation */
 
