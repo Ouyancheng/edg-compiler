@@ -1576,6 +1576,7 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if !NEEDED_FLAG_WALK
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
+#if !NEEDED_FLAG_WALK
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
         remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr, iek_routine);
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
@@ -1583,6 +1584,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->assoc_operator_delete_routine, a_routine_ptr,
                   iek_routine);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
+#endif /* !NEEDED_FLAG_WALK */
 #if DO_IL_LOWERING
         /* ptr->virtual_function_table_var not processed. */
         /* ptr->type_as_subobject not processed. */
