@@ -1045,6 +1045,9 @@ error code.
     case ec_function_returning_abstract_class:
       m = "function returning abstract class is not allowed";
       break;
+    case ec_abstract_class_object_not_allowed:
+      m = "object of abstract class type is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
