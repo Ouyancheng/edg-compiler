@@ -2,6 +2,17 @@ Version 2.28
 
 3/2/95   IL version number changed to 2.20
 
+3/2/95   Added a new based type kind
+
+btk_unqualified_array_type has been added to a_based_type_kind to identify
+(as the based type) an array type to which a type qualifier was applied (to
+produce the base type).  Since the qualifier actually went to the element
+type, a new array type (= the base type) had been created; for example,
+qualifying (int)[3] with const produced (const int)[3].  The original is
+now recorded as a based type of the new type, enabling the C++-generating
+back end (or a source debugger or other tool) to get back to the original
+type -- e.g., to recover typedef names that were lost with the copy.
+
 3/2/95   Specifying the message to be issued for unimplemented keywords
 
 It is now possible to associate an error code with each unimplemented
