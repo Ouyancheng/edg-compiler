@@ -6665,6 +6665,7 @@ Scan the body of a class definition, including the base classes list.
                   } else {
                     /* Invalid type. */
                     pos_error(ec_bad_bit_field_type, &decl_start_pos);
+                    local_type = error_type();
                   }  /* if */
                 } else {
                   /* Integral base type.  In strict ANSI C mode, give a
