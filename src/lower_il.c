@@ -8610,7 +8610,8 @@ original expressions have not been lowered yet.
     } else {
       /* The altered constant still figures in the number-of-elements
          expression. */
-      set_unsigned_integer_value(&size_constant, (unsigned long)con_for_size);
+      set_unsigned_integer_value(&size_constant.variant.integer_value,
+                                 (unsigned long)con_for_size);
       if (preserve_size_node) {
         /* We need to preserve size_node, so make a new node for the
            constant. */
