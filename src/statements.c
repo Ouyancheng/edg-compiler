@@ -262,6 +262,11 @@ the current statement sequence.
       kind == (a_statement_kind)stmk_return) {
     set_unreachable(curr_reachability);
   }  /* if */
+  /* If the statement was an executable statement, set a flag indicating
+     that an executable statement has been seen in the current block. */
+  if (kind != (a_statement_kind)stmk_init) {
+    struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen = TRUE;
+  }  /* if */
 
   db_exit();
   return(sp);
@@ -483,6 +488,13 @@ the associated il statement.
                               = FALSE;
   sssep->any_exec_statement_seen
                               = FALSE;
+  if (kind != ssk_compound) {
+    /* For statements other than blocks, copy down the any_exec_statement_seen
+       flag.  It's really being maintained for the block containing this
+       non-block statement, and it gets copied back up at the end of the
+       statement. */
+    sssep->any_exec_statement_seen = sssep[-1].any_exec_statement_seen;
+  }  /* if */
   sssep->start_reachable      = curr_reachability;
   set_unreachable(sssep->end_reachable);  /* So far. */
   if (kind == ssk_while || kind == ssk_do || kind == ssk_for) {
@@ -593,6 +605,11 @@ a structured statement has ended.
     /* The code after the statement can be reached if the end of the statement
        can be reached. */
     curr_reachability = sssep->end_reachable;
+  }  /* if */
+  /* If the statement just exited is a non-block, propagate the
+     any_exec_statement_seen flag upwards. */
+  if (kind != ssk_compound) {
+    sssep[-1].any_exec_statement_seen = sssep->any_exec_statement_seen;
   }  /* if */
   /* Pop the stack. */
   depth_stmt_stack--;
@@ -1888,11 +1905,6 @@ expr_statement:
       }  /* if */
       break;
   }  /* switch */
-  /* If the statement was an executable statement, set a flag indicating
-     that an executable statement has been seen in the current block. */
-  if (!is_declaration) {
-    struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen = TRUE;
-  }  /* if */
   /* Loop if we just got a label and not an actual statement. */
   if (get_another_statement) goto rescan_statement;
 
