@@ -1648,6 +1648,10 @@ is completed; if it is NULL, the storage is not freed.
     /* The first argument for the delete call is a pointer to the array. */
     entity_node_copy = make_reusable_copy(entity_node,
                                           /*vars_can_change=*/TRUE);
+    /* Cast the argument to "void *", which is what the delete routine
+       expects. */
+    entity_node_copy = add_cast_if_necessary(entity_node_copy,
+                                             void_star_type());
     entity_node_copy->next = delete_args;
     /* Make a call of the placement delete routine. */
     delete_call = make_call_node(delete_routine, entity_node_copy,
@@ -4777,6 +4781,9 @@ the point at which code should be inserted.
       an_expr_node_ptr entity_node = make_init_entity_node(
                                                ipdp, /*using_as_address=*/TRUE,
                                                /*using_as_dest=*/FALSE);
+      /* Cast the argument to "void *", which is what the delete routine
+         expects. */
+      entity_node = add_cast_if_necessary(entity_node, void_star_type());
       entity_node->next = delete_args;
       /* Make a call of the placement delete routine. */
       delete_call = make_call_node(dyn_init_to_free_storage->destructor,
