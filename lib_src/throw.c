@@ -84,6 +84,15 @@ typedef struct a_throw_stack_entry {
 			   set to TRUE when __throw is called.  This
 			   flag indicates that the thrown object has been
 			   copied and must be destroyed at some point. */
+  a_byte_boolean
+		use_access_flags;
+			/* TRUE if the access_flags string should be used to
+			   determine the accessibility of base classes.
+			   The access flag string was originally used for
+			   this purpose but was later replaced by static
+			   information in the base class specification
+			   information.  This flag indicates which access
+			   checking method should be used for a given throw. */
 } a_throw_stack_entry;
 
 
@@ -597,12 +606,13 @@ requires cleanup.
 
 
 static int check_exception_type_specifications
-                        (an_exception_type_specification_ptr	etsp,
-                         a_type_info_impl_ptr			type_info,
-			 an_ETS_flag_set			flags,
-			 an_access_flag_string                  access_flags,
-			 void**					object_ptr,
-			 an_exception_type_specification_ptr*	etsp_found)
+                        (an_exception_type_specification_ptr  etsp,
+                         a_type_info_impl_ptr		      type_info,
+			 an_ETS_flag_set		      flags,
+			 an_access_flag_string                access_flags,
+			 a_boolean			      use_access_flags,
+			 void**				      object_ptr,
+			 an_exception_type_specification_ptr* etsp_found)
 /*
 Examine the exception type information associated with a given try block or
 throw specification and determine whether any of the entries match the
@@ -642,7 +652,7 @@ entry is returned in etsp_found.
 	       derived_to_base_conversion(object_ptr, &new_ptr, type_info,
 					  etsp->type_info,
 					  &local_access_flags,
-                                          /*use_access_flags=*/TRUE)) {
+                                          use_access_flags)) {
       /* A base class of the class that was thrown.  If the base class
 	 is ambiguous or inaccessible then the base class flag will not
          be set.  The pointer is converted from a pointer to the derived 
@@ -695,6 +705,7 @@ a try block with a catch that matches the type of the object thrown.
   an_exception_type_specification_ptr
 				etsp_found;
   an_access_flag_string         access_flags;
+  a_boolean			use_access_flags;
 
   /* When __throw is called we know that the object has been copied and
      must be destroyed when the throw stack entry is popped. */
@@ -704,6 +715,7 @@ a try block with a catch that matches the type of the object thrown.
   thrown_type_info = curr_throw_stack_entry->type_info;
   throw_flags = curr_throw_stack_entry->flags;
   access_flags = curr_throw_stack_entry->access_flags;
+  use_access_flags = curr_throw_stack_entry->use_access_flags;
   /* If the throw object is a pointer we copy the pointer into a separate
      buffer whose address is passed to the catch.  This is done because
      the pointer may undergo a conversion (such as derived to base) and we
@@ -742,7 +754,7 @@ a try block with a catch that matches the type of the object thrown.
         int result = check_exception_type_specifications
 				(ehsep->variant.try_block.catch_entries,
 				 thrown_type_info, throw_flags, access_flags,
-				 &object_ptr, &etsp_found);
+				 use_access_flags, &object_ptr, &etsp_found);
         if (result != 0) {
           destination_ehsep = ehsep;
           destination_catch_value = result;
@@ -761,7 +773,8 @@ a try block with a catch that matches the type of the object thrown.
         result = check_exception_type_specifications
 				  (ehsep->variant.throw_specification,
 				   thrown_type_info, throw_flags, access_flags,
-				   (void**)NULL, &dummy_etsp);
+				   use_access_flags, (void**)NULL,
+                                   &dummy_etsp);
       }  /* if */
       if (result == 0) {
         destination_ehsep = ehsep;
@@ -896,6 +909,7 @@ a try block with a catch that matches the type of the object thrown.
 static void push_throw_stack(a_type_info_impl_ptr  type_info,
 			     an_ETS_flag_set	   flags,
                              an_access_flag_string access_flags,
+                             a_boolean             use_access_flags,
 			     void*		   object_address,
 			     a_boolean		   is_rethrow)
 /*
@@ -912,6 +926,7 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->type_info = type_info;
   tsep->flags = flags;
   tsep->access_flags = access_flags;
+  tsep->use_access_flags = use_access_flags;
   tsep->object_address = object_address;
   tsep->pointer_buffer = NULL;
   tsep->is_rethrow = is_rethrow;
@@ -953,6 +968,7 @@ Rethrow the current thrown obejct.
   push_throw_stack(curr_throw_stack_entry->type_info,
 		   curr_throw_stack_entry->flags,
 		   curr_throw_stack_entry->access_flags,
+		   curr_throw_stack_entry->use_access_flags,
 		   curr_throw_stack_entry->object_address,
 		   /*is_rethrow=*/TRUE);
   __throw();
@@ -971,10 +987,31 @@ the type being thrown.
   void*				object_address;
 
   object_address = (void *)eh_alloc_on_stack(size);
-  push_throw_stack(type_info, flags, access_flags, object_address,
-                   /*is_rethrow=*/FALSE);
+  push_throw_stack(type_info, flags, access_flags, /*use_access_flags=*/TRUE,
+		   object_address, /*is_rethrow=*/FALSE);
   return object_address;
 }  /* __throw_alloc */
+
+
+#if EH_ABI_VERSION_2
+EXTERN_C void* __throw_setup(a_type_info_impl_ptr  type_info,
+  			     a_sizeof_t	           size,
+			     an_ETS_flag_set	   flags)
+/*
+Allocate space for the object to be thrown and save information about
+the type being thrown.  This is like __throw_alloc, except no access_flags
+are provided.
+*/
+{
+  void*				object_address;
+
+  object_address = (void *)eh_alloc_on_stack(size);
+  push_throw_stack(type_info, flags, (an_access_flag_string)NULL,
+	           /*use_access_flags=*/FALSE, object_address,
+		   /*is_rethrow=*/FALSE);
+  return object_address;
+}  /* __throw_setup */
+#endif /* EH_ABI_VERSION_2 */
 
 
 EXTERN_C void __free_thrown_object(void)

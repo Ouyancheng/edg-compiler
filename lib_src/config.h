@@ -131,6 +131,26 @@ preserving ABI compatibility with versions up to 2.28.
            ABI_COMPATIBILITY_VERSION <= 228
 #endif /* RTTI && (ABI_COMPATIBILITY_VERSION <= 228) */
 
+/*
+Should the EH runtime include the throw interface that uses the "public"
+and "ambiguous" information in the type_info structure to determine
+accessibility be provided.  This interface is only available in versions
+later than 2.28.  The newer interface implemented the revised language
+rules that specify that when an object is thrown, it can only be caught
+by public, unambiguous base classes.
+*/
+#ifndef EH_ABI_VERSION_2
+#if ABI_COMPATIBILITY_VERSION <= 228
+#define EH_ABI_VERSION_2 FALSE /* Versions up to 2.28. */
+#else /* ABI_COMPATIBILITY_VERSION > 228 */
+#define EH_ABI_VERSION_2 TRUE  /* Versions after 2.28. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 228 */
+#endif /* ifndef EH_ABI_VERSION_2 */
+#if EH_ABI_VERSION_2 && (ABI_COMPATIBILITY_VERSION <= 228)
+ #error -- EH_ABI_VERSION_2 TRUE is incompatible with \
+           ABI_COMPATIBILITY_VERSION <= 228
+#endif /* EH_ABI_VERSION_2 && (ABI_COMPATIBILITY_VERSION <= 228) */
+
 #endif /* CONFIG_H */
 
 

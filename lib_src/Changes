@@ -1,5 +1,14 @@
 Version 2.29
 
+4/19/95   New throw interface
+
+A new runtime routine named __throw_setup has been added.  This routine
+is called for ABI versions >= 2.29.  __throw_setup is used to implement
+the revised language rule that accessibility checking of base classes
+of thrown objects in based purely on whether or not the base class
+is public.  Previously, the accessibility was based on the
+actual accessibility at the throw point.
+
 3/22/95   Eliminated use of hard-coded mangled names in vec_newdel.c
 
 Formerly, vec_newdel.c contained hard-coded mangled names for
