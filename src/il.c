@@ -66,21 +66,22 @@ static unsigned long
 		num_routine_type_supplements_allocated,
 		num_based_type_list_members_allocated,
 		num_class_type_supplements_allocated,
-                num_access_adjustments_allocated,
-                num_class_list_entries_allocated,
-                num_routine_list_entries_allocated,
-                num_overriding_virtual_functions_allocated,
-                num_derivation_steps_allocated,
-                num_base_classes_allocated,
-                num_template_args_allocated,
-                num_template_param_type_descrs_allocated,
+		num_access_adjustments_allocated,
+		num_class_list_entries_allocated,
+		num_routine_list_entries_allocated,
+		num_overriding_virtual_functions_allocated,
+		num_derivation_steps_allocated,
+		num_virtual_derivations_allocated,
+		num_base_classes_allocated,
+		num_template_args_allocated,
+		num_template_param_type_descrs_allocated,
 		num_types_allocated,
 		num_dynamic_inits_allocated,
 		num_variables_allocated,
 		num_fields_allocated,
 		num_routines_allocated,
-                num_throw_specifications_allocated,
-                num_throw_spec_types_allocated,
+		num_throw_specifications_allocated,
+		num_throw_spec_types_allocated,
 		num_asm_entries_allocated,
 		num_labels_allocated,
 		num_expr_nodes_allocated,
@@ -88,11 +89,11 @@ static unsigned long
 		num_throw_supplements_allocated,
 		num_accessible_base_classes_allocated,
 		num_switch_clauses_allocated,
-                num_handlers_allocated,
+		num_handlers_allocated,
 		num_blocks_allocated,
-                num_for_loops_allocated,
+		num_for_loops_allocated,
 		num_statements_allocated,
-                num_constructor_inits_allocated,
+		num_constructor_inits_allocated,
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated;
@@ -3254,6 +3255,28 @@ Allocate and initialize a derivation step entry and return a pointer to it.
 }  /* alloc_derivation_step */
 
 
+a_virtual_derivation_ptr alloc_virtual_derivation(void)
+/*
+Allocate and initialize a virtual derivation entry and return a pointer to it.
+*/
+{
+  a_virtual_derivation_ptr  vdp;
+
+  db_enter(5, "alloc_virtual_derivation");
+  vdp = (a_virtual_derivation_ptr)alloc_il(sizeof(a_virtual_derivation));
+#if DEBUG
+  num_virtual_derivations_allocated++;
+#endif /* DEBUG */
+  vdp->next          = NULL;
+  vdp->derivation    = NULL;
+  vdp->first         = FALSE;
+  vdp->preferred     = FALSE;
+  vdp->direct        = FALSE;
+  vdp->normal_access = (an_access_specifier)as_public;
+  db_exit();
+  return vdp;
+}  /* alloc_virtual_derivation */
+
 an_overriding_virtual_function_ptr alloc_overriding_virtual_function(void)
 /*
 Allocate an overriding-virtual-function entry, initialize its fields, and
@@ -3359,15 +3382,13 @@ to it.
   bcp->is_virtual                      = FALSE;
   bcp->direct                          = FALSE;
   bcp->ambiguous                       = FALSE;
-  bcp->any_virtual_steps_in_derivation = FALSE;
-  bcp->is_duplicate                    = FALSE;
   bcp->access                          = (an_access_specifier)as_public;
   bcp->offset                          = 0;
   bcp->pointer_offset                  = 0;
   bcp->pointer_base_class              = NULL;
   bcp->derivation                      = NULL;
   bcp->overriding_virtual_functions    = NULL;
-  bcp->duplicate_entries               = NULL;
+  bcp->paths_to_virtual_base_class     = NULL;
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
   bcp->complete_subobject              = FALSE;
   bcp->pointer_offset_is_set           = FALSE;
@@ -6666,6 +6687,8 @@ Display and return the amount of space used for various IL tables.
                 an_overriding_virtual_function_ptr);
   db_space_used("derivation steps", num_derivation_steps_allocated,
                 a_derivation_step);
+  db_space_used("virtual derivations", num_virtual_derivations_allocated,
+                a_virtual_derivation);
   db_space_used("base class", num_base_classes_allocated, a_base_class);
   db_space_used("template args", num_template_args_allocated, a_template_arg);
   db_space_used("templ param type descrs",
