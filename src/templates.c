@@ -7232,7 +7232,7 @@ that follows.
     } else {
       if (sym->is_class_member &&
           sym->kind == (a_symbol_kind)sk_projection) {
-        /* Specifying an inherited name in a tempalate specialization
+        /* Specifying an inherited name in a template specialization
            declaration is disallowed. */
         pos_error(ec_inherited_member_not_allowed, &locator.source_position);
         reduce_projection_symbol_to_fundamental_symbol(sym);
