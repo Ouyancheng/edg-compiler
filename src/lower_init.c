@@ -4980,7 +4980,8 @@ to a constructor to be called after the zeroing have been done.
   }  /* if */
   set_block_start_insert_location(scope->assoc_block, &insert_location);
   /* Build a model for the zero-initialized entity. */
-  model_var = make_temporary_in_scope(type, scope, /*force_static=*/FALSE);
+  model_var = make_temporary_in_scope(make_qualified_type(type, TQ_CONST),
+                                      scope, /*force_static=*/FALSE);
   model_var->init_kind = (an_init_kind)initk_zero;
   lower_initializer(model_var, &model_var->init_kind, &model_var->initializer,
                     &insert_location);
