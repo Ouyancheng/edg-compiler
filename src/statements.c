@@ -1132,7 +1132,7 @@ the current routine.
      type. */
   rout = current_routine_entry();
   tp = skip_typerefs(rout->type)->variant.routine.return_type;
-  if (!is_void_type(tp) && !is_no_type(tp) && !is_error_type(tp)) {
+  if (!is_void_type(tp) && !is_error_type(tp)) {
     /* If a return with no expression appears in a function with a
        non-void type, issue a warning.  Do not issue the warning for
        the main program, or if the declaration of the function did not
@@ -1163,7 +1163,7 @@ See also 3.6.6.4.
 {
   register a_statement_ptr sp;
   a_routine_ptr            rout;
-  a_type_ptr               rout_type;
+  a_type_ptr               return_type;
   a_boolean                err;
 
   db_enter(3, "return_statement");
@@ -1188,20 +1188,21 @@ See also 3.6.6.4.
     /* Get a pointer to the current routine entry, and get its return
        type. */
     rout = current_routine_entry();
-    rout_type = skip_typerefs(rout->type)->variant.routine.return_type;
-    if (is_void_type(rout_type)) {
-      /* A void function may not return a value. */
-      error(ec_value_returned_in_void_function);
-      sp->expr = NULL;
-    } else if (is_no_type(rout_type)) {
-      /* Only constructors and destructors have a return type of tk_none.
-         Like void functions, they may not return a value (ARM 6.6.3). */
-      error(ec_value_returned_in_constructor);
+    return_type = skip_typerefs(rout->type)->variant.routine.return_type;
+    if (is_void_type(return_type)) {
+      if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+          rout->special_kind == (a_special_function_kind)sfk_destructor) {
+        /* Constructors and destructors may not return a value (ARM 6.6.3). */
+        error(ec_value_returned_in_constructor);
+      } else {
+        /* A void function may not return a value. */
+        error(ec_value_returned_in_void_function);
+      }  /* if */
       sp->expr = NULL;
     } else {
       /* Cast the expression to the return type, if necessary, with semantics
          the same as for assignment. */
-      node_prepare_assignment(&sp->expr, rout_type, ec_bad_return_value_type,
+      node_prepare_assignment(&sp->expr, return_type, ec_bad_return_value_type,
                               &err);
     }  /* if */
   }  /* if */
