@@ -3805,7 +3805,10 @@ prototype instantiation is considered as a potential match.
         ctsp->assoc_template = proto_instantiation
                                             ->variant.class_struct_union.type;
       } else {
-        check_assertion(total_errors != 0);
+        /* Proxy template members (i.e., member templates of nonreal classes)
+           do not have an associated prototype instantiation. */
+        check_assertion(total_errors != 0 ||
+                        proto_template->is_nonreal_member);
       }  /* if */
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
