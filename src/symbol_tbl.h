@@ -1606,6 +1606,12 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if kind is sck_template_instantiation and
 			   what is being instantiated is the prototype for a
 			   class template. */
+  unsigned int	defer_access_checking:1;
+			/* TRUE while scanning the decl-specifiers and
+			   declarator of a global or namespace-level
+                           declaration.  Access checking for names
+			   scanned while this is TRUE cannot be done
+			   until the declarator has been scanned. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   unsigned int	source_sequence_entries_disallowed:1;
 			/* TRUE if the current scope establishes or belongs to
@@ -1853,6 +1859,12 @@ typedef struct a_scope_stack_entry {
 			   (a global variable).  Also set in scope stack
 			   entries that are not part of the list because they
 			   do not affect access control. */
+  an_access_error_descr_ptr
+		deferred_access_checks;
+			/* When defer_access_checking is TRUE, this contains
+			   a list of access checks that were done (and failed)
+			   and must be repeated once the declarator has been
+			   scanned. */
 } a_scope_stack_entry;
 
 

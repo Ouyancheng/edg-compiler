@@ -223,7 +223,7 @@ set_up_for_output_to_buffer has been called to set the buffer address.
 */
 #if 0
 /* There is no overflow check on this. */
-#endif
+#endif  /* 0 */
 {
   /* Copy the string including the terminating null. */
   while ((*db_symbol_buffer_pointer++ = *str++) != '\0') {}
@@ -6710,6 +6710,7 @@ of the template.
   ssep->slow_lookup_required     = FALSE;
   ssep->return_value_optimization_possible = FALSE;
   ssep->in_prototype_instantiation = FALSE;
+  ssep->defer_access_checking    = FALSE;
   ssep->symbols                  = NULL;
   ssep->last_symbol              = NULL;
   ssep->il_scope                 = sp;
@@ -6761,6 +6762,7 @@ of the template.
   ssep->curr_construct_pragmas	 = NULL;
   ssep->next_scope_that_affects_access_control =
                           depth_of_innermost_scope_that_affects_access_control;
+  ssep->deferred_access_checks   = NULL;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
