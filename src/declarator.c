@@ -1940,7 +1940,7 @@ is empty.
       scan_microsoft_qualifiers(&qualifiers);
       unbound_qualifiers |= qualifiers;
       unbound_qualifier_pos = pos_curr_token;
-      /* Suppress then get_token() that is normally done before scanning
+      /* Suppress the get_token() that is normally done before scanning
          the qualifiers below, as this will have been done when scanning
          the Microsoft qualifiers. */
       get_token_needed = FALSE;
@@ -2513,6 +2513,16 @@ otherwise it is NULL.  The syntax is:
      a derived type list, and the new entries are added to its end.
   */
   while (curr_token == tok_lparen || curr_token == tok_lbracket) {
+    a_boolean	have_derived_type;
+    /* See if we have a derived type.  Check for the case where a Microsoft
+       qualifier has been added over a NULL type.  This should not be
+       considered to mean that we have a derived type. */
+#if MICROSOFT_KEYWORDS_ALLOWED
+    have_derived_type = derived_type != NULL &&
+              skip_typerefs_allow_null_referenced_type(derived_type) != NULL;
+#else /* !MICROSOFT_KEYWORDS_ALLOWED */
+    have_derived_type = derived_type != NULL;
+#endif /* !MICROSOFT_KEYWORDS_ALLOWED */
     if (curr_token == tok_lparen) {
       /* Appears to be a function declarator.  But be sure it's not the
          start of a parenthesized initializer (C++ only). */
@@ -2526,13 +2536,7 @@ otherwise it is NULL.  The syntax is:
            yet been assembled) is one for which a parenthesized initializer is
            legal and see if the token(s) following the left paren are not
            declarations. */
-        a_type_ptr  tp;
-
-        tp = derived_type != NULL ? derived_type : complete_type;
-        check_assertion(tp != NULL);
-        if ((is_arithmetic_type(tp) || is_ptr_or_ref_type(tp) ||
-             is_class_struct_union_type(tp) || is_ptr_to_member_type(tp)) &&
-            !is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
+        if (!is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
                               /*real_declarator_allowed=*/TRUE,
                               /*single_type_required=*/FALSE)) {
           a_boolean  is_function_decl = FALSE;
@@ -2584,7 +2588,7 @@ function_lparen:
       /* For function types as the top type, fetch the extra function info
          as well.  For non-top types, do not. */
       if (C_dialect == C_dialect_cplusplus) {
-        if (derived_type != NULL) {
+        if (have_derived_type) {
           /* If the function is pointed to by a pointer-to-member type, we need
              to pass the class-of-which-a-member to function_declarator. */
           a_type_ptr tp = bottom_derived_type;
@@ -2622,7 +2626,7 @@ function_lparen:
       } else {
         /* Normal C case.  If the derived type is nonnull this is not the
            top-most type, so we don't want to fetch the extra function info. */
-        if (derived_type != NULL) func_info = NULL;
+        if (have_derived_type) func_info = NULL;
       }  /* if */
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
