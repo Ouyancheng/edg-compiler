@@ -9036,12 +9036,6 @@ continue_with_declaration:
                             /*is_function_def_with_body=*/FALSE,
                             inline_specified, is_main_function, &symbol_ptr,
                             &linkage, &old_type, &ext_sym);
-        /* Fetch the storage class again, which might have been changed if
-           this is a file scope redeclaration of an extern const variable. */
-        if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
-          local_storage_class = symbol_ptr->
-                                         variant.variable.ptr->storage_class;
-        }  /* if */
         if (is_old_style_param_decl) {
           /* A variable has been entered for a name that appears in an
              old-style param declaration but for which no corresponding
@@ -9118,10 +9112,12 @@ continue_with_declaration:
           /* Set the storage class of a file-scope initialized variable to
              unspecified (meaning external) or static (meaning internal).
              See 3.7.2. */
-          if (decl_scope_level == DEPTH_OF_FILE_SCOPE &&
-              local_storage_class != (a_storage_class)sc_static) {
-            symbol_ptr->variant.variable.ptr->storage_class =
+          if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+            if (symbol_ptr->variant.variable.ptr->storage_class ==
+                                              (a_storage_class)sc_extern) {
+              symbol_ptr->variant.variable.ptr->storage_class =
                                               (a_storage_class)sc_unspecified;
+            }  /* if */
           }  /* if */
           /* All initialized variables are considered defined.  This flag
              may have already been set based on storage class and scope
@@ -9239,8 +9235,10 @@ continue_with_declaration:
         if (is_definition ||
             (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
              is_void_type(local_type_ptr) &&
-             (local_storage_class == (a_storage_class)sc_unspecified ||
-              local_storage_class == (a_storage_class)sc_static))) {
+             (symbol_ptr->variant.variable.ptr->storage_class ==
+                                       (a_storage_class)sc_unspecified ||
+              symbol_ptr->variant.variable.ptr->storage_class ==
+                                       (a_storage_class)sc_static))) {
           if (!incomplete_type_error_reported) {
             error(ec_incomplete_type_not_allowed);
           }  /* if */
