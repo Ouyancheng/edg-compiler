@@ -2595,13 +2595,6 @@ The locator is set to an error locator by f_check_ambiguity_and_verify_access.
   }  /* if */                                                         	\
 }  /* check_for_ambiguity */
 
-
-/*
-Return TRUE if access1 represents greater accessibility than access2.
-*/
-#define is_more_accessible(access1, access2)    \
-    ((int)(access1) < (int)(access2))
-
 /*
 Macro that returns TRUE if there are any deferred access checks to be
 processed.
@@ -3081,8 +3074,8 @@ supplement.
 /* Return a pointer to the template symbol supplement for a given
    symbol.  Return NULL for symbols of the wrong kind. */
 #define template_supplement_for_symbol(sym)				\
-  /* if */ ((sym)->kind == (a_symbol_kind)sk_class_template ||		\
-            (sym)->kind == (a_symbol_kind)sk_function_template) ? /* { */ \
+  (/* if */ ((sym)->kind == (a_symbol_kind)sk_class_template ||		\
+             (sym)->kind == (a_symbol_kind)sk_function_template) ? /* { */ \
     (sym)->variant.template_info :					\
   /* } else if */ (sym)->kind == (a_symbol_kind)sk_member_function ? /* { */ \
     (sym)->variant.routine.instance_ptr->template_info :		\
@@ -3094,7 +3087,7 @@ supplement.
     (sym)->variant.static_data_member.instance_ptr->template_info :	\
   /* } else { */							\
     NULL								\
-  /* } */
+  /* } */)
 
 /* Return TRUE if the symbol represents the prototype instantiation of a
    class template. */
