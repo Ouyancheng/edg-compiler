@@ -1564,7 +1564,7 @@ should be enabled by default.  It is the initial value of the global variable
 fixed_point_enabled.
 */
 #ifndef DEFAULT_FIXED_POINT_ENABLED
-#define DEFAULT_FIXED_POINT_ENABLED FALSE
+#define DEFAULT_FIXED_POINT_ENABLED FIXED_POINT_ALLOWED
 #endif /* DEFAULT_FIXED_POINT_ENABLED */
 #if !FIXED_POINT_ALLOWED && DEFAULT_FIXED_POINT_ENABLED
  #error -- fixed-point enabling not allowed
