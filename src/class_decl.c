@@ -4310,7 +4310,7 @@ specified by decl_scope_level.
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
         } else {
           /* Just as the original anonymous union member symbol had to be
-             cloned, so too must it's parent chain be cloned.  Go through the
+             cloned, so too must its parent chain be cloned.  Go through the
              list of anonymous-union-parent symbols that have already been
              cloned and look for a match.  If none is found, make a new one. */
           sym->variant.field.anonymous_parent_object =
