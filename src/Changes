@@ -105,8 +105,8 @@ ordinary declaration.)
 The error routines test the translation unit data structure to determine
 whether a message is from a secondary translation unit.  This can cause
 an access to freed memory if the error routines are called from a back end.
-The use of the translation unit structure is now bypassed when called from
-a back end.
+The use of the translation unit structure is now bypassed when the error
+routines are called from a back end.
 
 9/11/02  Microsoft compatibility: qualifiers on in-class specializations
 
