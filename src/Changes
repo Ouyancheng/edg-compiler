@@ -17,7 +17,7 @@ but could not be used as part of a type expression.  For example,
 The second example caused an internal error.
 
 This feature has been generalized to allow use of template type parameters
-in the declaration of template nontype parameters.
+in arbitrarily complex declarations of template nontype parameters.
 
 2/19/93  Reachability of code following "while" and "for" loops
 
