@@ -1525,6 +1525,9 @@ will be involved in overloading.
   } else if (is_object && depth_innermost_function_scope != NO_SCOPE_DEPTH &&
              local_storage_class != sc_extern) {
     /* Local variable declaration. */
+  } else if (scope_stack[decl_scope_level].kind ==
+                                     (a_scope_kind)sck_func_prototype) {
+    /* Function parameters have no linkage. */
   } else {
     *linked_symbol = find_linked_symbol(locator, effective_decl_level, type,
                                         func_info == NULL ?
