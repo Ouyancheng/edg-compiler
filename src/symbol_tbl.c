@@ -7201,13 +7201,6 @@ symbol "used" or "set", if appropriate.
     }  /* if */
   }  /* if */
   if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
-    /* If this reference involves a modification or, by taking the variable's
-       address, a potential modification, mark the variable as having its
-       value set. */
-    if (kind == srk_modification || kind == srk_use_and_modif ||
-        kind == srk_address_taken) {
-      mark_variable_value_set(sym_ptr);
-    }  /* if */
     /* If this reference is a use or, by taking the variable's address, a
        potential use, mark the variable has having been used. */
     if (kind == srk_use || kind == srk_use_and_modif ||
@@ -7222,7 +7215,8 @@ symbol "used" or "set", if appropriate.
       } else {
         /* This is the first use of the variable. */
         if (!sym_ptr->variant.variable.value_has_been_set &&
-            !suppress_used_before_set_warnings) {
+            !suppress_used_before_set_warnings &&
+            kind != srk_address_taken) {
           /* But its value has not been set yet.  Issue a warning, if
              appropriate. */
           a_boolean                suppress_warning = FALSE;
@@ -7299,6 +7293,13 @@ check_label_decl_seq:
           }  /* if */
         }  /* if */
       }  /* if */
+    }  /* if */
+    /* If this reference involves a modification or, by taking the variable's
+       address, a potential modification, mark the variable as having its
+       value set. */
+    if (kind == srk_modification || kind == srk_use_and_modif ||
+        kind == srk_address_taken) {
+      mark_variable_value_set(sym_ptr);
     }  /* if */
   }  /* if */
 }  /* reference_to_symbol */
