@@ -11,7 +11,7 @@
 
 cfe.c -- Main program for C++/C front end.
 
-Written by J. Stephen Adamczyk and Eric Schwarz, 1988-1989.
+C front end written by J. Stephen Adamczyk and Eric Schwarz, 1988-1989.
 Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson,
   1991-1997, and John H. Spicer, 1992-1997.
 
