@@ -1,5 +1,12 @@
 Version 3.6
 
+3/14/05  Double mangling of class-as-suboject name for local class
+
+The mangled name generated for the class-as-subobject version of
+a local class had double mangling in it -- the containing function
+mangling was included twice.  A class has a class-as-subobject
+version if it contains virtual base classes.  Now fixed.
+
 3/14/05  bool += pointer
 
 C++ allows the compound assignment b += p where "b" has bool type

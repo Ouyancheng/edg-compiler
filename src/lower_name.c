@@ -6614,8 +6614,10 @@ be embedded in other mangled names.
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
     }  /* if */
   }  /* if */
-  /* Leave the name alone if the entity is unnamed. */
-  if (scp->name != NULL || is_string) {
+  /* Leave the name alone if the entity is unnamed or if it has been
+     mangled already (e.g., for a class name-as-subobject). */
+  if (!scp->name_has_been_mangled &&
+      (scp->name != NULL || is_string)) {
     start_mangling(&mctl);
     /* Name mangling is needed. */
 #if !IA64_ABI
