@@ -108,7 +108,13 @@ Do any processing required at the end of execution of the front end.
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   /* Create or remove the instantiation information file if necessary. */
-  create_or_remove_instantiation_information_file();
+  if (!do_preprocessing_only) {
+    /* When only doing preprocessing we cannot determine whether or not the
+       instantiation information file is needed.  By not calling this
+       routine we keep the old version if one was present and don't create
+       one if one did not already exist. */
+    create_or_remove_instantiation_information_file();
+  }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 
