@@ -4987,8 +4987,17 @@ flag in the associated IL entry, if any.
      if there is one.  Note that more than one symbol can point to the same
      IL entry.  Use the fact that all the IL tables begin with
      a_source_correspondence. */
-  scptr = source_corresp_entry_for_symbol(sym_ptr);
-  if (scptr != NULL) scptr->referenced = TRUE;
+  /* If the symbol is for a virtual function, do not set the IL referenced
+     flag; a reference to the symbol is not necessarily a reference to the
+     corresponding IL entry.  When it is, the flag is set explicitly
+     elsewhere. */
+  if (sym_ptr->kind == (a_symbol_kind)sk_member_function &&
+      sym_ptr->variant.routine->is_virtual) {
+    /* Do not set IL referenced flag. */
+  } else {
+    scptr = source_corresp_entry_for_symbol(sym_ptr);
+    if (scptr != NULL) scptr->referenced = TRUE;
+  }  /* if */
 }  /* reference_to_symbol */
 
 
