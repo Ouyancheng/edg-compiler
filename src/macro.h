@@ -47,6 +47,19 @@ extern a_token_kind make_pp_int_constant(long value);
 /* Process a #define directive. */
 extern void proc_define(void);
 
+/* Process an #assert directive. */
+extern void proc_assert(void);
+
+/* Process an #unassert directive. */
+extern void proc_unassert(void);
+
+/* Enter a predefined #assert predicate. */
+extern void enter_assert_predicate(char *value,
+                                   char *name);
+
+/* Scan a reference to an #assert predicate */
+extern a_boolean scan_assert_predicate_reference(void);
+
 #if DEBUG
 /* Show and return the amount of space used by macro entries. */
 extern unsigned long show_macro_space_used(void);
