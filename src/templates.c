@@ -210,8 +210,7 @@ increase pos_in_temp_text_buffer by the number of characters added.
     /* We've moved to a new line.  Compute the indentation. */
     column_incr = pos_curr_token.column - 1;
     /* Compute the number of line feed characters to add. */
-    seq_incr =  pos_curr_token.seq >= curr_seq ? 
-                                            pos_curr_token.seq - curr_seq : 0;
+    seq_incr =  pos_curr_token.seq - curr_seq;
     /* Reset the current line. */
     curr_seq = pos_curr_token.seq;
   }  /* if */
@@ -286,8 +285,7 @@ encountered, whatever their other characteristics, are included.
       /* We've moved to a new line.  Compute the indentation. */
       column_incr = ppp->pragma_position.column - 1;
       /* Compute the number of line feed characters to add. */
-      seq_incr =  ppp->pragma_position.seq >= curr_seq ?
-                                       ppp->pragma_position.seq - curr_seq : 0;
+      seq_incr =  ppp->pragma_position.seq - curr_seq;
       /* Reset the current line. */
       curr_seq = ppp->pragma_position.seq;
     }  /* if */
