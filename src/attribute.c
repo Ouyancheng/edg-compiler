@@ -1160,10 +1160,11 @@ messages about any invalid attributes.
         rp->section = ap->variant.section;
         break;
       case ak_alias:
-        if (rp->is_inline && rp->assoc_scope != NULL_region_number) {
+        if (rp->is_inline && rp->assoc_scope != NULL_region_number &&
+            rp->suppress_inline_body) {
           /* GNU C accepts the alias attribute on a function that was
-             previously defined as an inline function, and ignores that
-             previous declaration. */
+             previously defined as an extern inline function, and ignores
+             that previous declaration. */
           a_symbol_ptr  sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
           pos_warning(ec_ignoring_inline_definition_because_of_alias,
                       &rp->source_corresp.decl_position);
