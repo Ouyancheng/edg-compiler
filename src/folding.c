@@ -21,6 +21,7 @@ folding.c -- Folding routines.
 #include "expr.h"
 #include "types.h"
 #include "float_pt.h"
+#include "const_ints.h"
 #include "cmd_line.h"
 #include "symbol_tbl.h"
 
@@ -50,21 +51,6 @@ pointer type to another and casting integer constants to pointer types.
      associated with the original constant. */
   break_source_corresp(&cp->source_corresp);
 }  /* implicit_cast */
-
-
-static a_boolean int_constant_is_signed(a_constant_ptr constant)
-/*
-Return TRUE if the given integer constant's type is signed.
-*/
-{
-  a_type_ptr tp = skip_typerefs(constant->type);
-#if CHECKING
-  if (tp->kind != (a_type_kind)tk_integer) {
-    internal_error("int_kind_of: constant type not integer");
-  }  /* if */
-#endif /* CHECKING */
-  return (int_kind_is_signed(tp->variant.integer.int_kind));
-}  /* int_constant_is_signed */
 
 
 static void get_integer_attributes(a_constant      *cp,
@@ -1669,8 +1655,6 @@ if not, return *err_code set to the proper error code.
 */
 {
   a_targ_size_t size;
-  long          signed_shift_count;
-  unsigned long unsigned_shift_count;
 
   *err_code = ec_no_error;
 
@@ -1683,23 +1667,14 @@ if not, return *err_code set to the proper error code.
     internal_error("check_shift_count: integer type has size 0");
   }  /* if */
 #endif /* CHECKING */
-  size = operand_type->size;
+  size = operand_type->size * TARG_CHAR_BIT;
 
-  if (int_constant_is_signed(shift_count_constant)) {
-    /* The shift count is signed. */
-    signed_shift_count = shift_count_constant->variant.integer_value;
-    if (signed_shift_count < 0) {
-      *err_code = ec_negative_shift_count;
-    } else if (signed_shift_count/TARG_CHAR_BIT >= size) {
-      *err_code = ec_shift_count_too_large;
-    }  /* if */
-  } else {
-    /* The shift count is unsigned. */
-    unsigned_shift_count =
-                  (unsigned long)(shift_count_constant->variant.integer_value);
-    if (unsigned_shift_count/TARG_CHAR_BIT >= (unsigned long)size) {
-      *err_code = ec_shift_count_too_large;
-    }  /* if */
+  if (cmplit_integer_constant(shift_count_constant, 0) < 0) {
+    /* Negative shift count. */
+    *err_code = ec_negative_shift_count;
+  } else if (cmplit_integer_constant(shift_count_constant, size) >= 0) {
+    /* Shift count is too large. */
+    *err_code = ec_shift_count_too_large;
   }  /* if */
 }  /* check_shift_count */
 
@@ -1732,7 +1707,7 @@ everything went fine.
   } else {
     set_constant_kind(result, (a_constant_repr_kind)ck_integer);
     value_1 = constant_1->variant.integer_value;
-    value_2 = constant_2->variant.integer_value;
+    value_2 = value_of_integer_constant(constant_2);
     /* The operand to be shifted is either signed or unsigned, and the
        shift must be done accordingly. */
     is_signed = int_constant_is_signed(constant_1);
@@ -1815,34 +1790,14 @@ operator "op", and return a 0 or 1 integer in "result".
 */
 {
   int  cmp;
-  long result_value, value_1, value_2;
+  long result_value;
 
   /* Develop a strcmp-like relation value in cmp:
        constant_1 > constant_2   1
        constant_1 = constant_2   0
        constant_1 < constant_2  -1
   */
-  value_1 = constant_1->variant.integer_value;
-  value_2 = constant_2->variant.integer_value;
-  if (int_constant_is_signed(constant_1)) {
-    /* Signed integer comparison. */
-    if (value_1 > value_2) {
-      cmp = 1;
-    } else if (value_1 == value_2) {
-      cmp = 0;
-    } else {
-      cmp = -1;
-    }  /* if */
-  } else {
-    /* Unsigned integer comparison. */
-    if ((unsigned long)value_1 > (unsigned long)value_2) {
-      cmp = 1;
-    } else if ((unsigned long)value_1 == (unsigned long)value_2) {
-      cmp = 0;
-    } else {
-      cmp = -1;
-    }  /* if */
-  }  /* if */
+  cmp = cmp_integer_constants(constant_1, constant_2);
   /* Now determine the result value for this particular operator. */
   switch (op) {
     case eok_ieq:  result_value = (cmp == 0); break;
