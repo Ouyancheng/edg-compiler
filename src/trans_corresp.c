@@ -1963,10 +1963,15 @@ is in fact valid.
          routine->pure_virtual != corresp_routine->pure_virtual ||
          /* In C mode (C99 & GNU C), the inline flag does not need to match.
             In C++ mode, we only require a match if the functions are both
-            defined or if they are both undefined. */
+            defined or if they are both undefined.  Furthermore, if the
+            routines are template instantiations, they should be defined
+            (instantiations don't have their inline flag set until they
+             are instantiated). */
          (!C_mode() && routine->is_inline != corresp_routine->is_inline &&
           ((routine->assoc_scope != NULL_region_number) ==
-                      (corresp_routine->assoc_scope != NULL_region_number))) ||
+                      (corresp_routine->assoc_scope != NULL_region_number)) &&
+          (routine->assoc_scope != NULL_region_number ||
+           !routine->is_template_function || routine->is_specialized)) ||
          /* If both routines are template specialization, the explicit
             template specialization bit should be the same. */
          (routine->template_arg_list != NULL && 
