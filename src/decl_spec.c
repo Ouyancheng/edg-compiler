@@ -1786,7 +1786,7 @@ otherwise a diagnostic is issued.  The type is returned in *type_ptr.
       check_assertion(sym != NULL);
       if (!is_type_symbol(sym)) {
         /* The symbol is not a type name. */
-        sym_error(ec_not_a_type_name, sym);
+        sym_error(ec_sym_not_a_type_name, sym);
       } else {
         mark_referenced(sym, &locator_for_curr_id.source_position);
         tp = type_symbol_type(sym);

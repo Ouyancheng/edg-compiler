@@ -804,6 +804,7 @@ ec_template_id_not_allowed;;"a template-id is not allowed"
 ec_class_qualified_name_not_allowed;;"a class-qualified name is not allowed"
 ec_bad_scope_for_redeclaration;;"%n may not be redeclared in the current scope"
 ec_qualifier_in_namespace_member_decl;;"qualified name is not allowed in namespace member declaration"
+ec_sym_not_a_type_name;;"%n is not a type name"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
