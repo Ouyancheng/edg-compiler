@@ -54,13 +54,6 @@ program as the front end is produced.
 
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
-/* Undefine the preprocessor macro skip_typerefs() if previously 
-   defined.
-*/
-#ifdef skip_typerefs
-#undef skip_typerefs
-#endif
-
 static a_boolean
 		displaying_file_scope_il;
 			/* TRUE if displaying the file-scope memory region,
