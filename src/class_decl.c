@@ -2448,7 +2448,7 @@ appearance of the base class happens to have been marked preferred.
       set_preferred_base_class_derivation(class_type, bcdp->path->base_class);
     }  /* if */
     /* Determine the accessibility of a public member of the virtual base
-       class in the context of the the most derived class. */
+       class in the context of the most derived class. */
     access = access_to_end_of_path((an_access_specifier)as_public,
                                    bcdp->path, bcdp);
     if (bcdp == base_class->derivation) {
@@ -7377,7 +7377,7 @@ default, but they become externally linked for one of two reasons: either
 they have members that are external by default, or they are used in a way
 that requires external linkage.  To be more specific, if a class has any
 noninline member functions or any nonstatic data members it is externally
-linked; or, it is is used in the declaration of any externally linked
+linked; or, it is used in the declaration of any externally linked
 class, variable, or routine it is externally linked (ARM 3.3).
 
 Note that local classes have no linkage.  They are not changed to external

@@ -1631,7 +1631,7 @@ Reserve space at the end of the class object for virtual base classes.
     /* In normal layout mode all virtual base classes have space reserved at
        this point in the layout.  The order in which they are put out is
        the order of their appearance in the base classes list, which
-       corresponds to a depth-first left-to-right traversal of the the base
+       corresponds to a depth-first left-to-right traversal of the base
        classes represented in a directed acyclic graph (see ARM 12.6.2). */
     a_base_class_ptr   bcp = ctsp->base_classes;
     a_targ_size_t      size;
