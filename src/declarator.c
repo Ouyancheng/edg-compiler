@@ -2154,6 +2154,7 @@ encountered, they are scanned and thrown away with a warning.
       warning(ec_decl_modifiers_ignored);
       clear_decl_modifiers_block(&local_decl_modifiers);
       scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/FALSE,
+                                             /*is_member_decl=*/FALSE,
                                              &local_decl_modifiers,
                                              &local_qualifiers, &local_err);
     } else {

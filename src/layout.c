@@ -945,7 +945,7 @@ there's no overflow TRUE is returned.
 {
   a_type_ptr                  field_type;
   a_targ_alignment            field_alignment;
-  a_boolean	              overflow;
+  a_boolean	              overflow = FALSE;
   a_targ_size_t               save_byte_offset;
   an_unnormalized_bit_offset  save_bit_offset;
   a_type_ptr                  class_type;
@@ -956,7 +956,14 @@ there's no overflow TRUE is returned.
   class_type = field->source_corresp.parent.class_type;
   set_type_size(field_type);
   if (is_error_type(field_type)) {
-    overflow = FALSE;
+    /* Do nothing if the field has an error type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode &&
+             (field->get_property_name != NULL ||
+              field->put_property_name != NULL)) {
+    /* Fields declared with __declspec(property(...)) do not take any space. */
+    field->offset = field->offset_bit_remainder = 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Check for a bit-field. */
     if (field->is_bit_field) {

@@ -1286,6 +1286,10 @@ to it.
 #if CHECKING
   fp->avoid_codecenter_warnings = 0;
 #endif /*CHECKING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  fp->get_property_name    = NULL;
+  fp->put_property_name    = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_exit();
   return fp;

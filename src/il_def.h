@@ -4191,6 +4191,15 @@ typedef struct a_field {
 			   declaration of this nonstatic data member (C++
 			   only). */
   bitfield_to_avoid_codecenter_warnings()
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  char		*get_property_name,
+		*put_property_name;
+			/* When __declspec(property(get=gname,put=pname))
+			   is specified for a field, these fields point to
+			   the get and put routine names, null-terminated.
+			   NULL otherwise.  Non-NULL only in Microsoft C++
+			   mode. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_field;
 
 #endif /* ifdef CIL */
@@ -4868,7 +4877,7 @@ enum an_expr_operator_kind_tag {
   /* When the expression node kind is "enk_operation", these are the possible
      operators. */
   /* If you add operators to this list, be sure to update db_operator_names
-     and il_display.c. */
+     in this file and disp_expr_operator_name in il_display.c. */
   /* Note that the left operand of assignment operators and ".",
      the function designator of a call, and the operands of
      pre/post-increment/decrement operators are addresses, since they

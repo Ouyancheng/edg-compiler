@@ -974,6 +974,12 @@ typedef struct a_decl_modifiers_block {
 			/* Pointer to a string representing the argument of
 			   a uuid decl-modifier (in Microsoft-compatibility
 			   mode). */
+  char		*get_property_name,
+		*put_property_name;
+			/* When __declspec(property(get=gname,put=pname))
+			   (a Microsoft extension in C++ mode) is specified
+			   for a field, these fields point to the get and put
+			   routine names, null-terminated.  NULL otherwise. */
 } a_decl_modifiers_block;
 
 

@@ -25,6 +25,7 @@ decl_spec.h -- Declarations related to decl_spec.c (having to with
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void scan_microsoft_extended_decl_modifiers(
                                     a_boolean                   is_class_decl,
+                                    a_boolean                   is_member_decl,
                                     a_decl_modifiers_block_ptr  decl_modifiers,
                                     a_type_qualifier_set        *qualifiers,
                                     a_boolean                   *err);
@@ -50,7 +51,7 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
 			   include a type specifier. */
 #define DSI_IS_MEMBER_DECLARATION ((a_decl_flag_set)0x4)
 			/* If this bit is set the declaration is that of a
-			   class member. */
+			   class member, inside the class. */
 #define DSI_IS_PARAMETER ((a_decl_flag_set)0x8)
 			/* If this bit is set the declaration specifiers are
 			   part of the declaration of a parameter. */

@@ -815,6 +815,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_field_ptr, iek_field);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         definition_needed_if_class(ptr->type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        walk_string_ptr(ptr->get_property_name, iek_other_text, 0);
+        walk_string_ptr(ptr->put_property_name, iek_other_text, 0);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
     case iek_exception_specification:

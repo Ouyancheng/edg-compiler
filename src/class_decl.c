@@ -7189,6 +7189,21 @@ specific information about the member declaration, respectively.
     }  /* if */
     /* Record that there is at least one nonstatic data member in the class. */
     cssp->any_nonstatic_data_members = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (decl_info->decl_modifiers.get_property_name != NULL ||
+        decl_info->decl_modifiers.put_property_name != NULL) {
+      /* This declaration includes __declspec(property(...)).  This is
+         valid only on nonstatic data members that are not bit fields. */
+      if (field->is_bit_field) {
+        pos_diagnostic(es_discretionary_error,
+                       ec_declspec_property_not_allowed,
+                       &locator->source_position);
+      } else {
+        field->get_property_name = decl_info->decl_modifiers.get_property_name;
+        field->put_property_name = decl_info->decl_modifiers.put_property_name;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Remember if any member of the class, struct, or union is const-
      qualified, including recursively the members of any contained
@@ -8806,6 +8821,7 @@ following the member declaration.
   a_symbol_ptr         rout_sym;
   a_member_decl_info   decl_info;
   a_boolean            is_member_template_rescan;
+  a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
@@ -8877,6 +8893,7 @@ following the member declaration.
     goto next_declaration;
   }  /* if */
   if ((dso_flags & DSO_EXPLICIT) && !(dso_flags & DSO_CONSTRUCTOR)) {
+    /* The keyword "explicit" is allowed only on a constructor declaration. */
     pos_error(ec_explicit_not_allowed, &decl_start_pos);
   }  /* if */
   if (curr_token == tok_semicolon) {
@@ -8897,6 +8914,7 @@ following the member declaration.
       goto next_declaration;
     }  /* if */
   }  /* if */
+  any_decl_other_than_nonstatic_data_member = FALSE;
   /* A declarator list should be present.  Scan it. */
   do {
     a_symbol_locator                  locator;
@@ -8904,6 +8922,7 @@ following the member declaration.
     a_func_info_block                 func_info;
     a_template_symbol_supplement_ptr  tssp;
     a_source_position                 declarator_start_pos;
+    a_boolean                         is_nonstatic_data_member = FALSE;
 
     declarator_start_pos = pos_curr_token;
     add_stop_token(tok_comma);
@@ -9365,6 +9384,7 @@ following the member declaration.
         /* Non-static data member (= field). */
         decl_nonstatic_data_member(&locator, class_type, local_type,
                                    class_state, &decl_info);
+        is_nonstatic_data_member = TRUE;
       }  /* if */
       if (C_dialect == C_dialect_cplusplus) {
         /* Issue an error if there appears to be an attempt to initialize a
@@ -9376,11 +9396,23 @@ following the member declaration.
         }  /* if */
       }  /* if */
     }  /* if */
+    if (!is_nonstatic_data_member) {
+      any_decl_other_than_nonstatic_data_member = TRUE;
+    }  /* if */
     remove_stop_token(tok_comma);
     decl_info.is_first_in_declarator_list = FALSE;
     /* Loop for additional declarators. */
   } while (loop_token(tok_comma));
 next_declaration:;
+  if (any_decl_other_than_nonstatic_data_member &&
+      (decl_info.decl_modifiers.get_property_name != NULL ||
+       decl_info.decl_modifiers.put_property_name != NULL)) {
+      /* __declspec(property(...)) is allowed only on nonstatic data
+         members. */
+    pos_diagnostic(es_discretionary_error,
+                   ec_declspec_property_not_allowed,
+                   &decl_start_pos);
+  }  /* if */
   if (microsoft_mode) {
     /* Restore the default name linkage in case a linkage specification
        appeared among the decl-specifiers. */

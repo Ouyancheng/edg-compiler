@@ -232,7 +232,7 @@ static void change_node_to_operation(an_expr_node_ptr      node,
                                      an_expr_node_ptr      operand);
 static void lower_os_constant(a_constant_ptr constant);
 static void lower_variable(a_variable_ptr variable);
-static void lower_field_list(a_field_ptr field_list);
+static void lower_field_list(a_type_ptr class_type);
 static void lower_field(a_field_ptr field);
 static void lower_routine(a_routine_ptr routine);
 static void lower_label(a_label_ptr label);
@@ -720,9 +720,19 @@ a type identical to base_class_type.  It must be found.
 Macro to test for a zero-length field.  This includes zero-length bit fields
 and (where allowed) incomplete array fields.
 */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* The Microsoft version of this macro also eliminates fields declared with
+   __declspec(property(...)). */
+#define field_has_zero_length(field)                         \
+  ((field)->is_bit_field ? (field)->bit_size == 0 :          \
+                           (skip_typerefs((field)->type)->size == 0 || \
+                            field->get_property_name != NULL || \
+                            field->put_property_name != NULL))
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define field_has_zero_length(field)                         \
   ((field)->is_bit_field ? (field)->bit_size == 0 :          \
                            skip_typerefs((field)->type)->size == 0)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static void add_field(char          *field_name,
@@ -1717,11 +1727,9 @@ class type.
     internal_error("field_at_offset: bad class type");
   }  /* if */
 #endif /* CHECKING */
-#if 0
   /* It may be necessary to come up with a faster way of doing this, such
      as storing two field pointers in the base class entry and a pointer to
      the virtual function table pointer field in the class type supplement. */
-#endif /* 0 */
   for (field_ptr = class_type->variant.class_struct_union.field_list;
        ;
        field_ptr = field_ptr->next) {
@@ -4186,6 +4194,14 @@ added_to_list:;
     for (old_field = class_type->variant.class_struct_union.field_list;
          old_field != NULL;
          old_field = old_field->next) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (old_field->get_property_name != NULL ||
+          old_field->put_property_name != NULL) {
+        /* Do not copy fields declared __declspec(property(...)), since
+           they will be removed. */
+        continue;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Copy a field. */
       copy_field(old_field, subobject_type, &last_field);
     }  /* for */
@@ -4382,7 +4398,7 @@ Do IL lowering on the indicated class/struct/union type.
   saved_error_position = error_position;
   prelower_class_type(class_type);
   /* Lower the nonstatic data members. */
-  lower_field_list(class_type->variant.class_struct_union.field_list);
+  lower_field_list(class_type);
   error_position = class_type->source_corresp.decl_position;
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp != NULL) {
@@ -4925,14 +4941,33 @@ memory region).
 }  /* lower_local_static_variable_init_list */
 
 
-static void lower_field_list(a_field_ptr field_list)
+static void lower_field_list(a_type_ptr class_type)
 /*
-Do IL lowering of the indicated list of fields and everything under it.
+Do IL lowering of the fields of the indicated class and everything under them.
 */
 {
   a_field_ptr field;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_field_ptr prev_field = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-  for (field = field_list; field != NULL; field = field->next) {
+  for (field = class_type->variant.class_struct_union.field_list;
+       field != NULL;
+       field = field->next) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Remove any fields declared __declspec(property(...)). */
+    if (field->get_property_name != NULL ||
+        field->put_property_name != NULL) {
+      if (prev_field == NULL) {
+        class_type->variant.class_struct_union.field_list = field->next;
+      } else {
+        prev_field->next = field->next;
+      }  /* if */
+      field->next = NULL;  /* Defensive programming. */
+      continue;
+    }  /* if */
+    prev_field = field;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     lower_field(field);
   }  /* for */
 }  /* lower_field_list */

@@ -94,11 +94,91 @@ necessarily null-terminated).
   return !err;
 }  /* is_valid_GUID_string */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
+static void scan_declspec_property(a_decl_modifiers_block_ptr  decl_modifiers)
+/*
+Scan the Microsoft C++ mode extension
+
+  __declspec(property(get=gname,put=pname))
+
+The current token is the "property" keyword.  Add the information on
+the property specification to *decl_modifiers.  Return with the closing
+parenthesis of the property list as the current token.
+*/
+{
+  if (next_token() != tok_lparen) {
+    /* Parenthesized list is missing. */
+    error(ec_bad_declspec_property);
+  } else {
+    /* Advance past "property" and the left parenthesis. */
+    (void)get_token();
+    (void)get_token();
+    add_stop_token(tok_rparen);
+    do {
+      a_boolean         is_get = FALSE, is_put = FALSE;
+      a_source_position getput_position;
+      char              *name;
+
+      if (curr_token == tok_identifier) {
+        char *getput = locator_for_curr_id.symbol_header->identifier;
+        if (strcmp(getput, "get") == 0) {
+          is_get = TRUE;
+        } else if (strcmp(getput, "put") == 0) {
+          is_put = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!is_get && !is_put) {
+        /* Expected "get" or "put". */
+        syntax_error(ec_bad_declspec_property);
+        break;
+      }  /* if */
+      getput_position = pos_curr_token;
+      /* Advance past "get" or "put". */
+      (void)get_token();
+      /* Check for "=". */
+      if (curr_token != tok_assign) {
+        syntax_error(ec_exp_assign);
+        break;
+      }  /* if */
+      (void)get_token();
+      if (curr_token != tok_identifier) {
+        /* Expected a name following "get=" or "put=". */
+        syntax_error(ec_bad_declspec_property);
+        break;
+      }  /* if */
+      /* Allocate a copy of the name specified. */
+      name = alloc_il(len_of_curr_token+1);
+      (void)memcpy(name, start_of_curr_token, size_t_arg(len_of_curr_token));
+      name[len_of_curr_token] = '\0';
+      if (is_get) {
+        if (decl_modifiers->get_property_name != NULL) {
+          /* "get" specified more than once. */
+          pos_error(ec_dupl_get_or_put, &getput_position);
+        } else {
+          decl_modifiers->get_property_name = name;
+        }  /* if */
+      } else {
+        if (decl_modifiers->put_property_name != NULL) {
+          /* "put" specified more than once. */
+          pos_error(ec_dupl_get_or_put, &getput_position);
+        } else {
+          decl_modifiers->put_property_name = name;
+        }  /* if */
+      }  /* if */
+      /* Advance past the routine name. */
+      (void)get_token();
+      /* Loop if a comma is next. */
+    } while (loop_token(tok_comma));
+    /* Check for closing parenthesis. */
+    required_token_no_advance(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_rparen);
+  }  /* if */
+}  /* scan_declspec_property */
+
+
 void scan_microsoft_extended_decl_modifiers(
                                     a_boolean                   is_class_decl,
+                                    a_boolean                   is_member_decl,
                                     a_decl_modifiers_block_ptr  decl_modifiers,
                                     a_type_qualifier_set        *qualifiers,
                                     a_boolean                   *err)
@@ -118,12 +198,21 @@ Scan the Microsoft __declspec specifier, which has the form
 		dllimport
 		dllexport
 
+Added for compatibility with MSVC++ 5.0:
+
+                selectany
+                nothrow
+                uuid ( "hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh" )
+                property ( get = xxx, put = yyy )
+
 Return the modifiers that were found.  If an error occurs (e.g., an invalid
 modifier), set err to TRUE.  err is unchanged if there are no errors.
 is_class_decl is TRUE when the modifiers apply to a class declaration
 (e.g., "class __declspec(dllexport) A ...") rather than to a declarator.
 In that case, and in 16-bit Microsoft mode, memory attributes like near
 and far are also allowed; they are returned in *qualifiers.
+is_member_decl is TRUE if the modifiers are being scanned as part of
+the declaration of a class member.
 
 When this routine is called, the current token must be the __declspec
 keyword (or a memory attribute keyword).
@@ -267,27 +356,24 @@ end_of_uuid_string:
                   break;
                 }  /* if */
               }  /* if */
-#if 0
-            } else if (strcmp(modifier, "property") == 0) {
-              if (is_class_decl) {
-                /* "property" is not allowed on a class declaration. */
-                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                               &pos_curr_token, modifier);
-              } else {
-                /* The syntax is
-                     property ( get=..., put=... )
-                   Note: support for the "property" attribute is incomplete. */
-                if (next_token() != tok_rparen) {
+            } else if (!C_mode() && strcmp(modifier, "property") == 0) {
+              if (is_class_decl || !is_member_decl) {
+                /* "property" is not allowed on a class declaration, and
+                   not on a non-member declaration. */
+                pos_diagnostic(es_discretionary_error,
+                               ec_declspec_property_not_allowed,
+                               &pos_curr_token);
+                if (next_token() == tok_lparen) {
                   /* Advance past "property" to the left paren. */
                   (void)get_token();
-                  /* Temporary: if the next token is a left paren, flush all
-                     tokens till the matching right paren is found. */
-                  if (required_token_no_advance(tok_lparen, ec_exp_lparen)) {
-                    flush_until_matching_token();
-                  }  /* if */
+                  /* Flush all tokens till the matching right paren is
+                     found. */
+                  flush_until_matching_token();
                 }  /* if */
+              } else {
+                /* __declspec(property(get=..., put=...)) */
+                scan_declspec_property(decl_modifiers);
               }  /* if */
-#endif /* if 0 */
             } else {
               str_error(ec_bad_declspec_modifier, modifier);
               *err = TRUE;
@@ -305,8 +391,8 @@ end_of_uuid_string:
     }  /* if */
   }  /* for */
 }  /* scan_microsoft_extended_decl_modifiers */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean tag_currently_being_defined(a_type_ptr tag_type)
 /*
@@ -990,6 +1076,7 @@ the template.
       a_boolean  local_err;
 
       scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/TRUE,
+                                             /*is_member_decl=*/FALSE,
                                              &decl_modifiers,
                                              &class_qualifiers, &local_err);
     }  /* if */
@@ -3186,6 +3273,10 @@ Returns TRUE if there is an error in the specifiers.
             case tok_declspec:
               scan_microsoft_extended_decl_modifiers(
                                                /*is_class_decl=*/FALSE,
+                                               /*is_member_decl=*/
+                                                    (input_flags &
+                                                     DSI_IS_MEMBER_DECLARATION)
+                                                                          != 0,
                                                &new_modifiers,
                                                (a_type_qualifier_set *)NULL,
                                                &err);
@@ -3210,6 +3301,25 @@ Returns TRUE if there is an error in the specifiers.
             /* There were no errors; update decl_modifiers to reflect
                this specifier. */
             decl_modifiers->flags |= new_modifiers.flags;
+            /* Check __declspec(property(...)) specifications. */
+            if (new_modifiers.get_property_name != NULL) {
+              if (decl_modifiers->get_property_name != NULL) {
+                /* "get" specified more than once. */
+                pos_error(ec_dupl_get_or_put, &specifier_start_pos);
+              } else {
+                decl_modifiers->get_property_name =
+                                               new_modifiers.get_property_name;
+              }  /* if */
+            }  /* if */
+            if (new_modifiers.put_property_name != NULL) {
+              if (decl_modifiers->put_property_name != NULL) {
+                /* "put" specified more than once. */
+                pos_error(ec_dupl_get_or_put, &specifier_start_pos);
+              } else {
+                decl_modifiers->put_property_name =
+                                               new_modifiers.put_property_name;
+              }  /* if */
+            }  /* if */
             if (is_parameter) {
               /* For parameters, warn if a storage class modifier is used. */
               pos_warning(ec_bad_param_storage_class, &specifier_start_pos);

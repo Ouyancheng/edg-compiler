@@ -7739,10 +7739,14 @@ Clear the fields of a function information block to default values.
 
 void clear_decl_modifiers_block(a_decl_modifiers_block_ptr  decl_modifiers)
 /*
+Clear the block passed around the declaration routines to represent
+declaration modifiers.
 */
 {
   decl_modifiers->flags = DM_NONE;
   decl_modifiers->uuid_string = NULL;
+  decl_modifiers->get_property_name = NULL;
+  decl_modifiers->put_property_name = NULL;
 }  /* clear_decl_modifiers_block */
 
 
