@@ -1127,7 +1127,6 @@ static void determine_arg_match_level(
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
                                a_boolean            try_user_conversions,
-                               a_boolean            is_match_for_this_param,
                                an_arg_match_summary *arg_summary)
 /*
 Determine how well an actual argument matches a formal parameter with type
@@ -1138,9 +1137,7 @@ only be used for selector operands, i.e., those being matched up with
 a "this" parameter).  arg_summary is set to indicate the level of match.
 This is used in resolving overloaded function calls.  See ARM 13.2.
 User-defined conversions will be attempted only if try_user_conversions
-is TRUE; it must be FALSE if arg_type is non-NULL.  This match is being
-done for the "this" parameter of a function if is_match_for_this_param
-is TRUE.
+is TRUE; it must be FALSE if arg_type is non-NULL.
 */
 {
   an_operand        *orig_arg_operand;
@@ -1161,7 +1158,6 @@ is TRUE.
   db_enter(4, "determine_arg_match_level");
   clear_arg_match_summary(arg_summary);
   arg_summary->param_type = param_type;
-  arg_summary->is_match_for_this_param = is_match_for_this_param;
   if (arg_type == NULL) {
     /* Get the actual argument type from arg_operand. */
     arg_type = arg_operand->type;
@@ -1559,6 +1555,52 @@ have_level:;
 }  /* determine_arg_match_level */
 
 
+static void determine_selector_match_level(a_type_ptr           arg_type,
+                                           a_type_ptr           param_type,
+                                           an_arg_match_summary *match_summary)
+/*
+Determine how well a selector argument of type arg_type matches a "this"
+parameter with type param_type.  match_summary is set to indicate the level
+of match.  If the anachronism of allowing a call of a non-const function
+with a const selector is enabled, allow that kind of mismatch here.
+*/
+{
+  determine_arg_match_level((an_operand *)NULL, arg_type, param_type,
+                            /*try_user_conversions=*/FALSE, match_summary);
+  match_summary->is_match_for_this_param = TRUE;
+  if (match_summary->match_level == aml_none &&
+      (cfront_2_1_mode
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                       || microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                        )) {
+    /* No match.  Try the anachronism of calling a function that
+       does not require a const "this" with a const selector.  See also
+       set_up_for_conversion_function_call. */
+    /* Make the type that the "this" parameter would have if the routine
+       were const, and try again. */
+    a_type_ptr this_param_base_type = type_pointed_to(param_type);
+    a_type_ptr const_this_param_base_type =
+                                      make_qualified_type(this_param_base_type,
+                                                          TQ_CONST);
+    a_type_ptr const_this_param_type =
+                                 make_pointer_type(const_this_param_base_type);
+    const_this_param_type = make_qualified_type(const_this_param_type,
+                                                TQ_CONST);
+    determine_arg_match_level((an_operand *)NULL, arg_type,
+                              const_this_param_type,
+                              /*try_user_conversions=*/FALSE,
+                              match_summary);
+    match_summary->is_match_for_this_param = TRUE;
+    if (match_summary->match_level != aml_none) {
+      /* Anachronism -- calling non-const function with const object. */
+      match_summary->const_anachronism = TRUE;
+      match_summary->anachronism_used = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* determine_selector_match_level */
+
+
 void selector_match_with_this_param(
                                an_operand           *bound_function_selector,
                                a_boolean            selector_is_object_pointer,
@@ -1580,9 +1622,8 @@ cannot be) const- or volatile-qualified.  bound_function_selector is
 not used in that case, and can be NULL.
 */
 {
-  a_type_ptr selector_type, this_param_base_type;
-  a_type_ptr const_this_param_base_type;
-  a_type_ptr ptr_selector_type, const_this_param_type;
+  a_type_ptr selector_type;
+  a_type_ptr ptr_selector_type;
 
   db_enter(4, "selector_match_with_this_param");
   if (rout != NULL &&
@@ -1599,7 +1640,6 @@ not used in that case, and can be NULL.
       internal_error("selector_match_with_this_param: this_param_type NULL");
     }  /* if */
 #endif /* CHECKING */
-    this_param_base_type = type_pointed_to(this_param_type);
     /* Determine the effective selector type. */
     selector_type = bound_function_selector->type;
     if (!m_is_error_type(selector_type)) {
@@ -1610,38 +1650,9 @@ not used in that case, and can be NULL.
     ptr_selector_type = make_pointer_type(selector_type);
     /* See how well the selector type and the "this" parameter type
        match up. */
-    determine_arg_match_level((an_operand *)NULL, ptr_selector_type,
-                              this_param_type,
-                              /*try_user_conversions=*/FALSE,
-                              /*is_match_for_this_param=*/TRUE,
-                              this_match_summary);
-    if ((cfront_2_1_mode
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                         || microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                          ) &&
-        this_match_summary->match_level == aml_none) {
-      /* No match.  Try the cfront anachronism of calling a function that
-         does not require a const "this" with a const selector.  See also
-         set_up_for_conversion_function_call. */
-      /* Make the type that the "this" parameter would have if the routine
-         were const, and try again. */
-      const_this_param_base_type = make_qualified_type(this_param_base_type,
-                                                       TQ_CONST);
-      const_this_param_type = make_pointer_type(const_this_param_base_type);
-      const_this_param_type = make_qualified_type(const_this_param_type,
-                                                  TQ_CONST);
-      determine_arg_match_level((an_operand *)NULL, ptr_selector_type,
-                                const_this_param_type,
-                                /*try_user_conversions=*/FALSE,
-                                /*is_match_for_this_param=*/TRUE,
-                                this_match_summary);
-      if (this_match_summary->match_level != aml_none) {
-        /* Anachronism -- calling non-const function with const object. */
-	this_match_summary->const_anachronism = TRUE;
-	this_match_summary->anachronism_used = TRUE;
-      }  /* if */
-    }  /* if */
+    determine_selector_match_level(ptr_selector_type,
+                                   this_param_type,
+                                   this_match_summary);
   }  /* if */
   db_exit();
 }  /* selector_match_with_this_param */
@@ -1892,7 +1903,6 @@ that are marked "explicit" are ignored.
                                     param->type,
                                     /*try_user_conversions=*/
                                                   !effects_copy_initialization,
-                                    /*is_match_for_this_param=*/FALSE,
                                     arg_match);
           /* If no match is possible, go on to the next function. */
           if (arg_match->match_level == aml_none) goto reject_function;
@@ -1938,19 +1948,21 @@ that are marked "explicit" are ignored.
           if (implicit_selector_type != NULL) {
             /* The selector is an implicit "this->".  See how well it
                matches.  It might not match at all. */
-            determine_arg_match_level((an_operand *)NULL,
-                                      implicit_selector_type,
-                                      this_param_type,
-                                      /*try_user_conversions=*/FALSE,
-                                      /*is_match_for_this_param=*/TRUE,
-                                      this_match);
+            determine_selector_match_level(implicit_selector_type,
+                                           this_param_type,
+                                           this_match);
             /* Set the "next" pointer again, because it is cleared by
-               determine_arg_match_level. */
+               determine_selector_match_level. */
             this_match->next = this_match_next;
             if (this_match->match_level == aml_none) {
-              /* Mismatch.  Remember this case to select a different
-                 error message if it turns out no function matches. */
-              *matched_except_for_missing_selector = TRUE;
+              /* Mismatch. */
+              a_type_ptr this_class = type_pointed_to(this_param_type);
+              a_type_ptr sel_class  = type_pointed_to(implicit_selector_type);
+              if (!is_same_class_or_base_class_thereof(sel_class, this_class)){
+                /* "this" and the member function are in unrelated classes,
+                   so it's as if no selector appears. */
+                *matched_except_for_missing_selector = TRUE;
+              }  /* if */
               goto reject_function;
             }  /* if */
           } else {
@@ -6791,7 +6803,7 @@ is used only in C++ mode.
   }  /* if */
 #endif  /* CHECKING */
   /* Check for the cfront anachronism that allows a non-const function to be
-     called for a const selector (see selector_match_with_this_param). */
+     called for a const selector (see determine_selector_match_level). */
   if (cfront_2_1_mode &&
       is_const_qualified_type(operand->type) &&
       !is_const_qualified_type(type_pointed_to(this_param_type))) {

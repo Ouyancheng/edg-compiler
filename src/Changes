@@ -1,5 +1,23 @@
 Version 2.34
 
+10/9/96 Misleading error message on overload resolution corrected
+
+A misleading error message came out in some cases where overload resolution
+could not find a suitable function, where the object on which the call was
+being done is const, and there was a function that would be suitable if
+it were const.  The misleading message is no longer issued, and a correct
+(generic) error is issued instead.
+
+  struct XX {};
+  struct YY {
+    virtual XX fx();
+    XX fx(const XX&);
+    void foo(XX) const;
+  };
+  void YY::foo(XX xx) const {
+    XX xx1 = fx(xx);  // Better error message here
+  }
+
 10/9/96 Initializing a char array with a string literal
 
 An error is no longer issued when a field of type array-of-char is
