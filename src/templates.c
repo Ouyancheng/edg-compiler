@@ -60,7 +60,7 @@ yet been defined.
           db_symbol(template_sym, "\nbased on: ", 2);
         }  /* if */
 #endif /* DEBUG */
-        rescan_cached_tokens(p_token_cache);
+        rescan_reusable_cache(p_token_cache);
         (void)push_scope(sck_template_instantiation, tssp->declaration_scope,
                          type, (a_routine_ptr)NULL);
         if (curr_token == tok_struct) {
