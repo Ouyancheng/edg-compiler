@@ -2592,6 +2592,7 @@ to indicate whether an enumeration is actually defined.
       }  /* if */
     }  /* if */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   if (*declares_something && !(*defines_something)) {
     /* Update source range information in the secondary-decl entry. */
     a_source_sequence_entry_ptr     ssep;
@@ -2618,6 +2619,7 @@ to indicate whether an enumeration is actually defined.
       sssdp->decl_pos_info = dpsp;
     }  /* if */
   }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Add the type to the types list for the current scope.  This is done
      after the closing brace, if any, to get the IL types list in the right
