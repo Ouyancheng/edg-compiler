@@ -23,8 +23,7 @@ program as the front end is produced.
 #define VAR_INITIALIZERS 1
 #endif /* ifdef STANDALONE_IL_DISPLAY */
 
-#include "basics.h"
-#include "host_envir.h"
+#include "basic_hdrs.h"
 
 /*
 This code is only needed if the IL is to be displayed, either in the
@@ -35,32 +34,17 @@ NEED_IL_DISPLAY and a call of il_display should be added in the front end.
 */
 #if NEED_IL_DISPLAY
 
-#include "target.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+/* Additional header files. */
 #include "il_display.h"
-#include "debug.h"
-#include "il.h"
 #include "il_walk.h"
-#include "float_pt.h"
-#include "const_ints.h"
-#include "lang_feat.h"
-#include "types.h"
-#include "il_to_str.h"
-
 #if STANDALONE_IL_DISPLAY
-
-#include "mem_manage.h"
-
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
 #include "il_read.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-
-/* Include files needed only to define storage for global variables
-   in the main program. */
-
-#include "cmd_line.h"
-
-
 #endif /* STANDALONE_IL_DISPLAY */
 
 static a_boolean

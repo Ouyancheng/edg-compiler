@@ -13,14 +13,18 @@ target.c -- Target configuration support
 
 */
 
-#include "basics.h"
+#include "basic_hdrs.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 #if CHECKING
 
-#include "host_envir.h"
-#include "target.h"
-#include "error.h"
-#include "const_ints.h"
+/* Header files common to all files. */
+#include "fe_common.h"
 
 void check_target_configuration(void)
 /*
