@@ -3714,7 +3714,7 @@ indicated by class_type.
           (ssep-2)->kind == (a_scope_kind)sck_class_reactivation) {
         scope_depth_to_skip = scope_depth - 2;
       }  /* if */
-    } else if (ssep->kind == sck_function_access) {
+    } else if (ssep->kind == (a_scope_kind)sck_function_access) {
       /* A function access scope.  See if class_type is on its
          befriending list. */
       scope_routine = ssep->assoc_routine;
@@ -3880,7 +3880,7 @@ Programming Language", 2nd Edition.
           (ssep-2)->kind == (a_scope_kind)sck_class_reactivation) {
         scope_depth_to_skip = scope_depth - 2;
       }  /* if */
-    } else if (ssep->kind == sck_function_access) {
+    } else if (ssep->kind == (a_scope_kind)sck_function_access) {
       /* A function access scope.  See if class_type is on its
          befriending list. */
       scope_routine = ssep->assoc_routine;
