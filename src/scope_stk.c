@@ -4025,13 +4025,18 @@ NULL.
           a_variable_ptr  vp = ctsp->assoc_scope->variables;
           /* Diagnose undefined and unused member functions: */
           for (; rp != NULL; rp = rp->next) {
-            if (rp->source_corresp.referenced ||
+            if ((rp->source_corresp.referenced
+#if IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+                 || rp->overridden_function_for_covariant_return_type == NULL
+#endif /* IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL... */
+                                                                          ) ||
                 (rp->is_virtual && !rp->pure_virtual &&
                  !rp->compiler_generated)) {
               /* Virtual functions are in some way always "referenced" by the
                  virtual function table, but pure virtual functions and
                  compiler generated virtual functions (destructors) do not
-                 always need to have a definition. */
+                 always need to have a definition.  Similarly, no diagnostic
+                 should be issued for IA-64 virtual call thunks. */
               if (!routine_defined(rp)) {
                 pos_sy_error(ec_never_defined,
                              &rp->source_corresp.decl_position,

@@ -1,5 +1,22 @@
 Version 3.4
 
+9/11/03  IA-64 ABI: Abort on virtual thunk
+
+In some relatively rare circumstances, the front end could trigger an
+internal error when processing a virtual call thunk for the IA-64 ABI.
+(This requires that both IA64_ABI and DO_IL_LOWERING be set to TRUE.)
+For example:
+
+  struct A { virtual void f(); };
+  struct B { virtual void g(); };
+  namespace {
+    struct D: A, B {
+      virtual void g() {}  // Associated thunk triggers internal error.
+    };
+  }
+
+This is now fixed.
+
 9/11/03  C++-generating back end: Avoid line break between template name
          and "<" for MSVC++
 
