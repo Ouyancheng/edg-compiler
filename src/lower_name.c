@@ -218,6 +218,7 @@ other mangled names.
     }  /* if */
     scp->name = mangled_name;
     scp->name_has_been_mangled = TRUE;
+    scp->final_name_mangling_pending = !final;
   }  /* if */
   return buffer;
 }  /* end_mangling */
@@ -2614,10 +2615,11 @@ name in the routine entry.
   a_boolean                suppress_param_encoding;
   char                     *mangled_name;
 
-  if (routine->source_corresp.name_has_been_mangled ||
+  if ((routine->source_corresp.name_has_been_mangled &&
+       !routine->source_corresp.final_name_mangling_pending) ||
       !function_name_mangling_needed(routine, &suppress_param_encoding)) {
-    /* The name has already been mangled, or it doesn't need to be
-       mangled, so just return it. */
+    /* The name has already been (completely) mangled, or it doesn't need
+       to be mangled, so just return it. */
     mangled_name = routine->source_corresp.name;
     /* The routine should not be unnamed. */
     check_assertion(mangled_name != NULL);
@@ -2720,8 +2722,9 @@ or a static data member (e.g., not a file scope variable).
   a_mangling_control_block mctl;
   char                     *mangled_name;
 
-  if (variable->source_corresp.name_has_been_mangled) {
-    /* The name has already been mangled, so just return it. */
+  if (variable->source_corresp.name_has_been_mangled &&
+      !variable->source_corresp.final_name_mangling_pending) {
+    /* The name has already been completely mangled, so just return it. */
     mangled_name = variable->source_corresp.name;
     /* The variable should not be unnamed. */
     check_assertion(mangled_name != NULL);
@@ -3067,13 +3070,13 @@ the indicated source correspondence.  This means checking for
 compression and truncation.
 */
 {
-  char *name = scp->name;
-
-  if (name != NULL) {
+  if (scp->final_name_mangling_pending) {
     a_mangling_control_block mctl;
+    char                     *name = scp->name;
     sizeof_t                 length = strlen(name)+1;
 
     error_position = scp->decl_position;
+    check_assertion(name != NULL);
     /* One reason for calling start_mangling here is to zero
        mangling_text_buffer->size. */
     /* If neither compression nor truncation is done, the name pointer
@@ -3085,6 +3088,7 @@ compression and truncation.
     name = compress_mangled_name(name, scp, &mctl);
     name = truncate_mangled_name(name, scp, &mctl);
     scp->name = name;
+    scp->final_name_mangling_pending = FALSE;
   }  /* if */
 }  /* final_entity_name_mangling */
 
@@ -3681,7 +3685,8 @@ mangled names.
     add_number_to_mangled_name((unsigned long)scope_number, &mctl);
     add_str_to_mangled_name("__", &mctl);
     if (routine->source_corresp.name != NULL) {
-      if (routine->source_corresp.name_has_been_mangled) {
+      if (routine->source_corresp.name_has_been_mangled &&
+          !routine->source_corresp.final_name_mangling_pending) {
         check_assertion(!routine->source_corresp.
                                 mangled_name_cannot_be_included_in_other_name);
         /* Using the mangled name as written is important if the routine
