@@ -1376,7 +1376,7 @@ path entries are also on the base classes list of class_type.
   for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
     if (bcdp->direct) ++count;
   }  /* for */
-  check_assertion(base_class->direct == (count == 1));
+  check_assertion((a_boolean)base_class->direct == (count == 1));
   /* There should be exactly one preferred derivation. */
   count = 0;
   for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
