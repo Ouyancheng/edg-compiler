@@ -90,9 +90,9 @@ static a_seq_number
 		curr_output_seq_number;
 static a_column_number
 		curr_output_column;
-			/* A value of 0 for the column indicates that nothing
-			   has been written, i.e., a line has not been
-			   begun yet. */
+			/* The number of characters written to the current
+			   line of output.  Zero means nothing has been
+			   written so far. */
 static a_boolean
 		output_position_is_pending;
 			/* TRUE if desired_output_position has been set to
@@ -594,6 +594,7 @@ file.
     (void)fprintf(f_C_output, " \"%s\"", curr_output_file->file_name);
   }  /* if */
   (void)putc('\n', f_C_output);
+  curr_output_column = 0;
 }  /* write_line_directive */
 
 
@@ -679,8 +680,6 @@ complete token.
 {
   /* Adjust the output position if a set_output_position call is pending. */
   if (output_position_is_pending) adjust_output_position();
-  /* Start the current line if we have not started it yet. */
-  if (curr_output_column == 0) curr_output_column = 1;
   (void)putc(ch, f_C_output);
   /* Keep track of the current column number on output. */
   curr_output_column++;
@@ -704,8 +703,6 @@ complete token.
 
   /* Adjust the output position if a set_output_position call is pending. */
   if (output_position_is_pending) adjust_output_position();
-  /* Start the current line if we have not started it yet. */
-  if (curr_output_column == 0) curr_output_column = 1;
   p = str;
   while ((ch = *p++) != '\0') {
     (void)putc(ch, f_C_output);
@@ -730,7 +727,6 @@ it is too long).
     /* The current line number is unknown, so do not use a #line directive. */
     end_output_line();
   }  /* if */
-  curr_output_column = 1;
 }  /* continue_on_new_line */
 
 
@@ -746,9 +742,7 @@ several), which means a long line could be broken before or after it.
 
   /* Adjust the output position if a set_output_position call is pending. */
   if (output_position_is_pending) adjust_output_position();
-  /* Start the current line if we have not started it yet. */
-  if (curr_output_column == 0) curr_output_column = 1;
-  if (curr_output_column + len > MAX_OUTPUT_LINE_SIZE + 1) {
+  if (curr_output_column + len > MAX_OUTPUT_LINE_SIZE) {
     /* This token will not fit on the current line, so start a new line. */
     continue_on_new_line();
   }  /* if */
