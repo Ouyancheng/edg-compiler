@@ -4194,10 +4194,10 @@ Display the indicated sequence number lookup entry.
 */
 {
   disp_ptr("next", (char*)ptr->next, iek_seq_number_lookup_entry);
-  disp_unsigned_long("first seq number", (unsigned long)ptr->first);
-  disp_unsigned_long("last seq number", (unsigned long)ptr->last);
-  disp_unsigned_long("line number", (unsigned long)ptr->line_number);
-  disp_ptr("source file", (char*)ptr->source_file, iek_source_file);
+  disp_unsigned_long("first", (unsigned long)ptr->first);
+  disp_unsigned_long("last", (unsigned long)ptr->last);
+  disp_unsigned_long("line_number", (unsigned long)ptr->line_number);
+  disp_ptr("source_file", (char*)ptr->source_file, iek_source_file);
 }  /* disp_seq_number_lookup_entry */
 
 static void disp_object_lifetime(an_object_lifetime_ptr ptr)
