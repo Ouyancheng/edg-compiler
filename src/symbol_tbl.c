@@ -7289,9 +7289,13 @@ End a name scope by popping an entry off the scope stack.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   }  /* for */
   il_scope = ssep->il_scope;
-  if (C_dialect == C_dialect_cplusplus && kind == (a_scope_kind)sck_function) {
-    /* Generate bodies for virtual destructors of local classes, if any. */
-    check_virtual_destructors(il_scope->types);
+  if (C_dialect == C_dialect_cplusplus) {
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_block) {
+      /* If there are any local classes, check for compiler-generated
+         virtual destructors for which bodies should be put out. */
+      check_virtual_destructors(il_scope->types);
+    }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
