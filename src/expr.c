@@ -26,6 +26,7 @@ expr.c -- Expression scanning routines.
 #include "cmd_line.h"
 #include "types.h"
 #include "decls.h"
+#include "decl_inits.h"
 #include "target.h"
 
 /*
@@ -3202,7 +3203,7 @@ because the feature is used to implement offsetof, a standard feature.
 
 
 static a_dynamic_init_ptr add_array_nonconstant_aggregate_init(
-                                         a_dynamic_init_ptr dip,
+                                         a_dynamic_init_ptr element_dip,
                                          a_targ_size_t      number_of_elements)
 /*
 Change the indicated dynamic initialization into a dynamic initialization
@@ -3212,7 +3213,7 @@ known only at runtime).  Return a pointer to the dynamic init entry for
 the entire array.
 */
 {
-  a_constant_ptr dyn_init_con, init_repeat_con, aggr_con;
+  a_dynamic_init_ptr  array_dip;
 
   /* The IL structure is
        dynamic init (ck_nonconstant_aggregate) ->
@@ -3221,17 +3222,10 @@ the entire array.
              constant (ck_dynamic_init) ->
                original dynamic init (ck_constructor)
   */
-  dyn_init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-  dyn_init_con->variant.dynamic_init = dip;
-  init_repeat_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-  init_repeat_con->variant.init_repeat.constant = dyn_init_con;
-  init_repeat_con->variant.init_repeat.count = number_of_elements;
-  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-  aggr_con->variant.aggregate.first_constant = init_repeat_con;
-  aggr_con->variant.aggregate.last_constant = init_repeat_con;
-  dip = alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-  dip->variant.constant = aggr_con;
-  return dip;
+  array_dip =
+          alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+  repeat_nonconstant_init(element_dip, array_dip, (int)number_of_elements);
+  return array_dip;
 }  /* add_array_nonconstant_aggregate_init */
 
 
