@@ -1179,9 +1179,9 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
 }  /* initializer */
 
 
-static void repeat_constructor_init(a_dynamic_init_ptr  ctor_dip,
-                                    a_dynamic_init_ptr  new_dip,
-                                    int                 count)
+void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
+                             a_dynamic_init_ptr  new_dip,
+                             int                 count)
 /*
 Define a dynamic init entry for a nonconstant aggregate, which will always be
 for an array whose elements are to be initialized by a series of constructor
@@ -1192,6 +1192,13 @@ the number of elements in the array to be initialized.
 {
   a_constant_ptr           aggr_con, repeat_con, dynamic_init_con;
 
+  /* The IL structure is
+       dynamic init (ck_nonconstant_aggregate) ->
+         constant (ck_aggregate) ->
+           constant (ck_init_repeat) ->
+             constant (ck_dynamic_init) ->
+               original dynamic init (ck_constructor)
+  */
   /* Create a ck_aggregate constant. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   new_dip->variant.constant = aggr_con;
@@ -1207,7 +1214,7 @@ the number of elements in the array to be initialized.
   /* Set the ck_dynamic_init_constant to point to the dynamic init entry
      representing the constructor call. */
   dynamic_init_con->variant.dynamic_init = ctor_dip;
-}  /* repeat_constructor_init */
+}  /* repeat_nonconstant_init */
 
 
 a_boolean def_initializer(a_symbol_ptr       sym,
@@ -1285,7 +1292,7 @@ the default constructor (if one exists) is called.
             } else {
               count = (int)(var_type->size / tp->size);
             }  /* if */
-            repeat_constructor_init(ctor_dip, &local_di, count);
+            repeat_nonconstant_init(ctor_dip, &local_di, count);
           }  /* if */
           /* Build the repeat construct. */
           gen_dynamic_initialization(var, &local_di, err_pos);
@@ -1322,7 +1329,7 @@ the default constructor (if one exists) is called.
             count = (int)(var_type->size / tp->size);
           }  /* if */
           /* Build the repeat construct. */
-          repeat_constructor_init(dtor_dip, &local_di, count);
+          repeat_nonconstant_init(dtor_dip, &local_di, count);
         }  /* if */
         gen_dynamic_initialization(var, &local_di, err_pos);
         /* Don't set def_init_performed.  A dik_none dynamic initialization
@@ -1936,7 +1943,7 @@ scan_arg_for_scan_initialization:
         } else {
           count = (int)(array_type->size / tp->size);
         }  /* if */
-        repeat_constructor_init(ctor_dip, dip, count);
+        repeat_nonconstant_init(ctor_dip, dip, count);
       }  /* if */
       /* Attach the new dynamic init entry to the constructor initializer. */
       cip->initializer = dip;
@@ -2081,7 +2088,7 @@ though neither constructors nor initialization is involved here.)
             } else {
               count = (int)(array_type->size / tp->size);
             }  /* if */
-            repeat_constructor_init(dtor_dip, dip, count);
+            repeat_nonconstant_init(dtor_dip, dip, count);
           }  /* if */
           /* Attach the new dynamic init entry to the constructor
              initializer. */
