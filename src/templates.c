@@ -2770,12 +2770,23 @@ entry is pushed on the scope stack.
                                        defines_something);
         discard_token_cache(&local_token_cache);
       } else {
+	a_def_arg_expr_fixup_ptr  daefp;
         if (sym->kind == (a_symbol_kind)sk_member_function) {
           tssp = sym->variant.routine.instance_ptr->template_info;
         } else {
           tssp = sym->variant.template_info;
         }  /* if */
         tssp->variant.function.func_info = func_info;
+	/* Link the default argument list from the template supplement
+	   onto the end of the list of current default arguments.  The
+	   list in the supplement must be for arguments that follow the
+	   new list (otherwise it would be an error).  Find the end
+	   of the current list and link the existing list to the end. */
+	daefp = curr_default_args;
+	if (daefp != NULL) {
+	  while (daefp->next != NULL) daefp = daefp->next;
+	  daefp->next = tssp->variant.function.def_arg_expr_list;
+	}  /* if */
         tssp->variant.function.def_arg_expr_list = curr_default_args;
         tssp->parameters = template_param_list;
         tssp->declaration_scope = scope_stack[decl_scope_level].number;
