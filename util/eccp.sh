@@ -4,6 +4,10 @@
 # CPFE may be set to the executable to use for the C++ front end.
 # If CPFE is not set, "cpfe" is used.
 #
+# Predefined preprocessing variables.
+#
+defines="-Dsparc -Dunix -Dsun"
+#
 # Directory where the C++ include files are to be found.
 #
 INCLDIR=/edg/cpfe/include
@@ -65,7 +69,7 @@ lfiles=
 #
 # A list of options to pass to front end.
 #
-feoptions=
+feoptions=$defines
 #
 # Symbolic debug output for cc.
 #
