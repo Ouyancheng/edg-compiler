@@ -282,7 +282,7 @@ correspondence pointer to point to the copy.
 
     check_assertion(in_file_scope(ptr));
     checked_trans_unit_corresp_pointer_of(ptr) = copy;
-    (void)memcpy(copy, ptr, length);
+    (void)memcpy(copy, ptr, size_t_arg(length));
   }  /* if */
 }  /* copy_string_entry */
 

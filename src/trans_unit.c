@@ -351,7 +351,7 @@ a pointer to the entry created.
   tup->primary_scope = NULL;
   clear_scope_pointers_block(&tup->file_scope_pointers_block);
   tup->source_file = NULL;
-  memzero(&tup->il_header, sizeof(an_il_header));
+  memzero((char *)&tup->il_header, sizeof(an_il_header));
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
    tup->last_scope_orphaned_list_header = NULL;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
