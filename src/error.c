@@ -1417,8 +1417,8 @@ error code.
     case ec_assignment_to_this:
       m = "assignment to \"this\" (anachronism)";
       break;
-    case ec_overload_ignored:
-      m = "\"overload\" ignored (anachronism)";
+    case ec_overload_anachronism:
+      m = "\"overload\" no longer allowed (anachronism)";
       break;
     case ec_anon_union_member_access:
       m = "invalid anonymous union -- nonpublic member not allowed";

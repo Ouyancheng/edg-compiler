@@ -762,7 +762,7 @@ continue as though "overload" had not been seen.
   if (is_overload_specifier()) {
     /* Issue an anachronism diagnostic indicating that "overload" is
        no longer allowed.  This can be either an error or a warning. */
-    diagnostic(anachronism_error_severity, ec_overload_ignored);
+    diagnostic(anachronism_error_severity, ec_overload_anachronism);
     /* Bypass "overload" */
     (void)get_token();
     if (curr_token == tok_identifier) {
@@ -5638,7 +5638,7 @@ process_class_specifier:
           if (is_overload_specifier()) {
             /* Special case -- the "overload" pseudo keyword.  We ignore it and
                advance to the next token. */
-            warning(ec_overload_ignored);
+            diagnostic(anachronism_error_severity, ec_overload_anachronism);
             break;
           } else {
             /* Check for a constructor declaration.  The following conditions
@@ -7405,7 +7405,7 @@ of local variables (and types, etc.) of functions and in blocks.
         /* An empty declaration is ignored (as an extension in ANSI mode). */
 #if 0
         warning(ec_extra_semicolon);
-#else
+#else /* 0 */
         if (strict_ansi_mode) {
           warning(ec_extra_semicolon);
         } else {
