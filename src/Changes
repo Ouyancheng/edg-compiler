@@ -1,5 +1,11 @@
 Version 2.37
 
+7/29/97   Microsoft compatibility: "constructor call" returns an lvalue
+
+In Microsoft bugs mode, a "constructor call" like X(y) -- which is actually
+a functional-notation cast to type X -- is now considered to produce an
+lvalue.  This is necessary because MSVC++ allows things like &X(y).
+
 7/28/97   Microsoft compatibility: (expr, 0) considered null pointer constant
 
 In Microsoft mode, an expression of the form (expr, 0), where the second

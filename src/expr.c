@@ -4053,13 +4053,6 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     if (is_an_lvalue(&operand) &&
         is_expression_operand(&operand) &&
         is_polymorphic_class_type(typeid_type)) {
-      /* This processing (checking the complete object type) is not exactly
-         what the WP calls for.  The WP singles out the cases *p and p[x],
-         though it probably means that p is an arbitrary, and there's a test
-         suite test that checks something like typeid(*f(x)).  However,
-         Bjarne's paper, N0198=92-0121, voted in at the 3/93 Portland meeting,
-         included examples using references.  The present processing seems
-         closer to the intent, it's safe, and it's easier to do. */
       if (operand_complete_object_type(&operand,
                                        /*call_case=*/FALSE) != NULL) {
         /* The complete object type can be determined, so runtime processing
@@ -5913,7 +5906,8 @@ The expression indicated by *operand is being cast to the type type_cast_to.
 This is a static_cast or old-style cast.  If the cast can be done by
 a user-defined conversion, do it and return *processed TRUE.  If the
 cast could only be done by a user-defined conversion and there was some
-error with that, set *err TRUE as well.
+error with that, set *err TRUE as well.  This routine is called only in
+C++ mode.
 */
 {
   a_boolean    cast_to_reference, failed;
@@ -5984,6 +5978,14 @@ error with that, set *err TRUE as well.
                                /*force_temp_for_class_bitwise_copy=*/
                                                            !any_cfront_mode());
           *processed = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (microsoft_bugs && is_class_struct_union_type(type_cast_to)) {
+            /* In Microsoft C++ mode, a function that returns a class type is
+               considered to return an lvalue. */
+            conv_class_operand_to_object_pointer(operand);
+            conv_object_pointer_to_lvalue(operand);
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (failed) {
           /* A user-defined conversion was our only hope, and it failed.
              The error has already been issued. */
@@ -6951,6 +6953,14 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       make_constructor_dynamic_init(ctor_routine, arg_expr_list,
                                     /*result_is_addr=*/FALSE,
                                     start_position, result);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_bugs) {
+        /* In Microsoft C++ mode, a constructor is considered to return
+           an lvalue. */
+        conv_class_operand_to_object_pointer(result);
+        conv_object_pointer_to_lvalue(result);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
