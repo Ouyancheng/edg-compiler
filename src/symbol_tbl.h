@@ -1518,6 +1518,9 @@ public members are accessible, which means
    ((bcp)->access == (an_access_specifier)as_protected &&             \
     have_protected_member_access_privilege(derived_class)))
 
+extern a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
+                                         an_id_lookup_options_set options);
+
 extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                                      an_id_lookup_options_set options);
 

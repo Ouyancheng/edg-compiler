@@ -3910,10 +3910,9 @@ a pointer to it in *symbol_ptr.
   a_boolean     saved_referenced_flag;
 
   db_enter(3, "decl_typedef");
-  if ((sym = normal_id_lookup(locator, IDL_NO_OPTIONS)) != NULL) {
-    if (sym->decl_scope == scope_stack[decl_scope_level].number &&
-        (sym->kind == (a_symbol_kind)sk_type ||
-         (C_dialect == C_dialect_cplusplus && is_type_symbol(sym)))) {
+  if ((sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS)) != NULL) {
+    if (sym->kind == (a_symbol_kind)sk_type ||
+        (C_dialect == C_dialect_cplusplus && is_type_symbol(sym))) {
       /* Sym is a type name symbol from the current scope.  Issue an error
          if this is an illegal redefinition of the name; otherwise, reuse
          the existing symbol. */
@@ -4928,30 +4927,6 @@ symbol.  Otherwise, return NULL.
 }  /* curr_tag_symbol */
 
 
-static a_symbol_ptr curr_scope_tag_symbol(a_symbol_kind kind)
-/*
-The current token is an identifier.  If it represents a tag of the indicated
-kind from the current scope, return a pointer to the corresponding symbol.
-Otherwise, return NULL.
-*/
-{
-  a_symbol_ptr    sym = symbol_list_from_locator(locator_for_curr_id);
-  a_scope_number  scope_number;
-
-  /* Look for a symbol in the current scope for which the kind matches that
-     of the scope level specified by the caller. */
-  scope_number = scope_stack[decl_scope_level].number;
-  for (; sym != NULL; sym = sym->next) {
-    if (sym->decl_scope == scope_number && sym->kind == kind) {
-      /* Found it. */
-      break;
-    }  /* if */
-  }  /* for */
-  return sym;
-}  /* curr_scope_tag_symbol */
-
-
-
 a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                            a_symbol_locator  *locator,
                            a_boolean         check_for_vacuous_decl,
@@ -5029,7 +5004,14 @@ caution when modifying this routine.
     /* Tag symbol is a template class reference. */
     *tag_resolution = FALSE;
   } else {
-    tag_sym = curr_scope_tag_symbol(tag_kind);
+    /* Look for a tag symbol in the current scope.  If the tag kind does
+       not match the tag being processed, set the symbol to NULL and reset
+       the locator. */
+    tag_sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
+    if (tag_sym != NULL && tag_sym->kind != tag_kind) {
+      tag_sym = NULL;
+      locator_for_curr_id.specific_symbol = NULL;
+    }  /* if */
     /* Save the symbol locator for this identifier before doing the
        get_token. */
     *locator = locator_for_curr_id;

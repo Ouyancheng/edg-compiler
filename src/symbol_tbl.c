@@ -4203,6 +4203,54 @@ locator.  In the case of an ambiguity, return NULL.
 }  /* find_nested_type_symbol */
 
 
+a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
+                                  an_id_lookup_options_set options)
+/*
+Lookup, in the current scope, the identifier indicated by *locator and
+return a pointer to the symbol found, or NULL if the symbol is not found.
+options contains bits indicating special restrictions, i.e., the symbol
+must a tag.  Projection symbols are not considered in the lookup.
+*/
+{
+  a_symbol_ptr    sym;
+  a_scope_number  scope_number;
+  a_boolean	  must_be_tag = (options & IDL_MUST_BE_TAG);
+
+/* Local macro that tests whether or not a symbol is acceptable. */
+#define is_acceptable_symbol(sym)                                       \
+   ((!must_be_tag || is_tag_symbol(sym)) &&				\
+    sym->kind != (a_symbol_kind)sk_projection)
+
+#if CHECKING
+  if ((options & ~IDL_MUST_BE_TAG) != 0) {
+    internal_error("curr_scope_id_lookup: invalid option");
+  }  /* if */
+#endif /* CHECKING */
+  sym = locator->specific_symbol;
+  if (sym != NULL) {
+    /* The locator is for a specific symbol, so return the symbol for it. */
+  } else if (is_error_locator(*locator)) {
+    /* The locator is an error locator, so return NULL (i.e., no symbol
+       found). */
+    sym = NULL;
+  } else {
+    /* Look for a symbol in the current scope for which the kind matches that
+       of the scope level specified by the caller. */
+    scope_number = scope_stack[decl_scope_level].number;
+    sym = symbol_list_from_locator(*locator);
+    for (; sym != NULL; sym = sym->next) {
+     if (sym->decl_scope == scope_number && is_acceptable_symbol(sym)) {
+        /* Found it. */
+        break;
+      }  /* if */
+    }  /* for */
+    locator->specific_symbol = sym;
+  }  /* if */
+  return sym;
+#undef is_acceptable_symbol
+}  /* curr_scope_id_lookup */
+
+
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                               an_id_lookup_options_set options)
 /*
