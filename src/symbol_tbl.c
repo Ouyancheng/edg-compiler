@@ -1521,9 +1521,11 @@ be issued by the caller.
   } else if (C_dialect == C_dialect_cplusplus &&
              is_tag_symbol(fundamental_symbol_of(old_sym))) {
     /* The old symbol is a tag symbol. */
-    if (!is_type_symbol(fundamental_symbol_of(new_sym))) {
-      /* The new one is a non-type symbol.  It will be placed at
-         the front of the list automatically. */
+    a_symbol_ptr fund_new_sym = fundamental_symbol_of(new_sym);
+    if (!is_type_symbol(fund_new_sym) &&
+        !is_class_template_symbol(fund_new_sym)) {
+      /* The new one is not a type symbol or a class template name.  It
+         will be placed at the front of the list automatically. */
       err = FALSE;
     }  /* if */
   } else if ((cfront_compatibility_mode || C_dialect == C_dialect_pcc) &&
