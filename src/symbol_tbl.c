@@ -4892,7 +4892,8 @@ end_lookup:
          criteria. */
       if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
         a_type_ptr      class_type = ssep->assoc_type;
-	if (class_type == last_ctor_or_dtor_sym->class_of_which_a_member) {
+	if (last_ctor_or_dtor_sym != NULL &&
+            class_type == last_ctor_or_dtor_sym->class_of_which_a_member) {
 	  sym = check_for_cfront_name_lookup_bug(class_type, sym, locator,
 						 options);
           /* This looks like we can find an alternate symbol when emulating
