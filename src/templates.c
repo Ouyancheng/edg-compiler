@@ -973,8 +973,15 @@ make_new_type:
           new_ptp = alloc_param_type(tp);
           if (ptp->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
-            new_ptp->default_arg_expr = copy_expr_tree(ptp->default_arg_expr,
-                                                       /*clone_temps=*/TRUE);
+            if (ptp->type_involves_template_param) {
+#if 0
+              /* We need to convert the expression to the correct type. */
+              new_ptp->default_arg_expr = ???
+#endif /* if 0 */
+            } else {
+              new_ptp->default_arg_expr = copy_expr_tree(ptp->default_arg_expr,
+                                                         /*clone_temps=*/TRUE);
+            }  /* if */
           }  /* if */
           /* Add the new param type entry to the param types list. */
           if (prev_ptp == NULL) {
@@ -2415,9 +2422,11 @@ parameter types to see if tparam_type appears in it.
 
   ptp = rout_type->variant.routine.extra_info->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
-    if (template_param_appears_in_type_tree(tparam_type, ptp->type)) {
-      found = TRUE;
-      break;
+    if (ptp->type_involves_template_param) {
+      if (template_param_appears_in_type_tree(tparam_type, ptp->type)) {
+        found = TRUE;
+        break;
+      }  /* if */
     }  /* if */
   }  /* for */
   return found;
