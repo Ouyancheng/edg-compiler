@@ -1123,6 +1123,10 @@ are handled in mem_manage_init.)
     register_pch_saved_variables(saved_vars);
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  mmap_initialized = FALSE;
+  okay_to_free_mem_blocks = FALSE;
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 }  /* mem_manage_one_time_init */
 
 
@@ -1150,10 +1154,6 @@ of the front end.
   /* If we are not allocating the memory regions in special memory
      mapped area, then we need to record all malloc calls. */
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  mmap_initialized = FALSE;
-  mmap_size_allocated = 0;
-  f_mmap_file = NULL;
-  okay_to_free_mem_blocks = FALSE;
 #if DEBUG
   num_mapped_bytes_allocated = 0;
   num_mapped_bytes_from_pch = 0;
