@@ -6462,7 +6462,13 @@ class_type if any are needed.
     /* Define any special virtual function tables needed during subobject
        construction and destruction. */
     if (ctsp->construction_vtbls != NULL) {
-      check_assertion(need_determined);
+      if (!need_determined) {
+        definition_needed = 
+                 virtual_function_table_should_be_defined_here(class_type,
+                                                               &force_static,
+                                                               &first_virtual);
+        need_determined = TRUE;
+      }  /* if */
       define_construction_vtbls(class_type, ctsp->construction_vtbls,
                                 definition_needed, force_static,
                                 first_virtual);
@@ -6479,7 +6485,13 @@ class_type if any are needed.
     /* Virtual base classes have their own separate tables. */
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
       if (bcp->base_construction_vtbls != NULL) {
-        check_assertion(need_determined);
+        if (!need_determined) {
+          definition_needed = 
+                 virtual_function_table_should_be_defined_here(class_type,
+                                                               &force_static,
+                                                               &first_virtual);
+          need_determined = TRUE;
+        }  /* if */
         define_construction_vtbls(class_type, bcp->base_construction_vtbls,
                                   definition_needed,
                                   force_static, first_virtual);
