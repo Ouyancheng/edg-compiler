@@ -799,11 +799,6 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
     /* An identifier.  Use the characters of the identifier. */
     src = locator_for_curr_id.symbol_header->identifier;
     len = strlen(src);
-  } else if (is_keyword_token(curr_token)) {
-    /* A token initially cached as a keyword that should be treated as an
-       identifier. */
-    src = token_names[(int)curr_token];
-    len = strlen(src);
   } else if (curr_token == tok_string_literal) {
     if (is_error_constant(&const_for_curr_token)) {
       /* We encountered a misformed string literal.  An error should
@@ -818,6 +813,11 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
       /* Subtract one character to ignore the null terminator. */
       len = const_for_curr_token.variant.string.length - size;
     }  /* if */
+  } else if (is_keyword_token(curr_token)) {
+    /* A token initially cached as a keyword that should be treated as an
+       identifier. */
+    src = token_names[(int)curr_token];
+    len = strlen(src);
   } else {
     /* Some other token kind */
     valid_token = FALSE;
@@ -866,7 +866,18 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
   a_constant		constant;
 
   *err = FALSE;
-  if (curr_token == tok_identifier || is_keyword_token(curr_token)) {
+  if (curr_token == tok_string_literal) {
+    if (is_error_constant(&const_for_curr_token)) {
+      /* We encountered a misformed string literal.  An error should
+         have been issued already. */
+      check_assertion(total_errors != 0);
+      *err = TRUE;
+      set_error_constant(&constant);
+      result = &constant;
+    } else {
+      result = &const_for_curr_token;
+    }  /* if */
+  } else if (curr_token == tok_identifier || is_keyword_token(curr_token)) {
     /* Convert the identifier into a string constant.  If a token was
        initially scanned as a keyword, treat is as an identifier with the
        name of the keyword. */
@@ -885,17 +896,6 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
     constant.variant.string.value =
                           copy_string_to_region(file_scope_region_number, str);
     result = &constant;
-  } else if (curr_token == tok_string_literal) {
-    if (is_error_constant(&const_for_curr_token)) {
-      /* We encountered a misformed string literal.  An error should
-         have been issued already. */
-      check_assertion(total_errors != 0);
-      *err = TRUE;
-      set_error_constant(&constant);
-      result = &constant;
-    } else {
-      result = &const_for_curr_token;
-    }  /* if */
   } else {
     /* Some other token kind */
     valid_token = FALSE;
@@ -1578,17 +1578,22 @@ Display a Microsoft attribute entry, for debugging purposes.
     fprintf(f_debug, "  argument %d (%s): ", arg_number++, arg->param_name);
     switch (arg->kind) {
       case msaak_integer:
+        fprintf(f_debug, "%ld", (long)arg->variant.integer_value);
         break;
       case msaak_boolean:
+        fprintf(f_debug, "%s", arg->variant.integer_value ? "true" : "false");
         break;
       case msaak_string:
+        db_constant(arg->variant.string_constant);
         break;
       case msaak_other:
         fprintf(f_debug, "%s", arg->variant.other_string);
         break;
       case msaak_uuid:
+        fprintf(f_debug, "%s", arg->variant.uuid_string);
         break;
       case msaak_enumeration:
+        fprintf(f_debug, "%d", arg->variant.enum_value);
         break;
     }  /* switch */
     fprintf(f_debug, "\n");
