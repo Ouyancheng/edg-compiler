@@ -2272,15 +2272,17 @@ to FALSE if the entity being declared is not initializable.
       }  /* if */
     }  /* if */
     if (locator_for_curr_id.is_qualified_name) {
-      if (locator_for_curr_id.is_class_member &&
-          !(input_flags & DI_IS_FRIEND_DECL)) {
-        /* If this declaration appears in the immediate context of a class
-           definition and the current token is an identifier representing the
-           name of the current class, see if this is a qualified name and if so
-           change it into a simple name (e.g., A::x becomes x, its equivalent
-           in A's scope). This needs to be done after the check for the cfront
-           member typedef processing that is done above. */
-        (void)simplify_curr_class_qualified_name();
+      if (locator_for_curr_id.is_class_member) {
+        if (!(input_flags & DI_IS_FRIEND_DECL)) {
+          /* If this declaration appears in the immediate context of a class
+             definition and the current token is an identifier representing
+             the name of the current class, see if this is a qualified name
+             and if so change it into a simple name (e.g., A::x becomes x,
+             its equivalent in A's scope).  This needs to be done after the
+             check for the cfront member typedef processing that is done
+             above. */
+          (void)simplify_curr_class_qualified_name();
+        }  /* if */
       } else if ((scope_stack[depth_scope_stack].kind ==
                                     (a_scope_kind)sck_namespace) &&
                  (qualifier_namespace_ptr(locator_for_curr_id) ==
@@ -2310,7 +2312,9 @@ to FALSE if the entity being declared is not initializable.
               sym->kind == (a_symbol_kind)sk_function_template) {
             /* It is a member function.  Its parameters should be scanned
                with the original class reactivated. */
-            reactivate_scope = TRUE;
+            if (!(input_flags & DI_IS_FRIEND_DECL)) {
+              reactivate_scope = TRUE;
+            }  /* if */
             *parenthesized_initializer_allowed = FALSE;
             if (is_constructor_symbol(sym)) {
               *is_constructor = TRUE;
@@ -2347,12 +2351,14 @@ to FALSE if the entity being declared is not initializable.
           }  /* if */
         } else {
           /* This must be a namespace-qualified name. */
-          nsp = qualifier_namespace_ptr(locator_for_curr_id);
-          if (nsp != NULL) {
-            /* Push the namespace extension scope.  It will be popped when
-               scanning the declarator has been completed. */
-            push_namespace_reactivation_scope(nsp);
-            *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
+          if (!(input_flags & DI_IS_FRIEND_DECL)) {
+            nsp = qualifier_namespace_ptr(locator_for_curr_id);
+            if (nsp != NULL) {
+              /* Push the namespace extension scope.  It will be popped when
+                 scanning the declarator has been completed. */
+              push_namespace_reactivation_scope(nsp);
+              *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
