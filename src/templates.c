@@ -466,7 +466,6 @@ Instantiate the body of the template function associated with tip.
   }  /* if */
 #endif /* DEBUG */
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
-  rout_ptr->is_instantiation = TRUE;
   /* Set the linkage and storage class. */
   if (rout_sym->class_of_which_a_member != NULL) {
     /* Member functions are handled in check_class_linkage. */
@@ -495,7 +494,8 @@ Instantiate the body of the template function associated with tip.
   /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tssp->token_cache);
   scan_function_body(rout_ptr, &tssp->variant.function.func_info,
-                     SFB_NEW_STRUCT_STMT_STACK_REQUIRED);
+                     (SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
+                      SFB_IS_INSTANTIATION));
   /* Pop the template instantiation scope. */
   pop_scope();
   --(tssp->pending_instantiations);
@@ -1809,6 +1809,7 @@ the function instantiation entry and set all the pointers.
          point at each other. */
       tip->instance_sym = rout_sym;
       rout_sym->variant.routine.instance_ptr = tip;
+      rout_sym->variant.routine.ptr->is_instantiation = TRUE;
       /* Normally, function instantiation entries are not marked for actual
          instantiation (that is, for generation of the function body) until
          there is an invocation of the function.  This is partly under user
