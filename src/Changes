@@ -1,10 +1,15 @@
 Version 3.0
 
+4/11/02  C++-generating back end, prototype instantiations, ->* and .*
+
+The operators .* and ->* were swapped in output from the C++-generating
+back end for prototype instantiations of templates.  Now fixed.
+
 4/10/02  Microsoft compatibility: use of specialized member template
          for copy-assignment
 
 In Microsoft bugs mode the front end may now select an explicit
-specialization of a assignment operator template for copy-
+specialization of an assignment operator template for copy-
 assignment operations.  For example:
 
   template<typename T>
@@ -15,7 +20,7 @@ assignment operations.  For example:
   };
   int main() {
     S<int> s1, s2;
-    s1 = s2;  // Uses specialization defined above in microsoft bugs
+    s1 = s2;  // Uses specialization defined above in Microsoft bugs
               // mode (instead of generated copy-assignment operator
   }           // in ANSI mode).
 
@@ -162,7 +167,7 @@ similarly:
 
 The existing mangling code for sizeof, "sz", has been extended so that
 it can deal with the case of sizeof(expression), when it has a
-template-dependent type and and therefore can't be represented simply
+template-dependent type and therefore can't be represented simply
 as sizeof(type).  We've chosen to use "e" instead of the type for this
 case, which solves the main problem without opening another problem,
 that of coming up with manglings to encode all possible non-constant

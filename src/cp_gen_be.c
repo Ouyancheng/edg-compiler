@@ -6122,12 +6122,12 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* Handled above. */
           unexpected_condition();
         case eok_pm_dot_field:
-          /* Generic "->*" field selection. */
-          opstr = "->*";
-          break;
-        case eok_pm_arrow_field:
           /* Generic ".*" field selection. */
           opstr = ".*";
+          break;
+        case eok_pm_arrow_field:
+          /* Generic "->*" field selection. */
+          opstr = "->*";
           break;
         case eok_static_cast:
         case eok_reinterpret_cast:
