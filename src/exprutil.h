@@ -271,12 +271,11 @@ typedef int a_transformation_options_set;
 #define copy_operand(from, to) (*(to) = *(from))
 
 /*
-Macro that is TRUE if the operand is an error operand.  Note that
-some operands have type == NULL, so be careful about testing that.
+Macro that is TRUE if the operand is an error operand.
 */
 #define is_error_operand(operand)					\
-	(((operand)->kind == (an_operand_kind)ok_error) ||		\
-	 ((operand)->type != NULL && is_error_type((operand)->type)))
+	((operand)->kind == (an_operand_kind)ok_error ||		\
+	 is_error_type((operand)->type))
 
 /*
 Macro that is TRUE if the operand is an expression operand.
