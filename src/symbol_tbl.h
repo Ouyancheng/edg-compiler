@@ -185,19 +185,25 @@ typedef struct a_symbol_locator {
   unsigned int	is_template_id:1;
 			/* TRUE if the coalesced identifier is a template-id
 			   (i.e., template-name < template-arg-list >). */
+  unsigned int	is_class_member:1;
+			/* TRUE if is_qualified_name is TRUE and the entity
+			   pointed to by the parent field is a class
+			   (not a namespace). */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
 			   if this pointer is non-NULL, it is the result of
 			   the most recent lookup of this identifier (e.g.,
 			   by normal_id_lookup). */
-  a_type_ptr	qualifier_class_type;
-			/* If is_qualified_name is TRUE, this points to the
-			   type specified by the qualifier, if any.
-			   If is_vacuous_destructor is TRUE this points
-			   to the type of the qualifier, which may not
-			   actually be a class type (e.g., for int::~int
-			   this will point to the type "int"). */
+  a_parent_class_or_namespace
+		parent;
+			/* If is_qualified_name is TRUE, this points to
+			   either the class or the namespace specified
+			   by the qualifier (depending on the value of the
+			   is_class_member flag).  If is_vacuous_destructor
+			   is TRUE this points to the type of the qualifier,
+			   which may not actually be a class type (e.g.,
+			   for int::~int this will point to the type "int"). */
   union {
     /* When both is_operator_name and is_conversion_name are FALSE, both
        variants are undefined. */
@@ -214,6 +220,21 @@ typedef struct a_symbol_locator {
 			   name is scanned. */
   } variant;
 } a_symbol_locator;
+
+/*
+If a locator refers to a class member, return a pointer to the parent class
+type, otherwise return NULL.
+*/
+#define qualifier_class_type(locator)					\
+  ((locator).is_class_member ? (locator).parent.class_type : (a_type_ptr)NULL)
+
+/*
+If a locator refers to a namespace member, return a pointer to the parent
+namespace, otherwise return NULL.
+*/
+#define qualifier_namespace(locator)					\
+  ((locator).is_class_member ? (a_namespace_ptr)NULL			\
+                             : (locator).parent.namespace_ptr)
 
 
 EXTERN a_symbol_locator

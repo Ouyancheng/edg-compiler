@@ -4169,7 +4169,7 @@ not specifically allow this syntax, but it is supported by cfront.
   if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
       is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL) &&
       locator_for_curr_id.is_qualified_name) {
-    if (locator_for_curr_id.qualifier_class_type == ssep->assoc_type &&
+    if (qualifier_class_type(locator_for_curr_id) == ssep->assoc_type &&
         locator_for_curr_id.is_global_qualified_name == FALSE) {
       is_member_id = TRUE;
       /* Reset the fields in the locator to make it appear as if the
@@ -4177,7 +4177,8 @@ not specifically allow this syntax, but it is supported by cfront.
       locator_for_curr_id.is_qualified_name = FALSE;
       locator_for_curr_id.is_file_scope_qualified_name = FALSE;
       locator_for_curr_id.is_global_qualified_name = FALSE;
-      locator_for_curr_id.qualifier_class_type = NULL;
+      locator_for_curr_id.parent.class_type = NULL;
+      locator_for_curr_id.is_class_member = FALSE;
       /* Accepting qualified member names is an extension so issue a
          diagnostic in strict ANSI mode. */
       if (strict_ansi_mode) {

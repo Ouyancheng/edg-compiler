@@ -6350,11 +6350,10 @@ by the options.  Returns TRUE if any errors were diagnosed.
        data member.  The class portion must specify the prototype
        instantiation (i.e., the argument list must match the
        template parameter list). */
-    if (locator_for_curr_id.is_qualified_name &&
-        locator_for_curr_id.qualifier_class_type != NULL &&
+    a_type_ptr	type = qualifier_class_type(locator_for_curr_id);
+    if (locator_for_curr_id.is_qualified_name && type != NULL &&
         options & GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION) {
       a_symbol_ptr  type_sym;
-      a_type_ptr	type = locator_for_curr_id.qualifier_class_type;
       while (type->source_corresp.is_class_member) {
         type = type->source_corresp.parent.class_type;
       }  /* while */
@@ -6546,7 +6545,7 @@ identifiers to be recognized and/or allowed.
 When the GID_VACUOUS_DTOR_RECOGNIZED flag is set in "options" a qualified
 destructor name will be recognized for non-class types and for class
 types that have no destructors.  This is used to handle
-constructs such as "p->int::~int".  Note that the qualifier_class_type field
+constructs such as "p->int::~int".  Note that the parent.class_type field
 in the locator normally contains the type of the qualifier portion of
 a qualified name.  For nonclass vacuous destructors, however, it contains the
 type of the thing after the "::~".  This is necessary because vacuous
@@ -7000,9 +6999,10 @@ qualified name.
      the coalescing now that we know what we are scanning. */
   if (is_ptr_to_member) {
     curr_token = tok_ptr_to_member;
-    /* The qualifier class type is the only field of the locator
-       that is valid when curr_token is tok_ptr_to_member. */
-    locator_for_curr_id.qualifier_class_type = class_type;
+    /* parent.class_type and is_class_member are the only fields of the
+       locator that are valid when curr_token is tok_ptr_to_member. */
+    locator_for_curr_id.parent.class_type = class_type;
+    locator_for_curr_id.is_class_member = TRUE;
     /* Clear the is_template_id flag in the locator in case it was set before
        this was recognized to be ptr-to-member. */
     locator_for_curr_id.is_template_id = FALSE;
@@ -7166,7 +7166,8 @@ wrapup:
     locator_for_curr_id.is_global_qualified_name = is_global_qualified_name;
     locator_for_curr_id.is_file_scope_qualified_name =
 						is_file_scope_qualified_name;
-    locator_for_curr_id.qualifier_class_type = class_type;
+    locator_for_curr_id.parent.class_type = class_type;
+    locator_for_curr_id.is_class_member = class_type != NULL;
 		    locator_for_curr_id.has_been_coalesced = TRUE;
     locator_for_curr_id.is_vacuous_destructor_reference = is_vacuous_dtor;
     locator_for_curr_id.is_nonclass_destructor = is_nonclass_dtor;
@@ -7233,7 +7234,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
       an_error_code	error_code;
       a_source_position	identifier_pos;
       identifier_pos = locator_for_curr_id.source_position;
-      class_type = locator_for_curr_id.qualifier_class_type;
+      class_type = qualifier_class_type(locator_for_curr_id);
       is_vacuous_dtor = locator_for_curr_id.is_vacuous_destructor_reference;
       return_value = TRUE;
       /* Perform error checks as specified in "options". */
@@ -7345,7 +7346,8 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
        Also restore the vacuous destructor flag to assist in error
        diagnosis by the caller.  */
     make_specific_symbol_error_locator(&locator_for_curr_id);
-    locator_for_curr_id.qualifier_class_type = class_type;
+    locator_for_curr_id.parent.class_type = class_type;
+    locator_for_curr_id.is_class_member = class_type != NULL;
     locator_for_curr_id.is_vacuous_destructor_reference = is_vacuous_dtor;
     *err = TRUE;
   }  /* if */

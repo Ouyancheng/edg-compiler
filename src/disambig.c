@@ -599,7 +599,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
       if (decl_class_type != NULL) {
         /* Return a pointer to the class of which a member (if any) of the
            declarator. */
-        *decl_class_type = locator_for_curr_id.qualifier_class_type;
+        *decl_class_type = qualifier_class_type(locator_for_curr_id);
         /* Clear the may_be_decl flag to suppress further scanning. */
         *may_be_decl = FALSE;
         goto done;

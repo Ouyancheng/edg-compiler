@@ -5789,7 +5789,7 @@ and "class_type" indicates the class in which the declaration occurs.
      value from the locator (if not NULL). */
   if (locator_for_curr_id.specific_symbol->kind ==
                                               (a_symbol_kind)sk_undefined) {
-    local_parent_class = locator_for_curr_id.qualifier_class_type;
+    local_parent_class = qualifier_class_type(locator_for_curr_id);
   } else {
     /* In processing a qualified name the specific_symbol field of the locator
        will have been filled in. */
@@ -5807,7 +5807,7 @@ and "class_type" indicates the class in which the declaration occurs.
     /* Qualified name must identify a member of a base class of the current
        class.  Don't issue this error if we don't know the base class.  This
        can only occur if we have an error locator in which the
-       qualifier_class_type field is NULL. */
+       parent.class_type field is NULL. */
     if (local_parent_class != NULL) error(ec_bad_base_class);
     goto done;
   } else if (bcp->ambiguous) {
@@ -6348,7 +6348,7 @@ Scan the body of a class definition, including the base classes list.
           }  /* if */
           /* Check for access adjustment declaration. */
           if (is_qualified_name_start() &&
-              locator_for_curr_id.qualifier_class_type != class_type &&
+              qualifier_class_type(locator_for_curr_id) != class_type &&
               !locator_for_curr_id.is_global_qualified_name &&
               locator_for_curr_id.is_qualified_name &&
               next_token() == tok_semicolon) {

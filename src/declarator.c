@@ -2031,7 +2031,7 @@ are NULL.
       based_not_allowed_here(based_var);
       /* Upon return from is_ptr_to_member_declarator_start the current
          token is tok_ptr_to_member. */
-      class_type = locator_for_curr_id.qualifier_class_type;
+      class_type = qualifier_class_type(locator_for_curr_id);
       if (class_type == NULL) {
         /* It looks like a pointer-to-member declarator, but there was some
            error in the class qualifier (e.g., nonclassname::*).  We don't
@@ -2241,7 +2241,7 @@ to FALSE if the entity being declared is not initializable.
     if (any_cfront_mode()) {
       /* Provide support for an exploitable cfront bug. */
       if (locator_for_curr_id.is_qualified_name &&
-          locator_for_curr_id.qualifier_class_type != NULL &&
+          qualifier_class_type(locator_for_curr_id) != NULL &&
           input_flags & DI_IS_TYPEDEF_DECLARATION) {
         /* We have a typedef declaration involving what appears to be a
            qualified name, but cfront interprets it as a kind of member
@@ -2256,7 +2256,7 @@ to FALSE if the entity being declared is not initializable.
         check_assertion(locator_for_curr_id.specific_symbol == NULL);
         /* Force function_declarator to add an implicit-this-param pointer
            to the routine type. */
-        *p_member_parent_type = locator_for_curr_id.qualifier_class_type;
+        *p_member_parent_type = qualifier_class_type(locator_for_curr_id);
         *output_flags |= DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
         /* Clear the is_qualified_name flag in the locator, but keep the
            qualifer_class_type around, in case this is a recursive declarator
@@ -2280,7 +2280,7 @@ to FALSE if the entity being declared is not initializable.
     if (coalesce_and_lookup_qualified_name(options, ilm_normal, &err)) {
       /* See if the name is a qualified name, like "A::x" or "::j". */
       if (locator_for_curr_id.is_qualified_name) {
-        *p_member_parent_type = locator_for_curr_id.qualifier_class_type;
+        *p_member_parent_type = qualifier_class_type(locator_for_curr_id);
         if (*p_member_parent_type != NULL) {
           a_boolean     reactivate_scope = FALSE;
 
@@ -2656,8 +2656,8 @@ The syntax is:
       *output_flags |= DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
       /* Force function_declarator to add an implicit-this-param pointer
          to the routine type. */
-      check_assertion(locator->qualifier_class_type != NULL);
-      member_parent_type = locator->qualifier_class_type;
+      member_parent_type = qualifier_class_type(*locator);
+      check_assertion(member_parent_type != NULL);
     }  /* if */
     if (local_do_flags & DO_CLASS_SCOPE_DEACTIVATION_REQUIRED) {
       /* A class scope was reactivated to scan a static data member or a

@@ -2165,7 +2165,7 @@ bound with the function in *bound_function_selector.
       /* Watch out for error cases like p->int::~float.  Also, in
          some error cases like p->~xxx, where xxx is either undefined
          or not a type name, class type will be NULL. */
-      dtor_type = locator_for_curr_id.qualifier_class_type;
+      dtor_type = qualifier_class_type(locator_for_curr_id);
       if (is_error_locator(locator_for_curr_id) || dtor_type == NULL) {
         err = TRUE;
       }  /* if */
@@ -2239,7 +2239,8 @@ bound with the function in *bound_function_selector.
               is_vacuous_destructor_reference = TRUE;
               locator_for_curr_id.is_vacuous_destructor_reference = TRUE;
               dtor_type = class_struct_union_type;
-              locator_for_curr_id.qualifier_class_type = dtor_type;
+              locator_for_curr_id.parent.class_type = dtor_type;
+              locator_for_curr_id.is_class_member = TRUE;
               need_member_sym_check = FALSE;
             }  /* if */
           }  /* if */

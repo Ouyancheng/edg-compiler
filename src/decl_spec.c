@@ -1371,7 +1371,7 @@ is a that of a constructor.
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   if (locator_for_curr_id.symbol_header == tag_sym->header &&
       (!locator_for_curr_id.is_qualified_name ||
-       locator_for_curr_id.qualifier_class_type == class_type)) {
+       qualifier_class_type(locator_for_curr_id) == class_type)) {
     /* The name is the same as that of a class being defined.  This is treated
        as a constructor declaration if the next two tokens are a left paren
        and declaration start token.  Use token caching in the look-ahead,
