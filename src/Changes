@@ -1,10 +1,38 @@
 Version 2.27
 
+12/14/94 Internal error when using nontype function template parameters
+
+An internal error would occur when calling a function template that
+has nontype template parameters.  This has been fixed.  Note that
+nontype template parameters are not yet supported on function
+templates.
+
+  template <int I> int f(int a[I]) { return 0; }
+  int g()
+  {
+    int a[1];
+    return f(a);
+  }
+
 12/13/94 IL CHANGE: added static_temp to enk_temp_init
 
 The enk_temp_init expression node now has a static_temp flag that
 indicates that the temporary must be static (e.g., for a temporary to
 which a static reference is bound).
+
+12/13/94 Missing delimiters and error recovery while caching templates
+
+The caching of function template bodies has been improved to prevent
+it from silently swallowing the body of subsequent functions when
+a delimiter is missing in the template body.  An error may or may
+not be issued depending on whether the function is instantiated.
+
+  template <class T> void f(T)
+  {
+    int i = (1 + 2;
+  }
+
+  int main(){}
 
 12/13/94 Incomplete classes nested within anonymous unions
 

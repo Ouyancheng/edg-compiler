@@ -4056,6 +4056,7 @@ as the current token; otherwise, it is consumed.
           param_sym = tpp->param_symbol;
           if (param_sym->kind != (a_symbol_kind)sk_type) {
             pos_error(ec_not_a_type_arg, &param_sym->decl_position);
+            tssp->variant.function.cannot_be_called = TRUE;
           } else {
 	    /* Make sure that all template parameters are used by
 	       function parameter types and not just by parameters
