@@ -15,12 +15,16 @@ getopt.h -- command line option processing.
 
 #if __SYSV__ && !__VMS__
 
-/* External declarations for getopt. */
-#ifdef __USLC__
-#include <stdlib.h>
-#else /* !defined(__USLC__) */
-int getopt(int argc, char * argv[], char *optstring);
-#endif /* defined(__USLC__) */
+/* External declarations for getopt.  On some systems the last two
+   parameters are const and on some they are not.  By default we
+   assume that they are const.  On systems for which this is
+   not correct, the configuration flag GETOPT_PARAMS_ARE_NOT_CONST
+   must be defined. */
+#ifndef GETOPT_PARAMS_ARE_NOT_CONST
+int getopt(int argc, char * const * argv, const char *optstring);
+#else /* defined(GETOPT_PARAMS_ARE_NOT_CONST) */
+int getopt(int argc, char ** argv, char *optstring);
+#endif /* defined(GETOPT_PARAMS_ARE_NOT_CONST) */
 extern char *optarg;
 extern int optind, opterr;
 
@@ -38,7 +42,7 @@ int		opterr = 1;
 			/* If non-zero, produce an error message on
 			   a bad option. */
 
-int getopt(int argc, char *argv[], char *optstring)
+int getopt(int argc, char * const argv[], const char *optstring)
 /*
 Fetch a command-line option.  This routine is a functional analogue of
 the System V getopt routine (see the SVID, getopt(BA_LIB)).  argc and
