@@ -3979,7 +3979,8 @@ them unless wchar_t is char.
 {
   an_integer_kind    centity_int_kind;
   a_token_cache      cache;
-  a_cached_token_ptr ctp, ctp_next;
+  a_cached_token_ptr ctp, ctp_next, first_string_token = NULL;
+  a_boolean          more_than_one_string = FALSE;
 
   db_enter(5, "concat_adjacent_string_literals");
   check_assertion_str(!fetch_pp_tokens && do_string_literal_concatenation,
@@ -4006,6 +4007,15 @@ them unless wchar_t is char.
     /* Save the current token (a string literal) by adding it to the token
        cache. */
     cache_curr_token(&cache);
+    /* Remember the first string token (there may be pragma entries preceding
+       it in the cache). */
+    if (first_string_token == NULL) {
+      first_string_token = cache.last_token;
+    } else {
+      /* There is more than one string literal, so concatenation will have
+         to be done below. */
+      more_than_one_string = TRUE;
+    }  /* if */
     /* Scan the next token.  Suppress string literal concatenation so that
        when scanning something like
          "aaa" "bbb" "ccc"
@@ -4024,32 +4034,38 @@ them unless wchar_t is char.
               char_int_kind_from_string_type(const_for_curr_token.type)) break;
     /* This string literal is okay, and will be added to the concatenation
        in the token cache. */
-    /* Process pragmas between string literals before going on to the next
-       token.  This is done so that the pragmas between the strings do
-       not go into the cache. */
-    process_curr_token_pragmas();
-    recalc_any_initial_get_token_tests_needed();
   }  /* for */
   /* Here, all the adjacent string literals have been captured in a token
      cache.  Concatenate them into a single string literal. */
-  if (cache.first_token->next == NULL) {
+  if (!more_than_one_string) {
     /* The common degenerate case of a single string literal requires no
        concatenation. */
   } else {
+    a_cached_token_ptr last_token;
     /* More than one string literal -- concatenate. */
     concat_string_literals(&cache, centity_int_kind);
     /* The constants have been concatenated into the first constant in the
-       token cache.  Discard the token cache entries for the tokens after
-       the first one. */
-    for (ctp = cache.first_token->next; ctp != NULL; ctp = ctp_next) {
+       token cache (which might not be the first entry in the cache, if there
+       are pragma entries first).  Discard the token cache entries for the
+       string literals tokens after that first one. */
+    last_token = first_string_token;
+    for (ctp = first_string_token->next; ctp != NULL; ctp = ctp_next) {
       ctp_next = ctp->next;
-      free_cached_token(ctp);
-    }  /* for */
-    cache.first_token->next = NULL;
-    cache.last_token = cache.first_token;
+      if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+        /* Keep a pragma entry (this is a pragma entry that appeared between
+           string literals). */
+        last_token->next = ctp;
+        last_token = ctp;
+      } else {
+        /* Free a string literal token entry. */
+        free_cached_token(ctp);
 #if DEBUG
-    cache.token_count = 1;
+        cache.token_count--;
 #endif /* DEBUG */
+      }  /* if */
+    }  /* for */
+    last_token->next = NULL;
+    cache.last_token = last_token;
   }  /* if */
   /* Stick the remaining single string literal back onto the input token
      stream (ahead of the non-string-literal token that stopped the loop). */

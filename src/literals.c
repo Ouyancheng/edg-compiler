@@ -831,10 +831,11 @@ void concat_string_literals(a_token_cache_ptr cache,
 /*
 Concatenate two or more string literals (or wide string literals) contained
 in the indicated token cache, and replace the constant in the first
-cached token with the constant for the concatenation.  (The rest of the
+cached string token with the constant for the concatenation.  (The rest of the
 cached tokens are left as they are; the caller removes and frees them.)
 Some of the constants may be error constants if there were malformed
 string literals in the input; in that case, the output is an error constant.
+Some of the entries in the token cache may be for pragmas; they are ignored.
 This routine implements the lexical concatenation of section 2.1.1.2, phase
 6, of the C standard.  The nulls from the initial strings are discarded in
 doing the concatenation, and the one from the last string is copied as
@@ -845,7 +846,7 @@ centity_int_kind indicates the underlying character type.
 */
 {
   a_targ_size_t      total_len = 0, str_len, null_len;
-  a_cached_token_ptr ctp;
+  a_cached_token_ptr ctp, first_string_token = NULL;
   a_boolean          any_error_constant = FALSE;
   a_constant_ptr     concat_con, con;
   char               *new_str;
@@ -862,10 +863,13 @@ centity_int_kind indicates the underlying character type.
   }  /* if */
   /* Determine the length of the concatenation. */
   for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
+    /* Ignore pragma entries. */
+    if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) continue;
     check_assertion_str((a_token_kind)ctp->token == tok_string_literal &&
                         ctp->extra_info_kind ==
                                         (a_token_extra_info_kind)teik_constant,
                        "concat_string_literals: cached token is not a string");
+    if (first_string_token == NULL) first_string_token = ctp;
     con = ctp->variant.constant;
     if (is_error_constant(con)) {
       /* If any constant is an error constant, the overall concatenation
@@ -888,8 +892,8 @@ centity_int_kind indicates the underlying character type.
   /* Here, we either have the length of the concatenation in total_len, or
      any_error_constant is set. */
   /* Build the concatenation and record it in the constant in the first
-     token in the cache. */
-  concat_con = cache->first_token->variant.constant;
+     string token in the cache. */
+  concat_con = first_string_token->variant.constant;
   if (any_error_constant) {
     /* There is at least one error constant in the concatenation, so return
        an error constant. */
@@ -900,7 +904,11 @@ centity_int_kind indicates the underlying character type.
     new_str = alloc_text_of_string_literal((sizeof_t)total_len);
     total_len = 0;
     /* Copy the constants into the concatenation. */
-    for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
+    for (ctp = first_string_token; ctp != NULL; ctp = ctp->next) {
+      /* Ignore pragma entries. */
+      if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+        continue;
+      }  /* if */
       con = ctp->variant.constant;
       /* Determine the length of this string literal. */
       str_len = con->variant.string.length;
