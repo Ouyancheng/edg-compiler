@@ -1,5 +1,14 @@
 Version 2.34
 
+10/31/96 IL CHANGE: name field added to a_param_type
+
+When RECORD_NAME_IN_PARAM_TYPE_ENTRY (see host_envir.h) is configured to
+TRUE, there is a new field, "name", in a_param_type.  If the parameter is
+associated with a function that is defined, the name in the param-type
+entry is the same as the name in the associated parameter variable.  But
+this field now also preserves the name (for use by debuggers, tools, etc.)
+even when there is no associated function definition.
+
 10/30/96 Freeing memory for generated trivial default constructors
 
 The definition of a trivial default constructor is sometimes generated
