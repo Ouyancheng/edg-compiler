@@ -8547,7 +8547,8 @@ for space tracking purposes.
 #if 0
 #else
 /* This is a temporary stub. */
-void register_pch_saved_variables(a_pch_saved_variable array[]) { };
+/*ARGSUSED*/
+void register_pch_saved_variables(a_pch_saved_variable array[]) { }
 #endif /* if 0 */
 
 void symbol_tbl_one_time_init(void)
