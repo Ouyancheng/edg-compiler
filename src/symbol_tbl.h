@@ -1256,6 +1256,14 @@ extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
    is_copy_constructor((sym)->variant.routine,                        \
                        (sym)->class_of_which_a_member,                \
                        p_const_okay, p_volatile_okay))
+
+/* Return TRUE if a symbol is a projection symbol created for an
+   access declaration.
+*/
+#define is_access_adjustment_symbol(sym)                              \
+  ((sym)->kind == (a_symbol_kind)sk_projection &&                     \
+   (sym)->variant.projection.access_adjustment_made)
+
 /*
 Extract the type from a type symbol (one for which is_type_symbol is TRUE).
 */
