@@ -3630,6 +3630,11 @@ from the front end to the runtime.
 			   "__EDG_VIRTUAL_FUNCTION_INDEX_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+  /* Define the ABI compatibility version being used. */
+  (void)enter_predef_macro(conv_int_to_str(ABI_COMPATIBILITY_VERSION),
+			   "__EDG_ABI_COMPATIBILITY_VERSION",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
 }  /* init_runtime_macros */
 
 
