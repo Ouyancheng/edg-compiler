@@ -1,6 +1,21 @@
 Version 3.5
 
-5/20/04  Abort in C-generating back end with "?" operating on mixed fixed-point
+5/19/04  Microsoft compatibility: "&" applied to trivial construction
+
+In Microsoft mode, the "&" operator can be applied to a functional-
+notation type conversion to a class type (a "constructor call"), as
+in &A().  This has generally been emulated correctly, but the
+case of an empty argument list and a class with a trivial default
+constructor (which calls for zeroing) was not allowed.  Now,
+it is.
+
+  struct A {};
+  void g(A *p) {}
+  int main() {
+    g(&A());  // Formerly got an error in Microsoft mode; accepted now
+  }
+
+5/19/04  Abort in C-generating back end with "?" operating on mixed fixed-point
 
 An internal error in the C-generating back end
 ("dump_expr: bad type on eok_question") occurred on compiling

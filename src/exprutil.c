@@ -4471,6 +4471,9 @@ to be an lvalue in some cases.
         /* A function call returning a class rvalue can be turned back
            into an lvalue. */
         revertible = TRUE;
+      } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+        /* A trivial constructor call with value-initialization. */
+        revertible = TRUE;
       }  /* if */
     } else if (is_operation_node(expr)) {
       an_expr_operator_kind op = expr->variant.operation.kind;
