@@ -3001,11 +3001,13 @@ is set to an error locator.
      must precede access control (ARM, 10.1.1). */
   if (symbol->kind == (a_symbol_kind)sk_projection &&
       symbol->variant.projection.ambiguous) {
-    pos_error(ec_ambiguous_name, &locator->source_position);
+    pos_st_error(ec_ambiguous_name, &locator->source_position,
+                 symbol->header->identifier);
     set_to_error_locator(*locator);
   } else if (!have_access_to_symbol(symbol)) {
     /* The symbol is not accessible. */
-    pos_sy_error(ec_no_access_to_name, &locator->source_position, symbol);
+    pos_sy_error(ec_no_access_to_name, &locator->source_position, 
+                 fundamental_symbol_of(symbol));
     locator->access_control_error_reported = TRUE;
   }  /* if */
 }  /* member_check_ambiguity_and_verify_access */
@@ -3035,7 +3037,8 @@ a projection symbol pointing to that sk_overloaded_function symbol.
        checking must precede access control (ARM, 10.1.1). */
     if (overloaded_symbol->kind == (a_symbol_kind)sk_projection &&
         overloaded_symbol->variant.projection.ambiguous) {
-      pos_error(ec_ambiguous_name, &locator->source_position);
+      pos_st_error(ec_ambiguous_name, &locator->source_position,
+                   overloaded_symbol->header->identifier);
       set_to_error_locator(*locator);
     } else {
       /* See if we have access to the symbol. */
@@ -3053,7 +3056,7 @@ a projection symbol pointing to that sk_overloaded_function symbol.
                                overloaded_symbol)) {
         /* The symbol is not accessible. */
         pos_sy_error(ec_no_access_to_name, &locator->source_position,
-                                           locator->specific_symbol);
+                     locator->specific_symbol);
         locator->access_control_error_reported = TRUE;
       }  /* if */
     }  /* if */
@@ -3120,12 +3123,8 @@ function.
     err = TRUE;
   }  /* if */
   if (err) {
-#if 0
     pos_sy_error(ec_protected_access_problem, &locator->source_position,
                  locator->specific_symbol);
-#else
-    pos_error(ec_protected_access_problem, &locator->source_position);
-#endif
   }  /* if */
 }  /* f_check_protected_member_access */
 
@@ -3813,7 +3812,6 @@ C and C++.
         ssep--;
       }  /* for */
     }  /* if */
-end_lookup:
     if (sym == NULL) {
       /* See if the nested class anachronism (ARM 18.3.5) yields a symbol.
          Note that if there is an ambiguity, NULL is returned.  Note also
@@ -3826,6 +3824,7 @@ end_lookup:
       sym = find_nested_class_symbol(locator);
       locator->is_semivisible_nested_class = (sym != NULL);
     }  /* if */
+end_lookup:
     locator->specific_symbol = sym;
   }  /* if */
   /* If the symbol is a projection symbol, reduce it to the fundamental
