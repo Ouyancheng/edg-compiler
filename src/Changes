@@ -1,5 +1,22 @@
 Version 2.16
 
+4/5/93  Error checking for template static data members
+
+An error is now issued if the template definition of a static
+data member does not match the declaration in the class definition.
+For example,
+
+  template <class T> struct A {
+    static int i;
+  };
+
+  template <class T> long A<T>::i = 1;	// Error - should be "int" not "long"
+
+4/5/93  Template definition of operator delete prohibited
+
+An error is now issued for a template definition of the global operator
+delete.
+
 4/5/93  Constructor access in default initialization of static data member
 
 A bug has been fixed that caused a spurious access error when a private
