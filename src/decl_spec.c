@@ -190,6 +190,45 @@ caution when modifying this routine.
         /* Don't prejudice subsequent lookups. */
         clear_specific_symbol(locator_for_curr_id);
       }  /* if */
+    } else if (rtti_enabled) {
+      /* See if this is an explicit declaration of class type_info, which was
+         already "predeclared".  If it is, reuse the original symbol. */
+      a_symbol_ptr  type_info_sym;
+      check_assertion(type_of_type_info != NULL);
+      type_info_sym = (a_symbol_ptr)type_of_type_info->
+                                         source_corresp.assoc_info;
+      if (locator_for_curr_id.symbol_header == type_info_sym->header) {
+        /* The identifier is indeed "type_info".  Check for the pragma that
+           specifically identifies it as the type_info that returned by
+           typeid (typically, the type_info defined in typeinfo.h). */
+        a_pending_pragma_ptr  ppp;
+        ppp = extract_specific_pragmas((a_pragma_kind)pk_define_type_info,
+                                       type_info_sym, (a_statement_ptr)NULL,
+                                       /*curr_scope_only=*/TRUE);
+        if (ppp != NULL) {
+          /* This is the one. */
+          tag_sym = type_info_sym;
+          free_pending_pragma_list(ppp);
+#if BACK_END_IS_CP_GEN_BE
+        } else {
+          /* When the C++ generating back end is in use, the pragma is not
+             required. */
+          tag_sym = type_info_sym;
+#endif /* BACK_END_IS_CP_GEN_BE */
+        }  /* if */
+        if (tag_sym == type_info_sym &&
+            tag_sym->decl_scope == NO_SCOPE_NUMBER) {
+          /* It the type_info symbol has no scope number, it hasn't been
+             added to the symbol table yet.  Use the current source
+             position. */
+          tag_sym->decl_position = locator_for_curr_id.source_position;
+          reenter_symbol(tag_sym, decl_scope_level, /*suppress_error=*/FALSE);
+          /* Call set_source_corresp again to get everything in sync. */
+          set_source_corresp(&(type_of_type_info->source_corresp), tag_sym);
+          /* The referenced flag may have been reset by set_source_corresp). */
+          type_of_type_info->source_corresp.referenced = tag_sym->referenced;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (tag_sym != NULL) {
