@@ -187,6 +187,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,form_unknown_function_constant)*/
 /*lint -esym(765,form_unknown_function_constant)*/
 /*lint -esym(751,a_template_param_map_level)*/
+/*lint -esym(759,form_uuidof_reference)*/
+/*lint -esym(765,form_uuidof_reference)*/
 #endif /* !BACK_END_IS_CP_GEN_BE */
 #if !DEBUG
 /*lint -esym(749,pfs_last)*/
