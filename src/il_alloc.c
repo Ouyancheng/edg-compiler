@@ -2884,7 +2884,7 @@ in il_init.)
   def_source_corresp.is_class_member = FALSE;
 #if NEED_NAME_MANGLING
   def_source_corresp.name_has_been_mangled = FALSE;
-  def_source_corresp.nested_type_mangling_has_been_done = FALSE;
+  def_source_corresp.mangled_name_cannot_be_included_in_other_name = FALSE;
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   def_source_corresp.qualification_needed = FALSE;

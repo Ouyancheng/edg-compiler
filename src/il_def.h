@@ -1037,10 +1037,11 @@ typedef struct a_source_correspondence {
   a_bit_field	name_has_been_mangled:1;
 			/* TRUE if the name of the entity has been changed
 			   to the "mangled" form of the name (C++). */
-  a_bit_field	nested_type_mangling_has_been_done:1;
-			/* TRUE if the parent information has been mangled
-			   into the name of a nested type (C++).  Used only
-			   in the front end. */
+  a_bit_field	mangled_name_cannot_be_included_in_other_name:1;
+			/* TRUE if the name has been mangled in such a way that
+			   the mangled form cannot be used as part of another
+			   mangled name.  This happens for nested classes,
+			   compression, and truncation. */
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	qualification_needed:1;

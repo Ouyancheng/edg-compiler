@@ -1,5 +1,12 @@
 Version 2.42
 
+4/18/99  Performance problem with name mangling introduced in 2.41
+
+The reworking of lower_name.c in 2.41 introduced a performance
+problem with some complicated template names.  In some extreme
+cases, programs that formerly were compiled in a fraction of a second
+instead took thousands of seconds.  Fixed.
+
 4/16/99  Source sequence lists: internal error in default argument fixup
 
 When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was TRUE, an

@@ -520,7 +520,7 @@ Display the indicated source correspondence entry.
   }  /* if */
 #if NEED_NAME_MANGLING
   /* Do not print out name_has_been_mangled and
-     nested_type_mangling_has_been_done, which are used only during
+     mangled_name_cannot_be_included_in_other_name, which are used only during
      IL lowering. */
 #endif /* NEED_NAME_MANGLING */
 #if ONE_INSTANTIATION_PER_OBJECT
