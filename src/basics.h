@@ -271,7 +271,7 @@ typedef unsigned long sizeof_t;
 /* size_t_arg checks for truncation. */
 #define size_t_arg(arg) \
   ((sizeof_t)(arg) > UINT_MAX ? size_t_arg_error() : (true_size_t)(arg))
-#define NEED_SIZE_T_ARG_ERROR 1
+#define NEED_SIZE_T_ARG_ERROR TRUE
 extern true_size_t size_t_arg_error(void);
 #endif /* !EDG_MSDOS */
 /* Use a_ptrdiff for ptrdiff_t because ptrdiff_t appears in <sys/types.h> on
@@ -342,7 +342,7 @@ typedef int     a_ptrdiff;
 /* Some stdio.h's do not define sprintf.  This declaration will be included
    if NEED_SPRINTF_DECL is TRUE. */
 #ifndef NEED_SPRINTF_DECL
-#define NEED_SPRINTF_DECL 0
+#define NEED_SPRINTF_DECL FALSE
 #endif /* defined(NEED_SPRINTF_DECL) */
 #if NEED_SPRINTF_DECL
 EXTERN_C char *sprintf(char *, const char *, ...);
@@ -355,7 +355,7 @@ EXTERN_C char *sprintf(char *, const char *, ...);
 #endif /* ifndef SEEK_SET */
 
 #if __ANSIC__ || defined(__cplusplus)
-#define STDLIB_H_INCLUDED 1
+#define STDLIB_H_INCLUDED TRUE
 #include <stdlib.h>
 #endif /* __ANSIC__ || defined(__cplusplus) */
 
@@ -430,12 +430,12 @@ variables.
 #define EXTERN extern
 #endif /* ifndef EXTERN */
 #ifndef VAR_INITIALIZERS
-#define VAR_INITIALIZERS 0
+#define VAR_INITIALIZERS FALSE
 #endif /* ifndef VAR_INITIALIZERS */
 
 #ifndef DEBUG
 /* Include debugging code. */
-#define DEBUG 1
+#define DEBUG TRUE
 #endif /* ifndef DEBUG */
 #if DEBUG
 EXTERN int	debug_level /* = 0 */;
@@ -473,20 +473,20 @@ extern void debug_exit(void);
 
 #ifndef CHECKING
 /* Include consistency-checking code. */
-#define CHECKING 1
+#define CHECKING TRUE
 #endif /* ifndef CHECKING */
 
 #ifndef EXPENSIVE_CHECKING
 /* Include checking code that involves execution of a significant
    amount of additional code, so should not be enabled by default. */
-#define EXPENSIVE_CHECKING 0
+#define EXPENSIVE_CHECKING FALSE
 #endif /* ifndef EXPENSIVE_CHECKING */
 
 #ifndef CENTERLINE_CHECKING
 /* Include checking code that is specific to versions that use Codecenter.
    In particular, this enables the declaration and initialization of the
    "avoid_codecenter_warnings" bit fields. */
-#define CENTERLINE_CHECKING 0
+#define CENTERLINE_CHECKING FALSE
 #endif /* ifndef CENTERLINE_CHECKING */
 
 /*
