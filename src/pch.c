@@ -1735,7 +1735,6 @@ directory.  Return TRUE if an applicable PCH was found.
     /* Save a copy of the precompiled header file name to be used. */
     pch_input_file_name = (char *)alloc_general
                                      ((sizeof_t)strlen(file_name_buffer) + 1);
-    pos_of_last_event_from_pch = best_result_so_far;
     (void)strcpy(pch_input_file_name, file_name_buffer);
   }  /* if */
   db_exit();
@@ -1768,13 +1767,16 @@ may be used.
 {
   a_boolean			can_use_pch = TRUE;
   a_memory_region_number	n;
+  a_pch_event_ptr		last_event_from_pch;
 
   if (open_pch_input_file()) {
     /* Make sure the the PCH can still be used.  Also make sure that
        the memory configuration needed by the PCH is compatible with
        what we can allocate. */
-    if (pch_is_applicable() && read_mem_alloc_history()) {
+    last_event_from_pch = pch_is_applicable();
+    if (last_event_from_pch != NULL && read_mem_alloc_history()) {
       /* Everything is OK. */
+      pos_of_last_event_from_pch = last_event_from_pch->position;
     } else {
       /* The file is not applicable for some reason. */
       can_use_pch = FALSE;
@@ -1843,16 +1845,18 @@ be used as part of the applicability check in subsequent compilations.
       restore_precompiled_header_information();
     }  /* if */
     /* See if we can create a precompiled header file. */
-    if (cmp_source_positions(header_stop_source_position,
-                             null_source_position) != 0) {
-      /* Only generate one if a header stop position was found. */
-      if (!using_a_pch_file ||
-          (cmp_source_positions(header_stop_source_position,
-                                pos_of_last_event_from_pch) > 0)) {
-        /* If we are also using a precompiled header file, make sure that
-           the new header stop position is beyond what is being obtained from
-           the PCH input file. */
-        header_stop_position_pending = TRUE;
+    if (automatic_pch_processing || create_precompiled_header) {
+      if (cmp_source_positions(header_stop_source_position,
+                               null_source_position) != 0) {
+        /* Only generate one if a header stop position was found. */
+        if (!using_a_pch_file ||
+            (cmp_source_positions(header_stop_source_position,
+                                  pos_of_last_event_from_pch) > 0)) {
+          /* If we are also using a precompiled header file, make sure that
+             the new header stop position is beyond what is being obtained from
+             the PCH input file. */
+          header_stop_position_pending = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
