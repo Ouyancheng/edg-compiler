@@ -756,6 +756,15 @@ error code.
     case ec_address_of_void:
       m = "taking the address of something of type void is not allowed";
       break;
+    case ec_bad_param_specifier:
+      m = "invalid specifier on a parameter";
+      break;
+    case ec_bad_specifier_outside_class_decl:
+      m = "invalid specifier outside a class declaration";
+      break;
+    case ec_dupl_decl_specifier:
+      m = "duplicate specifier in declaration";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
