@@ -2940,6 +2940,10 @@ Only callable in C++ mode.  See ARM 13.
                       is_qualified_type(type_pointed_to(new_this_param_type)));
   do {
     /* See if old_sym_ptr and new_type are distinguishable. */
+    if (old_sym_ptr->kind == (a_symbol_kind)sk_function_template) {
+      distinguishable = TRUE;
+      goto distinguishable_determined;
+    }  /* if */
     distinguishable = FALSE;
     params_all_compatible = TRUE;
     old_type = routine_symbol_type(old_sym_ptr);
@@ -3011,8 +3015,9 @@ Only callable in C++ mode.  See ARM 13.
       /* The parameter lists differ in some way. */
       *err_code = ec_overloaded_function_types_too_similar;
     }  /* if */
-  } while (old_is_list && (old_sym_ptr = old_sym_ptr->next) != NULL);
 distinguishable_determined:;
+  } while (distinguishable &&
+           old_is_list && (old_sym_ptr = old_sym_ptr->next) != NULL);
   db_exit();
   return distinguishable;
 }  /* overload_distinguishable */
