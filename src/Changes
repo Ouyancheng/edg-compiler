@@ -1,5 +1,12 @@
 Version 2.07
 
+6/17/92  Recognition of new keywords -- temporary
+
+Warnings are issued when "catch", "template", "throw", and "try" are
+encountered in a source program.  The warnings will be eliminated when
+support for templates and exceptions is added; until them these strings
+are treated as identifiers.
+
 6/16/92  Fixed bug in default arg expression processing in member function
          declarations.
 
