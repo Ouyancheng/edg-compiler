@@ -2584,6 +2584,26 @@ been completed.
   }  /* for */
 }  /* set_needed_flags_at_end_of_file_scope */
 
+
+static void mark_to_keep_in_il_at_end_of_file_scope(a_scope_ptr  scope)
+/*
+Call make_to_keep_in_il for the indicated scope and for all namespace scopes
+nested within in.
+*/
+{
+  a_namespace_ptr  nsp;
+
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      mark_to_keep_in_il_at_end_of_file_scope(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  /* Set the "keep_in_il" flag for all file-scope IL entries that must
+     be kept to maintain the integrity of the IL. */
+  il_entry_prefix_of(scope).keep_in_il = FALSE;
+  mark_to_keep_in_il((char *)scope, (an_il_entry_kind)iek_scope);
+}  /* mark_to_keep_in_il_at_end_of_file_scope */
+
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
 void pop_scope(void)
@@ -2898,8 +2918,7 @@ End a name scope by popping an entry off the scope stack.
       eliminate_bodies_of_unneeded_functions();
       /* Set the "keep_in_il" flag for all file-scope IL entries that must
          be kept to maintain the integrity of the IL. */
-      il_entry_prefix_of(il_scope).keep_in_il = FALSE;
-      mark_to_keep_in_il((char *)il_scope, (an_il_entry_kind)iek_scope);
+      mark_to_keep_in_il_at_end_of_file_scope(il_scope);
       end_of_file_scope_needed_flags_phase = FALSE;
       /* Now all IL entries that are really needed are so marked, and other
          entries that they may depend on are also marked, with "keep_in_il"
