@@ -84,8 +84,12 @@ extern a_type_ptr void_type(void);
 
 extern a_type_ptr no_type(void);
 
-extern a_type_ptr *get_based_type(a_type_ptr                     base_type,
-                                  a_based_type_array_element_num element_num);
+extern a_type_ptr get_based_type(a_type_ptr        base_type,
+                                 a_based_type_kind kind);
+
+extern void add_based_type_list_member(a_type_ptr        base_type,
+                                       a_based_type_kind kind,
+                                       a_type_ptr        based_type);
 
 extern a_type_ptr make_pointer_type(a_type_ptr type_pointed_to);
 

@@ -205,20 +205,6 @@ Process the indicated constant entry.
 }  /* walk_constant */
 
 
-static void walk_based_type_array(a_based_type_array_ptr ptr)
-/*
-Process the indicated based type array.
-*/
-{
-  int element_num;
-
-  for (element_num = 0; element_num < (int)bta_last; element_num++) {
-    walk_ptr(*ptr, a_type_ptr, iek_type);
-    ptr++;
-  }  /* for */
-}  /* walk_based_type_array */
-
-
 static void walk_type(a_type_ptr ptr)
 /*
 Process the indicated type entry.
@@ -226,8 +212,8 @@ Process the indicated type entry.
 {
   walk_source_corresp(ptr->source_corresp);
   remap_next_ptr(ptr->next, a_type_ptr, iek_type);
-  walk_ptr(ptr->based_type_array, a_based_type_array_ptr,
-           iek_based_type_array);
+  walk_list(ptr->based_types, a_based_type_list_member_ptr,
+            iek_based_type_list_member);
   switch (ptr->kind) {
     case tk_error:
     case tk_unknown:
@@ -407,7 +393,7 @@ and the entry pointer is to an entry in the file scope, just return
           break;
         case iek_source_file:
         case iek_routine_type_supplement:
-        case iek_based_type_array:
+        case iek_based_type_list_member:
         case iek_expr_node:
 #ifdef CFE
         case iek_switch_clause:
@@ -450,8 +436,8 @@ and the entry pointer is to an entry in the file scope, just return
         case iek_param_type:    s = "param type";              break;
         case iek_routine_type_supplement:
                                 s = "routine type supplement"; break;
-        case iek_based_type_array:
-                                s = "based type array";        break;
+        case iek_based_type_list_member:
+                                s = "based type list member";  break;
         case iek_type:          s = "type";                    break;
         case iek_variable:      s = "variable";                break;
         case iek_routine:       s = "routine";                 break;
@@ -530,8 +516,14 @@ and the entry pointer is to an entry in the file scope, just return
           remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
         }
         break;
-      case iek_based_type_array:
-        walk_based_type_array((a_based_type_array_ptr)entry_ptr);
+      case iek_based_type_list_member:
+        {
+          a_based_type_list_member_ptr ptr =
+                                       (a_based_type_list_member_ptr)entry_ptr;
+          remap_next_ptr(ptr->next, a_based_type_list_member_ptr,
+                         iek_based_type_list_member);
+          walk_ptr(ptr->based_type, a_type_ptr, iek_type);
+        }
         break;
       case iek_type:
         walk_type((a_type_ptr)entry_ptr);
@@ -540,8 +532,7 @@ and the entry pointer is to an entry in the file scope, just return
         {
           a_variable_ptr ptr = (a_variable_ptr)entry_ptr;
           walk_source_corresp(ptr->source_corresp);
-          remap_next_ptr(ptr->next, a_variable_ptr,
-                                       iek_variable);
+          remap_next_ptr(ptr->next, a_variable_ptr, iek_variable);
           walk_ptr(ptr->type, a_type_ptr, iek_type);
           walk_ptr(ptr->initializer, a_constant_ptr, iek_constant);
 #ifdef FFE

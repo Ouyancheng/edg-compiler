@@ -49,6 +49,7 @@ static unsigned long
 		num_constants_allocated,
 		num_param_types_allocated,
 		num_routine_type_supplements_allocated,
+		num_based_type_list_members_allocated,
                 num_access_adjustments_allocated,
                 num_class_list_entries_allocated,
 		num_class_type_supplements_allocated,
@@ -72,12 +73,10 @@ static unsigned long
 		num_il_entry_numbers_allocated;
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 /*
-Counts of uses of get_based_type.
+Number of times the based_types lists of types are searched for related types.
 */
 static unsigned long
-		num_based_type_arrays_allocated,
-		num_get_based_type_calls,
-		num_costly_get_based_type_calls;
+		num_get_based_type_calls;
 #endif /* DEBUG */
 
 /* Initial setting for il_walk_flag.  Can be (arbitrarily) either 0 or 1. */
@@ -2054,7 +2053,7 @@ to default values.
 #endif /* DEBUG */
   set_default_source_corresp(&(pte->source_corresp));
   pte->next = NULL;
-  pte->based_type_array = NULL;
+  pte->based_types = NULL;
   pte->size = 0;
   pte->alignment = 1;
   pte->kind = kind;
@@ -2415,50 +2414,59 @@ Make or find a type entry for a tk_none type, and return a pointer to it.
 }  /* no_type */
 
 
-a_type_ptr *get_based_type(a_type_ptr                     base_type,
-                           a_based_type_array_element_num element_num)
+a_type_ptr get_based_type(a_type_ptr        base_type,
+                          a_based_type_kind kind)
 /*
-Fetch and return a pointer to an element of the based_type_array pointed
-to by the type entry identified by base_type.  element_num indicates the
-element number (e.g., bta_pointer), and therefore the particular based
-type that is sought.  Allocate the based_type_array if needed (it is not
-allocated until it is needed).  The based_type_array is used to hold
-pointers to types based on the base type, so that only one copy of
-pointer-to that type, reference-to that type, etc., is allocated.
-Note that the value returned is not the actual type wanted, but a pointer
-to the proper element of the array; the caller must check to see if the
-element is NULL or non-NULL, and allocate and record the appropriate based
-type if necessary.
+Search the based_types list of base_type to see if it contains a based type
+of the kind indicated by "kind".  Return a pointer to the type if such
+an entry exists, or NULL if no such entry exists.  The based_types list is
+used to hold pointers to types based on the base type, so that only one
+copy of pointer-to that type, reference-to that type, etc., is allocated.
 */
 {
-  a_based_type_array_ptr btap;
-  a_type_ptr             *element_ptr;
+  register a_type_ptr                   ptr = NULL;
+  register a_based_type_list_member_ptr btlmp;
 
 #if DEBUG
   num_get_based_type_calls++;
 #endif /* DEBUG */
-  btap = base_type->based_type_array;
-  if (btap == NULL) {
-    /* No based type array yet; allocate it, in the same memory region as the
-       type it is to be attached to. */
-    btap = (a_based_type_array_ptr)alloc_same_region_il(
-                                                    sizeof(a_based_type_array),
-                                                    (char *)base_type);
-    /* Depending on NULL represented as zero bits here. */
-    memzero((char *)btap, sizeof(a_based_type_array));
-    base_type->based_type_array = btap;
-#if DEBUG
-    num_based_type_arrays_allocated++;
-#endif /* DEBUG */
-  }  /* if */
-  /* Develop and return a pointer to the right element. */
-  element_ptr = &btap[(int)element_num];
-#if DEBUG
-  /* Count cases where the allocation will have to be done. */
-  if (*element_ptr == NULL) num_costly_get_based_type_calls++;
-#endif /* DEBUG */
-  return element_ptr;
+  /* Search the based_types list looking for an entry of the right kind. */
+  for (btlmp = base_type->based_types; btlmp != NULL; btlmp = btlmp->next) {
+    if (btlmp->kind == kind) {
+      ptr = btlmp->based_type;
+      break;
+    }  /* if */
+  }  /* for */
+  return ptr;
 }  /* get_based_type */
+
+
+void add_based_type_list_member(a_type_ptr        base_type,
+                                a_based_type_kind kind,
+                                a_type_ptr        based_type)
+/*
+Add a based type list member to the based_types list of base_type
+indicating that based_type is a type based on base_type, and the relationship
+between the types is described by kind.  The entry is allocated in the
+same memory region as base_type.  This routine does not check to see if
+there is already an entry of the indicated kind on the list.
+*/
+{
+  a_based_type_list_member_ptr btlmp;
+
+  btlmp = (a_based_type_list_member_ptr)alloc_same_region_il(
+                                              sizeof(a_based_type_list_member),
+                                              (char *)base_type);
+#if DEBUG
+  num_based_type_list_members_allocated++;
+#endif /* DEBUG */
+  /* Add the entry to the front of the existing based_types list. */
+  btlmp->next = base_type->based_types;
+  base_type->based_types = btlmp;
+  /* Initialize the entry. */
+  btlmp->kind = kind;
+  btlmp->based_type = based_type;
+}  /* add_based_type_list_member */
 
 
 a_type_ptr make_pointer_type(a_type_ptr type_pointed_to)
@@ -2468,13 +2476,11 @@ an existing entry if possible.
 */
 {
   register a_type_ptr ptr;
-  register a_type_ptr *btaep;
 
   /* See if a pointer type for the type pointed to has already been allocated.
-     If one was allocated, a pointer to it is stored in the based_type_array
+     If one was allocated, a pointer to it is stored in the based_types list
      for the base type, and the pointer type can be reused. */
-  btaep = get_based_type(type_pointed_to, bta_pointer);
-  ptr = *btaep;
+  ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_pointer);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one.  If the entry is a pointer
        to a file-scope type, make sure it gets allocated in the file-scope
@@ -2487,8 +2493,9 @@ an existing entry if possible.
     ptr->variant.pointer_type_pointed_to = type_pointed_to;
     set_type_size(ptr);
     /* Remember the existence of this pointer type by putting a pointer
-       to it in the based_type_array. */
-    *btaep = ptr;
+       to it in the based_types list. */
+    add_based_type_list_member(type_pointed_to, (a_based_type_kind)btk_pointer,
+                               ptr);
   }  /* if */
 
   return ptr;
@@ -2502,14 +2509,12 @@ an existing entry if possible.
 */
 {
   register a_type_ptr ptr;
-  register a_type_ptr *btaep;
 
   /* See if a reference type for the type pointed to has already been
      allocated.  If one was allocated, a pointer to it is stored in the
-     based_type_array for the base type, and the reference type can be
+     based_types list for the base type, and the reference type can be
      reused. */
-  btaep = get_based_type(type_pointed_to, bta_reference);
-  ptr = *btaep;
+  ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_reference);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one.  If the entry is a reference
        to a file-scope type, make sure it gets allocated in the file-scope
@@ -2522,8 +2527,9 @@ an existing entry if possible.
     ptr->variant.pointer_type_pointed_to = type_pointed_to;
     set_type_size(ptr);
     /* Remember the existence of this reference type by putting a pointer
-       to it in the based_type_array. */
-    *btaep = ptr;
+       to it in the based_types list. */
+    add_based_type_list_member(type_pointed_to,
+                               (a_based_type_kind)btk_reference, ptr);
   }  /* if */
 
   return ptr;
@@ -2540,9 +2546,8 @@ an existing entry if possible.  The qualifiers are added only if
 they are not already present.
 */
 {
-  register a_type_ptr            ptr;
-  register a_type_ptr            *btaep;
-  a_based_type_array_element_num element_num;
+  register a_type_ptr ptr;
+  a_based_type_kind   kind;
 
   /* Add only qualifiers not present already in the type. */
   is_const = is_const && !is_const_qualified_type(base_type);
@@ -2550,22 +2555,20 @@ they are not already present.
   if (is_const || is_volatile) {
     /* Type qualifiers are added by adding a typeref entry which includes
        the type qualifiers.  The original type is not modified. */
-    /* See if a typeref type for the type pointed to has already been
-       allocated.  If one was allocated, a pointer to it is stored in the
-       based_type_array for the base type, and the typeref type can be
-       reused. */
-    /* Determine the proper element number in the based type array. */
+    /* See if a typeref for the base type has already been allocated.
+       If one was allocated, a pointer to it is stored in the based_types
+       list for the base type, and the pointer type can be reused. */
+    /* Determine the based type kind. */
     if (is_const) {
       if (is_volatile) {
-        element_num = bta_const_volatile;
+        kind = (a_based_type_kind)btk_const_volatile;
       } else {
-        element_num = bta_const;
+        kind = (a_based_type_kind)btk_const;
       }  /* if */
     } else {
-      element_num = bta_volatile;
+      kind = (a_based_type_kind)btk_volatile;
     }  /* if */
-    btaep = get_based_type(base_type, element_num);
-    ptr = *btaep;
+    ptr = get_based_type(base_type, kind);
     if (ptr == NULL) {
       /* No allocated entry, need to allocate one.  If the entry is a typeref
          to a file-scope type, make sure it gets allocated in the file-scope
@@ -2579,8 +2582,8 @@ they are not already present.
       ptr->variant.typeref.is_const    = is_const;
       ptr->variant.typeref.is_volatile = is_volatile;
       /* Remember the existence of this typeref type by putting a pointer
-         to it in the based_type_array. */
-      *btaep = ptr;
+         to it in the based_types list. */
+      add_based_type_list_member(base_type, kind, ptr);
     }  /* if */
   } else {
     /* No qualifiers to add, so return the original type. */
@@ -2627,7 +2630,7 @@ Copy the type entry "from" to "to".
   /* Copy the type entry. */
   *to = *from;
   to->next = next_ptr;
-  to->based_type_array = NULL;
+  to->based_types = NULL;
   if (from_kind == (a_type_kind)tk_array) {
     /* For an array type, check for an array based on an incomplete struct
        or union type.  Such a type must be placed on the fixup list. */
@@ -3367,6 +3370,8 @@ Display and return the amount of space used for various IL tables.
   write_one("param type", num_param_types_allocated, a_param_type);
   write_one("routine type supplement", num_routine_type_supplements_allocated,
                                        a_routine_type_supplement);
+  write_one("based type list member", num_based_type_list_members_allocated,
+            a_based_type_list_member);
   write_one("class type supplement", num_class_type_supplements_allocated,
                                      a_class_type_supplement);
   write_one("access adjustment", num_access_adjustments_allocated,
@@ -3398,12 +3403,7 @@ Display and return the amount of space used for various IL tables.
 
   fputc('\n', f_debug);
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "get_based_type calls", "", "",
-                                          num_get_based_type_calls);
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "... that allocate a type", "", "",
-                                          num_costly_get_based_type_calls);
-  write_one("based type array", num_based_type_arrays_allocated,
-            a_based_type_array);
-  
+                                          num_get_based_type_calls);  
   
   fputc('\n', f_debug);
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "num_shareable_constants", "", "",
@@ -3466,6 +3466,7 @@ of the front end.
   num_constants_allocated                = 0;
   num_param_types_allocated              = 0;
   num_routine_type_supplements_allocated = 0;
+  num_based_type_list_members_allocated  = 0;
   num_access_adjustments_allocated       = 0;
   num_class_list_entries_allocated       = 0;
   num_class_type_supplements_allocated   = 0;
@@ -3489,9 +3490,7 @@ of the front end.
   num_used_shareable_constant_buckets    = 0;
   num_searches_for_shareable_constants   = 0;
   num_compares_for_shareable_constants   = 0;
-  num_based_type_arrays_allocated        = 0;
   num_get_based_type_calls               = 0;
-  num_costly_get_based_type_calls        = 0;
 #if ALTERNATE_IL_FILE_FORMAT
   num_il_entry_numbers_allocated         = 0;
 #endif /* ALTERNATE_IL_FILE_FORMAT */

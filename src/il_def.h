@@ -961,24 +961,37 @@ typedef struct a_bound_info_entry {
 #endif /* ifdef FIL */
 
 /*
-Array pointed to by the based_type_array field of a_type entries.  Holds
-pointers to types based on the type entry.  The elements of the array hold
-the following types:
+Entry pointed to by the based_types field of a_type entries.  A list
+of these entries gives pointers to types based on the type entry, e.g.,
+pointer-to type entry.
 */
-typedef enum {
-  /* An enum is just used to assign sequential values to the element
-     numbers. */
-  bta_pointer,			/* Pointer to the type. */
-  bta_reference,		/* Reference to the type. */
-  bta_const,			/* Const-qualified version of the type. */
-  bta_volatile,			/* Volatile-qualified version of the type. */
-  bta_const_volatile,		/* Const-volatile-qualified version of the
+enum a_based_type_kind_tag {
+  /* Indication of the relationship between the based type and the base
+     type. */
+#ifdef CIL
+  btk_const,			/* Const-qualified version of the type. */
+  btk_volatile,			/* Volatile-qualified version of the type. */
+  btk_const_volatile,		/* Const-volatile-qualified version of the
 				   type. */
-  bta_file_scope_copy,		/* Copy of the type at the file scope. */
-  bta_last
-} a_based_type_array_element_num;
-typedef a_type_ptr a_based_type_array[(int)bta_last];
-typedef a_type_ptr *a_based_type_array_ptr;
+  btk_file_scope_copy,		/* Copy of the type at the file scope. */
+  btk_reference,		/* Reference to the type. */
+#endif /* ifdef CIL */
+  btk_pointer			/* Pointer to the type. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_based_type_kind;
+
+typedef struct a_based_type_list_member *a_based_type_list_member_ptr;
+typedef struct a_based_type_list_member {
+  a_based_type_list_member_ptr
+		next;	/* Next entry on the list, or NULL if last. */
+  a_type_ptr	based_type;
+			/* The based type. */
+  a_based_type_kind
+		kind;	/* The relationship between the based type and the
+			   base type. */
+} a_based_type_list_member;
+
 
 typedef struct a_type {
   /* Description of a type. */
@@ -991,14 +1004,13 @@ typedef struct a_type {
                         /* Pointer to the next type declared in the same
                            scope, NULL if this type is the last in the
                            scope. */
-  a_based_type_array_ptr
-		based_type_array;
-			/* Pointer to an array that holds pointers to types
-			   based on this one, e.g., pointer-to-this-one,
-			   const-this-one, used to find those types for
-			   reuse.  NULL until needed. */
-  a_targ_size_t
-                size;
+  a_based_type_list_member_ptr
+		based_types;
+			/* Pointer to a list of entries that point to types
+			   based on this one, e.g., pointer-to-this-one;
+			   used to find those types for reuse.  NULL if
+			   the list is empty. */
+  a_targ_size_t	size;
                         /* sizeof() for this type, or 0 if the type is
                            incomplete.  Also 0 for typeref references, even
                            if the referenced type is not incomplete. */

@@ -587,8 +587,8 @@ kind entry_kind.
         case iek_param_type:    s = "param-type";              break;
         case iek_routine_type_supplement:
                                 s = "routine-type-supplement"; break;
-        case iek_based_type_array:
-                                s = "based type array";        break;
+        case iek_based_type_list_member:
+                                s = "based type list member";  break;
         case iek_type:          s = "type";                    break;
         case iek_variable:      s = "variable";                break;
         case iek_routine:       s = "routine";                 break;
@@ -1032,30 +1032,34 @@ Display the indicated dimension bound information entry.
 #endif /* ifdef FFE */
 
 
-static void disp_based_type_array(a_based_type_array_ptr ptr)
+static void disp_based_type_list(a_based_type_list_member_ptr ptr)
 /*
-Display the indicated based type array.
+Display the indicated based type list.
 */
 {
-  disp_ptr("based_type_array", (char *)ptr, iek_based_type_array);
-  if (ptr != NULL) {
-    int  element_num;
-    char *elem_name;
-    for (element_num = 0; element_num < (int)bta_last; element_num++) {
-      if (ptr[element_num] != NULL) {
-        switch (element_num) {
-          case bta_pointer:          elem_name = "pointer"; break;
-          case bta_const:            elem_name = "const"; break;
-          case bta_volatile:         elem_name = "volatile"; break;
-          case bta_const_volatile:   elem_name = "const volatile"; break;
-          case bta_file_scope_copy:  elem_name = "file scope copy"; break;
-          default:                   elem_name = "**BAD BASED TYPE**"; break;
-        }  /* switch */
-        disp_ptr(elem_name, (char *)&ptr[element_num], iek_type);
-      }  /* if */
+  char *kind_str;
+
+  if (ptr == NULL) {
+    disp_ptr("based_types", (char *)ptr, iek_based_type_list_member);
+  } else {
+    disp_name("based_types");
+    printf("\n");
+    for (; ptr != NULL; ptr = ptr->next) {
+      switch (ptr->kind) {
+#ifdef CFE
+        case btk_const:          kind_str = "  const";                   break;
+        case btk_volatile:       kind_str = "  volatile";                break;
+        case btk_const_volatile: kind_str = "  const volatile";          break;
+        case btk_file_scope_copy:kind_str = "  file scope copy";         break;
+        case btk_reference:      kind_str = "  reference";               break;
+#endif /* ifdef CFE */
+        case btk_pointer:        kind_str = "  pointer";                 break;
+        default:                 kind_str = "  **BAD BASED TYPE KIND**"; break;
+      }  /* switch */
+      disp_ptr(kind_str, (char *)ptr->based_type, iek_type);
     }  /* for */
   }  /* if */
-}  /* disp_based_type_array */
+}  /* disp_based_type_list */
 
 
 static void disp_type(a_type_ptr ptr)
@@ -1065,7 +1069,7 @@ Display the indicated type entry.
 {
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_type);
-  disp_based_type_array(ptr->based_type_array);
+  disp_based_type_list(ptr->based_types);
   disp_unsigned_long("size", (unsigned long)ptr->size);
   disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
   disp_name("kind");
@@ -2061,7 +2065,7 @@ This routine is called during IL walking.
   /* Do not display entries that are displayed at the point of use. */
   switch (entry_kind) {
     case iek_routine_type_supplement:
-    case iek_based_type_array:
+    case iek_based_type_list_member:
     case iek_block:
 #ifdef FFE
     case iek_internal_complex_value:

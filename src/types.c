@@ -874,12 +874,11 @@ at file scope.
   a_boolean are_copies = FALSE;
 
   /* If there are existing file-scope copies, they are pointed to by
-     the based_type_array entry in the type. */
-  if (type_1->based_type_array != NULL &&
-      type_1->based_type_array[(int)bta_file_scope_copy] == type_2) {
-    are_copies = TRUE;
-  } else if (type_2->based_type_array != NULL &&
-             type_2->based_type_array[(int)bta_file_scope_copy] == type_1) {
+     the based_types list in the type. */
+  if (get_based_type(type_1, (a_based_type_kind)btk_file_scope_copy) ==
+                                                                      type_2 ||
+      get_based_type(type_2, (a_based_type_kind)btk_file_scope_copy) ==
+                                                                      type_1) {
     are_copies = TRUE;
   }  /* if */
   return are_copies;
@@ -2196,8 +2195,9 @@ is returned.
   a_routine_type_supplement_ptr
 			  extra_info;
   a_type_kind             kind;
-  a_type_ptr              *btaep;
   a_memory_region_number  region_to_switch_back_to;
+  a_based_type_kind       based_type_kind;
+  a_boolean               is_const, is_volatile;
 
   /* See if the type entry is already at the file scope, and does not need
      to be copied. */
@@ -2205,8 +2205,8 @@ is returned.
     new_type = old_type;
   } else {
     /* See if there is already a file-scope copy of the type. */
-    btaep = get_based_type(old_type, bta_file_scope_copy);
-    new_type = *btaep;
+    new_type = get_based_type(old_type,
+                              (a_based_type_kind)btk_file_scope_copy);
     if (new_type != NULL) {
       /* Yes.  Use it. */
     } else {
@@ -2222,8 +2222,11 @@ is returned.
       new_type = alloc_type(kind);
       switch_back_to_original_region(region_to_switch_back_to);
       /* Remember the location of the file scope copy in case it's ever again
-         needed. */
-      *btaep = new_type;
+         needed.  Do this early in case the type refers to itself internally,
+         to avoid looping. */
+      add_based_type_list_member(old_type,
+                                 (a_based_type_kind)btk_file_scope_copy,
+                                 new_type);
       /* Start with an extra copy of the old type, to ensure that all minor
          flags are copied. */
       copy_type(old_type, new_type);
@@ -2267,9 +2270,19 @@ is returned.
           new_type->variant.integer.enum_constant_list = new_ec_list;
           break;
         case tk_pointer:
+          new_type->variant.pointer_type_pointed_to =
+               make_file_scope_type(old_type->variant.pointer_type_pointed_to);
+          /* Build the proper based_types list entry for the pointer. */
+          add_based_type_list_member(new_type->variant.pointer_type_pointed_to,
+                                     (a_based_type_kind)btk_pointer, new_type);
+          break;
         case tk_reference:
           new_type->variant.pointer_type_pointed_to =
                make_file_scope_type(old_type->variant.pointer_type_pointed_to);
+          /* Build the proper based_types list entry for the reference. */
+          add_based_type_list_member(new_type->variant.pointer_type_pointed_to,
+                                     (a_based_type_kind)btk_reference,
+                                     new_type);
           break;
         case tk_array:
           new_type->variant.array.element_type =
@@ -2331,6 +2344,22 @@ is returned.
         case tk_typeref:
           new_type->variant.typeref.type =
                           make_file_scope_type(old_type->variant.typeref.type);
+          /* Build the proper based_types list entry for the typeref. */
+          is_const = new_type->variant.typeref.is_const;
+          is_volatile = new_type->variant.typeref.is_volatile;
+          if (is_const || is_volatile) {
+            if (is_const) {
+              if (is_volatile) {
+                based_type_kind = (a_based_type_kind)btk_const_volatile;
+              } else {
+                based_type_kind = (a_based_type_kind)btk_const;
+              }  /* if */
+            } else {
+              based_type_kind = (a_based_type_kind)btk_volatile;
+            }  /* if */
+            add_based_type_list_member(new_type->variant.typeref.type,
+                                       based_type_kind, new_type);
+          }  /* if */
           break;
 #if CHECKING
         default:
