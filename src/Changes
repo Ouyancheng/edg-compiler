@@ -1,5 +1,43 @@
 Version 2.39
 
+4/25/98   Calls of virtual functions during subobject construction in
+          the presence of virtual base classes (ABI CHANGE)
+
+During the execution of constructors and destructors for base class
+subobjects, virtual functions should act as if the complete object has
+the type of the constructor or destructor class.  That is, functions in
+classes further out than the subobject class do not override during
+the subobject construction or destruction.  When virtual base classes
+are involved, this means that some virtual function table instances
+need to be built reflecting three classes: a class A (whose virtual
+function table this is) that is a subobject of a class B (whose
+constructor is executing, and which therefore dictates overriding)
+that is a subobject of a class C (which is the complete object type,
+and which therefore dictates layout).  This is necessary when there
+are virtual base classes, and not otherwise, because the "delta"
+field in the virtual function table is based on the offset between
+the objects for the classes of the overridden and overriding functions,
+and that offset varies depending on the type of the complete object.
+
+This has been solved by generating additional virtual function table
+instances to be used during subobject construction and destruction,
+and having the derived class constructor or destructor pass these
+down to the subobject constructors and destructors.  This introduces
+a binary incompatibility, which is controlled by
+ABI_CHANGES_FOR_CONSTRUCTION_VTBLS.  Constructors and destructors
+for classes that have virtual base classes and certain kinds of
+overriding of virtual functions now expect, when they are called for
+a subobject, to receive a pointer to an array of special virtual
+function table pointers.  The pointer to this array is passed down
+by storing it in a "transfer pointer", which is a virtual function
+pointer or a virtual base class pointer in the subobject.  The
+binary incompatibility, therefore, is that if a constructor or
+destructor is recompiled and now expects this information, it must not
+be called by a non-recompiled constructor or destructor to construct
+or destroy a subobject.  New code can call old code, but not the other
+way around.  Fortunately, this means that libraries generally need
+not be recompiled.
+
 4/23/98   Fixed apparent inconsistency in variable-used-before-set warning
 
 For purposes of used-before-set diagnostics, a variable is no longer
