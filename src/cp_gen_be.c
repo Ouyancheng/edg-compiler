@@ -2403,19 +2403,29 @@ Generate a cast to the indicated type.
 
 
 static void gen_argument_list(an_expr_node_ptr arg,
-                              a_type_ptr       rout_type)
+                              a_type_ptr       rout_type,
+                              int              skip_num)
 /*
 Write out an argument list with surrounding parentheses.  rout_type is the
-type of the routine being called.
+type of the routine being called.  If skip_num is non-zero, it indicates
+the number of leading argument expressions not to put out (they're on the
+arg list and the parameter list, and they're passed over, but nothing is
+put out for them).
 */
 {
   a_param_type_ptr param;
+  a_boolean        skipped_argument;
 
   rout_type = skip_typerefs(rout_type);
   param = rout_type->variant.routine.extra_info->param_type_list;
   write_tok_ch('(');
   for (; arg != NULL;) {
-    if (param != NULL && param->passed_via_copy_constructor) {
+    skipped_argument = FALSE;
+    if (skip_num > 0) {
+      /* Skip an argument. */
+      skipped_argument = TRUE;
+      skip_num--;
+    } else if (param != NULL && param->passed_via_copy_constructor) {
       /* For an argument passed using a copy constructor, optimize out
          the copy constructor reference. */
       check_assertion_str(arg->kind == (an_expr_node_kind)enk_temp_init,
@@ -2428,12 +2438,162 @@ type of the routine being called.
     }  /* if */
     arg = arg->next;
     if (arg != NULL) {
-      write_tok_str(", ");
+      if (!skipped_argument) write_tok_str(", ");
       if (param != NULL) param = param->next;
     }  /* if */
   }  /* for */
   write_tok_ch(')');
 }  /* gen_argument_list */
+
+
+static a_boolean num_elems_can_be_found_in_size_expr(
+                                              an_expr_node_ptr size_expr,
+                                              a_targ_size_t    elem_size,
+                                              an_expr_node_ptr *num_elems_expr)
+/*
+size_expr is an expression that gives the size in bytes of an array for a
+"new" operation.  elem_size gives the size in bytes of an element of the
+array.  See if part or all of the size_expr expression represents the
+number of elements (which is array-size divided by elem-size).  If so,
+set *num_elems_expr to point to that expression, and return TRUE; if not,
+return FALSE.
+*/
+{
+  a_boolean found = FALSE;
+
+  *num_elems_expr = NULL;
+  if (elem_size == 1) {
+    /* The element size is 1, so the original expression will do. */
+    found = TRUE;
+    *num_elems_expr = size_expr;
+  } else {
+    /* Look for the pattern "expr * elem-size" as the top operation of
+       the expression.  If it's there, the left-hand expression is the
+       number of elements.  (Why wouldn't it be there?  Well, one case
+       where it isn't is a multi-dimensional array.) */
+    if (is_operation_node(size_expr) &&
+        size_expr->variant.operation.kind ==
+                                        (an_expr_operator_kind)eok_imultiply) {
+      an_expr_node_ptr operand_1 = size_expr->variant.operation.operands;
+      an_expr_node_ptr operand_2 = operand_1->next;
+      if (is_constant_node(operand_2)) {
+        a_constant_ptr con = operand_2->variant.constant;
+        if (con->kind == (a_constant_repr_kind)ck_integer &&
+            cmpulit_integer_constant(con, (unsigned long)elem_size) == 0) {
+          /* Yes, the expression is "operand_1 * elem-size", so operand_1
+             is the number-of-elements expression. */
+          found = TRUE;
+          *num_elems_expr = operand_1;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* num_elems_can_be_found_in_size_expr */
+
+
+static void gen_new_delete(an_expr_node_ptr expr)
+/*
+Generate code for a new or delete operation.
+*/
+{
+  a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
+  a_type_ptr                  type = ndsp->type, unqual_type;
+  a_routine_ptr               routine = ndsp->routine;
+  an_expr_node_ptr            arg = ndsp->arg;
+  a_boolean                   need_type_parens;
+
+  unqual_type = skip_typerefs(type);
+  /* See if a global specifier "::" is needed on the new or delete. */
+  if (is_class_type_kind(unqual_type->kind) &&
+      /* Watch out for the case where the new/delete is folded into the
+         constructor/destructor. */
+      routine != NULL &&
+      routine->source_corresp.class_of_which_a_member == NULL) {
+    /* Not a class-specific new or delete routine, so put out "::". */
+    write_tok_str("::");
+  }  /* if */
+  if (ndsp->is_new) {
+    /* New.  The general form is
+         :: new (arg2, arg3, ...) type(initializer)
+       Everything except "new" and the type is optional. */
+    write_tok_str("new ");
+    if (arg->next != NULL) {
+      /* More than one argument, so this is a "placement" new.  Put out
+         arguments 2-n inside parentheses. */
+      gen_argument_list(arg, routine->type, /*skip_num=*/1);
+      write_space();
+    }  /* if */
+    /* The syntax for types here is limited; to get the full range of
+       possibilities, one must put parentheses around the type.  Avoid the
+       parens in some simple cases. */
+    need_type_parens = TRUE;
+    { a_type_ptr  temp_type = type;
+      a_type_kind tkind;
+      if (temp_type->kind == (a_type_kind)tk_array) {
+        /* Allow one array level in a simple new type. */
+        temp_type = temp_type->variant.array.element_type;
+      }  /* while */
+      tkind = temp_type->kind;
+      if (tkind == (a_type_kind)tk_integer ||
+          tkind == (a_type_kind)tk_float ||
+          is_class_type_kind(tkind) ||
+          (tkind == (a_type_kind)tk_typeref &&
+                                   !is_immediate_type_qualifier(temp_type) )) {
+        /* Simple cases that don't need parentheses. */
+        need_type_parens = FALSE;
+      }  /* if */
+    }
+    if (need_type_parens) write_tok_ch('(');
+    /* The type is easy to put out except when it is a variable-length array
+       type. */
+    if (unqual_type->size != 0) {
+      /* Normal case. */
+      gen_type(type, NO_NAME);
+    } else {
+      /* Harder case: a variable-length array.  The first argument expression
+         gives the size of the array, which is the number of elements times
+         the size of each element.  Put out the first part of the type, the
+         open bracket, the expression, and the close bracket. */
+      a_type_ptr       elem_type;
+      a_targ_size_t    elem_size;
+      an_expr_node_ptr num_elems_expr;
+      check_assertion_str(unqual_type->kind == (a_type_kind)tk_array,
+                          "gen_new_delete: zero-sized type not array");
+      elem_type = unqual_type->variant.array.element_type;
+      elem_size = skip_typerefs(elem_type)->size;
+      gen_type_first_part(elem_type, /*need_paren=*/TRUE,
+                          /*need_trailing_space=*/TRUE);
+      write_tok_ch('[');
+      if (num_elems_can_be_found_in_size_expr(arg, elem_size,
+                                              &num_elems_expr)) {
+        /* Optimization -- the number of elements was found in the
+           size expression, so just print that. */
+        gen_expression(num_elems_expr);
+      } else {
+        /* Not the optimizable case. */
+        /* Write the size expression divided by the size of each element. */
+        gen_expr_with_parens(arg);
+        write_tok_ch('/');
+        write_unsigned_num(elem_size);
+      }  /* if */
+      write_tok_ch(']');
+      gen_type_second_part(elem_type, /*need_paren=*/TRUE);
+    }  /* if */
+    if (need_type_parens) write_tok_ch(')');
+    if (ndsp->dynamic_init != NULL) {
+      /* The allocated entity gets initialized. */
+      gen_dynamic_init(ndsp->dynamic_init, /*parenthesized_init=*/TRUE);
+    }  /* if */
+  } else {
+    /* Delete.  The general form is
+         :: delete [] expression
+       Everything except "delete" and the expression is optional. */
+    write_tok_str("delete ");
+    if (ndsp->array_delete) write_tok_str("[] ");
+    gen_expr_with_parens(arg);
+  }  /* if */
+}  /* gen_new_delete */
 
 
 static void gen_expr(an_expr_node_ptr expr,
@@ -2704,7 +2864,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* N operand operator. */
           /* Put out the function to call. */
           gen_lvalue(operand_1);
-          gen_argument_list(operand_2, type_pointed_to(operand_1->type));
+          gen_argument_list(operand_2, type_pointed_to(operand_1->type),
+                            /*skip_num=*/0);
           goto done_with_operation;
         default:
           unexpected_condition_str("gen_expr: bad expression operator");
@@ -2776,6 +2937,10 @@ done_with_operation:
         }  /* if */
         if (need_parens) write_tok_ch(')');
       }
+      break;
+    case enk_new_delete:
+      /* new or delete operation. */
+      gen_new_delete(expr);
       break;
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
@@ -3463,7 +3628,13 @@ is indicated, nothing is put out (in either mode).
       /* Parentheses are required (a) if parenthesized_init is TRUE, and
          (b) if parenthesized_init is FALSE, because of the possibility that
          the top-level operator is a ",". */
-      gen_expr_with_parens(dip->variant.expression);
+      if (parenthesized_init) {
+        write_tok_ch('(');
+        gen_expression(dip->variant.expression);
+        write_tok_ch(')');
+      } else {
+        gen_expr_with_parens(dip->variant.expression);
+      }  /* if */
       break;
     case dik_constructor:
       { a_routine_ptr    ctor;
@@ -3495,7 +3666,7 @@ is indicated, nothing is put out (in either mode).
               gen_type_name(class_type);
             }  /* if */
             /* Put out the argument list in parentheses. */
-            gen_argument_list(args, ctor->type);
+            gen_argument_list(args, ctor->type, /*skip_num=*/0);
           }
         }  /* if */
       }
