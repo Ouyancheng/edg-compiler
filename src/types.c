@@ -436,7 +436,7 @@ to an array of abstract class objects.
         array_type_required = TRUE;
         break;
       case tk_ptr_to_member:
-        tp = tp->variant.ptr_to_member.type;
+        tp = pm_member_type(tp);
         /* Check for NULL pointer in a situation where type is being
            constructed but is not yet complete.  This applies to pointer
            and reference types only. */
@@ -731,11 +731,9 @@ related_member_pointers.
 
   *downward_cast = FALSE;
   *bcp = NULL;
-  type_1 = skip_typerefs(type_1);
-  type_2 = skip_typerefs(type_2);
   /* See if the classes are related. */
-  class_1 = type_1->variant.ptr_to_member.class_of_which_a_member;
-  class_2 = type_2->variant.ptr_to_member.class_of_which_a_member;
+  class_1 = pm_class_type(type_1);
+  class_2 = pm_class_type(type_2);
   if ((*bcp = find_base_class_of(class_1, class_2)) != NULL) {
     related_pointers = TRUE;
     *downward_cast = TRUE;
@@ -978,7 +976,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
         set_array_type_size(type_ptr);
         goto size_already_set;
       case tk_ptr_to_member:
-        if (is_function_type(type_ptr->variant.ptr_to_member.type)) {
+        if (is_function_type(pm_member_type(type_ptr))) {
           /* Pointer to nonstatic member function. */
           size = TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION;
           alignment = TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION;
@@ -1341,10 +1339,9 @@ funcs_not_identical:;
         case tk_ptr_to_member:
           /* Pointer-to-member types are identical if they refer to the same
              class type and to the same member type. */
-          identical = (type_1->variant.ptr_to_member.class_of_which_a_member ==
-                       type_2->variant.ptr_to_member.class_of_which_a_member &&
-                       f_identical_types(type_1->variant.ptr_to_member.type,
-                                         type_2->variant.ptr_to_member.type,
+          identical = (pm_class_type(type_1) == pm_class_type(type_2) &&
+                       f_identical_types(pm_member_type(type_1),
+                                         pm_member_type(type_2),
                                          il_identical));
           break;
 #if CHECKING
@@ -1569,10 +1566,9 @@ funcs_not_compatible:;
         case tk_ptr_to_member:
           /* Pointer-to-member types are compatible if they refer to the same
              class type and their member types are compatible. */
-          compat = (type_1->variant.ptr_to_member.class_of_which_a_member ==
-                       type_2->variant.ptr_to_member.class_of_which_a_member &&
-                    f_types_are_compatible(type_1->variant.ptr_to_member.type,
-                                          type_2->variant.ptr_to_member.type));
+          compat = (pm_class_type(type_1) == pm_class_type(type_2) &&
+                    f_types_are_compatible(pm_member_type(type_1),
+                                           pm_member_type(type_2)));
           break;
 #if CHECKING
         default:
@@ -1989,8 +1985,6 @@ pointers to members).
 */
 {
   a_boolean  okay = FALSE;
-  a_type_ptr source_class, dest_class;
-  a_type_ptr source_member_type, dest_member_type;
 
   db_enter(5, "impl_ptr_to_member_conversion");
 #if DEBUG
@@ -2009,12 +2003,10 @@ pointers to members).
        to are the same (ignoring the difference in "this" parameter types)
        and the classes involved are the same or the destination class is an
        unambiguous derived (sic) class of the source class.  See ARM 4.8. */
-    source_class = source_type->variant.ptr_to_member.class_of_which_a_member;
-    dest_class = dest_type->variant.ptr_to_member.class_of_which_a_member;
-    source_member_type = source_type->variant.ptr_to_member.type;
-    dest_member_type = dest_type->variant.ptr_to_member.type;
-    if (is_same_class_or_base_class_thereof(dest_class, source_class) &&
-        member_types_correspond(dest_member_type, source_member_type)) {
+    if (is_same_class_or_base_class_thereof(pm_class_type(dest_type),
+                                            pm_class_type(source_type)) &&
+        member_types_correspond(pm_member_type(dest_type),
+                                pm_member_type(source_type))) {
       /* We leave the ambiguity and accessibility check to be done when
          the cast is done. */
       okay = TRUE;
@@ -2305,8 +2297,8 @@ conversions (constructors and conversion functions).
        checked here as well as in impl_conversion_allowed.  We leave the
        ambiguity check to be done when the cast is done. */
     a_type_ptr source_class, dest_class;
-    source_class = source_type->variant.ptr_to_member.class_of_which_a_member;
-    dest_class = dest_type->variant.ptr_to_member.class_of_which_a_member;
+    source_class = pm_class_type(source_type);
+    dest_class = pm_class_type(dest_type);
     if (source_class == dest_class ||
         find_base_class_of(source_class, dest_class) != NULL ||
         find_base_class_of(dest_class, source_class) != NULL) {
@@ -2346,6 +2338,7 @@ is allocated, it is allocated in the file scope.
 {
   a_type_ptr       comp_type;
   a_type_ptr       base_type_1, base_type_2;
+  a_type_ptr       member_type_1, member_type_2;
   a_boolean        add_const, add_volatile;
   a_type_ptr       comp_elem, comp_param_type, param_type;
   a_targ_size_t    num_elems;
@@ -2619,16 +2612,16 @@ is allocated, it is allocated in the file scope.
           /* The composite of two pointer-to-member types will point to the
              same class type and to a member type that is a composite of the
              two member types. */
-          comp_elem = composite_type(base_type_1->variant.ptr_to_member.type,
-                                     base_type_2->variant.ptr_to_member.type);
-          if (comp_elem == base_type_1->variant.ptr_to_member.type) {
+          member_type_1 = pm_member_type(base_type_1);
+          member_type_2 = pm_member_type(base_type_2);
+          comp_elem = composite_type(member_type_1, member_type_2);
+          if (comp_elem == member_type_1) {
             comp_type = base_type_1;
-          } else if (comp_elem == base_type_2->variant.ptr_to_member.type) {
+          } else if (comp_elem == member_type_2) {
             comp_type = base_type_2;
           } else {
             comp_type = ptr_to_member_type(comp_elem,
-                                           base_type_1->variant.ptr_to_member.
-                                                  class_of_which_a_member);
+                                           pm_class_type(base_type_1));
           }  /* if */
           break;
 #if CHECKING
