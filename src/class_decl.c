@@ -2509,7 +2509,7 @@ TRUE.
     }  /* if */
   }  /* for */
 #else /* !IA64_ABI */
-  a_base_class_ptr  virtual_function_info_base_class, bcp, disambiguator;
+  a_base_class_ptr  virtual_function_info_base_class, bcp;
 
   virtual_function_info_base_class =
                           class_type->variant.class_struct_union.extra_info->
@@ -3887,7 +3887,7 @@ the base class.
 */
 {
   a_type_ptr             tp = NULL;
-  a_base_class_ptr       bcp, disambiguator;
+  a_base_class_ptr       bcp;
 #if !IA64_ABI
   a_derivation_step_ptr  step;
 #else /* IA64_ABI */
@@ -4110,7 +4110,7 @@ duplicate paths.  The copy will be a base class of new_class.
   set_shares_virtual_function_info_flag(new_class, new_bcp);
   /* Do path fixup, if necessary. */
   if (any_direct_virtual_base_class_fixup) {
-    a_base_class_ptr             disambiguator, fixup_bcp;
+    a_base_class_ptr             fixup_bcp;
     a_base_class_derivation_ptr  bcdp;
 
     for (bcp = base_classes_of(new_bcp->type); bcp != NULL; bcp = bcp->next) {
@@ -4480,7 +4480,7 @@ shares virtual function info.
 {
   a_type_ptr                  class_type, base_class_type;
   a_class_type_supplement_ptr ctsp, base_ctsp;
-  a_base_class_ptr            base_bcp, disambiguator;
+  a_base_class_ptr            base_bcp;
 
   class_type = bcp->derived_class;
   ctsp = class_type->variant.class_struct_union.extra_info;
@@ -4534,7 +4534,7 @@ or struct definition.  The syntax is
 {
   a_class_type_supplement_ptr   ctsp;
   a_base_class_ptr              bcp, new_bcp, end_of_base_classes_list = NULL;
-  a_base_class_ptr              new_direct_bcp, disambiguator;
+  a_base_class_ptr              new_direct_bcp;
   an_access_specifier           access;
   a_boolean                     is_virtual;
   a_boolean                     access_already_specified;

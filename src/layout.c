@@ -1534,7 +1534,7 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
 {
   a_boolean        result = FALSE;
   a_type_ptr       class_type, base_type;
-  a_base_class_ptr base_bcp, disambiguator, eff_bcp;
+  a_base_class_ptr base_bcp, eff_bcp;
 
   class_type = bcp->derived_class;
   base_type = bcp->type;
