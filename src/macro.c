@@ -4787,7 +4787,7 @@ A catastrophic error is issued if the mode name is invalid.
   a_predef_macro_mode	mode = pmm_none;
 
   /* Look for the specified name in the mode names table. */
-  for (i = pmm_none + 1; i < (int)pmm_last; ++i) {
+  for (i = (int)pmm_none + 1; i < (int)pmm_last; ++i) {
     if (strcmp(name, predef_macro_mode_names[i]) == 0) {
       mode = (a_predef_macro_mode)i;
       break;
@@ -4917,8 +4917,8 @@ that occurred.
   macro_value = ptr;
   if (mode_value) {
     /* The macro should be defined based on the mode parameters. */
-    enter_predef_macro(macro_value, macro_name, cannot_redefine,
-                       /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro(macro_value, macro_name, cannot_redefine,
+                             /*ref_suppresses_pch_file=*/FALSE);
 #if DEBUG
     if (db_flag_is_set("predef_macro_entry")) {
       fprintf(f_debug,
