@@ -1097,6 +1097,7 @@ to default values.
       break;
     case tk_array:
       pte->variant.array.element_type = NULL;
+      pte->variant.array.qualifiers = TQ_NONE;
       pte->variant.array.is_template_dependent_size_array = FALSE;
       pte->variant.array.is_variable_size_array = FALSE;
       pte->variant.array.is_vla = FALSE;

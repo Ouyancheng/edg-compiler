@@ -1242,6 +1242,11 @@ do_float_complex:
       (void)printf("tk_array\n");
       disp_ptr("element_type", (char *)ptr->variant.array.element_type,
                iek_type);
+      if (ptr->variant.array.qualifiers != TQ_NONE) {
+        disp_name("qualifiers");
+        disp_type_qualifiers(ptr->variant.array.qualifiers);
+        (void)printf("\n");
+      }  /* if */
       if (ptr->variant.array.is_static) {
         disp_boolean("is_static", TRUE);
       }  /* if */
