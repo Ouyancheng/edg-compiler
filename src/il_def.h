@@ -3096,14 +3096,14 @@ enum a_calling_convention_tag {
    parameters (they can return a calling convention via a parameter even
    though it is never used). */
 typedef a_byte a_calling_convention;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 /* Display names for calling conventions. */
 EXTERN char *calling_convention_names[(int)cc_last]
 #if VAR_INITIALIZERS
 = {"<default>", "__cdecl", "__fastcall", "__stdcall"}
 #endif /* VAR_INITIALIZERS */
 ;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
 /*
 Enumeration of declaration modifiers that are accepted.  The enumeration values
