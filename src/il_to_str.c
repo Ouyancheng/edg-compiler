@@ -50,7 +50,7 @@ static void output_partial_token_str(
                                     char                                  *str,
                                     an_il_to_str_output_control_block_ptr octl)
 /*
-Output a the null-terminated string str in the way indicated by octl.
+Output the null-terminated string str in the way indicated by octl.
 The string may be only part of a token.
 */
 {
