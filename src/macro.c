@@ -1649,8 +1649,8 @@ end_scan_for_macro_modifs:;
              the beginning and end of the argument is ignored. */
           if (pp == NULL) {
             /* Too many arguments. */
-            if (cfront_compatibility_mode) {
-              /* In cfront mode, this is only a warning. */
+            if (pcc_preprocessing_mode) {
+              /* In pcc mode, this is only a warning. */
               if (!too_many_args_warning_given) {
                 warning(ec_too_many_macro_args);
                 too_many_args_warning_given = TRUE;
