@@ -19,6 +19,7 @@ decls.c -- Scanning of declarations.
 #include "class_decl.h"
 #include "il.h"
 #include "symbol_tbl.h"
+#include "symbol_ref.h"
 #include "statements.h"
 #include "lexical.h"
 #include "error.h"

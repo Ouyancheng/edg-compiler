@@ -59,6 +59,7 @@ in the include files will become external definitions for the symbols.
 #include "pragma.h"
 #include "preproc.h"
 #include "statements.h"
+#include "symbol_ref.h"
 #include "symbol_tbl.h"
 #include "sys_predef.h"
 #include "target.h"

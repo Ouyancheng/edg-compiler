@@ -21,6 +21,7 @@ macro.c -- Macro definition and expansion routines.
 #include "error.h"
 #include "il.h"
 #include "symbol_tbl.h"
+#include "symbol_ref.h"
 #include "macro.h"
 #include "cmd_line.h"
 #include "mem_manage.h"

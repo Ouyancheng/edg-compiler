@@ -25,6 +25,7 @@ templates.c -- Support for C++ templates.
 #include "lower_name.h"
 #include "statements.h"
 #include "symbol_tbl.h"
+#include "symbol_ref.h"
 #include "types.h"
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
