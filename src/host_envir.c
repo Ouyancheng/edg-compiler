@@ -3163,6 +3163,10 @@ This is done before command line processing.
 #if SVR4_TRAP_NULL_POINTER_REFERENCES
   svr4_trap_null_pointer_references();
 #endif /* SVR4_TRAP_NULL_POINTER_REFERENCES */
+  /* The temp_text_buffer is initialized here because it is used by
+     get_curr_dir_name on some systems. */
+  temp_text_buffer = NULL;
+  size_temp_text_buffer = 0;
   /* Get the current directory name. */
   ptr = get_curr_dir_name();
   current_directory_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);

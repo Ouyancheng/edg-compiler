@@ -14231,8 +14231,6 @@ in il_init.)
 #endif /* CHECKING */
 
   /* Initialize certain global variables declared in il.h. */
-  temp_text_buffer = NULL;
-  size_temp_text_buffer = 0;
 #if DEBUG
   db_name_str_buffer = NULL;
 #endif /* DEBUG */
