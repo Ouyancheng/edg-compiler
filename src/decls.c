@@ -6413,6 +6413,8 @@ A using-directive entry is created and activated for the current scope.
   add_stop_token(tok_semicolon);
   if (!is_qualified_name_start()) {
     syntax_error(ec_exp_identifier);
+    /* Ignore pragma declarations. */
+    discard_curr_construct_pragmas();
   } else {
     /* Scan the namespace name. */
     sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
@@ -6421,13 +6423,21 @@ A using-directive entry is created and activated for the current scope.
       /* A diagnostic has already been issued. */
     } else if (sym == NULL || sym->kind != (a_symbol_kind)sk_namespace) {
       error(ec_missing_namespace_name);
+      err = TRUE;
     } else if (locator_for_curr_id.specific_symbol->kind ==
                      (a_symbol_kind)sk_namespace_projection &&
                locator_for_curr_id.specific_symbol->ambiguous) {
       /* Note: the lookup returns the projection symbol, if there is one,
          in the locator, so that's what needed to be tested for ambiguity. */
       sym_error(ec_ambiguous_name, locator_for_curr_id.specific_symbol);
+      err = TRUE;
+    }  /* if */
+    if (err) {
+      /* Ignore pragma declarations. */
+      discard_curr_construct_pragmas();
     } else {
+      /* Pragmas cannot bind to a using declaration. */
+      cannot_bind_to_curr_construct();
       mark_referenced(sym, &locator_for_curr_id.source_position);
       /* Allocate a using-directive entry specifying this namespace and
          activate it. */
