@@ -4937,7 +4937,7 @@ implement <stdarg.h>, a standard feature.
 #if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
     if (gnu_mode && gnu_version >= 30300 && is_expression_operand(&operand) &&
         operand.variant.expression->kind == (an_expr_node_kind)enk_operation) {
-      /* In recent GNU C and C++ compilers, __alignof__ applied to an field
+      /* In recent GNU C and C++ compilers, __alignof__ applied to a field
          selection operation (. or ->) results in the "field alignment" rather
          than the intrinsic alignment.  For example (assuming recent GNU rules
          on the IA-32 architecture where long long is intrinsically aligned to
