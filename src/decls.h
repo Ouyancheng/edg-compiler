@@ -96,15 +96,18 @@ routine to do lookahead, etc.
       curr_token == tok_overload) :                                   \
     is_decl_start(/*expr_context=*/TRUE, real_decl_allowed))
 
+extern a_boolean is_declarator_id(void);
+
 /*
 Macro that is TRUE if the current token is the start of a declarator
 (3.5.4 -- real, not abstract).
 */
-#define is_declarator_start()                                         \
-  (curr_token == tok_identifier || curr_token == tok_star ||          \
-   curr_token == tok_lparen ||                                        \
-   (C_dialect == C_dialect_cplusplus &&                               \
-    (curr_token == tok_ampersand || curr_token == tok_operator)))
+#define is_declarator_start()                                        \
+  (curr_token == tok_identifier ?                                    \
+     is_declarator_id() :                                            \
+     (curr_token == tok_star || curr_token == tok_lparen ||          \
+      (C_dialect == C_dialect_cplusplus &&                           \
+       (curr_token == tok_ampersand || curr_token == tok_operator))))
 
 extern void type_name(a_type_ptr *type_ptr);
 
