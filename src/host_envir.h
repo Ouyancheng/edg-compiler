@@ -591,23 +591,22 @@ extern void add_to_include_search_path(char *dir_name);
 /* Add a directory to the front of the include file search path. */
 extern void add_to_front_of_include_search_path(char *dir_name);
 
-
 #ifdef CFE
 #if !STACK_REFERENCED_INCLUDE_DIRECTORIES
 /* Routine is used in to make the search for nested include files begin
    relative to the directory containing the source file in which the #include
    appears but to ignore previous primary include search directories. */
 #define NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR TRUE
-#endif !STACK_REFERENCED_INCLUDE_DIRECTORIES
-#else /* !defined(CFE) */
+#endif /* !STACK_REFERENCED_INCLUDE_DIRECTORIES */
+#endif /* ifdef CFE */
+#ifndef NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR
 #if COMPILE_MULTIPLE_SOURCE_FILES
 /* Routine is used when compiling multiple source files to change the
    entry for the directory of the primary source file. */
 #define NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR TRUE
-#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
-#endif /* ifdef CFE */
-#ifndef NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR
+#else /* !COMPILE_MULTIPLE_SOURCE_FILES */
 #define NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR FALSE
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 #endif /* ifndef NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR */
 #if NEED_CHANGE_PRIMARY_INCLUDE_SEARCH_DIR
 /* Change the directory name in the primary include file search path entry. */
