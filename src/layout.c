@@ -1971,12 +1971,16 @@ emulate a strange GNU IA-64 layout bug.
 */
 {
   a_targ_size_t     result = (a_targ_size_t)0;
-  a_base_class_ptr  bcp = base_classes_of(ebcp->derived_class);
+  a_base_class_ptr  bcp = preorder_base_classes_of(ebcp->derived_class);
 
   check_assertion(ebcp->is_virtual);
 
-  for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && bcp->offset_is_set && bcp != ebcp) {
+  for (; bcp != NULL; bcp = bcp->next_preorder) {
+    if (bcp == ebcp) {
+      /* Do not consider bases appearing after the given base in a preorder
+         traversal. */
+      goto done;
+    } else if (bcp->direct && bcp->offset_is_set) {
       a_base_class_ptr  sub_bcp = base_classes_of(bcp->type);
       for (; sub_bcp != NULL; sub_bcp = sub_bcp->next) {
         if (sub_bcp->is_virtual && same_entities(sub_bcp->type, ebcp->type)) {
