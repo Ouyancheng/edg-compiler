@@ -738,36 +738,23 @@ type.
     /* Converting an address to a floating-point type cannot be done at
        compile-time. */
     *did_not_fold = TRUE;
-  } else if (!fold_constant_addr_exprs) {
-    /* Do not fold address casts in constant contexts unless told to.
-       That's to preserve detailed addressing information in the IL. */
-    *did_not_fold = TRUE;
-    /* However, do fold casts on string constants.  We want to be able to
-       recognize the result as constant, e.g., for printf argument checking. */
-    if (old_constant->kind == (a_constant_repr_kind)ck_address &&
-        old_constant->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant) {
-      *did_not_fold = FALSE;
-    } else if (is_implicit_cast &&
-               is_pointer_type(old_type) &&
-               is_pointer_type(new_type)) {
-      /* Do fold implicit decay from array to pointer. */
-      a_type_ptr underlying_old_type = type_pointed_to(old_type);
-      a_type_ptr underlying_new_type = type_pointed_to(new_type);
-      if (is_array_type(underlying_old_type)) {
-        a_type_ptr elem_type = array_element_type(underlying_old_type); 
-        if (identical_types(elem_type, underlying_new_type)) {
-          *did_not_fold = FALSE;
-        }  /* if */
-      }  /* if */
+  } else if (is_reinterpret_cast) {
+    /* Suppress the related-class processing for reinterpret_casts.  If
+       constant addressing expressions are not being folded, keep the
+       reinterpret_cast in executable form. */
+    if (!fold_constant_addr_exprs) {
+      *did_not_fold = TRUE;
     }  /* if */
-  } else if (!is_reinterpret_cast &&
-             related_class_pointers(old_type, new_type,
+  } else if (related_class_pointers(old_type, new_type,
                                     &baseward_cast, &bcp)) {
     /* In C++, a cast of a pointer to a class to a pointer to a base class
        or derived class. */
     conversion_handled = TRUE;
-    if (baseward_cast) {
+    /* Do not fold such casts in constant form unless told to.  That's to
+       preserve detailed addressing information in the IL. */
+    if (!fold_constant_addr_exprs) {
+      *did_not_fold = TRUE;
+    } else if (baseward_cast) {
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
       fold_base_class_cast(old_constant, bcp, new_constant, is_implicit_cast,
@@ -778,7 +765,8 @@ type.
       fold_derived_class_cast(old_constant, bcp, new_constant, err_pos);
     }  /* if */
     /* If the qualifiers aren't right, adjust them. */
-    if (!is_error_type(new_constant->type) &&
+    if (!*did_not_fold && 
+        !is_error_type(new_constant->type) &&
         !identical_types(new_constant->type, new_type)) {
       implicit_cast(new_constant, new_type);
     }  /* if */

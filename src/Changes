@@ -1,5 +1,15 @@
 Version 2.43
 
+11/3/99  Folding of address constants
+
+In the past, certain cases of address constant folding were inhibited in order
+to have the C++-generating back end generate nicer looking output (see the
+Changes entries of 2/19/96 and 8/4/98).  However, these inhibitions are no
+longer needed now that the front end can record constant expressions in the IL
+(see Changes entry of 10/18/99) and the C++-generating back end exploits this
+capability.  Since the original changes turned out to adversely affect code
+generation quality, they have been removed.
+
 11/3/99  Access check on operator delete for new folded into constructor
 
 When an exception is thrown during a "new" operation, after

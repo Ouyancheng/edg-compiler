@@ -12361,16 +12361,12 @@ and scan_aggregate_class_initializer_expression.
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   force_object_lifetime,
                   /*suppress_object_lifetime=*/FALSE);
-  /* When doing source-to-source work, keep as much information as possible,
-     so don't fold constant addressing expressions. */
-#if !BACK_END_IS_CP_GEN_BE
   if (static_lifetime) {
     /* In initializations of static variables, fold constant addressing
        expressions to constants so that constant initialization can be
        more easily discerned. */
     expr_stack->fold_constant_addr_exprs = TRUE;
   }  /* if */
-#endif /* !BACK_END_IS_CP_GEN_BE */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
 #if MICROSOFT_EXTENSIONS_ALLOWED
