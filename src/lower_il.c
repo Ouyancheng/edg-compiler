@@ -2647,9 +2647,14 @@ constants in other scopes.
 */
 {
   if (crossing_into_file_scope(constant)) {
-    /* Don't follow a pointer from the function scope into the file scope. */
-    add_orphaned_file_scope_il_entry((char *)constant,
-                                     (an_il_entry_kind)iek_constant)
+    /* Don't follow a pointer from the function scope into the file scope;
+       record it as a potential orphan instead.  Note that a class member
+       can never be an orphan, so member constants are not recorded as
+       orphans. */
+    if (constant->source_corresp.class_of_which_a_member == NULL) {
+      add_orphaned_file_scope_il_entry((char *)constant,
+                                       (an_il_entry_kind)iek_constant);
+    }  /* if */
   } else {
     lower_constant(constant);
   }  /* if */

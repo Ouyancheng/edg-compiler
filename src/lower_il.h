@@ -623,12 +623,15 @@ A "possibly other scope" version of lower_type; does nothing for
 types in other scopes.  Note that because all types are in the file
 scope, any reference to a type while lowering a function is a
 reference to another scope, and is recorded as a potential orphan
-to be processed later.
+to be processed later.  Note that a class member can never be
+an orphan, so member types are not recorded as orphans.
 */
 #define lower_os_type(type)                                           \
 { if (!lowering_file_scope) {                                         \
-    add_orphaned_file_scope_il_entry((char *)(type),                  \
-                                     (an_il_entry_kind)iek_type);     \
+    if (type->source_corresp.class_of_which_a_member == NULL) {       \
+      add_orphaned_file_scope_il_entry((char *)(type),                \
+                                       (an_il_entry_kind)iek_type);   \
+    }  /* if */                                                       \
   } else {                                                            \
     lower_type(type);                                                 \
   }  /* if */                                                         \
