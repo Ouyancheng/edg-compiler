@@ -6345,7 +6345,6 @@ TRUE if the declaration following this one is such a continuation.
   a_source_sequence_scan_state  saved_state;
   a_routine_type_supplement_ptr rtsp;
   a_boolean                     is_specialization;
-  a_boolean                     is_generated_instance = FALSE;
   a_function_state              state;
   a_boolean                     decl_within_function =
                                             (innermost_function_scope != NULL);
@@ -6381,10 +6380,6 @@ TRUE if the declaration following this one is such a continuation.
                           "gen_routine_decl: missing definition");
       is_definition = FALSE;
     }  /* if */
-  }  /* if */
-  if (rout->is_template_function && !rout->is_specialized) {
-    /* A generated instance. */
-    is_generated_instance = TRUE;
   }  /* if */
   check_assertion_str(rout_type != NULL,
                       "gen_routine_decl: declared_type is NULL");
@@ -6599,9 +6594,12 @@ TRUE if the declaration following this one is such a continuation.
       adv_to_signif_source_sequence_entry();
     }  /* if */
     /* Write the second part of the declarator. */
+    /* Suppress default arguments on generated instances. */
     gen_function_declarator_with_scope(rout_type, scope, rout,
                                        /*suppress_def_args=*/
-                                                        is_generated_instance);
+                                                 (rout->is_template_function &&
+                                                  !rout->is_specialized &&
+                                                  !decl_within_class));
     /* If the function has a throw specification, put it out here after the
        function declarator. */
     if (rtsp->exception_specification != NULL) {
