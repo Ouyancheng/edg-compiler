@@ -4800,7 +4800,12 @@ typedef struct a_routine {
 			   required. */
   a_bit_field	compiler_generated:1;
 			/* TRUE for functions that are created by the
-			   compiler, e.g., default constructors in C++. */
+			   compiler and have not been declared in the source,
+			   e.g., default constructors in C++.  If a valid
+			   declaration is found in the source -- as could for
+			   example be true of "operator delete" -- the flag
+			   will be cleared; hence the bit is not necessarily
+			   TRUE for "intrinsic" routines. */
   a_bit_field	defined:1;
 			/* TRUE once the definition of the function has been
 			   completed.  (While the function body is being

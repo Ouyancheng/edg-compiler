@@ -4843,11 +4843,8 @@ skip_overloading:;
       /* This is an entry for an intrinsic function or operator (e.g., the
          compiler generated ::operator new or ::operator delete).  It was
          created during initialization, but is overridden by the present
-         definition.  If the declaration is not a definition, we do not want
-         to lose track of the fact that this is an intrinsic entity. */
-      if (is_function_def) {
-        routine_ptr->compiler_generated = FALSE;
-      }  /* if */
+         declaration. */
+      routine_ptr->compiler_generated = FALSE;
       if (routine_ptr->source_corresp.decl_position.seq == 0) {
         /* Since the IL entry wasn't assigned a position yet, this must be
            the first time we see a source-level declaration for it. Don't
