@@ -1387,6 +1387,8 @@ current point.
   pch_write_value(is_complete);
   /* Current directory name. */
   pch_write_string(current_directory_name);
+  /* The directory name associated with the primary source file. */
+  pch_write_string(directory_of(primary_source_file_name));
   /* Write the event list that will be used for PCH file matching. */
   write_file_section_id(pfs_cmd_line_events);
   write_pch_events(pch_cmd_line_event_list_head);
@@ -1574,6 +1576,17 @@ the current directory.
   result = strcmp(ptr, current_directory_name) == 0;
   if (!result) {
     mismatch_reason = ec_pch_curr_directory_changed;
+  }  /* if */
+  ptr = pch_read_string();
+  if (result) {
+    /* If the current directory matches, check the directory associated
+       with the primary source file. */
+    result = strcmp(ptr, directory_of(primary_source_file_name)) == 0;
+    if (!result) {
+      /* A mismatch of the primary source file is diagnosed as a command
+	 line option mismatch. */
+      mismatch_reason = ec_pch_cmd_line_option_mismatch;
+    }  /* if */
   }  /* if */
   return result;
 }  /* curr_dir_matches */

@@ -1,5 +1,13 @@
 Version 2.29
 
+3/31/95  PCH files and compiling files in different directories
+
+When determining whether a given PCH file is a candidate for use by
+a given compilation, the directory of the primary source file should
+have been taken into account, but was not.  This could cause a PCH
+file to be used when it actually represented the wrong version of
+an included file.  This has been fixed.
+
 3/31/95  Promotion cost of enum --> int on operand to builtin in overload
          resolution
 
