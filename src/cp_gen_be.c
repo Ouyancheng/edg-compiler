@@ -1861,6 +1861,26 @@ Return a string that describes the tag kind for the indicated type, i.e.,
   return str;
 }  /* tag_kind */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+
+static void gen_microsoft_uuid_declspec(char *uuid_string)
+/*
+Put out the Microsoft __declspec(uuid(...)) declaration modifier.
+uuid_string is the GUID string, or NULL if the modifier does not apply.
+*/
+{
+  if (uuid_string != NULL) {
+    write_tok_str("__declspec(uuid(");
+    write_ch('"');
+    write_str(uuid_string);
+    write_ch('"');
+    write_tok_str(")) ");
+  }  /* if */
+}  /* gen_microsoft_uuid_declspec */
+
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_tag_reference(a_type_ptr type)
 /*
@@ -1905,6 +1925,15 @@ or enum.
     write_tok_str(tag_kind_str);
     write_space();
     if (type->first_declaration_pending) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (il_header.source_language == sl_Cplusplus &&
+          type->kind != (a_type_kind)tk_enum) {
+        /* Put out the Microsoft __declspec(uuid(...)) modifier on the
+           first declaration, if applicable. */
+        gen_microsoft_uuid_declspec(
+                     type->variant.class_struct_union.extra_info->uuid_string);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* The initial declaration of a tag cannot use a qualified name. */
       gen_unqualified_name(&type->source_corresp, iek_type);
       type->first_declaration_pending = FALSE;
@@ -2789,6 +2818,7 @@ is the one associated with the definition of the class.
     /* Put out modifiers that apply to the class as a whole, e.g.,
        "class __declspec(dllimport) A {...}". */
     gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
+    gen_microsoft_uuid_declspec(ctsp->uuid_string);
     form_type_qualifier(ctsp->qualifiers, /*need_trailing_space=*/TRUE, &octl);
   }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
