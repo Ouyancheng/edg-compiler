@@ -5115,7 +5115,11 @@ Initialize for the C-generating back end.
   curr_output_column = 0;  /* Special value meaning there is no output line. */
   indent = 0;
   in_comment = FALSE;
+#if DEBUG
   annotate = db_active;
+#else /* !DEBUG */
+  annotate = FALSE;
+#endif /* DEBUG */
 #if !C_GEN_BE_GENERATES_ANSI_C
   file_scope_init_routine_called = FALSE;
   f_file_scope_inits = NULL;
