@@ -5484,7 +5484,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
   an_operand        operand_2;
   a_source_position operator_position;
   a_boolean         err = FALSE, processed = FALSE;
-  a_boolean         bitwise_assignment_allowed;
+  a_boolean         has_predef_meaning;
   a_type_ptr        result_type;
 
   db_enter(4, "scan_simple_assignment_operator");
@@ -5510,14 +5510,16 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
     if (C_dialect == C_dialect_cplusplus &&
         is_class_struct_union_type(operand_1->type)) {
       /* Look for C++ operator overloading cases. */
-      bitwise_assignment_allowed = 
-                                 symbol_supplement_for_class(operand_1->type)->
-                                            assignment_by_bitwise_copy_allowed;
+      /* "=" has a predefined meaning for C-style classes (i.e., bitwise
+         assignment).  Also go that way for incomplete classes, to get
+         a clearer error message. */
+      has_predef_meaning = symbol_supplement_for_class(operand_1->type)->
+                                          assignment_by_bitwise_copy_allowed ||
+                           is_incomplete_type(operand_1->type);
       check_for_operator_overloading((an_opname_kind)onk_assign,
                                      /*unary_operator=*/FALSE,
                                      /*must_be_member_function=*/TRUE,
-                                     /*has_predef_meaning=*/
-                                                    bitwise_assignment_allowed,
+                                     has_predef_meaning,
                                      operand_1, &operand_2,
                                      expression_kind, &operator_position,
                                      result, &processed);
