@@ -51,7 +51,7 @@ member function of a nonlocal class is referenced but not defined:
   class A {
     inline int f();           // Only a warning in Microsoft mode
   } a;
-  main() {
+  int main() {
     return a.f();
   }
 
@@ -554,7 +554,7 @@ template function instantiation.  Now fixed.  Here's an example:
   template <class T, class Allocator> struct vector {
     explicit vector (const Allocator& alloc = Allocator()) { }
   };
-  main() {
+  int main() {
     list<vector<char, allocator<void> >, allocator<void> > lvc;
   }
 
@@ -1586,7 +1586,7 @@ instantiations -- see entry for 3/5/96.)  For example,
     return sizeof(S);
   }
   #pragma pack(4)
-  main() {
+  int main() {
     int i = f(0);                    // i = 5, not 8
   }
 
@@ -1601,7 +1601,7 @@ treated as "local".  Here's an example:
     :
   };
   #pragma pack(4)
-  main() {
+  int main() {
     A<int> a;                       // #pragma pack(1) is local to A<int>
     struct S { char c; int i; };    // sizeof(S) == 8, not 5
   }
@@ -1942,7 +1942,7 @@ in Microsoft mode, since MSVC++ disallows new-expressions involving const
 and volatile):
 
   struct A { virtual void f(); int i; };
-  main() {
+  int main() {
     (void)new const A;               // Okay in cfront and Microsoft modes
   }
 
@@ -2140,7 +2140,7 @@ DEFAULT_GUIDING_DECLS_ALLOWED in lang_feat.h).  For example:
 
   template void f(T) { ... }
   void f(int);                 // never defined
-  main() { f(0); }
+  int main() { f(0); }
 
 If f(int) is regarded as a guiding declaration, it is an instance of the
 template and will be implicitly instantiated if necessary.  If not, there
