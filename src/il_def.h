@@ -5235,7 +5235,7 @@ enum an_object_lifetime_kind_tag {
 			       <olk_block_after_label>
 			     }      */
   olk_function_static,	/* Lifetime of function-local static variables. */
-  olk_expr_temporary,	/* Lifetime of expression temporaries. */
+  olk_expr_temporary	/* Lifetime of expression temporaries. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_object_lifetime_kind;
