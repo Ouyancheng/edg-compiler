@@ -2,7 +2,7 @@ Version 3.1
 
 12/27/02 C++-generating back end: Order of base class specifiers
 
-In some cases involving virtual base classes that are inherited from both
+In some cases involving virtual base classes that are inherited both
 directly and indirectly, the generated C++ did not render the base class
 specifiers in a correct order.  For example:
 
