@@ -186,6 +186,7 @@ typedef enum /*an_option_kind*/ {
   optk_include_file_suffixes,
   optk_compound_literals,
   optk_base_assign_op_is_default,
+  optk_sun_mode,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -204,6 +205,11 @@ EXTERN a_boolean
                 cfront_3_0_mode /* = FALSE */;
                         /*  accept language features supported
                             by cfront release 3.0. */
+
+EXTERN a_boolean
+                sun_mode /* = FALSE */;
+                        /*  accept language features supported
+                            by Sun CC release 5.0. */
 
 /*
 Macro that is TRUE if any cfront mode has been selected.

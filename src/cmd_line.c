@@ -836,6 +836,10 @@ Initialize the option information table.
                          "no_base_assign_op_is_default",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_sun_mode,
+                         "sun",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1300,6 +1304,532 @@ static int	argc_file_list;
 			   points to the argv entry for the first
 			   remaining file. */
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+
+
+static void set_c_mode_flags()
+/*
+Set the various flags appropriate for the specific C mode we are going to
+process.
+*/
+{
+  /* Turn on features implied by SVR4 C mode. */
+  if (SVR4_C_mode) {
+    address_of_ellipsis_allowed = TRUE;
+    allow_ellipsis_only_param_in_C_mode = TRUE;
+  }  /* if */
+  /* Turn off language features that must not be on in C mode, in case
+     the default value is on. */
+  exceptions_enabled = FALSE;
+  rtti_enabled = FALSE;
+  array_new_and_delete_enabled = FALSE;
+  explicit_keyword_enabled = FALSE;
+  namespaces_enabled = FALSE;
+  wchar_t_is_keyword = FALSE;
+  bool_is_keyword = FALSE;
+  /* Set global flags having to do with the potential sizes of enum types.
+     They must be no larger than int in C. */
+  enum_types_can_be_larger_than_int = FALSE;
+  if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
+    enum_types_can_be_smaller_than_int = FALSE;
+  } else {
+    enum_types_can_be_smaller_than_int =
+                            targ_enum_types_can_be_smaller_than_int;
+  }  /* if */
+  if (C_dialect == C_dialect_pcc) {
+    /* Alternative tokens are not recognized in PCC mode. */
+    alternative_tokens_allowed = FALSE;
+  }  /* if */
+  special_subscript_cost = FALSE;  /* Not really needed. */
+  use_nonstandard_for_init_scope = TRUE;  /* Not really needed. */
+  nonstandard_qualifier_deduction = FALSE;  /* Not really needed. */
+  warning_on_for_init_difference = FALSE;
+  remove_qualifiers_from_param_types = FALSE;
+  impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
+  extern_inline_allowed = FALSE;
+  operator_overloading_on_enums_enabled = FALSE;  /* Not really needed. */
+  string_literals_are_const = FALSE;
+  arg_dependent_lookup_enabled = FALSE;
+}  /* set_c_mode_flags */
+
+
+static void check_and_set_c_mode_options()
+/*
+If we're in C mode, check that no C++-only command-line setting is used, and
+set various unmentioned settings as needed.
+*/
+{
+  check_assertion(C_mode());
+  if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
+    command_line_error(ec_cl_anachronism_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_virtual_function_table_definition]) {
+    command_line_error(ec_cl_vtbl_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_template_instantiation_mode]) {
+    command_line_error(ec_cl_instantiation_option_only_in_cplusplus);
+  }  /* if */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  if (option_kind_used[(int)optk_automatic_template_instantiation]) {
+    command_line_error(ec_cl_auto_instantiation_option_only_in_cplusplus);
+  }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+  if (option_kind_used[(int)optk_implicit_template_inclusion]) {
+    command_line_error(ec_cl_implicit_inclusion_option_only_in_cplusplus);
+  }  /* if */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  if (option_kind_used[(int)optk_exception_handling]) {
+    command_line_error(ec_cl_exceptions_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_rtti]) {
+    command_line_error(ec_cl_rtti_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_array_new_and_delete]) {
+    command_line_error(ec_cl_array_new_and_delete_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_explicit]) {
+    command_line_error(ec_cl_explicit_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_namespaces]) {
+    command_line_error(ec_cl_namespaces_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
+    command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_bool_is_keyword]) {
+    command_line_error(ec_cl_bool_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_special_subscript_cost]) {
+    command_line_error(
+                      ec_cl_special_subscript_cost_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_typename]) {
+    command_line_error(ec_cl_typename_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_implicit_typename]) {
+    command_line_error(ec_cl_implicit_typename_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_old_for_init]) {
+    command_line_error(ec_cl_old_for_init_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_for_init_diff_warning]) {
+    command_line_error(ec_cl_for_init_diff_warning_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_guiding_decls]) {
+    command_line_error(ec_cl_guiding_decls_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_old_specializations]) {
+    command_line_error(ec_cl_old_specializations_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_implicit_extern_c_type_conversion]) {
+    command_line_error(ec_cl_impl_extern_c_conv_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_extern_inline]) {
+    command_line_error(ec_cl_extern_inline_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_embedded_cplusplus]) {
+    command_line_error(ec_cl_embedded_cplusplus_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_enum_overloading]) {
+    command_line_error(ec_cl_enum_overloading_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_nonstandard_qualifier_deduction]) {
+    command_line_error(
+            ec_cl_nonstandard_qualifier_deduction_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_nonstandard_using_decl]) {
+    command_line_error(
+            ec_cl_nonstd_using_decl_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_class_name_injection]) {
+    command_line_error(ec_cl_class_name_injection_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_arg_dependent_lookup]) {
+    command_line_error(ec_cl_arg_dependent_lookup_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_friend_injection]) {
+    command_line_error(ec_cl_friend_injection_option_only_in_cplusplus);
+  }  /* if */
+#if ONE_INSTANTIATION_PER_OBJECT
+  if (option_kind_used[(int)optk_one_instantiation_per_object]) {
+    command_line_error(
+            ec_cl_one_instantiation_per_object_option_only_in_cplusplus);
+  }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+  if (option_kind_used[(int)optk_late_tiebreaker]) {
+    command_line_error(ec_cl_late_tiebreaker_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_pending_instantiations]) {
+    command_line_error(
+                     ec_cl_pending_instantiations_option_only_in_cplusplus);
+  }  /* if */
+  set_c_mode_flags();
+}  /* check_and_set_c_mode_options */
+
+
+static void check_and_set_cplusplus_mode_options()
+/*
+If we're in C++ mode, check that no non-C++ command-line setting is used, and
+set various unmentioned settings as needed.
+*/
+{
+  check_assertion(!C_mode());
+  /* Reset the SVR4 C compatibility flag just in case it is set by
+     default. */
+  SVR4_C_mode = FALSE;
+  /* Set global flags having to do with potential size of enum types. */
+  enum_types_can_be_smaller_than_int =
+                          targ_enum_types_can_be_smaller_than_int;
+  enum_types_can_be_larger_than_int = TRUE;
+  /* The default for --long_preserving_rules in C++ is FALSE. */
+  if (!option_kind_used[(int)optk_long_preserving_rules]) {
+    long_preserving_rules = FALSE;
+  }  /* if */
+#if VLA_ALLOWED
+  if (option_kind_used[(int)optk_vla]) {
+    command_line_error(ec_cl_vla_option_only_in_C);
+  }  /* if */
+  vla_enabled = FALSE;
+#endif /* VLA_ALLOWED */
+  if (option_kind_used[(int)optk_designators]) {
+    command_line_error(ec_cl_designators_option_only_in_C);
+  }  /* if */
+  designators_allowed = FALSE;
+  if (option_kind_used[(int)optk_extended_designators]) {
+    command_line_error(ec_cl_extended_designators_option_only_in_C);
+  }  /* if */
+  extended_designators_allowed = FALSE;
+  if (option_kind_used[(int)optk_compound_literals]) {
+    command_line_error(ec_cl_compound_literals_option_only_in_C);
+  }  /* if */
+}  /* check_and_set_cplusplus_mode_options */
+
+
+static void exclude_cfront_mode(an_error_code  error_code)
+/*
+Cfront mode is incompatible with other settings.  Either issue the given
+diagnostic (error_code) if the conflict is explicit, or silently turn off an
+otherwise implicitly enabled cfront mode.
+*/
+{
+  if (any_cfront_mode()) {
+    if (option_kind_used[(int)optk_cfront_2_1_mode] ||
+        option_kind_used[(int)optk_cfront_3_0_mode]) {
+      /* cfront mode was enabled by a command line option. */
+      command_line_error(error_code);
+    } else {
+      /* cfront mode enabled by default.  Silently disable it. */
+      cfront_2_1_mode = FALSE;
+      cfront_3_0_mode = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* exclude_cfront_mode */
+
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void exclude_microsoft_mode(an_error_code  error_code)
+/*
+Microsoft mode is incompatible with other settings.  Either issue the given
+diagnostic (error_code) if the conflict is explicit, or silently turn off an
+otherwise implicitly enabled Microsoft mode.
+*/
+{
+  /* Microsoft mode is not compatible with another mode set on the command
+     line. */
+  if (microsoft_mode) {
+    if (option_kind_used[(int)optk_microsoft_mode] ||
+        option_kind_used[(int)optk_microsoft_version] ||
+        option_kind_used[(int)optk_microsoft_bugs]) {
+      /* Microsoft mode was enabled by a command line option. */
+      command_line_error(error_code);
+    } else {
+      /* Microsoft mode enabled by default.  Silently disable it since the
+         explicit mode setting on the command line overrides it. */
+      microsoft_mode = FALSE;
+      microsoft_bugs = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* exclude_microsoft_mode */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
+static void check_and_set_ansi_mode_options()
+/*
+Both for strict ANSI C and C++ modes, check that no command-line setting
+conflicts with the ANSI mode and set various unmentioned settings as needed.
+*/
+{
+  /* Strict ANSI mode is incompatible with K&R/pcc mode. */
+  if (C_dialect == C_dialect_pcc) {
+    command_line_error(ec_cl_strict_ansi_incompatible_with_pcc);
+  }  /* if */
+  /* Strict ANSI mode is incompatible with cfront compatibility mode. */
+  exclude_cfront_mode(ec_cl_strict_ansi_incompatible_with_cfront);
+  exclude_microsoft_mode(ec_cl_strict_ansi_incompatible_with_microsoft);
+  if (sun_mode) {
+    if (option_kind_used[(int)optk_sun_mode]) {
+      /* Explicit Sun and ANSI options cannot coexist on the command line. */
+      command_line_error(ec_cl_strict_ansi_incompatible_with_sun);
+    } else {
+      /* The Sun mode is on by default, but the explicit ANSI mode option
+         overrides it. */
+      sun_mode = FALSE;
+    }  /* if */
+  }  /* if */
+#if NEAR_AND_FAR_ALLOWED
+  /* If near and far were enabled by default, turn off support. */
+  il_header.near_and_far_are_enabled = FALSE;
+#endif /* NEAR_AND_FAR_ALLOWED */
+  /* Strict ANSI mode is incompatible with allowing anachronisms. */
+  if (allow_anachronisms) {
+    if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
+      /* Anachronisms were enabled by a command line option. */
+      command_line_error(ec_cl_strict_ansi_incompatible_with_anachronisms);
+    } else {
+      /* Anachronisms enabled by default.  Silently disable them in
+         strict mode. */
+      allow_anachronisms = FALSE;
+    }  /* if */
+  }  /* if */
+  if (allow_nonconst_ref_anachronism) {
+    if (option_kind_used[(int)optk_nonconst_ref_anachronism]) {
+      /* The nonconst ref anachronism was enabled by a command line
+         option. */
+      command_line_error(ec_cl_strict_ansi_incompatible_with_anachronisms);
+    } else {
+      /* The nonconst ref anachronism was enabled by default.
+         Silently disable it in strict mode. */
+      allow_nonconst_ref_anachronism = FALSE;
+    }  /* if */
+  }  /* if */
+  if (SVR4_C_mode) {
+    if (option_kind_used[(int)optk_SVR4_C_mode]) {
+      command_line_error(ec_cl_strict_ansi_incompatible_with_SVR4);
+    } else {
+      /* SVR4 C mode enabled by default.  Silently disable it. */
+	SVR4_C_mode = FALSE;
+    }  /* if */
+  }  /* if */
+  if (long_preserving_rules) {
+    if (option_kind_used[(int)optk_long_preserving_rules]) {
+      command_line_error(
+                        ec_cl_strict_ansi_incompatible_with_long_preserving);
+    } else {
+      /* Long preserving rules enabled by default.  Silently disable them. */
+	long_preserving_rules = FALSE;
+    }  /* if */
+  }  /* if */
+  if (C_mode()) {
+    /* Set optional features to standard settings for strict C mode. */
+    /* Enable recognition of digraphs. */
+    alternative_tokens_allowed = TRUE;
+#if VLA_ALLOWED
+    if (!(option_kind_used[(int)optk_vla])) {
+      /* Support for VLAs is turned off by default in strict C mode. */
+      vla_enabled = FALSE;
+    }  /* if */
+#endif /* VLA_ALLOWED */
+    if (!(option_kind_used[(int)optk_extended_designators])) {
+      /* Support for extended designators is turned off by default in
+         strict C mode. */
+      extended_designators_allowed = FALSE;
+      if (!(option_kind_used[(int)optk_designators])) {
+        /* Support for designators is turned off by default in strict C
+           mode. */
+        designators_allowed = FALSE;
+      }  /* if */
+    }  /* if */
+    if (!(option_kind_used[(int)optk_compound_literals])) {
+      /* Support for compound literals is turned off by default in strict
+         C mode. */
+      compound_literals_allowed = FALSE;
+    }  /* if */
+  } else {
+    /* Set optional features to standard settings for strict C++ mode. */
+    ptr_to_unknown_bound_array_allowed_in_param_type = FALSE;
+    single_ref_qual_ovl_res_tiebreaker = FALSE;
+    floating_point_template_parameters_allowed = FALSE;
+    if (!(option_kind_used[(int)optk_alternative_tokens])) {
+      /* If alternative_tokens was not explicitly set by a command line
+         option, set it now. */
+      alternative_tokens_allowed = TRUE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_wchar_t_is_keyword])) {
+      /* If wchar_t_is_keyword was not explicitly set by a command line
+         option, set it now. */
+      wchar_t_is_keyword = WCHAR_T_ENABLING_POSSIBLE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_bool_is_keyword])) {
+      /* If bool_is_keyword was not explicitly set by a command line
+         option, set it now. */
+      bool_is_keyword = BOOL_ENABLING_POSSIBLE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_long_lifetime_temps])) {
+      /* Temporary lifetime is short. */
+      long_lifetime_temps = FALSE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_rtti])) {
+      /* If rtti_enabled was not explicitly set by a command line
+         option, set it now. */
+      rtti_enabled = RTTI_ENABLING_POSSIBLE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_array_new_and_delete])) {
+      /* If array_new_and_delete_enabled was not explicitly set by a
+         command line option, set it now. */
+      array_new_and_delete_enabled = ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_explicit])) {
+      /* If explicit_keyword_enabled was not explicitly set by a command
+         line option, set it now. */
+      explicit_keyword_enabled = TRUE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_namespaces])) {
+      /* If namespaces_enabled was not explicitly set by a command line
+         option, set it now. */
+      namespaces_enabled = TRUE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_implicit_typename])) {
+      /* If implicit_typename was not explicitly set by a command line
+         option, set it now. */
+      implicit_typename_enabled = FALSE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_typename])) {
+      /* If typename_enabled was not explicitly set by a command line
+         option, set it now. */
+      typename_enabled = TRUE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_special_subscript_cost])) {
+      /* If special_subscript_cost was not explicitly set by a command line
+         option, turn it off now. */
+      special_subscript_cost = FALSE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_old_for_init])) {
+      /* If old/new_for_init was not specified on the command line, turn
+         off use_nonstandard_for_init_scope now. */
+      use_nonstandard_for_init_scope = FALSE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_for_init_diff_warning])) {
+      /* If for_init_diff_warning was not specified on the command line, turn
+         off warning_on_for_init_difference now. */
+      warning_on_for_init_difference = FALSE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_guiding_decls])) {
+      /* If guiding_decls_allowed was not set on the command line, turn it
+         off now. */
+      guiding_decls_allowed = FALSE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_old_specializations])) {
+      /* If old_specializations_allowed was not set on the command line,
+         turn it off now. */
+      old_specializations_allowed = FALSE;
+    }  /* if */
+#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+    if (!(option_kind_used[(int)optk_implicit_extern_c_type_conversion])) {
+      /* If impl_conv_between_c_and_cpp_function_ptrs_allowed was not set
+         on the command line, turn it off now. */
+      impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
+    }  /* if */
+#else /* !IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+    /* Set it FALSE in case the implicit conversion between extern "C" and
+       extern "C++" function pointers is allowed by default. */
+    impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
+#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+    if (!(option_kind_used[(int)optk_extern_inline])) {
+      /* If extern_inline_allowed was not explicitly set by a command line
+         option, set it now. */
+      extern_inline_allowed = TRUE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_enum_overloading])) {
+      /* If enum_overloading was not explicitly set by a command line
+         option, set it now. */
+      operator_overloading_on_enums_enabled = TRUE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_const_string_literals])) {
+      /* If string_literals_are_const was not explicitly set by a
+         command line option, set it now. */
+      string_literals_are_const = TRUE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_class_name_injection])) {
+      /* If class name injection was not explicitly set by a command
+         line option, set it now. */
+      class_name_injection_enabled = TRUE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_arg_dependent_lookup])) {
+      /* If argument dependent lookup not explicitly set by a command
+         line option, set it now. */
+      arg_dependent_lookup_enabled = TRUE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_friend_injection])) {
+      /* If friend injection was not explicitly set by a command line
+         option, set it now. */
+      friend_injection_enabled = FALSE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
+      /* If nonstandard using-decl was not explicitly set by a command line
+         option, set it now. */
+      nonstandard_using_decl_allowed = FALSE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_nonstandard_qualifier_deduction])) {
+      /* If nonstandard_qualifier_deduction was not set on the command line,
+         turn it off now. */
+      nonstandard_qualifier_deduction = FALSE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_late_tiebreaker])) {
+      /* If late tiebreaker was not explicitly set by a command line
+         option, force it off. */
+      do_late_ovl_res_tiebreaker = FALSE;
+    }  /* if */
+    if (!option_kind_used[(int)optk_base_assign_op_is_default]) {
+      allow_copy_assignment_op_with_base_class_param = FALSE;
+    }  /* if */
+  }  /* if */
+  if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
+    /* Support for extended variadic macros is turned off by default in
+       strict mode. */
+    extended_variadic_macros_allowed = FALSE;
+    if (!(option_kind_used[(int)optk_variadic_macros])) {
+      /* Support for variadic macros is turned off by default in strict
+         mode. */
+      variadic_macros_allowed = FALSE;
+    }  /* if */
+  }  /* if */
+  /* Make sure that strict ANSI messages come out even if the
+     error threshold was set at a higher level. */
+  if ((int)error_threshold > (int)strict_ansi_error_severity) {
+    error_threshold = strict_ansi_error_severity;
+  }  /* if */
+}  /* check_and_set_ansi_mode_options */
+
+
+static void check_and_set_sun_mode_options()
+/*
+Set the option needed to emulate the pecularities of the Sun CC 5.0 compiler,
+and check that no other modes conflict with this one.  (The processing of
+some modes, like ANSI, exclude the Sun mode already.  Hence those are not
+checked again here.)
+*/
+{
+  if (C_mode()) {
+    command_line_error(ec_cl_sun_mode_only_in_cplusplus);
+  }  /* if */
+  exclude_microsoft_mode(ec_cl_sun_incompatible_with_microsoft);
+  exclude_cfront_mode(ec_cl_sun_incompatible_with_cfront);
+  if (!(option_kind_used[(int)optk_guiding_decls])) {
+    /* If guiding_decls_allowed was not set on the command line, turn it
+       off now. */
+    guiding_decls_allowed = FALSE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
+    /* If nonstandard using-decl was not explicitly set by a command line
+       option, set it now. */
+    nonstandard_using_decl_allowed = FALSE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_extern_inline])) {
+    /* If extern_inline_allowed was not explicitly set by a command line
+       option, set it now. */
+    extern_inline_allowed = FALSE;
+  }  /* if */
+}  /* check_and_set_sun_mode_options */
 
 
 void proc_command_line(int argc, char *argv[])
@@ -2127,6 +2657,10 @@ enable_microsoft_mode:
            operator for a class. */
         allow_copy_assignment_op_with_base_class_param = opt_value;
         break;
+      case optk_sun_mode:
+        /* Enable various extensions/bugs of the Sun CC 5.0 compiler. */
+        sun_mode = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -2151,433 +2685,13 @@ enable_microsoft_mode:
   /* Check for the use of C++ options when the dialect being compiled
      is not C++. */
   if (C_dialect != C_dialect_cplusplus) {
-    if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
-      command_line_error(ec_cl_anachronism_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_virtual_function_table_definition]) {
-      command_line_error(ec_cl_vtbl_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_template_instantiation_mode]) {
-      command_line_error(ec_cl_instantiation_option_only_in_cplusplus);
-    }  /* if */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (option_kind_used[(int)optk_automatic_template_instantiation]) {
-      command_line_error(ec_cl_auto_instantiation_option_only_in_cplusplus);
-    }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (option_kind_used[(int)optk_implicit_template_inclusion]) {
-      command_line_error(ec_cl_implicit_inclusion_option_only_in_cplusplus);
-    }  /* if */
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-    if (option_kind_used[(int)optk_exception_handling]) {
-      command_line_error(ec_cl_exceptions_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_rtti]) {
-      command_line_error(ec_cl_rtti_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_array_new_and_delete]) {
-      command_line_error(ec_cl_array_new_and_delete_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_explicit]) {
-      command_line_error(ec_cl_explicit_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_namespaces]) {
-      command_line_error(ec_cl_namespaces_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
-      command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_bool_is_keyword]) {
-      command_line_error(ec_cl_bool_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_special_subscript_cost]) {
-      command_line_error(
-                        ec_cl_special_subscript_cost_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_typename]) {
-      command_line_error(ec_cl_typename_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_implicit_typename]) {
-      command_line_error(ec_cl_implicit_typename_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_old_for_init]) {
-      command_line_error(ec_cl_old_for_init_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_for_init_diff_warning]) {
-      command_line_error(ec_cl_for_init_diff_warning_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_guiding_decls]) {
-      command_line_error(ec_cl_guiding_decls_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_old_specializations]) {
-      command_line_error(ec_cl_old_specializations_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_implicit_extern_c_type_conversion]) {
-      command_line_error(ec_cl_impl_extern_c_conv_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_extern_inline]) {
-      command_line_error(ec_cl_extern_inline_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_embedded_cplusplus]) {
-      command_line_error(ec_cl_embedded_cplusplus_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_enum_overloading]) {
-      command_line_error(ec_cl_enum_overloading_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_nonstandard_qualifier_deduction]) {
-      command_line_error(
-              ec_cl_nonstandard_qualifier_deduction_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_nonstandard_using_decl]) {
-      command_line_error(
-              ec_cl_nonstd_using_decl_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_class_name_injection]) {
-      command_line_error(ec_cl_class_name_injection_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_arg_dependent_lookup]) {
-      command_line_error(ec_cl_arg_dependent_lookup_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_friend_injection]) {
-      command_line_error(ec_cl_friend_injection_option_only_in_cplusplus);
-    }  /* if */
-#if ONE_INSTANTIATION_PER_OBJECT
-    if (option_kind_used[(int)optk_one_instantiation_per_object]) {
-      command_line_error(
-              ec_cl_one_instantiation_per_object_option_only_in_cplusplus);
-    }  /* if */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-    if (option_kind_used[(int)optk_late_tiebreaker]) {
-      command_line_error(ec_cl_late_tiebreaker_option_only_in_cplusplus);
-    }  /* if */
-    if (option_kind_used[(int)optk_pending_instantiations]) {
-      command_line_error(
-                       ec_cl_pending_instantiations_option_only_in_cplusplus);
-    }  /* if */
-    /* Turn on features implied by SVR4 C mode. */
-    if (SVR4_C_mode) {
-      address_of_ellipsis_allowed = TRUE;
-      allow_ellipsis_only_param_in_C_mode = TRUE;
-    }  /* if */
-    /* Turn off language features that must not be on in C mode, in case
-       the default value is on. */
-    exceptions_enabled = FALSE;
-    rtti_enabled = FALSE;
-    array_new_and_delete_enabled = FALSE;
-    explicit_keyword_enabled = FALSE;
-    namespaces_enabled = FALSE;
-    wchar_t_is_keyword = FALSE;
-    bool_is_keyword = FALSE;
-    /* Set global flags having to do with the potential sizes of enum types.
-       They must be no larger than int in C. */
-    enum_types_can_be_larger_than_int = FALSE;
-    if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
-      enum_types_can_be_smaller_than_int = FALSE;
-    } else {
-      enum_types_can_be_smaller_than_int =
-                              targ_enum_types_can_be_smaller_than_int;
-    }  /* if */
-    if (C_dialect == C_dialect_pcc) {
-      /* Alternative tokens are not recognized in PCC mode. */
-      alternative_tokens_allowed = FALSE;
-    }  /* if */
-    special_subscript_cost = FALSE;  /* Not really needed. */
-    use_nonstandard_for_init_scope = TRUE;  /* Not really needed. */
-    nonstandard_qualifier_deduction = FALSE;  /* Not really needed. */
-    warning_on_for_init_difference = FALSE;
-    remove_qualifiers_from_param_types = FALSE;
-    impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
-    extern_inline_allowed = FALSE;
-    operator_overloading_on_enums_enabled = FALSE;  /* Not really needed. */
-    string_literals_are_const = FALSE;
-    arg_dependent_lookup_enabled = FALSE;
+    check_and_set_c_mode_options();
   } else {
     /* The dialect is C++. */
-    /* Reset the SVR4 C compatibility flag just in case it is set by
-       default. */
-    SVR4_C_mode = FALSE;
-    /* Set global flags having to do with potential size of enum types. */
-    enum_types_can_be_smaller_than_int =
-                            targ_enum_types_can_be_smaller_than_int;
-    enum_types_can_be_larger_than_int = TRUE;
-    /* The default for --long_preserving_rules in C++ is FALSE. */
-    if (!option_kind_used[(int)optk_long_preserving_rules]) {
-      long_preserving_rules = FALSE;
-    }  /* if */
-#if VLA_ALLOWED
-    if (option_kind_used[(int)optk_vla]) {
-      command_line_error(ec_cl_vla_option_only_in_C);
-    }  /* if */
-    vla_enabled = FALSE;
-#endif /* VLA_ALLOWED */
-    if (option_kind_used[(int)optk_designators]) {
-      command_line_error(ec_cl_designators_option_only_in_C);
-    }  /* if */
-    designators_allowed = FALSE;
-    if (option_kind_used[(int)optk_extended_designators]) {
-      command_line_error(ec_cl_extended_designators_option_only_in_C);
-    }  /* if */
-    extended_designators_allowed = FALSE;
-    if (option_kind_used[(int)optk_compound_literals]) {
-      command_line_error(ec_cl_compound_literals_option_only_in_C);
-    }  /* if */
+    check_and_set_cplusplus_mode_options();
   }  /* if */
   if (strict_ansi_mode) {
-    /* Strict ANSI mode is incompatible with K&R/pcc mode. */
-    if (C_dialect == C_dialect_pcc) {
-      command_line_error(ec_cl_strict_ansi_incompatible_with_pcc);
-    }  /* if */
-    /* Strict ANSI mode is incompatible with cfront compatibility mode. */
-    if (any_cfront_mode()) {
-      if (option_kind_used[(int)optk_cfront_2_1_mode] ||
-          option_kind_used[(int)optk_cfront_3_0_mode]) {
-        /* cfront mode was enabled by a command line option. */
-        command_line_error(ec_cl_strict_ansi_incompatible_with_cfront);
-      } else {
-        /* cfront mode enabled by default.  Silently disable it. */
-        cfront_2_1_mode = FALSE;
-        cfront_3_0_mode = FALSE;
-      }  /* if */
-    }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Strict ANSI mode is incompatible with Microsoft mode. */
-    if (microsoft_mode) {
-      if (option_kind_used[(int)optk_microsoft_mode] ||
-          option_kind_used[(int)optk_microsoft_version] ||
-          option_kind_used[(int)optk_microsoft_bugs]) {
-        /* Microsoft mode was enabled by a command line option. */
-        command_line_error(ec_cl_strict_ansi_incompatible_with_microsoft);
-      } else {
-        /* Microsoft mode enabled by default.  Silently disable it in
-           strict mode. */
-        microsoft_mode = FALSE;
-        microsoft_bugs = FALSE;
-      }  /* if */
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if NEAR_AND_FAR_ALLOWED
-    /* If near and far were enabled by default, turn off support. */
-    il_header.near_and_far_are_enabled = FALSE;
-#endif /* NEAR_AND_FAR_ALLOWED */
-    /* Strict ANSI mode is incompatible with allowing anachronisms. */
-    if (allow_anachronisms) {
-      if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
-        /* Anachronisms were enabled by a command line option. */
-        command_line_error(ec_cl_strict_ansi_incompatible_with_anachronisms);
-      } else {
-        /* Anachronisms enabled by default.  Silently disable them in
-           strict mode. */
-        allow_anachronisms = FALSE;
-      }  /* if */
-    }  /* if */
-    if (allow_nonconst_ref_anachronism) {
-      if (option_kind_used[(int)optk_nonconst_ref_anachronism]) {
-        /* The nonconst ref anachronism was enabled by a command line
-           option. */
-        command_line_error(ec_cl_strict_ansi_incompatible_with_anachronisms);
-      } else {
-        /* The nonconst ref anachronism was enabled by default.
-           Silently disable it in strict mode. */
-        allow_nonconst_ref_anachronism = FALSE;
-      }  /* if */
-    }  /* if */
-    if (SVR4_C_mode) {
-      if (option_kind_used[(int)optk_SVR4_C_mode]) {
-        command_line_error(ec_cl_strict_ansi_incompatible_with_SVR4);
-      } else {
-        /* SVR4 C mode enabled by default.  Silently disable it. */
-	SVR4_C_mode = FALSE;
-      }  /* if */
-    }  /* if */
-    if (long_preserving_rules) {
-      if (option_kind_used[(int)optk_long_preserving_rules]) {
-        command_line_error(
-                          ec_cl_strict_ansi_incompatible_with_long_preserving);
-      } else {
-        /* Long preserving rules enabled by default.  Silently disable them. */
-	long_preserving_rules = FALSE;
-      }  /* if */
-    }  /* if */
-    if (C_mode()) {
-      /* Set optional features to standard settings for strict C mode. */
-      /* Enable recognition of digraphs. */
-      alternative_tokens_allowed = TRUE;
-#if VLA_ALLOWED
-      if (!(option_kind_used[(int)optk_vla])) {
-        /* Support for VLAs is turned off by default in strict C mode. */
-        vla_enabled = FALSE;
-      }  /* if */
-#endif /* VLA_ALLOWED */
-      if (!(option_kind_used[(int)optk_extended_designators])) {
-        /* Support for extended designators is turned off by default in
-           strict C mode. */
-        extended_designators_allowed = FALSE;
-        if (!(option_kind_used[(int)optk_designators])) {
-          /* Support for designators is turned off by default in strict C
-             mode. */
-          designators_allowed = FALSE;
-        }  /* if */
-      }  /* if */
-      if (!(option_kind_used[(int)optk_compound_literals])) {
-        /* Support for compound literals is turned off by default in strict
-           C mode. */
-        compound_literals_allowed = FALSE;
-      }  /* if */
-    } else {
-      /* Set optional features to standard settings for strict C++ mode. */
-      ptr_to_unknown_bound_array_allowed_in_param_type = FALSE;
-      single_ref_qual_ovl_res_tiebreaker = FALSE;
-      floating_point_template_parameters_allowed = FALSE;
-      if (!(option_kind_used[(int)optk_alternative_tokens])) {
-        /* If alternative_tokens was not explicitly set by a command line
-           option, set it now. */
-        alternative_tokens_allowed = TRUE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_wchar_t_is_keyword])) {
-        /* If wchar_t_is_keyword was not explicitly set by a command line
-           option, set it now. */
-        wchar_t_is_keyword = WCHAR_T_ENABLING_POSSIBLE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_bool_is_keyword])) {
-        /* If bool_is_keyword was not explicitly set by a command line
-           option, set it now. */
-        bool_is_keyword = BOOL_ENABLING_POSSIBLE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_long_lifetime_temps])) {
-        /* Temporary lifetime is short. */
-        long_lifetime_temps = FALSE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_rtti])) {
-        /* If rtti_enabled was not explicitly set by a command line
-           option, set it now. */
-        rtti_enabled = RTTI_ENABLING_POSSIBLE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_array_new_and_delete])) {
-        /* If array_new_and_delete_enabled was not explicitly set by a
-           command line option, set it now. */
-        array_new_and_delete_enabled = ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_explicit])) {
-        /* If explicit_keyword_enabled was not explicitly set by a command
-           line option, set it now. */
-        explicit_keyword_enabled = TRUE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_namespaces])) {
-        /* If namespaces_enabled was not explicitly set by a command line
-           option, set it now. */
-        namespaces_enabled = TRUE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_implicit_typename])) {
-        /* If implicit_typename was not explicitly set by a command line
-           option, set it now. */
-        implicit_typename_enabled = FALSE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_typename])) {
-        /* If typename_enabled was not explicitly set by a command line
-           option, set it now. */
-        typename_enabled = TRUE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_special_subscript_cost])) {
-        /* If special_subscript_cost was not explicitly set by a command line
-           option, turn it off now. */
-        special_subscript_cost = FALSE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_old_for_init])) {
-        /* If old/new_for_init was not specified on the command line, turn
-           off use_nonstandard_for_init_scope now. */
-        use_nonstandard_for_init_scope = FALSE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_for_init_diff_warning])) {
-        /* If for_init_diff_warning was not specified on the command line, turn
-           off warning_on_for_init_difference now. */
-        warning_on_for_init_difference = FALSE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_guiding_decls])) {
-        /* If guiding_decls_allowed was not set on the command line, turn it
-           off now. */
-        guiding_decls_allowed = FALSE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_old_specializations])) {
-        /* If old_specializations_allowed was not set on the command line,
-           turn it off now. */
-        old_specializations_allowed = FALSE;
-      }  /* if */
-#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
-      if (!(option_kind_used[(int)optk_implicit_extern_c_type_conversion])) {
-        /* If impl_conv_between_c_and_cpp_function_ptrs_allowed was not set
-           on the command line, turn it off now. */
-        impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
-      }  /* if */
-#else /* !IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
-      /* Set it FALSE in case the implicit conversion between extern "C" and
-         extern "C++" function pointers is allowed by default. */
-      impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
-#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
-      if (!(option_kind_used[(int)optk_extern_inline])) {
-        /* If extern_inline_allowed was not explicitly set by a command line
-           option, set it now. */
-        extern_inline_allowed = TRUE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_enum_overloading])) {
-        /* If enum_overloading was not explicitly set by a command line
-           option, set it now. */
-        operator_overloading_on_enums_enabled = TRUE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_const_string_literals])) {
-        /* If string_literals_are_const was not explicitly set by a
-           command line option, set it now. */
-        string_literals_are_const = TRUE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_class_name_injection])) {
-        /* If class name injection was not explicitly set by a command
-           line option, set it now. */
-        class_name_injection_enabled = TRUE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_arg_dependent_lookup])) {
-        /* If argument dependent lookup not explicitly set by a command
-           line option, set it now. */
-        arg_dependent_lookup_enabled = TRUE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_friend_injection])) {
-        /* If friend injection was not explicitly set by a command line
-           option, set it now. */
-        friend_injection_enabled = FALSE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
-        /* If nonstandard using-decl was not explicitly set by a command line
-           option, set it now. */
-        nonstandard_using_decl_allowed = FALSE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_nonstandard_qualifier_deduction])) {
-        /* If nonstandard_qualifier_deduction was not set on the command line,
-           turn it off now. */
-        nonstandard_qualifier_deduction = FALSE;
-      }  /* if */
-      if (!(option_kind_used[(int)optk_late_tiebreaker])) {
-        /* If late tiebreaker was not explicitly set by a command line
-           option, force it off. */
-        do_late_ovl_res_tiebreaker = FALSE;
-      }  /* if */
-      if (!option_kind_used[(int)optk_base_assign_op_is_default]) {
-        allow_copy_assignment_op_with_base_class_param = FALSE;
-      }  /* if */
-    }  /* if */
-    if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
-      /* Support for extended variadic macros is turned off by default in
-         strict mode. */
-      extended_variadic_macros_allowed = FALSE;
-      if (!(option_kind_used[(int)optk_variadic_macros])) {
-        /* Support for variadic macros is turned off by default in strict
-           mode. */
-        variadic_macros_allowed = FALSE;
-      }  /* if */
-    }  /* if */
-    /* Make sure that strict ANSI messages come out even if the
-       error threshold was set at a higher level. */
-    if ((int)error_threshold > (int)strict_ansi_error_severity) {
-      error_threshold = strict_ansi_error_severity;
-    }  /* if */
+    check_and_set_ansi_mode_options();
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
@@ -2598,6 +2712,9 @@ enable_microsoft_mode:
   /* If no directory was specified for #import, use the current directory. */
   if (import_dir_name == NULL) import_dir_name = ".";
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (sun_mode) {
+    check_and_set_sun_mode_options();
+  }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (instantiation_mode == tim_local && automatic_instantiation_mode) {
     /* -tlocal mode cannot be used with automatic instantiation.  If
