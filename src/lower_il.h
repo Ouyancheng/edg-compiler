@@ -231,19 +231,20 @@ typedef struct a_destructible_entity_descr {
 			   order.  Usually, this is the same as the
 			   next_in_destruction_list pointer in the dynamic
 			   initialization itself, but different when region
-			   table entries are cloned because of long lifetime
-			   temporaries.  Also, this is not always the same
-			   as the value in the "next" field in the constant
-			   pointed to by region_table_entry.  For one thing,
-			   this does not leave a lifetime, whereas the
-			   previous entry in the region table might be from
-			   a previous lifetime.  Another way of describing
-			   this field: it links an initialization to the one
-			   processed most recently before it.  In the
-			   presence of unordered initializations in the
-			   IL, lowering traversal order (reflected by this
-			   pointer) might be slightly different than the
-			   front end order (reflected by the dynamic init
+			   table entries are cloned (e.g., because of long
+			   lifetime temporaries).  Also, this is not always
+			   the same as the value in the "next" field in the
+			   constant pointed to by region_table_entry.
+			   For one thing, this does not leave a lifetime,
+			   whereas the previous entry in the region table
+			   might be from a previous lifetime.  Another way
+			   of describing this field: it links an
+			   initialization to the one processed most recently
+			   before it.  In the presence of unordered
+			   initializations in the IL, lowering traversal
+			   order (reflected by this pointer) might be
+			   slightly different than the front end order
+			   (reflected by the dynamic init
 			   next_in_destruction_list pointer). */
 #endif /* GENERATE_EH_TABLES */
 } a_destructible_entity_descr;
@@ -641,6 +642,11 @@ extern void add_to_return_memo_list(a_statement_ptr return_stmt);
 
 extern void free_return_memo_list(a_return_memo_ptr rmp);
 
+extern a_dynamic_init_ptr normalize_cleanup_state_for_outer_lifetimes(
+                                             a_dynamic_init_ptr cleanup_state);
+
+extern void set_curr_cleanup_state_to_latest_initialization(void);
+
 extern void turn_statement_into_block(a_statement_ptr        statement,
                                       an_insert_location_ptr insert_location,
                                       a_statement_ptr        *orig_statement);
@@ -692,10 +698,8 @@ extern void lower_call(an_expr_node_ptr      expr,
                        a_statement_ptr       statement);
 
 extern void initial_processing_on_destructible_initialization(
-                                a_dynamic_init_ptr dip,
-                                a_variable_ptr     *partial_aggr_cond_var,
-                                a_boolean          *first_partial_aggr_skipped,
-                                an_insert_location *insert_location);
+                                          a_dynamic_init_ptr dip,
+                                          an_insert_location *insert_location);
 
 extern void begin_object_lifetime(
                               an_object_lifetime_ptr lifetime,

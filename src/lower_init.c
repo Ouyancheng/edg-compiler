@@ -2372,13 +2372,11 @@ and not for constructor_init entries in destructors.
 }  /* gen_one_destruction */
 
 
-static void lower_ck_dynamic_init(
-                                 a_constant_ptr         con_ptr,
-                                 an_init_pos_descr_ptr  ipdp,
-                                 a_boolean              dtor_case,
-                                 a_constructor_init_ptr ctor_init,
-                                 a_variable_ptr         *partial_aggr_cond_var,
-                                 an_insert_location_ptr insert_location)
+static void lower_ck_dynamic_init(a_constant_ptr         con_ptr,
+                                  an_init_pos_descr_ptr  ipdp,
+                                  a_boolean              dtor_case,
+                                  a_constructor_init_ptr ctor_init,
+                                  an_insert_location_ptr insert_location)
 /*
 Generate executable code to handle a ck_dynamic_init constant (pointed
 to by con_ptr).  The entity to be initialized is described by ipdp.
@@ -2388,8 +2386,7 @@ this call is handling a sequence of elements in an array.  If dtor_case
 is TRUE, we are generating a destructor wrapper; do the destruction
 indicated in the dynamic init but ignore any initialization.  If the dynamic
 initialization is part of a constructor initializer, ctor_init points
-to the constructor-init entry.  See lower_dynamic_init for the description
-of partial_aggr_cond_var.
+to the constructor-init entry.
 */
 {
   a_constant_ptr next_con;
@@ -2405,7 +2402,7 @@ of partial_aggr_cond_var.
     /* Normal initialization. */
     lower_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       ctor_init, LDIO_FULL_EXPR, partial_aggr_cond_var,
+                       ctor_init, LDIO_FULL_EXPR,
                        insert_location, (a_boolean *)NULL);
   }  /* if */
   /* Overwrite the constant with a harmless constant of the right kind.
@@ -2444,7 +2441,6 @@ static void lower_dynamic_init_aggregate_constant(
                                  an_init_pos_descr_ptr  ipdp,
                                  a_boolean              dtor_case,
                                  a_constructor_init_ptr ctor_init,
-                                 a_variable_ptr         *partial_aggr_cond_var,
                                  an_insert_location_ptr insert_location,
                                  a_boolean              *keep_constant)
 /*
@@ -2457,7 +2453,6 @@ initialization is part of a constructor initializer, ctor_init points to
 the constructor-init entry.  Insert statements to implement the
 initialization at *insert_location and update *insert_location.  If there
 are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
-See lower_dynamic_init for the description of partial_aggr_cond_var.
 */
 {
   an_init_pos_descr    ipd;
@@ -2512,7 +2507,7 @@ See lower_dynamic_init for the description of partial_aggr_cond_var.
     if (con_ptr->kind == (a_constant_repr_kind)ck_dynamic_init) {
       /* Dynamic initialization. */
       lower_ck_dynamic_init(con_ptr, &ipd, dtor_case, ctor_init,
-                            partial_aggr_cond_var, insert_location);
+                            insert_location);
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_init_repeat) {
       /* Repeated constant.  Must be initializing members of an array. */
 #if CHECKING
@@ -2534,7 +2529,7 @@ See lower_dynamic_init for the description of partial_aggr_cond_var.
       ipd.array_element_count =
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
       lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, ctor_init,
-                            partial_aggr_cond_var, insert_location);
+                            insert_location);
       /* Remove the ck_init_repeat constant, in case the overall aggregate
          is kept for the constant parts. */
       check_assertion(con_ptr->next == NULL);
@@ -2548,7 +2543,6 @@ See lower_dynamic_init for the description of partial_aggr_cond_var.
       /* Aggregate constant initializing a member of an aggregate. */
       lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
                                             dtor_case, ctor_init,
-                                            partial_aggr_cond_var,
                                             insert_location, keep_constant);
     } else {
       /* Normal constant. */
@@ -3316,51 +3310,69 @@ enabled.
 }  /* remove_local_static_guard_var_cleanup */
 
 
-#if !GENERATE_EH_TABLES
-/*ARGSUSED*/  /* <-- partial_aggr_cond_var is not used if EH tables are not
-                     being generated. */
-#endif /* !GENERATE_EH_TABLES */
-static void add_partial_aggregate_cleanup(
-                                 a_dynamic_init_ptr     dip,
-                                 an_init_pos_descr_ptr  ipdp,
-                                 a_context_ptr          context,
-                                 a_variable_ptr         *partial_aggr_cond_var,
-                                 an_insert_location_ptr insert_location)
+static void adjust_cleanup_state_for_aggregate_init(
+                                             a_dynamic_init_ptr dip,
+                                             a_dynamic_init_ptr preceding_init,
+                                             a_boolean          *some_cloned)
 /*
-dip indicates an initialization of part of an aggregate.  ipdp gives the
-entity position.  The dynamic initialization entry indicates destruction
-to be done if an exception is thrown before the aggregate is fully
-initialized.  Put that destruction on the cleanup list.  context gives
-the context in which the initialization is done.  If *partial_aggr_cond_var
-is non-NULL, it indicates the conditional flag variable that controls
-the cleanup; if it is NULL, this is the first need for the variable,
-so it is created and *partial_aggr_cond_var is set to point to it.
-If any code is needed, it is inserted at *insert_location.
+An aggregate initialization has just been completed.  dip is a destruction
+preceding that aggregate initialization (usually, one indicating a
+destruction for a partial aggregate initialization), and preceding_init
+indicates the initialization that precedes the start of the entire aggregate
+initialization.  (It doesn't span object lifetimes, so NULL means there is
+no preceding initialization in the current lifetime.)  Adjust the cleanup
+state to the latest initialization that is not a partial aggregate
+initialization.  When generating EH tables, some region table entries
+may have to be cloned.  If any are, *some_cloned is returned TRUE.
 */
 {
-  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
-  a_boolean                       set_cond_flag = FALSE;
-
-  check_assertion(dip->destruction_is_for_partially_constructed_aggregate &&
-                  dedp != NULL);
+  check_assertion_str(dip != NULL,
+                      "adjust_cleanup_state_for_aggregate_init: NULL dip");
+  *some_cloned = FALSE;
+  if (dip->next_in_destruction_list == preceding_init) {
+    /* End of the list. */
+    curr_context->latest_initialization = preceding_init;
+  } else {
+    /* Do a recursive call to process the rest of the list. */
+    adjust_cleanup_state_for_aggregate_init(dip->next_in_destruction_list,
+                                            preceding_init,
+                                            some_cloned);
+  }  /* if */
+  if (!dip->destruction_is_for_partially_constructed_aggregate) {
 #if GENERATE_EH_TABLES
-  /* The partial-construction-cleanup entry that appears last in initialization
-     order doesn't have a conditional flag because nothing follows it and
-     therefore its cleanup never needs to be done. */
-  if (dedp->conditional_flag_var != NULL) {
-    check_assertion(partial_aggr_cond_var != NULL);
-    /* All the entries for partial cleanup should share the same conditional
-       flag.  Set it nonzero on the first entry under a given variable. */
-    if (*partial_aggr_cond_var == NULL) {
-      *partial_aggr_cond_var = dedp->conditional_flag_var;
-      set_cond_flag = TRUE;
+    if (exceptions_enabled) {
+      /* This entry is being kept, as it is for a non-aggregate initialization.
+         If there are any partial aggregate initializations between this
+         entry and the destruction beyond the overall aggregate initialization,
+         we need to clone this entry. */
+      a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+      a_boolean                       need_clone = FALSE;
+
+      if (dedp->next_in_region_table != curr_context->latest_initialization) {
+        /* The next destruction after this one is for a partial aggregate
+           destruction, so link around the partial aggregate and clone the
+           current entry. */
+        need_clone = TRUE;
+        dedp->cleanup_state_to_set_when_starting_destruction = 
+                                     curr_context->curr_cleanup_state;
+        dedp->next_in_region_table = curr_context->latest_initialization;
+      } else if (*some_cloned) {
+        /* Once some entry has been cloned, all those following it have
+           to be cloned as well. */
+        need_clone = TRUE;
+      }  /* if */
+      if (need_clone) {
+        clone_region_table_entry_list(dip, dedp->next_in_region_table);
+        *some_cloned = TRUE;
+      }  /* if */
     }  /* if */
 #endif /* GENERATE_EH_TABLES */
-    add_dyn_init_cleanup(dip, ipdp, set_cond_flag, context, insert_location);
-#if GENERATE_EH_TABLES
+    /* Remember the latest initialization that is not a partial aggregate
+       initialization. */
+    curr_context->latest_initialization = dip;
   }  /* if */
-#endif /* GENERATE_EH_TABLES */
-}  /* add_partial_aggregate_cleanup */
+  set_curr_cleanup_state_to_latest_initialization();
+}  /* adjust_cleanup_state_for_aggregate_init */
 
 
 /*
@@ -3378,7 +3390,6 @@ void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         a_constructor_init_ptr ctor_init,
                         a_lower_dynamic_init_options_set
                                                options,
-                        a_variable_ptr         *partial_aggr_cond_var,
                         an_insert_location_ptr insert_location,
                         a_boolean              *keep_dynamic_init)
 /*
@@ -3401,15 +3412,6 @@ stmk_init), (options & LDIO_FULL_EXPR) is set.
 
 If the dynamic initialization is the top-level one for a throw,
 (options & LDIO_THROW) is set.
-
-*partial_aggr_cond_var will be set to point to the conditional flag variable
-that controls cleanup for a partially-initialized aggregate, when one is
-necessary (only when exceptions are enabled, and only when initializing
-an array or aggregate class).  This routine will set it to NULL at the
-beginning of processing for a full-variable dynamic initialization.
-partial_aggr_cond_var can be NULL if aggregate initialization ({}-form)
-is not possible.  This processing is done only if GENERATE_EH_TABLES
-is TRUE.
 
 This routine is only called for non-C cases, and therefore it will always
 generate some executable code.  (Well, almost always: a dynamic initialization
@@ -3450,6 +3452,7 @@ in this routine must be FALSE in that case.
 #if LOWER_EXTERN_INLINE
   a_boolean          local_static_promoted_out_of_extern_inline = FALSE;
 #endif /* LOWER_EXTERN_INLINE */
+  a_dynamic_init_ptr latest_initialization_on_entry;
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -3469,10 +3472,6 @@ in this routine must be FALSE in that case.
     /* Let the back end know that some initialization code was
        rewritten as executable code. */
     variable->initialization_rewritten_as_assignment = TRUE;
-    /* When beginning on a full-variable initialization, there is no
-       conditional flag variable yet to control cleanup of partially
-       initialized aggregates. */
-    if (partial_aggr_cond_var != NULL) *partial_aggr_cond_var = NULL;
   }  /* if */
   /* Initializations of static variables (whether global or function-local)
      require some special processing. */
@@ -3807,10 +3806,12 @@ do_assignment:;
       /* Initialization with a nonconstant aggregate constant.  This is usually
          a whole-variable initialization, but can be used in a ctor-initializer
          to iterate over an array initialization, etc. */
+      if (!C_mode()) {
+        latest_initialization_on_entry = curr_context->latest_initialization;
+      }  /* if */
       keep_constant = FALSE;
       lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
                                             /*dtor_case=*/FALSE, ctor_init,
-                                            partial_aggr_cond_var,
                                             eff_insert_location,
                                             &keep_constant);
       if (keep_constant) {
@@ -3852,31 +3853,26 @@ do_assignment:;
   /* If the dynamic init entry indicates a destructor call, it requires
      processing to get the destruction done at the right time. */
   if (dip->destructor != NULL) {
-#if GENERATE_EH_TABLES
-    if (variable != NULL && partial_aggr_cond_var != NULL &&
-        *partial_aggr_cond_var != NULL) {
-      /* A conditional flag was added to control cleanup on exceptions
-         thrown during construction of an aggregate.  Now that the complete
-         aggregate has been initialized, clear the conditional flag to
-         indicate the partial cleanup need not be done. */
-      reset_conditional_flag_var(*partial_aggr_cond_var, insert_location);
-    }  /* if */
-#endif /* GENERATE_EH_TABLES */
-    if (dip->destruction_is_for_partially_constructed_aggregate) {
-      /* Exceptions are enabled, and this dynamic initialization entry
-         initializes a member of an aggregate which requires destruction
-         if an exception is thrown before the entire aggregate is
-         initialized.  After the aggregate is completely initialized,
-         the whole aggregate gets destroyed as a unit, and both
-         when exceptions are thrown and on transfers of control. */
-      add_partial_aggregate_cleanup(dip, ipdp, eff_context,
-                                    partial_aggr_cond_var, insert_location);
-    } else if (static_var_init) {
+    if (static_var_init &&
+        !dip->destruction_is_for_partially_constructed_aggregate) {
       /* For static variables (local or global), generate code to record
          at runtime the need for a destruction later. */
       record_needed_destruction(dip, ipdp, insert_location);
     } else {
       /* Initializations of nonstatic variables. */
+      if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
+          !C_mode() &&
+          latest_initialization_on_entry !=
+                                         curr_context->latest_initialization) {
+        /* This is an aggregate for which some partial-aggregate
+           initializations were done.  Adjust the cleanup state now that
+           the entire aggregate is completed. */
+        a_boolean some_cloned;
+
+        adjust_cleanup_state_for_aggregate_init(dip->next_in_destruction_list,
+                                                latest_initialization_on_entry,
+                                                &some_cloned);
+      }  /* if */
       add_dyn_init_cleanup(dip, ipdp, /*set_cond_flag_if_any=*/TRUE,
                            eff_context, insert_location);
     }  /* if */
@@ -4012,9 +4008,7 @@ scope is the scope in which the variable's definition appears.
   variable->initializer.dynamic = &dyn_init;
   lower_dynamic_init(&dyn_init, &ipd,
                      (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                     (a_constructor_init_ptr)NULL,
-                     LDIO_FULL_EXPR,
-                     (a_variable_ptr *)NULL,
+                     (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
                      &insert_location, (a_boolean *)NULL);
 }  /* lower_constant_init_of_static_in_extern_inline */
 
@@ -4679,7 +4673,6 @@ The subtree of the node has not yet been lowered.
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, LDIO_NONE,
-                         (a_variable_ptr *)NULL,
                          &insert_location, (a_boolean *)NULL);
       /* Now that the entity is initialized, turn off the freeing on
          exception. */
@@ -4933,7 +4926,6 @@ Do IL lowering of an enk_temp_init expression node.
   lower_dynamic_init(dip, &ipd,
                      (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                      (a_constructor_init_ptr)NULL, LDIO_NONE,
-                     (a_variable_ptr *)NULL,
                      &insert_location, (a_boolean *)NULL);
   /* Optimization -- if the initialization is done by a constructor,
      and the enk_temp_init returns the address of the temporary,
@@ -5109,7 +5101,6 @@ Generate code for a stmk_init (dynamic initialization) statement.
     an_insert_location insert_location;
     a_boolean          keep_dynamic_init;
     an_init_pos_descr  ipd;
-    a_variable_ptr     partial_aggr_cond_var;
 
     set_insert_location(statement, &insert_location);
     if (var_is_return_value_variable(var)) {
@@ -5125,7 +5116,6 @@ Generate code for a stmk_init (dynamic initialization) statement.
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
-                       &partial_aggr_cond_var,
                        &insert_location, &keep_dynamic_init);
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
@@ -5175,7 +5165,6 @@ init_stmt is the stmk_init statement.
     lower_dynamic_init(vp->initializer.dynamic, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
-                       (a_variable_ptr *)NULL,
                        &insert_location, &keep_dynamic_init);
     if (!keep_dynamic_init) {
       /* Delete the stmk_init statement. */
@@ -5317,8 +5306,7 @@ created are inserted at *insert_location, and *insert_location is updated.
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
                      implied_arg_list, end_implied_arg_list, ctor_init,
-                     LDIO_FULL_EXPR, (a_variable_ptr *)NULL,
-                     insert_location, (a_boolean *)NULL);
+                     LDIO_FULL_EXPR, insert_location, (a_boolean *)NULL);
 }  /* lower_ctor_init */
 
 
@@ -5709,8 +5697,6 @@ constructor scope, and also lower the user code.
            no initialization code should be added (it gets added below). */
         initial_processing_on_destructible_initialization(
                                                     dyn_init_to_free_storage,
-                                                    (a_variable_ptr *)NULL,
-                                                    (a_boolean *)NULL,
                                                     (an_insert_location*)NULL);
 #if GENERATE_EH_TABLES
         dedp = dyn_init_to_free_storage->destructible_entity_descr;
@@ -5820,7 +5806,6 @@ at *insert_location, and *insert_location is updated.
     lower_dynamic_init_aggregate_constant(dip->variant.constant, &ipd,
                                           /*dtor_case=*/TRUE,
                                           (a_constructor_init_ptr)NULL,
-                                          (a_variable_ptr *)NULL,
                                           insert_location,
                                           &keep_constant);
 #if CHECKING
@@ -6371,7 +6356,6 @@ Do lowering on the file-scope dynamic initializations list.
                      grcontext;
   a_memory_region_number
                      region_number;
-  a_variable_ptr     partial_aggr_cond_var;
 
   dip = file_scope->dynamic_inits;
   if (dip != NULL) {
@@ -6411,7 +6395,6 @@ Do lowering on the file-scope dynamic initializations list.
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
-                         &partial_aggr_cond_var,
                          eff_insert_location, (a_boolean *)NULL);
     }  /* for */
     if (exceptions_enabled) {

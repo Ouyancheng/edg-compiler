@@ -100,7 +100,6 @@ extern void lower_dynamic_init(a_dynamic_init_ptr     dip,
                                a_constructor_init_ptr ctor_init,
                                a_lower_dynamic_init_options_set
                                                       options,
-                               a_variable_ptr         *partial_aggr_cond_var,
                                an_insert_location_ptr insert_location,
                                a_boolean              *keep_dynamic_init);
 

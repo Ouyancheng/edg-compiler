@@ -476,16 +476,15 @@ Free a list of return memo entries by putting them on the available list.
 }  /* free_return_memo_list */
 
 
-static void set_curr_cleanup_state_to_latest_initialization(void)
+a_dynamic_init_ptr normalize_cleanup_state_for_outer_lifetimes(
+                                              a_dynamic_init_ptr cleanup_state)
 /*
-Set curr_context->curr_cleanup_state to match
-curr_context->latest_initialization.  If the latest initialization pointer is
-NULL, set the current cleanup state to the proper pointer from the parent
-lifetime.
+cleanup_state is a cleanup state limited to the current lifetime, i.e.,
+it's NULL if there are no cleanups in the current lifetime.  Normalize
+it to a cleanup state that isn't limited to the current lifetime,
+and return that.
 */
 {
-  a_dynamic_init_ptr cleanup_state = curr_context->latest_initialization;
-
   /* The current lifetime can be NULL if there are no lifetimes at all. */
   if (cleanup_state == NULL && curr_context->lifetime != NULL) {
     /* No cleanups at this level, so the cleanup state is the position at which
@@ -498,7 +497,21 @@ lifetime.
       if (cleanup_state != NULL) break;
     }  /* for */
   }  /* if */
-  curr_context->curr_cleanup_state = cleanup_state;
+  return cleanup_state;
+}  /* normalize_cleanup_state_for_outer_lifetimes */
+
+
+void set_curr_cleanup_state_to_latest_initialization(void)
+/*
+Set curr_context->curr_cleanup_state to match
+curr_context->latest_initialization.  If the latest initialization pointer is
+NULL, set the current cleanup state to the proper pointer from the parent
+lifetime.
+*/
+{
+  curr_context->curr_cleanup_state =
+                          normalize_cleanup_state_for_outer_lifetimes(
+                                          curr_context->latest_initialization);
 }  /* set_curr_cleanup_state_to_latest_initialization */
 
 
@@ -7476,30 +7489,15 @@ whether the construction was done.
 }  /* add_conditional_flag */
 
 
-#if !GENERATE_EH_TABLES
-/*ARGSUSED*/  /* <-- partial_aggr_cond_var is not used if EH tables are not
-                     being generated. */
-#endif /* !GENERATE_EH_TABLES */
 void initial_processing_on_destructible_initialization(
-                                a_dynamic_init_ptr dip,
-                                a_variable_ptr     *partial_aggr_cond_var,
-                                a_boolean          *first_partial_aggr_skipped,
-                                an_insert_location *insert_location)
+                                           a_dynamic_init_ptr dip,
+                                           an_insert_location *insert_location)
 /*
 Do initial processing on a dynamic initialization entry that indicates
 destruction.  That includes allocating the destructible entity description
 entry and generating code to initialize any conditional flag.  Any generated
 code is inserted at *insert_location, and *insert_location is updated.
 If insert_location == NULL, no initialization code is generated.
-*partial_aggr_cond_var is set to point to the conditional flag created
-to control partial destruction of an aggregate, once such a flag is created
-by this routine; subsequent calls then use the already-created flag.
-If the dynamic initialization is in a context where aggregate
-initialization is not possible, partial_aggr_cond_var can be NULL.
-The first entry indicating partial-aggregate-cleanup under a given variable
-(in destruction order) doesn't get a conditional flag;
-*first_partial_aggr_skipped is set when that one is skipped.  Again,
-the pointer can be NULL if not needed.
 */
 {
   a_destructible_entity_descr_ptr dedp;
@@ -7527,8 +7525,7 @@ the pointer can be NULL if not needed.
   if (dip->inside_conditional_expression
 #if GENERATE_EH_TABLES
       || (exceptions_enabled &&
-          (dip->is_freeing_of_storage_on_exception ||
-           dip->destruction_is_for_partially_constructed_aggregate
+          (dip->is_freeing_of_storage_on_exception
 #if DO_UNORDERED_EH_PROCESSING
            || dip->unordered
 #endif /* DO_UNORDERED_EH_PROCESSING */
@@ -7540,7 +7537,7 @@ the pointer can be NULL if not needed.
        This normally comes up for conditionally-executed parts of
        expressions, but it's also used for the cleanup for a new-allocation,
        which frees the storage if an exception is thrown before the storage
-       is initialized, and for cleanup of partially-initialized aggregates. */
+       is initialized. */
 #if DO_UNORDERED_EH_PROCESSING
     /* A conditional flag is used for the unordered case if we can't
        predict the order in which certain initializations will be
@@ -7548,42 +7545,11 @@ the pointer can be NULL if not needed.
        defined; a real back end could figure out the actual evaluation
        order and would not need the flags for this case). */
 #endif /* DO_UNORDERED_EH_PROCESSING */
-#if GENERATE_EH_TABLES
-    a_boolean add_flag = TRUE;
-    if (dip->destruction_is_for_partially_constructed_aggregate) {
-      /* All entries that indicate destruction for cleanup of a given
-         partially constructed aggregate variable share the same conditional
-         flag.  It is established on the second entry processed under a given
-         variable, then reused for the rest.  Why "second"?  Because the
-         first entry (in destruction order) is the last in construction order,
-         and therefore doesn't need a conditional flag (nothing follows it). */
-      check_assertion(partial_aggr_cond_var != NULL &&
-                      first_partial_aggr_skipped != NULL);
-      if (!*first_partial_aggr_skipped) {
-        /* Skip the first entry encountered (in destruction order). */
-        *first_partial_aggr_skipped = TRUE;
-        add_flag = FALSE;
-      } else if (*partial_aggr_cond_var != NULL) {
-        /* Reuse the conditional flag. */
-        dedp->conditional_flag_var = *partial_aggr_cond_var;
-        add_flag = FALSE;
-      }  /* if */
+    /* Create and initialize a new conditional flag variable. */
+    add_conditional_flag(dip);
+    if (insert_location != NULL) {
+      init_conditional_flag_var(dedp, insert_location);
     }  /* if */
-    if (add_flag) {
-#endif /* GENERATE_EH_TABLES */
-      /* Create and initialize a new conditional flag variable. */
-      add_conditional_flag(dip);
-      if (insert_location != NULL) {
-        init_conditional_flag_var(dedp, insert_location);
-      }  /* if */
-#if GENERATE_EH_TABLES
-      if (dip->destruction_is_for_partially_constructed_aggregate) {
-        /* Remember the conditional flag variable for reuse with other
-           partial-construction-cleanup entries under the same variable. */
-        *partial_aggr_cond_var = dedp->conditional_flag_var;
-      }  /* if */
-    }  /* if */
-#endif /* GENERATE_EH_TABLES */
   }  /* if */
 end_of_routine:;
 }  /* initial_processing_on_destructible_initialization */
@@ -7599,28 +7565,11 @@ and *insert_location is updated.
 */
 {
   a_dynamic_init_ptr dip;
-  a_variable_ptr     partial_aggr_cond_var = NULL;
-  a_boolean          first_partial_aggr_skipped = FALSE;
 
   for (dip = lifetime->destructions;
        dip != NULL;
        dip = dip->next_in_destruction_list) {
-#if GENERATE_EH_TABLES
-    if (dip->variable != NULL) {
-      /* Force a new conditional variable for cleanup of partially constructed
-         aggregates whenever a new variable comes up.  Note that the list is
-         being scanned in destruction order so the entry for the complete
-         variable appears before the entries for partial-construction-cleanup,
-         if any. */
-      partial_aggr_cond_var = NULL;
-      first_partial_aggr_skipped = FALSE;
-    }  /* if */
-#endif /* GENERATE_EH_TABLES */
-    initial_processing_on_destructible_initialization(
-                                                   dip,
-                                                   &partial_aggr_cond_var,
-                                                   &first_partial_aggr_skipped,
-                                                   insert_location);
+    initial_processing_on_destructible_initialization(dip, insert_location);
   }  /* for */
 }  /* begin_object_lifetime */
 
@@ -8660,7 +8609,6 @@ Lower an stmk_return statement.
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
-                         (a_variable_ptr *)NULL,
                          &insert_location, (a_boolean *)NULL);
     } else {
       /* Return value optimization was done. */
@@ -8933,7 +8881,6 @@ handled).
     lower_dynamic_init(csp->dynamic_init, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
-                       (a_variable_ptr *)NULL,
                        &insert_location, (a_boolean *)NULL);
     /* Lower the value expression. */
     value_expr = csp->expr;

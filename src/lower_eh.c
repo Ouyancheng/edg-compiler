@@ -2185,6 +2185,7 @@ void clone_region_table_entry_list(a_dynamic_init_ptr dip,
 Clone the region table entry associated with the initialization pointed to
 by dip, and all preceding initializations (following the
 next_in_region_table pointer), stopping before the entry stop_before.
+stop_before == NULL means stop at the beginning of the current lifetime.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
@@ -2210,6 +2211,7 @@ next_in_region_table pointer), stopping before the entry stop_before.
                                        &region_number);
   }  /* if */
   /* Link the clone to the proper next entry. */
+  next_dip = normalize_cleanup_state_for_outer_lifetimes(next_dip);
   next_region_number = cleanup_region_number(next_dip);
   set_next_region_number(dip, next_region_number);
   dedp->cleanup_state_to_set_when_starting_destruction = next_dip;
@@ -3090,7 +3092,6 @@ for the scope of the handler.
     lower_dynamic_init(handler->dynamic_init, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
-                       (a_variable_ptr *)NULL,
                        &insert_location, (a_boolean *)NULL);
     /* Mark the parameter as referenced. */
     handler->parameter->source_corresp.referenced = TRUE;
@@ -3903,7 +3904,6 @@ Lower an enk_throw expression node.
     lower_dynamic_init(dip, &ipd,
                        (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                        (a_constructor_init_ptr)NULL, LDIO_THROW,
-                       (a_variable_ptr *)NULL,
                        &insert_location, (a_boolean *)NULL);
 #if !DO_FULL_PORTABLE_EH_LOWERING
     /* Put the lowered node pointer into the throw supplement. */
