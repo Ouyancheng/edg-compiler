@@ -6027,6 +6027,7 @@ or implicit) controlling the declaration.
     decl_pos = locator_for_curr_id.source_position;
     /* The identifier should be a qualified name, with the qualifier a base
        class of the current class. */
+    declared_sym = locator_for_curr_id.specific_symbol;
     if (!locator_for_curr_id.is_class_member) {
       error(ec_class_qualified_name_required);
       err = TRUE;
@@ -6038,6 +6039,17 @@ or implicit) controlling the declaration.
          bypass the identifier first. */
       (void)get_token();
       goto done;
+    } else if (declared_sym != NULL &&
+               (is_constructor_symbol(declared_sym) ||
+                is_destructor_symbol(declared_sym) ||
+                (declared_sym->kind == (a_symbol_kind)sk_member_function &&
+                 declared_sym->variant.routine.ptr->compiler_generated))) {
+      /* The WP does not explicitly disallow a using-declaration that specifies
+         a constructor or destructor, but since they cannot be inherited it
+         is not clear what meaning such a declaration could have.  The same
+         goes for compiler-generated copy assignment operators. */
+      pos_sy_warning(ec_using_declaration_ignored, &decl_pos, declared_sym);
+      err = TRUE;
     } else {
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
         if (bcp->type == locator_for_curr_id.parent.class_type) {
@@ -6052,7 +6064,6 @@ or implicit) controlling the declaration.
         type_error(ec_ambiguous_base_class, bcp->type);
         err = TRUE;
       } else {
-        declared_sym = locator_for_curr_id.specific_symbol;
         /* Look up the name in the scope of the current class. */
         clear_locator(&locator, &decl_pos);
         locator.symbol_header = locator_for_curr_id.symbol_header;
@@ -6132,6 +6143,9 @@ or implicit) controlling the declaration.
            a member of the overload set the symbol refers to) is inaccessible.
            Issue an error instead of creating the projection symbol. */
         pos_sy_error(ec_no_access_to_name, &decl_pos, sym);
+      } else if (sym->kind == (a_symbol_kind)sk_member_function &&
+                 sym->variant.routine.ptr->compiler_generated) {
+        /* Ignore compiler-generated member functions silently. */
       } else if (other_sym != NULL &&
                  conflicts_with_previous_function_decl(fund_sym, other_sym,
                                                        &decl_pos)) {
