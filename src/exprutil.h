@@ -626,6 +626,7 @@ extern void prep_return_operand(an_operand         *source_operand,
 
 extern void prep_assignment_operand(an_operand         *source_operand,
                                     a_type_ptr         dest_type,
+                                    a_boolean          bitwise_copy,
                                     an_expression_kind expression_kind,
                                     an_error_code      incompatible_err,
                                     a_source_position  *err_pos);
