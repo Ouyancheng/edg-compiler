@@ -4203,6 +4203,7 @@ Print out the constant value contained in one constant record.
   a_float_kind     fkind;
   a_type_ptr       con_type;
   a_boolean        need_cast_close_paren = FALSE, need_close_paren;
+  a_boolean        ptr_implicit_cast_case;
 #ifdef CFE
   a_targ_ptrdiff_t offset;
 #endif /* ifdef CFE */
@@ -4311,6 +4312,22 @@ Print out the constant value contained in one constant record.
 #endif /* ifdef FFE */
 #ifdef CFE
     case ck_address:
+      /* Look for cases where a pointer is implicitly cast to a strange type
+         (e.g., "char").  The original code probably did this conversion
+         as two casts, but the implicit_cast mechanism only retains information
+         on the final type.  In such cases, go by way of a cast to unsigned
+         long. */
+      ptr_implicit_cast_case = FALSE;
+      if (constant->implicit_cast) {
+        if (is_pointer_type(con_type) ||
+            (is_integer_type(con_type) &&
+             con_type->size >= TARG_SIZEOF_POINTER)) {
+          /* Okay. */
+        } else {
+          ptr_implicit_cast_case = TRUE;
+          fputs("((unsigned long)", f_C_output);
+        }  /* if */
+      }  /* if */
       offset = constant->variant.address.offset;
       if (offset != 0) {
         /* If the offset is non-zero, cast to (char *) and back again to
@@ -4345,6 +4362,7 @@ Print out the constant value contained in one constant record.
       } else {
         fputc(')', f_C_output);
       }  /* if */
+      if (ptr_implicit_cast_case) fputc(')', f_C_output);
       break;
 #endif /* ifdef CFE */
 #if CHECKING
