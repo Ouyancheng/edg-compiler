@@ -902,16 +902,10 @@ See also 3.6.4.2.
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  /* Scan the controlling expression, and check to see that it is integral. */
-  sp->expr = scan_expression();
-  if (!is_integral_type(sp->expr->type)) {
-    /* Error, the expression is not integral. */
-    if (!is_error_type(sp->expr->type)) {
-      error(ec_expr_not_integral);
-    }  /* if */
-    sp->expr = error_node();
-  } else {
-    /* The expression is indeed integral.  Promote it (to int) if necessary. */
+  /* Scan the controlling expression and check to see that it is integral. */
+  sp->expr = scan_switch_expression();
+  if (!is_error_node(sp->expr)) {
+    /* The expression is integral.  Promote it (to int) if necessary. */
     if (C_dialect != C_dialect_pcc) {
       /* ANSI: the normal integral promotions are done. */
       integral_promote_node(&sp->expr);

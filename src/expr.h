@@ -31,7 +31,7 @@ extern void scan_ctor_arguments(a_symbol_ptr     constructor_sym,
                                 an_expr_node_ptr *arg_expr_list,
                                 a_routine_ptr    *conversion_routine);
 
-extern an_expr_node_ptr scan_expression(void);
+extern an_expr_node_ptr scan_switch_expression(void);
 
 extern an_expr_node_ptr scan_void_expression(void);
 
@@ -116,6 +116,12 @@ Macro that is TRUE if the node is a field node.
 */
 #define is_field_node(node)						\
 	((node)->kind == (an_expr_node_kind)enk_field)
+
+/*
+Macro that is TRUE if the node is a error node.
+*/
+#define is_error_node(node)						\
+	((node)->kind == (an_expr_node_kind)enk_error)
 
 #endif /* ifndef EXPR_H */
 
