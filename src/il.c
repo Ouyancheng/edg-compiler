@@ -3232,6 +3232,25 @@ a constant that appears on the constant list of an enum type.
   return is_enum;
 }  /* is_enum_constant */
 
+
+a_boolean is_wide_string_constant(a_constant_ptr constant)
+/*
+Return TRUE if the indicated constant is a wide string constant (L"abc").
+*/
+{
+  a_boolean  is_wide_string = FALSE;
+  a_type_ptr con_type, elem_type;
+
+  if (constant->kind == (a_constant_repr_kind)ck_string) {
+    con_type = skip_typerefs(constant->type);
+    elem_type = con_type->variant.array.element_type;
+    elem_type = skip_typerefs(elem_type);
+    /* Check for element type that is not some variety of char. */
+    is_wide_string = !is_character_type(elem_type);
+  }  /* if */
+  return is_wide_string;
+}  /* is_wide_string_constant */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 char *alloc_text_of_string_literal(sizeof_t size)

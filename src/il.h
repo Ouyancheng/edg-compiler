@@ -249,6 +249,8 @@ extern void set_unsigned_integer_constant(a_constant      *cp,
 
 extern a_boolean is_enum_constant(a_constant_ptr con);
 
+extern a_boolean is_wide_string_constant(a_constant_ptr constant);
+
 extern void make_zero_of_proper_type(a_type_ptr desired_type,
                                      a_constant *zero_constant);
 
