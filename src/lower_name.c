@@ -1616,7 +1616,10 @@ template classes.
   reserve_space_for_length(&length_reservation, mctl);
 #else /* IA64_ABI */
   /* IA-64 encoding.  Unary "&" Operator "ad" followed by literal "L". */
-  add_str_to_mangled_name("adL", mctl);
+  if (!is_reference_type(con->type)) {
+    add_str_to_mangled_name("ad", mctl);
+  }  /* if */
+  add_str_to_mangled_name("L", mctl);
 #endif /* IA64_ABI */
   if (abkind == (an_address_base_kind)abk_variable) {
     a_variable_ptr variable = con->variant.address.variant.variable;
