@@ -1485,24 +1485,35 @@ by id_linkage.
            template.  See if it either provides a match with an
            existing instance of the template or if a new instance can
            be created based on the current type. */
+        a_symbol_ptr sym, match = NULL;
+
         for (other_decl = other_decl_saved;
              other_decl != NULL;
              other_decl = is_list ? other_decl->next : NULL) {
           if (other_decl->kind == (a_symbol_kind)sk_function_template) {
             /* Look for a match on the list of instantiations. */
-            a_symbol_ptr sym;
             sym = matching_template_function(other_decl, type,
                                              /*is_decl_context=*/TRUE);
             if (sym != NULL) {
               /* Found a match. */
-              linked_symbol = other_decl = sym;
-              if (sym->variant.routine.instance_ptr->is_guiding_decl) {
-                *overload_symbol = NULL;
+              if (match != NULL) {
+                /* This declaration cannot be a guiding declaration for more
+                   than one template function.  Issue an ambiguity error. */
+                pos_syty_error(ec_guiding_decl_ambiguity,
+                               &locator->source_position, sym, type);
+                break;
               }  /* if */
-              goto done;
+              match = sym;
+              /* Continue looping so as to check for an ambiguous reference. */
             }  /* if */
           }  /* if */
         }  /* for */
+        if (match != NULL) {
+          linked_symbol = other_decl = match;
+          if (match->variant.routine.instance_ptr->is_guiding_decl) {
+            *overload_symbol = NULL;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
     if (decls_at_same_scope || is_friend_decl) {

@@ -1,5 +1,14 @@
 Version 2.35
 
+2/25/97  Ambiguous guiding declaration
+
+When compiling with --guiding_decls an error is now issued when more than
+one function template matches the function type of the guiding declaration:
+
+  template <class T> void f(T*) {}
+  template <class T> void f(T) {}
+  void f(int*);                        // Ambiguous guiding declaration
+
 2/25/97  Nontype template arguments whose type depends on a template parameter
 
 A nontype template argument can have a type that depends on a template
