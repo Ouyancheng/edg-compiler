@@ -3136,15 +3136,15 @@ directory system_include_dir is set to TRUE.
                                                  name_to_try, buffer,
                                                  FILE_NAME_BUFFER_SIZE,
                                                  &suffix_loc);
-        /* Now try to open the modified file. */
-        new_input_file = try_to_open_source_file(name_to_try, file_name);
-        if (new_input_file != NULL) break;
-      }  /* for */
-    }  /* if */
-    if (new_input_file != NULL) {
-      done = TRUE;
-      *system_include_dir = curr_directory_name_entry->system_include_dir;
-       break;
+          /* Now try to open the modified file. */
+          new_input_file = try_to_open_source_file(name_to_try, file_name);
+          if (new_input_file != NULL) break;
+        }  /* for */
+      }  /* if */
+      if (new_input_file != NULL) {
+        done = TRUE;
+        *system_include_dir = curr_directory_name_entry->system_include_dir;
+         break;
       }  /* if */
     }  /* for */
   }  /* if */
