@@ -1,5 +1,17 @@
 Version 2.23
 
+4/26/94  Inherited overloaded conversion operators
+
+The front end no longer fails when processing inherited overloaded
+conversion operators.  Here's an example:
+
+  class A {
+    operator int();
+    operator int() const;
+  };
+  class B : public A { } b;
+  int i = b;                   // NULL-pointer failure eliminated
+
 4/26/94  Interchangeable types in strict (warning) mode
 
 In strict/issue-warnings mode, integral types are no longer considered
