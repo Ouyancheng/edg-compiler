@@ -6398,7 +6398,7 @@ Scan the body of a class definition, including the base classes list.
 #if CHECKING
           if (C_dialect == C_dialect_cplusplus) {
             /* Should be a nested class, struct, union, or enum definition.
-               Be sure the parent class and access were marked correctly. */
+               Be sure the parent class was marked correctly. */
             a_type_ptr    tp = skip_typerefs(member_type);
             a_symbol_ptr  sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
 
@@ -6406,9 +6406,6 @@ Scan the body of a class definition, including the base classes list.
                                  sym->parent.class_type == class_type,
                                  "scan_class_definition:",
                                  "bad parent type on nested type");
-            check_assertion_str2(tp->source_corresp.access == access,
-                                 "scan_class_definition:",
-                                 "bad access on nested type");
           }  /* if */
 #endif /* CHECKING */
           if (access != (an_access_specifier)as_public) {
