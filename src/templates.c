@@ -722,7 +722,8 @@ might not be able to if the template itself has not yet been defined.
       mark_defined(instance_sym, &instance_sym->decl_position);
       /* Scan the base specifiers list, if any, and the body of the class. */
       (void)scan_class_definition(class_type, DEPTH_OF_FILE_SCOPE,
-                                  /*is_local_class=*/FALSE);
+                                  /*is_local_class=*/FALSE,
+                                  /*delayed_nested_class_def=*/FALSE);
       set_instantiation_required_for_template_class_members(class_type);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* A template instantiation is considered to always be "autonomous",
@@ -833,7 +834,8 @@ encountered.
 #endif /* CHECKING */
   /* Scan the base specifiers list, if any, and the body of the class. */
   (void)scan_class_definition(prototype_type, DEPTH_OF_FILE_SCOPE,
-                              /*is_local_class=*/FALSE);
+                              /*is_local_class=*/FALSE,
+                              /*delayed_nested_class_def=*/FALSE);
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
   pop_scope();

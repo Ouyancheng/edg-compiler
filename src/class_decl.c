@@ -6081,7 +6081,8 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
 
 a_boolean scan_class_definition(a_type_ptr    class_type,
                                 a_scope_depth effective_decl_level,
-                                a_boolean     is_local_class)
+                                a_boolean     is_local_class,
+                                a_boolean     delayed_nested_class_def)
 /*
 Scan the body of a class definition, including the base classes list.
 */
@@ -6185,6 +6186,9 @@ Scan the body of a class definition, including the base classes list.
     /* Advance past the left brace. */
     (void)get_token();
     add_stop_token(tok_rbrace);
+    if (delayed_nested_class_def) {
+      push_class_reactivation_scope(tag_sym->class_of_which_a_member);
+    }  /* if */
     /* Start a scope for the fields and other members.  Since the class type
        is allocated in the file scope memory region, all its members must also
        allocated there -- push_scope will switch to the file scope memory
@@ -7575,6 +7579,7 @@ next_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Pop the pseudo-scope created for the fields. */
     pop_scope();
+    if (delayed_nested_class_def) pop_class_reactivation_scope();
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
@@ -7590,7 +7595,8 @@ next_declaration:
     if (C_dialect == C_dialect_cplusplus) {
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
-      if (tag_sym->class_of_which_a_member == NULL) {
+      if (tag_sym->class_of_which_a_member == NULL ||
+          delayed_nested_class_def) {
         /* For non-nested classes do delayed processing for default argument
            declarations and inline member function definitions. */
         delayed_scan_fixup_for_class(class_type, is_template_instantiation);

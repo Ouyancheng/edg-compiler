@@ -477,6 +477,7 @@ to indicate whether the class/struct/union is actually defined.
   a_type_kind             type_kind;
   a_symbol_locator        locator;
   a_symbol_ptr            tag_sym, error_tag_sym = NULL;
+  a_symbol_ptr            parent;
   a_boolean               tag_id_present;
   a_type_ptr              class_type;
   a_boolean               is_local_class = FALSE;
@@ -489,6 +490,8 @@ to indicate whether the class/struct/union is actually defined.
   a_scope_stack_entry_ptr ssep;
   a_source_position       tag_position;
   a_symbol_reference_kind srk_flags;
+  a_boolean               delayed_nested_class_def = FALSE;
+
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -680,9 +683,22 @@ skip_tag_scan:
              tag_sym->class_of_which_a_member != ssep->assoc_type)) {
           /* A definition of a nested class that appears in the scope other
              than that of its parent class. */
-          pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
-          tag_sym = NULL;
-          set_to_error_locator(locator);
+          parent = (a_symbol_ptr)tag_sym->class_of_which_a_member->
+                                               source_corresp.assoc_info;
+          /* Find the outermost enclosing class. */
+          while (parent->class_of_which_a_member != NULL) {
+            parent = (a_symbol_ptr)parent->class_of_which_a_member->
+                                                source_corresp.assoc_info;
+          }  /* while */
+          if (parent->decl_scope == ssep->number) {
+            /* Okay to define the nested class in this scope -- it is the
+               scope in which the parent was defined. */
+            delayed_nested_class_def = TRUE;
+          } else {
+            pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
+            tag_sym = NULL;
+            set_to_error_locator(locator);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -826,7 +842,7 @@ skip_tag_scan:
   }  /* if */
   if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
-                              is_local_class)) {
+                              is_local_class, delayed_nested_class_def)) {
       *defines_something = TRUE;
     } else {
       err = TRUE;
