@@ -284,7 +284,8 @@ Write any common code needed in all C output files.
 */
 {
 #ifdef CFE
-  if (il_header.source_language == sl_C) {
+  if (il_header.source_language == sl_C ||
+      il_header.source_language == sl_Cplusplus) {
     /* Routines needed to get around bug in SUN cc with post-increment or
        decrement of float value. */
     startline((a_seq_number)0);
@@ -1063,6 +1064,7 @@ Print out the type specifier.
       dump_float_type_name(type->variant.float_kind);
       break;
 #ifdef CFE
+    case tk_class:
     case tk_struct:
       (void)fprintf(f_C_output, "struct %s", get_name(&type->source_corresp));
       break;
@@ -1323,6 +1325,9 @@ Dump the parameter list for the given routine (which is part of the given
 scope).  If names_only is TRUE, dump just the parameter names.
 */
 {
+#ifdef CFE
+  a_boolean                 implicit_this_param;
+#endif /* ifdef CFE */
 #ifdef FFE
   an_entry_description_ptr  edp;
   an_entry_param_ptr        epp;
@@ -1355,14 +1360,15 @@ scope).  If names_only is TRUE, dump just the parameter names.
   formal_param = scope->parameters;
 #endif /* ifdef FFE */
 #ifdef CFE
-  if (names_only && formal_param == NULL &&
+  implicit_this_param = (scope->this_param_variable != NULL);
+  if (names_only && formal_param == NULL && !implicit_this_param &&
       routine->type->variant.routine.extra_info->prototyped) {
     /* Void parameter list -- i.e., no parameters. */
     start_comment();
     (void)fprintf(f_C_output, "void");
     end_comment();
   } else
-#endif /* ifdef FFE */
+#endif /* ifdef CFE */
   {
 #ifdef FFE
     /* For a character function, put out the implicit function return
@@ -1372,6 +1378,18 @@ scope).  If names_only is TRUE, dump just the parameter names.
       if (names_only && formal_param != NULL) (void)fprintf(f_C_output, ",");
     }  /* if */
 #endif /* ifdef FFE */
+#ifdef CFE
+    if (implicit_this_param) {
+      /* C++ member function implicit "this" parameter. */
+      if (names_only) {
+        dump_var_name(scope->this_param_variable);
+        if (formal_param != NULL) fprintf(f_C_output, ", ");
+      } else {
+        dump_param_variable(scope->this_param_variable,
+                            /*ignore_storage_class=*/FALSE);
+      }  /* if */
+    }  /* if */
+#endif /* ifdef CFE */
     while (formal_param != NULL) {
       /* Dump the formal parameters. */
       if (names_only) {
@@ -1912,6 +1930,7 @@ all types, but for structs/unions put out only a forward reference.
 #endif /* CHECKING */
       if (!bodies) dump_enum(type);
       break;
+    case tk_class:
     case tk_struct:
       dump_struct(type, bodies);
       break;
@@ -1953,6 +1972,7 @@ symbol associated with them.
   for (;;) {
     for (type = type_list; type != NULL; type = type->next) {
       if (type->source_corresp.name != NULL ||
+          type->kind == (a_type_kind)tk_class ||
           type->kind == (a_type_kind)tk_struct ||
           type->kind == (a_type_kind)tk_union ||
           (type->kind == (a_type_kind)tk_integer &&
@@ -3536,7 +3556,8 @@ char_compare:
            This avoids the problem of referencing the result of the
            function call in a field selection.  The temporary will
            have been generated on a pre-scan of this code. */
-        struct_func_call = (return_type->kind == (a_type_kind)tk_struct ||
+        struct_func_call = (return_type->kind == (a_type_kind)tk_class ||
+                            return_type->kind == (a_type_kind)tk_struct ||
                             return_type->kind == (a_type_kind)tk_union);
         if (struct_func_call) {
           (void)fprintf(f_C_output, "(*(%s = ", temp_name((char *)expr));
@@ -4496,6 +4517,7 @@ characters should be put out separately (to initialize a substring, probably).
           ipdp->curr_elem = 0;
           elem_type = type->variant.array.element_type;
           break;
+        case tk_class:
         case tk_struct:
         case tk_union:
           ipdp->curr_field = type->variant.class_struct_union.field_list;
@@ -4619,7 +4641,8 @@ characters should be put out separately (to initialize a substring, probably).
         /* Advance to the next element in the aggregate or struct. */
         if (type->kind == (a_type_kind)tk_array) {
           (ipdp->curr_elem)++;
-        } else if (type->kind == (a_type_kind)tk_struct) {
+        } else if (type->kind == (a_type_kind)tk_class ||
+                   type->kind == (a_type_kind)tk_struct) {
           ipdp->curr_field = ipdp->curr_field->next;
 #if CHECKING
           if (ipdp->curr_field == NULL) {
@@ -4858,7 +4881,8 @@ parameters.
            does not allow initializers for those. */
         a_type_kind var_type_kind = skip_typerefs(variable->type)->kind;
         gen_assignments = !static_storage_class(variable->storage_class) &&
-                          (var_type_kind == (a_type_kind)tk_struct ||
+                          (var_type_kind == (a_type_kind)tk_class ||
+                           var_type_kind == (a_type_kind)tk_struct ||
                            var_type_kind == (a_type_kind)tk_union ||
                            var_type_kind == (a_type_kind)tk_array);
 #else /* !defined(CFE) */
@@ -4875,13 +4899,12 @@ parameters.
 }  /* dump_variable */
 
 
-static void dump_all_variables(
-                        register a_variable_ptr variable,
-                        a_boolean               dump_vars_without_initializers,
-                        a_boolean               dump_initializers)
+static void dump_all_variables(a_scope_ptr scope,
+                               a_boolean   dump_vars_without_initializers,
+                               a_boolean   dump_initializers)
 /*
-Dump all variables on the given list of variables.  Variables without
-initializers are dumped only if dump_vars_without_initializers is
+Dump all variables on the list of variables for the given scope.  Variables
+without initializers are dumped only if dump_vars_without_initializers is
 TRUE.  Initializers on variables are dumped only if dump_initializers
 is TRUE.
 */
@@ -4893,7 +4916,7 @@ is TRUE.
 
 #ifdef FFE
   /* Dump all associations before the variables that reference them. */
-  for (var_ptr = variable; var_ptr != NULL; var_ptr = var_ptr->next) {
+  for (var_ptr = scope->variables; var_ptr != NULL; var_ptr = var_ptr->next) {
     if (var_ptr->type->kind == (a_type_kind)tk_association) {
       if (curr_scope != NULL &&
           (frv = curr_scope->function_result_var) != NULL &&
@@ -4911,7 +4934,7 @@ is TRUE.
     }  /* if */
   }  /* for */
 #endif /* ifdef FFE */
-  for (var_ptr = variable; var_ptr != NULL; var_ptr = var_ptr->next) {
+  for (var_ptr = scope->variables; var_ptr != NULL; var_ptr = var_ptr->next) {
 #ifdef FFE
     /* Don't put out ENTRY parameters. */
     if (var_ptr->type->kind != (a_type_kind)tk_association &&
@@ -4922,6 +4945,27 @@ is TRUE.
                     dump_initializers);
     }  /* if */
   }  /* for */
+#ifdef CFE
+  /* Dump variables that are static data members of C++ classes. */
+  if (il_header.source_language == sl_Cplusplus) {
+    a_type_ptr type;
+    for (type = scope->types; type != NULL; type = type->next) {
+      if (type->kind == (a_type_kind)tk_class ||
+          type->kind == (a_type_kind)tk_struct ||
+          type->kind == (a_type_kind)tk_union) {
+        if (type->variant.class_struct_union.extra_info != NULL) {
+          for (var_ptr = type->variant.class_struct_union.extra_info->
+                                                           static_data_members;
+               var_ptr != NULL;
+               var_ptr = var_ptr->next) {
+            dump_variable(var_ptr, dump_vars_without_initializers,
+                          dump_initializers);
+          }  /* for */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* CFE */
 }  /* dump_all_variables */
 
 #ifdef FFE
@@ -5076,7 +5120,7 @@ Dump out the contents of a block (but not the surrounding { and }).
       internal_error("dump_block: non-NULL routines list");
     }  /* if */
 #endif /* CHECKING */
-    dump_all_variables(scope->variables,
+    dump_all_variables(scope,
                        /*dump_vars_without_initializers=*/TRUE,
                        /*dump_initializers=*/TRUE);
     dump_rout_initializations((a_routine_ptr)NULL);
@@ -6606,7 +6650,8 @@ its subtree.
         }  /* if */
 #endif /* ifdef FFE */
 #ifdef CFE
-        if (node_type->kind == (a_type_kind)tk_struct ||
+        if (node_type->kind == (a_type_kind)tk_class ||
+            node_type->kind == (a_type_kind)tk_struct ||
             node_type->kind == (a_type_kind)tk_union) {
           /* A function call returning a struct or union.  Declare a temporary
              to hold the result. */
@@ -7398,7 +7443,7 @@ routine has a body (dump nothing if it has no body).
 
     dump_all_constants(scope->constants);
     dump_all_type_declarations(scope->types);
-    dump_all_variables(scope->variables,
+    dump_all_variables(scope,
                        /*dump_vars_without_initializers=*/TRUE,
                        /*dump_initializers=*/TRUE);
     dump_prescan_temps(block);
@@ -7492,8 +7537,8 @@ end_of_routine:;
 }  /* dump_routine */
 
 
-static void dump_all_routines(a_routine_ptr routine,
-                              a_boolean     bodies)
+static void dump_all_routines(a_scope_ptr scope,
+                              a_boolean   bodies)
 /*
 Dump the information about all of the routines at a particular scope.
 If bodies == FALSE, dump interfaces for all routines on the list.
@@ -7501,10 +7546,31 @@ If bodies == TRUE, dump interfaces and bodies for just those routines
 that have bodies.
 */
 {
-  while (routine != NULL) {
+  a_routine_ptr routine;
+
+  for (routine = scope->routines; routine != NULL; routine = routine->next) {
     dump_routine(routine, bodies);
-    routine = routine->next;
-  }  /* while */
+  }  /* for */
+#ifdef CFE
+  /* Dump routines that are static data members of C++ classes. */
+  if (il_header.source_language == sl_Cplusplus) {
+    a_type_ptr type;
+    for (type = scope->types; type != NULL; type = type->next) {
+      if (type->kind == (a_type_kind)tk_class ||
+          type->kind == (a_type_kind)tk_struct ||
+          type->kind == (a_type_kind)tk_union) {
+        if (type->variant.class_struct_union.extra_info != NULL) {
+          for (routine = type->variant.class_struct_union.extra_info->
+                                                              member_functions;
+               routine != NULL;
+               routine = routine->next) {
+            dump_routine(routine, bodies);
+          }  /* for */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* CFE */
 }  /* dump_all_routines */
 
 
@@ -7551,6 +7617,9 @@ Generate old-style (K&R/pcc) C from the intermediate language.
 
   switch (il_header.source_language) {
 #ifdef CFE
+    case sl_Cplusplus:
+      source_language_name = "C++";
+      break;
     case sl_C:
       source_language_name = "C";
       break;
@@ -7586,17 +7655,17 @@ Generate old-style (K&R/pcc) C from the intermediate language.
   scope = il_header.primary_scope;
   dump_all_constants(scope->constants);
   dump_all_type_declarations(scope->types);
-  dump_all_routines(scope->routines, /*bodies=*/FALSE);
+  dump_all_routines(scope, /*bodies=*/FALSE);
   /* Dump variables without initializers, and tentative declarations
      for those with initializers, then the initialized variables again
      with initializers.  This is to avoid forward-reference problems. */
-  dump_all_variables(scope->variables,
+  dump_all_variables(scope,
                      /*dump_vars_without_initializers=*/TRUE,
                      /*dump_initializers=*/FALSE);
-  dump_all_variables(scope->variables,
+  dump_all_variables(scope,
                      /*dump_vars_without_initializers=*/FALSE,
                      /*dump_initializers=*/TRUE);
-  dump_all_routines(scope->routines, /*bodies=*/TRUE);
+  dump_all_routines(scope, /*bodies=*/TRUE);
 
 #ifdef CFE
   /* Generate the routine called to do file-scope dynamic initializations.
