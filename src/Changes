@@ -28,7 +28,12 @@ The typeinfo structure created for a pointer-to-member type in the IA-64
 ABI contained an aggregate constant whose last_constant field pointed
 to the second-to-last constant in the list rather than the last.
 This did not affect the C-generating back end, but might have caused
-problems for other back ends.
+problems for other back ends.  6/6/04: another similar problem
+has been found and corrected, this one in the aggregate constant for
+the type_info base class itself.  The second constant of the
+initializer for that class is the name string, but the last_constant
+field of the aggregate constant pointed to the first constant,
+the virtual function table pointer.
 
 5/28/04  Spurious errors involving member templates
 

@@ -1476,7 +1476,7 @@ typeinfo variable in a COMDAT group.
     name_con = make_typeinfo_name_constant(type, force_static, use_comdat);
 #if IA64_ABI
     vptr_con->next = name_con;
-    type_info_con->variant.aggregate.last_constant = vptr_con;
+    type_info_con->variant.aggregate.last_constant = name_con;
 #endif /* IA64_ABI */
     typeinfo_var->source_corresp.assoc_info = NULL;  /* Be neat. */
     curr_field = curr_field->next;
