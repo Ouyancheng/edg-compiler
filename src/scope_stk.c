@@ -738,17 +738,18 @@ affect the current declarative level.  In C, the current declarative
 level is the same as depth_scope_stack except when struct/union field
 scopes are active; when they are, it indicates the first non-struct-or-union
 scope.  In C++, struct/union/class scopes are real scopes; however,
-class and namespace reactivations and template instantiations are not
-real scopes.
+class and namespace reactivations and template instantiations are not real
+scopes.  In neither C or C++ is a pragma scope is treated as a real scope.
 */
-#define is_scope_kind_that_affects_declarative_level(kind)		\
-   ((C_dialect != C_dialect_cplusplus) ?				\
-       /* C -- struct/union classes are not real scopes. */		\
-        ((kind) != (a_scope_kind)sck_class_struct_union) :		\
-        /* C++ -- class reactivations are not real scopes. */		\
-        ((kind) != (a_scope_kind)sck_class_reactivation &&		\
-         (kind) != (a_scope_kind)sck_namespace_reactivation &&		\
-         (kind) != (a_scope_kind)sck_template_instantiation))
+#define is_scope_kind_that_affects_declarative_level(kind)              \
+   ((kind) != (a_scope_kind)sck_pragma &&                               \
+   ((C_dialect != C_dialect_cplusplus) ?                                \
+       /* C -- struct/union classes are not real scopes. */             \
+        ((kind) != (a_scope_kind)sck_class_struct_union) :              \
+        /* C++ -- class reactivations are not real scopes. */           \
+        ((kind) != (a_scope_kind)sck_class_reactivation &&              \
+         (kind) != (a_scope_kind)sck_namespace_reactivation &&          \
+         (kind) != (a_scope_kind)sck_template_instantiation)))
 
 
 static a_scope_ptr push_scope_full(
