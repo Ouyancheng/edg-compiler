@@ -1,6 +1,14 @@
 Version 2.35
 
-2/23/97  Internal error on error recovery
+2/23/97  Internal error on error recovery -- default argument
+
+An internal error encounter in the following has been fixed:
+
+  struct A {
+    virtual void (*pf)(int = 0);  // Error on "virtual" -- no longer aborts
+  };
+
+2/23/97  Internal error on error recovery -- virtual function override
 
 An internal error encountered in the following has been fixed:
 

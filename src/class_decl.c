@@ -216,6 +216,25 @@ with the indicated scope stack entry.
 }  /* add_to_routine_fixup_list */
 
 
+static void dispose_of_curr_routine_fixup(void)
+/*
+If the currently active routine fixup entry has been modified such that a
+fixup pass over its tokens is required, add it to the routine fixup list for
+the current class.  Otherwise free it for later use.
+*/
+{
+  if (curr_routine_fixup->symbol != NULL &&
+      (curr_routine_fixup->
+                  function_body_token_cache.first_token != NULL  ||
+       curr_routine_fixup->def_arg_expr_fixup_list != NULL)) {
+    add_to_routine_fixup_list(curr_routine_fixup);
+  } else {
+    free_routine_fixup(curr_routine_fixup);
+  }  /* if */
+  curr_routine_fixup = NULL;
+}  /* dispose_of_curr_routine_fixup */
+
+
 static a_class_fixup_ptr alloc_class_fixup(void)
 /*
 Allocate (or take from the available-list) a class fixup entry and
@@ -9182,19 +9201,7 @@ class (prototype instantiation of a class template).
   sym = class_member_declaration(class_type, class_state_ptr,
                                  /*is_member_template=*/TRUE,
                                  &skip_semicolon_check, &dummy_type);
-  if (curr_routine_fixup != NULL) {
-    /* If the currently active routine fixup entry has been modified such
-       that a fixup pass over its tokens is required, add it to the routine
-       fixup list for the current class.  Otherwise free it for later use. */
-    if (curr_routine_fixup->
-                  function_body_token_cache.first_token != NULL  ||
-        curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
-      add_to_routine_fixup_list(curr_routine_fixup);
-    } else {
-      free_routine_fixup(curr_routine_fixup);
-    }  /* if */
-    curr_routine_fixup = NULL;
-  }  /* if */
+  if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
   if (sym == NULL) {
     /* An error has already been issued. */
   } else if (sym->is_error) {
@@ -9657,20 +9664,7 @@ nested classes when their definition appears outside of the class template.
           }  /* if */
         }  /* if */
 next_declaration:
-        if (curr_routine_fixup != NULL) {
-          /* If the currently active routine fixup entry has been modified
-             such that a fixup pass over its tokens is required, add it to
-             the routine fixup list for the current class.  Otherwise free
-             it for later use. */
-          if (curr_routine_fixup->
-                        function_body_token_cache.first_token != NULL  ||
-              curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
-            add_to_routine_fixup_list(curr_routine_fixup);
-          } else {
-            free_routine_fixup(curr_routine_fixup);
-          }  /* if */
-          curr_routine_fixup = NULL;
-        }  /* if */
+        if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
         remove_stop_token(tok_semicolon);
         /* Keep processing member declarations until the closing brace. */
       } while (curr_token != tok_rbrace && curr_token != tok_end_of_source);
