@@ -579,14 +579,14 @@ the name.
 }  /* mangled_basic_class_name */
 
 
-static sizeof_t mangled_type_name(a_type_ptr    type,
-                                  unsigned long nesting_level,
-                                  char          *store_at)
+static sizeof_t r_mangled_type_name(a_type_ptr    type,
+                                    unsigned long nesting_level,
+                                    char          *store_at)
 /*
 Determine the mangled form of the name of the type "type".  Place the
 mangled name at *store_at if store_at != NULL, and (always) return the
-length of the name.  See ARM 7.2.1c for name encoding.  This routine is
-used for named types (classes, enums, and typedefs) and for unnamed classes.
+length of the name.  See ARM 7.2.1c for name encoding.  This routine should
+not be called directly; mangled_type_name should be used instead.
 A top-level call is made with nesting_level == 1; this routine then makes
 recursive calls to itself with higher nesting levels to process the
 initial parts of the qualified names.
@@ -619,7 +619,7 @@ initial parts of the qualified names.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   if (parent_class != NULL) {
     /* Nested type.  Do the containing class names. */
-    name_length = mangled_type_name(parent_class, nesting_level+1, store_at);
+    name_length = r_mangled_type_name(parent_class, nesting_level+1, store_at);
     mangled_name_length += name_length;
     if (store_at != NULL) store_at += name_length;
   } else {
@@ -679,6 +679,19 @@ initial parts of the qualified names.
     }  /* if */
   }  /* if */
   return mangled_name_length;
+}  /* r_mangled_type_name */
+
+
+static sizeof_t mangled_type_name(a_type_ptr type,
+                                  char       *store_at)
+/*
+Determine the mangled form of the name of the type "type".  Place the
+mangled name at *store_at if store_at != NULL, and (always) return the
+length of the name.  See ARM 7.2.1c for name encoding.  This routine is
+used for named types (classes, enums, and typedefs) and for unnamed classes.
+*/
+{
+  return r_mangled_type_name(type, (unsigned long)1, store_at);
 }  /* mangled_type_name */
 
 
@@ -737,7 +750,7 @@ See ARM 7.2.1c for name encoding.
   /* If the type is named, use the name. */
   if (named_type != NULL) {
     /* Put out the mangled form of the name, e.g., "2AB" for "AB". */
-    section_length = mangled_type_name(named_type, (unsigned long)1, store_at);
+    section_length = mangled_type_name(named_type, store_at);
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
   } else {
@@ -821,8 +834,7 @@ See ARM 7.2.1c for name encoding.
       case tk_struct:
       case tk_union:
         /* Unnamed classes.  mangled_type_name will make up a name. */
-        mangled_name_length = mangled_type_name(type, (unsigned long)1,
-                                                store_at);
+        mangled_name_length = mangled_type_name(type, store_at);
         goto have_whole_mangled_name;
 #if CHECKING
       default:
@@ -1110,7 +1122,7 @@ types; just put out the base encoded name.
   }  /* if */
   if (class_type != NULL) {
     /* Put out the name of the class of which this function is a member. */
-    section_length = mangled_encoding_for_type(class_type, store_at);
+    section_length = mangled_type_name(class_type, store_at);
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
   }  /* if */
@@ -1240,7 +1252,7 @@ the class of which the variable is a member.
     *store_at++ = '_';
   }  /* if */
   /* Output the mangled class name. */
-  section_length = mangled_encoding_for_type(class_type, store_at);
+  section_length = mangled_type_name(class_type, store_at);
   mangled_name_length += section_length;
   return mangled_name_length;
 }  /* mangled_static_data_member_name */
@@ -1334,7 +1346,7 @@ other name mangling that might use the name is done.
        name, and the prefix makes it unique (i.e., makes it distinct
        from all user identifiers). */
     /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_encoding_for_type(type, (char *)NULL) +
+    mangled_name_length = mangled_type_name(type, (char *)NULL) +
                           2;  /* "__" */
     /* Allocate space for the mangled name and build it.  The old name is
        just thrown away. */
@@ -1345,7 +1357,7 @@ other name mangling that might use the name is done.
 #endif /* DEBUG */
     mangled_name[0] = '_';
     mangled_name[1] = '_';
-    (void)mangled_encoding_for_type(type, mangled_name + 2);
+    (void)mangled_type_name(type, mangled_name + 2);
     mangled_name[mangled_name_length] = '\0';
     /* Note that the mangled name is not put into the type until after it has
        been completely built, because the old name is used in building the
@@ -1593,7 +1605,7 @@ function table is for class_type itself.  Place the mangled name at
     }  /* if */
   }  /* if */
   /* Add the derived class name. */
-  section_length = mangled_encoding_for_type(class_type, store_at);
+  section_length = mangled_type_name(class_type, store_at);
   mangled_name_length += section_length;
   if (store_at != NULL) store_at += section_length;
   return mangled_name_length;
