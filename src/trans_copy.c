@@ -351,11 +351,14 @@ into a declaration instead of a definition.
 }  /* clear_variable_initialization */
 
 
-static void prepare_for_trans_unit_copy(a_scope_ptr scope)
+static void prepare_for_trans_unit_copy(
+                                      a_scope_ptr scope,
+                                      a_boolean   *any_removed_function_bodies)
 /*
 Scan the indicated scope (a file or namespace scope in a secondary
 translation unit) and its subscopes and set up for copying the scope
-to the primary translation unit IL.
+to the primary translation unit IL.  *any_removed_function_bodies is
+set to TRUE if the body of a routine is eliminated.
 */
 {
   a_type_ptr         type, prev_type;
@@ -533,6 +536,7 @@ to the primary translation unit IL.
                             il_header.region_scope_entry[routine->assoc_scope];
           check_assertion(routine_scope != NULL);
           clear_function_body(routine_scope);
+          *any_removed_function_bodies = TRUE;
         } else {
           /* Merge the definition here into the corresponding routine. */
           mark_to_merge(routine);
@@ -554,6 +558,7 @@ to the primary translation unit IL.
                             il_header.region_scope_entry[routine->assoc_scope];
             check_assertion(routine_scope != NULL);
             clear_function_body(routine_scope);
+            *any_removed_function_bodies = TRUE;
           }  /* if */
           if (routine->storage_class == (a_storage_class)sc_static) {
             /* A static function referenced from a template is changed to an
@@ -576,26 +581,6 @@ to the primary translation unit IL.
       }  /* if */
     }  /* if */
   }  /* for */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  if (scope->kind == (a_scope_kind)sck_file) {
-    /* Remove scope orphaned list entries for eliminated functions. */
-    a_scope_orphaned_list_header_ptr solhp, prev_solhp = NULL;
-    for (solhp = il_header.scope_orphaned_list_headers;
-         solhp != NULL;
-         solhp = solhp->next) {
-      if (solhp->assoc_routine->assoc_scope == NULL_region_number) {
-        /* Remove this entry. */
-        if (prev_solhp == NULL) {
-          il_header.scope_orphaned_list_headers = solhp->next;
-        } else {
-          prev_solhp->next = solhp->next;
-        }  /* if */
-      } else {
-        prev_solhp = solhp;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   /* Visit all templates. */
   prev_templ = NULL;
   for (templ = scope->templates;
@@ -628,9 +613,37 @@ to the primary translation unit IL.
       mark_to_merge(nsp);
     }  /* if */
     if (!nsp->is_namespace_alias) {
-      prepare_for_trans_unit_copy(nsp->variant.assoc_scope);
+      prepare_for_trans_unit_copy(nsp->variant.assoc_scope,
+                                  any_removed_function_bodies);
     }  /* if */
   }  /* for */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  if (scope->kind == (a_scope_kind)sck_file &&
+      *any_removed_function_bodies) {
+    /* Remove scope orphaned list entries for eliminated functions. */
+#if MAINTAIN_NEEDED_FLAGS
+    eliminate_unneeded_scope_orphaned_list_entries();
+#else /* !MAINTAIN_NEEDED_FLAGS */
+    /* We aren't maintaining needed flags, so just remove the headers for
+       eliminated functions. */
+    a_scope_orphaned_list_header_ptr solhp, prev_solhp = NULL;
+    for (solhp = il_header.scope_orphaned_list_headers;
+         solhp != NULL;
+         solhp = solhp->next) {
+      if (solhp->assoc_routine->assoc_scope == NULL_region_number) {
+        /* Remove this entry. */
+        if (prev_solhp == NULL) {
+          il_header.scope_orphaned_list_headers = solhp->next;
+        } else {
+          prev_solhp->next = solhp->next;
+        }  /* if */
+      } else {
+        prev_solhp = solhp;
+      }  /* if */
+    }  /* for */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+  }  /* if */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 }  /* prepare_for_trans_unit_copy */
 
 
@@ -1053,13 +1066,14 @@ secondary translation unit IL and therefore will not be copied.
 */
 {
   a_scope_ptr top_scope = il_header.primary_scope;
+  a_boolean   any_removed_function_bodies = FALSE;
   a_boolean   any_moved_function_bodies = FALSE;
 
   db_enter(1, "copy_secondary_trans_unit_IL_to_primary");
   check_assertion(total_errors == 0 && !is_primary_translation_unit);
   check_assertion(!il_entry_prefix_of(top_scope).il_lowering_flag);
   initial_value_for_il_lowering_flag = FALSE;
-  prepare_for_trans_unit_copy(top_scope);
+  prepare_for_trans_unit_copy(top_scope, &any_removed_function_bodies);
   copy_from_secondary_to_primary_IL();
   finish_trans_unit_copy(top_scope, &any_moved_function_bodies);
   if (any_moved_function_bodies) {

@@ -11503,10 +11503,13 @@ dependent on it.  The routine entry itself is dealt with later.
 
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
-static void eliminate_unneeded_scope_orphaned_list_entries(void)
+void eliminate_unneeded_scope_orphaned_list_entries(void)
 /*
 Remove scope-orphaned-list headers that are associated with routines whose
-bodies have been eliminated.
+bodies have been eliminated.  It would seem that one could simply
+remove those headers, but sometimes they must be retained because
+types or variables on the lists have been marked as keep_in_il
+because, for example, they appear on orphan lists.
 */
 {
   a_scope_orphaned_list_header_ptr  solhp, prev_solhp, next_solhp;
