@@ -4270,7 +4270,8 @@ Do IL lowering of the indicated namespace and everything under it.
 {
   if (!nsp->is_namespace_alias) {
     /* Lower the members of the namespace.  Note that nothing is promoted out
-       of the namespace at this time (see do_namespace_member_promotion). */
+       of the namespace at this time (see do_all_namespace_member_promotion).
+    */
     lower_scope(nsp->variant.assoc_scope);
   }  /* if */
 }  /* lower_namespace */
@@ -8199,7 +8200,7 @@ Do IL lowering of the indicated statement and everything under it.
 static void promote_constants(a_scope_ptr scope)
 /*
 Promote the constants on the constants list of the indicated scope
-(a class scope) into the file scope.
+(a class or namespace scope) into the file scope.
 */
 {
   a_constant_ptr constant, next_constant;
@@ -8209,7 +8210,8 @@ Promote the constants on the constants list of the indicated scope
      it seems unwise to put any there in this case.  Besides, the constants
      we are promoting here are rare -- they're member constants of classes,
      which are an extension (enum constants don't appear on the constant
-     list).  Note that since we are promoting constants out of a class,
+     list).  Namespace member constants might be a little less rare.
+     Note that since we are promoting constants out of a class or namespace,
      all the constants will already be allocated in the file scope memory
      region (fortunately). */
   /* Promote the constants to the end of the file-scope constants list. */
@@ -8219,8 +8221,8 @@ Promote the constants on the constants list of the indicated scope
     next_constant = constant->next;
 #if DEBUG
     if (debug_level >= 4) {
-      (void)fprintf(f_debug, "Promoting constant out of class ");
-      db_name(&scope->variant.assoc_type->source_corresp);
+      (void)fprintf(f_debug, "Promoting constant out of scope ");
+      db_scope(scope);
       (void)fprintf(f_debug, ": ");
       db_name(&constant->source_corresp);
       (void)fprintf(f_debug, "\n");
@@ -8228,9 +8230,9 @@ Promote the constants on the constants list of the indicated scope
 #endif /* DEBUG */
     add_to_constants_list(constant, /*at_file_scope=*/TRUE);
   }  /* for */
-  /* Clear the list of promoted constants.  Since the scope is for a class,
-     we know it cannot be on the scope stack now, and therefore we do
-     not need to update a corresponding last pointer. */
+  /* Clear the list of promoted constants.  Since the scope is for a class
+     or namespace, we know it cannot be on the scope stack now, and therefore
+     we do not need to update a corresponding last pointer. */
   scope->constants = NULL;
 }  /* promote_constants */
 
@@ -8238,15 +8240,17 @@ Promote the constants on the constants list of the indicated scope
 static void promote_variables(a_scope_ptr scope)
 /*
 Promote the static variables on the variables list of the indicated scope
-(a class scope) into the file scope.
+(a class or namespace scope) into the file scope.
 */
 {
   a_variable_ptr variable, next_variable;
 
   /* Why is promotion into the file scope?  Well, we are promoting static
      data members here, and local classes cannot have static data members.
+     (Or namespace member variables, and namespaces cannot be local.)
      That means the only cases that come up involve promoting static data
      members out of file-scope classes or classes nested within them.
+     (Or namespaces in the file scope or nested within such namespaces.)
      For those, the file scope is the right place to promote to. */
   /* Promote the variables to the end of the proper variables list. */
   for (variable = scope->variables;
@@ -8255,8 +8259,8 @@ Promote the static variables on the variables list of the indicated scope
     next_variable = variable->next;
 #if DEBUG
     if (debug_level >= 4) {
-      (void)fprintf(f_debug, "Promoting variable out of class ");
-      db_name(&scope->variant.assoc_type->source_corresp);
+      (void)fprintf(f_debug, "Promoting variable out of scope ");
+      db_scope(scope);
       (void)fprintf(f_debug, ": ");
       db_variable(variable);
       (void)fprintf(f_debug, "\n");
@@ -8264,9 +8268,9 @@ Promote the static variables on the variables list of the indicated scope
 #endif /* DEBUG */
     add_to_variables_list(variable, /*at_file_scope=*/TRUE);
   }  /* for */
-  /* Clear the list of promoted variables.  Since the scope is for a class,
-     we know it cannot be on the scope stack now, and therefore we do
-     not need to update a corresponding last pointer. */
+  /* Clear the list of promoted variables.  Since the scope is for a class
+     or namespace, we know it cannot be on the scope stack now, and therefore
+     we do not need to update a corresponding last pointer. */
   scope->variables = NULL;
 }  /* promote_variables */
 
@@ -8274,19 +8278,19 @@ Promote the static variables on the variables list of the indicated scope
 static void promote_routines(a_scope_ptr scope)
 /*
 Promote the routines on the routines list of the indicated scope (a class
-scope) into the file scope.
+or namespace scope) into the file scope.
 */
 {
   a_routine_ptr routine, next_routine;
 
   /* Why is promotion into the file scope?  Because routines are only
-     allowed in the file scope and in class scopes. */
+     allowed in the file scope and in class/namespace scopes. */
   for (routine = scope->routines; routine != NULL; routine = next_routine) {
     next_routine = routine->next;
 #if DEBUG
     if (debug_level >= 4) {
-      (void)fprintf(f_debug, "Promoting routine out of class ");
-      db_name(&scope->variant.assoc_type->source_corresp);
+      (void)fprintf(f_debug, "Promoting routine out of scope ");
+      db_scope(scope);
       (void)fprintf(f_debug, ": ");
       db_name(&routine->source_corresp);
       (void)fprintf(f_debug, "\n");
@@ -8294,9 +8298,9 @@ scope) into the file scope.
 #endif /* DEBUG */
     add_to_routines_list(routine, /*at_file_scope=*/TRUE);
   }  /* for */
-  /* Clear the list of promoted routines.  Since the scope is for a class,
-     we know it cannot be on the scope stack now, and therefore we do
-     not need to update a corresponding last pointer. */
+  /* Clear the list of promoted routines.  Since the scope is for a class
+     or namespace, we know it cannot be on the scope stack now, and therefore
+     we do not need to update a corresponding last pointer. */
   scope->routines = NULL;
 }  /* promote_routines */
 
@@ -8915,7 +8919,46 @@ scope) along with the class members.
 
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 
-static void do_namespace_member_promotion(void)
+static void do_namespace_member_promotion(a_namespace_ptr nsp)
+/*
+Promote the members out of the indicated namespace, except for types, which
+were promoted previously (see do_all_namespace_member_promotion).
+*/
+{
+  a_scope_ptr scope;
+
+  check_assertion(!nsp->is_namespace_alias);
+  scope = nsp->variant.assoc_scope;
+  /* Promote the member constants out of the namespace. */
+  promote_constants(scope);
+  /* Promote the member variables of the namespace. */
+  promote_variables(scope);
+  /* Promote the member functions out of the namespace. */
+  promote_routines(scope);
+}  /* do_namespace_member_promotion */
+
+
+static void do_scope_namespace_member_promotion(a_scope_ptr scope)
+/*
+Promote all members out of all namespaces in the indicated scope (the
+file scope or a namespace scope), except for types, which were promoted
+previously (see do_all_namespace_member_promotion).
+*/
+{
+  a_namespace_ptr nsp;
+
+  /* Process namespaces within this scope. */
+  for (nsp = scope->namespaces;
+       nsp != NULL;
+       nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      do_namespace_member_promotion(nsp);
+    }  /* if */
+  }  /* for */
+}  /* do_scope_namespace_member_promotion */
+
+
+static void do_all_namespace_member_promotion(void)
 /*
 Promote the members of all namespaces into the file scope.  This function is
 called at the end of lowering of the file scope, and after members of classes
@@ -8966,7 +9009,7 @@ have been promoted out of those classes.
            /* Termination test in loop. */;
            temp_type = temp_type_next) {
         check_assertion_str(temp_type != NULL,
-                    "do_namespace_member_promotion: namespace type not found");
+                "do_all_namespace_member_promotion: namespace type not found");
         /* Save the next pointer since it gets changed when the type is moved
            to the file scope list. */
         temp_type_next = temp_type->next;
@@ -8990,7 +9033,9 @@ have been promoted out of those classes.
   }  /* for */
   /* Update the "last" pointer for the file-scope types list. */
   scope_stack[DEPTH_OF_FILE_SCOPE].pointers_block.last_type = prev_type;
-}  /* do_namespace_member_promotion */
+  /* Promote all members other than types out of the namespaces. */
+  do_scope_namespace_member_promotion(il_header.primary_scope);
+}  /* do_all_namespace_member_promotion */
 
 
 static void lower_scope_list(a_scope_ptr scope_list)
@@ -9406,7 +9451,7 @@ C++ to C, so that a C back end can handle it without change.
     /* Promote class members out of the classes. */
     do_scope_class_member_promotion(scope);
     if (lowering_file_scope) {
-      do_namespace_member_promotion();
+      do_all_namespace_member_promotion();
       /* Generate code to handle file-scope dynamic initializations and
          the corresponding destructions.  This is done after scope class
          member promotions so that the initialization routine is last. */
