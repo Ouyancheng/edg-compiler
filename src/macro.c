@@ -1595,26 +1595,6 @@ hence its name should not be changed.
 }  /* length_of_replacement_text */
 
 
-static void remove_end_of_token_markers(char *left,
-                                        char **right)
-/*
-Remove end-of-token lexical escapes from the sequence marked by left and
-*right.  Adjust right accordingly.
-*/
-{
-  char *src = left, *dst = left;
-
-  while (src < *right) {
-    if (src[0] == LE_ESCAPE && src[1] == LE_END_OF_TOKEN) {
-      src += LE_ESCAPE_LEN;
-    } else {
-      *dst++ = *src++;
-    }  /* if */
-  }  /* while */
-  *right = dst;
-}  /* remove_end_of_token_markers */
-
-
 a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
                               a_boolean     *rescan)
 /*
@@ -2442,13 +2422,6 @@ return_point:
       internal_error("macro_invocation: *rescan TRUE, rescan_loc == NULL");
     }  /* if */
 #endif /* CHECKING */
-    if (exp_header_name && macro_depth == 1) {
-      /* The result of macro expansion in "#include M" should not be split in
-         multiple tokens.  Hence, filter out the LE_END_OF_TOKEN markers. */
-      remove_end_of_token_markers(macro_buffer, &next_avail_in_macro_buffer);
-      skip_white_space();
-      if (*macro_buffer == '<') exp_system_header_name = TRUE;
-    }  /* if */
     curr_char_loc = rescan_loc;
   } else {
     /* For cases where no rescan is needed, set the current position just
