@@ -9481,7 +9481,7 @@ appears on the command-line).  This is also called from pop_scope.
 */
 {
   db_enter(3, "dump_ss");
-  if (debug_level >= 3) {
+  if (debug_level >= 3 || db_flag_is_set("dump_ss_full")) {
     /* Display source sequence lists for debug purposes. */
     if ((sp != NULL && sp->source_sequence_list != NULL) || str != NULL) {
       if (str != NULL) fputs(str, f_debug);
@@ -9575,6 +9575,14 @@ will go on a sublist if it was allocated in the file-scope memory region.
 
   db_enter(4, "add_to_source_sequence_list");
   scope_stack_ptr = &scope_stack[depth_innermost_ss_list_scope];
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+    fputs("adding to source sequence list for ", f_debug);
+    db_scope(scope_stack_ptr->il_scope);
+    fputs(":\n  ", f_debug);
+    db_source_sequence_entry(new_ssep);
+  }  /* if */
+#endif /* DEBUG */
   if (depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE &&
       in_file_scope(new_ssep)) {
     /* A filescope entity being added to a local scope. */
@@ -9589,21 +9597,39 @@ will go on a sublist if it was allocated in the file-scope memory region.
     } else {
       /* Either the source sequence list is empty or its tail is not a
          sublist.  In either case, allocate a new sublist entry and a new
-         source sequence entry to point to it and add both the ends of their
-         respective lists. */
+         source sequence entry to point to it and add both to the ends of
+         their respective lists. */
       sublist = make_sublist_header_and_parent(new_ssep, &func_scope_ssep);
       add_to_src_seq_sublist_list(sublist);                
       add_to_source_sequence_list(func_scope_ssep);
     }  /* if */
-#if DEBUG
-    if (debug_level >= 4) {
-      db_source_sequence_entry(func_scope_ssep);
-    }  /* if */
-#endif /* DEBUG */
   } else {
     sp = scope_stack_ptr->il_scope;
     check_assertion_str(sp != NULL,
                         "add_to_source_sequence_list: NULL IL scope");
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    /* Often a secondary-source sequence entry for a partial instantiation
+       is put out immediately prior to the entry for a full instantiation.
+       This just clutters up the list, so remove the former. */
+    if (sp->source_sequence_list != NULL &&
+        ss_entry_kind(new_ssep) == (an_il_entry_kind)iek_type) {
+      a_type_ptr                    tp;
+      a_source_sequence_entry_ptr   last;
+
+      tp = ss_entry_ptr(new_ssep, a_type_ptr);
+      if (is_immediate_class_type(tp) &&
+          tp->variant.class_struct_union.is_template_class) {
+        last = scope_stack_ptr->last_source_sequence_entry;
+        if (ss_entry_kind(last) ==
+                  (an_il_entry_kind)iek_src_seq_secondary_decl &&
+            ss_entry_ptr(last, a_src_seq_secondary_decl_ptr)->
+                                                   entity.ptr == (char *)tp) {
+          a_src_seq_sublist_ptr  dummy = NULL;
+          remove_from_source_sequence_list(last, &dummy);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     if (sp->source_sequence_list == NULL) {
       new_ssep->prev = NULL;
       sp->source_sequence_list = new_ssep;
@@ -9613,11 +9639,7 @@ will go on a sublist if it was allocated in the file-scope memory region.
     }  /* if */
     scope_stack_ptr->last_source_sequence_entry = new_ssep;
     new_ssep->next = NULL;
-#if DEBUG
-    if (debug_level >= 4) {
-      db_ss_list_for_scope(sp);
-    }  /* if */
-#endif /* DEBUG */
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (depth_innermost_ss_list_scope == DEPTH_OF_FILE_SCOPE &&
         scope_stack_ptr->ss_list_instantiation_insert_point == NULL) {
       /* This is the first source sequence entry to be entered on the source
@@ -9627,6 +9649,7 @@ will go on a sublist if it was allocated in the file-scope memory region.
          source sequence entries for an instantiation should be inserted). */
       scope_stack_ptr->ss_list_instantiation_insert_point = new_ssep;
     }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   db_exit();
 }  /* add_to_source_sequence_list */
@@ -9740,7 +9763,7 @@ entry that has already been created and linked in for this entity.
         a_src_seq_sublist_ptr  dummy = NULL;
         remove_from_source_sequence_list(old_ssep, &dummy);
 #if DEBUG
-        if (debug_level >= 4) {
+        if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
           fputs("empty ss entry replaced and sublists merged\n", f_debug);
           db_ss_list_for_scope(stack_ptr->il_scope);
         }  /* if */
@@ -9847,7 +9870,7 @@ entry that has already been created and linked in for this entity.
     add_to_source_sequence_list(new_ssep);
   } else {
 #if DEBUG
-    if (debug_level >= 4) {
+    if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
       fputs("empty ss entry changed to ", f_debug);
       db_source_sequence_entry(new_ssep);
     }  /* if */
@@ -10116,165 +10139,183 @@ partial instantiation of the entity specified by the indicated entity.
 }  /* add_source_sequence_entry_for_partial_instantiation */
 
 
-void fixup_source_sequence_lists_for_instantiated_nested_classes(
-                                                    a_type_ptr parent_class)
 /*
-parent_class points to a template class that has just been instantiated.
-The instantiation scope is still on the stack but is about to be popped.
-If parent_class has any nested classes, their instantiations would normally
-be deferred till the point at which they are first referenced in a way that
-forces instantiation.  However, if there was a reference within the parent
-class definition, then the source sequence entries to represent the nested
-class need to be moved from outside (and in front of) parent_class (the
-point to which they would "float up") and inserted into list that
-represents the body of parent_class.  This is the function of this routine.
+When template instantiations are included in the source-sequence list, the
+entries that represent them often cannot appear at the very point that
+triggers the instantiation.  For instance, when a template instantiation
+is triggered by a reference inside a function body, it is inserted in the
+source-sequence list immediately before the entries that represent the
+function definition.  Similarly, when a template instantiation is triggered
+within a class definition, its entry "floats up" to in front of the class.
+
+What allows this relocation is the pointer to the "source-sequence-list
+instantiation insert point", a pointer to a source-sequence entry that is
+stored in the scope stack entry for the file scope.  When it's NULL,
+instantiations are added directly to the end of the file-scope source
+sequence list.  When it is non-NULL, it represents the source position
+*prior* to which the instantiation should be entered.
+
+The pointer is cleared with each top-level declaration of namespace scope
+and reset in add_to_source_sequenct list to point to the very next entry
+that is added to the file-scope list.  That means any instantiation that
+occurs during that declaration (e.g., in a function parameter declaration,
+function body, class definition, or variable initializer) will, in general,
+float up to precede it.
+
+The way in which "floating up" occurs is that the source sequence list is
+temporarily truncated during the template instantiation.  The source
+sequence entries belonging to the instantiation are still simply added to
+the end of the list, but the end of the list will have been reset to the
+entry immediately preceding the instantiation insert point.  When the
+instantiation has finished, the source-sequence list is restored -- the
+part that was removed is reattached, and the end-of-list pointer is reset.
+
+The truncation and restoration of the source sequence list is handled by
+push_ss_insert_stack and pop_ss_insert_stack.  The ss_insert_stack is
+used to save and restore the state of the list.
+*/
+typedef struct an_ss_insert_stack_entry *an_ss_insert_stack_entry_ptr;
+typedef struct an_ss_insert_stack_entry {
+  an_ss_insert_stack_entry_ptr
+		next;
+			/* Next entry in the stack, or NULL at the bottom.
+			   Also used to link entries in the available list. */
+  a_source_sequence_entry_ptr
+		saved_insert_point;
+			/* The value of ss_list_instantiation_insert_point
+			   in the file-scope scope stack entry that is
+			   cleared when this ss-insert-stack entry is pushed
+			   and restored when it is popped.  May be NULL. */
+  a_source_sequence_entry_ptr
+		removed_entries;
+			/* Pointer to the head of segment of source-sequence
+			   entries that were removed from the list when this
+			   ss-insert-stack entry is pushed and restored when
+			   it is popped.  May be NULL. */
+  a_source_sequence_entry_ptr
+		saved_last_source_sequence_entry;
+			/* The value of last_source_sequence_entry in the
+			   file-scope scope stack entry that was modified
+			   when the list was truncated and is restored with
+			   then list is restored.  It is also the end the
+			   list to which removed_entries points.  Should never
+			   be NULL. */
+} an_ss_insert_stack_entry;
+
+
+static an_ss_insert_stack_entry_ptr
+		ss_insert_stack;
+			/* Pointer to the head of the source-sequence-list
+			   instantiation insert stack. */
+
+static an_ss_insert_stack_entry_ptr
+		avail_ss_insert_stack_entries;
+			/* Pointer to the head of a list of ss-insert-stack
+			   entries that are available for reuse. */
+
+void push_ss_insert_stack(a_source_sequence_entry_ptr  list_to_be_removed)
+/*
+Clear the ss_list_instantiation_insert_point for the file scope, saving its
+current value in the ss-insert-stack.  Also save the current value of
+last_source_sequence_entry for the file scope.  (The saved values are
+restored pop_ss_insert_stack.)  When list_to_be_removed it represents the
+source position *prior* to which source-sequence entries should now be
+added to the file-scope source sequence list.  If it in non-NULL, truncate
+of the file scope source-sequence list and reset last_source_sequence_entry
+for the file scope.
 */
 {
-  a_type_ptr                   tp;
-  a_scope_ptr                  fs_scope;
-  a_source_sequence_entry_ptr  secondary_decl, first, last;
-  a_source_sequence_entry_ptr  *avail_list_ptr;
+  an_ss_insert_stack_entry_ptr  sssep;
+  a_scope_stack_entry_ptr       fs_ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+  a_source_sequence_entry_ptr   new_last;
 
-  check_assertion(depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
-                  scope_stack[depth_innermost_instantiation_scope].
-                                              assoc_type == parent_class &&
-                  parent_class->variant.class_struct_union.is_template_class);
-  if (parent_class->source_corresp.source_sequence_entry) {
-    fs_scope = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
-    /* Traverse the types list of parent_class looking for nested classes
-       that have been defined.  Usually, that means they have have been
-       instantiated during the scanning of parent_class. */
-    for (tp = parent_class->
-                variant.class_struct_union.extra_info->assoc_scope->types;
-         tp != NULL;
-         tp = tp->next) {
-      if (!is_immediate_class_type(tp) ||
-          !tp->variant.class_struct_union.is_template_class ||
-          tp->variant.class_struct_union.extra_info->assoc_scope == NULL) {
-        /* Not a template class or else not yet defined. */
-        continue;
-      }  /* if */
-      /* Look for a secondary-declaration entry that represents the point at
-         which the nested class was declared. */
-      secondary_decl = last_matching_source_sequence_entry((char *)tp);
-      if (secondary_decl != NULL &&
-          ss_entry_kind(secondary_decl) ==
-                             (an_il_entry_kind)iek_src_seq_secondary_decl) {
-        /* Now locate the first and last entries of the source-sequence list
-           that corresponds to the definition of the nested class. */
-        first = tp->source_corresp.source_sequence_entry;
-        for (last = first->next; ; last = last->next) {
-          check_assertion(last != NULL);
-          if (ss_entry_kind(last) ==
-                      (an_il_entry_kind)iek_src_seq_end_of_construct &&
-              ss_entry_ptr(last, a_src_seq_end_of_construct_ptr)->
-                                             entity.ptr == (char *)tp) {
-            check_assertion(last->next != NULL);
-            /* Found -- stop looping. */
-            break;
-          }  /* if */
-        }  /* for */
-        /* Remove the source-sequence entries (first through last inclusive)
-           from the file-scope source sequence list. */
-        if (first->prev == NULL) {
-          check_assertion(fs_scope->source_sequence_list == first);
-          fs_scope->source_sequence_list = last->next;
-          last->next->prev = NULL;
-        } else {
-          first->prev->next = last->next;
-          last->next->prev = first->prev;
-        }  /* if */
-        /* Now insert first-through-last in the spot where the secondary-decl
-           entry was. */
-        check_assertion(secondary_decl->prev != NULL);
-        secondary_decl->prev->next = first;
-        first->prev = secondary_decl->prev;
-        if (secondary_decl->next == NULL) {
-          check_assertion(scope_stack[DEPTH_OF_FILE_SCOPE].
-                           last_source_sequence_entry == secondary_decl);
-          scope_stack[DEPTH_OF_FILE_SCOPE].
-                           last_source_sequence_entry = last;
-        } else {
-          secondary_decl->next->prev = last;
-        }  /* if */
-        last->next = secondary_decl->next;
-        /* The secondary-decl entry has been removed from the list; it can
-           be returned to the available list. */
-        avail_list_ptr =
-               &scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_avail_list;
-        secondary_decl->next = *avail_list_ptr;
-        *avail_list_ptr = secondary_decl;
-        secondary_decl->prev = NULL;
-      }  /* if */
-    }  /* for */
+  /* Get an ss-insert-stack entry, either from the available list or by
+     allocating a new one. */
+  if (avail_ss_insert_stack_entries != NULL) {
+    sssep = avail_ss_insert_stack_entries;
+    avail_ss_insert_stack_entries = sssep->next;
+  } else {
+    sssep =
+      (an_ss_insert_stack_entry_ptr)alloc_fe(sizeof(an_ss_insert_stack_entry));
   }  /* if */
-}  /* fixup_source_sequence_lists_for_instantiated_nested_classes */
-
-
-void remove_redundant_source_sequence_entry_for_specialization(
-                                         a_source_sequence_entry_ptr  ssep)
-/*
-When a secondary-declaration entry representing a "partial" instantiation   
-of an entity immediately precedes the primary source-sequence entry that
-represents its full instantiation, the former is superfluous and can be
-removed.  ssep points to a primary source-sequence entry -- e.g., the start
-of a list of entries representing the body of a template class.  If this
-routine finds a redundant secondary-decl entry, it removes it.
-*/
-{
-  a_source_sequence_entry_ptr  prev, *avail_list_ptr;
-
-  if (ssep != NULL) {
-#if CHECKING
-    check_assertion(!scope_stack[DEPTH_OF_FILE_SCOPE].
-                                     source_sequence_entries_disallowed);
-    switch (ss_entry_kind(ssep)) {
-      case iek_type:
-        {
-        a_type_ptr tp = (a_type_ptr)ssep->entity.ptr;
-        check_assertion(is_immediate_class_type(tp) &&
-                        tp->variant.class_struct_union.is_template_class);
-        }
-        break;
-      case iek_routine:
-      /* Removal of entries for partial instantiation of functions is not
-         yet implemented. */
-      default:
-        unexpected_condition();
-    }
-#endif /* CHECKING */
-    /* Examine the source-sequence entry immediately preceding the
-       entry that was specified. */
-    prev = ssep->prev;
-    if (prev != NULL &&
-        ss_entry_kind(prev) == (an_il_entry_kind)iek_src_seq_secondary_decl) {
-      /* It is a secondary-decl source sequence entry. */
-      a_src_seq_secondary_decl_ptr  sssdp = ss_entry_ptr(prev,
-                                                a_src_seq_secondary_decl_ptr);
-      if (sssdp->entity.ptr == ssep->entity.ptr) {
-        /* It also refers to the same entity.  Link around it. */
-        if (prev->prev == NULL) {
-          a_scope_ptr  fs_scope = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
-          check_assertion(fs_scope->source_sequence_list == ssep->prev);
-          fs_scope->source_sequence_list = ssep;
-          ssep->prev = NULL;
-        } else {
-          prev->prev->next = ssep;
-          ssep->prev = prev->prev;
-        }  /* if */
-        /* The secondary-decl entry has been removed from the list; it can
-           be returned to the available list. */
-        avail_list_ptr =
-               &scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_avail_list;
-        prev->next = *avail_list_ptr;
-        *avail_list_ptr = prev;
-        prev->prev = NULL;
-      }  /* if */
+  /* Push it on to the top of the stack. */
+  sssep->next = ss_insert_stack;
+  ss_insert_stack = sssep;
+  /* Save and clear the old insert point; it will be restored in
+     pop_ss_insert_stack. */
+  sssep->saved_insert_point = fs_ssep->ss_list_instantiation_insert_point;
+  fs_ssep->ss_list_instantiation_insert_point = NULL;
+  /* Save the old end-of-list entry.  If it is replaced with a new one, it
+     will be restored in pop_ss_insert_stack. */
+  sssep->saved_last_source_sequence_entry =
+                                  fs_ssep->last_source_sequence_entry;
+  /* If list_to_be_removed is non-null, sever the list at that point and
+     save a pointer to it so that it can be reattached to the list in
+     pop_ss_insert_stack. */
+  sssep->removed_entries = list_to_be_removed;
+  if (list_to_be_removed != NULL) {
+    /* Note the new end-of-list entry. */
+    new_last = list_to_be_removed->prev;
+    /* Clip the source-sequence list, starting with new_insert_point. */
+    list_to_be_removed->prev = NULL;
+    fs_ssep->last_source_sequence_entry = new_last;
+    if (new_last != NULL) {
+      new_last->next = NULL;
+    } else {
+      fs_ssep->il_scope->source_sequence_list = NULL;
     }  /* if */
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+      fputs("clearing ss-list instantiation insert point and ", f_debug);
+      fputs("truncating list:\n  removed entries begin at:\n    ", f_debug);
+      db_source_sequence_entry(list_to_be_removed);
+      db_ss_list_for_scope(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope);
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
-}  /* remove_redundant_source_sequence_entry_for_specialization */
+}  /* push_ss_insert_stack */
 
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+
+void pop_ss_insert_stack(void)
+/*
+Pop the topmost entry from the ss-insert-stack, restoring the value of
+ss_list_instantiation_insert_point for the file scope when it was pushed.
+If the source sequence list was truncated at that point, restored the part
+that was removed and reset the end-of-list pointer.
+*/
+{
+  an_ss_insert_stack_entry_ptr  sssep;
+  a_scope_stack_entry_ptr       fs_ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+
+  /* Pop the top entry off the ss-insert stack. */
+  sssep = ss_insert_stack;
+  ss_insert_stack = sssep->next;
+  /* Restore the previous value of the instantiation insert point. */
+  fs_ssep->ss_list_instantiation_insert_point = sssep->saved_insert_point;
+  /* If the source sequence list was truncated, reattach the entries that
+     were removed and restore the pointer to the end of the list. */
+  if (sssep->removed_entries != NULL) {
+    if (fs_ssep->last_source_sequence_entry != NULL) {
+      fs_ssep->last_source_sequence_entry->next = sssep->removed_entries;
+      sssep->removed_entries->prev = fs_ssep->last_source_sequence_entry;
+    } else {
+      fs_ssep->il_scope->source_sequence_list = sssep->removed_entries;
+    }  /* if */
+    fs_ssep->last_source_sequence_entry =
+                               sssep->saved_last_source_sequence_entry;
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+      fputs("restoring ss-list: ", f_debug);
+      db_ss_list_for_scope(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  /* Return the entry to the available list. */
+  sssep->next = avail_ss_insert_stack_entries;
+  avail_ss_insert_stack_entries = sssep;
+}  /* pop_ss_insert_stack */
+
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 void remove_from_source_sequence_list(a_source_sequence_entry_ptr  ssep,
                                       a_src_seq_sublist_ptr        *sublist)
@@ -10292,6 +10333,14 @@ memory region in which it was allocated).
   /* Entries allocated in the file scope memory region may be on the list of
      the file scope itself or on a side list of a function scope. */
   scope_stack_ptr = &scope_stack[depth_innermost_ss_list_scope];
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+    fputs("removing from source sequence list for ", f_debug);
+    db_scope(scope_stack_ptr->il_scope);
+    fputs(":\n  ", f_debug);
+    db_source_sequence_entry(ssep);
+  }  /* if */
+#endif /* DEBUG */
   if (*sublist != NULL ||
       (in_file_scope(ssep) &&
        depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE)) {
@@ -10307,7 +10356,6 @@ memory region in which it was allocated).
     is_on_sublist = FALSE;
     avail_list_ptr = &scope_stack_ptr->source_sequence_avail_list;
     if (scope_stack_ptr->ss_list_instantiation_insert_point == ssep) {
-      check_assertion(depth_scope_stack == depth_innermost_namespace_scope);
       /* We are removing the source sequence entry that was marked as the
          insert point for instantiations.  Update the insert pointer
          appropriately. */
@@ -10360,11 +10408,6 @@ memory region in which it was allocated).
   ssep->prev = NULL;
   ssep->next = *avail_list_ptr;
   *avail_list_ptr = ssep;
-#if DEBUG
-  if (debug_level >= 4) {
-    db_ss_list_for_scope(scope_stack_ptr->il_scope);
-  }  /* if */
-#endif /* DEBUG */
   db_exit();
 }  /* remove_from_source_sequence_list */
 
@@ -11332,7 +11375,7 @@ dependent on it.  The routine entry itself is dealt with later.
             a_source_correspondence  *scp = &rp->source_corresp;
 
 #if DEBUG
-            if (debug_level >= 4) {
+            if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
               fputs("dropping: ", f_debug);
               db_source_sequence_entry(ssep);
             }  /* if */
@@ -11607,7 +11650,7 @@ successor of ssep.
 #endif /* CHECKING */
 
 #if DEBUG
-    if (debug_level >= 4) {
+    if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
       fputs("checking nonautonomous tag: ", f_debug);
       db_source_sequence_entry(ssep);
     }  /* if */
@@ -11625,7 +11668,7 @@ check_next_ssep:
          skip over any that intervene between the struct/enum definition
          and whatever follows. */
 #if DEBUG
-      if (debug_level >= 4) {
+      if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
         fputs("skipping: ", f_debug);
         db_source_sequence_entry(next_ssep);
       }  /* if */
@@ -11685,7 +11728,7 @@ check_next_ssep:
         sssdp->declared_in_func_prototype = FALSE;
       }  /* if */
 #if DEBUG
-      if (debug_level >= 4) {
+      if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
         fputs("marked autonomous: ", f_debug);
         db_source_sequence_entry(ssep);
       }  /* if */
@@ -12090,7 +12133,7 @@ eliminated, if appropriate.
             kind == (a_byte_il_entry_kind)iek_type ||
             kind == (a_byte_il_entry_kind)iek_instantiation_directive) {
 #if DEBUG
-          if (debug_level >= 4) {
+          if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
             fputs("dropping: ", f_debug);
             db_source_sequence_entry(ssep);
           }  /* if */
@@ -12548,6 +12591,12 @@ in il_init.)
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(last_macro),
 #endif /* RECORD_MACROS_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      pch_saved_var_array_elem(ss_insert_stack),
+      pch_saved_var_array_elem(avail_ss_insert_stack_entries),
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DEBUG
       pch_saved_var_array_elem(num_compares_for_shareable_constants),
       pch_saved_var_array_elem(num_func_shareable_constants),
@@ -12600,6 +12649,12 @@ of the front end.
   last_macro = NULL;
 #endif /* RECORD_MACROS_IN_IL */
   based_type_fixup_list = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  ss_insert_stack = NULL;
+  avail_ss_insert_stack_entries = NULL;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if DEBUG
   num_shareable_constants                = 0;

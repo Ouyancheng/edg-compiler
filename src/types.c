@@ -5367,6 +5367,36 @@ from which a template parameter value can be deduced.
   return found;
 }  /* ttt_is_or_contains_deduced_template_param */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+static a_boolean ttt_is_uncompleted_class_type(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if the type specified by type_ptr
+is a class type whose definition has been started but has not yet been
+completed.
+*/
+{
+  a_scope_ptr  sp;
+  a_boolean    found = FALSE;
+
+  if (is_immediate_class_type(type_ptr)) {
+    sp = type_ptr->variant.class_struct_union.extra_info->assoc_scope;
+    if (sp == NULL) {
+      /* Type is undefined -- it is not considered "uncompleted" because its
+         definition hasn't yet started. */
+    } else if (sp->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+      *force_end_of_traversal = found = TRUE;
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* ttt_is_uncompleted_class_type */
+
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static a_boolean ttt_set_force_external_linkage_flag(
                                        a_type_ptr  type_ptr,
@@ -5858,6 +5888,27 @@ in the type tree represented by tp.
                              ttt_flags));
 }  /* type_contains_specific_template_param_constant */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+a_boolean is_or_contains_member_of_uncompleted_class(a_type_ptr  tp)
+/*
+Return TRUE if the specified type (which is assumed to be a template
+class) is (or is dependent on) a member of a class whose definition has
+begun but has not yet been completed.
+*/
+{
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEDEFS |
+                                               TTT_PARAM_TYPES |
+                                               TTT_TEMPLATE_ARGS);
+  tp = skip_typerefs(tp);
+  check_assertion(is_immediate_class_type(tp) &&
+                  tp->variant.class_struct_union.is_template_class);
+  return (traverse_type_tree(tp, ttt_is_uncompleted_class_type, ttt_flags));
+}  /* is_or_contains_member_of_uncompleted_class */
+
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 void set_force_external_linkage_flag(a_type_ptr  type_ptr)
 /*

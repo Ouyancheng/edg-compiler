@@ -133,9 +133,13 @@ Display one scope stack entry.
       if (ssep->template_sym == NULL) {
         fputs("<null template symbol>", f_debug);
       } else {
-        char* s = symbol_kind_names[(int)ssep->template_sym->kind];
-        fprintf(f_debug, "<%s> %s", s,
-                ssep->template_sym->header->identifier);
+        fprintf(f_debug, "<%s> ",
+                symbol_kind_names[(int)ssep->template_sym->kind]);
+        if (ssep->assoc_type != NULL) {
+          db_type_name(ssep->assoc_type);
+        } else {
+          db_name(source_corresp_entry_for_symbol(ssep->template_sym));
+        }  /* if */
       }  /* if */
       break;
     case sck_template_declaration:
@@ -1118,47 +1122,50 @@ to the declaration information for the template declaration scope being pushed.
                                                   is_prototype_instantiation;
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      {
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if 0
       /* Instantiations may be triggered almost anywhere, but the source
          sequence list for an instantiation has to be inserted at file scope.
          The current insert point is maintained in the scope stack entry
          for the file scope -- it is where the source sequence entries for
          the current instantiation should appear.  Make the changes required
          for this to happen. */
-      a_scope_stack_entry_ptr      fs_ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
-      a_source_sequence_entry_ptr  insert_point, new_last_ss_entry;
-
-      /* The insert point, if any, is in the scope stack entry for the file
-         scope. */
       insert_point = fs_ssep->ss_list_instantiation_insert_point;
-      if (insert_point == NULL) {
-        /* A NULL insert point means the source sequence entries for the
-           instantiation may be added to the end of the file scope's source
-           sequence list. */
-      } else {
-        /* A non-NULL insert point is the point *before which* the source
-           sequence entries for the instantiation should be added.  Simply
-           clip off the segment of source sequence entries, so that
-           point->prev becomes the new end-of-list entry; the segment will
-           be restored in pop_scope. */
-        /* Save the head of the list segment that is to be clipped off. */
-        ssep->ss_list_instantiation_insert_point = insert_point;
-        /* Note the new end-of-list entry. */
-        new_last_ss_entry = insert_point->prev;
-        insert_point->prev = NULL;
-        /* Save the old end-of-list entry (it will be restored in pop_scope)
-           and replace it with the new one. */
-        ssep->saved_last_ss_entry = fs_ssep->last_source_sequence_entry;
-        fs_ssep->last_source_sequence_entry = new_last_ss_entry;
-        if (new_last_ss_entry != NULL) {
-          new_last_ss_entry->next = NULL;
-        } else {
-          fs_ssep->il_scope->source_sequence_list = NULL;
+      if (insert_point != NULL) {
+        a_type_ptr  tp = ssep->assoc_type;
+        if (tp == NULL) {
+          /* Something other than a class is being instantiated. */
+          if (tp->variant.class_struct_union.extra_info->assoc_scope != NULL) {
+            /* Class definition has already begun (and it already has a
+               scope entry on the stack) or it has been completed (in which
+               case this is part of a reactivation).  In either case,
+               the insert mechanism should not be brought into play. */
+             insert_point = NULL;
+          }  /* if */
         }  /* if */
-        /* Clear the old insert point (it will be restored in pop_scope). */
-        fs_ssep->ss_list_instantiation_insert_point = NULL;
       }  /* if */
-      }
+      if (insert_point != NULL) {
+        /* A non-NULL insert point is the point *before which* the source
+           sequence entries for the instantiation should be added.  Clip off
+           the segment of source sequence entries, so that insert_point->prev
+           becomes the new end-of-list entry; the segment will be restored
+           in pop_scope. */
+#if DEBUG
+        if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+          fputs("pushing template instantiation scope for \"", f_debug);
+          if (ssep->assoc_type != NULL) {
+            db_type_name(ssep->assoc_type);
+          } else {
+            db_name(source_corresp_entry_for_symbol(template_sym));
+          }  /* if */
+          fputs("\"\n", f_debug);
+        }  /* if */
+#endif /* DEBUG */
+        push_ss_insert_stack(insert_point);
+        ssep->ss_list_instantiation_insert_point = insert_point;
+      }  /* if */
+#endif /* if 0 */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (kind != (a_scope_kind)sck_file &&
                kind != (a_scope_kind)sck_namespace &&
@@ -3927,26 +3934,28 @@ End a name scope by popping an entry off the scope stack.
                                     scope_stack[prev_depth].template_arg_list);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    {
-    /* Restore the integrity of the file-scope source sequence list -- it was
-       temporarily changed in push_scope to allow the source sequence entries
-       for the template instantiation to "float up" to the right spot in the
-       list. */
-    a_scope_stack_entry_ptr      fs_ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
-    a_source_sequence_entry_ptr  saved_insert_point;
-
-    saved_insert_point = ssep->ss_list_instantiation_insert_point;
-    fs_ssep->ss_list_instantiation_insert_point = saved_insert_point;
-    if (saved_insert_point != NULL) {
-      if (fs_ssep->last_source_sequence_entry != NULL) {
-        fs_ssep->last_source_sequence_entry->next = saved_insert_point;
-        saved_insert_point->prev = fs_ssep->last_source_sequence_entry;
-      } else {
-        fs_ssep->il_scope->source_sequence_list = saved_insert_point;
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if 0
+    if (ssep->ss_list_instantiation_insert_point != NULL) {
+      /* Restore the integrity of the file-scope source sequence list -- it
+         was temporarily changed in push_scope to allow the source sequence
+         entries for the template instantiation to "float up" to the right
+         spot in the list. */
+#if DEBUG
+      if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+        fputs("popping template instantiation scope for \"", f_debug);
+        if (ssep->assoc_type != NULL) {
+          db_type_name(ssep->assoc_type);
+        } else {
+          db_name(source_corresp_entry_for_symbol(ssep->template_sym));
+        }  /* if */
+        fputs("\":\n", f_debug);
       }  /* if */
-      fs_ssep->last_source_sequence_entry = ssep->saved_last_ss_entry;
+#endif /* DEBUG */
+      pop_ss_insert_stack();
     }  /* if */
-    }
+#endif /* if 0 */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   /* Set the initial name lookup scope to the previous scope on the
