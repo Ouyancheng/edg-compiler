@@ -141,10 +141,22 @@ There is a host integer type that is large enough to hold all target integers,
 so the integer representation is just some host integral type.
 This type must be unsigned; a_signed_integer_value is the signed version.
 Note that the types are allowed to be the unsigned and signed versions
-of "long long" if the host allows them.
+of "long long" if the host allows them.  If "long long" is used, check the
+setting of AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG.
 */
 typedef unsigned long an_integer_value;
 typedef long a_signed_integer_value;
+
+/*
+If this flag is TRUE an_integer_value is larger than a host long.
+This is usually FALSE when an integer value is represented as a host
+integer, but would be TRUE if an_integer_value is represented using a
+host long long.
+*/
+#ifndef AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
+#define AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG	FALSE
+#endif /* AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG */
+
 /* Minimum and maximum values that can be represented in an_integer_value. */
 #define MAX_INTEGER_VALUE LONG_MAX
 #define MIN_INTEGER_VALUE LONG_MIN
@@ -198,16 +210,15 @@ typedef struct an_integer_value {
 #define BITS_IN_AN_INTEGER_VALUE (BITS_IN_INT_VALUE_PART *	      \
 				  INT_VALUE_PARTS_PER_INTEGER_VALUE)
 
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-
 /*
 If this flag is TRUE an_integer_value is larger than a host long.
-This would be true when simulated integers are being used but might
-also be true if an_integer_value is represented using a host long long.
+This is true when simulated integers are being used.
 */
 #ifndef AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
 #define AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG	TRUE
 #endif /* AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG */
+
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 /*
 If this flag is TRUE, overflows on signed integer operations do
@@ -260,7 +271,7 @@ errors are still generated for type mismatches.
    means "use the alignment of the base type given in the declaration". */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT TARG_ALIGNOF_INT
-#else
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT 0
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
