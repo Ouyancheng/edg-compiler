@@ -4680,6 +4680,7 @@ sequence entry.
   a_variable_ptr               var;
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition = FALSE;
+  a_boolean                    consider_initialization;
   a_storage_class              storage_class;
   a_type_ptr                   var_type;
                              
@@ -4778,8 +4779,13 @@ sequence entry.
                              has_name(var) ? &var->source_corresp : NULL,
                              iek_variable,
                              sec_decl);
-  /* Output the initializer, if any, but only if this is a definition. */
-  if (is_definition) gen_initializer(var);
+  /* Output the initializer, if any, but only if this is a definition.
+     For member constants (static data members initialized within the
+     class), the initializer gets put out on the declaration rather than
+     the definition. */
+  consider_initialization = is_definition;
+  if (var->is_member_constant) consider_initialization = !is_definition;
+  if (consider_initialization) gen_initializer(var);
   /* Finish the declaration. */
   write_tok_ch(';');
   write_space();
