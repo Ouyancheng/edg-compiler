@@ -22,6 +22,27 @@ const_ints.h -- Declarations related to manipulation of target integer
 #include "il.h"
 #endif /* ifndef IL_H */
 
+
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+/* Do a signed right shift of an_integer_value.   If the operand is
+   negative then we need to construct a mask that will produce the bits
+   that would be shifted in.  C does not guarantee that a right
+   shift of a signed quantity will sign extend. */
+#define signed_shift_right(value, bits)					\
+  (((a_signed_integer_value)(value) < 0) ?				\
+       ((value) >> bits) | ~((~(an_integer_value)0) >> bits)		\
+					 :				\
+       (value) >> bits)
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+/* Do a signed right shift of a host large integer. */
+#define signed_shift_right(value, bits)					\
+  (((a_host_large_integer)(value) < 0) ?				\
+       ((value) >> bits) | ~((~(a_host_large_unsigned)0) >> bits)	\
+				       :				\
+       (value) >> bits)
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+
+
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 
 /* Set the integer value entry *intval to the signed value "value". */
