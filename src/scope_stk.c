@@ -225,8 +225,8 @@ Dump decl-pos information for the specified symbol (for debugging).
 }  /* db_decl_pos_info */
 
 
-void db_decl_pos_info_for_scope(a_scope_ptr                 scope_ptr,
-                                a_scope_pointers_block_ptr  pointers_block)
+static void db_decl_pos_info_for_scope(a_scope_ptr            scope_ptr,
+                                       a_scope_pointers_block *pointers_block)
 /*
 Dump decl-pos information for each symbol in the specified scope (for
 debugging).
