@@ -1872,7 +1872,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         okay = TRUE;
         if (strict_ansi_mode) {
           /* If strict ANSI violations are being reported as errors then we
-             need to indicate that this is invalid, otherwise just indicate
+             need to indicate that this is invalid; otherwise just indicate
              that a warning should be issued. */
           if ((int)strict_ansi_error_severity == (int)es_error) {
             okay = FALSE;
@@ -1893,6 +1893,12 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            This covers cases like unsigned char * --> char *. */
         okay = TRUE;
         *warning_suggested = default_warning_code;
+        if (strict_ansi_mode) {
+          /* If strict ANSI violations are being reported as errors then we
+             need to indicate that this is invalid; otherwise just indicate
+             that a warning should be issued. */
+          if ((int)strict_ansi_error_severity == (int)es_error) okay = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (okay && !check_as_operands_not_conversion) {

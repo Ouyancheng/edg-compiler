@@ -1,5 +1,13 @@
 Version 2.10
 
+9/21/92  Error on strict ANSI mode type incompatibility
+
+Assigning a pointer to an unsigned type or a pointer to the corresponding
+signed type (or vice-versa) now gives an error in -A mode.  It formerly
+gave a warning.
+
+9/20/92  C++-style comments preserved in preprocessor output in -C mode
+
 9/15/92  Small change to overload resolution
 
 A one-line change to determine_arg_match_level in exprutil.c to
