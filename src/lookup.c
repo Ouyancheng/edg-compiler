@@ -2068,7 +2068,7 @@ C and C++.
     lookup_state.tentative_type_lookup =
                                     (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
     lookup_state.tentative_template_lookup =
-                                    (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0;
+                                (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0;
     lookup_state.is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
     lookup_state.is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;
     lookup_state.skip_curr_function_scope =
