@@ -485,8 +485,8 @@ Check to be sure value is a valid "pack alignment" -- that it is a power of
 {
   a_boolean  err = FALSE;
 
-  if (value >= targ_minimum_pack_alignment &&
-      value <= targ_maximum_pack_alignment &&
+  if (value >= (a_host_large_integer)targ_minimum_pack_alignment &&
+      value <= (a_host_large_integer)targ_maximum_pack_alignment &&
       (value & (value-1)) == 0) {
     *alignment = (a_targ_alignment)value;
   } else {
