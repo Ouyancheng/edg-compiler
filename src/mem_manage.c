@@ -17,7 +17,7 @@ mem_manage.c -- Memory management routines.
 #include "host_envir.h"
 #if __ANSIC__
 #include <stdlib.h>
-#else
+#else /* !__ANSIC__ */
 #if __BSD__ || __VMS__
 extern char *malloc(unsigned size);
 extern int free(char *); /* int to match old-style definition. */
@@ -159,7 +159,7 @@ malloc_with_check.  "old_size" is present to help with tracking of space used.
   if (old_ptr == NULL) {
     ptr = malloc_with_check(new_size);
   } else {
-    if ((ptr = realloc(old_ptr, new_size)) == NULL) {
+    if ((ptr = (char *)realloc(old_ptr, new_size)) == NULL) {
       catastrophe(ec_out_of_memory);
     } /* if */
 #if DEBUG

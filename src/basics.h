@@ -47,6 +47,17 @@ interface.
 #endif /* ifdef FIL */
 
 /*
+EXTERN_C is used to declare an external function with C linkage.  When
+compiling with a C compiler this is just set to ``extern'', but when
+compiling with a C++ compiler it is set to ``extern "C"''.
+*/
+#ifdef __cplusplus
+#define EXTERN_C extern "C"
+#else /* !defined(__cplusplus) */
+#define EXTERN_C extern
+#endif /* __cplusplus */
+
+/*
 Determine if this is MS-DOS and if this is Turbo-C or Microsoft C.  No other
 MS-DOS compilers are considered at this time.  If "__MSDOS__" is defined, as
 in Turbo-C, use it as is.  If it is not defined, and some other compiler pre-
@@ -85,6 +96,15 @@ figuring out which compiler it is.
 #else /* !defined(__MSDOS__) */
 #define __MSDOS__ 0
 #endif /* ifdef __MSDOS__ */
+
+/*
+For MS-DOS set STAT_FIRST_PARAM_IS_CONST by default.
+*/
+#if __MSDOS__
+#ifndef STAT_FIRST_PARAM_IS_CONST
+#define STAT_FIRST_PARAM_IS_CONST 1
+#endif /* ifndef STAT_FIRST_PARAM_IS_CONST */
+#endif /* __MSDOS__ */
 
 /* VAX/VMS is not UNIX, but for purposes of this compilation is considered
    to be System V, with needed differences controlled by the __VMS__ flag. */
@@ -145,7 +165,7 @@ By default, configure for ANSI C if __STDC__ is set, and for BSD4.n otherwise.
 #include <stdio.h>
 #if __BSD__
 /* Some stdio.h's do not define sprintf. */
-extern char *sprintf(char *, const char *, ...);
+EXTERN_C char *sprintf(char *, const char *, ...);
 #endif /* __BSD__ */
 #if !__ANSIC__
 /* For fseek parameters: */
@@ -162,27 +182,27 @@ extern char *sprintf(char *, const char *, ...);
 #include <memory.h>
 #else /* __VMS__ */
 /* VAX/VMS does not have string.h and memory.h. */
-extern char *strcpy(char *, char *);
-extern char *strncpy(char *, char *, int);
-extern char *strcat(char *, char *);
-extern char *strncat(char *, char *, int);
-extern char *strchr(char *, int);
-extern char *strrchr(char *, int);
-extern int strcmp(char *, char *);
-extern int strncmp(char *, char *, int);
-extern int strlen(char *);
-extern char *memcpy(char *, char *, int);
-extern char *memset(char *, int, int);
-extern int memcmp(char *, char *, int);
+EXTERN_C char *strcpy(char *, char *);
+EXTERN_C char *strncpy(char *, char *, int);
+EXTERN_C char *strcat(char *, char *);
+EXTERN_C char *strncat(char *, char *, int);
+EXTERN_C char *strchr(char *, int);
+EXTERN_C char *strrchr(char *, int);
+EXTERN_C int strcmp(char *, char *);
+EXTERN_C int strncmp(char *, char *, int);
+EXTERN_C int strlen(char *);
+EXTERN_C char *memcpy(char *, char *, int);
+EXTERN_C char *memset(char *, int, int);
+EXTERN_C int memcmp(char *, char *, int);
 #endif /* !__VMS__ */
 #define memzero(dest, nbytes) memset(dest, 0, nbytes)
 #else /* !__SYSV__ */
 #if __BSD__
 #include <strings.h>
 /* Remap string and block functions that do not appear in BSD C. */
-extern int bcopy(char *, char *, int);
-extern int bcmp(char *, char *, int);
-extern int bzero(char *, int);
+EXTERN_C int bcopy(char *, char *, int);
+EXTERN_C int bcmp(char *, char *, int);
+EXTERN_C int bzero(char *, int);
 #define memcpy(dest, src, nbytes) bcopy(src, dest, nbytes)
 #define memcmp(src1, src2, nbytes) bcmp(src1, src2, nbytes)
 #define memzero(dest, nbytes) bzero(dest, nbytes)
