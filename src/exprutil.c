@@ -8022,10 +8022,20 @@ non-NULL return *con_value == NULL.
              (only valid in C++). */
           op2 = op1->next;
           op3 = op2->next;
-          op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
-                                           (a_constant_ptr *)NULL);
-          op3 = conv_lvalue_expr_to_rvalue(op3, &constant_case3,
-                                           (a_constant_ptr *)NULL);
+          /* Expressions produced by conv_rvalue_expr_to_object_pointer
+             can have a throw as one arm of the lvalue. */
+          if (op2->kind == (an_expr_node_kind)enk_throw) {
+            constant_case2 = FALSE;
+          } else {
+            op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
+                                             (a_constant_ptr *)NULL);
+          }  /* if */
+          if (op3->kind == (an_expr_node_kind)enk_throw) {
+            constant_case3 = FALSE;
+          } else {
+            op3 = conv_lvalue_expr_to_rvalue(op3, &constant_case3,
+                                             (a_constant_ptr *)NULL);
+          }  /* if */
           op1->next = op2;
           op2->next = op3;
           *constant_case = constant_case2 && constant_case3;
