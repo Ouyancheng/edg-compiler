@@ -1308,6 +1308,14 @@ do_struct_union:
                                       nested_class_defined_outside_of_parent) {
         disp_boolean("nested_class_defined_outside_of_parent", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.originally_unnamed) {
+        disp_boolean("originally_unnamed", TRUE);
+      }  /* if */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+      if (ptr->variant.class_struct_union.is_nonstd_anonymous_union) {
+        disp_boolean("is_nonstd_anonymous_union", TRUE);
+      }  /* if */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       if (ptr->variant.class_struct_union.is_template_class) {
         disp_boolean("is_template_class", TRUE);
       }  /* if */
