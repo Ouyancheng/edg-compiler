@@ -1,5 +1,18 @@
 Version 2.35
 
+2/11/97 Function-local const variable as operand of "?" operator
+
+When a function-local const integral variable appeared as an operand
+of a "?" operation, the operation was not always folded to a constant,
+which meant sometimes it could not be used as a compile-time constant.
+
+  int main () {
+    const int i1 = 1;
+    const int i2 = 2;
+    const int i3 = i1 ? i2 : i2;  // Previously seen as non-constant
+    int a[i3];                    // Gave error previously
+  }
+
 2/11/97 Namespace "std" is now predeclared
 
 Code has been added to predeclare namespace "std" -- that is, a namespace

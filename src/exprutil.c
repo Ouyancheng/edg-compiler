@@ -4904,29 +4904,16 @@ updated expression tree, and return NULL.  Otherwise, if con_value is
 non-NULL return *con_value == NULL.
 */
 {
-  a_constant_ptr con_var_value = NULL;
+  a_constant_ptr con_expr_value = NULL;
+  a_boolean      optimized_case = FALSE;
 
   *constant_case = FALSE;
   if (con_value != NULL) *con_value = NULL;
   if (C_dialect == C_dialect_cplusplus) {
     /* Look for constant-valued variables in C++. */
-    con_var_value = value_of_constant_var_lvalue_expr(node);
+    con_expr_value = value_of_constant_var_lvalue_expr(node);
   }  /* if */
-  if (con_var_value != NULL) {
-    /* The lvalue address is the address of a constant-valued
-       variable.  Substitute the constant value. */
-    *constant_case = TRUE;
-    if (con_value != NULL) {
-      /* The caller wants the constant instead of an expression node for
-         the constant. */
-      *con_value = con_var_value;
-      node = NULL;
-    } else {
-      /* The caller wants an expression node for the constant. */
-      node = alloc_node_for_constant(con_var_value);
-    }  /* if */
-  } else {
-    a_boolean optimized_case = FALSE;
+  if (con_expr_value == NULL) {
     /* Do the transformation on the expression node. */
     if (is_operation_node(node)) {
       if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
@@ -4944,10 +4931,21 @@ non-NULL return *con_value == NULL.
           op2 = op1->next;
           op3 = op2->next;
           op1->next = op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
-                                                     (a_constant_ptr *)NULL);
-          op2->next = conv_lvalue_expr_to_rvalue(op3, &constant_case3,
-                                                 (a_constant_ptr *)NULL);
+                                                       (a_constant_ptr *)NULL);
+          op2->next = op3 = conv_lvalue_expr_to_rvalue(op3, &constant_case3,
+                                                       (a_constant_ptr *)NULL);
           *constant_case = constant_case2 && constant_case3;
+          /* If all three operands are now constant, the overall result is
+             constant. */
+          if (is_constant_node(op1) &&
+              is_constant_node(op2) &&
+              is_constant_node(op3) &&
+              constant_bool_value_known_at_compile_time(
+                                                      op1->variant.constant)) {
+            an_expr_node_ptr result =
+                          is_false_constant(op1->variant.constant) ? op3 : op2;
+            con_expr_value = result->variant.constant;
+          }  /* if */
         } else if (op == (an_expr_operator_kind)eok_comma) {
           /* Comma operator.  Apply the transformation to the second operand
              of the ",".  This is useful for a case like
@@ -4965,20 +4963,32 @@ non-NULL return *con_value == NULL.
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       }  /* if */
     }  /* if */
-    if (optimized_case) {
-      /* For the optimized cases, set the node type to the type pointed to. */
-      node->type = type_pointed_to(node->type);
-      /* Drop type qualifiers as appropriate for an rvalue.  Note that no
-         cast is needed to drop the qualifiers: an IL shorthand applies in
-         this case. */
-      if (is_qualified_type(node->type)) {
-        node->type = rvalue_type(node->type);
-      }  /* if */
+  }  /* if */
+  if (con_expr_value != NULL) {
+    /* The rvalue has a constant value. */
+    *constant_case = TRUE;
+    if (con_value != NULL) {
+      /* The caller wants the constant instead of an expression node for
+         the constant. */
+      *con_value = con_expr_value;
+      node = NULL;
     } else {
-      /* Not an optimized case.  Just add an indirection.  This also drops
-         the type qualifiers as appropriate. */
-      node = add_indirection_to_node(node);
+      /* The caller wants an expression node for the constant. */
+      node = alloc_node_for_constant(con_expr_value);
     }  /* if */
+  } else if (optimized_case) {
+    /* For the optimized cases, set the node type to the type pointed to. */
+    node->type = type_pointed_to(node->type);
+    /* Drop type qualifiers as appropriate for an rvalue.  Note that no
+       cast is needed to drop the qualifiers: an IL shorthand applies in
+       this case. */
+    if (is_qualified_type(node->type)) {
+      node->type = rvalue_type(node->type);
+    }  /* if */
+  } else {
+    /* Not an optimized case.  Just add an indirection.  This also drops
+       the type qualifiers as appropriate. */
+    node = add_indirection_to_node(node);
   }  /* if */
   return node;
 }  /* conv_lvalue_expr_to_rvalue */
