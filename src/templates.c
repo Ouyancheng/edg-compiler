@@ -7475,7 +7475,7 @@ assumed if the return type is omitted.
 }  /* instantiation_pragma */
 
 
-static void explicit_instantiation()
+static void explicit_instantiation(void)
 /*
 Process an explicit instantiation directive.  Most of the processing is
 done by instantiation_directive.  This routine makes sure that the current
@@ -7502,7 +7502,7 @@ access errors that were detected.
     (void)get_token();  /* Bypass "template". */
     start_pos = pos_curr_token;
     begin_deferral_of_access_checks();
-    instantiation_directive(pk_instantiate, /*is_pragma=*/FALSE,
+    instantiation_directive((a_pragma_kind)pk_instantiate, /*is_pragma=*/FALSE,
                             &start_pos);
     discard_deferred_access_checks();
     end_deferral_of_access_checks();
