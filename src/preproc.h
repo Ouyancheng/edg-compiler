@@ -36,7 +36,7 @@ typedef enum /*a_pp_directive_kind*/ {
   ppd_error, ppd_pragma, ppd_null, ppd_linedef,
 #if IDENT_DIRECTIVE_AND_PRAGMA
   ppd_ident,
-#endif IDENT_DIRECTIVE_AND_PRAGMA
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if ALIAS_DIRECTIVE
   ppd_alias,
 #endif /* ALIAS_DIRECTIVE */
@@ -68,7 +68,7 @@ EXTERN char	*pp_directive_kind_names[(int)ppd_not_valid+1]
     "linedef",
 #if IDENT_DIRECTIVE_AND_PRAGMA
     "ident",
-#endif IDENT_DIRECTIVE_AND_PRAGMA
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if ALIAS_DIRECTIVE
     "alias",
 #endif /* ALIAS_DIRECTIVE */
