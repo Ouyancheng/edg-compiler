@@ -44,7 +44,7 @@ explicitly, and the front end will work, but you will have a version
 with an ABI that is only cfront-like, not cfront-compatible.
 */
 #ifndef ABI_COMPATIBILITY_VERSION
-#define ABI_COMPATIBILITY_VERSION 99999 /* Latest version */
+#define ABI_COMPATIBILITY_VERSION 228 /* Hold at 2.28 */
 #endif /* ifndef ABI_COMPATIBILITY_VERSION */
 
 /*
