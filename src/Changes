@@ -68,7 +68,7 @@ about a nonvirtual destructor in a dependent base class even when the
 destructor was in fact virtual.  For example:
 
   template<typename T> struct B { virtual ~B(); };
-  template<typename T> struct D: public B<T> {  // Previous triggered a
+  template<typename T> struct D: public B<T> {  // Previously triggered a
     virtual ~D();                               // spurious remark claiming
   };                                            // a nonvirtual destructor
                                                 // for B<T>.
