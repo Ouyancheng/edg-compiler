@@ -391,23 +391,29 @@ extern an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
                                                   a_base_class_ptr bcp);
 
 extern a_dynamic_init_ptr alloc_dtor_dynamic_init(
-                                                a_dynamic_init_kind kind,
-                                                a_type_ptr          type,
-                                                a_boolean           evaluated);
+                             a_dynamic_init_kind kind,
+                             a_type_ptr          type,
+                             a_boolean           evaluated,
+                             a_boolean           in_return_by_cctor_expression,
+                             a_source_position   *position);
 
 extern an_expr_node_ptr alloc_temp_init_node(a_type_ptr temp_type,
                                              a_boolean  result_is_addr);
 
-extern an_expr_node_ptr create_expr_temporary(a_type_ptr temp_type,
-                                              a_boolean  result_is_addr,
-                                              a_boolean  evaluated);
+extern an_expr_node_ptr create_expr_temporary(
+                               a_type_ptr        temp_type,
+                               a_boolean         result_is_addr,
+                               a_boolean         evaluated,
+                               a_boolean         in_return_by_cctor_expression,
+                               a_source_position *position);
 
 extern an_expr_node_ptr func_call_expr(
-                                an_expr_node_ptr  function_node,
-                                a_type_ptr        function_type,
-                                a_boolean         is_virtual,
-                                a_boolean         evaluated,
-                                a_source_position *err_pos);
+                               an_expr_node_ptr  function_node,
+                               a_type_ptr        function_type,
+                               a_boolean         is_virtual,
+                               a_boolean         evaluated,
+                               a_boolean         in_return_by_cctor_expression,
+                               a_source_position *err_pos);
 
 extern void mark_routine_referenced(a_routine_ptr     routine,
                                     a_source_position *position);

@@ -1293,6 +1293,8 @@ is being called for a derived class object).
   scan_call_arguments(routine_type, /*already_after_left_paren=*/TRUE,
                       arg_expr_list, overloaded_function_case,
                       &arg_operand_list);
+  error_position = start_position;
+
   if (overloaded_function_case) {
     /* The constructors are overloaded.  Select the proper one. */
     /* Note that a special case allows passing have_selector == TRUE and
@@ -1565,6 +1567,7 @@ Syntax:
   scan_call_arguments(routine_type,
                       already_after_left_paren, &argument_list,
                       overloaded_function_case, &arg_operand_list);
+  error_position = call_position;
 
   if (overloaded_function_case) {
     /* Choose the proper function out of a set of overloaded functions based
@@ -4690,6 +4693,7 @@ type is passed in as type_cast_to.  The result is returned in *result.
     }  /* if */
     scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine, &lparen_pos,
 			type_cast_to);
+    error_position = start_position;
     if (ctor_routine == NULL) {
       /* Error of some sort. */
       make_error_operand(result);
@@ -4697,7 +4701,8 @@ type is passed in as type_cast_to.  The result is returned in *result.
       /* Make a dynamic init entry that calls constructor to initialize
          a temporary.  Make an operand for the value of the temporary. */
       make_constructor_dynamic_init(ctor_routine, arg_expr_list,
-                                    /*result_is_addr=*/FALSE, result);
+                                    /*result_is_addr=*/FALSE,
+                                    &start_position, result);
     }  /* if */
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
@@ -7444,6 +7449,48 @@ a prior error) just do the scan.
 }  /* scan_default_arg_expr */
 
 
+static void fix_up_dynamic_init_dtors(void)
+/*
+Process the fixup list of dynamic initializations attached to the current
+level of the expression stack.  The dynamic initializations on the list
+are ones whose destructor processing could not be completed when the
+dynamic init entry was created because the initialization occurs within
+the return expression in a routine that returns its value via a copy
+constructor.  The destructor call on the topmost initialization is
+optimized away, but there's no way to know that when it is generated,
+so all such initializations are put in the dynamic init entries but
+the destructor routines are not marked as referenced.  The dynamic
+init entries are placed on a list and here the remaining referenced
+destructor routines are marked as actually referenced.
+*/
+{
+  a_dynamic_init_dtor_fixup_ptr didfp, didfp_next;
+  a_routine_ptr                 dtor_routine;
+
+  for (didfp = expr_stack->dynamic_init_dtor_fixup_list;
+       didfp != NULL;
+       didfp = didfp_next) {
+    didfp_next = didfp->next;
+    dtor_routine = didfp->dynamic_init->destructor;
+    if (dtor_routine != NULL) {
+      a_symbol_ptr dtor_sym =
+                         (a_symbol_ptr)dtor_routine->source_corresp.assoc_info;
+      /* Check access to the destructor and mark it referenced.  Note that
+         we know that the dynamic initialization is in an evaluated part of the
+         expression, because unevaluated initializations are not put on the
+         fixup list. */
+      reference_to_implicitly_invoked_function(dtor_sym, &didfp->position,
+                                               dtor_routine->source_corresp.
+                                                       class_of_which_a_member,
+                                               /*honor_virtual=*/FALSE,
+                                               /*evaluated=*/FALSE);
+    }  /* if */
+    /* Free the one entry. */
+    free_dynamic_init_dtor_fixup(didfp);
+  }  /* for */
+}  /* fix_up_dynamic_init_dtors */
+
+
 an_expr_node_ptr scan_return_expression(a_type_ptr         required_type,
                                         an_error_code      err_code,
                                         a_dynamic_init_ptr *dip)
@@ -7455,24 +7502,48 @@ one that returns its value via a copy constructor, set *dip to point to
 the appropriate dynamic initialization entry and return NULL.
 */
 {
+  a_routine_ptr       curr_routine = current_routine_entry();
+  a_type_ptr          routine_type;
   an_expr_node_ptr    expression;
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
+  a_boolean           return_by_cctor_case;
 
   db_enter(3, "scan_return_expression");
 
   *dip = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  return_by_cctor_case = FALSE;
+  routine_type = skip_typerefs(curr_routine->type);
+  if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
+    /* The current routine returns its value via a copy constructor. */
+    return_by_cctor_case = TRUE;
+    expr_stack->in_return_by_cctor_expression = TRUE;
+  }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
-  /* The required type can be void if we are in cfront mode.  If it is
-     void just take the expression as we found it -- don't try to
-     convert it to void. */
-  if (cfront_compatibility_mode && is_void_type(required_type)) {
-    expression = make_node_from_operand(&result);
+  if (return_by_cctor_case) {
+    /* The current routine returns its value via a copy constructor.
+       Build a dynamic initialization entry for the return statement. */
+    prep_return_by_cctor_operand(&result, required_type, err_code, dip);
+    /* Fix up destructor references in the overall expression. */
+    fix_up_dynamic_init_dtors();
+    expression = NULL;
   } else {
-    /* Convert to the required type. */
-    prep_return_operand(&result, required_type, err_code, &expression, dip);
+    /* Normal case. */
+    /* The required type can be void if we are in cfront mode.  If it is
+       void just take the expression as we found it -- don't try to
+       convert it to void. */
+    if (cfront_compatibility_mode && is_void_type(required_type)) {
+      /* Leave operand alone. */
+    } else {
+      /* Convert to the required type. */
+      prep_initializer_operand(&result, required_type,
+                               (a_user_conv_descr_ptr)NULL,
+                               /*initializing_return_value=*/TRUE,
+                               err_code);
+    }  /* if */
+    expression = make_node_from_operand(&result);
   }  /* if */
   pop_expr_stack();
 

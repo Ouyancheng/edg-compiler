@@ -5027,24 +5027,46 @@ class need not be an immediate base class.
 }  /* base_class_selection_expr */
 
 
-a_dynamic_init_ptr alloc_dtor_dynamic_init(a_dynamic_init_kind kind,
-                                           a_type_ptr          type,
-                                           a_boolean           evaluated)
+a_dynamic_init_ptr alloc_dtor_dynamic_init(
+                             a_dynamic_init_kind kind,
+                             a_type_ptr          type,
+                             a_boolean           evaluated,
+                             a_boolean           in_return_by_cctor_expression,
+                             a_source_position   *position)
 /*
 Allocate a dynamic initialization entry, clear it to default values, set
 its kind to kind, and return a pointer to it.  If type is a type that
 requires a destructor, put the destructor routine pointer into the dynamic
-initialization entry.  If evaluated is FALSE, the reference is within an
-unevaluated expression.
+initialization entry.  *position gives the associated source position.
+If evaluated is FALSE, the reference is within an unevaluated expression.
+If in_return_by_cctor_expression is TRUE, the reference is within the
+expression of a return statement in a routine that returns its value by
+calling a copy constructor.
 */
 {
   a_dynamic_init_ptr dip = alloc_dynamic_init(kind);
 
-  if (is_class_struct_union_type(type)) {
+  if (C_dialect == C_dialect_cplusplus && is_class_struct_union_type(type)) {
     /* The type is a class.  If it has a destructor, indicate it in
        the dynamic initialization. */
-    dip->destructor = select_destructor(type, type, /*honor_virtual=*/FALSE,
-                                        evaluated);
+    if (!in_return_by_cctor_expression) {
+      error_position = *position;
+      dip->destructor = select_destructor(type, type, /*honor_virtual=*/FALSE,
+                                          evaluated);
+    } else {
+      /* In a cctor return expression.  Put the destructor in the entry,
+         but do not do the access checking etc. at this time.  Build a fixup
+         entry to remind us to do the check later, and put it on the list
+         for the current expression. */
+      a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+      if (cssp != NULL) {
+        a_symbol_ptr dtor_sym = cssp->destructor;
+        if (dtor_sym != NULL) {
+          dip->destructor = dtor_sym->variant.routine.ptr;
+          (void)alloc_dynamic_init_dtor_fixup(dip, position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   return dip;
 }  /* alloc_dtor_dynamic_init */
@@ -5082,9 +5104,12 @@ must do that).
 }  /* alloc_temp_init_node */
 
 
-an_expr_node_ptr create_expr_temporary(a_type_ptr temp_type,
-                                       a_boolean  result_is_addr,
-                                       a_boolean  evaluated)
+an_expr_node_ptr create_expr_temporary(
+                               a_type_ptr        temp_type,
+                               a_boolean         result_is_addr,
+                               a_boolean         evaluated,
+                               a_boolean         in_return_by_cctor_expression,
+                               a_source_position *position)
 /*
 Create an enk_temp_init node and return a pointer to it.  The implied
 temporary has type temp_type.  A dynamic initialization entry indicating
@@ -5092,6 +5117,9 @@ no initialization (but indicating destruction if appropriate) is attached
 under the enk_temp_init node.  The value of the enk_temp_init is the address
 (rather than the value) of the temporary if result_is_addr is TRUE.
 If evaluated is FALSE, the reference is within an unevaluated expression.
+If in_return_by_cctor_expression is TRUE, the reference is within the
+expression of a return statement in a routine that returns its value by
+calling a copy constructor.  *position is the position of the reference.
 Only used in C++.
 */
 {
@@ -5100,7 +5128,8 @@ Only used in C++.
 
   /* Allocate the dynamic initialization entry. */
   dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type,
-                                evaluated);
+                                evaluated, in_return_by_cctor_expression,
+                                position);
   /* Make an enk_temp_init node that points at the dynamic init entry. */
   temp_init_node = alloc_temp_init_node(temp_type, result_is_addr);
   temp_init_node->variant.init.dynamic_init = dip;
@@ -5142,21 +5171,26 @@ declaration of the function and must be completed by the point of call.
 }  /* set_routine_calling_method_flag */
 
 
-an_expr_node_ptr func_call_expr(an_expr_node_ptr  function_node,
-                                a_type_ptr        function_type,
-                                a_boolean         is_virtual,
-                                a_boolean         evaluated,
-                                a_source_position *err_pos)
+an_expr_node_ptr func_call_expr(
+                               an_expr_node_ptr  function_node,
+                               a_type_ptr        function_type,
+                               a_boolean         is_virtual,
+                               a_boolean         evaluated,
+                               a_boolean         in_return_by_cctor_expression,
+                               a_source_position *err_pos)
 /*
 Make an expression for a call of the function indicated by function_node,
 whose type is function_type, and which is virtual if is_virtual is TRUE or
 a pointer-to-member-function call if the type of function_node is
 pointer-to-member-function.  evaluated is FALSE if the function call
-is within an unevaluated expression.  The arguments of the call are already
-attached to function_node.  A skip_typerefs need not have been done
-on function_type.  Return a pointer to the call node.  *err_pos
-gives an error position for the case where the function return type
-is invalid (i.e., incomplete); an error node is returned for that case.
+is within an unevaluated expression.  If in_return_by_cctor_expression
+is TRUE, the reference is within the expression of a return statement in
+a routine that returns its value by calling a copy constructor.  The
+arguments of the call are already attached to function_node.  A
+skip_typerefs need not have been done on function_type.  Return a
+pointer to the call node.  *err_pos gives an error position for the case
+where the function return type is invalid (i.e., incomplete); an error
+node is returned for that case.
 */
 {
   an_expr_operator_kind         op;
@@ -5218,7 +5252,9 @@ is invalid (i.e., incomplete); an error node is returned for that case.
     if (rtsp->value_returned_by_cctor) {
       temp_init_node = create_expr_temporary(return_type,
                                              /*result_is_addr=*/FALSE,
-                                             evaluated);
+                                             evaluated,
+                                             in_return_by_cctor_expression,
+                                             err_pos);
       dip = temp_init_node->variant.init.dynamic_init;
       set_dynamic_init_kind(dip,
                       (a_dynamic_init_kind)dik_call_returning_class_via_cctor);
@@ -5339,6 +5375,7 @@ for errors (e.g., the function has an invalid return type).
   /* Make the call node. */
   node = func_call_expr(func_addr_node, rout->type,
                         (a_boolean)rout->is_virtual, /*evaluated=*/TRUE,
+                        /*in_return_by_cctor_expression=*/FALSE,
                         err_pos);
   /* Put the call node under the statement. */
   stmt->expr = node;

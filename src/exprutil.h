@@ -354,6 +354,27 @@ conversion_from_class_possible.
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;
 
+/*
+Entry used to record information about a dynamic init entry whose
+destructor processing could not be completed when the dynamic init entry
+was created because the initialization occurs within the return expression
+in a routine that returns its value via a copy constructor.  The destructor
+call on the topmost initialization is optimized away, but there's no way to
+know that when it is generated, so all such initializations are placed on
+a list and checked at the end of the expression.
+*/
+typedef struct a_dynamic_init_dtor_fixup *a_dynamic_init_dtor_fixup_ptr;
+typedef struct a_dynamic_init_dtor_fixup {
+  a_dynamic_init_dtor_fixup_ptr
+		next;	/* Next entry on the list. */
+  a_dynamic_init_ptr
+		dynamic_init;
+			/* The dynamic initialization entry to be checked. */
+  a_source_position
+		position;
+			/* The source position for errors. */
+} a_dynamic_init_dtor_fixup;
+
 
 /*
 Entry in a stack used during expression processing to record transitions
@@ -388,6 +409,18 @@ typedef struct an_expr_stack_entry {
 			   top level major expression for a template
 			   argument, e.g., it's not TRUE inside a sizeof
 			   inside a template argument. */
+  a_byte_boolean
+		in_return_by_cctor_expression;
+			/* TRUE if the expression is in a return statement in
+			   a routine that returns its value to the caller by
+			   calling a copy constructor.  This has an effect
+			   on destructor calls noted in dynamic initialization
+			   entries for temporaries. */
+  a_dynamic_init_dtor_fixup_ptr
+		dynamic_init_dtor_fixup_list;
+			/* List of dynamic init entries for which destructor
+			   processing was delayed.  Only non-NULL when
+			   in_return_by_cctor_expression is TRUE. */
   unsigned long	nested_construct_depth;
 			/* Number of nested constructs like parentheses
 			   begun within this major expression level. */
@@ -504,6 +537,12 @@ extern void push_expr_stack(an_expression_kind      expression_kind,
                             an_expr_stack_entry_ptr new_entry);
 
 extern void pop_expr_stack(void);
+
+extern a_dynamic_init_dtor_fixup_ptr alloc_dynamic_init_dtor_fixup(
+                                               a_dynamic_init_ptr dynamic_init,
+                                               a_source_position  *position);
+
+extern void free_dynamic_init_dtor_fixup(a_dynamic_init_dtor_fixup_ptr didfp);
 
 extern an_arg_operand_ptr alloc_arg_operand(void);
 
@@ -813,10 +852,11 @@ extern a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node);
 
 extern void integral_promote_node(an_expr_node_ptr *node);
 
-extern void make_constructor_dynamic_init(a_routine_ptr    ctor_routine,
-                                          an_expr_node_ptr arg_expr_list,
-                                          a_boolean        result_is_addr,
-                                          an_operand       *result);
+extern void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
+                                          an_expr_node_ptr  arg_expr_list,
+                                          a_boolean         result_is_addr,
+                                          a_source_position *position,
+                                          an_operand        *result);
 
 extern a_boolean user_defined_conversion_possible(
                                   an_operand        *source_operand,
@@ -846,11 +886,10 @@ extern void prep_argument_operand(an_operand         *source_operand,
                                   a_user_conv_descr  *user_conversion,
                                   an_error_code      err_code);
 
-extern void prep_return_operand(an_operand         *source_operand,
-                                a_type_ptr         required_type,
-                                an_error_code      err_code,
-                                an_expr_node_ptr   *expression,
-                                a_dynamic_init_ptr *dip);
+extern void prep_return_by_cctor_operand(an_operand         *source_operand,
+                                         a_type_ptr         required_type,
+                                         an_error_code      err_code,
+                                         a_dynamic_init_ptr *dip);
 
 extern void prep_assignment_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,

@@ -136,6 +136,11 @@ static an_arg_match_summary_ptr
 			   been freed and are available for reuse. */
 
 
+static a_dynamic_init_dtor_fixup_ptr
+		avail_dynamic_init_dtor_fixups;
+			/* List of dynamic init dtor fixup entries that have
+			   been freed and are available for reuse. */
+
 #if DEBUG
 /*
 Counts of entries allocated, for debugging purposes.
@@ -143,7 +148,8 @@ Counts of entries allocated, for debugging purposes.
 unsigned long	num_arg_operands_allocated,
 		num_arg_match_summaries_allocated,
 		num_candidate_functions_allocated,
-		num_xref_entries_allocated;
+		num_xref_entries_allocated,
+		num_dynamic_init_dtor_fixups_allocated;
 #endif /* DEBUG */
 
 
@@ -323,6 +329,8 @@ at the start of a major expression.
   new_entry->evaluated = TRUE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
+  new_entry->in_return_by_cctor_expression = FALSE;
+  new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
@@ -348,6 +356,48 @@ major expression.
   /* Pop the stack. */
   expr_stack = expr_stack->prev;
 }  /* pop_expr_stack */
+
+
+a_dynamic_init_dtor_fixup_ptr alloc_dynamic_init_dtor_fixup(
+                                               a_dynamic_init_ptr dynamic_init,
+                                               a_source_position  *position)
+/*
+Allocate an entry to record a fixup to be done on the dynamic initialization
+entry dynamic_init.  The associated source position is given by "position".
+The entry is put on the fixup list for the current expression context.
+*/
+{
+  a_dynamic_init_dtor_fixup_ptr didfp;
+
+  if (avail_dynamic_init_dtor_fixups != NULL) {
+    /* Reuse a previously-freed entry. */
+    didfp = avail_dynamic_init_dtor_fixups;
+    avail_dynamic_init_dtor_fixups = didfp->next;
+  } else {
+    /* Allocate a new entry. */
+    didfp = (a_dynamic_init_dtor_fixup_ptr)
+                                   alloc_fe(sizeof(a_dynamic_init_dtor_fixup));
+#if DEBUG
+    num_dynamic_init_dtor_fixups_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  didfp->next = expr_stack->dynamic_init_dtor_fixup_list;
+  expr_stack->dynamic_init_dtor_fixup_list = didfp;
+  didfp->dynamic_init = dynamic_init;
+  didfp->position = *position;
+  return didfp;
+}  /* alloc_dynamic_init_dtor_fixup */
+
+
+void free_dynamic_init_dtor_fixup(a_dynamic_init_dtor_fixup_ptr didfp)
+/*
+Free the dynamic init dtor fixup entry pointed to by didfp.
+*/
+{
+  /* Add the entry to the available list. */
+  didfp->next = avail_dynamic_init_dtor_fixups;
+  avail_dynamic_init_dtor_fixups = didfp;
+}  /* free_dynamic_init_dtor_fixup */
 
 
 void set_operand_kind(an_operand      *operand,
@@ -3142,7 +3192,9 @@ on function_type.  *call_pos gives the source position of the call.
 
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
-                             curr_expr_is_evaluated(), call_pos);
+                             curr_expr_is_evaluated(),
+                             expr_stack->in_return_by_cctor_expression,
+                             call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
@@ -3588,10 +3640,11 @@ is used only in C++ mode.
 }  /* set_up_for_conversion_function_call */
 
 
-void make_constructor_dynamic_init(a_routine_ptr    ctor_routine,
-                                   an_expr_node_ptr arg_expr_list,
-                                   a_boolean        result_is_addr,
-                                   an_operand       *result)
+void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
+                                   an_expr_node_ptr  arg_expr_list,
+                                   a_boolean         result_is_addr,
+                                   a_source_position *position,
+                                   an_operand        *result)
 /*
 Create an enk_temp_init node that calls the constructor ctor_routine with
 the argument list arg_expr_list.  Return an operand for the value (if
@@ -3613,7 +3666,10 @@ been adjusted, etc.).
   class_type = ctor_routine->source_corresp.class_of_which_a_member;
   /* Create the dynamic initialization entry and the enk_temp_init node. */
   temp_init_node = create_expr_temporary(class_type, result_is_addr,
-                                         curr_expr_is_evaluated());
+                                         curr_expr_is_evaluated(),
+                                         expr_stack->
+                                                 in_return_by_cctor_expression,
+                                         position);
   dip = temp_init_node->variant.init.dynamic_init;
   /* Use a dik_constructor to call the constructor routine. */
   set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
@@ -3674,7 +3730,9 @@ of the temporary.  Only used in C++ mode.
         cctor_case = TRUE;
         set_up_for_constructor_call(operand, cctor_routine, &cctor_arg);
         make_constructor_dynamic_init(cctor_routine, cctor_arg,
-                                      /*result_is_addr=*/TRUE, operand);
+                                      /*result_is_addr=*/TRUE,
+                                      &orig_operand.position,
+                                      operand);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3683,7 +3741,10 @@ of the temporary.  Only used in C++ mode.
        operand into the temporary. */
     /* Allocate the dynamic initialization entry and the enk_temp_init node. */
     temp_init_node = create_expr_temporary(temp_type, /*result_is_addr=*/TRUE,
-                                           curr_expr_is_evaluated());
+                                           curr_expr_is_evaluated(),
+                                           expr_stack->
+                                                 in_return_by_cctor_expression,
+                                           &operand->position);
     dip = temp_init_node->variant.init.dynamic_init;
     conv_lvalue_to_rvalue(operand);
     set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_expression);
@@ -9122,7 +9183,8 @@ no additional conversion is needed after the conversion function is called.
        the value it produces. */
     set_up_for_constructor_call(operand, conversion_routine, &arg_expr_list);
     make_constructor_dynamic_init(conversion_routine, arg_expr_list,
-                                  /*result_is_addr=*/FALSE, operand);
+                                  /*result_is_addr=*/FALSE,
+                                  &orig_operand.position, operand);
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(operand, &orig_operand);
@@ -9309,18 +9371,49 @@ the initialization being done is for the value returned from a function.
     temp_init_node = source_operand->variant.expression;
     dip = temp_init_node->variant.init.dynamic_init;
     if (initializing_return_value && dip->destructor != NULL) {
-      /* In a return, can't use a dynamic initialization that involves
-         a destructor call (the caller does the destruction); we could
-         clear the destructor field, but then the destructor routine
-         would appear to be referenced even though it isn't. */
-    } else {
-      is_usable_temp_init = TRUE;
-      *p_temp_init_node = temp_init_node;
-      *p_dip = dip;
+      /* In a return, we don't want a dynamic initialization that specifies
+         a destructor call (the caller does the destruction);
+         clear the destructor field.  Note that even though the destructor
+         field is filled in, the destructor routine has not been marked as
+         referenced, because we're in a cctor return expression
+         (see alloc_dtor_dynamic_init and fix_up_dynamic_init_dtors). */
+      dip->destructor = NULL;
     }  /* if */
+    is_usable_temp_init = TRUE;
+    *p_temp_init_node = temp_init_node;
+    *p_dip = dip;
   }  /* if */
   return is_usable_temp_init;
 }  /* is_temp_init_usable_in_optimization */
+
+
+static a_dynamic_init_ptr alloc_dynamic_init_possibly_with_dtor(
+                                 a_dynamic_init_kind kind,
+                                 a_boolean           initializing_return_value,
+                                 a_type_ptr          temp_type,
+                                 a_source_position   *position)
+/*
+Allocate a dynamic initialization entry of type kind and return a pointer
+to it.  The entity to be initialized is of type temp_type.  *position
+indicates the source position of the initialization.  initializing_return_value
+is TRUE if the dynamic initialization is initializing the return value of
+a function that returns its value via a copy constructor (the destructor
+is suppressed in that case).
+*/
+{
+  a_dynamic_init_ptr dip;
+
+  if (initializing_return_value) {
+    /* No destructor call if this is a return statement. */
+    dip = alloc_dynamic_init(kind);
+  } else {
+    dip = alloc_dtor_dynamic_init(kind,
+                                  temp_type, curr_expr_is_evaluated(),
+                                  expr_stack->in_return_by_cctor_expression,
+                                  position);
+  }  /* if */
+  return dip;
+}  /* alloc_dynamic_init_possibly_with_dtor */
 
 
 static void determine_dynamic_init_for_class_init(
@@ -9449,26 +9542,22 @@ happen only in C++ mode.
   } else if (class_bitwise_copy) {
     /* The operation is a class bitwise copy, so use a dik_expression. */
     prep_class_bitwise_copy_operand(source_operand, dest_type);
-    if (initializing_return_value) {
-      /* No destructor call if this is a return statement. */
-      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-    } else {
-      dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_expression,
-                                    class_type, curr_expr_is_evaluated());
-    }  /* if */
+    dip = alloc_dynamic_init_possibly_with_dtor(
+                                          (a_dynamic_init_kind)dik_expression,
+                                          initializing_return_value,
+                                          class_type,
+                                          &source_operand->position);
     dip->variant.expression = make_node_from_operand(source_operand);
   } else if (conversion_routine != NULL) {
     /* conversion_routine is a constructor (copy or other). */
     set_up_for_constructor_call(source_operand, conversion_routine,
                                 &arg_expr_list);
     /* Use a dik_constructor entry to call the constructor. */
-    if (initializing_return_value) {
-      /* No destructor call if this is a return statement. */
-      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-    } else {
-      dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_constructor,
-                                    class_type, curr_expr_is_evaluated());
-    }  /* if */
+    dip = alloc_dynamic_init_possibly_with_dtor(
+                                          (a_dynamic_init_kind)dik_constructor,
+                                          initializing_return_value,
+                                          class_type,
+                                          &source_operand->position);
     dip->variant.constructor.ptr = conversion_routine;
     dip->variant.constructor.args = arg_expr_list;
   } else {
@@ -9943,53 +10032,37 @@ conversion part (if any) of any required conversion.
 }  /* prep_argument_operand */
 
 
-void prep_return_operand(an_operand         *source_operand,
-                         a_type_ptr         required_type,
-                         an_error_code      err_code,
-                         an_expr_node_ptr   *expression,
-                         a_dynamic_init_ptr *dip)
+void prep_return_by_cctor_operand(an_operand         *source_operand,
+                                  a_type_ptr         required_type,
+                                  an_error_code      err_code,
+                                  a_dynamic_init_ptr *dip)
 /*
-Check that *source_operand is acceptable as an expression on a return
-statement.  If not, issue the error err_code.  If so, convert it to the
-required_type, and set *expression and *dip to the expression and
-dynamic initialization entry pointers that should go into the
-stmk_return statement.
+*source_operand is an operand for the expression of a return statement
+in a routine that returns its value via a copy constructor.  The function
+return type is required_type.  Build a dynamic initialization entry
+to do the return, and return a pointer to it in *dip (or NULL if there is
+an error).  err_code is the error code to be used in case of error.
 */
 {
-  a_routine_ptr     curr_routine = current_routine_entry();
-  a_type_ptr        routine_type;
   an_operand        orig_operand;
   a_user_conv_descr user_conversion;
 
   orig_operand = *source_operand;
-  *expression = NULL;
   *dip = NULL;
-  routine_type = skip_typerefs(curr_routine->type);
-  if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
-    /* The return value is returned via a copy constructor, so a dynamic
-       init entry is used to indicate the return. */
-    /* See if the conversion is possible. */
-    if (conversion_possible(source_operand, required_type,
-                            /*is_initialization=*/TRUE,
-                            err_code, &source_operand->position,
-                            &user_conversion)) {
-      /* Yes.  Build the dynamic init entry. */
-      determine_dynamic_init_for_class_init(source_operand, required_type,
-                                            &user_conversion,
-                                            /*initializing_return_value=*/TRUE,
-                                            dip, (an_expr_node_ptr *)NULL);
-    }  /* if */
-  } else {
-    /* Normal return; an expression is returned. */
-    prep_initializer_operand(source_operand, required_type,
-                             (a_user_conv_descr_ptr)NULL,
-                             /*initializing_return_value=*/TRUE,
-                             err_code);
-    *expression = make_node_from_operand(source_operand);
+  /* See if the conversion is possible. */
+  if (conversion_possible(source_operand, required_type,
+                          /*is_initialization=*/TRUE,
+                          err_code, &source_operand->position,
+                          &user_conversion)) {
+    /* Yes.  Build the dynamic init entry. */
+    determine_dynamic_init_for_class_init(source_operand, required_type,
+                                          &user_conversion,
+                                          /*initializing_return_value=*/TRUE,
+                                          dip, (an_expr_node_ptr *)NULL);
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(source_operand, &orig_operand);
-}  /* prep_return_operand */
+}  /* prep_return_by_cctor_operand */
 
 
 void prep_assignment_operand(an_operand        *source_operand,
@@ -10193,6 +10266,9 @@ Display and return the amount of space used for various expression tables.
                      num_candidate_functions_allocated, a_candidate_function);
   db_space_used_lost("xref entry", avail_xref_entries,
                       num_xref_entries_allocated, an_xref_entry);
+  db_space_used_lost("dynamic init dtor fixup", avail_dynamic_init_dtor_fixups,
+                      num_dynamic_init_dtor_fixups_allocated,
+                      a_dynamic_init_dtor_fixup);
 
   db_space_used_total();
 
@@ -10215,11 +10291,13 @@ Initialize things related to expression scanning.
   avail_arg_operands = NULL;
   avail_candidate_functions = NULL;
   avail_arg_match_summaries = NULL;
+  avail_dynamic_init_dtor_fixups = NULL;
 #if DEBUG
   num_arg_operands_allocated        = 0;
   num_arg_match_summaries_allocated = 0;
   num_candidate_functions_allocated = 0;
   num_xref_entries_allocated        = 0;
+  num_dynamic_init_dtor_fixups_allocated = 0;
 #endif /* DEBUG */
 }  /* expr_init */
 

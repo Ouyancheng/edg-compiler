@@ -1,5 +1,19 @@
 Version 2.16
 
+4/20/93  Optimization of return via copy constructor
+
+In functions that return their values via a copy constructor call,
+an explicit constructor call as the return expression is now recognized
+as an optimizable case and a superfluous copy constructor call is no
+longer generated:
+
+  struct A {
+    A(const A&);
+    A(int);
+  };
+  A f() { return A(1); } // No copy constructor call
+
+
 4/20/93  Diagnostics on invalid operations on enum types
 
 Prefix and postfix increment and decrement and compound assignment
