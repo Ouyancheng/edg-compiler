@@ -2423,8 +2423,6 @@ that do normal id lookup processing.
   a_symbol_ptr		ref_sym = NULL;
   a_symbol_ptr		sym = NULL;
   a_boolean		do_not_look_in_common_scopes = FALSE;
-  a_decl_sequence_number
-			decl_seq_number = ssep->template_decl_info->decl_seq;
 
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("instantiation_lookup")) {
@@ -2437,7 +2435,7 @@ that do normal id lookup processing.
   if (do_dependent_name_processing) {
     /* Only consider names visible at the point at which the template was
        defined. */
-    lookup_state->decl_seq = decl_seq_number;
+    lookup_state->decl_seq = get_effective_decl_seq();
   }  /* if */
   def_sym = scope_stack_lookup(locator, lookup_state, def_start, common_depth);
   if (def_sym != NULL && def_sym->is_class_member) {
