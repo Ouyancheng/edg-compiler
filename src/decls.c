@@ -6072,7 +6072,8 @@ current scope.
         clear_specific_symbol(locator);
         /* Look for a declaration of the same name in the current scope. */
         overload_sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-        if (overload_sym != NULL && !is_function_symbol(overload_sym)) {
+        if (overload_sym != NULL &&
+            !is_function_symbol(fundamental_symbol_of(overload_sym))) {
           /* There is no function symbol in the current scope with which the
              new symbol should be overloaded. */
           overload_sym = NULL;
