@@ -4402,9 +4402,10 @@ See also 3.6.6.4.
           }  /* if */
         } else {
           /* C++ modes. */
-          if (cfront_3_0_mode || microsoft_mode) {
+          if (cfront_3_0_mode ||
+              (microsoft_mode && microsoft_version <= 1200)) {
             /* cfront 3.0 does not allow an expression. */
-            /* Neither does Microsoft C++ mode (as of MSVC++ 6.0). */
+            /* Neither does Microsoft C++ mode for MSVC++ 6.0 and earlier. */
             error(ec_value_returned_in_void_function);
             return_type = error_type();
           }  /* if */

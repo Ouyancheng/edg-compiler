@@ -1,5 +1,16 @@
 Version 2.44
 
+6/12/00  Microsoft 7.0 compatibility: void return expressions
+
+In MSVC++ 7.0, void return expressions are permitted (just as in strict ANSI
+mode) in function with void return type.  This is now emulated in Microsoft
+mode with --microsoft_version=1300.
+
+  void f();
+  void g() {
+    return f();  // Accepted with --microsoft_version=1300
+  }
+
 6/12/00  Microsoft compatibility: empty __declspec specifiers
 
 The front end now allows empty __declspec specifiers in Microsoft mode.
