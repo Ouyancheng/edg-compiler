@@ -771,6 +771,8 @@ extern a_boolean required_token(a_token_kind  token,
 extern a_boolean loop_token(a_token_kind token);
 /* Look ahead at the token following the current one. */
 extern a_token_kind next_token(void);
+/* Back up one token. */
+extern void unget_token(void);
 /* Get a C++ destructor name, like "~A". */
 extern a_boolean f_get_destructor_name(
                                      a_symbol_header_ptr *class_symbol_header);
