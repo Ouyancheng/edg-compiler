@@ -460,11 +460,7 @@ This is really a target configuration macro, but it needs to be here
 because of some ordering problems.
 */
 #ifndef IA64_ABI
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
 #define IA64_ABI FALSE
-#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
-#define IA64_ABI FALSE /*Temporary -- FIXME*/
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #endif /* ifndef IA64_ABI */
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY && IA64_ABI
