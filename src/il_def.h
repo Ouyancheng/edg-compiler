@@ -3339,7 +3339,8 @@ enum a_scope_kind_tag {
                            (C++ only).  Used only in the front end.  */
   sck_pragma,
 			/* Used while processing certain #pragma directives
-			   to affect the visibility of other scopes. */
+			   to affect the visibility of other scopes.  Used
+			   in only in the front end. */
 #endif /* ifdef CIL */
 #ifdef FIL
   sck_stmt_function,	/* Statement function scope. */
