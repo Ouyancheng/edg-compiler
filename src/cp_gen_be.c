@@ -2657,6 +2657,7 @@ is the one associated with the definition of the class.
                                    type->source_corresp.source_sequence_entry);
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
+  /* Put out the tag kind, e.g., "class". */
   write_tok_str(tag_kind(type->kind));
   write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2850,6 +2851,32 @@ declaration following this one is such a continuation.
 }  /* gen_typedef_definition */
 
 
+static void gen_template_specialization_header(
+                                     a_source_correspondence *scp,
+                                     a_template_arg_ptr      template_arg_list)
+/*
+scp points to the source correspondence entry of a routine, class, or
+variable that has is_specialization TRUE, and template_arg_list is the
+template argument list for the entry (NULL for the variable/static data
+member case).  Put out "template<>" as the beginning of a specialization
+declaration.  More precisely, put out one "template<>" for each parent
+class that is a template, and one for the entity itself if it is a template.
+*/
+{
+  while (scp->is_class_member) {
+    a_type_ptr parent_class = scp->parent.class_type;
+    if (parent_class->variant.class_struct_union.extra_info->
+                                                   template_arg_list != NULL) {
+      /* A parent class that is a template. */
+      write_tok_str("template<> ");
+    }  /* if */
+    scp = &parent_class->source_corresp;
+  }  /* while */
+  /* And one for the entity itself if it is a template. */
+  if (template_arg_list != NULL) write_tok_str("template<> ");
+}  /* gen_template_specialization_header */
+
+
 static void gen_type_decl(a_boolean suppress_specifiers,
                           a_boolean *another_decl_in_comma_list)
 /*
@@ -2864,19 +2891,26 @@ this one is such a continuation.
 {
   a_type_ptr                   type;
   a_src_seq_secondary_decl_ptr sec_decl;
-  a_type_kind                  kind ;
+  a_type_kind                  kind;
   a_boolean                    is_definition = FALSE, friend_decl;
+  a_boolean                    is_specialization;
 
   *another_decl_in_comma_list = FALSE;
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     type = ss_entry_ptr(sec_decl, a_type_ptr);
     friend_decl = sec_decl->friend_decl;
+    is_specialization = sec_decl->is_specialization;
   } else {
     type = ss_entry_ptr(curr_source_sequence_entry, a_type_ptr);
     is_definition = TRUE;
     /* A definition of a class is never a friend declaration. */
     friend_decl = FALSE;
+    if (is_immediate_class_type(type)) {
+      is_specialization = type->variant.class_struct_union.is_specialization;
+    } else {
+      is_specialization = FALSE;
+    }  /* if */
   }  /* if */
   kind = type->kind;
   if (!is_autonomous_decl(type, sec_decl)) {
@@ -2891,6 +2925,12 @@ this one is such a continuation.
     /* If generating a member of a class within the class, set the right access
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&type->source_corresp);
+    if (is_specialization) {
+      /* For a specialization, put out "template<>" at the beginning. */
+      gen_template_specialization_header(&type->source_corresp,
+                                         type->variant.class_struct_union.
+                                                extra_info->template_arg_list);
+    }  /* if */
     if (kind == (a_type_kind)tk_typeref) {
       /* A typedef definition. */
       gen_typedef_definition(type, sec_decl, suppress_specifiers,
@@ -5610,6 +5650,7 @@ declaration following this one is such a continuation.
   a_boolean                    consider_initialization;
   a_storage_class              storage_class;
   a_type_ptr                   var_type;
+  a_boolean                    is_specialization;
                              
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
@@ -5618,10 +5659,12 @@ declaration following this one is such a continuation.
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
     var_type = sec_decl->declared_type;
+    is_specialization = sec_decl->is_specialization;
   } else {
     var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
     is_definition = TRUE;
     var_type = var->declared_type;
+    is_specialization = var->is_specialization;
   }  /* if */
   check_assertion_str(var_type != NULL,
                       "gen_variable_decl: declared_type is NULL");
@@ -5633,6 +5676,11 @@ declaration following this one is such a continuation.
      mode for the member. */
   if (!suppress_specifiers) {
     gen_member_access_specifier_for_decl_of(&var->source_corresp);
+  }  /* if */
+  if (is_specialization) {
+    /* For a specialization, put out "template<>" at the beginning. */
+    gen_template_specialization_header(&var->source_corresp,
+                                       (a_template_arg_ptr)NULL);
   }  /* if */
   /* Determine the proper storage class to display. */
   storage_class = var->storage_class;
@@ -5653,6 +5701,11 @@ declaration following this one is such a continuation.
         /* A static data member definition.  Use no storage class. */
         storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
+    } else if (is_specialization) {
+      /* A specialization of a static data member is not a definition, but
+         you're not allowed to indicate a storage class ("extern" is indicated
+         in the variable). */
+      storage_class = (a_storage_class)sc_unspecified;
     } else {
       /* A declaration of a variable. */
       /* The variable is not defined (here), so use "extern" instead of no
@@ -5956,21 +6009,9 @@ TRUE if the declaration following this one is such a continuation.
     scope = il_header.region_scope_entry[scope_region_number];
   }  /* if */
   if (is_specialization) {
-    /* For a specialization, put out "template<>" in front of it.  More
-       precisely, put out one "template<>" for each parent class that is
-       a template, and one for the function itself if it is a template. */
-    a_source_correspondence *scp = &rout->source_corresp;
-    while (scp->is_class_member) {
-      a_type_ptr parent_class = scp->parent.class_type;
-      if (parent_class->variant.class_struct_union.extra_info->
-                                                   template_arg_list != NULL) {
-        /* A parent class that is a template. */
-        write_tok_str("template<> ");
-      }  /* if */
-      scp = &parent_class->source_corresp;
-    }  /* while */
-    /* And one for the function itself if it is a template. */
-    if (rout->template_arg_list != NULL) write_tok_str("template<> ");
+    /* For a specialization, put out "template<>" at the beginning. */
+    gen_template_specialization_header(&rout->source_corresp,
+                                       rout->template_arg_list);
   }  /* if */
   /* Determine the proper storage class to display. */
   storage_class = rout->storage_class;
