@@ -111,9 +111,9 @@ typedef struct an_aggregate_init_context {
 			/* Pointer to the previous init-context (i.e., when
 			   get_initializer is called recursively); NULL when
 			   it is a top-level call. */
-  a_type_ptr   type;
-         /* The type of the aggregate or subaggregate associated with
-            this context structure. */
+  a_type_ptr	type;
+			/* The type of the aggregate or subaggregate
+			   associated with this context structure. */
   a_field_ptr	field;
 			/* The field currently being initialized.  NULL if
 			   the current context is not struct or if all fields
@@ -136,11 +136,11 @@ typedef struct an_aggregate_init_context {
 			   be initialized, so the initializer is saved to
 			   initialize a member. */
   a_constant_ptr
-      repeat;
-         /* NULL when the next initializer was not preceded by a
-            designator of the form '[' <expr> '...' <expr> ']'.
-            Otherwise, a ck_init_repeat constant describing how
-            many times the initializer should be repeated. */
+		repeat;
+			/* NULL when the next initializer was not preceded by a
+			   designator of the form '[' <expr> '...' <expr> ']'.
+			   Otherwise, a ck_init_repeat constant describing how
+			   many times the initializer should be repeated. */
   a_byte_boolean
 		any_dynamic_initialization;
 			/* Flag that is TRUE if the current aggregate member
@@ -1021,7 +1021,7 @@ resulting constant is placed on context->pending_init_con for use further on.
     /* If this is an aggregate, whole object initialization is possible but
        not required.  Indeed, if the initializing expression can initialize
        the first initializable member of an aggregate, then that should be
-       done instead of whole aggregate initialization.  This is determined
+       done instead of whole aggregate initialization.
        scan_aggregate_class_initializer_expression will determine this. */
 
     is_whole_object_init = TRUE;
@@ -1030,7 +1030,7 @@ resulting constant is placed on context->pending_init_con for use further on.
                           cssp->construction_by_bitwise_copy_allowed ||
                           skip_typerefs(context->type)->
                                   variant.class_struct_union.is_nonreal_class,
-                        "get_initializer: missing copy constructor");
+                        "process_whole_object_init: missing copy constructor");
     /* This is an array element that can only be initialized by a
        constructor.  Treat the expression as an argument for the constructor
        call. */
