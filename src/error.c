@@ -888,6 +888,7 @@ declaration position to eliminate redundant file names in a diagnostic.
 				   the value will be that of sym. */
   char				*entity_kind;
   a_boolean			force_function_params = FALSE;
+  a_boolean			force_return_type = FALSE;
   a_boolean			return_type_needed = TRUE;
   a_boolean			is_declaration_like = FALSE;
   a_symbol_ptr			corresp_template_sym = NULL;
@@ -1078,6 +1079,11 @@ declaration position to eliminate redundant file names in a diagnostic.
       entity_kind = "function template ";
       routine = fund_sym->variant.template_info->variant.function.routine;
       type = routine->type;
+      /* Function templates can differ only by return type, so include the
+         return type when displaying one, except if the message explicitly
+         requests that the name only be included. */
+      force_return_type = !seg_ptr->variant.symbol.name_only;
+      force_function_params = force_return_type;
 symbol_name:
       /* Add the entity kind if not specified as name only or full type for
          a declaration-like entity. */
@@ -1102,7 +1108,8 @@ symbol_name:
       /* Put out the first part of the type if needed, but not for
          constructors, destructors, and conversion functions (the return type
          is not listed for those). */
-      if (type != NULL && seg_ptr->variant.symbol.full_type &&
+      if (type != NULL &&
+          (seg_ptr->variant.symbol.full_type || force_return_type) &&
           (routine == NULL || return_type_needed)) {
         form_type_first_part_simple(type,
                                     /*under_lhs_declarator=*/FALSE,
@@ -1163,7 +1170,8 @@ symbol_name:
              function template parameter list. */
           form_function_template_param_list(sym_to_display, seg_ptr);
         }  /* if */
-        if (routine != NULL && !return_type_needed) {
+        if ((routine != NULL && !return_type_needed) ||
+            (!seg_ptr->variant.symbol.full_type && !force_return_type)) {
           /* For constructors, destructors, and conversion functions,
              put out the function type but not the return type. */
           form_function_declarator(type, &octl);

@@ -1,5 +1,19 @@
 Version 3.5
 
+10/12/04 Error message formatting of function fill-ins
+
+The formatting of function names in error messages was not correct for
+functions with complex return types.  This has been fixed.  As part of
+this change, function template signatures are included as part of the
+function name in more cases.
+
+  template <class T> void (T::*f(void)) (void);
+  template <class T> void (T::*f(void)) (T *);
+  struct A {};
+  int main() {
+    f<A>();
+  }
+
 10/11/04 Spurious correspondence error on duplicate weak definitions
 
 The front end previously issued an error on duplicate definitions even when
