@@ -2616,8 +2616,8 @@ Display the indicated dynamic_init structure.
     disp_ptr("destructor", (char *)ptr->destructor, iek_routine);
     if (ptr->lifetime != NULL) {
       disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
-      disp_ptr("next_in_destructor_list", (char *)ptr->next_in_destructor_list,
-               iek_dynamic_init);
+      disp_ptr("next_in_destruction_list",
+               (char *)ptr->next_in_destruction_list, iek_dynamic_init);
       disp_boolean("unordered", (a_boolean)ptr->unordered);
     }  /* if */
   }  /* if */
