@@ -53,7 +53,9 @@ extern void set_error_constant(a_constant *cp);
 
 extern a_param_type_ptr alloc_param_type(a_boolean at_file_scope);
 
-extern a_class_type_supplement_ptr alloc_class_type_supplement(void);
+extern a_class_type_supplement_ptr alloc_class_type_supplement(
+                                        a_type_ptr     class_struct_union_type,
+                                        a_scope_number scope_number);
 
 extern a_type_ptr alloc_type(a_type_kind kind);
 
@@ -113,7 +115,8 @@ extern a_routine_ptr alloc_routine(void);
 
 extern void remove_from_routines_list(a_routine_ptr rout_ptr);
 
-extern void add_to_routines_list(a_routine_ptr rout_ptr);
+extern void add_to_routines_list(a_routine_ptr rout_ptr,
+                                 a_boolean    at_file_scope);
 
 extern a_label_ptr alloc_label(void);
 
@@ -144,7 +147,8 @@ extern a_switch_clause_ptr alloc_switch_clause(void);
 
 extern a_statement_ptr alloc_statement(a_statement_kind stmt_kind);
 
-extern a_scope_ptr alloc_scope(void);
+extern a_scope_ptr alloc_scope(a_scope_number number,
+                               a_scope_kind   kind);
 
 extern void record_start_of_source_file(a_source_file_ptr parent_file,
 	  		                a_seq_number      seq_number,
