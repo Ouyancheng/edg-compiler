@@ -15233,8 +15233,11 @@ template entities.
          If, however, an instantiation was explicitly requested an error is
          issued.  The error is not issued if the instantiation was requested
          by an instantiation of the entire class (meaning that all members
-         should be instantiated). */
-      if (tip->explicit_instantiation && !tip->class_explicitly_instantiated) {
+         should be instantiated).  The error is also suppressed for exported
+         templates under the assumption that the file containing the
+         definition has not yet been compiled. */
+      if (tip->explicit_instantiation && !tip->class_explicitly_instantiated &&
+          !template_is_exported(tip->template_sym)) {
         pos_sy_error(ec_instantiation_requested_no_definition_supplied,
   	           &tip->explicit_instantiation_pos,
   		    tip->instance_sym);
