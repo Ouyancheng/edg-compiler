@@ -2864,7 +2864,8 @@ to FALSE if the entity being declared is not initializable.
     pos_error(ec_namespace_name_not_allowed, &declarator_pos);
     set_to_error_locator(*locator);
   }  /* if */
-  if (!explicit_template_args_allowed && locator->is_template_id) {
+  if (!explicit_template_args_allowed && locator->is_template_id &&
+      !is_error_locator(*locator)) {
     /* An explicit template argument list is only permitted on explicit
        specializations, explicit instantiations, and friend declarations.
        Other declarations that appear to include an explicit argument list,
