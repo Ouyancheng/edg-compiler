@@ -2521,18 +2521,18 @@ processing should proceed in error mode.
 */
 {
   if (!is_function_type(latest_type)) {
-    /* A variable: imbue an error type for recovery. */
+    /* A variable: Imbue an error type for recovery. */
     esdp->type = error_type();
     *okay = FALSE;
   } else if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
-    /* A routine, and the latest declaration is in file-scope: assume this
+    /* A routine, and the latest declaration is in file-scope: Assume this
        latest declaration has the type intended by the programmer and
        proceed in error mode. */
     esdp->type = latest_type;
     *okay = FALSE;
   } else {
-    /* The latest declaration is in block scope. Proceed in non-error mode
-       (although a diagnostic is still emitted for this conflict): this will
+    /* The latest declaration is in block scope.  Proceed in non-error mode
+       (although a diagnostic is still emitted for this conflict): This will
        cause the type of this declaration to prevail in this scope, and that
        of the previous declaration to be restored when this scope ends. */
   }
@@ -2673,7 +2673,7 @@ incompatible_severity.  Return FALSE if there is some error.
       esdp->type = composite_type(old_type, type_ptr);
     } else {
       /* The old and new types are incompatible.  Issue a warning instead of
-         an error for certain cases in SVR4 C compatibility mode. */
+         an error for certain cases (e.g., SVR4 mode). */
       if (SVR4_C_mode) {
         if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
           /* Functions and variables are treated differently.  For example:
@@ -2890,19 +2890,17 @@ created; the caller must set it.
     } else {
       scp = &esdp->variant.routine.ptr->source_corresp;
     }  /* if */
-    if (C_dialect == C_dialect_pcc &&
-        depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-      /* In pcc mode, block-external declarations declared in other function
-         scopes need not be compatible with the current declaration. */
-      if (scp->assoc_info != NULL) {
-        a_symbol_ptr  prev_sym = (a_symbol_ptr)scp->assoc_info;
-        a_boolean     is_local_to_function;
-        if (scope_depth_of_symbol(prev_sym, &is_local_to_function)) {
-          /* ext_sym was created for a scope that has already been discarded.
-             Incompatibilities are not fatal in such cases. */
-          incomp_severity = es_warning;
-        }  /* if */
-      }
+    if ((gcc_mode || C_dialect == C_dialect_pcc) && scp->assoc_info != NULL) {
+      /* In GNU C and pcc modes, block-external declarations declared in
+         other function scopes need not be compatible with the current
+         declaration. */
+      a_symbol_ptr  prev_sym = (a_symbol_ptr)scp->assoc_info;
+      a_boolean     is_local_to_function;
+      if (scope_depth_of_symbol(prev_sym, &is_local_to_function)) {
+        /* ext_sym was created for a scope that has already been discarded.
+           Incompatibilities are not fatal in such cases. */
+        incomp_severity = es_warning;
+      }  /* if */
     }  /* if */
     if (suppress_incompatible_error) {
       incomp_severity = es_none;
