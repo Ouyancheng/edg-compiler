@@ -4029,7 +4029,7 @@ command line -D options.
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
     }  /* if */
     if (define_stdc) {
-      (void)enter_predef_macro(stdc_value ? "1" : "0", "__STDC__",
+      (void)enter_predef_macro((char *)(stdc_value ? "1" : "0"), "__STDC__",
                                stdc_cannot_be_redefined,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */

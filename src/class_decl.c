@@ -7114,8 +7114,8 @@ ones are allocated in the scope specified by decl_scope_level.
     if (reuse_symbol) {
 #if DEBUG
       if (debug_level >= 4) {
-        db_symbol(sym,
-                  is_function_symbol(sym) ? "discarding: " : "promoting: ", 2);
+        db_symbol(sym, (char *)(is_function_symbol(sym) ? "discarding: "
+                                                        : "promoting: "), 2);
       }  /* if */
 #endif /* DEBUG */
       /* Disjoin the symbol from the list.  It will be added to another
@@ -10717,7 +10717,7 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
                operator new (i.e., whose parameter types after the first
                match). */
             pos_stsy_warning(ec_no_corresponding_delete, &sym->decl_position,
-                             array_pass ? "[]" : "", sym);
+                             (char *)(array_pass ? "[]" : ""), sym);
           }  /* if */
         }  /* for */
       }  /* if */
@@ -10742,14 +10742,16 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
         if (del_sym == NULL && !ambiguous) {
           /* No default operator delete. */
           pos_stsy_remark(ec_class_with_op_new_but_no_op_delete,
-                          &error_position, array_pass ? "[]" : "", tag_sym);
+                          &error_position, (char *)(array_pass ? "[]" : ""),
+                          tag_sym);
         }  /* if */
       } else {
         /* No operator new was declared.  If a default operator delete was
            declared, issue a diagnostic. */
         if (del_sym != NULL) {
           pos_stsy_remark(ec_class_with_op_delete_but_no_op_new,
-                          &error_position, array_pass ? "[]" : "", tag_sym);
+                          &error_position, (char *)(array_pass ? "[]" : ""),
+                          tag_sym);
         }  /* if */
       }  /* if */
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE

@@ -733,7 +733,8 @@ do_variable:
           if (var->source_corresp.needed) put_string("needed");
 #endif /* MAINTAIN_NEEDED_FLAGS */
           if (var->is_parameter || var->is_handler_param) {
-            put_string(var->is_parameter ? "is param" : "is handler param");
+            put_string((char *)(var->is_parameter ? "is param"
+                                                  : "is handler param"));
             if (var->param_value_has_been_changed) put_string("changed");
             if (var->param_used_more_than_once) put_string("multiply used");
           }  /* if */

@@ -1,5 +1,12 @@
 Version 2.43
 
+8/17/99  Utility program build problems in strict C++ mode
+
+The utility programs have been updated so that they compile properly
+in strict C++ mode.  Some of the problems were a result of the change to
+make string literals const.  Others were related to the linkage of the
+function pointer passed to the qsort and bsearch routines.
+
 8/13/99  Prelinker: build problem on some systems
 
 The prelinker did not compile on some systems (e.g., Red Hat 6.0) on which

@@ -666,7 +666,8 @@ new fields are set properly.
             tp->variant.integer.int_kind != (an_integer_kind)ik_int) {
           pos_st_error(ec_bad_extra_arg_for_postfix_operator,
                        &locator->source_position,
-                       opname == (an_opname_kind)onk_plus_plus ? "++" : "--");
+                       (char *)(opname == (an_opname_kind)onk_plus_plus
+                                                               ? "++" : "--"));
           ptp->type = error_type();
           err = TRUE;
         }  /* if */

@@ -2058,7 +2058,8 @@ final semicolon if output_final_semi is TRUE.
 #else /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
           /* Use only standard "int" or "unsigned int" base types.
              ("signed" was put out above if appropriate.) */
-          type_str = field->bit_field_is_signed ? "int" : "unsigned int";
+          type_str = (char *)(field->bit_field_is_signed ? "int"
+                                                         : "unsigned int");
 #endif /* ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
           write_tok_str(type_str);
           /* Write the name if the field is named. */
@@ -2078,12 +2079,12 @@ final semicolon if output_final_semi is TRUE.
         start_comment();
         write_tok_str(" offset = ");
         write_unsigned_num(temp);
-        write_tok_str((temp == 1) ? " byte" : " bytes");
+        write_tok_str((char*)((temp == 1) ? " byte" : " bytes"));
         temp = field->offset_bit_remainder;
         if (temp != 0) {
           write_tok_str(", ");
           write_unsigned_num(temp);
-          write_tok_str((temp == 1) ? " bit" : " bits");
+          write_tok_str((char *)((temp == 1) ? " bit" : " bits"));
         }  /* if */
         write_space();
         end_comment();

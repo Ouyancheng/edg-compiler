@@ -399,12 +399,12 @@ with "**BAD" for a bad integer kind.
     case ik_long:               p = "long";               break;
     case ik_unsigned_long:      p = "unsigned long";      break;
 #if LONG_LONG_ALLOWED
-    case ik_long_long:          p = microsoft_mode ?
+    case ik_long_long:          p = (char *)(microsoft_mode ?
                                       "__int64" :
-                                      "long long";        break;
-    case ik_unsigned_long_long: p = microsoft_mode ?
+                                      "long long");       break;
+    case ik_unsigned_long_long: p = (char *)(microsoft_mode ?
                                       "unsigned __int64" :
-                                      "unsigned long long";
+                                      "unsigned long long");
                                                           break;
 #endif /* LONG_LONG_ALLOWED */
     default:                    p = "**BAD-INT-KIND**";
@@ -570,8 +570,8 @@ Do the output in the way described by octl.
       qualifiers &= ~(TQ_NEAR | TQ_FAR);
     }  /* if */
 #endif /* SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE */
-    output_qualifier(TQ_NEAR, microsoft_mode ? "__near" : "near");
-    output_qualifier(TQ_FAR, microsoft_mode ? "__far" : "far");
+    output_qualifier(TQ_NEAR, (char *)(microsoft_mode ? "__near" : "near"));
+    output_qualifier(TQ_FAR, (char *)(microsoft_mode ? "__far" : "far"));
 #endif /* NEAR_AND_FAR_ALLOWED */
     /* Put out a trailing space if required. */
     if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
@@ -2510,8 +2510,8 @@ confusion.  Do the output in the way described by octl.
                  il_header.source_language == sl_Cplusplus &&
                  is_bool_type(con_type)) {
         /* A bool constant. */
-        octl->output_str(cmplit_integer_constant(constant, 0L) != 0 ? "true" :
-                                                                      "false");
+        octl->output_str((char *)(
+               cmplit_integer_constant(constant, 0L) != 0 ? "true" : "false"));
       } else if (!octl->c_generating_back_end &&
                  il_header.source_language == sl_Cplusplus &&
                  is_character_type(con_type)) {

@@ -3072,6 +3072,9 @@ and doing any required expansions, the diagnostic is written.
   }  /* if */
 }  /* diag_message */
 
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+extern "C" {
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static int compare_tag_info(a_const_void_ptr arg1,
                             a_const_void_ptr arg2)
@@ -3088,6 +3091,9 @@ the tag.
   return strcmp(eip1->tag, eip2->tag);
 }  /* compare_tag_info */
 
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+}  /* extern "C" */
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 a_boolean set_severity_for_error_tag(char		*tag,
 				     an_error_severity	severity)

@@ -557,7 +557,7 @@ position following what was demangled.
       }  /* for */
       if (is_bool) {
         /* For bool, output true or false. */
-        write_id_str(is_nonzero ? "true" : "false", dctl);
+        write_id_str((char *)(is_nonzero ? "true" : "false"), dctl);
       }  /* if */
     } else {
       /* Pointer-to-member-function.  The form of the constant is

@@ -1634,7 +1634,7 @@ Dump the initializer of a variable for debug purposes.
   char *partial;
 
   if (var->init_kind != (an_init_kind)initk_none) {
-    partial = var->is_partially_initialized ? " (partial)" : "";
+    partial = (char *)(var->is_partially_initialized ? " (partial)" : "");
     for (a = 0; a < level; a++) fputs(" ", f_debug);
     if (var->init_kind == (an_init_kind)initk_function_local) {
       fprintf(f_debug, "local static initialization%s\n", partial);

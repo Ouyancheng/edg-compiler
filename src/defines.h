@@ -71,6 +71,9 @@ Flags to be set when using the KAI inliner.
 #define ONE_INSTANTIATION_PER_OBJECT 0
 #define MAINTAIN_NEEDED_FLAGS 0
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES 0
+#ifdef __cplusplus
+#define BSEARCH_QSORT_FUNCTION_IS_EXTERN_C 1
+#endif /* ifdef __cplusplus */
 #ifdef SOLARIS
 #define _POSIX_C_SOURCE 0
 #define _XOPEN_VERSION 0

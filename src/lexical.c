@@ -5338,6 +5338,9 @@ pp tokens).
   }  /* if */
 }  /* scan_boolean_constant */
 
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+extern "C" {
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static a_boolean UCN_char_is_in_range(const void* char_ptr,
                                       const void* table_entry_ptr)
@@ -5356,6 +5359,9 @@ or +1 if the character follows the range.
   return (uchar < range->start ? -1 : uchar <= range->end ? 0 : 1);
 }  /* UCN_char_is_in_range */
 
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+}  /* extern "C" */
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static a_boolean is_valid_UCN_identifier_char(unsigned long uchar)
 /*

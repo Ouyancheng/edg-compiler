@@ -1045,8 +1045,8 @@ caution when modifying this routine.
                  name to be reserved. */
               pos_st_error(ec_conflicts_with_predeclared_type_info,
                            &locator_for_curr_id.source_position,
-                           type_info_in_namespace_std ? "std::type_info" :
-                                                        "type_info");
+                           (char *)(type_info_in_namespace_std
+                                            ? "std::type_info" : "type_info"));
             }  /* if */
             tag_sym = type_info_sym;
 #endif /* ABI_CHANGES_FOR_RTTI */

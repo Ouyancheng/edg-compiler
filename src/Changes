@@ -1,5 +1,13 @@
 Version 2.43
 
+8/17/99  Front end now builds in strict C++ mode
+
+The front end contained a few constructs that were no longer valid in
+strict C++ mode because of recent language changes.  Most of the problems
+were a result of the change to make string literals const.  There were also
+problems related to the linkage of the function pointer passed to the
+qsort and bsearch routines.  The front end now compiles in strict C++ mode.
+
 8/16/99  C linkage ignored on pointer-to-member-function
 
 The front end no longer distinguishes pointer-to-member-functions with C

@@ -1725,6 +1725,22 @@ typedef const char * a_bsearch_arg_type;
 typedef a_const_void_ptr a_bsearch_arg_type;
 #endif /* defined(__SUNPRO_CC) && __BSD__ */
 
+
+/*
+The C++ standard does not specify whether bsearch and qsort take pointers
+to C functions or pointers to C++ functions.  By default, we assume that
+they accept C++ functions.  If they require C functions, this flag should be
+set to TRUE.
+*/
+#ifndef BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+#define BSEARCH_QSORT_FUNCTION_IS_EXTERN_C FALSE
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
+#if !defined(__cplusplus) && BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+ #error -- BSEARCH_QSORT_FUNCTION_IS_EXTERN_C must be FALSE when compiling as C
+#endif /* !defined(__cplusplus) && BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
+
 #if EDG_WIN32
 extern void open_mapped_input_file(char *file_name);
 extern void close_mapped_input_file(void);

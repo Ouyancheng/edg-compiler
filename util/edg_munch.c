@@ -225,6 +225,7 @@ length of the name.
 invalid_input:
   error_util("invalid input format");
   /*NOTREACHED*/
+  return 0;
 }  /* check_type_and_get_name */
 
 

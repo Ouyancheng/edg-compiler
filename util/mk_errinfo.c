@@ -226,6 +226,20 @@ typedef struct an_error_info {
 } an_error_info;
 
 
+/*
+Structure used to record information about an error message.
+*/
+typedef struct a_tag_info *a_tag_info_ptr;
+typedef struct a_tag_info {
+  char	*enumerator;
+  char	*tag;
+} a_tag_info;
+
+
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+extern "C" {
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
 static int compare_error_info(a_const_void_ptr arg1,
                               a_const_void_ptr arg2)
 /*
@@ -242,16 +256,6 @@ the enumeration name.
 }  /* compare_error_info */
 
 
-/*
-Structure used to record information about an error message.
-*/
-typedef struct a_tag_info *a_tag_info_ptr;
-typedef struct a_tag_info {
-  char	*enumerator;
-  char	*tag;
-} a_tag_info;
-
-
 static int compare_tag_info(a_const_void_ptr arg1,
                             a_const_void_ptr arg2)
 /*
@@ -266,6 +270,10 @@ the tag.
   eip2 = (a_tag_info_ptr)arg2;
   return strcmp(eip1->tag, eip2->tag);
 }  /* compare_tag_info */
+
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+}  /* extern "C" */
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 
 static an_error_info

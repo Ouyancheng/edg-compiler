@@ -115,7 +115,7 @@ start_new_argument:
     goto start_new_argument;
   } /* if */
   /* See if the option letter appears in the string of legal options. */
-  optpos = strchr(optstring, *optchar);
+  optpos = strchr((char *)optstring, *optchar);
   if (optpos == NULL) {
     /* Bad option letter. */
     if (opterr) fprintf(stderr, "%s: illegal option -- %c\n", argv[0],

@@ -1119,10 +1119,11 @@ should be opened in update mode so it can be read as well as written.
     temp_file = NULL;
   } else {
     if (update_mode) {
-      mode = binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE :
-                           FOPEN_MODE_FOR_UPDATE;
+      mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE :
+                                    FOPEN_MODE_FOR_UPDATE);
     } else {
-      mode = binary_file ? FOPEN_MODE_FOR_BINARY_WRITE : FOPEN_MODE_FOR_WRITE;
+      mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_WRITE
+                                  : FOPEN_MODE_FOR_WRITE);
     }  /* if */
     temp_file = fopen(file_name, mode);
     if (temp_file == NULL) *cannot_open = TRUE;
@@ -1153,8 +1154,8 @@ otherwise return NULL.
   if (!is_regular_file(file_name)) {
     temp_file = NULL;
   } else {
-    mode = binary_file ? FOPEN_MODE_FOR_BINARY_READ :
-                         FOPEN_MODE_FOR_READ;
+    mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_READ :
+                                  FOPEN_MODE_FOR_READ);
     temp_file = fopen(file_name, mode);
   }  /* if */
   return(temp_file);
@@ -1498,6 +1499,13 @@ not return.
 }  /* term_compilation */
 
 
+#ifdef __cplusplus
+/*
+In C++, signal handlers must be extern "C".
+*/
+extern "C" {
+#endif /* ifdef __cplusplus */
+
 /*ARGSUSED*/ /* <-- Because "sig" is not used. */
 static a_signal_handler_return_value term_on_signal(int sig)
 /*
@@ -1513,7 +1521,6 @@ receipt of a signal.
   /*NOTREACHED*/
 }  /* term_on_signal */
 
-
 /*
 The Sun C++ compiler requires a ... as the second parameter of the
 signal handler function.  Define a type to which the real signal handler
@@ -1525,6 +1532,11 @@ typedef a_signal_handler_return_value a_signal_handler(int p, ...);
 /* Standard type for a signal handler. */
 typedef a_signal_handler_return_value a_signal_handler(int p);
 #endif /* defined(__SUNPRO_CC) && __BSD__ */
+
+#ifdef __cplusplus
+}  /* extern "C" */
+#endif /* ifdef __cplusplus */
+
 
 static void set_signal_handlers(void)
 /*
