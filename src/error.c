@@ -1880,9 +1880,8 @@ error code.
     case ec_specific_def_must_be_global:
       m = "class template specific definition not at global scope";
       break;
-    case ec_pm_address_without_ampersand:
-      m =
-        "taking the address of a member function without \"&\" is nonstandard";
+    case ec_nonstd_member_function_address:
+      m = "nonstandard form for taking the address of a member function";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
