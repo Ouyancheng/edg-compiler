@@ -7715,6 +7715,11 @@ End a name scope by popping an entry off the scope stack.
     if (new_memory_region_number != old_memory_region_number) {
       switch_il_region(new_memory_region_number);
     }  /* if */
+    /*
+    /* The IL scope, if any, is no longer on the stack. */
+    if (il_scope != NULL) {
+      il_scope->depth_in_scope_stack = NO_SCOPE_DEPTH;
+    }  /* if */
     /* Restore state variables. */
     inside_local_class = scope_stack[depth_scope_stack].inside_local_class;
     depth_innermost_function_scope = scope_stack[depth_scope_stack].
@@ -8629,6 +8634,7 @@ Clear the fields of a function information block to default values.
   func_info->is_main_function            = FALSE;
   func_info->is_implicit_declaration     = FALSE;
   func_info->function_type_from_typedef  = FALSE;
+  func_info->any_default_args            = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   func_info->declarator_ssep                = NULL;
   func_info->prototype_scope_ss_entry_start = NULL;
