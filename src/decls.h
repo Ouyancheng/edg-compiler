@@ -238,8 +238,8 @@ typedef int a_decl_flag_set;
 			/* If this bit is set the declaration specifiers may
 			   include a type specifier. */
 #define DSI_IS_MEMBER_DECLARATION 0x4
-			/* If this bit is set the declaration specifiers may
-			   include the keyword "virtual" or "friend". */
+			/* If this bit is set the declaration is that of a
+			   class member. */
 #define DSI_IS_PARAMETER 0x8
 			/* If this bit is set the declaration specifiers are
 			   part of the declaration of a parameter. */
