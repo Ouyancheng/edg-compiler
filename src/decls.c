@@ -8390,7 +8390,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
         } else if (masked) {
           /* One "masking" diagnostic has already been issued -- there's no
              point in putting out another. */
-        } else if (type_ptr->kind == (a_type_kind)tk_error) {
+        } else if (type_ptr != NULL && is_immediate_error_type(type_ptr)) {
           /* No need to check for masking in this case. */
         } else if (prev_handler->parameter == NULL) {
           /* Default handler has already been declared.  If it's the last on
@@ -8404,8 +8404,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
         } else if (handler->parameter == NULL) {
           /* Current handler is a default handler -- it can only be masked by
              another default handler. */
-        } else if (prev_handler->parameter->type->kind ==
-                                                      (a_type_kind)tk_error) {
+        } else if (prev_handler->parameter->type != NULL &&
+                   is_immediate_error_type(prev_handler->parameter->type)) {
           /* No need to check for masking in this case. */
         } else if (type_masks_handler_param_type(prev_handler->parameter->type,
                                                  type_ptr)) {
