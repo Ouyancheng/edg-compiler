@@ -646,7 +646,7 @@ and the entry pointer is to an entry in the file scope, just return
           walk_source_corresp(ptr->source_corresp);
           remap_next_ptr(ptr->next, a_variable_ptr, iek_variable);
           walk_ptr(ptr->type, a_type_ptr, iek_type);
-          walk_ptr(ptr->assoc_param_type, a_param_type_ptr, iek_param_type);
+          remap_ptr(ptr->assoc_param_type, a_param_type_ptr, iek_param_type);
           switch (ptr->init_kind) {
             case initk_none:
               /* No pointers. */
@@ -1096,8 +1096,8 @@ and the entry pointer is to an entry in the file scope, just return
             case dik_constructor:
               remap_ptr(ptr->variant.constructor.routine, a_routine_ptr,
                         iek_routine);
-              walk_ptr(ptr->variant.constructor.args, an_expr_node_ptr,
-                       iek_expr_node);
+              walk_list(ptr->variant.constructor.args, an_expr_node_ptr,
+                        iek_expr_node);
               break;
             case dik_nonconstant_aggregate:
               walk_ptr(ptr->variant.aggregate.aggr_const, a_constant_ptr,
@@ -1147,6 +1147,7 @@ and the entry pointer is to an entry in the file scope, just return
                    (an_overriding_virtual_function_ptr)entry_ptr;
           remap_ptr(ptr->next, an_overriding_virtual_function_ptr,
                     iek_overriding_virtual_function);
+          remap_ptr(ptr->overriding_function, a_routine_ptr, iek_routine);
           remap_ptr(ptr->primary_function, a_routine_ptr, iek_routine);
           remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
         }
