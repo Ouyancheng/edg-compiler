@@ -5182,8 +5182,10 @@ constructor scope, and also lower the user code.
   a_routine_ptr      new_routine = ctsp->assoc_operator_new_routine;
   a_variable_ptr     this_param_var = scope->variant.routine.parameters;
   an_expr_node_ptr   if_node;
+#if GENERATE_EH_TABLES
   a_destructible_entity_descr_ptr
                      dedp = NULL;
+#endif /* GENERATE_EH_TABLES */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 
   saved_code_pos = code_pos_for_lowering;
@@ -5279,7 +5281,9 @@ constructor scope, and also lower the user code.
                                                     (a_variable_ptr *)NULL,
                                                     (a_boolean *)NULL,
                                                     (an_insert_location*)NULL);
+#if GENERATE_EH_TABLES
         dedp = dyn_init_to_free_storage->destructible_entity_descr;
+#endif /* GENERATE_EH_TABLES */
         set_var_indirect_init_pos_descr(this_param_var, &ipd);
         check_assertion(curr_context->latest_initialization == NULL);
         /* Add cleanup information. */
