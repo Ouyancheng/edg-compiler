@@ -1426,7 +1426,12 @@ is TRUE.
        line numbering can't be adjusted at this point. */
     if (curr_seq_number != next_seq_in_pp_output &&
         prev_pp_output_line_was_complete) {
-      if (curr_seq_number <= next_seq_in_pp_output+5) {
+      if (curr_seq_number <= next_seq_in_pp_output+5 &&
+          /* Following line is needed for some cases involving reinsertion
+             of a macro id at the beginning of a line.  The reinserted id
+             is followed by a newline, which bumps up the next_seq_in_pp_output
+             past curr_seq_number. */
+          curr_seq_number > next_seq_in_pp_output) {
         /* Optimization -- For changes of a small number of lines,
            it is more efficient to put out one or more blank lines to
            move up to the desired line number.  This is smaller in the
