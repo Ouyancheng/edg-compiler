@@ -4557,6 +4557,36 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
 }  /* generic_cast_operand */
 
 
+an_expr_node_ptr prep_generic_argument_list(an_arg_operand *arg_operand_list)
+/*
+Prepare a generic argument list, i.e., one scanned during a prototype
+instantiation for which we do not know the actual function to be called.
+Return a list of argument expressions.
+*/
+{
+  an_expr_node_ptr   arg, prev_arg, arg_list;
+  an_arg_operand_ptr arg_operand;
+
+  prev_arg = NULL;
+  arg_list = NULL;
+  for (arg_operand = arg_operand_list;
+       arg_operand != NULL;
+       arg_operand = arg_operand->next) {
+    prep_generic_operand(&arg_operand->operand, /*lvalue_expected=*/FALSE);
+    arg = make_node_from_operand(&arg_operand->operand);
+    /* Add this argument to the end of the expression-form argument list
+       being built up. */
+    if (prev_arg == NULL) {
+      arg_list = arg;
+    } else {
+      prev_arg->next = arg;
+    }  /* if */
+    prev_arg = arg;
+  }  /* for */
+  return arg_list;
+}  /* prep_generic_argument_list */
+
+
 void template_binary_operation(an_expr_operator_kind op,
                                an_operand            *operand_1,
                                an_operand            *operand_2,

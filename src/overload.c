@@ -5242,6 +5242,7 @@ or NULL otherwise (e.g., for a call through a pointer to function).
 {
   /* Initialize the control block. */
   arg_block->routine = routine;
+  arg_block->unknown_dependent_function = FALSE;
   arg_block->have_param_info = FALSE;
   arg_block->curr_param_type = NULL;
   arg_block->prototyped = FALSE;
@@ -5296,7 +5297,11 @@ describe the next parameter.
   /* Check for too many arguments and determine whether or not the default
      argument promotions apply to this argument. */
   do_default_promotion = TRUE;
-  if (!arg_block->have_param_info) {
+  if (arg_block->unknown_dependent_function) {
+    /* The routine to be called is not known because it's
+       template-dependent. */
+    do_default_promotion = FALSE;
+  } else if (!arg_block->have_param_info) {
     /* We have no information on parameter types. */
   } else if (arg_block->prototyped) {
     /* Prototyped parameter list. */
@@ -5382,6 +5387,9 @@ describe the next parameter.
                                                  (a_pragma_kind)pk_scanf_args),
                              &arg_block->fmt_string, &arg_block->pss);
     }  /* if */
+  } else if (arg_block->unknown_dependent_function) {
+    /* Argument of unknown template-dependent function. */
+    prep_generic_operand(argument_operand, /*lvalue_expected=*/FALSE);
   } else {
     /* Parameter is prototyped. */
     /* Check the argument for compatibility against the parameter,
@@ -5712,21 +5720,7 @@ overloaded operator cases.
   } else if (unknown_dependent_function) {
     /* The called function is unknown because some of the arguments
        are template dependent.  Make an argument list. */
-    prev_arg = NULL;
-    for (arg_operand = arg_operand_list;
-         arg_operand != NULL;
-         arg_operand = arg_operand->next) {
-      prep_generic_operand(&arg_operand->operand, /*lvalue_expected=*/FALSE);
-      arg = make_node_from_operand(&arg_operand->operand);
-      /* Add this argument to the end of the expression-form argument list
-         being built up. */
-      if (prev_arg == NULL) {
-        *arg_expr_list = arg;
-      } else {
-        prev_arg->next = arg;
-      }  /* if */
-      prev_arg = arg;
-    }  /* for */
+    *arg_expr_list = prep_generic_argument_list(arg_operand_list);
   } else {
     /* There was an error.  Change the references on the operand lists to
        errors. */

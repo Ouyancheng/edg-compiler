@@ -356,6 +356,11 @@ typedef struct an_arg_check_block {
   a_routine_ptr	routine;
 			/* The routine being called, if known.  NULL otherwise,
 			   e.g., for a call through a function pointer. */
+  a_boolean	unknown_dependent_function;
+			/* TRUE if we don't know the routine type because
+			   we're in a prototype instantiation and the
+			   function to be called is given by a
+			   template-dependent expression. */
   a_boolean	have_param_info;
 			/* TRUE if we have information on the remaining
 			   parameters.  Can be FALSE because
@@ -372,7 +377,8 @@ typedef struct an_arg_check_block {
 			         an error about there being too many arguments;
 			         or
 			     (f) We're scanning the arguments for an
-			         overloaded function call. */
+			         overloaded function call or a
+			         template-dependent call. */
   a_param_type_ptr
 		curr_param_type;
 			/* The current parameter type entry, if there is one;

@@ -980,6 +980,9 @@ extern void generic_cast_operand(an_operand            *operand,
                                  an_expr_operator_kind op,
                                  a_boolean             is_implicit_cast);
 
+extern an_expr_node_ptr prep_generic_argument_list(
+                                             an_arg_operand *arg_operand_list);
+
 extern void template_binary_operation(
                                      an_expr_operator_kind op,
                                      an_operand            *operand_1,

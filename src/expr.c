@@ -766,6 +766,10 @@ the source position of the closing parenthesis of the call.
   }  /* if */
   /* Set the block used for checking argument types. */
   start_call_argument_processing(function_type, routine, &arg_block);
+  if (!overloaded_function_case && function_type == NULL) {
+    /* The function to be called is unknown because it's template-dependent. */
+    arg_block.unknown_dependent_function = TRUE;
+  } /* if */
 
   if (!already_after_left_paren) {
     /* Get past the opening parenthesis. */
