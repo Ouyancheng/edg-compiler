@@ -409,6 +409,8 @@ check_abbreviation()
   arg_present=0
   keyword_option=0
   case $orig_arg in
+    --)
+      ;;
     --*=*)
       arg_present=1
       keyword_option=1
@@ -617,6 +619,9 @@ process_option()
 ###############################################################################
 # Options used by the driver
 ###############################################################################
+    --)
+#     Reported to be used sometimes by nmake -- simply ignore.
+      ;;
     --driver_debug)
 #     Show commands as they are executed.
       driver_debug=1

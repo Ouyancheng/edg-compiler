@@ -1,5 +1,9 @@
 Version 2.39
 
+7/29/98  Ignore "--" option in eccp
+
+The eccp script now ignores the "--" option.
+
 7/29/98  Handling of duplicate names in edg_munch
 
 The "nm" command on some systems produces duplicate entries for __sti
