@@ -2379,7 +2379,7 @@ enum an_asm_operand_constraint_kind_tag {
   aoc_imm_number,       /* n: any number known to the compiler (no symbols) */
   aoc_imm_symbol,       /* s: any symbolic reference */
   aoc_imm_float,        /* E, F: any floating point constant */
-#if TARG_IS_X86
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
   /* registers */
   aoc_reg_a,            /* a: ax */
   aoc_reg_b,            /* b: bx */
@@ -2406,7 +2406,7 @@ enum an_asm_operand_constraint_kind_tag {
   aoc_imm_sse,          /* H: any SSE standard constant */
   aoc_imm_sext32,       /* e: any 32-bit quantity sign extended to 64 bits */
   aoc_imm_zext32,       /* Z: any 32-bit quantity zero extended to 64 bits */
-#endif /* TARG_IS_X86 */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   aoc_last
 };
 typedef a_byte an_asm_operand_constraint_kind;
@@ -2441,7 +2441,7 @@ EXTERN char asm_operand_constraint_letters[(int)aoc_last + 1]
   /* aoc_imm_number */          'n',
   /* aoc_imm_symbol */          's',
   /* aoc_imm_float */           'F',
-#if TARG_IS_X86
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
   /* aoc_reg_a */               'a',
   /* aoc_reg_b */               'b',
   /* aoc_reg_c */               'c',
@@ -2466,7 +2466,7 @@ EXTERN char asm_operand_constraint_letters[(int)aoc_last + 1]
   /* aoc_imm_sse */             'H',
   /* aoc_imm_sext32 */          'e',
   /* aoc_imm_zext32 */          'z',
-#endif /* TARG_IS_X86 */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   /* aoc_last */                '~'
 }
 #endif /* VAR_INITIALIZERS */
@@ -2487,7 +2487,7 @@ typedef struct an_asm_operand_constraint {
 /* Enumeration of registers and their names. All machine-specific. */
 enum a_named_register_tag {
   anr_invalid = 0,
-#if TARG_IS_X86
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
   anr_a,   anr_b,   anr_c,   anr_d,   /* eax, ebx, ecx, edx */
   anr_si,  anr_di,  anr_bp,  anr_sp,  /* esi, edi, ebp, esp */
   anr_r8,  anr_r9,  anr_r10, anr_r11, /* x86-64 extra integer registers */
@@ -2501,7 +2501,7 @@ enum a_named_register_tag {
   anr_f8,  anr_f9,  anr_f10, anr_f11, /* x86-64 extra SSE registers */
   anr_f12, anr_f13, anr_f14, anr_f15,
   anr_flags, anr_fpsr, anr_dirflag,   /* control registers */
-#endif /* TARG_IS_X86 */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   anr_last
 };
 typedef a_byte a_named_register;
@@ -2514,7 +2514,7 @@ EXTERN char *named_register_names[(int)anr_last + 1]
 #if VAR_INITIALIZERS
 = {
   /* anr_invalid */ "invalid",
-#if TARG_IS_X86
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
   /* anr_a */       "ax",
   /* anr_b */       "bx",
   /* anr_c */       "cx",
@@ -2566,7 +2566,7 @@ EXTERN char *named_register_names[(int)anr_last + 1]
   /* anr_flags */   "flags",
   /* anr_fpsr */    "fpsr",
   /* anr_dirflag */ "dirflag",
-#endif /* TARG_IS_X86 */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   /* anr_last */    "last"
 }
 #endif /* VAR_INITIALIZERS */
@@ -3345,12 +3345,12 @@ typedef struct a_routine_type_supplement {
 			   for a routine marked with the "format_arg"
 			   attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   a_calling_convention
 		calling_convention;
 			/* Calling convention for this routine (e.g.,
 			   __cdecl, __fastcall). */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
   a_type_ptr	this_class;
 			/* For nonstatic member functions this is a pointer
 			   to the (unqualified, untypedefed) class type of
@@ -6099,6 +6099,19 @@ typedef struct a_routine {
 			   malloc attribute.  Such a routine should
 			   return a pointer to newly allocated
 			   storage. */
+#if GNU_NAKED_ATTRIBUTE_ALLOWED
+  a_bit_field	is_naked:1;
+			/* TRUE if this routine was declared with the "naked"
+			   attribute (indicating that a code generator should
+			   not generate a prologue or epilogue for this
+			   routine). */
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+  a_bit_field	no_instrument_function:1;
+			/* TRUE if a code generator should not instrument the
+			   routine for execution profiling. */
+  a_bit_field	no_check_memory_usage:1;
+			/* TRUE if a code generator should not instrument the
+			   routine for checking memory access. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;

@@ -40,7 +40,7 @@ struct name_to_reg {
 Extra named registers, in addition to the canonical names in il_def.h.
 */
 static struct name_to_reg extra_reg_names[] = {
-#if TARG_IS_X86
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
   /* x86 integer registers, common set, other possible names... */
   { "al",  (a_named_register)anr_a  },
   { "bl",  (a_named_register)anr_b  },
@@ -99,7 +99,7 @@ static struct name_to_reg extra_reg_names[] = {
   { "st5", (a_named_register)anr_st5 },
   { "st6", (a_named_register)anr_st6 },
   { "st7", (a_named_register)anr_st7 },
-#endif /* TARG_IS_X86 */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   { "", (a_named_register)anr_last }
 };
 
@@ -286,7 +286,7 @@ done_with_modifiers:
       case 'F':
         ck = (an_asm_operand_constraint_kind)aoc_imm_float;  
         break;
-#if TARG_IS_X86
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
       /* x86 specific constraints - registers */
       case 'a':
         ck = (an_asm_operand_constraint_kind)aoc_reg_a;         
@@ -361,7 +361,7 @@ done_with_modifiers:
       case 'Z':
         ck = (an_asm_operand_constraint_kind)aoc_imm_zext32;    
         break;
-#endif /* TARG_IS_X86 */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
       default:
         errletter[0] = *p;
         pos_st_error(ispunct((unsigned char)*p) ? 
@@ -409,7 +409,7 @@ typedef struct single_register_constraint {
 } single_register_constraint;
 
 static single_register_constraint single_register_constraints[] = {
-#if TARG_IS_X86
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
   { (an_asm_operand_constraint_kind)aoc_reg_a, (a_named_register)anr_a },
   { (an_asm_operand_constraint_kind)aoc_reg_b, (a_named_register)anr_b },
   { (an_asm_operand_constraint_kind)aoc_reg_c, (a_named_register)anr_c },
@@ -419,14 +419,14 @@ static single_register_constraint single_register_constraints[] = {
   /* 't' and 'u' (x86 reg stack) are not included in this list,
      because the rules are not properly handled by the generic code
      below.  Machine-specific code must be written to handle them. */
-#endif /* TARG_IS_X86 */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   { (an_asm_operand_constraint_kind)aoc_last, (a_named_register)anr_last }
 };
 
 static a_named_register fixed_registers[] = {
-#if TARG_IS_X86
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
   (a_named_register)anr_bp, (a_named_register)anr_sp,
-#endif /* TARG_IS_X86 */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   (a_named_register)anr_last
 };
 

@@ -1402,6 +1402,21 @@ be a routine type.
   if (rtsp->is_const) {
     write_tok_str(" __attribute__((__const__))");
   }  /* if */
+#if GNU_X86_ATTRIBUTES_ALLOWED
+  switch (rtsp->calling_convention) {
+    case cc_default:
+      /* No attribute to generate. */
+      break;
+    case cc_cdecl:
+      write_tok_str(" __attribute__((__cdecl__))");
+      break;
+    case cc_stdcall:
+      write_tok_str(" __attribute__((__stdcall__))");
+      break;
+    default:
+      unexpected_condition();
+  }  /* if */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 }  /* write_routine_type_attributes */
 
 
@@ -1533,6 +1548,17 @@ Write out attributes that apply to the indicated routine.
   }  /* if */
   if (rout->allocates_memory) {
     write_tok_str(" __attribute((__malloc__))");
+  }  /* if */
+#if GNU_NAKED_ATTRIBUTE_ALLOWED
+  if (rout->is_naked) {
+    write_tok_str(" __attribute((__naked__))");
+  }  /* if */
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+  if (rout->no_instrument_function) {
+    write_tok_str(" __attribute((__no_instrument_function__))");
+  }  /* if */
+  if (rout->no_check_memory_usage) {
+    write_tok_str(" __attribute((__no_check_memory_usage__))");
   }  /* if */
   if (rout->section != NULL) {
     write_section_attribute(rout->section);

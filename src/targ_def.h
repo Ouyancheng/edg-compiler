@@ -1345,13 +1345,6 @@ but implementations are free to do otherwise.
    on such an architecture. */
 #endif /* !TARG_ALL_POINTERS_SAME_SIZE */
 
-/*
-Macro to indicate that asm expressions target a processor of an x86 family.
-*/
-#ifndef TARG_IS_X86
-#define TARG_IS_X86 FALSE
-#endif /* ifndef TARG_IS_X86 */
-
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /* 

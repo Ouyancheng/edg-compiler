@@ -5445,15 +5445,19 @@ preference is given to the first.
     return_type2_as_comp_type = FALSE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  comp_calling_convention = rtsp1->calling_convention;
-  if (comp_calling_convention == (a_calling_convention)cc_default) {
-    comp_calling_convention = rtsp2->calling_convention;
-  }  /* if */
-  if (rtsp1->calling_convention != comp_calling_convention) {
-    return_type1_as_comp_type = FALSE;
-  }  /* if */
-  if (rtsp2->calling_convention != comp_calling_convention) {
-    return_type2_as_comp_type = FALSE;
+  /* Compute the composite calling convention if we're in Microsoft mode.
+     In GNU mode, this is done by copy_gnu_type_attributes. */
+  if (microsoft_mode) {
+    comp_calling_convention = rtsp1->calling_convention;
+    if (comp_calling_convention == (a_calling_convention)cc_default) {
+      comp_calling_convention = rtsp2->calling_convention;
+    }  /* if */
+    if (rtsp1->calling_convention != comp_calling_convention) {
+      return_type1_as_comp_type = FALSE;
+    }  /* if */
+    if (rtsp2->calling_convention != comp_calling_convention) {
+      return_type2_as_comp_type = FALSE;
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!return_type1_as_comp_type && !return_type2_as_comp_type) {
@@ -5816,8 +5820,14 @@ is allocated, it is allocated in the file scope.
       comp_type = type_plus_qualifiers_from_second_type(comp_type, type_1);
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gcc_mode && skip_typerefs(type_1)->kind == skip_typerefs(type_2)->kind) {
+    comp_type = copy_gnu_type_attributes(comp_type, type_1);
+    comp_type = copy_gnu_type_attributes(comp_type, type_2);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();
-  return(comp_type);
+  return comp_type;
 }  /* composite_type */
 
 

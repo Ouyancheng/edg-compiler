@@ -426,6 +426,29 @@ Flag that is TRUE if GNU C builtin operators should be accepted in support of
 #endif /* ifndef GCC_MINOR_VERSION */
 
 /*
+Flag that is TRUE if asm expressions target a processor of an x86 family.
+*/
+#ifndef GNU_X86_ASM_EXTENSIONS_ALLOWED
+#define GNU_X86_ASM_EXTENSIONS_ALLOWED FALSE
+#endif /* ifndef GNU_X86_ASM_EXTENSIONS_ALLOWED */
+
+/*
+Flag that is TRUE if x86-specific attributes should be recognized (and
+recorded in the IL).  This includes the stdcall and cdecl attributes.
+*/
+#ifndef GNU_X86_ATTRIBUTES_ALLOWED
+#define GNU_X86_ATTRIBUTES_ALLOWED TRUE
+#endif /* ifndef GNU_X86_ATTRIBUTES_ALLOWED */
+
+/*
+Flag that is TRUE if the "naked" attribute should be recognized (and
+recorded in the IL).
+*/
+#ifndef GNU_NAKED_ATTRIBUTE_ALLOWED
+#define GNU_NAKED_ATTRIBUTE_ALLOWED FALSE
+#endif /* ifndef GNU_NAKED_ATTRIBUTE_ALLOWED */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.

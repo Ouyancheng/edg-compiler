@@ -1103,10 +1103,10 @@ Display a_routine_type_supplement.
 #if GNU_EXTENSIONS_ALLOWED
   disp_long("fmt_arg", ptr->fmt_arg);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   disp_name("calling_convention");
   (void)printf("%s\n", calling_convention_names[(int)ptr->calling_convention]);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
   if (ptr->this_class != NULL) {
     disp_ptr("this_class", (char *)ptr->this_class, iek_type);
   }  /* if */
@@ -1737,7 +1737,7 @@ field storing the register.
   (void)printf(": ");
   switch (reg) {
     case anr_invalid: s ="anr_invalid";  break;
-#if TARG_IS_X86
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
     case anr_a:       s = "anr_a";       break;
     case anr_b:       s = "anr_b";       break;
     case anr_c:       s = "anr_c";       break;
@@ -1789,7 +1789,7 @@ field storing the register.
     case anr_flags:   s = "anr_flags";   break;
     case anr_fpsr:    s = "anr_fpsr";    break;
     case anr_dirflag: s = "anr_dirflag"; break;
-#endif /* TARG_IS_X86 */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
     default: s = "**BAD REGISTER KIND**";
   }  /* switch */
   (void)printf("%s\n", s);
@@ -2420,6 +2420,17 @@ Display the indicated routine.
   }  /* if */
   if (ptr->allocates_memory) {
     disp_boolean("allocates_memory", TRUE);
+  }  /* if */
+#if GNU_NAKED_ATTRIBUTE_ALLOWED
+  if (ptr->is_naked) {
+    disp_boolean("is_naked", TRUE);
+  }  /* if */
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+  if (ptr->no_instrument_function) {
+    disp_boolean("no_instrument_function", TRUE);
+  }  /* if */
+  if (ptr->no_check_memory_usage) {
+    disp_boolean("no_check_memory_usage", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION

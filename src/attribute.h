@@ -51,6 +51,15 @@ enum an_attribute_kind_tag {
   ak_transparent_union,
   ak_format,
   ak_format_arg,
+#if GNU_NAKED_ATTRIBUTE_ALLOWED
+  ak_naked,
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+  ak_no_instrument_function,
+  ak_no_check_memory_usage,
+#if GNU_X86_ATTRIBUTES_ALLOWED
+  ak_cdecl,
+  ak_stdcall,
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   ak_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -62,29 +71,37 @@ Names of attribute kinds.
 EXTERN char *attribute_kind_names[(int)ak_last + 1]
 #if VAR_INITIALIZERS
 = {
-/* ak_error */          "error",
-/* ak_mode */           "mode",
+/* ak_error */                      "error",
+/* ak_mode */                       "mode",
 #if USER_CONTROL_OF_STRUCT_PACKING
-/* ak_aligned */        "aligned",
-/* ak_packed */         "packed",
+/* ak_aligned */                    "aligned",
+/* ak_packed */                     "packed",
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-/* ak_unused */	        "unused",
-/* ak_constructor */    "constructor",
-/* ak_destructor */     "destructor",
-/* ak_noreturn */       "noreturn",
-/* ak_pure */           "pure",
-/* ak_const */          "const",
-/* ak_weak */           "weak",
-/* ak_section */        "section",
-/* ak_alias */          "alias",
-/* ak_malloc */         "malloc",
-/* ak_nocommon */       "nocommon",
-/* ak_transparent_union */
-                        "transparent_union",
-/* ak_format */         "format",
-/* ak_format_arg */     "format_arg",
-/* ak_last */           "last" /* used to check that initialization is
-                                  right. */
+/* ak_unused */                     "unused",
+/* ak_constructor */                "constructor",
+/* ak_destructor */                 "destructor",
+/* ak_noreturn */                   "noreturn",
+/* ak_pure */                       "pure",
+/* ak_const */                      "const",
+/* ak_weak */                       "weak",
+/* ak_section */                    "section",
+/* ak_alias */                      "alias",
+/* ak_malloc */                     "malloc",
+/* ak_nocommon */                   "nocommon",
+/* ak_transparent_union */          "transparent_union",
+/* ak_format */                     "format",
+/* ak_format_arg */                 "format_arg",
+#if GNU_NAKED_ATTRIBUTE_ALLOWED
+/* ak_naked */                      "naked",
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+/* ak_no_instrument_function */     "no_instrument_function",
+/* ak_no_check_memory_usage */      "no_check_memory_usage",
+#if GNU_X86_ATTRIBUTES_ALLOWED
+/* ak_cdecl */                      "cdecl",
+/* ak_stdcall */                    "stdcall",
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+/* ak_last */                       "last" /* used to check that
+                                              initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
 ;
@@ -217,6 +234,9 @@ extern void check_function_param_attributes(a_func_info_block_ptr func_info);
 
 extern a_boolean check_transparent_union(a_type_ptr        tp,
                                          a_source_position *pos);
+
+extern a_type_ptr copy_gnu_type_attributes(a_type_ptr  dst,
+                                           a_type_ptr  src);
 
 extern void process_alias_fixup_list(void);
 

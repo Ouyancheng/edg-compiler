@@ -192,6 +192,15 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_malloc:
     case ak_nocommon:
     case ak_transparent_union:
+#if GNU_NAKED_ATTRIBUTE_ALLOWED
+    case ak_naked:
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+    case ak_no_instrument_function:
+    case ak_no_check_memory_usage:
+#if GNU_X86_ATTRIBUTES_ALLOWED
+    case ak_stdcall:
+    case ak_cdecl:
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
       break;
     case ak_section:
       ap->variant.section = NULL;
@@ -239,6 +248,15 @@ Return a copy of the complete attribute list.
       case ak_malloc:
       case ak_nocommon:
       case ak_transparent_union:
+#if GNU_NAKED_ATTRIBUTE_ALLOWED
+      case ak_naked:
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+      case ak_no_instrument_function:
+      case ak_no_check_memory_usage:
+#if GNU_X86_ATTRIBUTES_ALLOWED
+      case ak_stdcall:
+      case ak_cdecl:
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
         /* No variant fields. */
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -544,6 +562,11 @@ Specifically, these attributes take no arguments:
   malloc
   nocommon
   transparent_union
+  naked
+  no_instrument_function
+  no_check_memory_usage
+  cdecl
+  stdcall
 
 These attributes take arguments:
 
@@ -653,6 +676,15 @@ function returns the address of the last attribute.
           case ak_malloc:
           case ak_nocommon:
           case ak_transparent_union:
+#if GNU_NAKED_ATTRIBUTE_ALLOWED
+          case ak_naked:
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+          case ak_no_instrument_function:
+          case ak_no_check_memory_usage:
+#if GNU_X86_ATTRIBUTES_ALLOWED
+          case ak_stdcall:
+          case ak_cdecl:
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
             /* These attributes do not take arguments. */
             break;
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -1205,6 +1237,35 @@ messages about any invalid attributes.
           }  /* if */
         }
         break;
+#if GNU_NAKED_ATTRIBUTE_ALLOWED
+      case ak_naked:
+        rp->is_naked = TRUE;
+        break;
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+      case ak_no_instrument_function:
+        rp->no_instrument_function = TRUE;
+        break;
+      case ak_no_check_memory_usage:
+        rp->no_check_memory_usage = TRUE;
+        break;
+#if GNU_X86_ATTRIBUTES_ALLOWED
+      case ak_cdecl:
+        { a_routine_type_supplement_ptr rtsp;
+          rtsp = rp->type->variant.routine.extra_info;
+          if (rtsp->calling_convention == (a_calling_convention)cc_default) {
+            /* The GNU C compiler appears to ignore the cdecl attribute if
+               another calling convention is already specified. */
+            rtsp->calling_convention = (a_calling_convention)cc_cdecl;
+          }  /* if */
+        }
+        break;
+      case ak_stdcall:
+        { a_routine_type_supplement_ptr rtsp;
+          rtsp = rp->type->variant.routine.extra_info;
+          rtsp->calling_convention = (a_calling_convention)cc_stdcall;
+        }
+        break;
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
       default:
         /* An invalid attribute. */
         pos_sy_warning(ec_attribute_does_not_apply,
@@ -1509,6 +1570,39 @@ should not be associated with the parameter, but with its type.)
     check_for_invalid_param_attributes(pid->symbol, pid->attributes);
   }  /* if */
 }  /* check_function_param_attributes */
+
+
+a_type_ptr copy_gnu_type_attributes(a_type_ptr  dst,
+                                    a_type_ptr  src)
+/*
+Copy any GNU type attributes in type dst to type src.
+*/
+{
+  src = skip_typerefs(src);
+  dst = skip_typerefs(dst);
+  if (dst == src) {
+    /* Nothing to be done. */
+  } else {
+    switch (src->kind) {
+      case tk_routine:
+#if GNU_X86_ATTRIBUTES_ALLOWED
+        { a_routine_type_supplement_ptr src_rtsp, dst_rtsp;
+          src_rtsp = src->variant.routine.extra_info;
+          dst_rtsp = dst->variant.routine.extra_info;
+          if (src_rtsp->calling_convention !=
+                                           (a_calling_convention)cc_default &&
+              dst_rtsp->calling_convention !=
+                                           (a_calling_convention)cc_stdcall) {
+            dst_rtsp->calling_convention = src_rtsp->calling_convention;
+          }  /* if */
+        }
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+        break;
+      default:
+    }  /* switch */
+  }  /* if */
+  return dst;
+}  /* copy_gnu_type_attributes */
 
 
 void attribute_one_time_init(void)
