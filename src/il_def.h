@@ -6325,7 +6325,7 @@ typedef struct a_microsoft_try_supplement {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		except_or_finally_position;
-			/* Source position of the __except or __finally token. */
+			/* Position of the __except or __finally token. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_microsoft_try_supplement;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
