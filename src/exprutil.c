@@ -6076,7 +6076,6 @@ address of the temporary is returned.  This routine is only used in C++ mode.
       } else {
         /* Couldn't convert to an object pointer.  The rvalue will have to be
            copied to a temporary, and the temporary address used. */
-#if CHECKING
         /* Avoid recursion loops if the class does not allow bitwise copy.
            The conversion to an object pointer really must succeed (i.e.,
            it's not merely an optimization) if a "real" copy constructor
@@ -6085,14 +6084,22 @@ address of the temporary is returned.  This routine is only used in C++ mode.
         { a_class_symbol_supplement_ptr cssp =
                                     symbol_supplement_for_class(operand->type);
           if (!cssp->construction_by_bitwise_copy_allowed) {
+            /* Cases like this can come up when an implicitly-generated
+               copy constructor is later defined explicitly outside the
+               class. */
+#if CHECKING
+            if (total_errors == 0) {
 #if DEBUG
-            db_expression(node);
+              db_expression(node);
 #endif /* DEBUG */
-            internal_error(
+              internal_error(
               "conv_class_operand_to_object_pointer: couldn't convert to ptr");
+#endif /* CHECKING */
+            }  /* if */
+            conv_to_error_operand(operand);
+            optimized_case = TRUE;
           }  /* if */
         }
-#endif /* CHECKING */
       }  /* if */
     }  /* if */
     if (!optimized_case) {
