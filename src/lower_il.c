@@ -2538,7 +2538,7 @@ used to encode constants as part of the mangled names of template classes.
          This is compatible with cfront 3.0.1. */
       str = str_for_integer_constant(con);
       str_length = strlen(str);  /* Includes "-" sign if any. */
-      digits = digits_to_represent(str_length);
+      digits = digits_to_represent((unsigned long)str_length);
       literal_length = 1 + digits + str_length;
       if (store_at != NULL) {
         *store_at++ = 'L';
@@ -2563,7 +2563,7 @@ used to encode constants as part of the mangled names of template classes.
       str = fp_to_string(skip_typerefs(con->type)->variant.float_kind,
                          &con->variant.float_value);
       str_length = strlen(str);  /* Includes "-" sign if any. */
-      digits = digits_to_represent(str_length);
+      digits = digits_to_represent((unsigned long)str_length);
       literal_length = 1 + digits + str_length;
       if (store_at != NULL) {
         *store_at++ = 'L';
@@ -2610,7 +2610,7 @@ used to encode constants as part of the mangled names of template classes.
         for (temp = str_length; temp > 0; temp--) {
           if (!isalpha(str[temp-1])) str_length += 2;
         }  /* for */
-        digits = digits_to_represent(str_length);
+        digits = digits_to_represent((unsigned long)str_length);
         literal_length = 1 + digits + str_length;
         if (store_at != NULL) {
           *store_at++ = 'S';
@@ -2661,7 +2661,7 @@ used to encode constants as part of the mangled names of template classes.
              ^--------- "c" indicates a constant address.
            This is compatible with cfront 3.0.1. */
         str_length = strlen(str);
-        digits = digits_to_represent(str_length);
+        digits = digits_to_represent((unsigned long)str_length);
         literal_length = 1 + digits + str_length;
         if (store_at != NULL) {
           *store_at++ = 'c';
@@ -2680,7 +2680,7 @@ used to encode constants as part of the mangled names of template classes.
         (void)sprintf(buffer, "%ld", (long)offset);
         str = buffer;
         str_length = strlen(str);  /* Includes "-" sign if any. */
-        digits = digits_to_represent(str_length);
+        digits = digits_to_represent((unsigned long)str_length);
         literal_length += 1 + digits + str_length;
         if (store_at != NULL) {
           *store_at++ = 'O';
