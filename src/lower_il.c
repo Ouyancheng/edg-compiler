@@ -3535,7 +3535,7 @@ sub-scopes in the same memory region.
   /* Do function and static data member name mangling. */
   do_scope_other_name_mangling(scope);
   /* Mangle nested class names. */
-  do_scope_class_name_mangling(scope);
+  do_scope_nested_class_name_mangling(scope);
 }  /* do_memory_region_name_mangling */
 
 
@@ -8426,7 +8426,8 @@ original expressions have not been lowered yet.
       if (is_operation_node(size_node) &&
           size_node->variant.operation.kind ==
                                         (an_expr_operator_kind)eok_imultiply) {
-        an_expr_node_ptr multiplier = size_node->variant.operation.operands;
+        an_expr_node_ptr multiplier =
+                                   size_node->variant.operation.operands->next;
         if (is_constant_node(multiplier)) {
           a_constant_ptr multiplier_con = multiplier->variant.constant;
           if (multiplier_con->kind == (a_constant_repr_kind)ck_integer &&
