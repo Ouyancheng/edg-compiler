@@ -1,5 +1,15 @@
 Version 3.4
 
+2/12/04 Abort on partial specialization using template template parameters
+
+In certain error cases, an abort could occur when determining which of
+two class templates partial specializations should be used when both
+match a given class template instance.  The problem occurs only if one or
+more of the template parameters are template template parameters.  We have
+not been able to produce a small example of the problem, and believe that
+the abort only occurs in obscure cases in invalid code.  The abort occurs in
+matches_template_template_param.
+
 2/10/04 C- and C++-generating back ends: C99 STDC pragmas
 
 The C- and C++-generating back ends left out the "STDC" token when emitting

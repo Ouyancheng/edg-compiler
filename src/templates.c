@@ -5049,7 +5049,22 @@ match is found.
   } else {
     tssp = sym->variant.template_info;
     templ_tssp = templ_sym->variant.template_info;
-    if (templ_tssp->variant.class_template.template_template_param) {
+    if (tssp->is_nonreal_member || templ_tssp->is_nonreal_member) {
+      /* Nonreal members must have the same name and parent class. */
+      a_template_ptr	tp = tssp->il_template_entry;
+      a_template_ptr	templ_tp = templ_tssp->il_template_entry;
+      if (strcmp(tp->source_corresp.name,
+                 templ_tp->source_corresp.name) == 0) {
+        /* They have the same names. */
+        if (matches_template_type(tp->source_corresp.parent.class_type,
+                                  templ_tp->
+                                           source_corresp.parent.class_type,
+                                  templ_arg_list, templ_param_list,
+                                  MTT_NO_FLAGS)) {
+          match = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if (templ_tssp->variant.class_template.template_template_param) {
       param_list_for_templ = templ_tssp->cache.decl_info->parameters;
       param_list = tssp->cache.decl_info->parameters;
       if (tentatively_matching_template_param_lists(
@@ -5095,21 +5110,6 @@ match is found.
               /* Not a match.  Return FALSE. */
             }  /* if */
           }  /* if */
-        }  /* if */
-      }  /* if */
-    } else if (tssp->is_nonreal_member || templ_tssp->is_nonreal_member) {
-      /* Nonreal members have must have the same name and parent class. */
-      a_template_ptr	tp = tssp->il_template_entry;
-      a_template_ptr	templ_tp = templ_tssp->il_template_entry;
-      if (strcmp(tp->source_corresp.name,
-                 templ_tp->source_corresp.name) == 0) {
-        /* They have the same names. */
-        if (matches_template_type(tp->source_corresp.parent.class_type,
-                                  templ_tp->
-                                           source_corresp.parent.class_type,
-                                  templ_arg_list, templ_param_list,
-                                  MTT_NO_FLAGS)) {
-          match = TRUE;
         }  /* if */
       }  /* if */
     } else {
