@@ -1662,29 +1662,31 @@ is a that of a constructor.
        class "A".  This is necessary for curr_token_type_symbol to handle
        this case correctly. */
     (void)simplify_curr_class_qualified_name();
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    /* Put the current token in the cache. */
-    cache_curr_token(&cache);
-    /* Advance to what may be the left paren. */
-    if (get_token() == tok_lparen) {
-      /* Cache the left parenthesis. */
+    if (!locator_for_curr_id.is_qualified_name) {
+      clear_token_cache(&cache, /*reusable=*/FALSE);
+      /* Put the current token in the cache. */
       cache_curr_token(&cache);
-      /* Advance past it.  If the next token is a right paren or
-         the start of a parameter declaration, this must be a
-         constructor. */
-      (void)get_token();
-      if (curr_token == tok_rparen || curr_token == tok_ellipsis ||
-          is_decl_start(/*expr_context=*/FALSE,
-                        /*real_declarator_allowed=*/TRUE)) {
-        /* Constructor. */
-        is_constructor = TRUE;
+      /* Advance to what may be the left paren. */
+      if (get_token() == tok_lparen) {
+        /* Cache the left parenthesis. */
+        cache_curr_token(&cache);
+        /* Advance past it.  If the next token is a right paren or
+           the start of a parameter declaration, this must be a
+           constructor. */
+        (void)get_token();
+        if (curr_token == tok_rparen || curr_token == tok_ellipsis ||
+            is_decl_start(/*expr_context=*/FALSE,
+                          /*real_declarator_allowed=*/TRUE)) {
+          /* Constructor. */
+          is_constructor = TRUE;
+        }  /* if */
       }  /* if */
+      /* Note that rescan_cached_tokens caches the current token as well as
+         resetting the current token state to what it was before token caching
+         was started.  So the current token should again be the name of the
+         class being defined. */
+      rescan_cached_tokens(&cache);
     }  /* if */
-    /* Note that rescan_cached_tokens caches the current token as well as
-       resetting the current token state to what it was before token caching
-       was started.  So the current token should again be the name of the
-       class being defined. */
-    rescan_cached_tokens(&cache);
     if (is_constructor) {
       /* Turn the current locator from a "specific symbol" locator into a
          constructor locator. */
