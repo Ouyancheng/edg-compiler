@@ -1,5 +1,18 @@
 Version 2.44
 
+3/10/00  Microsoft compatibility: conflicting dllimport/dllexport
+         specifications on class declarations
+
+The front end now allows multiple class declarations to have conflicting
+dllimport/dllexport specifications.  If a complete class definition has
+not been seen yet, the new specification overrides the previous one.
+Otherwise, the new specification is ignored.
+
+  class __declspec(dllimport) X;
+  class __declspec(dllexport) X;     // Replace "dllimport" by "dllexport"
+  class __declspec(dllimport) X {};  // Back to "dllimport"
+  class __declspec(dllexport) X;     // Still "dllimport"
+
 3/9/00   Accessibility of using-declarations for privately inherited member
 
 The front end used to incorrectly deny access to a public member using-

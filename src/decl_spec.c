@@ -620,12 +620,28 @@ is a pointer to a source position used for diagnostics.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           case dmt_dllimport:
             if (ctsp->decl_modifiers & DM_DLLEXPORT) {
-              invalid_redecl = TRUE;
+              if (is_incomplete_type(class_type)) {
+                /* No definition has been seen yet: replace dllexport by
+                   dllimport. */
+                ctsp->decl_modifiers &= ~DM_DLLEXPORT;
+              } else {
+                /* A definition was already seen and that froze the dllimport/
+                   dllexport setting.  Just ignore this one. */
+                extended_decl_info->decl_modifiers.flags &= ~modifier_value;
+              }  /* if */
             }  /* if */
             break;
           case dmt_dllexport:
             if (ctsp->decl_modifiers & DM_DLLIMPORT) {
-              invalid_redecl = TRUE;
+              if (is_incomplete_type(class_type)) {
+                /* No definition has been seen yet: replace dllimport by
+                   dllexport. */
+                ctsp->decl_modifiers &= ~DM_DLLIMPORT;
+              } else {
+                /* A definition was already seen and that froze the dllimport/
+                   dllexport setting.  Just ignore this one. */
+                extended_decl_info->decl_modifiers.flags &= ~modifier_value;
+              }  /* if */
             }  /* if */
             break;
           case dmt_novtable:
