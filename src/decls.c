@@ -9091,7 +9091,8 @@ continue_with_declaration:
             } else {
               a_type_ptr  tp = skip_typerefs(var_ptr->type);
               if (is_array_type(tp)) {
-                tp = skip_typerefs(underlying_array_element_type(tp));
+                tp = underlying_array_element_type(tp);
+                tp = skip_typerefs(tp);
               }  /* if */
               if (is_immediate_class_type(tp) &&
                   symbol_supplement_for_class(tp)->
