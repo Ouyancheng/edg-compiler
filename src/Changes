@@ -1,12 +1,21 @@
 Version 2.30
 
+6/21/95  C++-generating back end: Pointers to members within member functions
+
+Pointers to members must always have the form of a qualified name, e.g.,
+&A::x.  The C++-generating back end unfortunately suppressed the
+class qualifier when inside a member function of the class, thinking
+it was unnecessary, and thereby produced &x, which is not valid.  Now
+fixed by forcing generation of a qualified name for all occurrences
+of pointers to members.
+
 6/21/95  Template strings for template static data members
 
 A bug has been fixed that caused template static data members with
 brace enclosed initializers to omit the initializer when generating
 the template string for the template static data member.  Template
 strings are only generated when RECORD_TEMPLATES_IN_IL is TRUE
-(usually only when using the C++ generating back end).
+(usually only when using the C++-generating back end).
 
 6/21/95  C++-generating back end: lvalue casts
 
