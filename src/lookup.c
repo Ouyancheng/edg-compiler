@@ -642,7 +642,8 @@ should be used to satisfy the lookup.
 
 
 static
-a_symbol_ptr find_out_of_scope_declaration(a_symbol_locator *locator)
+a_symbol_ptr find_out_of_scope_declaration(a_symbol_locator         *locator,
+                                           an_id_lookup_options_set options)
 /*
 This is an SVR4 compatibility feature that is now a default ANSI C
 mode feature.  This routine is used to make external symbol declarations
@@ -667,6 +668,8 @@ refer to the external entities declared by the declarations in f1.
 When a symbol lookup fails, this routine is called to see if an external
 symbol exists with the name being looked up.  If so, a new symbol is
 entered in the current scope that refers to the external entity.
+"options" specifies the lookup options being used.  The external symbol
+that is found must meet the criteria specified by the lookup options.
 A warning is issued.  A pointer to the new symbol is returned.  If no
 such pointer is found, NULL is returned.
 */
@@ -681,6 +684,9 @@ such pointer is found, NULL is returned.
                                   variant.routine.is_implicit_declaration) {
     /* Don't redeclare a previous symbol if it was implicitly
        declared. */
+    sym = NULL;
+  } else if (sym != NULL && !sym_matches_lookup_options(sym, options)) {
+    /* The external symbol does not satisfy the lookup criteria. */
     sym = NULL;
   }  /* if */
   if (sym != NULL) {
@@ -1080,13 +1086,14 @@ are needed to use is_acceptable_symbol.
 */
 {
   a_boolean	result;
+  a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
  
   result = ((!((options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0) ||
-             symbol_may_precede_qualifier(sym)) &&
+             symbol_may_precede_qualifier(fund_sym)) &&
             (!((options & IDL_MUST_BE_TAG) != 0) ||
-             is_tag_or_tag_proxy_symbol(sym)) &&
+             is_tag_or_tag_proxy_symbol(fund_sym)) &&
             (!((options & IDL_MUST_BE_NAMESPACE) != 0) ||
-             is_namespace_symbol(sym)));
+             is_namespace_symbol(fund_sym)));
   return result;
 }  /* sym_matches_lookup_options */
 
@@ -1895,8 +1902,9 @@ C and C++.
            a block extern in a block that is no longer in scope may be
            referenced later.  Look for an external variable or routine that
            matches the name being looked up.  This is not done during
-           tentative type lookups. */
-        sym = find_out_of_scope_declaration(locator);
+           tentative type lookups.  The "is_acceptable_symbol" test is done
+           by find_out_of_scope_declaration. */
+        sym = find_out_of_scope_declaration(locator, options);
       }  /* if */
     }  /* if */
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG

@@ -1,5 +1,19 @@
 Version 2.31
 
+12/1/95   Spurious diagnostics caused by out-of-scope declarations that
+	  should be ignored
+
+In ANSI C mode, when SVR4 mode is enabled, an out-of-scope declaration was
+incorrectly being considered even when it did not meet the lookup constraints.
+This resulted in a spurious diagnostics in cases like the one below.  This
+particular case resulted in a warning on versions before 2.30, and resulted
+in both a warning and an error on version 2.30.  This has been fixed.
+
+  typedef struct X* Xp;
+  extern Xp x;
+  struct bar { struct x* a; };
+  struct x { int i; };
+
 11/28/95  Bug causing macro names to conflict with other names
 
 Version 2.30 introduced a bug that caused a spurious error in some cases
