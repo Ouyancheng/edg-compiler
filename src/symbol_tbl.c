@@ -3526,6 +3526,21 @@ the new name and relink it into the symbol table under the new header.
 }  /* relink_unnamed_tag_symbol */
 
 
+void enter_undefined_symbol(a_symbol_ptr sym)
+/*
+The indicated symbol is an sk_undefined symbol created because of an
+undefined identifier.  It is now known that this is an error.  Enter
+the symbol into the symbol table so it can be found on subsequent
+uses of the name.
+*/
+{
+  /* Note that the is_error flag is not set on this symbol.  Error
+     symbols are not entered into the symbol table, but undefined
+     symbols need to be (for error recovery purposes). */
+  reenter_symbol(sym, decl_scope_level, /*suppress_error=*/TRUE);
+}  /* enter_undefined_symbol */
+
+
 a_symbol_ptr enter_undefined_member_symbol(a_symbol_locator *locator)
 /*
 Enter a symbol for an undefined class member, or find an existing one, and

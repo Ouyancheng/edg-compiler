@@ -2445,6 +2445,8 @@ extern void reactivate_prototype_scope_symbols(
 extern void relink_unnamed_tag_symbol(a_symbol_ptr      sym,
                                       a_symbol_locator  *locator);
 
+extern void enter_undefined_symbol(a_symbol_ptr sym);
+
 extern a_symbol_ptr enter_undefined_member_symbol(a_symbol_locator *locator);
 
 extern a_symbol_ptr make_namespace_projection_symbol(

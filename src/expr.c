@@ -963,21 +963,6 @@ a pointer to its routine entry.  Otherwise, return NULL.
 }  /* routine_from_function_operand */
 
 
-static void enter_undefined_symbol(a_symbol_ptr sym)
-/*
-The indicated symbol is an sk_undefined symbol created because of an
-undefined identifier.  It is now known that this is an error.  Enter
-the symbol into the symbol table so it can be found on subsequent
-uses of the name.
-*/
-{
-  /* Note that the is_error flag is not set on this symbol.  Error
-     symbols are not entered into the symbol table, but undefined
-     symbols need to be (for error recovery purposes). */
-  reenter_symbol(sym, decl_scope_level, /*suppress_error=*/TRUE);
-}  /* enter_undefined_symbol */
-
-
 static void scan_function_call(an_operand *operand,
                                an_operand *bound_function_selector,
 			       an_operand *result)
