@@ -1134,11 +1134,15 @@ operator kinds.  Issue a diagnostic if an error is found.
       if (param_count == 0) {
 	error_code = ec_too_few_args_for_operator;
       } else if (opname == (an_opname_kind)onk_new) {
-        tp = rout->type->variant.routine.extra_info->param_type_list->type;
-        if (!is_integral_type(tp) ||
-            skip_typerefs(tp)->variant.integer.int_kind !=
-                                (an_integer_kind)TARG_SIZE_T_INT_KIND) {
-          error_code = ec_bad_arg_type_for_operator_new;
+        ptp = rout->type->variant.routine.extra_info->param_type_list;
+        tp = ptp->type;
+        if (!is_error_type(tp)) {
+          if (!is_integral_type(tp) ||
+              skip_typerefs(tp)->variant.integer.int_kind !=
+                                  (an_integer_kind)TARG_SIZE_T_INT_KIND) {
+            error_code = ec_bad_arg_type_for_operator_new;
+            ptp->type = error_type();
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (opname == (an_opname_kind)onk_delete) {
@@ -1147,8 +1151,11 @@ operator kinds.  Issue a diagnostic if an error is found.
 	error_code = ec_too_few_args_for_operator;
       } else {
         tp = ptp->type;
-        if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
-          pos_error(ec_bad_first_arg_type_for_operator_delete, pos);
+        if (!is_error_type(tp)) {
+          if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
+            pos_error(ec_bad_first_arg_type_for_operator_delete, pos);
+            ptp->type == error_type();
+          }  /* if */
         }  /* if */
         ptp = ptp->next;
         if (ptp != NULL) {
@@ -1159,10 +1166,13 @@ operator kinds.  Issue a diagnostic if an error is found.
           } else {
             /* The second argument must be of type size_t (ARM 12.5). */
             tp = ptp->type;
-            if (!is_integral_type(tp) ||
-                skip_typerefs(tp)->variant.integer.int_kind !=
-                                  (an_integer_kind)TARG_SIZE_T_INT_KIND) {
-              pos_error(ec_bad_second_arg_type_for_operator_delete, pos);
+            if (!is_error_type(tp)) {
+              if (!is_integral_type(tp) ||
+                  skip_typerefs(tp)->variant.integer.int_kind !=
+                                    (an_integer_kind)TARG_SIZE_T_INT_KIND) {
+                pos_error(ec_bad_second_arg_type_for_operator_delete, pos);
+                ptp->type = error_type();
+              }  /* if */
             }  /* if */
             /* More than two arguments are not allowed. */
             if (ptp->next != NULL) error_code = ec_too_many_args_for_operator;
@@ -1178,16 +1188,41 @@ operator kinds.  Issue a diagnostic if an error is found.
       }  /* if */
     }  /* if */
     if (error_code != ec_no_error) pos_error(error_code, pos);
+    /* Check return type. */
+    if (opname == (an_opname_kind)onk_arrow) {
+      /* For operator->() do a special check on the return type.  It must
+         be something that can be used as a pointer -- either a pointer
+         to a class or an object of or reference to a class for which
+         operator->() is defined (ARM 13.4.6). */
+      tp = rout->type->variant.routine.return_type;
+      if (!is_error_type(tp)) {
+        a_boolean  err;
+        if (is_pointer_type(tp)) {
+          err = !is_class_struct_union_type(type_pointed_to(tp));
+        } else {
+          if (is_reference_type(tp)) tp = type_pointed_to(tp);
+          err = (!is_class_struct_union_type(tp) ||
+                 tp == rout->source_corresp.class_of_which_a_member ||
+                 opname_member_function_symbol(opname, tp) == NULL);
+        }  /* if */
+        if (err) {
+          pos_error(ec_bad_return_type_for_operator_arrow, pos);
+          rout->type->variant.routine.return_type = error_type();
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (opname == (an_opname_kind)onk_new ||
         opname == (an_opname_kind)onk_delete) {
       tp = rout->type->variant.routine.return_type;
-      if (opname == (an_opname_kind)onk_new) {
-        if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
-          pos_error(ec_bad_return_type_for_operator_new, pos);
-        }  /* if */
-      } else {
-        if (!is_void_type(tp)) {
-          pos_error(ec_bad_return_type_for_operator_delete, pos);
+      if (!is_error_type(tp)) {
+        if (opname == (an_opname_kind)onk_new) {
+          if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
+            pos_error(ec_bad_return_type_for_operator_new, pos);
+          }  /* if */
+        } else {
+          if (!is_void_type(tp)) {
+            pos_error(ec_bad_return_type_for_operator_delete, pos);
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
