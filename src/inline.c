@@ -938,7 +938,7 @@ If not, *failed is set.
               goto cannot_inline_ever;
             }  /* if */
             /* Non-aggregate constant initial value. */
-            /* This uses copy_unshared constant because that routine does
+            /* This uses copy_unshared_constant because that routine does
                variable remapping if necessary. */
             init_expr = alloc_node_for_constant(
                                 copy_unshared_constant(dip->variant.constant));
