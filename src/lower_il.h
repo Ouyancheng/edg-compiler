@@ -653,9 +653,6 @@ extern void lower_constant(a_constant_ptr constant);
 
 extern void add_indirection_to_cctor_param_type(a_param_type_ptr ptp);
 
-extern a_boolean should_drop_const_on_this_param_variable(
-                                                        a_routine_ptr routine);
-
 extern void lower_type(a_type_ptr type);
 
 extern void lower_os_type(a_type_ptr type);
