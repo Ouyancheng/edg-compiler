@@ -305,7 +305,7 @@ case.
     }  /* for */
     /* Allocate an array for the list.  An extra element is allocated for a
        NULL terminating element. */
-    list = (char**)alloc_fe((sizeof_t)(sizeof(char*) * num_elements + 1));
+    list = (char**)alloc_fe((sizeof_t)(sizeof(char*) * (num_elements + 1)));
     /* Set the terminating element to NULL. */
     list[num_elements] = NULL;
     for (element = 0, ptr = values; element < num_elements; ++element) {
