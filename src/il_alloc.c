@@ -1017,8 +1017,10 @@ to default values.
       pte->variant.integer.enum_info.affiliated_type = NULL;
       break;
     case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:
     case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       pte->variant.float_kind = (a_float_kind)fk_float;
       break;
     case tk_pointer:

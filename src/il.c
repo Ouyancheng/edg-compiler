@@ -3801,8 +3801,10 @@ region).
     case ck_error:
     case ck_integer:
     case ck_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_imaginary:
     case ck_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       /* No references. */
       break;
     case ck_string:

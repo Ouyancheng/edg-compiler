@@ -4399,10 +4399,12 @@ arguments.
         unexpected_condition_str2("scan_type_generic_operator:",
                                   "bad float kind");
     }  /* switch */
+#if C99_IL_EXTENSIONS_SUPPORTED
     /* Positions 7, 8, and 9 are occupied, respectively, by complex
        double, complex float, and complex long double versions of the
        function. */
     if (arg_type->kind == (a_type_kind)tk_complex) func_arg_number += 3;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   }  /* if */
   check_assertion(func_arg_number == -1 ||
                   (func_arg_number >= 4 && func_arg_number <= 9));

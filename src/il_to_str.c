@@ -3147,11 +3147,13 @@ precedence confusion.  Do the output in the way described by octl.
       form_float_constant(&constant->variant.float_value,
                           con_type->variant.float_kind,
                           octl);
+#if C99_IL_EXTENSIONS_SUPPORTED
       if (kind == (a_constant_repr_kind)ck_imaginary) {
         /* Complex and imaginary constants are constructed with the
            EDG-specific __I__. */
         octl->output_str("*__I__");
       }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       octl->output_str(")");
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
