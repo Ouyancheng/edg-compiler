@@ -1588,7 +1588,7 @@ by id_linkage.
             if (sym != NULL) {
               /* Found a match. */
               linked_symbol = other_decl = sym;
-              if (sym->variant.routine.instance_ptr->specific_decl) {
+              if (sym->variant.routine.instance_ptr->is_guiding_decl) {
                 *overload_symbol = NULL;
               }  /* if */
               goto done;
@@ -3099,7 +3099,7 @@ namespace-extension scope.
              void N::f(int) { ... }          // Okay
              void N::f(double) { ... }       // Error
         */
-        if (!linked_symbol->variant.routine.instance_ptr->specific_decl) {
+        if (!linked_symbol->variant.routine.instance_ptr->is_guiding_decl) {
           pos_sy_error(ec_no_prior_declaration, &locator->source_position,
                        linked_symbol);
         }  /* if */
@@ -3916,7 +3916,7 @@ on for use in generating cross-reference output describing this declaration.
         }  /* if */
       }  /* if */
       if (!linked_redecl_error) {
-        if (!sym->variant.routine.instance_ptr->specific_decl &&
+        if (!sym->variant.routine.instance_ptr->is_guiding_decl &&
             homonym_symbol != NULL) {
           a_boolean	use_namespace;
 
@@ -3932,7 +3932,7 @@ on for use in generating cross-reference output describing this declaration.
                     add_symbol_to_overload_list(sym, homonym_symbol,
                                                 use_namespace,
                                                 sym->parent.namespace_ptr);
-          sym->variant.routine.instance_ptr->specific_decl = TRUE;
+          sym->variant.routine.instance_ptr->is_guiding_decl = TRUE;
         }  /* if */
         *old_type = routine_ptr->type;
         if (C_dialect == C_dialect_cplusplus) {

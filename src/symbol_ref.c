@@ -222,7 +222,7 @@ this case and add it to the list for the current scope.
                                 variant.function.instantiations;
            tip != NULL;
            tip = tip->next) {
-        if (!tip->specific_decl) {
+        if (!tip->is_guiding_decl) {
           record_defeatable_name_hiding(tip->instance_sym,
                                         tag_hidden_by_nontag,
                                         global_hidden_by_nonglobal, sp);

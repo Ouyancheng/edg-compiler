@@ -830,7 +830,7 @@ do_variable:
           while (tip != NULL) {
             a_routine_ptr rp = tip->instance_sym->variant.routine.ptr;
             fprintf(f_debug, "%*sinstance", indentation, "");
-            if (tip->instantiation_required || tip->specific_decl ||
+            if (tip->instantiation_required || tip->is_guiding_decl ||
                 rp->is_specialized) {
               char* comma = "";
               fputs(" (", f_debug);
@@ -838,8 +838,8 @@ do_variable:
                 fputs("instantiation req'd", f_debug);
                 comma = ", ";
               }  /* if */
-              if (tip->specific_decl) {
-                fprintf(f_debug, "%sspecific decl", comma);
+              if (tip->is_guiding_decl) {
+                fprintf(f_debug, "%sguiding decl", comma);
                 comma = ", ";
               }  /* if */
               if (rp->is_specialized) {
@@ -7938,7 +7938,7 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->referencing_namespace       = NULL;
   tip->template_info               = NULL;
   tip->instantiation_required      = FALSE;
-  tip->specific_decl               = FALSE;
+  tip->is_guiding_decl             = FALSE;
   tip->explicit_instantiation      = FALSE;
   tip->class_explicitly_instantiated
                                    = FALSE;

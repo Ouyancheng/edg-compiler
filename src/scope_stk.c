@@ -2670,7 +2670,7 @@ NULL.
 
       tip = sym->variant.template_info->variant.function.instantiations;
       for (; tip != NULL; tip = tip->next) {
-        if (tip->specific_decl) {
+        if (tip->is_guiding_decl) {
           /* A user declaration was provided, so the associated symbol should
              be on the overload list -- ignore it here. */
         } else {

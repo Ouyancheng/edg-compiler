@@ -1074,13 +1074,14 @@ typedef struct a_template_instance {
 			   This flag is FALSE if an explicit definition has
 			   been provided by the user (i.e., if specific_def
 			   is set). */
-  a_bit_field	specific_decl:1;
+  a_bit_field	is_guiding_decl:1;
 			/* For instances of nonmember function templates,
-			   TRUE if this instance has been explicitly declared
-			   (in which case, instance_sym has been added to the
-			   overload list for this name).  Always TRUE (and
-			   therefore meaningless) for member functions and
-			   static data members of template classes. */
+			   TRUE if this instance is a guiding declaration
+			   (i.e., if it has been explicitly declared as
+			   though it were a normal function -- in which case
+			   instance_sym has been added to the overload list
+			   for this name).  Undefined for member functions
+			   and static data members of template classes. */
   a_bit_field	explicit_instantiation:1;
 			/* TRUE if an instantiation has been explicitly
 			   requested using a pragma directive. */
