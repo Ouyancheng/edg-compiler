@@ -94,7 +94,7 @@ uses namespaces or "" otherwise.
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 /*
-a_size_of_t is used as a synonym for size_t by the runtime.
+a_sizeof_t is used as a synonym for size_t by the runtime.
 */
 #if 0
 This should probably use some other kind of test.
