@@ -6272,7 +6272,7 @@ the class symbol supplement points to the partial specialization).
   if (class_type->variant.class_struct_union.is_in_class_specialization) {
     /* This is only true for Microsoft in-class specializations.
        Such a specialization may be a declared in a class template, or
-       a nested class of a class template.  Reactive the parent class,
+       a nested class of a class template.  Reactivate the parent class,
        then push a normal reactivation scope for the specialized class. */
     /* Reactivate the parent class. */
     a_type_ptr	parent_class;
