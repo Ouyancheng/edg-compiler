@@ -1326,7 +1326,9 @@ Determine the type that would result from applying the integral promotions
 (3.2.1.1) to type.  Return the promoted type, which may be the same
 as the original type.  Type qualifiers (if any) are dropped.
 See also node_type_after_integral_promotion for integral promotions for
-bit fields.
+bit fields.  In C++, when wchar_t is a keyword, wchar_t is represented
+by one of the existing integer kinds.  For promotion purposes, it is
+treated in the same way as its underlying type.
 */
 {
   register a_type_ptr promoted_type;

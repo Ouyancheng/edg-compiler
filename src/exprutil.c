@@ -2333,7 +2333,9 @@ a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
 Determine the "usual arithmetic conversions" on the operands to make them
 compatible, and return the type of the result.  Note that this routine assumes
 that the type is arithmetic, and does not actually change the result type.
-See section 3.2.1.5 of the standard.
+See section 3.2.1.5 of the standard.  In C++, when wchar_t is a keyword,
+wchar_t is represented by one of the normal integral types and obeys
+the same conversion rules as its underlying type.
 */
 {
   a_type_ptr      type_1;
