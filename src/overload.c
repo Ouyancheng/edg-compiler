@@ -4052,10 +4052,10 @@ and return NULL.  This routine is called only in C++ mode.
     }  /* for */
     if (!dependent_call && overloaded_function_symbol != NULL &&
         overloaded_function_symbol->is_class_member &&
-        have_selector ?
+        (have_selector ?
                 (bound_function_selector != NULL &&
                  is_template_dependent_type(bound_function_selector->type)) :
-                TRUE) {
+                TRUE)) {
       /* The selector object is dependent.  An implicit selector is
          always dependent in a prototype instantiation. */
       dependent_call = TRUE;
