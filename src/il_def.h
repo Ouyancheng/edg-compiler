@@ -2109,7 +2109,8 @@ typedef struct a_type {
                         /* TRUE if the type specifiers for this type included
                            "signed" explicitly.  Needed for bit fields, where
                            "signed int" and "int" may not mean the same
-                           thing. */
+                           thing; used for ik_short, ik_long, and ik_long_long
+			   as well as for ik_int. */
       unsigned int
                 enum_type:1;
                         /* TRUE if this type is an enumerated type (the type 
