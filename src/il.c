@@ -2017,18 +2017,19 @@ Indent the current line by "indent" characters.
 static void db_source_file_seq_info(a_source_file_ptr sfp,
 				    int		      indent)
 /*
-Display the sequence number information associated with a source
-file.
+Display the sequence number information associated with a source file.
 */
 {
   for (; sfp != NULL; sfp = sfp->next) {
     db_indent(indent);
     fprintf(f_debug, "Source file seq. info for: %s\n", sfp->file_name);
     db_indent(indent);
-    fprintf(f_debug, "First_seq: %0d, last_seq: %0d\n", sfp->first_seq_number,
-            sfp->last_seq_number);
+    fprintf(f_debug, "First_seq: %0lu, last_seq: %0lu\n",
+            (unsigned long)sfp->first_seq_number,
+            (unsigned long)sfp->last_seq_number);
     db_indent(indent);
-    fprintf(f_debug, "First_line_number: %0d\n", sfp->first_line_number);
+    fprintf(f_debug, "First_line_number: %0lu\n",
+            (unsigned long)sfp->first_line_number);
     if (sfp->first_child_file != NULL) {
       db_source_file_seq_info(sfp->first_child_file, indent+2);
     }  /* if */

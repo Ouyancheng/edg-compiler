@@ -246,7 +246,7 @@ first token of the asm instruction.
       if (curr_token == tok_rbrace && --nbrace == 0) {
         /* This right brace matches the opening left brace, marking the end of
            the asm function body.  Copy white space up to the current token. */
-        copy_from_source_to_asm_func_buffer(start_of_curr_token, NULL);
+        copy_from_source_to_asm_func_buffer(start_of_curr_token, (char *)NULL);
         break;
       }  /* if */
       /* Special handling for a left brace embedded within the assembler
@@ -256,12 +256,12 @@ first token of the asm instruction.
       /* Microsoft mode: when it's not a brace-enclosed block of statements
          terminate the scan when end-of-line is reached -- finish the copy,
          excluding the current token. */
-      copy_from_source_to_asm_func_buffer(start_of_curr_token, NULL);
+      copy_from_source_to_asm_func_buffer(start_of_curr_token, (char *)NULL);
       break;
     }  /* if */
     /* Copy characters from the source line to the buffer, from
        last_stop_char through the end of the current token. */
-    copy_from_source_to_asm_func_buffer(end_of_curr_token + 1, NULL);
+    copy_from_source_to_asm_func_buffer(end_of_curr_token + 1, (char *)NULL);
     /* Advance to the next token. */
     (void)get_token();
   }  /* while */
