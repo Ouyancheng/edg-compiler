@@ -1,5 +1,15 @@
 Version 2.32
 
+4/3/96    Exception specification on redundant block-extern declaration
+
+A spurious error has been eliminated in the following case:
+
+  void f() throw (int);
+  void g() {
+    extern void f() throw (int);
+    extern void f() throw (int);    // spurious error no longer issued
+  }
+
 4/1/96    Protected member access check suppressed for pointer to member in
           Microsoft mode
 
