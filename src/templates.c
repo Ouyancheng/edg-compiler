@@ -289,9 +289,12 @@ no need to actually instantiate X<int> in the example above.
     class_type->variant.class_struct_union.extra_info->
                                             template_arg_list = new_list;
     set_source_corresp(&(class_type->source_corresp), sym);
-    /* All template instantiations have C++ external linkage. */
+    /* All template instantiations have C++ external linkage, but mark it as
+       internally linked for now.  The name linkage will be fixed up later,
+       along with nontemplate classes.  This assures uniform processing of
+       members. */
     class_type->source_corresp.name_linkage =
-                                  (a_name_linkage_kind)nlk_cplusplus_external;
+                                        (a_name_linkage_kind)nlk_internal;
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "created: ", 2);
