@@ -4165,8 +4165,8 @@ void form_mode_attribute(
                     a_boolean                              need_leading_space,
                     an_il_to_str_output_control_block_ptr  octl)
 /* 
-Output the type mode in the way described by octl.  If need_leading_space is
-TRUE, precede the attribute with a leading space.
+Output the GNU type mode in the way described by octl.  If need_leading_space
+is TRUE, precede the attribute with a leading space.
 */
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
@@ -4186,7 +4186,7 @@ a_boolean form_variable_attributes(
                     a_boolean                              need_leading_space,
                     an_il_to_str_output_control_block_ptr  octl)
 /*
-Output the attributes that apply to the indicated variable.
+Output the GNU attributes that apply to the indicated variable.
 If need_leading_space is TRUE, precede the first attribute with a leading
 space.  If an attribute is output or if need_leading_space is TRUE, return
 TRUE (this allows the caller to determine if a leading space is still needed).
@@ -4264,7 +4264,7 @@ a_boolean form_field_attributes(
                    a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl)
 /*
-Output the attributes that apply to the indicated field.
+Output the GNU attributes that apply to the indicated field.
 If need_leading_space is TRUE, precede the first attribute with a leading
 space.  If an attribute is output or if need_leading_space is TRUE, return
 TRUE (this allows the caller to determine if a leading space is still needed).
@@ -4295,7 +4295,7 @@ a_boolean form_routine_attributes(
                    a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl)
 /*
-Output the attributes that apply to the indicated routine.
+Output the GNU attributes that apply to the indicated routine.
 If need_leading_space is TRUE, precede the first attribute with a leading
 space.  If an attribute is output or if need_leading_space is TRUE, return
 TRUE (this allows the caller to determine if a leading space is still needed).
@@ -4372,11 +4372,11 @@ a_boolean form_label_attributes(
                    a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl)
 /*
-Output the attributes that apply to the indicated label in the way described
-by octl.  If need_leading_space is TRUE, precede the first attribute with a
-leading space.  If an attribute is output or if need_leading_space is TRUE,
-return TRUE (this allows the caller to determine if a leading space is still
-needed).
+Output the GNU attributes that apply to the indicated label in the way
+described by octl.  If need_leading_space is TRUE, precede the first 
+attribute with a leading space.  If an attribute is output or if
+need_leading_space is TRUE, return TRUE (this allows the caller to
+determine if a leading space is still needed).
 */
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
@@ -4413,7 +4413,6 @@ void form_var_reg_name(a_named_register                       reg,
                        an_il_to_str_output_control_block_ptr  octl)
 /*
 Output an asm register name for a variable in the way described by octl.
-asm_name is allowed to be NULL.
 */
 {
   if (gcc_is_generated_code_target) {
