@@ -1230,15 +1230,12 @@ Output the name of the indicated type.
     /* Don't let va_list copied from a secondary translation unit be
        given a generated name. */
     type->source_corresp.name_linkage = (a_name_linkage_kind)nlk_external;
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-    if (gcc_is_generated_code_target &&
-        (il_header.gcc_mode || il_header.gpp_mode)) {
-      /* This is the intrinsic GNU C/C++ type __builtin_va_list.
-         The name is not changed. */
-    } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-    /* Do not insert code here. */
-    {
+    if (gcc_builtin_varargs_in_generated_code) {
+      /* Use the intrinsic GNU C/C++ type __builtin_va_list.  No "std::"
+         qualifier should be used. */
+      write_tok_str("__builtin_va_list");
+      goto done;
+    } else {
       /* Make its name "va_list" if it was mangled in C++ because it's
          std::va_list.  In the generated code we're including <stdarg.h> and
          we have to refer to va_list. */
@@ -1246,6 +1243,7 @@ Output the name of the indicated type.
     }  /* if */
   }  /* if */
   dump_name(&type->source_corresp);
+done:;
 }  /* dump_type_name */
 
 
@@ -2422,15 +2420,10 @@ Print a typedef declaration.
   if (start_unreferenced_bracket(&type->source_corresp)) {
     if (type->is_builtin_va_list) {
       /* This is the declaration of the builtin va_list, from <stdarg.h>. */
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-      if (gcc_is_generated_code_target &&
-          (il_header.gcc_mode || il_header.gpp_mode)) {
+      if (gcc_builtin_varargs_in_generated_code) {
         /* This is the intrinsic GNU C/C++ type __builtin_va_list.
            No declaration should be generated for it. */
-      } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-      /* Do not insert code here. */
-      {
+      } else {
         /* The va_list type was automatically generated when
            "#include <stdarg.h>" was seen (without parsing the header file).
            Put out the #include directive at this point. */
@@ -4738,15 +4731,10 @@ process_assignment:
         case eok_va_start:
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
-            /* This is the intrinsic GNU C/C++ "__builtin_varargs_start". */
+          if (gcc_builtin_varargs_in_generated_code) {
+            /* Use the intrinsic GNU C/C++ "__builtin_varargs_start". */
             write_tok_str("__builtin_stdarg_start(");
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-          /* Do not insert code here. */
-          {
+          } else {
             write_tok_str("va_start(");
           }  /* if */
           dump_lvalue(operand_1);
@@ -4758,15 +4746,10 @@ process_assignment:
         case eok_va_start_single_operand:
           /* <varargs.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
-            /* This is the intrinsic GNU C/C++ "__builtin_varargs_start". */
+          if (gcc_builtin_varargs_in_generated_code) {
+            /* Use the intrinsic GNU C/C++ "__builtin_varargs_start". */
             write_tok_str("__builtin_varargs_start(");
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-          /* Do not insert code here. */
-          {
+          } else {
             write_tok_str("va_start(");
           }  /* if */
           dump_lvalue(operand_1);
@@ -4776,15 +4759,10 @@ process_assignment:
         case eok_va_arg:
           /* <stdarg.h> va_arg macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
-            /* This is the intrinsic GNU C/C++ "__builtin_va_arg". */
+          if (gcc_builtin_varargs_in_generated_code) {
+            /* Use the intrinsic GNU C/C++ "__builtin_va_arg". */
             write_tok_str("__builtin_va_arg(");
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-          /* Do not insert code here. */
-          {
+          } else {
             write_tok_str("va_arg(");
           }  /* if */
           dump_lvalue(operand_1);
@@ -4796,15 +4774,10 @@ process_assignment:
         case eok_va_end:
           /* <stdarg.h> va_end macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
-            /* This is the intrinsic GNU C/C++ "__builtin_va_end". */
+          if (gcc_builtin_varargs_in_generated_code) {
+            /* Use the intrinsic GNU C/C++ "__builtin_va_end". */
             write_tok_str("__builtin_va_end(");
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-          /* Do not insert code here. */
-          {
+          } else {
             write_tok_str("va_end(");
           }  /* if */
           dump_lvalue(operand_1);
@@ -4814,15 +4787,10 @@ process_assignment:
         case eok_va_copy:
           /* <stdarg.h> va_copy macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
-            /* This is the intrinsic GNU C/C++ "__builtin_va_copy". */
+          if (gcc_builtin_varargs_in_generated_code) {
+            /* Use the intrinsic GNU C/C++ "__builtin_va_copy". */
             write_tok_str("__builtin_va_copy((");
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-          /* Do not insert code here. */
-          {
+          } else {
             write_tok_str("va_copy(");
           }  /* if */
           dump_lvalue(operand_1);

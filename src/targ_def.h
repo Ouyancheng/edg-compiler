@@ -1963,6 +1963,19 @@ generate code for the GNU C compiler (gcc or g++).
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 
+/*
+Switch that is TRUE if the C-generating or C++-generating back end should
+generate code that uses vararg primitives that are predefined by some GNU
+compilers (e.g., __builtin_va_list).
+*/
+#ifndef GCC_BUILTIN_VARARGS_IN_GENERATED_CODE
+#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+#define GCC_BUILTIN_VARARGS_IN_GENERATED_CODE TRUE
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS) */
+#define GCC_BUILTIN_VARARGS_IN_GENERATED_CODE FALSE
+#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
+#endif /* ifndef GCC_BUILTIN_VARARGS_IN_GENERATED_CODE */
+
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
 Switch that is TRUE if the C-generating or C++-generating back end should

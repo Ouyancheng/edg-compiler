@@ -2915,7 +2915,13 @@ A reference is not the definition.
     gen_temp_name((char *)type);
   } else if (type->kind == (a_type_kind)tk_typeref) {
     /* A typedef. */
-    gen_possibly_dependent_type_name(type);
+    if (type->is_builtin_va_list && gcc_builtin_varargs_in_generated_code) {
+      /* This is the "va_list" or "std::va_list" type, but render it using
+         the name of the GNU predefined primitive. */
+      write_tok_str("__builtin_va_list");
+    } else {
+      gen_possibly_dependent_type_name(type);
+    }  /* if */
   } else {
     /* A class, struct, union, or enum. */
     a_boolean use_elab_type_spec;
@@ -4910,15 +4916,10 @@ this one is such a continuation.
         gen_type_name(type);
       } else if (type->is_builtin_va_list) {
         /* This is the declaration of the builtin va_list, from <stdarg.h>. */
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-        if (gcc_is_generated_code_target &&
-            (il_header.gcc_mode || il_header.gpp_mode)) {
+        if (gcc_builtin_varargs_in_generated_code) {
           /* This is the intrinsic GNU C/C++ type __builtin_va_list.  No
              declaration should be generated for it. */
-        } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-        /* Do not insert code here. */
-        {
+        } else {
             /* The va_list type was automatically generated when
              "#include <stdarg.h>" was seen (without parsing the header file).
              Put out the #include directive at this point. */
@@ -7104,15 +7105,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_start:
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
-            /* This is the intrinsic GNU C/C++ "__builtin_varargs_start". */
+          if (gcc_builtin_varargs_in_generated_code) {
+            /* Use the intrinsic GNU C/C++ "__builtin_varargs_start". */
             write_tok_str("__builtin_stdarg_start(");
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-          /* Do not insert code here. */
-          {
+          } else {
             write_tok_str("va_start(");
           }  /* if */
           gen_lvalue(operand_1);
@@ -7124,15 +7120,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_start_single_operand:
           /* <varargs.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
-            /* This is the intrinsic GNU C/C++ "__builtin_varargs_start". */
+          if (gcc_builtin_varargs_in_generated_code) {
+            /* Use the intrinsic GNU C/C++ "__builtin_varargs_start". */
             write_tok_str("__builtin_varargs_start(");
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-          /* Do not insert code here. */
-          {
+          } else {
             write_tok_str("va_start(");
           }  /* if */
           gen_lvalue(operand_1);
@@ -7142,15 +7133,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_arg:
           /* <stdarg.h> va_arg macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
-            /* This is the intrinsic GNU C/C++ "__builtin_va_arg". */
+          if (gcc_builtin_varargs_in_generated_code) {
+            /* Use the intrinsic GNU C/C++ "__builtin_va_arg". */
             write_tok_str("__builtin_va_arg(");
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-          /* Do not insert code here. */
-          {
+          } else {
             write_tok_str("va_arg(");
           }  /* if */
           gen_lvalue(operand_1);
@@ -7162,15 +7148,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_end:
           /* <stdarg.h> va_end macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
-            /* This is the intrinsic GNU C/C++ "__builtin_va_end". */
+          if (gcc_builtin_varargs_in_generated_code) {
+            /* Use the intrinsic GNU C/C++ "__builtin_va_end". */
             write_tok_str("__builtin_va_end(");
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-          /* Do not insert code here. */
-          {
+          } else {
             write_tok_str("va_end(");
           }  /* if */
           gen_lvalue_no_parens(operand_1);
@@ -7180,15 +7161,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_copy:
           /* <stdarg.h> va_copy macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
-          if (gcc_is_generated_code_target &&
-              (il_header.gcc_mode || il_header.gpp_mode)) {
-            /* This is the intrinsic GNU C/C++ "__builtin_va_copy". */
+          if (gcc_builtin_varargs_in_generated_code) {
+            /* Use the intrinsic GNU C/C++ "__builtin_va_copy". */
             write_tok_str("__builtin_va_copy((");
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
-          /* Do not insert code here. */
-          {
+          } else {
             write_tok_str("va_copy(");
           }  /* if */
           gen_lvalue(operand_1);
@@ -10251,7 +10227,7 @@ TRUE if the declaration following this one is such a continuation.
            constructor definitions. */
         !(decl_within_class && is_definition)) {
 #if GNU_EXTENSIONS_ALLOWED
-      if (gcc_is_generated_code_target && il_header.gcc_mode) {
+      if (gcc_is_generated_code_target) {
         if (rout->suppress_inline_body) {
           write_tok_str("extern ");
         }  /* if */

@@ -289,6 +289,11 @@ to match the source dialect.
   check_assertion(!(gnu_mode && microsoft_mode));
   if (gnu_mode) {
     gcc_is_generated_code_target = TRUE;
+#if GCC_BUILTIN_VARARGS
+    gcc_builtin_varargs_in_generated_code = TRUE;
+#else /* !GCC_BUILTIN_VARARGS */
+    gcc_builtin_varargs_in_generated_code = FALSE;
+#endif /* GCC_BUILTIN_VARARGS */
   } else if (microsoft_mode) {
     microsoft_dialect_is_generated_code_target = TRUE;
   }  /* if */

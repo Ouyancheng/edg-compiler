@@ -1068,11 +1068,20 @@ EXTERN a_boolean
 EXTERN a_boolean
 		gcc_is_generated_code_target
 #if VAR_INITIALIZERS
-                                              = GCC_IS_GENERATED_CODE_TARGET
+                                               = GCC_IS_GENERATED_CODE_TARGET
 #endif /* VAR_INITIALIZERS */
                                                                              ;
 			/* TRUE if code is being generated for the GNU C or
 			   C++ compiler. */
+
+EXTERN a_boolean
+		gcc_builtin_varargs_in_generated_code
+#if VAR_INITIALIZERS
+                                      = GCC_BUILTIN_VARARGS_IN_GENERATED_CODE
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* TRUE if the generated code should use vararg
+			   primitives predefined by GNU compilers. */
 
 EXTERN a_boolean
 		msvc_is_generated_code_target
