@@ -3612,6 +3612,7 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
          source can use the name of the template parameter. */
       cexpr = dip->variant.constructor.args;
       if (cexpr == NULL ||
+          cexpr->generated_default_arg ||
           (cexpr->next != NULL && !cexpr->next->generated_default_arg)) {
         /* Use an inner cast. */
         gen_type(skip_typerefs(temp_type));
