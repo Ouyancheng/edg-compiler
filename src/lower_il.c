@@ -7557,6 +7557,15 @@ not include the function scope memory region, if any.
            rlep != NULL;
            rlep = rlep->next) {
         a_routine_ptr arout = rlep->routine;
+        /* Externalize the alternate entry point name if necessary. */
+        if (routine_should_be_externalized_for_exported_templates(arout)) {
+          externalize_source_correspondence(&arout->source_corresp,
+                                            /*is_variable=*/FALSE);
+          arout->storage_class = (a_storage_class)sc_unspecified;
+#if MAINTAIN_NEEDED_FLAGS
+          mark_as_needed((char *)arout, (an_il_entry_kind)iek_routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+        }  /* if */
         /* Lower alternate entry points, which are not linked into the
            main IL tree yet, and any thunks for them.  The thunks follow
            the alternate entry points on the "next" pointer. */

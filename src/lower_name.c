@@ -4622,14 +4622,17 @@ externalized, use the encoding for the externalized form.
 #if TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED || MODULE_ID_NEEDED
 
 char *get_mangled_function_name_full(a_routine_ptr routine,
-                                     a_boolean     force_primary_name)
+                                     a_boolean     force_primary_name,
+                                     a_boolean     externalize_if_necessary)
 /*
 Get the mangled name for the indicated routine, and return a pointer
 to it.  If the routine name has not been mangled yet, create a copy
 of the mangled name in a temporary buffer but do not change the
 name in the routine entry.  In the IA-64 ABI, if force_primary_name
 is TRUE the routine is a constructor or destructor and the primary
-entry point name should be returned.
+entry point name should be returned.  If externalize_if_necessary is
+TRUE, externalize the name (give it the name a static gets when
+made into an external) if necessary.
 */
 {
   a_mangling_control_block mctl;
@@ -4686,13 +4689,23 @@ entry point name should be returned.
       base_name_offset = &routine->variant.ctor_dtor.base_name_offset;
     }  /* if */
 #endif /* IA64_ABI */
-    mangled_function_name_externalized_if_necessary(
+    if (externalize_if_necessary) {
+      mangled_function_name_externalized_if_necessary(
                                             routine,
                                             suppress_param_encoding,
                                             /*suppress_parent_encoding=*/FALSE,
                                             force_primary_name,
                                             base_name_offset,
                                             &mctl);
+    } else {
+      mangled_function_name(
+                                            routine,
+                                            suppress_param_encoding,
+                                            /*suppress_parent_encoding=*/FALSE,
+                                            force_primary_name,
+                                            base_name_offset,
+                                            &mctl);
+    }  /* if */
     mangled_name = end_mangling((a_source_correspondence *)NULL,
                                 /*final=*/TRUE, &mctl);
   }  /* if */
@@ -4723,7 +4736,8 @@ a constructor or destructor, return the primary entry point name.
     force_primary_name = TRUE;
   } /* if */
 #endif /* IA64_ABI */
-  mangled_name = get_mangled_function_name_full(routine, force_primary_name);
+  mangled_name = get_mangled_function_name_full(routine, force_primary_name,
+                                            /*externalize_if_necessary=*/TRUE);
   return mangled_name;
 }  /* get_mangled_function_name */
 
@@ -6056,7 +6070,14 @@ in the routine must be set already.
        parameter types is no longer possible.  Therefore we get the
        primary routine's name (which will have been generated already
        if the routine has been lowered) and change one character. */
-    mangled_name = get_mangled_function_name(prim_routine);
+    /* The name will be externalized if necessary later when it's lowered.
+       Don't try to do it here, because we may be lowering a function body
+       in the middle of the compilation and the module id may not be
+       set yet. */
+    mangled_name = get_mangled_function_name_full(
+                                           prim_routine,
+                                           /*force_primary_name=*/FALSE,
+                                           /*externalize_if_necessary=*/FALSE);
     name = alloc_lowered_name_string(strlen(mangled_name) + 1);
     (void)strcpy(name, mangled_name);
     switch (routine->ctor_dtor_kind) {

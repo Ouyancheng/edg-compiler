@@ -58,8 +58,10 @@ EXTERN unsigned long
 #endif /* !IA64_ABI */
 
 #if TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED || MODULE_ID_NEEDED
-extern char *get_mangled_function_name_full(a_routine_ptr routine,
-                                            a_boolean     force_primary_name);
+extern char *get_mangled_function_name_full(
+                                     a_routine_ptr routine,
+                                     a_boolean     force_primary_name,
+                                     a_boolean     externalize_if_necessary);
 extern char *get_mangled_function_name(a_routine_ptr routine);
 #endif /* TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED ||
           MODULE_ID_NEEDED */

@@ -18707,7 +18707,8 @@ previous instantiation flag entry.
   /* Create an entry point for the internal constructor/destructor, but without
      having its name remapped to the primary. */
   name = get_mangled_function_name_full(rout_ptr,
-                                        /*force_primary_name=*/FALSE);
+                                        /*force_primary_name=*/FALSE,
+                                        /*externalize_if_necessary=*/TRUE);
   write_to_template_info_file(tilt_entry_point, name,
                               (char*)NULL, (a_symbol_ptr)NULL);
   /* Write the entries for the alternate entry points. */
@@ -18719,7 +18720,8 @@ previous instantiation flag entry.
        complete object constructor. */
     if (rlep->routine->ctor_dtor_kind != (a_ctor_or_dtor_kind)cdk_complete) {
       name = get_mangled_function_name_full(rlep->routine,
-                                            /*force_primary_name=*/FALSE);
+                                            /*force_primary_name=*/FALSE,
+                                            /*externalize_if_necessary=*/TRUE);
       write_to_template_info_file(tilt_entry_point, name,
                                  (char*)NULL, (a_symbol_ptr)NULL);
     }  /* if */
