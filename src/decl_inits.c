@@ -664,6 +664,10 @@ is an empty class.
                            ^not an initializer list separator
           */
           any_more_initializers = FALSE;
+        } else if (!brace_flag && !any_more_members) {
+          /* There are no more members and this is not a brace-enclosed
+             list, so take no more initializers. */
+          any_more_initializers = FALSE;
         } else {
           /* Skip a comma separating initializers.  This might be an extra
              comma at the end of the list. */
@@ -677,10 +681,6 @@ is an empty class.
              outside the loop. */
           if (curr_token == tok_rbrace) {
             took_extra_comma = any_more_initializers;
-            any_more_initializers = FALSE;
-          } else if (!any_more_members && !brace_flag) {
-            /* There are no more members and this is not a brace-enclosed
-               list, so take no more initializers. */
             any_more_initializers = FALSE;
           }  /* if */
         }  /* if */
