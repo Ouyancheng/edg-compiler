@@ -359,8 +359,7 @@ might not be able to if the template itself has not yet been defined.
         internal_error("f_instantiate_template_class: bad 1st token in cache");
       }  /* if */
 #endif /* CHECKING */
-      mark_defined(instance_sym, &instance_sym->decl_position,
-                   (a_decl_seq_info_ptr)NULL);
+      mark_defined(instance_sym, &instance_sym->decl_position);
       /* Scan the base specifiers list, if any, and the body of the class. */
       (void)scan_class_definition(class_type, DEPTH_OF_FILE_SCOPE,
                                   /*is_local_class=*/FALSE,
@@ -459,8 +458,7 @@ encountered.
     internal_error("instantiate_class_template: bad 1st token in cache");
   }  /* if */
 #endif /* CHECKING */
-  mark_defined(template_sym, &template_sym->decl_position,
-               (a_decl_seq_info_ptr)NULL);
+  mark_defined(template_sym, &template_sym->decl_position);
   /* Scan the base specifiers list, if any, and the body of the class. */
   (void)scan_class_definition(prototype_type, DEPTH_OF_FILE_SCOPE,
                               /*is_local_class=*/FALSE,
@@ -1477,6 +1475,8 @@ of a function template.
   a_decl_flag_set	dsi_flags;
   a_decl_flag_set	di_flags;
   a_type_ptr            bottom_derived_type = NULL;
+  a_source_sequence_entry_ptr declarator_ssep = NULL;
+
   dsi_flags = DSI_IS_TEMPLATE_DECLARATION |
               DSI_INLINE_ALLOWED |
               DSI_TYPE_SPECIFIER_ALLOWED |
@@ -1513,7 +1513,7 @@ of a function template.
     *do_flags = 0;
   } else {
     declarator(di_flags, do_flags, *type, (a_type_ptr)NULL, locator, type,
-               &bottom_derived_type, func_info);
+               &bottom_derived_type, &declarator_ssep, func_info);
     func_info->is_inline = ((*dso_flags & DSO_INLINE) != 0);
     if (nonglobal_decl_err) {
       /* An error has already been issued on a template declaration that
@@ -2676,8 +2676,7 @@ that make up the declaration and do a prototype instantiation.
       prototype_type->source_corresp.name_linkage =
                                            (a_name_linkage_kind)nlk_internal;
 #if 0
-      mark_defined(prototype_sym, &prototype_sym->decl_position,
-                   (a_decl_seq_info_ptr)NULL);
+      mark_defined(prototype_sym, &prototype_sym->decl_position);
 #else /* 0 */
       prototype_sym->defined = TRUE;
 #endif /* if 0 */
@@ -2904,6 +2903,7 @@ Scan the declaration of a single template nontype parameter.
   a_storage_class    			param_storage_class;
   a_type_ptr 			        bottom_derived_type;
   a_source_position			param_pos;
+  a_source_sequence_entry_ptr           declarator_ssep;
 
   /* Scan the declaration specifiers. */
   param_pos = pos_curr_token;
@@ -2923,7 +2923,7 @@ Scan the declaration of a single template nontype parameter.
   declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags,
              *param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
              param_locator, param_type_ptr, &bottom_derived_type,
-             (a_func_info_block_ptr)NULL);
+             &declarator_ssep, (a_func_info_block_ptr)NULL);
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
   adjust_parameter_type(param_type_ptr);
