@@ -119,6 +119,12 @@ is put out.
       if (tap->is_type) {
         /* Type argument. */
         form_type(tap->variant.type, octl);
+        if (octl->gen_compilable_code && tap->next == NULL) {
+          /* When generating compilable code, put out a space after the
+             final type and before the closing ">" to avoid the
+             possibility of getting ">>" with nested template references. */
+          octl->output_str(" ");
+        }  /* if */
       } else {
         /* Nontype argument. */
         a_constant_ptr con = tap->variant.constant;
