@@ -11514,17 +11514,17 @@ is static or inline (i.e., is not an external function).
 }  /* is_static_or_inline_template_function */
 
 #if !INSTANTIATION_BY_IMPLICIT_INCLUSION
-/*ARGSUSED*/ /* <-- implicit_inclusion_ok is not used if no implicit
+/*ARGSUSED*/ /* <-- implicit_inclusion_okay is not used if no implicit
                  inclusion. */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-static a_boolean should_be_instantiated
-				(a_template_instance_ptr tip,
-				 a_boolean	         implicit_inclusion_ok)
+static a_boolean should_be_instantiated(
+			a_template_instance_ptr tip,
+			a_boolean		implicit_inclusion_okay)
 /*
 Determines whether this template instance needs an instantiation and
 generates any errors caused by conflicting instantiation information
 such as instantiating a template for which no body was supplied.
-implicit_inclusion_ok is TRUE if the compiler should attempt to include
+implicit_inclusion_okay is TRUE if the compiler should attempt to include
 a template definition file to provide definitions for externally linked
 template entities.
 */
@@ -11549,7 +11549,7 @@ template entities.
       template_def = tip->template_sym->defined;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       if (!template_def && !specialized && !tip->suppress_instantiation &&
-          implicit_inclusion_ok && implicit_template_inclusion_mode) {
+          implicit_inclusion_okay && implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
@@ -11569,7 +11569,7 @@ template entities.
       template_def = cache_for_template(tssp)->tokens.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       if (!template_def && !specialized && !tip->suppress_instantiation &&
-          implicit_inclusion_ok && implicit_template_inclusion_mode) {
+          implicit_inclusion_okay && implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
@@ -11649,10 +11649,16 @@ function.
 }  /* too_many_unused_instantiations */
 
 
-static a_boolean f_entity_can_be_instantiated(a_template_instance_ptr tip)
+static a_boolean f_entity_can_be_instantiated(
+			a_template_instance_ptr	tip,
+			a_boolean		implicit_inclusion_okay)
 /*
 Determines whether this compilation is capable of generating an
 instantiation of a given template instance.
+
+implicit_inclusion_okay is TRUE if the compiler should attempt to include
+a template definition file to provide definitions for externally linked
+template entities.
 */
 {
   a_boolean	result = TRUE;
@@ -11669,7 +11675,8 @@ instantiation of a given template instance.
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (!template_def && !specialized && !tip->suppress_instantiation &&
         !tip->explicit_do_not_instantiate &&
-        !tip->already_instantiated && implicit_template_inclusion_mode) {
+        !tip->already_instantiated && implicit_template_inclusion_mode &&
+        implicit_inclusion_okay) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
@@ -11688,7 +11695,8 @@ instantiation of a given template instance.
     template_def = cache_for_template(tssp)->tokens.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (!template_def && !specialized && !tip->suppress_instantiation &&
-        !tip->already_instantiated && implicit_template_inclusion_mode) {
+        !tip->already_instantiated && implicit_template_inclusion_mode &&
+        implicit_inclusion_okay) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
@@ -11709,9 +11717,10 @@ Macro that calls f_entity_can_be_instantiated.  If we have already determined
 that the entity can be instantiated, the call is suppressed and the
 previously computed value is returned.
 */
-#define entity_can_be_instantiated(tip)					\
-  ((tip)->can_be_instantiated ? (tip)->can_be_instantiated	\
-                              : f_entity_can_be_instantiated(tip))
+#define entity_can_be_instantiated(tip, implicit_inclusion_okay)	\
+  ((tip)->can_be_instantiated						\
+		? (tip)->can_be_instantiated				\
+		: f_entity_can_be_instantiated(tip, implicit_inclusion_okay))
 
 
 static void instantiate_entity(a_template_instance_ptr tip)
@@ -12262,7 +12271,7 @@ defer_inline is TRUE.
     }  /* if */
     if (!defer_inline && is_inline_template_function(tip)) {
       if (!tip->already_instantiated &&
-          should_be_instantiated(tip, /*implicit_inclusion_ok=*/FALSE)) {
+          should_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
         /* Inline (member or nonmember) functions are instantiated at the
            point of first use, in case the back end requires the function
            body immediately to perform inlining. */
@@ -12283,7 +12292,7 @@ defer_inline is TRUE.
 	 serially. */
       if (in_instantiation_wrapup) {
         if (!tip->already_instantiated &&
-            should_be_instantiated(tip, /*implicit_inclusion_ok=*/FALSE)) {
+            should_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
           /* Implicit inclusion is not done for "on the fly" instantiations
              because the includes cannot be processed in the middle of
 	     the instantiation of another function.  The entry will be put
@@ -12309,8 +12318,14 @@ defer_inline is TRUE.
     check_if_entity_should_be_automatically_instantiated(tip);
     /* See if the entity should be instantiated as a result of an
        assignment by the automatic instantiation mechanism. */
-    if (entity_can_be_instantiated(tip) &&
+    if (value &&
+        entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE) &&
         tip->automatically_instantiated && !tip->already_instantiated) {
+      /* Implicit inclusion is not done for "on the fly" instantiations
+         because the includes cannot be processed in the middle of
+         the instantiation of another function.  The entry will be put
+	 on the instantiation required list and instantiated later in
+         instantiation_wrapup. */
       do_automatic_instantiation_of_entity(tip);
     }  /* if */
   }  /* if */
@@ -12509,7 +12524,8 @@ and "do not instantiate" flags are set here.
       routine = instance_sym->variant.routine.ptr;
     }  /* if */
     can_be_instantiated = tip->already_instantiated ||
-                          entity_can_be_instantiated(tip);
+                  entity_can_be_instantiated(tip,
+                                             /*implicit_inclusion_okay=*/TRUE);
     if (is_static_data_member) {
       variable->can_be_instantiated = can_be_instantiated;
       do_not_instantiate = variable->do_not_instantiate
@@ -12670,10 +12686,10 @@ that might be required.
          should_be_instantiated is called because the tests done by
          should_be_instantiated can result the generation of diagnostics
          that are required even if the entity can't be instantiated. */
-      (void)entity_can_be_instantiated(tip);
+      (void)entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE);
       if ((instantiation_mode == tim_all || tip->instantiation_required) &&
           !tip->already_instantiated) {
-        if (should_be_instantiated(tip, /*implicit_inclusion_ok=*/TRUE)) {
+        if (should_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE)) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           /* Reset the insert point for instantiations to NULL.  This assures
              that the source sequence entry for the instantiation will be
@@ -12687,7 +12703,7 @@ that might be required.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
       /* See if the entity should be instantiated as a result of an
          assignment by the automatic instantiation mechanism. */
-      if (entity_can_be_instantiated(tip) &&
+      if (entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE) &&
           tip->automatically_instantiated && !tip->already_instantiated) {
         do_automatic_instantiation_of_entity(tip);
       }  /* if */
