@@ -734,14 +734,14 @@ typedef struct a_c99_local_static_variable_locator
 
 typedef struct a_c99_local_static_variable_locator {
   a_c99_local_static_variable_locator_ptr
-	next;
-		/* Pointer to the next record to check. */
+		next;
+			/* Pointer to the next record to check. */
   a_routine_ptr
-	routine;
-		/* This routine in which the variable was defined. */
+		routine;
+			/* The routine in which the variable was defined. */
   a_source_position
-	position;
-		/* The source position of the variable definition. */
+		position;
+			/* The source position of the variable definition. */
 } a_c99_local_static_variable_locator;
 
 
@@ -779,7 +779,7 @@ local static variable if an error is still a possibility.
     type = underlying_array_element_type(type);
   }  /* if */
   if (!is_const_qualified_type(type)) {
-    /* An unmodifiable local static variable. */
+    /* A modifiable local static variable. */
     a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
     check_assertion(rp != NULL);
     if (rp->is_inline && rp->suppress_inline_body &&
