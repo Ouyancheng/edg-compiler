@@ -3012,7 +3012,7 @@ operation is a pointer-to-member (see ARM 5.3).
            Cfront does not do this checking so, so we omit it in cfront
            mode. */
         if (!cfront_compatibility_mode) {
-          check_protected_member_access(member_sym, &error_position,
+          check_protected_member_access(member_proj_sym, &error_position,
 				        member_proj_sym->
 						      class_of_which_a_member);
         }  /* if */
