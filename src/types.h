@@ -144,16 +144,10 @@ extern a_boolean f_identical_types(a_type_ptr type_1,
                                    a_boolean  il_identical);
 extern a_boolean interchangeable_types(a_type_ptr type_1,
                                        a_type_ptr type_2);
-extern a_boolean function_types_correspond(a_type_ptr type_1,
-                                           a_type_ptr type_2);
+extern a_boolean this_param_types_correspond(a_type_ptr type_1,
+                                             a_type_ptr type_2);
 extern a_boolean param_types_are_compatible(a_type_ptr  rout_type1,
                                             a_type_ptr  rout_type2);
-#if 0
-#else
-/* Remove this. */
-extern a_boolean arg_types_are_compatible(a_type_ptr  rout_type1,
-                                          a_type_ptr  rout_type2);
-#endif
 #define types_are_compatible(t1, t2) \
 	 ((t1) == (t2) || f_types_are_compatible((t1), (t2)))
 extern a_boolean f_types_are_compatible(a_type_ptr type_1,

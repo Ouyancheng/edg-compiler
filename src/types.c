@@ -1448,15 +1448,6 @@ funcs_not_compatible:;
 }  /* param_types_are_compatible */
 
 
-#if 0
-#else
-/* Remove this. */
-a_boolean arg_types_are_compatible(a_type_ptr  rout_type_1,
-                                   a_type_ptr  rout_type_2)
-{ return param_types_are_compatible(rout_type_1, rout_type_2); }
-#endif
-
-
 a_boolean f_types_are_compatible(a_type_ptr type_1,
                                  a_type_ptr type_2)
 /*
@@ -1905,8 +1896,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 }  /* impl_pointer_conversion */
 
 
-static a_boolean this_param_types_correspond(a_type_ptr rout_type_1,
-                                             a_type_ptr rout_type_2)
+a_boolean this_param_types_correspond(a_type_ptr rout_type_1,
+                                      a_type_ptr rout_type_2)
 /*
 Return TRUE if the "this" parameter types of the two function types given
 match if one ignores any difference in the underlying class.  If neither
@@ -1947,8 +1938,8 @@ function type has a "this" parameter, they are also considered to match.
 }  /* this_param_types_correspond */
 
 
-a_boolean function_types_correspond(a_type_ptr rout_type_1,
-                                    a_type_ptr rout_type_2)
+static a_boolean function_types_correspond(a_type_ptr rout_type_1,
+                                           a_type_ptr rout_type_2)
 /*
 Return TRUE if the two function types given are compatible if one ignores any
 difference in the underlying class of their "this" parameter types.
