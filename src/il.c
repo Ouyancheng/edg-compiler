@@ -3777,8 +3777,8 @@ nonidentical.
                                   cp1->variant.ptr_to_member.variant.routine,
                                   cp2->variant.ptr_to_member.variant.routine);
           } else {
-            eq = (cp1->variant.ptr_to_member.variant.field ==
-                  cp2->variant.ptr_to_member.variant.field);
+            eq = same_field_entities(cp1->variant.ptr_to_member.variant.field,
+                                     cp2->variant.ptr_to_member.variant.field);
           }  /* if */
         }  /* if */
         break;

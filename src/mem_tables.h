@@ -268,16 +268,6 @@ that precedes the file-scope IL entry at ptr.
               SPACE_FOR_TRANS_UNIT_CORRESP_POINTER))
 
 /*
-Macro to retrieve the value of the translation unit correspondence pointer
-that precedes the file-scope IL entry at ptr or NULL if there is no such
-pointer.
-*/
-#define trans_unit_corresp_for(ptr)                                   \
-  ((il_entry_prefix_of(ptr).secondary_trans_unit &&                   \
-    il_entry_prefix_of(ptr).file_scope) ?                             \
-     trans_unit_corresp_pointer_of(ptr) : NULL)
-
-/*
 Return TRUE if the IL entry pointed to by ptr is in the file scope
 memory region.  ptr must point to something allocated in an IL memory
 region.
