@@ -11847,6 +11847,10 @@ scanned is, in fact, an identifier).
   an_id_lookup_options_set	idl_options;
   a_boolean			templ_err = FALSE;
 
+/* Macro used to determine whether we are processing the identifier in
+   a Microsoft __if_exits or __if_not_exists directive. */
+#define in_if_exists ((options & GID_IN_IF_EXISTS) != 0)
+
   /* Mask the error flags out of the options flags to prevent the errors
      from being diagnosed more than once. */
   if (coalesce_and_lookup_qualified_name(options & ~GID_ERROR_FLAGS,
@@ -11854,7 +11858,7 @@ scanned is, in fact, an identifier).
     /* The identifier is a qualified name. */
     symbol = locator_for_curr_id.specific_symbol;
 #if CHECKING
-    if (symbol == NULL && ilm != ilm_tentative_type) {
+    if (symbol == NULL && ilm != ilm_tentative_type && !in_if_exists) {
       internal_error
        ("coalesce_and_lookup_generalized_identifier: specific_symbol is NULL");
     }  /* if */
@@ -11908,6 +11912,7 @@ scanned is, in fact, an identifier).
   /* Perform error checks as specified in "options". */
   *err |= check_for_generalized_identifier_errors(options, &error_position);
   return symbol;
+#undef in_if_exists
 }  /* coalesce_and_lookup_generalized_identifier */
 
 
