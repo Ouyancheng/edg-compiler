@@ -2784,12 +2784,14 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
   a_boolean             err = FALSE, processed = FALSE;
   an_operand            zero_operand;
   an_opname_kind        opname_kind;
+  a_source_position     operator_position;
 
   db_enter(4, "scan_postfix_incr_decr");
 
+  operator_position = pos_curr_token;
   if (curr_expr_kind_is_const()) {
     /* Postfix ++/-- not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &pos_curr_token);
+    pos_error(ec_bad_constant_operator, &operator_position);
     make_error_operand(result);
     change_operand_refs_to_error(operand);
   } else {
@@ -2808,7 +2810,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                      /*try_conversions=*/!allow_anachronisms,
                                      /*has_predef_meaning=*/allow_anachronisms,
                                      operand, &zero_operand,
-                                     &operand->position,
+                                     &operator_position,
                                      result, &processed);
       if (!processed && allow_anachronisms) {
         /* Try the anachronism that allows a one-argument function to
@@ -2819,13 +2821,13 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                        /*try_conversions=*/FALSE,
                                        /*has_predef_meaning=*/TRUE,
                                        operand, (an_operand *)NULL,
-                                       &operand->position,
+                                       &operator_position,
                                        result, &processed);
         if (processed) {
           if (!is_error_operand(result)) {
             pos_st_diagnostic(anachronism_error_severity,
                               ec_single_arg_postfix_incr_decr_anachronism,
-                              &operand->position,
+                              &operator_position,
                               token_names[(int)curr_token]);
           }  /* if */
         } else {
@@ -2839,7 +2841,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                          /*try_conversions=*/TRUE,
                                          /*has_predef_meaning=*/FALSE,
                                          operand, &zero_operand,
-                                         &operand->position,
+                                         &operator_position,
                                          result, &processed);
         }  /* if */
       }  /* if */
