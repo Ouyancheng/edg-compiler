@@ -2507,6 +2507,7 @@ scope is that of a class definition.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
             last_param_id->has_default_arg = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+            func_info->any_default_args = TRUE;
           }  /* if */
         }  /* if */
         if (C_dialect == C_dialect_cplusplus && !default_arg_expr_allowed) {
@@ -3918,17 +3919,17 @@ declaration.
   if (source_sequence_entries_disallowed) {
     /* We are in a context in which source sequence entries are not being
        created.  No further action is required. */
-  } else if (rp->source_corresp.source_sequence_entry == NULL) {
-    /* This is probably a compiler-generated function. */
-  } else if (func_info->function_type_from_typedef) {
-    /* This is a declaration in terms of a function typedef.  No default
-       arguments can have been specified on this particular declaration. */
+  } else if (!func_info->any_default_args) {
+    /* No default arguments were declared on this function declaration. */
   } else {
+    check_assertion(rp->source_corresp.source_sequence_entry != NULL);
+    check_assertion(!func_info->function_type_from_typedef);
+    check_assertion(rp->type->kind == (a_type_kind)tk_routine);
+    check_assertion(rp->type->variant.routine.extra_info->prototyped);
     /* Scan the param-id entries looking for cases in which a default
        argument appeared in the current function declaration. */
     rout_ssep = NULL;
     param_id = func_info->param_id_list;
-    check_assertion(rp->type->kind == (a_type_kind)tk_routine);
     ptp = rp->type->variant.routine.extra_info->param_type_list;
     /* Be sure param-id and param-type lists are in sync. */
     check_assertion((param_id == NULL) == (ptp == NULL));
