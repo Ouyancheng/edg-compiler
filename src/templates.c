@@ -7024,7 +7024,7 @@ defer_inline is TRUE.
                   scope_stack[depth_innermost_namespace_scope].assoc_namespace;
     }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (automatic_instantiation_mode && !suppress_instantiation_flags) {
+    if (automatic_instantiation_mode) {
       /* Set the instantiation required flag in the routine or variable
          entry. */
       if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -7391,19 +7391,12 @@ is set by update_instantiation_required_flag.
       fprintf(f_debug, " specific_def=%d\n", tip->specific_def);
     }  /* if */
 #endif /* DEBUG */
-    if (!suppress_instantiation_flags) {
-      /* Set the instantiation flags, unless this should be suppressed.
-         The other processing in this routine is done anyway because it
-         affects whether or not certain files may be implicitly included.
-         The suppression of instantiation flags should not affect which
-         files are implicitly included. */
-      if (is_static_data_member) {
-        variable->can_be_instantiated = can_instantiate;
-        variable->do_not_instantiate = tip->explicit_do_not_instantiate;
-      } else {
-        routine->can_be_instantiated = can_instantiate;
-        routine->do_not_instantiate = tip->explicit_do_not_instantiate;
-      }  /* if */
+    if (is_static_data_member) {
+      variable->can_be_instantiated = can_instantiate;
+      variable->do_not_instantiate = tip->explicit_do_not_instantiate;
+    } else {
+      routine->can_be_instantiated = can_instantiate;
+      routine->do_not_instantiate = tip->explicit_do_not_instantiate;
     }  /* if */
   }  /* for */
   db_exit();
