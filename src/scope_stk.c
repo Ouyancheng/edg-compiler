@@ -3910,12 +3910,11 @@ e.g., because it's externally defined.
     if (rout->is_trivial_default_constructor) {
       /* Trivial constructors have no bodies so are never needed. */
       is_needed = FALSE;
-    } else if (treat_as_static_inline(rout)) {
+    } else if (rout->is_inline) {
       /* An exception is "extern inline" functions, which are not regarded
          as referenced from elsewhere.  Each compilation unit has its own
          copy, and this copy is needed only if it is referenced in this
-         compilation unit.  When "extern inline" functions are not lowered
-         to static functions, treat_as_static_inline returns FALSE. */
+         compilation unit. */
       is_needed = FALSE;
     } else if (rout->is_template_function &&
                !rout->is_specialized &&

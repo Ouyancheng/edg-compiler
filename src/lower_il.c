@@ -5820,12 +5820,18 @@ not include the function scope memory region, if any.
     } /* if */
 #endif /* LOWER_EXTERN_INLINE */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-    if (routine->overriding_function_for_covariant_return_type != NULL &&
-        routine->overriding_function_for_covariant_return_type->assoc_scope !=
-                                                          NULL_region_number) {
-      /* Add a definition for an entry/wrapper to handle covariant
-         return types, if the primary routine is defined. */
-      add_body_for_covariant_return_type_entry_routine(routine);
+    { a_routine_ptr	overriding_function;
+      overriding_function = routine->
+                                 overriding_function_for_covariant_return_type;
+      if (overriding_function != NULL &&
+#if INSTANTIATE_EXTERN_INLINE
+          !overriding_function->suppress_inline_body &&
+#endif /* INSTANTIATE_EXTERN_INLINE */
+          overriding_function->assoc_scope != NULL_region_number) {
+        /* Add a definition for an entry/wrapper to handle covariant
+           return types, if the primary routine is defined. */
+        add_body_for_covariant_return_type_entry_routine(routine);
+      }  /* if */
     }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   }  /* if */

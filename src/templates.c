@@ -36,6 +36,9 @@ templates.c -- Support for C++ templates.
 #if DO_IL_LOWERING && AUTOMATIC_TEMPLATE_INSTANTIATION
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING && AUTOMATIC_TEMPLATE_INSTANTIATION */
+#if INSTANTIATE_EXTERN_INLINE && MAINTAIN_NEEDED_FLAGS
+#include "il_walk.h"
+#endif /* INSTANTIATE_EXTERN_INLINE && MAINTAIN_NEEDED_FLAGS */
 #ifdef lint
 /* Include the definition of an_arg_operand to suppress lint errors. */
 #include "exprutil.h"
@@ -13753,6 +13756,7 @@ for adding the entries to the actual instantiation request file.
   }  /* if */
 }  /* add_entities_to_request_file */
 
+#if ONE_INSTANTIATION_PER_OBJECT
 
 static void write_instantiation_file_name_to_template_info_file(
 					a_source_correspondence	*scp)
@@ -13769,6 +13773,7 @@ file.
                               file_name, (char*)NULL);
 }  /* write_instantiation_file_name_to_template_info_file */
 
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 void update_auto_instantiation_flags(void)
 /*
@@ -14143,6 +14148,11 @@ the body should be emitted by the back end.
 
   emit_function = inline_function_should_be_emitted(rout_ptr);
   rout_ptr->suppress_inline_body = !emit_function;
+#if MAINTAIN_NEEDED_FLAGS
+  if (emit_function) {
+    mark_as_needed((char*)rout_ptr, (an_il_entry_kind)iek_routine);
+  }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
   if (emit_function && rout_ptr->compiler_generated) {
     /* If this is a compiler generated routine, make sure it has a body. */
     force_definition_of_compiler_generated_routine(rout_ptr);
@@ -14165,7 +14175,7 @@ are instantiated using a mechanism like the template instantiation mechanism.
   /* Set the flag that indicates that this translation unit contains
      instantiatable entities. */
   if (inline_function_list != NULL) any_instantiations_required = TRUE;
-    for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
+  for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
     set_body_needed_flag_for_inline_function(rlep->routine);
   }  /* for */
 #endif /* INSTANTIATE_EXTERN_INLINE */
