@@ -3359,8 +3359,6 @@ operation is a pointer-to-member (see ARM 5.3).
              member functions specified by qualified name. */
           /* Change the error position to the "&". */
           operand.position = start_position;
-          /* In Microsoft mode, allow taking the address of a constructor,
-             to permit constructs like "p->X::X()". */
           conv_function_designator_to_ptr_to_function(&operand,
                                                       /*allow_ctor=*/FALSE);
           /* Note that the copy preserves ref_entries_list. */
