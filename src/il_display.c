@@ -960,7 +960,7 @@ do_struct_union:
           (void)printf("%srestrict", space_needed ? " ":"");
 #endif /* RESTRICT_ALLOWED */
         }  /* if */
-        (void)putc('\n');
+        (void)printf("\n");
       }  /* if */
       break;
     case tk_ptr_to_member:
