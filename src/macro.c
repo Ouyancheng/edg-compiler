@@ -4946,9 +4946,12 @@ Return the file descriptor.
   a_text_buffer_ptr	buf;
   char			*file_name;
   FILE			*f_file;
+  char			*aux_dir_name;
 
-  buf = combine_dir_and_file_name(edg_base_directory,
-                                  PREDEFINED_MACRO_DIR_NAME,
+  /* Make sure the auxiliary directory name is not NULL. */
+  aux_dir_name = EDG_AUXILIARY_INFO_DIR_NAME;
+  if (aux_dir_name == NULL) aux_dir_name = "";
+  buf = combine_dir_and_file_name(edg_base_directory, aux_dir_name,
                                   (a_text_buffer_ptr)NULL);
   append_to_path_name(buf, PREDEFINED_MACRO_FILE_NAME);
   file_name = buf->buffer;

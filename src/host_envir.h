@@ -1568,20 +1568,23 @@ options and #pragmas).
 #endif /* ifndef PCH_DECL_SEQ_THRESHOLD */
 
 /*
-The default directory to be used to find things such as the table of
-predefined macros.
+The directory in which the various components needed to use the compiler
+are installed.  Typically this directory will have subdirectories such
+as bin, lib, include, etc.  Currently, the front end uses this only
+for the purpose of finding the predefined macro definition file.
 */
 #ifndef DEFAULT_EDG_BASE
 #define DEFAULT_EDG_BASE ""
 #endif /* DEFAULT_EDG_BASE */
 
 /*
-The name of the directory in EDG_BASE that contains the predefined macro
-definition file.  May be an empty string, but not NULL.
+The name of the directory in EDG_BASE that contains miscellaneous files
+needed by the front end at execution time.  Currently, the front end uses
+this only for the purpose of finding the predefined macro definition file.
 */
-#ifndef PREDEFINED_MACRO_DIR_NAME
-#define PREDEFINED_MACRO_DIR_NAME "lib"
-#endif /* PREDEFINED_MACRO_DIR_NAME */
+#ifndef EDG_AUXILIARY_INFO_DIR_NAME
+#define EDG_AUXILIARY_INFO_DIR_NAME "lib"
+#endif /* EDG_AUXILIARY_INFO_DIR_NAME */
 
 /*
 The name of the predefined macro definition file to be used.
