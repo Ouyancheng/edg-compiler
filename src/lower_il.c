@@ -4254,6 +4254,9 @@ Do IL lowering of the indicated type and everything under it.
            the underlying type. */
         if (type->source_corresp.needed) {
           mark_as_needed((char *)new_type, iek_type);
+          if (is_immediate_class_type(new_type)) {
+            set_class_definition_needed(new_type);
+          }  /* if */
         }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
         break;
