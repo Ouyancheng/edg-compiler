@@ -815,8 +815,8 @@ a_pending_pragma_ptr extract_specific_pragmas(a_pragma_kind    kind,
 					      a_boolean	       curr_scope_only)
 /*
 Return one or more pending-pragma entries of the specified pragma kind.  If
-the pragma binds to the currrent declaration or statement and the pragma's
-automatically_include_in_il flag is TRUE, then the currrent construct must be
+the pragma binds to the current declaration or statement and the pragma's
+automatically_include_in_il flag is TRUE, then the current construct must be
 specified: either sym, if this is a declaration, or sp, if it's a statement,
 but not both, must be non-NULL.  If automatically_include_in_il is TRUE, the
 IL entry is created before the associated pending-pragma entry is returned.

@@ -536,7 +536,7 @@ unknown_option:
   {
     /* If you change this, see the similar code in get_next_source_file. */
 #ifdef USING_PURIFY
-    /* This directory name is, under certain condtions, discarded later
+    /* This directory name is, under certain conditions, discarded later
        in the compilation process.  Save a pointer here to prevent
        purify from complaining about the leaked memory. */
     static char	*dir_name;
