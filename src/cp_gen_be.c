@@ -3109,7 +3109,7 @@ Write out attributes that apply to the indicated type.
     /* Output the "unused" attribute. */
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
-  if (type->has_gnu_deprecated_attribute) {
+  if (type->source_corresp.has_gnu_deprecated_attribute) {
     /* Output the "deprecated" attribute. */
     write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */
@@ -3222,7 +3222,7 @@ Write out attributes that apply to the indicated variable.
   if (var->has_gnu_unused_attribute) {
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
-  if (var->has_gnu_deprecated_attribute) {
+  if (var->source_corresp.has_gnu_deprecated_attribute) {
     write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */
   if (var->is_not_common) {
@@ -3250,6 +3250,9 @@ static void write_field_attributes(a_field_ptr field)
 Write out attributes that apply to the indicated field.
 */
 {
+  if (field->source_corresp.has_gnu_deprecated_attribute) {
+    write_tok_str(" __attribute__((__deprecated__))");
+  }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (field->alignment != 0) {
     write_alignment_attribute(field->alignment);
@@ -3281,7 +3284,7 @@ Write out attributes that apply to the indicated routine.
   if (rout->has_gnu_used_attribute) {
     write_tok_str(" __attribute__((__used__))");
   }  /* if */
-  if (rout->has_gnu_deprecated_attribute) {
+  if (rout->source_corresp.has_gnu_deprecated_attribute) {
     write_tok_str(" __attribute__((__deprecated__))");
   }  /* if */
   if (rout->allocates_memory) {

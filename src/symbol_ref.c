@@ -1449,26 +1449,17 @@ created for this entity; otherwise, it is NULL.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void check_use_of_deprecated_entities(a_symbol_ptr       sym,
-                                             a_source_position  *pos)
+static void check_use_of_deprecated_entities(a_source_correspondence_ptr  scp,
+                                             a_source_position            *pos)
 /*
-The entity represented by the given symbol is referenced at the given
-position.  Issue a warning if the entity was declared with the GNU
-attribute "deprecated."
+The entity represented by the given source correspondence is referenced
+at the given position.  Issue a warning if the entity was declared with
+the GNU attribute "deprecated."
 */
 {
-  a_boolean  deprecated = FALSE;
-
-  if (sym->kind == (a_symbol_kind)sk_variable) {
-    deprecated = sym->variant.variable.ptr->has_gnu_deprecated_attribute;
-  } else if (sym->kind == (a_symbol_kind)sk_routine ||
-             sym->kind == (a_symbol_kind)sk_member_function) {
-    deprecated = sym->variant.routine.ptr->has_gnu_deprecated_attribute;
-  } else if (sym->kind == (a_symbol_kind)sk_field) {
-    deprecated = sym->variant.field.ptr->has_gnu_deprecated_attribute;
-  }  /* if */
-  if (deprecated) {
-    pos_sy_warning(ec_deprecated_entity, pos, sym);
+  if (scp->has_gnu_deprecated_attribute) {
+    check_assertion(scp->assoc_info != NULL);
+    pos_sy_warning(ec_deprecated_entity, pos, (a_symbol_ptr)scp->assoc_info);
   }  /* if */
 }  /* check_use_of_deprecated_entities */
 
@@ -1744,8 +1735,9 @@ check_label_decl_seq:
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode) {
-    check_use_of_deprecated_entities(sym_ptr, source_position);
+  if (gnu_mode && scptr != NULL &&
+      !(sym_ptr->kind == (a_symbol_kind)sk_type || is_tag_symbol(sym_ptr))) {
+    check_use_of_deprecated_entities(scptr, source_position);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* record_symbol_reference */

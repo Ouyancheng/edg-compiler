@@ -4492,7 +4492,7 @@ declaration.
   if (gnu_mode) {
     /* Apply the attributes to the variable declaration. */
     apply_attributes_to_variable(attributes, variable_ptr);
-    if (!variable_ptr->has_gnu_deprecated_attribute) {
+    if (!variable_ptr->source_corresp.has_gnu_deprecated_attribute) {
       /* Check if a deprecated type was involved in this declaration. */
       warn_about_use_of_gnu_deprecated_type(type_ptr,
                                             &locator->source_position);
@@ -6011,7 +6011,7 @@ skip_overloading:;
     if (attributes != NULL) {
       apply_attributes_to_routine(attributes, routine_ptr);
     }  /* if */
-    if (!routine_ptr->has_gnu_deprecated_attribute) {
+    if (!routine_ptr->source_corresp.has_gnu_deprecated_attribute) {
       /* Check if a deprecated type was involved in this declaration. */
       warn_about_use_of_gnu_deprecated_type(type_ptr,
                                             &locator->source_position);
@@ -6785,7 +6785,7 @@ is not necessarily the canonical entry for the template being declared.
     if (attributes != NULL) {
       apply_attributes_to_routine(attributes, rout_ptr);
     }  /* if */
-    if (!rout_ptr->has_gnu_deprecated_attribute) {
+    if (!rout_ptr->source_corresp.has_gnu_deprecated_attribute) {
       /* Check if a deprecated type was involved in this declaration. */
       warn_about_use_of_gnu_deprecated_type(type_ptr,
                                             &locator->source_position);
@@ -7437,7 +7437,7 @@ return a pointer to it in *symbol_ptr.
       /* Applying attributes could change the underlying type. */
       apply_attributes_to_typedef(attributes, tp, linkage_name);
     }  /* if */
-    if (!tp->has_gnu_deprecated_attribute) {
+    if (!tp->source_corresp.has_gnu_deprecated_attribute) {
       /* Check if a deprecated type was involved in this declaration. */
       warn_about_use_of_gnu_deprecated_type(type_ptr,
                                             &locator->source_position);

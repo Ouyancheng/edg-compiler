@@ -1492,7 +1492,6 @@ variant fields to default values.
   pte->alignment_set_explicitly = FALSE;
   pte->variables_are_implicitly_referenced = FALSE;
   pte->copy_with_additional_attributes = FALSE;
-  pte->has_gnu_deprecated_attribute = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pte->autonomous_primary_tag_decl = FALSE;
@@ -1725,7 +1724,6 @@ to it.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   vp->is_weak                     = FALSE;
   vp->has_gnu_unused_attribute    = FALSE;
-  vp->has_gnu_deprecated_attribute = FALSE;
   vp->is_not_common               = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
@@ -1829,9 +1827,6 @@ to it.
   fp->alignment            = 0;
   fp->is_packed            = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
-#if GNU_EXTENSIONS_ALLOWED
-  fp->has_gnu_deprecated_attribute = 0;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if IA64_ABI
   fp->offset_is_set        = FALSE;
 #endif /* IA64_ABI */
@@ -1996,7 +1991,6 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_weak                     = FALSE;
   rp->has_gnu_unused_attribute    = FALSE;
   rp->has_gnu_used_attribute      = FALSE;
-  rp->has_gnu_deprecated_attribute = FALSE;
   rp->allocates_memory            = FALSE;
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
   rp->is_naked                    = FALSE;
@@ -3825,6 +3819,7 @@ in il_alloc_init.)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED  && GENERATE_SOURCE_SEQUENCE_LISTS
   def_source_corresp.marked_as_gnu_extension = FALSE;
+  def_source_corresp.has_gnu_deprecated_attribute = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
   def_source_corresp.externalized = FALSE;
 #if RECORD_SCOPE_DEPTH_IN_IL

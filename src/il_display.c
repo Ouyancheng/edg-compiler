@@ -626,6 +626,9 @@ Display the indicated source correspondence entry.
   if (scp->marked_as_gnu_extension) {
     disp_boolean("marked_as_gnu_extension", TRUE);
   }  /* if */
+  if (scp->has_gnu_deprecated_attribute) { 
+    disp_boolean("has_gnu_deprecated_attribute", TRUE);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
   if (scp->externalized) {
     disp_boolean("externalized", TRUE);
@@ -1315,9 +1318,6 @@ Display the indicated type entry.
   if (ptr->copy_with_additional_attributes) {
     disp_boolean("copy_with_additional_attributes", TRUE);
   }  /* if */
-  if (ptr->has_gnu_deprecated_attribute) { 
-    disp_boolean("has_gnu_deprecated_attribute", TRUE);
-  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   if (ptr->use_cfront_transitional_nested_type_name_mangling) {
@@ -1969,9 +1969,6 @@ Display the indicated variable.
   if (ptr->has_gnu_unused_attribute) { 
     disp_boolean("has_gnu_unused_attribute", TRUE);
   }  /* if */
-  if (ptr->has_gnu_deprecated_attribute) { 
-    disp_boolean("has_gnu_deprecated_attribute", TRUE);
-  }  /* if */
   if (ptr->is_not_common) {
     disp_boolean("is_not_common", TRUE);
   }  /* if */
@@ -2145,9 +2142,6 @@ Display the indicated field.
   }  /* if */
   if (ptr->is_packed) {
     disp_boolean("is_packed", TRUE);
-  }  /* if */
-  if (ptr->has_gnu_deprecated_attribute) {
-    disp_boolean("has_gnu_deprecated_attribute", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
   if (ptr->is_anonymous_parent_object) {
@@ -2624,9 +2618,6 @@ Display the indicated routine.
   }  /* if */
   if (ptr->has_gnu_used_attribute) { 
     disp_boolean("has_gnu_used_attribute", TRUE);
-  }  /* if */
-  if (ptr->has_gnu_deprecated_attribute) { 
-    disp_boolean("has_gnu_deprecated_attribute", TRUE);
   }  /* if */
   if (ptr->allocates_memory) {
     disp_boolean("allocates_memory", TRUE);

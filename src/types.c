@@ -6948,7 +6948,7 @@ Also set *force_end_of_traversal to TRUE in that case, and issue a warning.
 {
   a_boolean  found = FALSE;
 
-  if (type_ptr->has_gnu_deprecated_attribute) {
+  if (type_ptr->source_corresp.has_gnu_deprecated_attribute) {
     *force_end_of_traversal = found = TRUE;
     /* The GNU deprecated attribute cannot be applied to unnamed types. */
     check_assertion(type_ptr->source_corresp.assoc_info != NULL);

@@ -6809,7 +6809,7 @@ otherwise these are NULL).
     if (attributes != NULL) {
       apply_attributes_to_routine(attributes, rtn);
     }  /* if */
-    if (!rtn->has_gnu_deprecated_attribute) {
+    if (!rtn->source_corresp.has_gnu_deprecated_attribute) {
       /* Check if a deprecated type was involved in this declaration. */
       warn_about_use_of_gnu_deprecated_type(member_type,
                                             &locator->source_position);
@@ -7745,7 +7745,7 @@ otherwise these are NULL).
   if (gpp_mode) {
     /* Apply the attributes to the variable declaration. */
     apply_attributes_to_variable(attributes, var);
-    if (!var->has_gnu_deprecated_attribute) {
+    if (!var->source_corresp.has_gnu_deprecated_attribute) {
       /* Check if a deprecated type was involved in this declaration. */
       warn_about_use_of_gnu_deprecated_type(member_type,
                                             &locator->source_position);
