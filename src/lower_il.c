@@ -9475,11 +9475,13 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           /* If the routine has a "this" parameter or caller-supplied
              result location, lower it separately. */
           if (rtsp->implicit_this_param_type != NULL) {
-            lower_normal_expr(arg_node);
+            /* Treat the "this" parameter as an lvalue to avoid extra
+               tests for NULL on base class casts. */
+            lower_expr(arg_node, /*is_lvalue=*/TRUE);
             arg_node = arg_node->next;
           }  /* if */
           if (rtsp->caller_provides_place_to_put_return_value) {
-            lower_normal_expr(arg_node);
+            lower_expr(arg_node, /*is_lvalue=*/TRUE);
             arg_node = arg_node->next;
           }  /* if */
           lower_arg_expr_list(arg_node, rout_type);
