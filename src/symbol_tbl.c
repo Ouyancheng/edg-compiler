@@ -4021,7 +4021,7 @@ class) and the access specification *access.
   /* First look in the scope of the base class itself. */
   scope = base_class->type->variant.class_struct_union.extra_info->assoc_scope;
   if (scope == NULL) {
-    /* This is probably an nonreal class enountered during a prototype
+    /* This is probably a nonreal class encountered during a prototype
        instantiation.  Ignore it. */
     sym = NULL;
   } else {
