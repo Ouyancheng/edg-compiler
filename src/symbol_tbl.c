@@ -7129,7 +7129,8 @@ specific version of the template.
       ssep->depth_template_declaration_scope =
         depth_template_declaration_scope = NO_SCOPE_DEPTH;
     }  /* if */
-    if (kind == (a_scope_kind)sck_template_instantiation ||
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_template_instantiation ||
         kind == (a_scope_kind)sck_pragma) {
       /* When beginning a nested context, clear the expression stack. */
       expr_stack = NULL;
