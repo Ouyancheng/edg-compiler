@@ -62,6 +62,15 @@ EXTERN a_boolean
 #endif /* DO_IL_LOWERING */
 
 /*
+The default "routine name linkage" is the value to which the
+routine_name_linkage field of a routine type supplement is initialized.
+When a value other than the language default is required, the caller of
+alloc_type will make the correction.
+*/
+EXTERN a_name_linkage_kind
+		default_routine_name_linkage;
+
+/*
 Macro that generates a unique unsigned long identifier from an IL pointer.
 This is useful for generating names for unnamed symbols, for cross-reference
 information, and for debug prints.  On most machines, the unique identifier

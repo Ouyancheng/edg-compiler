@@ -4196,7 +4196,7 @@ to default values.
       rtsp->assoc_routine_is_ctor    = FALSE;
       rtsp->assoc_routine_is_dtor    = FALSE;
       rtsp->suppress_diagnostic_on_incomplete_return_type = FALSE;
-      rtsp->routine_name_linkage     = (a_name_linkage_kind)nlk_none;
+      rtsp->routine_name_linkage     = default_routine_name_linkage;
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
 #if MICROSOFT_KEYWORDS_ALLOWED
@@ -10265,6 +10265,11 @@ in il_init.)
     internal_error("il_init: incorrect initialization of pragma_ids");
   }  /* if */
 #endif /* CHECKING */
+  /* Set the default "routine name linkage", which is the value to which the
+     routine_name_linkage field of a routine type supplement is initialized. */
+  default_routine_name_linkage = C_mode() ?
+                                   (a_name_linkage_kind)nlk_none :
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
 
   /* Set the default source correspondence variable to default values. */
   def_source_corresp.assoc_info = NULL;
