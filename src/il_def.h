@@ -2949,6 +2949,11 @@ typedef struct a_type {
 			   produced by a template instantiation, no matter
 			   what triggers the instantiation. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_bit_field	referenced_by_namespace_placeholder_typeref:1;
+			/* TRUE if this type is pointed to by a placeholder
+			   typeref that has is_placeholder_for_namespace_type
+			   TRUE.  Used for types that are members of
+			   namespaces. */
 #if DO_IL_LOWERING
   a_variable_ptr
 		typeinfo_var;

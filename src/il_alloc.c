@@ -969,6 +969,7 @@ variant fields to default values.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pte->autonomous_primary_tag_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  pte->referenced_by_namespace_placeholder_typeref = FALSE;
 #if DO_IL_LOWERING
   pte->typeinfo_var = NULL;
 #endif /* DO_IL_LOWERING */
