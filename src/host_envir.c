@@ -2213,6 +2213,20 @@ definition whose name can be used as part of the module ID.
       /* Don't use template static data members.  Some implementations
          may generate these in multiple files. */
       if (variable->is_template_static_data_member) continue;
+#if GNU_EXTENSIONS_ALLOWED
+      if (variable->is_weak) {
+        /* Weak variable definitions may appear in multiple translation units.
+           We therefore don't consider them for use in the module ID. */
+        continue;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (variable->decl_modifiers & (a_decl_modifier)DM_SELECTANY) {
+        /* Variables defined as "selectany" may be defined in multiple
+           translation units.  Do not use them for the module ID. */
+        continue;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* If the variable is a namespace member, get its mangled name;
          otherwise use unmangled name. */
       if (scope->kind == (a_scope_kind)sck_file) {
@@ -2236,6 +2250,13 @@ definition whose name can be used as part of the module ID.
         /* Don't use template functions.  Some implementations
            may generate these in multiple files. */
         if (routine->is_template_function) continue;
+#if GNU_EXTENSIONS_ALLOWED
+        if (routine->is_weak) {
+          /* Weak routine definitions may appear in multiple translation units.
+             We therefore don't consider them for use in the module ID. */
+          continue;
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if !STANDALONE_UTILITY_PROGRAM
         /* Avoid routines with an associated error symbol. */
         if (in_front_end &&
