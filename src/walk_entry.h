@@ -1329,6 +1329,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                                    (a_scope_orphaned_list_header_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_scope_orphaned_list_header_ptr,
                        iek_scope_orphaned_list_header);
+        remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
         walk_list(ptr->orphaned_types, a_type_ptr, iek_type);
         walk_list(ptr->orphaned_variables, a_variable_ptr, iek_variable);
         walk_list(ptr->orphaned_src_seq_sublists, a_src_seq_sublist_ptr,
