@@ -1013,7 +1013,7 @@ the current statement sequence.
 
   /* Allocate the statement entry. */
   sp = alloc_statement(kind);
-  /* Set the position from pos_curr_token. */
+  /* Set the position from *stmt_pos. */
   set_stmt_source_position(sp->position, *stmt_pos);
 
   /* See if the statement can be attached under the existing statement. */
@@ -1051,6 +1051,8 @@ the current statement sequence.
     } else {
       /* Create a new block to allow additional statements. */
       extra_block = alloc_statement((a_statement_kind)stmk_block);
+      /* This doesn't get added to the source sequence list; it's not
+         in the source. */
       extra_block->variant.block.statements = *head_ptr;
       *head_ptr = extra_block;
     }  /* if */
@@ -1543,6 +1545,7 @@ block is being created to surround a dependent statement in C++.
   a_struct_stmt_kind          kind = struct_stmt_stack[depth_stmt_stack].kind;
 
   *block = add_statement((a_statement_kind)stmk_block);
+  stmt_update_source_sequence_list(*block);
   if (cfront_dependent_statement) {
     /* This is a dependent statement in cfront mode, which is special in
        that no scope is created for it.  Mark the block for special
@@ -3242,6 +3245,7 @@ branching into it is disallowed).
     control_flow_descr_list = end_of_control_flow_descr_list = NULL;
     block = alloc_statement((a_statement_kind)stmk_block);
     set_stmt_source_position(block->position, pos_curr_token);
+    stmt_update_source_sequence_list(block);
     /* Clear statement stack just to be careful. */
     depth_stmt_stack = -1;
     /* Push an entry on the structured statement stack. */
@@ -3253,6 +3257,8 @@ branching into it is disallowed).
     }  /* if */
   } else if (is_catch_clause) {
     block = alloc_statement((a_statement_kind)stmk_block);
+    set_stmt_source_position(block->position, pos_curr_token);
+    stmt_update_source_sequence_list(block);
     /* Push an entry on the structured statement stack. */
     push_stmt_stack(ssk_compound, block);
     /* Mark the block that was just pushed onto the stack as a handler. */
