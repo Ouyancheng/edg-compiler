@@ -1,5 +1,11 @@
 Version 2.17
 
+5/5/93  Incorrect argument transfer method used for template functions
+
+Under certain circumstances a template function or member function of
+a template class could be generated based on an incorrect
+argument transfer method flag.  This has been corrected.
+
 5/4/93  Calls of virtual functions from constructor and destructors
 
 Calls of virtual functions of a class from within the constructor or
