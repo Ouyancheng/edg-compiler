@@ -14140,7 +14140,7 @@ This routine is also called in C99 mode.
                                    skip_typerefs(required_type)->
                                         variant.class_struct_union.field_list);
     /* Stop looping if the aggregate class has no members. */
-    if (first_field == NULL) break;
+    if (first_field == NULL) goto required_type_determined;
     /* See whether the expression can be converted to the aggregate class
        type. */
     if (c99_mode ?
@@ -14154,11 +14154,11 @@ This routine is also called in C99 mode.
                                         (a_conv_descr *)NULL,
                                         &ambiguous,
                                         (a_candidate_function_ptr *)NULL) ||
-           ambiguous)) break;
+           ambiguous)) goto required_type_determined;
     /* Go down to the first member. */
     required_type = first_field->type;
     (*levels_down)++;
-    if (is_array_type(required_type)) {
+    while (is_array_type(required_type)) {
       /* An array is also an aggregate.  However, generally the whole
          array is not initialized -- the first member is initialized. */
       if (is_string_type(required_type) &&
@@ -14166,14 +14166,15 @@ This routine is also called in C99 mode.
         /* char array initialized by string literal, either one possibly
            wide.  Don't go down to the member type. */
         string_case = TRUE;
-        break;
+        goto required_type_determined;
       } else {
         /* Normal case: initialize the first member of the array. */
         required_type = array_element_type(required_type);
         (*levels_down)++;
       }  /* if */
-    }  /* if */
+    }  /* while */
   }  /* while */
+required_type_determined:
   if (is_class_struct_union_type(required_type)) {
     /* The entity being initialized has a class type. */
     /* Build a dynamic initialization entry to describe the initialization. */

@@ -1,5 +1,20 @@
 Version 2.46
 
+1/2/01   Spurious error on initialization of multilevel array field
+
+In C++ and C99 modes, the front end used to issue a spurious error message
+when omitting braces in the initializer for the first element of field with
+multilevel array type.  The error only occurred if the structure containing
+the field was itself used as the type of a class member. For example:
+
+  struct S {
+    struct N {
+      int a[2][2];
+    } n;
+  } s = { 0 };  // Used to trigger a spurious error
+
+This is now fixed.
+
 1/2/01   Setting of is_template_function for member function prototype
          instantiations
 
