@@ -1,5 +1,12 @@
 Version 2.09
 
+9/13/92  Diagnostic for base class with nonvirtual destructor
+
+A diagnostic is issued on a base class that has a nonvirtual destructor.
+This follows a suggestion in the commentary for ARM 12.4, pp. 277-78,
+but since such code could reflect a conscious design choice, a remark is
+put out instead of a warning.
+
 9/11/92  Fixed bug with qualifiers on classes in conversions
 
 Compiling the following no longer causes a loop:
