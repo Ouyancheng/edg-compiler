@@ -764,6 +764,18 @@ generating K&R C.)
 #endif /* !defined(SUPPRESS_CONST_IN_GENERATED_C) */
 #endif /* BACK_END_IS_C_GEN_BE */
 
+#if BACK_END_IS_C_GEN_BE
+/*
+If the C-generating back end is being used, and the target environment
+has .init sections (e.g., SVR4), this flag is TRUE to enable generation of
+asm directives to get startup routines called (thus eliminating the need
+for patch or munch).  The form of the generated lines is right for Solaris.
+*/
+#ifndef USE_INIT_SECTION_IN_GENERATED_C
+#define USE_INIT_SECTION_IN_GENERATED_C FALSE
+#endif /* ifndef USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* BACK_END_IS_C_GEN_BE */
+
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
 When generating C or C++ code, add extra braces around "if" statements
