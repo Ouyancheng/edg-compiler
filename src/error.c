@@ -1234,6 +1234,9 @@ error code.
     case ec_nonstd_const_member:
       m = "declaring a member constant is nonstandard";
       break;
+    case ec_delete_of_const_pointer:
+      m = "a pointer to const may not be deleted";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
