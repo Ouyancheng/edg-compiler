@@ -6778,7 +6778,10 @@ in doing substitution on a type), set *copy_error to TRUE.
           check_assertion(!tap->is_type &&
                           !tap->is_array_bound_of_unknown_type &&
                           !tap->constant_is_an_arg_operand);
-          con_copy = tap->variant.constant;
+          if (tap->variant.constant != NULL) {
+            /* Only use the template argument value if one was specified. */
+            con_copy = tap->variant.constant;
+          }  /* if */
         }  /* if */
         break;
       case tpck_cast:
