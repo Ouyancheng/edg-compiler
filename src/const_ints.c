@@ -467,17 +467,6 @@ Return the number of bits required to represent the indicated constant.
 }  /* bits_required_to_represent_integer_constant */
 
 
-void write_integer_constant(FILE       *f_output,
-                            a_constant *cp)
-/*
-Write the literal form of the integer constant cp on the file f_output.
-If the value is negative, it is preceded by a "-".
-*/
-{
-  fputs(str_for_integer_constant(cp), f_output);
-}  /* write_integer_constant */
-
-
 void add_integer_values(an_integer_value *op_1,
 			an_integer_value *op_2,
 			a_boolean	 is_signed,
