@@ -3733,11 +3733,19 @@ to NULL.
       sym = linked_symbol;
       routine_ptr = linked_symbol->variant.routine.ptr;
       check_assertion(routine_ptr != NULL);
-      old_decl_has_body = (routine_ptr->assoc_scope != NULL_region_number
+      old_decl_has_body = (sym->defined
 #if ASM_FUNCTION_ALLOWED
                      || routine_ptr->storage_class == (a_storage_class)sc_asm
 #endif /* ASM_FUNCTION_ALLOWED */
                           );
+#if CHECKING
+      /* In C++ the defined flag may have been set without the body having
+         been scanned and bound to the routine yet (e.g., inline friend
+         function).  However, if the body has been scanned, defined should
+         be set. */
+      check_assertion(routine_ptr->assoc_scope != NULL_region_number ?
+                        old_decl_has_body : TRUE);
+#endif /* CHECKING */
       if (is_function_def && old_decl_has_body) {
         /* Previous routine already has a body, and new one does (or will)
            too. */

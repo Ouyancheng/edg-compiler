@@ -1,5 +1,15 @@
 Version 2.22
 
+1/11/94  Multiple inline definitions of friend function
+
+An error is now issued when a friend function is defined more than once
+within a given class.  For instance,
+
+  class A {
+    friend void f() { }
+    friend void f() { }    // Redefinition error is now reported
+  };
+
 1/10/94  Operator functions with erroneous operators
 
 Handling has been improved when the operator in an operator function is
