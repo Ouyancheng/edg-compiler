@@ -1,5 +1,17 @@
 Version 3.6
 
+1/25/05  throw of incomplete array
+
+A "throw" of an expression that is an unknown-bound array is now
+accepted except in strict mode and g++ mode.  The letter of the
+standard makes such a throw ill-formed, but it's a reasonable thing
+to do (what's thrown is a pointer, which is complete) and MSVC++
+allows it.  We're also entering a core issue for this.
+
+  extern const char a[];
+  int main() {
+    throw a;  // Strictly speaking ill-formed, now accepted in default mode
+  }
 
 1/25/05  GNU C++ compatibility: Extraneous qualifier on member declarations
 

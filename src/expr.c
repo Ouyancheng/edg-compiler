@@ -13507,7 +13507,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
   a_boolean           err = FALSE, expr_present;
   an_expr_node_ptr    node, throw_node;
   a_dynamic_init_ptr  dip;
-  a_type_ptr          throw_type;
+  a_type_ptr          throw_type, incomp_test_type;
   an_expr_stack_entry expr_stack_entry;
 
   db_enter(4, "scan_throw_operator");
@@ -13562,20 +13562,33 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = operand.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    incomp_test_type = operand.type;
+    if (!is_class_struct_union_type(operand.type)) {
+      /* Array decays to pointer, function decays to pointer.  Don't do
+         this for classes so we don't convert lvalues to rvalues. */
+      do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+      /* Generally, the type we test for incomplete is the type after any
+         transformations, but the standard actually requires that the
+         original type not be incomplete (not even an incomplete array).
+         That may be a mistake in the standard.  g++ does the test like
+         the standard requires. */
+      if (!strict_ansi_mode && !gpp_mode) incomp_test_type = operand.type;
+    }  /* if */
+    throw_type = operand.type;
     /* Instantiate the type if it is a template class.  The type has to be
        complete so we can copy it (and we do this now so we can test whether
        the type is an abstract class). */
-    complete_type_is_needed(operand.type);
-    if (is_void_type(operand.type)) {
+    complete_type_is_needed(throw_type);
+    if (is_void_type(throw_type)) {
       /* Cannot throw a void expression. */
       error_in_operand(ec_void_throw, &operand);
-    } else if (is_incomplete_type(operand.type)) {
+    } else if (is_incomplete_type(incomp_test_type)) {
       /* Cannot throw an incomplete type. */
       error_in_operand(ec_incomplete_type_not_allowed, &operand);
-    } else if (is_pointer_type(operand.type)) {
+    } else if (is_pointer_type(throw_type)) {
       /* Cannot throw a pointer to incomplete type, except a pointer
          to (possibly cv-qualified) void. */
-      a_type_ptr under_type = type_pointed_to(operand.type);
+      a_type_ptr under_type = type_pointed_to(throw_type);
       complete_type_is_needed(under_type);
       if (is_incomplete_type(under_type) && !is_void_type(under_type)) {
         if (!microsoft_mode) {
@@ -13584,9 +13597,9 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
           pos_warning(ec_ptr_incomplete_throw, &operand.position);
         }  /* if */
       }  /* if */
-    } else if (is_abstract_class_type(operand.type)) {
+    } else if (is_abstract_class_type(throw_type)) {
       report_abstract_class_error(ec_abstract_class_object_not_allowed,
-                                  operand.type, &operand.position);
+                                  throw_type, &operand.position);
       conv_to_error_operand(&operand);
     }  /* if */
   }  /* if */
@@ -13601,12 +13614,11 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     throw_node->type = void_type();
     if (expr_present) {
       /* There is a throw expression. */
-      a_type_ptr operand_type = operand.type;
-      if (is_class_struct_union_type(operand_type)) {
+      throw_type = operand.type;
+      if (is_class_struct_union_type(throw_type)) {
         /* For a class type operand, generate a dynamic initialization that
            copies the value to an undesignated location. */
-        throw_type = operand_type;
-        prep_elision_initializer_operand(&operand, operand_type,
+        prep_elision_initializer_operand(&operand, throw_type,
                                          /*initializing_return_value=*/FALSE,
                                          /*fill_in_dtor=*/FALSE,
                                          ec_bad_initializer_type, &dip);
@@ -13616,15 +13628,13 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
            dynamic initialization.  Note that this also forces instantiation
            of the destructor if it's a template, which is desirable. */
         throw_node->variant.throw_info->destructor =
-              expr_select_destructor(operand_type, operand_type,
+              expr_select_destructor(throw_type, throw_type,
                                      &operand.position,
                                      /*honor_virtual=*/FALSE);
       } else {
         /* For a nonclass operand, generate an expression and then make a
            dynamic initialization entry for the expression. */
-        do_operand_transformations(&operand, TOPT_NO_OPTIONS);
         node = make_node_from_operand(&operand);
-        throw_type = node->type;
         dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_expression,
                                       throw_type, &operand.position);
         dip->variant.expression = node;
