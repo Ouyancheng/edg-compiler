@@ -1183,6 +1183,7 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->next              = NULL;
   ptr->symbol            = NULL;
   ptr->inactive_symbols  = NULL;
+  ptr->extern_symbols    = NULL;
   ptr->identifier        = NULL;
   ptr->identifier_length = 0;
   ptr->any_nested_types_on_inactive_list = FALSE;
@@ -1411,6 +1412,8 @@ Reuse a freed entry if possible. */
 {
   an_active_using_directive_ptr  audp;
   a_scope_pointers_block_ptr     pointers_block;
+  a_namespace_ptr		 nsp;
+  a_symbol_ptr			 ns_sym;
 
   if (avail_active_using_directives != NULL) {
     /* Reuse a freed entry. */
@@ -1426,9 +1429,14 @@ Reuse a freed entry if possible. */
   }  /* if */
   audp->entry = udp;
   audp->next_in_lookup_list = NULL;
+  nsp = skip_namespace_aliases(udp->assoc_namespace);
+  ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
+  audp->namespace_supplement = ns_sym->variant.namespace_info.extra_info;
   pointers_block = assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
   audp->next = pointers_block->active_using_directives;
   pointers_block->active_using_directives = audp;
+  /* Now that a using directive is active, inactive symbols may be visible. */
+  scope_stack[depth_scope_stack].inactive_symbols_may_be_visible = TRUE;
 }  /* add_active_using_directive */
 
 
@@ -1450,7 +1458,7 @@ Free the specified list of active using directives to the available list.
 }  /* free_active_using_directive_list */
 
 
-a_namespace_symbol_supplement_ptr  alloc_namespace_symbol_supplement(void)
+a_namespace_symbol_supplement_ptr alloc_namespace_symbol_supplement(void)
 /*
 Allocate a new template symbol supplement entry, initialize its fields, and
 return a pointer to it.
@@ -1461,6 +1469,7 @@ return a pointer to it.
   /* Allocate a namespace symbol supplement. */
   nssp = (a_namespace_symbol_supplement_ptr)
                    alloc_fe(sizeof(a_namespace_symbol_supplement));
+  nssp->on_active_using_list = FALSE;
 #if DEBUG
   num_namespace_symbol_supplements_allocated++;
 #endif /* DEBUG */
@@ -6440,6 +6449,26 @@ such pointer is found, NULL is returned.
 }  /* find_out_of_scope_declaration */
 
 
+static a_symbol_ptr add_symbol_to_lookup_set(a_symbol_ptr curr_sym,
+                                             a_symbol_ptr new_sym,
+                                             a_boolean    *err)
+/*
+Reconcile the results of a lookup in which more than one symbol is found
+in scopes that are considered equivalent.  This occurs when using
+directives cause symbols from multiple namespaces (possibly including
+the global namespace) to be found as the result of a lookup.
+*/
+{
+#if 0
+#else
+  /* Temporary version. */
+  sym_error(ec_ambiguous_name, curr_sym);
+  *err = TRUE;
+  return curr_sym;
+#endif
+}  /* add_symbol_to_lookup_set */
+
+
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                               an_id_lookup_options_set options)
 /*
@@ -6566,7 +6595,10 @@ C and C++.
     } else {
       /* There are inactive symbols and they may be visible, so the more
          complicated search is required. */
-      a_boolean	check_for_nonreal_bases;
+      a_boolean				check_for_nonreal_bases;
+      an_active_using_directive_ptr	active_using_list = NULL;
+      an_active_using_directive_ptr	active_using_tail = NULL;
+      a_boolean				found_at_file_scope = FALSE;
 #if DEBUG
       num_slow_id_lookups++;
 #endif /* DEBUG */
@@ -6588,6 +6620,19 @@ C and C++.
          stack has at least two entries (the file scope and the class or
          class reactivation). */
       for (first_scope = TRUE;; first_scope = FALSE) {
+        {
+          /* Add any using directives from this scope to the list of
+             active using directives for this lookup. */
+          an_active_using_directive_ptr	audp;
+          audp = assoc_pointers_block_of(ssep)->active_using_directives;
+          if (active_using_list == NULL) active_using_list = audp;
+          for (; audp != NULL; audp = audp->next) {
+            if (active_using_tail != NULL) {
+              active_using_tail->next_in_lookup_list = audp;
+            }  /* if */
+            active_using_tail = audp;
+          }  /* while */
+        }
         if (ssep->kind == (a_scope_kind)sck_class_reactivation ||
             ssep->kind == (a_scope_kind)sck_namespace_extension ||
 	    ssep->kind == (a_scope_kind)sck_template_instantiation) {
@@ -6663,9 +6708,13 @@ C and C++.
 		 constructor declaration.  The constructor parameters
 		 must not be visible during this lookup. */
             } else if (is_acceptable_active_symbol(active_sym)) {
-              /* Found a symbol. */
+              /* Found a symbol.  Record whether this symbol was found
+                 at file scope.  If it was, we will later need to also
+                 check for symbols visible as a result of using
+                 directives. */
               sym = active_sym;
-              goto end_lookup;
+              found_at_file_scope = ssep->kind == (a_scope_kind)sck_file;
+              break;
             }  /* if */
           }  /* for */
           if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
@@ -6755,6 +6804,51 @@ next_scope:
           ssep--;
         }  /* if */
       }  /* for */
+      /* If no symbol was found, or if the symbol found was from the file
+         scope, look for symbols that are visible as a result of
+         using directives. */
+      if (sym == NULL || found_at_file_scope) {
+        an_active_using_directive_ptr	audp;
+        a_symbol_ptr			new_sym;
+        /* Set a flag in the namespace supplement for each of the
+           namespaces on the active using list. */
+        for (audp = active_using_list; audp != NULL; audp = audp->next) {
+          audp->namespace_supplement->on_active_using_list = TRUE;
+        }  /* for */
+        /* Look through the inactive symbols for any symbols associated with
+           one of the marked namespaces. */
+        new_sym = inactive_symbol_list;
+        for (new_sym = inactive_symbol_list;
+             new_sym != NULL; new_sym = new_sym->next) {
+          a_namespace_ptr	nsp;
+          a_symbol_ptr		ns_sym;
+          /* Ignore symbols that are not namespace members. */
+          if (new_sym->is_class_member) continue;
+          nsp = new_sym->parent.namespace_ptr;
+          if (nsp == NULL) continue;
+          nsp = skip_namespace_aliases(nsp);
+          ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
+          if (ns_sym->variant.namespace_info.extra_info->
+                                                       on_active_using_list) {
+            if (sym == NULL) {
+              /* There was no previous symbol. */
+              sym = new_sym;
+            } else {
+              /* Merge the information about this symbol, with that
+                 of any previous symbol that was found. */
+              a_boolean	err;
+              sym = add_symbol_to_lookup_set(sym, new_sym, &err);
+              /* If an error occurred while trying to reconcile the two
+                 symbols, don't look for any additional matches. */
+              if (err) break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        /* Clear the flag in the namespace supplement that was set earlier. */
+        for (audp = active_using_list; audp != NULL; audp = audp->next) {
+          audp->namespace_supplement->on_active_using_list = FALSE;
+        }  /* for */
+      }  /* if */
     }  /* if */
     if (sym == NULL) {
       /* See if the nested class anachronism (ARM 18.3.5) yields a symbol.

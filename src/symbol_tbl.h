@@ -1196,34 +1196,10 @@ typedef struct a_template_symbol_supplement {
   } variant;
 } a_template_symbol_supplement;
 
-
 /*
-An entry corresponding to an IL entry of kind a_using_directive and containing
-front-end-only information.  (Note: a using-directive is a declaration of the
-form "using namespace N"; it should not be confused with "using N::x" or
-"using ::x", which are referred to as "using-declarations".)
+Forward declaration needed for definition of a_scope_pointers_block.
 */
 typedef struct an_active_using_directive *an_active_using_directive_ptr;
-typedef struct an_active_using_directive {
-  an_active_using_directive_ptr
-		next;
-			/* Next in the linked list of active using-directives
-			   associated with the current scope or namespace. */
-  a_using_directive_ptr
-		entry;
-			/* The IL entry to which this front-end only entry
-			   corresponds; there is a one-to-one correspondence
-			   between the two sorts of entries, though a pointer
-			   is required in one direction only. */
-  an_active_using_directive_ptr
-		next_in_lookup_list;
-			/* Next in a linked list created during name lookup to
-			   track occurrences of a given name across the set
-			   of potentially relevant namespaces, as indicated by
-			   using directives.  If set, this pointer is cleared
-			   again as soon as the lookup has completed. */
-} an_active_using_directive;
-
 
 /*
 Structure that is logically (and historically) part of a_scope_stack_entry,
@@ -1315,7 +1291,49 @@ typedef struct a_namespace_symbol_supplement {
 			   symbols declared in the namespace and pointers to
 			   the last entries in linked lists of IL entries
 			   entered in the associated IL scope. */
+  a_byte_boolean
+		on_active_using_list;
+			/* TRUE if this namespace appears on the active
+			   using list of one of the scopes involved in
+			   a name lookup.  This flag is set during the
+			   lookup process and is cleared at the end of
+			   the lookup. */
 } a_namespace_symbol_supplement;
+
+
+/*
+An entry corresponding to an IL entry of kind a_using_directive and containing
+front-end-only information.  (Note: a using-directive is a declaration of the
+form "using namespace N"; it should not be confused with "using N::x" or
+"using ::x", which are referred to as "using-declarations".)
+*/
+typedef struct an_active_using_directive {
+  an_active_using_directive_ptr
+		next;
+			/* Next in the linked list of active using-directives
+			   associated with the current scope or namespace. */
+  a_using_directive_ptr
+		entry;
+			/* The IL entry to which this front-end only entry
+			   corresponds; there is a one-to-one correspondence
+			   between the two sorts of entries, though a pointer
+			   is required in one direction only. */
+  an_active_using_directive_ptr
+		next_in_lookup_list;
+			/* Next in a linked list created during name lookup to
+			   track occurrences of a given name across the set
+			   of potentially relevant namespaces, as indicated by
+			   using directives.  If set, this pointer is cleared
+			   again as soon as the lookup has completed. */
+  a_namespace_symbol_supplement_ptr
+		namespace_supplement;
+			/* The namespace symbol supplement associated with
+			   the namespace referenced in the using directive.
+			   If the using directive refers to a namespace
+			   alias, this field points to the namespace
+			   supplement associated with the underlying
+			   namespace. */
+} an_active_using_directive;
 
 
 typedef struct an_extern_symbol_descr *an_extern_symbol_descr_ptr;
