@@ -10495,7 +10495,6 @@ sequence list.
           tssp->variant.class_template.source_sequence_list = ss_list;
 #if DEBUG
           if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-            a_symbol_ptr  sym;
             fputs("ss-list for prototype instantiation of ", f_debug);
             db_type_name(tp);
             fputs(":\n", f_debug);
