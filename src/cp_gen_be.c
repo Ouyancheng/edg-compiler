@@ -4349,7 +4349,7 @@ Generate code for a namespace definition or namespace alias declaration.
     write_tok_str(" { ");
     push_name_context(nsp->variant.assoc_scope);
     /* Go through the source sequence list and generate the members of the
-       class. */
+       namespace. */
     while (ss_entry_kind(curr_source_sequence_entry) !=
                                                 iek_src_seq_end_of_construct) {
       gen_declaration();
