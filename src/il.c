@@ -182,17 +182,16 @@ objects of their own type.
   } else {
     switch (tp->kind) {
       case tk_class:
-        fputs("class", f_debug);
+        fputs("class \"", f_debug);
         goto print_name;
       case tk_struct:
-        fputs("struct", f_debug);
+        fputs("struct \"", f_debug);
         goto print_name;
       case tk_union:
-        fputs("union", f_debug);
+        fputs("union \"", f_debug);
 print_name:
-        if (tp->source_corresp.name != NULL) {
-          fprintf(f_debug, " \"%s\"", tp->source_corresp.name);
-        }  /* if */
+        db_name(&tp->source_corresp);
+        fputs("\"", f_debug);
         break;
       default:
         db_type(tp);
