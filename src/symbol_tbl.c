@@ -2359,6 +2359,9 @@ severity to be used for the diagnostic when TRUE is returned.
        always errors. */
     *severity = strict_ansi_error_severity;
   }  /* for */
+  /* The Microsoft compiler allows redeclarations.  Only issue a warning in
+     Microsoft mode. */
+  if (result && microsoft_mode) *severity = es_warning;
   return result;
 }  /* is_redeclared_template_param */
 
