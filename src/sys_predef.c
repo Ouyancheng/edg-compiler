@@ -117,6 +117,50 @@ Enter the standard predefined macros for a SPARC system.
 }  /* enter_sparc_predefined_macros */
 
 #endif /* if defined(sparc) || defined(__sparc) */
+
+#if defined(__APPLE__) && defined(__MACH__)
+
+static void enter_macosx_predefined_macros(void)
+/*
+Enter some predefined macros for a MacOS X (Apple).
+*/
+{
+  (void)enter_predef_macro("1", "__APPLE__", /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("", "__unix__", /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("1", "_BIG_ENDIAN", /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("1", "__BIG_ENDIAN__",
+                           /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("1", "__MACH__", /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#if defined(__ppc__)
+  (void)enter_predef_macro("1", "__ppc__", /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* defined(__ppc__) */
+#if defined(__POWERPC__)
+  (void)enter_predef_macro("1", "__POWERPC__", /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* defined(__POWERPC__) */
+#if defined(_ARCH_PPC)
+  (void)enter_predef_macro("1", "_ARCH_PPC", /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* defined(_ARCH_PPC) */
+  if (!C_mode()) {
+    /* Some older MacOS X headers included insufficient guards for the C mode
+       typedef of wchar_t.  It appears to be fixed in the more recent headers,
+       but to enable earlier versions we nevertheless explicitly disable the
+       typedef in C++ modes by defined the _BSD_WCHAR_T_DEFINED macro. */
+    (void)enter_predef_macro("1", "_BSD_WCHAR_T_DEFINED",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+}  /* enter_macosx_predefined_macros */
+
+#endif /* defined(__APPLE__) && defined(__MACH__) */
+
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_symbol_ptr enter_builtin_function(char       *name,
@@ -1643,6 +1687,10 @@ Define system-specific predefined macros and builtin #assert predicates
 #else /* !defined(__linux__) */
 #if defined(sparc) || defined(__sparc)
   enter_sparc_predefined_macros();
+#else /* !(defined(sparc) || defined(__sparc)) */
+#if defined(__APPLE__) && defined(__MACH__)
+  enter_macosx_predefined_macros();
+#endif /* defined(__APPLE__) && defined(__MACH__) */
 #endif /* defined(sparc) || defined(__sparc) */
 #endif /* ifdef __linux__ */
 }  /* enter_system_specific_predefined_macros_and_assertions */
