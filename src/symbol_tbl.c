@@ -5171,22 +5171,12 @@ NULL.
       {
       a_template_symbol_supplement_ptr  tssp;
       a_symbol_ptr                      template_class_sym;
-      a_template_param_ptr              tap;
       tssp = sym->variant.template.extra_info;
       template_class_sym = tssp->variant.class.instantiations;
       for (; template_class_sym != NULL;
              template_class_sym = template_class_sym->next) {
         end_of_scope_symbol_check(template_class_sym, curr_routine);
       }  /* for */
-      /* Check for unreferenced template parameters. */
-      tap = tssp->parameters;
-      while (tap != NULL) {
-        if (!tap->param_symbol->referenced) {
-          report_unreferenced(tap->param_symbol,
-                              ec_template_param_declared_but_not_referenced);
-        }  /* if */
-        tap = tap->next;
-      }  /* while */
       }
       break;
     case sk_function_template:
@@ -6238,6 +6228,20 @@ If the flag is set to FALSE the entry is simply updated but not removed
 from the list.
 */
 {
+  /* See if a body has already been found for this function.  If so,
+     don't set the instantiation flag to TRUE because we shouldn't
+     generate an instantiation for something that has a specific
+     definition. */
+  if (fiep->routine_sym->variant.routine.ptr->assoc_scope !=
+      NULL_region_number) {
+    value = FALSE;
+#if CHECKING
+    if (fiep->instantiation_required) {
+      internal_error
+        ("update_instantiation_required_flag: flag set for routine with body");
+    }  /* if */
+#endif  /* CHECKING */
+  }  /* if */
   /* Nothing needs to be done if the flag already has the new value. */
   if (fiep->instantiation_required != value) {
     fiep->instantiation_required = value;
