@@ -1,5 +1,17 @@
 Version 2.29
 
+5/10/95  integer->x in pcc mode
+
+In pcc mode, a selection of the form integer->x, where integer is an
+integral-typed expression, is now allowed, so long as there exists a
+member "x" or several members "x" all of which have the same offset.
+A warning is issued.
+
+5/10/95  References for bad member selections
+
+On a selection a.b or p->b where no "b" exists in the class, an undefined
+symbol is now created and an error cross-reference to it is now put out.
+
 5/10/95  Small improvement in inlining
 
 Inlining now allows inlining of functions containing a return statement
