@@ -1373,14 +1373,19 @@ returned set to TRUE.
     /* The initializer of a static data member is scanned with the original
        class reactivated. */
     push_class_reactivation_scope(symbol_ptr->parent.class_type);
-  } else if (static_lifetime && long_lifetime_temps &&
-             depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-    /* This is the initialization of a local static variable, and the user
-       has opted for long-lifetime temporaries.  Push an expr-temporary
-       lifetime to help handle the case. */
-    push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
-                         (an_object_lifetime_kind)olk_expr_temporary);
-    expr_temp_lifetime = curr_object_lifetime;
+  } else {
+    if (symbol_ptr->parent.namespace_ptr != NULL) {
+      push_namespace_reactivation_scope(symbol_ptr->parent.namespace_ptr);
+    }  /* if */
+    if (static_lifetime && long_lifetime_temps &&
+        depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      /* This is the initialization of a local static variable, and the user
+         has opted for long-lifetime temporaries.  Push an expr-temporary
+         lifetime to help handle the case. */
+      push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
+                           (an_object_lifetime_kind)olk_expr_temporary);
+      expr_temp_lifetime = curr_object_lifetime;
+    }  /* if */
   }  /* if */
   /* If the initialization is invalid in some way, init_err will be set to
      TRUE.  It will be used to assure that the initialization bound to the
@@ -1609,19 +1614,24 @@ returned set to TRUE.
     /* Note that this call has to be after the select_destructor call in the
        preceding section of code. */
     pop_class_reactivation_scope();
-  } else if (expr_temp_lifetime != NULL) {
-    check_assertion(expr_temp_lifetime == curr_object_lifetime);
-    if (!is_useless_object_lifetime(expr_temp_lifetime)) {
-      if (init_err) {
-        mark_object_lifetime_as_useless(expr_temp_lifetime);
-      } else {
-        check_assertion(init_dip != NULL);
-        bind_object_lifetime(expr_temp_lifetime,
-                             (an_il_entry_kind)iek_dynamic_init,
-                             (char *)init_dip);
+  } else {
+    if (expr_temp_lifetime != NULL) {
+      check_assertion(expr_temp_lifetime == curr_object_lifetime);
+      if (!is_useless_object_lifetime(expr_temp_lifetime)) {
+        if (init_err) {
+          mark_object_lifetime_as_useless(expr_temp_lifetime);
+        } else {
+          check_assertion(init_dip != NULL);
+          bind_object_lifetime(expr_temp_lifetime,
+                               (an_il_entry_kind)iek_dynamic_init,
+                               (char *)init_dip);
+        }  /* if */
       }  /* if */
+      (void)pop_object_lifetime();
     }  /* if */
-    (void)pop_object_lifetime();
+    if (symbol_ptr->parent.namespace_ptr != NULL) {
+      pop_namespace_reactivation_scope();
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
@@ -1721,6 +1731,8 @@ the default constructor (if one exists) is called.
         /* Perform the default initialization of a static data member with
            its parent class reactivated. */
         push_class_reactivation_scope(sym->parent.class_type);
+      } else if (sym->parent.namespace_ptr != NULL) {
+        push_namespace_reactivation_scope(sym->parent.namespace_ptr);
       }  /* if */
       cssp = symbol_supplement_for_class(tp);
       if (cssp->constructor != NULL) {
@@ -1793,6 +1805,8 @@ the default constructor (if one exists) is called.
       }  /* if */
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         pop_class_reactivation_scope();
+      } else if (sym->parent.namespace_ptr != NULL) {
+        pop_namespace_reactivation_scope();
       }  /* if */
     }  /* if */
   }  /* if */
