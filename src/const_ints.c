@@ -647,7 +647,7 @@ operand (op_1 = op_1 | op_2).
 
 
 void and_integer_values(an_integer_value *op_1,
-		       an_integer_value *op_2)
+		        an_integer_value *op_2)
 /*
 Logical AND two integer values.  The result is returned in the first
 operand (op_1 = op_1 & op_2).
