@@ -1,5 +1,13 @@
 Version 2.42
 
+4/21/99  C++-generating back end: avoid accidental digraph on template
+         argument list
+
+The C++-generating back end now puts out a space following the opening
+"<" of a template argument list to avoid a possible digraph ("<:",
+meaning "[") if the first template argument uses a "::" global qualifier,
+e.g., the output is now "A< ::x >" rather than "A<::x >".
+
 4/21/99  C++-generating back end: Microsoft extern template directives
          not suppressed
 

@@ -168,6 +168,12 @@ is put out.
 {
   if (tap != NULL) {
     octl->output_str("<");
+    if (octl->gen_compilable_code) {
+      /* When generating compilable code, put out a space after the
+         opening "<" to avoid an accidental digraph if the first
+         argument begins with a "::" global qualifier. */
+      octl->output_str(" ");
+    }  /* if */
     for (;;) {
       form_a_template_arg(tap, octl);
       tap = tap->next;
