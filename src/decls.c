@@ -1307,16 +1307,23 @@ static a_symbol_ptr find_linked_symbol(a_symbol_locator  *locator,
   a_symbol_ptr       linked_symbol = NULL;
   a_boolean          function_template_seen = FALSE;
 
-  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-    /* This must be a block-extern declaration of a function or variable.
-       Find the visible declaration of the same name. */
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
+      (is_friend_decl &&
+       effective_decl_level != depth_innermost_namespace_scope)) {
+    /* This is either a block-extern declaration of a function or variable or
+       (what amounts to the same thing) a friend declaration within a local
+       class.  Find the visible declaration of the same name. */
     other_decl = normal_id_lookup(locator, IDL_NO_OPTIONS);
     if (other_decl != NULL &&
         depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
       if (other_decl->decl_scope >=
             scope_stack[depth_innermost_namespace_scope].il_scope->number) {
-        /* Okay. */
+        /* other_decl represents an declaration at the innermost namespace
+           scope or intervening between the current scope ant the innermost
+           namespace scope. */
       } else {
+        /* The symbol that was found is does intervene between the current
+           scope and the innermost namespace scope.  Ignore it. */
         other_decl = NULL;
       }  /* if */
     }  /* if */
