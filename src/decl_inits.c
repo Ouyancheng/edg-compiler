@@ -347,7 +347,6 @@ for unions and aggregates at that level).
   a_boolean           took_extra_comma;
   an_expr_node_ptr    expression;
   a_dynamic_init_ptr  dip;
-  a_source_position   expr_pos;
   a_routine_ptr       conversion_routine;
   a_boolean           class_bitwise_copy;
 
@@ -370,7 +369,6 @@ for unions and aggregates at that level).
     /* This is an array element that can only be initialized by a
        constructor.  Treat the expression as an argument for the constructor
        call. */
-    copy_source_position(pos_curr_token, expr_pos);
     expression = scan_class_initializer_expression(local_type,
                                                    &conversion_routine,
                                                    &class_bitwise_copy);
@@ -893,7 +891,6 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
   an_expr_node_ptr               arg_list;
   a_class_symbol_supplement_ptr  cssp = NULL;
   a_routine_ptr                  conversion_routine;
-  a_source_position              expr_pos;
   a_memory_region_number         region_to_switch_back_to = NULL_region_number;
   a_boolean                      class_bitwise_copy;
 
@@ -1021,7 +1018,6 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
     /* In ordinary C a struct or union variable may be initialized by an
        object of the same type as long as dynamic initialization is otherwise
        allowed. */
-    copy_source_position(pos_curr_token, expr_pos);
     expression = scan_class_initializer_expression(vp_type,
                                                    &conversion_routine,
                                                    &class_bitwise_copy);
