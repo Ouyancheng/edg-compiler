@@ -4005,73 +4005,71 @@ and return NULL.  This routine is called only in C++ mode.
         do_arg_dep_lookup = FALSE;
       }  /* if */
     }  /* if */
-    if (do_dependent_name_processing) {
-      /* See whether the call is dependent (i.e., has arguments of
-         dependent types). */
+    if (is_template_dependent_context()) {
       a_boolean defer_overload_resolution = FALSE;
-      if (is_template_dependent_context()) {
-        /* In a prototype instantiation.  See whether any argument types
-           are dependent. */
-        for (arg_operand = arg_operand_list;
-             arg_operand != NULL;
-             arg_operand = arg_operand->next) {
-          if (is_template_dependent_type(arg_operand->operand.type)) {
-            dependent_call = TRUE;
-            break;
-          }  /* if */
-        }  /* for */
-        if (!dependent_call &&
-            overloaded_function_symbol->is_class_member &&
-            ((have_selector && bound_function_selector != NULL) ?
-                    is_template_dependent_type(bound_function_selector->type) :
-                    TRUE)) {
-          /* The selector object is dependent.  An implicit selector is
-             always dependent in a prototype instantiation. */
+      /* In a prototype instantiation.  See whether the call is dependent
+         (i.e., has arguments of dependent types). */
+      for (arg_operand = arg_operand_list;
+           arg_operand != NULL;
+           arg_operand = arg_operand->next) {
+        if (is_template_dependent_type(arg_operand->operand.type)) {
           dependent_call = TRUE;
+          break;
         }  /* if */
-        if (!dependent_call && is_template_id &&
-            template_arg_list_involves_template_param(template_arg_list)) {
-          /* A call like f<T>(1), where the explicit template argument
-             list includes dependent arguments. */
-          dependent_call = TRUE;
-        }  /* if */
-        if (is_block_extern_symbol(overloaded_function_symbol)) {
-          /* A block extern declaration can be dependent (e.g., it
-             could have dependent parameter types or dependent default
-             argument expressions), so we can't do overload resolution. */
-          defer_overload_resolution = TRUE;
-        }  /* if */
-        if (dependent_call || defer_overload_resolution) {
-          /* We can't do overload resolution (e.g., because some of the
-             arguments have template-dependent types).  Return a flag
-             indicating that. */
-          check_assertion(unknown_dependent_function != NULL);
-          *unknown_dependent_function = TRUE;
-          function_symbol = NULL;
-          *arg_match_list = NULL;
-          goto have_function;
-        }  /* if */
-      } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
-        /* In a real (not prototype) instantiation.  Look up this call to
-           see whether it was a dependent call in the prototype
-           instantiation.  If it was a nondependent call, it was recorded,
-           along with the symbol chosen by overload resolution. */
-        if (!do_arg_dep_lookup) {
-           /* Calls where argument-dependent lookup is turned off are
-              not recorded, but they're always considered non-dependent. */
-          dependent_call = FALSE;
-        } else {
-          a_nondependent_call_info_ptr ndcall_info;
-          ndcall_info = get_nondependent_call_info(paren_tok_seq_number);
-          dependent_call = (ndcall_info == NULL);
-          if (!dependent_call && ndcall_info->symbol != NULL) {
-            /* We know the function selected for this nondependent call during
-               the prototype instantiation.  Use that without going through
-               overload resolution. */
-            overloaded_function_symbol = ndcall_info->symbol;
-            do_arg_dep_lookup = FALSE;
-            known_to_be_visible = TRUE;
-          }  /* if */
+      }  /* for */
+      if (!dependent_call &&
+          overloaded_function_symbol->is_class_member &&
+          ((have_selector && bound_function_selector != NULL) ?
+                  is_template_dependent_type(bound_function_selector->type) :
+                  TRUE)) {
+        /* The selector object is dependent.  An implicit selector is
+           always dependent in a prototype instantiation. */
+        dependent_call = TRUE;
+      }  /* if */
+      if (!dependent_call && is_template_id &&
+          template_arg_list_involves_template_param(template_arg_list)) {
+        /* A call like f<T>(1), where the explicit template argument
+           list includes dependent arguments. */
+        dependent_call = TRUE;
+      }  /* if */
+      if (is_block_extern_symbol(overloaded_function_symbol)) {
+        /* A block extern declaration can be dependent (e.g., it
+           could have dependent parameter types or dependent default
+           argument expressions), so we can't do overload resolution. */
+        defer_overload_resolution = TRUE;
+      }  /* if */
+      if (dependent_call || defer_overload_resolution) {
+        /* We can't do overload resolution (e.g., because some of the
+           arguments have template-dependent types).  Return a flag
+           indicating that. */
+        check_assertion(unknown_dependent_function != NULL);
+        *unknown_dependent_function = TRUE;
+        function_symbol = NULL;
+        *arg_match_list = NULL;
+        goto have_function;
+      }  /* if */
+    } else if (do_dependent_name_processing &&
+               depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+      /* In a real (not prototype) instantiation, and doing dependent
+         name processing.  Look up this call to see whether it was a
+         dependent call in the prototype instantiation.  If it was a
+         nondependent call, it was recorded, along with (usually) the
+         symbol chosen by overload resolution. */
+      if (!do_arg_dep_lookup) {
+        /* Calls where argument-dependent lookup is turned off are
+           not recorded, but they're always considered non-dependent. */
+        dependent_call = FALSE;
+      } else {
+        a_nondependent_call_info_ptr ndcall_info;
+        ndcall_info = get_nondependent_call_info(paren_tok_seq_number);
+        dependent_call = (ndcall_info == NULL);
+        if (!dependent_call && ndcall_info->symbol != NULL) {
+          /* We know the function selected for this nondependent call during
+             the prototype instantiation.  Use that without going through
+             overload resolution. */
+          overloaded_function_symbol = ndcall_info->symbol;
+          do_arg_dep_lookup = FALSE;
+          known_to_be_visible = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7794,39 +7792,38 @@ the operator.
         }  /* if */
         /* candidate_functions will contain the list of viable functions. */
         candidate_functions = NULL;
-        if (do_dependent_name_processing) {
-          /* See whether the call is dependent (i.e., has arguments of
-             dependent types). */
-          if (is_template_dependent_context()) {
-            /* In a prototype instantiation.  If the operands are dependent,
-               the caller should have spotted that and generated a generic
-               expression operator. */
-            check_assertion_str(!is_template_dependent_type(operand_1->type) &&
-                                (unary_operator ||
-                                 !is_template_dependent_type(operand_2->type)),
-                                "check_for_operator_overloading: dep operand");
-          } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
-            /* In a real (not prototype) instantiation.  Look up this call to
-               see whether it was a dependent call in the prototype
-               instantiation.  If it was a nondependent call, it was recorded,
-               along with the symbol chosen by overload resolution. */
-            a_nondependent_call_info_ptr ndcall_info;
-            ndcall_info = get_nondependent_call_info(operator_tok_seq_number);
-            dependent_call = (ndcall_info == NULL);
-            function_symbol = NULL;
-            if (!dependent_call) function_symbol = ndcall_info->symbol;
-            if (function_symbol != NULL) {
-              /* We know the function selected for this nondependent call
-                 during the prototype instantiation.  Use that without going
-                 through overload resolution. */
-              a_boolean is_member = routine_type_is_nonstatic_member_function(
+        if (is_template_dependent_context()) {
+          /* In a prototype instantiation.  If the operands are dependent,
+             the caller should have spotted that and generated a generic
+             expression operator. */
+          check_assertion_str(!is_template_dependent_type(operand_1->type) &&
+                              (unary_operator ||
+                               !is_template_dependent_type(operand_2->type)),
+                              "check_for_operator_overloading: dep operand");
+        } else if (do_dependent_name_processing &&
+                   depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+          /* In a real (not prototype) instantiation, and doing dependent
+             name processing.  Look up this call to see whether it was a
+             dependent call in the prototype instantiation.  If it was a
+             nondependent call, it was recorded, along with (usually) the
+             symbol chosen by overload resolution. */
+          a_nondependent_call_info_ptr ndcall_info;
+          ndcall_info = get_nondependent_call_info(operator_tok_seq_number);
+          dependent_call = (ndcall_info == NULL);
+          function_symbol = NULL;
+          if (!dependent_call) function_symbol = ndcall_info->symbol;
+          if (function_symbol != NULL) {
+            /* We know the function selected for this nondependent call
+               during the prototype instantiation.  Use that without going
+               through overload resolution. */
+            a_boolean is_member = routine_type_is_nonstatic_member_function(
                                          routine_symbol_type(function_symbol));
-              if (is_member) {
-                member_functions_symbol = function_symbol;
-              } else {
-                nonmember_functions_symbol = function_symbol;
-              }  /* if */
-              try_overloaded_function_match(
+            if (is_member) {
+              member_functions_symbol = function_symbol;
+            } else {
+              nonmember_functions_symbol = function_symbol;
+            }  /* if */
+            try_overloaded_function_match(
                                          function_symbol,
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
@@ -7842,8 +7839,7 @@ the operator.
                                          /*dependent_call=*/FALSE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
-              goto select_best_function;
-            }  /* if */
+            goto select_best_function;
           }  /* if */
         }  /* if */
         /* Find any member function for the operator. */
