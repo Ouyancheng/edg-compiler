@@ -460,81 +460,9 @@ typedef enum /*an_error_code*/ {
   ec_too_many_params_for_destructor,
   ec_bad_constructor_param,
   ec_incomplete_return_type_not_allowed,
-  ec_call_of_pure_virtual_function,
   ec_protected_access_problem
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
-
-
-#define BASE_MSG_SEGMENT_SIZE 100
-				/* The starting length of a formatted
-				   message segment. */
-#define INCR_MSG_SEGMENT_SIZE BASE_MSG_SEGMENT_SIZE
-				/* The increment size to be used to lengthen
-				   a message seqment. */
-
-
-/*
-An error message being formed is represented by a linked list of message
-segment descriptors, one for each part of the error message text or fill-in.
-*/
-enum a_message_segment_kind_tag {
-/* Kind of error message segment (e.g. part of text, symbol name, or type).
-*/
-  msk_error_text_part,		/* Textual part of an error message. */
-  msk_user_string,		/* User provided string insert. */
-  msk_type,			/* Type to be expanded in the message */
-  msk_symbol,			/* Symbol name to be expanded in the
-				   message at this point. */
-  msk_last			/* Termination of the current message
-				   being formatted.  This should be the last
-				   message segment kind. */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_message_segment_kind;
-
-typedef struct msg_segment *msg_segment_ptr;
-typedef struct msg_segment {
-  msg_segment_ptr
-		next;		/* Pointer to the next message segment. */
-  char		*segment;	/* Pointer to the message segment buffer. */
-  int		length;		/* Current length of the message segment. */
-  int		max_length;	/* Maximum string size that can be accommodated
-				   in the message segment buffer. */
-  short		sequence;	/* Sequence number of the user string, type or
-				   symbol name in the error message.  This
-				   field is meaningless for kind ==
-				   msk_error_text_part. */
-  a_message_segment_kind
-		kind;		/* The kind of this message segment. */
-  union {
-    /* When kind == msk_error_text_part: */
-    char 	*msg_part;	/* Pointer into the error message text to the
-				   start of this portion of the error.  The
-				   length specifies the exact number of 
-				   characters since this portion may not have
-				   a NULL character terminator. */
-    /* When kind == msk_user_string: no variant
-				   The pointer to the user string is in
-				   error_msg_strings[]. */
-    /* When kind == msk_type: no variant
-				   The pointer to the type is in
-				   error_msg_types[]. */
-    /* When kind == msk_symbol:    The pointer to the symbol is in
-				   error_msg_syms[]. */
-    struct symbol {
-      a_byte_boolean
-		full_type;
-				/* True if the symbol should be expanded
-				   into an object (type and name). */
-      a_byte_boolean
-		name_only;	/* True if only the symbol name is needed. */
-      a_byte_boolean
-		decl_pos;	/* True if the declaration position is
-				   to be generated. */
-    } symbol;
-  } variant;
-} msg_segment;
 
 
 /*
