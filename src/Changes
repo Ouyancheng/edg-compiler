@@ -1,5 +1,26 @@
 Version 2.37
 
+10/17/97  Using offsetof on non-POD classes with usual idiom for offsetof
+
+The usual definition for offsetof is something like
+
+  #define offsetof(s, m) ((size_t)(&(((s *)0)->m)))
+
+When this is used with classes that involve multiple inheritance,
+it did not produce the expected results.  Or rather, it produced
+the expected results when it was done in executable code, and
+surprising results when used in constant contexts.  This behavior
+happens to be standard-conforming, since offsetof has undefined
+behavior when used with non-PODs.  It is not, however, reasonable
+behavior from the programmer's point of view.  This has been corrected
+to give the expected results.  The solution involves suppressing
+the code that preserves null pointers across casts to base classes
+when doing constant casts on addresses that are asserted to be
+object addresses, e.g., the left operand of the "->" operator.
+In effect, the "0" in the above is treated as a zero address of
+an object, and not as a null pointer, and therefore it undergoes
+the offset adjustment when cast to a base class.
+
 10/17/97  Failure to destroy local variable once label encountered
 
 In cases where a local variable of a destructible class type is

@@ -2362,7 +2362,8 @@ void base_class_cast_operand(an_operand       *operand,
                              a_boolean        *is_arrow_operator,
                              a_boolean        check_cast_access,
                              a_boolean        is_implicit_cast,
-                             a_boolean        implicit_in_naming)
+                             a_boolean        implicit_in_naming,
+                             a_boolean        is_object_pointer)
 /*
 Cast operand (of class or pointer-to-class type) to its base class
 identified by bcp.  If *is_arrow_operator is TRUE, operand is being
@@ -2375,7 +2376,11 @@ check_cast_access is TRUE.  The cast is implicit if is_implicit_cast
 is TRUE.  implicit_in_naming is TRUE for casts that are generated
 implicitly in referencing a member of a class (roughly, in getting
 from the name used in the source -- the projection symbol -- to the
-member actually used in the IL).  This routine is only used in C++ mode.
+member actually used in the IL).  is_object_pointer is TRUE if the
+pointer is asserted to be an object pointer (meaning it points at an
+object and is not a null pointer, though in fact the reason for this
+flag has to do with using 0 as a pointer in the usual version of
+the offsetof macro).  This routine is only used in C++ mode.
 */
 {
   a_boolean        did_not_fold;
@@ -2401,7 +2406,8 @@ member actually used in the IL).  This routine is only used in C++ mode.
          have the cast in the IL (the constant form has only an offset,
          and loses the sequence of casts). */
       fold_base_class_cast(&operand->variant.constant, bcp,
-                           &temp_con, check_cast_access, &did_not_fold,
+                           &temp_con, check_cast_access,
+                           is_object_pointer, &did_not_fold,
                            &orig_operand.position);
     }  /* if */
     if (did_not_fold) {

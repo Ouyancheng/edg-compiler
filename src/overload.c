@@ -3876,7 +3876,8 @@ C++ mode.
         base_class_cast_operand(result, bcp, (a_boolean *)NULL,
                                 check_cast_access,
                                 /*is_implicit_cast=*/TRUE,
-                                /*implicit_in_naming=*/FALSE);
+                                /*implicit_in_naming=*/FALSE,
+                                /*is_object_pointer=*/TRUE);
       }  /* if */
       /* If the member symbol is a projection symbol (i.e., it's inherited
          into the class where it is being referenced), cast the left operand
@@ -3889,7 +3890,8 @@ C++ mode.
         base_class_cast_operand(result, bcp, (a_boolean *)NULL,
                                 /*check_cast_access=*/FALSE,
                                 /*is_implicit_cast=*/TRUE,
-                                /*implicit_in_naming=*/TRUE);
+                                /*implicit_in_naming=*/TRUE,
+                                /*is_object_pointer=*/TRUE);
       }  /* if */
       /* Check for errors on the casts. */
       if (is_error_operand(result)) okay = FALSE;
@@ -5705,7 +5707,8 @@ gives the type of the routine being called.
       base_class_cast_operand(operand, bcp, (a_boolean *)NULL,
                               /*check_cast_access=*/FALSE,
                               /*is_implicit_cast=*/TRUE,
-                              /*implicit_in_naming=*/FALSE);
+                              /*implicit_in_naming=*/FALSE,
+                              /*is_object_pointer=*/TRUE);
     }  /* if */
   }  /* if */
   /* The cast here handles const/volatile differences and error cases. */
@@ -5734,7 +5737,8 @@ On return, the operand is an lvalue.
                             (a_boolean *)NULL,
                             /*check_cast_access=*/TRUE,
                             /*is_implicit_cast=*/TRUE,
-                            /*implicit_in_naming=*/FALSE);
+                            /*implicit_in_naming=*/FALSE,
+                            /*is_object_pointer=*/TRUE);
   }  /* if */
   /* Adjust cv-qualifiers. */
   cast_operand(make_pointer_type(dest_type), operand,

@@ -520,15 +520,18 @@ void fold_base_class_cast(a_constant        *constant_1,
                           a_base_class      *bcp,
                           a_constant        *result,
                           a_boolean         check_cast_access,
+                          a_boolean         is_object_pointer,
                           a_boolean         *did_not_fold,
                           a_source_position *err_pos)
 /*
 Fold a C++ cast of a class pointer to a base class pointer.  constant_1 is
 an address of a class object.  It is converted to a pointer to the base
 class indicated by bcp and the new constant is returned in *result.
-Do access control on the cast if check_cast_access is TRUE.  If the
-operation cannot be folded, *did_not_fold is returned TRUE.  If there
-is an error, issue it at *err_pos.  result->type need not be set on entry.
+Do access control on the cast if check_cast_access is TRUE.  The
+pointer is known to point to an object if is_object_pointer is TRUE.
+If the operation cannot be folded, *did_not_fold is returned TRUE.
+If there is an error, issue it at *err_pos.  result->type need not be
+set on entry.
 */
 {
   a_boolean             access_okay, err;
@@ -571,9 +574,12 @@ is an error, issue it at *err_pos.  result->type need not be set on entry.
       /* Adjust the address to reflect the cast to the next level. */
       curr_type = base_class->type;
       get_pointer_offset(constant_1, &offset);
-      if (cmplit_integer_constant(&offset, 0L) == 0 &&
+      if (!is_object_pointer &&
+          cmplit_integer_constant(&offset, 0L) == 0 &&
           base_object(constant_1) == NULL) {
-        /* Preserve a NULL pointer. */
+        /* Preserve a NULL pointer.  Note that we suppress this test when
+           is_object_pointer is TRUE, to allow the usual idiom for the
+           offsetof macro to work. */
       } else {
         if (any_virtual_steps_in_derivation(base_class)) {
           /* Casting to a virtual base class.  This can only be folded if we
@@ -751,7 +757,7 @@ type.
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
       fold_base_class_cast(old_constant, bcp, new_constant, is_implicit_cast,
-                           did_not_fold, err_pos);
+                           /*is_object_pointer=*/FALSE, did_not_fold, err_pos);
     } else {
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
          class is a virtual base of the derived class. */

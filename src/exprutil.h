@@ -850,7 +850,8 @@ extern void base_class_cast_operand(an_operand       *operand_1,
                                     a_boolean        *is_arrow_operator,
                                     a_boolean        check_cast_access,
                                     a_boolean        is_implicit_cast,
-                                    a_boolean        implicit_in_naming);
+                                    a_boolean        implicit_in_naming,
+                                    a_boolean        is_object_pointer);
 
 extern void make_error_operand(an_operand *operand);
 
