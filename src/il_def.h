@@ -2342,10 +2342,6 @@ typedef struct a_type {
 			   in those scopes promoted out to the file scope. */
 #endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
-  unsigned int	definition_put_out:1;
-			/* Used to record whether the definition of a
-			   type has been put out by the C++-generating back
-			   end. */
   unsigned int	declaration_put_out:1;
 			/* Used to record whether the declaration of a (tag)
 			   type has been put out by the C++-generating back

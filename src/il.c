@@ -3878,7 +3878,6 @@ variant fields to default values.
   pte->prototype_scope_types_if_any_promoted = FALSE;
 #endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
-  pte->definition_put_out = FALSE;
   pte->declaration_put_out = FALSE;
   pte->definition_delayed = FALSE;
   pte->elaborated_type_specifier_needed = FALSE;
