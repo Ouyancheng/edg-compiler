@@ -331,6 +331,10 @@ typedef int a_decl_flag_set;
 			   identifier that what may belong to a type specifier
 			   of a subsequent declaration because a ";" is
 			   missing. */
+#define DSI_IS_OLD_STYLE_PARAM_DECL 0x2000
+			/* If this bit is set decl_specifiers is being called
+			   for an old-style parameter declaration.  Some error
+			   checking is affected. */
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
