@@ -930,7 +930,6 @@ a_boolean def_initializer(a_symbol_ptr       sym,
   a_dynamic_init                 local_di, *dip;
   a_constant_ptr                 cp1, cp2;
   a_boolean                      err = FALSE;
-  an_expr_node_ptr               arg_list = NULL;
 
   db_enter(3, "def_initializer");
   if (C_dialect == C_dialect_cplusplus &&
@@ -955,8 +954,8 @@ a_boolean def_initializer(a_symbol_ptr       sym,
           internal_error("def_initializer: incomplete types not yet supported");
 #endif /* if 0 */
         }  /* if */
-        if (!select_constructor(cssp->constructor, &rp, &arg_list, err_pos)) {
-          err = TRUE;
+        if (cssp->default_constructor == NULL) {
+          pos_error(ec_no_default_constructor, err_pos);
         } else {
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
           local_di.variant.constructor.routine = rp;
