@@ -335,10 +335,15 @@ address taken, and if not issue an error.
 #endif /* NAMED_REGISTERS_ALLOWED */
                                              )) {
       /* Cannot take the address of a register variable in C (this includes
-         variables with named-register storage class in Embedded C).  This
-         is allowed in C++, and is allowed (with a warning) in C (except in
-         strict error mode). */
-      if (SVR4_C_mode || strict_ansi_error_severity != es_error) {
+         variables with named-register storage class in Embedded C).  For
+         ordinary register variables, this is allowed in C++, and is allowed
+         (with a warning) in C (except in strict error mode).  For named
+         registers, a strict error is always issued. */
+      if (
+#if NAMED_REGISTERS_ALLOWED
+          !var->named_register_storage_class &&
+#endif /* NAMED_REGISTERS_ALLOWED */
+          (SVR4_C_mode || strict_ansi_error_severity != es_error)) {
 	pos_warning(ec_address_of_register_variable, &rep->position);
       } else {
 	pos_error(ec_address_of_register_variable, &rep->position);

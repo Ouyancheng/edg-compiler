@@ -4720,8 +4720,10 @@ declaration.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NAMED_REGISTERS_ALLOWED
   if (named_registers_enabled) {
+    a_source_position_ptr  diag_pos = &decl_pos_block->storage_class_pos;
+    if (diag_pos->seq == 0) diag_pos = &locator->source_position;
     record_named_register_storage_class(variable_ptr, register_id,
-                                        &decl_pos_block->storage_class_pos);
+                                        redeclaration, diag_pos);
   }  /* if */
 #endif /* NAMED_REGISTERS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED

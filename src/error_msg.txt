@@ -1386,6 +1386,8 @@ ec_cannot_open_predef_macro_file;;"cannot open predefined macro file: %sq"
 ec_bad_predef_macro_line;;"invalid predefined macro entry at line %s: %s2"
 ec_bad_macro_mode_name;;"invalid macro mode name %sq"
 ec_bad_predef_macro_redef;;"incompatible redefinition of predefined macro %sq"
+ec_missing_named_register_storage_class;;"missing named-register storage class in redeclaration"
+ec_previous_decl_at;;"(the previous declaration is %p)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

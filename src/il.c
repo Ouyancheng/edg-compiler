@@ -6253,18 +6253,33 @@ static a_variable_ptr
 
 void record_named_register_storage_class(a_variable_ptr       var,
                                          a_named_register_id  register_id,
+                                         a_boolean            is_redecl,
                                          a_source_position    *pos)
 /*
 Record the given named-register storage class id in the given variable.  If it
 conflicts with a different construct or a previous declaration, issue an error
-at the given position.
+at the given position.  If we're processing redeclaration, is_redecl is TRUE.
 */
 {
-  if (var->named_register_storage_class) {
-    /* This must be a redeclaration.  The new id must be equal the one
-       previous recorded. */
-    if (register_id != var->asm_name_or_reg.id) {
-      pos_error(ec_register_storage_class_conflict, pos);
+  if (is_redecl) {
+    /* A redeclaration. */
+    if (var->named_register_storage_class && register_id == 0) {
+      /* The new declaration has no named-register storage class specifier,
+         but the previous one did. */
+      pos_start_diagnostic(es_error, ec_missing_named_register_storage_class,
+                           pos);
+      add_diag_info_with_pos_insert(ec_previous_decl_at,
+                                    &var->source_corresp.decl_position);
+      end_error();
+    } else if ((!var->named_register_storage_class && register_id != 0) ||
+               (var->named_register_storage_class &&
+                                    register_id != var->asm_name_or_reg.id)) {
+      /* The new declaration has a named-register storage class but the
+         previous declaration did not or did not have the same one. */
+      pos_start_diagnostic(es_error, ec_register_storage_class_conflict, pos);
+      add_diag_info_with_pos_insert(ec_previous_decl_at,
+                                    &var->source_corresp.decl_position);
+      end_error();
     }  /* if */
   } else
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED

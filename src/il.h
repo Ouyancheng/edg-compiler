@@ -488,6 +488,7 @@ extern void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr);
 extern void record_named_register_storage_class(
                                              a_variable_ptr       var,
                                              a_named_register_id  register_id,
+                                             a_boolean            is_redecl,
                                              a_source_position    *pos);
 #endif /* NAMED_REGISTERS_ALLOWED */
 
