@@ -3599,10 +3599,14 @@ describes Microsoft attributes preceding the enum specifier (if any).
             err = TRUE;
           } else {
             /* Use a value one larger than the previous value. */
-            /* Check the value to see if it is out of range.  (3.5.2.2,
-               constraints) */
-            if (is_max_value_for_integer_kind(&constant,
-                                              largest_enum_int_kind)) {
+            if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+              /* The previous value was template-dependent.  So we need to
+                 create a distinct template-dependent value for this one. */
+              increment_template_dependent_enum_constant(&constant);
+            } else if (is_max_value_for_integer_kind(&constant,
+                                                     largest_enum_int_kind)) {
+              /* The incremented value would be out of range (3.5.2.2,
+                 constraints). */
               error(ec_enum_value_out_of_int_range);
               err = TRUE;
             } else {

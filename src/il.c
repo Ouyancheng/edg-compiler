@@ -10701,6 +10701,32 @@ lookup options.
 }  /* copy_template_param_con_with_substitution */
 
 
+void increment_template_dependent_enum_constant(a_constant_ptr  con)
+/*
+The given constant has kind ck_template_param.  We need to make it represent
+a constant that is the previous value increment by one.
+*/
+{
+  a_constant_ptr  prev_val = alloc_unshared_constant(con);
+  a_constant      one_val;
+  an_expr_node_ptr  operands;
+
+  clear_constant(con, (a_constant_repr_kind)ck_template_param);
+  con->type = prev_val->type;
+  con->variant.template_param.kind =
+                              (a_template_param_constant_kind)tpck_expression;
+  /* Create a generic addition operation to increment the previous value. */
+  operands = alloc_node_for_constant(prev_val);
+  set_integer_constant(&one_val, (a_host_large_integer)1,
+                       (an_integer_kind)ik_int);
+  operands->next = alloc_node_for_constant(&one_val);
+  con->variant.template_param.variant.expr =
+                            make_operator_node((an_expr_operator_kind)eok_add,
+                                               con->type,
+                                               operands);
+}  /* increment_template_dependent_enum_constant */
+
+
 a_boolean is_operator_returning_bool(an_expr_operator_kind op)
 /*
 Return TRUE iff the indicated operator returns a bool (C++) or int (C)

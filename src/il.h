@@ -894,6 +894,8 @@ extern a_constant_ptr copy_template_param_con_with_substitution(
                                  a_ctws_options_set       options,
                                  a_boolean                *copy_error);
 
+extern void increment_template_dependent_enum_constant(a_constant_ptr  con);
+
 extern a_boolean is_operator_returning_bool(an_expr_operator_kind op);
 
 extern an_expr_node_ptr add_cast(an_expr_node_ptr node,
