@@ -108,6 +108,9 @@ Flags to be set when using the KAI inliner.
 #ifndef MAINTAIN_NEEDED_FLAGS
 #define MAINTAIN_NEEDED_FLAGS 1
 #endif /* ifndef MAINTAIN_NEEDED_FLAGS */
+#ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES
+#define DEFAULT_REMOVE_UNNEEDED_ENTITIES 1
+#endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 
@@ -199,6 +202,9 @@ Flags to be set when using the KAI inliner.
 #ifndef RUNTIME_USES_NAMESPACES
 #define RUNTIME_USES_NAMESPACES 0
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
+#ifndef MAINTAIN_NEEDED_FLAGS
+#define MAINTAIN_NEEDED_FLAGS 1
+#endif /* ifndef MAINTAIN_NEEDED_FLAGS */
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES 0
 
 #ifdef OPTIMIZED_VERSION
