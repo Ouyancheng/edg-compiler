@@ -3818,7 +3818,7 @@ char_compare:
             a_type_ptr arg_type = skip_typerefs(call_argument->type);
             if (is_integer_type(arg_type)) {
               an_integer_kind ikind = arg_type->variant.integer.int_kind;
-              if ((int)ikind < ik_int) {
+              if ((int)ikind < (int)ik_int) {
                 internal_error("dump_operation: unwidened integer argument");
               }  /* if */
             } else if (is_floating_type(arg_type)) {
