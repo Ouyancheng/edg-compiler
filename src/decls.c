@@ -2444,7 +2444,7 @@ created; the caller must set it.
         if (C_dialect == C_dialect_pcc) {
           /* In pcc mode all symbols with linkage are entered at the
              file scope, so a fixup is never needed. */
-        } else if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+        } else if (decl_scope_level != depth_innermost_namespace_scope) {
           /* Create a fixup entry, which will be processed at the end
              of the current scope (see pop_scope).  Note that the
              allocation routine places the new entry on the fixup list
@@ -3810,7 +3810,7 @@ type entry if appropriate, otherwise using the indicated declared_type.
 
   if (routine_ptr->declared_type != NULL) {
     check_assertion_str(routine_ptr->is_template_function,
-                        "decl_routine: declared type already set");
+                       "set_routine_declared_type: declared type already set");
     declared_type = routine_ptr->declared_type;
     routine_ptr->declared_type = NULL;
   }  /* if */
@@ -3829,7 +3829,7 @@ type entry if appropriate, otherwise using the indicated declared_type.
   }  /* if */
   if (!identical_types(declared_type, rout_type)) {
     /* The types are not identical, so the routine's type cannot also be
-       be used as the declared type. */
+       used as the declared type. */
     use_routine_type = FALSE;
   } else if ((rtsp1->exception_specification == NULL) !=
              (rtsp2->exception_specification == NULL)) {
