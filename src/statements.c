@@ -985,7 +985,8 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
         vp = cfdp->variant.init.variable;
         severity = es_none;
         if (vp != NULL && !cfdp->variant.init.is_vla_variable) {
-          check_assertion(sp->kind == (a_statement_kind)stmk_init ||
+          check_assertion(sp == NULL ||
+                          sp->kind == (a_statement_kind)stmk_init ||
                           (C_mode() && microsoft_mode &&
                            sp->kind == (a_statement_kind)stmk_block));
           if (!has_static_storage_duration(vp->storage_class)) {
@@ -1032,9 +1033,10 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
           if (vp != NULL) {
             /* Issue the diagnostic addendum that identifies this particular
                variable. */
-            sym_add_diag_info(sp->kind == (a_statement_kind)stmk_vla_decl ?
-                                ec_vla_name_at_decl_position :
-                                ec_name_at_decl_position,
+            sym_add_diag_info((sp != NULL &&
+                               sp->kind == (a_statement_kind)stmk_vla_decl) ?
+                                  ec_vla_name_at_decl_position :
+                                  ec_name_at_decl_position,
                               (a_symbol_ptr)vp->source_corresp.assoc_info);
           } else {	
             /* Diagnostic addendum that identifies the VLA declaration. */
