@@ -1132,6 +1132,12 @@ Write a #line directive for the indicated sequence number, line number, and
 file.
 */
 {
+#if STANDALONE_UTILITY_PROGRAM
+  /* This is a command-line option normally, but it's not available in the
+     standalone version. */
+  a_boolean gen_old_style_line_dirs = FALSE;
+#endif /* STANDALONE_UTILITY_PROGRAM */
+
   /* End the previous line if there is one. */
   end_output_line_if_begun();
   curr_output_line = line_number;
@@ -6824,6 +6830,11 @@ Generate C++ or C from the intermediate language.
   char              *C_output_file_name;
   a_boolean         cannot_open, bad_name;
   a_source_position pos;
+#if STANDALONE_UTILITY_PROGRAM
+  /* This is a command-line option normally, but it's not available in the
+     standalone version. */
+  char              *gen_c_file_name = NULL;
+#endif /* STANDALONE_UTILITY_PROGRAM */
 
   /* Open the output file. */
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) == 0) {
