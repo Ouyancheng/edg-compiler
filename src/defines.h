@@ -228,17 +228,14 @@ Flags to be set when using the KAI inliner.
 #define OPTIMIZED_VERSION 1
 #endif /* !defined(OPTIMIZED_VERSION) */
 #define GUARD_MACRO_FOR_VA_LIST "_VA_LIST_DEFINED"
-#define ONE_INSTANTIATION_PER_OBJECT 0
 
 #define DEFAULT_TARG_HAS_SIGNED_CHARS TRUE
 #define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
 #define TARG_JMP_BUF_NUM_ELEMENTS 16
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
 
-/* The EDG driver on NT does not support the template information file
-   which is needed for one instantiation per object mode, etc. */
-#define DRIVER_COMPATIBILITY_VERSION 236
-#define INSTANTIATION_REQUEST_LINES_RESERVED 1
+/* The EDG driver on NT does not support one instantiation per object mode. */
+#define ONE_INSTANTIATION_PER_OBJECT 0
 
 #if OPTIMIZED_VERSION
 #define IL_SHOULD_BE_WRITTEN_TO_FILE 0
