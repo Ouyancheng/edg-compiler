@@ -1411,13 +1411,13 @@ order from most restrictive to least restrictive:
 
 Moreover:
 
-  struct T : public U { ... };
-  void g1() throw(T);             // Does not violate exception spec of g2
-  void g2() throw(U);             // Violates exception spec of g1
+  struct D : public B { ... };
+  void g1() throw(D);             // Does not violate exception spec of g2
+  void g2() throw(B);             // Violates exception spec of g1
 
-If U is a public and unambiguous base class of T, g2 is less restrictive than
-g1, because a handler for T can also catch a U, but a handler for U cannot
-catch a T.
+If B is a public and unambiguous base class of D, g2 is less restrictive than
+g1, because a handler for B can also catch a D, but a handler for D cannot
+catch a B.
 */
 {
   a_boolean                            is_less_restrictive = FALSE;
@@ -1459,7 +1459,8 @@ catch a T.
              seen on the list. */
           if (estp2->redundant) continue;
           /* The types "match" if a handler for estp1->type can catch
-             estp2->type. */
+             estp2->type -- e.g., if the types are identical or espt1->type
+             is a public and unambiguous base class of espt2->type. */
           if (type_is_catchable_by_handler_for_other_type(estp2->type,
                                                           estp1->type)) {
             /* Match. */
