@@ -8433,7 +8433,7 @@ If not, return the indicated source sequence entry.
 
 #if MAINTAIN_NEEDED_FLAGS
 
-static a_source_sequence_entry_ptr remove_tag_def_from_src_seq_list(
+static a_source_sequence_entry_ptr drop_tag_def_from_src_seq_list(
                                      a_source_sequence_entry_ptr  ssep,
                                      a_boolean                    retain_first)
 /*
@@ -8447,7 +8447,7 @@ static a_source_sequence_entry_ptr remove_tag_def_from_src_seq_list(
   check_assertion_str(ss_entry_kind(ssep) == (an_il_entry_kind)iek_type &&
                       (is_immediate_class_type(type_ptr) ||
                        is_immediate_enum_type(type_ptr)),
-                      "remove_tag_def_from_src_seq_list: bad entity kind");
+                      "drop_tag_def_from_src_seq_list: bad entity kind");
   if (retain_first) {
     prev_ssep = ssep;
   } else {
@@ -8470,7 +8470,7 @@ static a_source_sequence_entry_ptr remove_tag_def_from_src_seq_list(
 #if 0
 #if CHECKING
     if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il && !C_mode()) {
-      unexpected_condition_str2("remove_tag_def_from_src_seq_list:",
+      unexpected_condition_str2("drop_tag_def_from_src_seq_list:",
                                 "keep_in_il flag is TRUE for entry");
     }  /* if */
 #endif /* CHECKING */
@@ -8482,7 +8482,7 @@ static a_source_sequence_entry_ptr remove_tag_def_from_src_seq_list(
                                              (an_il_entry_kind)iek_type &&
                              (is_immediate_class_type(tp) ||
                               is_immediate_enum_type(tp)),
-                             "remove_tag_def_from_src_seq_list:",
+                             "drop_tag_def_from_src_seq_list:",
                              "bad entity kind");
         *prev_link_addr = ssep;
         ssep->prev = prev_ssep;
@@ -8505,7 +8505,7 @@ static a_source_sequence_entry_ptr remove_tag_def_from_src_seq_list(
           } else if (il_entry_prefix_of(ssep->entity.ptr).keep_in_il) {
             ssep = ssep->next;
           } else {
-            ssep = remove_tag_def_from_src_seq_list(ssep,
+            ssep = drop_tag_def_from_src_seq_list(ssep,
                                                     /*retain_first=*/FALSE);
             prev_ssep = ssep->prev;
             prev_link_addr = &ssep->prev->next;
@@ -8530,21 +8530,21 @@ static a_source_sequence_entry_ptr remove_tag_def_from_src_seq_list(
   *prev_link_addr = ssep->next;
   if (ssep->next != NULL) ssep->next->prev = prev_ssep;
   return ssep->next;
-}  /* remove_tag_definition_from_source_sequence_list */
+}  /* drop_tag_def_from_src_seq_list */
 
 
-static void drop_from_file_scope_source_sequence_list(
-                                       a_source_sequence_entry_ptr  ssep,
-                                       a_source_sequence_entry_ptr  *next_ssep)
+static a_source_sequence_entry_ptr drop_from_fs_src_seq_list(
+                                             a_source_sequence_entry_ptr  ssep)
+
 /*
 */
 {
-  a_source_sequence_entry_ptr  last_ssep;
+  a_source_sequence_entry_ptr  last_ssep, next_ssep;
 
   if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
       (is_immediate_class_type((a_type_ptr)ssep->entity.ptr) ||
        is_immediate_enum_type((a_type_ptr)ssep->entity.ptr))) {
-    *next_ssep = remove_tag_def_from_src_seq_list(ssep,
+    next_ssep = drop_tag_def_from_src_seq_list(ssep,
                                                   /*retain_first=*/FALSE);
   } else {
     last_ssep = ssep;
@@ -8557,10 +8557,11 @@ static void drop_from_file_scope_source_sequence_list(
     if (last_ssep->next != NULL) {
       last_ssep->next->prev = ssep->prev;
     }  /* if */
-    *next_ssep = last_ssep->next;
+    next_ssep = last_ssep->next;
     ssep->prev = last_ssep->next = NULL;
   }  /* if */
-}  /* drop_from_file_scope_source_sequence_list */
+  return next_ssep;
+}  /* drop_from_fs_src_seq_list */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -8619,6 +8620,13 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
   a_src_seq_secondary_decl_ptr  sssdp;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#if DEBUG
+  if (debug_level >= 4) {
+    fputs("Removing definition of ", f_debug);
+    db_abbreviated_type(class_type);
+    fputc('\n', f_debug);
+  }  /* if */
+#endif /* if DEBUG */
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp != NULL) {
     a_type_ptr                   friend_class;
@@ -8670,6 +8678,8 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
     }  /* if */
     clear_class_type_supplement(ctsp);
   }  /* if */
+  class_type->size = 0;
+  class_type->alignment = 1;
   class_type->variant.class_struct_union.field_list = NULL;
   class_type->variant.class_struct_union.any_const_member = FALSE;
   class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;
@@ -8689,7 +8699,7 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
                            "turn_class_definition_into_declaration:",
                            "local classes not supported");
 #endif /* CHECKING */
-      (void)remove_tag_def_from_src_seq_list(ssep, /*retain_first=*/FALSE);
+      (void)drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/FALSE);
       /* Start at the point in the source sequence list corresponding to the
          beginning of the class or namespace definition. */
       ssep = class_type->source_corresp.parent.class_type->
@@ -8716,7 +8726,7 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
       }  /* for */
     } else {
       check_assertion(ss_entry_ptr(ssep, a_type_ptr) == class_type);
-      (void)remove_tag_def_from_src_seq_list(ssep, /*retain_first=*/TRUE);
+      (void)drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/TRUE);
       /* Turn what was originally a definition into a secondary declaration
          (a nondefining class declaration) as far as the source-sequence
          representation is concerned. */
@@ -8750,7 +8760,8 @@ static void eliminate_unneeded_class_definitions(a_type_ptr  class_type)
       }  /* if */
     }  /* for */
   }  /* if */
-  if (!class_type->variant.class_struct_union.definition_needed) {
+  if (class_type->size > 0 &&
+      !class_type->variant.class_struct_union.definition_needed) {
     turn_class_definition_into_declaration(class_type);
   }  /* if */
 }  /* eliminate_unneeded_class_definitions */
@@ -8767,7 +8778,7 @@ dependent on it.  The routine entry itself is dealt with later.
   a_scope_ptr             sp;
   a_routine_ptr           rp;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr   ssep, next_ssep;
+  a_source_sequence_entry_ptr   ssep;
   a_src_seq_secondary_decl_ptr  sssdp;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
@@ -8793,7 +8804,7 @@ dependent on it.  The routine entry itself is dealt with later.
                drop the source sequence entry altogether. */
             a_source_correspondence  *scp = &rp->source_corresp;
 
-            drop_from_file_scope_source_sequence_list(ssep, &next_ssep);
+            (void)drop_from_fs_src_seq_list(ssep);
             /* The source-sequence entry pointer in the routine needs to be
                reset as though the definition had never happened.  This means
                finding its non-defining declaration within the class or
@@ -9142,7 +9153,7 @@ eliminated, if appropriate.
         if (kind == (a_byte_il_entry_kind)iek_variable ||
             kind == (a_byte_il_entry_kind)iek_routine ||
             kind == (a_byte_il_entry_kind)iek_type) {
-          drop_from_file_scope_source_sequence_list(ssep, &next_ssep);
+          next_ssep = drop_from_fs_src_seq_list(ssep);
         }  /* if */
       }  /* if */
     }  /* if */
