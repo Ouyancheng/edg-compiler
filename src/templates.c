@@ -7013,6 +7013,14 @@ that follows.
       check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
                       sym->kind == (a_symbol_kind)sk_member_function ||
                       sym->kind == (a_symbol_kind)sk_static_data_member);
+      /* Specializations of namespace members can only occur within the
+         namespace they belong to or a namespace that encloses it. */
+      if (sym->decl_scope != scope_stack[depth_scope_stack].number &&
+          (sym->parent.namespace_ptr == NULL ||
+           !namespace_is_enclosed_by_curr_scope(sym))) {
+        pos_sy_error(ec_bad_scope_for_specialization,
+                     &locator.source_position, sym);
+      }  /* if */
       /* See if this is a declaration or a definition. */
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         is_definition = (curr_token == tok_assign);
@@ -7225,6 +7233,11 @@ are either the specialization of a template or a template declaration.
   scan_template_param_clauses(&decl_state);
   if (decl_state.is_full_specialization) {
     full_template_specialization();
+    /* Advance past the semicolon or closing rbrace if required. */
+    if (!no_advance_past_final_token && (curr_token == tok_semicolon ||
+                                         curr_token == tok_rbrace)) {
+      (void)get_token();
+    }  /* if */
   } else {
     /* The entity being declared is a template. */
     template_declaration(&decl_state);
