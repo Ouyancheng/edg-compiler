@@ -599,12 +599,13 @@ file scope IL memory region), and return a pointer to it.
 }  /* make_typeinfo_name */
 
 
-static a_constant_ptr make_typeinfo_name_constant(char *name)
+static a_constant_ptr make_typeinfo_name_constant(a_type_ptr type)
 /*
-Make a constant that is the address of a string for the given name, for
-use in typeinfo implementation constants.
+Make a constant that is the address of a string for the name of the given
+type, for use in typeinfo implementation constants.
 */
 {
+  char           *name = make_typeinfo_name(type);
   sizeof_t       name_length = strlen(name) + 1;
   a_constant     constant;
   a_constant_ptr string_con, addr_con;
@@ -746,12 +747,10 @@ have been called on it at some previous point.
     type_info_con->type = user_type_info_type;
     type_info_con->variant.aggregate.first_constant = vptr_con;
     type_info_con->variant.aggregate.last_constant = vptr_con;
-    /* Make the name constant.  The string for the name was made previously
-       and is pointed to by assoc_info. */
+    /* Make the name constant. */
     curr_field = curr_field->next;
     curr_field_type = curr_field->type;
-    name_con = make_typeinfo_name_constant(
-                              (char *)typeinfo_var->source_corresp.assoc_info);
+    name_con = make_typeinfo_name_constant(type);
     typeinfo_var->source_corresp.assoc_info = NULL;  /* Be neat. */
     curr_field = curr_field->next;
 #endif /* ABI_CHANGES_FOR_RTTI */
@@ -1100,12 +1099,6 @@ via the typeid operator (but it contains it).
       mark_to_keep_in_il((char *)typeinfo_var, iek_variable);
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#if ABI_CHANGES_FOR_RTTI
-    /* Develop a string that names the type.  This must be done now because
-       later the names involved might be mangled.  A pointer to the string
-       is stored in the assoc_info pointer of the typeinfo variable. */
-    typeinfo_var->source_corresp.assoc_info = make_typeinfo_name(type);
-#endif /* ABI_CHANGES_FOR_RTTI */
     if (define_now) {
       /* The typeinfo variable is supposed to be defined right now (for
          non-class cases). */
