@@ -251,10 +251,14 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_finally, "__finally");
     enter_keyword((a_token_kind)tok_leave, "__leave");
     enter_keyword((a_token_kind)tok_except, "__except");
-    enter_keyword((a_token_kind)tok_int32, "__int32");
-#if LONG_LONG_ALLOWED
-    enter_keyword((a_token_kind)tok_int64, "__int64");
-#endif /* LONG_LONG_ALLOWED */
+    if (targ_int32_int_kind != (an_integer_kind)ik_none) {
+      /* There is a 32 bit target integer kind to which __int32 can map. */
+      enter_keyword((a_token_kind)tok_int32, "__int32");
+    }  /* if */
+    if (targ_int64_int_kind != (an_integer_kind)ik_none) {
+      /* There is a 64 bit target integer kind to which __int64 can map. */
+      enter_keyword((a_token_kind)tok_int64, "__int64");
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* "asm" is a C++ keyword that is treated as a keyword in C mode, too,
@@ -414,6 +418,22 @@ Initialize target machine characteristics.
     }  /* if */
 #endif /* DO_IL_LOWERING */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  targ_int32_int_kind = int_kind_for_bit_size(32, /*signed=*/TRUE);
+  if (targ_int32_int_kind != (an_integer_kind)ik_none) {
+    targ_unsigned_int32_int_kind = int_kind_for_bit_size(32, /*signed=*/FALSE);
+    check_assertion_str(targ_unsigned_int32_int_kind !=
+                                              (an_integer_kind)ik_none,
+                       "target_init: can't set int kind for unsigned __int32");
+  }  /* if */
+  targ_int64_int_kind = int_kind_for_bit_size(64, /*signed=*/TRUE);
+  if (targ_int64_int_kind != (an_integer_kind)ik_none) {
+    targ_unsigned_int64_int_kind = int_kind_for_bit_size(64, /*signed=*/FALSE);
+    check_assertion_str(targ_unsigned_int64_int_kind !=
+                                              (an_integer_kind)ik_none,
+                       "target_init: can't set int kind for unsigned __int64");
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* target_init */
 
 
@@ -593,9 +613,11 @@ to replace the initial portion of this compilation.
   const_ints_init();
   /* Initialize the symbol table (keywords and predefined macros).  Note that
      keyword_init is called first, so that predefined macros will have
-     priority over keywords.  (Also, macro_init must have been called, so
+     priority over keywords.  Also, macro_init must have been called, so
      that predefined #assert predicates (if any) are entered after
-     assert_predicates has been cleared.) */
+     assert_predicates has been cleared.  Also, in Microsoft mode,
+     target_init must have been called for correct handling of __int32 and
+     __int64. */
   keyword_init();
   init_predefined_macros(curr_date_time);
   if (!C_mode() && rtti_enabled) {
