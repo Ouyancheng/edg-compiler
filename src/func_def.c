@@ -602,6 +602,11 @@ a new symbol is created and entered in the symbol table.
   }  /* if */
   /* Create the parameter variable. */
   vp = make_param_variable(tp, param_id->storage_class);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Record the type exactly as it was declared (before array-to-pointer
+     decay, etc. */
+  vp->declared_type = param_id->declared_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   add_to_parameters_list(vp);
   sym = param_id->symbol;
   if (sym == NULL) {
