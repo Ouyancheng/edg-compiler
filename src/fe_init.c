@@ -37,6 +37,7 @@ in the include files will become external definitions for the symbols.
 */
 
 #include "cmd_line.h"
+#include "const_ints.h"
 #include "debug.h"
 #include "decl_inits.h"
 #include "decls.h"
@@ -551,15 +552,9 @@ Initialize target machine characteristics.
   /* The signedness of characters can be set on the command line. */
   if (targ_has_signed_chars) {
     /* Target has signed characters. */
-    targ_min_char = TARG_SCHAR_MIN;
-    targ_max_char = TARG_SCHAR_MAX;
     /* Enter macro used to modify the definition of CHAR_MIN and CHAR_MAX in
        the included limits.h. */
     (void)enter_predef_macro("1", "__SIGNED_CHARS__");
-  } else {
-    /* Target has unsigned characters. */
-    targ_min_char = 0;
-    targ_max_char = TARG_UCHAR_MAX;
   }  /* if */
   if (C_dialect == C_dialect_pcc) {
     /* In pcc mode, a "plain" char is the same as either "signed char"
@@ -720,6 +715,9 @@ Initialize everything that has to do with the front end.
      entered after assert_predicates has been cleared. */
   preproc_init();
   target_init();
+  /* const_ints_init must be called after target_init so that
+     int_kind_is_signed is properly initialized. */
+  const_ints_init();
 #if DO_IL_LOWERING
   if (!suppress_il_lowering) {
     il_lower_init();
