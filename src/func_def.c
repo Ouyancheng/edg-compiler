@@ -601,13 +601,11 @@ and for the instantiation of template functions.
       }  /* for */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if (rtsp->prototyped && func_info->any_prototype_names_omitted) {
+    if (func_info->any_prototype_names_omitted) {
       /* New-style (function prototype) for which at least one of the param
          names was omitted in the prototype.  In C this is not valid on a
          function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
-      if (C_dialect != C_dialect_cplusplus) {
-        error(ec_all_proto_params_must_be_named);
-      }  /* if */
+      if (C_mode()) error(ec_all_proto_params_must_be_named);
     }  /* if */
     param_id = func_info->param_id_list;
     ptp = rtsp->param_type_list;
@@ -1047,8 +1045,21 @@ associated with the function is returned.
       /* Set the type to the new type information from the old-style
          parameters just scanned. */
       extra_info->param_type_list = old_style_param_types;
-      extra_info->prototyped = FALSE;
-      extra_info->old_style_params_scanned = TRUE;
+      if (C_mode()) {
+        /* Set a flag indicating that old style params were scanned.  This
+           is done in case, when this declaration is reconciled with other
+           declarations, the prototyped flag is changed -- e.g.,
+             void f(int,int);
+             void f(i,j) int i; int j { ... }
+           where the type associated with the routine entry is marked as
+           prototyped but the defining declaration is old-style. */
+        extra_info->old_style_params_scanned = TRUE;
+      } else {
+        /* In C++ mode old style parameter declarations are permitted as
+           an anachronism.  However, the internal representation should be
+           the same as for a prototyped param list. */
+        extra_info->prototyped = TRUE;
+      }  /* if */
       /* Parameter symbols are not actually entered in the function
          prototype scope, but other symbols (in consequence of an error or
          a type declaration) may be.  Record them so that they can be
@@ -1101,9 +1112,6 @@ associated with the function is returned.
   flags = SFB_NO_FLAGS;
   if (!has_explicit_type_specifier) {
     flags |= SFB_IMPLICITLY_DECLARED_RETURN_TYPE;
-  }  /* if */
-  if (!prototyped) {
-     flags |= SFB_OLD_STYLE_PARAM_DECL;
   }  /* if */
   scan_function_body(routine_ptr, func_info, flags);
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG

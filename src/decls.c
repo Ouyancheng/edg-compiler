@@ -3743,18 +3743,23 @@ symbol has already been entered as an undefined symbol.
   /* All IL routines and their types must be at the file scope level, so switch
      to that memory region if necessary. */
   switch_to_file_scope_region(&region_to_switch_back_to);
-  /* Generate the function type, with an old-style no-information parameter
-     list, and in C a return type of "int".  See 3.3.2.2, semantics. In C++
-     this must be an error, so give it a return type of tk_error. */
+  /* Generate the function type.  In C mode indicate it has an old-style
+     no-information parameter list and a return type of "int".  See 3.3.2.2,
+     semantics. In C++ this must be an error, so give it a return type of
+     tk_error and call it prototyped. */
   rout_type = alloc_type((a_type_kind)tk_routine);
   rout_type->variant.routine.extra_info->param_type_list = NULL;
-  rout_type->variant.routine.extra_info->prototyped = FALSE;
-  if (C_dialect != C_dialect_cplusplus) {
+  if (C_mode()) {
     rout_type->variant.routine.return_type =
                                        integer_type((an_integer_kind)ik_int);
+    rout_type->variant.routine.extra_info->prototyped = FALSE;
   } else {
     /* Making the return type an error type prevents cascading errors. */
     rout_type->variant.routine.return_type = error_type();
+    rout_type->variant.routine.extra_info->prototyped = TRUE;
+    /* Setting has_ellipsis to TRUE means no diagnostics will be issued for
+       having too many arguments. */
+    rout_type->variant.routine.extra_info->has_ellipsis = TRUE;
   }  /* if */
   make_locator_for_symbol(symbol_ptr, &locator);
   /* Declare the function identifier. */

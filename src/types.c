@@ -1945,25 +1945,16 @@ not compared.  flags is a set of bit flags that modify the comparison.
     /* One has a variable length parameter list and the other does not, so
        they cannot be compatible. */
     compatible = FALSE;
-  } else if (C_dialect == C_dialect_cplusplus &&
-             ((!list1_prototyped && !rtsp1->old_style_params_scanned) ||
-              (!list2_prototyped && !rtsp2->old_style_params_scanned))) {
-    /* In C++ we can be in the situation of having no information about the
-       parameters of a function only in an error case (e.g., using what must
-       be a function without its having been declared -- which is legal in
-       C mode).  Such a function is not compatible with any other. */
-    compatible = FALSE;
-  } else if (C_dialect != C_dialect_cplusplus &&
-             !list1_prototyped && !list2_prototyped) {
+  } else if (C_mode() && !list1_prototyped && !list2_prototyped) {
      /* Both parameter lists are old-style -- in C mode they are compatible. */
     compatible = TRUE;
   } else {
-    /* If either function has a new-style parameter list, the individual
-       parameter types must be compatible.  See the C standard, 3.5.4.3. */
-    if (!list2_prototyped) {
-      /* List2 is an old-style param list. */
-      if (C_dialect != C_dialect_cplusplus) {
-        /* In C mode it must be that list1 is prototyped. */
+    if (C_mode()) {
+      /* If either function has a new-style parameter list, the individual
+         parameter types must be compatible.  See the C standard, 3.5.4.3. */
+      if (!list2_prototyped) {
+        /* List2 is an old-style param list -- it must be that list1 is
+           prototyped. */
         if (!rtsp2->old_style_params_scanned) {
           /* We are comparing a prototyped parameter list (list1) with an
              old-style list, but there is no parameter information as yet for
@@ -1972,27 +1963,29 @@ not compared.  flags is a set of bit flags that modify the comparison.
              version of itself. */
           list2 = list1;
         }  /* if */
-      } else {
-        /* In C++ mode it might be that both parameter lists are old-style --
-           in which case they are treated as if prototyped, except that any
-           qualifiers are stripped off the param types before comparison. */
+      } else if (!list1_prototyped) {
+        /* It is list1 that is the old-style param list and list2 is
+           prototyped. Reverse them, since the processing that follows
+           assumes that the old-style list, if there is one, is the second. */
+        list1 = list2;
+        list1_prototyped = TRUE;
+        if (!rtsp1->old_style_params_scanned) {
+          /* Leave list2 unchanged (i.e., the same as what list1 now is), since
+             the param type comparison will be of the unpromoted types on list1
+             and the promoted versions of the same types, from list2. */
+        } else {
+          /* Ordinary case -- the two lists are swapped. */
+          list2 = rtsp1->param_type_list;
+        }  /* if */
+        list2_prototyped = FALSE;
       }  /* if */
-    } else if (!list1_prototyped) {
-      /* It is list1 that is the old-style param list and list2 is prototyped.
-         Reverse them, since the processing that follows assumes that the
-         old-style list, if there is one, is the second. */
-      list1 = list2;
-      list1_prototyped = TRUE;
-      if (C_dialect != C_dialect_cplusplus &&
-          !rtsp1->old_style_params_scanned) {
-        /* Leave list2 unchanged (i.e., the same as what list1 now is), since
-           the param type comparison will be of the unpromoted types on list1
-           and the promoted versions of the same types, from list2. */
-      } else {
-        /* Ordinary case -- the two lists are swapped. */
-        list2 = rtsp1->param_type_list;
-      }  /* if */
-      list2_prototyped = FALSE;
+#if CHECKING
+    } else {
+      /* C++ mode. */
+      check_assertion_str2(list1_prototyped && list2_prototyped,
+                           "param_types_are_compatible:",
+                           "unprototyped routine type");
+#endif /* CHECKING */
     }  /* if */
     /* Compare the types of the parameters on the two lists. */
     for (; list1 != NULL && list2 != NULL;
@@ -2001,27 +1994,15 @@ not compared.  flags is a set of bit flags that modify the comparison.
          type promoted appropriately if it is old-style. */
       param_1_type = list1->type;
       param_2_type = list2->type;
-      if (C_dialect != C_dialect_cplusplus || !list2_prototyped) {
-         /* In C mode, the type qualifiers (if any) on the parameter
-            types are ignored (ANSI C standard, 3.5.4.3).
-            Also when dealing with an old-style function, because it's
-            like C mode, and -- especially -- because
-            default_argument_promotion drops type qualifiers. */
+      if (C_mode()) {
+         /* In C mode, the type qualifiers (if any) on the parameter types
+            are ignored (ANSI C standard, 3.5.4.3).  Also when dealing with
+            an old-style function, because it's like C mode, and -- especially
+            -- because default_argument_promotion drops type qualifiers. */
         param_1_type = skip_typerefs(param_1_type);
         param_2_type = skip_typerefs(param_2_type);
         if (!list2_prototyped) {
-          if (C_dialect == C_dialect_cplusplus) {
-            /* Do not do default promotion of the argument in C++ mode.
-               This is a matter not of conformity to the language definition,
-               since old-style param declarations are not supported, but
-               of compatibility with cfront, which overloads f in the
-               following example:
-                 void f(int);            // prototyped
-                 void f(x) char x { }    // old-style -- char is not
-                                         //   promoted to int           */
-          } else {
-            param_2_type = default_argument_promotion(param_2_type);
-          }  /* if */
+          param_2_type = default_argument_promotion(param_2_type);
         }  /* if */
       }  /* if */
       if (f_types_are_compatible(param_1_type, param_2_type, flags)) {
@@ -4038,14 +4019,6 @@ in C++ mode.  See ARM 13.
     /* Compare the parameter types. */
     old_param = old_extra_info->param_type_list;
     new_param = new_extra_info->param_type_list;
-    if ((!old_extra_info->prototyped && old_param == NULL) ||
-        (!new_extra_info->prototyped && new_param == NULL)) {
-      /* In C++ an old-style declaration can have an empty param list only
-         as the result of an error.  Assume an error is distinguishable from
-         anything else. */
-      distinguishable = TRUE;
-      goto distinguishable_determined;
-    }  /* if */
     for (; old_param != NULL || new_param != NULL;
            old_param = old_param->next, new_param = new_param->next) {
       if (old_param == NULL || new_param == NULL) {
@@ -4057,9 +4030,6 @@ in C++ mode.  See ARM 13.
         /* See if the types are distinguishable.  A parameter containing
            template types is always distinguishable from one not containing
            such types. */
-        /* Note that we do NOT do default argument promotions on old-style
-           (unprototyped) function parameter types, because in overload
-           resolution the unprototyped type is used. */
         if (old_param->type_involves_template_param !=
             new_param->type_involves_template_param ||
             types_distinguishable(old_param->type, new_param->type,
@@ -4070,10 +4040,7 @@ in C++ mode.  See ARM 13.
       }  /* if */
     }  /* for */
     /* All the parameters are indistinguishable. */
-    /* If one function is an old-style unprototyped function and the
-       other isn't, go with the "normal" message. */
-    if (params_all_compatible &&
-        old_extra_info->prototyped == new_extra_info->prototyped) {
+    if (params_all_compatible) {
       /* The parameter types are not just indistinguishable, they are
          compatible.  This suggests that the user is trying to distinguish
          the function on the basis of the return type, which is not

@@ -4434,18 +4434,11 @@ to skip the input parameter).
 */
 {
   an_expr_node_ptr              expr;
-  a_routine_type_supplement_ptr rtsp;
 
   called_rout_type = skip_typerefs(called_rout_type);
-  rtsp = called_rout_type->variant.routine.extra_info;
   /* Get the first parameter type. */
   if (param != NULL) {
     /* The caller is telling us where to start in the list. */
-  } else if (rtsp->old_style_params_scanned) {
-    /* Old-style parameter list, so no parameter information. */
-    /* Note that we do not test rtsp->prototyped because it may have been
-       cleared by lowering when make_all_functions_unprototyped is TRUE. */
-    param = NULL;
   } else {
     /* Start with the first parameter. */
     param = unlowered_param_type_list(called_rout_type);
@@ -4464,9 +4457,9 @@ to skip the input parameter).
       }  /* if */
       param = param->next;
     } else {
-      /* Unprototyped parameter: old-style function or ellipsis. */
+      /* Unprototyped parameter: ellipsis. */
       /* Widen pointers-to-data-members that have been turned into integers
-         and are passed to an old-style function or ellipsis. */
+         and are passed to an ellipsis. */
       if (is_or_was_ptr_to_data_member_type(expr->type)) {
         /* A pointer to data member -- widen if necessary. */
         do_ptr_to_data_member_arg_promotion_on_node(expr);

@@ -39,16 +39,7 @@ func_def.h -- Declarations related to func_def.c (having to do with
 			   In such cases the structured statement stack should
 			   be reinitialized, and then restored once the
 			   function definition is complete. */
-#define SFB_OLD_STYLE_PARAM_DECL (a_decl_flag_set)(0x8)
-			/* If this bit is set the declaration defining the
-			   function contains old-style parameter declarations.
-			   This may be true even in a case like this:
-			     void f(int,int);
-			     void f(i,j) int i; int j { ... }
-			   where the type associated with the routine entry is
-			   marked as prototyped but the defining declaration
-			   is old-style. */
-#define SFB_IS_INSTANTIATION (a_decl_flag_set)(0x10)
+#define SFB_IS_INSTANTIATION (a_decl_flag_set)(0x8)
 			/* If this bit is set the definition is being generated
 			   by the compiler based on a template. */
 

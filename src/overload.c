@@ -3444,7 +3444,6 @@ overloaded operator cases.
 */
 {
   a_type_ptr               routine_type;
-  a_boolean                old_style_function;
   an_arg_match_summary_ptr arg_match;
   an_arg_operand_ptr       arg_operand;
   an_expr_node_ptr         arg, prev_arg;
@@ -3454,7 +3453,6 @@ overloaded operator cases.
      lists. */
   if (function_symbol != NULL) {
     routine_type = routine_symbol_type(function_symbol);
-    old_style_function = !routine_type->variant.routine.extra_info->prototyped;
     arg_match = arg_match_list;
     if (have_selector) {
       check_assertion_str2(arg_match->is_match_for_this_param,
@@ -3482,13 +3480,6 @@ overloaded operator cases.
          arg_operand != NULL || param != NULL;) {
       arg = node_for_arg_of_overloaded_function_call(arg_operand, arg_match,
                                                      param);
-      /* If the function is an old-style unprototyped function (an anachronism;
-         yes, they can participate in overloading), promote the argument
-         value if necessary (e.g., short --> int). */
-      if (old_style_function) {
-        cast_node(&arg, default_argument_promotion(arg->type),
-                  /*is_implicit_cast=*/TRUE, &arg_operand->operand.position);
-      }  /* if */
       /* Add this argument to the end of the expression-form argument list
          being built up. */
       if (prev_arg == NULL) {
