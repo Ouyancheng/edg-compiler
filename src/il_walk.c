@@ -300,7 +300,6 @@ can be NULL to indicate that the corresponding function is unnecessary.
 #define WALK_ENTRY_ROUTINE_NAME walk_tree_and_set_needed
 #undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
-#define UNDEF_WALK_ENTRY_MACROS_AT_END
 #include "walk_entry.h"
 
 
@@ -397,6 +396,25 @@ entry_kind will remain after IL lowering is done.
 #endif /* DO_IL_LOWERING */
 
 
+/*
+The subtree of the entry with entry kind entry_kind at entry_ptr is not
+being walked.  If the entity is a template class, walk its template arguments
+anyway (they are needed even if the subtree is not walked).
+*/
+#define walk_template_arguments_for_pruned_entity(entry_ptr, entry_kind) \
+{ if ((entry_kind) == iek_type) { \
+    a_type_ptr type = (a_type_ptr)(entry_ptr); \
+    if (is_immediate_class_type(type)) { \
+      a_class_type_supplement_ptr ctsp = \
+                               type->variant.class_struct_union.extra_info; \
+      if (ctsp != NULL) { \
+        walk_list(ctsp->template_arg_list, a_template_arg_ptr, iek_template_arg); \
+      }  /* if */ \
+    }  /* if */ \
+  }  /* if */ \
+}  /* walk_template_arguments_for_pruned_entity */
+
+
 static a_boolean prune_needed_flag_il_walk(char             *entry_ptr,
                                            an_il_entry_kind entry_kind)
 /*
@@ -453,20 +471,25 @@ as needed.
       /* Determine whether the subtree of this entry should be walked. */
       prune = should_not_walk_subtree(entry_ptr, entry_kind,
                                       /*keep_in_il_case=*/FALSE);
-      if (prune && scp->is_class_member
+      if (prune) {
+        if (scp->is_class_member
 #if DO_IL_LOWERING
-          /* Do not process parent information that will be removed by
-             IL lowering. */
-          && parent_will_exist_after_lowering(entry_kind)
+            /* Do not process parent information that will be removed by
+               IL lowering. */
+            && parent_will_exist_after_lowering(entry_kind)
 #endif /* DO_IL_LOWERING */
-                                                         ) {
-        /* When the subtree is not going to be walked now and the entity is
-           a class member, mark the parent as needed anyway.  This is done
-           in the normal processing, but we're suppressing that by not walking
-           the subtree. */
-        a_type_ptr parent_class = scp->parent.class_type;
-        walk_tree_and_set_needed((char *)parent_class, iek_type);
-        set_class_definition_needed(parent_class);
+                                                           ) {
+          /* When the subtree is not going to be walked now and the entity is
+             a class member, mark the parent as needed anyway.  This is done
+             in the normal processing, but we're suppressing that by not
+             walking the subtree. */
+          a_type_ptr parent_class = scp->parent.class_type;
+          walk_tree_and_set_needed((char *)parent_class, iek_type);
+          set_class_definition_needed(parent_class);
+        }  /* if */
+        /* Also walk template arguments on a class, needed even if the class
+           is just declared and not defined. */
+        walk_template_arguments_for_pruned_entity(entry_ptr, entry_kind);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -744,27 +767,31 @@ to be kept.
        do not walk its subtree now. */
     prune = should_not_walk_subtree(entry_ptr, entry_kind,
                                     /*keep_in_il_case=*/TRUE);
-    if (prune
-#if DO_IL_LOWERING
-        /* Do not process parent information that will be removed by
-           IL lowering. */
-        && parent_will_exist_after_lowering(entry_kind)
-#endif /* DO_IL_LOWERING */
-                                                       ) {
+    if (prune) {
       /* When the subtree is not going to be walked now and the entity is
          a class member, mark the parent as needed anyway.  This is done
          in the normal processing, but we're suppressing that by not walking
          the subtree.  This is needed in particular to make sure the
          definition of a class is kept if one of its member functions
          is kept. */
-      a_source_correspondence *scp =
+#if DO_IL_LOWERING
+        /* Do not process parent information that will be removed by
+           IL lowering. */
+      if (parent_will_exist_after_lowering(entry_kind))
+#endif /* DO_IL_LOWERING */
+      /* Do not insert code here. */
+      { a_source_correspondence *scp =
                             source_corresp_for_il_entry(entry_ptr, entry_kind);
-      check_assertion(scp != NULL);
-      if (scp->is_class_member) {
-        a_type_ptr parent_class = scp->parent.class_type;
-        walk_tree_and_set_keep_in_il((char *)parent_class, iek_type);
-        set_class_keep_definition_in_il(parent_class);
+        check_assertion(scp != NULL);
+        if (scp->is_class_member) {
+          a_type_ptr parent_class = scp->parent.class_type;
+          walk_tree_and_set_keep_in_il((char *)parent_class, iek_type);
+          set_class_keep_definition_in_il(parent_class);
+        }  /* if */
       }  /* if */
+      /* Also walk template arguments on a class, needed even if the class
+         is just declared and not defined. */
+      walk_template_arguments_for_pruned_entity(entry_ptr, entry_kind);
     }  /* if */
   }  /* if */
   return prune;
