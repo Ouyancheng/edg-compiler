@@ -1,5 +1,10 @@
 Version 2.29
 
+5/18/95  Access checking on conversion functions
+
+Access is properly checked now for conversion functions called for an
+object of a derived class.
+
 5/18/95  Branching past initialization of static local variable
 
 No longer is an error issued on branching past dynamic initializations
