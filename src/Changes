@@ -1,5 +1,12 @@
 Version 2.46
 
+2/11/01  C-generating back end and RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+The (unusual) combination of RECORD_CONSTANT_EXPRESSIONS_IN_IL set to
+TRUE and the C-generating back end did not work right.  The back end
+attempted to output some unlowered expressions and got internal errors.
+Now fixed.
+
 2/11/01  C99 aggregate initialization: abort ("bad type on eok_comma")
 
 In some complex cases involving C99 nonconstant aggregate initialization,

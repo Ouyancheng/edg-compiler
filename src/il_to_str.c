@@ -1550,7 +1550,8 @@ the way described by octl.
       octl->output_expression(count);
     }  /* if */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  } else if (type->variant.array.bound_constant != NULL) {
+  } else if (type->variant.array.bound_constant != NULL &&
+             !octl->c_generating_back_end) {
     /* Use the recorded a_constant entry rather than a plain integer.  This
        allows the output to be closer to the original bound expression when
        the bound is more than just a literal (e.g., "2*2" instead of "4"). */
@@ -2955,6 +2956,7 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* CHECKING */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   } else if (constant_should_be_put_out_as_expr(constant) &&
+             !octl->c_generating_back_end &&
              octl->output_expression != NULL) {
     /* An expression was recorded for this constant.  Output that expression
        rather than the folded constant. */
