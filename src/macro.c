@@ -1433,11 +1433,12 @@ static void adjust_length_for_magic_arg(a_repl_text_seq_kind kind,
                                         a_macro_arg_ptr      *arg_values,
                                         sizeof_t             *length)
 /*
-Check if this is followed by an empty substitution of the variadic macro
-parameter.  If so, the last chunk of nonwhitespace characters should be
+Check if the token pasting operator -- heading the replacement text sections
+pointed to by rtp -- is followed by an empty substitution of the variadic
+macro parameter.  If so, the last chunk of nonwhitespace characters should be
 removed.  This strange behavior is emulated only when extended variadic macros
- are enabled.  Some compilers implement this to work around the following
-problem:
+are enabled.  Some preprocessors (notably from the GNU project) implement this
+to work around the following problem:
 	#define M(fmt, args) printf(fmt , ## args)
 	void f() { M("Hello.\n"); }
 Without the "deletion effect", the macro would generate an extraneous comma.

@@ -422,7 +422,7 @@ typedef enum /*a_repl_text_seq_kind*/ {
 			   character count, and then that many characters
 			   of raw text. */
   rt_paste,
-			/* "##" token. This is just a placeholder and not
+			/* "##" token.  This is just a placeholder and not
 			   actual replacement text. */
   rt_raw_argument,
 			/* Raw string for argument.  Followed by 3 bytes
