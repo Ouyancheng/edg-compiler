@@ -3353,15 +3353,16 @@ a block of source position information when the context is a declaration.
          as std::X, the namespace pointer is cleared, and the locator is set
          to indicate a file scope reference. */
       if (!err) {
-        if (locator_for_curr_id.is_global_qualified_name) {
+        if (!locator_for_curr_id.is_qualified_name) {
+          error(ec_qualified_name_required);
+          err = TRUE;
+        } else if (locator_for_curr_id.is_global_qualified_name) {
           diagnostic(strict_ansi_discretionary_severity,
                      ec_global_qualifier_not_allowed);
-        } else {
-          diagnostic(strict_ansi_discretionary_severity,
-                     ec_qualified_name_required);
         }  /* if */
       }  /* if */
-    } else {
+    }  /* if */
+    if (!err) {
       a_symbol_ptr	sym = locator_for_curr_id.specific_symbol;
       a_symbol_ptr	fund_sym;
       check_assertion(sym != NULL);
