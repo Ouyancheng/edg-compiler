@@ -7690,7 +7690,7 @@ enum an_expr_operator_kind_tag {
      are lvalues (or function designators) in the C source.  For example,
      the C source "i = 1" is represented internally as "&i = 1" (where the
      "&" in this case is provided by the use of an enk_variable_address
-     expression node. */
+     expression node). */
   /* The following have 1 operand: */
   eok_indirect,         /* Pointer de-reference ("*" operator). */
   eok_inegate,          /* Integer negation. */
