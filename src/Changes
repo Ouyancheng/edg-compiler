@@ -1,5 +1,14 @@
 Version 2.41
 
+1/26/99   Overload resolution: comparing standard conversions from class
+          pointers to void * after user-defined conversions
+
+On an initialization by user-defined conversion, one conversion can be
+chosen over another on the basis of the standard conversion that
+follows the user-defined conversion.  In particular, if A is a base
+class of B, a standard conversion of A* to void* is better than
+a conversion from B* to void*.  That is now implemented.
+
 1/26/99   Union improperly marked as an anonymous union
 
 Recent changes exposed a long-standing bug whereby a union referenced in

@@ -2363,7 +2363,9 @@ next_function:;
 static int compare_standard_conversions(a_std_conv_descr *conv1,
                                         a_std_conv_descr *conv2,
                                         a_boolean        skip_rank_comparisons,
-                                        a_boolean        init_conv_after_udc)
+                                        a_boolean        init_conv_after_udc,
+                                        a_type_ptr       source_type1,
+                                        a_type_ptr       source_type2)
 /*
 Compare two standard conversions using the ordering criteria of
 overload resolution [over.ics.rank], and return 
@@ -2380,7 +2382,8 @@ init_conv_after_udc is TRUE if the conversions are the standard conversions
 that follow user-defined conversions in the context of an initialization.
 In such cases, the source types of the standard conversions are different
 and the destination types are the same, and base class subsequence testing
-must be done backwards from the usual way.
+must be done backwards from the usual way.  source_type1 and source_type2
+indicate the source types in that case.
 
 Note that this routine does not deal with the qualification-conversion
 ordering issues (pointer, pointer-to-member, and reference) that appear
@@ -2496,20 +2499,50 @@ in [over.ics.rank].
         cmp = -1;
       }  /* if */
     }  /* if */
-  } else if (bcp_1 != NULL) {
-    /* bcp_1 != NULL, bcp_2 == NULL.  We know that the source type must
-       be a class pointer, and not a constant zero, which means the
-       conv2 destination type must be "void *" (since an implicit
-       conversion is possible).  A base class cast is preferable to a
-       cast to "void *", so conv1 is better. */
-    cmp = 1;
-  } else if (bcp_2 != NULL) {
-    /* bcp_1 != NULL, bcp_2 != NULL.  We know that the source type must
-       be a class pointer, and not a constant zero, which means the
-       conv1 destination type must be "void *" (since an implicit
-       conversion is possible).  A base class cast is preferable to a
-       cast to "void *", so conv2 is better. */
-    cmp = -1;
+  } else {
+    if (!init_conv_after_udc) {
+      /* Normal case: one source type, two destination types. */
+      if (bcp_1 != NULL) {
+        /* bcp_1 != NULL, bcp_2 == NULL.  We know that the source type must
+           be a class pointer, and not a constant zero, which means the
+           conv2 destination type must be "void *" (since an implicit
+           conversion is possible).  A base class cast is preferable to a
+           cast to "void *", so conv1 is better. */
+        cmp = 1;
+      } else if (bcp_2 != NULL) {
+        /* bcp_1 != NULL, bcp_2 != NULL.  We know that the source type must
+           be a class pointer, and not a constant zero, which means the
+           conv1 destination type must be "void *" (since an implicit
+           conversion is possible).  A base class cast is preferable to a
+           cast to "void *", so conv2 is better. */
+        cmp = -1;
+      }  /* if */
+    } else {
+      /* Initialization case: two source types, one destination type. */
+      if (conv1->pointer_normalization_needed &&
+          conv2->pointer_normalization_needed) {
+        /* The destination type is "void *".  With hierarchy A is-base-of B,
+           A* to void* is better than B* to void*. */
+        if (is_pointer_type(source_type1) && is_pointer_type(source_type2)) {
+          a_type_ptr under_type1 = type_pointed_to(source_type1);
+          a_type_ptr under_type2 = type_pointed_to(source_type2);
+          if (is_class_struct_union_type(under_type1) &&
+              is_class_struct_union_type(under_type2)) {
+            /* Both source types are pointers to classes.  See if one class
+               is a base class of the other. */
+            if (find_base_class_of(under_type2, under_type1)) {
+              /* The source for conv1 is a base class of the source for
+                 conv2, so conv1 is better. */
+              cmp = 1;
+            } else if (find_base_class_of(under_type1, under_type2)) {
+              /* The source for conv2 is a base class of the source for
+                 conv1, so conv2 is better. */
+              cmp = -1;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
 have_cmp:;
   return cmp;
@@ -2746,7 +2779,9 @@ Compare two argument match summary entries and return
                                          &arg_match2->conversion.std,
                                          /*skip_rank_comparisons=*/
                                                        (arg_routine1 == NULL),
-                                         /*init_conv_after_udc=*/FALSE);
+                                         /*init_conv_after_udc=*/FALSE,
+                                         (a_type_ptr)NULL,
+                                         (a_type_ptr)NULL);
     }  /* if */
   }  /* if */
   return cmp;
@@ -2817,6 +2852,24 @@ otherwise equivalent.  This is nonstandard, but it's what some compilers
 }  /* compare_late_tiebreakers */
 
 
+static a_type_ptr candidate_return_type(a_candidate_function_ptr cfp)
+/*
+Return the return type of the indicated candidate function.
+*/
+{
+  a_symbol_ptr sym = cfp->function_symbol;
+  a_type_ptr   type;
+
+  check_assertion(sym != NULL);
+  sym = fundamental_symbol_of(sym);
+  type = routine_symbol_type(sym);
+  type = type->variant.routine.return_type;
+  type = skip_typerefs(type);
+  if (is_reference_type(type)) type = type_pointed_to(type);
+  return type;
+}  /* candidate_return_type */
+
+
 static a_boolean candidate_return_type_same_with_added_qualifiers(
                                                  a_candidate_function_ptr cfp1,
                                                  a_candidate_function_ptr cfp2)
@@ -2831,17 +2884,8 @@ the former has additional type qualifiers.
   a_symbol_ptr sym2 = cfp2->function_symbol;
 
   if (sym1 != NULL && sym2 != NULL) {
-    a_type_ptr type1, type2;
-    sym1 = fundamental_symbol_of(sym1);
-    sym2 = fundamental_symbol_of(sym2);
-    type1 = routine_symbol_type(sym1);
-    type2 = routine_symbol_type(sym2);
-    type1 = type1->variant.routine.return_type;
-    type2 = type2->variant.routine.return_type;
-    type1 = skip_typerefs(type1);
-    type2 = skip_typerefs(type2);
-    if (is_reference_type(type1)) type1 = type_pointed_to(type1);
-    if (is_reference_type(type2)) type2 = type_pointed_to(type2);
+    a_type_ptr type1 = candidate_return_type(cfp1);
+    a_type_ptr type2 = candidate_return_type(cfp2);
     if (same_type_with_added_qualifiers(type2, type1,
 					/*ignore_qualifiers=*/FALSE,
                                         &qualifiers_added) &&
@@ -2886,7 +2930,9 @@ other.  Return
                                                  &cfp2->conversion.std,
                                                  /*skip_rank_comparisons=*/
                                                                          FALSE,
-                                                 /*init_conv_after_udc=*/TRUE))
+                                                 /*init_conv_after_udc=*/TRUE,
+                                                 candidate_return_type(cfp1),
+                                                 candidate_return_type(cfp2)))
                                                                         != 0) {
     /* The conversions are user-defined conversions followed by standard
        conversions, and the standard conversion in one case is better than the
