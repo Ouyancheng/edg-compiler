@@ -4422,7 +4422,7 @@ declaration or definition.
   a_type_ptr                    rout_type, unqual_rout_type, rout_class_type;
   a_src_seq_secondary_decl_ptr  sec_decl;
   a_boolean                     is_definition = FALSE;
-  a_boolean                     decl_within_class = FALSE;
+  a_boolean                     decl_within_class = FALSE, friend_decl = FALSE;
   a_storage_class               storage_class;
   a_name_context                context;
   a_scope_ptr                   scope = NULL;
@@ -4472,13 +4472,18 @@ declaration or definition.
     } else {
       /* This is a declaration of a nonmember or member of another class
          inside a class: this is a friend declaration. */
-      write_tok_str("friend ");
+      friend_decl = TRUE;
     }  /* if */
   }  /* if */
   /* Output the storage class. */
   storage_class = rout->storage_class;
   /* Determine the proper storage class to display. */
-  if (rout_class_type != NULL) {
+  if (friend_decl) {
+    /* Suppress the storage class on a friend declaration; "friend" is
+       used instead. */
+    storage_class = (a_storage_class)sc_unspecified;
+    write_tok_str("friend ");
+  } else if (rout_class_type != NULL) {
     /* Member function. */
     if (rtsp->implicit_this_param_type == NULL) {
       /* Static member function. */
