@@ -28,6 +28,7 @@ attribute.c -- Processing of attributes, a GCC extension.
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 #if GNU_EXTENSIONS_ALLOWED
+#include "il_walk.h"
 #include "layout.h"
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
