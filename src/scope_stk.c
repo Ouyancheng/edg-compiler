@@ -1182,9 +1182,6 @@ to the declaration information for the template declaration scope being pushed.
   ssep->object_lifetime_avail_list = NULL;
   ssep->saved_curr_object_lifetime = curr_object_lifetime;
   ssep->templ_member_class_sym   = NULL;
-#if RECORD_HIDDEN_NAMES_IN_IL
-  ssep->hidden_template_name_symbols = NULL;
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   ssep->depth_innermost_namespace_scope = depth_innermost_namespace_scope;
   ssep->num_of_extra_times_pushed = 0;;
   ssep->active_using_directives   = NULL;
@@ -3805,6 +3802,13 @@ End a name scope by popping an entry off the scope stack.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
   }  /* if */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  if (kind == (a_scope_kind)sck_function ||
+      kind == (a_scope_kind)sck_block ||
+      kind == (a_scope_kind)sck_file) {
+    check_name_hiding_for_scope(ssep->il_scope);
+  }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   /* Remove symbols from the symbol table, and reenter them on the
      inactive list if necessary. */
   wrapup_scope(ssep->il_scope, kind, pointers_block,
@@ -3860,14 +3864,6 @@ End a name scope by popping an entry off the scope stack.
       free_active_using_directive_list(ssep->active_using_directives);
       ssep->active_using_directives = NULL;
     }  /* if */
-#if RECORD_HIDDEN_NAMES_IN_IL
-    if (kind == (a_scope_kind)sck_function) {
-      /* Hidden-template-name fixup entries contain pointers to the il scope
-         associated with the hiding of a template name; free entries that
-         are no longer needed with the popping of this function scope. */
-      free_selected_hidden_template_name_fixups();
-    }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
     /* Do management related to the object lifetime stack.  Don't pop the
        file scope object lifetime yet, though, because we need it in IL
        lowering; see below */
@@ -4301,12 +4297,6 @@ End a name scope by popping an entry off the scope stack.
     record_names_hidden_by_old_for_init(
                                    assoc_pointers_block_of(ssep)->symbols);
   }  /* if */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  if (depth_scope_stack != NO_SCOPE_DEPTH) {
-    pointers_block = assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
-    check_hidden_name_fixup_list(&pointers_block->hidden_name_fixup_list);
-  }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   db_exit();
 }  /* pop_scope */
 

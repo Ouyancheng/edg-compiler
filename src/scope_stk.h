@@ -560,14 +560,6 @@ typedef struct a_scope_stack_entry {
 			   A<T>::f is being defined, this points to the
 			   class type of A<T>.  Contains NULL if the
 			   template is not a member. */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  struct a_symbol_list_entry
-		*hidden_template_name_symbols;
-			/* For sck_function scopes, this points to a
-			   (possibly NULL) list containing template symbols
-			   whose names are hidden by declarations within the
-			   context of the associated function definition. */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   a_scope_depth depth_innermost_namespace_scope;
                         /* Depth of the nearest enclosing namespace scope or,
 			   by default, the depth of the file scope. This is
