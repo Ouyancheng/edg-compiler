@@ -1076,8 +1076,10 @@ the default constructor (if one exists) is called.
              works for multi-dimensional array. */
           pos_warning(ec_default_size_for_incomplete_array, err_pos);
 #else
+#if CHECKING
           internal_error(
                       "def_initializer: incomplete types not yet supported");
+#endif /* CHECKING */
 #endif /* if 0 */
         }  /* if */
         if ((rp = select_default_constructor(tp, err_pos)) != NULL) {

@@ -4569,8 +4569,10 @@ operator routine or do bitwise assignment.
 #if 0
             add_statement(for, ...call...);
 #else
+#if CHECKING
             internal_error(
     "make_default_assignment_body: operator=() calls on array not implmented");
+#endif /* CHECKING */
 #endif /* if 0 */
           }  /* if */
         } else {
@@ -4610,6 +4612,7 @@ empty statement block.
   a_routine_type_supplement *rtsp = rout_ptr->type->variant.routine.extra_info;
 
   db_enter(4, "define_special_member_function");
+#if CHECKING
   if (rout_ptr->special_kind != (a_special_function_kind)sfk_constructor &&
       rout_ptr->special_kind != (a_special_function_kind)sfk_destructor &&
       (rout_ptr->special_kind != (a_special_function_kind)sfk_operator ||
@@ -4617,6 +4620,7 @@ empty statement block.
     internal_error(
                 "define_special_member_function: expected ctor, dtor, or =");
   }  /* if */
+#endif /* CHECKING */
   /* Push a class symbol reactivation scope, to make class member names
      visible for processing the function definition. */
   push_class_reactivation_scope(class_type);
