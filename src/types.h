@@ -460,6 +460,26 @@ extern a_boolean is_or_contains_ptr_or_ref_to_unknown_bound_array(
 extern a_type_ptr strip_local_and_nonreal_typedefs(a_type_ptr  type);
 
 /*
+Macro provided to determine the "compatibility" of name linkages.  In
+effect, this means comparing the calling conventions they imply, but by
+default this is not an issue.  Since it could vary from environment to
+environment, especially if additional linkage specifications (beyond "C" and
+"C++") are added.  Implementations for which the comparison is meaningful
+should replace this macro with an appropriate test, perhaps a call of
+a function in types.c.
+*/
+#define routine_linkages_are_compatible(link1, link2) (link1 == link2)
+
+/*
+Macro provided to determine the identity of name linkages.  As with
+linkage compatibility, this means comparing the calling conventions they
+imply, so by default we always return TRUE.  However, implementations for
+which the comparison is meaningful should replace this macro with an
+appropriate test, perhaps a call of a function in types.c
+*/
+#define routine_linkages_are_identical(link1, link2) (link1 == link2)
+
+/*
 Return the type of the variable (lvalue) represented by node.  This mainly
 involves removing the extra "pointer to" in the expression type for
 an lvalue.
