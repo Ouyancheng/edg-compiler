@@ -8613,6 +8613,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
                    (a_template_arg_ptr)NULL);
   /* Allocate the handler. */
   handler = alloc_handler();
+  /* Set the assoc_handler field of the IL scope entry. */
+  set_block_scope_handler(handler);
   set_stmt_source_position(handler->catch_position, *catch_pos);
   if (required_token(tok_lparen, ec_exp_lparen)) {
     decl_pos = pos_curr_token;
@@ -8693,9 +8695,6 @@ clause is to be attached.  catch_pos is the source position of "catch".
           set_source_corresp(&(handler->parameter->source_corresp), sym);
           mark_defined(sym, &locator.source_position);
         }  /* if */
-        /* Add the variable to the parameters list on the scope associated
-           with the block created for the catch clause. */
-        add_to_parameters_list(handler->parameter);
         /* A handler parameter is initialized by the run-time when the
            handler is invoked.  Create the dynamic init entry to represent
            the initialization. */
