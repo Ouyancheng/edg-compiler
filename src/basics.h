@@ -416,13 +416,6 @@ type of "volatile void" as meaning that a function does not return.
 #endif /* ifdef __GNUC__ */
 
 /*
-Switch to control recognition of "#pragma hdrstop" and "#pragma no_pch".
-*/
-#ifndef PCH_PRAGMA_GUARD
-#define PCH_PRAGMA_GUARD 0
-#endif /* ifdef PCH_PRAGMA_GUARD */
-
-/*
 Data declarations pertaining to positions within source files.
 */
 typedef unsigned short
