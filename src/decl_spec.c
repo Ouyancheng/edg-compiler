@@ -988,6 +988,9 @@ the template.
                    !namespace_is_enclosed_by_curr_scope(tag_sym))) {
                 pos_sy_error(ec_bad_scope_for_specialization,
                              &tag_position, tag_sym);
+                tag_sym = NULL;
+                set_to_named_error_locator(locator);
+                err = TRUE;
               }  /* if */
               if (class_type_is_complete) {
                 /* The class has already been instantiated and can't now
