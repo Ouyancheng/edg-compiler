@@ -4695,7 +4695,8 @@ list.
       } else if (kind == (a_based_type_kind)btk_qualified &&
                  (ptr->variant.typeref.qualifiers != qualifiers
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                || ptr->variant.typeref.explicit_memory_attribute_made_implicit
+                  || (a_boolean)ptr->variant.typeref.
+                                     explicit_memory_attribute_made_implicit
                                                   != expl_mem_attr_implicit
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                            )) {

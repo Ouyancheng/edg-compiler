@@ -2203,8 +2203,9 @@ for more information.
                                   flags) &&
                 rtsp1->prototyped == rtsp2->prototyped &&
                 rtsp1->has_ellipsis == rtsp2->has_ellipsis &&
-                routine_linkages_are_identical(rtsp1->routine_name_linkage,
-                                               rtsp2->routine_name_linkage)) {
+                routine_linkages_are_identical(
+                          (a_name_linkage_kind)rtsp1->routine_name_linkage,
+                          (a_name_linkage_kind)rtsp2->routine_name_linkage)) {
               /* So far they are identical, this flag will be reset if the
                  parameter types don't match. */
               identical = TRUE;
@@ -2620,9 +2621,10 @@ for exact pointer equality.
                                           rtsp2->implicit_this_param_type,
                                           flags))) &&
               (ignore_calling_conventions ||
-               (routine_linkages_are_compatible(rtsp1->routine_name_linkage,
-                                                rtsp2->routine_name_linkage,
-                                                is_impl_conv))
+               (routine_linkages_are_compatible(
+                             (a_name_linkage_kind)rtsp1->routine_name_linkage,
+                             (a_name_linkage_kind)rtsp2->routine_name_linkage,
+                             is_impl_conv))
 #if MICROSOFT_EXTENSIONS_ALLOWED
                 && calling_conventions_are_compatible(type_1, type_2)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4905,9 +4907,10 @@ in C++ mode.  See ARM 13.
     }  /* if */
     /* If linkage specifications on the routine types are not compatible,
        the types are distinguishable. */
-    if (!routine_linkages_are_compatible(old_extra_info->routine_name_linkage,
-                                         new_extra_info->routine_name_linkage,
-                                        /*is_impl_conv=*/FALSE)) {
+    if (!routine_linkages_are_compatible(
+                     (a_name_linkage_kind)old_extra_info->routine_name_linkage,
+                     (a_name_linkage_kind)new_extra_info->routine_name_linkage,
+                     /*is_impl_conv=*/FALSE)) {
       distinguishable = TRUE;
       goto distinguishable_determined;
     }  /* if */
@@ -5321,7 +5324,7 @@ its parameters?).
       case tk_template_param:
         /* "Member" template params (e.g., T::X) should have a pointer to a
            parent class. */
-        check_assertion((type_ptr->source_corresp.is_class_member) ==
+        check_assertion((a_boolean)type_ptr->source_corresp.is_class_member ==
                         (type_ptr->variant.template_param.kind ==
                                      (a_template_param_type_kind)tptk_member));
         if (type_ptr->source_corresp.is_class_member) {
