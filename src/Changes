@@ -1,5 +1,22 @@
 Version 3.2
 
+3/13/03  Instantiation of virtual functions for types used by RTTI
+
+Changes made in version 3.1 caused virtual functions of types used in
+operations that rely on RTTI data structures to be instantiated
+earlier than had previously been the case.  The caused problems in
+certain cases.  The previous behavior has been restored.
+
+  template <class T> struct A;
+  template <class T> struct B { virtual void f(){} };
+  template <class T> struct D : B<T> {
+	virtual void f() { A<T> a; }
+  };
+  void f(B<int>* b) {
+    D<int>* d = dynamic_cast<D<int>*>(b);
+  }
+  template <class T> struct A {};
+
 3/13/03  C-generating back end: #line inside comment
 
 In some cases, the C-generating back end put out a #line

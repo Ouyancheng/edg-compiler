@@ -159,10 +159,13 @@ Require definitions for the virtual functions of the indicated class.
            not get here. */
         check_assertion(rp->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none);
 #endif /* IA64_ABI && DO_IL_LOWERING */
-        /* The function could be called, so mark it to be instantiated. */
+        /* The function could be called, so mark it to be instantiated.  Note
+           that the defer-inline flag is important here to prevent the actual
+           instantiation of these functions from occurring earlier than is
+           absolutely necessary. */
         sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
         /* Set the instantiation_required flag for the virtual function. */
-        set_instance_required(sym, /*value=*/TRUE, SIR_NONE);
+        set_instance_required(sym, /*value=*/TRUE, SIR_DEFER_INLINE);
 #if DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS
         /* Force the class definition to be kept, because if it is removed the
            virtual function table variable will be detached, and later the
