@@ -1537,6 +1537,15 @@ The result is placed in *result.
                                                 result);
         }  /* if */
       }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    } else {
+      an_operand  result_op;
+      copy_operand(operand_1, &result_op);
+      make_field_operand(field, &field_operand);
+      build_binary_result_operand(operand_1, &field_operand, op,
+                                  selection_type, &result_op);
+      result->variant.constant.expr = result_op.variant.expression;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
     /* Set the operand type.  This is needed in particular if the result
        is an lvalue, because the operand type has one less level of
