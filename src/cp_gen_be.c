@@ -6388,6 +6388,8 @@ declaration following this one is such a continuation.
         write_tok_str("{ ");
         need_extern_C_closing_brace = TRUE;
       }  /* if */
+    } else if (is_condition && storage_class == (a_storage_class)sc_auto) {
+      /* Condition declarations do not allow a storage class. */
     } else {
       /* Put out the storage class determined above. */
       gen_storage_class(storage_class);
