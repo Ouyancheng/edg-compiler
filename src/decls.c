@@ -1256,8 +1256,8 @@ static a_scope_depth compute_effective_decl_level(
 /*
 A name is being declared, and the "effective declaration level" identifies
 the scope into which the newly declared symbol will be entered.  Usually
-this is exactly the same as the the current declaration scope, as indicated
-by decl_scope_level.  This routine checks for some special cases and returns
+this is exactly the same as the current declaration scope, as indicated by
+decl_scope_level.  This routine checks for some special cases and returns
 the appropriate scope depth.
 */
 {
@@ -1362,10 +1362,10 @@ into account, since they also participate in overload sets.
 Besides the type, required for function matching in C++, and the locator, the
 input parameters include effective_decl_level, the scope at which the entity
 is to be entered into the symbol table; is_main, TRUE when the current
-declaration is global "main"; is_friend_decl, TRUE when the the declaration
-is a friend declaration within a class; and is_function_template, TRUE when
-the declaration is a function template declaration.  This function is only
-called by id_linkage.
+declaration is global "main"; is_friend_decl, TRUE when the declaration is a
+friend declaration within a class; and is_function_template, TRUE when the
+declaration is a function template declaration.  This function is only called
+by id_linkage.
 */
 {
   a_boolean     decls_at_same_scope;
