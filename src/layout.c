@@ -162,6 +162,17 @@ typedef struct a_layout_block {
 		any_overflow;
 			/* Set to TRUE when the layout exceeds the maximum
 			   size allowed for a class object. */
+  a_type_ptr
+		curr_container_type;
+			/* Used only when targ_microsoft_bit_field_allocation
+			   is TRUE, the type of the current bit field
+			   container. */
+  an_unnormalized_bit_offset
+		curr_container_avail_bits;
+			/* Used only when targ_microsoft_bit_field_allocation
+			   is TRUE and when curr_container_type is non-NULL,
+			   the number of bits in the current container that
+			   remain unused. */
 } a_layout_block;
 
 
@@ -176,7 +187,45 @@ Clear the block used to contain information while working out class layout.
   lob->bit_offset = 0;
   lob->alignment = targ_minimum_struct_alignment;
   lob->any_overflow = FALSE;
+  lob->curr_container_type = NULL;
+  lob->curr_container_avail_bits = 0;
 }  /* clear_layout_block */
+
+
+a_boolean compatible_ms_bit_field_container_types(a_type_ptr  tp1,
+                                                  a_type_ptr  tp2)
+/*
+Return TRUE if tp1 and tp2 are compatible container types, according to the
+conventions of Microsoft's bit-field allocation scheme.  (Note: the
+algorithm may not be quite accurate.  For example, it indicates that two
+different enumeration types can be compatible with each other as bit field
+containers.  There are also wchar_t and bool integral types to consider,
+too.  And is *explicit signedness* really a criterion, such that "int" and
+"unsigned int" are not compatible container types?)
+*/
+{
+  a_boolean  compat;
+
+  /* It is assumed that typerefs have already been stripped off. */
+  check_assertion(tp1->kind != (a_type_kind)tk_typeref &&
+                  tp2->kind != (a_type_kind)tk_typeref);
+  /* Also, both types must be integral types -- this may be assumed as well,
+     since it is an error to declare a bit field with any other type. */
+  check_assertion(is_integral_type(tp1) && is_integral_type(tp2));
+  compat = (tp1 == tp2);
+  if (!compat) {
+    /* The integer kinds must match, as must explicit signedness, and if one
+       is an enumeration type, the other must be, too. */
+    if (tp1->variant.integer.int_kind == tp2->variant.integer.int_kind &&
+        tp1->variant.integer.explicitly_signed ==
+                                   tp2->variant.integer.explicitly_signed &&
+        tp1->variant.integer.enum_type == tp2->variant.integer.enum_type) {
+      compat = TRUE;
+    }  /* if */
+  }  /* if */
+  return compat;
+}  /* compatible_ms_bit_field_container_types */
+
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 
@@ -601,9 +650,9 @@ overflow error.
 }  /* increment_field_offsets */
 
 
-a_boolean do_alignment(a_targ_size_t               *byte_offset,
-                       an_unnormalized_bit_offset  *bit_offset,
-                       a_targ_alignment            alignment)
+static a_boolean do_alignment(a_targ_size_t               *byte_offset,
+                              an_unnormalized_bit_offset  *bit_offset,
+                              a_targ_alignment            alignment)
 /*
 Increment the byte and bit offsets to align them with the indicated 
 byte-multiple boundary.  Return TRUE if the update is successful, FALSE if
@@ -634,47 +683,65 @@ there was an overflow error.
 }  /* do_alignment */
 
 
-#if !USER_CONTROL_OF_STRUCT_PACKING
-/*ARGSUSED*/ /* class_type is only needed to adjust alignment for packing. */
-#endif /* !USER_CONTROL_OF_STRUCT_PACKING */
-static a_boolean align_offsets_for_bit_field(
-                                    int                         bit_size,
-                                    a_targ_size_t               *byte_offset,
-                                    an_unnormalized_bit_offset  *bit_offset,
-                                    a_targ_alignment            *p_alignment,
-                                    a_type_ptr                  base_type,
-                                    a_type_ptr                  class_type)
+void pad_ms_bit_field_container(a_layout_block_ptr  lob)
 /*
-As part of maintaining field offsets while processing fields of a struct
-definition, update *byte_offset and *bit_offset to indicate the position
-(after alignment if necessary) of a bit-field of size bit_size.  If
-bit_size == 0, this forces some kind of bit-field alignment.  See 3.5.2.1.
-base_type is the integral base type for the bit field (e.g., int, unsigned
-int).  Return the effective alignment for the field, i.e., the alignment
-for the container used, in *p_alignment.  If any overflow was detected in
-computing the alignment, FALSE is returned; if there's no overflow TRUE is
-returned.  class_type is a pointer to the class in which the bit-field is
-declared.
+Pad the remaining bits in the current bit field container, as represented
+by the state of the layout block pointed to by lob -- that is, reset the
+offset values as though the extra bits actually were being used.
 */
 {
-  a_targ_size_t    container_size;
-  a_targ_alignment container_alignment;
-  a_boolean	   overflow = FALSE;
+  increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
+                          (a_targ_size_t)0, 
+                          lob->curr_container_avail_bits);
+  /* Padding to the end of the container means there's no room left
+     for additional bit fields. */
+  lob->curr_container_type = NULL;
+  lob->curr_container_avail_bits = 0;
+}  /* pad_ms_bit_field_container */
+
+
+static a_boolean align_offsets_for_bit_field(a_field_ptr         field,
+                                             a_layout_block_ptr  lob)
+/*
+As part of maintaining field offsets while processing fields of a struct
+definition, update the byte_offset and bit_offset fields of the layout block
+pointed to by lob to indicate the position (after alignment if necessary) of
+the bit field designated by *field.  If bit_size == 0, this forces some kind
+of bit-field alignment.  See 3.5.2.1.  Moreover, if the alignment for the
+container is greater than any field alignment seen so far, the layout
+block's alignment field is updated.  If any overflow was detected in
+computing the alignment, FALSE is returned; if there's no overflow TRUE is
+returned.
+*/
+{
+  a_targ_size_t     container_size;
+  a_targ_alignment  container_alignment;
+  a_boolean         overflow = FALSE;
+  int               bit_size = (int)field->bit_size;
+  a_type_ptr        base_type = skip_typerefs(field->type);
 
   db_enter(4, "align_offsets_for_bit_field");
 
 /*
 Useful macro that determines whether a field of size bit_size at the
 current offset will fit into a container of size container_size (in bytes)
-aligned according to container_alignment.
+aligned according to container_alignment.  For use only when
+targ_microsoft_bit_field_allocation is FALSE.
 */
-#define fits_in_container(container_size, container_alignment)        \
- (((*byte_offset % (container_alignment))*targ_char_bit + *bit_offset) + \
-                                    bit_size <= (container_size)*targ_char_bit)
+#define fits_in_container(size, alignment)                               \
+ (((lob->byte_offset % (alignment))*targ_char_bit + lob->bit_offset)     \
+                                   <= ((size)*targ_char_bit - bit_size))
 
   if (bit_size == 0) {
     /* A zero-width bit field is declared for alignment only.  The container
        size is not significant. */
+    if (targ_microsoft_bit_field_allocation &&
+        lob->curr_container_type != NULL) {
+      /* The previous member was a bit-field.  Pad out the container for the
+	 bit-field before doing the alignment adjustment that was specified. */
+      pad_ms_bit_field_container(lob);
+    }  /* if */
+    /* Do the necessary alignment for a zero width unnamed bit field. */
     container_size = 1;
     /* targ_zero_width_bit_field_alignment is
          >  0 to indicate a particular alignment
@@ -690,7 +757,6 @@ aligned according to container_alignment.
     } else {
       /* targ_zero_width_bit_field_alignment < 0 */
       /* Use the base type alignment. */
-      base_type = skip_typerefs(base_type);
       container_alignment = base_type->alignment;
     }  /* if */
   } else {
@@ -785,7 +851,6 @@ aligned according to container_alignment.
     } else {
       /* targ_bit_field_container_size < 0 */
       /* Always use the base type size and alignment. */
-      base_type = skip_typerefs(base_type);
       container_size      = base_type->size;
       container_alignment = base_type->alignment;
     }  /* if */
@@ -793,41 +858,78 @@ aligned according to container_alignment.
 
 #if USER_CONTROL_OF_STRUCT_PACKING
   /* Adjust the container alignment for packing, if required. */
-  adjust_alignment_for_packing(&container_alignment, class_type);
+  adjust_alignment_for_packing(&container_alignment, lob->class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* We want to make sure that the bit field can be grabbed using one
      load of the size of the container aligned the way the container
      must be. */
-  if (bit_size == 0 ||
-      !fits_in_container(container_size, container_alignment)) {
-    /* It can't be, so force alignment. */
-    overflow = !do_alignment(byte_offset, bit_offset, container_alignment);
+  if (targ_microsoft_bit_field_allocation && bit_size != 0) {
+    /* A Microsoft-style two-stage bit-field allocation strategy is being
+       used.  This means it's as though the container were preallocated as a
+       field in its own right.  If the container type changes or hasn't
+       enough room for the current bit field, simulate its having been
+       allocated by padding it out. */
+    if ((lob->curr_container_type == NULL) ||
+        !compatible_ms_bit_field_container_types(lob->curr_container_type,
+                                                 base_type) ||
+        lob->curr_container_avail_bits < bit_size) {
+      /* Either this is the a bit field that does not follow another bit
+         field of the same type or else it won't fit in the current container.
+         In either case, create a new container for it. */
+      if (lob->curr_container_type != NULL) {
+        /* Pad out the rest of the current container. */
+        pad_ms_bit_field_container(lob);
+      } /* if */
+      /* Make sure the new container is properly aligned. */
+      overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
+                               container_alignment);
+      /* Establish the new container. */
+      lob->curr_container_type = base_type;
+      lob->curr_container_avail_bits = (container_size * targ_char_bit);
+    } /* if */
+  } else if (bit_size == 0 ||
+             !fits_in_container(container_size, container_alignment)) {
+    /* Force alignment. */
+    overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
+                             container_alignment);
   }  /* if */
-  *p_alignment = container_alignment;
+  if (field->source_corresp.name == NULL &&
+      field->source_corresp.assoc_info == (char *)unnamed_field_symbol()) {
+    /* This is an unnamed bit field.  The alignment it forces should not
+       affect the alignment of the struct as a whole. */
+  } else {
+    /* Remember the most stringent alignment requirement as the alignment
+       requirement for the overall struct. */
+    if (container_alignment > lob->alignment) {
+      lob->alignment = container_alignment;
+    }  /* if */
+  }  /* if */
   db_exit();
   return !overflow;
 }  /* align_offsets_for_bit_field */
                               
 
-/* Return TRUE if a given field is an unnamed field.  Test the name first
-   to reduce the cost. */
-#define is_unnamed_field(fp)                                          \
-  ((fp)->source_corresp.name == NULL &&                               \
-   (fp)->source_corresp.assoc_info == (char *)unnamed_field_symbol())
-
-
-a_boolean set_field_size_and_offset(a_field_ptr                 field,
-                                    a_targ_size_t               *p_byte_offset,
-                                    an_unnormalized_bit_offset  *p_bit_offset,
-                                    a_targ_alignment            *p_alignment)
 /*
-field points to a new field of a structure.  So far in the structure, the
-byte/bit offsets are as given by *p_byte_offset and *p_bit_offset.  Set the
-field's type size and alignment, and update *p_byte_offset and *p_bit_offset.
-*p_alignment contains the maximum alignment required so far in the structure,
-and is updated if the new field requires a larger alignment value.  If any
-overflow was detected in computing the byte or bit offset, FALSE is returned;
-if there's no overflow TRUE is returned.
+Return the error code to be used when a class (or in C a struct/union)
+is too large.
+*/
+#define struct_too_large_error()					\
+  (C_mode() ? ec_struct_too_large : ec_class_too_large)
+
+
+static a_boolean set_field_size_and_offset(a_field_ptr         field,
+                                           a_layout_block_ptr  lob)
+/*
+
+field points to a field that has not yet been allocated.  So far in the
+class to which it belongs, the byte/bit offsets are as given by the
+byte_offset and bit_offset fields of *lob.  Set the field's type size and
+alignment, and update the byte/bit offset values.  The alignment field in
+*lob contains the maximum alignment required so far in the structure, and is
+updated if the new field requires a larger alignment value.  If any overflow
+was detected in computing the byte or bit offset, FALSE is returned; if
+there's no overflow TRUE is returned.
+
 */
 {
   a_type_ptr                  field_type;
@@ -848,45 +950,62 @@ if there's no overflow TRUE is returned.
     /* Check for a bit-field. */
     if (field->is_bit_field) {
       /* Do any necessary alignment for a bit-field. */
-      overflow = !align_offsets_for_bit_field((int)field->bit_size,
-                                              p_byte_offset, p_bit_offset,
-                                              &field_alignment, field_type,
-                                              class_type);
+      overflow = !align_offsets_for_bit_field(field, lob);
     } else {
       /* Do any necessary alignment for a normal field. */
+      if (targ_microsoft_bit_field_allocation &&
+          lob->curr_container_type != NULL) {
+        /* This is a normal field immediately following a bit field.  When
+           emulating Microsoft bit-field allocation, treat the container as
+           having been independently allocated: pad out the rest of it before
+           proceeding. */
+        pad_ms_bit_field_container(lob);
+      }  /* if */
       field_alignment = field_type->alignment;
 #if USER_CONTROL_OF_STRUCT_PACKING
       /* Adjust the field's alignment for packing, if required. */
       adjust_alignment_for_packing(&field_alignment, class_type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-      overflow = !do_alignment(p_byte_offset, p_bit_offset, field_alignment);
+      overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
+                               field_alignment);
+      /* Remember the most stringent alignment requirement as the alignment
+         requirement for the overall struct. */
+      if (field_alignment > lob->alignment) lob->alignment = field_alignment;
     }  /* if */
     if (!overflow) {
-      if (field->is_bit_field && is_unnamed_field(field)) {
-        /* This is an unnamed bit field.  The alignment it forces should not
-           affect the alignment of the struct as a whole. */
-      } else {
-        check_assertion(!is_unnamed_field(field));
-        /* Remember the most stringent alignment requirement as the alignment
-           requirement for the overall struct. */
-        if (field_alignment > *p_alignment) {
-          *p_alignment = field_alignment;
-        }  /* if */
-      }  /* if */
       /* Save the current byte_offset and bit_offset values.  The bit_offset
          value for the field is not updated until after increment_field_offsets
          is called because the latter performs overflow checking. */
-      save_byte_offset = *p_byte_offset;
-      save_bit_offset = *p_bit_offset;
+      save_byte_offset = lob->byte_offset;
+      save_bit_offset = lob->bit_offset;
       /* Increment the current offsets to account for the field. */
       if (field->is_bit_field) {
         /* For a bit-field. */
         overflow = !increment_field_offsets(
-                                 p_byte_offset, p_bit_offset, (a_targ_size_t)0,
+                                 &lob->byte_offset, &lob->bit_offset,
+                                 (a_targ_size_t)0,
                                  (an_unnormalized_bit_offset)field->bit_size);
+        if (targ_microsoft_bit_field_allocation) {
+          /* Update the number of bits that are available in the containing
+             after the bit field is allocated. */
+          if (class_type->kind == (a_type_kind)tk_union) {
+            /* Pad out the rest of the current container. */
+            pad_ms_bit_field_container(lob);
+          } else {
+            /* Subtract from the number of bits available in the container
+               the number that is now being allocated.  It ought not to be a
+               negative value. */
+            lob->curr_container_avail_bits -=
+                                  (an_unnormalized_bit_offset)field->bit_size;
+            check_assertion_str2(lob->curr_container_avail_bits >= 0,
+                                 "set_field_size_and_alignment:",
+                                 "bad curr_container_avail_bits adjustment");
+          }  /* if */
+        }  /* if */
       } else {
         /* For a normal field. */
-        overflow = !increment_field_offsets(p_byte_offset, p_bit_offset,
+        overflow = !increment_field_offsets(&lob->byte_offset,
+                                            &lob->bit_offset,
                                             (a_targ_size_t)field_type->size,
                                             (an_unnormalized_bit_offset)0);
       }  /* if */
@@ -899,18 +1018,14 @@ if there's no overflow TRUE is returned.
         field->offset_bit_remainder = (an_offset_bit_remainder)save_bit_offset;
       }  /* if */
     }  /* if */
+    if (overflow && !lob->any_overflow) {
+      error(struct_too_large_error());
+      lob->any_overflow = TRUE;
+    }  /* if */
   }  /* if */
   db_exit();
   return !overflow;
 }  /* set_field_size_and_offset */
-
-
-/*
-Return the error code to be used when a class (or in C a struct/union)
-is too large.
-*/
-#define struct_too_large_error()					\
-  (C_mode() ? ec_struct_too_large : ec_class_too_large)
 
 
 static a_targ_size_t set_offset_and_alignment(a_layout_block_ptr  lob,
@@ -1023,9 +1138,9 @@ are allocated in declaration order).
 {
   a_type_ptr                  class_type = lob->class_type;
   a_field_ptr                 fp;
-  a_targ_size_t               local_byte_offset;
   a_targ_size_t               initial_byte_offset = lob->byte_offset;
-  an_unnormalized_bit_offset  local_bit_offset;
+  a_targ_size_t               max_byte_offset = initial_byte_offset;
+  an_unnormalized_bit_offset  max_bit_offset = 0;
 #if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
   an_access_specifier  access = (an_access_specifier)as_public;
 
@@ -1044,31 +1159,18 @@ are allocated in declaration order).
 #endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
         if (class_type->kind == (a_type_kind)tk_union) {
           /* All fields in a union have offset zero. */
-          local_byte_offset = initial_byte_offset;
-          local_bit_offset = 0;
-        } else {
-          local_byte_offset = lob->byte_offset;
-          local_bit_offset = lob->bit_offset;
+          lob->byte_offset = initial_byte_offset;
+          lob->bit_offset = 0;
         }  /* if */
-        if (!set_field_size_and_offset(fp, &local_byte_offset,
-                                       &local_bit_offset, &lob->alignment)) {
-          /* FALSE was returned, which means an overflow error was encountered
-             in computing the new size of the struct -- i.e., this field will
-             not fit.  Remember it, so that only one such error is put out. */
-          if (!lob->any_overflow) {
-            error(C_mode() ? ec_struct_too_large : ec_class_too_large);
-            lob->any_overflow = TRUE;
-          }  /* if */
-        } else {
-          /* Offset values were modified.  Save highest offset for unions,
-             last offset for structs and classes, for use in establishing the
-             size of the overall aggregate. */
-          if (class_type->kind != (a_type_kind)tk_union ||
-              local_byte_offset > lob->byte_offset ||
-              (local_byte_offset == lob->byte_offset &&
-               local_bit_offset > lob->bit_offset)) {
-            lob->byte_offset = local_byte_offset;
-            lob->bit_offset = local_bit_offset;
+        if (set_field_size_and_offset(fp, lob)) {
+          /* Offset values were modified.  For unions save the highest offset
+             in order to establish the size of the overall aggregate. */
+          if (class_type->kind == (a_type_kind)tk_union &&
+              (lob->byte_offset > max_byte_offset ||
+               (lob->byte_offset == max_byte_offset &&
+                lob->bit_offset > max_byte_offset))) {
+            max_byte_offset = lob->byte_offset;
+            max_bit_offset = lob->bit_offset;
           }  /* if */
         }  /* if */
 #if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
@@ -1088,6 +1190,12 @@ are allocated in declaration order).
     }  /* if */
   }  /* for */
 #endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+  if (class_type->kind == (a_type_kind)tk_union) {
+    /* Now reset the offset fields in the layout block to reflect the minimum
+       size this union has to be. */
+    lob->byte_offset = max_byte_offset;
+    lob->bit_offset = max_bit_offset;
+  }  /* if */
 }  /* set_offsets_for_fields */
 
 
@@ -2074,7 +2182,7 @@ virtual base class pointer is shared with some other base class.
 
 void do_class_layout(a_type_ptr  class_type)
 /*
-Allocate the subobjects defined for class_type -- it's nonvirtual and
+Allocate the subobjects defined for class_type -- its nonvirtual and
 virtual base classes, its nonstatic data members, and various pointers
 for handling virtual bases and functions.
 */
@@ -2158,6 +2266,10 @@ Do layout initialization.
 #if USER_CONTROL_OF_STRUCT_PACKING
   curr_max_member_alignment = 0;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  check_assertion_str2(!targ_microsoft_bit_field_allocation ||
+                              (targ_bit_field_container_size < 0),
+                       "layout_init: inconsistent configuration",
+                       "for bit field allocation");
 }  /* layout_init */
 
 /******************************************************************************
