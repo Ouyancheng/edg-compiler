@@ -3397,10 +3397,10 @@ file we simply return.
   FILE			*f_source;
   a_boolean		is_system_include;
 
-  db_enter(4, "do_implicit_include_if_needed");
+  db_enter(3, "do_implicit_include_if_needed");
   /* Translate the sequence number into a file name and line number. */
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 3) {
     fprintf(f_debug, "Attempting implicit include to define:\n");
     db_symbol(tip->instance_sym, "", 2);
   }  /* if */
@@ -3416,7 +3416,7 @@ file we simply return.
       /* If we haven't already included the corresponding source file then
          do so now. */
 #if DEBUG
-      if (debug_level >= 4) {
+      if (debug_level >= 3) {
         fprintf(f_debug, "  Looking for source file related to '%s'\n",
                 sfp->file_name);
       }  /* if */
@@ -3432,7 +3432,7 @@ file we simply return.
       if (f_source != NULL) {
         if (strcmp(full_file_name, sfp->full_name) != 0) {
 #if DEBUG
-          if (debug_level >= 4) {
+          if (debug_level >= 3) {
             fprintf(f_debug, "  Including text from '%s'\n", full_file_name);
           }  /* if */
 #endif /* DEBUG */
@@ -3561,7 +3561,8 @@ such as instantiating a template for which no body was supplied.
       specific_def = tip->instance_sym->defined;
       template_def = tip->template_sym->defined;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      if (!template_def && implicit_template_inclusion_mode) {
+      if (!template_def && !in_instantiation_wrapup &&
+          implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
@@ -3585,7 +3586,8 @@ such as instantiating a template for which no body was supplied.
       }  /* if */
       template_def = tssp->token_cache.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      if (!template_def && implicit_template_inclusion_mode) {
+      if (!template_def && !in_instantiation_wrapup &&
+          implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
@@ -3700,12 +3702,10 @@ updated but not removed from the list.
   } else {
     tip->instantiation_required = FALSE;
   }  /* if */
-  if (!in_instantiation_wrapup) {
-    /* The entry is always added to the instantiations list because certain
-       entries for which instantiation is not required need to be processed
-       for automatic instantiation processing. */
-    add_to_instantiations_required_list(tip);
-  }  /* if */
+  /* The entry is always added to the instantiations list because certain
+     entries for which instantiation is not required need to be processed
+     for automatic instantiation processing. */
+  add_to_instantiations_required_list(tip);
   db_exit();
 }  /* update_instantiation_required_flag */
 
