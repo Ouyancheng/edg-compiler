@@ -65,9 +65,8 @@ extern an_expr_node_ptr scan_class_initializer_expression(
                                             a_routine_ptr *conversion_routine,
                                             a_boolean     *class_bitwise_copy);
 
-extern void scan_template_argument_constant_expression(
-                                                a_type_ptr required_type,
-                                                a_constant *constant);
+extern void scan_template_argument_constant_expression(a_type_ptr param_type,
+                                                       a_constant *constant);
 
 extern void scan_constant_initializer_expression(a_type_ptr required_type,
                                                  a_constant *constant);
