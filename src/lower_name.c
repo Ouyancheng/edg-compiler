@@ -3709,20 +3709,20 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   check_assertion(type->kind != (a_type_kind)tk_typeref ||
                   typeref_is_typedef(type));
 #if IA64_ABI
-#if ABI_COMPATIBILITY_VERSION >= 303
-  if (check_for_subst) {
-    /* Check whether a substitution is available for this entire type.
-       Do not do this if the caller has already done it. */
-    if (add_substitution_if_available((char *)type, iek_type, mctl)) {
-      goto done;
-    }  /* if */
-  }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION */
-  /* Check here to see if the type is an instantiation of a template for
-     which a substitution is available. */
-  /* Don't do this for typedefs passed from mangle_type_name. */
   tmpl = NULL;  
-  if (is_immediate_class_type(type)) {
+  /* Don't do substitutions for typedefs passed from mangle_type_name. */
+  if (type->kind != (a_type_kind)tk_typeref) {
+#if ABI_COMPATIBILITY_VERSION >= 303
+    if (check_for_subst) {
+      /* Check whether a substitution is available for this entire type.
+         Do not do this if the caller has already done it. */
+      if (add_substitution_if_available((char *)type, iek_type, mctl)) {
+        goto done;
+      }  /* if */
+    }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION */
+    /* Check here to see if the type is an instantiation of a template for
+       which a substitution is available. */
     tmpl = class_template_of(type);
     if (tmpl != NULL &&
         /* Test done separately from output to allow the opportunity to
