@@ -36,6 +36,11 @@ extern int cmp_integer_constants(a_constant *con1,
 extern int cmplit_integer_constant(a_constant *con1,
                                    long       value2);
 
+/* Interface to cmplit_integer_constant for the simple case of testing
+   for equality. */
+#define eqlit_integer_constant(con1, value2)                          \
+  (cmplit_integer_constant((con1), (value2)) == 0)
+
 extern void incr_integer_constant(a_constant *cp);
 
 extern void write_integer_constant(FILE       *f_output,
