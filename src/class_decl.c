@@ -6283,11 +6283,10 @@ to indicate whether the class/struct/union is actually defined.
                   (spec_kind == (a_special_function_kind)sfk_constructor &&
                    curr_token == tok_colon)) {
                 /* Next token indications start of a function definition. */
-#if CHECKING
                 if (rout_sym->defined) {
-                  internal_error("class_specifier: rout already defined");
+                  pos_error(ec_function_redefinition,
+                            &locator.source_position);
                 }  /* if */
-#endif /* CHECKING */
                 rout_sym->defined = TRUE;
                 if (!friend_specified) {
                   /* The inline flag is set for friend functions in
