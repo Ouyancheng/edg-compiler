@@ -1,5 +1,16 @@
 Version 2.44
 
+5/2/00   Abort when declaring a template with a qualified declarator
+
+The front end used to abort when encountering the declaration of a qualified
+function template name while another entity with the same name had already
+been declared in that scope.
+
+  float f;
+  template<typename T> void ::f(T) {}  // Used to abort
+
+This is now fixed (an ordinary error message is issued).
+
 5/2/00   Redeclaring an overloaded ::main
 
 The front end used to abort when encountering the redeclaration of the

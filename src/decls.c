@@ -5590,6 +5590,12 @@ is a template specialization declaration.
     /* Look up the name. */
     qualified_name_redecl_sym(&idlb);
     sym = idlb.linked_symbol;
+    if (sym->kind != (a_symbol_kind)sk_function_template) {
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, sym);
+      set_to_error_locator(*locator);
+      sym = NULL;
+    }  /* if */
     homonym_symbol = idlb.homonym_symbol;
   }  /* if */
   if (sym != NULL) {
