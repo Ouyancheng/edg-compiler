@@ -207,7 +207,6 @@ By default, configure for ANSI C if __STDC__ is set, and for BSD4.n otherwise.
 Definition of a generic byte.  Always "unsigned char".
 */
 typedef unsigned char a_byte;
-#define BYTE_MAX UCHAR_MAX
 
 /* Simple boolean type: */
 typedef int	a_boolean;
