@@ -1905,6 +1905,7 @@ Display the indicated switch clause.
   disp_ptr("next", (char *)ptr->next, iek_switch_clause);
   disp_ptr("constant_list", (char *)ptr->constant_list, iek_constant);
   disp_ptr("statements", (char *)ptr->statements, iek_statement);
+  disp_boolean("implied_break_at_end", (a_boolean)ptr->implied_break_at_end);
   disp_stmt_source_position("break_position",
                             "break_position.seq",
                             "break_position.column",

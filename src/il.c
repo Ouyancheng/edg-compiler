@@ -6670,9 +6670,10 @@ to it.
 #if DEBUG
   num_switch_clauses_allocated++;
 #endif /* DEBUG */
-  scp->next             = NULL;
-  scp->constant_list    = NULL;
-  scp->statements       = NULL;
+  scp->next                 = NULL;
+  scp->constant_list        = NULL;
+  scp->statements           = NULL;
+  scp->implied_break_at_end = FALSE;
   clear_stmt_source_position(scp->break_position);
   return scp;
 }  /* alloc_switch_clause */

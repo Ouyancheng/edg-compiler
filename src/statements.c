@@ -2438,8 +2438,9 @@ The syntax is:
 See also 3.6.4.2.
 */
 {
-  a_statement_ptr           sp;
-  a_control_flow_descr_ptr  cfdp;
+  a_statement_ptr                sp;
+  a_control_flow_descr_ptr       cfdp;
+  a_struct_stmt_stack_entry_ptr  sssep;
 
   db_enter(3, "switch_statement");
 
@@ -2452,6 +2453,7 @@ See also 3.6.4.2.
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_switch, sp, (an_object_lifetime_ptr)NULL);
+  sssep = &struct_stmt_stack[depth_stmt_stack];
   /* Add a switch block entry to the control_flow_descr_list.  The
      corresponding end-of-entry is added at the end of this routine.  This
      is done even though a switch statement usually involves a compound
@@ -2494,12 +2496,18 @@ See also 3.6.4.2.
   }  /* if */
   /* Save the selector expression type for checking of the case label
      values. */
-  struct_stmt_stack[depth_stmt_stack].switch_selector_type = sp->expr->type;
+  sssep->switch_selector_type = sp->expr->type;
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
   /* Scan the dependent statement. */
   dependent_statement();
+  if (curr_reachability.reachable && sssep->curr_switch_clause != NULL) {
+    /* We've reached the end of the switch statement, but the final switch
+       clause was not terminated by a break or other branch statement.  Set
+       the flag indicating that the clause ends with an "implied break". */
+    sssep->curr_switch_clause->implied_break_at_end = TRUE;
+  }  /* if */
   add_to_control_flow_descr_list(
       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   /* Pop the structured statement stack. */
@@ -3379,6 +3387,7 @@ See also 3.6.6.3.
          only when the break is at the top level in the case clause. */
       set_stmt_source_position(sssep->curr_switch_clause->break_position,
                                pos_curr_token);
+      sssep->curr_switch_clause->implied_break_at_end = TRUE;
       sssep->curr_switch_clause = NULL;
       struct_stmt_stack[depth_stmt_stack].curr_switch_clause = NULL;
       term_stmt_clause(sssep);

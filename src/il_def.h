@@ -4323,28 +4323,37 @@ typedef struct a_switch_clause {
      in the executable code area (along with the associated switch
      statement). */
   a_switch_clause_ptr
-                next;
-                        /* Pointer to the next switch clause, or NULL if
-                           this is the last. */
+		next;
+			/* Pointer to the next switch clause, or NULL if
+			   this is the last. */
   a_constant_ptr
-                constant_list;
-                        /* Values of the switch expression for which this
-                           clause applies.  A list of integer constants,
-                           in ascending order.  NULL if this is the
-                           default clause. */
+		constant_list;
+			/* Values of the switch expression for which this
+			   clause applies.  A list of integer constants,
+			   in ascending order.	NULL if this is the
+			   default clause. */
   a_statement_ptr
-                statements;
-                        /* The dependent statement sequence.  The normal
-                           action on reaching the end of this list is
-                           to continue after the switch statement (i.e.,
-                           a "break").  Any other action (including
-                           fall-through to the next clause) is indicated by
-                           an explicit goto as the last statement. */
+		statements;
+			/* The dependent statement sequence.  If
+			   implied_break_at_end is TRUE, the logical
+			   successor of the end of the list is the statement
+			   following the switch statement; any action other
+			   than the "implied break" is represented by an
+			   explicit goto as the last statement. */
+  a_byte_boolean
+		implied_break_at_end;
+			/* TRUE if the clause ends with an "implied break"
+			   (i.e., an implied branch to the statement
+			   following the switch statement); FALSE if the
+			   end of the clause is an explicit goto (e.g., to
+			   represent falling through to the next switch
+			   clause). */
   a_stmt_source_position
 		break_position;
-			/* If the clause ends with a break statement, this
-			   gives the break statement's source position.
-			   Otherwise, zero. */
+			/* If the source contains an explicit break statement
+			   (which is represented in the IL as an implied break
+			   at the end of the switch clause), the break
+			   statement's source position; otherwise zero. */
 } a_switch_clause;
 
 #endif /* ifdef CIL */
