@@ -1304,11 +1304,18 @@ operator kinds.  Issue a diagnostic if an error is found.
       if (!is_error_type(tp)) {
         a_boolean  local_err;
         if (is_pointer_type(tp)) {
-          local_err = !is_class_struct_union_type(type_pointed_to(tp));
+          tp = type_pointed_to(tp);
+          local_err = !is_class_struct_union_type(tp) &&
+                      !is_or_contains_template_param(tp);
         } else {
           if (is_reference_type(tp)) tp = type_pointed_to(tp);
-          local_err = (!is_class_struct_union_type(tp) || tp == class_type ||
-                       opname_member_function_symbol(opname, tp) == NULL);
+          if (is_or_contains_template_param(tp)) {
+            local_err = FALSE;
+          } else {
+            local_err = (!is_class_struct_union_type(tp) ||
+                         tp == class_type ||
+                         opname_member_function_symbol(opname, tp) == NULL);
+          }  /* if */
         }  /* if */
         if (local_err) {
           pos_error(ec_bad_return_type_for_op_arrow,
