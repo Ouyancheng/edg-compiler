@@ -4897,10 +4897,12 @@ list to be reused.
   an_access_error_descr_ptr	next;
   /* Find the last element of the list.  The available list will be linked
      onto the end of the list passed by the caller. */
-  while ((next = last_ptr->next) != NULL) last_ptr = next;
-  last_ptr->next = avail_access_error_descrs;
-  avail_access_error_descrs = curr_class_qualifier.access_errors;
-  curr_class_qualifier.access_errors = NULL;
+  if (last_ptr != NULL) {
+    while ((next = last_ptr->next) != NULL) last_ptr = next;
+    last_ptr->next = avail_access_error_descrs;
+    avail_access_error_descrs = curr_class_qualifier.access_errors;
+    curr_class_qualifier.access_errors = NULL;
+  }  /* if */
 }  /* do_not_issue_qualifier_access_errors */
 
 
