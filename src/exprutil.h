@@ -953,6 +953,8 @@ extern a_type_ptr type_after_function_to_pointer_transformation(
                                                       a_type_ptr arg_type,
                                                       an_operand *arg_operand);
 
+extern void conv_sym_for_member_operand_to_ptr_to_member(an_operand *operand);
+
 extern void conv_function_designator_to_ptr_to_function(an_operand *operand,
                                                         a_boolean  allow_ctor);
 

@@ -3263,7 +3263,6 @@ operation is a pointer-to-member (see ARM 5.3).
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean         err = FALSE, processed = FALSE;
-  a_symbol_ptr      member_proj_sym, member_sym;
 
   db_enter(4, "scan_ampersand_operator");
 
@@ -3385,20 +3384,8 @@ operation is a pointer-to-member (see ARM 5.3).
         } else if (is_sym_for_member_operand(&operand)) {
           /* The operand is the name of a nonstatic data member, so
              the "&" operator returns a pointer-to-member. */
-          member_proj_sym = operand.variant.symbol;
-          member_sym = fundamental_symbol_of(member_proj_sym);
-          check_assertion(member_sym->kind == (a_symbol_kind)sk_field);
-          /* Make an operand for a pointer-to-member constant. */
-          make_ptr_to_member_constant_operand(
-                                        member_sym,
-                                        member_proj_sym,
-                                        &start_position,
-                                        !operand.access_control_error_reported,
-                                        (a_boolean)operand.is_qualified_name,
-                                        /*is_operand_of_address_of=*/TRUE,
-                                        result);
-          /* Change the kind in the reference entries to address-taken. */
-          change_ref_kinds(operand.ref_entries_list, SRK_ADDRESS_TAKEN);
+          conv_sym_for_member_operand_to_ptr_to_member(&operand);
+          copy_operand(&operand, result);
         } else {
           /* "&" applied to something that is not an lvalue or a function
              designator or another permitted case. */

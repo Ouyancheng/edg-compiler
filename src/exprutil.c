@@ -4450,6 +4450,9 @@ is inserted only for the unexpected case.
        function in the set. */
     make_unknown_dependent_function_operand(operand->variant.symbol, operand);
     operand->state = orig_operand.state;
+  } else if (is_sym_for_member_operand(operand)) {
+    /* Replace a symbol-for-member operand by a pointer-to-member. */
+    conv_sym_for_member_operand_to_ptr_to_member(operand);
   }  /* if */
   if (is_an_lvalue(operand) || is_a_function_designator(operand)) {
     if (!lvalue_expected) {
@@ -6600,6 +6603,34 @@ If arg_operand is non-NULL, it points to an operand for the argument.
 }  /* type_after_function_to_pointer_transformation */
 
 
+void conv_sym_for_member_operand_to_ptr_to_member(an_operand *operand)
+/*
+Convert an operand for a member symbol into the corresponding pointer
+to member constant.
+*/
+{
+  an_operand   orig_operand;
+  a_symbol_ptr member_sym, member_proj_sym;
+
+  orig_operand = *operand;
+  check_assertion(is_sym_for_member_operand(operand));
+  member_proj_sym = operand->variant.symbol;
+  member_sym = fundamental_symbol_of(member_proj_sym);
+  /* Make an operand for a pointer-to-member constant. */
+  make_ptr_to_member_constant_operand(member_sym, member_proj_sym,
+                                      &orig_operand.position,
+                                      !operand->access_control_error_reported,
+                                      (a_boolean)operand->is_qualified_name,
+                                      (a_boolean)operand->
+                                                      is_operand_of_address_of,
+                                      operand);
+  /* Change the kind in the reference entries to address-taken. */
+  change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
+  /* Restore the original source position, etc. */
+  restore_operand_details(operand, &orig_operand);
+}  /* conv_sym_for_member_operand_to_ptr_to_member */
+
+
 void conv_function_designator_to_ptr_to_function(an_operand *operand,
                                                  a_boolean  allow_ctor)
 /*
@@ -6649,17 +6680,8 @@ allowed).
        expression. */
     operand->type = operand->variant.expression->type;
   } else if (is_sym_for_member_operand(operand)) {
-    /* Converting a member name to a pointer-to-member. */
-    func_sym = operand->variant.symbol;
-    fund_sym = fundamental_symbol_of(func_sym);
-    /* Make an operand for a pointer-to-member constant. */
-    make_ptr_to_member_constant_operand(fund_sym, func_sym,
-                                        &orig_operand.position,
-                                       !operand->access_control_error_reported,
-                                        (a_boolean)operand->is_qualified_name,
-                                        (a_boolean)operand->
-                                                      is_operand_of_address_of,
-                                        operand);
+    /* Convert a member name to a pointer-to-member. */
+    conv_sym_for_member_operand_to_ptr_to_member(operand);
   } else {
 #if CHECKING
     if (!is_indefinite_function_operand(operand)) {
