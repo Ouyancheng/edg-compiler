@@ -23,19 +23,7 @@ typedef struct a_symbol_header *a_symbol_header_ptr;
 typedef struct a_macro_param   *a_macro_param_ptr;
 typedef struct a_macro_def     *a_macro_def_ptr;
 
-#ifndef LEXICAL_H
-#include "lexical.h"
-#endif /* ifndef LEXICAL_H */
-#ifndef IL_H
-#include "il.h"
-#endif /* IL_H */
-#ifndef TRANS_LIMS_H
-#include "trans_lims.h"
-#endif /* ifndef trans_lims.h */
-#ifndef MEM_TABLES_H
-#include "mem_tables.h"
-#endif /* MEM_TABLES_H */
-
+/* Some other things declared up front to avoid mutual recursion problems. */
 /* Type of a scope nesting depth.  This is the depth within the scope_stack. */
 typedef int	a_scope_depth;
 
@@ -55,7 +43,8 @@ Numbering for scopes.  Each new scope is given a number by incrementing
 next_scope_number.  These numbers are unique identifiers for each scope,
 not simply the nesting level of the scope.  Also, each struct or union
 has a unique scope number for its member fields, even though no true
-scope with that number is created.
+scope with that number is created.  In C++, a class/struct/union has a
+true scope associated with it.
 */
 typedef short a_scope_number;
 #define MAX_SCOPE_NUMBER SHRT_MAX
@@ -64,6 +53,19 @@ typedef short a_scope_number;
 			   like keywords. */
 #define FILE_SCOPE_NUMBER 0
 			/* Scope number for the file scope. */
+
+#ifndef LEXICAL_H
+#include "lexical.h"
+#endif /* ifndef LEXICAL_H */
+#ifndef IL_H
+#include "il.h"
+#endif /* IL_H */
+#ifndef TRANS_LIMS_H
+#include "trans_lims.h"
+#endif /* ifndef trans_lims.h */
+#ifndef MEM_TABLES_H
+#include "mem_tables.h"
+#endif /* MEM_TABLES_H */
 
 /*
 Kinds of symbols in the symbol table.
@@ -662,6 +664,8 @@ extern void remove_symbol(a_symbol_ptr sym_ptr);
 extern a_symbol_ptr find_external_symbol(a_symbol_locator *location,
                                          a_boolean        is_static,
                                          a_symbol_locator *ext_location);
+extern a_symbol_ptr normal_id_lookup(a_symbol_locator *locator,
+                                     a_boolean        must_be_class);
 
 extern a_symbol_ptr scope_qualified_id_lookup(a_symbol_locator *locator,
                                               a_scope_number   scope_number,
@@ -714,6 +718,11 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 /* Retrieve a pointer to the inactive symbol list from a locator. */
 #define inactive_symbol_list_from_locator(loc)                        \
   ((loc).symbol_header->inactive_symbols)
+
+/* Return TRUE if a symbol is a class symbol. */
+#define is_class_symbol(sym)                                          \
+  ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
+   (sym)->kind == (a_symbol_kind)sk_union_tag)
 
 #if DEBUG
 /* Show and return the amount of memory used by symbol table entries. */
