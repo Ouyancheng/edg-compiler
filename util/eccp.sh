@@ -465,6 +465,7 @@ do
 # command line passed to the front end.
 ###############################################################################
          --pch_mem | \
+         --pch_dir | \
          --use_pch)
       feoptions=$1" $2 $feoptions"
       shift
@@ -500,6 +501,7 @@ do
 # command line passed to the front end.
 ###############################################################################
          --pch_mem=* | \
+         --pch_dir=* | \
          --use_pch=*)
       feoptions=$1" $feoptions"
       ;;
