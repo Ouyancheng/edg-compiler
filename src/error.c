@@ -1094,6 +1094,9 @@ error code.
       m =
       "more than one instance of overloaded function \"%s\" has \"C\" linkage";
       break;
+    case ec_ambiguous_default_constructor:
+      m = "more than one default constructor for class \"%s\"";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
