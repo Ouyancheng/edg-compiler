@@ -607,6 +607,7 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_ptr(ptr->variant.typeid_info.type, a_type_ptr, iek_type);
             walk_ptr(ptr->variant.typeid_info.expr, an_expr_node_ptr,
                      iek_expr_node);
+            break;
           case enk_address_of_ellipsis:
             /* No pointers. */
             break;
