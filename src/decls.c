@@ -1650,7 +1650,8 @@ called by id_linkage.
                       idlbp->is_friend_decl);
       if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
         /* Do the lookup in the file scope. */
-        (void)file_scope_id_lookup(locator, IDL_LINKAGE_LOOKUP);
+        (void)file_scope_id_lookup(il_header.primary_scope,
+                                   locator, IDL_LINKAGE_LOOKUP);
         other_decl = locator->specific_symbol;
       } else {
         /* Do the lookup in the innermost namespace scope. */

@@ -216,8 +216,10 @@ extern
 a_symbol_ptr enum_qualified_id_lookup(a_symbol_locator		*locator,
 				      a_type_ptr		enum_type);
 
-extern a_symbol_ptr file_scope_id_lookup(a_symbol_locator         *locator,
-                                         an_id_lookup_options_set options);
+extern a_symbol_ptr file_scope_id_lookup(
+			a_scope_ptr			file_scope_to_use,
+			a_symbol_locator		*locator,
+			an_id_lookup_options_set	options);
 
 extern a_symbol_ptr opname_member_function_symbol(an_opname_kind kind,
                                                   a_type_ptr     class_type);

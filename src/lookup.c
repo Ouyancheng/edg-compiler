@@ -15,7 +15,7 @@ lookup.c - Name lookup routines.
 
 /* Header files common to all files. */
 #include "fe_common.h"
-/* Although symbol_tbl.c is not really a "declaration processing file",
+/* Although lookup.c is not really a "declaration processing file",
    it turns out that most of the header files it needs are in decl_hdrs.h. */
 #include "decl_hdrs.h"
 
@@ -24,6 +24,8 @@ lookup.c - Name lookup routines.
    processing. */
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
+
+#include "trans_corresp.h"
 
 
 static a_symbol_ptr find_nested_type_symbol(a_symbol_locator *locator)
@@ -390,7 +392,8 @@ member function is defined.
       /* new_sym must now be a projection symbol or progenitor symbol.  Look
          for a symbol with the same name at file scope. */
       check_assertion(class_type != fund_sym->parent.class_type);
-      file_scope_sym = file_scope_id_lookup(locator, options);
+      file_scope_sym = file_scope_id_lookup(il_header.primary_scope,
+                                            locator, options);
       if (file_scope_sym != NULL && is_type_symbol(file_scope_sym)) {
         /* A file scope symbol was found.  For the incorrect lookup to be
            done the file scope symbol must have been declared after the
@@ -3340,7 +3343,8 @@ a_symbol_ptr lookup_in_namespace(a_symbol_locator         *locator,
 static
 a_symbol_ptr qualified_using_directive_lookup(
                                  a_symbol_locator         *locator,
-                                 a_namespace_ptr          ns_ptr,
+				 a_namespace_ptr	  ns_ptr,
+				 a_scope_ptr		  ns_scope,
                                  an_id_lookup_options_set options,
                                  a_namespace_ptr	  orig_ns_ptr,
 				 a_symbol_ptr		  *synth_sym,
@@ -3352,12 +3356,13 @@ lookups.  For functions, the symbol returned may be an overload set
 containing functions from several namespaces.  For nonfunctions,
 an ambiguity may need to be diagnosed.
 
-locator.extra_infoibes the symbol being looked up.  ns_ptr is the namespace
-in which we should look for the symbol.  options are the lookup
-options to be used.  orig_ns_ptr is the namespace specified in the
-qualifier.  *synth_sym points to a synthesized projection symbol that
-captures the results of the lookup.  *any_errors is set to TRUE if
-an ambiguity is detected.
+locator describes the symbol being looked up.  ns_scope is the namespace
+(or file scope) in which we should look for the symbol.  if ns_scope is
+a namespace, ns_ptr points to the namespace.  options are the lookup options
+to be used.  orig_ns_ptr is the namespace specified in the qualifier.
+*synth_sym points to a synthesized projection symbol that captures the
+results of the lookup.  *any_errors is set to TRUE if an ambiguity is
+ detected.
 
          D        E
           \      /
@@ -3398,15 +3403,10 @@ as follows:
   a_symbol_ptr				sym;
   a_namespace_symbol_supplement_ptr	nssp = NULL;
 
-  /* For a file scope qualified lookup, get its list of using directives
-     from the file scope entry.  For namespace scopes, get it from the
-     scope associated with the namespace. */
-  if (ns_ptr == NULL) {
-    udp = il_header.primary_scope->using_decls;
-  } else {
-    udp = ns_ptr->variant.assoc_scope->using_decls;
-    nssp = symbol_supplement_for_namespace(ns_ptr);
-  }  /* if */
+  /* Get the list of using directives from the scope in which the lookup
+     is being done. */
+  udp = ns_scope->using_decls;
+  if (ns_ptr != NULL) nssp = symbol_supplement_for_namespace(ns_ptr);
   /* Set a flag that indicates that this namespace is being processed so
      that in case of a recursive reference it is not visited again.
      Note that it is still possible for a namespace to be visited twice
@@ -3560,7 +3560,9 @@ end_lookup:
         visible because of using directives.  Skip this process for a
         linkage lookup.  A linkage or friend lookup should only find names
         that are actually defined in a scope. */
-    sym = qualified_using_directive_lookup(locator, ns_ptr, options,
+    sym = qualified_using_directive_lookup(locator, ns_ptr,
+                                           ns_ptr->variant.assoc_scope,
+                                           options,
                                            orig_ns_ptr, synth_sym, any_errors);
   }  /* if */
   db_exit();
@@ -3593,7 +3595,7 @@ namespace.  This routine is used only in C++ mode.
              ns_ptr == symbol_for_namespace_std->variant.namespace_info.ptr) {
     /* When using the g++ compatibility feature that treats "std" as
        a synonym for the global namespace, do the lookup in the file scope. */
-    sym = file_scope_id_lookup(locator, options);
+    sym = file_scope_id_lookup(il_header.primary_scope, locator, options);
   } else {
     /* Search for a symbol in the right scope. */
     sym = lookup_in_namespace(locator, ns_ptr, options, ns_ptr, &synth_sym,
@@ -3616,11 +3618,16 @@ namespace.  This routine is used only in C++ mode.
 }  /* namespace_qualified_id_lookup */
 
 
-a_symbol_ptr file_scope_id_lookup(a_symbol_locator         *locator,
-                                  an_id_lookup_options_set options)
+a_symbol_ptr file_scope_id_lookup(
+			a_scope_ptr			file_scope_to_use,
+			a_symbol_locator		*locator,
+			an_id_lookup_options_set	options)
 /*
-Look up the identifier indicated by *locator in the file scope, and
-return a pointer to the symbol found, or NULL if the symbol is not found.
+Look up the identifier indicated by *locator in the file scope specified
+by file_scope_to_use, and return a pointer to the symbol found, or NULL if
+the symbol is not found (there can be multiple file scopes when multiple
+translation units are being processed).
+
 options indicates a set of special options, as a bit set.  For example,
 if IDL_MUST_BE_CLASS_OR_NAMESPACE is TRUE, the symbol found must be a class
 name (or a typedef to a class name) or a namespace.  Only symbols in the
@@ -3649,6 +3656,8 @@ file scope.
                                !is_linkage_or_friend_lookup;
   a_decl_sequence_number
 		decl_seq_number = NO_DECL_SEQUENCE_NUMBER;
+  a_scope_number
+		scope_number_to_use = file_scope_to_use->number;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
@@ -3657,7 +3666,7 @@ file scope.
    are not found. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((!(fund_sym->is_invisible) || is_linkage_or_friend_lookup) &&      \
-   (sym)->decl_scope == file_scope_number &&                          \
+   (sym)->decl_scope == scope_number_to_use &&                          \
    (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) &&       \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) && 			      \
@@ -3674,13 +3683,41 @@ file scope.
   if ((sym = locator->specific_symbol) != NULL) {
     /* There is an existing specific symbol. */
   } else {
-    /* Search for a symbol in the file scope. */
+    /* Search for a symbol in the file scope.  First look on the active
+       list. */
     for (sym = symbol_list_from_locator(*locator);
          sym != NULL;
          sym = sym->next) {
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
       if (is_acceptable_symbol(sym, fund_sym)) break;
     }  /* for */
+    /* If no symbol was found, search the list of inactive symbols.  File
+       scope symbols are moved to the inactive list when the file scope is
+       popped at the end of the translation unit, so lookups done after
+       that point need to consider the inactive list too. */
+    if (sym == NULL) {
+      a_symbol_ptr	tag_symbol = NULL;
+      for (sym = inactive_symbol_list_from_locator(*locator);
+           sym != NULL;
+           sym = sym->next) {
+        a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+        if (is_acceptable_symbol(sym, fund_sym)) {
+          /* Found an acceptable symbol. */
+          /* If the symbol is a tag symbol, there's the possibility that
+             there is a non-type symbol in the same scope later in the list
+             (because the inactive list is not ordered in any way).  Save the
+             tag symbol and keep looking.  If nothing else turns up,
+            use the tag symbol. */
+          if (!is_tag_symbol(fund_sym)) break;
+          tag_symbol = sym;
+       }  /* if */
+      }  /* for */
+      /* If no symbol was found and there is a tag symbol saved within the
+         loop, use it. */
+      if (sym == NULL && tag_symbol != NULL) {
+        sym = tag_symbol;
+      }  /* if */
+    }  /* if */
     if (sym == NULL && !is_linkage_or_friend_lookup &&
         !direct_namespace_members_only) {
        /* If the symbol was not found in this namespace, look in namespaces
@@ -3688,6 +3725,7 @@ file scope.
           linkage lookup.  A linkage or friend lookup should only find names
           that are actually defined in a scope. */
       sym = qualified_using_directive_lookup(locator, (a_namespace_ptr)NULL,
+					     file_scope_to_use,
                                              options, (a_namespace_ptr)NULL,
                                              &synth_sym, &any_errors);
     }  /* if */
@@ -4020,10 +4058,12 @@ the entry to to symbol_list.
 static void find_functions_for_namespace(
 					a_symbol_locator	*locator,
 					a_namespace_ptr		nsp,
+					a_translation_unit_ptr	tup,
 					a_symbol_list_entry_ptr	*symbol_list)
 /*
 Look for a function in the namespace specified by "nsp" whose name is specified
-by "locator".  Note that "nsp" will be NULL for the global scope.
+by "locator".  Note that "nsp" will be NULL for the global scope.  "tup"
+is the translation unit of the file scope to be used when "nsp" is NULL.
 If a match is found, add the entry to to symbol_list.
 */
 {
@@ -4042,8 +4082,9 @@ If a match is found, add the entry to to symbol_list.
                                         IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
                                         IDL_SUPPRESS_DECL_SEQ_CHECK);
   } else {
-    sym = file_scope_id_lookup(locator, IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
-                                        IDL_SUPPRESS_DECL_SEQ_CHECK);
+    sym = file_scope_id_lookup(tup->primary_scope, locator,
+                               IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
+                               IDL_SUPPRESS_DECL_SEQ_CHECK);
   }  /* if */
   if (sym != NULL) {
     a_symbol_ptr	fund_sym;
@@ -4061,6 +4102,157 @@ If a match is found, add the entry to to symbol_list.
     }  /* if */
   }  /* if */
 }  /* find_functions_for_namespace */
+
+
+static a_type_list_entry_ptr update_class_list_for_trans_unit(
+				a_type_list_entry_ptr	orig_class_list,
+				a_translation_unit_ptr	tup)
+/*
+Given a list of classes specified by orig_class_list, create a new list
+that refers to the corresponding class in the translation unit specified
+by tup.  If the other translation unit does not have a given class,
+that entry is excluded from the new list.  Return the new list.
+*/
+{
+  a_type_list_entry_ptr	new_list = NULL;
+  a_type_list_entry_ptr	tlep;
+
+  for (tlep = orig_class_list; tlep != NULL; tlep = tlep->next) {
+    a_symbol_ptr		orig_sym;
+    a_symbol_ptr		new_sym;
+    a_type_list_entry_ptr	new_tlep;
+    orig_sym = (a_symbol_ptr)tlep->type->source_corresp.assoc_info;
+    new_sym = find_corresponding_symbol_in_trans_unit(orig_sym, tup);
+    if (new_sym != NULL) {
+      new_tlep = alloc_type_list_entry();
+      new_tlep->type = type_symbol_type(new_sym);
+      /* Add this to the front of the list. */
+      new_tlep->next = new_list;
+      new_list = new_tlep;
+    }  /* if */
+  }  /* for */
+  return new_list;
+}  /* update_class_list_for_trans_unit */
+
+
+static a_namespace_list_entry_ptr update_namespace_list_for_trans_unit(
+			a_namespace_list_entry_ptr	orig_namespace_list,
+			a_translation_unit_ptr		tup)
+/*
+Given a list of namespaces specified by orig_namespace_list, create a new list
+that refers to the corresponding namespace in the translation unit specified
+by tup.  If the other translation unit does not have a given namespace,
+that entry is excluded from the new list.  Return the new list.
+*/
+{
+  a_namespace_list_entry_ptr	new_list = NULL;
+  a_namespace_list_entry_ptr	nlep;
+
+  for (nlep = orig_namespace_list; nlep != NULL; nlep = nlep->next) {
+    a_namespace_list_entry_ptr	new_nlep;
+    a_namespace_ptr		new_nsp;
+    a_boolean			add_to_list = TRUE;
+    if (nlep->ptr == NULL) {
+      /* A NULL namespace pointer refers to the file scope.  An entry
+         for the file scope should be placed on the new list. */
+      new_nsp = NULL;
+    } else {
+      a_symbol_ptr		orig_sym;
+      a_symbol_ptr		new_sym;
+      orig_sym = (a_symbol_ptr)nlep->ptr->source_corresp.assoc_info;
+      new_sym = find_corresponding_symbol_in_trans_unit(orig_sym, tup);
+      /* The new symbol will be NULL if there is no corresponding namespace
+         in the other translation unit. */
+      if (new_sym == NULL) {
+        add_to_list = FALSE;
+      } else {
+        new_nsp = new_sym->variant.namespace_info.ptr;
+      }  /* if */
+    }  /* if */
+    if (add_to_list) {
+      new_nlep = alloc_namespace_list_entry();
+      new_nlep->ptr = new_nsp;
+      /* Add this to the front of the list. */
+      new_nlep->next = new_list;
+      new_list = new_nlep;
+    }  /* if */
+  }  /* for */
+  return new_list;
+}  /* update_namespace_list_for_trans_unit */
+
+
+static void argument_dependent_lookup_for_trans_unit(
+				a_symbol_locator		*locator,
+				a_namespace_list_entry_ptr	namespace_list,
+				a_type_list_entry_ptr		class_list,
+				a_translation_unit_ptr		trans_unit,
+				a_symbol_list_entry_ptr		*symbol_list)
+/*
+Perform C++ argument-dependent lookup of the name specified by
+locator in the translation unit specified by trans_unit.  namespace_list
+and class_list are the list of associated namespaces and classes to
+be used.  The symbols found are added to symbol_list.
+*/
+{
+  a_type_list_entry_ptr		tlep;
+  a_namespace_list_entry_ptr	nlep;
+
+  /* Go through the type list and create the symbol list entries for any
+     matching friend declarations. */
+  for (tlep = class_list; tlep != NULL; tlep = tlep->next) {
+    find_friend_functions_for_class(locator, tlep->type, symbol_list);
+  }  /* for */
+  /* Go through the namespace list and look for matching functions in each
+     of the namespaces. */
+  for (nlep = namespace_list; nlep != NULL; nlep = nlep->next) {
+    find_functions_for_namespace(locator, nlep->ptr, trans_unit, symbol_list);
+  }  /* for */
+}  /* argument_dependent_lookup_for_trans_unit */
+
+
+static void exported_template_argument_dependent_lookup(
+			a_symbol_locator		*locator,
+			a_namespace_list_entry_ptr	orig_namespace_list,
+			a_type_list_entry_ptr		orig_class_list,
+			a_symbol_list_entry_ptr		*symbol_list)
+/*
+Perform C++ argument-dependent lookup on the name specified by locator
+in each of the translation units in which dependent names can be found.
+Add the symbols for the names found to the list specified by symbol_list.
+*/
+{
+  a_translation_unit_stack_entry_ptr	tusep;
+
+  /* Loop through the translation units that are on the translation unit
+     stack.  This is used for argument dependent lookup that is done
+     during the instantiation of exported templates. */
+  for (tusep = curr_translation_unit_stack_entry; tusep != NULL;
+       tusep = tusep->next) {
+    a_translation_unit_ptr	tup;
+    a_boolean			free_lists = FALSE;
+    a_namespace_list_entry_ptr	namespace_list;
+    a_type_list_entry_ptr	class_list;
+    tup = tusep->translation_unit;
+    /* If this is not the current translation unit, update the namespace and
+       class lists to refer to the corresponding entities in the new
+       translation unit. */
+    if (tup != curr_translation_unit) {
+      free_lists = TRUE;
+      class_list = update_class_list_for_trans_unit(orig_class_list, tup);
+      namespace_list = update_namespace_list_for_trans_unit(
+                                                     orig_namespace_list, tup);
+    } else {
+      class_list = orig_class_list;
+      namespace_list = orig_namespace_list;
+    }  /* if */
+    argument_dependent_lookup_for_trans_unit(locator, namespace_list,
+				             class_list, tup, symbol_list);
+    if (free_lists) {
+      free_list_of_namespace_list_entries(namespace_list);
+      free_list_of_type_list_entries(class_list);
+    }  /* if */
+  }  /* for */
+}  /* exported_template_argument_dependent_lookup */
 
 
 a_symbol_list_entry_ptr argument_dependent_lookup(
@@ -4092,25 +4284,28 @@ is set to NULL.
   a_symbol_list_entry_ptr	slep;
   a_symbol_list_entry_ptr	symbol_list = NULL;
   a_type_list_entry_ptr		tlep;
-  a_namespace_list_entry_ptr	nlep;
   a_namespace_list_entry_ptr	namespace_list = NULL;
   a_type_list_entry_ptr		class_list = NULL;
 
   /* Build a list of namespaces and classes to be included in the search. */
   for (tlep = *type_list; tlep != NULL; tlep = tlep->next) {
     determine_assoc_namespaces_and_classes_for_type(
-                                     tlep->type, &namespace_list, &class_list);
+                                     tlep->type, &namespace_list,
+                                     &class_list);
   }  /* for */
-  /* Go through the type list and create the symbol list entries for any
-     matching friend declarations. */
-  for (tlep = class_list; tlep != NULL; tlep = tlep->next) {
-    find_friend_functions_for_class(locator, tlep->type, &symbol_list);
-  }  /* for */
-  /* Go through the namespace list and look for matching functions in each
-     of the namespaces. */
-  for (nlep = namespace_list; nlep != NULL; nlep = nlep->next) {
-    find_functions_for_namespace(locator, nlep->ptr, &symbol_list);
-  }  /* for */
+  if (in_exported_template_instantiation()) {
+    /* We are doing the instantiation of an exported template.  Names
+       from other translation units must be considered. */
+    exported_template_argument_dependent_lookup(locator, namespace_list,
+                                                class_list, &symbol_list);
+  } else {
+    /* This is either not a template instantiation, or is an instantiation
+       that does not involve an exported template.  Consider only the
+       current translation unit. */
+    argument_dependent_lookup_for_trans_unit(locator, namespace_list,
+                                            class_list, curr_translation_unit,
+					    &symbol_list);
+  }  /* if */
   /* Add the specified normal symbol to the list of symbols found. */
   if (normal_sym != NULL) {
     slep = alloc_symbol_list_entry();

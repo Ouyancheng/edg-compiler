@@ -8059,7 +8059,7 @@ present.
   a_symbol_ptr	type_sym = NULL;
   clear_specific_symbol(*locator);
   if (is_file_scope_qualified_name) {
-    type_sym = file_scope_id_lookup(locator, options);
+    type_sym = file_scope_id_lookup(il_header.primary_scope, locator, options);
   } else if (qualifier_sym != NULL && qualifier_sym->is_class_member) {
     type_sym = class_qualified_id_lookup(locator,
                                          qualifier_sym->parent.class_type,
@@ -10260,10 +10260,12 @@ selection operator, in which case it points to the type of the left operand.
       if (is_global_qualified_name) {
         /* There was a leading unary "::", so look up the name in the file
            scope. */
-        qualifier_sym = file_scope_id_lookup(&locator_for_curr_id,
+        qualifier_sym = file_scope_id_lookup(il_header.primary_scope,
+					     &locator_for_curr_id,
                                              lookup_kind);
         if (qualifier_sym == NULL && might_be_vacuous_dtor) {
-          qualifier_sym = file_scope_id_lookup(&locator_for_curr_id,
+          qualifier_sym = file_scope_id_lookup(il_header.primary_scope,
+					       &locator_for_curr_id,
                                                IDL_NO_OPTIONS);
           is_vacuous_dtor = TRUE;
         }  /* if */
@@ -11071,7 +11073,8 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
                the vacuous destructor.  Treat this the same way we would
 	       a failed lookup. */
 	    okay = qualifier_type != NULL;
-          } else if (file_scope_id_lookup(&locator_for_curr_id,
+          } else if (file_scope_id_lookup(il_header.primary_scope,
+					  &locator_for_curr_id,
                                           idl_options) != NULL) {
           } else {
             /* The identifier could not be found in the file scope. */

@@ -4885,7 +4885,8 @@ called at the point where the #include <stdarg.h> appears.
 #define VA_LIST_NAME "va_list"
     (void)find_symbol(VA_LIST_NAME, (sizeof_t)(sizeof(VA_LIST_NAME)-1),
                       &locator);
-    sym = file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+    sym = file_scope_id_lookup(il_header.primary_scope, &locator,
+                               IDL_NO_OPTIONS);
     if (sym != NULL && is_type_symbol(sym)) {
       /* Yes, there is a global type called va_list.  Use it rather than
          declaring a new symbol. */
@@ -4899,7 +4900,8 @@ called at the point where the #include <stdarg.h> appears.
       (void)find_symbol(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME,
                       (sizeof_t)(sizeof(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME)-1),
                         &locator);
-      sym = file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+      sym = file_scope_id_lookup(il_header.primary_scope, &locator,
+                                 IDL_NO_OPTIONS);
       if (sym != NULL && is_type_symbol(sym)) {
         va_list_type = type_symbol_type(sym);
       } else {

@@ -71,6 +71,28 @@ typedef struct a_translation_unit {
 } a_translation_unit;
 
 
+/*
+Entry used to maintain a stack of translation units.  This is not used
+when initially scanning the translation units, but is used when the
+translation units are reactivated for the purpose of generating the
+instantiations of exported templates.
+*/
+typedef struct a_translation_unit_stack_entry
+                                           *a_translation_unit_stack_entry_ptr;
+typedef struct a_translation_unit_stack_entry {
+  a_translation_unit_stack_entry_ptr
+		next;
+			/* Pointer to the previous stack entry (e.g., the
+			   entry that should become the current entry when
+			   this one is popped off of the stack. */
+  a_translation_unit_ptr
+		translation_unit;
+			/* Pointer to the translation unit that should be the
+			   current translation unit when this entry is at the
+			   top of the stack.*/
+} a_translation_unit_stack_entry;
+
+
 extern void trans_unit_early_init(void);
 
 extern void process_translation_unit(
@@ -83,6 +105,10 @@ extern void switch_translation_unit(a_translation_unit_ptr	tup);
 extern void trans_unit_one_time_init(void);
 
 extern void trans_unit_init(void);
+
+EXTERN a_translation_unit_stack_entry_ptr
+		curr_translation_unit_stack_entry;
+			/* Pointer to the top of the translation unit stack. */
 
 EXTERN a_translation_unit_ptr
 		curr_translation_unit;

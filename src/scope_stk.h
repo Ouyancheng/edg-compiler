@@ -779,6 +779,14 @@ is_template_dependent_context, but excludes nonreal instantiations.
   (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
    scope_stack[depth_scope_stack].in_prototype_instantiation)
 
+/*
+TRUE if we are in the instantiation of a template in a translation unit
+loaded for the purpose of instantiating exported templates.
+*/
+#define in_exported_template_instantiation()				\
+  (translation_unit_needed_only_for_exported_templates &&		\
+   depth_innermost_instantiation_scope != NO_SCOPE_DEPTH)
+
 
 EXTERN a_scope_stack_entry_ptr
 		scope_stack /* = NULL */;

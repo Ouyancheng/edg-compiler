@@ -58,32 +58,6 @@ typedef struct a_variable_registration {
 } a_variable_registration;
 
 
-/*
-Entry used to maintain a stack of translation units.  This is not used
-when initially scanning the translation units, but is used when the
-translation units are reactivated for the purpose of generating the
-instantiations of exported templates.
-*/
-typedef struct a_translation_unit_stack_entry
-                                           *a_translation_unit_stack_entry_ptr;
-typedef struct a_translation_unit_stack_entry {
-  a_translation_unit_stack_entry_ptr
-		next;
-			/* Pointer to the previous stack entry (e.g., the
-			   entry that should become the current entry when
-			   this one is popped off of the stack. */
-  a_translation_unit_ptr
-		translation_unit;
-			/* Pointer to the translation unit that should be the
-			   current translation unit when this entry is at the
-			   top of the stack.*/
-} a_translation_unit_stack_entry;
-
-
-static a_translation_unit_stack_entry_ptr
-		curr_translation_unit_stack_entry;
-			/* Pointer to the top of the translation unit stack. */
-
 static a_translation_unit_stack_entry_ptr
 		avail_translation_unit_stack_entries;
 			/* List of translation unit stack entries that have
