@@ -19,6 +19,9 @@ C++ runtime routines to provide vector new() and delete() functionality.
 #pragma hdrstop
 #include "vec_newdel.h"
 #include "main.h"
+#if ABI_COMPATIBILITY_VERSION >= 300
+#include "memzero.h"
+#endif /* ABI_COMPATIBILITY_VERSION >= 300 */
 
 /*
 For arrays, _vec_new() and _vec_delete() will maintain a linked list of 
@@ -338,7 +341,8 @@ static void *array_new_general(void                  *array_ptr,
 		               a_new_ptr	     new_routine,
                                a_delete_ptr          delete_routine,
 			       int		     is_two_arg,
-                               a_boolean	     record_array_info)
+                               a_boolean	     record_array_info,
+                               a_boolean             zero_init)
 /*
 Allocate storage for an array, then call a constructor for each
 element of the array.  If array_ptr is NULL, allocate the space for an
@@ -364,6 +368,8 @@ the space in the event that an exception is thrown during construction.
 is_two_arg is TRUE if delete_routine refers to a two argument version
 of the delete operator.  record_array_info is TRUE if the array size
 information should be saved even though an array_ptr value was provided.
+zero_init is TRUE if the memory should be cleared before invoking
+constructors.
 
 This routine needs to record the size of the array that was allocated so
 that the size is known when the array is deallocated.  One of two means
@@ -410,7 +416,16 @@ use.
        freed later. */
     err = record_array_alloc_info(array_ptr, array_size, number_of_elements);
     if (err) goto error_exit;
+#if ABI_COMPATIBILITY_VERSION >= 300
+  } else if (zero_init) {
+    array_size = number_of_elements * element_size;
+#endif /* ABI_COMPATIBILITY_VERSION >= 300 */
   }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 300
+  if (zero_init) {
+    __memzero(array_ptr, array_size);
+  }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 300 */
 #if EXCEPTION_HANDLING
   if (create_eh_stack_entry) {
     add_vec_new_or_delete_eh_stack_entry(&ehse, &aaehi, /*is_vec_new=*/TRUE);
@@ -492,7 +507,7 @@ routine is one that requires two arguments.
   return (array_new_general((void*)NULL, number_of_elements, element_size,
                             (void*)NULL, ctor, dtor, new_routine,
                             delete_routine, is_two_arg,
-                            /*record_array_info=*/FALSE));
+                            /*record_array_info=*/FALSE, /*zero_init*/FALSE));
 }  /* __array_new */
 #endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 
@@ -514,7 +529,7 @@ information and to call the constructor for each array element.
   return (array_new_general(array_ptr, number_of_elements, element_size,
                             (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
                             (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/TRUE));
+                            /*record_array_info=*/TRUE, /*zero_init*/FALSE));
 }  /* __placement_array_new */
 #endif /* ABI_COMPATIBILITY_VERSION >= 234 */
 
@@ -534,7 +549,7 @@ operator new.
   return (array_new_general(array_ptr, number_of_elements, element_size,
                             (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
                             (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/FALSE));
+                            /*record_array_info=*/FALSE, /*zero_init*/FALSE));
 }  /* __vec_new_eh */
 
 
@@ -552,7 +567,7 @@ no destructor pointer is provided.
                             (void*)NULL, ctor, /*a_destructor_ptr*/NULL,
                             (a_new_ptr)NULL, (a_delete_ptr)NULL,
                             /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/FALSE));
+                            /*record_array_info=*/FALSE, /*zero_init*/FALSE));
 }  /* __vec_new */
 
 
@@ -575,8 +590,69 @@ can never be zero.
                           src_array_ptr, (a_constructor_ptr)ctor, dtor,
                           (a_new_ptr)NULL, (a_delete_ptr)NULL,
                           /*is_two_arg=*/FALSE,
-                          /*record_array_info=*/FALSE);
+                          /*record_array_info=*/FALSE, /*zero_init*/FALSE);
 }  /* __vec_ctor_eh */
+
+
+#if ABI_COMPATIBILITY_VERSION >= 300
+EXTERN_C void *__array_new_zero(int                   number_of_elements,
+                                size_t                element_size,
+                                a_constructor_ptr     ctor,
+                                a_destructor_ptr      dtor,
+                                a_new_ptr             new_routine,
+                                a_delete_ptr          delete_routine,
+                                int                   is_two_arg)
+/*
+This entry point is used for operations requiring value-initialization.
+In such cases, memory is zeroed before calling a (default) constructor
+on it.  See array_new_general for the meaning of the parameters.
+*/
+{
+  return (array_new_general((void*)NULL, number_of_elements, element_size,
+                            (void*)NULL, ctor, dtor, new_routine,
+                            delete_routine, is_two_arg,
+                            /*record_array_info=*/FALSE, /*zero_init=*/TRUE));
+}  /* __array_new_zero */
+
+
+EXTERN_C void *__placement_array_new_zero(
+                                        void               *array_ptr,
+                                        int                number_of_elements,
+                                        size_t             element_size,
+                                        a_constructor_ptr  ctor,
+                                        a_destructor_ptr   dtor)
+/*
+This entry point is used for placement array new operations requiring value-
+initialization.  The actual memory is allocated by a call to the appropriate
+new routine before this routine is called.  This routine is used to record
+the array size information and to call the constructor for each array element.
+*/
+{
+  return (array_new_general(array_ptr, number_of_elements, element_size,
+                            (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
+                            (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
+                            /*record_array_info=*/TRUE, /*zero_init*/TRUE));
+}  /* __placement_array_new_zero */
+
+
+EXTERN_C void *__vec_new_eh_zero(void               *array_ptr,
+                                 int                number_of_elements,
+                                 size_t             element_size,
+                                 a_constructor_ptr  ctor,
+                                 a_destructor_ptr   dtor)
+/*
+This entry point is used by code that uses exception handling for
+new operations that do not involve the use of a class specific
+operator new but that require memory to be zeroed before the default
+constructor is called.
+*/
+{
+  return (array_new_general(array_ptr, number_of_elements, element_size,
+                            (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
+                            (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
+                            /*record_array_info=*/FALSE, /*zero_init*/TRUE));
+}  /* __vec_new_eh_zero */
+#endif /* ABI_COMPATIBILITY_VERSION >= 300 */
 
 
 #if EXCEPTION_HANDLING
