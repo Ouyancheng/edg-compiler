@@ -6004,6 +6004,20 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
 #endif /* VAR_INITIALIZERS */
 ;
 
+
+/*
+ELF visibility kinds (for the GNU C "visibility" attribute).
+*/
+enum an_ELF_visibility_kind_tag {
+  evk_unspecified,
+  evk_hidden,
+  evk_protected,
+  evk_internal,
+};
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte an_ELF_visibility_kind;
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
@@ -6182,6 +6196,9 @@ typedef struct a_routine {
 			   template. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	ELF_visibility:2;
+			/* The visibility of the routine in the generated
+			   ELF object code. */
   a_bit_field	is_initialization_routine:1;
 			/* TRUE if this routine was declared with the
 			   constructor attribute. */

@@ -1557,6 +1557,31 @@ Write out attributes that apply to the indicated field.
 }  /* write_field_attributes */
 
 
+static void write_ELF_visibility_attribute(an_ELF_visibility_kind  visibility)
+/*
+Write out the given visibility as an attribute specification (provided it is
+not evk_unspecified).
+*/
+{
+  switch (visibility) {
+    case evk_unspecified:
+      /* No visibility attribute. */
+      break;
+    case evk_hidden:
+      write_tok_str(" __attribute__((visibility(hidden)))");
+      break;
+    case evk_protected:
+      write_tok_str(" __attribute__((visibility(protected)))");
+      break;
+    case evk_internal:
+      write_tok_str(" __attribute__((visibility(internal)))");
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* write_ELF_visibility_attribute */
+
+
 static void write_routine_attributes(a_routine_ptr rout)
 /*
 Write out attributes that apply to the indicated routine.
@@ -1599,6 +1624,7 @@ Write out attributes that apply to the indicated routine.
                       "__alias__", rout->aliased_routine->source_corresp.name);
   }  /* if */
   write_routine_type_attributes(rout->type);
+  write_ELF_visibility_attribute(rout->ELF_visibility);
 }  /* write_routine_attributes */
 
 

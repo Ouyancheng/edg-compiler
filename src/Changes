@@ -1,5 +1,15 @@
 Version 3.1
 
+6/27/02  GNU C compatibility: New "visibility" attribute
+
+In GNU C mode, the front end now accepts the visibility attribute on
+function declarations.  This attribute specifies the visibility of a
+function in an ELF object file.  The attribute must be used with one
+of the following string literal arguments: "hidden", "protected", or
+"internal".  For example:
+
+  void f() __attribute__((visibility("internal")));
+
 6/27/02  Abort on inlining in GNU C mode
 
 An abort while doing inlining in GNU C mode has been corrected.  The

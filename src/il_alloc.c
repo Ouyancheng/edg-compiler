@@ -1859,6 +1859,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->declared_only_as_friend     = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
+  rp->ELF_visibility              = (an_ELF_visibility_kind)evk_unspecified;
   rp->is_initialization_routine   = FALSE;
   rp->is_finalization_routine     = FALSE;
   rp->is_pure                     = FALSE;

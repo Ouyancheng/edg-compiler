@@ -2273,6 +2273,24 @@ static void disp_builtin_function_kind_name(a_builtin_function_kind kind)
   (void)printf(s);
 }  /* disp_builtin_function_kind_name */
 
+
+static void disp_ELF_visibility_kind(an_ELF_visibility  ELF_visibility)
+/*
+*/
+{
+  char  *str;
+
+  disp_name("ELF_visibility");
+  switch (ELF_visibility) {
+    case evk_unspecified: str = "evk_unspecified";             break;
+    case evk_hidden:      str = "evk_hidden";                  break;
+    case evk_protected:   str = "evk_protected";               break;
+    case evk_internal:    str = "evk_protected";               break;
+    default:              str = "**BAD ELF VISIBILITY KIND**";
+  }  /* switch */
+  (void)printf("%s\n", s);
+}  /* if */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void disp_class_list(char                   *name,
@@ -2373,15 +2391,18 @@ Display the indicated routine.
       disp_opname_kind_name(ptr->opname_or_builtin.opname_kind);
       (void)printf("\n");
     }  /* if */
-  }  /* if */
+  } else {
 #if GNU_EXTENSIONS_ALLOWED
-  if (ptr->special_kind == (a_special_function_kind)sfk_none &&
-      (ptr->opname_or_builtin.builtin_function_kind != 
-       (a_builtin_function_kind)bfk_none)) {
-    disp_builtin_function_kind_name(ptr->opname_or_builtin.
-				                        builtin_function_kind);
+    if ((ptr->opname_or_builtin.builtin_function_kind != 
+                                          (a_builtin_function_kind)bfk_none)) {
+      disp_name("builtin_function_kind");
+      disp_builtin_function_kind_name(
+                                 ptr->opname_or_builtin.builtin_function_kind);
+      (void)printf("\n");
+    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
   if (ptr->address_taken) {
     disp_boolean("address_taken", TRUE);
   }  /* if */
@@ -2426,6 +2447,9 @@ Display the indicated routine.
     disp_boolean("specialized_with_old_syntax", TRUE);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
+  if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
+    disp_ELF_visibility_kind(ptr->ELF_visibility);
+  }  /* if */
   if (ptr->is_initialization_routine) {
     disp_boolean("is_initialization_routine", TRUE);
   }  /* if */

@@ -215,6 +215,9 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_format_arg:
       ap->variant.fmt_arg = 0;
       break;
+    case ak_visibility:
+      ap->variant.ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
+      break;
     default:
       unexpected_condition_str("alloc_attribute: bad kind");
   }  /* switch */
@@ -277,6 +280,9 @@ Return a copy of the complete attribute list.
         break;
       case ak_format_arg:
         (*end)->variant.fmt_arg = attributes->variant.fmt_arg;
+        break;
+      case ak_visibility:
+        (*end)->variant.ELF_visibility = attributes->variant.ELF_visibility;
         break;
       default:
         unexpected_condition_str("copy_attribute_list: bad kind");
@@ -527,6 +533,37 @@ that do take arguments.
         result = TRUE;
       }
       break;
+    case ak_visibility:
+      { char  *visibility_str;
+        /* Look for a string-literal specifying the visibillity. */
+        if (curr_token != tok_string_literal) {
+          result = FALSE;
+          goto error;
+        }  /* if */
+        /* If there was an error in parsing the string, we do not need
+           to issue another error here. */
+        if (is_error_constant(&const_for_curr_token)) {
+          result = FALSE;
+          break;
+        }  /* if */
+        visibility_str = const_for_curr_token.variant.string.value;
+        if (strcmp(visibility_str, "hidden") == 0) {
+          attribute->variant.ELF_visibility =
+                                           (an_ELF_visibility_kind)evk_hidden;
+        } else if (strcmp(visibility_str, "protected") == 0) {
+          attribute->variant.ELF_visibility =
+                                        (an_ELF_visibility_kind)evk_protected;
+        } else if (strcmp(visibility_str, "internal") == 0) {
+          attribute->variant.ELF_visibility =
+                                         (an_ELF_visibility_kind)evk_internal;
+        } else {
+          result = FALSE;
+          goto error;
+        }  /* if */
+        /* Consume the string literal. */
+        (void)get_token();
+      }
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -637,6 +674,7 @@ function returns the address of the last attribute.
           case ak_alias:
           case ak_format:
           case ak_format_arg:
+          case ak_visibility:
             if (!scan_attribute_arguments(attribute)) {
               /* If the arguments were erroneous, it sometimes makes
                  sense to ignore the attribute completely so that we
@@ -1311,6 +1349,9 @@ messages about any invalid attributes.
         }
         break;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+      case ak_visibility:
+        rp->ELF_visibility = ap->variant.ELF_visibility;
+        break;
       default:
         /* An invalid attribute. */
         pos_sy_warning(ec_attribute_does_not_apply,
@@ -1472,11 +1513,10 @@ newly created type.  If is_typedef is TRUE, tp is a new typedef.
     if (is_incomplete_type(tp)) {
       /* Add the incomplete type to the list of types that will need
          fixups when tp is defined. */
-      add_to_dependent_type_fixup_list
-        (tp, 
-         (a_dependent_type_fixup_kind)dtfk_copy_definition, 
-         (char *)copy, (a_byte_il_entry_kind)iek_type,
-         &error_position);
+      add_to_dependent_type_fixup_list(
+                        tp, (a_dependent_type_fixup_kind)dtfk_copy_definition,
+                        (char *)copy, (a_byte_il_entry_kind)iek_type,
+                        &error_position);
     } else {
       copy_class_struct_or_union_definition(copy, tp);
     }  /* if */
