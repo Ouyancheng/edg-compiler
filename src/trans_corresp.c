@@ -2883,7 +2883,7 @@ type (if any) in a secondary translation unit whose correspondence is the
 given type.
 */
 {
-  if (!correspondence_checking_underway && !correspondence_checking_done) {
+  if (trans_unit_corresp_of(type) == NULL) {
     /* Nothing to be done: correspondences are not being processed yet. */
   } else if (!type_has_definition(type)) {
     /* This only happens in strange error situations. */
