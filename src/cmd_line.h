@@ -722,20 +722,17 @@ EXTERN a_boolean
 			    accepted. */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
+#if NAMED_REGISTERS_ALLOWED
 EXTERN a_boolean
 		named_registers_enabled
 #if VAR_INITIALIZERS
-		                        =
-#if NAMED_REGISTERS_ALLOWED
-		                          DEFAULT_NAMED_REGISTERS_ENABLED
-#else /* !NAMED_REGISTERS_ALLOWED */
-		                          FALSE
-#endif /* NAMED_REGISTERS_ALLOWED */
+		                        = DEFAULT_NAMED_REGISTERS_ENABLED
 #endif /* VAR_INITIALIZERS */
-                                                                         ;
+		                                                         ;
 			/* TRUE if the extension of ISO TR 18037 (aka.
 			   "Embedded C") for named-register storage classes
 			    should be accepted. */
+#endif /* NAMED_REGISTERS_ALLOWED */
 
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed

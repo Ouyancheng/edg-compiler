@@ -402,6 +402,12 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_aliased_variable_cannot_have_register_storage_class)*/
 /*lint -esym(769,ec_register_in_use)*/
 #endif /* !NAMED_REGISTERS_ALLOWED */
+#if !(FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
+      NAMED_REGISTERS_ALLOWED)
+/*lint -esym(769,
+          ec_embedded_c_option_incompatible_with_individual_feature_options)*/
+#endif /* !(FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && ...) */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

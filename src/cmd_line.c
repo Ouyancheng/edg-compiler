@@ -2632,13 +2632,6 @@ between C89 and C99 dialects as appropriate.
       command_line_error(
            ec_embedded_c_option_incompatible_with_individual_feature_options);
     }  /* if */
-#if C99_IL_EXTENSIONS_SUPPORTED
-    /* If C99 extensions were not explicitly disabled, they should be enabled
-       (since the Embedded C TR really builds on the C99 standard). */
-    if (!option_kind_used[(int)optk_c99_mode]) {
-      c99_mode = TRUE;
-    }  /* if */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   } else
 #endif /* FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && NAMED_... */
   /* Do not insert code here. */
@@ -3834,8 +3827,7 @@ enable_microsoft_mode:
       case optk_embedded_c:
         /* Enable (or disable) all the Embedded C (TR 18037) extensions.
            This option implies ANSI C mode, even in the "--no_embedded_c"
-           form.  The form "--embedded_c" form also implies the other C99
-           dialects, unless "--no_c99" was explicitly specified. */
+           form. */
         fixed_point_enabled = opt_value;
         named_address_spaces_enabled = opt_value;
         named_registers_enabled = opt_value;
