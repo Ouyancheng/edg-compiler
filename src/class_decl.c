@@ -8589,9 +8589,9 @@ promotion is for a nonstandard anonymous union.
        unions (which aren't really unions) as to ordinary unions.  There is
        nothing to do because is_valid_union_field already issued the
        diagnostic.  This test was already done for standard anonymous (and
-       named unions), but for nonstandard unions it had to wait until the lack
-       of a declarator determined that this is in fact a nonstandard anonymous
-       union. */
+       named) unions, but for nonstandard anonymous unions it had to wait
+       until the lack of a declarator determined that this is in fact a
+       nonstandard anonymous union. */
   }  /* if */
   if (reuse_symbol) {
     /* Unlink the symbol from the inactive list and link it back into
