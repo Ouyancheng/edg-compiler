@@ -302,6 +302,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_type_ptr, iek_type);
         walk_list(ptr->based_types, a_based_type_list_member_ptr,
                   iek_based_type_list_member);
+#if DO_IL_LOWERING
+        /* ptr->typeinfo_var not processed. */
+#endif /* DO_IL_LOWERING */
         switch (ptr->kind) {
           case tk_error:
           case tk_unknown:
@@ -352,8 +355,7 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_typeref:
             walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);
 #if DO_IL_LOWERING
-            /* Reset the pointers used during IL lowering to NULL. */
-            ptr->variant.typeref.orig_type = NULL;
+            /* ptr->variant.typeref.orig_type not processed. */
 #endif /* DO_IL_LOWERING */
             break;
           case tk_ptr_to_member:
@@ -1067,8 +1069,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                   an_overriding_virtual_function_ptr,
                   iek_overriding_virtual_function);
 #if DO_IL_LOWERING
-        /* Reset the pointers used during IL lowering to NULL. */
-        ptr->virtual_function_table_var = NULL;
+        /* ptr->virtual_function_table_var not processed. */
 #endif /* DO_IL_LOWERING */
       }
       break;
@@ -1126,9 +1127,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                   iek_routine);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
-        /* Reset the pointers used during IL lowering to NULL. */
-        ptr->virtual_function_table_var = NULL;
-        ptr->type_as_subobject = NULL;
+        /* ptr->virtual_function_table_var not processed. */
+        /* ptr->type_as_subobject not processed. */
 #endif /* DO_IL_LOWERING */
       }
       break;

@@ -2074,6 +2074,9 @@ associated variant fields to default values.
   cp->implicit_cast  = FALSE;
   cp->non_arithmetic = FALSE;
   cp->is_simple_zero = FALSE;
+#if DO_IL_LOWERING
+  cp->assoc_var_assigned = FALSE;
+#endif /* DO_IL_LOWERING */
 #if CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
@@ -3468,7 +3471,13 @@ variant fields to default values.
   pte->used_in_exception = FALSE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   pte->use_cfront_transitional_nested_type_name_mangling = FALSE;
+#if CHECKING
+  pte->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#if DO_IL_LOWERING
+  pte->typeinfo_var = NULL;
+#endif /* DO_IL_LOWERING */
   set_type_kind(pte, kind);
 }  /* clear_type */
 

@@ -893,6 +893,10 @@ Display the indicated source correspondence entry.
         (void)printf("**BAD NAME LINKAGE KIND**\n");
     }  /* switch */
   }  /* if */
+#if DO_IL_LOWERING
+  /* Do not print out ptr->name_has_been_mangled, which is used only during
+     IL lowering. */
+#endif /* DO_IL_LOWERING */
 #if RECORD_SCOPE_DEPTH_IN_IL
   disp_long("  scope_depth", (long)scp->scope_depth);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
@@ -941,6 +945,10 @@ Display the indicated constant entry.
   if (ptr->is_simple_zero) {
     disp_boolean("is_simple_zero", (a_boolean)ptr->is_simple_zero);
   }  /* if */
+#if DO_IL_LOWERING
+  /* Do not print out ptr->assoc_var_assigned, which is used only during IL
+     lowering. */
+#endif /* DO_IL_LOWERING */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:
@@ -1194,6 +1202,14 @@ Display the indicated type entry.
   disp_unsigned_long("size", (unsigned long)ptr->size);
   disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
   disp_boolean("used_in_exception", (a_boolean)ptr->used_in_exception);
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+  disp_boolean("use_cfront_transitional_nested_type_name_mangling",
+            (a_boolean)ptr->use_cfront_transitional_nested_type_name_mangling);
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#if DO_IL_LOWERING
+  /* Do not print out ptr->typeinfo_var, which is used only during IL
+     lowering. */
+#endif /* DO_IL_LOWERING */
   disp_name("kind");
   switch (ptr->kind) {
     case tk_error:
@@ -1310,7 +1326,7 @@ do_struct_union:
       disp_ptr("typeref_type", (char *)ptr->variant.typeref.type,
                iek_type);
 #if DO_IL_LOWERING
-      /* Do not print out the IL entry members that are used only
+      /* Do not print out ptr->variant.typeref.orig_type, which is used only
          during IL lowering. */
 #endif /* DO_IL_LOWERING */
       disp_boolean("is_const", (a_boolean)ptr->variant.typeref.is_const);
@@ -2825,7 +2841,7 @@ Display the indicated base class entry.
            (char *)ptr->overriding_virtual_functions,
            iek_overriding_virtual_function );
 #if DO_IL_LOWERING
-  /* Do not print out the IL entry members that are used only
+  /* Do not print out ptr->virtual_function_table_var, which is used only
      during IL lowering. */
 #endif /* DO_IL_LOWERING */
 }  /* disp_base_class */
@@ -2886,8 +2902,8 @@ Display the indicated class type supplement entry.
            (char *)ptr->assoc_operator_delete_routine, iek_routine);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
-  /* Do not print out the IL entry members that are used only
-     during IL lowering. */
+  /* Do not print out ptr->virtual_function_table_var and
+     ptr->type_as_subobject, which are used only during IL lowering. */
 #endif /* DO_IL_LOWERING */
 }  /* disp_class_type_supplement */
 
