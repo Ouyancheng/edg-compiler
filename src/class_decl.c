@@ -8780,32 +8780,6 @@ one of its direct base classes.
 }  /* check_base_class_destructors */
 
 
-static a_type_ptr symbol_return_type(a_symbol_ptr  sym)
-/*
-The given symbol sym should correspond to a routine, a member function, a
-function template, or a projection of such an entity.  The return type of the
-associated entity is returned.
-*/
-{
-  a_type_ptr  result;
-
-  sym = fundamental_symbol_of(sym);
-  switch (sym->kind) {
-    case sk_member_function:
-    case sk_routine:
-      result = sym->variant.routine.ptr->type->variant.routine.return_type;
-      break;
-    case sk_function_template:
-      result = sym->variant.template_info->variant.function.routine->type
-                                                ->variant.routine.return_type;
-      break;
-    default:
-      unexpected_condition_str("symbol_return_type: wrong symbol kind");
-  }  /* switch */
-  return result;
-}  /* symbol_return_type */
-
-
 static void check_base_class_conversion_list(a_type_ptr       class_type,
                                              a_base_class_ptr base_class,
                                              a_boolean        is_template_list,
@@ -8842,15 +8816,10 @@ class_type.  Set *updated if a projection symbol is created.
              type, we have a potential ambiguity: by also projecting the
              one we are now processing, we will detect such an ambiguity
              downstream. */
-        } else if (slep->symbol->header == bcslep->symbol->header ||
-                   f_identical_types(symbol_return_type(slep->symbol),
-                                     symbol_return_type(bcslep->symbol),
-                                     ITF_NO_FLAGS)) {
+        } else if (slep->symbol->header == bcslep->symbol->header) {
           /* A conversion list entry from the current class already represents
              a conversion to the type specified by the conversion defined in
-             the base class.  Ignore it.  Note that typedefs may cause the
-             symbol header to differ between the base and derived versions,
-             even when they are conversions to the same type. */
+             the base class.  Ignore it. */
           break;
 #if CHECKING
         } else if (is_template_list) {
