@@ -7821,7 +7821,7 @@ return TRUE and set *kind to the corresponding name-linkage kind.
      but that implementations are permitted to add others, such as "Ada"
      or "FORTRAN".  If changes are made here to support other strings, be
      sure to update the name linkage kind enumeration. */
-  if (const_for_curr_token.variant.string.value == NULL) {
+  if (is_error_constant(&const_for_curr_token)) {
     /* There must have been an error in scanning the string literal (e.g.,
        no closing '"'. */
     err = TRUE;
