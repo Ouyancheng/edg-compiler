@@ -930,7 +930,7 @@ error code.
       m = "class or struct definition is missing";
       break;
     case ec_name_not_member_of_class_or_base_classes:
-      m = "qualified name is not in the left operand's class or base classes";
+      m = "%no is not in the left operand's class or base classes";
       break;
     case ec_member_ref_requires_object:
       m = "a nonstatic member reference must be relative to a specific object";
@@ -1457,6 +1457,9 @@ error code.
       break;
     case ec_nonstd_asm_declaration:
       m = "\"asm\" declaration is nonstandard";
+      break;
+    case ec_delete_of_incomplete_class:
+      m = "delete of pointer to incomplete class";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:

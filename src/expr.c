@@ -1903,8 +1903,8 @@ bound with the function in *bound_function_selector.
           if (!is_same_class_or_base_class_thereof(class_struct_union_type,
                                                    projection_member_sym->
                                                     class_of_which_a_member)) {
-            pos_error(ec_name_not_member_of_class_or_base_classes,
-                      &qualified_member_position);
+            pos_sy_error(ec_name_not_member_of_class_or_base_classes,
+                         &qualified_member_position, projection_member_sym);
             err = TRUE;
           }  /* if */
         }  /* if */
@@ -3647,6 +3647,12 @@ As an anachronism, allow an expression inside the [ ].
       /* See if the object needs destruction. */
       dtor_routine = NULL;
       if (is_class_struct_union_type(base_delete_type)) {
+        if (is_incomplete_type(base_delete_type)) {
+          /* Deleting a pointer to an incomplete class.  Give a warning,
+             because we may not know how to do the right thing (like call
+             a destructor). */
+          pos_warning(ec_delete_of_incomplete_class, &delete_position);
+        }  /* if */
         dtor_routine = select_destructor(base_delete_type);
         if (dtor_routine != NULL) {
           /* Class with destructor.  Destruction is required.  Use an
