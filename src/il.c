@@ -9545,8 +9545,8 @@ type (i.e., a non-floating-point arithmetic type).
     }  /* if */
     if (result->variant.fixed_point.saturating != saturating ||
         (result->variant.fixed_point.is_unsigned && !is_unsigned)) {
-      a_fixed_point_type_descr descr =
-                     make_fixed_point_type_descr(
+      a_fixed_point_type_descr descr;
+      descr = make_fixed_point_type_descr(
                                 result->variant.fixed_point.precision,
                                 is_unsigned,
                                 (a_boolean)result->variant.

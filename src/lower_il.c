@@ -9592,7 +9592,8 @@ is_lvalue is TRUE.
       /* Convert the unsigned fixed-point first operand to the corresponding
          signed fixed-point type, because the second operand is signed. */
       a_type_ptr               new_fx_type;
-      a_fixed_point_type_descr descr = op1_type->variant.fixed_point;
+      a_fixed_point_type_descr descr;
+      descr = op1_type->variant.fixed_point;
       descr.is_unsigned = FALSE;
       new_fx_type = fixed_point_type(descr);
       op1_for_operation = add_lowered_cast_if_necessary(op1_for_operation,
