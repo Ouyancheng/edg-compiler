@@ -39,10 +39,6 @@ extern char *realloc(char *ptr, unsigned size);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
-#if ORPHAN_PROCESSING_NEEDED
-#include "il_walk.h"
-#endif /* ORPHAN_PROCESSING_NEEDED */
-
 #if !STANDALONE_UTILITY_PROGRAM
 #include "pch.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
