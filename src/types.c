@@ -4605,7 +4605,7 @@ preference is given to the first.
 {
   a_type_ptr    comp_type, comp_elem;
   a_targ_size_t num_elems;
-  a_boolean     comp_is_vla = FALSE;
+  a_boolean     comp_has_nonconst_dimension = FALSE;
 
   /* When VLAs (variable length arrays) appear, "array[const]" is
      preferred over "array[expr]", and "array[expr]" or "array[*]"
@@ -4637,19 +4637,24 @@ preference is given to the first.
   } else if (array_type1->variant.array.has_assoc_vla_dimension) {
     /* array_type1 is "array[expr]". */
     comp_type = array_type1;
-    comp_is_vla = TRUE;
+    comp_has_nonconst_dimension = TRUE;
   } else if (array_type2->variant.array.has_assoc_vla_dimension) {
     /* array_type2 is "array[expr]". */
     comp_type = array_type2;
-    comp_is_vla = TRUE;
+    comp_has_nonconst_dimension = TRUE;
   } else if (array_type1->variant.array.is_vla) {
     /* array_type1 is "array[*]". */
     comp_type = array_type1;
-    comp_is_vla = TRUE;
+    comp_has_nonconst_dimension = TRUE;
   } else if (array_type2->variant.array.is_vla) {
     /* array_type2 is "array[*]". */
     comp_type = array_type2;
-    comp_is_vla = TRUE;
+    comp_has_nonconst_dimension = TRUE;
+  } else if (array_type1->variant.array.is_variable_size_array) {
+    check_assertion(identical_array_type_level(array_type1, array_type2));
+    /* Dimension expression must involve a template param. */
+    comp_type = array_type1;
+    comp_has_nonconst_dimension = TRUE;
   } else {
     /* Both arrays have unknown bounds ("array[]"). */
     check_assertion(!array_type1->variant.array.is_variable_size_array &&
@@ -4664,7 +4669,7 @@ preference is given to the first.
      types.  For other cases, see if one of the two types we already have
      matches the required composite type.  If that's not possible, build
      a new array type for the composite. */
-  if (!comp_is_vla) {
+  if (!comp_has_nonconst_dimension) {
     if (comp_elem == array_type1->variant.array.element_type &&
         !array_type1->variant.array.is_variable_size_array &&
         num_elems == array_type1->variant.array.variant.number_of_elements) {

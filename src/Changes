@@ -1,5 +1,14 @@
 Version 2.42
 
+3/18/99  Abort in composite_array_type eliminated
+
+A template redeclaration could trigger an internal error in
+composite_array_type if the type involved an array with a dimension
+specified by a non-type template parameter.  Now fixed.
+
+  template <unsigned int N> void f(int(&)[N]);
+  template <unsigned int N> void f(int(&)[N]) { }      // Abort fixed
+
 3/18/99  Name mangling for uses of partial specialization classes
 
 Name mangling now includes the template argument list for a partial
