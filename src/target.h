@@ -9,7 +9,7 @@
 ******************************************************************************/
 /*
 
-target.h -- Declaration of variabls specifying target machine characteristics.
+target.h -- Declaration of variables specifying target machine characteristics.
 
 Note that target.h declares configuration variables that, in principle, can
 be reset whenever the compiler is invoked, whereas targ_def.h contains
