@@ -4359,9 +4359,9 @@ such a typedef, return the associated basic type specifier and set *sign and
   return basic_type;
 }  /* basic_type_from_typedef */
 
-#if !C99_IL_EXTENSIONS_SUPPORTED && !FIXED_POINT_EXTENSIONS_ALLOWED
+#if !C99_IL_EXTENSIONS_SUPPORTED || !FIXED_POINT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- complex_attr or saturating_fp not used in that case. */
-#endif /* !C99_IL_EXTENSIONS_SUPPORTED && !FIXED_POINT_EXTENSIONS_ALLOWED */
+#endif /* !C99_IL_EXTENSIONS_SUPPORTED || !FIXED_POINT_EXTENSIONS_ALLOWED */
 static a_boolean combine_type_specifiers(a_type_ptr           *type_ptr,
                                          a_basic_type         basic_type,
                                          a_type_sign          sign,
