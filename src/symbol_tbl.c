@@ -4597,6 +4597,68 @@ end_lookup:
 }  /* normal_id_lookup */
 
 
+a_symbol_ptr curr_tag_symbol(a_symbol_locator  *locator,
+                             a_symbol_kind     tag_kind)
+/*
+The current token is an identifier.  If it is a tag of the indicated kind
+do ambiguity and access control checking and return a pointer to the tag
+symbol.  Otherwise, return NULL.
+*/
+{
+  a_symbol_ptr assoc_symbol, sym;
+  a_type_ptr   tp;
+
+  /* Look up the current token.  Note that a qualified name is not allowed. */ 
+  assoc_symbol = normal_id_lookup(locator, IDL_MUST_BE_TAG);
+  if (assoc_symbol != NULL) {
+    if (assoc_symbol->kind != tag_kind) {
+      /* A tag, but the wrong kind of tag (e.g., struct when union is
+         required). */
+      assoc_symbol = NULL;
+    } else {
+      if (locator->is_semivisible_nested_type) {
+        /* The symbol in the locator is a nested class that is not visible
+           according to the ARM lookup rules but is returned in support of the
+           nested class anachronism (ARM 18.3.5).  Issue an anachronism
+           diagnostic. */
+        sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
+                       locator->specific_symbol);
+      }  /* if */
+      /* Do ambiguity and access control checking on the member. */
+      check_ambiguity_and_verify_access(locator);
+    }  /* if */
+  } else if (depth_of_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    /* We are within a template instantiation, so the name may map to a
+       template parameter.  For example,
+          class A { };
+          template <class T> class B { class T x; };
+          B<A> b;
+       The standard is not clear on this, but we are assuming that in the
+       second "class T" we have a reference to the type of the corresponding
+       template argument. */
+    sym = normal_id_lookup(locator, IDL_NO_OPTIONS);
+    if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
+        sym->decl_scope ==
+                 scope_stack[depth_of_innermost_instantiation_scope].number) {
+      /* sym is a template parameter symbol representing a type.  Be sure the
+         template argument with which it currently associated can be used in
+         an elaborated-type-specifier of the required kind. */
+      tp = sym->variant.type;
+      sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+      if (sym != NULL && sym->kind == tag_kind) {
+        /* Use the template argument to which the template parameter points. */
+        assoc_symbol = sym;
+      } else {
+        /* The template argument is the wrong kind of tag. */
+        type_error(ec_bad_template_arg_use, tp);
+        set_to_error_locator(*locator);
+      }  /* if */
+    }  /* if */            
+  }  /* if */
+  return assoc_symbol;
+}  /* curr_tag_symbol */
+
+
 static void determine_projected_symbol_insert_location(
                                           a_symbol_locator *locator,
                                           a_type_ptr       class_type,
