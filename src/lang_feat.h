@@ -393,8 +393,24 @@ EXTERN a_boolean
 /* When Microsoft mode is unavailable, replace the variables for Microsoft
    mode and Microsoft bugs with macros.  This will allow optimizers to remove
    some useless code when the front-end itself is compiled. */
-#define microsoft_mode (FALSE)
-#define microsoft_bugs (FALSE)
+#ifdef _lint
+/* When lint is used, avoid warnings about dead code. */
+EXTERN a_boolean
+		microsoft_mode
+#if VAR_INITIALIZERS
+                               = FALSE
+#endif /* VAR_INITIALIZERS */
+                                      ;
+EXTERN a_boolean
+		microsoft_bugs
+#if VAR_INITIALIZERS
+                               = FALSE
+#endif /* VAR_INITIALIZERS */
+                                      ;
+#else /* !defined(_lint) */
+#define microsoft_mode FALSE
+#define microsoft_bugs FALSE
+#endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN long	microsoft_version
