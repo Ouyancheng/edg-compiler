@@ -2,10 +2,11 @@ Version 2.29
 
 5/4/95   C++ standard header files: typeinfo.h, exception.h, stdexcept.h
 
-These files are now provided.  The runtime library source depends
-on the class definitions specified in these files.  Changes to these
-files will probably require corresponding changes in the runtime
-library and vice-versa.
+typeinfo.h and stdexcept.h have been added.  exception.h has been
+modified to reflect changes in the working paper.  The runtime library
+source depends on the class definitions specified in these files.
+Changes to these files will probably require corresponding changes
+in the runtime library and vice-versa.
 
 -----------------------------------------------------------------------------
 Version 2.28, March 2, 1995
