@@ -541,17 +541,12 @@ only the entries marked as "needed" are marked to keep in the IL.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope)
+static void set_keep_in_il_on_sslist(a_source_sequence_entry_ptr sslist)
 /*
-Walk the indicated scope's source sequence list, and set the keep_in_il
+Walk the indicated source sequence list, and set the keep_in_il
 flags in the source sequence entries thereon.  A source sequence entry
 must be kept in the IL if and only if its associated entry must be
-kept.  This routine must be called late so that all the keep_in_il
-flags are set already.  This processing is important for secondary
-entries, which are not pointed to by the associated entry, and also
-for entries like classes that get a "shallow walk" until the end of
-the file scope because their subtree can change (e.g., on a definition
-or redeclaration).
+kept.
 */
 {
   a_source_sequence_entry_ptr  ssep;
@@ -559,9 +554,7 @@ or redeclaration).
   char                         *entry_ptr;
   a_boolean                    assoc_entry_keep_in_il;
 
-  for (ssep = scope->source_sequence_list;
-       ssep != NULL;
-       ssep = ssep->next) {
+  for (ssep = sslist; ssep != NULL; ssep = ssep->next) {
     if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
       /* This is a secondary declaration. */
       sec_decl = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
@@ -580,6 +573,34 @@ or redeclaration).
       il_entry_prefix_of(sec_decl).keep_in_il = assoc_entry_keep_in_il;
     }  /* if */
   }  /* for */
+}  /* set_keep_in_il_on_sslist */
+
+
+static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope)
+/*
+Walk the indicated scope's source sequence list, and set the keep_in_il
+flags in the source sequence entries thereon.  A source sequence entry
+must be kept in the IL if and only if its associated entry must be
+kept.  This routine must be called late so that all the keep_in_il
+flags are set already.  This processing is important for secondary
+entries, which are not pointed to by the associated entry, and also
+for entries like classes that get a "shallow walk" until the end of
+the file scope because their subtree can change (e.g., on a definition
+or redeclaration).
+*/
+{
+  set_keep_in_il_on_sslist(scope->source_sequence_list);
+  if (scope->kind == (a_scope_kind)sck_file) {
+    /* When processing the file scope, also process the orphaned lists for
+       local scopes. */
+    a_scope_orphaned_list_header_ptr solhp;
+    for (solhp = il_header.scope_orphaned_list_headers;
+         solhp != NULL;
+         solhp = solhp->next) {
+      set_keep_in_il_on_sslist(solhp->orphaned_src_seq_sublists->
+                                                         source_sequence_list);
+    }  /* for */
+  }  /* if */
 }  /* set_keep_in_il_on_source_sequence_entries */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
