@@ -1,3 +1,12 @@
+Version 2.42
+
+3/12/99  Prelinker problem in copy-if-nonlocal mode
+
+When the processing for template information files was added a bug was
+introduced in copy-if-nonlocal mode that would cause the remote instantiation
+request file to be updated instead of the local one when a remote instantiation
+request file was copied to the local directory.  This has been fixed.
+-------------------------------------------------------------------------------
 Version 2.41, March 5, 1999
 
 2/17/99  Compression in mangled names
@@ -8,7 +17,6 @@ The name demangler now uncompresses mangled names, which begin with "__CPR".
 
 The encoding "uu" is now used for the Microsoft __uuidof operator
 in the mangled encoding for an expression.
-
 -------------------------------------------------------------------------------
 Version 2.40, December 8, 1998
 

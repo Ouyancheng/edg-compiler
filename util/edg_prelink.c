@@ -2346,6 +2346,33 @@ Read the existing instantiation assignment information from the
 }  /* pl_read_instantiation_request_files */
 
 
+static void pl_create_instantiation_file_names(
+			a_pl_input_file_ptr	pifp,
+			char			**request_file_name,
+			char			**template_info_file_name)
+/*
+Create the names of the .ii and .ti file names to be used.  The .ti file
+name is only generated if template information files are being used.
+*/
+{
+  char			*suffix;
+
+  *request_file_name = NULL;
+  *template_info_file_name = NULL;
+  suffix = pl_find_suffix(pifp->file_name);
+  if (suffix != NULL && strcmp(suffix, OBJECT_FILE_SUFFIX) == 0) {
+    /* Only look for template information files associated with object
+       files. */
+    *request_file_name = pl_copy_string(pl_derived_name(pifp->file_name,
+                                                INSTANTIATION_REQUEST_SUFFIX));
+    if (use_template_info_file) {
+      *template_info_file_name = pl_copy_string(
+                       pl_derived_name(pifp->file_name, TEMPLATE_INFO_SUFFIX));
+    }  /* if */
+  }  /* if */
+}  /* pl_create_instantiation_file_names */
+
+
 static a_boolean pl_check_for_template_file(a_pl_input_file_ptr pifp)
 /*
 Check for the existence of a .ti or .ii file.  The name of the .ii file
@@ -2354,23 +2381,19 @@ is generated.  The name of the .ti file is generated if they are being used.
 {
   FILE			*f_test = NULL;
   char			*request_file_name;
-  char			*template_info_file_name = NULL;
+  char			*template_info_file_name;
   char			*file_to_test;
-  char			*suffix;
 
-  suffix = pl_find_suffix(pifp->file_name);
-  if (suffix != NULL && strcmp(suffix, OBJECT_FILE_SUFFIX) == 0) {
-    /* Only look for template information files associated with object
-       files. */
-    request_file_name = pl_copy_string(pl_derived_name(pifp->file_name,
-                                                INSTANTIATION_REQUEST_SUFFIX));
-    if (use_template_info_file) {
-      template_info_file_name = pl_copy_string(pl_derived_name(pifp->file_name,
-                                                        TEMPLATE_INFO_SUFFIX));
-      file_to_test = template_info_file_name;
-    } else {
-      file_to_test = request_file_name;
-    }  /* if */
+  /* Create the names of the .ti and .ii files. */
+  pl_create_instantiation_file_names(pifp, &request_file_name,
+                                     &template_info_file_name);
+  /* A NULL file name will be returned if "pifp" does not represent an
+     object file. */
+  if (request_file_name != NULL) {
+    /* Look for a .ti file if template information files are being used,
+       otherwise look for a .ii file. */
+    file_to_test = use_template_info_file ? template_info_file_name
+                                          : request_file_name;
     f_test = fopen(file_to_test, "r");
     if (f_test != NULL) {
       fclose(f_test);
@@ -2676,8 +2699,8 @@ to be used when displaying the command line.
   } else {
     result = result >> 8;
   }  /* if */
-  free(command);
   if (display_command != command) free(display_command);
+  free(command);
   if (chdir_needed) {
     /* Return to the original directory. */
     pl_change_directory(curr_dir_name);
@@ -2736,12 +2759,12 @@ information.
   pifp->file_name = pl_copy_string(ptr+1);
   orig_request_file_name = pifp->request_file_name;
   orig_template_info_file_name = pifp->template_info_file_name;
-  /* Use the pl_check_for_template_file routine to create the new request
-     file and template info file names.  Note that a new template
-     information file name must be created even though this routine doesn't
-     copy the file because it will be used during the next iteration of the
-     prelinker to read the template information file. */
-  (void)pl_check_for_template_file(pifp);
+  /* Create the new request file and template info file names.  Note that a
+     new template information file name must be created even though this
+     routine doesn't copy the file because it will be used during the next
+     iteration of the prelinker to read the template information file. */
+  pl_create_instantiation_file_names(pifp, &pifp->request_file_name,
+                                     &pifp->template_info_file_name);
   /* Construct a possibly updated file name.  If the path name is
      absolute, just keep the original name.  Otherwise, add the
      original directory name and write out the updated path name.*/
