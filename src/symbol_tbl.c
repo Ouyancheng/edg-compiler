@@ -6500,7 +6500,8 @@ symbol and not the fundamental symbol is returned.
            sym != NULL;
            sym = sym->next) {
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-        if (is_acceptable_symbol(sym, fund_sym)) {
+        if (sym->decl_scope == scope_number &&
+            is_acceptable_symbol(sym, fund_sym)) {
           /* Found an acceptable symbol. */
           /* If the symbol is a tag symbol, there's the possibility that
              there is a non-type symbol in the same scope later in the list
