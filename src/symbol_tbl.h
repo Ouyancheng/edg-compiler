@@ -1020,6 +1020,10 @@ typedef struct a_symbol {
   unsigned int	is_template_param:1;
 			/* TRUE if the symbol represent a template
 			   parameter. */
+  unsigned int  template_param_not_visible:1;
+			/* TRUE if this is a template parameter that should
+			   not be visible for name lookup purposes at this
+			   point in time. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
@@ -1491,15 +1495,6 @@ typedef struct a_scope_stack_entry {
 		template_param_list;
                         /* When kind == sck_template_instantiation, contains
 			   a pointer to the template parameter list. */
-  unsigned long	template_params_visible;
-			/* When kind == sck_template_instantiation, contains
-			   the number of template parameters that are visible
-			   for name lookup purposes.  This is normally the
-			   same as the number of parameters but may be less
-			   than the number of parameters when scanning
-			   rescanning the declaration of a template class
-			   parameter whose type depends on another template
-			   parameter. */
 } a_scope_stack_entry;
 
 
