@@ -9,7 +9,7 @@
 ******************************************************************************/
 /*
 
-defines.h -- Defines configuration parameters for a given vesion of the
+defines.h -- Defines configuration parameters for a given version of the
              front end.
 
 */
@@ -19,18 +19,16 @@ Note: This is the EDG internal version.  The version shipped as part of
 the release should contain no defines.
 */
 
-/* Common options. */
+#ifdef sun
+/* Options Common to Sun hosted versions. */
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define USING_QUANTIFY 1
-
-#ifdef sun
 
 #ifdef OPTIMIZED_VERSION
 
 /* Options for Sun optimized version. */
 #define CHECKING 1
 #define DEBUG 1
-#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 1
 #define LONG_LONG_ALLOWED 0
 #define GENERATE_SOURCE_SEQUENCE_LISTS 0
