@@ -17851,6 +17851,7 @@ translation unit.
     for (tup = translation_units; tup != NULL; tup = tup->next) {
       /* Skip this translation unit if we know no work is needed. */
       if (!tup->additional_instantiation_wrapup_required) continue;
+      tup->additional_instantiation_wrapup_required = FALSE;
       /* Push the translation unit (but don't repush the primary translation
          unit). */
       if (tup != translation_units) push_translation_unit_stack(tup);
