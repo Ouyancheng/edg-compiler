@@ -12833,7 +12833,7 @@ normal_function:
             change_refs_to_error(rep);
             rep = NULL;
           } else {
-            /* In C99 mode check that a unction referenced within an
+            /* In C99 mode check that a function referenced within an
                inline function is valid. */
             if (c99_mode) check_reference_from_inline_function(sym_ptr);
             /* Make a function designator operand for the function. */
