@@ -2157,6 +2157,7 @@ static void add_cast_to_node(an_expr_node_ptr  *p_node,
                              a_boolean         check_cast_access,
                              a_boolean         is_implicit_cast,
                              a_boolean         is_reinterpret_cast,
+                             a_boolean         reinterpret_semantics,
                              a_source_position *err_pos)
 /*
 Add a cast node to the expression tree pointed to by *p_node, and update
@@ -2179,7 +2180,7 @@ is TRUE, those related class casts are not checked for.
      because we can't link a previous expression in a list to this
      new expression). */
   (*p_node)->next = NULL;
-  if (!C_mode() && !is_reinterpret_cast &&
+  if (!C_mode() && !reinterpret_semantics &&
       related_class_pointers(old_type, new_type, &baseward_cast, &bcp)) {
     /* C++ cast from a pointer to a class to a pointer to a related
        (base or derived) class. */
@@ -2196,7 +2197,7 @@ is TRUE, those related class casts are not checked for.
          class is a virtual base of the derived class. */
       add_derived_class_casts(new_type_pointed_to, bcp, p_node, err_pos);
     }  /* if */
-  } else if (!C_mode() && !is_reinterpret_cast &&
+  } else if (!C_mode() && !reinterpret_semantics &&
              related_member_pointers(old_type, new_type, &baseward_cast,
                                      &bcp)) {
     /* C++ cast from pointer-to-member to pointer-to-member-of-related-class.
@@ -2225,6 +2226,7 @@ is TRUE, those related class casts are not checked for.
     *p_node = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
                                  *p_node);
     (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
+    (*p_node)->variant.operation.is_reinterpret_cast = is_reinterpret_cast;
   }  /* if */
 }  /* add_cast_to_node */
 
@@ -2243,8 +2245,9 @@ Test an expression node to see if it's a bit-field extraction.
 void cast_node(an_expr_node_ptr  *node,
                a_type_ptr        new_type,
                a_boolean         check_cast_access,
-	       a_boolean         is_implicit_cast,
+               a_boolean         is_implicit_cast,
                a_boolean         is_reinterpret_cast,
+               a_boolean         reinterpret_semantics,
                a_source_position *err_pos)
 /*
 Change the type of a node.  If the node is a constant, a conversion is done on
@@ -2253,7 +2256,9 @@ node.  Check access on the cast if check_cast_access is TRUE.  If
 is_implicit_cast is TRUE, this is an implicit cast rather than an
 explicit one.  Warnings about truncation etc. are issued only if
 is_implicit_cast is TRUE.  is_reinterpret_cast is TRUE if this is
-a reinterpret_cast.  *err_pos gives the source position for
+a reinterpret_cast in the source; reinterpret_semantics is TRUE if the
+behavior is the same as a reinterpret_cast (without necessarily having that
+construct appear in the source).  *err_pos gives the source position for
 errors.  The current expression is assumed to be a nonconstant
 expression; if it were a constant expression, we wouldn't have an
 expression node.  It's also assumed to be an evaluated expression (for
@@ -2294,7 +2299,7 @@ conversions.
                            /*constant_context=*/FALSE,
                            /*evaluated_context=*/TRUE,
                            /*fold_constant_addr_exprs=*/FALSE,
-                           is_reinterpret_cast,
+                           reinterpret_semantics,
                            &did_not_fold, err_pos);
     }  /* if */
     if (did_not_fold) {
@@ -2303,10 +2308,11 @@ conversions.
          done on a copy of the constant.  The original constant and
          expression were not changed, and therefore can be used here. */
       add_cast_to_node(node, new_type, check_cast_access, is_implicit_cast,
-                       is_reinterpret_cast, err_pos);
+                       is_reinterpret_cast, reinterpret_semantics, err_pos);
     } else {
       /* The operation was successfully folded to a constant. */
       (*node)->variant.constant = alloc_shareable_constant(&local_constant);
+      (*node)->variant.constant->is_reinterpret_cast = is_reinterpret_cast;
       (*node)->type = new_type;
     }  /* if */
   }  /* if */
@@ -2314,16 +2320,19 @@ conversions.
 
 
 void cast_operand(a_type_ptr new_type,
-		  an_operand *operand,
+                  an_operand *operand,
                   a_boolean  check_cast_access,
-		  a_boolean  is_implicit_cast,
-                  a_boolean  is_reinterpret_cast)
+                  a_boolean  is_implicit_cast,
+                  a_boolean  is_reinterpret_cast,
+                  a_boolean  reinterpret_semantics)
 /*
 Cast the operand to the new type.  Check access on the cast if
 check_cast_access is TRUE.  If is_implicit_cast is TRUE, this is an
 implicit cast rather than an explicit one.  If there are any warnings
 detected on the type change, issue them only if is_implicit_cast is TRUE.
-If is_reinterpret_cast is TRUE, this cast is a reinterpret_cast.
+If is_reinterpret_cast is TRUE, this cast appeared as reinterpret_cast in
+the source.  If reinterpret_semantics is TRUE, the operation has the same
+meaning as a reinterpret_cast, but it may come from another construct.
 The operand must be an rvalue or error operand.  The caller must have
 already determined that the conversion is allowed, except for casts to
 ambiguous or inaccessible base classes.  This routine does not handle
@@ -2378,7 +2387,8 @@ user-defined conversions.
              node. */
           node = operand->variant.expression;
           cast_node(&node, new_type, check_cast_access, is_implicit_cast,
-                    is_reinterpret_cast, &operand->position);
+                    is_reinterpret_cast, reinterpret_semantics,
+                    &operand->position);
           make_expression_operand(node, new_type, operand);
           break;
         case ok_constant:
@@ -2391,7 +2401,7 @@ user-defined conversions.
                                curr_expr_kind_is_const(),
                                curr_expr_is_evaluated(),
                                (a_boolean)expr_stack->fold_constant_addr_exprs,
-                               is_reinterpret_cast,
+                               reinterpret_semantics,
                                &did_not_fold, &operand->position);
           if (did_not_fold) {
             /* Cast of a constant did not fold. */
@@ -2410,11 +2420,12 @@ user-defined conversions.
               node = make_node_from_operand(operand);
               add_cast_to_node(&node, new_type, check_cast_access,
                                is_implicit_cast, is_reinterpret_cast,
-                               &operand->position);
+                               reinterpret_semantics, &operand->position);
               make_expression_operand(node, new_type, operand);
             }  /* if */
           } else {
             /* The operation was successfully folded to a constant. */
+            local_constant.is_reinterpret_cast = is_reinterpret_cast;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
             if (!(curr_expr_kind_is(ek_pp) ||
                   curr_expr_kind_is(ek_template_arg))) {
@@ -2426,7 +2437,8 @@ user-defined conversions.
               local_constant.expr = make_node_from_operand(operand);
               add_cast_to_node(&local_constant.expr, new_type,
                                check_cast_access, is_implicit_cast,
-                               is_reinterpret_cast, &operand->position);
+                               is_reinterpret_cast, reinterpret_semantics,
+                               &operand->position);
               error_threshold = saved_error_threshold;
             }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -2487,7 +2499,8 @@ user-defined conversions.
              C linkage on the function type), adjust the operand. */
           if (operand->type != new_type) {
             cast_operand(new_type, operand, check_cast_access,
-                         is_implicit_cast, is_reinterpret_cast);
+                         is_implicit_cast,
+                         is_reinterpret_cast, reinterpret_semantics);
           }  /* if */
           break;
 #if CHECKING
@@ -2763,7 +2776,7 @@ See 3.2.1.1 in the standard.  The operand must be an rvalue.
 {
   cast_operand(operand_type_after_integral_promotion(operand), operand,
                /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-               /*is_reinterpret_cast=*/FALSE);
+               /*is_reinterpret_cast=*/FALSE, /*reinterpret_semantics=*/FALSE);
 }  /* promote_operand */
 
 
@@ -2827,7 +2840,8 @@ an lvalue, it is converted to an rvalue before doing the promotions.
   } else {
     cast_operand(default_argument_promotion(arg_type),
                  argument_operand, /*check_cast_access=*/TRUE,
-                 /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE);
+                 /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                 /*reinterpret_semantics=*/FALSE);
   }  /* if */
 }  /* arg_default_promote_operand */
 
@@ -3456,12 +3470,14 @@ operator position (for errors).  Return FALSE if there is an error.
       if (*operation_type == operand_1_type) {
         cast_operand(operand_2_type, operand_1, /*check_cast_access=*/TRUE,
                      /*is_implicit_cast=*/FALSE,
-                     /*is_reinterpret_cast=*/FALSE);
+                     /*is_reinterpret_cast=*/FALSE,
+                     /*reinterpret_semantics=*/FALSE);
         *operation_type = operand_2_type;
       } else {
         cast_operand(operand_1_type, operand_2, /*check_cast_access=*/TRUE,
                      /*is_implicit_cast=*/FALSE,
-                     /*is_reinterpret_cast=*/FALSE);
+                     /*is_reinterpret_cast=*/FALSE,
+                     /*reinterpret_semantics=*/FALSE);
         *operation_type = operand_1_type;
       }  /* if */
     }  /* if */
@@ -3483,12 +3499,14 @@ with the type probably determined by determine_arithmetic_conversions.
     if (operand_1->type != type) {
       /* Cast operand 1 to match the desired type. */
       cast_operand(type, operand_1, /*check_cast_access=*/TRUE,
-                   /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE);
+                   /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
     }  /* if */
     if (operand_2->type != type) {
       /* Cast operand 2 to match the desired type. */
       cast_operand(type, operand_2, /*check_cast_access=*/TRUE,
-                   /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE);
+                   /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
     }  /* if */
   }  /* if */
 }  /* change_binary_operand_types */
@@ -5030,6 +5048,7 @@ in *result.
                 /*check_cast_access=*/FALSE,  /* sic */
                 /*is_implicit_cast=*/TRUE,
                 /*is_reinterpret_cast=*/FALSE,
+                /*reinterpret_semantics=*/FALSE,
                 &bound_function_selector->position);
       /* Pass a "this" pointer as the first argument. */
       implicit_this_argument->next = argument_list;
@@ -5932,7 +5951,8 @@ not an lvalue, it is left alone.
                do a cast. */
             cast_operand(cast_orig_type, operand, /*check_cast_access=*/FALSE,
                          /*is_implicit_cast=*/FALSE,
-                         /*is_reinterpret_cast=*/FALSE);
+                         /*is_reinterpret_cast=*/FALSE,
+                         /*reinterpret_semantics=*/FALSE);
           } else {
             /* The cast node can be reused (usual case). */
             operand->type = cast_expr->type = cast_orig_type;
@@ -5976,7 +5996,8 @@ not an lvalue, it is left alone.
              way. */
           cast_operand(new_type, operand, /*check_cast_access=*/TRUE,
                        /*is_implicit_cast=*/TRUE,
-                       /*is_reinterpret_cast=*/FALSE);
+                       /*is_reinterpret_cast=*/FALSE,
+                       /*reinterpret_semantics=*/FALSE);
         }  /* if */
       }  /* if */
       if (curr_expr_kind_is_const() && !constant_case) {
@@ -6107,7 +6128,8 @@ are left alone.
       take_address_of_lvalue(operand);
       cast_operand(ptr_type, operand, /*check_cast_access=*/TRUE,
                    /*is_implicit_cast=*/TRUE,
-                   /*is_reinterpret_cast=*/FALSE);
+                   /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
       /* Restore the original source position, etc.  Keep the
          reference entries because if the pointer to the array is
          used in a subscript operation or the like we would like to
@@ -6553,6 +6575,7 @@ it, and return a pointer to the possibly-modified expression.
                   /*check_cast_access=*/FALSE,
                   /*is_implicit_cast=*/TRUE,
                   /*is_reinterpret_cast=*/FALSE,
+                  /*reinterpret_semantics=*/FALSE,
                   &error_position);
       }  /* if */
     }  /* if */
@@ -6628,7 +6651,8 @@ types to get a boolean expression (see process_boolean_controlling_expression).
         okay = TRUE;
         /* Convert the expression to bool. */
         cast_operand(bool_type(), operand, /*check_cast_access=*/TRUE,
-                     /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE);
+                     /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                     /*reinterpret_semantics=*/FALSE);
       } else {
         error_in_operand(ec_expr_not_bool, operand);
       }  /* if */

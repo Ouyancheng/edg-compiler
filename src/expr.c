@@ -1428,7 +1428,8 @@ The result is placed in *result.
                      operand_1,
                      /*check_cast_access=*/FALSE,
                      /*is_implicit_cast=*/TRUE,
-                     /*is_reinterpret_cast=*/FALSE);
+                     /*is_reinterpret_cast=*/FALSE,
+                     /*reinterpret_semantics=*/FALSE);
         if (!operand_1_is_pointer) {
           /* For the class rvalue case, produce an rvalue again. */
           conv_object_pointer_to_lvalue(operand_1);
@@ -1950,7 +1951,8 @@ qualified_name_check:
           cast_operand(make_pointer_type(class_struct_union_type),
                        operand_1, /*check_cast_access=*/TRUE,
                        /*is_implicit_cast=*/FALSE,
-                       /*is_reinterpret_cast=*/FALSE);
+                       /*is_reinterpret_cast=*/FALSE,
+                       /*reinterpret_semantics=*/FALSE);
           /* Mark the struct or union type as referenced, since a field
              therein has been referenced. */
           orig_class_struct_union_type->source_corresp.referenced = TRUE;
@@ -2047,7 +2049,8 @@ qualified_name_check:
                    operand_1,
                    /*check_cast_access=*/FALSE,
                    /*is_implicit_cast=*/FALSE,
-                   /*is_reinterpret_cast=*/FALSE);
+                   /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
     } else {
       /* Class case. */
       dtor_type = skip_typerefs(dtor_type);
@@ -4499,7 +4502,8 @@ Syntax:
     /* The types are already the same except for qualifiers.  The result
        is just the source cast to the destination type. */
     cast_operand(operation_type, &operand, /*check_cast_access=*/FALSE,
-                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE);
+                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
+                 /*reinterpret_semantics=*/FALSE);
     copy_operand(&operand, result);
   } else if (related_class_pointers(operand_type, operation_type,
                                     &baseward_cast, &bcp) &&
@@ -4623,7 +4627,8 @@ because the feature is used to implement offsetof, a standard feature.
   /* Cast the constant to type size_t. */
   cast_operand(integer_type(targ_size_t_int_kind), result,
                /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-               /*is_reinterpret_cast=*/FALSE);
+               /*is_reinterpret_cast=*/FALSE,
+               /*reinterpret_semantics=*/FALSE);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   /* There is no IL operator for __INTADDR__, so we cannot really record the
      expression that formed the resulting constant. */
@@ -5063,7 +5068,8 @@ specification allow a variable-sized array as the top type.
          type). */
       cast_node(&new_array_dimension, integer_type(targ_size_t_int_kind),
                 /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-                /*is_reinterpret_cast=*/FALSE, &error_position);
+                /*is_reinterpret_cast=*/FALSE, /*reinterpret_semantics=*/FALSE,
+                &error_position);
       if (element_type->size == 1) {
         /* If the element size is 1, skip the multiplication. */
         sizeof_node = new_array_dimension;
@@ -6428,7 +6434,8 @@ to select one of the functions in the overload set.  See [over.over].
                                              &ambiguous) != NULL) {
     /* The cast selects one of the overloaded functions and is valid. */
     cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
-                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE);
+                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
+                 /*reinterpret_semantics=*/FALSE);
   } else {
     /* The cast doesn't select one of the overloaded functions, so it's
        an error. */
@@ -6511,7 +6518,7 @@ C-style casts and C++ functional-notation type conversions.
       }  /* if */
       /* Check for different types of casts and do the cast. */
       if (!err) {
-        a_boolean      is_reinterpret_cast = FALSE;
+        a_boolean      reinterpret_semantics = FALSE;
         a_boolean      operand_is_constant;
         a_constant_ptr operand_con = NULL;
         /* The bound function test is done first to make sure bound functions
@@ -6561,7 +6568,9 @@ C-style casts and C++ functional-notation type conversions.
           conv_function_designator_to_ptr_to_function(operand,
                                                       /*allow_ctor=*/FALSE);
           cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
-                       /*is_implicit_cast=*/FALSE, is_reinterpret_cast);
+                       /*is_implicit_cast=*/FALSE, 
+                       /*is_reinterpret_cast=*/FALSE,
+                       reinterpret_semantics);
         } else if (cast_to_void) {
           /* Cast to (possibly cv-qualified) void. */
           cast_operand_to_void(operand, type_cast_to);
@@ -6569,7 +6578,7 @@ C-style casts and C++ functional-notation type conversions.
                                             (a_boolean)operand->
                                                       is_simple_string_literal,
                                             operand_con, type_cast_to,
-                                            &is_reinterpret_cast,
+                                            &reinterpret_semantics,
                                             ec_bad_cast, &warning_suggested)) {
           /* Valid explicit conversion. */
           if (microsoft_bugs && is_an_lvalue(operand) &&
@@ -6609,7 +6618,9 @@ C-style casts and C++ functional-notation type conversions.
             }  /* if */
             /* Do the actual cast. */
             cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
-                         /*is_implicit_cast=*/FALSE, is_reinterpret_cast);
+                         /*is_implicit_cast=*/FALSE, 
+                         /*is_reinterpret_cast=*/FALSE,
+                         reinterpret_semantics);
             if (cast_to_reference) {
               /* The result of a cast to reference is an lvalue. */
               conv_object_pointer_to_lvalue(operand);
@@ -6770,7 +6781,8 @@ Syntax:
     /* Note that the cast has been turned into pointer form if it was a
        reference cast. */
     cast_operand(operation_type, &operand, /*check_cast_access=*/FALSE,
-                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE);
+                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
+                 /*reinterpret_semantics=*/FALSE);
     copy_operand(&operand, result);
     /* For a cast to a reference type, the result is an lvalue. */
     if (reference_case) {
@@ -6894,7 +6906,8 @@ Syntax:
           /* Do the actual cast. */
           cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,
                        /*is_implicit_cast=*/FALSE,
-                       /*is_reinterpret_cast=*/FALSE);
+                       /*is_reinterpret_cast=*/FALSE,
+                       /*reinterpret_semantics=*/FALSE);
           if (cast_to_reference) {
             /* The result of a cast to reference is an lvalue. */
             conv_object_pointer_to_lvalue(result);
@@ -7006,7 +7019,8 @@ Syntax:
         }  /* if */
         /* Do the actual cast. */
         cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,
-                     /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/TRUE);
+                     /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/TRUE,
+                     /*reinterpret_semantics=*/TRUE);
         if (cast_to_reference) {
           /* The result of a cast to reference is an lvalue. */
           conv_object_pointer_to_lvalue(result);
@@ -7434,7 +7448,8 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
              which is to say zero converted to the type. */
           cast_operand(type_cast_to, result, /*check_cast_access=*/FALSE,
                        /*is_implicit_cast=*/FALSE,
-                       /*is_reinterpret_cast=*/FALSE);
+                       /*is_reinterpret_cast=*/FALSE,
+                       /*reinterpret_semantics=*/FALSE);
         }  /* if */
       }  /* if */
     } else {
@@ -7503,12 +7518,14 @@ symmetrical, e.g., "i + l" does not yield an int.
     if (c1 != t1) {
       cast_operand(integer_type(c1), operand_1,
                    /*check_cast_access=*/FALSE, /*is_implicit_cast=*/TRUE,
-                   /*is_reinterpret_cast=*/FALSE);
+                   /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
     }  /* if */
     if (c2 != t2) {
       cast_operand(integer_type(c2), operand_2,
                    /*check_cast_access=*/FALSE, /*is_implicit_cast=*/TRUE,
-                   /*is_reinterpret_cast=*/FALSE);
+                   /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
     }  /* if */
   }  /* if */
 }  /* adjust_operands_for_microsoft_int_long_bug */
@@ -7926,7 +7943,8 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
       change_binary_operand_types(result_type, operand_1, &operand_2);
       cast_operand(integer_type((an_integer_kind)ik_int), &operand_2,
                    /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-                   /*is_reinterpret_cast=*/FALSE);
+                   /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
     } else {
       /* ANSI rules just call for the integral promotions; the type of
          the result is the type of the left operand. */
@@ -8627,7 +8645,8 @@ standard.
       make_integer_constant_operand(result, local_result);
       /* Cast if necessary (e.g., to bool). */
       cast_operand(result_type, result, /*check_cast_access=*/TRUE,
-                   /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE);
+                   /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
       if (!is_constant_operand(&operand_2) ||
           operand_2.variant.constant.null_pointer_constant_ruled_out ||
           operand_1->variant.constant.null_pointer_constant_ruled_out) {
@@ -9760,7 +9779,8 @@ See section 3.3.16 of the standard.
             cast_operand(integer_type((an_integer_kind)ik_int), &operand_2,
                          /*check_cast_access=*/TRUE,
                          /*is_implicit_cast=*/TRUE,
-                         /*is_reinterpret_cast=*/FALSE);
+                         /*is_reinterpret_cast=*/FALSE,
+                         /*reinterpret_semantics=*/FALSE);
           } else {
             /* Not pcc mode. */
             /* These operations do integral promotions instead of the usual
@@ -9777,14 +9797,16 @@ See section 3.3.16 of the standard.
                                                             &operand_2);
           cast_operand(operation_type, &operand_2, /*check_cast_access=*/TRUE,
                        /*is_implicit_cast=*/TRUE,
-                       /*is_reinterpret_cast=*/FALSE);
+                       /*is_reinterpret_cast=*/FALSE,
+                       /*reinterpret_semantics=*/FALSE);
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (property_ref_case) {
           cast_operand(operation_type, operand_1,
                        /*check_cast_access=*/TRUE,
                        /*is_implicit_cast=*/TRUE,
-                       /*is_reinterpret_cast=*/FALSE);
+                       /*is_reinterpret_cast=*/FALSE,
+                       /*reinterpret_semantics=*/FALSE);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         build_binary_result_operand(operand_1, &operand_2,
@@ -11518,7 +11540,8 @@ in a switch statement if is_switch_expr is TRUE.
          ANSI C in that even long is cast to int. */
       cast_operand(integer_type((an_integer_kind)ik_int), operand,
                    /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-                   /*is_reinterpret_cast=*/FALSE);
+                   /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
     }  /* if */
   }  /* if */
 }  /* process_integer_expression */

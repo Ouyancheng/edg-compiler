@@ -892,7 +892,8 @@ extern void cast_operand(a_type_ptr new_type,
 		         an_operand *operand,
                          a_boolean  check_cast_access,
 		         a_boolean  is_implicit_cast,
-                         a_boolean  is_reinterpret_cast);
+                         a_boolean  is_reinterpret_cast,
+                         a_boolean  reinterpret_semantics);
 
 extern void conv_selector_to_object_pointer(an_operand *operand,
                                             a_boolean  *is_arrow_operator);
@@ -994,6 +995,7 @@ extern void cast_node(an_expr_node_ptr  *node,
                       a_boolean         check_cast_access,
 		      a_boolean         is_implicit_cast,
                       a_boolean         is_reinterpret_cast,
+                      a_boolean         reinterpret_semantics,
                       a_source_position *err_pos);
 
 extern a_type_ptr operand_type_after_integral_promotion(an_operand *operand);

@@ -1,5 +1,25 @@
 Version 2.43
 
+12/2/99  is_reinterpret_cast flag in IL an_expr_node entry
+
+The operation variant of an_expr_node now has an is_reinterpret_cast flag
+indicating that a reinterpret_cast was used in the source form for the cast
+(see Changes entry of 11/8/99 for the similar flag in a_constant entries).
+The C++-generating back end was adapted to use this flag to avoid generating
+reinterpret_cast constructs when the original source construct was a C-style
+cast.  For example:
+
+  struct R;
+  struct CR;
+  struct X {
+    CR *p;
+    R* mf() const { return (R*)this->p; }
+  };
+  struct CR: R {};
+
+The cast in X::mf() used to be issued by the C++ generating back-end as a
+reinterpret_cast.  It is now preserved as a C-style cast.
+
 12/2/99  Sun compatibility: undeclared template allowed in friend declaration
 
 The library header files that come with the Sun 5.0 compiler include code

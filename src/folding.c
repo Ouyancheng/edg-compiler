@@ -777,7 +777,6 @@ type.
       (*err_code == ec_no_error || *err_severity != es_error)) {
     copy_constant(old_constant, new_constant);
     implicit_cast(new_constant, new_type);
-    if (is_reinterpret_cast) new_constant->is_reinterpret_cast = TRUE;
   }  /* if */
 }  /* conv_pointer_to_whatever */
 

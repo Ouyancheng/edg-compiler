@@ -5934,6 +5934,10 @@ typedef struct an_expr_node {
 			   than explicitly present in the source program.
 			   Used in particular for casts. */
       a_bit_field
+		is_reinterpret_cast:1;
+			/* TRUE when the operation was a reinterpret_cast
+			   in the source.  (Only applies to C++.) */
+      a_bit_field
 		implicit_in_member_naming:1;
 			/* TRUE for a base class cast that is implicit in
 			   the name used in referring to a class member. */

@@ -1768,7 +1768,7 @@ passed by reference.  *err_pos is the source position for diagnostics.
     }  /* if */
     cast_node(&source_expr, tp, /*check_cast_access=*/TRUE,
               /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-              err_pos);
+              /*reinterpret_semantics=*/FALSE, err_pos);
   }  /* if */
   /* Calls generated are non-virtual; see 12.8/13 in the C++ standard. */
   sp = make_call_assignment_statement(rp, /*suppress_virtual=*/TRUE,
@@ -1973,10 +1973,12 @@ operator routine or do bitwise assignment.
                  pointer-to-array to pointer-to-array-element. */
               cast_node(&source_expr, make_pointer_type(tp),
                         /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-                        /*is_reinterpret_cast=*/FALSE, err_pos);
+                        /*is_reinterpret_cast=*/FALSE,
+                        /*reinterpret_semantics=*/FALSE, err_pos);
               cast_node(&dest_expr, make_pointer_type(tp),
                         /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-                        /*is_reinterpret_cast=*/FALSE, err_pos);
+                        /*is_reinterpret_cast=*/FALSE,
+                        /*reinterpret_semantics=*/FALSE, err_pos);
               /* Add the subscript to the source_expr. */
               source_expr->next = var_rvalue_expr(temp_var);
               source_expr =

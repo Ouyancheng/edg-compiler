@@ -330,7 +330,8 @@ static void gen_cast(a_type_ptr type);
 static void gen_full_cast(a_type_ptr            dest_type,
                           an_expr_node_ptr      expr,
                           a_boolean             is_lvalue,
-                          an_expr_operator_kind op);
+                          an_expr_operator_kind op,
+                          a_boolean             is_reinterpret_cast);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens);
 /* Interfaces to gen_expr for the usual cases. */
@@ -4339,7 +4340,8 @@ precedence confusion and need_parens is TRUE.
                   type_copy = *dest_type;
                   type_copy.variant.pointer.is_reference = TRUE;
                   if (need_parens) write_tok_ch('(');
-                  gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE, op);
+                  gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE, op,
+                                node->variant.operation.is_reinterpret_cast);
                   if (need_parens) write_tok_ch(')');
                   processed = TRUE;
                 }  /* if */
@@ -4464,50 +4466,15 @@ Generate a cast to the indicated type.
 static void gen_full_cast(a_type_ptr            dest_type,
                           an_expr_node_ptr      expr,
                           a_boolean             is_lvalue,
-                          an_expr_operator_kind op)
+                          an_expr_operator_kind op,
+                          a_boolean             is_reinterpret_cast)
 /*
 Generate a cast of expr to the type dest_type.  expr is an lvalue if
 is_lvalue is TRUE.  op is the expression operator for the cast.  Usually,
 the output is an old-style cast, but a reinterpret_cast is put out
-when appropriate.
+when is_reinterpret_cast is TRUE.
 */
 {
-  a_boolean  is_reinterpret_cast = FALSE;
-  a_type_ptr source_type = expr->type;
-
-  if (op == (an_expr_operator_kind)eok_cast &&
-      il_header.source_language == sl_Cplusplus) {
-    /* Look for casts involving related classes.  They are
-       reinterpret_casts. */
-    a_type_ptr underlying_source_type = NULL, underlying_dest_type = NULL;
-    if (is_lvalue) {
-      underlying_source_type = type_pointed_to(source_type);
-      underlying_dest_type   = type_pointed_to(dest_type);
-    } else {
-      if (is_pointer_type(source_type) && is_pointer_type(dest_type)) {
-        underlying_source_type = type_pointed_to(source_type);
-        underlying_dest_type   = type_pointed_to(dest_type);
-      } else if (is_ptr_to_member_type(source_type) &&
-                 is_ptr_to_member_type(dest_type)) {
-        underlying_source_type = pm_class_type(source_type);
-        underlying_dest_type   = pm_class_type(dest_type);
-      }  /* if */
-    }  /* if */
-    if (underlying_source_type != NULL) {
-      /* A cast between pointers or pointers to members.  See if the
-         underlying types are related classes. */
-      if (is_class_struct_union_type(underlying_source_type) &&
-          is_class_struct_union_type(underlying_dest_type) &&
-          (find_base_class_of_full(underlying_source_type,
-                                   underlying_dest_type,
-                                   /*instantiate_if_necessary=*/FALSE)!=NULL ||
-           find_base_class_of_full(underlying_dest_type,
-                                   underlying_source_type,
-                                   /*instantiate_if_necessary=*/FALSE)!=NULL)){
-        is_reinterpret_cast = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
   if (is_reinterpret_cast) {
     write_tok_str("reinterpret_cast<");
     gen_type(dest_type);
@@ -4941,7 +4908,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             }  /* if */
           } else {
             gen_full_cast(expr->type, operand_1, /*is_lvalue=*/FALSE,
-                          (an_expr_operator_kind)eok_cast);
+                          (an_expr_operator_kind)eok_cast,
+                          expr->variant.operation.is_reinterpret_cast);
           }  /* if */
           goto done_with_operation;
         case eok_base_class_cast:

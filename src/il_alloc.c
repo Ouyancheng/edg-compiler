@@ -1645,6 +1645,7 @@ fields to default values.
       node->variant.operation.kind = (an_expr_operator_kind)eok_last;
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       node->variant.operation.compiler_generated = FALSE;
+      node->variant.operation.is_reinterpret_cast = FALSE;
       node->variant.operation.implicit_in_member_naming = FALSE;
       node->variant.operation.implicit_step_of_explicit_cast = FALSE;
 #if CHECKING
