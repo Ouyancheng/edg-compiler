@@ -4870,9 +4870,9 @@ the condition in which the access error should be suppressed.
 
 
 void reference_to_implicitly_invoked_function
-				(a_symbol_ptr       sym,
-                                 a_source_position  *err_pos,
-				 a_type_ptr         class_of_object,
+                                (a_symbol_ptr       sym,
+                                 a_source_position  *pos,
+                                 a_type_ptr         class_of_object,
                                  a_boolean          honor_virtual,
                                  a_boolean          evaluated,
                                  a_boolean          suppress_access_check)
@@ -4921,11 +4921,11 @@ checking is done.
         severity = es_warning;
       }  /* if */
       pos_sy_diagnostic(severity, ec_inaccessible_special_function,
-                        err_pos, sym);
+                        pos, sym);
     } else if (class_of_object != NULL) {
       /* Protected members of a base class can only be accessed through an
          object of a derived class. */
-      check_protected_member_access(sym, err_pos, class_of_object);
+      check_protected_member_access(sym, pos, class_of_object);
     }  /* if */
   }  /* if */
   if (!evaluated) {
@@ -4936,6 +4936,9 @@ checking is done.
   } else {
     /* Non-virtual call. */
     mark_routine_referenced(rp);
+    /* Update the symbol and the cross-reference listing. */
+    reference_to_symbol((SRK_REFERENCE | SRK_USE | SRK_IMPLICIT), sym, pos,
+                         /*update_il_entry=*/FALSE);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 
