@@ -1050,6 +1050,30 @@ need not be addressed here.
 }  /* is_prototyped_parameter_list_start */
 
 
+static a_boolean current_scope_is_class(a_type_ptr type)
+/*
+Determine whether the current scope is the class scope of the given class
+type.  For templates, use the class template scope.
+*/
+{
+  a_boolean result;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+
+  if (ssep->kind == (a_scope_kind)sck_template_declaration ||
+      ssep->kind == (a_scope_kind)sck_template_instantiation) {
+    --ssep;
+  }  /* if */
+  if ((ssep->kind == (a_scope_kind)sck_class_struct_union ||
+       ssep->kind == (a_scope_kind)sck_class_reactivation) &&
+      ssep->assoc_type == type) {
+    result = TRUE;
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+} /* current_scope_is_class */
+
+
 static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_func_info_block *func_info,
                                 a_symbol_locator  *locator,
@@ -1830,10 +1854,7 @@ declaration.
         /* Cv-qualifier is allowed on a member function only. */
         qualifier_err = TRUE;
       } else if (!is_nonstatic_member_function &&
-                 scope_stack[decl_scope_level].kind ==
-                                 (a_scope_kind)sck_class_struct_union &&
-                 scope_stack[decl_scope_level].assoc_type ==
-                                 member_function_parent_type) {
+                 current_scope_is_class(member_function_parent_type)) {
         /* This must be the declaration of a static member function inside
            its class definition.  "const" and "volatile" are not allowed,
            but with Cfront it's sometimes okay (depending on the return type!)
@@ -1859,7 +1880,12 @@ declaration.
         this_param_type = make_qualified_type(member_function_parent_type,
                                               qualifiers);
       }  /* if */
-      if (qualifier_err) {
+      if (qualifier_err && 
+          scope_stack[depth_scope_stack].kind !=
+                                   (a_scope_kind)sck_template_instantiation) {
+        /* The qualifier was not allowed here, but if we're parsing an
+           instantiation, the error was already emitted when parsing the
+           template declaration. */
         pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
       }  /* if */
     }  /* if */

@@ -1,5 +1,18 @@
 Version 2.43
 
+8/19/99  Diagnose cv-qualifiers on static member function templates
+
+The front end now diagnoses const- and volatile qualified static member
+function templates.  Previously, the front end would silently ignore the
+"static" character of the member function.
+
+  struct S {
+    template<class T> static void f() const {} // Error on const.
+  };
+  int main() {
+    S::f<void>();  // Fine (used to be an error because S::f was
+  }                //       considered nonstatic).
+
 8/19/99  Throw specifications allowed on explicit instantiation directives
 
 The front end now allows throw specifications to be specified on explicit
