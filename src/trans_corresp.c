@@ -2804,6 +2804,24 @@ given enum type.
 }  /* establish_trans_unit_correspondences_for_enum */
 
 
+static a_boolean is_main_function(a_routine_ptr  routine)
+/*
+Return TRUE if and only if the given entry describes a global scope "main"
+routine.
+*/
+{
+  a_boolean                    result = FALSE;
+  a_source_correspondence_ptr  scp = &routine->source_corresp;
+  a_symbol_ptr                 sym = (a_symbol_ptr)scp->assoc_info;
+
+  if (sym != NULL &&
+      !scp->is_class_member && scp->parent.namespace_ptr == NULL) {
+    result = (strcmp(sym->header->identifier, "main") == 0);
+  }  /* if */
+  return result;
+}  /* is_main_function */
+
+
 static a_boolean routine_has_instance_ptr(a_routine_ptr  routine)
 /*
 Return TRUE if the given routine has an associated symbol and if so if
@@ -3024,10 +3042,19 @@ are not checked.
         for (; rle != NULL && corresp_rle != NULL;
              rle = skip_generated_friend_routine(rle->next),
              corresp_rle = skip_generated_friend_routine(corresp_rle->next)) {
-          if ((trans_unit_corresp_of(rle->routine) == NULL ||
-               trans_unit_corresp_of(corresp_rle->routine) == NULL) &&
-              !rle->routine->source_corresp.is_class_member &&
-              !corresp_rle->routine->source_corresp.is_class_member) {
+          a_routine_ptr  routine = rle->routine,
+                         corresp_routine = corresp_rle->routine;
+          /* This may be the only opportunity to set a correspondence. */
+          if ((trans_unit_corresp_of(routine) == NULL ||
+               trans_unit_corresp_of(corresp_routine) == NULL) &&
+              !routine->source_corresp.is_class_member &&
+              !corresp_routine->source_corresp.is_class_member &&
+              (param_types_are_compatible(
+                                       routine->type, corresp_routine->type,
+                                       TCF_REDECLARATION | TCF_SEEK_CORRESP) ||
+               /* The function ::main doesn't overload. */
+               (is_main_function(routine) &&
+                is_main_function(corresp_routine)))) {
             set_trans_unit_corresp(iek_routine,
                                    rle->routine, corresp_rle->routine);
           }  /* if */
@@ -3949,24 +3976,6 @@ entities.
     }  /* if */
   }  /* if */
 }  /* find_template_correspondence */
-
-
-static a_boolean is_main_function(a_routine_ptr  routine)
-/*
-Return TRUE if and only if the given entry describes a global scope "main"
-routine.
-*/
-{
-  a_boolean                    result = FALSE;
-  a_source_correspondence_ptr  scp = &routine->source_corresp;
-  a_symbol_ptr                 sym = (a_symbol_ptr)scp->assoc_info;
-
-  if (sym != NULL &&
-      !scp->is_class_member && scp->parent.namespace_ptr == NULL) {
-    result = (strcmp(sym->header->identifier, "main") == 0);
-  }  /* if */
-  return result;
-}  /* is_main_function */
 
 
 static void find_routine_correspondence(a_routine_ptr  routine)
