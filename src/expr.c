@@ -4397,6 +4397,7 @@ specification allow a variable-sized array as the top type.
   a_symbol_ptr      proj_function_symbol;
   a_routine_ptr     ctor_routine;
   a_boolean         needs_initialization, trapped_left_paren;
+  a_boolean         zero_initialization;
   an_expr_node_ptr  arg_expr_list, init_arg_expr_list, init_val_node;
   a_constant        sizeof_constant;
   an_arg_operand_ptr
@@ -4521,8 +4522,8 @@ specification allow a variable-sized array as the top type.
     }  /* if */
     err = TRUE;
   } else if (is_abstract_class_type(new_type)) {
-    /* The type is an abstract class type or a type that contains one,
-       so an object of the type cannot be allocated. */
+    /* The type is an abstract class type, so an object of the type
+       cannot be allocated. */
     pos_error(ec_abstract_class_object_not_allowed, &type_position);
     err = TRUE;
   } else {
@@ -4712,55 +4713,91 @@ specification allow a variable-sized array as the top type.
      scan the initializer (if there is one) even if an error was detected
      above. */
   needs_initialization = FALSE;
+  zero_initialization = FALSE;
   ctor_routine = NULL;
-  if (ctor_sym != NULL) {
-    /* Class with a constructor.  Initialization is required. */
-    /* Develop the dynamic init entry, if any, used to free storage
-       if an exception is thrown before the initialization is finished.
-       This must be done after it has been determined that initialization
-       is required, but before the initialization is actually processed. */
-    determine_deletion_for_throw_before_new_init_done();
-    if (curr_token == tok_lparen) {
-      /* There is a new-initializer.  It's treated as a constructor call. */
-      a_source_position  lparen_pos;
-      copy_source_position(pos_curr_token, lparen_pos);
-      (void)get_token();
-      if (array_new) {
-        /* No initializer may be specified for an array type. */
-        pos_error(ec_initializer_not_allowed_on_array_new, &lparen_pos);
-        err = TRUE;
+  init_val_node = NULL;
+  if (curr_token != tok_lparen) {
+    /* No new-initializer is present. */
+    if (is_class_struct_union_type(base_new_type) &&
+        !symbol_supplement_for_class(base_new_type)->is_POD) {
+      /* A non-POD class (or array thereof), with no new-initializer. */
+      a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
+      /* Look for a default constructor. */
+      if (ctor_sym != NULL) {
+        /* The class has one or more nontrivial constructors.  Look for
+           a default constructor.  The call issues an error and returns NULL
+           if no default constructor is found. */
+        /* Develop the dynamic init entry, if any, used to free storage
+           if an exception is thrown before the initialization is finished.
+           This must be done after it has been determined that initialization
+           is required, but before the initialization is actually processed. */
+        determine_deletion_for_throw_before_new_init_done();
+        ctor_routine = select_default_constructor(base_new_type,
+                                                  &type_position,
+                                                  base_new_type,
+                                         curr_expr_is_potentially_evaluated());
+        init_arg_expr_list = NULL;
+        if (ctor_routine != NULL) {
+          needs_initialization = TRUE;
+          /* Provide default arguments if any. */
+          init_arg_expr_list = copy_default_arg_expr_list(
+                skip_typerefs(ctor_routine->type)->variant.routine.extra_info->
+                                                              param_type_list);
+          do_const_test = TRUE;
+          is_generated_ctor = ctor_routine->compiler_generated;
+        }  /* if */
+      } else if (reference_to_trivial_default_constructor(base_new_type,
+                                                          &type_position)) {
+        /* The class has an assumed trivial default constructor. */
+        do_const_test = TRUE;
+        is_generated_ctor = TRUE;
+      } else {
+        unexpected_condition_str(
+       "scan_new_operator: non-POD class has neither actual not assumed ctor");
       }  /* if */
-      /* No need to add tok_rparen to the stop tokens set: it's done by
-         scan_ctor_arguments. */
+      if (do_const_test) {
+        /* When the initializer is omitted on a "new" of a const class
+           object, the default constructor is required to be explicitly
+           declared; it can't be implicit. */
+        if (is_generated_ctor && is_const_qualified_type(new_type)) {
+          type_error(ec_missing_default_constructor_on_unnamed_const,
+                     unqual_base_new_type);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+    } else {
+      /* Non-class type, or POD class, with no new-initializer.  Check for
+         error cases like const entities not being initialized. */
+      if (!err) check_for_missing_initializer((a_symbol_ptr)NULL, new_type);
+    }  /* if */
+  } else {
+    /* A new-initializer is present. */
+    a_source_position lparen_pos;
+    lparen_pos = pos_curr_token;
+    /* Advance past the "(". */
+    (void)get_token();
+    /* No need to add tok_rparen to the stop tokens set: it's done by
+       scan_ctor_arguments or scan_parenthesized_initializer_expression. */
+    if (array_new && curr_token != tok_rparen) {
+      /* No initializer except "()" may be specified for an array type. */
+      error(ec_initializer_not_allowed_on_array_new);
+      err = TRUE;
+    }  /* if */
+    if (ctor_sym != NULL) {
+      /* Class with a (nontrivial) constructor. */
+      /* Develop the dynamic init entry, if any, used to free storage
+         if an exception is thrown before the initialization is finished.
+         This must be done after it has been determined that initialization
+         is required, but before the initialization is actually processed. */
+      determine_deletion_for_throw_before_new_init_done();
       /* Scan the constructor arguments. */
       scan_ctor_arguments(ctor_sym, &init_arg_expr_list, &ctor_routine,
                           &lparen_pos, base_new_type);
       /* In the array case (an error), throw away the argument list. */
       if (array_new) init_arg_expr_list = NULL;
+      needs_initialization = (ctor_routine != NULL);
     } else {
-      /* There is no new-initializer, so a default constructor should exist. */
-      ctor_routine = select_default_constructor(base_new_type, &type_position,
-						base_new_type,
-                                         curr_expr_is_potentially_evaluated());
-      init_arg_expr_list = NULL;
-      if (ctor_routine != NULL) {
-        /* Provide default arguments if any. */
-        init_arg_expr_list = copy_default_arg_expr_list(
-                skip_typerefs(ctor_routine->type)->variant.routine.extra_info->
-                                                              param_type_list);
-      }  /* if */
-    }  /* if */
-    needs_initialization = (ctor_routine != NULL);
-  } else {
-    /* Not a class with a constructor.  The new-initializer is optional. */
-    if (curr_token == tok_lparen) {
-      /* The new-initializer is present. */
-      (void)get_token();
-      if (array_new) {
-        /* No initializer may be specified for an array type. */
-        error(ec_initializer_not_allowed_on_array_new);
-        err = TRUE;
-      }  /* if */
+      /* Not a class with a constructor. */
       if (curr_token != tok_rparen) {
         /* The new-initializer is not empty.  Scan it. */
         /* Develop the dynamic init entry, if any, used to free storage
@@ -4774,15 +4811,13 @@ specification allow a variable-sized array as the top type.
                                                       ec_bad_initializer_type);
         needs_initialization = TRUE;
       } else {
-        /* The initializer is empty, i.e., "()".  This means no initialization.
-           Note that "()" for class types with constructors is handled
-           above. */
+        /* The initializer is empty, i.e., "()".  This means
+           zero-initialization. Note that "()" for class types with
+           (nontrivial) constructors is handled above. */
         (void)get_token();
+        needs_initialization = TRUE;
+        zero_initialization = TRUE;
       }  /* if */
-    } else {
-      /* No new-initializer is present.  Check for error cases like const
-         entities not being initialized. */
-      if (!err) check_for_missing_initializer((a_symbol_ptr)NULL, new_type);
     }  /* if */
   }  /* if */
   expr_stack->inside_conditional_expression =
@@ -4839,6 +4874,9 @@ specification allow a variable-sized array as the top type.
                                                      base_new_type,
                                                     effective_num_of_elements);
         }  /* if */
+      } else if (zero_initialization) {
+        /* Zero-initialization. */
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
       } else {
         /* Expression as initial value. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
@@ -6392,8 +6430,8 @@ See _expr.type.conv_ in the WP.
         pos_error(ec_expr_not_constant, &lparen_pos);
         make_error_operand(result);
       } else if (is_reference_type(type_cast_to)) {
-        /* Disallow a cast to a reference type without operands; this may
-           or may not turn out to be allowed by the standard for C++. */
+        /* Disallow a cast to a reference type without operands; you
+           can't default-initialize a reference. */
         pos_error(ec_bad_cast, &lparen_pos);
         make_error_operand(result);
       } else if (is_void_type(type_cast_to)) {
