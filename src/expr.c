@@ -2265,7 +2265,7 @@ nonstatic_member_function:
         case sk_constant:
           /* Member constant (e.g., an enumerator). */
           discard_operand(operand_1);
-          make_constant_operand(member_sym->variant.constant, result);
+          make_sym_constant_operand(member_sym, result);
           break;
         case sk_type:
         case sk_class_or_struct_tag:
@@ -6532,7 +6532,7 @@ bound_function_selector to the associated "this" pointer.
       switch (sym_ptr->kind) {
         case sk_constant:
           /* Constant (e.g., an enum constant).  Make a constant operand. */
-          make_constant_operand(sym_ptr->variant.constant, result);
+          make_sym_constant_operand(sym_ptr, result);
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* In an integral constant expression, check that the constant is
                integral.  This is needed for nontype template arguments.
@@ -7692,6 +7692,12 @@ Return the constant in *constant.
                              ec_bad_nontype_template_arg);
     /* Make a constant from the operand. */
     extract_constant_from_operand(&result, constant);
+    /* If the template parameter has a reference type, give the constant
+       a reference type (instead of the pointer type it has). */
+    if (is_reference_type(param_type) && !is_error_operand(&result)) {
+      check_assertion(is_pointer_type(constant->type));
+      constant->type = param_type;
+    }  /* if */
     /* Make the sure that the constant does not use any local variables,
        etc., since the template will be created at the file scope. */
     if (constant_references_non_external_entity(constant)) {

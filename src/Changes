@@ -1,5 +1,16 @@
 Version 2.16
 
+4/5/93  Nontype template parameters of reference type
+
+These now work correctly.  For example:
+
+  template <int& I> struct A {
+     void f() {int j = I;}
+  };
+  int j;
+  A<j> b;
+
+
 4/5/93  Error checking for template static data members
 
 An error is now issued if the template definition of a static
