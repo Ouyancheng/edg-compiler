@@ -105,13 +105,14 @@ static a_source_file_ptr
 		curr_output_file;
 static a_line_number
 		curr_output_line;
-static a_seq_number
-		curr_output_seq_number;
 static unsigned long
 		curr_output_column;
 			/* The number of characters written to the current
 			   line of output.  Zero means nothing has been
 			   written so far. */
+static a_boolean
+		curr_output_pos_known;
+			/* TRUE if the current output position is known. */
 static a_boolean
 		output_position_is_pending;
 			/* TRUE if desired_output_position has been set to
@@ -1106,7 +1107,6 @@ End the current line of output.
     str_catastrophe(ec_file_write_error, "generated C output");
   }  /* if */
   curr_output_line++;
-  curr_output_seq_number++;
   curr_output_column = 0;
 }  /* end_output_line */
 
@@ -1117,12 +1117,10 @@ End the current output line if it has been begun.
 { if (curr_output_column != 0) end_output_line(); }
 
 
-static void write_line_directive(a_seq_number      seq,
-                                 a_line_number     line_number,
+static void write_line_directive(a_line_number     line_number,
                                  a_source_file_ptr new_output_file)
 /*
-Write a #line directive for the indicated sequence number, line number, and
-file.
+Write a #line directive for the indicated line number and file.
 */
 {
 #if STANDALONE_UTILITY_PROGRAM
@@ -1134,6 +1132,7 @@ file.
   /* End the previous line if there is one. */
   end_output_line_if_begun();
   curr_output_line = line_number;
+  curr_output_pos_known = TRUE;
   if (gen_old_style_line_dirs) {
     /* Generate old-style directives, i.e., the kind output by the Reiser
        cpp. */
@@ -1141,7 +1140,6 @@ file.
   } else {
     (void)fprintf(f_C_output, "#line %lu", curr_output_line);
   }  /* if */
-  curr_output_seq_number = seq;
   if (new_output_file != curr_output_file) {
     /* The file name is put out only if it changed. */
     char *p;
@@ -1200,13 +1198,13 @@ file to the proper location, which may involve a #line directive, etc.
       /* We're still in the same file as last time.  See if we're close enough
          that we can advance there by spacing.  If not, use a #line
          directive. */
-      if (curr_output_seq_number > seq) {
+      if (curr_output_line > line_number) {
         /* We're already too far (we're backing up -- curious, but easy
            to handle). */
         line_directive_needed = TRUE;
       } else {
         /* We're going forward.  How far? */
-        if (seq > curr_output_seq_number + 5) {
+        if (line_number > curr_output_line + 5) {
           /* More than 5 lines (arbitrary) -- use a #line directive. */
           line_directive_needed = TRUE;
         }  /* if */
@@ -1214,10 +1212,10 @@ file to the proper location, which may involve a #line directive, etc.
     }  /* if */
     if (line_directive_needed) {
       /* Write a #line directive for the new line position. */
-      write_line_directive(seq, line_number, new_output_file);
+      write_line_directive(line_number, new_output_file);
     } else {
-      check_assertion(seq >= curr_output_seq_number);
-      while (seq > curr_output_seq_number) {
+      check_assertion(line_number >= curr_output_line);
+      while (line_number > curr_output_line) {
         /* Write blank lines until we get to the right line. */
         end_output_line();
       }  /* while */
@@ -1309,11 +1307,10 @@ it is too long).  If line wrapping is disabled, do nothing.
 */
 {
   if (!line_wrapping_disabled) {
-    if (curr_output_seq_number != 0) {
+    if (curr_output_pos_known) {
       /* Continue by emitting a #line directive to repeat the current line
          number. */
-      write_line_directive(curr_output_seq_number, curr_output_line,
-                           curr_output_file);
+      write_line_directive(curr_output_line, curr_output_file);
     } else {
       /* The current line number is unknown, so do not use a #line
          directive.  Just start a new line. */
@@ -7061,8 +7058,7 @@ Generate C++ or C from the intermediate language.
      source file contains #line directives, start with the file indicated
      therein as the primary file. */
   prim_source_file = eff_primary_source_file();
-  write_line_directive(prim_source_file->first_seq_number,
-                       prim_source_file->first_line_number,
+  write_line_directive(prim_source_file->first_line_number,
                        prim_source_file);
 
   /* Process all the file scope entities (and the rest, too, as the
@@ -7092,8 +7088,8 @@ Initialize for the C++/C-generating back end.
   /* Output position is unknown. */
   curr_output_file = NULL;
   curr_output_line = 0;
-  curr_output_seq_number = 0;
   curr_output_column = 0;  /* Special value meaning there is no output line. */
+  curr_output_pos_known = FALSE;
   output_position_is_pending = FALSE;
   curr_source_sequence_entry = NULL;
   sublist_parent_source_sequence_entry = NULL;
