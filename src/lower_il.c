@@ -14694,6 +14694,28 @@ when a base class return type is needed.  Definitions will be put out later.
                                                          adjustment_bcp,
                                                          delta,
                                                          vcall_index);
+#if IA64_ABI
+          /* Add thunks for any alternate entry points. */
+          if (routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+              routine->special_kind ==
+                                    (a_special_function_kind)sfk_destructor) {
+            a_routine_list_entry_ptr rlep;
+            for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
+                 rlep != NULL;
+                 rlep = rlep->next) {
+              a_routine_ptr arout = rlep->routine, arouto;
+              arouto = alternate_entry_point(ovf->primary_function,
+                                             arout->ctor_dtor_kind,
+                                             /*define_now=*/FALSE);
+              (void)make_covariant_return_type_entry_routine(arout,
+                                                             arouto,
+                                                             adjustment_bcp,
+                                                             delta,
+                                                             vcall_index);
+            }  /* for */
+          }  /* if */
+#endif /* IA64_ABI */
         }  /* if */
       }  /* if */
     }  /* for */
@@ -14946,6 +14968,15 @@ Do IL lowering of the indicated scope and everything under it.
       set_up_routine_for_inlining(scope);
     }  /* if */
 #endif /* MINIMAL_INLINING */
+#if IA64_ABI
+    if ((routine->special_kind == (a_special_function_kind)sfk_constructor ||
+         routine->special_kind == (a_special_function_kind)sfk_destructor) &&
+        routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
+      /* Create all the alternate entry points for a constructor or
+         destructor, and give them definitions. */
+      create_alternate_entry_points(routine, /*define_now=*/TRUE);
+    }  /* if */
+#endif /* IA64_ABI */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
     if (routine->
 #if IA64_ABI
@@ -14961,15 +14992,6 @@ Do IL lowering of the indicated scope and everything under it.
       add_covariant_return_type_entry_routines(scope->variant.routine.ptr);
     }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if IA64_ABI
-    if ((routine->special_kind == (a_special_function_kind)sfk_constructor ||
-         routine->special_kind == (a_special_function_kind)sfk_destructor) &&
-        routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
-      /* Create all the alternate entry points for a constructor or
-         destructor, and give them definitions. */
-      create_alternate_entry_points(routine, /*define_now=*/TRUE);
-    }  /* if */
-#endif /* IA64_ABI */
   }  /* if */
   if (scope_kind != (a_scope_kind)sck_file) pop_context();
   innermost_function_scope = saved_innermost_function_scope;
