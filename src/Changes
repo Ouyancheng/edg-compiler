@@ -1,5 +1,16 @@
 Version 2.30
 
+10/6/95  Qualifier on parameter variable of template function
+
+A bug has been fixed in setting the qualifiers on the type of the parameter
+variable in an instantiated template function.  For example:
+
+  template <class T> T f(const T t) { return ++t; }
+  int main() {
+    int i;
+    (void)f(i);        // Error is now issued on instantiation of f(int):
+  }                    //   ++t is illegal because t is const
+
 10/5/95  C++-generating back end: pragmas on dependent statements
 
 A problem in the C++-generating back end has been corrected.  It caused
