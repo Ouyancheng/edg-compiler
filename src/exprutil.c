@@ -3931,12 +3931,6 @@ issue an error.
       /* Force the routine to be instantiated or generated. */
       if_evaluating_mark_routine_referenced(rout);
     }  /* if */
-    if (rout->special_kind == (a_special_function_kind)sfk_operator &&
-        rout->opname_kind == (an_opname_kind)onk_arrow) {
-      /* If the address of operator-> is taken, it must have a proper
-         return type (WP 14.3.3). */
-      check_operator_arrow_return_type(rout, /*is_expr_use=*/TRUE, position);
-    }  /* if */
   }  /* if */
   /* Note that the class of the pointer is always the class in which
      the member was defined, not any derived class.  See ARM 5.3. */
@@ -4192,8 +4186,13 @@ a diagnostic is put out in some cases.
   a_routine_type_supplement_ptr rtsp;
   an_expr_node_ptr              temp_init_node = NULL;
   a_dynamic_init_ptr            dip;
+  a_routine_ptr                 rp = NULL;
 
   function_type = skip_typerefs(function_type);
+  if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
+    /* We know which routine is being called. */
+    rp = function_node->variant.routine;
+  }  /* if */
   /* The function return type must be void or object type and not array
      type.  Half of this check is in add_to_derived_type_list.
      The check here is necessary because it is valid to declare a
@@ -4201,36 +4200,15 @@ a diagnostic is put out in some cases.
      at the point of declaration of the function so long as it is completed
      by the time the function is defined or called (if it is). */
   if (!check_function_return_type(function_type, err_pos,
-                                  /*is_expr_use=*/TRUE)) {
+                                  /*is_expr_use=*/TRUE, rp)) {
     /* There was some error in the return type, and a diagnostic was issued. */
     call_node = error_node();
     goto done;
   } /* if */
   if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
     /* We know which routine is being called. */
-    a_routine_ptr rp = function_node->variant.routine;
     if (curr_expr_is_potentially_evaluated()) {
       /* It is being called. */
-      if (!rp->called) {
-        /* First call; set the flag. */
-        rp->called = TRUE;
-        /* Special checking is required for operator-> functions. */
-        if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-            rp->opname_kind == (an_opname_kind)onk_arrow) {
-          /* This is an operator-> function that has never before been called.
-             If it is a member of a template class, be sure it has a valid
-             return type.  (Note:  template classes may define operator->
-             functions that return invalid types as long as they are never
-             called.) */
-          if (symbol_supplement_for_class(rp->source_corresp.
-                                parent.class_type)->class_template != NULL) {
-            /* If the return type is invalid, change the return type to an
-               error_type and issue a diagnostic. */
-            check_operator_arrow_return_type(rp, /*is_expr_use=*/TRUE,
-                                             err_pos);
-          }  /* if */
-        }  /* if */
-      }  /* if */
       if (rp->pure_virtual && !is_virtual && !virtual_suppressed) {
         /* Non-virtual call of a pure virtual function, and not written
            explicitly to suppress virtualness. */
