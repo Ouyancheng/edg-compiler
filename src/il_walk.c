@@ -42,7 +42,8 @@ static a_boolean
 		walking_file_scope;
 			/* TRUE if walking the file-scope IL, FALSE if
 			   walking the IL for a function scope. */
-static int	flag_value_meaning_visited;
+static unsigned int
+		flag_value_meaning_visited;
 			/* Value to be placed in the il_walk_flag field
 			   to indicate that an entry has been visited.
 			   The value alternates between 0 and 1. */

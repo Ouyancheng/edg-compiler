@@ -593,8 +593,8 @@ made up of several preprocessing tokens; see 3.8.2 and also
 accum_quoted_string).
 */
 {
-  char *name_start_pos, *in_pos, *out_pos;
-  int  name_len, i;
+  char		*name_start_pos, *in_pos, *out_pos;
+  sizeof_t	name_len, i;
 
   name_start_pos = alloc_il((sizeof_t)(
            (name_len = len_of_curr_token - 2 /* Drop quoting characters. */)
