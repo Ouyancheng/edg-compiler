@@ -1518,28 +1518,54 @@ of bit-fields, where the size in bits is needed in addition to the base type.
          is int or unsigned int depending on the signedness of the original
          type.  If the size is bigger than int, the promoted type is long
          or unsigned long. */
+#if LONG_LONG_ALLOWED
+      /* ... or long long or unsigned long long. */
+#endif /* LONG_LONG_ALLOWED */
       is_signed = int_kind_is_signed(ikind);
       if (field->bit_size <= TARG_SIZEOF_INT*TARG_CHAR_BIT) {
         ikind = is_signed ? (an_integer_kind)ik_int :
                             (an_integer_kind)ik_unsigned_int;
       } else {
-        ikind = is_signed ? (an_integer_kind)ik_long :
-                            (an_integer_kind)ik_unsigned_long;
+#if LONG_LONG_ALLOWED
+        if (field->bit_size <= TARG_SIZEOF_LONG*TARG_CHAR_BIT) {
+#endif /* LONG_LONG_ALLOWED */
+          ikind = is_signed ? (an_integer_kind)ik_long :
+                              (an_integer_kind)ik_unsigned_long;
+#if LONG_LONG_ALLOWED
+        } else {
+          ikind = is_signed ? (an_integer_kind)ik_long_long :
+                              (an_integer_kind)ik_unsigned_long_long;
+        }  /* if */
+#endif /* LONG_LONG_ALLOWED */
       }  /* if */
     } else {
       /* ANSI mode, so value-preserving rules apply. */
       if (ikind == (an_integer_kind)ik_int) {
         /* Bit-field is signed, so it is promoted to the first of int or
            long into which all its values will fit. */
+#if LONG_LONG_ALLOWED
+        /* ... or long long. */
+#endif /* LONG_LONG_ALLOWED */
         if (field->bit_size <= TARG_SIZEOF_INT*TARG_CHAR_BIT) {
           ikind = (an_integer_kind)ik_int;
         } else {
-          ikind = (an_integer_kind)ik_long;
+#if LONG_LONG_ALLOWED
+          if (field->bit_size <= TARG_SIZEOF_LONG*TARG_CHAR_BIT) {
+#endif /* LONG_LONG_ALLOWED */
+            ikind = (an_integer_kind)ik_long;
+#if LONG_LONG_ALLOWED
+          } else {
+            ikind = (an_integer_kind)ik_long_long;
+          }  /* if */
+#endif /* LONG_LONG_ALLOWED */
         }  /* if */
       } else {
         /* Bit-field is unsigned, so it is promoted to the first of int,
            unsigned int, long, and unsigned long into which all its values
            will fit. */
+#if LONG_LONG_ALLOWED
+        /* ... or long long or unsigned long long. */
+#endif /* LONG_LONG_ALLOWED */
         if (field->bit_size < TARG_SIZEOF_INT*TARG_CHAR_BIT) {
           ikind = (an_integer_kind)ik_int;
         } else if (field->bit_size == TARG_SIZEOF_INT*TARG_CHAR_BIT) {
@@ -1547,7 +1573,17 @@ of bit-fields, where the size in bits is needed in addition to the base type.
         } else if (field->bit_size < TARG_SIZEOF_LONG*TARG_CHAR_BIT) {
           ikind = (an_integer_kind)ik_long;
         } else {
-          ikind = (an_integer_kind)ik_unsigned_long;
+#if LONG_LONG_ALLOWED
+          if (field->bit_size == TARG_SIZEOF_LONG*TARG_CHAR_BIT) {
+#endif /* LONG_LONG_ALLOWED */
+            ikind = (an_integer_kind)ik_unsigned_long;
+#if LONG_LONG_ALLOWED
+          } else if (field->bit_size < TARG_SIZEOF_LONG_LONG*TARG_CHAR_BIT) {
+            ikind = (an_integer_kind)ik_long_long;
+          } else {
+            ikind = (an_integer_kind)ik_unsigned_long_long;
+          }  /* if */
+#endif /* LONG_LONG_ALLOWED */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -1686,26 +1722,33 @@ on "operand_1" and "operand_2", with result type "type".
 }  /* build_binary_result_operand */
 
 
-/* Type predicates used by determine_arithmetic_conversions.  Note that
-   these only work on types that have been stripped via skip_typerefs. */
+/* Type predicates used by determine_arithmetic_conversions. */
 
-#define is_long_double(type) (is_floating_type(type) &&                  \
-  ((type)->variant.float_kind == (a_float_kind)fk_long_double))
+#define is_long_double(fkind)                                         \
+  ((fkind) == (a_float_kind)fk_long_double)
 
-#define is_double(type) (is_floating_type(type) &&                       \
-  ((type)->variant.float_kind == (a_float_kind)fk_double))
+#define is_double(fkind)                                              \
+  ((fkind) == (a_float_kind)fk_double)
 
-#define is_float(type) (is_floating_type(type) &&                        \
-  ((type)->variant.float_kind == (a_float_kind)fk_float))
+#define is_float(fkind)                                               \
+  ((fkind) == (a_float_kind)fk_float)
 
-#define is_unsigned_long(type) (is_integral_type(type) &&                \
-  ((type)->variant.integer.int_kind == (an_integer_kind)ik_unsigned_long))
+#if LONG_LONG_ALLOWED
+#define is_unsigned_long_long(ikind)                                  \
+  ((ikind) == (an_integer_kind)ik_unsigned_long_long)
 
-#define is_long(type) (is_integral_type(type) &&                         \
-  ((type)->variant.integer.int_kind == (an_integer_kind)ik_long))
+#define is_long_long(ikind)                                           \
+  ((ikind) == (an_integer_kind)ik_long_long)
+#endif /* LONG_LONG_ALLOWED */
 
-#define is_unsigned_int(type) (is_integral_type(type) &&                 \
-  ((type)->variant.integer.int_kind == (an_integer_kind)ik_unsigned_int))
+#define is_unsigned_long(ikind)                                       \
+  ((ikind) == (an_integer_kind)ik_unsigned_long)
+
+#define is_long(ikind)                                                \
+  ((ikind) == (an_integer_kind)ik_long)
+
+#define is_unsigned_int(ikind)                                        \
+  ((ikind) == (an_integer_kind)ik_unsigned_int)
 
 
 a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
@@ -1717,9 +1760,11 @@ that the type is arithmetic, and does not actually change the result type.
 See section 3.2.1.5 of the standard.
 */
 {
-  register a_type_ptr type_1;
-  register a_type_ptr type_2;
-  register a_type_ptr result_type;
+  a_type_ptr      type_1;
+  a_type_ptr      type_2;
+  a_type_ptr      result_type;
+  a_float_kind    fkind_1, fkind_2;
+  an_integer_kind ikind_1, ikind_2;
 
   db_enter(4, "determine_arithmetic_conversions");
 
@@ -1730,15 +1775,20 @@ See section 3.2.1.5 of the standard.
     type_1 = skip_typerefs(operand_1->type);
     type_2 = skip_typerefs(operand_2->type);
 
-    if (is_long_double(type_1) || is_long_double(type_2)) {
+    fkind_1 = is_floating_type(type_1) ? type_1->variant.float_kind :
+                                         (a_float_kind)fk_last;
+    fkind_2 = is_floating_type(type_2) ? type_2->variant.float_kind :
+                                         (a_float_kind)fk_last;
+
+    if (is_long_double(fkind_1) || is_long_double(fkind_2)) {
       /* If either operand has type "long double", the other operand is
 	 converted to "long double". */
       result_type = float_type((a_float_kind)fk_long_double);
-    } else if (is_double(type_1) || is_double(type_2)) {
+    } else if (is_double(fkind_1) || is_double(fkind_2)) {
       /* If either operand has type "double", the other operand is converted to
          "double". */
       result_type = float_type((a_float_kind)fk_double);
-    } else if (is_float(type_1) || is_float(type_2)) {
+    } else if (is_float(fkind_1) || is_float(fkind_2)) {
       /* If either operand has type "float", the other operand is converted to
          "float". */
       if (C_dialect == C_dialect_pcc) {
@@ -1753,36 +1803,78 @@ See section 3.2.1.5 of the standard.
       type_1 = operand_type_after_integral_promotion(operand_1);
       type_2 = operand_type_after_integral_promotion(operand_2);
 
-      if (is_unsigned_long(type_1) || is_unsigned_long(type_2)) {
+      ikind_1 = is_integral_type(type_1) ? type_1->variant.integer.int_kind :
+                                           (an_integer_kind)ik_last;
+      ikind_2 = is_integral_type(type_2) ? type_2->variant.integer.int_kind :
+                                           (an_integer_kind)ik_last;
+
+#if LONG_LONG_ALLOWED
+      if (is_unsigned_long_long(ikind_1) || is_unsigned_long_long(ikind_2)) {
+        /* If either operand has type "unsigned long long", the other operand
+           is converted to "unsigned long long". */
+        result_type = integer_type((an_integer_kind)ik_unsigned_long_long);
+      } else if (is_long_long(ikind_1) || is_long_long(ikind_2)) {
+        /* At least one operand has type "long long". */
+#if TARG_SIZEOF_LONG_LONG == TARG_SIZEOF_LONG
+        /* A long long cannot represent all unsigned long values, so check for
+           unsigned long values. */
+        if (is_unsigned_long(ikind_1) || is_unsigned_long(ikind_2)) {
+          /* One operand has type "long long" and the other has type
+             "unsigned long", and all values of "unsigned long" cannot be
+             represented by "long long", so both operands are converted to
+             "unsigned long long". */
+          result_type = integer_type((an_integer_kind)ik_unsigned_long_long);
+        } else
+#endif /* TARG_SIZEOF_LONG_LONG == TARG_SIZEOF_LONG */
+#if TARG_SIZEOF_LONG_LONG == TARG_SIZEOF_INT
+        /* A long long cannot represent all unsigned int values, so check for
+           unsigned int values. */
+        if (is_unsigned_int(ikind_1) || is_unsigned_int(ikind_2)) {
+          /* One operand has type "long long" and the other has type
+             "unsigned int", and all values of "unsigned int" cannot be
+             represented by "long long", so both operands are converted to
+             "unsigned long long". */
+          result_type = integer_type((an_integer_kind)ik_unsigned_long_long);
+        } else
+#endif /* TARG_SIZEOF_LONG_LONG == TARG_SIZEOF_INT */
+        {
+          /* One operand has type "long long"; the other operand is
+             converted to "long long". */
+          result_type = integer_type((an_integer_kind)ik_long_long);
+        }
+      } else 
+#endif /* LONG_LONG_ALLOWED */
+      if (is_unsigned_long(ikind_1) || is_unsigned_long(ikind_2)) {
         /* If either operand has type "unsigned long", the other operand is
 	   converted to "unsigned long". */
         result_type = integer_type((an_integer_kind)ik_unsigned_long);
-      } else if ((is_long(type_1) && is_unsigned_int(type_2)) ||
-		 (is_long(type_2) && is_unsigned_int(type_1))) {
-        /* If one operand has type "long" and the other has type "unsigned int"
-	   and all values of "unsigned int" can be represented by "long", the
-	   operand which has type "unsigned int" is converted to "long".  If
-	   all values cannot be represented, both operands are converted to
-	   "unsigned long". */
-#if TARG_SIZEOF_LONG > TARG_SIZEOF_INT
-        /* A long can represent all unsigned int values.  Result is long. */
-        result_type = integer_type((an_integer_kind)ik_long);
-#else /* if TARG_SIZEOF_LONG > TARG_SIZEOF_INT */
-        /* A long cannot represent all unsigned int values.  Result is
-           unsigned long. */
-        result_type = integer_type((an_integer_kind)ik_unsigned_long);
-#endif /* if TARG_SIZEOF_LONG > TARG_SIZEOF_INT */
-      } else if (is_long(type_1) || is_long(type_2)) {
-        /* If either operand has type "long", the other operand is converted to
-           "long". */
-        result_type = integer_type((an_integer_kind)ik_long);
-      } else if (is_unsigned_int(type_1) || is_unsigned_int(type_2)) {
-        /* If either operand has type "unsigned int", the other operand is
-	   converted to "unsigned int". */
-        result_type = integer_type((an_integer_kind)ik_unsigned_int);
       } else {
-        /* Otherwise, both operands are converted to "int". */
-        result_type = integer_type((an_integer_kind)ik_int);
+        if (is_long(ikind_1) || is_long(ikind_2)) {
+          /* At least one operand has type "long". */
+#if TARG_SIZEOF_LONG == TARG_SIZEOF_INT
+          /* A "long" cannot represent all "unsigned int" values, so check for
+             "unsigned int" values. */
+          if (is_unsigned_int(ikind_1) || is_unsigned_int(ikind_2)) {
+            /* One operand has type "long" and the other has type
+               "unsigned int", and all values of "unsigned int" cannot be
+               represented by "long", so both operands are converted to
+               "unsigned long". */
+            result_type = integer_type((an_integer_kind)ik_unsigned_long);
+          } else
+#endif /* TARG_SIZEOF_LONG == TARG_SIZEOF_INT */
+          {
+            /* One operand has type "long"; the other operand is
+               converted to "long". */
+            result_type = integer_type((an_integer_kind)ik_long);
+          }
+        } else if (is_unsigned_int(ikind_1) || is_unsigned_int(ikind_2)) {
+          /* If either operand has type "unsigned int", the other operand is
+             converted to "unsigned int". */
+          result_type = integer_type((an_integer_kind)ik_unsigned_int);
+        } else {
+          /* Otherwise, both operands are converted to "int". */
+          result_type = integer_type((an_integer_kind)ik_int);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
