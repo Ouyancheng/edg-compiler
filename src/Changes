@@ -11,6 +11,14 @@ USE_LONG_DOUBLE_FOR_HOST_FP_VALUE in targ_def.h.  The default is TRUE
 when an ISO C compiler is used to build the front end, or FALSE when
 a K&R/pcc compiler is used.
 
+When "long double" is used, "sscanf" is used instead of "strtod" to
+convert strings into floating point values.  This should not be an
+issue, provided the host "sscanf" routine is robust with respect to
+precision and handling of values that are out of range.  If the host's
+"ssanf" routine is not sufficiently robust it may be necessary to
+implement an alternate means of performing the conversion, or to revert
+to using "double" to represent floating point values.
+
 6/17/98   Common offsetof variants allowed in nontype template expressions
 
 The common variants of the macro offsetsof use operations that aren't,

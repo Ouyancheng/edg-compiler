@@ -130,7 +130,8 @@ Convert a string to a long double.
     for (;;) {
       char	ch = *ptr++;
       if (ch == '\0') break;
-      if (!isdigit((unsigned char)ch) && ch != '.') break;
+      if (ch == '.') continue;
+      if (!isdigit((unsigned char)ch)) break;
       if (ch != '0') {
         nonzero = TRUE;
         break;
