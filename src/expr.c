@@ -7851,21 +7851,16 @@ err_pos as the error position.
 }  /* prep_rvalue_arg_expr */
 
 
-an_expr_node_ptr scan_class_initializer_expression(
-                                             a_type_ptr    required_type,
-                                             a_routine_ptr *conversion_routine,
-                                             a_boolean     *class_bitwise_copy)
-/*
-void scan_class_initializer_expression(a_type_ptr         required_type,
-                                       a_dynamic_init_ptr *dip)
-*/
+a_boolean scan_class_initializer_expression(a_type_ptr         required_type,
+                                            a_dynamic_init_ptr *dip)
 /*
 Scan an expression that is the initial value of an entity of class type.
-required_type indicates the class type (it may have some qualifiers on
-top of it).  Build a dynamic initialization entry that describes the
-initialization to be done, and return it in the space provided by
-the caller at *dip.  This routine is used in both C and C++, but
-it exists to allow copy constructor elision in C++ cases:
+required_type indicates the class type (it may have some qualifiers on top
+of it).  When there is no error build a dynamic initialization entry that
+describes the initialization to be done (placing the pointer to it in *dip)
+and return TRUE.  If there is an error return FALSE.  This routine is used
+in both C and C++, but it exists to allow copy constructor elision in C++
+cases:
 
   struct A { A(int) {...} A(const A&) {...} };
   A x = 1;            // A::A(int)
@@ -7879,10 +7874,7 @@ appropriate.
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
   a_dynamic_init_ptr  local_dip;
-#if 0
-#else
-  an_expr_node_ptr    expression;
-#endif
+  a_boolean           err = FALSE;
 
   db_enter(3, "scan_class_initializer_expression");
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
@@ -7891,36 +7883,16 @@ appropriate.
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
   prep_elision_initializer_operand(&result, required_type, &local_dip);
-#if 0
   /* Copy the dynamic init entry to the space provided by the caller. */
   if (local_dip != NULL) {
-    **dip = *local_dip;
+    *dip = local_dip;
   } else {
     /* Some error. */
-    clear_dynamic_init(*dip, (a_dynamic_init_kind)dik_none);
+    err = TRUE;
   }  /* if */
-#else
-  *conversion_routine = NULL;
-  *class_bitwise_copy = FALSE;
-  if (local_dip != NULL) {
-    if (local_dip->kind == (a_dynamic_init_kind)dik_constructor) {
-      *conversion_routine = local_dip->variant.constructor.ptr;
-      expression = local_dip->variant.constructor.args;
-    } else {
-      check_assertion(local_dip->kind == (a_dynamic_init_kind)dik_expression);
-      expression = local_dip->variant.expression;
-      *class_bitwise_copy = TRUE;
-    }  /* if */
-  } else {
-    expression = error_node();
-  }  /* if */
-#endif
   pop_expr_stack();
   db_exit();
-#if 0
-#else
-  return expression;
-#endif
+  return !err;
 }  /* scan_class_initializer_expression */
 
 

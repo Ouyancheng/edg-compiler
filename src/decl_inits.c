@@ -368,10 +368,7 @@ is an empty class.
   a_type_kind         kind;
   a_boolean           array_too_long_error_given = FALSE;
   a_boolean           took_extra_comma;
-  an_expr_node_ptr    expression;
   a_dynamic_init_ptr  dip;
-  a_routine_ptr       conversion_routine;
-  a_boolean           class_bitwise_copy;
 
   db_enter(4, "get_initializer");
   err = FALSE;
@@ -418,31 +415,13 @@ is an empty class.
     /* This is an array element that can only be initialized by a
        constructor.  Treat the expression as an argument for the constructor
        call. */
-    expression = scan_class_initializer_expression(local_type,
-                                                   &conversion_routine,
-                                                   &class_bitwise_copy);
-    if (!class_bitwise_copy && conversion_routine == NULL) {
+    if (!scan_class_initializer_expression(local_type, &dip)) {
       /* No constructor was found.  Abort the initialization. */
       err = TRUE;
     } else {
       init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       init_con->type = local_type;
-      if (conversion_routine != NULL) {
-        /* An appropriate constructor (copy or other) was found.  Build
-           a dynamic init entry to call it. */
-        init_con->variant.dynamic_init = dip =
-                      alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-        dip->variant.constructor.ptr = conversion_routine;
-        dip->variant.constructor.args = expression;
-      } else {
-        /* Generate code for a bitwise copy. */
-        init_con->variant.dynamic_init = dip =
-                      alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-        dip->variant.expression = expression;
-      }  /* if */
-      dip->destructor = select_destructor(local_type, local_type,
-                                          /*honor_virtual=*/FALSE,
-                                          /*evaluated=*/TRUE);
+      init_con->variant.dynamic_init = dip;
       if (*di_list == NULL) {
         *di_list = dip;
       } else {
@@ -1081,7 +1060,6 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
   a_variable_ptr                 vp = NULL;
   a_type_ptr                     vp_type = NULL;
   a_boolean                      brace_flag = FALSE;
-  an_expr_node_ptr               expression;
   a_constant                     constant;
   a_dynamic_init                 local_di;
   a_boolean                      dynamic_init_required;
@@ -1090,10 +1068,8 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
   a_class_symbol_supplement_ptr  cssp = NULL;
   a_routine_ptr                  conversion_routine;
   a_memory_region_number         region_to_switch_back_to = NULL_region_number;
-  a_boolean                      class_bitwise_copy;
 
   db_enter(3, "initializer");
-
   if (is_parameter) {
     /* Parameter declarations cannot contain an initializer.  (Declarations
        for which is_parameter is TRUE are old-style C parameter declarations.
@@ -1223,28 +1199,22 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
     /* In ordinary C a struct or union variable may be initialized by an
        object of the same type as long as dynamic initialization is otherwise
        allowed. */
-    expression = scan_class_initializer_expression(vp_type,
-                                                   &conversion_routine,
-                                                   &class_bitwise_copy);
-    if (class_bitwise_copy) {
-      /* The case of C-style structs.  No constructor exists, but simple
-         struct assignment can be performed.  Set the dynamic init entry to
-         represent non-constant assignment initialization. */
-      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_expression);
-      local_di.variant.expression = expression;
-    } else if (conversion_routine != NULL) {
-      /* Initializing a class object that has a constructor in a statement
-         that looks like an assignment (see discussion in ARM 12.6.1).
-         It is as though the expression on the right hand side is constructed
-         into a temporary and then a copy constructor is called to actually
-         do the initialization -- e.g., complex x = 1 is to be treated as
-         complex x = complex(1).  Set the dynamic init entry to represent
-         constructor initialization. */
-      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-      local_di.variant.constructor.ptr = conversion_routine;
-      local_di.variant.constructor.args = expression;
+    a_dynamic_init_ptr  dip;
+
+    if (scan_class_initializer_expression(vp_type, &dip)) {
+      local_di = *dip;
+#if 0
+      /* Note that a dynamic-init entry was allocated in the subroutine,
+         but it is not used here.  We just copy it into local_di, on the
+         basis of which another dynamic-init entry will be allocated in
+         gen_dynamic_initialization.  Using a free-list to eliminate this
+         memory leakage is a possibility, but we have to take into account
+         that not all the dynamic init entries will have been created in
+         the file scope memory region. */
+#endif /* if 0 */
     } else {
       /* No appropriate constructor was found.  Abort the initialization. */
+      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
       err = TRUE;
     }  /* if */
     initialization_is_dynamic = TRUE;
@@ -1358,17 +1328,19 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
        initializer itself, but all initialization of non-static variables must
        be handled at run time.  Set a flag to that effect. */
     dynamic_init_required = !has_static_storage_duration(vp->storage_class);
-    /* Check for the existence of a destructor independently of checks for a
-       constructor.  This is to catch the unusual case in which a user has
-       defined a destructor but the object can be initialized without a
-       constructor. */
-    if (cssp != NULL) {
-      a_routine_ptr rp = select_destructor(vp_type, vp_type,
-                                           /*honor_virtual=*/FALSE,
-                                           /*evaluated=*/TRUE);
-      if (rp != NULL) {
-        local_di.destructor = rp;
-        initialization_is_dynamic = TRUE;
+    if (local_di.destructor == NULL) {
+      /* Check for the existence of a destructor independently of checks for a
+         constructor.  This is to catch the unusual case in which a user has
+         defined a destructor but the object can be initialized without a
+         constructor. */
+      if (cssp != NULL) {
+        a_routine_ptr rp = select_destructor(vp_type, vp_type,
+                                             /*honor_virtual=*/FALSE,
+                                             /*evaluated=*/TRUE);
+        if (rp != NULL) {
+          local_di.destructor = rp;
+          initialization_is_dynamic = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (initialization_is_dynamic || dynamic_init_required) {

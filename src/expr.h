@@ -63,14 +63,9 @@ extern an_expr_node_ptr prep_rvalue_arg_expr(an_expr_node_ptr  expr,
                                              a_param_type_ptr  param,
                                              a_source_position *err_pos);
 
-extern an_expr_node_ptr scan_class_initializer_expression(
-                                            a_type_ptr    required_type,
-                                            a_routine_ptr *conversion_routine,
-                                            a_boolean     *class_bitwise_copy);
-/*
-extern void scan_class_initializer_expression(a_type_ptr         required_type,
+extern a_boolean scan_class_initializer_expression(
+                                              a_type_ptr         required_type,
                                               a_dynamic_init_ptr *dip);
-*/
 
 extern void scan_template_argument_constant_expression(a_type_ptr param_type,
                                                        a_constant *constant);
