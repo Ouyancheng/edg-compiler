@@ -722,6 +722,7 @@ attribute, set *kind to ak_last.
 {
   switch (*kind) {
     case ak_nocommon:
+    case ak_transparent_union:
       if (gpp_mode) {
         *kind = (an_attribute_kind)ak_last;
       }  /* if */
