@@ -8159,18 +8159,9 @@ moreover, several fields of *decl_info may be updated by this routine.
        an unnamed class/struct/union type, possibly represented by a typedef
        name, whose subfields are to be visible as though they were fields of
        the current class. */
-    if (decl_info->is_nonstd_anonymous_union &&
-        member_type->kind == (a_type_kind)tk_typeref) {
+    if (decl_info->is_nonstd_anonymous_union) {
       a_symbol_ptr  sym;
 
-      /* This is a case in which a struct is incorporated into another by
-         means of a typeref reference -- e.g.,
-           typedef struct { int i,j } S;
-           struct X {
-             S;   // has the effect of making i and j members of X
-           };
-         It's only possible in C mode. */
-      check_assertion(C_mode() && has_name(member_type));
       sym = (a_symbol_ptr)(member_type)->source_corresp.assoc_info;
       if (sym != NULL) {
         record_symbol_declaration(SRK_DECLARATION, sym, err_pos,
