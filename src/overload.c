@@ -2284,15 +2284,12 @@ evaluated (but not checked to see if the match is good enough).
   ptp = rtsp->param_type_list;
   arg_operand = cfp->arg_operand_list;
   arg_match = cfp->arg_matches;
-  if (routine->source_corresp.is_class_member) {
+  if (arg_match->is_match_for_this_param) {
     /* A member template.  It has a "this" parameter, which never involves
        a template parameter type (because by the time the member template is
        used, it's a member of an instantiated class).  The "this" parameter
        is represented in the arg_match list, but not in the ptp and
-       arg_operand lists. */
-    check_assertion_str(
-                       routine_type_is_nonstatic_member_function(routine_type),
-             "function_template_matches_operand_list: static member template");
+       arg_operand lists, so advance arg_match. */
     arg_match = arg_match->next;
   }  /* if */
   /* Compare the types of the arguments to the parameter types. */
