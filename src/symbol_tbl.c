@@ -62,6 +62,7 @@ static unsigned long
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
                 num_projection_descrs_allocated,
+		num_goto_entries_allocated,
 		num_used_symbol_buckets,
 		num_searches_for_symbols,
 		num_compares_for_symbols,
@@ -112,6 +113,10 @@ static a_param_id_ptr
 			/* List of parameter id entries freed and available
 			   for reuse. */
 
+static a_goto_entry_ptr
+		avail_goto_entries;
+			/* List of goto entries freed and available for
+			   reuse. */
 #if DEBUG
 #define DEBUG_LINE_LENGTH 79
 /* Macros used within db_symbol, referencing local variables defined
@@ -1414,7 +1419,8 @@ state.
       sym_ptr->variant.routine.instance_ptr = NULL;
       break;
     case sk_label:
-      sym_ptr->variant.label = NULL;
+      sym_ptr->variant.label.ptr = NULL;
+      sym_ptr->variant.label.variant.goto_list = NULL;
       break;
     case sk_extern_variable:
     case sk_extern_routine:
@@ -3331,7 +3337,7 @@ allowed for that kind of symbol).
       entry_ptr = (a_constant_ptr)sym_ptr->variant.routine.ptr;
       break;
     case sk_label:
-      entry_ptr = (a_constant_ptr)sym_ptr->variant.label;
+      entry_ptr = (a_constant_ptr)sym_ptr->variant.label.ptr;
       break;
     default:
       /* Other cases ignored. */
@@ -5976,6 +5982,7 @@ of the template.
   ssep->source_position          = pos_curr_token;
   ssep->depth_of_innermost_function_scope = depth_innermost_function_scope;
   ssep->template_param_list      = NULL;
+  ssep->init_count               = 0;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -6422,7 +6429,7 @@ NULL.
       break;
     case sk_label:
       /* Label. */
-      if (sym->variant.label->variant.exec_stmt == NULL) {
+      if (sym->variant.label.ptr->variant.exec_stmt == NULL) {
         /* A label that was used but never defined. */
         pos_sy_error(ec_never_defined, &sym->decl_position, sym);
       } else if (!sym->referenced) {
@@ -7152,6 +7159,132 @@ should act like a stack if the same entity has several fixups).
 }  /* alloc_etype_fixup */
 
 
+static a_goto_entry_ptr alloc_goto_entry(void)
+/*
+Allocate a goto entry (or reuse one from the available list), set its fields
+to default values, and return a pointer to it.
+*/
+{
+  register a_goto_entry_ptr  gep;
+
+  db_enter(5, "alloc_goto_entry");
+  if (avail_goto_entries != NULL) {
+    /* Reuse a previously freed entry. */
+    gep = avail_goto_entries;
+    avail_goto_entries = avail_goto_entries->next;
+  } else {
+    /* Allocate a new entry. */
+    gep = (a_goto_entry_ptr)alloc_fe(sizeof(a_goto_entry));
+#if DEBUG
+    num_goto_entries_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  /* Set the entry's fields to default values. */
+  gep->next = NULL;
+  gep->goto_statement = NULL;
+  gep->curr_scope_init_count = 0;
+
+  db_exit();
+  return gep;
+}  /* alloc_goto_entry */
+
+
+static void free_goto_entry_list(a_goto_entry_ptr  *list)
+/*
+Free the list of goto entries that is pointed to by *list and set *list to
+NULL.
+*/
+{
+  a_goto_entry_ptr  gep = *list, next_gep;
+
+  while (gep != NULL) {
+    next_gep = gep->next;
+    /* Put gep at the head of the available list so that it can be reused. */
+    gep->next = avail_goto_entries;
+    avail_goto_entries = gep;
+    gep = next_gep;
+  }  /* while */
+  /* Null out the pointer. */
+  *list = NULL;
+}  /* free_goto_entry_list */
+
+
+static void check_forwards_goto(a_statement_ptr   label_statement,
+                                a_goto_entry_ptr  gep)
+/*
+*/
+{
+  db_enter(4, "check_forwards_goto");
+  db_exit();
+}  /* check_forwards_goto */
+
+
+static void check_backwards_goto(a_statement_ptr   goto_statement)
+/*
+*/
+{
+  db_enter(4, "check_backwards_goto");
+  db_exit();
+}  /* check_backwards_goto */
+
+
+void check_jump_over_initialization(a_statement_ptr  sp)
+/*
+*/
+{
+  a_label_ptr       label;
+  a_symbol_ptr      label_sym;
+  a_goto_entry_ptr  gep, end_of_list;
+
+  check_assertion (sp->kind == (a_statement_kind)stmk_label ||
+                   sp->kind == (a_statement_kind)stmk_goto);
+  label = sp->variant.label;
+  label_sym = (a_symbol_ptr)label->source_corresp.assoc_info;
+  if (sp->kind == (a_statement_kind)stmk_label) {
+    /* This is the definition of the label. */
+    gep = label_sym->variant.label.variant.goto_list;
+    if (gep != NULL) {
+      /* There was at least one forward goto referencing this label.  For
+         each check whether it jumped over any initializing declarations. */
+      do {
+        check_forwards_goto(sp, gep);
+        gep = gep->next;
+      } while (gep != NULL);
+      /* Free the list of goto entries for reuse. */
+      free_goto_entry_list(&label_sym->variant.label.variant.goto_list);
+    }  /* if */
+    /* Record the number initializing declarations seen so far in the current
+       scope.  It is used in checking backwards gotos. */
+    label_sym->variant.label.variant.curr_scope_init_count =
+                                   scope_stack[decl_scope_level].init_count;
+  } else {
+    if (label_sym->defined) {
+      /* This is a backwards goto -- i.e., it references a label that has
+         already been defined.  Check whether it jumps over any initializing
+         declarations. */
+      check_backwards_goto(sp);
+    } else {
+      /* This is a forwards goto -- i.e., it references a label that has not
+         yet been defined.  Record information about it so that, when the
+         label definition is reached, a check can made whether it involves
+         jumping over any initializing declarations. */
+      /* Allocate and fill in a goto entry. */
+      gep = alloc_goto_entry();
+      gep->goto_statement = sp;
+      gep->curr_scope_init_count = scope_stack[decl_scope_level].init_count;
+      /* Add it to the end of the goto-entry list of the label symbol. */
+      if (label_sym->variant.label.variant.goto_list == NULL) {
+        label_sym->variant.label.variant.goto_list = gep;
+      } else {
+        end_of_list = label_sym->variant.label.variant.goto_list;
+        while (end_of_list->next != NULL) end_of_list = end_of_list->next;
+        end_of_list->next = gep;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_jump_over_initialization */
+
+
 a_param_id_ptr alloc_param_id(void)
 /*
 Allocate a parameter id block, set its fields to default values, and
@@ -7163,7 +7296,7 @@ locator_for_curr_id.
 
   db_enter(5, "alloc_param_id");
   if (avail_param_ids != NULL) {
-    /* Reuse a previously-freed entry. */
+    /* Reuse a previously freed entry. */
     pip = avail_param_ids;
     avail_param_ids = avail_param_ids->next;
   } else {
@@ -7430,6 +7563,8 @@ for space tracking purposes.
                 a_template_param);
   db_space_used_lost("param ids", avail_param_ids, num_param_ids_allocated,
                      a_param_id);
+  db_space_used_lost("goto entries", avail_goto_entries,
+                     num_goto_entries_allocated, a_goto_entry);
   db_space_used("template instance", num_template_instances_allocated,
                 a_template_instance);
   db_space_used("conversion list entry", num_conversion_list_entries_allocated,
@@ -7554,6 +7689,7 @@ to avoid an 8-character external name clash with symbol_table.)
   /* ident_buffer and size_ident_buffer are not per-file and should not
      be reset. */
   avail_param_ids = NULL;
+  avail_goto_entries = NULL;
   error_symbol_header = NULL;
   unnamed_class_symbol_header = NULL;
   num_classes_on_scope_stack = 0;
@@ -7573,6 +7709,7 @@ to avoid an 8-character external name clash with symbol_table.)
   num_template_symbol_supplements_allocated    = 0;
   num_template_params_allocated                = 0;
   num_param_ids_allocated                      = 0;
+  num_goto_entries_allocated                   = 0;
   num_template_instances_allocated             = 0;
   num_conversion_list_entries_allocated        = 0;
   num_extern_symbol_descrs_allocated           = 0;
