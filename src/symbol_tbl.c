@@ -7095,9 +7095,18 @@ such as instantiating a template for which no body was supplied.
     /* Inline and static functions should always be instantiated if they
        are used. */
     a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
-    is_inline_or_static_function =
-                            rout->is_inline ||
-                            rout->storage_class == (a_storage_class)sc_static;
+    is_inline_or_static_function =  rout->is_inline;
+    if (tip->instance_sym->kind != (a_symbol_kind)sk_member_function) {
+      /* Only check the storage class of nonmember functions.  The linkage
+         of member functions has not been determined yet -- and member
+         functions are inline or noninline.  There is no such thing as
+         a noninline member function with static storage class.  This
+         is only important in tim_none mode.  In all other modes any
+         function with the instantiation required flag set will be
+         instantiated. */
+      is_inline_or_static_function |=
+                        (rout->storage_class == (a_storage_class)sc_static);
+    }  /* if */
   }  /* if */
   if (tip->explicit_instantiation ||
       (tip->instantiation_required &&
