@@ -6963,7 +6963,6 @@ static void try_conversion_function_match(
                                 a_type_ptr               dest_type,
                                 a_builtin_type_kind_set  builtin_types_allowed,
                                 a_candidate_function_ptr *candidate_functions)
-
 /*
 See if a class operand source_operand can be converted by a conversion function
 to either
@@ -6980,6 +6979,7 @@ is only used in C++ mode.
 */
 {
   a_symbol_ptr                conversion_symbol, base_conversion_symbol;
+  a_routine_ptr               conversion_routine;
   a_conversion_list_entry_ptr clep;
   a_type_ptr                  source_type, conv_routine_type, return_type;
   an_arg_match_summary        this_match;
@@ -7079,11 +7079,11 @@ is only used in C++ mode.
           However, we must also see whether or not it can be called for this
           argument (i.e., are the type qualifiers okay), and how good the
           match is. */
+      conversion_routine = base_conversion_symbol->variant.routine.ptr;
       selector_match_with_this_param(source_operand,
                                      /*selector_is_object_pointer=*/FALSE,
                                      /*conversion_function_case=*/TRUE,
-                                     base_conversion_symbol->
-                                                           variant.routine.ptr,
+                                     conversion_routine,
                                      conv_routine_type,
                                      &this_match);
       /* Ignore this function if it cannot be called for this argument. */
@@ -7097,8 +7097,7 @@ is only used in C++ mode.
                                                candidate_functions);
       candidate = *candidate_functions;
       candidate->is_user_conversion = TRUE;
-      candidate->user_conversion.routine =
-                                        conversion_symbol->variant.routine.ptr;
+      candidate->user_conversion.routine = conversion_routine;
       /* If a standard conversion was needed, remember that in the
          candidate function entry.  A difference of a standard conversion
          can be used to distinguish between different user-defined
