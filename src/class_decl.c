@@ -801,6 +801,31 @@ declaration being scanned is a friend function declaration.
 }  /* prescan_member_function_default_arg_expr */
 
 
+static a_param_type_ptr corresponding_param_type(a_type_ptr        type,
+                                                 a_param_type_ptr  ptp)
+/*
+"ptp" describes the n-th parameter of some unspecified routine type.  This
+routine assumes "type" has a compatible routine type and returns its n-th
+parameter type description.
+*/
+{
+  a_routine_type_supplement_ptr  rtsp = type->variant.routine.extra_info;
+  sizeof_t                       n_params = 0, n_params_remaining = 0,
+                                 param_pos;
+
+  /* Count the position of the given a_param_type entry (from the right). */
+  for (; ptp != NULL; ptp = ptp->next) { ++n_params_remaining; }
+  /* Count the total number of parameters. */
+  ptp = rtsp->param_type_list;
+  for (; ptp != NULL; ptp = ptp->next) { ++n_params; }
+  /* Skip the right number. */
+  ptp = rtsp->param_type_list;
+  param_pos = n_params - n_params_remaining;
+  for (; param_pos--;) { ptp = ptp->next; }
+  return ptp;
+}  /* corresponding_param_type */
+
+
 static void default_argument_fixup_for_class(a_type_ptr  class_type,
                                              a_boolean   is_template_based)
 /*
@@ -1095,8 +1120,19 @@ Process the default argument expressions for the indicated class.
             /* Let get_token know about the cache.  Default argument errors
                are not checked here for friend declarations because they
                will have been checked by decl_routine. */
+            a_param_type_ptr  ptp = daefp->param_type;
             rescan_cached_tokens(&daefp->cache.tokens);
-            delayed_scan_of_default_arg_expr(daefp->param_type,
+            if (is_friend) {
+              /* Because a friend declaration can be a redeclaration, its
+                 routine type may have changed during type reconciliation,
+                 which occurs after the fixups are created.  That situation
+                 happens for example in the case:
+                    void f(int, int, int) {}
+                    class C { friend void f(int, int = 0, int = 0); };
+                 */
+              ptp = corresponding_param_type(routine_symbol_type(sym), ptp);
+            }  /* if */
+            delayed_scan_of_default_arg_expr(ptp,
                                             /*check_for_errors=*/!is_friend);
           }  /* for */
           /* Restore the prototype scope symbols pointer in the func info

@@ -1,5 +1,23 @@
 Version 2.45
 
+9/8/00   Abort on friend declarations with default arguments
+
+The front end used to produce invalid IL when redeclaring a function as a
+friend and adding default arguments to that redeclaration.  This could lead
+to internal errors during IL lowering.  For example:
+
+  void f(int, int) {}
+  struct S {
+    friend void f(int, int = 0);  // (1)
+  };
+  void f(int = 0, int);
+  void g() { f(); }
+
+This is now fixed.  When friend injection is enabled, the friend declaration
+(1) is treated identically to an ordinary function redeclaration and the
+example is valid.  When injection is disabled, an error is issued for default
+arguments specified on a friend function redeclaration (such as (1)).
+
 9/7/00   Microsoft compatibility: ignore leading and trailing whitespace in
          #include <...> directives
 
