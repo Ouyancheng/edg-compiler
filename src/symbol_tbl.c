@@ -7612,8 +7612,14 @@ equivalent derivations).
         } else {
           /* Either all are static or all are nonstatic.  Check the first in
              the list. */
-          rout_type = fundamental_sym1->variant.overloaded_function.symbols->
-                                                    variant.routine.ptr->type;
+          a_symbol_ptr  sym = fundamental_sym1->
+                                    variant.overloaded_function.symbols;
+          if (sym->kind != (a_symbol_kind)sk_function_template) {
+            rout_type = routine_symbol_type(sym1);
+          } else {
+            rout_type = sym->variant.template_info->
+                                         variant.function.routine->type;
+          }  /* if */
           goto check_rout_type;
         }
       case sk_member_function:
