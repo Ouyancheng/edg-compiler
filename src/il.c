@@ -4760,7 +4760,8 @@ type in a function definition is based on a typedef).
        from more than one place.  Therefore a copy must be made of the
        expression node for the default arg (if one exists). */
     if (old_ptp->default_arg_expr != NULL) {
-      new_ptp->default_arg_expr = copy_expr_tree(old_ptp->default_arg_expr);
+      new_ptp->default_arg_expr =
+                         duplicate_default_arg_expr(old_ptp->default_arg_expr);
     }  /* if */
     if (prev_new_ptp == NULL) {
       to_type->variant.routine.extra_info->param_type_list = new_ptp;
@@ -4964,6 +4965,16 @@ expression node.
       internal_error("copy_dynamic_init: bad kind");
 #endif /* CHECKING */
   }  /* switch */
+  check_assertion_str(dip->init_expr_lifetime == NULL,
+                      "copy_dynamic_init: init_expr_lifetime is non-NULL");
+  if (dip->lifetime != NULL) {
+    /* This dynamic init is on a destruction list, so the copy must be
+       put on a destruction list in the current context. */
+    new_dip->lifetime = NULL;
+    new_dip->next_in_destruction_list = NULL;
+    record_end_of_lifetime_destruction(new_dip, /*static_lifetime=*/FALSE,
+                                       /*scope_lifetime=*/FALSE);
+  }  /* if */
   return new_dip;
 }  /* copy_dynamic_init */
 
@@ -6015,7 +6026,7 @@ an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr)
 Make a copy of an expression tree and return a pointer to it.
 */
 {
-  an_expr_node_ptr            expr_copy;
+  an_expr_node_ptr            expr_copy, expr_copy2;
   a_new_delete_supplement_ptr ndsp, copy_ndsp;
 
   /* Copy the top node. */
@@ -6054,6 +6065,11 @@ Make a copy of an expression tree and return a pointer to it.
       if (ndsp->dynamic_init != NULL) {
         copy_ndsp->dynamic_init = copy_dynamic_init(ndsp->dynamic_init);
       }  /* if */
+      if (ndsp->lifetime_of_uninitialized_storage != NULL) {
+        push_object_lifetime(iek_new_delete_supplement, (char *)copy_ndsp,
+                             ndsp->lifetime_of_uninitialized_storage->kind);
+        pop_object_lifetime();
+      }  /* if */
       break;
     case enk_throw:
       /* Copy the dynamic init for a throw. */
@@ -6061,14 +6077,98 @@ Make a copy of an expression tree and return a pointer to it.
                      copy_dynamic_init(expr->variant.throw_info->dynamic_init);
       break;
     case enk_object_lifetime:
-      expr_copy->variant.object_lifetime.expr =
+      /* For an object lifetime, create a new object lifetime for the copy. */
+      push_object_lifetime(iek_none, (char *)NULL,
+                           expr->variant.object_lifetime.ptr->kind);
+      expr_copy->variant.object_lifetime.expr = expr_copy2 =
                             copy_expr_tree(expr->variant.object_lifetime.expr);
+      bind_object_lifetime(curr_object_lifetime, iek_expr_node,
+                           (char *)expr_copy2);
+      pop_object_lifetime();
       break;
     default:
       unexpected_condition_str("copy_expr_tree: bad expr kind");
   }  /* if */
   return expr_copy;
 }  /* copy_expr_tree */
+
+
+an_expr_node_ptr add_object_lifetime_to_expr(an_expr_node_ptr       expr,
+                                             an_object_lifetime_ptr lifetime)
+/*
+Put an enk_object_lifetime node on top of the indicated expression and
+return a pointer to the new expression.
+*/
+{
+  an_expr_node_ptr orig_expr = expr;
+
+  expr = alloc_expr_node((an_expr_node_kind)enk_object_lifetime);
+  expr->variant.object_lifetime.expr = orig_expr;
+  /* expr->variant.object_lifetime.ptr is set by the bind call. */
+  expr->type = orig_expr->type;
+  bind_object_lifetime(lifetime, iek_expr_node, (char *)expr);
+  return expr;
+}  /* add_object_lifetime_to_expr */
+
+
+an_expr_node_ptr duplicate_default_arg_expr(an_expr_node_ptr expr)
+/*
+Copy a default argument expression and return a pointer to the copy.
+This routine is used to copy such expressions when function types
+pointing to default argument expressions are copied, but not to copy
+them when they are added implicitly to calls.  The difference between
+the two is in the handling of object lifetimes.  The copy is made in
+the file scope even if the current IL memory region is a function
+scope memory region.
+*/
+{
+  an_object_lifetime_ptr lifetime = NULL,
+                         saved_curr_object_lifetime;
+  a_memory_region_number region_to_switch_back_to;
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+    /* Make a copy of the object lifetime and push it onto the object
+       lifetime stack.  Dynamic inits copied will be put into the new
+       lifetime. */
+    saved_curr_object_lifetime = curr_object_lifetime;
+    /* Clear the object lifetime stack before pushing this lifetime. */
+    curr_object_lifetime = il_header.primary_scope->lifetime;
+    push_object_lifetime(iek_none, (char *)NULL,
+                         expr->variant.object_lifetime.ptr->kind);
+    lifetime = curr_object_lifetime;
+    expr = expr->variant.object_lifetime.expr;
+  }  /* if */
+  /* Copy the expression. */
+  expr = copy_expr_tree(expr);
+  if (lifetime != NULL) {
+    /* Put an enk_object_lifetime node on the copy. */
+    expr = add_object_lifetime_to_expr(expr, lifetime);
+    curr_object_lifetime = saved_curr_object_lifetime;
+  }  /* if */
+  switch_back_to_original_region(region_to_switch_back_to);
+  return expr;
+}  /* duplicate_default_arg_expr */
+
+
+an_expr_node_ptr copy_default_arg_expr(an_expr_node_ptr expr)
+/*
+Copy a default argument expression and return a pointer to the copy.
+This routine is used to copy such expressions when they are added implicitly
+to calls, but not to copy them when function types pointing to
+default argument expressions are copied.  The difference between the two is
+in the handling of object lifetimes.
+*/
+{
+  if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+    /* The top node is an enk_object_lifetime.  The lifetime is not copied.
+       Instead, copies of dynamic inits associated with that lifetime will be
+       bound into the curr_object_lifetime. */
+    expr = expr->variant.object_lifetime.expr;
+  }  /* if */
+  expr = copy_expr_tree(expr);
+  return expr;
+}  /* copy_default_arg_expr */
 
 
 an_expr_node_ptr copy_default_arg_expr_list(a_param_type_ptr ptp)
@@ -6097,7 +6197,7 @@ expression.
       if (ptp->default_arg_expr == NULL) {
         arg_node = error_node();
       } else {
-        arg_node = copy_expr_tree(ptp->default_arg_expr);
+        arg_node = copy_default_arg_expr(ptp->default_arg_expr);
       }  /* if */
       if (first_node == NULL) {
         first_node = arg_node;

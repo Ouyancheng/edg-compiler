@@ -391,6 +391,10 @@ extern an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list);
 
 extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr);
 
+extern an_expr_node_ptr copy_default_arg_expr(an_expr_node_ptr expr);
+
+extern an_expr_node_ptr duplicate_default_arg_expr(an_expr_node_ptr expr);
+
 extern an_expr_node_ptr copy_default_arg_expr_list(a_param_type_ptr ptp);
 
 extern an_expr_node_ptr var_lvalue_expr(a_variable_ptr var);
@@ -402,6 +406,10 @@ extern an_expr_node_ptr function_addr_expr(
                                          a_boolean     set_address_taken_flag);
 
 extern an_expr_node_ptr add_indirection_to_node(an_expr_node_ptr node);
+
+extern an_expr_node_ptr add_object_lifetime_to_expr(
+                                             an_expr_node_ptr       expr,
+                                             an_object_lifetime_ptr lifetime);
 
 extern an_expr_node_ptr this_param_value_expr(void);
 
