@@ -671,10 +671,12 @@ fi
 # other words, convert std:xyz to -lstd -lxyz.  Add an optional
 # suffix.
 #
-EDG_STD_LIBS=`echo $EDG_STD_LIBS | \
-             sed -e 's/:$//' -e 's/::/:/g' \
-                 -e 's/^:*//' -e "s/:/$EDG_LIB_SUFFIX -l/g"  \
-		 -e 's/^/-l/' -e "s/$/$EDG_LIB_SUFFIX/"`
+if [ "$EDG_STD_LIBS" != "" ] ; then
+  EDG_STD_LIBS=`echo $EDG_STD_LIBS | \
+               sed -e 's/:$//' -e 's/::/:/g' \
+                   -e 's/^:*//' -e "s/:/$EDG_LIB_SUFFIX -l/g"  \
+                   -e 's/^/-l/' -e "s/$/$EDG_LIB_SUFFIX/"`
+fi
 #
 # If only one source file was specified, and we are compiling and
 # linking (i.e., we know everything for this compilation is in a single
