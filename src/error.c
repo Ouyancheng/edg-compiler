@@ -1871,7 +1871,7 @@ error code.
     case ec_must_be_prototype_instantiation:
       m = "template argument list must match the parameter list";
       break;
-    case ec_conversion_to_self_not_allowed:
+    case ec_conversion_to_type_not_allowed:
       m = "conversion function to convert from %t1 to %t2 is not allowed";
       break;
     case ec_bad_extra_arg_for_postfix_operator:
@@ -2042,9 +2042,6 @@ error code.
       break;
     case ec_template_and_instance_linkage_conflict:
       m = "external/internal linkage conflict for %nfd";
-      break;
-    case ec_operator_void:
-      m = "operator void() is not allowed";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:

@@ -538,7 +538,7 @@ typedef enum /*an_error_code*/ {
   ec_redeclaration_of_template_param_name,
   ec_decl_hides_template_parameter,
   ec_must_be_prototype_instantiation,
-  ec_conversion_to_self_not_allowed,
+  ec_conversion_to_type_not_allowed,
   ec_bad_extra_arg_for_postfix_operator,
   ec_function_type_required,
   ec_operator_name_not_allowed,
@@ -595,8 +595,7 @@ typedef enum /*an_error_code*/ {
   ec_set_but_not_used,
   ec_bad_scope_for_definition,
   ec_throw_specification_not_allowed,
-  ec_template_and_instance_linkage_conflict,
-  ec_operator_void
+  ec_template_and_instance_linkage_conflict
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
