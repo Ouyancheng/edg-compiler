@@ -2615,15 +2615,6 @@ Do C99 lowering for all entities in and under the given scope.
        block_scope = block_scope->next) {
     lower_c99_scope(block_scope);
   }  /* for */
-  /* Visit all VLA dimension expressions. */
-  for (vla_dim = scope->vla_dimensions;
-       vla_dim != NULL;
-       vla_dim = vla_dim->next) {
-    /* Entries from prototype scopes are handled above. */
-    if (!vla_dim->in_prototype_scope) {
-      lower_c99_vla_dimension(vla_dim);
-    }  /* if */
-  }  /* for */
   /* Visit all initializers for local static variables. */
   for (lsvip = scope->local_static_variable_inits;
        lsvip != NULL;
@@ -2633,6 +2624,17 @@ Do C99 lowering for all entities in and under the given scope.
   if (scope->kind == (a_scope_kind)sck_function) {
     /* Lower the function block statement. */
     lower_c99_statement(scope->assoc_block);
+    /* Visit all VLA dimension expressions.  This must happen after the
+       statements have been lowered to ensure that any needed VLA dimension
+       variables have been created. */
+    for (vla_dim = scope->vla_dimensions;
+         vla_dim != NULL;
+         vla_dim = vla_dim->next) {
+      /* Entries from prototype scopes are handled above. */
+      if (!vla_dim->in_prototype_scope) {
+        lower_c99_vla_dimension(vla_dim);
+      }  /* if */
+    }  /* for */
 #if MINIMAL_INLINING
     if (inlining_enabled && scope->variant.routine.ptr->is_inline) {
       /* For an inline routine, set the inlinable flag now that the body has
