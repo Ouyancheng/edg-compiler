@@ -1,5 +1,10 @@
 Version 2.39
 
+7/27/98   Uses of ec_source_file_could_not_be_opened without fill-in
+
+The message code ec_source_file_could_not_be_opened was used in two places
+in lexical.c without the required fill-in for the file name.  Now fixed.
+
 7/27/98   Turning off generation of typeinfo variables when RTTI is
           disabled
 

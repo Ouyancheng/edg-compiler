@@ -3510,12 +3510,14 @@ at the next level down.
       if ((curr_ise->file = reopen_source_file(curr_ise->full_name)) == NULL) {
         /* File could not be re-opened; it was probably deleted since the
            compilation started. */
-        catastrophe(ec_source_file_could_not_be_opened);
+        str_catastrophe(ec_source_file_could_not_be_opened,
+                        curr_ise->full_name);
       }  /* if */
       if (fseek(curr_ise->file, curr_ise->position, SEEK_SET) != 0) {
         /* The seek could not be done.  Again, this implies some change
            in the file since last it was opened. */
-        catastrophe(ec_source_file_could_not_be_opened);
+        str_catastrophe(ec_source_file_could_not_be_opened,
+                        curr_ise->full_name);
       }  /* if */
 #if __VMS__ && 0
       /* This change was only necessary for some of the later 4.n versions
