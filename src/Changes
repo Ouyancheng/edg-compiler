@@ -1,5 +1,19 @@
 Version 2.43
 
+11/10/99 Internal error with source sequence entry for a pragma attached to a
+         void parameter list
+
+When source sequence list generation was enabled, the front end would trigger
+an internal error when certain pragmas were attached to a void parameter list.
+When INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL was set to TRUE, the following example
+exhibited the problem:
+
+  void f(
+  #pragma mysterious // Unrecognized pragma
+    void);
+
+This is now fixed.
+
 11/10/99 Microsoft compatibility: predefine macros
 
 In Microsoft mode, _MSC_EXTENSIONS and _WIN32 are now predefined.

@@ -9685,9 +9685,11 @@ continue_with_declaration:
               error(ec_param_id_list_needs_function_def);
             }  /* if */
           }  /* if */
-          /* Update xref info on param ids. */
-          record_param_id_list_declarations(&func_info);
         }  /* if */
+        /* Update xref info on param ids.  Do this even if there are no
+           parameters because some source sequence entries might have been
+           created (e.g., for pragmas inside the empty parameter list). */
+        record_param_id_list_declarations(&func_info);
       }  /* if */
       /* Do some checking of storage classes, but not for typedefs. */
       if (local_storage_class != (a_storage_class)sc_typedef) {
