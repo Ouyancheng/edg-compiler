@@ -3298,6 +3298,9 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
       if (locator->is_operator_name &&
           locator->variant.opname == (an_opname_kind)onk_assign) {
         sym = cssp == NULL ? NULL : cssp->assignment_operator;
+        /* Ignore the operator= symbol if it does not meet the lookup
+           criteria. */
+        if (sym != NULL && !is_acceptable_symbol(sym, sym)) sym = NULL;
         if (sym != NULL) goto end_lookup; else goto bypass_inactive_search;
       }  /* if */
       /* First, search the list of inactive symbols.  These are class
