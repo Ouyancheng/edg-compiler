@@ -6766,13 +6766,19 @@ or
             local_options, err, cast_to_func_ptr, &type_position,
             &start_position);
   } else {
-    /* This is an expression in parentheses.  The parentheses do not
-       affect the fact that the enclosed expression is an immediate operand
-       of the surrounding context, so most of the option flags are
-       passed down. */
-    scan_expr_full(result, bound_function_selector, PREC_LOWEST,
-                   (local_options & EOPT_OPERAND_OF_CAST) |
-                   EOPT_ALLOW_BOUND_FUNCTION);
+    /* This is an expression in parentheses. */
+    /* Parentheses do not affect the fact that the expression is the
+       immediate operand of a cast, so pass down that option. */
+    a_local_expr_options_set options = (local_options & EOPT_OPERAND_OF_CAST) |
+                                       EOPT_ALLOW_BOUND_FUNCTION;
+    /* Ordinarily, parentheses do affect whether an expression is the
+       immediate operand of a "&" (because the syntax for a pointer-to-member
+       requires that there be no parentheses).  However, in cfront mode
+       &(X::Y) can be a pointer-to-member, so pass down that option. */
+    if (any_cfront_mode()) {
+      options |= (local_options & EOPT_OPERAND_OF_ADDRESS_OF);
+    }  /* if */
+    scan_expr_full(result, bound_function_selector, PREC_LOWEST, options);
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_matching_stop_token(tok_rparen);
   }  /* if */
@@ -9387,10 +9393,12 @@ the sk_variable symbol.  Otherwise, return NULL.
 
 static void scan_identifier(an_operand               *result,
                             a_local_expr_options_set local_options,
+                            int                      prec_level,
                             a_symbol_ptr             *p_sym_ptr)
 /*
 Scan an identifier, and return an operand for it in *operand.  In C++,
 also handle qualified names like A::x and operator names like "operator+".
+prec_level is the precedence level (see comment in scan_expr_full).
 If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
 (which might be a projection symbol), or to NULL if there is an error.
 */
@@ -9654,7 +9662,7 @@ normal_function:
                where the "++" binds more tightly than the "&". */
             if (is_operand_of_address_of &&
                 locator_for_curr_id.is_qualified_name &&
-                token_ends_expr(next_token(), PREC_PREFIX, local_options)) {
+                token_ends_expr(next_token(), prec_level, local_options)) {
               /* The field was referenced by a qualified name and is the
                  immediate operand of a unary "&"; make up an operand that
                  preserves the qualified name so scan_ampersand_operator can
@@ -9992,7 +10000,8 @@ see expr.h).
       if (!is_expr_qualified_name_start()) {
         goto bad_start_of_primary;
       }  /* if */
-      scan_identifier(&local_result, local_options, (a_symbol_ptr *)NULL);
+      scan_identifier(&local_result, local_options, prec_level,
+                      (a_symbol_ptr *)NULL);
       break;
     case tok_this:
       /* In C++, "this" in a nonstatic member function is a non-lvalue that
@@ -11469,7 +11478,7 @@ this routine is called only when microsoft_mode is TRUE.
   expr_stack_entry.potentially_evaluated = FALSE;
   /* Scan the identifier. */
   scan_identifier(&operand, (a_local_expr_options_set)EOPT_NO_OPTIONS,
-                  &projection_sym_ptr);
+                  PREC_LOWEST, &projection_sym_ptr);
   if (is_error_operand(&operand) || projection_sym_ptr == NULL) {
     /* Some previous error. */
   } else {

@@ -1,5 +1,12 @@
 Version 2.36
 
+5/20/97   &(X::Y) as pointer-to-member in cfront mode
+
+In version 2.35, a change was made such that a reference of the form
+"&(X::Y)" is no longer considered to be a pointer-to-member.  However,
+it turns out cfront accepts that form, so cfront mode has been changed
+to accept it once again.
+
 5/20/97   C++-generating back end: "template<>" prefix on generated instances
 
 When the C++-generating back end is used, and
