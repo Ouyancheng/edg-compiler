@@ -1856,11 +1856,14 @@ return NULL.
       case iek_src_seq_secondary_decl:
         sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
         if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_variable ||
-            sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine ||
-            sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+            sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
           tp = sssdp->declared_type;
           break;
+        } else if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+          tp = skip_typerefs((a_type_ptr)sssdp->entity.ptr);
+          break;
         }  /* if */
+        /* FALLTHROUGH */
       default:
         tp = NULL;
     }  /* switch */
@@ -2547,7 +2550,10 @@ check_next_ssep:
            quite right -- some weird cases in C mode, such as
              static void *x = (void *)(struct S { int i; }*)0;
            but it doesn't really make any difference. */
-        check_assertion_str2(okay_if_not_found,
+        /* This situation can also occur when a non-autonomous tag appears as
+           a template argument of a class template (e.g., vector<class X>). */
+        check_assertion_str2(okay_if_not_found ||
+                             is_template_class_type(tp),
                              "src_seq_check_for_non_autonomous_tag:",
                              "type of next entry does not match");
         make_autonomous = TRUE;
