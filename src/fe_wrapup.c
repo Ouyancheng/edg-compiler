@@ -170,17 +170,28 @@ Do the needed-flag processing for the current translation unit
 mark external entities and the things they reference as "needed".
 */
 {
+#if MAINTAIN_NEEDED_FLAGS
+  /* Set the "needed" flag in defined variables with external linkage --
+     both in the file scope and in each of the namespace scopes. */
+  set_needed_flags_at_end_of_file_scope(curr_translation_unit->primary_scope);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #if DO_IL_LOWERING
   /* Any statics referenced from instantiation slices in
      one-instantiation-per-object mode must be made external so that
      they can be referenced from the instantiation object files.
-     Likewise for statics referenced from exported templates.
-     This has to be done after name mangling has been done. */
-  make_statics_referenced_from_instantiations_external();
-#endif /* DO_IL_LOWERING */
+     Likewise for statics referenced from exported templates. */
+  /* Note: this needs to be done after the call of
+     set_needed_flags_at_end_of_file_scope, so that statics referenced
+     from instantiations are marked before we have to decide whether
+     they need to be externalized. */
 #if MAINTAIN_NEEDED_FLAGS
-  set_needed_flags_at_end_of_file_scope(curr_translation_unit->primary_scope);
+  end_of_file_scope_needed_flags_phase = TRUE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
+  make_statics_referenced_from_instantiations_external();
+#if MAINTAIN_NEEDED_FLAGS
+  end_of_file_scope_needed_flags_phase = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* DO_IL_LOWERING */
 }  /* file_scope_il_wrapup_needed_flag_processing */
 
 
