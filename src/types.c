@@ -1419,7 +1419,7 @@ not compared.
   a_param_type_ptr              list1, list2;
   a_boolean                     compatible = FALSE;
   a_boolean                     list1_prototyped, list2_prototyped;
-  a_routine_type_supplement_ptr rtsp1, rtsp2, local_rtsp2;
+  a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_type_ptr                    param_1_type, param_2_type;
 
   rout_type_1 = skip_typerefs(rout_type_1);
@@ -1433,35 +1433,50 @@ not compared.
   } else {
     /* If either function has a new-style parameter list, the individual
        parameter types must be compatible.  See the C standard, 3.5.4.3. */
+    list1 = rtsp1->param_type_list;
+    list2 = rtsp2->param_type_list;
     list1_prototyped = rtsp1->prototyped;
     list2_prototyped = rtsp2->prototyped;
-    if (!list1_prototyped && !list2_prototyped) {
-      /* Both parameter lists are old-style, so they are compatible. */
-      compatible = TRUE;
-    } else {
-      /* At least one of the function types has a prototyped parameter list. */
-      list1 = rtsp1->param_type_list;
-      list2 = rtsp2->param_type_list;
-      local_rtsp2 = rtsp2;
-      if (!list1_prototyped) {
-        /* Switch the two parameter lists, so that if there is an old-style
-           parameter list involved, it is list2. */
-        list1 = list2;
-        list2 = rtsp1->param_type_list;
-        list1_prototyped = TRUE;
-        list2_prototyped = FALSE;
-        local_rtsp2 = rtsp1;
+    if (C_dialect == C_dialect_cplusplus) {
+#if CHECKING
+      if ((!list1_prototyped && !rtsp1->old_style_params_scanned) ||
+          (!list2_prototyped && !rtsp2->old_style_params_scanned)) {
+        internal_error(
+                   "param_types_are_compatible: unscanned old-style params");
       }  /* if */
-      if (!list2_prototyped) {
-        /* The second parameter list is old-style.  */
-        if (!local_rtsp2->old_style_params_scanned) {
-          /* There is no parameter information for the second type, which is
-             an old-style declaration. The prototyped parameter list from
-             the first type is used, and each type on the list will be
-             promoted before comparison. */
-          list2 = list1;
+#endif /* CHECKING */
+      /* In C++ there is no special handling for old-style functions -- they
+         are treated as though they were prototyped. */
+    } else {
+      if (!list1_prototyped && !list2_prototyped) {
+        /* Both parameter lists are old-style, so in C mode they are
+           compatible. */
+        compatible = TRUE;
+      } else {
+        /* At least one of the function types has a prototyped param list. */
+        a_routine_type_supplement_ptr  local_rtsp2 = rtsp2;
+        if (!list1_prototyped) {
+          /* Switch the two parameter lists, so that if there is an old-style
+             parameter list involved, it is list2. */
+          list1 = list2;
+          list2 = rtsp1->param_type_list;
+          list1_prototyped = TRUE;
+          list2_prototyped = FALSE;
+          local_rtsp2 = rtsp1;
+        }  /* if */
+        if (!list2_prototyped) {
+          /* The second parameter list is old-style.  */
+          if (!local_rtsp2->old_style_params_scanned) {
+            /* There is no parameter information for the second type, which is
+               an old-style declaration. The prototyped parameter list from
+               the first type is used, and each type on the list will be
+               promoted before comparison. */
+            list2 = list1;
+          }  /* if */
         }  /* if */
       }  /* if */
+    }  /* if */
+    if (!compatible) {
       /* Compare the types of the parameters on the two lists. */
       for (; list1 != NULL && list2 != NULL;
            list1 = list1->next, list2 = list2->next) {
