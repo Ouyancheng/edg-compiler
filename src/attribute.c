@@ -1257,6 +1257,10 @@ transparent.  If not, issue a diagnostic and return FALSE.
 }  /* check_transparent_union */
 
 
+#if !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+/*ARGSUSED*/ /* <-- is_definition is only used when the init_priority
+                    attribute is enabled. */
+#endif /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 void apply_attributes_to_variable(an_attribute_ptr  attributes,
                                   a_variable_ptr    vp,
                                   a_boolean         is_definition)
