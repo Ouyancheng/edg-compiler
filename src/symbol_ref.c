@@ -317,7 +317,6 @@ created for this entity; otherwise, it is NULL.
   if (!C_mode()) {
     a_scope_depth   scope_depth;
     a_boolean       check_for_tag_sym;
-    a_type_ptr      class_type;
     a_scope_ptr     sp;
     a_boolean       is_local_to_function = FALSE;
     a_symbol_ptr    old_sym_ptr;

@@ -5616,7 +5616,7 @@ locator.  In the case of an ambiguity, return NULL.
 */
 {
   a_symbol_ptr            sym, nested_type_sym = NULL;
-  a_type_ptr              tp, parent_class;
+  a_type_ptr              tp;
   a_scope_stack_entry_ptr ssep;
   a_scope_number          effective_scope, effective_scope_of_nested_type;
 
@@ -7962,7 +7962,6 @@ NULL.
            even a warning, because people really do this intentionally.
            Declaring something of this type would be an error; declaring
            something a pointer to this type would be allowed. */
-        a_type_ptr  parent_class;
         if (scope_stack[depth_scope_stack].kind ==
                                (a_scope_kind)sck_template_instantiation) {
           /* Type was declared in a prototype instantiation.  It should not

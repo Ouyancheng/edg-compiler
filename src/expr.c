@@ -691,7 +691,7 @@ after_precision:;
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_long_long);
           if (strict_ansi_mode) {
-            diagnostic(strict_ansi_error_severity < es_warning ?
+            diagnostic((int)strict_ansi_error_severity < (int)es_warning ?
                          strict_ansi_error_severity : es_warning,
                        ec_nonstd_printf_format_string);
           }  /* if */
@@ -720,7 +720,7 @@ after_precision:;
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_unsigned_long_long);
           if (strict_ansi_mode) {
-            diagnostic(strict_ansi_error_severity < es_warning ?
+            diagnostic((int)strict_ansi_error_severity < (int)es_warning ?
                          strict_ansi_error_severity : es_warning,
                        ec_nonstd_printf_format_string);
           }  /* if */

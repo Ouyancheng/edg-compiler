@@ -5335,7 +5335,6 @@ to the caller.  If no modification is done return the original type.
 */
 {
   while (type->kind == (a_type_kind)tk_typeref) {
-    a_type_ptr cowam;
     a_boolean  is_nonreal = FALSE;
     a_boolean  is_local;
     /* See if the type is local to a function. */
