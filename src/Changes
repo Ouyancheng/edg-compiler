@@ -1,5 +1,16 @@
 Version 2.43
 
+10/11/99 Clarify diagnostic on qualified friend function definitions
+
+A qualified name cannot be used in the declarator of a friend declaration that
+is a function definition.  This used to be diagnosed as a scoping problem; now
+the message is more explicit.
+
+  void f();
+  class C {
+    friend void ::f() {}  // Error: a qualified name is not allowed for a
+  };                      // friend declaration that is a function definition.
+
 10/8/99  Call enter_system_specific_predeclared_symbols in all modes
 
 The front end now also calls enter_system_specific_predeclared_symbols in C
