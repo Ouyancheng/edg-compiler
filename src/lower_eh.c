@@ -2699,11 +2699,11 @@ by the EDG-supplied runtime.
                            stack-local variable or the "actual this".
                            More detailed information on RDF_LET_THIS
                            is available from KAI. */
+			/* Note that this uses the same bit as
+			   RDF_SUBOBJECT_VTABLE, and is valid only when
+			   RDF_BASE_CLASS_SUBOBJECT is FALSE. */
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING && USING_KAI_INLINER */
-#define RDF_BASE_CLASS_SUBOBJECT	0x40
-			/* TRUE if the object is a base class of some other
-			   object and therefore is not a complete object. */
-#define RDF_SUBOBJECT_VTABLE		0x80
+#define RDF_SUBOBJECT_VTABLE		0x20
 			/* When RDF_BASE_CLASS_SUBOBJECT is TRUE, this
 			   flag indicates that a region entry following
 			   this one gives the address of the subobject
@@ -2711,15 +2711,15 @@ by the EDG-supplied runtime.
 			   calling the destructor.  If there is also an
 			   extra entry for a conditional flag, the
 			   subobject vtable entry follows the flag entry.
-			   Note that this uses the same bit as
-			   RDF_GUARD_VAR_FOR_LOCAL_STATIC. */
+			   Note that this uses the same bit as RDF_LET_THIS. */
+#define RDF_BASE_CLASS_SUBOBJECT	0x40
+			/* TRUE if the object is a base class of some other
+			   object and therefore is not a complete object. */
 #define RDF_GUARD_VAR_FOR_LOCAL_STATIC	0x80
 			/* TRUE if the object is the guard variable associated
 			   with the initialization of a local static variable.
 			   The cleanup action is to set the variable back
-			   to zero.  Note that this uses the same bit as
-			   RDF_SUBOBJECT_VTABLE, and is valid only when
-			   RDF_BASE_CLASS_SUBOBJECT is FALSE. */
+			   to zero. */
 
 
 /* Type used to carry information about the location of an entity in the
