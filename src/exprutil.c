@@ -5354,14 +5354,17 @@ a_type_ptr do_implicit_type_transformations(a_type_ptr type,
                                             an_operand *operand)
 /*
 Do the implicit array --> pointer and function --> pointer transformations on
-a type.  If operand != NULL, it is the associated operand (needed for the
-member function --> pointer to member function transformation).
+a type.  Also do the lvalue --> rvalue type transformation (dropping
+qualifiers as appropriate).  If operand != NULL, it is the associated operand
+(needed for the member function --> pointer to member function transformation).
 */
 {
   if (is_array_type(type)) {
     type = type_after_array_to_pointer_transformation(type);
   } else if (is_function_type(type)) {
     type = type_after_function_to_pointer_transformation(type, operand);
+  } else {
+    type = rvalue_type(type);
   }  /* if */
   return type;
 }  /* do_implicit_type_transformations */
