@@ -285,7 +285,12 @@ the #endif.
   } else if (pp_if_stack[pp_if_stack_depth].else_encountered) {
     /* An #else has been seen already, so this is a second #else.
        Error except when emulating pcc, which doesn't give an error. */
-    if (C_dialect != C_dialect_pcc) {
+    if (C_dialect != C_dialect_pcc
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* The Microsoft compiler doesn't give an error on this either. */
+        && !microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                  ) {
       error(ec_pp_else_already_appeared);
     } else {
       warning(ec_pp_else_already_appeared);

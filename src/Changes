@@ -1,5 +1,20 @@
 Version 2.33
 
+9/13/96 Microsoft compatibility: extra #elses ignored
+
+In Microsoft mode, a second #else in the skipped part of an #if is now
+ignored, with a warning.
+
+  #if 0
+  #if 1
+  int x;
+  #else
+  xxx
+  #else  /* Gets warning instead of error. */
+  yyy
+  #endif
+  #endif
+
 9/13/96 Template instantiations that do not produce valid function types
 
 If the names used in a template declaration change meaning between the
