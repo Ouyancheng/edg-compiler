@@ -159,7 +159,15 @@ will use the same static variable.  If the static variable is initialized,
 the initialization guard variable is also made external.  It has a
 mangled name beginning with "__LSG__", followed by the mangled name of the
 promoted local static variable.  The name demangler has been updated to deal
-with these new mangled names.
+with these new mangled names.  The configuration flag LOWER_EXTERN_INLINE
+controls the lowering of extern inline functions.
+
+There is still an unimplemented part of extern inline support: if the
+address of an extern inline function is taken, it should give the same address
+in all compilation units.  But as of now, it gives the address of the
+copy of the function in the current compilation unit.  This will be
+addressed at some point, but at the moment we're not sure of the
+right approach.
 
 9/23/96 Use of typedef names in destructor calls
 
