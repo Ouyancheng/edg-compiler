@@ -32,8 +32,8 @@ def_arg.h -- Declarations related to def_arg.c (having to do with
 Structure for keeping track of token cache representing a default argument
 expression, prescanned during a member function declaration within a class
 definition and actually processed once the class definition is complete.
+The declaration for a_def_arg_expr_fixup_ptr is in symbol_tbl.h.
 */
-typedef struct a_def_arg_expr_fixup *a_def_arg_expr_fixup_ptr;
 typedef struct a_def_arg_expr_fixup {
   a_def_arg_expr_fixup_ptr
 		next;

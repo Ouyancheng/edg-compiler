@@ -28,6 +28,12 @@ typedef struct a_macro_def     *a_macro_def_ptr;
    available to symbol_tbl.h without creating recursive reference problems. */
 typedef struct a_routine_fixup *a_routine_fixup_ptr;
 
+/* The pointer to a_def_arg_expr_fixup is declared here even though the struct
+   itself is defined in def_arg.h.  This allows the pointer to be made
+   available to symbol_tbl.h without creating recursive reference problems. */
+typedef struct a_def_arg_expr_fixup *a_def_arg_expr_fixup_ptr;
+
+
 /* Some other things declared up front to avoid mutual recursion problems. */
 
 /*
@@ -230,6 +236,9 @@ Clear a symbol locator.
 #ifndef CLASS_DECL_H
 #include "class_decl.h"
 #endif /* ifndef CLASS_DECL_H */
+#ifndef DEF_ARG_H
+#include "def_arg.h"
+#endif /* ifndef DEF_ARG_H */
 
 
 /*
@@ -794,6 +803,11 @@ typedef struct a_template_symbol_supplement {
 			/* Information about the prototype parameters
 			   in a function template declaration (the function
 			   parameters not the template parameters). */
+      a_def_arg_expr_fixup_ptr
+		def_arg_expr_list;
+			/* List of entries describing default argument
+			   expressions associated with parameters for
+			   this template declaration. */
     } function;
     /* When symbol kind = sk_static_data_member: */
     struct {

@@ -60,7 +60,11 @@ extern a_boolean equiv_template_arg_lists(a_template_arg_ptr list1,
                                           a_template_arg_ptr list2,
                                           a_boolean          is_func_template);
 
+extern void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp);
+
 extern a_symbol_ptr template_declaration(a_boolean  *defines_something);
+
+extern void templates_init(void);
 
 /* If tp is a class in need of instantiation or an array whose underlying
    element type is such a class, instantiate it.  Otherwise, do nothing. */

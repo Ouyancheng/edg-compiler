@@ -210,6 +210,7 @@ constructor initializer is present, a colon.
 void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp)
 /*
 Scan a default argument expression and link the default argument
+entry onto a list in the current routine fixup entry.
 */
 {
   a_def_arg_expr_fixup_ptr	*list;
@@ -362,17 +363,6 @@ routine recursively for each nested class.
             /* Let get_token know about the cache. */
             rescan_cached_tokens(&daefp->token_cache);
             delayed_scan_of_default_arg_expr(daefp->param_type);
-            /* In the normal case the current token should be end_of_source,
-               which was inserted to mark the end of the cached token
-               stream. */
-            if (curr_token != tok_end_of_source) {
-              pos_error(ec_exp_comma, &pos_curr_token);
-              /* If necessary, keep flushing until end-of-source is found. */
-              while (curr_token != tok_end_of_source) (void)get_token();
-            }  /* if */
-            /* Advance past the end-of-source token, which was added in
-               the prescan routine. */
-            (void)get_token();
           }  /* for */
           /* Restore the prototype scope symbols pointer in the func info
              block. It shouldn't have changed, but we do it to be safe. */

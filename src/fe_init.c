@@ -23,7 +23,7 @@ in .h files.
 #include "basics.h"
 #if __BSD__
 #include <sys/time.h>
-#else
+#else  /* __BSD__ */
 #include <time.h>
 #endif  /* __BSD__ */
 #if __SYSV__ || __BSD__
@@ -762,6 +762,7 @@ Initialize everything that has to do with the front end.
   keyword_init();
   class_decl_init();
   def_arg_init();
+  templates_init();
   expr_init();
   macro_proc_init();
   /* preproc_init must be called after keyword initialization so that

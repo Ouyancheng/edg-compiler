@@ -1701,8 +1701,9 @@ scope is that of a class definition.
 	    parent_scope_kind = scope_stack[depth_scope_stack-1].kind;
             if (default_arg_expr_allowed &&
                 (parent_scope_kind == (a_scope_kind)sck_class_struct_union ||
-                 parent_scope_kind == 
+                 (parent_scope_kind == 
 				    (a_scope_kind)sck_template_declaration) &&
+		  ptp->type_involves_template_param) &&
                 curr_token != tok_comma && curr_token != tok_rparen &&
                 curr_token != tok_semicolon && curr_token != tok_rbrace && 
                 curr_token != tok_lbrace) {
@@ -1712,14 +1713,17 @@ scope is that of a class definition.
 		 point and only scanned once the entire class has been
                  defined.  This is because forward references may legally
                  appear in the default argument expression (C++ draft standard,
-                 section 8.2.6, para 3). */
+                 section 8.2.6, para 3).  Note that only those parameters
+		 that involve template parameters have their default values
+		 cached and scanned later.  */
 	      if (parent_scope_kind == (a_scope_kind)sck_class_struct_union) {
+		/* Scan the default arguments for a member function. */
                 prescan_member_function_default_arg_expr(ptp);
               } else {
-#if 0
-		/* Function template default argument scanning will go here. */
-#endif
-		unexpected_condition();
+		/* Scan the default arguments for a function template. */
+		check_assertion(parent_scope_kind ==
+				      (a_scope_kind)sck_template_declaration);
+		prescan_function_template_default_arg_expr(ptp);
 	      }  /* if */
             } else {
               /* Not a class scope -- or else a syntax error.  Go ahead and

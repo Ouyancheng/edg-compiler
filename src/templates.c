@@ -26,6 +26,11 @@ templates.c -- Support for C++ templates.
 #include "types.h"
 
 
+/* Pointer to the default argument entries for the function template
+   being scanned. */
+static a_def_arg_expr_fixup_ptr	curr_default_args;
+
+
 static a_boolean instantiation_of_type_is_in_progress(a_type_ptr tp)
 /*
 Return TRUE if a class/struct/union scope for tp, which represents a template
@@ -942,14 +947,12 @@ make_new_type:
           new_ptp = alloc_param_type(tp);
           if (ptp->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
-#if CHECKING
-            if (ptp->type_involves_template_param) {
-              internal_error(
-                "copy_type_with_substitution: param type with template param");
+            if (!ptp->type_involves_template_param) {
+	      /* Default argument processing for parameters that involve
+		 template parameters is done later. */
+              new_ptp->default_arg_expr = copy_expr_tree(ptp->default_arg_expr,
+                                                         /*clone_temps=*/TRUE);
             }  /* if */
-#endif /* CHECKING */
-            new_ptp->default_arg_expr = copy_expr_tree(ptp->default_arg_expr,
-                                                       /*clone_temps=*/TRUE);
           }  /* if */
           /* Add the new param type entry to the param types list. */
           if (prev_ptp == NULL) {
@@ -1333,6 +1336,72 @@ Do some simple consistency checking on a function template argument list.
 #endif /* CHECKING */
 
 
+static void delayed_scan_for_function_template_default_args
+			 (a_routine_ptr			     templ_rout,
+			  a_routine_ptr			     rout_ptr,
+			  a_symbol_ptr			     rout_sym,
+			  a_template_instance_ptr	     tip,
+			  a_template_symbol_supplement_ptr   tssp)
+/*
+Rescan the default arguments of a function template that involve
+template parameters in the type of the function parameter.
+*/
+{
+  a_def_arg_expr_fixup_ptr	daefp;
+  a_param_type_ptr		templ_ptp;
+  a_param_type_ptr		ptp;
+  a_type_ptr			templ_rout_type = templ_rout->type;
+  a_type_ptr			rout_type = rout_ptr->type;
+  daefp = tssp->variant.function.def_arg_expr_list;
+  if (daefp != NULL) {
+    templ_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
+    ptp = rout_type->variant.routine.extra_info->param_type_list;
+    /* Push the template instantiation scope. */
+    (void)push_scope((a_scope_kind)sck_template_instantiation,
+                     tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
+                     rout_sym, tip->template_sym, tip->arg_list);
+    /* The function prototype scope should be reactivated and its symbols
+       reentered because parameter names hide names from enclosing scopes
+       and, moreover, may not be used in default argument expressions
+       (ARM 8.2.6). */
+    (void)push_scope((a_scope_kind)sck_func_prototype,
+                     tssp->declaration_scope, (a_type_ptr)NULL,
+                     (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+    if (tssp->variant.function.func_info.prototype_scope_symbols != NULL) {
+      reactivate_prototype_scope_symbols(
+                    tssp->variant.function.func_info.prototype_scope_symbols);
+    }  /* if */
+    /* Loop through the list of param_type entries and the default argument
+       expression entries that correspond to the param_type entries
+       for parameters that involve template parameters and have
+       default arguments. */
+    for (; ptp != NULL; ptp = ptp->next, templ_ptp = templ_ptp->next) {
+      if (templ_ptp->has_default_arg &&
+	  templ_ptp->type_involves_template_param) {
+	check_assertion(daefp != NULL);
+        /* Update the default argument expression entry to point to the
+           current param type entry. */
+	daefp->param_type = ptp;
+        /* It's a default arg expression that needs to be rescanned. */
+        /* Let get_token know about the cache. */
+        rescan_reusable_cache(&daefp->token_cache);
+        delayed_scan_of_default_arg_expr(daefp->param_type);
+        daefp = daefp->next;
+      }  /* if */
+    }  /* for */
+    /* Restore the prototype scope symbols pointer in the func_info
+       block. It shouldn't have changed, but we do it to be safe. */
+    tssp->variant.function.func_info.prototype_scope_symbols =
+                                 scope_stack[depth_scope_stack].symbols;
+    /* Pop the reactivated function prototype scope off the stack. */
+    pop_scope();
+    /* Pop the template instantiation scope. */
+    pop_scope();
+  }  /* if */
+}  /* delayed_scan_for_function_template_default_args */
+
+
 a_symbol_ptr make_template_function(a_symbol_ptr        templ_sym,
                                     a_type_ptr          rout_type,
                                     a_template_arg_ptr  templ_arg_list,
@@ -1352,6 +1421,7 @@ templ_sym).
   a_memory_region_number            region_to_switch_back_to;
   a_template_instance_ptr           tip;
   a_routine_ptr                     templ_rout, rp;
+  a_boolean			    is_new_rout_type = FALSE;
 
   db_enter(4, "make_template_function");
 #if CHECKING
@@ -1382,6 +1452,7 @@ templ_sym).
        not the template parameters) along with the template argument list. */
     rout_type = copy_type_with_substitution(templ_rout->type, templ_arg_list,
                                             source_pos);
+    is_new_rout_type = TRUE;
   }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
   /* Give the routine entry the type passed in, and set other fields in
@@ -1406,6 +1477,15 @@ templ_sym).
      point at each other. */
   tip->instance_sym = sym;
   sym->variant.routine.instance_ptr = tip;
+  if (is_new_rout_type) {
+    /* If there are default arguments whose types depend on template
+       parameters, scan the default argument expressions. */
+    if (tssp->variant.function.def_arg_expr_list != NULL) {
+      delayed_scan_for_function_template_default_args(templ_rout,
+						      rp, sym, tip,
+						      tssp);
+    }  /* if */
+  }  /* if */
   /* Normally, function instantiation entries are not marked for actual
      instantiation (that is, for generation of the function body) until there
      is an invocation of the function.  This is partly under user control,
@@ -2227,6 +2307,18 @@ for the instantiation.
 }  /* cache_function_template_tokens */
 
 
+void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp)
+/*
+Scan a default argument expression and add it to the list of arguments
+pointed to by the template symbol supplement.
+*/
+{
+  a_def_arg_expr_fixup_ptr	*list;
+  list = &curr_default_args;
+  prescan_default_arg_expr(ptp, list);
+}  /* prescan_function_template_default_arg_expr */
+
+
 static a_template_param_ptr scan_template_param_list(void)
 /*
 Scan a comma-separated list of template parameters.  The opening "<" will
@@ -2529,6 +2621,7 @@ entry is pushed on the scope stack.
   a_template_symbol_supplement_ptr  tssp;
   a_boolean                         tag_resolution = FALSE;
   a_type_ptr                        prototype_type = NULL;
+  a_def_arg_expr_fixup_ptr	    saved_curr_default_args;
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -2536,6 +2629,8 @@ entry is pushed on the scope stack.
     internal_error("template_declaration: expected tok_template");
   }  /* if */
 #endif /* CHECKING */
+  saved_curr_default_args = curr_default_args;
+  curr_default_args = NULL;
   *defines_something = FALSE;
   if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
     /* template declarations may appear at file scope only (ARM 14.1). */
@@ -2681,6 +2776,7 @@ entry is pushed on the scope stack.
           tssp = sym->variant.template_info;
         }  /* if */
         tssp->variant.function.func_info = func_info;
+        tssp->variant.function.def_arg_expr_list = curr_default_args;
         tssp->parameters = template_param_list;
         tssp->declaration_scope = scope_stack[decl_scope_level].number;
         cache_function_template_tokens(&tssp->token_cache,
@@ -2754,9 +2850,19 @@ entry is pushed on the scope stack.
     if (sym != NULL) db_symbol(sym, "template symbol: ", 2);
   }  /* if */
 #endif /* DEBUG */
+  curr_default_args = saved_curr_default_args;
   db_exit();
   return sym;
 }  /* template_declaration */
+
+
+void templates_init(void)
+/*
+Initializations for template.
+*/
+{
+  curr_default_args = NULL;
+}  /* templates_init */
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -157,6 +157,17 @@ been declared for all successor arguments.
   }  /* for */
   /* We scan the expression whether an error was detected or not. */
   scan_default_arg_expr(param_type_entry);
+  /* In the normal case the current token should be end_of_source,
+     which was inserted to mark the end of the cached token
+     stream. */
+  if (curr_token != tok_end_of_source) {
+    pos_error(ec_exp_comma, &pos_curr_token);
+    /* If necessary, keep flushing until end-of-source is found. */
+    while (curr_token != tok_end_of_source) (void)get_token();
+  }  /* if */
+  /* Advance past the end-of-source token, which was added in
+     the prescan routine. */
+  (void)get_token();
   db_exit();
 }  /* delayed_scan_of_default_arg_expr */
 

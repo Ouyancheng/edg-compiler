@@ -1137,6 +1137,7 @@ and return a pointer to it.
       tssp->variant.function.instantiations = NULL;
       tssp->variant.function.routine = NULL;
       clear_func_info(&tssp->variant.function.func_info);
+      tssp->variant.function.def_arg_expr_list = NULL;
       break;
     case sk_static_data_member:
       tssp->variant.static_data_member.definitions = NULL;
