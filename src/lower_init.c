@@ -6190,8 +6190,22 @@ have already had their designated initializers lowered.
            con.ptr->kind != (a_constant_repr_kind)ck_designator) {
       if (con.ptr->kind == (a_constant_repr_kind)ck_aggregate) {
         /* Process a sub-aggregate. */
-        if (earlier_con.ptr != NULL) split_constant_if_repeated(&earlier_con);
-        lower_aggregate_designated_initializers(con.ptr, earlier_con.ptr);
+        a_constant_ptr superseded_con = earlier_con.ptr;
+        if (superseded_con != NULL) {
+          split_constant_if_repeated(&earlier_con);
+          superseded_con = earlier_con.ptr;
+          if (superseded_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+            /* The previous initialization sets the whole aggregate with
+               a single value.  Save it off to the side and combine it
+               with the initializer afterwards. */
+            superseded_con = NULL;
+          }  /* if */
+        }  /* if */
+        lower_aggregate_designated_initializers(con.ptr, superseded_con);
+        if (superseded_con != earlier_con.ptr) {
+          /* See comment above.  Combine the old and new initializers. */
+          combine_initializer_constants(earlier_con.ptr, con.ptr);
+        }  /* if */
       } else {
         /* Non-aggregate constant. */
         if (earlier_con.ptr != NULL) {
