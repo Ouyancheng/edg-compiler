@@ -3979,6 +3979,12 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                                    get_type_qualifiers(source_type_pointed_to);
       if (dest_type_qualifiers == source_type_qualifiers) {
         /* The qualifiers are the same. */
+      } else if (!C_mode() && is_template_dependent_context() &&
+                 (is_template_param_type(dest_type_pointed_to) ||
+                  is_template_param_type(source_type_pointed_to))) {
+        /* Because template parameters can include type qualifiers (e.g.,
+           "T" could be "const int"), qualifier differences over them
+           might be okay. */
       } else if (any_qualifier_in_set_missing(dest_type_qualifiers,
                                               source_type_qualifiers)) {
         /* Qualifiers are being dropped. */
