@@ -4849,13 +4849,33 @@ from decl_specifiers only.
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
-    if (named_address_spaces_enabled && *qualifiers != TQ_NONE &&
-        named_address_space_from_qualifier_set(*qualifiers) != 0 &&
-        is_function_type(*type_ptr)) {
-      /* Function types cannot be qualified with named address spaces. */
-      err = TRUE;
-      pos_error(ec_named_address_space_on_function_type, qualifier_pos);
-      *qualifiers = simple_qualifiers(*qualifiers);
+    if (named_address_spaces_enabled && *qualifiers != TQ_NONE) {
+      a_named_address_space_id  new_nas =
+                           named_address_space_from_qualifier_set(*qualifiers);
+      if (new_nas != 0) {
+        if (is_function_type(*type_ptr)) {
+          /* Function types cannot be qualified with named address spaces. */
+          err = TRUE;
+          pos_error(ec_named_address_space_on_function_type, qualifier_pos);
+          *qualifiers = simple_qualifiers(*qualifiers);
+        } else {
+          a_type_qualifier_set      old_quals = get_type_qualifiers(*type_ptr);
+          a_named_address_space_id  old_nas =
+                             named_address_space_from_qualifier_set(old_quals);
+          if (old_nas != 0) {
+            /* Double qualification with a named address space.  If the address
+               space is identical, issue a warning; otherwise, an error. */
+            an_error_severity  severity = es_warning;
+            if (old_nas != new_nas) {
+              severity = es_error;
+              err = TRUE;
+            }  /* if */
+            pos_diagnostic(severity, ec_multiple_named_address_spaces,
+                           qualifier_pos);
+            *qualifiers = simple_qualifiers(*qualifiers);
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
     if ((*type_ptr)->kind == (a_type_kind)tk_typeref) {
