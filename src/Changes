@@ -1,5 +1,12 @@
 Version 2.43
 
+9/22/99  Performance problem with empty base class layout optimization
+
+The empty base class layout optimization (see Changes entry of 8/9/99) could
+lead to huge compile times (hours, days or longer) when dealing with
+exceptionally deep class hierarchies.  Formerly, some of these cases were
+compiled in seconds.  This is now fixed.
+
 9/21/99  Diagnose undefined and unused members of classes in unnamed
          namespaces
 

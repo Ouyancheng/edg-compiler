@@ -2578,6 +2578,35 @@ Issue an error if any base class offset exceeds the maximum that is allowed.
   }  /* if */
 }  /* check_base_class_offsets */
 
+
+void compute_empty_class_bit(a_type_ptr  type)
+/*
+Determine whether the given class type is empty---i.e., has no nonstatic
+data members, virtual functions, virtual base classes or base classes with
+such things---and record the outcome in the type.
+*/
+{
+  a_boolean  result;
+
+  if (type->variant.class_struct_union.field_list != NULL ||
+      type->variant.class_struct_union.any_virtual_base_classes ||
+      type->variant.class_struct_union.any_virtual_functions) {
+    result = FALSE;
+  } else {
+    /* Also check that every base class is similarly empty: */
+    a_base_class_ptr bcp;
+
+    result = TRUE;
+    for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
+      if (!bcp->type->variant.class_struct_union.is_empty_class) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  type->variant.class_struct_union.is_empty_class = result;
+}  /* compute_empty_class_bit */
+
     
 void do_class_layout(a_type_ptr  class_type)
 /*
@@ -2590,6 +2619,7 @@ for handling virtual bases and functions.
 
   db_enter(3, "do_class_layout");
   clear_layout_block(&lob, class_type);
+  compute_empty_class_bit(class_type);
   if (C_dialect == C_dialect_cplusplus) {
     /* Reserve space in the current class for its nonvirtual base classes,
        which are located at the start of the object.  (Virtual base classes

@@ -581,20 +581,8 @@ Otherwise, FALSE is returned.
   type = skip_typerefs(type);
   if (!is_class_struct_union(type)) {
     result = FALSE;
-  } else if (type->variant.class_struct_union.field_list != NULL ||
-             type->variant.class_struct_union.any_virtual_base_classes ||
-             type->variant.class_struct_union.any_virtual_functions) {
-    result = FALSE;
   } else {
-    /* Also check that every base class is similarly empty: */
-    a_base_class_ptr bcp;
-
-    for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
-      if (!is_empty_class_type(bcp->type)) {
-        result = FALSE;
-        break;
-      }  /* if */
-    }  /* for */
+    result = type->variant.class_struct_union.is_empty_class;
   }  /* if */
   return result;
 }  /* is_empty_class_type */

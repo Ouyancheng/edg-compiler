@@ -962,6 +962,7 @@ to default values.
       pte->variant.class_struct_union.definition_needed = FALSE;
       pte->variant.class_struct_union.keep_definition_in_il = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
+      pte->variant.class_struct_union.is_empty_class = FALSE;
 #if CHECKING
       pte->variant.class_struct_union.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

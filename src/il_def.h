@@ -3928,6 +3928,12 @@ typedef struct a_type {
 			   the IL is passed to the back end).  It is for
 			   front-end use only. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+      a_bit_field
+		is_empty_class:1;
+			/* TRUE if this class has no nonstatic data members,
+			   virtual functions, virtual base classes or bases
+			   (direct or indirect) with such things.  Computed in
+			   do_class_layout. */
       bitfield_to_avoid_codecenter_warnings()
 #if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment
