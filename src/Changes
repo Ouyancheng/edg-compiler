@@ -1,5 +1,12 @@
 Version 3.1
 
+6/11/02  GNU C compatibility: extended integral constant expressions
+
+GNU C mode now allows integral constant expressions with
+nonstandard forms.
+
+  int i [((char *) &((struct foo *) 0)->c[0]) - (char *) 0];
+
 6/11/02  GNU C compatibility: alias attribute should not find macros
 
 The front end used to mistakenly find macros when looking up an entity
@@ -18,7 +25,7 @@ In Microsoft bugs mode and Sun mode, a static_cast to the same type
 the operand already has now does nothing; in particular, it does not
 force conversion of an lvalue to an rvalue.
 
-6/11/02  gcc compatibility: "register" and "q" in asm
+6/11/02  GNU C compatibility: "register" and "q" in asm
 
 The gcc asm support now accepts "q" as a constraint code (equivalent
 to "Q") and "memory" as a legal register on all machines in the context

@@ -5968,6 +5968,7 @@ Syntax:
 
 
 static void scan_extended_integral_constant_expression(a_boolean  allow_comma,
+                                                       a_boolean  will_cast,
                                                        int        prec_level,
                                                        an_operand *operand)
 /*
@@ -5979,11 +5980,13 @@ expression is scanned as an initializer constant expression, then checked
 to see if it is a constant with integer or floating-point representation.
 If not, an error is issued and the constant is changed to an error
 constant.  The constant is returned in *operand.  If allow_comma is TRUE,
-a top-level comma is allowed in the expression.  prec_level is the
-precedence level to be used in scanning the expression.  The constant
-returned might be an error constant or a template parameter constant.
-This routine exists mainly to allow the sorts of constant expressions
-used in the implementation of offsetof.
+a top-level comma is allowed in the expression.  If will_cast is TRUE,
+the result will be cast to an integral type (and therefore it can, for
+example, be a floating-point constant).  prec_level is the precedence
+level to be used in scanning the expression.  The constant returned
+might be an error constant or a template parameter constant.  This
+routine exists mainly to allow the sorts of constant expressions used
+in the implementation of offsetof.
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -6001,12 +6004,16 @@ used in the implementation of offsetof.
   extract_constant_from_operand(operand, &con);
   /* Check that the constant is represented as an integer or floating
      constant. */
-  if (!is_error_constant(&con) &&
-      con.kind != (a_constant_repr_kind)ck_integer &&
-      con.kind != (a_constant_repr_kind)ck_float &&
-      con.kind != (a_constant_repr_kind)ck_template_param) {
+  if ((con.kind == (a_constant_repr_kind)ck_integer ||
+       con.kind == (a_constant_repr_kind)ck_template_param ||
+       (will_cast && con.kind == (a_constant_repr_kind)ck_float)) &&
+      (will_cast ||
+       is_integral_type(con.type) ||
+       is_template_param_type(con.type))) {
+    /* Okay. */
+  } else if (!is_error_constant(&con)) {
     /* The expression doesn't reduce to a value that will be an integer
-       constant once cast to an integral type. */
+       constant (possibly once cast to an integral type). */
     error_in_operand(ec_expr_not_integral_constant, operand);
   }  /* if */
   pop_expr_stack();
@@ -6042,6 +6049,7 @@ because the feature is used to implement offsetof, a standard feature.
   add_matching_stop_token(tok_rparen);
   /* Scan the address expression. */
   scan_extended_integral_constant_expression(/*allow_comma=*/TRUE,
+                                             /*will_cast=*/TRUE,
                                              PREC_LOWEST, result);
   /* Cast the constant to type size_t. */
   cast_operand(integer_type(targ_size_t_int_kind), result,
@@ -8865,7 +8873,9 @@ in *bound_function_selector.
       (curr_expr_kind_is(ek_integral_constant) ||
        curr_expr_kind_is(ek_template_arg)) &&
       is_integral_type(type_cast_to)) {
-    scan_extended_integral_constant_expression(allow_comma, prec_level,
+    scan_extended_integral_constant_expression(allow_comma,
+                                               /*will_cast=*/TRUE,
+                                               prec_level,
                                                operand);
   } else {
     /* Normal case. */
@@ -14499,23 +14509,34 @@ Scan an integral constant expression.  See section 6.4 in the ISO C89 standard,
 and [expr.const] in the ISO C++98 standard.
 */
 {
-  an_operand          result;
-  an_expr_stack_entry expr_stack_entry;
+  an_operand result;
 
   db_enter(3, "scan_integral_constant_expression");
 
-  push_expr_stack((an_expression_kind)ek_integral_constant, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  /* Scan the constant expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  do_operand_transformations(&result, TOPT_NO_OPTIONS);
-  extract_constant_from_operand(&result, constant);
-  pop_expr_stack();
+  if (gcc_mode) {
+    /* gcc allows more than the standard allows. */
+    scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
+                                               /*will_cast=*/FALSE,
+                                               PREC_LOWEST,
+                                               &result);
+    extract_constant_from_operand(&result, constant);
+  } else {
+    /* Standard integral constant expression. */
+    an_expr_stack_entry expr_stack_entry;
+    push_expr_stack((an_expression_kind)ek_integral_constant,
+                    &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    /* Scan the constant expression. */
+    scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    do_operand_transformations(&result, TOPT_NO_OPTIONS);
+    extract_constant_from_operand(&result, constant);
+    pop_expr_stack();
+  }  /* if */
+
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
 #if DEBUG
   if (debug_level >= 3) {
     db_constant(constant);
