@@ -1729,14 +1729,14 @@ Pop function corresponding to push_generated_routine_context.
      routine. */
   add_scope_orphaned_il_lists(scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  rout->defined = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
-  /* If the routine is external, mark it as needed.  This must be done before
+  /* If the routine is external, mark it as needed.  This must be done after
      the "defined" flag is set. */
   if (rout->storage_class == (a_storage_class)sc_unspecified) {
     mark_as_needed((char *)rout, iek_routine);
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  rout->defined = TRUE;
   innermost_function_scope = grcontext->innermost_function_scope;
   curr_cleanup_state = grcontext->curr_cleanup_state;
   depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
