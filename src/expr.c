@@ -9349,6 +9349,7 @@ standard.
     operation_type = operand_1->type;  /* Assume. */
     if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
       /* One or both of the operands has an error. */
+      operation_type = error_type();
 #if C99_IL_EXTENSIONS_SUPPORTED
     } else if (is_nonreal_floating_type(operand_1->type)) {
       /* Complex and imaginary operands are unordered. */
