@@ -331,6 +331,20 @@ of constant initializers.
 }  /* scan_initializer_of_simple_object */
 
 
+static a_boolean is_empty_aggregate_constant(a_constant_ptr  cp)
+{
+  a_boolean  is_empty;
+
+  if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+    cp = cp->variant.aggregate.first_constant; 
+    is_empty = (cp == NULL) || is_empty_aggregate_constant(cp);
+  } else {
+    is_empty = FALSE;
+  }  /* if */
+  return is_empty;
+}  /* is_empty_aggregate_constant */
+
+
 static void flush_initializers(void)
 {
   a_dynamic_init  local_di;
@@ -512,22 +526,24 @@ for unions and aggregates at that level).
         curr_field = local_type->variant.class_struct_union.field_list;
         any_more_members = (curr_field != NULL);
         if (brace_flag && curr_token == tok_rbrace) {
-          /* Error */
+          /* Empty initializer list. */
           any_more_initializers = FALSE;
-        } else if (!any_more_members) {
-          if (!top_level) {
-            any_more_initializers = FALSE;
-          } else {
-            flush_initializers();
-            goto end_of_initializer_list;
+          if (C_dialect != C_dialect_cplusplus) {
+            /* C mode. */
+            error(ec_exp_primary_expr);
+          } else if (strict_ansi_mode) {
+            /* In C++ issue a diagnostic only "{ }" in strict ANSI mode. */
+            diagnostic(strict_ansi_error_severity,
+                       ec_empty_initializer_list);
           }  /* if */
+        } else if (!any_more_members && !top_level) {
+          any_more_initializers = FALSE;
         }  /* if */
       }  /* if */
       con_list = end_of_con_list = NULL;
       took_extra_comma = FALSE;
       /* Loop, scanning initializers. */
-      do {
-        if (any_more_initializers) {
+      while (any_more_initializers && any_more_members) {
           /* Determine the type of the member being initialized. */
           if (kind == (a_type_kind)tk_array) {
             /* member_type was set outside the loop. */
@@ -618,30 +634,33 @@ for unions and aggregates at that level).
                that field, we are done with the union. */
             any_more_members = FALSE;
           }  /* if */
-        }  /* if */
-        /* If there are no more members and this is not a brace-enclosed list,
-           exit the loop now, without taking a comma or brace following.
-           Likewise if this is a top-level list that is not brace-enclosed
-           (an error except in pcc mode), end the loop now, having taken only
-           one value. */
-        if (!brace_flag && (!any_more_members || top_level)) break;
-        /* Skip a comma separating initializers.  This might be an extra
-           comma at the end of the list. */
-        any_more_initializers = loop_token(tok_comma);
-        /* Always end the loop upon encountering a right brace.  This might
-           be the right brace matching the opening brace for this list
-           (in the case that there was one), or a brace closing some
-           higher-level list, which nevertheless serves to end this
-           lower-level list.  In either case, however, if a comma was
-           just taken, it is "extra" and no extra comma should be allowed
-           outside the loop. */
-        if (curr_token == tok_rbrace) {
-          took_extra_comma = any_more_initializers;
-          any_more_initializers = FALSE;
+        if (is_empty_aggregate_constant(member_con)) {
+          /* The initializer expression was not scanned. */
+        } else {
+          /* If there are no more members and this is not a brace-enclosed
+             list, exit the loop now, without taking a comma or brace
+             following. Likewise if this is a top-level list that is not
+             brace-enclosed (an error except in pcc mode), end the loop now,
+             having taken only one value. */
+          if (!brace_flag && (!any_more_members || top_level)) break;
+          /* Skip a comma separating initializers.  This might be an extra
+             comma at the end of the list. */
+          any_more_initializers = loop_token(tok_comma);
+          /* Always end the loop upon encountering a right brace.  This might
+             be the right brace matching the opening brace for this list
+             (in the case that there was one), or a brace closing some
+             higher-level list, which nevertheless serves to end this
+             lower-level list.  In either case, however, if a comma was
+             just taken, it is "extra" and no extra comma should be allowed
+             outside the loop. */
+          if (curr_token == tok_rbrace) {
+            took_extra_comma = any_more_initializers;
+            any_more_initializers = FALSE;
+          }  /* if */
         }  /* if */
         /* Keep looping if there are more initializers and if there are more
            array elements or fields to initialize. */
-      } while (any_more_initializers && any_more_members);
+      }  /* while */
       if (any_more_initializers && !any_more_members) {
         /* There are more initializers, but we've run out of members
            into which to put them. */
