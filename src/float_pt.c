@@ -69,13 +69,44 @@ do nothing.
     if (kind == (a_float_kind)fk_float) {
       /* Convert to float and store a float in float_value. */
       float_temp = (float)temp;
-      /* Do a non-production-quality, slow, but portable test to see whether
-         or not the double fits in the float by writing both as strings
-         and comparing the strings. */
-      { char float_string[15], double_string[15];
-        (void)sprintf(float_string, "%.2e", float_temp);
-        (void)sprintf(double_string, "%.2e", temp);
-        if (strcmp(float_string, double_string) != 0) *err = TRUE;
+      /* Check for a loss of information on the conversion.   This is crude,
+         but it's hard to do much here that is portable. */
+      { double double_temp;
+        /* Convert back to double again to see if we get the same thing. */
+        double_temp = (double)float_temp;
+        if (double_temp == temp) {
+          /* Got the original number back, so everything is okay.  This also
+             handles NaNs and infinities in the source double, so they do not
+             get into the tests below. */
+        } else if (float_temp == 0.0 && temp != 0.0) {
+          /* Underflow. */
+          *err = TRUE;
+#ifdef FLT_MAX
+        /* In ANSI/ISO C, we know the maximum float value and can test for
+           overflow. */
+        } else if (temp > FLT_MAX || temp < -FLT_MAX) {
+          /* Overflow. */
+          *err = TRUE;
+#else /* !defined(FLT_MAX) */
+        } else if (temp < 10000.0 && temp > -10000.0) {
+          /* Assume that numbers in the range -10000.0 .. +10000.0 cannot
+             overflow. */
+        } else {
+          /* One last shot -- on machines with NaNs and infinities, printing
+             such a thing often prints "Infinity" or the like.  Print the
+             number and see if the first character is a digit.  Note that
+             above we ruled out the case where the source double is a NaN
+             or infinity. */
+          char float_string[15], *ptr;
+          (void)sprintf(float_string, "%.2e", float_temp);
+          ptr = float_string;
+          if (*ptr == '-') ptr++;
+          if (!isdigit(*ptr)) {
+            /* Probably overflow. */
+            *err = TRUE;
+          }  /* if */
+#endif /* ifdef FLT_MAX */
+        }  /* if */
       }
       (void)memcpy((char *)float_value, (char *)&float_temp, sizeof(float));
     } else {
