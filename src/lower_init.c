@@ -2130,9 +2130,19 @@ because of the make_destruction_routine case.
   /* Generate code for the destructor call. */
   if (is_array_type(entity_type)) {
     /* Destruction of whole array. */
-    a_targ_ptrdiff_t num_elems = skip_typerefs(entity_type)->variant.array.
-                                                    variant.number_of_elements;
-    check_assertion(num_elems > 0);
+    /* Determine the number of elements (loop for a multi-dimensional
+       array). */
+    a_targ_ptrdiff_t num_elems = 1;
+    a_type_ptr       array_type = entity_type;
+    do {
+      a_targ_ptrdiff_t elems_this_level;
+      array_type = skip_typerefs(array_type);
+      check_assertion(!array_type->variant.array.is_variable_size_array);
+      elems_this_level = array_type->variant.array.variant.number_of_elements;
+      check_assertion(elems_this_level > 0);
+      num_elems *= elems_this_level;
+      array_type = array_type->variant.array.element_type;
+    } while (is_array_type(array_type));
     /* default_version_of_routine is not called on purpose; __vec_delete
        knows about the implicit argument for destructors and generates
        it automatically. */
