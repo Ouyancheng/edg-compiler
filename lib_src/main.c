@@ -28,7 +28,7 @@ simply calls abort.  The name is intended to describe the nature
 of the problem to the user.
 */
 {
-  abort();
+  __abort_execution(ec_main_called_more_than_once);
 }
 
 

@@ -759,7 +759,7 @@ from the information created by vec_new.  This routine simply aborts.
 The name is intended to describe the nature of the problem to the user
 */
 {
-	abort();
+  __abort_execution(ec_array_not_from_vec_new);
 }
 
 /******************************************************************************

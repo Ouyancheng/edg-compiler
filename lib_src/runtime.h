@@ -20,6 +20,7 @@ Miscellaneous declarations for all runtime routines.
 #include <stdlib.h>
 #include <stdio.h>
 #include <new>
+#include "error.h"
 
 #ifdef __linux__
 /* Linux improperly defined NULL as "(void*)0".  Undefine it if it has

@@ -39,8 +39,17 @@ The default terminate routine.
 */
 {
   if (__default_terminate_routine != NULL) __default_terminate_routine();
-  abort();
+  __abort_execution(ec_terminate_returned);
 }  /* terminate */
+
+
+EXTERN_C void __default_terminate(void)
+/*
+The default terminate routine, which is just a wrapup around abort().
+*/
+{
+  __abort_execution(ec_terminate_called);
+}  /* __default_terminate */
 
 
 a_void_function_ptr set_terminate(a_void_function_ptr new_func)
@@ -161,6 +170,7 @@ terminate() is called.
     the violated exception specification. */
   STD_NAMESPACE::unexpected();
 #endif /* ABI_CHANGES_FOR_RTTI */
+  /* It should not be possible to get here. */
   abort();
 }  /* __call_unexpected */
 
@@ -173,6 +183,7 @@ that terminate does not return.
 {
   terminate_called = TRUE;
   STD_NAMESPACE::terminate();
+  /* It should not be possible to get here. */
   abort();
 }  /* __call_terminate */
 

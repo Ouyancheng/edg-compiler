@@ -68,7 +68,7 @@ once.  It simply calls abort.  The name is intended to describe the nature
 of the problem to the user.
 */
 {
-  abort();
+  __abort_execution(ec_already_marked_for_destruction);
 }
 
 

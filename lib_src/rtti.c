@@ -363,7 +363,7 @@ this version of the runtime, then simply abort.
 #if EXCEPTION_HANDLING
   throw STD_NAMESPACE::bad_cast();
 #else /* !EXCEPTION_HANDLING */
-  abort();
+  __abort_execution(ec_bad_cast);
 #endif /* EXCEPTION_HANDLING */
 }  /* __throw_bad_cast */
 
@@ -377,7 +377,7 @@ this version of the runtime, then simply abort.
 #if EXCEPTION_HANDLING
   throw STD_NAMESPACE::bad_typeid();
 #else /* !EXCEPTION_HANDLING */
-  abort();
+  __abort_execution(ec_bad_typeid);
 #endif /* EXCEPTION_HANDLING */
 }  /* __throw_bad_typeid */
 

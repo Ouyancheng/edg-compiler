@@ -258,6 +258,14 @@ the alignment that malloc uses for memory that is allocated.
 #define MOST_STRICT_ALIGNMENT 8
 #endif /* ifndef MOST_STRICT_ALIGNMENT */
 
+/*
+Flags that is TRUE if a message containing the reason for a runtime
+abort should be displayed.
+*/
+#ifndef DISPLAY_ABORT_DESCRIPTION
+#define DISPLAY_ABORT_DESCRIPTION FALSE
+#endif /* ifndef DISPLAY_ABORT_DESCRIPTION */
+
 #endif /* CONFIG_H */
 
 

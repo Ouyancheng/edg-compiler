@@ -28,7 +28,7 @@ Notify the user that a call to a pure virtual function has been made and
 abort the program.
 */
 {
-  abort();
+  __abort_execution(ec_pure_virtual_called);
 }  /* __pure_virtual */
 
 

@@ -357,10 +357,11 @@ EXTERN void*	__caught_object_address;
 			   of the parameter in the catch clause. */
 
 EXTERN_C void __call_terminate(void);
+EXTERN_C void __default_terminate(void);
 
 EXTERN a_void_function_ptr
 		__default_terminate_routine
-                                  initial_value((a_void_function_ptr)abort);
+                       initial_value((a_void_function_ptr)__default_terminate);
 			/* Pointer to the terminate routine to be used. */
 
 EXTERN_C void __call_unexpected(void);
