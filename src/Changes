@@ -62,7 +62,9 @@ For example:
 IL CHANGE: The field implicit_this_param_type in a_routine_type_supplement has
 been replaced by two new fields: (a) class_type points to an unqualified
 representation of a member function's parent type (if any), and (b) qualifiers
-describes the qualification of the function type.
+describes the qualification of the function type.  Code relying on the old
+representation can usually easily be adapted to the new representation using
+the macro implicit_this_param_type_of.
 
 9/8/99   Assertion failure after ill-formed default template argument
 
