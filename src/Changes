@@ -1,5 +1,22 @@
 Version 2.35
 
+2/12/97 Error recovery involving virtual function override
+
+An internal error has been fixed in handling the following error case:
+
+  struct B {
+    virtual void f(int);
+  };
+  struct D : public B {
+    virtual void f(x);         // "x" is undefined
+    virtual void f(int);
+  };
+
+D::f(<error-type>) used to be regarded as an overrider of B::f(int), which
+meant there were two overriders, triggering an assertion failure.  Now a
+function with error-type parameters is not considered an overrider, and as
+a result somewhat different warnings may be issued.
+
 2/12/97 Compilation error in lower_init.c when
         TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE is TRUE
 
