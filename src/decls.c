@@ -4672,6 +4672,9 @@ return a pointer to it in *symbol_ptr.
 
   db_enter(3, "decl_typedef");
   if (curr_scope_id_lookup(locator, IDL_NO_OPTIONS) != NULL) {
+    /* This name already exists in the current scope.  C++ allows a
+       redefinition of the typedef with the same type, and we allow that
+       also in C.  See if this is a redefinition. */
     sym = locator->specific_symbol;
     if (sym->kind == (a_symbol_kind)sk_type ||
         (C_dialect == C_dialect_cplusplus && is_type_symbol(sym))) {
@@ -4679,9 +4682,8 @@ return a pointer to it in *symbol_ptr.
          if this is an illegal redefinition of the name; otherwise, reuse
          the existing symbol. */
       if (sym->kind == (a_symbol_kind)sk_type) {
-        /* A typedef name -- strip off the typerefs until the base type
-           is reached or a qualifier is found. */
-        tp = skip_typedefs(sym->variant.type);
+        /* A typedef name. */
+        tp = sym->variant.type;
       } else if (sym->kind == (a_symbol_kind)sk_enum_tag) {
         /* C++ only. */
         tp = sym->variant.type;
@@ -4689,7 +4691,15 @@ return a pointer to it in *symbol_ptr.
         /* C++ only -- sk_class_or_struct_tag or sk_union_tag: */
         tp = sym->variant.class_struct_union.type;
       }  /* if */
-      if (identical_types(tp, type_ptr) || is_error_type(tp)) {
+      if ((identical_types(tp, type_ptr)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+           /* When near/far qualifiers appear, they have to match in what
+              was explicitly specified. */
+           && (!il_header.microsoft_16_mode ||
+               get_original_type_qualifiers(tp) ==
+               get_original_type_qualifiers(type_ptr))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                        ) || is_error_type(tp)) {
         /* The current declaration simply redefines the name to the same
            type, which is permitted in C++ (ARM 7.1.3) and warned about for
            ordinary C. */
