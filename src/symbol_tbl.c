@@ -126,6 +126,12 @@ static a_function_instantiation_entry_ptr  instantiations_required_tail;
 			   instantiation entries for which instantiations
 			   are required. */
 
+static a_param_id_ptr
+		avail_param_ids;
+			/* List of parameter id entries freed and available
+			   for reuse. */
+
+
 #if DEBUG
 #define DEBUG_LINE_LENGTH 79
 /* Macros used within db_symbol, referencing local variables defined
@@ -5494,8 +5500,7 @@ NULL.
            previously because no actual definition appeared.   Don't
            do this for non-real template class instantiations. */
         if (is_real_class_symbol(sym)) {
-          add_to_types_list(type_ptr, DEPTH_OF_FILE_SCOPE,
-                            /*in_old_style_param_decl_list=*/FALSE);
+          add_to_types_list(type_ptr, DEPTH_OF_FILE_SCOPE);
         }  /* if */
       }  /* if */
 #if CHECKING
@@ -6762,6 +6767,7 @@ to avoid an 8-character external name clash with symbol_table.)
   /* size_scope_stack is not per-file and should not be reset. */
   /* ident_buffer and size_ident_buffer are not per-file and should not
      be reset. */
+  avail_param_ids = NULL;
   error_symbol_header = NULL;
   unnamed_class_symbol_header = NULL;
   num_classes_on_scope_stack = 0;
