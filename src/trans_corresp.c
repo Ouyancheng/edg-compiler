@@ -3262,27 +3262,7 @@ symbol supplement.
     } else {
       /* Record the necessary correspondences. */
       a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
-#if 0 /* FIXME */
-      if ((!sym_entry->symbol->defined && inst->defined) ||
-          parent_class_is_canonical(&class_type->source_corresp)) {
-        /* If this is a definition and the canonical entry is not a definition
-           make this the canonical entry instead.  Similarly, if the parent
-           of this entry is a canonical entry, then so should this member. */
-        if (in_secondary_trans_unit(corresp_type)) {
-          /* Prefer the new type as the canonical entry. */
-          a_type_ptr  new_type = class_type;
-          class_type = corresp_type;
-          corresp_type = new_type;
-          set_no_class_type_correspondence(corresp_type);
-        }  /* if */
-        if (!sym_entry->symbol->defined && inst->defined) {
-          /* Prefer a definition as the representative. */
-          sym_entry->symbol = inst;
-        }  /* if */
-      }  /* if */
-#endif /* FIXME */
-      set_trans_unit_corresp(iek_type, class_type, corresp_type);
-      establish_trans_unit_correspondences_for_class(class_type);
+      set_type_corresp(class_type, corresp_type);
     }  /* if */
   }  /* if */
 }  /* record_class_template_instantiation */
