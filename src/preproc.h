@@ -123,13 +123,6 @@ EXTERN a_boolean
 			   prevent complete successful scanning of the
 			   directive, not something like the directive
 			   appearing out of sequence. */
-EXTERN an_arg_pragma_kind
-		arg_pragma;
-			/* Set if a #pragma indicating that the next
-			   declared function should be subject to special
-			   argument checking (e.g., "#pragma __printf_args"
-			   for printf) has appeared.  Transferred to the
-			   function type entry and then cleared. */
 EXTERN int	pp_if_stack_depth;
 			/* Stack of currently active #if, #ifdef, and
 			   #ifndef directives.  pp_if_stack_depth

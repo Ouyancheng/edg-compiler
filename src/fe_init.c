@@ -407,7 +407,6 @@ Initialize things related to preprocessing.
   next_seq_in_pp_output = 1;
   prev_pp_output_line_was_complete = TRUE;
   currently_in_pp_if_skip = FALSE;
-  arg_pragma = (an_arg_pragma_kind)apk_none;
   pp_if_stack_depth = -1;
   base_pp_if_stack_depth = -1;
 
