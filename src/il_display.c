@@ -2019,7 +2019,7 @@ do_variable:
     case enk_throw:
       (void)printf("enk_throw\n");
       disp_ptr("throw_object", (char *)ptr->variant.throw_object,
-               ieK_variable;
+               iek_variable);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -2066,6 +2066,7 @@ Display the indicated handler.
   disp_ptr("next", (char *)ptr->next, iek_handler);
   disp_ptr("parameter", (char *)ptr->parameter, iek_variable);
   disp_ptr("statement", (char *)ptr->statement, iek_statement);
+}  /* disp_handler */
 #endif /* ifdef CFE */
 
 static void disp_block(a_block_ptr ptr)
