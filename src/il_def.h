@@ -139,29 +139,28 @@ typedef struct a_source_file {
 			/* The next include file referenced by the parent
 			   of this file, or NULL if there is no next file. */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-  a_byte_boolean
-		related_file_implicit_include_done;
+  a_bit_field	related_file_implicit_include_done:1;
 			/* For a header file this is TRUE if an attempt has
-			   been made to implicitly include the
-			   source file (e.g., .c file) that corresponds to this
-			   header file. This is set to TRUE
-			   even if the attempt failed (e.g., the file does not
-			   exist. */
+			   been made to implicitly include the source file
+			   (e.g., .c file) that corresponds to this header
+			   file.  This is set to TRUE even if the attempt
+			   failed (e.g., the file does not exist). */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-  a_byte_boolean
-		is_include_file;
+  a_bit_field	is_include_file:1;
 			/* TRUE if this is a file that was included
 			   (explicitly or implicitly).  FALSE for the
 			   primary source file of this compilation and for
 			   source file entries associated with any primary
 			   source files from which precompiled header
-			   information has beed restored. */
-  a_byte_boolean
-		included_by_system_include;
+			   information has been restored. */
+  a_bit_field	included_by_system_include:1;
 			/* TRUE if this is a file that was included using
 			   the #include <file.h> notation.  FALSE for
 			   files included with the #include "file.h" notation
 			   and entries not associated with include files. */
+  a_bit_field	included_by_preinclude:1;
+			/* TRUE if this is a file that was included using the
+			   --preinclude command-line option. */
 } a_source_file;
 
 /*
