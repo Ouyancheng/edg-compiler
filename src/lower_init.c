@@ -6126,7 +6126,7 @@ have already had their designated initializers lowered.
              given by earlier_con. */
           split_constant_if_repeated(&earlier_con);
           split_constant_if_repeated(&con);
-          /* Combine the two initializers into *actual_con. */
+          /* Combine the two initializers. */
           combine_initializer_constants(earlier_con.ptr, con.ptr);
 #if DEBUG
           if (db_flag_is_set("designators")) {
@@ -6149,6 +6149,11 @@ have already had their designated initializers lowered.
       if (db_flag_is_set("designators")) {
         (void)fprintf(f_debug, "Starting on designator ");
         db_constant(con.ptr);
+        (void)fprintf(f_debug, " in aggregate of type ");
+        db_abbreviated_type(aggr_con->type);
+        (void)fprintf(f_debug, "\n");
+        (void)fprintf(f_debug, "aggr_con = ");
+        db_constant(aggr_con);
         (void)fprintf(f_debug, "\n");
       }  /* if */
 #endif /* DEBUG */
