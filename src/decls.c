@@ -11012,7 +11012,7 @@ static void report_member_function_redeclaration(
 A declaration of a class member function that is not also a definition
 can not appear outside the class.  Upon entering this routine we already know
 we encountered such a declaration: issue the appropriate diagnostic (except
-for some situations in Microsoft mode).
+for some situations in Microsoft and GNU C++ modes).
 */
 {
   a_symbol_ptr  sym = locator->specific_symbol;
@@ -11947,7 +11947,8 @@ continue_with_declaration:
         } else if (gpp_mode) {
           a_type_ptr  pt = locator.parent.class_type;
           if (pt->variant.class_struct_union.is_template_class &&
-              !pt->variant.class_struct_union.is_nonreal_class) {
+              !pt->variant.class_struct_union.is_nonreal_class &&
+              !pt->variant.class_struct_union.is_specialized) {
             out_of_class_redecl = TRUE;
           }  /* if */
         }  /* if */
