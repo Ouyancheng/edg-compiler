@@ -81,6 +81,37 @@ language defined in the ARM, it is supported for cfront compatibility.
   return (*class_type != NULL);
 }  /* is_cfront_member_function_typedef */
 
+#if RESTRICT_ALLOWED
+
+a_boolean type_may_not_be_restrict_qualified(a_type_ptr  type,
+                                             a_boolean   is_parameter)
+/*
+Return TRUE if type may be qualified by the "restrict" qualifier.  It may be
+applied to pointer and reference types (but not pointer-to-function-type),
+pointer-to-member types (but not pointers to member functions), and (in
+parameter declarations only) array types.
+*/
+{
+  a_type_ptr  tp;
+  a_boolean   err = FALSE;
+
+  if (!is_error_type(type)) {
+    if (is_ptr_or_ref_type(type)) {
+      tp = type_pointed_to(type);
+      if (tp != NULL && is_function_type(tp)) err = TRUE;
+    } else if (is_ptr_to_member_type(type)) {
+      tp = pm_member_type(type);
+      if (tp != NULL && is_function_type(tp)) err = TRUE;
+    } else if (is_array_type(type)) {
+      if (!is_parameter) err = TRUE;
+    } else {
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  return err;
+}  /* type_may_not_be_restrict_qualified */
+
+#endif /* RESTRICT_ALLOWED */
 
 void add_to_derived_type_list(a_type_ptr new_type_ptr,
                               a_type_ptr *derived_type,
@@ -1418,20 +1449,31 @@ parameter controls the restrictions imposed by the context.
       (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
                             &dummy_storage_class, &dummy_type_ptr,
                             &qualifiers);
-      if (is_reference_type(complete_type)) {
 #if RESTRICT_ALLOWED
+      if (qualifiers & TQ_RESTRICT) {
+        /* "restrict" may not be applied to a pointer or reference to a
+           function type. */
+        if (type_may_not_be_restrict_qualified(complete_type,
+                                               /*is_parameter=*/FALSE)) {
+          error(ec_restrict_not_allowed);
+          qualifiers &= ~TQ_RESTRICT;
+       }  /* if */
+      }  /* if */
+      if (is_reference_type(complete_type)) {
         if ((qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
           qualifiers &= TQ_RESTRICT;
           diagnostic(strict_ansi_mode ?
                         strict_ansi_error_severity : es_warning,
                      ec_qualified_reference_type);
         }  /* if */
+      }  /* if */
 #else /* !RESTRICT_ALLOWED */
+      if (is_reference_type(complete_type)) {
         qualifiers = TQ_NONE;
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_qualified_reference_type);
-#endif /* RESTRICT_ALLOWED */
       }  /* if */
+#endif /* RESTRICT_ALLOWED */
       if (qualifiers != TQ_NONE) {
         complete_type = make_qualified_type(complete_type, qualifiers);
       }  /* if */
