@@ -135,11 +135,9 @@ Traverse the list of alias fixups and set the alias fields as needed.
         default:
           unexpected_condition();
       }  /* switch */
-      if (entry->alias->referenced) {
-        /* If the alias is referenced, the aliased entity should be treated
-           as referenced too. */
-        mark_referenced(aliased_sym, &entry->alias->decl_position);
-      }  /* if */
+      /* The aliased entity is referenced in the alias specification; only
+	 now, however, do we know the symbol to mark it as referenced. */
+      mark_referenced(aliased_sym, &entry->alias->decl_position);
     }  /* if */
     free_alias_fixup(entry);
   }  /* while */
