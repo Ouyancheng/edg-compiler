@@ -17,6 +17,10 @@ as a standalone program.
 The standalone program reads input from stdin, writes output to stdout.
 Things that look like mangled names in the input are demangled.
 Everything else is passed through unchanged.
+
+The demangling is intended to work only on names of external entities.
+There is some name mangling done for internal entities, or by the
+C-generating back end, that this program does not try to decode.
 */
 /*
 If STANDALONE_UTILITY_PROGRAM is FALSE, this file is compiled as
@@ -264,6 +268,7 @@ demangled.
   p = advance_past_underscore(p);
   /* Loop to process the arguments. */
   for (;;) {
+    if (err_in_id) break;  /* Avoid infinite loops on errors. */
     if (*p == '\0' || *p == '_') {
       /* We ran off the end of the string. */
       bad_mangled_name();
@@ -559,6 +564,7 @@ do not put out any nested type qualifiers, e.g., put out "A::x" as simply "x".
     p = advance_past_underscore(p);
     /* Handle each level of qualification. */
     for (; nquals > 0; nquals--) {
+      if (err_in_id) break;  /* Avoid infinite loops on errors. */
       /* Do not put out the nested type qualifiers if base_name_only is
          TRUE. */
       if (base_name_only && nquals != 1) suppress_id_output++;
@@ -680,6 +686,7 @@ Return a pointer to the character position following what was demangled.
   } else {
     /* Loop for each parameter. */
     for (curr_param_num = 1;; curr_param_num++) {
+      if (err_in_id) break;  /* Avoid infinite loops on errors. */
       if (curr_param_num < 10) param_pos[curr_param_num] = NULL;
       if (*p == 'T' || *p == 'N') {
         /* Tn means repeat the type of parameter "n". */
@@ -705,6 +712,7 @@ Return a pointer to the character position following what was demangled.
         }  /* if */
         /* Produce "nreps" copies of parameter "param_num". */
         for (; nreps > 0; nreps--) {
+          if (err_in_id) break;  /* Avoid infinite loops on errors. */
           (void)demangle_type(param_pos[param_num]);
           if (nreps != 1) write_id_str(", ");
         }  /* if */
