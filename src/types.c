@@ -1016,9 +1016,12 @@ which do the initial test for exact pointer equality.
                                 il_identical) &&
               extra_info1->prototyped == extra_info2->prototyped &&
               extra_info1->has_ellipsis == extra_info2->has_ellipsis &&
-              f_identical_types(extra_info1->implicit_this_param_type,
-                                extra_info2->implicit_this_param_type,
-                                il_identical)) {
+              ((extra_info1->implicit_this_param_type == NULL) ?
+                  (extra_info2->implicit_this_param_type == NULL) :
+                  (extra_info2->implicit_this_param_type != NULL &&
+                   f_identical_types(extra_info1->implicit_this_param_type,
+                                     extra_info2->implicit_this_param_type,
+                                     il_identical)))) {
             /* Compare the types of the parameters on the two lists. */
             for (list1 = extra_info1->param_type_list,
                                           list2 = extra_info2->param_type_list;
