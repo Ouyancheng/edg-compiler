@@ -1,5 +1,18 @@
 Version 2.39
 
+1/29/98   Microsoft compatibility: constant field selection in constant
+          expression
+
+In Microsoft C++ mode, a field selection that produces a constant is
+now allowed in an integral constant expression.  For example:
+
+  struct A { enum { e1 = 1 }; };
+  int main () {
+    A a;
+    int x[a.e1];  // Accepted by MSVC++ 4.2 and 5.0
+    return 0;
+  }
+
 1/25/98   More temporaries reused in IL lowering
 
 Temporaries needed for enk_temp_init nodes are now allocated as

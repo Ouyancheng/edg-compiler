@@ -2298,6 +2298,7 @@ bound with the function in *bound_function_selector.
   a_boolean             err = FALSE, processed = FALSE, found_id = FALSE;
   a_boolean             operand_1_is_complete_class = FALSE, local_err;
   a_boolean             need_operand_1_type_check = FALSE;
+  a_boolean             allow_integral_constant_selection = FALSE;
   a_boolean             need_member_sym_check;
   a_ref_entry_ptr       rep;
   a_type_ptr            routine_type;
@@ -2321,8 +2322,16 @@ bound with the function in *bound_function_selector.
     err = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Field selection not allowed in integral constant expression. */
-    pos_error(ec_bad_integral_operator, &pos_curr_token);
-    err = TRUE;
+    if (microsoft_mode && !C_mode()) {
+      /* ... except in Microsoft C++ mode, where something like
+           struct A { enum { e1 = 1 }; } a;
+           int x[a.e1];
+         is allowed.  The constant check is done at the end. */
+      allow_integral_constant_selection = TRUE;
+    } else {
+      pos_error(ec_bad_integral_operator, &pos_curr_token);
+      err = TRUE;
+    }  /* if */
   } else if (curr_expr_kind_is(ek_template_arg)) {
     /* Field selection not allowed in a template argument expression. */
     pos_error(ec_bad_templ_arg_expr_operator, &pos_curr_token);
@@ -2872,6 +2881,18 @@ nonstatic_member_function:
     result->position = member_position;
   } else {
     result->position = operand_1->position;
+  }  /* if */
+
+  if (allow_integral_constant_selection) {
+    /* If we are allowing field selection in an integral constant expression
+       as an extension, check now that the result is constant and has
+       integral type. */
+    if (!is_constant_operand(result) ||
+        !is_integral_or_enum_type(result->type)) {
+      if (!is_error_operand(result)) {
+        error_in_operand(ec_expr_not_constant, result);
+      }  /* if */
+    }  /* if */
   }  /* if */
 
   db_exit();
@@ -10390,8 +10411,16 @@ variable:
                 !is_reference_type(var_ptr->type)) {
               /* Make an lvalue operand for the variable. */
               make_lvalue_variable_operand(var_ptr, result, rep);
-            } else if (C_dialect == C_dialect_cplusplus &&
-                       is_const_variable(var_ptr)) {
+            } else if (microsoft_mode && !C_mode() &&
+                       is_class_struct_union_type(var_ptr->type) &&
+                       next_token() == tok_period) {
+              /* In Microsoft C++ mode, allow a class variable identifier
+                 followed by a field selection dot.  This is needed because
+                 MSVC++ allows things like x.e, where e is something like an
+                 enumerator constant, as part of a constant expression. */
+              /* Make an lvalue operand for the variable. */
+              make_lvalue_variable_operand(var_ptr, result, rep);
+            } else if (!C_mode() && is_const_variable(var_ptr)) {
               /* In C++, integral const identifiers can be used in constant
                  expressions.  */
               a_constant_ptr con_val = var_constant_value(var_ptr);
