@@ -1,5 +1,14 @@
 Version 2.22
 
+1/31/94  Changes to facilitate message catalogs
+
+A number of changes have been made to simplify the task of using
+a message catalog for the storage of error messages.  Command line
+errors are now accessed using a message code, the message codes for
+certain error messages are no longer conditionally compiled, and
+error.c no longer contains error messages whose text differs in
+C and C++ mode (different error codes are now used).
+
 1/31/94  Undefined result if times() should fail
 
 If the times() function (used with the -# option to get CPU time

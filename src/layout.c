@@ -773,6 +773,14 @@ if there's no overflow TRUE is returned.
 }  /* set_field_size_and_offset */
 
 
+/*
+Return the error code to be used when a class (or in C a struct/union)
+is too large.
+*/
+#define struct_too_large_error()					\
+  (C_mode() ? ec_struct_too_large : ec_class_too_large)
+
+
 static a_targ_size_t set_offset_and_alignment(a_layout_block_ptr  lob,
                                               a_targ_size_t       size,
                                               a_targ_alignment    alignment)
@@ -790,7 +798,7 @@ which it is allocated.
   if (!do_alignment(&lob->byte_offset, &lob->bit_offset, alignment)) {
     /* Issue an error only if one has not yet been put out. */
     if (!lob->any_overflow) {
-      error(ec_struct_too_large);
+      error(struct_too_large_error());
       lob->any_overflow = TRUE;
     }  /* if */
   }  /* if */
@@ -806,7 +814,7 @@ which it is allocated.
     /* Not enough space remains available in the class for this subobject. */
     if (!lob->any_overflow) {
       /* Issue an error only if one has not yet been put out. */
-      error(ec_struct_too_large);
+      error(struct_too_large_error());
       lob->any_overflow = TRUE;
     }  /* if */
   }  /* if */
@@ -920,7 +928,7 @@ will already have been done.
                                        &local_bit_offset, &lob->alignment)) {
           /* Overflow error. */
           if (!lob->any_overflow) {
-            error(ec_struct_too_large);
+            error(struct_too_large_error());
             lob->any_overflow = TRUE;
           }  /* if */
         }  /* if */
@@ -1585,7 +1593,7 @@ Reserve space at the end of the class object for virtual base classes.
     if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
                                  (a_targ_size_t)1, 0)) {
       if (!lob->any_overflow) {
-        error(ec_struct_too_large);
+        error(struct_too_large_error());
         lob->any_overflow = TRUE;
       }  /* if */
     }  /* if */
@@ -1614,7 +1622,7 @@ Reserve space at the end of the class object for virtual base classes.
   if (!do_alignment(&ctsp->size_without_virtual_base_classes, &zero,
                     ctsp->alignment_without_virtual_base_classes)) {
     if (!lob->any_overflow) {
-      error(ec_struct_too_large);
+      error(struct_too_large_error());
       lob->any_overflow = TRUE;
     }  /* if */
   }  /* if */
@@ -1961,7 +1969,7 @@ the layout.
   /* Adjust the total size of the class to be consistent with the
      overall alignment required for the class. */
   if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment)) {
-    if (!lob->any_overflow) error(ec_struct_too_large);
+    if (!lob->any_overflow) error(struct_too_large_error());
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Go through all the indirect base classes and compute their

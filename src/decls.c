@@ -2330,7 +2330,8 @@ scope is that of a class definition.
              not allowed (3.7.1, constraints).  In pcc mode, however, this
              is allowed. */
           if (C_dialect != C_dialect_pcc && curr_id_is_type_name()) {
-            error(ec_typedef_cannot_be_param_name);
+            error(C_mode() ? ec_typedef_cannot_be_param_name :
+                             ec_type_cannot_be_param_name);
             /* Enter the parameter anyway, for best error recovery. */
           }  /* if */
           /* Add the identifier to the parameter id list. */

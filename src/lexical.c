@@ -6553,8 +6553,9 @@ is looked up.  Returns TRUE if identifier is a qualified name.
 		} else {
                   /* Issue an alternate version of the error if we are looking
 		     for a tag symbol. */
-	          error_code = ilm == ilm_tag ? ec_not_a_tag_member :
-					        ec_not_a_member;
+	          error_code = ilm == ilm_tag ?
+                               ec_not_a_tag_member :
+                               (C_mode() ? ec_not_a_field : ec_not_a_member);
                   pos_stsy_error(error_code, &identifier_pos,
                                  locator_for_curr_id.symbol_header->identifier,
                                  (a_symbol_ptr)class_type->

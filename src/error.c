@@ -670,12 +670,11 @@ error code.
     case ec_nonstd_forward_def_enum:
       m = "forward-defined enum type is nonstandard";
       break;
+    case ec_class_too_large:
+      m = "class is too large";
+      break;
     case ec_struct_too_large:
-      if (C_dialect == C_dialect_cplusplus) {
-        m = "class is too large";
-      } else {
-        m = "struct or union is too large";
-      }  /* if */
+      m = "struct or union is too large";
       break;
     case ec_bad_bit_field_size:
       m = "invalid size for bit field";
@@ -755,26 +754,23 @@ error code.
     case ec_exp_lbrace:
       m = "expected a \"{\"";
       break;
+    case ec_expr_not_ptr_to_class:
+      m = "expression must have pointer-to-class type";
+      break;
     case ec_expr_not_ptr_to_struct_or_union:
-      if (C_dialect == C_dialect_cplusplus) {
-        m = "expression must have pointer-to-class type";
-      } else {
-        m = "expression must have pointer-to-struct-or-union type";
-      }  /* if */
+      m = "expression must have pointer-to-struct-or-union type";
+      break;
+    case ec_exp_member_name:
+      m = "expected a member name";
       break;
     case ec_exp_field_name:
-      if (C_dialect == C_dialect_cplusplus) {
-        m = "expected a member name";
-      } else {
-        m = "expected a field name";
-      }  /* if */
+      m = "expected a field name";
       break;
     case ec_not_a_member:
-      if (C_dialect == C_dialect_cplusplus) {
-        m = "%n has no member %sq";
-      } else {
-        m = "%n has no field %sq";
-      }  /* if */
+      m = "%n has no member %sq";
+      break;
+    case ec_not_a_field:
+      m = "%n has no field %sq";
       break;
     case ec_expr_not_a_modifiable_lvalue:
       m = "expression must be a modifiable lvalue";
@@ -816,22 +812,20 @@ error code.
     case ec_bad_file_scope_storage_class:
       m = "a global-scope declaration may not have this storage class";
       break;
+    case ec_type_cannot_be_param_name:
+      m = "a type name may not be redeclared as a parameter";
+      break;
     case ec_typedef_cannot_be_param_name:
-      if (C_dialect == C_dialect_cplusplus) {
-        m = "a type name may not be redeclared as a parameter";
-      } else {
-        m = "a typedef name may not be redeclared as a parameter";
-      }  /* if */
+      m = "a typedef name may not be redeclared as a parameter";
       break;
     case ec_non_zero_int_conv_to_pointer:
       m = "conversion of nonzero integer to pointer";
       break;
+    case ec_expr_not_class:
+      m = "expression must have class type";
+      break;
     case ec_expr_not_struct_or_union:
-      if (C_dialect == C_dialect_cplusplus) {
-        m = "expression must have class type";
-      } else {
-        m = "expression must have struct or union type";
-      }  /* if */
+      m = "expression must have struct or union type";
       break;
     case ec_old_fashioned_assignment_operator:
       m = "old-fashioned assignment operator";
@@ -1478,12 +1472,11 @@ error code.
     case ec_no_ctor_but_const_or_ref_member:
       m = "%n defines no constructor to initialize the following:";
       break;
+    case ec_var_with_uninitialized_member:
+      m = "%n has an uninitialized const or reference member";
+      break;
     case ec_var_with_uninitialized_field:
-      if (C_dialect == C_dialect_cplusplus) {
-        m = "%n has an uninitialized const or reference member";
-      } else {
-        m = "%n has an uninitialized const field";
-      }  /* if */
+      m = "%n has an uninitialized const field";
       break;
     case ec_missing_const_assignment_operator:
       m = "class %t has no assignment operator to copy a const object";

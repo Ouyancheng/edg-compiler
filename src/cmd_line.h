@@ -42,6 +42,12 @@ EXTERN a_C_dialect
 #endif /* VAR_INITIALIZERS */
                                                ;
 			/* The C dialect to be accepted. */
+
+/*
+Returns TRUE in C mode (ANSI or pcc) and returns FALSE in C++ mode.
+*/
+#define C_mode() (C_dialect != C_dialect_cplusplus)
+
 EXTERN a_boolean
 		strict_ansi_mode /* = FALSE */;
 			/* -A option: issue warnings on nonstandard

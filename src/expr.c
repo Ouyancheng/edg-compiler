@@ -2182,7 +2182,8 @@ bound with the function in *bound_function_selector.
           /* An error will be produced below because the first operand is
              not (a pointer to) a class, so do not issue an error here. */
         } else {
-          pos_stsy_error(ec_not_a_member, &error_position,
+          pos_stsy_error(C_mode() ? ec_not_a_field : ec_not_a_member,
+                         &error_position,
                          locator_for_curr_id.symbol_header->identifier,
                          (a_symbol_ptr)class_struct_union_type->
                                                     source_corresp.assoc_info);
@@ -2192,7 +2193,10 @@ bound with the function in *bound_function_selector.
     }  /* if */
   } else {
     /* The identifier is not present; error. */
-    (void)required_token(tok_identifier, ec_exp_field_name);
+    (void)required_token(tok_identifier,
+                         C_dialect == C_dialect_cplusplus ?
+                                              ec_exp_member_name :
+                                              ec_exp_field_name);
     err = TRUE;
   }  /* if */
 
@@ -2207,8 +2211,13 @@ bound with the function in *bound_function_selector.
                                   ec_ptr_to_incomplete_class_type_not_allowed :
   				  ec_incomplete_type_not_allowed;
     } else {
-      err_code = is_arrow_operator ? ec_expr_not_ptr_to_struct_or_union :
-                                     ec_expr_not_struct_or_union;
+      if (C_dialect == C_dialect_cplusplus) {
+        err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
+                                       ec_expr_not_class;
+      } else {
+        err_code = is_arrow_operator ? ec_expr_not_ptr_to_struct_or_union :
+                                       ec_expr_not_struct_or_union;
+      }  /* if */
     }  /* if */
     error_in_operand(err_code, operand_1);
     err = TRUE;
@@ -2491,10 +2500,16 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
           operand_1_type = skip_typerefs(qual_operand_1_type);
           if (!is_class_struct_union_type(operand_1_type)) {
             /* Not (a pointer to) a class. */
-            error_in_operand(is_arrow_operator ?
-                                           ec_expr_not_ptr_to_struct_or_union :
-                                           ec_expr_not_struct_or_union,
-                             operand_1);
+            an_error_code err_code;
+            if (C_dialect == C_dialect_cplusplus) {
+              err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
+                                             ec_expr_not_class;
+            } else {
+              err_code = is_arrow_operator ?
+                                         ec_expr_not_ptr_to_struct_or_union :
+                                         ec_expr_not_struct_or_union;
+            }  /* if */
+            error_in_operand(err_code, operand_1);
             err = TRUE;
           }  /* if */
         }  /* if */

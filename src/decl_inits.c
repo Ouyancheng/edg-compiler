@@ -1313,11 +1313,16 @@ issuing an error on an incomplete type.
       local_di.variant.constant = cp;
       if (incomplete_init) {
         /* A const or ref field was not initialized.  Issue an error. */
-        pos_sy_diagnostic(C_dialect == C_dialect_cplusplus ?
-                            (an_error_severity)es_error :
-                            (an_error_severity)es_warning,
-                          ec_var_with_uninitialized_field, source_pos,
-                          symbol_ptr);
+        an_error_code		code;
+	an_error_severity	severity;
+        if (C_dialect == C_dialect_cplusplus) {
+          code = ec_var_with_uninitialized_member;
+          severity = es_error;
+        } else {
+          code = ec_var_with_uninitialized_field;
+          severity = es_warning;
+        }  /* if */
+        pos_sy_diagnostic(severity, code, source_pos, symbol_ptr);
       }  /* if */
     }  /* if */
     if (!err && put_init_in_variable) {
@@ -2654,11 +2659,16 @@ are created by a new expression (in which case sym is NULL).  In both cases
       if (init_required) {
         if (sym != NULL) {
           /* Variable declaration -- display the symbol. */
-          pos_sy_diagnostic(C_dialect == C_dialect_cplusplus ?
-                              (an_error_severity)es_error :
-                              (an_error_severity)es_warning,
-                            ec_var_with_uninitialized_field,
-                            &sym->decl_position, sym);
+          an_error_code		code;
+          an_error_severity	severity;
+          if (C_dialect == C_dialect_cplusplus) {
+            code = ec_var_with_uninitialized_member;
+            severity = es_error;
+          } else {
+            code = ec_var_with_uninitialized_field;
+            severity = es_warning;
+          }  /* if */
+          pos_sy_diagnostic(severity, code, &sym->decl_position, sym);
         } else {
           /* New object -- there's no name to display.  Again, just issue
              a warning (until the language definition is clearer about this
