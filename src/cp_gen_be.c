@@ -10431,7 +10431,7 @@ TRUE if the declaration following this one is such a continuation.
     /* Emit any user-specified assembly symbol for this variable. */
     form_asm_name(rout->asm_name, &octl);
     /* Emit attributes associated with the routine. */
-    (void)form_routine_attributes(rout, /*need_leading_space=*/FALSE, &octl);
+    (void)form_routine_attributes(rout, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list =
