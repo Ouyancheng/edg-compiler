@@ -1242,7 +1242,8 @@ error err_code.
 void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
                          an_expr_node_ptr   *arg_expr_list,
                          a_routine_ptr      *conversion_routine,
-                         a_source_position  *err_pos)
+                         a_source_position  *err_pos,
+			 a_type_ptr	    object_class_type)
 /*
 Scan the argument list for a C++ constructor call.  The current token is
 the one right after the opening parenthesis of the argument list.  The
@@ -1259,12 +1260,14 @@ constructors, as in
   A x(1, 2, 3);
 
 The caller need not add the right parenthesis to the stop tokens set, or
-remove it later, as this routine takes care of that.
+remove it later, as this routine takes care of that.  object_class_type
+is the type of the object being constructed which may be different than
+the type of the constructor being called (e.g., when a base class constructor
+is being called for a derived class object).
 */
 {
   a_boolean           overloaded_function_case = FALSE;
   a_type_ptr          routine_type;
-  a_type_ptr	      class_type;
   a_source_position   start_position;
   an_arg_operand_ptr  arg_operand_list;
   an_expression_kind  expression_kind = (an_expression_kind)ek_normal;
@@ -1279,23 +1282,19 @@ remove it later, as this routine takes care of that.
   if (constructor_sym == NULL) {
     /* There was a previous error. */
     routine_type = NULL;
-    class_type = NULL;
+  } else if (constructor_sym->kind == (a_symbol_kind)sk_member_function) {
+    /* Constructor is not overloaded.  In this case, the argument types
+       can be checked as the argument list is scanned. */
+    routine_type = routine_symbol_type(constructor_sym);
   } else {
-    class_type = constructor_sym->class_of_which_a_member;
-    if (constructor_sym->kind == (a_symbol_kind)sk_member_function) {
-      /* Constructor is not overloaded.  In this case, the argument types
-         can be checked as the argument list is scanned. */
-      routine_type = routine_symbol_type(constructor_sym);
-    } else {
 #if CHECKING
-      if (constructor_sym->kind != (a_symbol_kind)sk_overloaded_function) {
-        internal_error("scan_ctor_arguments: sym not function");
-      }  /* if */
-#endif  /* CHECKING */
-      /* Constructor is overloaded. */
-      overloaded_function_case = TRUE;
-      routine_type = NULL;
+    if (constructor_sym->kind != (a_symbol_kind)sk_overloaded_function) {
+      internal_error("scan_ctor_arguments: sym not function");
     }  /* if */
+#endif  /* CHECKING */
+    /* Constructor is overloaded. */
+    overloaded_function_case = TRUE;
+    routine_type = NULL;
   }  /* if */
 
   /* Scan the arguments. */
@@ -1331,7 +1330,7 @@ remove it later, as this routine takes care of that.
   if (constructor_sym != NULL) {
     /* Check that the constructor is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(constructor_sym, err_pos,
-					     class_type);
+					     object_class_type);
     *conversion_routine = constructor_sym->variant.routine.ptr;
   }  /* if */
   pop_expr_stack();
@@ -3811,7 +3810,7 @@ specification allow a variable-sized array as the top type.
          scan_ctor_arguments. */
       /* Scan the constructor arguments. */
       scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine,
-                          &lparen_pos);
+                          &lparen_pos, base_new_type);
       /* In the array case (an error), throw away the argument list. */
       if (array_new) arg_expr_list = NULL;
     } else {
@@ -4793,7 +4792,8 @@ expression_kind indicates the kind of the current expression.
   if (ctor_case) {
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
-    scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine, &lparen_pos);
+    scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine, &lparen_pos,
+			type_cast_to);
     if (ctor_routine == NULL) {
       /* Error of some sort. */
       make_error_operand(result);

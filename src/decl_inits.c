@@ -1183,7 +1183,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
       scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine,
-                          source_pos);
+                          source_pos, vp_type);
       if (conversion_routine == NULL) {
         err = TRUE;
       } else {
@@ -1987,7 +1987,8 @@ scan_paren:
                  returned.  The scan function returns FALSE if it finds no
                  constructor for which the arguments match. */
               scan_ctor_arguments(cssp->constructor, &arg_list,
-                                  &conversion_routine, &lparen_pos);
+                                  &conversion_routine, &lparen_pos,
+				  class_type);
               if (conversion_routine == NULL) err = TRUE;
             }   /* if */
             if (!err) {
