@@ -6455,12 +6455,15 @@ entries for the operands.
   *dip_2 = *dip_3 = NULL;
   /* If only one of the operands is a temp-init, make a copy of the
      other one so both will be temp-inits and the optimization can
-     be done. */
+     be done.  The is_class_struct_union_type tests guard against
+     operands that are throws. */
   if (operand_is_temp_init(operand_2) &&
-      !operand_is_temp_init(operand_3)) {
+      !operand_is_temp_init(operand_3) &&
+      is_class_struct_union_type(operand_3->type)) {
     temp_init_from_operand(operand_3, /*result_is_addr=*/FALSE);
   } else if (operand_is_temp_init(operand_3) &&
-             !operand_is_temp_init(operand_2)) {
+             !operand_is_temp_init(operand_2) &&
+             is_class_struct_union_type(operand_2->type)) {
     temp_init_from_operand(operand_2, /*result_is_addr=*/FALSE);
   }  /* if */
   if (is_expression_operand(operand_2) &&
