@@ -86,11 +86,6 @@ typedef struct a_param_id {
 
 typedef struct a_func_info_block *a_func_info_block_ptr;
 typedef struct a_func_info_block {
-  a_type_ptr	class_ptr;
-			/* Pointer to a class (or struct or union) type
-			   entry if this is a member function; NULL for
-			   all other functions.  This field is set by the
-                           caller of function_declarator. */
   /* Information about the parameter list in a function declarator. */
   a_symbol_ptr	prototype_scope_symbols;
 			/* List of symbols in the prototype scope, linked
@@ -172,6 +167,7 @@ extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
 extern void declarator(a_boolean         real_declarator_allowed,
                        a_boolean         abstract_declarator_allowed,
 		       a_type_ptr        specifiers_type,
+                       a_type_ptr        member_function_parent_type,
                        a_symbol_locator  *locator,
                        a_type_ptr        *p_complete_type,
                        a_type_ptr        *p_bottom_derived_type,
