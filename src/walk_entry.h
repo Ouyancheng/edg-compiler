@@ -1243,8 +1243,7 @@ do_definition_needed_if_class:
                      complete.  Watch out for the case where the result type
                      is "void *", and watch out for prototype instantiation
                      cases. */
-                  if (is_pointer_type(ptr->type))
-                  {
+                  if (is_ptr_or_ref_type(ptr->type)) {
                     optype = type_pointed_to(ptr->type);
                     definition_needed_if_class(optype);
                   }  /* if */

@@ -32,6 +32,10 @@ be removed and the exception not to be thrown.  Now fixed.
     dynamic_cast<A &>(*p);  // Throws exception, has side effect
   }
 
+In a related nit, the needed-flag walk did not correctly
+note that a dynamic_cast to a reference-to-class type requires
+that the underlying class type be complete.  Also fixed.
+
 1/5/04   Microsoft compatibility: Restrictions on __interface types
 
 Two changes were made to the verification of restrictions on __interface
