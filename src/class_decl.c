@@ -6061,11 +6061,15 @@ class and record it in the class's assoc_operator_new_routine field.
        new. */
     sym = opname_member_function_symbol((an_opname_kind)onk_new, class_type);
     if (sym != NULL) {
-      /* There is a class-specific operator new() (or several).  See if
-         there is a default (one-argument) version. */
-      sym = extract_default_operator_new_sym(sym);
-      /* Note that no access or ambiguity checking is done.  If it's
-         appropriate, it's done at the point of call. */
+      if (sym->ambiguous) {
+        /* The inclusion of the operator new routine in the class type
+           supplement is an optimization.  Don't use it if it's ambiguous. */
+        sym = NULL;
+      } else {
+        /* There is a class-specific operator new() (or several).  See if
+           there is a default (one-argument) version. */
+        sym = extract_default_operator_new_sym(sym);
+      }  /* if */
     } else {
       /* Look for a global operator new(). */
       sym = opname_function_symbol((an_opname_kind)onk_new);
@@ -6084,10 +6088,13 @@ class and record it in the class's assoc_operator_new_routine field.
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
 
-void set_class_assoc_operator_delete_routine(a_type_ptr class_type)
+void set_class_assoc_operator_delete_routine(a_type_ptr     class_type,
+                                             a_routine_ptr  dtor_rout)
 /*
 Determine the operator delete() function to be used for the indicated class
-and record it in the class's assoc_operator_delete_routine field.
+and record it in the class's assoc_operator_delete_routine field.  If
+dtor_rout is non-NULL, it indicates a destructor for which the delete
+function is potentially part of the wrapper code.
 */
 {
   a_symbol_ptr                sym;
@@ -6101,20 +6108,35 @@ and record it in the class's assoc_operator_delete_routine field.
     sym = opname_member_function_symbol((an_opname_kind)onk_delete,
                                         class_type);
     if (sym != NULL) {
-      /* A member delete.  If it was inherited get the fundamental symbol. */
-      if (sym->kind == (a_symbol_kind)sk_projection) {
-        
+      /* A member delete. */
+      if (sym->ambiguous) {
+        if (dtor_rout != NULL && dtor_rout->is_virtual) {
+          /* Only issue the diagnostic if the destructor is virtual.  For
+             nonvirtual destructors (or for implicit deallocation when an
+             exception occurs in the midst of construction) the diagnostic is
+             issued when the delete (or new) expression is processed. */
+          check_assertion(dtor_rout->special_kind ==
+                                    (a_special_function_kind)sfk_destructor);
+          pos_sy2_error(ec_implicit_call_of_ambiguous_name,
+                        &error_position, sym,
+                        (a_symbol_ptr)dtor_rout->source_corresp.assoc_info);
+        }  /* if */
+        /* Don't return an ambiguous function. */
+        sym = NULL;
+      } else {
+        /* No error.  If it was inherited get the fundamental symbol. */
         reduce_projection_symbol_to_fundamental_symbol(sym);
       }  /* if */
-      /* Note that no access or ambiguity checking is done.  If it's
-         appropriate, it's done at the point of call. */
     } else {
       sym = opname_function_symbol((an_opname_kind)onk_delete);
+      check_assertion(sym != NULL);
     }  /* if */
-    /* Since delete cannot be overloaded, the symbol should not be overloaded
-       and should not be a function template. */
-    check_assertion(sym != NULL && is_function_symbol(sym));
-    ctsp->assoc_operator_delete_routine = sym->variant.routine.ptr;
+    if (sym != NULL) {
+      /* Since delete cannot be overloaded, the symbol should not be
+         overloaded and should not be a function template. */
+      check_assertion(is_function_symbol(sym));
+      ctsp->assoc_operator_delete_routine = sym->variant.routine.ptr;
+    }  /* if */
   }  /* if */
 }  /* set_class_assoc_operator_delete_routine */
 
