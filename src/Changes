@@ -1,5 +1,12 @@
 Version 3.6
 
+3/11/05  Microsoft compatibility: memory allocation problem with
+	 Microsoft attributes
+
+A memory allocation done when building the data structures used when
+scanning Microsoft attributes allocated too little memory, resulting in
+invalid memory accesses.  Now fixed.
+
 3/11/05  Incorrect pointer value in default_arg_expr field with IL lowering
          and RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
