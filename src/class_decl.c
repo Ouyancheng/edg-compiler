@@ -9797,20 +9797,23 @@ direct base class of the class in which the using-declaration appears.
   for (; direct_bcp != NULL; direct_bcp = direct_bcp->next) {
     if (direct_bcp->direct) {
       a_symbol_ptr  visible_sym;
-      a_boolean     is_list;
       clear_locator(&locator, &locator_for_curr_id.source_position);
       locator.symbol_header = locator_for_curr_id.symbol_header;
       visible_sym = class_qualified_id_lookup(&locator, direct_bcp->type,
                                               IDL_NO_OPTIONS);
-      is_list = (visible_sym->kind == (a_symbol_kind)sk_overloaded_function);
-      visible_sym = is_list ? visible_sym->variant.overloaded_function.symbols
-                            : visible_sym;
-      while (visible_sym != NULL) {
-        if (fundamental_symbol_of(visible_sym) == fund_sym) {
-          goto search_done;
-        }
-        visible_sym = is_list ? visible_sym->next : NULL;
-      }  /* while */
+      if (visible_sym == NULL) {
+        /* Nothing to be done. */
+      } else if (visible_sym == fund_sym) {
+        goto search_done;
+      } else if (visible_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        visible_sym = visible_sym->variant.overloaded_function.symbols;
+        while (visible_sym != NULL) {
+          if (fundamental_symbol_of(visible_sym) == fund_sym) {
+            goto search_done;
+          }  /* if */
+          visible_sym = visible_sym->next;
+        }  /* while */
+      }  /* if */
     }  /* if */
   }  /* for */
 search_done:
