@@ -10266,6 +10266,7 @@ to be acceptable, and *conversion describes it.
        to convert the source operand to an lvalue to which the reference can
        be directly bound. */
     direct_binding_conversion_possible = TRUE;
+    if (conversion->unknown_dependent_conversion) template_case = TRUE;
   } else if (is_template_dependent_context() &&
              (is_or_contains_template_param(dest_type) ||
               is_or_contains_template_param(orig_source_type))) {
