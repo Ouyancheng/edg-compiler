@@ -1,5 +1,10 @@
 Version 2.43
 
+10/8/99  Call enter_system_specific_predeclared_symbols in all modes
+
+The front end now also calls enter_system_specific_predeclared_symbols in C
+mode (previously, it only did so in C++ mode).
+
 10/8/99  Make use of ppd_ident conditional
 
 The enumeration constant ppd_ident is only declared when the macro name
