@@ -1922,6 +1922,12 @@ error code.
     case ec_converting_to_incomplete_class:
       m = "cannot convert to incomplete class %t";
       break;
+    case ec_missing_initializer_on_unnamed_const:
+      m = "const object requires an initializer";
+      break;
+    case ec_unnamed_object_with_uninitialized_field:
+      m = "object has an uninitialized const or reference member";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
