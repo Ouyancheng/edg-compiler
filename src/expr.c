@@ -4108,6 +4108,7 @@ The value of the operation is an lvalue of type "const struct _GUID".
     expr_stack_entry.potentially_evaluated = FALSE;
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     uuidof_type = operand.type;
+    expr = make_node_from_operand(&operand);
     /* __uuidof(0) is a special case that yields a zero GUID. */
     if (is_constant_operand(&operand) &&
         is_null_pointer_constant(&operand.variant.constant)) {
