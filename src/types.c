@@ -6673,6 +6673,7 @@ has been used in an exception handling or RTTI construct.
        unless it will be on another list. */
     if (!has_name(type_ptr) &&
         !is_immediate_class_type(type_ptr) &&
+        /* Do not put types from prototype instantiations on the list. */
         !is_or_contains_template_param(type_ptr)) {
       check_assertion(type_ptr->next == NULL);
       type_ptr->next = il_header.nontag_types_used_in_exception_or_rtti;
