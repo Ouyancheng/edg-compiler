@@ -1,10 +1,10 @@
 Version 2.46
 
-1/25/01  Microsoft compatibility: __declspec specifiers on enum definitions
+1/26/01  Microsoft compatibility: __declspec specifiers on enum definitions
 
 In Microsoft mode, the front end now accepts the same __declspec specifiers
-on enum definitions as on class definitions.  IL CHANGE: Only the uuid variant
-of these extended specifiers is recorded in the IL however.
+on enum definitions as on class definitions.  For enums, however, only the
+uuid variant of these extended specifiers is recorded in the IL.
 For example:
 
   enum __declspec(dllexport) E {};  // Accepted but the dllexport attribute
@@ -13,6 +13,9 @@ For example:
                                     // Accepted and uuid string is recorded
   enum __declspec(uuid("22222222-2222-2222-2222-222222222222") E {};
                                     // Error: incompatible uuid specifier
+
+IL CHANGE: new fields (uuid_string and uuid_variable) were added to the 
+integer variant of a_type (when MICROSOFT_EXTENSIONS_ALLOWED is TRUE).
 
 1/25/01  Performance bug in module-id routine
 
