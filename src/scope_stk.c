@@ -370,16 +370,19 @@ or NULL otherwise.
     a_namespace_ptr nsp = scope->variant.assoc_namespace;
     pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
   } else {
-    /* For scopes other than file and namespace, the scope must be on the
-       scope stack (of the current translation unit). */
+    /* For scopes other than file and namespace, we can get the pointers
+       block only if the scope is on the scope stack. */
     a_scope_depth depth = scope->depth_in_scope_stack;
 
-    check_assertion_str(depth != NO_SCOPE_DEPTH &&
-                        trans_unit_for_scope[scope->number] ==
+    if (depth != NO_SCOPE_DEPTH) {
+      /* If the scope is on the scope stack in another translation unit, we
+         could get it, but that functionality is not needed at present.
+         Returning NULL would not be right in that case. */
+      check_assertion_str(trans_unit_for_scope[scope->number] ==
                                                          curr_translation_unit,
-                        "get_pointers_block_for_scope: scope not available");
-    /* The scope is on the scope stack. */
-    pointers_block = assoc_pointers_block_of(&scope_stack[depth]);
+                          "get_pointers_block_for_scope: wrong trans unit");
+      pointers_block = assoc_pointers_block_of(&scope_stack[depth]);
+    }  /* if */
   }  /* if */
   return pointers_block;
 }  /* get_pointers_block_for_scope */
