@@ -1331,7 +1331,196 @@ Dump the initializer of a variable for debug purposes.
     }  /* if */
   }  /* if */
 }  /* db_initializer */
+
+
+void db_statement_kind(a_statement_kind  kind)
+/*
+Dump a statement kind, for debug purposes.
+*/
+{
+  char *s;
+
+  switch (kind) {
+    case stmk_expr:            s = "expr";              break;
+    case stmk_if:              s = "if";                break;
+    case stmk_while:           s = "while";             break;
+    case stmk_goto:            s = "goto";              break;
+    case stmk_label:           s = "label";             break;
+    case stmk_return:          s = "return";            break;
+    case stmk_block:           s = "block";             break;
+    case stmk_end_test_while:  s = "end-test-while";    break;
+    case stmk_for:             s = "for";               break;
+    case stmk_switch:          s = "switch";            break;
+    case stmk_init:            s = "init";              break;
+    case stmk_asm:             s = "asm";               break;
+    case stmk_try_block:       s = "try-block";         break;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    case stmk_decl:            s = "decl";              break;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    default:                   s = "**BAD STMT KIND**"; break;
+  }  /* switch */
 #endif /* DEBUG */
+  fputs(s, f_debug);
+}  /* db_statement_kind */
+
+
+void db_statement(a_statement_ptr  sp)
+/*
+Dump a statement, for debug purposes.
+*/
+{
+  if (sp != NULL) {
+    db_statement_kind(sp->kind);
+    fputs("-stmt", f_debug);
+    switch (sp->kind) {
+      case stmk_block:
+        if (sp->variant.block.extra_info->assoc_scope != NULL) {
+          fputs(" [", f_debug);
+          db_scope(sp->variant.block.extra_info->assoc_scope);
+          fputs("]", f_debug);
+        }  /* if */
+        break;
+      case stmk_expr:
+        if (sp->expr != NULL) {
+          an_expr_node_ptr node = sp->expr;
+          if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
+            /* For an object lifetime expression, display the underlying
+               expression. */
+             node = node->variant.object_lifetime.expr;
+          }  /* if */
+          switch (node->kind) {
+            case enk_operation:
+              fprintf(f_debug, " (operator %s)",
+                      db_operator_names[node->variant.operation.kind]);
+              break;
+            case enk_throw:
+              fprintf(f_debug, " (throw)");
+              break;
+            case enk_new_delete:
+              fprintf(f_debug, " (%s)",
+                      node->variant.new_delete->is_new ? "new" : "delete");
+              break;
+            default:;
+          }  /* switch */
+        }  /* if */
+        break;
+      case stmk_label:
+      case stmk_goto:
+        if (sp->variant.label.ptr->source_corresp.name != NULL) {
+          fputs(" \"", f_debug);
+          db_name(&sp->variant.label.ptr->source_corresp);
+          fputc('"', f_debug);
+        } else {
+          fprintf(f_debug, " <%lx>", (long)(sp->variant.label.ptr));
+        }  /* if */
+        break;
+      default:;
+    }  /* switch */
+    fprintf(f_debug, ", at %d\n",
+            seq_number_from_stmt_source_position(sp->position));
+  }  /* if */
+}  /* db_statement */
+
+
+void db_statement_list(a_statement_ptr  sp,
+                       int              indent,
+                       char             *str,
+                       int              how_deep)
+/*
+Dump a list of statements, for debug purposes.  sp is the head of the
+list.  indent is the number of spaces to put out for indentation.  str is a
+string which is to be put out after the indentation and before the first
+statement.  how_deep is how many levels of recursion to go before terminating
+the dump (this one counts as the first).
+*/
+{
+  int                  a;
+  a_switch_clause_ptr  scp;
+  a_handler_ptr        hp;
+
+  if (how_deep > 0) {
+    for (; sp != NULL; sp = sp->next) {
+      for (a = 0; a < indent; a++) fputs(" ", f_debug);
+      fputs(str, f_debug);
+      db_statement(sp);
+      switch (sp->kind) {
+        case stmk_block:
+          db_statement_list(sp->variant.block.statements, indent+2, "",
+                            how_deep-1);
+          break;
+        case stmk_if:
+          if (how_deep > 1) {
+            if (sp->variant.if_stmt.then_statement == NULL) {
+              for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
+              fprintf(f_debug, "then <null>\n");
+            } else {
+              db_statement_list(sp->variant.if_stmt.then_statement, indent+2,
+                                "then ", how_deep-1);
+            }  /* if */
+            if (sp->variant.if_stmt.else_statement != NULL) {
+              db_statement_list(sp->variant.if_stmt.else_statement, indent+2,
+                                "else ", how_deep-1);
+            }  /* if */
+          }  /* if */
+          break;
+        case stmk_for:
+          db_statement_list(sp->variant.for_loop.statement, indent+2, "",
+                            how_deep-1);
+          break;
+        case stmk_while:
+        case stmk_end_test_while:
+          db_statement_list(sp->variant.loop_statement, indent+2, "",
+                            how_deep-1);
+          break;
+        case stmk_switch:
+          db_statement_list(sp->variant.switch_stmt.body_statement, indent+2,
+                            "body ", how_deep-1);
+          if (how_deep > 1) {
+            for (scp = sp->variant.switch_stmt.clause_list;
+                 scp != NULL;
+                 scp = scp->next) {
+              for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
+              fputs(scp->constant_list == NULL ? "default\n" : "case\n",
+                    f_debug);
+              db_statement_list(scp->statements, indent+4, "", how_deep-1);
+              if (scp->implied_break_at_end) {
+                for (a = 0; a < indent+4; a++) fputs(" ", f_debug);
+                fputs("[implied break]\n", f_debug);
+              }  /* if */
+            }  /* for */
+          }  /* if */
+          break;
+        case stmk_try_block:
+          if (sp->variant.try_block != NULL) {
+            db_statement_list(sp->variant.try_block->statement, indent+2, "",
+                              how_deep-1);
+            if (how_deep > 1) {
+              for (hp = sp->variant.try_block->handlers;
+                   hp != NULL;
+                   hp = hp->next) {
+                for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
+                fprintf(f_debug, "catch%s, at %d:",
+                        hp->parameter == NULL ? " (...)" : "",
+                        seq_number_from_stmt_source_position(
+                                                        hp->catch_position));
+                if (hp->statement->kind == (a_statement_kind)stmk_block) {
+                  fputs(" ", f_debug);
+                  db_statement(hp->statement);
+                  db_statement_list(hp->statement->variant.block.statements,
+                                    indent+4, "", how_deep-1);
+                } else {
+                  fputs("\n", f_debug);
+                  db_statement_list(hp->statement, indent+4, "", how_deep-1);
+                }  /* if */
+              }  /* for */
+            }  /* if */
+          }  /* if */
+          break;
+        default:;
+      }  /* switch */
+    }  /* for */
+  }  /* if */
+}  /* db_statement_list */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -7252,15 +7441,8 @@ about it).
         db_name(&sp->variant.label.ptr->source_corresp);
         fputs("\" ", f_debug);
       } else {
-        switch (sp->kind) {
-          case stmk_for:            str = "for";     break;
-          case stmk_while:          str = "while";   break;
-          case stmk_end_test_while: str = "do";      break;
-          case stmk_switch:         str = "switch";  break;
-          case stmk_block:          str = "block";   break;
-          default:                  str = NULL;      break;
-        }  /* switch */
-        if (str != NULL) fprintf(f_debug, "%s-stmt ", str);
+        db_statement_kind((a_statement_kind)sp->kind);
+        fputs("-stmt", f_debug);
       }  /* if */
     } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_switch_clause) {
       a_constant_ptr  cp;
@@ -8106,27 +8288,14 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
     }  /* for */
   } else {
     if (kind == (an_il_entry_kind)iek_statement) {
-      char      *s;
       a_statement_ptr   sp = (a_statement_ptr)ssep->entity.ptr;
-
-      switch (sp->kind) {
-        case stmk_expr:           s = "expr";     break;
-        case stmk_if:             s = "if";       break;
-        case stmk_while:          s = "while";    break;
-        case stmk_goto:           s = "goto";     break;
-        case stmk_label:          s = "label";    break;
-        case stmk_return:         s = "return";   break;
-        case stmk_block:          s = "block";    break;
-        case stmk_end_test_while: s = "do-while"; break;
-        case stmk_for:            s = "for";      break;
-        case stmk_switch:         s = "switch";   break;
-      /*case stmk_init:           Missing on purpose. */
-        case stmk_asm:            s = "asm";      break;
-        case stmk_try_block:      s = "try";      break;
-        default:  s = "*** BAD STMT KIND ***"; break;
+      fprintf(f_debug, " (at %lu):",
+             seq_number_from_stmt_source_position(sp->position));
+      if (sp->kind == (a_statement_kind)stmk_init) {
+        fputs("**BAD STMT KIND**", f_debug);
+      } else {
+        db_statement_kind((a_statement_kind)sp->kind);
       }  /* if */
-      fprintf(f_debug, " (at %lu): %s",
-             seq_number_from_stmt_source_position(sp->position), s);
       if (sp->kind == (a_statement_kind)stmk_expr) {
         if (sp->expr != NULL) {
           an_expr_node_ptr node = sp->expr;

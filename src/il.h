@@ -679,6 +679,15 @@ extern void db_dynamic_initializer(a_dynamic_init_ptr  dip,
 extern void db_initializer(a_variable_ptr  var_ptr,
                            int             level);
 
+extern void db_statement_kind(a_statement_kind  kind);
+
+extern void db_statement(a_statement_ptr  sp);
+
+extern void db_statement_list(a_statement_ptr  sp,
+                              int              indent,
+                              char             *str,
+                              int              how_deep);
+
 extern void db_scope(a_scope_ptr sp);
 
 extern void db_destruction(a_dynamic_init_ptr  dip);
