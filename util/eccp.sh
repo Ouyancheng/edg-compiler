@@ -21,7 +21,7 @@ INCLDIR=$EDG_BASE/include
 #
 # Directory where the C include files are to be found.
 #
-CINCLDIR=$EDG_CBASE/include
+CINCLDIR=${EDG_CINCLDIR-$EDG_CBASE/include}
 #
 # Directory where libC.a is to be found.
 #
