@@ -451,12 +451,12 @@ char *db_symbol_trans_unit(a_symbol_ptr sym)
 /*
 Return the name of the file for the translation unit of the indicated
 symbol, if it has one and if it is not the primary translation unit.
-Return NULL otherwise.
+Return NULL otherwise.  Also return NULL if sym is NULL.
 */
 {
   char *name = NULL;
 
-  if (sym->decl_scope != NO_SCOPE_NUMBER) {
+  if (sym != NULL && sym->decl_scope != NO_SCOPE_NUMBER) {
     a_translation_unit_ptr	tup;
     tup = trans_unit_for_scope[sym->decl_scope];
     if (tup != NULL && tup != translation_units &&
