@@ -1,5 +1,15 @@
 Version 2.14
 
+2/5/93  * pointer-to-void is not an lvalue
+
+The result of indirecting through a pointer to void is now represented
+immediately as an rvalue.
+
+  void *pv;
+  *pv;
+
+*pv is legal but is not an lvalue.
+
 2/5/93  Added a_template_instance
 
 This data structure has been added for template processing, unifying and
