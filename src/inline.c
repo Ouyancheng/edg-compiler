@@ -1151,7 +1151,7 @@ statement).
                  In that case, add a zero cast to the right type. */
               if (!il_identical_types(expr->type, inlined_call_expr->type)) {
                 a_constant zero_constant;
-                check_assertion_str(is_pointer_type(expr->type) &&
+                check_assertion_str(is_reference_type(expr->type) &&
                              routine_scope_being_inlined->variant.routine.ptr->
                       special_kind == (a_special_function_kind)sfk_constructor,
                                     "do_inlining_of_call: wrong expr type");
