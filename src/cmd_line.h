@@ -512,6 +512,18 @@ EXTERN a_calling_convention
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean
+		stack_referenced_include_directories
+#if VAR_INITIALIZERS
+                                    = STACK_REFERENCED_INCLUDE_DIRECTORIES
+#endif /* VAR_INITIALIZERS */
+                                                                          ;
+			/* If TRUE a stack model is used to manage the include
+			   search list and FALSE if some other model (by
+			   default, a replace-restore model) is to be used
+			   instead.  Typically, this flag is TRUE when
+			   microsoft_mode is TRUE. */
+
+EXTERN a_boolean
 		wchar_t_is_keyword
 #if VAR_INITIALIZERS
                                    = DEFAULT_WCHAR_T_IS_KEYWORD
