@@ -4348,20 +4348,6 @@ or struct definition.  The syntax is
             goto skip_base_class;
           }  /* if */
         }  /* if */
-        if (base_class_type->variant.class_struct_union.is_nonreal_class &&
-            !type_ptr->variant.class_struct_union.is_nonreal_class) {
-          /* A nonreal base class of a real derived class, which cannot happen
-             in a well-formed program.  Here's how it might happen:
-               template <class T> class X;
-               template <class T> const class Y : X<T> { } ...
-             In this case, Y is not recognized as a class template; rather,
-             it is assumed to be a real class that is defined within the
-             declaration of a template function, etc.  Issue a vague error
-             and skip the base class, to avoid error recovery problems down
-             the line. */
-          error(ec_bad_base_class);
-          goto skip_base_class;
-        }  /* if */
       }  /* if */
       /* Issue a diagnostic if an explicit access specifier was not provided
          (as per the recommendation on p. 243 of the ARM). */
