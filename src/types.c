@@ -42,9 +42,6 @@ predicates.
 /* Function types are simply function types. */
 #define is_function(tp) ((tp)->kind == (a_type_kind)tk_routine)
 
-/* Incomplete types are types that have no size and are not functions. */
-#define is_incomplete(tp) ((tp)->size == 0 && !is_function(tp))
-
 /* The void type is simply the void type. */
 #define is_void(tp) ((tp)->kind == (a_type_kind)tk_void)
 
@@ -135,6 +132,17 @@ predicates.
 
 /* Template parameter type. */
 #define is_template_param(tp) ((tp)->kind == (a_type_kind)tk_template_param)
+
+/* Incomplete types are types that have no size and are not functions.
+   (In GNU C mode, there are zero-sized arrays and they are considered
+   complete.) */
+#if !GNU_EXTENSIONS_ALLOWED
+#define is_incomplete(tp) ((tp)->size == 0 && !is_function(tp))
+#else /* GNU_EXTENSIONS_ALLOWED */
+#define is_incomplete(tp)                                               \
+   ((tp)->size == 0 && !is_function(tp) &&                              \
+    !(gcc_mode && is_array(tp) && tp->variant.array.bound_is_zero))
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /* Macro that is TRUE if two type kinds are the same, or are the same except
    that one is tk_class and the other is tk_struct. */
@@ -1632,15 +1640,19 @@ and a diagnostic is issued (unless suppress_error is TRUE).
       report_abstract_class_error(ec_array_of_abstract_class, elem_type,
                                   &error_position);
     }  /* if */
+    temp2 = elem_type->size;
 #if CHECKING
-    if (elem_type->size == 0) {
+    if (temp2 == 0 &&
+        !(is_array_type(elem_type) &&
+          elem_type->variant.array.bound_is_zero)) {
       internal_error("set_array_type_size: bad element type");
     }  /* if */
 #endif /* CHECKING */
-    temp2 = elem_type->size;
     /* Check whether or not the multiplication will overflow.  Note that we 
-       avoid dividing by temp, since it may be zero for an incomplete type. */
-    if (temp > targ_size_t_max / temp2) {
+       avoid dividing by temp, since it may be zero for an incomplete type.
+       temp2 can be zero too if the element type is a GNU C zero-length
+       array. */
+    if (temp2 != 0 && temp > targ_size_t_max / temp2) {
       if (!suppress_error) error(ec_array_size_too_large);
       set_type_kind(array_type, (a_type_kind)tk_error);
       set_type_size(array_type);

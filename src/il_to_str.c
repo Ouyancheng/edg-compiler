@@ -1601,7 +1601,7 @@ the way described by octl.
     form_constant(type->variant.array.variant.element_count_constant,
                   /*need_parens=*/FALSE, octl);
   } else if (type->variant.array.variant.number_of_elements == 0 &&
-             !type->variant.array.put_out_unknown_bound_as_zero) {
+             !type->variant.array.bound_is_zero) {
     /* For unknown-bound arrays, put nothing between the []. */
   } else {
     form_unsigned_num((a_host_large_unsigned)type->

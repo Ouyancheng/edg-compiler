@@ -217,6 +217,9 @@ a copy is made and modified.
   array_type = alloc_type((a_type_kind)tk_array);
   copy_type(incomplete_type, array_type);
   array_type->variant.array.variant.number_of_elements = size;
+  if (gcc_mode && size == 0) {
+    array_type->variant.array.bound_is_zero = TRUE;
+  }  /* if */
   set_type_size(array_type);
   *type = array_type;
 }  /* set_initialized_array_size */
@@ -1150,7 +1153,7 @@ static void start_aggregate_init_scan_loop(
                           an_aggregate_init_context  *context,
                           a_type_ptr                 *member_type,
                           a_boolean                  *any_more_members,
-                          a_boolean                  *is_incomplete_array)
+                          a_boolean                  *is_flexible_array)
 /*
 Initialize the state for the loop that will scan an aggregate initializer
 list.  The type of the aggregate or subaggregate whose initializer is about
@@ -1160,21 +1163,22 @@ the first initializable field (if any) if dest_type is a class type.
 *member_type will be set to the type of the next member to be initialized (or
 an error type if dest_type is an error_type).  If there are any members to
 initialize, *any_more_members will be set to TRUE.  If context->type is an
-array type of unknown size, *is_incomplete_array will be set to TRUE.
+array type of zero size ("[]" or "[0]"), *is_flexible_array will be set to
+TRUE.
 */
 {
   a_type_ptr  type = skip_typerefs(context->type);
   a_type_kind kind = type->kind;
 
   *any_more_members = TRUE;  /* Assume. */
-  *is_incomplete_array = FALSE;
+  *is_flexible_array = FALSE;
   if (kind == (a_type_kind)tk_error ||
       kind == (a_type_kind)tk_template_param) {
     /* Unknown member type (due to error or template parameterization). */
     *member_type = error_type();
   } else if (kind == (a_type_kind)tk_array) {
     /* Array.  Start with first element. */
-    *is_incomplete_array = is_incomplete_type(type);
+    *is_flexible_array = (type->size == 0);
     *member_type = type->variant.array.element_type;
     /* Note that arrays of incomplete struct/union types (an extension)
        do not make it to here (they're caught as an error at the top
@@ -1213,8 +1217,9 @@ if no initializer was consumed.
   if (brace_flag) {
     /* The list for the aggregate at this level is enclosed in { }. */
     if (curr_token == tok_rbrace && context->pending_init_con == NULL) {
-      /* Empty initializer list --  "{ }".  An error in C, okay in C++. */
-      if (C_mode()) error(ec_exp_primary_expr);
+      /* Empty initializer list --  "{ }".  An error in C, okay in C++ and
+         in GNU C mode. */
+      if (C_mode() && !gcc_mode) error(ec_exp_primary_expr);
       result = FALSE;
     }  /* if */
   } else {
@@ -1721,7 +1726,7 @@ this function points to a tree that includes a dynamic-init entry.
 */
 {
   a_constant_ptr                 init_con = NULL;
-  a_boolean                      is_incomplete_array;
+  a_boolean                      is_flexible_array;
   a_type_ptr                     member_type;
   a_boolean                      brace_flag;
   a_constant_ptr                 member_con;
@@ -1803,7 +1808,7 @@ this function points to a tree that includes a dynamic-init entry.
          initialized (if any). */
       kind = skip_typerefs(context.type)->kind;
       start_aggregate_init_scan_loop(&context, &member_type,
-                                     &any_more_members, &is_incomplete_array);
+                                     &any_more_members, &is_flexible_array);
       curr_field = context.field;
       any_more_initializers = any_initializers(&context,
                                                brace_flag,
@@ -1934,7 +1939,7 @@ this function points to a tree that includes a dynamic-init entry.
         /* If a designation was active, it is now consumed: */
         init_info->designation_state = ds_no_designation;
         remove_stop_token(tok_comma);
-        check_assertion(!(local_nothing_taken && is_incomplete_array));
+        check_assertion(!(local_nothing_taken && is_flexible_array));
         /* Advance to the next member of the aggregate.  Set
            any_more_members FALSE if there are no more members. */
         if (kind == (a_type_kind)tk_error ||
@@ -1959,7 +1964,7 @@ this function points to a tree that includes a dynamic-init entry.
             ++curr_array_element;
             check_assertion(!skip_typerefs(context.type)->variant.array.
                                                       is_variable_size_array);
-            if (!is_incomplete_array) {
+            if (!is_flexible_array) {
               /* Note that we may get here with any_more_members == FALSE and
                  a designator can turn it into TRUE again. */
               a_type_ptr array_type = skip_typerefs(context.type);
@@ -2074,7 +2079,7 @@ this function points to a tree that includes a dynamic-init entry.
         /* Set the size of an incomplete array from the number of elements
            in its initial value.  Note that arrays of char initialized
            to strings are not handled here. */
-        if (is_incomplete_array) {
+        if (is_flexible_array) {
           /* Note that the size is not necessarily curr_array_element since
              intermediate designations may have implied a larger size. */
           if (!is_error_type(context.type)) {

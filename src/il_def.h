@@ -4576,9 +4576,10 @@ typedef struct a_type {
 			   vla_dimension entry.  FALSE for cases like [*].
 			   (C mode only, and only when is_vla is TRUE.)  */
       a_bit_field
-		put_out_unknown_bound_as_zero:1;
-			/* Indication that an unknown bound [] should be
-			   put out as [0] in generated code. */
+		bound_is_zero:1;
+			/* TRUE if this array actually has a zero bound.
+			   Such bounds are used in GNU C to denote flexible
+			   array members (instead of []). */
       a_bit_field
 		is_static:1;
 			/* TRUE if this array is tagged with the C99 keyword

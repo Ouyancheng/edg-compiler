@@ -436,7 +436,8 @@ property fields).
         } else if (temp_type->kind == (a_type_kind)tk_array &&
                    (has_unknown_specified_bound(temp_type) ||
                     temp_type->
-                           variant.array.variant.number_of_elements != 0)) {
+                           variant.array.variant.number_of_elements != 0 ||
+                    temp_type->variant.array.bound_is_zero)) {
           /* Okay. */
           tp = underlying_array_element_type(temp_type);
           if (tp != NULL) {
@@ -2246,6 +2247,10 @@ declaration.
         /* Normal constant bound. */
         (*new_type_ptr)->variant.array.variant.number_of_elements =
                                                               num_of_elements;
+        if (gcc_mode && is_constant_bound && num_of_elements == 0) {
+          /* Record the fact that we saw a GNU C zero-length array. */
+          (*new_type_ptr)->variant.array.bound_is_zero = TRUE;
+        }  /* if */
       }  /* if */
       switch_back_to_original_region(region_to_switch_back_to);
     }  /* if */
