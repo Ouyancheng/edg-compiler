@@ -1931,7 +1931,7 @@ might not be able to if the template itself has not yet been defined.
       /* A template instantiation is considered to always be "autonomous",
          even if its instantiation happens to be triggered by a reference
          in the declaration of another entity. */
-      set_autonomous_tag_decl_flag(class_type, /*is_definition=*/TRUE);
+      class_type->autonomous_primary_tag_decl = TRUE;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Pop the template instantiation scope. */
@@ -2348,7 +2348,7 @@ A pointer to the head of the list is returned in tcsp.
      symbol supplement. */
   add_to_source_sequence_list((char *)prototype_type,
                               (an_il_entry_kind)iek_type);
-  set_autonomous_tag_decl_flag(prototype_type, /*is_definition=*/TRUE);
+  prototype_type->autonomous_primary_tag_decl = TRUE;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
@@ -10633,10 +10633,13 @@ that follows.
       { a_boolean	decl_is_definition;
         /* The specialization should be marked as an autonomous declaration. */
         decl_is_definition = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
-        set_autonomous_tag_decl_flag(type, decl_is_definition);
-        if (!decl_is_definition) {
-          (void)set_src_seq_secondary_decl_type((char *)type, type,
-                                                /*new_style_spec=*/TRUE);
+        if (decl_is_definition) {
+          type->autonomous_primary_tag_decl = TRUE;
+        } else {
+          (void)set_src_seq_secondary_decl_fields(
+                                           (char *)type, type,
+                                           SSSD_AUTONOMOUS_TAG_DECL |
+                                           SSSD_SPECIALIZED_WITH_NEW_SYNTAX);
         }  /* if */
       }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -10819,8 +10822,9 @@ that follows.
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
         if (!is_definition) {
-          (void)set_src_seq_secondary_decl_type((char *)vp, type,
-                                                /*new_style_spec=*/TRUE);
+          (void)set_src_seq_secondary_decl_fields(
+                                          (char *)vp, type,
+                                          SSSD_SPECIALIZED_WITH_NEW_SYNTAX);
         } else {
           /* The defining declaration of the variable.  Record the type.  */
           if (vp->declared_type == NULL) vp->declared_type = type;
@@ -10884,13 +10888,15 @@ that follows.
                  entry representing the function definition will be inserted
                  following the class definition and a secondary source
                  sequence entry has been put out here. */
-              (void)set_src_seq_secondary_decl_type((char *)rp, declared_type,
-                                                    /*new_style_spec=*/TRUE);
+              (void)set_src_seq_secondary_decl_fields(
+                                            (char *)rp, declared_type,
+                                            SSSD_SPECIALIZED_WITH_NEW_SYNTAX);
             }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
           } else {
-            (void)set_src_seq_secondary_decl_type((char *)rp, declared_type,
-                                                  /*new_style_spec=*/TRUE);
+            (void)set_src_seq_secondary_decl_fields(
+                                           (char *)rp, declared_type,
+                                           SSSD_SPECIALIZED_WITH_NEW_SYNTAX);
           }  /* if */
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

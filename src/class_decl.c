@@ -4829,19 +4829,9 @@ of the function, and again overloading is a possibility.
             /* Since this is a non-defining entry, it is represented by a
                secondary-decl entry in the source sequence list.  Enter the
                current function type. */
-            a_src_seq_secondary_decl_ptr  sssdp;
-            sssdp = set_src_seq_secondary_decl_type((char *)rp, function_type,
-                                                  /*is_specialization=*/FALSE);
-            if (sssdp != NULL) {
-              sssdp->friend_decl = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-              /* Update source range information in the secondary-decl
-                 entry. */
-              sssdp->decl_pos_info =
-                       make_decl_pos_supplement(in_file_scope(sssdp),
+            (void)update_src_seq_secondary_decl((char *)rp, function_type,
+                                                SSSD_FRIEND_DECL,
                                                 &decl_info->decl_pos_block);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-            }  /* if */
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
@@ -5768,8 +5758,6 @@ declared member functions.
         func_info->is_movable_member_or_friend_def) {
       /* A non-defining entry is represented by a
          secondary-decl entry in the source sequence list. */
-      a_src_seq_secondary_decl_ptr  sssdp;
-
       if (func_info->is_movable_member_or_friend_def) {
         /* Set the flag that indicates the definition appears outside the
            class body -- it's used by the code that eliminates unneeded
@@ -5850,24 +5838,16 @@ declared member functions.
           rtsp2->routine_name_linkage = rtsp1->routine_name_linkage;
         }  /* if */
       }  /* if */          
-      /* Create the secondary-declaration entry. */
-      sssdp = set_src_seq_secondary_decl_type((char *)rtn, tp,
-                                              /*is_specialization=*/FALSE);
-      /* A member function declaration within a class definition is always
-         the initial declaration. */
-      if (sssdp == NULL) {
-        /* If sssdp is NULL it means the declared type will not be needed.
-           Clear the pointer to suppress copying the default arg expression
-           to it later on. */
+      /* Update the secondary-declaration entry.  A member function
+         declaration within a class definition is always the initial
+         declaration. */
+      if (!update_src_seq_secondary_decl((char *)rtn, tp,
+                                         SSSD_FIRST_DECLARATION,
+                                         &decl_info->decl_pos_block)) {
+        /* No source-sequence secondary declaration entity was found, which
+           means the declared type will not be needed.  Clear the pointer
+           to suppress copying the default arg expression to it later on. */
         func_info->declared_type = NULL;
-      } else {
-        sssdp->first_declaration = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        /* Update source range information in the secondary-decl entry. */
-        sssdp->decl_pos_info = 
-                      make_decl_pos_supplement(in_file_scope(sssdp),
-                                               &decl_info->decl_pos_block);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -6534,19 +6514,8 @@ member declaration, respectively.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  { a_src_seq_secondary_decl_ptr  sssdp;
-
-    sssdp = set_src_seq_secondary_decl_type((char *)var, member_type,
-                                            /*is_specialization=*/FALSE);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (sssdp != NULL) {
-      /* Update source range information in the secondary-decl entry. */
-      sssdp->decl_pos_info =
-                   make_decl_pos_supplement(in_file_scope(sssdp),
-                                            &decl_info->decl_pos_block);
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  }
+  (void)update_src_seq_secondary_decl((char *)var, member_type, SSSD_NO_FLAGS,
+                                      &decl_info->decl_pos_block);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
@@ -9326,8 +9295,14 @@ moreover, several fields of *decl_info may be updated by this routine.
        member_type->kind != (a_type_kind)tk_typeref)) {
     /* This is a free-standing declaration of a class, struct, union, or
        enum. */
-    set_autonomous_tag_decl_flag(member_type,
-                                 (dso_flags & DSO_DEFINES_SOMETHING) != 0);
+    a_type_ptr  tp = skip_typerefs(member_type);
+
+    if (dso_flags & DSO_DEFINES_SOMETHING) {
+      tp->autonomous_primary_tag_decl = TRUE;
+    } else {
+      set_src_seq_secondary_decl_fields((char *)tp, (a_type_ptr)NULL,
+                                          SSSD_AUTONOMOUS_TAG_DECL);
+    }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* check_missing_declarator_in_member_declaration */

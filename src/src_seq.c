@@ -24,6 +24,7 @@ src_seq.c -- Support for source sequence list management
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if !STANDALONE_UTILITY_PROGRAM
+#include "decls.h"
 
 #if DEBUG
 
@@ -1113,18 +1114,15 @@ of the file scope.  If it is a local class, return NO_SCOPE_DEPTH.
 }  /* scope_depth_for_class_ss_list */
 
 
-static a_source_sequence_entry_ptr find_instantiation_insert_point(
-                               a_scope_stack_entry_ptr      curr_sse_ptr,
-                               a_scope_stack_entry_ptr      *insert_sse_ptr,
-                               a_source_sequence_entry_ptr  ssep)
+static a_scope_stack_entry_ptr find_instantiation_insert_scope(
+                                     a_scope_stack_entry_ptr      curr_sse_ptr,
+                                     a_source_sequence_entry_ptr  ssep)
 /*
-
-Find the "insert point" (a pair comprising a scope stack entry and source
-sequence entry) at which a template instantiation (represented by a list of
-source sequence entries) should be added.  curr_sse_ptr is a pointer to the
-current scope stack entry, and ssep represents the template instantiation
-that is to be added.  The insert point is returned in the function return
-value and *insert_sse_ptr.
+Find the scope stack entry in which a template instantiation (represented by
+a list of source sequence entries) should be inserted.  curr_sse_ptr is a
+pointer to the current scope stack entry, and ssep represents the template
+instantiation that is to be added.  Return a pointer to the scope stack
+entry in which the insertion should occur.
 
 Ordinarily, the insert point is in a namespace scope at a location preceding
 the reference that triggered the instantiation.  For instance,
@@ -1175,8 +1173,7 @@ uncompleted class type, the instantiation cannot be moved beyond the
 innermost such class.
 */
 {
-  a_scope_stack_entry_ptr       sse_ptr;
-  a_source_sequence_entry_ptr   insert_point = NULL;
+  a_scope_stack_entry_ptr       sse_ptr, insert_sse_ptr = NULL;
   a_type_ptr                    entity_type, parent_class;
   an_il_entry_kind              entity_kind;
   char                          *entity_ptr;
@@ -1187,8 +1184,7 @@ innermost such class.
   a_boolean                     members_only;
   a_namespace_ptr               parent_namespace;
 
-  db_enter(4, "find_instantiation_insert_point");
-  *insert_sse_ptr = NULL;
+  db_enter(4, "find_instantiation_insert_scope");
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
     fputs("finding insert point for ", f_debug);
@@ -1202,7 +1198,7 @@ innermost such class.
   entity_kind = ss_entry_kind(ssep);
   if (entity_kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
     sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-    entity_kind = sssdp->entity.kind;
+    entity_kind = (an_il_entry_kind)sssdp->entity.kind;
     entity_ptr = sssdp->entity.ptr;
   } else {
     entity_ptr = ssep->entity.ptr;
@@ -1289,7 +1285,7 @@ innermost such class.
        ref_scope_depth--) {
     if (parent_scope_depth != NO_SCOPE_DEPTH &&
         ref_scope_depth <= parent_scope_depth) {
-      *insert_sse_ptr = &scope_stack[parent_scope_depth];
+      insert_sse_ptr = &scope_stack[parent_scope_depth];
       break;
     }  /* if */
     if (scope_stack[ref_scope_depth].kind ==
@@ -1297,7 +1293,7 @@ innermost such class.
       break;
     }  /* if */
   }  /* for */
-  if (*insert_sse_ptr == NULL && ref_scope_depth != NO_SCOPE_DEPTH) {
+  if (insert_sse_ptr == NULL && ref_scope_depth != NO_SCOPE_DEPTH) {
     template_arg_list = NULL;
     switch (entity_kind) {
       case iek_type:
@@ -1324,7 +1320,7 @@ innermost such class.
    for (; ref_scope_depth > NO_SCOPE_DEPTH; ref_scope_depth--) {
       if (parent_scope_depth != NO_SCOPE_DEPTH &&
           ref_scope_depth <= parent_scope_depth) {
-        *insert_sse_ptr = &scope_stack[parent_scope_depth];
+        insert_sse_ptr = &scope_stack[parent_scope_depth];
         break;
       }  /* if */
       if (scope_stack[ref_scope_depth].kind ==
@@ -1354,13 +1350,13 @@ innermost such class.
              template_args_involve_specific_class_type(template_arg_list,
                                                        class_type,
                                                        members_only))) {
-          *insert_sse_ptr = &scope_stack[ref_scope_depth];
+          insert_sse_ptr = &scope_stack[ref_scope_depth];
           break;
         }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
-  if (*insert_sse_ptr == NULL) {
+  if (insert_sse_ptr == NULL) {
     for (sse_ptr = curr_sse_ptr;
          sse_ptr != NULL;
          sse_ptr = previous_scope_of(sse_ptr)) {
@@ -1370,20 +1366,20 @@ innermost such class.
                   sse_ptr->explicitly_declared_namespace_extension)) {
         /* This is the file scope or a namespace scope that corresponds to an
            actual source construct. */
-        *insert_sse_ptr = sse_ptr;
+        insert_sse_ptr = sse_ptr;
         break;
       }  /* if */
     }  /* for */
   }  /* if */
-  if (*insert_sse_ptr != NULL) {
-    insert_point = (*insert_sse_ptr)->ss_list_instantiation_insert_point;
-  }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-    if (*insert_sse_ptr != NULL) {
+    if (insert_sse_ptr != NULL) {
+      a_source_sequence_entry_ptr  insert_point;
+
+      insert_point = insert_sse_ptr->ss_list_instantiation_insert_point;
       fprintf(f_debug, "insert point found: %s list for ",
                        insert_point == NULL ? "at end of" : "in");
-      db_scope_stack_entry_at_depth((*insert_sse_ptr) - scope_stack);
+      db_scope_stack_entry_at_depth(insert_sse_ptr - scope_stack);
       if (insert_point != NULL) {
         fputs(" prior to:\n  ", f_debug);
         db_source_sequence_entry(insert_point);
@@ -1394,8 +1390,8 @@ innermost such class.
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  return insert_point;
-}  /* find_instantiation_insert_point */
+  return insert_sse_ptr;
+}  /* find_instantiation_insert_scope */
 
 
 void f_move_src_seq_list(a_source_sequence_entry_ptr  head,
@@ -1412,7 +1408,7 @@ entry pointed to by insert point; if insert_point is null, add them to
 to the end of the list.
 */
 {
-  unlink_src_seq_entries(head, tail, source_sse_ptr);
+  (void)unlink_src_seq_entries(head, tail, source_sse_ptr);
   insert_src_seq_list(head, tail, target_sse_ptr, insert_point);
 }  /* f_move_src_seq_list */
 
@@ -1436,9 +1432,10 @@ insert it at the appropriate place in another scope.
                               (a_scope_kind)sck_template_instantiation &&
                   curr_scope_stack_ptr->instance_sym != NULL);
   scp = source_corresp_entry_for_symbol(curr_scope_stack_ptr->instance_sym);
-  insert_before = find_instantiation_insert_point(curr_scope_stack_ptr,
-                                                  &insert_scope_stack_ptr,
-                                                  scp->source_sequence_entry);
+  insert_scope_stack_ptr = find_instantiation_insert_scope(
+                                                 curr_scope_stack_ptr,
+                                                 scp->source_sequence_entry);
+  insert_before = insert_scope_stack_ptr->ss_list_instantiation_insert_point;
   if (insert_before != NULL) {
     insert_after = insert_before->prev;
   } else {
@@ -1515,7 +1512,6 @@ declared_type points to a type that should be recorded in the entry.
   a_source_sequence_entry_ptr   ssep;
   a_memory_region_number        region_to_switch_back_to;
   a_scope_stack_entry_ptr       insert_scope_stack_ptr;
-  a_source_sequence_entry_ptr   insert_point;
 
   if (!scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_entries_disallowed) {
     /* Turn on the generation of source sequence entries. */
@@ -1569,17 +1565,18 @@ declared_type points to a type that should be recorded in the entry.
         fputs("\"\n", f_debug);
       }  /* if */
 #endif /* if DEBUG */
-        sym->variant.routine.instance_ptr->partial_instantiation = ssep;;
+      sym->variant.routine.instance_ptr->partial_instantiation = ssep;;
     } else
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     /* Do not insert code here. */
     {
       /* Add the entry to the appropriate source sequence list. */
-      insert_point = find_instantiation_insert_point(
+      insert_scope_stack_ptr = find_instantiation_insert_scope(
                                             &scope_stack[depth_scope_stack],
-                                            &insert_scope_stack_ptr,
                                             ssep);
-      insert_src_seq_list(ssep, ssep, insert_scope_stack_ptr, insert_point);
+      insert_src_seq_list(ssep, ssep, insert_scope_stack_ptr,
+                          insert_scope_stack_ptr->
+                                   ss_list_instantiation_insert_point);
       if (scp->source_sequence_entry == NULL) {
         scp->source_sequence_entry = ssep;
       }  /* if */
@@ -1638,15 +1635,17 @@ that refers to the IL entity identified by entity.
 }  /* last_matching_source_sequence_entry */
 
 
-a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_type(
-                                               char        *il_entry_ptr,
-                                               a_type_ptr  type,
-                                               a_boolean   new_style_spec)
+a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_fields(
+                                             char              *il_entry_ptr,
+                                             a_type_ptr        declared_type,
+                                             an_sssd_flag_set  flags)
 /*
-Set the declared_type field to "type" in the recently created secondary
-source sequence entry created for the IL entry pointed to by il_entry_ptr.
-Also, set the specialized_with_new_syntax flag in the new entry to the value
-indicated by new_style_spec.
+Set the declared_type field and various flags in the secondary-decl source
+sequence entry associated with il_entry_ptr; the source sequence entry is
+used that matches il_entry_ptr and is closest to the end of the source
+sequence list of the current scope stack entry.  declared_type may be
+NULL.  flags is a bit vector whose non-zero bits correspond to bit fields
+in the secondary source sequence entry that need to be set.
 */
 {
   a_source_sequence_entry_ptr   ssep;
@@ -1660,66 +1659,34 @@ indicated by new_style_spec.
     if (ssep != NULL) {
       check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
       sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
-      sssdp->declared_type = type;
-      sssdp->specialized_with_new_syntax = new_style_spec;
+      if (declared_type != NULL) sssdp->declared_type = declared_type;
+      if (flags & SSSD_AUTONOMOUS_TAG_DECL) {
+        sssdp->autonomous_tag_decl = TRUE;
+      }  /* if */
+      if (flags & SSSD_FRIEND_DECL) {
+        sssdp->friend_decl = TRUE;
+      }  /* if */
+      if (flags & SSSD_IMPLICIT_DECL) {
+        sssdp->implicit_decl = TRUE;
+      }  /* if */
+      if (flags & SSSD_DECLARED_IN_FUNC_PROTOTYPE) {
+        sssdp->declared_in_func_prototype = TRUE;
+      }  /* if */
+      if (flags & SSSD_SPECIALIZED_WITH_NEW_SYNTAX) {
+        sssdp->specialized_with_new_syntax = TRUE;
+      }  /* if */
+      if (flags & SSSD_FIRST_DECLARATION) {
+        sssdp->first_declaration = TRUE;
+      }  /* if */
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      if (flags & SSSD_IS_PARTIAL_INSTANTIATION) {
+        sssdp->is_partial_instantiation = TRUE;
+      }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
   return sssdp;
-}  /* set_src_seq_secondary_decl_type */
-
-
-void set_autonomous_tag_decl_flag(a_type_ptr  type,
-                                  a_boolean   is_definition)
-/*
-Set either the autonomous_primary_tag_decl flag in the type entry or the
-autonomous_tag_decl flag in the corresponding source sequence secondary decl
-entry, if there is one.
-*/
-{
-  a_source_sequence_entry_ptr   ssep;
-  a_src_seq_secondary_decl_ptr  sssdp;
-
-  type = skip_typerefs(type);
-  if (is_definition) {
-    /* This is a class or enum definition.  Alway set the flag in the type
-       on a definition. */
-    type->autonomous_primary_tag_decl = TRUE;
-  } else {
-    /* This is a class or enum declaration, possibly a "vacuous"
-       declaration. */
-    ssep = last_matching_source_sequence_entry((char *)type);
-    if (ssep != NULL) {
-      if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_type) {
-        type->autonomous_primary_tag_decl = TRUE;
-      } else {
-        check_assertion(ss_entry_kind(ssep) ==
-                            (an_il_entry_kind)iek_src_seq_secondary_decl);
-        sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-        sssdp->autonomous_tag_decl = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* set_autonomous_tag_decl_flag */
-
-
-void set_first_declaration_flag(char *entity)
-/*
-Set the first_declaration flag in the source-sequence secondary entry that
-corresponds to *entity.
-*/
-{
-  a_source_sequence_entry_ptr   ssep;
-  a_src_seq_secondary_decl_ptr  sssdp;
-
-  if (!source_sequence_entries_disallowed) {
-    ssep = last_matching_source_sequence_entry(entity);
-    check_assertion(ssep != NULL &&
-                    ss_entry_kind(ssep) ==
-                          (an_il_entry_kind)iek_src_seq_secondary_decl);
-    sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-    sssdp->first_declaration = TRUE;
-  }  /* if */
-}  /* set_first_declaration_flag */
+}  /* set_src_seq_secondary_decl_fields */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

@@ -132,15 +132,41 @@ extern void f_remove_from_source_sequence_list(
 extern a_source_sequence_entry_ptr last_matching_source_sequence_entry(
                                                                char *entity);
 
-extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_type(
-                                               char        *il_entry_ptr,
-                                               a_type_ptr  type,
-                                               a_boolean   is_specialization);
+/* Bit vector used to pass flags into update_src_seq_secondary_decl.   Each
+   Each bit represents a flag. */
+typedef unsigned int an_sssd_flag_set;
 
-extern void set_autonomous_tag_decl_flag(a_type_ptr  type,
-                                         a_boolean   is_definition);
+/* Constants defining bits in the bit vector used in calls to
+   update_src_seq_secondary_decl. */
+#define SSSD_NO_FLAGS ((an_sssd_flag_set)0x0)
+#define SSSD_AUTONOMOUS_TAG_DECL ((an_sssd_flag_set)0x1)
+			/* If this bit is set, set autonomous_tag_decl in the
+			   secondary-decl entry. */
+#define SSSD_FRIEND_DECL ((an_sssd_flag_set)0x2)
+			/* If this bit is set, set friend_decl in the
+			   secondary-decl entry. */
+#define SSSD_IMPLICIT_DECL ((an_sssd_flag_set)0x4)
+			/* If this bit is set, set implicit_decl in the
+			   secondary-decl entry. */
+#define SSSD_DECLARED_IN_FUNC_PROTOTYPE ((an_sssd_flag_set)0x8)
+			/* If this bit is set, set declared_in_func_prototype
+			   in the secondary-decl entry. */
+#define SSSD_SPECIALIZED_WITH_NEW_SYNTAX ((an_sssd_flag_set)0x10)
+			/* If this bit is set, set specialized_with_new_syntax
+			   in the secondary-decl entry. */
+#define SSSD_FIRST_DECLARATION ((an_sssd_flag_set)0x20)
+			/* If this bit is set, set first_declaration in the
+			   secondary-decl entry. */
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#define SSSD_IS_PARTIAL_INSTANTIATION ((an_sssd_flag_set)0x40)
+			/* If this bit is set, set is_partial_instantiation
+			   in the secondary-decl entry. */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
-extern void set_first_declaration_flag(char *entity);
+extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_fields(
+                                             char              *il_entry_ptr,
+                                             a_type_ptr        declared_type,
+                                             an_sssd_flag_set  flags);
 
 extern a_type_ptr type_from_src_seq_declaration(
                                              a_source_sequence_entry_ptr ssep);

@@ -1885,7 +1885,9 @@ the template.
     /* Set the first_declaration flag in the associated source-sequence
        secondary declaration entry. */
     if (!is_class_definition) {
-      set_first_declaration_flag((char *)class_type);
+      (void)set_src_seq_secondary_decl_fields((char *)class_type,
+                                              (a_type_ptr)NULL,
+                                              SSSD_FIRST_DECLARATION);
     } else {
       tag_sym->variant.class_struct_union.extra_info->
                                        definition_is_first_decl = TRUE;
@@ -2265,7 +2267,9 @@ to indicate whether an enumeration is actually defined.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Set the first_declaration flag in the associated source-sequence
            secondary declaration entry. */
-        set_first_declaration_flag((char *)enum_type);
+        (void)set_src_seq_secondary_decl_fields((char *)enum_type,
+                                                (a_type_ptr)NULL,
+                                                SSSD_FIRST_DECLARATION);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     } else {

@@ -1043,7 +1043,7 @@ current scope.
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Mark the type declaration as autonomous. */
-  set_autonomous_tag_decl_flag(anon_union_type, /*is_definition=*/TRUE);
+  anon_union_type->autonomous_primary_tag_decl = TRUE;
   /* Also put out a source sequence entry for the variable (even though the
      variable declaration doesn't actually appear). */
   vp->declared_type = anon_union_type;
@@ -3586,19 +3586,8 @@ cross-reference output describing this declaration.
      used, since it may have been replaced (e.g., when a file scope entity
      is declared in a local scope and a sublist is generated). */
   if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
-    /* A variable declaration but not a definition. */
-    a_src_seq_secondary_decl_ptr  sssdp;
-
-    sssdp = set_src_seq_secondary_decl_type((char *)variable_ptr,
-                                            declared_type,
-                                            /*is_specialization=*/FALSE);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (sssdp != NULL) {
-      /* Update source range information in the secondary-decl entry. */
-      sssdp->decl_pos_info = make_decl_pos_supplement(in_file_scope(sssdp),
-                                                      decl_pos_block);
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)update_src_seq_secondary_decl((char *)variable_ptr, declared_type,
+                                        SSSD_NO_FLAGS, decl_pos_block);
   } else {
     /* The defining declaration of the variable.  Record the type.  */
     if (variable_ptr->declared_type == NULL) {
@@ -3729,6 +3718,40 @@ type entry if appropriate, otherwise using the indicated declared_type.
     routine_ptr->declared_type = declared_type;
   }  /* if */
 }  /* set_routine_declared_type */
+
+
+a_boolean update_src_seq_secondary_decl(char                  *il_entry_ptr,
+                                        a_type_ptr            declared_type,
+                                        an_sssd_flag_set      flags,
+                                        a_decl_pos_block_ptr  decl_pos_block)
+/*
+Call set_src_seq_secondary_decl_fields to set the declared_type field and
+various flags in the secondary-decl source sequence entry associated with
+il_entry_ptr.  declared_type may be NULL.  flags is a bit vector whose
+non-zero bits correspond to bit fields in the secondary source sequence
+entry that need to be set.  If decl_pos_block is non-NULL, also update the
+decl_pos_info supplement of the secondary-decl entry.
+*/
+{
+  a_src_seq_secondary_decl_ptr  sssdp;
+
+  if (source_sequence_entries_disallowed) {
+    /* We are in a context in which source sequence entries are not being
+       created.  No further action is required. */
+    sssdp = NULL;
+  } else {
+    sssdp = set_src_seq_secondary_decl_fields(il_entry_ptr, declared_type,
+                                              flags);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (sssdp != NULL && decl_pos_block != NULL) {
+      /* Update source range information in the secondary-decl entry. */
+      sssdp->decl_pos_info = make_decl_pos_supplement(in_file_scope(sssdp),
+                                                      decl_pos_block);
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  return (sssdp != NULL);
+}  /* update_src_seq_secondary_decl */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
@@ -4548,7 +4571,7 @@ skip_overloading:;
        entry that is put out within the class definition is a secondary-decl;
        the primary source sequence entry is put out after the class definition
        is complete. */
-    a_src_seq_secondary_decl_ptr  sssdp;
+    an_sssd_flag_set              flags = SSSD_NO_FLAGS;
     a_type_ptr                    declared_type;
 
     if (func_info->is_movable_member_or_friend_def) {
@@ -4562,18 +4585,11 @@ skip_overloading:;
       /* Normal case. */
       declared_type = func_info->declared_type;
     }  /* if */
-    sssdp = set_src_seq_secondary_decl_type((char *)routine_ptr, declared_type,
-                                            /*is_specialization=*/FALSE);
-    if (sssdp != NULL) {
-      if (is_friend_decl) sssdp->friend_decl = TRUE;
-      if (func_info->is_implicit_declaration) sssdp->implicit_decl = TRUE;
-      if (first_decl) sssdp->first_declaration = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      /* Update source range information in the secondary-decl entry. */
-      sssdp->decl_pos_info = make_decl_pos_supplement(in_file_scope(sssdp),
-                                                      decl_pos_block);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    }  /* if */
+    if (is_friend_decl) flags |= SSSD_FRIEND_DECL;
+    if (func_info->is_implicit_declaration) flags |= SSSD_IMPLICIT_DECL;
+    if (first_decl) flags |= SSSD_FIRST_DECLARATION;
+    (void)update_src_seq_secondary_decl((char *)routine_ptr, declared_type,
+                                        flags, decl_pos_block);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_function_def) {
@@ -5385,21 +5401,9 @@ return a pointer to it in *symbol_ptr.
                                     declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!(ref_kind & SRK_DEFINITION)) {
-            a_src_seq_secondary_decl_ptr  sssdp;
-
-            sssdp = set_src_seq_secondary_decl_type(
-                                              (char *)sym->variant.type,
-                                              type_ptr,
-                                              /*is_specialization=*/FALSE);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-            if (sssdp != NULL) {
-              /* Update source range information in the secondary-decl
-                 entry. */
-              sssdp->decl_pos_info = make_decl_pos_supplement(
-                                                      in_file_scope(sssdp),
-                                                      decl_pos_block);
-            }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+            (void)update_src_seq_secondary_decl((char *)sym->variant.type,
+                                                type_ptr, SSSD_NO_FLAGS,
+                                                decl_pos_block);
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           goto return_point;
@@ -7836,7 +7840,13 @@ TRUE if an error was reported while the decl-specifiers were scanned.
                    ec_decl_should_be_of_param);
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      set_autonomous_tag_decl_flag(type_ptr, defines_something);
+      if (defines_something) {
+        skip_typerefs(type_ptr)->autonomous_primary_tag_decl = TRUE;
+      } else {
+        set_src_seq_secondary_decl_fields((char *)(skip_typerefs(type_ptr)),
+                                          (a_type_ptr)NULL,
+                                          SSSD_AUTONOMOUS_TAG_DECL);
+      }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (!declares_something && C_dialect == C_dialect_cplusplus &&
                defines_something && type_ptr->kind == (a_type_kind)tk_union &&
@@ -7876,7 +7886,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
         diagnostic(severity, ec_missing_typedef_name);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (defines_something) {
-          set_autonomous_tag_decl_flag(type_ptr, /*is_definition=*/TRUE);
+          skip_typerefs(type_ptr)->autonomous_primary_tag_decl = TRUE;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ASM_FUNCTION_ALLOWED
@@ -7922,7 +7932,13 @@ TRUE if an error was reported while the decl-specifiers were scanned.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (defines_something || declares_something) {
           /* This is a class/struct/union or enum declaration. */
-          set_autonomous_tag_decl_flag(type_ptr, defines_something);
+          a_type_ptr  tp = skip_typerefs(type_ptr);
+          if (defines_something) {
+            tp->autonomous_primary_tag_decl = TRUE;
+          } else {
+            set_src_seq_secondary_decl_fields((char *)tp, (a_type_ptr)NULL,
+                                              SSSD_AUTONOMOUS_TAG_DECL);
+          }  /* if */
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
