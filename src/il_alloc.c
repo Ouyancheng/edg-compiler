@@ -837,7 +837,11 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->virtual_function_info_base_class  = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ctsp->uuid_string                       = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if DECL_MODIFIERS_IN_USE
   ctsp->decl_modifiers                    = DM_NONE;
+#endif /* DECL_MODIFIERS_IN_USE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   ctsp->orig_type_kind                    = (a_type_kind)tk_error;
   ctsp->inheritance_kind                  = (an_inheritance_kind)ihk_none;
   ctsp->inheritance_kind_is_explicit      = FALSE;

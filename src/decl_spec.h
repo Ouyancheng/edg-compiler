@@ -25,9 +25,9 @@ decl_spec.h -- Declarations related to decl_spec.c (having to with
 typedef struct an_extended_decl_info_block {
   a_type_qualifier_set
 		qualifiers;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_decl_modifiers_block
 		decl_modifiers;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   an_inheritance_kind
 		inheritance_kind;
   a_source_position
@@ -44,7 +44,9 @@ typedef struct an_extended_decl_info_block {
   }
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define clear_extended_decl_info_block(block)                           \
-  { (block).qualifiers = TQ_NONE; }
+  { (block).qualifiers = TQ_NONE;					\
+    clear_decl_modifiers_block(&((block).decl_modifiers));              \
+  }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED

@@ -2462,7 +2462,6 @@ enum a_decl_modifier_tag {
   dmt_last
 };
 
-#if DECL_MODIFIERS_IN_USE
 EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 #if VAR_INITIALIZERS
 = {
@@ -2482,7 +2481,6 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 } /* decl_modifier_names */
 #endif /* VAR_INITIALIZERS */
 ;
-#endif /* DECL_MODIFIERS_IN_USE */
 
 /*
 A bit set whose values are used to supply additional declarative information
@@ -3226,11 +3224,15 @@ typedef struct a_class_type_supplement {
   char		*uuid_string;
 			/* Pointer to a character string representing the
 			   argument of a uuid decl-modifier. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if DECL_MODIFIERS_IN_USE
   a_decl_modifier
 		decl_modifiers;
 			/* Additional declaration information representing
 			   Microsoft-style __declspec modifiers that are
 			   applied to the class as a whole. */
+#endif /* DECL_MODIFIERS_IN_USE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_type_kind	orig_type_kind;
 			/* Type kind indicating the tag used when this type
 			   was first declared in the current translation unit.

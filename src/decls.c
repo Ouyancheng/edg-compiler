@@ -2640,19 +2640,24 @@ diagnostics.
   a_boolean        any_invalid_redecl, invalid_modifier, invalid_redecl;
   int              bit_number;
   a_decl_modifier  modifier_value;
-  a_boolean        implicit_dllexport;
+  a_boolean        implicit_dllexport = FALSE;
 
   /* Loop through the bits in the new_modifiers bit vector and process the
      modifiers associated with the bits that are set. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (routine->is_inline) is_inline = TRUE;
   implicit_dllexport = is_definition && is_redecl && !is_inline &&
                        routine->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (new_modifiers->flags != DM_NONE || implicit_dllexport) {
     any_invalid_redecl = FALSE;
     for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
       modifier_value = (1 << bit_number);
-      if ((new_modifiers->flags & modifier_value) != 0 ||
-          (implicit_dllexport && bit_number == (int)dmt_dllexport)) {
+      if ((new_modifiers->flags & modifier_value) != 0
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          || (implicit_dllexport && bit_number == (int)dmt_dllexport)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                     ) {
         /* This bit is set -- or, if this is a non-inline function definition,
            pretend the dllexport bit is set. */
         invalid_modifier = FALSE;

@@ -580,9 +580,9 @@ indicates the source position at which the error should be put out.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* err_pos is used only if MICROSOFT_EXTENSIONS_ALLOWED is set. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#if !DECL_MODIFIERS_IN_USE
+/*ARGSUSED*/ /* err_pos is used only if DECL_MODIFIERS_IN_USE is set. */
+#endif /* !DECL_MODIFIERS_IN_USE */
 void update_extended_decl_info_for_class(
                             a_type_ptr                  class_type,
                             an_extended_decl_info_block *extended_decl_info,
@@ -601,6 +601,7 @@ is a pointer to a source position used for diagnostics.
 #if NEAR_AND_FAR_ALLOWED
   ctsp->qualifiers = extended_decl_info->qualifiers;
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if DECL_MODIFIERS_IN_USE
   if (extended_decl_info->decl_modifiers.flags != DM_NONE) {
     /* The following processing is more complicated that it needs to be so as
        to allow for the easy addition of decl-modifiers. */
@@ -654,6 +655,7 @@ is a pointer to a source position used for diagnostics.
     /* Update the routine entry with any valid modifiers that were found. */
     ctsp->decl_modifiers |= extended_decl_info->decl_modifiers.flags;
   }  /* if */
+#endif /* DECL_MODIFIERS_IN_USE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (extended_decl_info->inheritance_kind != (an_inheritance_kind)ihk_none) {
     /* Set the specified inheritance kind, unless a different inheritance

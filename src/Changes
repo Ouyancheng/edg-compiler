@@ -1,5 +1,10 @@
 Version 2.42
 
+5/20/99  Compilation errors
+
+Some compilation errors appeared when MICROSOFT_EXTENSIONS_ALLOWED was set
+to FALSE but NEAR_AND_FAR_ALLOWED or DECL_MODIFIERS_IN_USE was set to TRUE.
+
 5/14/99  C++-generating back end: string passed to template reference param
 
 The C++-generating back end now adds a cast to a string that is bound to
