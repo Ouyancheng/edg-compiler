@@ -432,6 +432,7 @@ check_abbreviation()
     egrep "^$opt_name" <<END_OF_INPUT >$cmd_tmp_file
 --alternative_tokens
 --anachronisms
+--arg_dep_lookup
 --array_new_and_delete
 --auto_instantiation
 --bool
@@ -500,6 +501,7 @@ check_abbreviation()
 --nm
 --no_alternative_tokens
 --no_anachronisms
+--no_arg_dep_lookup
 --no_array_new_and_delete
 --no_auto_instantiation
 --no_bool
@@ -973,6 +975,8 @@ process_option()
          --no_const_string_literals | \
          --class_name_injection | \
          --no_class_name_injection | \
+         --arg_dep_lookup | \
+         --no_arg_dep_lookup | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
