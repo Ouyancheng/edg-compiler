@@ -2318,7 +2318,8 @@ confusion.  Do the output in the way described by octl.
       a_boolean need_cast = FALSE;
       if (constant->implicit_cast) {
         need_cast = TRUE;
-        if (C_mode() && is_directly_variably_modified_type(orig_type)) {
+        if (octl->gen_compilable_code && C_mode() &&
+            is_directly_variably_modified_type(orig_type)) {
           /* Casts to directly variably-modified types must be suppressed.
              That's possible because they are folded into the constant only
              if they are implicit.  However, we must still deal with the
