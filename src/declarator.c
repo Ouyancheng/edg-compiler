@@ -2439,7 +2439,8 @@ to FALSE if the entity being declared is not initializable.
                         qualifier_namespace_ptr(locator_for_curr_id)) {
           /* The declarator name is qualified by the current namespace. */
           pos_diagnostic(is_template_decl ? es_error : es_discretionary_error,
-                         ec_qualified_name_not_allowed, &pos_curr_token);
+                         ec_qualifier_in_namespace_member_decl,
+                         &pos_curr_token);
           /* Reset the fields in the locator to make it appear as if the
              qualifier were not present. */
           clear_qualifier_from_locator(&locator_for_curr_id);
