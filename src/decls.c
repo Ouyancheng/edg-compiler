@@ -5506,6 +5506,7 @@ recorded in the IL, the template header is passed via template_decl.
 #endif /* DECL_MODIFIERS_IN_USE */
   an_id_linkage_block      idlb;
   a_boolean  microsoft_out_of_class_redecl;
+  a_boolean  proxy_member_friend = FALSE;
 
   db_enter(3, "decl_function_template");
   check_assertion(scope_stack[depth_scope_stack].kind ==
@@ -5527,6 +5528,21 @@ recorded in the IL, the template header is passed via template_decl.
   if (idlb.is_friend_decl && !friend_injection_enabled) {
     set_invisible = TRUE;
   }  /* if */
+  if (curr_token == tok_lbrace ||
+      (curr_token == tok_colon && sym != NULL && is_constructor_symbol(sym))) {
+    /* This is a defining declaration of the function template. */
+    func_info->is_definition = TRUE;
+    idlb.is_definition = TRUE;
+    if (func_info->function_type_from_typedef) {
+      /* Just as it is an error when a normal function is defined for the
+         function type to come from a typedef, so too is that an error when
+         a function template is being defined. */
+      error(ec_function_type_must_come_from_declarator);
+      /* Copy the type entry, since the typedef type may not be shared. */
+      type_ptr = copy_routine_type_with_param_types(skip_typerefs(type_ptr),
+                                                   /*copy_default_args=*/TRUE);
+    }  /* if */
+  }  /* if */
   if (locator->is_qualified_name && locator->is_class_member &&
       locator->specific_symbol != NULL) {
     a_type_ptr		parent_class;
@@ -5542,9 +5558,15 @@ recorded in the IL, the template header is passed via template_decl.
       set_to_error_locator(*locator);
     } else if (is_nontype_template_param_symbol(sym)) {
       /* A name like "A<T>::x" that is a nontype member of a proxy class.
-         Accept this, but use an error locator. */
+         This should only happen in friend templates. */
+      check_assertion(idlb.is_friend_decl && locator->is_class_member);
+      if (func_info->is_definition) {
+        pos_sy_error(ec_bad_scope_for_definition,
+                     &locator->source_position, sym);
+        set_to_error_locator(*locator);
+      }  /* if */
       sym = NULL;
-      set_to_error_locator(*locator);
+      proxy_member_friend = TRUE;
     } else if (sym->kind != (a_symbol_kind)sk_member_function &&
                sym->kind != (a_symbol_kind)sk_function_template &&
                sym->kind != (a_symbol_kind)sk_overloaded_function) {
@@ -5602,21 +5624,6 @@ recorded in the IL, the template header is passed via template_decl.
                     ec_template_operator_new : ec_template_operator_delete,
                 &locator->source_position);
       set_to_error_locator(*locator);
-    }  /* if */
-  }  /* if */
-  if (curr_token == tok_lbrace ||
-      (curr_token == tok_colon && sym != NULL && is_constructor_symbol(sym))) {
-    /* This is a defining declaration of the function template. */
-    func_info->is_definition = TRUE;
-    idlb.is_definition = TRUE;
-    if (func_info->function_type_from_typedef) {
-      /* Just as it is an error when a normal function is defined for the
-         function type to come from a typedef, so too is that an error when
-         a function template is being defined. */
-      error(ec_function_type_must_come_from_declarator);
-      /* Copy the type entry, since the typedef type may not be shared. */
-      type_ptr = copy_routine_type_with_param_types(skip_typerefs(type_ptr),
-                                                   /*copy_default_args=*/TRUE);
     }  /* if */
   }  /* if */
   if (sym != NULL) {
@@ -5695,7 +5702,7 @@ recorded in the IL, the template header is passed via template_decl.
         /* If this is an overloaded operator, check for errors in the
            argument list.  Note that this check is not done for redeclarations,
            on the assumption that once will have been enough. */
-        check_assertion(!locator->is_class_member);
+        check_assertion(!locator->is_class_member || proxy_member_friend);
         check_operator_function_params(type_ptr, (a_type_ptr)NULL, locator);
         /* If it's a new or delete operator, be sure the scope is not a
            namespace scope. */
@@ -5713,7 +5720,17 @@ recorded in the IL, the template header is passed via template_decl.
         /* Avoid overloading. */
         homonym_symbol = NULL;
       }  /* if */
-      if (homonym_symbol != NULL) {
+      if (proxy_member_friend) {
+        /* A member template of a (dependent) proxy class was named as a
+           friend.  Hence, create a dummy symbol for it (it will not be
+           linked into the symbol table) and configure it with the appropriate
+           parent. */
+        sym = alloc_symbol((a_symbol_kind)sk_function_template,
+                           locator->symbol_header, &locator->source_position);
+        set_class_membership(sym, (a_source_correspondence_ptr)NULL,
+                             locator->parent.class_type);
+        sym->is_error = locator->is_error;
+      } else if (homonym_symbol != NULL) {
         /* Another function with the same name has been declared already.  It
            may or may not be a function template.  In any case, create a new
            symbol and add it to an overload list. */
@@ -5855,7 +5872,13 @@ recorded in the IL, the template header is passed via template_decl.
                                 (a_name_linkage_kind)nlk_internal;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (prototype_instantiations_in_il) {
-      add_to_routines_list(rout_ptr, NO_SCOPE_DEPTH);
+      /* Normally, we let add_to_routines_list determine which scope to add
+         the routine to, but for proxy members nominated in friends, that
+         would yield a nonexisting scope; instead we just put those on the
+         file scope list. */
+      add_to_routines_list(rout_ptr,
+                           proxy_member_friend ? DEPTH_OF_FILE_SCOPE :
+                                                 NO_SCOPE_DEPTH);
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   } else {
