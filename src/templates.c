@@ -5097,9 +5097,16 @@ instantiation, then you don't know what X is.
     while (tp->source_corresp.is_class_member) {
       tp = tp->source_corresp.parent.class_type;
     }  /* while */
-    sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
-    check_assertion(sym != NULL);
-    sym = sym->variant.class_struct_union.extra_info->class_template;
+    /* Make sure that this is a class type.  If it is not, ignore the
+       type.  It must be an error and will be diagnosed during the real
+       scanning of the template. */
+    if (!is_class_struct_union_type(tp)) {
+      /* Not a class type -- ignore it. */
+    } else {
+      sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+      check_assertion(sym != NULL);
+      sym = sym->variant.class_struct_union.extra_info->class_template;
+    }  /* if */
   }  /* if */
   /* Save the symbol that points to the template whose member is being
      instantiated.  This will be NULL if this is not a member
