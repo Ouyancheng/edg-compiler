@@ -7608,7 +7608,8 @@ instantiation.
        cache the tokens. */
   }  /* if */
   if (sym != NULL) {
-    if (is_definition && tssp->cache.decl_info != NULL) {
+    if (sym->kind == (a_symbol_kind)sk_class_template &&
+        is_definition && tssp->cache.decl_info != NULL) {
       /* This is a definition of a previously declared template.  Update
          the names of the prototype instantiation arguments to reflect
          the template parameter names used on the definition. */
