@@ -5939,18 +5939,21 @@ static void convert_operand_into_temp(an_operand        *source_operand,
                                       a_type_ptr        orig_dest_type,
                                       a_user_conv_descr *user_conversion,
                                       an_error_code     incompatible_err,
-                                      a_boolean         *err)
+                                      a_boolean         *err,
+                                      a_boolean         *temporary_used)
 /*
 Convert source_operand to dest_type, put it into a newly-created temporary,
 and return an rvalue for the address of the temporary in source_operand.
 If the conversion is not possible, issue the error incompatible_err,
 convert source_operand to an error operand, and return *err TRUE.
-orig_dest_type is the destination type before any rewriting, for use
-in error messages.  If user_conversion is non-NULL, the conversion is
-already known to be possible, and *user_conversion describes the
-user-defined conversion part of it, if any.  This routine is used to
-convert the initial value in a reference initialization to a temporary
-that the reference will point to.  Only used in C++.
+If a temporary is created or source_operand is already a temporary,
+return *temporary_used TRUE.  orig_dest_type is the destination type
+before any rewriting, for use in error messages.  If user_conversion
+is non-NULL, the conversion is already known to be possible, and
+*user_conversion describes the user-defined conversion part of it,
+if any.  This routine is used to convert the initial value in a
+reference initialization to a temporary that the reference will
+point to.  Only used in C++.
 */
 {
   a_user_conv_descr local_user_conversion;
@@ -5959,6 +5962,7 @@ that the reference will point to.  Only used in C++.
   a_boolean         have_temp;
 
   *err = FALSE;
+  *temporary_used = FALSE;
   orig_operand = *source_operand;
   /* See if the conversion is possible. */
   if (conversion_usable_or_possible(source_operand, dest_type, orig_dest_type,
@@ -5976,6 +5980,7 @@ that the reference will point to.  Only used in C++.
       /* The conversion routine returns its value into a temporary, so
          we already have a temporary. */
       have_temp = TRUE;
+      *temporary_used = TRUE;
     }  /* if */
     if (!have_temp) {
       conversion_routine = user_conversion->routine;
@@ -5986,9 +5991,8 @@ that the reference will point to.  Only used in C++.
         a_type_ptr routine_type = skip_typerefs(conversion_routine->type);
         if (is_reference_type(routine_type->variant.routine.return_type)) {
           /* The conversion function returns a reference, so there is
-             already something we can point to.  This is perhaps not a
-             "temporary" in the traditional sense of the word, but this
-             is existing practice (cfront, Borland, Microsoft).  For example:
+             already something we can point to.  This is not a temporary,
+             but it can be used directly.  For example:
                struct B { B(const B&); };
                struct A {
                  operator B&();
@@ -6018,6 +6022,7 @@ that the reference will point to.  Only used in C++.
     } else {
       /* Initialize a temporary with the converted value. */
       temp_init_from_operand(source_operand);
+      *temporary_used = TRUE;
     }  /* if */
   } else {
     /* The conversion is not possible.  The error has already been issued. */
@@ -6072,7 +6077,7 @@ user-defined conversion part (if any) of any required conversion.
   a_type_ptr unqual_dest_type, unqual_source_type;
   a_type_ptr underlying_dest_type, underlying_source_type;
   a_boolean  type_is_correct_or_derived, err = FALSE, dropping_qualifiers;
-  a_boolean  conversion_to_temp_done, ref_to_const, warn = FALSE;
+  a_boolean  ref_to_const, temporary_used, warn = FALSE;
   an_operand orig_operand;
 
   orig_operand = *source_operand;
@@ -6218,25 +6223,39 @@ user-defined conversion part (if any) of any required conversion.
       /* The initial value is a function designator of the right type;
          the initialization can be done directly. */
       conv_function_designator_to_ptr_to_function(source_operand);
+    } else if (type_is_correct_or_derived &&
+               is_class_struct_union_type(base_dest_type)) {          
+      /* The source is a class rvalue but otherwise has the right type.
+         No temporary is required.  Get the address of the rvalue, then
+         cast the pointer to the right type to handle the derived-class
+         case. */
+      conv_class_operand_to_object_pointer(source_operand);
+      /* Use a pointer type instead of a reference type on the
+         destination. */
+      dest_type = make_pointer_type(base_dest_type);
+      cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
+      if (!ref_to_const) {
+        /* This is a reference to non-const initialized from a class rvalue
+           of the right type.  According to the ARM (8.4.3), this is an error.
+           We allow it as an extension. */
+        if (strict_ansi_mode) {
+          pos_diagnostic(strict_ansi_error_severity,
+                         ec_nonconst_ref_init_from_rvalue,
+                         &source_operand->position);
+        }  /* if */
+      }  /* if */
     } else {
       /* The initialization cannot be done directly; a temporary must be
-         used. */
-      conversion_to_temp_done = FALSE;
+         used and/or an implicit conversion must be done. */
       if (curr_expr_kind_is_const()) {
         /* In a constant context (e.g., a nontype template argument),
-           a temporary is not allowed. */
+           a temporary or conversion is not allowed. */
         error_in_operand(ec_init_needing_temp_not_allowed, source_operand);
-        err = TRUE;
-      } else if (type_is_correct_or_derived &&
-                 is_class_struct_union_type(base_dest_type)) {          
-        /* The source is a class rvalue but otherwise has the right type.
-           Get the address of the rvalue, then cast the pointer to the right
-           type to handle the derived-class case. */
-        conv_class_operand_to_object_pointer(source_operand);
-        /* Use a pointer type instead of a reference type on the
-           destination. */
-        dest_type = make_pointer_type(base_dest_type);
-        cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
+      } else if (dropping_qualifiers) {
+        /* Type qualifiers were dropped (and otherwise the type is okay).
+           Note that testing this early means that an implicit conversion
+           cannot be used to drop the qualifiers. */
+        error_in_operand(ec_qualifier_dropped_in_ref_init, source_operand);
       } else {
         /* Allocate a temporary and copy the operand into it, converting
            if necessary.  source_operand is set to the address of the
@@ -6244,20 +6263,18 @@ user-defined conversion part (if any) of any required conversion.
         /* The temp has the same type as the operand, but without
            type qualifiers. */
         convert_operand_into_temp(source_operand, unqual_dest_type, dest_type,
-                                  user_conversion, incompatible_err, &err);
-        conversion_to_temp_done = TRUE;
-      }  /* if */
-      if (!err) {
-        if (dropping_qualifiers) {
-          /* Type qualifiers were dropped. */
-          error_in_operand(ec_qualifier_dropped_in_ref_init, source_operand);
-          err = TRUE;
+                                  user_conversion, incompatible_err, &err,
+                                  &temporary_used);
+        if (err) {
+          /* The conversion could not be done.  An error has already been
+             issued. */
+        } else if (!temporary_used) {
+          /* The conversion is doable and does not requires a temporary
+             (e.g., it uses a conversion function that returns a reference). */
         } else if (!ref_to_const) {
-          /* The reference must be to a const object (otherwise the user might
-             change the temporary thinking he is changing the original
-             object). */
-          /* A reference to non-const; this is an error according to the ARM
-             (8.4.3), but we allow it as an anachronism. */
+          /* A reference to non-const is initialized in a way that requires a
+             temporary.  This is an error according to the ARM (8.4.3),
+             but we allow it as an anachronism. */
           if (allow_anachronisms) {
             pos_diagnostic(anachronism_error_severity,
                            ec_nonconst_ref_init_anachronism,
@@ -6270,7 +6287,8 @@ user-defined conversion part (if any) of any required conversion.
           } else {
             /* Anachronism is not allowed. */
             /* Use a different message for the case where the type is right but
-               the operand is an rvalue. */
+               the operand is an rvalue (only non-class cases of that come
+               here). */
             error_in_operand(type_is_correct_or_derived ?
                                ec_nonconst_ref_init_from_rvalue :
                                ec_bad_nonconst_ref_init,
@@ -6286,7 +6304,7 @@ user-defined conversion part (if any) of any required conversion.
                       &source_operand->position);
           warn = TRUE;
         }  /* if */
-        if (!err && !warn && conversion_to_temp_done) {
+        if (!err && !warn && temporary_used) {
           /* Let the user know a temp was used. */
           pos_remark(ec_temp_used_for_ref_init, &source_operand->position);
         }  /* if */
