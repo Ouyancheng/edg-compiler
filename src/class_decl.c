@@ -26,7 +26,6 @@ class_decl.c -- Scanning of class declarations.
 #include "symbol_tbl.h"
 #include "symbol_ref.h"
 #include "lexical.h"
-#include "lower_il.h"
 #include "error.h"
 #include "lang_feat.h"
 #include "cmd_line.h"
