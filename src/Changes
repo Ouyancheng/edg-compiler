@@ -1,5 +1,11 @@
 Version 2.13
 
+12/8/92  Special handling of "no return value" diagnostic from main
+
+Failure to return a value from main, when main is declared as a
+non-void function, is no longer considered a strict ANSI violation
+in C++ mode.  A warning is still issued.
+
 12/8/92  Access checking on declarators
 
 Access errors for qualified names used in declarators are

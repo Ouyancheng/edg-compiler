@@ -1305,7 +1305,11 @@ the current routine.
         internal_error("check_void_return_okay: unexpected NULL assoc_info");
     }  /* if */
 #endif /* CHECKING */
-    if (strict_ansi_mode && C_dialect == C_dialect_cplusplus) {
+    /* If a diagnostic is to be issue and we are in strict ANSI mode,
+       issue a strict ANSI diagnostic except for main which may return
+       a value through use of the exit function. */
+    if (strict_ansi_mode && C_dialect == C_dialect_cplusplus &&
+        rout != il_header.main_routine) {
       sym_diagnostic(strict_ansi_error_severity,
                      ec_no_value_returned_in_non_void_function,
                      function_name_symbol);
