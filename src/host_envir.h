@@ -239,9 +239,11 @@ The flag IL_WALK_NEEDED controls the compilation of the routines required
 to walk the IL.  These routines are needed if NEED_IL_DISPLAY is TRUE or
 IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE.
 */
-#if IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY
 #undef IL_WALK_NEEDED
+#if IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY
 #define IL_WALK_NEEDED TRUE
+#else /* !IL_WALK_NEEDED */
+#define IL_WALK_NEEDED FALSE
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY */
 
 /*
