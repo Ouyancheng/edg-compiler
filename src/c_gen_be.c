@@ -4126,10 +4126,7 @@ parameters.
       } else if (variable->init_kind == (an_init_kind)initk_zero) {
         /* Variable is initialized to zero (this distinguishes a tentative
            definition from a real definition). */
-        a_type_kind tkind = skip_typerefs(var_type)->kind;
-        if (tkind == (a_type_kind)tk_array ||
-            tkind == (a_type_kind)tk_struct || 
-            tkind == (a_type_kind)tk_union) {
+        if (is_aggregate_or_union_type(var_type)) {
           /* Aggregates. */
 #if !C_GEN_BE_GENERATES_ANSI_C
           if (is_non_zeroable_type(var_type)) {
@@ -4835,21 +4832,14 @@ its subtree.
 }  /* dump_prescan_temps */
 
 
-static void dump_old_style_parameter_decls(a_routine_ptr rout,
-                                           a_scope_ptr   scope)
+static void dump_old_style_parameter_decls(a_scope_ptr scope)
 /*
 Generate parameter declarations for the definition of an unprototyped
-function.  rout is the function; scope is the associated scope.
+function.  scope is the associated scope.
 */
 {
-  a_routine_type_supplement_ptr rtsp = rout->type->variant.routine.extra_info;
-  a_variable_ptr                param_var;
+  a_variable_ptr param_var;
 
-  if (rtsp->prototype_scope != NULL) {
-    /* If there are types declared in the prototype scope, dump them out
-       at the head of the parameter declarations. */
-    dump_scope_types(rtsp->prototype_scope);
-  }  /* if */
   /* Declare the parameter variables. */
   for (param_var = scope->variant.routine.parameters;
        param_var != NULL;
@@ -4891,7 +4881,7 @@ for the definition of the indicated routine.  scope is the associated scope.
       rout->type->variant.routine.extra_info->old_style_params_scanned)
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   {
-    dump_old_style_parameter_decls(rout, scope);
+    dump_old_style_parameter_decls(scope);
   }
 }  /* dump_func_definition_type */
 
