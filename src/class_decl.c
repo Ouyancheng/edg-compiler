@@ -5230,10 +5230,13 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
   a_boolean               any_const_or_ref_fields = FALSE;
   a_layout_block          layout_block;
   a_boolean               is_template_instantiation;
+  a_boolean               is_unreal_instantiation;
 
   is_template_instantiation = is_prototype_instantiation ||
                               (scope_stack[depth_scope_stack].kind ==
                                      (a_scope_kind)sck_template_instantiation);
+  is_unreal_instantiation = is_prototype_instantiation ||
+                            is_within_unreal_instantiation(class_type);
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   cssp = tag_sym->variant.class_struct_union.extra_info;
   /* A copy constructor need not be generated if construction by bitwise
@@ -5847,6 +5850,17 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                     diagnostic(strict_ansi_error_severity,
                                ec_incomplete_type_not_allowed);
                   }  /* if */
+                } else if (is_unreal_instantiation) {
+                  /* Issue no error on incomplete types if the class currently
+                     being defined is a prototype instantiation or a class
+                     nested within a prototype instantiation. */
+#if 0
+#else
+                  /* Is it better to set the type to error-type or just to
+                     skip the call to decl_nonstatic_data_member?  Or is there
+                     another approach? */
+                  local_type = error_type();
+#endif /* if 0 */
                 } else {
                   error(ec_incomplete_type_not_allowed);
                   local_type = error_type();
