@@ -1273,7 +1273,7 @@ Scan and process a #pragma directive.
       /* This file should be included only once, and if it is #included
          again in the same compilation unit, the include should be skipped.
          Record this information in the input stack entry. */
-      once_pragma(pk_once);
+      once_pragma((a_pragma_kind)pk_once);
     }  /* if */
     pass_pragma_to_output(pkdp);
   } else {
