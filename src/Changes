@@ -1,5 +1,22 @@
 Version 3.1
 
+9/16/02  Some constants not folded in array bound expressions, with VLAs
+
+When variable-length arrays (VLAs) are enabled (e.g., in C99 mode and
+gcc mode), in certain cases complex array bound expressions were not
+folded to constants.  It most cases this was merely inefficient (an array
+that is not a VLA was treated as one), but in array bounds for
+local static variables this caused a spurious error.  Now fixed.
+
+  struct s {
+    int a;
+    double bl;
+  };
+  int main() {
+    static char carr[((size_t) &((struct s *)0)->bl)];
+    return 0;
+  }
+
 9/13/02  Missing error on invalid template default argument
 
 The front end failed to issue a diagnostic when a template default argument

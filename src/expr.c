@@ -14983,6 +14983,7 @@ FALSE and a pointer to the expression tree in *expression.
   }  /* if */
   push_expr_stack(ekind, &expr_stack_entry, /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.fold_constant_addr_exprs = TRUE;
   if (is_vla_decl) expr_stack_entry.is_vla_dimension_expression = TRUE;
   /* Scan the expression. */
   if (c99_mode) {
