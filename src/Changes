@@ -1,5 +1,13 @@
 Version 2.36
 
+4/7/97    Incorrect source position information for template function
+          definitions
+
+The source position of a template function definition was incorrect
+when the template was first declared and then later defined.  The
+position given was the position of the declaration when it should have
+been the position of the definition.
+
 4/5/97    Normalization of boolean controlling expressions involving
           template parameters when --no_bool is in effect
 

@@ -7746,6 +7746,9 @@ caller.
            pointer so that it won't be freed. */
         func_info->param_id_list = NULL;
       }  /* if */
+      /* Record the source position of the definition in case it is
+         different from the declaration. */
+      tssp->variant.function.routine->source_corresp.decl_position = *decl_pos;
       /* Save the token cache and associated template declaration
          information.  This is done for the initial declaration and
          is done again if the function is defined later. */
