@@ -2237,6 +2237,7 @@ Dump a single #pragma from the IL entry.
   unsigned long saved_indent = indent;
 
   end_output_line_if_begun();
+  set_output_position(&pp->decl_position);
   indent = 0;
   disable_line_wrapping();
   write_str("#pragma ");
