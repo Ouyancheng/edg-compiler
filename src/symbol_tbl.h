@@ -1714,6 +1714,8 @@ typedef int a_symbol_reference_kind;
 			   such a reference is treated both as a use and as a
 			   modification, in order to suppress use/def
 			   diagnostics. */
+#define SRK_IMPLICIT 0x80
+			/* A reference is implicit. */
 #define SRK_ALL_REFERENCES \
   (SRK_USE | SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_ERROR)
 			/* All types of references.  Used to mask off those
