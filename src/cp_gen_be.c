@@ -4251,7 +4251,7 @@ is the one associated with the pragma.
     } else {
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
       check_assertion_str(pp->pragma_text != NULL,
-                          "dump_pragma: NULL pragma_text");
+                          "gen_pragma: NULL pragma_text");
       write_str("#pragma ");
       write_str(pp->pragma_text);
 #if IDENT_DIRECTIVE_AND_PRAGMA
@@ -4606,6 +4606,12 @@ Generate code for the indicated statement.
     /* For declarations, let the declaration processing advance past the
        source sequence entries. */
   } else {
+    while (ss_entry_kind(curr_source_sequence_entry) == iek_pragma) {
+      /* Advance past any pragmas on a dependent statement.  (There is also
+         code in statement-list processing to deal with pragmas between
+         statements in a list.) */
+      gen_pragma();
+    }  /* while */
     if (statement->source_sequence_entry == NULL) {
       /* The statement has no associated source sequence entry.  This happens
          for implicitly-generated returns and some compiler-generated
