@@ -3650,13 +3650,6 @@ on a prior declaration.
           cssp->has_copy_constructor_for_const_object = const_okay;
         }  /* if */
       }  /* if */
-#if ASSIGNMENT_TO_THIS_ALLOWED
-      /* Determine and remember the operator new() routine for the class. */
-      set_class_assoc_operator_new_routine(class_type);
-    } else if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
-      /* Determine and remember the operator delete() routine for the class. */
-      set_class_assoc_operator_delete_routine(class_type);
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     }  /* if */
   }  /* if */
   if (inline_specified) sym->variant.routine->is_inline = TRUE;
@@ -6631,20 +6624,6 @@ explicitly specified (rather than defaulted to "int").
         if (comp_prototyped) {
           extra_info->param_type_list = comp_param_type_list;
           extra_info->prototyped      = comp_prototyped;
-#if 0
-          /* This causes a strange situation -- the types of the old-style
-             parameter variables are compatible with, but not identical to, the
-             types on the param_type_list.  What's worse, the types of the
-             parameter variables were allocated at the file scope, but since
-             they're not being used here, they won't be found in the IL walk
-             of the file scope.  Therefore, they need to be linked into the
-             file scope.  Any types that are already linked into the
-             prototype scope types list (e.g., structs/unions/enums) are
-             left on that list and not linked into the file scope types
-             list. */
-          link_param_types_into_file_scope_types_list(old_style_param_types,
-                                                  extra_info->prototype_scope);
-#endif /* if 0 */
         }  /* if */
       } else {
         /* Type of previous declaration is incompatible with the type here.
@@ -6707,10 +6686,20 @@ explicitly specified (rather than defaulted to "int").
     scope_ptr->variant.routine.constructor_inits =
                                       ctor_initializer(routine_ptr,
                                                        /*user_defined=*/TRUE);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+    /* Determine and remember the operator new() routine for the class. */
+    set_class_assoc_operator_new_routine(
+                          routine_ptr->source_corresp.class_of_which_a_member);
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   } else if (routine_ptr->special_kind ==
                                    (a_special_function_kind)sfk_destructor) {
     scope_ptr->variant.routine.constructor_inits =
                                       dtor_initializer(routine_ptr);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+    /* Determine and remember the operator delete() routine for the class. */
+    set_class_assoc_operator_delete_routine(
+                          routine_ptr->source_corresp.class_of_which_a_member);
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   }  /* if */
   /* Scan the compound statement defining the function.  The closing "}"
      is not swallowed by compound_statement, so that the pop_scope call
@@ -6851,11 +6840,21 @@ processing of function definition.
       scope->variant.routine.constructor_inits =
                                       ctor_initializer(rout_ptr,
                                                        /*user_defined=*/TRUE);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+      /* Determine and remember the operator new() routine for the class. */
+      set_class_assoc_operator_new_routine(
+                             rout_ptr->source_corresp.class_of_which_a_member);
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
       break;
     case sfk_destructor:
       /* Record the destructors that are to be called implicitly when this
          destructor is executed. */
       scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+      /* Determine and remember the operator delete() routine for the class. */
+      set_class_assoc_operator_delete_routine(
+                             rout_ptr->source_corresp.class_of_which_a_member);
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
       break;
     default:;
       /* No action. */
