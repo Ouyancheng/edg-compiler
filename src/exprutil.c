@@ -5850,7 +5850,8 @@ are left alone.
     }  /* if */
     if (is_an_lvalue(operand)) {
       /* An array lvalue -- convert to a pointer. */
-      an_operand orig_operand = *operand;
+      an_operand orig_operand;
+      orig_operand = *operand;
       /* Convert to an rvalue that is the pointer, and change its type
          from pointer-to-array to pointer-to-array-element. */
       ptr_type = type_after_array_to_pointer_transformation(operand->type);
