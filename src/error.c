@@ -1547,8 +1547,8 @@ error code.
     case ec_bad_access_adjustment_with_overloading:
       m = "access adjustment is not allowed -- mixed accessibility for %n";
       break;
-    case ec_missing_user_defined_assignment_for_copy:
-      m = "implicit generation of %nf is not allowed";
+    case ec_bad_default_assignment:
+      m = "implicitly generated assignment operator cannot copy:";
       break;
     case ec_nonstd_array_cast:
       m = "cast to array type is nonstandard (treated as cast to %t)";
@@ -5292,10 +5292,6 @@ and then terminate the compilation.
 
 /* The following routines are used to construct multiple message
    diagnostics with various fill-ins. */
-
-#if 0
-/* This routine is not currently used by the compiler. */
-
 void pos_start_error(an_error_code     error_code,
                      a_source_position *error_pos)
 /*
@@ -5306,7 +5302,6 @@ position.
   init_error_params();
   diag_message(error_code, error_pos, es_error, dck_primary);
 }  /* pos_start_error */
-#endif /* 0 */
 
 
 void pos_st_start_error(an_error_code     error_code,

@@ -435,7 +435,7 @@ typedef enum /*an_error_code*/ {
   ec_ref_to_nested_function_var,
   ec_single_arg_postfix_incr_decr_anachronism,
   ec_bad_access_adjustment_with_overloading,
-  ec_missing_user_defined_assignment_for_copy,
+  ec_bad_default_assignment,
   ec_nonstd_array_cast,
   ec_class_with_op_new_but_no_op_delete,
   ec_class_with_op_delete_but_no_op_new,
@@ -811,11 +811,8 @@ extern DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
 extern DOES_NOT_RETURN catastrophe(an_error_code error_code);
 
 /* Interfaces for producing multiple message diagnostics. */
-#if 0
-/* This routine is not currently used by the compiler. */
 extern void pos_start_error(an_error_code     error_code,
                             a_source_position *error_pos);
-#endif /* 0 */
 extern void pos_st_start_error(an_error_code     error_code,
                                a_source_position *error_pos,
                                char              *error_string);
