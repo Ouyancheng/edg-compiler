@@ -6033,7 +6033,6 @@ Return TRUE if the conversion was successful.
   a_constant_ptr	orig_constant = tap->variant.constant;
   a_boolean		result = FALSE;
 
-  clear_std_conv_descr(&conv_descr);
   /* The types don't match.  See if the constant can be converted
      to the required type using an implicit conversion. */
   if (impl_conversion_possible(orig_constant->type,
