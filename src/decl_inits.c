@@ -1488,7 +1488,13 @@ the default constructor (if one exists) is called.
 #endif /* if 0 */
         }  /* if */
         rp = select_default_constructor(tp, err_pos, tp, /*evaluated=*/TRUE);
-        if (rp != NULL) {
+        if (rp == NULL) {
+          /* An error was diagnosed in trying to find the default constructor.
+             Set the flag indicating that default initialization was done even
+             though it wasn't -- this will prevent a redundant diagnostic from
+             being issued. */
+          def_init_performed = TRUE;
+        } else {
           a_param_type_ptr  ptp = (skip_typerefs(rp->type))->
                                    variant.routine.extra_info->param_type_list;
 
@@ -1650,7 +1656,7 @@ initialized.  These are addressed in the course of the processing.
   a_boolean                     const_object_okay, volatile_object_okay;
   a_type_ptr                    class_type, init_type, tp, array_type;
   a_symbol_ptr                  sym, class_sym, member_or_base_sym;
-  a_constructor_init_ptr        cip, new_cip, prev_cip;
+  a_constructor_init_ptr        cip, new_cip, prev_cip, next_cip;
   a_constructor_init_ptr        cip_list, end_of_cip_list;
   a_constructor_init_ptr        virtual_list, end_of_virtual_list;
   a_constructor_init_ptr        direct_list, end_of_direct_list;
@@ -1661,6 +1667,7 @@ initialized.  These are addressed in the course of the processing.
   a_dynamic_init_ptr            dip, ctor_dip;
   int                           direct_base_class_count = 0;
   a_source_position             lparen_pos, ctor_init_pos;
+  a_constructor_init_ptr        uninit_list = NULL, end_of_uninit_list = NULL;
 
   db_enter(3, "ctor_initializer");
   class_type = ((a_symbol_ptr)ctor_rout->source_corresp.assoc_info)->
@@ -2100,7 +2107,8 @@ scan_arg_for_scan_initialization:
   /* Make a pass over the new list, adding default constructors where
      appropriate. */
   prev_cip = NULL;
-  for (cip = cip_list; cip != NULL; cip = cip->next) {
+  for (cip = cip_list; cip != NULL; cip = next_cip) {
+    next_cip = cip->next;
     if (cip->initializer == NULL) {
       a_boolean  is_const_qualified = FALSE;
       /* object_class_type is the type of the object being created.
@@ -2186,21 +2194,24 @@ scan_arg_for_scan_initialization:
            default constructor should be called. */
         if (cip->kind == (a_constructor_init_kind)cik_field &&
             (is_reference_type(tp) || is_const_qualified)) {
-          /* Ref-type field or const-qualified field but no initializer. */
-          a_symbol_ptr field_sym = (a_symbol_ptr)cip->variant.field->
-                                                   source_corresp.assoc_info;
-          if (ctor_rout->compiler_generated) {
-            pos_syty_warning(ec_cannot_initialize_field, &ctor_init_pos,
-                             field_sym, class_type);
-          } else {
-            pos_sy_warning(ec_missing_initializer_on_field, &ctor_init_pos,
-                           field_sym);
-          }  /* if */
+          /* Ref-type field or const-qualified field but no initializer.  There
+             may be more than one, so we wait to collect them all before
+             issuing the error. */
+          /* Remove cip from the list. */
           if (prev_cip == NULL) {
             cip_list = cip->next;
           } else {
             prev_cip->next = cip->next;
           }  /* if */
+          cip->next = NULL;
+          /* Add it to a list that identifies fields that need to be
+             initialized but have no initializer. */
+          if (uninit_list == NULL) {
+            uninit_list = cip;
+          } else {
+            end_of_uninit_list->next = cip;
+          }  /* if */
+          end_of_uninit_list = cip;
           continue;
         }  /* if */
 #if CHECKING
@@ -2257,6 +2268,26 @@ scan_arg_for_scan_initialization:
     }  /* if */
     prev_cip = cip;
   }  /* for */
+  if (uninit_list != NULL) {
+    /* Issue an error for uninitialized const and ref members. */
+    if (ctor_rout->compiler_generated) {
+      pos_ty_start_error(ec_cannot_initialize_fields, &ctor_init_pos,
+                         class_type);
+    } else {
+      pos_start_error(ec_missing_initializer_on_fields, &ctor_init_pos);
+    }  /* if */
+    for (cip = uninit_list; cip != NULL; cip = cip->next) {
+      a_symbol_ptr field_sym = (a_symbol_ptr)cip->variant.field->
+                                                   source_corresp.assoc_info;
+      if (is_reference_type(cip->variant.field->type)) {
+        sym_add_diag_info(ec_reference_member, field_sym);
+      } else {
+        /* Must be a const member. */
+        sym_add_diag_info(ec_const_member, field_sym);
+      }  /* if */
+    }  /* for */
+    end_error();
+  }  /* if */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   { a_routine_ptr new_routine;
     /* Determine and remember the default operator new() routine for the
