@@ -1364,7 +1364,8 @@ is being called for a derived class object).
   db_enter(4, "scan_ctor_arguments");
   *conversion_routine = NULL;
   start_position = pos_curr_token;
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   if (constructor_sym->kind == (a_symbol_kind)sk_member_function) {
     /* Constructor is not overloaded.  In this case, the argument types
        can be checked as the argument list is scanned. */
@@ -3503,7 +3504,8 @@ Syntax:
     internal_error("scan_sizeof_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   expr_stack_entry.evaluated = FALSE;
   expr_stack_entry.potentially_evaluated = FALSE;
   /* Save the position of the sizeof keyword. */
@@ -3634,7 +3636,8 @@ be inappropriate, because the feature is probably used to implement
 
   db_enter(4, "scan_alignof_operator");
 
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   expr_stack_entry.evaluated = FALSE;
   expr_stack_entry.potentially_evaluated = FALSE;
   /* Save the position of the __ALIGNOF__ keyword. */
@@ -3709,7 +3712,8 @@ used in the implementation of offsetof.
   a_constant          con;
 
   db_enter(4, "scan_extended_integral_constant_expression");
-  push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   /* Scan the expression. */
   scan_expr(operand, prec_level, allow_comma ? EOPT_NO_OPTIONS :
                                                EOPT_DISALLOW_COMMA_OPERATOR);
@@ -6268,6 +6272,8 @@ standard.
   a_boolean             operand_1_transformations_done = FALSE;
   a_boolean             saved_evaluated = curr_expr_is_evaluated();
   a_boolean             expr2_evaluated;
+  a_boolean             saved_inside_conditional_expression =
+                                     expr_stack->inside_conditional_expression;
 
   db_enter(4, "scan_logical_operator");
 
@@ -6333,7 +6339,10 @@ standard.
   /* Scan the second operand. */
   (void)get_token();
   expr_stack->evaluated = expr2_evaluated;
+  expr_stack->inside_conditional_expression = TRUE;
   scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
+  expr_stack->inside_conditional_expression =
+                                           saved_inside_conditional_expression;
   /* Restore the evaluated flag as it was on entry. */
   expr_stack->evaluated = saved_evaluated;
 
@@ -6597,6 +6606,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   a_boolean             saved_evaluated = curr_expr_is_evaluated();
   a_boolean             expr2_evaluated, expr3_evaluated;
   a_boolean             types_are_the_same = FALSE;
+  a_boolean             saved_inside_conditional_expression =
+                                     expr_stack->inside_conditional_expression;
 
   db_enter(4, "scan_conditional_operator");
 
@@ -6631,7 +6642,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   (void)get_token();
   expr_stack->nested_construct_depth++;
   expr_stack->evaluated = expr2_evaluated;
+  expr_stack->inside_conditional_expression = TRUE;
   scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
+  expr_stack->inside_conditional_expression =
+                                           saved_inside_conditional_expression;
   expr_stack->evaluated = saved_evaluated;
   expr_stack->nested_construct_depth--;
 
@@ -6648,12 +6662,15 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
      is non-constant or a zero constant, and if we are currently evaluating
      expressions. */
   expr_stack->evaluated = expr3_evaluated;
+  expr_stack->inside_conditional_expression = TRUE;
   /* In C++, the 3rd operand is an assignment-expression (this was changed
      after the ARM) to allow things like "a ? i=1 : j=2". */
   scan_expr(&operand_3, (C_dialect != C_dialect_cplusplus ||
                          any_cfront_mode()) ? PREC_QUEST_MARK :
                                               PREC_ASSIGNMENT,
                          EOPT_NO_OPTIONS);
+  expr_stack->inside_conditional_expression =
+                                           saved_inside_conditional_expression;
   expr_stack->evaluated = saved_evaluated;
 
   /* Check the operands for compatibility.  Both must be arithmetic,
@@ -8527,7 +8544,8 @@ a pointer to the expression tree.
 
   db_enter(3, "scan_switch_expression");
 
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*new_object_lifetime=*/TRUE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* Make sure it's an integer.  Convert from a class type to an integer if
@@ -8545,6 +8563,7 @@ a pointer to the expression tree.
     (void)check_integral_operand(&result);
   }  /* if */
   expression = make_node_from_operand(&result);
+  expression = add_object_lifetime_node_if_needed(expression);
   pop_expr_stack();
 
 #if DEBUG
@@ -8558,11 +8577,13 @@ a pointer to the expression tree.
 }  /* scan_switch_expression */
 
 
-an_expr_node_ptr scan_void_expression(void)
+an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop)
 /*
 Scan a "void expression," i.e., one whose value is discarded.  This is
 used for expression statements, the increment expression of a "for", etc.
-This routine is not used for constant or not-evaluated expressions.
+repeated_in_loop is TRUE for an expression repeated in a loop (e.g.,
+the increment of a "for").  This routine is not used for constant
+or not-evaluated expressions.
 */
 {
   an_expr_node_ptr    expression;
@@ -8571,12 +8592,14 @@ This routine is not used for constant or not-evaluated expressions.
 
   db_enter(3, "scan_void_expression");
 
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*new_object_lifetime=*/repeated_in_loop);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   simplify_void_operand(&result);
   expression = make_node_from_operand(&result);
+  expression = add_object_lifetime_node_if_needed(expression);
   /* Indicate that the value of the node is not used. */
   set_expr_result_not_used(expression);
   pop_expr_stack();
@@ -8607,7 +8630,8 @@ a prior error) just do the scan.
 
   db_enter(3, "scan_default_arg_expr");
 
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   expr_stack_entry.is_default_arg_expression = TRUE;
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST,
@@ -8773,7 +8797,8 @@ the appropriate dynamic initialization entry and return NULL.
   db_enter(3, "scan_return_expression");
 
   *dip = NULL;
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   return_by_cctor_case = FALSE;
   routine_type = skip_typerefs(curr_routine->type);
   if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
@@ -8792,6 +8817,9 @@ the appropriate dynamic initialization entry and return NULL.
     /* Fix up destructor references in the overall expression. */
     fix_up_dynamic_init_dtors();
     expression = NULL;
+#if 0
+???? object lifetime?
+#endif /* 0 */
   } else {
     /* Normal case. */
     /* The required type can be void if we are in cfront mode.  If it is
@@ -8808,6 +8836,7 @@ the appropriate dynamic initialization entry and return NULL.
                                err_code);
     }  /* if */
     expression = make_node_from_operand(&result);
+    expression = add_object_lifetime_node_if_needed(expression);
   }  /* if */
   pop_expr_stack();
 
@@ -8832,7 +8861,8 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
 
   db_enter(3, "scan_pp_expression");
 
-  push_expr_stack((an_expression_kind)ek_pp, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_pp, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
@@ -8859,7 +8889,8 @@ Scan an integral constant expression.  See section 3.4 in the C standard.
 
   db_enter(3, "scan_integral_constant_expression");
 
-  push_expr_stack((an_expression_kind)ek_integral_constant, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_integral_constant, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
@@ -8895,7 +8926,8 @@ C++ mode.
 
   db_enter(3, "scan_new_array_dimension_expression");
 
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* Convert from a class type to integral if necessary. */
@@ -8919,9 +8951,11 @@ C++ mode.
     case ok_error:
       /* Some sort of error; message was already issued. */
       set_error_constant(constant);
+      discard_curr_expr_object_lifetime();
       break;
     case ok_expression:
       *expression = result.variant.expression;
+      *expression = add_object_lifetime_node_if_needed(*expression);
       *is_constant = FALSE;
       break;
     case ok_constant:
@@ -9033,7 +9067,8 @@ Return the constant in *constant.
 
   db_enter(3, "scan_template_argument_constant_expression");
 
-  push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
@@ -9083,7 +9118,8 @@ constant class members (an extension).
 
   db_enter(3, "scan_constant_initializer_expression");
 
-  push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
@@ -9124,7 +9160,8 @@ copy constructor elision is possible; see scan_class_initializer_expression.
 
   db_enter(3, "scan_initializer_expression");
 
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   /* Do fold constant addressing expressions to constants so that static
      initialization can be more easily discerned. */
   expr_stack->fold_constant_addr_exprs = TRUE;
@@ -9185,7 +9222,8 @@ err_pos as the error position.
 
   /* Even though this is not an expression scan, make sure the expr_stack
      has something on it. */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   /* Make an operand for the expression. */
   make_expression_operand(expr, expr->type, &operand);
   operand.position = *err_pos;
@@ -9224,7 +9262,8 @@ appropriate.
   a_boolean           okay = TRUE;
 
   db_enter(3, "scan_class_initializer_expression");
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*new_object_lifetime=*/FALSE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Find out whether or not the conversion is possible, and
@@ -9238,12 +9277,17 @@ appropriate.
 }  /* scan_class_initializer_expression */
 
 
-an_expr_node_ptr scan_boolean_controlling_expression(void)
+an_expr_node_ptr scan_boolean_controlling_expression(
+                                                   a_boolean is_condition_expr,
+                                                   a_boolean repeated_in_loop)
 /*
 Scan an expression that is used in controlling contexts that need a boolean
 result, such as if, while, do while, or for statements.  The type of the
 expression must be scalar, a pointer-to-member type, or must be of a
-class type that can be converted to such a type.
+class type that can be converted to such a type.  is_condition_expr is
+TRUE if this expression is a "condition" in the terms of the C++ standard.
+repeated_in_loop is TRUE if the expression is part of a loop and it is
+re-evaluated each time around the loop.
 */
 {
   an_operand          result;
@@ -9252,7 +9296,8 @@ class type that can be converted to such a type.
 
   db_enter(3, "scan_boolean_controlling_expression");
 
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*new_object_lifetime=*/is_condition_expr||repeated_in_loop);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
 
