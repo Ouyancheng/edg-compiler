@@ -7100,8 +7100,8 @@ placed but whose scope has since been popped from the scope stack.
       sp = scope_stack_ptr->il_scope;
     } else {
       /* The scope for the class has been popped off the scope stack, so
-         there's no scope stack entry any longer.  This happens member and
-         friend functions defined inline within the class definition; the
+         there's no scope stack entry any longer.  This happens for member
+         and friend functions defined inline within the class definition; the
          class scope stack entry was popped off and then reactivated -- but
          reactivation scopes are not useful. */
       scope_stack_ptr = NULL;
