@@ -2190,8 +2190,14 @@ of the routine in the secondary translation unit, except for member
 functions of local classes, where it points to the primary IL copy.
 */
 {
-  a_routine_ptr primary_rout = (a_routine_ptr)transitive_copy_address_of(rout);
+  a_routine_ptr primary_rout;
 
+  if (in_secondary_trans_unit(rout)) {
+    primary_rout = (a_routine_ptr)transitive_copy_address_of(rout);
+  } else {
+    check_assertion(rout->source_corresp.is_local_to_function);
+    primary_rout = rout;
+  }  /* if */
   check_assertion(!in_secondary_trans_unit(primary_rout) &&
                   primary_rout->source_corresp.
                                              copied_from_secondary_trans_unit);
