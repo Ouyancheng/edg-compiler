@@ -383,6 +383,12 @@ typedef struct a_tmpl_decl_state {
 		decl_pos_block;
 			/* Source range information for the template
 			   declaration. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_range
+		definition_range;
+			/* Source range information for the template
+			   definition (if any). */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_tmpl_decl_state;
 
 
@@ -415,6 +421,9 @@ Initialize a template declaration state block.
   tdsp->il_template_entry = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
   clear_decl_pos_block(&tdsp->decl_pos_block);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  tdsp->definition_range = null_source_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* init_templ_decl_state */
 
 
@@ -8162,11 +8171,17 @@ instantiation.
     /* Scan the class body.  If the body is missing the error will be
        found during prototype instantiation. */
     if (curr_token == tok_lbrace) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      decl_state->definition_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Swallow the "{" and then cache everything through to the "}". */
       cache_curr_token(definition_token_cache);
       (void)get_token();
       incr_token_set_array_element(stop_tokens, tok_rbrace);
       cache_token_stream(definition_token_cache, stop_tokens);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      decl_state->definition_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Now cache the "}" (unless we didn't find one). */
       if (curr_token == tok_rbrace) {
         cache_curr_token(definition_token_cache);
@@ -8229,17 +8244,16 @@ instantiation.
 }  /* class_template_declaration */
 
 
-static void cache_function_template_body(a_token_cache     *p_token_cache,
-                                         a_boolean         is_constructor,
-                                         a_boolean         *defines_something,
-					 a_source_position *decl_pos)
+static void cache_function_template_body(a_tmpl_decl_state_ptr decl_state,
+                                         a_token_cache         *p_token_cache,
+                                         a_boolean             is_constructor,
+                                         a_source_position     *decl_pos)
 /*
 Scan a function template body and cache the tokens (in *p_token_cache) so
 that they can be rescanned for the instantiation.  is_constructor is
 TRUE if the function is a constructor.  The current source position is
-immediately after the function declarator.  *defines_something is set
-to TRUE if either a ctor-initializer or a function body appears.
-decl_pos is the position of the function declarator.
+immediately after the function declarator.  decl_pos is the position of the
+function declarator.
 */
 {
   a_token_set_array  stop_tokens;
@@ -8247,7 +8261,7 @@ decl_pos is the position of the function declarator.
   db_enter(3, "cache_function_template_body");
   if (curr_token == tok_lbrace ||
       (curr_token == tok_colon && is_constructor)) {
-    *defines_something = TRUE;
+    decl_state->defines_something = TRUE;
     /* Initialize a local stop token set. */
     clear_token_set_array(stop_tokens);
     if (curr_token == tok_colon) {
@@ -8260,6 +8274,9 @@ decl_pos is the position of the function declarator.
     }  /* if */
     if (curr_token == tok_lbrace) {
       /* This is a compound statement that is the body of the function. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      decl_state->definition_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Cache the "{" and advance past it. */
       cache_curr_token(p_token_cache);
       (void)get_token();
@@ -8274,6 +8291,9 @@ decl_pos is the position of the function declarator.
       } else {
         pos_error(ec_template_missing_closing_brace, decl_pos);
       }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      decl_state->definition_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Add an end-of-source token to the end of the token cache to
          assure that we don't scan past the end of the cache in the actual
          scan. */
@@ -9050,19 +9070,18 @@ the size of arr can be computed.
 
 #if RECORD_TEMPLATES_IN_IL
 static
-void complete_il_template_entry(a_template_ptr   il_template_entry,
-                                a_symbol_ptr     sym,
-                                a_token_cache    *decl_token_cache,
-                                a_token_cache    *template_param_list_cache,
-                                a_token_cache    *p_template_body_cache,
-                                a_decl_pos_block *decl_pos_block)
+void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
+                                a_symbol_ptr           sym,
+                                a_token_cache          *p_template_body_cache)
 /*
 Finish up establishing the IL template entry.  (It has already been
 added to the templates list, its decl_position has been set, and
 its source correspondence entry, if any, has been put out.)
 */
 {
-  a_boolean  err = FALSE;
+  a_boolean       err = FALSE;
+  a_template_ptr  il_template_entry = decl_state->il_template_entry;
+
   if (il_template_entry != NULL) {
     if (sym != NULL && !sym->is_error) {
       /* Set the template kind. */
@@ -9128,7 +9147,7 @@ its source correspondence entry, if any, has been put out.)
             a_token_sequence_number	tsn_to_split;
             tsn_to_split = first_token->token_sequence_number;
             clear_token_cache(&dummy_cache, /*reusable=*/TRUE);
-            split_token_cache(decl_token_cache, &dummy_cache,
+            split_token_cache(&decl_state->decl_token_cache, &dummy_cache,
                               tsn_to_split,
                               /*include_prev_token=*/FALSE,
                              /*okay_if_not_found=*/FALSE);
@@ -9136,16 +9155,27 @@ its source correspondence entry, if any, has been put out.)
           } /* if */
         }  /* if */
 	/* Create the string that represents the template declaration. */
-	make_template_string(il_template_entry, template_param_list_cache,
-			     decl_token_cache, p_template_body_cache);
+	make_template_string(il_template_entry,
+                             &decl_state->param_list_cache,
+			     &decl_state->decl_token_cache,
+                             p_template_body_cache);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+        /* Record source range information for this template declaration. */
         il_template_entry->source_corresp.decl_pos_info =
-                              make_decl_pos_supplement(/*at_file_scope=*/TRUE,
-                                                       decl_pos_block);
-        if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-          il_template_entry->initializer_range =
-                                      decl_pos_block->var_init_range;
-        }  /* if */
+                        make_decl_pos_supplement(/*at_file_scope=*/TRUE,
+                                                 &decl_state->decl_pos_block);
+        switch (sym->kind) {
+          case sk_static_data_member:
+            il_template_entry->definition_range =
+                                   decl_state->decl_pos_block.var_init_range;
+            break;
+          case sk_function_template:
+          case sk_member_function:
+          case sk_class_template:
+            il_template_entry->definition_range = decl_state->definition_range;
+            break;
+          default:;
+        }  /* switch */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
     }  /* if */
@@ -9495,8 +9525,8 @@ caller.
   if (err) {
     a_token_cache  local_token_cache;
     clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
-    cache_function_template_body(&local_token_cache, /*is_ctor=*/TRUE,
-                                 &decl_state->defines_something, decl_pos);
+    cache_function_template_body(decl_state, &local_token_cache,
+                                 /*is_ctor=*/TRUE, decl_pos);
     discard_token_cache(&local_token_cache);
   } else {
     a_def_arg_expr_fixup_ptr    daefp;
@@ -9506,9 +9536,8 @@ caller.
 
     clear_token_cache(&local_token_cache, /*reusable=*/TRUE);
     first_token_number = curr_token_sequence_number;
-    cache_function_template_body(&local_token_cache,
-                                 is_constructor_symbol(sym),
-                                 &decl_state->defines_something, decl_pos);
+    cache_function_template_body(decl_state, &local_token_cache,
+                                 is_constructor_symbol(sym), decl_pos);
     last_token_number = curr_token_sequence_number;
     if (decl_state->in_prototype_instantiation) {
       if (sym->is_class_member && decl_state->class_declared_in != NULL &&
@@ -10238,11 +10267,7 @@ any non-empty template parameter lists that were scanned.
     } /* if */
 #if RECORD_TEMPLATES_IN_IL
     if (!decl_state->in_prototype_instantiation) {
-      complete_il_template_entry(decl_state->il_template_entry, sym,
-                                 &decl_state->decl_token_cache,
-                                 &decl_state->param_list_cache,
-                                 p_template_body_cache,
-                                 &decl_state->decl_pos_block);
+      complete_il_template_entry(decl_state, sym, p_template_body_cache);
       /* If this is a template definition or the initial declaration, update
          the template symbol supplement to point to the IL entry . */
       if (tssp != NULL &&
@@ -10854,11 +10879,11 @@ that follows.
             /* A Microsoft mode specialization that appears in a class context.
                Cache the function body now and scan it later during the class
                fixup process. */
-            a_boolean		local_defines_something;
             a_token_cache	body_cache;
+
             clear_token_cache(&body_cache, /*reusable=*/TRUE);
-            cache_function_template_body(&body_cache, is_constructor,
-                                         &local_defines_something,
+            cache_function_template_body(decl_state, &body_cache,
+                                         is_constructor,
                                          &locator.source_position);
             /* Add the specialization to the routine fixup list for the class
                being defined.  This routine makes a copy of the body cache
