@@ -1,5 +1,10 @@
 Version 2.16
 
+4/19/93  parent_block pointer on continue labels
+
+The parent_block pointer on labels generated as the branch target
+for "continue" statements has been corrected.
+
 4/19/93  IL lowering generates dtor calls on goto to label before init
 
 Proper destructor calls are now generated on a goto backward to a label
