@@ -3918,6 +3918,7 @@ set to NULL and return FALSE.
           /* Save the start position of the qualified name (get_class_qualifier
              puts it in error_position). */
           copy_source_position(error_position, start_position);
+          set_err_pos_to_curr_token();
           /* The current token must now be the final identifier of the
              qualified name, e.g., "x" in "A::B::x".  Note that
              get_class_qualifier did not get the next token after
