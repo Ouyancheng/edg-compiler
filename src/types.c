@@ -582,7 +582,7 @@ returned.
     }  /* if */
   }  /* if */
   return bcp;
-}  /* is_base_class_of */
+}  /* find_base_class_of */
 
 
 a_boolean is_same_class_or_base_class_thereof(a_type_ptr class_1,
