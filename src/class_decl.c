@@ -7989,6 +7989,9 @@ function or an overload set of compiler generated member functions.
     result = TRUE;
   } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
     a_symbol_ptr  overloaded_sym = sym->variant.overloaded_function.symbols;
+    /* Assume all the members of the overload set are compiler-generated.
+       Set result to FALSE as soon as one is not. */
+    result = TRUE;
     for (; overloaded_sym != NULL; overloaded_sym = overloaded_sym->next) {
       if (!is_compiler_generated_member_function(overloaded_sym)) {
         result = FALSE;
