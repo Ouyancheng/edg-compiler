@@ -1023,13 +1023,20 @@ consistent with that of the previous declaration.
          current declaration (it must have been present on the previous
          one). */
       an_error_severity  severity = es_error;
-      /* Unless we are in strict mode, issue a warning instead of an error
-         if this is a redeclaration of what may be a library new or delete
-         routine: the relaxation is to ease the upgrading of old code. */
-      if (is_redecl && rp != NULL && !rp->source_corresp.is_class_member &&
-          (is_new_operator(rp->variant.opname_kind) ||
-           is_delete_operator(rp->variant.opname_kind))) {
-        /* Set the severity, depending on the strict mode setting. */
+      if (is_redecl && microsoft_mode && microsoft_version >= 1300 &&
+          rp != NULL) {
+        /* Recent Microsoft compilers do not require the exception
+           specification of a class member to be repeated on redeclarations.
+           We issue a warning in that case.  Note that calls to composite_type
+           will ensure that the original specification is retained. */
+        severity = es_warning;
+      } else if (is_redecl &&
+                 rp != NULL && !rp->source_corresp.is_class_member &&
+                 (is_new_operator(rp->variant.opname_kind) ||
+                  is_delete_operator(rp->variant.opname_kind))) {
+        /* Unless we are in strict mode, issue a warning instead of an error
+           if this is a redeclaration of what may be a library new or delete
+           routine: the relaxation is to ease the upgrading of old code. */
         severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       }  /* if */
       pos_sy_diagnostic(severity,
