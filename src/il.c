@@ -8009,6 +8009,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_boolean                     is_specialization = FALSE;
       a_boolean                     func_prototype_decl = FALSE;
       a_boolean                     other_scope_def = FALSE;
+      a_type_ptr                    type_entry_type = NULL;
       a_type_ptr                    declared_type = NULL;
       a_boolean                     print_type = FALSE;
       a_src_seq_secondary_decl_ptr  sssdp = NULL;
@@ -8028,6 +8029,9 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           if (sssdp->implicit_decl) is_implicit = TRUE;
           if (sssdp->declared_in_func_prototype) func_prototype_decl = TRUE;
           if (sssdp->is_specialization) is_specialization = TRUE;
+          if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+            type_entry_type = (a_type_ptr)sssdp->entity.ptr;
+          }  /* if */
         } else {
           scp = source_corresp_for_il_entry(
                                          ssep->entity.ptr,
@@ -8035,8 +8039,14 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           check_assertion(scp != NULL);
           pos = &scp->decl_position;
           if (kind == (an_il_entry_kind)iek_type) {
-            if (((a_type_ptr)ssep->entity.ptr)->autonomous_primary_tag_decl) {
-              autonomous = TRUE;
+            type_entry_type = (a_type_ptr)ssep->entity.ptr;
+            if (type_entry_type->autonomous_primary_tag_decl) {
+               autonomous = TRUE;
+            }  /* if */
+            if (is_immediate_class_type(type_entry_type) &&
+                type_entry_type->
+                     variant.class_struct_union.is_specialization) {
+              is_specialization = TRUE;
             }  /* if */
           } else if (kind == (an_il_entry_kind)iek_routine) {
             a_routine_ptr  rp = (a_routine_ptr)ssep->entity.ptr;
@@ -8096,13 +8106,13 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           lparen_printed = TRUE;
         }  /* if */
         if (is_specialization) {
-          fprintf(f_debug, "%sspecialization",
+          fprintf(f_debug, "%sspec",
                            (lparen_printed ? ", " : " ("));
           lparen_printed = TRUE;
         }  /* if */
         fprintf(f_debug, "%s: \"", (lparen_printed ? ")" : ""));
-        if (kind == (an_il_entry_kind)iek_type) {
-          db_type_name((a_type_ptr)ssep->entity.ptr);
+        if (type_entry_type != NULL) {
+          db_type_name(type_entry_type);
 #if RECORD_TEMPLATES_IN_IL
         } else if (kind == (an_il_entry_kind)iek_template && sym != NULL) {
           /* Use the symbol name since there's more information in it. */
@@ -8119,16 +8129,12 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         fputc('"', f_debug);
         if (sssdp != NULL) {
           /* Secondary declaration. */
-          declared_type = sssdp->declared_type;
-          if (declared_type == NULL &&
-              sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
-            /* Don't report a NULL declared type on the secondary declaration
-               of a type entry -- that's what's expected. */
-          } else if (sssdp->entity.kind ==
-                               (a_byte_il_entry_kind)iek_namespace) {
-            /* Ignore it. */
-          } else {
-            print_type = TRUE;
+          if (sssdp->entity.kind != (a_byte_il_entry_kind)iek_namespace) {
+            declared_type = sssdp->declared_type;
+            if (type_entry_type == NULL ||
+                (declared_type != NULL && declared_type != type_entry_type)) {
+              print_type = TRUE;
+            }  /* if */
           }  /* if */
         } else if (kind == (an_il_entry_kind)iek_variable ||
                    kind == (an_il_entry_kind)iek_routine) {
