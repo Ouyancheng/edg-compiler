@@ -924,6 +924,28 @@ restore the memory regions.
 }  /* read_mem_alloc_history */
 
 
+#if USE_MMAP_FOR_MEMORY_REGIONS
+static void write_memory_used_for_memory_regions(void)
+/*
+Write, to the PCH output file, the contents of the memory that has been
+allocated for memory region purposes.  This routine is used when the
+memory region information will be accessed using mmap by the consumer of
+the PCH file.  The memory is written this way, instead of as individual
+memory regions, to avoid the need to write each region at a file offset
+that is a multiple of the host page size.
+*/
+{
+  int		i;
+
+  for (i = 0; i < num_of_mem_alloc_history_entries; ++i) {
+    a_mem_alloc_history_ptr	mahp = &mem_alloc_history[i];
+    (void)seek_to_page_alignment(f_pch_output);
+    fwrite_with_check(mahp->addr, mahp->size, f_pch_output);
+  }  /* for */
+}  /* write_memory_used_for_memory_regions */
+
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+
 static void write_a_memory_region(a_memory_region_number number)
 /*
 Write the blocks comprising a single memory region to the PCH output
@@ -947,10 +969,6 @@ in exactly the same manner as that in which they were created.
     pch_write_value(size);
     pch_write_value(region_size);
     pch_write_value(mbhp);
-#if USE_MMAP_FOR_MEMORY_REGIONS
-    /* If using memory mapping, skip to a multiple of the host page size. */
-    (void)seek_to_page_alignment(f_pch_output);
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     fwrite_with_check(mbhp, size, f_pch_output);
 #if DEBUG
     if (debug_level >= 4) {
@@ -961,7 +979,39 @@ in exactly the same manner as that in which they were created.
     mbhp = mbhp->next;
   }  /* while */
 }  /* write_a_memory_region */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
+
+#if USE_MMAP_FOR_MEMORY_REGIONS
+
+static void read_memory_used_for_memory_regions(void)
+/*
+Read, from the PCH input file, the contents of the memory that has been
+allocated for memory region purposes.  This routine is used when the
+memory region information will be accessed using mmap by the consumer of
+the PCH file.
+*/
+{
+  int		i;
+
+  for (i = 0; i < num_of_mem_alloc_history_entries; ++i) {
+    a_mem_alloc_history_ptr	mahp = &mem_alloc_history[i];
+    sizeof_t			offset;
+    offset = seek_to_page_alignment(f_pch_input);
+    if (map_input_file_to_region(f_pch_input, offset,
+                                 mahp->size, mahp->addr) == NULL) {
+      unexpected_condition_str2("read_memory_used_for_memory_regions:",
+                                "map failed");
+    }  /* if */
+    /* Seek past the area just mapped. */
+    if (fseek(f_pch_input, (long)(offset + mahp->size), SEEK_SET) != 0) {
+      unexpected_condition_str2("read_memory_used_for_memory_regions:",
+                                "fseek error");
+    }  /* if */
+  }  /* for */
+}  /* read_memory_used_for_memory_regions */
+
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
 static void read_a_memory_region(a_memory_region_number number)
 /*
@@ -989,25 +1039,12 @@ file.  See write_a_memory_region for more information.
               mbhp);
     }  /* if */
 #endif /* DEBUG */
-#if USE_MMAP_FOR_MEMORY_REGIONS
-    /* If using memory mapping, skip to a multiple of the host page size. */
-    offset = seek_to_page_alignment(f_pch_input);
-    if (map_input_file_to_region(f_pch_input, offset,
-                                 region_size, (a_void_ptr)mbhp) == NULL) {
-      unexpected_condition_str("read_a_memory_region: map failed");
-    }  /* if */
-    /* Seek past the area just mapped. */
-    if (fseek(f_pch_input, (long)(offset + size), SEEK_SET) != 0) {
-      unexpected_condition_str("read_a_memory_region: fseek error");
-    }  /* if */
-#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-    /* When not using memory mapping, just read the memory region. */
     fread_with_check((char *)mbhp, size, f_pch_input);
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     /* See if this is the last block in the memory region. */
     if (mbhp->next == NULL) break;
   }  /* for */
 }  /* read_a_memory_region */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 
 static void write_memory_regions(void)
@@ -1016,7 +1053,6 @@ Write the memory region information to the PCH output file.  This includes
 header information about the memory regions such as the memory_region_table.
 */
 {
-  a_memory_region_number	n;
   a_memory_region_number	mem_regions_used;
   db_enter(4, "write_memory_regions");
   mem_regions_used = highest_used_region_number + 1;
@@ -1039,9 +1075,23 @@ header information about the memory regions such as the memory_region_table.
                     sizeof(unsigned long) * mem_regions_used,
                     f_pch_output);
 #endif /* DEBUG */
-  for (n = 0; n < mem_regions_used; ++n) {
-    write_a_memory_region(n);
-  }  /* for */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  /* When using memory mapping, instead of writing the memory regions one
+     at a time, we write the entire memory blocks that contain the
+     memory regions.  File sections that are to be accessed later via
+     mmap must be written at file offsets that are multiples of the host
+     page size.  Writing out individual memory regions in this way
+     wastes too much space for alignment. */
+  write_memory_used_for_memory_regions();
+#else /* USE_MMAP_FOR_MEMORY_REGIONS */
+  /* Write the actual memory regions to the PCH file. */
+  {
+    a_memory_region_number	n;
+    for (n = 0; n < mem_regions_used; ++n) {
+      write_a_memory_region(n);
+    }  /* for */
+  }
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   /* Write a copy of the primary source file pointer. */
   pch_write_value(il_header.primary_source_file);
   db_exit();
@@ -1054,7 +1104,6 @@ Read the memory region information from the PCH output file.  This includes
 header information about the memory regions such as the memory_region_table.
 */
 {
-  a_memory_region_number	n;
   a_memory_region_number	mem_regions_used;
 
   db_enter(4, "read_memory_regions");
@@ -1082,9 +1131,19 @@ header information about the memory regions such as the memory_region_table.
                    sizeof(unsigned long) * mem_regions_used,
                    f_pch_input);
 #endif /* DEBUG */
-  for (n = 0; n < mem_regions_used; ++n) {
-    read_a_memory_region(n);
-  }  /* for */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  /* Read the blocks of memory used for memory region storage.  See
+     write_memory_regions for more information. */
+  read_memory_used_for_memory_regions();
+#else /* USE_MMAP_FOR_MEMORY_REGIONS */
+  /* Read the actual memory regions from the PCH file. */
+  {
+    a_memory_region_number	n;
+    for (n = 0; n < mem_regions_used; ++n) {
+      read_a_memory_region(n);
+    }  /* for */
+  }
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   /* Read the copy of the primary source file pointer. */
   pch_read_value(primary_source_file_from_pch);
   db_exit();
