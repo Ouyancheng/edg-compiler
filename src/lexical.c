@@ -10880,6 +10880,15 @@ the normal lookup symbol.
          so we can safely use the normal symbol here and issue an error
          during the real instantiation if necessary. */
       equiv_symbols = TRUE;
+    } else if (is_type_symbol(normal_fund_sym) &&
+               is_type_symbol(class_fund_sym)) {
+      /* For type symbols, the symbols are equivalent if the underlying
+         types are the same. */
+      a_type_ptr	class_type;
+      a_type_ptr	normal_type;
+      normal_type = type_symbol_type(normal_fund_sym);
+      class_type = type_symbol_type(class_fund_sym);
+      equiv_symbols = identical_types(class_type, normal_type);
     }  /* if */
     if (equiv_symbols) {
       /* The symbols are equivalent.  Use the normal symbol unless otherwise
