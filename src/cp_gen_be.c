@@ -6105,7 +6105,8 @@ is a condition variable if is_condition is TRUE.
   push_name_context_if_member(&var->source_corresp);
   if (var->source_corresp.is_class_member &&
       init_kind == (an_init_kind)initk_dynamic &&
-      initializer->dynamic->kind == (a_dynamic_init_kind)dik_constructor) {
+      initializer->dynamic->kind == (a_dynamic_init_kind)dik_constructor &&
+      !microsoft_mode) {
     /* cfront has a bug in initialization of static data members that are
        classes with constructors: it fails to activate the member names for
        the class.  For example:
