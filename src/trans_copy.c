@@ -35,12 +35,6 @@ trans_copy.c -- Copy IL from secondary translation units to the
 #endif /* DO_IL_LOWERING */
 
 
-/*
-Value of il_walk_flag that means "needs processing" for the IL walk.
-*/
-static a_boolean il_walk_flag_value_meaning_needs_processing;
-
-
 static a_boolean f_has_corresp(char *ptr)
 /*
 Return TRUE if the indicated entry has a correspondence in the primary
@@ -70,7 +64,9 @@ in the primary IL.
   /* Make the correspondence pointer go directly to the canonical
      entry if it is currently a multi-step chain.  This is needed
      to allow adding an intervening step on the chain to indicate
-     the location where the entry should be copied. */
+     the location where the entry should be copied (more precisely,
+     to make it possible to tell whether the intervening step has
+     been added). */
   char *canonical = canonical_il_entry_of(ptr);
   trans_unit_corresp_pointer_of(ptr) = canonical;
   /* The IL lowering flag is borrowed for this process because IL
@@ -105,25 +101,25 @@ pointer of the entry pointed to by ptr, of kind "kind".
      linkage correspondence, the correspondence pointer is already set.
      For others, space is allocated in the primary IL and the
      correspondence pointer is set to point to it (but no copy
-     is done at this time).  The il_walk_flag of the source entry
-     is set to indicate that further processing (e.g., copying)
-     of the entry is required.  Some entries do not have correspondence
+     is done at this time).  Some entries do not have correspondence
      pointers (those in function scope memory regions and those
      in the primary translation unit IL), and for those nothing
-     is done. */
+     is done.  The il_walk_flag of the source entry is set to
+     indicate that further processing (e.g., copying) of the
+     entry is required.  For file-scope entries, the il_walk_flag
+     is used in an unusual way: it is set to indicate that more
+     processing is needed, and then cleared once that processing
+     has been done. */
   if (ptr == NULL) {
     /* Ignore NULL pointers. */
   } else if (!in_secondary_trans_unit(ptr)) {
     /* This entry is in the primary file IL, so do nothing. */
   } else if (!in_file_scope(ptr)) {
-    /* This entry is in a function scope memory region, so remap its
-       pointers. */
-    il_entry_prefix_of(ptr).il_walk_flag =
-                                   il_walk_flag_value_meaning_needs_processing;
+    /* This entry is in a function scope memory region, so do nothing. */
   } else if (il_entry_prefix_of(ptr).il_walk_flag ==
-                                 il_walk_flag_value_meaning_needs_processing) {
+                                                  flag_value_meaning_visited) {
     /* This entry has already been encountered and the correspondence
-       pointer has been set. */
+       pointer has been set, and we're awaiting copying. */
   } else if (has_corresp(ptr)) {
     /* This entry has a correspondence in the primary IL. */
     if (entry_to_be_merged(ptr)) {
@@ -146,8 +142,8 @@ pointer of the entry pointed to by ptr, of kind "kind".
         trans_unit_corresp_pointer_of(ptr) = copy;
         trans_unit_corresp_pointer_of(copy) = corresp;
         check_assertion(!is_string_entry_kind(kind));
-        il_entry_prefix_of(ptr).il_walk_flag =
-                                   il_walk_flag_value_meaning_needs_processing;
+        /* Set the il_walk_flag to request copying. */
+        il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
       }  /* if */
     }  /* if */
   } else {
@@ -164,8 +160,13 @@ pointer of the entry pointed to by ptr, of kind "kind".
       if (canonical != ptr && in_secondary_trans_unit(canonical)) {
         trans_unit_corresp_pointer_of(canonical) = copy;
       }  /* if */
-      il_entry_prefix_of(ptr).il_walk_flag =
-                                   il_walk_flag_value_meaning_needs_processing;
+      /* Set the il_walk_flag to request copying. */
+      il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
+      if (!walking_file_scope) {
+        /* A reference from a function scope to the file scope.  Make sure
+           we come back to this entry if it's an orphan. */
+        add_orphaned_file_scope_il_entry(ptr, kind);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* corresp_setup */
@@ -188,15 +189,28 @@ pruned at the entry pointed to by ptr, of kind "kind".
     /* This entry is in the primary file IL, so stop and don't process
        it. */
     prune = TRUE;
-  } else if (il_entry_prefix_of(ptr).il_walk_flag ==
-                                !il_walk_flag_value_meaning_needs_processing) {
-    /* This entry does not need any (more) processing. */
-    prune = TRUE;
+  } else if (!in_file_scope(ptr)) {
+    /* This entry is in a function scope memory region of a secondary
+       translation unit.  Use the il_walk_flag in the conventional way,
+       by setting it once the entry has been processed. */
+    if (il_entry_prefix_of(ptr).il_walk_flag == !flag_value_meaning_visited) {
+      il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
+      prune = FALSE;
+    } else {
+      prune = TRUE;
+    }  /* if */
   } else {
-    /* This entry still needs to be processed (i.e., copied and remapped). */
-    il_entry_prefix_of(ptr).il_walk_flag =
-                                  !il_walk_flag_value_meaning_needs_processing;
-    prune = FALSE;
+    /* This entry is in the file scope memory region of a secondary translation
+       unit.  The il_walk_flag is on to indicate that copying is needed, and
+       then turned off once the copying has been done. */
+    if (il_entry_prefix_of(ptr).il_walk_flag == !flag_value_meaning_visited) {
+      /* This entry does not need any (more) processing. */
+      prune = TRUE;
+    } else {
+      /* This entry still needs to be processed (i.e., copied and remapped). */
+      il_entry_prefix_of(ptr).il_walk_flag = !flag_value_meaning_visited;
+      prune = FALSE;
+    }  /* if */
   }  /* if */
   return prune;
 }  /* copy_termination_test */
@@ -291,6 +305,29 @@ and remap the pointers in the copy.
     remap_pointers_in_entry(copy, kind);
     scp = source_corresp_for_il_entry(ptr, kind);
     if (scp != NULL) scp->copied_from_secondary_trans_unit = TRUE;
+    if (kind == iek_routine) {
+      a_routine_ptr rout = (a_routine_ptr)ptr;
+      if (rout->assoc_scope != NULL_region_number) {
+        /* For a routine with a body, the code in the function scope memory
+           region needs to be processed too.  It doesn't need to be
+           copied, but the pointers need to be remapped. */
+        a_scope_ptr rout_scope =
+                               il_header.region_scope_entry[rout->assoc_scope];
+        /* Make sure the same "visited" value can be used for the function
+           scope memory as is being used for the file scope memory region.
+           This would not be possible if an unequal number of IL walks
+           have been done over those regions. */
+        check_assertion(flag_value_meaning_visited ==
+                        !il_entry_prefix_of(rout_scope).il_walk_flag);
+        walk_routine_scope_il(rout->assoc_scope,
+                              copy_entry,
+                              copy_string_entry,
+                              (a_remap_function_ptr)NULL,
+                              copy_termination_test,
+                              /*clear_fe_pointers=*/FALSE);
+        rout_scope->part_of_secondary_trans_unit = FALSE;
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* copy_entry */
 
@@ -652,6 +689,35 @@ the primary translation unit, respectively) that are being merged.
 }  /* merge_object_lifetimes */
 
 
+static void wrap_up_moved_function(a_routine_ptr rout)
+/*
+rout identifies a function that has been moved from a secondary translation
+unit to the primary translation unit IL.  Lower its body.
+*/
+{
+  a_translation_unit_ptr saved_translation_unit = curr_translation_unit;
+
+  if (rout->assoc_scope != NULL_region_number) {
+#if MAINTAIN_NEEDED_FLAGS
+    if (routine_needed_even_if_unreferenced(rout)) {
+      /* Mark an externally-defined routine as "needed". */
+      mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
+    }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+    switch_translation_unit(translation_units);
+#if DO_IL_LOWERING
+    lower_il_memory_region(rout->assoc_scope);
+#endif /* DO_IL_LOWERING */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+    { a_scope_ptr rout_scope= il_header.region_scope_entry[rout->assoc_scope];
+      add_scope_orphaned_il_lists(rout_scope);
+    }
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+    switch_translation_unit(saved_translation_unit);
+  }  /* if */
+}  /* wrap_up_moved_function */
+
+
 static void finish_trans_unit_copy(a_scope_ptr scope)
 /*
 scope is a file or namespace scope from the secondary file IL.  Do
@@ -821,36 +887,7 @@ secondary scope to the primary file IL.
           *primary_routine = *corresp_routine;
           corresp_routine = primary_routine;
         }  /* if */
-        if (corresp_routine->assoc_scope != NULL_region_number) {
-          a_scope_ptr rout_scope =
-                    il_header.region_scope_entry[corresp_routine->assoc_scope];
-          /* For a routine with a body, the code in the function scope memory
-             region needs to be processed too.  It doesn't need to be
-             copied, but the pointers need to be remapped. */
-          /* Make sure the same il_walk_flag value can be used for the function
-             scope as was used for the file scope.  This would not be true
-             if an extra IL walk of either region has been done. */
-          check_assertion(il_walk_flag_value_meaning_needs_processing ==
-                          !il_entry_prefix_of(rout_scope).il_walk_flag);
-          walk_routine_scope_il(corresp_routine->assoc_scope,
-                                copy_entry,
-                                copy_string_entry,
-                                (a_remap_function_ptr)NULL,
-                                copy_termination_test,
-                                /*clear_fe_pointers=*/FALSE);
-          rout_scope->part_of_secondary_trans_unit = FALSE;
-#if MAINTAIN_NEEDED_FLAGS
-          if (routine_needed_even_if_unreferenced(corresp_routine)) {
-            /* Mark an externally-defined routine as "needed". */
-            mark_as_needed((char *)corresp_routine,
-                           (an_il_entry_kind)iek_routine);
-          }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
-#if DO_IL_LOWERING
-          /* Lower the code in the function. */
-          lower_il_memory_region(corresp_routine->assoc_scope);
-#endif /* DO_IL_LOWERING */
-        }  /* if */
+        wrap_up_moved_function(corresp_routine);
       }  /* for */
     }  /* if */
     if (scope->templates != NULL) {
@@ -928,15 +965,17 @@ into the primary translation unit il_header.
   if (il_header.scope_orphaned_list_headers != NULL) {
     /* Add the scope orphaned list headers from "scope" to the end of the
        scope orphaned list headers list of "primary scope". */
+    a_scope_orphaned_list_header_ptr copied_solhps =
+               (a_scope_orphaned_list_header_ptr)canonical_il_entry_of(
+                                        il_header.scope_orphaned_list_headers);
     a_scope_orphaned_list_header_ptr last_solhp =
                             translation_units->last_scope_orphaned_list_header;
     if (last_solhp == NULL) {
-     translation_units->il_header.scope_orphaned_list_headers =
-                                         il_header.scope_orphaned_list_headers;
+     translation_units->il_header.scope_orphaned_list_headers = copied_solhps;
     } else {
-      last_solhp->next = il_header.scope_orphaned_list_headers;
+      last_solhp->next = copied_solhps;
     }  /* if */
-    last_solhp = il_header.scope_orphaned_list_headers;
+    last_solhp = copied_solhps;
     while (last_solhp->next != NULL) last_solhp = last_solhp->next;
     translation_units->last_scope_orphaned_list_header = last_solhp;
   }  /* if */
@@ -977,8 +1016,6 @@ secondary translation unit IL and therefore will not be copied.
   check_assertion(total_errors == 0 && !is_primary_translation_unit);
   check_assertion(!il_entry_prefix_of(primary_scope).il_lowering_flag);
   initial_value_for_il_lowering_flag = FALSE;
-  il_walk_flag_value_meaning_needs_processing =
-                               !il_entry_prefix_of(primary_scope).il_walk_flag;
   prepare_for_trans_unit_copy(primary_scope);
   copy_from_secondary_to_primary_IL();
   finish_trans_unit_copy(primary_scope);
