@@ -129,7 +129,7 @@ predicates.
 
 /* Object types are non-function and non-reference types that have sizes. */
 #define is_object(tp) (!is_function(tp) && !is_reference_ptr(tp) && \
-                       (tp)->size != 0)
+                       !is_incomplete(tp))
 
 /* Template parameter type. */
 #define is_template_param(tp) ((tp)->kind == (a_type_kind)tk_template_param)
