@@ -2213,11 +2213,10 @@ empty statement block.
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */
   } else {
-    a_translation_unit_ptr saved_tup = curr_translation_unit;
-    a_scope_ptr            class_scope = class_type->variant.
+    a_scope_ptr  class_scope = class_type->variant.
                                     class_struct_union.extra_info->assoc_scope;
-    a_symbol_ptr	   rout_sym;
-    a_boolean		   trans_unit_pushed;
+    a_symbol_ptr rout_sym;
+    a_boolean    trans_unit_pushed;
     rout_sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
     check_assertion(class_scope != NULL);
     /* Switch translation units if necessary. */
