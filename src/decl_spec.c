@@ -1630,7 +1630,6 @@ Set the name_linkage field of the class or enum type pointed to by tp.
 
 
 static a_boolean namespace_scope_should_be_pushed(a_symbol_ptr       tag_sym,
-                                                  a_symbol_locator   *loc,
                                                   a_source_position  *pos,
                                                   a_boolean          *err)
 /*
@@ -1656,16 +1655,6 @@ case return TRUE).
                                  scope->variant.assoc_namespace) {
     /* Push a namespace extension scope. */
     should_be_pushed = TRUE;
-  } else if (loc->is_qualified_name) {
-    /* A namespace-qualified name that refers to the current namespace is
-       not allowed in a definition. */
-    check_assertion_str2(scope->kind == (a_scope_kind)sck_namespace &&
-                         tag_sym->parent.namespace_ptr ==
-                                         scope->variant.assoc_namespace,
-                         "namespace_scope_should_be_pushed:",
-                         "expected curr-namespace qualified name");
-    pos_error(ec_qualifier_in_namespace_member_decl, pos);
-    *err = TRUE;
   }  /* if */
   return should_be_pushed;
 }  /* namespace_scope_should_be_pushed */
@@ -2347,7 +2336,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
                member.  Determine (1) whether it's legal in this context and
                if so, (2) whether a scope stack entry needs to be pushed. */
             a_boolean  scope_err = FALSE;
-            if (namespace_scope_should_be_pushed(tag_sym, &locator,
+            if (namespace_scope_should_be_pushed(tag_sym,
                                                  &tag_position, &scope_err)) {
               /* Push a namespace extension scope. */
               push_namespace_extension_scope(tag_sym->parent.namespace_ptr);
@@ -3084,8 +3073,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
         }  /* if */
       } else if (tag_sym->parent.namespace_ptr != NULL) {
         err = FALSE;
-        if (namespace_scope_should_be_pushed(tag_sym, &locator, &tag_position,
-                                             &err)) {
+        if (namespace_scope_should_be_pushed(tag_sym, &tag_position, &err)) {
           /* Push a namespace extension scope. */
           push_namespace_extension_scope(tag_sym->parent.namespace_ptr);
           namespace_extension_pushed = TRUE;

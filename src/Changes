@@ -1,5 +1,17 @@
 Version 3.4
 
+8/5/03   Spurious error on qualified name in namespace class definition
+
+If a previously declared class was defined in its namespace using a
+qualified name, an error was issued.  Although such an error is correct
+for functions, variables, etc., it is not correct for a class definition.
+Now fixed.
+
+  namespace N {
+    class X;
+    class N::X {};
+  };
+
 8/5/03   Microsoft calling convention keywords in diagnostics
 
 Setting SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE to TRUE no longer
