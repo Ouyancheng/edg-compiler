@@ -3880,9 +3880,6 @@ char_compare:
     case eok_comma:
 #if CHECKING
       check_result_not_used_flag(operand_1);
-      if (expr->type != operand_2->type) {
-        internal_error("dump_expression: comma expr has wrong type");
-      }  /* if */
 #endif /* CHECKING */
       dump_expression(operand_1, /*need_parens=*/TRUE);
       fputs(", ", f_C_output);
@@ -5412,6 +5409,7 @@ characters should be put out separately (to initialize a substring, probably).
 #if INCLUDE_ANNOTATIONS
       if (annotate && !*gen_assignments &&
           type->kind == (a_type_kind)tk_array) {
+        /* Display element numbers in arrays. */
         startline((a_seq_number)0);
         start_comment();
         (void)fprintf(f_C_output, " [%lu]: ", (unsigned long)ipdp->curr_elem);
