@@ -12472,11 +12472,13 @@ unlink_expr_destructions.
 {
   if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
     unlink_object_lifetime(expr->variant.object_lifetime.ptr);
+#if GNU_EXTENSIONS_ALLOWED
   } else if (expr->kind == (an_expr_node_kind)enk_statement) {
     /* Save time by not visiting the subtree for a statement expression,
        because we've ensured that there are no destructible entities
        therein. */
     tblock->suppress_subtree_walk = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* process_expr_for_unlink_destructions */
 

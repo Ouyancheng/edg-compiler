@@ -1078,11 +1078,13 @@ as part of looking for unordered temp inits.
                                           saved_set_unordered_on_dynamic_inits;
       tblock->suppress_subtree_walk = TRUE;
       break;
+#if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* There aren't any destructible entities in a statement expression,
          so there's no need to visit the subtree. */
       tblock->suppress_subtree_walk = TRUE;
       break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       /* There are no ordering issues for other cases. */
       break;
