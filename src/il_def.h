@@ -4102,7 +4102,7 @@ typedef struct a_routine {
 			/* TRUE for virtual member functions declared with a
 			   "pure" specifier (C++ only).  TRUE only if
 			   is_virtual is also TRUE. */
-  a_bit_field	covariant_return_virtual_override;
+  a_bit_field	covariant_return_virtual_override:1;
 			/* TRUE if is_virtual is TRUE and this routine is an
 			   overriding virtual function with a covariant
 			   return type (C++ only). */
