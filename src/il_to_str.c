@@ -1571,250 +1571,530 @@ Do the output in the way described by octl.
 }  /* form_pm_constant */
 
 
-static a_field_ptr select_anon_union_field_for_addr_constant(
-                                                       a_constant_ptr constant)
+static a_boolean type_matches_desired_type(a_type_ptr type,
+                                           a_type_ptr desired_type,
+                                           a_boolean  will_use_as_addr,
+                                           a_boolean  *type_decay_used)
 /*
-constant is the address of something in an anonymous union.  Choose a field
-of the anonymous union to be the thing whose address is taken, and return a
-pointer to it.
+Return TRUE if type is the same as desired_type, for the purpose of
+forming an lvalue as part of generating an address constant.
+If will_use_as_addr is TRUE, array-to-pointer decay can be considered
+in the match-up.  If type decay is used in making the match, return
+*type_decay_used TRUE.
 */
 {
-  a_variable_ptr var;
-  a_field_ptr    field;
-  a_type_ptr     anon_union_type;
+  a_boolean type_matches = FALSE;
 
-  check_assertion(constant->kind == (a_constant_repr_kind)ck_address &&
-                  constant->variant.address.kind ==
-                                           (an_address_base_kind)abk_variable);
-  var = constant->variant.address.variant.variable;
-  check_assertion(var->is_anonymous_parent_object);
-  anon_union_type = var->type;
-  field = anon_union_type->variant.class_struct_union.field_list;
-  /* Get the type of the thing pointed to by the constant. */
-  if (!is_pointer_type(constant->type)) {
-    /* The constant has a strange type, perhaps because it has been cast to
-       another type.  Use the first field. */
-  } else {
-    a_type_ptr type = type_pointed_to(constant->type);
-    /* See if any of the fields matches the desired type. */
-    for (; field != NULL; field = field->next) {
-      /* Stop on finding a field with the desired type. */
-      if (type == field->type) break;
-    }  /* for */
-    /* Use the first field if nothing matched. */
-    if (field == NULL) {
-      field = anon_union_type->variant.class_struct_union.field_list;
+  *type_decay_used = FALSE;
+  /* Check for the same type, ignoring qualifier differences. */
+  if (type == desired_type ||  /* For speed. */
+      same_type_with_added_qualifiers(type, desired_type,
+                                      /*ignore_qualifiers=*/TRUE,
+                                      (a_boolean *)NULL)) {
+    type_matches = TRUE;
+  } else if (will_use_as_addr) {
+    /* Check for the decay cases.  Note that this is checked only when the
+       result will be used as an address, and therefore will decay from an
+       lvalue to an rvalue.  Note that desired_type is an lvalue type, but
+       when will_use_as_addr is TRUE what we're really aiming for is
+       pointer-to that type, e.g., if type is "int[3]" and desired_type
+       is "int" there's a match, because the type after decay ("int *")
+       matches the type when you take the address of the lvalue.
+       Note that under this formulation there's no need to check for
+       the function decay, since it comes out the same as the first test
+       above. */
+    if (is_array_type(type)) {
+      a_type_ptr element_type = array_element_type(type);
+      if (same_type_with_added_qualifiers(element_type, desired_type,
+                                          /*ignore_qualifiers=*/TRUE,
+                                          (a_boolean *)NULL)) {
+        type_matches = TRUE;
+        *type_decay_used = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
-  return field;
-}  /* select_anon_union_field_for_addr_constant */
+  return type_matches;
+}  /* type_matches_desired_type */
 
 
-static void form_address_constant(
-                          a_constant_ptr                        constant,
-                          a_boolean                             do_indirection,
-                          a_boolean                             need_parens,
-                          an_il_to_str_output_control_block_ptr octl)
+static a_field_ptr select_union_field_for_addr_constant(
+                                                   a_type_ptr union_type,
+                                                   a_type_ptr desired_type,
+                                                   a_boolean  will_use_as_addr)
 /*
-Output the value of a ck_address constant.  If do_indirection is TRUE,
-do one level of indirection (i.e., remove the "&"); that's used for reference
-initializations.  If need_parens is TRUE, parentheses are placed around the
-constant if there's any possibility of precedence confusion.  Do the output
-in the way described by octl.
+union_type is a union type.  Try to find a field of that union that has type
+desired_type, and return a pointer to it.  If no field matches, return NULL.
+If will_use_as_addr is TRUE, array-to-pointer decay can be considered in
+matching the type.
 */
 {
-  a_boolean        need_second_ptr_close_paren = FALSE, need_scaling_cast;
-  a_boolean        need_ptr_cast, need_ptr_cast_close_paren = FALSE;
-  a_boolean        need_ampersand, need_offset_close_paren = FALSE;
-  a_boolean        need_ampersand_close_paren = FALSE;
-  a_type_ptr       orig_type = constant->type, underlying_object_type;
-  a_type_ptr       con_type;
-  a_targ_ptrdiff_t offset;
-  a_field_ptr      anon_union_field;
+  a_field_ptr field, selected_field = NULL;
+  a_boolean   type_decay_used;
 
-  con_type = skip_typerefs(orig_type);
-  /* We need a cast to the result type if the constant is implicitly
-     cast to another type (but we may be able to optimize it away). */
-  need_ptr_cast = constant->implicit_cast;
-  need_scaling_cast = FALSE;
-  /* Extract the underlying type. */
-  need_ampersand = TRUE;
+  /* Go through the fields, looking for one with the right type. */
+  for (field = union_type->variant.class_struct_union.field_list;
+       field != NULL;
+       field = field->next) {
+    if (type_matches_desired_type(field->type, desired_type,
+                                  will_use_as_addr, &type_decay_used)) {
+      /* If there are several fields with the same type, favor the one with
+         the most access. */
+      if (field->source_corresp.access == (an_access_specifier)as_public) {
+        selected_field = field;
+        break;
+      }  /* if */
+      if (selected_field == NULL ||
+          is_more_accessible(field->source_corresp.access,
+                             selected_field->source_corresp.access)) {
+        /* This field is not public, but it's the most accessible field of
+           the right type we've seen so far, so remember it and keep
+           looking. */
+        selected_field = field;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return selected_field;
+}  /* select_union_field_for_addr_constant */
+
+
+static a_field_ptr select_arbitrary_field_of_union(a_type_ptr union_type)
+/*
+union_type points to a union.  Select an arbitrary field from that union
+and return a pointer to it.  But try to pick a field that does not have
+a class type, because putting a "&" in front of a class can run into
+problems if the class overloads operator&.  Generates an internal error
+if given an empty union.
+/*
+*/
+{
+  a_field_ptr field;
+
+  /* Go though the fields, looking for one with a non-class type. */
+  for (field = union_type->variant.class_struct_union.field_list;
+       field != NULL;
+       field = field->next) {
+    a_type_ptr ftype = skip_typerefs(field->type);
+    if (ftype->kind != (a_type_kind)tk_class &&
+        ftype->kind != (a_type_kind)tk_struct) break;
+  }  /* for */
+  if (field == NULL) {
+    /* No field had a non-class type, so use the first field. */
+    field = union_type->variant.class_struct_union.field_list;
+    /* Unions can be empty, but we shouldn't be taking the address of
+       something inside an empty one. */
+    check_assertion(field != NULL);
+  }  /* if */
+  return field;
+}  /* select_arbitrary_field_of_union */
+
+
+static void form_lvalue_for_addressed_entity(
+                   a_constant_ptr                        constant,
+                   a_type_ptr                            desired_type,
+                   a_boolean                             will_use_as_addr,
+                   a_boolean                             base_entity_only,
+                   a_boolean                             gen_output,
+                   a_type_ptr                            *achieved_type,
+                   a_boolean                             *type_decay_used,
+                   a_targ_ptrdiff_t                      *offset,
+                   a_boolean                             *formed_useful_lvalue,
+                   an_il_to_str_output_control_block_ptr octl)
+/*
+Output code that is an lvalue for the entity addressed by the ck_address
+constant "constant".  This is done as part of outputting an address constant.
+The output can be as simple as "x" or something more complicated like
+"x.a.b[5]".  desired_type is the lvalue type ultimately wanted, or NULL
+if no preference is indicated; will_use_as_addr is TRUE if the lvalue
+will be used as an address (rather than directly as an lvalue).  If
+base_entity_only is TRUE, the base entity is put out but no attempt is
+made to add addressing modifiers to it.  On return, *achieved_type is set
+to the type of the lvalue.  If type decay was used in making the match,
+*type_decay_used is returned TRUE, and *achieved_type is the type after
+the type decay, minus the top-level pointer-to.  *offset is set to
+whatever part of the ck_address constant offset couldn't be dealt with
+in the lvalue.  If the type achieved is the desired type, ignoring
+type qualifiers, and the offset was dealt with in some appropriate way,
+*formed_useful_lvalue is returned TRUE.  If it's returned FALSE,
+*achieved_type is set to the base entity type.  Do the output in the
+way described by octl, but output nothing if gen_output == FALSE; that
+is used for a first exploratory pass.  Note that the addressing
+operators put out by this routine are never affected by overloading.
+That is, this routine never puts out something like a "&" on a class
+that might have operator& overloaded.  However, this routine still
+generates code that is not compilable in some obscure C++ cases (e.g.,
+taking the address of an inaccessible nonstatic data member of a class);
+the C++-generating back end avoids that by arranging to have constant
+addressing operations not folded to constants so that such cases won't
+come here.  Parentheses are not put around the output; all the
+operations generated bind very tightly to the identifier, so
+parentheses are not needed.
+*/
+{
+  a_type_ptr              type, orig_type;
+  a_constant_ptr          con;
+  a_source_correspondence *entity_scp = NULL;
+  an_il_entry_kind        entity_kind;
+  a_field_ptr             field;
+  a_boolean               proper_type = FALSE;
+  a_boolean               local_type_decay_used;
+  a_targ_ptrdiff_t        orig_offset = constant->variant.address.offset;
+
+  *formed_useful_lvalue = FALSE;
+  *type_decay_used = FALSE;
+  *offset = orig_offset;
+  /* Get the type of the underlying entity. */
   switch (constant->variant.address.kind) {
     case abk_routine:
-      underlying_object_type = constant->variant.address.variant.routine->type;
-      /* Exploit the implicit decay to pointer. */
-      if (!do_indirection) need_ampersand = FALSE;
+      /* A routine. */
+      { a_routine_ptr rout = constant->variant.address.variant.routine;
+        type = rout->type;
+        entity_kind = iek_routine;
+        entity_scp = &rout->source_corresp;
+        *type_decay_used = TRUE;
+      }
       break;
     case abk_variable:
+      /* A variable. */
       { a_variable_ptr var = constant->variant.address.variant.variable;
-        anon_union_field = NULL;
+        /* In C++, an anonymous union cannot be named directly, so we have to
+           find a field within the union. */
         if (var->is_anonymous_parent_object && !octl->c_generating_back_end) {
-          /* Address of something within an anonymous union. */
-          anon_union_field =
-                           select_anon_union_field_for_addr_constant(constant);
-          underlying_object_type = anon_union_field->type;
+          a_type_ptr  union_type = skip_typerefs(var->type);
+          field = select_union_field_for_addr_constant(union_type,
+                                                       desired_type,
+                                                       will_use_as_addr);
+          if (field == NULL) {
+            /* If no field matches, choose one mostly arbitrarily. */
+            /* Note that we're lucky that anonymous unions cannot have
+               nonpublic members. */
+            field = select_arbitrary_field_of_union(union_type);
+          }  /* if */
+          type = field->type;
+          entity_kind = iek_field;
+          entity_scp = &field->source_corresp;
         } else {
-          /* Normal variable case. */
-          underlying_object_type = var->type;
+          /* Normal variable, not anonymous union. */
+          type = var->type;
+          entity_kind = iek_variable;
+          entity_scp = &var->source_corresp;
         }  /* if */
       }
       break;
     case abk_constant:
-      underlying_object_type= constant->variant.address.variant.constant->type;
+      /* Address of a constant, specifically a string. */
+      con = constant->variant.address.variant.constant;
+      check_assertion_str(con->kind == (a_constant_repr_kind)ck_string,
+                 "form_lvalue_for_addressed_entity: address of nonstring con");
+      type = con->type;
       break;
     default:
       unexpected_condition_str(
-                              "form_address_constant: bad addr constant kind");
+                   "form_lvalue_for_addressed_entity: bad addr constant kind");
   }  /* switch */
-  underlying_object_type = skip_typerefs(underlying_object_type);
-  if (underlying_object_type->kind == (a_type_kind)tk_array &&
-      !do_indirection) {
-    /* For an array, we may be able to exploit the implicit decay to
-       pointer to avoid the "&". */
-    /* If the constant is the address of the array instead of a pointer
-       to the first element, favor the "&x" notation. */
-    a_boolean keep_ampersand = FALSE;
-    if (!constant->implicit_cast) {
-      /* Since the constant type was not changed, this must be the address
-         of the array. */
-      if (octl->gen_pcc_code) {
-        /* Don't do address-of-array in pcc mode, because pcc gives warnings
-           on that and uses the pointer-to-element type anyway. */
-        keep_ampersand = FALSE;
-      } else if (constant->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant &&
-                 constant->variant.address.variant.constant->kind ==
-                                             (a_constant_repr_kind)ck_string) {
-        /* Address of a string constant.  Some ANSI/ISO C compilers have
-           difficulty with that, perhaps because they don't believe a string
-           is an lvalue. */
-        keep_ampersand = !octl->gen_compilable_code;
+  orig_type = type;
+  /* If the desired type was not specified, use the entity type. */
+  if (desired_type == NULL) desired_type = type;
+  /* Put out the base entity name or constant. */
+  if (gen_output) {
+    if (entity_scp != NULL) {
+      form_name(entity_scp, entity_kind, octl);
+    } else {
+      /* Constant case. */
+      form_constant(con, /*need_parens=*/FALSE, octl);
+    }  /* if */
+  }  /* if */
+  /* If the type is right and the offset is zero, we have what we need. */
+  local_type_decay_used = FALSE;
+  if (!constant->implicit_cast || /* For speed. */
+      type_matches_desired_type(type, desired_type, will_use_as_addr,
+                                &local_type_decay_used)) {
+    proper_type = TRUE;
+  }  /* if */
+  if (proper_type && orig_offset == 0) {
+    /* The base entity has the type and offset we need. */
+    *formed_useful_lvalue = TRUE;
+    /* Note we're careful not to clear *type_decay_used if it was set above
+       for the function case. */
+    if (local_type_decay_used) *type_decay_used = TRUE;
+  } else if (base_entity_only) {
+    /* We've been told not to look at addressing modifiers, so stop here. */
+  } else {
+    /* Loop, refining the lvalue each time around, until we get something with
+       the right type and right address, or until we decide to give up. */
+    for (;;) {
+      a_type_ptr unqual_type = skip_typerefs(type);
+      if (unqual_type->kind == (a_type_kind)tk_array) {
+        /* Array. */
+        /* When forming an address for an array element, it sometimes makes
+           sense to leave part of the offset to be done by the caller.
+             A arr[4];
+             A *p = arr + 2;
+           This form works better than "&arr[2]", which might be taking the
+           address of a class object whose operator& is overloaded. */
+        if (proper_type && will_use_as_addr) {
+          *formed_useful_lvalue = TRUE;
+          *type_decay_used = TRUE;
+          break;
+        } else {
+          /* Add a subscripting operation. */
+          a_type_ptr       element_type = array_element_type(unqual_type);
+          a_targ_ptrdiff_t element_size = f_skip_typerefs(element_type)->size;
+          a_targ_ptrdiff_t index = *offset / element_size;
+          /* C division of negative numbers does not necessarily truncate
+             towards zero.  If it doesn't, adjust to the result one would get
+             if it did.  See comments in the routine divide_integers. */
+          if (*offset < 0 && (*offset % element_size) > 0) index++;
+          /* Put out the subscripting operation. */
+          if (gen_output) {
+            octl->output_str("[");
+            form_num(index, octl);
+            octl->output_str("]");
+          }  /* if */
+          type = element_type;
+          *offset -= index * element_size;
+        }  /* if */
+      } else if (unqual_type->kind == (a_type_kind)tk_class ||
+                 unqual_type->kind == (a_type_kind)tk_struct) {
+        /* A class; try to find a field with the right offset, or at least
+           get closer. */
+        /* Give up if the offset is outside the class bounds. */
+        if (*offset < 0 ||
+            *offset >= (a_targ_ptrdiff_t)unqual_type->size) break;
+        for (field = unqual_type->variant.class_struct_union.field_list;
+             field != NULL;
+             field = field->next) {
+          /* Look for a field with the right offset.  We do a full check
+             on the bounds of the field because there might be holes between
+             fields (e.g., base classes). */
+          if ((a_targ_ptrdiff_t)field->offset <= *offset &&
+              *offset < (a_targ_ptrdiff_t)(field->offset +
+                                      skip_typerefs(field->type)->size) &&
+              /* Ignore bit fields, at least those not on byte boundaries. */
+              field->offset_bit_remainder == 0) break;
+        }  /* for */
+        /* Watch out for classes with no fields. */
+        if (field == NULL) break;
+        /* Put out the field selection. */
+        if (gen_output) {
+          /* Skip the selection if it's an anonymous union field. */
+          if (has_name(field)) {
+            octl->output_str(".");
+            form_unqualified_name(&field->source_corresp, iek_field, octl);
+          }  /* if */
+        }  /* if */
+        type = field->type;
+        *offset -= (a_targ_ptrdiff_t)field->offset;
+      } else if (unqual_type->kind == (a_type_kind)tk_union) {
+        /* For a union, try to find a field with the right type.  If there's
+           no match at the top level, don't try to find some sub-aggregate
+           of those fields that will give the right offset; just give up. */
+        if (*offset != 0) break;
+        field = select_union_field_for_addr_constant(unqual_type,
+                                                     desired_type,
+                                                     will_use_as_addr);
+        if (field == NULL) break;
+        /* Found a field with the right type, so use it. */
+        /* Put out the field selection. */
+        if (gen_output) {
+          octl->output_str(".");
+          form_unqualified_name(&field->source_corresp, iek_field, octl);
+        }  /* if */
+        type = field->type;
       } else {
-        /* Keep the ampersand. */
-        keep_ampersand = TRUE;
+        /* Some other type (not an aggregate); we can't adjust the offset or
+           type.  Give up. */
+        break;
+      }  /* if */
+      /* If the offset is now zero, and the type is right, we have what we
+         need. */
+      if (type_matches_desired_type(type, desired_type, will_use_as_addr,
+                                    &local_type_decay_used)) {
+        proper_type = TRUE;
+      }  /* if */
+      if (proper_type && *offset == 0) {
+        *formed_useful_lvalue = TRUE;
+        *type_decay_used = local_type_decay_used;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (*formed_useful_lvalue) {
+    if (*type_decay_used &&
+        constant->variant.address.kind != (an_address_base_kind)abk_routine) {
+      /* Adjust the type to reflect that fact that type decay was used.
+         The type returned is the type under the resulting pointer type.
+         Note that because of the convention used for the type, function
+         to pointer decay does not change the type. */
+      type = array_element_type(type);
+    }  /* if */
+  } else {
+    /* If we didn't succeed in getting the right type and offset, roll the
+       type and offset back to the original from the base entity. */
+    type = orig_type;
+    *offset = orig_offset;
+  }  /* if */
+  *achieved_type = type;
+}  /* form_lvalue_for_addressed_entity */
+
+
+static void form_address_constant(
+                          a_constant_ptr                        constant,
+                          a_boolean                             form_lvalue,
+                          a_boolean                             need_parens,
+                          an_il_to_str_output_control_block_ptr octl)
+/*
+Output the value of a ck_address constant.  If form_lvalue is TRUE,
+put out an lvalue for the thing at that address.  If need_parens is TRUE,
+parentheses are placed around the constant if there's any possibility of
+precedence confusion.  Do the output in the way described by octl.
+*/
+{
+  a_type_ptr       orig_type = constant->type;
+  a_type_ptr       con_type, desired_type, achieved_type;
+  a_targ_ptrdiff_t offset, dummy_offset;
+  a_boolean        cast_to_nonpointer = FALSE, type_decay_used;
+  a_boolean        final_cast_needed = FALSE;
+  a_boolean        need_final_cast_close_paren = FALSE;
+  a_boolean        need_offset_addition_close_paren = FALSE;
+  a_boolean        need_char_star_cast_close_paren = FALSE;
+  a_boolean        formed_useful_lvalue, need_char_star_cast = FALSE;
+
+  con_type = skip_typerefs(orig_type);
+  /* When the address constant is cast to some strange type (e.g., long),
+     do that as a final cast and don't try to accommodate it in the normal
+     processing. */
+  /* Note that the test for pointer includes reference as well. */
+  if (constant->implicit_cast && con_type->kind != (a_type_kind)tk_pointer) {
+    check_assertion(!form_lvalue);
+    cast_to_nonpointer = TRUE;
+    final_cast_needed = TRUE;
+    desired_type = NULL;
+  } else {
+    desired_type = con_type;
+    desired_type = type_pointed_to(desired_type);
+  }  /* if */
+  /* Examine the addressed entity (without generating any code) to
+     determine how it will be put out as an lvalue.  This lets us decide
+     on putting out a leading cast, etc. before the lvalue is put out. */
+  form_lvalue_for_addressed_entity(constant, desired_type,
+                                   /*will_use_as_addr=*/!form_lvalue,
+                                   /*base_entity_only=*/FALSE,
+                                   /*gen_output=*/FALSE,
+                                   &achieved_type, &type_decay_used, &offset,
+                                   &formed_useful_lvalue, octl);
+  if (!type_decay_used && is_array_type(achieved_type) && !form_lvalue) {
+    /* Array for which type decay is not being used.  This means, so far,
+       that we plan to put a "&" in front of the array.  See if there's a
+       reason not to. */
+    if (octl->gen_pcc_code) {
+      /* Don't do address-of-array in pcc mode, because pcc gives warnings
+         on that and uses the pointer-to-element type anyway. */
+      final_cast_needed = TRUE;
+      type_decay_used = TRUE;
+    } else if (octl->gen_compilable_code &&
+               constant->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant &&
+               constant->variant.address.variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string) {
+      /* Address of a string constant, e.g., &"abc".  Some ANSI/ISO C
+         compilers have difficulty with that, perhaps because they don't
+         believe a string is an lvalue.  Force type decay and a cast. */
+      final_cast_needed = TRUE;
+      type_decay_used = TRUE;
+    }  /* if */
+  }  /* if */
+  if (offset != 0) {
+    /* The offset is nonzero.  The general way of dealing with this is to cast
+       to "char *" add add in the offset.  However, in the right situation
+       the addition can be done without going to "char *". */
+    need_char_star_cast = TRUE;
+    if (!form_lvalue) {
+      a_targ_ptrdiff_t size = f_skip_typerefs(achieved_type)->size;
+      if ((offset % size) == 0) {
+        need_char_star_cast = FALSE;
+        offset /= size;
       }  /* if */
     }  /* if */
-    if (!keep_ampersand) {
-      /* Exploit the implicit decay to pointer.
-         This is particularly helpful in cases where the underlying
-         variable is something like
-           struct _iobuf x[];
-         for which the array has zero size but the element size is
-         known. */
-      need_ampersand = FALSE;
-      underlying_object_type =
-                            underlying_object_type->variant.array.element_type;
-      /* If the constant type desired is exactly the type that results from
-         the type decay, we don't need a cast.  Otherwise, we do. */
-      need_ptr_cast = TRUE;
-      if (orig_type->kind == (a_type_kind)tk_pointer) {
-        if (orig_type->variant.pointer.type == underlying_object_type) {
-          need_ptr_cast = FALSE;
+    if (need_char_star_cast) final_cast_needed = TRUE;
+  }  /* if */
+  if (!final_cast_needed &&
+      !types_are_compatible(achieved_type, desired_type)) {
+    /* The proper type couldn't be achieved with address operators, so we
+       need a final cast to adjust the type.  One important category of cases
+       this handles is cases that require just qualification adjustments. */
+    final_cast_needed = TRUE;
+  }  /* if */  
+  if (final_cast_needed) {
+    /* Generate a final cast to the constant type. */
+    output_optional_open_paren(&need_parens,
+                               &need_final_cast_close_paren, octl);
+    if (!form_lvalue) {
+      /* Forming an address, not an lvalue. */
+      form_cast(con_type, octl);
+      if (cast_to_nonpointer) {
+        a_targ_alignment alignment;
+        /* This is a case where the final type is a nonpointer.  If the
+           final type is a small integer, cast to unsigned long and then
+           to the final type. */
+        if (is_integral_type(con_type) &&
+            con_type->size < size_of_pointer_to(achieved_type, &alignment)) {
+          octl->output_str("(unsigned long)");
         }  /* if */
       }  /* if */
-      underlying_object_type = skip_typerefs(underlying_object_type);
-    }  /* if */
-  }  /* if */
-  /* Look at the offset. */
-  offset = constant->variant.address.offset;
-  if (offset != 0) {
-    a_targ_size_t underlying_object_size = underlying_object_type->size;
-    /* Non-zero offset.  Deal with scaling issues. */
-    /* See if the size of the underlying object is such that scaling
-       can be done implicitly instead of playing tricks with casting
-       to "char *" and back. */
-    if (underlying_object_size != 0 &&
-        (offset % (a_targ_ptrdiff_t)underlying_object_size) == 0) {
-      /* The offset is divisible by the size of the object, so adjust
-         the offset to the proper units. */
-      offset /= (a_targ_ptrdiff_t)underlying_object_size;
     } else {
-      /* The offset is not evenly divisible by the object size, so
-         we need to cast to "char *" and back again. */
-      need_scaling_cast = TRUE;
-      need_ptr_cast = TRUE;  /* To get cast back. */
-    }  /* if */
-  }  /* if */
-  if (need_ptr_cast) {
-    a_type            type_copy;
-    a_type_ptr        cast_type = orig_type;
-    a_targ_alignment  alignment;
-
-    /* Start with a cast to the desired result type. */
-    output_optional_open_paren(&need_parens, &need_ptr_cast_close_paren, octl);
-    /* For the do_indirection case, cast to a reference type instead of the
-       pointer type that's there. */
-    if (do_indirection) {
-      /* Don't change the type if it's not a pointer type. */
-      if (con_type->kind == (a_type_kind)tk_pointer &&
-          !con_type->variant.pointer.is_reference) {
-        type_copy = *con_type;
-        type_copy.variant.pointer.is_reference = TRUE;
-        cast_type = &type_copy;
-      }  /* if */
-    }  /* if */
-    form_cast(cast_type, octl);
-    /* Look for cases where a pointer is implicitly cast to a strange type
-       (e.g., "char").  The original code probably did this conversion
-       as two casts, but the implicit_cast mechanism only retains
-       information on the final type.  In such cases, go by way of a
-       cast to unsigned long. */
-    if (is_ptr_or_ref_type(con_type) ||
-        (is_integral_type(con_type) &&
-         con_type->size >= size_of_pointer_to(underlying_object_type,
-                                              &alignment))) {
-      /* Okay. */
-    } else {
-      need_second_ptr_close_paren = TRUE;
-      octl->output_str("((unsigned long)");
-    }  /* if */
-  }  /* if */
-  if (offset != 0) {
-    output_optional_open_paren(&need_parens, &need_offset_close_paren, octl);
-    if (need_scaling_cast) {
-      /* Need a cast to "char *" to get the offset scaling right. */
-      octl->output_str("(char *)");
-    }  /* if */
-  }  /* if */
-  if (do_indirection) {
-    /* Do one level of indirection, i.e., remove the "&". */
-    need_ampersand = FALSE;
-  }  /* if */
-  /* If using an ampersand, surround the name with parentheses to avoid
-     precedence problems. */
-  if (need_ampersand) {
-    output_optional_open_paren(&need_parens, &need_ampersand_close_paren,
-                               octl);
-    octl->output_str("&");
-  }  /* if */
-  switch (constant->variant.address.kind) {
-    case abk_routine:
-      form_name(&constant->variant.address.variant.routine->source_corresp,
-                iek_routine, octl);
-      break;
-    case abk_variable:
-      if (anon_union_field != NULL) {
-        /* The address of a field in an anonymous union. */
-        form_name(&anon_union_field->source_corresp, iek_field, octl);
+      a_type type_copy;
+      /* When forming an lvalue (C++ only), generate a reference cast.
+         Make a copy of the type so it can be changed to a reference type. */
+      check_assertion(con_type->kind == (a_type_kind)tk_pointer);
+      type_copy = *con_type;
+      if (offset != 0 || il_header.source_language != sl_Cplusplus) {
+        /* However, that's not possible when the offset is nonzero, or in
+           C.  For those cases, use "*(type *)&x". */
+        octl->output_str("*");
+        type_copy.variant.pointer.is_reference = FALSE;
+        form_cast(&type_copy, octl);
+        form_lvalue = FALSE;
+        type_decay_used = FALSE;
       } else {
-        /* Normal variable. */
-        form_name(&constant->variant.address.variant.variable->source_corresp,
-                  iek_variable, octl);
+        /* Offset is zero, so use reference cast. */
+        type_copy.variant.pointer.is_reference = TRUE;
+        form_cast(&type_copy, octl);
       }  /* if */
-      break;
-    case abk_constant:
-      /* Address of a constant, specifically a string. */
-      check_assertion_str(constant->variant.address.variant.constant->kind
-                                            == (a_constant_repr_kind)ck_string,
-                          "form_address_constant: address of nonstring con");
-      form_constant(constant->variant.address.variant.constant,
-                    /*need_parens=*/FALSE, octl);
-      break;
-    default:
-      unexpected_condition_str(
-                              "form_address_constant: bad addr constant kind");
-  }  /* switch */
-  output_optional_close_paren(need_ampersand_close_paren, octl);
+    }  /* if */
+  }  /* if */
+  if (offset != 0) {
+    /* The offset couldn't be handled with addressing operators, so it
+       will be added in later.  Put parentheses around the offset
+       computation. */
+    output_optional_open_paren(&need_parens,
+                               &need_offset_addition_close_paren, octl);
+  }  /* if */
+  if (need_char_star_cast) {
+    /* Cast to "char *" because the scaling on the offset addition is wrong
+       otherwise. */
+    output_optional_open_paren(&need_parens,
+                               &need_char_star_cast_close_paren, octl);
+    octl->output_str("(char *)");
+  }  /* if */
+  if (!form_lvalue) {
+    /* Forming an address, not an lvalue. */
+    /* Use array --> pointer or function --> pointer decay to get an address,
+       if that's appropriate.  Otherwise a "&" must be put out. */
+    if (type_decay_used) {
+      /* Using type decay to get a pointer. */
+    } else {
+      octl->output_str("&");
+    }  /* if */
+  }  /* if */
+  /* Generate code for the lvalue for the entity. */
+  form_lvalue_for_addressed_entity(constant, desired_type,
+                                   /*will_use_as_addr=*/!form_lvalue,
+                                   /*base_entity_only=*/!formed_useful_lvalue,
+                                   /*gen_output=*/TRUE,
+                                   &achieved_type, &type_decay_used,
+                                   &dummy_offset,
+                                   &formed_useful_lvalue, octl);
+  output_optional_close_paren(need_char_star_cast_close_paren, octl);
   if (offset != 0) {
     /* Add in the (signed) offset. */
     if (offset >= 0) {
@@ -1824,10 +2104,9 @@ in the way described by octl.
       octl->output_str(" ");
     }  /* if */
     form_num((long)offset, octl);
-    output_optional_close_paren(need_offset_close_paren, octl);
+    output_optional_close_paren(need_offset_addition_close_paren, octl);
   }  /* if */
-  output_optional_close_paren(need_second_ptr_close_paren, octl);
-  output_optional_close_paren(need_ptr_cast_close_paren, octl);
+  output_optional_close_paren(need_final_cast_close_paren, octl);
 }  /* form_address_constant */
 
 
@@ -2080,7 +2359,7 @@ confusion.  Do the output in the way described by octl.
 #ifdef CFE
     case ck_address:
       /* Address constant. */
-      form_address_constant(constant, /*do_indirection=*/FALSE, need_parens,
+      form_address_constant(constant, /*form_lvalue=*/FALSE, need_parens,
                             octl);
       break;
     case ck_ptr_to_member:
@@ -2177,8 +2456,7 @@ way described by octl.
 {
   if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* An address constant (the usual case).  Drop one level of "&". */
-    form_address_constant(constant, /*do_indirection=*/TRUE,
-                          need_parens, octl);
+    form_address_constant(constant, /*form_lvalue=*/TRUE, need_parens, octl);
   } else {
     /* For other cases, e.g.,
          int &r = *(int *)5;
