@@ -1695,7 +1695,7 @@ of bit-fields, where the size in bits is needed in addition to the base type.
       internal_error(
                  "node_type_after_integral_promotion: bit-field not integral");
     }  /* if */
-    if (field->bit_size > TARG_SIZEOF_LONG*TARG_CHAR_BIT) {
+    if (field->bit_size > (unsigned int)(TARG_SIZEOF_LONG*TARG_CHAR_BIT)) {
       /* This is supposedly prevented by the definition of
          TARG_MAX_BIT_FIELD_SIZE. */
       internal_error("node_type_after_integral_promotion: bit-field too big");
@@ -1711,12 +1711,13 @@ of bit-fields, where the size in bits is needed in addition to the base type.
 #if LONG_LONG_ALLOWED
       /* ... or long long or unsigned long long. */
 #endif /* LONG_LONG_ALLOWED */
-      if (field->bit_size <= TARG_SIZEOF_INT*TARG_CHAR_BIT) {
+      if (field->bit_size <= (unsigned int)(TARG_SIZEOF_INT*TARG_CHAR_BIT)) {
         ikind = is_signed ? (an_integer_kind)ik_int :
                             (an_integer_kind)ik_unsigned_int;
       } else {
 #if LONG_LONG_ALLOWED
-        if (field->bit_size <= TARG_SIZEOF_LONG*TARG_CHAR_BIT) {
+        if (field->bit_size <=
+                            (unsigned int)(TARG_SIZEOF_LONG*TARG_CHAR_BIT)) {
 #endif /* LONG_LONG_ALLOWED */
           ikind = is_signed ? (an_integer_kind)ik_long :
                               (an_integer_kind)ik_unsigned_long;
@@ -1735,11 +1736,12 @@ of bit-fields, where the size in bits is needed in addition to the base type.
 #if LONG_LONG_ALLOWED
         /* ... or long long. */
 #endif /* LONG_LONG_ALLOWED */
-        if (field->bit_size <= TARG_SIZEOF_INT*TARG_CHAR_BIT) {
+        if (field->bit_size <= (unsigned int)(TARG_SIZEOF_INT*TARG_CHAR_BIT)) {
           ikind = (an_integer_kind)ik_int;
         } else {
 #if LONG_LONG_ALLOWED
-          if (field->bit_size <= TARG_SIZEOF_LONG*TARG_CHAR_BIT) {
+          if (field->bit_size <=
+                             (unsigned int)(TARG_SIZEOF_LONG*TARG_CHAR_BIT)) {
 #endif /* LONG_LONG_ALLOWED */
             ikind = (an_integer_kind)ik_long;
 #if LONG_LONG_ALLOWED
@@ -1755,19 +1757,23 @@ of bit-fields, where the size in bits is needed in addition to the base type.
 #if LONG_LONG_ALLOWED
         /* ... or long long or unsigned long long. */
 #endif /* LONG_LONG_ALLOWED */
-        if (field->bit_size < TARG_SIZEOF_INT*TARG_CHAR_BIT) {
+        if (field->bit_size < (unsigned int)(TARG_SIZEOF_INT*TARG_CHAR_BIT)) {
           ikind = (an_integer_kind)ik_int;
-        } else if (field->bit_size == TARG_SIZEOF_INT*TARG_CHAR_BIT) {
+        } else if (field->bit_size ==
+                              (unsigned int)(TARG_SIZEOF_INT*TARG_CHAR_BIT)) {
           ikind = (an_integer_kind)ik_unsigned_int;
-        } else if (field->bit_size < TARG_SIZEOF_LONG*TARG_CHAR_BIT) {
+        } else if (field->bit_size <
+                             (unsigned int)(TARG_SIZEOF_LONG*TARG_CHAR_BIT)) {
           ikind = (an_integer_kind)ik_long;
         } else {
 #if LONG_LONG_ALLOWED
-          if (field->bit_size == TARG_SIZEOF_LONG*TARG_CHAR_BIT) {
+          if (field->bit_size ==
+                            (unsigned int)(TARG_SIZEOF_LONG*TARG_CHAR_BIT)) {
 #endif /* LONG_LONG_ALLOWED */
             ikind = (an_integer_kind)ik_unsigned_long;
 #if LONG_LONG_ALLOWED
-          } else if (field->bit_size < TARG_SIZEOF_LONG_LONG*TARG_CHAR_BIT) {
+          } else if (field->bit_size <
+                         (unsigned int)(TARG_SIZEOF_LONG_LONG*TARG_CHAR_BIT)) {
             ikind = (an_integer_kind)ik_long_long;
           } else {
             ikind = (an_integer_kind)ik_unsigned_long_long;

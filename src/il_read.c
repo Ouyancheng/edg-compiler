@@ -49,15 +49,15 @@ static a_boolean
 			   reading IL for a function scope. */
 #if ALTERNATE_IL_FILE_FORMAT
 static an_il_entry_number
-		entry_count_array[(int)iek_last],
-		fs_entry_count_array[(int)iek_last];
+		entry_count_array[(unsigned int)iek_last],
+		fs_entry_count_array[(unsigned int)iek_last];
 			/* Array giving, for each IL entry kind, the number
 			   of entries of that kind.  For string entries, the
 			   number is the total size of strings of that kind.
 			   The "fs_" array is for the file scope, the other is
 			   for a function scope. */
 #if CHECKING && DEBUG
-static a_byte	*entry_read_array[(int)iek_last];
+static a_byte	*entry_read_array[(unsigned int)iek_last];
 			/* Array of pointers, for each IL entry kind,
 			   pointing to a boolean array denoting which
 			   entries of that kind have been read. */
@@ -327,7 +327,7 @@ necessary to make it directly accessible in memory.
   char                      *entry_ptr;
   a_boolean                 is_string_entry;
 #if CHECKING
-  an_il_entry_number        count_of_entries_read[(int)iek_last];
+  an_il_entry_number        count_of_entries_read[(unsigned int)iek_last];
   an_il_entry_number        trimmed_entry_number;
 #endif /* CHECKING */
 #else /* !ALTERNATE_IL_FILE_FORMAT */
@@ -388,8 +388,8 @@ necessary to make it directly accessible in memory.
      The space for all entries of a given kind is allocated contiguously,
      so it's in effect an array of entries of that kind. */
   init_memory_region(region_number, (sizeof_t)0);
-  for (byte_entry_kind = 1+(int)iek_none;
-       byte_entry_kind < (int)iek_last;
+  for (byte_entry_kind = 1+(unsigned int)iek_none;
+       byte_entry_kind < (unsigned int)iek_last;
        byte_entry_kind++) {
     sizeof_t gross_entry_size;
 
@@ -435,15 +435,15 @@ necessary to make it directly accessible in memory.
      entry, because local scopes (prototype scopes, block scopes) get processed
      first in the IL walk. */
   il_header.region_scope_entry[region_number] = (a_scope_ptr)
-               remap_entry_number_to_ptr(entry_count_array_ptr[(int)iek_scope],
-                                         reading_file_scope_il,
-                                         iek_scope);
+      remap_entry_number_to_ptr(entry_count_array_ptr[(unsigned int)iek_scope],
+                                reading_file_scope_il,
+                                iek_scope);
 #if CHECKING
   /* Zero the array used to count entries as they are read, to check that
      all of them are read.  Note that the [0] entry is zeroed just to make
      debug output look pretty. */
-  for (byte_entry_kind = (int)iek_none;
-       byte_entry_kind < (int)iek_last;
+  for (byte_entry_kind = (unsigned int)iek_none;
+       byte_entry_kind < (unsigned int)iek_last;
        byte_entry_kind++) {
     count_of_entries_read[byte_entry_kind] = 0;
   }  /* for */
@@ -463,7 +463,8 @@ necessary to make it directly accessible in memory.
     }  /* if */
 #endif /* DEBUG */
 #if CHECKING
-    if (byte_entry_kind <= (int)iek_none || byte_entry_kind >= (int)iek_last) {
+    if (byte_entry_kind <= (unsigned int)iek_none ||
+        byte_entry_kind >= (unsigned int)iek_last) {
       internal_error("read_memory_region: bad entry kind");
     }  /* if */
     /* Remove the tag bit from a function scope entry number in order
@@ -559,8 +560,8 @@ necessary to make it directly accessible in memory.
     a_boolean errors = FALSE;
 
     /* Check that all the entries expected have in fact been read. */
-    for (byte_entry_kind = 1+(int)iek_none;
-         byte_entry_kind < (int)iek_last;
+    for (byte_entry_kind = 1+(unsigned int)iek_none;
+         byte_entry_kind < (unsigned int)iek_last;
          byte_entry_kind++) {
       if (count_of_entries_read[byte_entry_kind] !=
           entry_count_array_ptr[byte_entry_kind]) {
@@ -772,7 +773,7 @@ Initialization routine for IL reading.
   { sizeof_t entry_size, prefix_size, fs_prefix_size;
     int      entry_kind;
 
-    for (entry_kind = 0; entry_kind < (int)iek_last; entry_kind++) {
+    for (entry_kind = 0; entry_kind < (unsigned int)iek_last; entry_kind++) {
       if (is_string_entry_kind((an_il_entry_kind)entry_kind)) {
         /* For string entries the "entry number" is really a byte offset, and
            the "entry size" is 1.  Things like space for the prefix have

@@ -1,5 +1,12 @@
 Version 2.22
 
+2/15/94  Eliminated warnings from Novell/USL C compiler
+
+Some changes have been made to eliminate warnings concerning operations
+whose semantics have changed from K&R C to ANSI C.  For example, 
+whether the right operand of a shift operation affects the type of the
+result of the operation.
+
 2/14/94  Improved speed of conversion from sequence number to file and line
 
 The routine that converts from a sequence number to a file name and line

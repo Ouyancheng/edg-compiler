@@ -1933,7 +1933,7 @@ returned.
                                         file_name, buffer, BUFFER_SIZE);
       }  /* if */
       if (temp_file_name == file_name) {
-        if (strlen(file_name) < BUFFER_SIZE - 1) {
+        if (strlen(file_name) < (sizeof_t)(BUFFER_SIZE - 1)) {
           /* Copy file_name into the buffer.  Its suffix will be replaced
              in the inner loop. */
           (void)strcpy(buffer, file_name);
