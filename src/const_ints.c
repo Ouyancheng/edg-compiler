@@ -997,7 +997,7 @@ otherwise.
       if (divide_integers(MAX_INTEGER_VALUE, op_1) > op_2) overflow = TRUE;
     } else if ((MIN_INTEGER_VALUE + MAX_INTEGER_VALUE) < 0 &&
                ((op_1 == -1 && op_2 == MIN_INTEGER_VALUE) ||
-                (op_1 == MIN_INTEGER_VALUE && op_2 == -1))) {
+                (op_1 == MIN_INTEGER_VALUE && op_2 == -1))) { /*lint !e506*/
       /* -1 times the smallest integer is an overflow on a 2's complement
          machine. */
       overflow = TRUE;
@@ -1423,7 +1423,7 @@ operand (op_1 = op_1 / op_2).  err is TRUE if an overflow occurred.
       /* Division of signed integers. */
       /* Check for overflow possibility on a twos' complement machine. */
       if ((MAX_INTEGER_VALUE + MIN_INTEGER_VALUE) < 0 &&
-          value_1 == MIN_INTEGER_VALUE && value_2 == -1) {
+          value_1 == MIN_INTEGER_VALUE && value_2 == -1) { /*lint !e506*/
         /* Smallest integer / -1 -- Overflow on 2's complement machines. */
         overflow = TRUE;
         result = 0;
