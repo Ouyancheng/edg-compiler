@@ -1972,9 +1972,11 @@ mode) forces the value to be 0/1 even if it was already of bool type.
     if (!il_identical_types(node->type, new_type)) {
         /* Normal cast. */
       node = add_cast(node, new_type);
+#if DO_C99_IL_LOWERING
       if (C_mode()) {
         lower_c99_cast(node);
       }  /* if */
+#endif /* DO_C99_IL_LOWERING */
     }  /* if */
   } else {
     /* Cast to bool. */
@@ -9302,6 +9304,7 @@ Lower an eok_bool_cast node, which converts an operand to bool.
      cast will be inserted later.  The type will be "int" if
      adjust_bool_operation_types has discovered this case can be optimized.
      In C mode, the result type is always "int". */
+#if DO_C99_IL_LOWERING
   if (C_mode()) {
     /* Do additional lowering for the complex, imaginary, and fixed-point
        cases. */
@@ -9310,7 +9313,10 @@ Lower an eok_bool_cast node, which converts an operand to bool.
     /* Add a final cast to bool, because that's what we really need. */
     expr_copy = copy_node(expr);
     change_to_cast(expr, expr_copy, orig_type);
-  } else if (expr->variant.operation.kind == (an_expr_operator_kind)eok_pmne) {
+  } else
+#endif /* DO_C99_IL_LOWERING */
+  /* Do not insert code here. */
+  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_pmne) {
     /* For the pointer-to-member case, the comparison must be lowered. */
     mark_as_not_visited(zero_node->variant.constant);
     /* Note that zero_node is not lowered; that allows the subroutine to
@@ -9612,9 +9618,11 @@ is_lvalue is TRUE.
   /* Make the (x @ y) operation. */
   op1_for_operation->next = op2;
   op_node = make_operator_node(op, operation_type, op1_for_operation);
+#if DO_C99_IL_LOWERING
   if (C_mode()) {
     lower_c99_operator(op_node);
   }  /* if */
+#endif /* DO_C99_IL_LOWERING */
   /* Cast the result of the operation to the result type. */
   op_node = add_lowered_cast_if_necessary(op_node, result_type);
   /* Assign the result to op1 (or the temporary). */
