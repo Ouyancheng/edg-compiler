@@ -3534,7 +3534,7 @@ special function kind (e.g., constructor, destructor), if any.
   a_symbol_ptr                  sym, overload_sym;
   a_routine_ptr                 rtn;
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
-  a_boolean                     const_object_okay, dummy_flag;
+  a_type_qualifier_set          qualifiers;
   a_type_ptr                    tp;
   a_source_sequence_entry_ptr   declarator_ssep;
 
@@ -3739,10 +3739,10 @@ special function kind (e.g., constructor, destructor), if any.
       }  /* if */
       /* Determine if this is a copy constructor.  If so, set the class symbol
          supplement flags appropriately. */
-      if (is_copy_constructor(rtn, class_type, &const_object_okay,
-          &dummy_flag)) {
+      if (is_copy_constructor(rtn, class_type, &qualifiers)) {
         cssp->has_copy_constructor = TRUE;
-        cssp->has_copy_constructor_for_const_object |= const_object_okay;
+        cssp->has_copy_constructor_for_const_object |= 
+                                                (qualifiers & TQ_CONST != 0);
         if (!compiler_generated) {
           /* If a user-defined copy constructor is declared for the class,
              construction by bitwise copying is not allowed.  (On the other
@@ -3987,18 +3987,17 @@ table.
 }  /* decl_static_data_member */
 
 
-a_boolean is_assignment_operator_for_copy(a_symbol_ptr  sym,
-                                          a_boolean     *is_ref_arg,
-                                          a_boolean     *accepts_const,
-                                          a_boolean     *accepts_volatile)
+a_boolean is_assignment_operator_for_copy(a_symbol_ptr          sym,
+                                          a_boolean             *is_ref_arg,
+                                          a_type_qualifier_set  *qualifiers)
 /*
 Return TRUE if sym qualifies as an assignment operator that can copy a
 class object (ARM 12.8).  It qualifies if its first parameter has a type of
 "A", "A&", or "const A&", where "A" is the class of which it is a member.
 (In cfront compatibility mode, sym also qualifies if the first parameter
 involves type B where B is a base class of A.)  Set *is_ref_arg to TRUE if
-the first parameter is a reference type.  Set *accepts_const and
-*accepts_volatile based on how the first parameter is qualified.
+the first parameter is a reference type.  Set *qualifiers based on how the
+first parameter is qualified.
 */
 {
   a_boolean         found = FALSE;
@@ -4033,11 +4032,7 @@ the first parameter is a reference type.  Set *accepts_const and
       /* Found it. */
       found = TRUE;
       /* Check the qualifiers. */
-      if (tp->kind == (a_type_kind)tk_typeref) {
-        *accepts_const = f_is_const_qualified_type(tp, /*top_level=*/TRUE);
-        *accepts_volatile =
-                         f_is_volatile_qualified_type(tp, /*top_level=*/TRUE);
-      }  /* if */
+      *qualifiers = get_top_level_type_qualifiers(tp);
     }  /* if */
   }  /* if */
   return found;
@@ -4053,9 +4048,10 @@ return TRUE if at least one of the functions qualifies.  Set *const_okay
 TRUE if a const object can be copied.
 */
 {
-  a_boolean         sym_is_overloaded;
-  a_boolean         is_ref_arg, accepts_const, accepts_volatile;
-  a_boolean         found_assignment_operator_for_copy = FALSE;
+  a_boolean             sym_is_overloaded;
+  a_boolean             is_ref_arg;
+  a_type_qualifier_set  qualifiers_accepted;
+  a_boolean             found_assignment_operator_for_copy = FALSE;
 
   db_enter(4, "assignment_operator_for_copy_exists");
   if (sym == NULL) {
@@ -4066,17 +4062,17 @@ TRUE if a const object can be copied.
     if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
     /* Loop through the one or more symbols looking for one with the right
        argument type. */
-    accepts_const = accepts_volatile = FALSE;
     for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
-      if (is_assignment_operator_for_copy(sym, &is_ref_arg, &accepts_const,
-                                          &accepts_volatile)) {
+      qualifiers_accepted = TQ_NONE;
+      if (is_assignment_operator_for_copy(sym, &is_ref_arg,
+                                          &qualifiers_accepted)) {
         /* Found an assignment operator that can serve to make a copy of the
            current class. */
         found_assignment_operator_for_copy = TRUE;
         /* If it takes the object to be copied by value, a const object
            may be copied; if it takes it by reference, a const qualifier must
            be present on the parameter declaration. */
-        if (!is_ref_arg || accepts_const) {
+        if (!is_ref_arg || (qualifiers_accepted & TQ_CONST) != 0) {
           *const_okay = TRUE;
           break;
         } else {
@@ -6561,8 +6557,7 @@ Scan the body of a class definition, including the base classes list.
             }  /* if */
           } else if (curr_token == tok_assign &&
                      is_scalar_type(local_type) &&
-                     is_const_qualified_type(local_type) &&
-                     !is_volatile_qualified_type(local_type) &&
+                     (get_type_qualifiers(local_type) == TQ_CONST) &&
                      member_storage_class == (a_storage_class)sc_unspecified &&
                      C_dialect == C_dialect_cplusplus) {
             /* Provide support for the nonstandard declaration of a member
