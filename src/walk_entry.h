@@ -167,7 +167,7 @@ other than "next".
   for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->link_field) { \
     walk_ptr(*ptr_ptr, ptr_type, (entry_kind)); \
   }  /* for */ \
-}  /* walk_list */
+}  /* walk_list_on_link_field */
 #else /* !DO_SUBTREE_WALK */
 #define walk_list_on_link_field(ptr, ptr_type, entry_kind, link_field) \
   remap_ptr((ptr), ptr_type, (entry_kind))
