@@ -250,6 +250,7 @@ extern int fileno(FILE *);
 #if DEBUG
 /*lint -esym(765, db_sym_list)*/
 /*lint -esym(714, db_sym_list)*/
+/*lint -esym(714, db_scheduled_routine_moves)*/
 #endif /* DEBUG */
 #if !UPC_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_unrecognized_upc_pragma)*/
