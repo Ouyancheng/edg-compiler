@@ -21,8 +21,10 @@ CINCLDIR=$EDG_CBASE/usr/include
 # EDG_DEFAULT_INCLUDE_DIRS.  If this variable is not set, then we
 # select either INCLDIR or CINCLDIR depending on the language being
 # compiled.  This is done after command line processing when we know
-# the langauge being compiled.
-
+# the language being compiled (no default value - use environment
+# variable if set).
+#
+# EDG_DEFAULT_INCLUDE_DIRS=$EDG_DEFAULT_INCLUDE_DIRS
 #
 # Directory where libC.a is to be found.
 #
@@ -117,7 +119,7 @@ fi
 #
 old_ii_format=${EDG_OLD_II_FORMAT-0}
 #
-# The suffix to be used on the generated C file and generate .o files.
+# The suffix to be used on the generated C file and generated .o files.
 #
 gen_c_suffix=${EDG_GEN_C_SUFFIX-".int.c"}
 gen_o_suffix=`expr $gen_c_suffix : '\(.*\)\.'`.o
