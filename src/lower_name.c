@@ -1280,6 +1280,7 @@ on the member function type "type".
   }  /* if */
 }  /* mangled_encoding_for_function_qualifiers */
 
+#if !IA64_ABI
 
 static void store_digits_and_underscore(unsigned long            value,
                                         a_boolean                old_form,
@@ -1302,6 +1303,7 @@ With old_form FALSE, the representation is "_dd_" regardless of the length.
   }  /* if */
 }  /* store_digits_and_underscore */
 
+#endif /* !IA64_ABI */
 
 static void mangled_encoding_for_template_parameter(
                                        a_template_param_coordinate *coordinate,
@@ -1503,6 +1505,9 @@ ignored if expr != NULL.
 }  /* mangled_encoding_for_sizeof */
 
 
+#if IA64_ABI
+/*ARGSUSED*/  /* old_form is not used in that case. */
+#endif /* IA64_ABI */
 static void mangled_encoding_for_float_constant(
                                              a_constant_ptr           con,
                                              a_boolean                old_form,
@@ -1514,21 +1519,16 @@ mangled names of template classes.  If old_form is TRUE, use the old form
 of length specification in the mangling for lengths of literals.
 */
 {
-  sizeof_t str_length;
   char     *str;
-
-  /* Float: the encoding is like
+#if !IA64_ABI
+  sizeof_t str_length;
+  /* Float: the Cfront-like ABI encoding is like
        L4n1p5 <-- encoding for "-1.5"
           ^^^---- Literal value ("p" for decimal point).
          ^------- "n" indicates negative.
         ^-------- Length of the literal.
        ^--------- "L" indicates a number.
      cfront 3.0.1 does not implement this, so we made it up. */
-  /* For IA-64, the encoding is
-       L <type> <value number> E
-     The <number> is a hexadecimal string for the constant value.
-  */
-  /* FIXME: not implemented yet. */
   str = fp_to_string(skip_typerefs(con->type)->variant.float_kind,
                      &con->variant.float_value,
                      (a_boolean *)NULL, (a_boolean *)NULL, (a_boolean *)NULL);
@@ -1553,10 +1553,6 @@ of length specification in the mangling for lengths of literals.
     }  /* if */
   }
   add_to_mangled_name('L', mctl);
-#if IA64_ABI
-  /* Add the encoding for the type. */
-  mangled_encoding_for_type(con->type, mctl);
-#endif /* IA64_ABI */
   store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
   while (str_length > 0) {
     /* Move the string and recode non-alphanumeric characters. */
@@ -1578,10 +1574,22 @@ of length specification in the mangling for lengths of literals.
       str_length--;
     }  /* if */
   }  /* while */
-#if IA64_ABI
+#else /* IA64_ABI */
+  /* For IA-64, the encoding is
+       L <type> <float> E
+     The <float> is a hexadecimal string for the constant value,
+     high-order bytes first, using lower-case hexadecimal letters.
+  */
+  str = fp_to_hex_string(skip_typerefs(con->type)->variant.float_kind,
+                         &con->variant.float_value);
+  add_to_mangled_name('L', mctl);
+  /* Add the encoding for the type. */
+  mangled_encoding_for_type(con->type, mctl);
+  /* Add the hex digits. */
+  add_str_to_mangled_name(str, mctl);
   /* Add the end-of-literal marker. */
   add_to_mangled_name('E', mctl);
-#endif /* IA64_ABI */
+#endif /* !IA64_ABI */
 }  /* mangled_encoding_for_float_constant */
 
 

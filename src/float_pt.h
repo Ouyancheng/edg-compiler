@@ -57,6 +57,11 @@ extern char *fp_to_string(a_float_kind            kind,
                           a_boolean               *neg_infinity,
                           a_boolean               *not_a_number);
 
+#if IA64_ABI
+extern char *fp_to_hex_string(a_float_kind            kind,
+                              an_internal_float_value *float_value);
+#endif /* IA64_ABI */
+
 extern
 void fp_host_large_integer_to_float(a_float_kind            kind,
 		                    a_host_large_integer    int_value,

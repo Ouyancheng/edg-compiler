@@ -1304,6 +1304,45 @@ be NULL if the corresponding return value is not needed.
   return str;
 }  /* fp_to_string */
 
+#if IA64_ABI
+
+char *fp_to_hex_string(a_float_kind            kind,
+                       an_internal_float_value *float_value)
+/*
+Convert the float value float_value (with precision as indicated by kind)
+to a string of hex digits in an internal static variable, and return a
+pointer to that null-terminated string.  This is used in the IA-64 ABI
+for the representation of floating-point values in mangled names.
+*/
+{
+  static char str[60];
+  int         i, data_size;
+
+  /* Determine the size of the data in the floating-point value. */
+  if (kind == (a_float_kind)fk_float) {
+    data_size = sizeof(float);
+  } else if (kind == (a_float_kind)fk_double) {
+    data_size = sizeof(double);
+  } else {
+    data_size = data_size_of_host_fp_value;
+  }  /* if */
+  /* The IA-64 ABI requires that the output be high-order bytes first,
+     and it must use lower-case characters. */
+  for (i = 0; i < data_size; i++) {
+    unsigned char byte;
+    if (host_little_endian) {
+      byte = float_value->bytes[data_size-1-i];
+    } else {
+      byte = float_value->bytes[i];
+    }  /* if */
+    (void)sprintf(&str[i*2], "%02x", byte);
+  }  /* for */
+  /* Add the terminating null character. */
+  str[i*2] = '\0';
+  return str;
+}  /* fp_to_hex_string */
+
+#endif /* IA64_ABI */
 
 void fp_host_large_integer_to_float(a_float_kind            kind,
 		                    a_host_large_integer    int_value,
