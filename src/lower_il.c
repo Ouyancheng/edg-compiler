@@ -966,8 +966,11 @@ compatibility we do too.)
     mptr_f_field = last_field;
     finish_class_type(mptr_type, &byte_offset);
 #if CHECKING
-    if (mptr_type->size != targ_sizeof_ptr_to_member_function ||
-        mptr_type->alignment != targ_alignof_ptr_to_member_function) {
+    if (mptr_type->size != targ_sizeof_ptr_to_member_function
+#if !USER_CONTROL_OF_STRUCT_PACKING
+        || mptr_type->alignment != targ_alignof_ptr_to_member_function
+#endif /* !USER_CONTROL_OF_STRUCT_PACKING */
+                                                                      ) {
       internal_error(
  "make_mptr_type: target config of pointer-to-member-function is incorrect");
     }  /* if */
