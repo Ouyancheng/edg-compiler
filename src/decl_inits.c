@@ -607,6 +607,7 @@ static a_constant_ptr get_initializer(
                             a_boolean   top_level,
                             a_boolean   static_lifetime,
                             a_boolean   is_top_level_array,
+                            a_boolean   is_array_element,
                             a_boolean   is_final_array_element,
                             a_boolean   *any_member_uninitialized,
                             a_boolean   *any_uninit_const_or_ref_member,
@@ -727,7 +728,7 @@ field of a class object (or an array of same) remains uninitialized.
       init_con->type = local_type;
       init_con->variant.dynamic_init = dip;
       *any_dynamic_initialization = TRUE;
-      if (exceptions_enabled && !is_final_array_element) {
+      if (exceptions_enabled && is_array_element && !is_final_array_element) {
         /* If appropriate, add a destructor pointer to the dynamic init entry.
            This is for the case in which an exception is thrown by the
            constructor before the entire array has been initialized. */
@@ -919,6 +920,7 @@ field of a class object (or an array of same) remains uninitialized.
         member_con = get_initializer(&member_type, /*top_level=*/FALSE,
                                      static_lifetime,
                                      local_is_top_level_array,
+                                     kind == (a_type_kind)tk_array,
                                      local_is_final_array_element,
                                      any_member_uninitialized,
                                      any_uninit_const_or_ref_member,
@@ -1056,10 +1058,17 @@ field of a class object (or an array of same) remains uninitialized.
                such that a constructor is required to initialize the elements,
                we are required to provide default initialization by calling
                the default constructor. */
+            a_boolean  fill_in_dtor;
+            /* When exceptions are enabled, fill_in_dtor indicates whether
+               a destructor pointer should be supplied to the dynamic init
+               entry (if any, and possibly underneath an init-repeat.  This
+               is needed if the remaining array elements is not actually the
+               end of the array (which can happen if local_type represents a
+               subarray that does not contain the final element of the
+               top-level array within which it is nested). */
+            fill_in_dtor = !is_final_array_element && !is_top_level_array;
             if (init_remaining_array_elements(local_type, curr_array_element,
-                                              (is_final_array_element ||
-                                                        is_top_level_array),
-                                              static_lifetime,
+                                              fill_in_dtor, static_lifetime,
                                               &con_list, &end_of_con_list,
                                              any_uninit_const_or_ref_member)) {
               any_more_members = FALSE;
@@ -1198,6 +1207,7 @@ detection of uninitialized fields).
 #endif /* DEBUG */
   *init_con = get_initializer(type, /*top_level=*/TRUE, static_lifetime,
                               /*is_top_level_array=*/is_array_type(*type),
+                              /*is_array_element=*/FALSE,
                               /*is_final_array_element=*/FALSE,
                               &any_member_uninitialized,
                               &any_const_or_ref_member_uninitialized,
