@@ -1,5 +1,12 @@
 Version 2.24
 
+7/6/94   Diagnostic on storage class with autonomous tag declaration
+
+An error (but still a warning in cfront mode) is issued when a storage
+class appears on an autonomous tag declaration.  For example:
+
+  static class A { };               // Error in default C++ mode
+
 7/6/94   K&R/pcc mode conversion between integers and pointers
 
 In K&R/pcc mode, implicit conversions are now allowed between integers
@@ -11,7 +18,6 @@ in comparisons.  A warning is issued.
     if (a > "  B ");  /* Okay with warning. */
     a = "  B ";       /* Okay with warning. */
   }
-
 
 7/5/94   Initialization of variable created to hold pointer-to-member constant
 
