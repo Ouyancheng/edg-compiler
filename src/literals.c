@@ -863,7 +863,8 @@ centity_int_kind indicates the underlying character type.
   /* Determine the length of the concatenation. */
   for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
     check_assertion_str((a_token_kind)ctp->token == tok_string_literal &&
-                        ctp->extra_info_kind == teik_constant,
+                        ctp->extra_info_kind ==
+                                        (a_token_extra_info_kind)teik_constant,
                        "concat_string_literals: cached token is not a string");
     con = ctp->variant.constant;
     if (is_error_constant(con)) {
