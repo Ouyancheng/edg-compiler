@@ -3977,7 +3977,13 @@ typedef struct a_type {
       a_bit_field
 		bool_type:1;
 			/* TRUE if this type is bool in C++ or _Bool in C99. */
-      bitfield_to_avoid_codecenter_warnings()
+          a_bit_field
+		originally_unnamed:1;
+			/* TRUE for enum types declared without a tag; in
+			   C++ may be TRUE even when the source-corresp name
+			   pointer is non-NULL, since a name may be acquired
+			   from a typedef name. */
+  bitfield_to_avoid_codecenter_warnings()
       union {
         /* When enum_type is TRUE: */
         a_constant_ptr

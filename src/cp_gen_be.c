@@ -3069,7 +3069,8 @@ is the one associated with the definition of the enum.
   /* Put out the name if the enum is named.  In C mode, invent a name for
      an unnamed enum because it may be needed for casts to enum types defined
      in prototype scopes. */
-  if (has_name(type) || il_header.source_language == sl_C) {
+  if ((has_name(type) && !type->variant.integer.originally_unnamed) ||
+      il_header.source_language == sl_C) {
     write_space();
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
              (a_boolean *)NULL);
@@ -3174,7 +3175,9 @@ it is a typedef.
        (!has_name_before_mangling(unqual_type) ||
         /* Include cases where the tag has a name only for linkage purposes. */
         (is_class_type_kind(kind) &&
-         unqual_type->variant.class_struct_union.originally_unnamed)))) {
+         unqual_type->variant.class_struct_union.originally_unnamed) ||
+        (is_immediate_enum_type(unqual_type) &&
+         unqual_type->variant.integer.originally_unnamed)))) {
     a_source_sequence_entry_ptr ssep;
     /* Skip macros and pragmas. */
     (void)process_preprocessing_directives();

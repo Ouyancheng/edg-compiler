@@ -1065,6 +1065,7 @@ to default values.
       pte->variant.integer.enum_type = FALSE;
       pte->variant.integer.wchar_t_type = FALSE;
       pte->variant.integer.bool_type = FALSE;
+      pte->variant.integer.originally_unnamed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.integer.microsoft_sized_int_type = FALSE;
       pte->variant.integer.uuid_string = NULL;

@@ -2694,6 +2694,7 @@ to indicate whether an enumeration is actually defined.
          reference flag and copy in the decl position manually. */
       enum_type->source_corresp.referenced = FALSE;
       enum_type->source_corresp.decl_position = locator.source_position;
+      enum_type->variant.integer.originally_unnamed = TRUE;
     }  /* if */
     if (!C_mode()) {
       if (class_of_which_a_member != NULL) {

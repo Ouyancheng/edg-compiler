@@ -1185,6 +1185,9 @@ Display the indicated type entry.
       }  /* if */
       if (ptr->variant.integer.enum_type) {
         disp_boolean("enum_type", TRUE);
+        if (ptr->variant.integer.originally_unnamed) {
+          disp_boolean("originally_unnamed", TRUE);
+        }  /* if */
         disp_ptr("enum_info.constant_list",
                  (char *)ptr->variant.integer.enum_info.constant_list,
                  iek_constant);

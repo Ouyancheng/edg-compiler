@@ -354,10 +354,12 @@ need to be determined.
         result = FALSE;
         if (type->kind == (a_type_kind)tk_typeref &&
             typeref_is_typedef(type)) {
-          /* A typedef of an unnamed class has linkage. */
+          /* A typedef of an unnamed class or enum has linkage. */
           type = skip_typerefs(type);
-          result = is_immediate_class_type(type) &&
-                   type->variant.class_struct_union.originally_unnamed;
+          result = (is_immediate_class_type(type) &&
+                    type->variant.class_struct_union.originally_unnamed) ||
+                   (is_immediate_enum_type(type) &&
+                    type->variant.integer.originally_unnamed);
         }  /* if */
       }
       break;
@@ -1579,9 +1581,11 @@ unit correspondence pointer if one is found.
           if (sym->kind == (a_symbol_kind)sk_type) {
             /* A typedef of an originally unnamed type. */
             type = skip_typerefs(type);
-            check_assertion(is_immediate_class_type(type) &&
-                            type
-                              ->variant.class_struct_union.originally_unnamed);
+            check_assertion(
+               (is_immediate_class_type(type) &&
+                       type->variant.class_struct_union.originally_unnamed) ||
+               (is_immediate_enum_type(type) &&
+                       type->variant.integer.originally_unnamed));
             record_trans_unit_corresp(type, skip_typerefs(corresp_type));
           }  /* if */
           if (is_immediate_class_type(type)) {
