@@ -2888,6 +2888,19 @@ Display the indicated derivation step list.
 }  /* disp_derivation_step_list */
 
 
+static void disp_virtual_derivation(a_virtual_derivation_ptr ptr)
+/*
+Display the indicated virtual derivation entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_virtual_derivation);
+  if (ptr->direct) disp_boolean("direct", TRUE);
+  if (ptr->preferred) disp_boolean("preferred", TRUE);
+  if (ptr->first) disp_boolean("first", TRUE);
+  disp_derivation_step_list(ptr->derivation);
+}  /* disp_virtual_derivation */
+
+
 static void disp_base_class(a_base_class_ptr ptr)
 /*
 Display the indicated base class entry.
@@ -2900,26 +2913,22 @@ Display the indicated base class entry.
   disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);
   disp_boolean("ambiguous", (a_boolean)ptr->ambiguous);
   disp_access("access", ptr->access);
+  disp_unsigned_long("offset", (unsigned long)ptr->offset);
   if (ptr->is_virtual) {
-    if (ptr->is_duplicate) {
-      disp_boolean("is_duplicate", TRUE);
-    } else {
-      disp_unsigned_long("offset", (unsigned long)ptr->offset);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-      disp_ptr("data_section_base_class", (char *)ptr->data_section_base_class,
-               iek_base_class);
-      disp_boolean("complete_subobject", (a_boolean)ptr->complete_subobject);
+    disp_ptr("data_section_base_class", (char *)ptr->data_section_base_class,
+             iek_base_class);
+    disp_boolean("complete_subobject", (a_boolean)ptr->complete_subobject);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-      disp_unsigned_long("pointer_offset", (unsigned long)ptr->pointer_offset);
-      disp_ptr("pointer_base_class", (char *)ptr->pointer_base_class,
-               iek_base_class);
-      disp_ptr("duplicate_entries", (char *)ptr->duplicate_entries,
-               iek_base_class);
-    }  /* if */
-  } else {
-    disp_unsigned_long("offset", (unsigned long)ptr->offset);
+    disp_unsigned_long("pointer_offset", (unsigned long)ptr->pointer_offset);
+    disp_ptr("pointer_base_class", (char *)ptr->pointer_base_class,
+             iek_base_class);
   }  /* if */
   disp_derivation_step_list(ptr->derivation);
+  if (ptr->is_virtual) {
+    disp_ptr("paths_to_virtual_base_class",
+             (char *)ptr->paths_to_virtual_base_class, iek_virtual_derivation);
+  }  /* if */
   disp_ptr("overriding_virtual_functions",
            (char *)ptr->overriding_virtual_functions,
            iek_overriding_virtual_function );
