@@ -819,6 +819,10 @@ part of a declarator is found, may_be_decl is set to FALSE.
       break;
     }  /* if */
   }  /* for */
+  if (curr_token == tok_attribute) {
+    /* A GNU __attribute__ may appear after the pointer-declarators. */
+    prescan_attribute(state, flags);
+  }  /* if */
   if (curr_token == tok_lparen) {
     /* Left parenthesis indicating nested declarator.  For the abstract
        declarator case, this might be a parenthesis indicating a function.
@@ -1006,6 +1010,10 @@ function_lparen:
       }  /* if */
     }  /* if */
   }  /* while */
+  if (curr_token == tok_attribute) {
+    /* A GNU __attribute__. */
+    prescan_attribute(state, flags);
+  }  /* if */
   /* Look for an initialization that begins with an assignment operator. */
   if (!paren_initializer_seen && curr_token == tok_assign) {
     /* An initializer that begins with an equals sign.  Cache the

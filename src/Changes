@@ -1,5 +1,16 @@
 Version 3.4
 
+4/15/04  GNU C++ compatibility: disambiguation problem with attributes
+
+In g++ mode the front end would incorrectly disambiguate declarations
+containing GNU __attribute__ specifiers, resulting in spurious errors.
+Now fixed.
+
+  int g();
+  int main() {    
+    int (*fp)(void)  __attribute__ ((noreturn)) = &g;
+  }
+
 4/15/04  Microsoft compatibility: const string literal -> void *
 
 MSVC++ allows conversion of a string literal (which is const) to
