@@ -6548,7 +6548,8 @@ have already had their designated initializers lowered.
     a_constant_ptr        last_con = NULL;
     init_aggregate_position(aggr_con, &aggr_pos);
     temp_con = aggr_con->variant.aggregate.first_constant;
-    if (temp_con->kind == (a_constant_repr_kind)ck_designator) {
+    if (temp_con != NULL &&
+        temp_con->kind == (a_constant_repr_kind)ck_designator) {
       /* A ck_designator left in for an initialization of a union member
          other than the first. */
       check_assertion(temp_con->variant.designator.field != NULL);
@@ -6570,7 +6571,12 @@ have already had their designated initializers lowered.
                         char array. */
                      (is_string_type(con_type) &&
                       is_string_type(member_type) &&
-                      temp_con->kind == (a_constant_repr_kind)ck_string),
+                      temp_con->kind == (a_constant_repr_kind)ck_string) ||
+                     /* In GNU C mode, zero-length array fields can be
+                        initialized with arbitrary-length arrays. */
+                     (gcc_mode && is_array_type(con_type) &&
+                      is_array_type(member_type) &&
+                      skip_typerefs(con_type)->variant.array.bound_is_zero),
                      "lower_aggregate_designated_initializers: type mismatch");
       }
       last_con = con_pos.ptr;
