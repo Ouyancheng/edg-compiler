@@ -895,10 +895,10 @@ error code.
       m = "invalid base class";
       break;
     case ec_no_access_to_name:
-      m = "member %n is inaccessible";
+      m = "%n is inaccessible";
       break;
     case ec_ambiguous_name:
-      m = "member name is ambiguous";
+      m = "inheritance of \"%s\" is ambiguous";
       break;
     case ec_old_style_parameter_list:
       m = "old-style parameter list";
@@ -1060,7 +1060,7 @@ error code.
       m = "type differs from base class virtual function by return type alone";
       break;
     case ec_ambiguous_virtual_function_override:
-      m = "redefinition of virtual function \"%s\" is ambiguous";
+      m = "redefinition of virtual function %n is ambiguous";
       break;
     case ec_pure_specifier_on_nonvirtual_function:
       m = "pure specifier (\"= 0\") allowed only on virtual functions";
@@ -1096,10 +1096,10 @@ error code.
       m = "member function of local class -- definition is required";
       break;
     case ec_inaccessible_constructor:
-      m = "constructor \"%s\" is inaccessible";
+      m = "constructor %nf is inaccessible";
       break;
     case ec_inaccessible_destructor:
-      m = "destructor \"%s\" is inaccessible";
+      m = "destructor %n is inaccessible";
       break;
     case ec_direct_derivation_less_accessible:
       m =
@@ -1158,7 +1158,7 @@ error code.
       m = "more than one constructor or conversion function applies";
       break;
     case ec_inaccessible_assignment_operator:
-      m = "assignment operator \"%s\" is inaccessible";
+      m = "%nf is inaccessible";
       break;
     case ec_no_matching_operator_function:
       m = "none of the available operator functions matches these operands";
@@ -1167,7 +1167,7 @@ error code.
       m = "more than one operator function matches these operands";
       break;
     case ec_inaccessible_conversion_function:
-      m = "conversion function is inaccessible";
+      m = "conversion function %nf is inaccessible";
       break;
     case ec_bad_arg_type_for_operator_new:
       m = "operator new() requires first argument of type \"size_t\"";
@@ -1215,10 +1215,10 @@ error code.
       m = "global anonymous union must be declared static";
       break;
     case ec_missing_initializer_on_field:
-      m = "no initializer provided for \"%s\"";
+      m = "no initializer provided for %n";
       break;
     case ec_cannot_initialize_field:
-      m = "compiler-generated constructor cannot initialize \"%s\"";
+      m = "compiler-generated constructor cannot initialize %n";
       break;
     case ec_uninitialized_const_member:
       if (C_dialect == C_dialect_cplusplus) {
@@ -1231,13 +1231,13 @@ error code.
       m = "variable contains uninitialized reference member";
       break;
     case ec_missing_const_assignment_operator:
-      m = "class \"%s\" has no assignment operator to copy a const object";
+      m = "class %n has no assignment operator to copy a const object";
       break;
     case ec_no_suitable_assignment_operator:
-      m = "class \"%s\" has no suitable assignment operator";
+      m = "class %n has no suitable assignment operator";
       break;
     case ec_ambiguous_assignment_operator:
-      m = "ambiguous default assignment operator for class \"%s\"";
+      m = "ambiguous default assignment operator for class %n";
       break;
     case ec_const_volatile_not_allowed:
       m = "const or volatile qualifier is not allowed";
@@ -1308,10 +1308,10 @@ error code.
     "single-argument function used for postfix \"++\" or \"--\" (anachronism)";
       break;
     case ec_bad_access_adjustment_with_overloading:
-      m = "access adjustment not allowed -- mixed accessibility for %s";
+      m = "access adjustment not allowed -- mixed accessibility for %n";
       break;
     case ec_missing_user_defined_assignment_for_copy:
-      m = "implicitly defined operator=() is not allowed for class \"%s\"";
+      m = "implicitly defined operator=() is not allowed for class %n";
       break;
     case ec_nonstd_array_cast:
       m =
@@ -1321,16 +1321,16 @@ error code.
       m = "operator %s() may not be declared virtual";
       break;
     case ec_class_with_op_new_but_no_op_delete:
-      m = "class \"%s\" has an operator new() but no operator delete()";
+      m = "class %n has an operator new() but no operator delete()";
       break;
     case ec_class_with_op_delete_but_no_op_new:
-      m = "class \"%s\" has an operator delete() but no operator new()";
+      m = "class %n has an operator delete() but no operator new()";
       break;
     case ec_class_with_virtual_func_but_nonvirtual_dtor:
-      m = "class \"%s\" has virtual functions but destructor is nonvirtual";
+      m = "class %n has virtual functions but destructor is nonvirtual";
       break;
     case ec_no_access_to_constructors:
-      m = "there is no access to the constructors for class \"%s\"";
+      m = "there is no access to the constructors for class %n";
       break;
     case ec_nonstd_member_function_redeclaration:
       m = "redeclaring a member function is nonstandard";
@@ -1346,7 +1346,7 @@ error code.
        "member function with the same name as its class must be a constructor";
       break;
     case ec_nested_class_anachronism:
-      m = "using nested class \"%s\" (anachronism)";
+      m = "using nested class %n (anachronism)";
       break;
     case ec_too_many_params_for_destructor:
       m = "a destructor may not have parameters";
@@ -1363,7 +1363,7 @@ error code.
       break;
     case ec_protected_access_problem:
       m =
-      "this protected member is not accessible through this pointer or object";
+      "protected member %n is not accessible through this pointer or object";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
@@ -1956,6 +1956,10 @@ simple_symbol_name:
     case sk_class_or_struct_tag:
     case sk_union_tag:
     case sk_enum_tag:
+      if (sym->class_of_which_a_member != NULL) {
+        form_class_name(sym->class_of_which_a_member, seg_ptr);
+      }  /* if */
+      add_string_to_segment(sym->header->identifier, seg_ptr);
       break;
 
     case sk_routine:
@@ -2009,6 +2013,17 @@ class_data_member:
         form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
       }  /* if */
       break;
+
+    case sk_projection:
+      /* THIS IS JUST A TEMPORARY FIX TO AVOID THE INTERNAL ERROR - RMA. */
+      form_class_name(sym->class_of_which_a_member, seg_ptr);
+      add_string_to_segment(sym->header->identifier, seg_ptr);
+      if (is_function_symbol(fundamental_symbol_of(sym)) &&
+          !seg_ptr->variant.symbol.name_only) {
+        add_string_to_segment("()", seg_ptr);
+      }  /* if */
+      break;
+
 #if 0
 #else
 #if CHECKING
@@ -2023,7 +2038,7 @@ class_data_member:
   if (seg_ptr->variant.symbol.decl_pos) {
     form_decl_position(sym, seg_ptr);
   }  /* if */
-}  /* name_of_symbol */
+}  /* form_symbol_name */
 
 
 static msg_segment_ptr new_message_segment(void)
