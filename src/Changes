@@ -2100,7 +2100,7 @@ Recent versions of g++ (3.3 and above) predefine a large number of macros.
 The predefined macro definition file mechanism described above can be
 used to provide the appropriate predefined macros in g++ mode (it
 can also be used to provide the smaller number of macros predefined in
-gcc mode).  A script (make_predefined_macro_file) is provided that
+gcc mode).  A script (make_predef_macro_table) is provided that
 automatically generates the predefined_macros.txt file for a given
 version of gcc/g++.  It does this by invoking gcc and g++ and capturing
 the predefined macro information.
