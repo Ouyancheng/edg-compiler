@@ -109,34 +109,14 @@ Do any processing that is required at the end of a translation unit
 }  /* translation_unit_wrapup */
 
 
-static void secondary_trans_unit_file_scope_il_wrapup(void)
-/*
-Do any processing required to complete the file scope IL of a secondary
-translation unit.  This is done when all processing (including any
-instantiations) has been completed in the secondary translation unit.
-*/
-{
-  a_scope_ptr	il_scope;
-
-  il_scope = curr_translation_unit->primary_scope;
-  /* Reactivate the file scope. */
-  push_file_scope(/*is_reactivation=*/TRUE);
-  /* Do the wrapup_scope processing on file and namespace scopes. */
-  wrapup_scope(il_scope, (a_scope_kind)sck_file,
-               &curr_translation_unit->file_scope_pointers_block,
-               /*is_namespace_wrapup=*/TRUE);
-  wrapup_namespace_scopes(il_scope);
-  /* Pop the file scope. */
-  pop_scope();
-  check_for_done_with_memory_region(file_scope_region_number);
-}  /* secondary_trans_unit_file_scope_il_wrapup */
-
-
 static void file_scope_il_wrapup(void)
 /*
-Do the processing required to complete the file scope IL.  This is done
-after any entries from secondary translation units have been copied to
-the primary translation unit IL.
+Do the processing required to complete the file scope IL.  This is
+called both for secondary translation units (is_primary_translation_unit
+is FALSE) and for primary translation units (is_primary_translation_unit
+is TRUE).  For a primary translation unit, this is done after any
+entries from secondary translation units have been copied to the primary
+translation unit IL.
 */
 {
   a_scope_ptr	il_scope;
@@ -158,37 +138,36 @@ the primary translation unit IL.
     do_based_type_fixup();
   }  /* if */
 
+  if (is_primary_translation_unit) {
 #if DO_IL_LOWERING
-  /* Lower the file scope. */
-  lower_il_memory_region(file_scope_region_number);
+    /* Lower the file scope. */
+    lower_il_memory_region(file_scope_region_number);
 #if DO_C99_IL_LOWERING
-  if (c99_il_lowering_needed()) {
-    lower_c99_il_memory_region(il_scope);
-  }  /* if */
+    if (c99_il_lowering_needed()) {
+      lower_c99_il_memory_region(il_scope);
+    }  /* if */
 #endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
+  }  /* if */
 
   /* Clear out the shareable constants table for the file scope. */
   empty_shareable_constants_table();
 
-  if (!C_mode()) {
+  if (is_primary_translation_unit && !C_mode()) {
     /* Pop the file scope object lifetime.  This must be done after IL
        lowering. */
     check_assertion(curr_object_lifetime ==
                     scope_stack[depth_scope_stack].curr_scope_object_lifetime);
     (void)pop_object_lifetime();
-  }  /* if */
-
 #if DO_IL_LOWERING
-  if (!C_mode()) {
     if (il_lowering_needed()) {
       /* If we're not supposed to pass object lifetime information to the back
          end, unlink all object lifetimes from the IL tree.  This has to
          be done after the file scope object lifetime has been popped. */
       clean_up_all_object_lifetimes(il_scope);
     }  /* if */
-  }  /* if */
 #endif /* DO_IL_LOWERING */
+  }  /* if */
 
 #if MAINTAIN_NEEDED_FLAGS
   /* Set the "needed" flag in defined variables with external linkage --
@@ -213,27 +192,29 @@ the primary translation unit IL.
     eliminate_unneeded_il_entries(il_scope);
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  /* Check for memory regions that were not written out but now should
-     be.  Among other things, this deals with functions that have
-     keep_definition_in_il set but not definition_needed, and inline
-     functions. */
-  check_for_done_with_all_function_memory_regions();
+  if (is_primary_translation_unit) {
+    /* Check for memory regions that were not written out but now should
+       be.  Among other things, this deals with functions that have
+       keep_definition_in_il set but not definition_needed, and inline
+       functions. */
+    check_for_done_with_all_function_memory_regions();
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  if (total_errors == 0) {
-    /* Set the IL flags used to pass automatic instantiation information to
-       the link-time instantiation processor.  The timing of this call is
-       important.  It must follow the call to eliminate_unneeded_il_entries,
-       which may clear the instantiation_required flag in the associated
-       template instance entry.  And it must precede the call to
-       check_for_done_with_memory_region, since it modifies IL entries and
-       (if DO_IL_LOWERING is TRUE) may allocate variables that are added to
-       the IL. */
-    update_auto_instantiation_flags();
-    /* Do the similar processing for inline functions, when instantiating
-       inline functions similarly to templates. */
-    update_inline_function_flags();
-  }  /* if */
+    if (total_errors == 0) {
+      /* Set the IL flags used to pass automatic instantiation information to
+         the link-time instantiation processor.  The timing of this call is
+         important.  It must follow the call to eliminate_unneeded_il_entries,
+         which may clear the instantiation_required flag in the associated
+         template instance entry.  And it must precede the call to
+         check_for_done_with_memory_region, since it modifies IL entries and
+         (if DO_IL_LOWERING is TRUE) may allocate variables that are added to
+         the IL. */
+      update_auto_instantiation_flags();
+      /* Do the similar processing for inline functions, when instantiating
+         inline functions similarly to templates. */
+      update_inline_function_flags();
+    }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  }  /* if */
   /* Pop the file scope. */
   pop_scope();
   check_for_done_with_memory_region(file_scope_region_number);
@@ -251,7 +232,7 @@ Complete the file scope of each of the translation units.
   tup = translation_units->next;
   for (; tup != NULL; tup = tup->next) {
     switch_translation_unit(tup);
-    secondary_trans_unit_file_scope_il_wrapup();
+    file_scope_il_wrapup();
   }  /* for */
   /* Switch back to the primary translation unit. */
   switch_translation_unit(translation_units);
