@@ -189,6 +189,44 @@ EXTERN a_targ_alignment
 			   default value but reconfigurable. */
 #endif /* LONG_LONG_ALLOWED */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+EXTERN an_integer_kind
+		targ_int32_int_kind
+#if VAR_INITIALIZERS
+                                    = ((an_integer_kind)ik_none)
+#endif /* VAR_INITIALIZERS */
+                                                            ;
+			/* Integer kind associated with __int32.  Initialized
+			   to ik_none and reset later. */
+
+EXTERN an_integer_kind
+		targ_unsigned_int32_int_kind
+#if VAR_INITIALIZERS
+                                             = ((an_integer_kind)ik_none)
+#endif /* VAR_INITIALIZERS */
+                                                                     ;
+			/* Integer kind associated with unsigned __int32.
+			   Initialized to ik_none and reset later. */
+
+EXTERN an_integer_kind
+		targ_int64_int_kind
+#if VAR_INITIALIZERS
+                                    = ((an_integer_kind)ik_none)
+#endif /* VAR_INITIALIZERS */
+                                                            ;
+			/* Integer kind associated with __int64.  Initialized
+			   to ik_none and reset later. */
+
+EXTERN an_integer_kind
+		targ_unsigned_int64_int_kind
+#if VAR_INITIALIZERS
+                                             = ((an_integer_kind)ik_none)
+#endif /* VAR_INITIALIZERS */
+                                                                     ;
+			/* Integer kind associated with unsigned __int64.
+			   Initialized to ik_none and reset later. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 EXTERN a_targ_size_t
 		targ_max_class_object_size
 #if VAR_INITIALIZERS
