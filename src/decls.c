@@ -5081,6 +5081,13 @@ otherwise it is NULL.  The syntax is:
         syntax_error(ec_exp_identifier);
         parenthesized_initializer_allowed = FALSE;
       }  /* if */
+      if (!(input_flags & DI_OPERATOR_NAME_ALLOWED)) {
+        if (locator->is_operator_name || locator->is_conversion_name) {
+          pos_error(ec_operator_name_not_allowed, &locator->source_position);
+          set_to_error_locator(*locator);
+          complete_type = error_type();
+        }  /* if */
+      }  /* if */
       if (locator->is_operator_name) {
         /* Enforce some restrictions on the declarations of overloaded
            operator functions. */
@@ -8536,6 +8543,7 @@ continue_with_declaration:
     di_flags = DI_REAL_DECLARATOR_ALLOWED;
     if (C_dialect == C_dialect_cplusplus) {
       di_flags |= DI_PARENTHESIZED_INITIALIZER_ALLOWED;
+      di_flags |= DI_OPERATOR_NAME_ALLOWED;
       if (storage_class != (a_storage_class)sc_typedef &&
           decl_scope_level == DEPTH_OF_FILE_SCOPE) {
         di_flags |= DI_QUALIFIED_NAME_ALLOWED;
