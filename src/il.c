@@ -2887,21 +2887,19 @@ members), and does not enter those.
     }  /* switch */
     if (do_source_corresp_check && could_be_orphan) {
       a_source_correspondence *scp = (a_source_correspondence *)entry_ptr;
-      if (scp->is_class_member ||
-          scp->parent.namespace_ptr != NULL) {
-        /* Class and namespace members cannot be orphans. */
-        could_be_orphan = FALSE;
+      if (entry_kind == (an_il_entry_kind)iek_constant &&
+          constant_name_is_part_of_value((a_constant_ptr)entry_ptr)) {
+        /* ck_template_param constants in some cases are named
+           only because the name provides part of the value, and they
+           can be orphans. */
+        /* could_be_orphan = TRUE; -- already set. */
       } else if (scp->name != NULL) {
         /* Named entities cannot be orphans. */
         could_be_orphan = FALSE;
-        /* However, ck_template_param constants in some cases are named
-           only because the name provides part of the value. */
-        if (entry_kind == (an_il_entry_kind)iek_constant) {
-          a_constant_ptr cp = (a_constant_ptr)entry_ptr;
-          if (constant_name_is_part_of_value(cp)) {
-            could_be_orphan = TRUE;
-          }  /* if */
-        }  /* if */
+      } else if (scp->is_class_member ||
+                 scp->parent.namespace_ptr != NULL) {
+        /* Class and namespace members cannot be orphans. */
+        could_be_orphan = FALSE;
       }  /* if */
     }  /* if */
     if (could_be_orphan) {
