@@ -7641,6 +7641,9 @@ next_declaration:
                                    (a_scope_kind)sck_template_declaration) {
       /* This is an error case -- a class definition within a template
          parameter declaration.  Don't try to enter the class in the IL. */
+    } else if (delayed_nested_class_def) {
+      /* Out-of-class definition of a C++ nested class.  It's already been
+         added to the list (in end_of_scope_symbol_check). */
     } else if (class_type->source_corresp.is_class_member &&
                (scope_stack[effective_decl_level].kind !=
                       (a_scope_kind)sck_class_struct_union ||
