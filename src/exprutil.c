@@ -4472,20 +4472,23 @@ is inserted only for the unexpected case.
   do_generic_operand_transformations(operand);
   if (is_an_lvalue(operand) || is_a_function_designator(operand)) {
     if (!lvalue_expected) {
+      /* The operand is an lvalue, and the operation expects an rvalue.
+         Add an eok_lvalue node. */
       expr = make_node_from_operand(operand);
       expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
-                                expr->type, expr);
-      make_expression_operand(expr, operand->type, operand);
+                                operand->type, expr);
+      make_expression_operand(expr, rvalue_type(operand->type), operand);
     }  /* if */
   } else if (is_an_rvalue(operand)) {
     if (lvalue_expected) {
+      /* The operand is an rvalue, and the operation expects an lvalue.
+         Add an eok_rvalue node. */
       expr = make_node_from_operand(operand);
       expr = make_operator_node((an_expr_operator_kind)eok_rvalue,
                                 expr->type, expr);
       make_expression_operand(expr, operand->type, operand);
     }  /* if */
   }  /* if */
-  operand->state = orig_operand.state;
   restore_operand_details_incl_ref(operand, &orig_operand);
   /* We don't know how this operand is used, so set a special kind
      of reference. */
