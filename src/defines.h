@@ -84,7 +84,10 @@ Flags to be set when using the KAI inliner.
 
 #ifdef SOLARIS
 #define __ANSIC__ 1
+#ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 1
+#define GCC_IS_C_GEN_BE_TARGET 1
+#endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
@@ -94,7 +97,6 @@ Flags to be set when using the KAI inliner.
 #define STDC_ZERO_IN_NONSTRICT_MODE 1
 #ifdef sparc
 /* SPARC Solaris version. */
-#define USE_INIT_SECTION_IN_GENERATED_C 1
 #define TARG_JMP_BUF_NUM_ELEMENTS 12
 #else /* !defined(sparc) */
 /* Intel Solaris version. */
@@ -110,6 +112,9 @@ Flags to be set when using the KAI inliner.
 #endif /* ifndef __ANSIC__ */
 #ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 0
+#ifndef GCC_IS_C_GEN_BE_TARGET
+#define GCC_IS_C_GEN_BE_TARGET 0
+#endif /* ifndef GCC_IS_C_GEN_BE_TARGET */
 #endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
 #endif /* ifdef SOLARIS */
 
@@ -227,12 +232,6 @@ Flags to be set when using the KAI inliner.
 #ifndef RUNTIME_USES_NAMESPACES
 #define RUNTIME_USES_NAMESPACES 1
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
-
-#ifdef __ELF__
-/* On ELF linux systems, use the INIT section for static initialization. */
-#define USE_INIT_SECTION_IN_GENERATED_C 1
-#endif /* __ELF__ */
-
 
 #else /* ifndef __linux__ */
 

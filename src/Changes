@@ -1,5 +1,24 @@
 Version 2.39
 
+7/11/98   C-generating back end: startup code, .init sections, gcc
+
+The gcc compiler has a special declarator, __attribute__((constructor)),
+that can be used to indicate initialization routines that must be called
+at program startup.  The C-generating back end now generates that
+declarator when GCC_IS_C_GEN_BE_TARGET (and the default for
+GCC_IS_C_GEN_BE_TARGET is now TRUE when gcc is used to compile the front
+end).
+
+Also, the code generated when USE_INIT_SECTION_IN_GENERATED_C is TRUE
+is now put inside of the initialization function.  This was done because
+newer versions of the Sun ANSI C compiler do not accept asm statements
+outside of a function.
+
+Note that a special version of .init code is no longer generated for Linux,
+given that gcc is likely to be the compiler used.  If you use Linux,
+you should make sure that you do not set USE_INIT_SECTION_IN_GENERATED_C
+to TRUE.
+
 7/10/98   Source sequence entries for instantiations: linkage specifications
 
 The processing that inserts source sequence entries for instantiations

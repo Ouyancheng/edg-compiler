@@ -1272,8 +1272,12 @@ gcc (the GNU C compiler).
 */
 
 #ifndef GCC_IS_C_GEN_BE_TARGET
+#ifdef __GNUC__
+#define GCC_IS_C_GEN_BE_TARGET TRUE
+#else /* !defined(__GNUC__) */
 #define GCC_IS_C_GEN_BE_TARGET FALSE
-#endif /* !defined(GCC_IS_C_GEN_BE_TARGET) */
+#endif /* ifdef __GNUC__ */
+#endif /* ifndef GCC_IS_C_GEN_BE_TARGET */
 #endif /* BACK_END_IS_C_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE
@@ -1381,7 +1385,9 @@ If they are not allowed, they are rewritten as "(operand, 0)".
 If the C-generating back end is being used, and the target environment
 has .init sections (e.g., SVR4), this flag is TRUE to enable generation of
 asm directives to get startup routines called (thus eliminating the need
-for patch or munch).  The form of the generated lines is right for Solaris.
+for patch or munch).  Note that gcc has a better of way of doing this,
+so it's not necessarily helpful to set this to TRUE when using gcc as the
+target C compiler.
 */
 #ifndef USE_INIT_SECTION_IN_GENERATED_C
 #define USE_INIT_SECTION_IN_GENERATED_C FALSE
