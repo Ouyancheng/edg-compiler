@@ -2949,6 +2949,10 @@ Returns TRUE if there is an error in the specifiers.
 	     declaration. */
 	  error(ec_bad_specifier_outside_class_decl);
 	  err = TRUE;
+        } else if (input_flags & DSI_IS_TEMPLATE_DECLARATION) {
+          /* Must be a member function template -- virtual is not allowed. */
+          error(ec_virtual_function_template);
+          err = TRUE;
 	} else if (*output_flags & DSO_VIRTUAL) {
 	  /* Only one "virtual" specifier at at time. */
 	  error(ec_dupl_decl_specifier);
