@@ -51,7 +51,7 @@ static unsigned long
 		symbol_name_string_space,
 		num_class_symbol_supplements_allocated,
 		num_template_symbol_supplements_allocated,
-                num_template_param_list_entries_allocated,
+                num_template_params_allocated,
                 num_conversion_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
@@ -5260,7 +5260,7 @@ Allocate a new template parameter list entry and return a pointer to it.
   db_enter(5, "alloc_template_param");
   ptr = (a_template_param_ptr)alloc_fe(sizeof(a_template_param));
 #if DEBUG
-  num_template_param_list_entries_allocated++;
+  num_template_params_allocated++;
 #endif /* DEBUG */
   ptr->next          = NULL;
   ptr->param_symbol  = NULL;
@@ -5302,9 +5302,8 @@ for space tracking purposes.
   write_one("template symbol suppl.",
             num_template_symbol_supplements_allocated,
             a_template_symbol_supplement);
-  write_one("template param list entry",
-            num_template_param_list_entries_allocated,
-            a_conversion_list_entry);
+  write_one("template params", num_template_params_allocated,
+            a_template_param);
   write_one("conversion list entry", num_conversion_list_entries_allocated,
             a_conversion_list_entry);
   write_one("projection symbol descr", num_projection_descrs_allocated,
@@ -5434,7 +5433,7 @@ to avoid an 8-character external name clash with symbol_table.)
   symbol_name_string_space                  = 0;
   num_class_symbol_supplements_allocated    = 0;
   num_template_symbol_supplements_allocated = 0;
-  num_template_param_list_entries_allocated = 0;
+  num_template_params_allocated             = 0;
   num_conversion_list_entries_allocated     = 0;
   num_extern_symbol_descrs_allocated        = 0;
   num_extern_type_fixups_allocated          = 0;
