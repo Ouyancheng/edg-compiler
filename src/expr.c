@@ -2020,6 +2020,7 @@ bound with the function in *bound_function_selector.
   an_identifier_options_set
                         gid_flags;
   a_type_ptr            dtor_type;
+  a_boolean             pcc_mode_integral_pointer_case = FALSE;
 
   db_enter(4, "scan_field_selection_operator");
 
@@ -2077,7 +2078,11 @@ bound with the function in *bound_function_selector.
     } else {
       if (is_arrow_operator) {
         /* "->" operator.  The left operand must be a pointer. */
-        if (check_pointer_operand(operand_1, ec_expr_not_pointer)) {
+        if (C_dialect == C_dialect_pcc && is_integral_type(operand_1->type)) {
+          /* In pcc mode, something like 0->x is valid. */
+          pcc_mode_integral_pointer_case = TRUE;
+          orig_class_struct_union_type = NULL;  /* Defensive programming. */
+        } else if (check_pointer_operand(operand_1, ec_expr_not_pointer)) {
           orig_class_struct_union_type = type_pointed_to(operand_1->type);
         } else {
           /* Not a pointer. */
@@ -2092,17 +2097,20 @@ bound with the function in *bound_function_selector.
     /* Check that the left operand is (a pointer to) a complete class,
        struct, or union, for either operator. */
     if (!err) {
-      /* Drop any qualifiers or typedefs on the class/struct/union type. */
-      class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
-      if (is_class_struct_union_type(class_struct_union_type)) {
-        /* Instantiate the class if it is a template class. */
-        instantiate_template_class(class_struct_union_type);
-        operand_1_is_complete_class =
+      if (!pcc_mode_integral_pointer_case) {
+        /* Drop any qualifiers or typedefs on the class/struct/union type. */
+        class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
+        if (is_class_struct_union_type(class_struct_union_type)) {
+          /* Instantiate the class if it is a template class. */
+          instantiate_template_class(class_struct_union_type);
+          operand_1_is_complete_class =
                                   !is_incomplete_type(class_struct_union_type);
+        }  /* if */
       }  /* if */
       /* No error is issued yet if the first operand is not (a pointer to)
          a class, because (a) pcc mode allows fields to be selected from
-         non-class pointers, and (b) C++ allows p->int::~int(). */
+         non-class pointers and integral values, and (b) C++ allows
+         p->int::~int(). */
       need_operand_1_type_check = TRUE;
     }  /* if */
   }  /* if */
@@ -2275,6 +2283,17 @@ bound with the function in *bound_function_selector.
                                                     source_corresp.assoc_info);
         }  /* if */
         err = TRUE;
+        /* Enter an undefined symbol and record a reference against it. */
+        { a_symbol_ptr undef_sym_ptr= enter_symbol((a_symbol_kind)sk_undefined,
+                                                   &locator_for_curr_id,
+                                                   decl_scope_level,
+                                                   /*suppress_error=*/TRUE);
+          record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
+                                                            SRK_ERROR),
+                                  undef_sym_ptr,
+                                  &error_position,
+                                  /*update_il_entry=*/FALSE);
+        }
       }  /* if */
     }  /* if */
   } else {
