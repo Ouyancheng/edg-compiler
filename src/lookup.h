@@ -45,7 +45,7 @@ represented as a bit set:
 #define IDL_SKIP_CURR_SCOPE	0x8
 				/* Causes normal_id_lookup to skip over the
 				   innermost scope entry (after any template
-				   declaration scopes have been skiped if
+				   declaration scopes have been skipped if
 				   IDL_SKIP_TEMPLATE_DECL_SCOPES is used).
 				   (This is used to look up the identifiers
 				   used in constructor initializer lists;
