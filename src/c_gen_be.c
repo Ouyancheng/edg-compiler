@@ -2403,6 +2403,9 @@ final semicolon if output_final_semi is TRUE.
           }  /* if */
           write_tok_str(": ");
           write_unsigned_num((a_host_large_unsigned)field->bit_size);
+#if GNU_EXTENSIONS_ALLOWED
+          write_field_attributes(field);
+#endif /* GNU_EXTENSIONS_ALLOWED */
           write_tok_ch(';');
         }
       }  /* if */
