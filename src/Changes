@@ -1,5 +1,13 @@
 Version 3.4
 
+8/4/03   Microsoft compatibility: deduced reference to non-const can
+         no longer bind to rvalue
+
+The MSVC++ bug  described in the Changes entry of 10/7/00
+was apparently corrected in MSVC++ 7.0 (but not in the 7.0 beta
+we had).  The emulation is therefore now turned off for
+microsoft_version >= 1300.
+
 8/4/03   Microsoft C++ mode: Attributes on variable declarations
 
 In Microsoft C++ mode, the front end now accepts some attributes on variable
@@ -12705,7 +12713,7 @@ in 14.7.1p9 of the C++ standard.
 
 In Microsoft bugs mode, the front end now allows a deduced template
 function parameter of type reference to non-const to bind to an rvalue.
-This matches the behavior of MSVC++ 6.0 and 7.0.
+This matches the behavior of MSVC++ 6.0 and 7.0 beta.
 
   template <class T> void f(T &) {}
   int main() {

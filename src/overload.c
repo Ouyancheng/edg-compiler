@@ -1500,20 +1500,22 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     param_type_qualifiers = get_type_qualifiers(param_type);
     arg_type_qualifiers   = get_type_qualifiers(arg_type);
     /* The reference can bind to an rvalue if it is a reference to const. */
-    /* Note that, as of Feb. 1995, the WP does not require the test for
-       const volatile here.  It's not clear whether that's an oversight or
-       not.  (A core working group discussed it in Austin in March 1995
-       and decided it didn't care to bring it up in full committee.) */
-    if ((microsoft_bugs && param_type_is_deduced) ||
+    if ((microsoft_bugs && param_type_is_deduced &&
+         microsoft_version < 1300) ||
         any_cfront_mode() ||
         allow_anachronisms) {
       /* A reference to non-const that's deduced can bind to an rvalue in
-         Microsoft bugs mode (VC++ 6.0).  A reference to non-const can
-        bind to an rvalue in cfront mode or anachronisms mode. */
+         Microsoft bugs mode (VC++ 6.0, 7.0 beta, fixed in real 7.0).
+         A reference to non-const can bind to an rvalue in cfront mode
+         or anachronisms mode. */
       source_can_be_rvalue = TRUE;
     } else {
       /* Normal case.  A reference can bind to an rvalue only if it's
          a reference to const. */
+      /* Note that, as of Feb. 1995, the WP does not require the test for
+         const volatile here.  It's not clear whether that's an oversight or
+         not.  (A core working group discussed it in Austin in March 1995
+         and decided it didn't care to bring it up in full committee.) */
       source_can_be_rvalue = ((param_type_qualifiers & TQ_CONST) != 0);
     }  /* if */
     /* Check the type qualifiers to see if they can be reconciled by
