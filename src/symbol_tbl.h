@@ -474,7 +474,10 @@ typedef struct a_template_param {
   a_symbol_ptr	param_symbol;
 			/* Symbol entry for a formal parameters of the
                            template. */
-
+  a_type_ptr    param_type;
+                        /* Type entry for a formal parameter.  A unique type
+                           entry is created for each template type
+                           paramter. */
 } a_template_param;
 
 

@@ -460,6 +460,12 @@ and indentation is the indentation desired.
         for (tplep = tssp->parameters; tplep != NULL; tplep = tplep->next) {
           fprintf(f_debug, "%*s", indentation + 2, "");
           db_symbol(tplep->param_symbol, "", indentation + 4);
+          fprintf(f_debug, "%*sparameter type: ", indentation + 4, "");
+          if (tplep->param_type != NULL) {
+            db_type(tplep->param_type);
+          } else {
+            fprintf(f_debug, "NULL\n");
+          }  /* if */
           col = 0;
         }  /* for */
         inst_sym = tssp->variant.class.instantiations;
@@ -5316,6 +5322,7 @@ Allocate a new template parameter list entry and return a pointer to it.
 #endif /* DEBUG */
   ptr->next          = NULL;
   ptr->param_symbol  = NULL;
+  ptr->param_type    = NULL;
   
   db_exit();
   return ptr;
