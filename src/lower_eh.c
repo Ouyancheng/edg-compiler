@@ -222,7 +222,10 @@ Make a type with the same structure as the type_info type from the
     __mptr *__vptr;  // Virtual function table pointer
   };
 
-This must match the header file and the runtime definition.
+This must match the header file and the runtime definition.  Well, "match"
+is too strong a word: the virtual function table pointer must be at the
+proper offset.  The rest of the fields, and the overall size, need
+not match up.
 
 type_of_type_info is not used because it might not be complete yet (and
 perhaps it will be completed later in this compilation).
