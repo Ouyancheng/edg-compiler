@@ -1957,8 +1957,8 @@ the pointer_base_class for both V1 and V2 is C.
 
 
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-static void set_data_section_base_class(a_base_class_ptr       base_class,
-                                        a_derivation_step_ptr  path)
+static a_boolean set_data_section_base_class(a_base_class_ptr       base_class,
+                                             a_derivation_step_ptr  path)
 /*
 In cfront-compatibility mode the data section for a virtual base class
 may be embedded in the data section of some other base class.  When this
@@ -2112,30 +2112,34 @@ treated as though it were not embedded in an intermediate complete
 subobject (e.g., C).
 */
 {
-  a_derivation_step_ptr  dsp;
+  a_derivation_step_ptr  dsp = path;
   a_base_class_ptr       bcp;
+  a_boolean              updated = FALSE;
 
+  db_enter(4, "set_data_section_base_class");
   if (base_class->data_section_base_class == NULL) {
-    bcp = path->base_class;
-    if (!bcp->is_virtual) {
-      if (bcp->complete_subobject) {
-        for (dsp = path; dsp != NULL; dsp = dsp->next) {
-          if (dsp->next == NULL || dsp->next->base_class->is_virtual) {
-            bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
-                                           dsp->base_class->type);
-            if (bcp->data_section_base_class == NULL) {
-              base_class->data_section_base_class = dsp->base_class;
-            }  /* if */
-            break;
+    if (dsp->base_class->complete_subobject) {
+      for (;; dsp = dsp->next) {
+        if (dsp->base_class->is_virtual &&
+            dsp->base_class->data_section_base_class == NULL) {
+          break;
+        } else if (dsp->next == NULL ||
+                  !dsp->next->base_class->complete_subobject) {
+          bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
+                                         dsp->base_class->type);
+          if (bcp->data_section_base_class == NULL) {
+            base_class->data_section_base_class = dsp->base_class;
+            updated = TRUE;
           }  /* if */
-        }  /* for */
-      } else if (path->next != NULL) {
-        /* Indirect virtual base class that are base classes of an incomplete
-           subobject base class are put out at the derived class even if they
-           are embedded in some other direct base class.  This seems to be
-           an anomaly in cfront's algorithm. */
-        base_class->data_section_base_class = &data_section_base_class_blocked;
-      }  /* if */
+          break;
+        }  /* if */
+      }  /* for */
+    } else if (path->next != NULL) {
+      /* Indirect virtual base class that are base classes of an incomplete
+         subobject base class are put out at the derived class even if they
+         are embedded in some other direct base class.  This seems to be
+         an anomaly in cfront's algorithm. */
+      base_class->data_section_base_class = &data_section_base_class_blocked;
     }  /* if */
   } else if (base_class->data_section_base_class ==
                                       &data_section_base_class_blocked) {
@@ -2147,12 +2151,45 @@ subobject (e.g., C).
                                        dsp->base_class->type);
         if (bcp->data_section_base_class == NULL) {
           base_class->data_section_base_class = dsp->base_class;
+          updated = TRUE;
           break;
         }  /* if */
       }  /* for */
     }  /* if */
   }  /* if */
+  db_exit();
+  return updated;
 }  /* set_data_section_base_class */
+
+
+void fixup_embedded_virtual_base_classes(a_base_class_ptr base_class,
+                                         a_type_ptr       class_type)
+{
+  a_base_class_ptr  bcp, embedded_base_class;
+
+  db_enter(4, "fixup_embedded_virtual_base_classes");
+  if (base_class->type->variant.class_struct_union.any_virtual_base_classes) {
+    for (bcp = base_classes_of(base_class->type);
+         bcp != NULL;
+         bcp = bcp->next) {
+      if (bcp->is_virtual && bcp->data_section_base_class == NULL) {
+        embedded_base_class = corresponding_base_class(bcp, (a_type_ptr)NULL,
+                                                       class_type);
+        if (embedded_base_class->data_section_base_class == NULL
+#if 0
+            /* I`m not sure about this: */
+            || embedded_base_class->data_section_base_class ==
+                                            &data_section_base_class_blocked
+#endif /* if 0 */
+                                                                ) {
+          embedded_base_class->data_section_base_class = base_class;
+        }  /* if */
+        fixup_embedded_virtual_base_classes(embedded_base_class, class_type);
+      }  /* for */
+    }  /* for */
+  }  /* for */
+  db_exit();
+}  /* fixup_embedded_virtual_base_classes */
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
 
 
@@ -2208,7 +2245,9 @@ duplicate paths.  The copy will be a base class of new_class.
            virtual base class. */
         /* Specify the base class in which the data section resides, if there
            isn't one yet. */
-        set_data_section_base_class(bcp, path);
+        if (set_data_section_base_class(bcp, path)) {
+          fixup_embedded_virtual_base_classes(bcp, new_class);
+        }  /* if */
 #if 0
         if (bcp->data_section_base_class == NULL &&
             !directly_derived_bcp->is_virtual &&
@@ -2249,7 +2288,7 @@ duplicate paths.  The copy will be a base class of new_class.
       new_bcp->data_section_base_class = directly_derived_bcp;
     }  /* if */
 #endif /* if 0 */
-    set_data_section_base_class(new_bcp, path);
+    (void)set_data_section_base_class(new_bcp, path);
     /* According to cfront all virtual base classes are complete subobjects. */
     new_bcp->complete_subobject = TRUE;
   } else {
@@ -2277,9 +2316,11 @@ duplicate paths.  The copy will be a base class of new_class.
       add_indirect_base_class(bcp, new_bcp, p_end_of_add_list, new_class);
     }  /* if */
   }  /* for */
+#if 0
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
   fixup_data_section_base_class_pointers(new_bcp, new_class);
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* if 0 */
   /* Add this to the end of add_list. */
   if (*p_end_of_add_list == NULL) {
     new_class->variant.class_struct_union.extra_info->base_classes = new_bcp;
@@ -2564,9 +2605,11 @@ or struct definition.  The syntax is
         end_of_base_classes_list->next = new_direct_bcp;
       }  /* if */
       end_of_base_classes_list = new_direct_bcp;
+#if 0
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
       fixup_data_section_base_class_pointers(new_direct_bcp, type_ptr);
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* if 0 */
       if (any_base_class_with_override_list) {
         for (bcp = base_classes_of(new_direct_bcp->type);
              bcp != NULL;
