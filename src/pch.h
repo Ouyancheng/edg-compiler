@@ -150,8 +150,8 @@ Macro used to initialize one element of an array of a_pch_saved_variable.
 Similar to pch_saved_var_array_elem, except used when the variable
 contains the address of the data to be stored.
 */
-#define pch_indirect_saved_var_array_elem(var)                          \
-  { (a_void_ptr)&var, sizeof(var), TRUE pch_saved_var_name(var) }
+#define pch_indirect_saved_var_array_elem(var, size)                      \
+  { (a_void_ptr)&var, size, TRUE pch_saved_var_name(var) }
 
 /*
 Macro used to mark the end of a list of saved variables.
