@@ -1394,24 +1394,24 @@ If "restrict" is seen, set *restrict_seen to TRUE.
   /* Pass over the initial left bracket. */
   (void)get_token();
   add_stop_token(tok_rbracket);
+#if RESTRICT_ALLOWED
+  if (curr_token == tok_restrict) {
+    if (restrict_allowed) {
+      /* This must be a declaration of a function parameter type, and
+         moreover it must be the top level declaration. */
+      *restrict_seen = TRUE;
+    } else {
+      /* Issue an error. */
+      pos_error(ec_restrict_not_allowed, &pos_curr_token);
+    }  /* if */
+    /* Advance past it. */
+    (void)get_token();
+  }  /* if */
+#endif /* RESTRICT_ALLOWED */
   if (curr_token == tok_rbracket) {
     /* Empty brackets, indicating an incomplete array type. */
     num_of_elements = 0;
   } else {
-#if RESTRICT_ALLOWED
-    if (curr_token == tok_restrict) {
-      if (restrict_allowed) {
-        /* This must be a declaration of a function parameter type, and
-           moreover it must be the top level declaration. */
-        *restrict_seen = TRUE;
-      } else {
-        /* Issue an error. */
-        pos_error(ec_restrict_not_allowed, &pos_curr_token);
-      }  /* if */
-      /* Advance past it. */
-      (void)get_token();
-    }  /* if */
-#endif /* RESTRICT_ALLOWED */
     /* Scan the array size. */
     if (nonconstant_dimension_allowed) {
       a_boolean  is_constant;
