@@ -3249,328 +3249,6 @@ that a function might throw.
   write_tok_ch(')');
 }  /* gen_exception_specification */
 
-#if GNU_EXTENSIONS_ALLOWED
-#if USER_CONTROL_OF_STRUCT_PACKING
-
-static void write_alignment_attribute(a_targ_alignment alignment)
-/*
-Write out an alignment attribute to indicate the explicit alignment
-given to the entity just declared.
-*/
-{
-  write_tok_str(" __attribute__((__aligned__(");
-  write_unsigned_num((a_host_large_unsigned)alignment);
-  write_tok_str(")))");
-}  /* write_alignment_attribute */
-
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-
-static void write_routine_type_attributes(a_type_ptr type)
-/*
-Write out attributes that apply to the indicated type, which must
-be a routine type.
-*/
-{
-  a_routine_type_supplement_ptr 
-                      rtsp = skip_typerefs(type)->variant.routine.extra_info;
-  if (rtsp->does_not_return) {
-    write_tok_str(" __attribute__((__noreturn__))");
-  }  /* if */
-  if (rtsp->is_const) {
-    write_tok_str(" __attribute__((__const__))");
-  }  /* if */
-#if GNU_X86_ATTRIBUTES_ALLOWED
-  if (gcc_is_generated_code_target) {
-    switch (rtsp->calling_convention) {
-      case cc_default:
-        /* No attribute to generate. */
-        break;
-      case cc_cdecl:
-        write_tok_str(" __attribute__((__cdecl__))");
-        break;
-      case cc_fastcall:
-        /* A Microsoft-only calling convention.  These aren't generated for
-           the GNU C compiler. */
-        break;
-      case cc_stdcall:
-        write_tok_str(" __attribute__((__stdcall__))");
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
-  }  /* if */
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-}  /* write_routine_type_attributes */
-
-
-static void write_type_attributes(a_type_ptr type)
-/*
-Write out attributes that apply to the indicated type.
-*/
-{
-#if USER_CONTROL_OF_STRUCT_PACKING
-  if (gcc_is_generated_code_target && type->alignment_set_explicitly) {
-    /* Output an attribute to indicate the explicit alignment. */
-    write_alignment_attribute(type->alignment);
-  }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  if (type->variables_are_implicitly_referenced) {
-    /* Output the "unused" attribute. */
-    write_tok_str(" __attribute__((__unused__))");
-  }  /* if */
-  if (gcc_is_generated_code_target && type->source_corresp.is_deprecated) {
-    /* Output the "deprecated" attribute. */
-    write_tok_str(" __attribute__((__deprecated__))");
-  }  /* if */
-  if (type->kind == (a_type_kind)tk_integer &&
-      type->variant.integer.packed) {
-    /* Output the "packed" attribute. */
-    write_tok_str(" __attribute__((__packed__))");
-  }  /* if */
-  if (type->kind == (a_type_kind)tk_union &&
-      type->variant.class_struct_union.is_transparent) {
-    write_tok_str(" __attribute__((__transparent_union__))");
-  }  /* if */
-  if (is_pointer_type(type) &&
-      is_function_type(type_pointed_to(type))) {
-    write_routine_type_attributes(f_skip_typerefs(type_pointed_to(type)));
-  }  /* if */
-}  /* write_type_attributes */
-  
-
-static void write_string_argument_attribute(char *attribute_name,
-                                            char *argument)
-/*
-Write out an attribute that takes a string as an argument.  The
-attribute_name is assumed to have no characters that require escapes,
-but the argument might have characters like "\n" or "\t" that need to
-be handled specially.  */
-{
-  char *c;
-
-  write_tok_str(" __attribute__((");
-  write_tok_str(attribute_name);
-  write_str("(\"");
-  for (c = argument; *c != '\0'; c++) {
-    (void)form_char(*c, &octl);
-  }  /* for */
-  write_str("\")))");
-}  /* write_string_argument_attribute */
-
-
-static void write_section_attribute(char *section)
-/*
-Write out an attribute indicating that the entity being declared
-should be placed in the indicated section.
-*/
-{
-  write_string_argument_attribute("__section__", section);
-}  /* write_section_attribute */
-
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-
-static void write_ELF_visibility_attribute(an_ELF_visibility_kind  visibility)
-/*
-Write out the given visibility as an attribute specification (provided it is
-not evk_unspecified).
-*/
-{
-  switch (visibility) {
-    case evk_unspecified:
-      /* No visibility attribute. */
-      break;
-    case evk_hidden:
-      write_tok_str(" __attribute__((visibility(\"hidden\")))");
-      break;
-    case evk_protected:
-      write_tok_str(" __attribute__((visibility(\"protected\")))");
-      break;
-    case evk_internal:
-      write_tok_str(" __attribute__((visibility(\"internal\")))");
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-}  /* write_ELF_visibility_attribute */
-
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-
-static void write_mode_attribute(a_type_mode_kind mode)
-/* 
-Write out the type mode.
-*/
-{
-  write_tok_str(" __attribute__((__mode__(");
-  write_tok_str(type_mode_kind_names[(int)mode]);
-  write_tok_str(")))");
-}  /* write_mode_attribute */
-
-
-static void write_variable_attributes(a_variable_ptr var)
-/*
-Write out attributes that apply to the indicated variable.
-*/
-{
-#if USER_CONTROL_OF_STRUCT_PACKING
-  if (gcc_is_generated_code_target && var->alignment != 0) {
-    /* Output the alignment attribute. */
-    write_alignment_attribute(var->alignment);
-  }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  if (var->init_priority != 0) {
-    write_tok_str(" __attribute__((__init_priority__(");
-    write_unsigned_num((a_host_large_unsigned)var->init_priority);
-    write_tok_str(")))");
-  }  /* if */
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  write_ELF_visibility_attribute(var->ELF_visibility);
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-  if (var->is_weak) {
-    write_tok_str(" __attribute__((__weak__))");
-  }  /* if */
-  if (var->has_gnu_unused_attribute) {
-    write_tok_str(" __attribute__((__unused__))");
-  }  /* if */
-  if (gcc_is_generated_code_target && var->source_corresp.is_deprecated) {
-    write_tok_str(" __attribute__((__deprecated__))");
-  }  /* if */
-  if (var->is_not_common) {
-    write_tok_str(" __attribute__((__nocommon__))");
-  }  /* if */
-  if (var->assoc_param_type != NULL && var->assoc_param_type->is_transparent) {
-    write_tok_str(" __attribute__((__transparent_union__))");
-  }  /* if */
-  if (var->section != NULL) {
-    write_section_attribute(var->section);
-  }  /* if */
-  if (var->aliased_variable != NULL) {
-    write_string_argument_attribute(
-                      "__alias__", var->aliased_variable->source_corresp.name);
-  }  /* if */
-  if (is_pointer_type(var->type) &&
-      is_function_type(type_pointed_to(var->type))) {
-    write_routine_type_attributes(f_skip_typerefs(type_pointed_to(var->type)));
-  }  /* if */
-}  /* write_variable_attributes */
-
-
-static void write_field_attributes(a_field_ptr field)
-/*
-Write out attributes that apply to the indicated field.
-*/
-{
-  if (field->source_corresp.is_deprecated) {
-    write_tok_str(" __attribute__((__deprecated__))");
-  }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
-  if (gcc_is_generated_code_target && field->alignment != 0) {
-    write_alignment_attribute(field->alignment);
-  }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-}  /* write_field_attributes */
-
-
-static void write_routine_attributes(a_routine_ptr rout)
-/*
-Write out attributes that apply to the indicated routine.
-*/
-{
-  if (rout->is_initialization_routine) {
-    write_tok_str(" __attribute__((__constructor__))");
-  }  /* if */
-  if (rout->is_finalization_routine) {
-    write_tok_str(" __attribute__((__destructor__))");
-  }  /* if */
-  if (rout->is_pure) {
-    write_tok_str(" __attribute__((__pure__))");
-  }  /* if */
-  if (rout->is_weak) {
-    write_tok_str(" __attribute__((__weak__))");
-  }  /* if */
-  if (rout->has_gnu_unused_attribute) {
-    write_tok_str(" __attribute__((__unused__))");
-  }  /* if */
-  if (rout->has_gnu_used_attribute) {
-    write_tok_str(" __attribute__((__used__))");
-  }  /* if */
-  if (gcc_is_generated_code_target && rout->source_corresp.is_deprecated) {
-    write_tok_str(" __attribute__((__deprecated__))");
-  }  /* if */
-  if (rout->allocates_memory) {
-    write_tok_str(" __attribute((__malloc__))");
-  }  /* if */
-#if GNU_NAKED_ATTRIBUTE_ALLOWED
-  if (rout->is_naked) {
-    write_tok_str(" __attribute((__naked__))");
-  }  /* if */
-#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
-  if (rout->no_instrument_function) {
-    write_tok_str(" __attribute((__no_instrument_function__))");
-  }  /* if */
-  if (rout->no_check_memory_usage) {
-    write_tok_str(" __attribute((__no_check_memory_usage__))");
-  }  /* if */
-  if (rout->type->kind == (a_type_kind)tk_routine) {
-    /* If this routine is declared using ordinary function declarator
-       syntax (i.e., not using a typedef), generate the associated
-       routine type attributes. */
-    write_routine_type_attributes(rout->type);
-  }  /* if */
-  if (rout->section != NULL) {
-    write_section_attribute(rout->section);
-  }  /* if */
-  if (rout->aliased_routine != NULL) {
-    write_string_argument_attribute(
-                      "__alias__", rout->aliased_routine->source_corresp.name);
-  }  /* if */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  write_ELF_visibility_attribute(rout->ELF_visibility);
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-}  /* write_routine_attributes */
-
-
-static void write_label_attributes(a_label_ptr  label)
-/*
-Write out attributes that apply to the indicated label.
-*/
-{
-  if (label->has_gnu_unused_attribute) {
-    write_tok_str(" __attribute__((__unused__))");
-  }  /* if */
-}  /* write_label_attributes */
-
-
-static void write_asm_name(char *asm_name)
-/*
-Write out an asm name for a routine or variable.  asm_name is allowed
-to be NULL.
-*/
-{
-  char *c;
-
-  if (gcc_is_generated_code_target && asm_name != NULL) {
-    write_tok_str(" __asm__(\"");
-    for (c = asm_name; *c != '\0'; c++) {
-      (void)form_char(*c, &octl);
-    }  /* for */
-    write_tok_str("\")");
-  }  /* if */
-}  /* write_asm_name */
-
-
-static void write_var_reg_name(a_named_register reg)
-/*
-Write out the register assigned to a variable.
-*/
-{
-  write_tok_str(" __asm__(\"");
-  write_tok_str(named_register_names[(int)reg]);
-  write_tok_str("\")");
-}  /* write_var_reg_name */
-
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void gen_ms_attribute(an_ms_attribute_ptr msap,
@@ -3750,7 +3428,10 @@ default arguments should be suppressed (needed for template specializations).
                                           GDO_NO_OPTIONS,
                                           (a_name_reference_ptr)NULL);
 #if GNU_EXTENSIONS_ALLOWED
-          write_variable_attributes(param_var);
+          {
+            a_boolean  need_leading_space = TRUE;
+            form_variable_attributes(param_var, &need_leading_space, &octl);
+          }
 #endif /* GNU_EXTENSIONS_ALLOWED */
           param_var = param_var->next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3791,7 +3472,8 @@ default arguments should be suppressed (needed for template specializations).
                                extra_qual, FTO_NO_OPTIONS, &octl);
 #if GNU_EXTENSIONS_ALLOWED
           if (param->mode != (a_type_mode_kind)tmk_none) {
-            write_mode_attribute(param->mode);
+            a_boolean  need_leading_space = TRUE;
+            form_mode_attribute(param->mode, &need_leading_space, &octl);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
@@ -3926,7 +3608,8 @@ recorded).
 #if GNU_EXTENSIONS_ALLOWED
   /* If there is a mode attribute, emit it. */
   if (mode != (a_type_mode_kind)tmk_none) {
-    write_mode_attribute(mode);
+    a_boolean  need_leading_space = TRUE;
+    form_mode_attribute(mode, &need_leading_space, &octl);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Write the name if there is one. */
@@ -4110,8 +3793,11 @@ is the one associated with the definition of the enum.
   }
   write_tok_ch('}');
 #if GNU_EXTENSIONS_ALLOWED
-  /* Emit any attributes associated with the type. */
-  write_type_attributes(type);
+  {
+    /* Emit any attributes associated with the type. */
+    a_boolean  need_leading_space = TRUE;
+    form_type_attributes(type, &need_leading_space, &octl);
+  }
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* gen_enum_definition */
 
@@ -4393,7 +4079,10 @@ declaration following this one is such a continuation.
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  write_field_attributes(field);
+  {
+    a_boolean  need_leading_space = TRUE;
+    form_field_attributes(field, &need_leading_space, &octl);
+  }
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list =
@@ -4648,8 +4337,11 @@ is the one associated with the definition of the class.
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
 #if GNU_EXTENSIONS_ALLOWED
-  /* Emit any attributes associated with the type. */
-  write_type_attributes(type);
+  {
+    /* Emit any attributes associated with the type. */
+    a_boolean  need_leading_space = TRUE;
+    form_type_attributes(type, &need_leading_space, &octl);
+  }
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (pack_alignment > 0) {
@@ -4746,8 +4438,11 @@ declaration following this one is such a continuation.
                                          GDO_NO_OPTIONS,
                                          (a_name_reference_ptr)NULL);
 #if GNU_EXTENSIONS_ALLOWED
-      /* Emit any attributes associated with the typedef. */
-      write_type_attributes(under_type);
+      {
+        /* Emit any attributes associated with the typedef. */
+        a_boolean  need_leading_space = TRUE;
+        form_type_attributes(under_type, &need_leading_space, &octl);
+      }
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
@@ -9238,8 +8933,12 @@ statement unless suppress_trailing_space is TRUE.
                            iek_label);
       write_tok_ch(':');
 #if GNU_EXTENSIONS_ALLOWED
-      /* Emit attributes associated with the label. */
-      write_label_attributes(statement->variant.label.ptr);
+      {
+        /* Emit attributes associated with the label. */
+        a_boolean  need_leading_space = TRUE;
+        form_label_attributes(statement->variant.label.ptr,
+                              &need_leading_space, &octl);
+      }
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
       break;
@@ -10015,12 +9714,15 @@ declaration following this one is such a continuation.
 #if GNU_EXTENSIONS_ALLOWED
   /* Emit any user-specified assembly symbol for this variable. */
   if (var->asm_name_is_valid) {
-    write_asm_name(var->asm_name_or_reg.name);
+    form_asm_name(var->asm_name_or_reg.name, &octl);
   } else {
-    write_var_reg_name(var->asm_name_or_reg.reg);
+    form_var_reg_name(var->asm_name_or_reg.reg, &octl);
   }  /* if */
-  /* Emit attributes associated with this variable. */
-  write_variable_attributes(var);
+  {
+    /* Emit attributes associated with this variable. */
+    a_boolean  need_leading_space = TRUE;
+    form_variable_attributes(var, &need_leading_space, &octl);
+  }
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Output the initializer, if any, but only if this is a definition.
      For member constants (static data members initialized within the
@@ -10071,7 +9773,11 @@ function.
       gen_declaration_using_type(var->type, &var->source_corresp,
                                  iek_variable);
 #if GNU_EXTENSIONS_ALLOWED
-      write_variable_attributes(var);
+      {
+        /* Emit attributes associated with this variable. */
+        a_boolean  need_leading_space = TRUE;
+        form_variable_attributes(var, &need_leading_space, &octl);
+      }
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
     } else if (ss_entry_kind(curr_source_sequence_entry) == iek_statement) {
@@ -10718,8 +10424,11 @@ TRUE if the declaration following this one is such a continuation.
     /* Emit attributes associated with the routine.  For definitions, the
        attributes must be part of the specifier.  For nondefining declarations,
        we put them after the declarator (see below). */
-    write_routine_attributes(rout);
-    write_space();
+    a_boolean  need_leading_space = FALSE;
+    form_routine_attributes(rout, &need_leading_space, &octl);
+    if (need_leading_space) {
+      write_space();
+    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Generate a declaration for the routine name with the right type. */
@@ -10744,10 +10453,13 @@ TRUE if the declaration following this one is such a continuation.
     /* For a pure virtual function, add "= 0". */
     if (rout->pure_virtual) write_tok_str(" = 0");
 #if GNU_EXTENSIONS_ALLOWED
-    /* Emit any user-specified assembly symbol for this variable. */
-    write_asm_name (rout->asm_name);
-    /* Emit attributes associated with the routine. */
-    write_routine_attributes(rout);
+    {
+      a_boolean  need_leading_space = TRUE;
+      /* Emit any user-specified assembly symbol for this variable. */
+      form_asm_name(rout->asm_name, &octl);
+      /* Emit attributes associated with the routine. */
+      form_routine_attributes(rout, &need_leading_space, &octl);
+    }
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list =

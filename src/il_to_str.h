@@ -306,6 +306,46 @@ extern void unmap_template_param(a_template_param_coordinate_ptr  coord);
 
 #endif /* BACK_END_IS_CP_GEN_BE */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+extern void form_type_attributes(
+                   a_type_ptr                             type,
+                   a_boolean                              *need_leading_space,
+                   an_il_to_str_output_control_block_ptr  octl);
+
+extern void form_mode_attribute(
+                   a_type_mode_kind                       mode,
+                   a_boolean                              *need_leading_space,
+                   an_il_to_str_output_control_block_ptr  octl);
+
+extern void form_variable_attributes(
+                   a_variable_ptr                         var,
+                   a_boolean                              *need_leading_space,
+                   an_il_to_str_output_control_block_ptr  octl);
+
+extern void form_field_attributes(
+                   a_field_ptr                            field,
+                   a_boolean                              *need_leading_space,
+                   an_il_to_str_output_control_block_ptr  octl);
+
+extern void form_routine_attributes(
+                   a_routine_ptr                          rout,
+                   a_boolean                              *need_leading_space,
+                   an_il_to_str_output_control_block_ptr  octl);
+
+extern void form_label_attributes(
+                   a_label_ptr                            label,
+                   a_boolean                              *need_leading_space,
+                   an_il_to_str_output_control_block_ptr  octl);
+
+extern void form_asm_name(char                                   *asm_name,
+                          an_il_to_str_output_control_block_ptr  octl);
+
+extern void form_var_reg_name(a_named_register                       reg,
+                              an_il_to_str_output_control_block_ptr  octl);
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #endif /* ifndef IL_TO_STR_H */
 
 
