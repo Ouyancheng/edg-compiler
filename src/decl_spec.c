@@ -3325,7 +3325,7 @@ to indicate whether an enumeration is actually defined.
       }  /* if */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-    if (gcc_mode &&
+    if (gcc_mode && min_max_set &&
         in_range_for_integer_kind(
              &min_value, &max_value,
              unsigned_int_kind_of[(int)enum_type->variant.integer.int_kind])) {
