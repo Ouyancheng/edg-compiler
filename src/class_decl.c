@@ -1348,6 +1348,51 @@ corresponding entry is removed from the registry.
 }  /* update_override_registry */
 
 
+static void check_override_registry(an_override_registry_entry_ptr  orep,
+                                    a_symbol_ptr                    tag_sym)
+/*
+orep is the first entry in the "override-registry" for the class associated
+with tag_sym.  Traverse the linked list, checking each entry for conditions
+that would warrant a warning.  There are two cases: when the overridden
+function is an overload set in a base class and one or more virtual functions
+was overridden by a declaration in the current class and one or more was not
+overridden; though allowed, this could produce subtle inconsistencies in a
+user program, so issue a warning.  The other case is where a declaration in
+the derived class might have been intended to override a base class virtual
+function, but didn't.  Again, it's perfectly legal, but it *might* have been
+a mistake.  Both these warnings should perhaps be remarks.
+*/
+{
+  an_override_registry_entry_ptr  next_orep;
+  a_symbol_list_entry_ptr         slep;
+
+  /* Loop through the registry of overrides. */
+  for (; orep != NULL; orep = next_orep) {
+    check_assertion(orep->override_count <= orep->virtual_function_count);
+    if (orep->override_count == orep->virtual_function_count) {
+      /* Okay -- no diagnostic, even if there were additional nonoverriding
+         declarations of the same name. */
+    } else {
+      /* Report possible "failed overrides". */
+      for (slep = orep->override_failures; slep != NULL; slep = slep->next) {
+        pos_sy2_warning(ec_nonoverriding_function_decl,
+                        &slep->symbol->decl_position, slep->symbol,
+                        orep->overridden_sym);
+      }  /* for */
+      if (orep->virtual_function_count > 1 && orep->override_count > 0) {
+        /* Issue a diagnostic on partial override of an overloaded
+           virtual function. */
+        pos_sy2_warning(ec_partial_override, &tag_sym->decl_position,
+                        orep->overridden_sym, tag_sym);
+      }  /* if */
+    }  /* if */
+    /* Return the entry to the available list and advance. */
+    next_orep = orep->next;
+    free_override_registry_entry(orep);
+  }  /* for */
+}  /* check_override_registry */
+
+
 static a_boolean type_is_catchable_by_handler_for_other_type(
                                                       a_type_ptr  type,
                                                       a_type_ptr  other_type)
@@ -7566,7 +7611,7 @@ static a_boolean is_invalid_use_of_virtual(a_symbol_locator  *locator,
                                            a_storage_class   storage_class,
                                            a_source_position *err_pos)
 /*
-Issue an error and return TRUE is the virtual specifier is invalid for the
+Issue an error and return TRUE if the virtual specifier is invalid for the
 current function declaration.  *locator identifies the function declared, and
 class_type is the class in which the declared appears.  is_friend is TRUE if
 this is a friend declaration, is_constructor is TRUE if it is a constructor
@@ -7594,6 +7639,176 @@ declaration, and *storage_class is the storage class that was specified.
   if (error_code != ec_no_error) pos_error(error_code, err_pos);
   return (error_code != ec_no_error);
 }  /* is_invalid_use_of_virtual */
+
+
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/* ARGSUSED */ /* access and is_non_aggregate_class are otherwise unused. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+static void check_field_type(a_symbol_locator     *locator,
+                             a_type_ptr           *member_type,
+                             a_boolean            is_first_field,
+                             a_boolean            is_unnamed,
+                             an_access_specifier  access,
+                             a_boolean            is_non_aggregate_class,
+                             a_source_position    *decl_start_pos)
+/*
+Check that the type of a nonstatic data member is valid, and report incomplete
+types and incorrect types on bit-field declarations.  *locator is the symbol
+locator for the field being declared, and *member_type is its type.
+is_unnamed is TRUE if it is an unnamed bit field, access is the access
+specification in effect for the declaration, is_non_aggregate_class is TRUE
+when if a declaration has already appeared that causes the current class
+not to be an aggregate, and *decl_start_pos is a source position for some of
+the diagnostics that may be issued.
+*/
+{
+  a_type_ptr  field_type = *member_type;
+
+  if (is_incomplete_type(field_type)) {
+    /* As a C extension (and in C++ in Microsoft mode), allow an array of
+       unknown size as the last member of a struct. It can't be the first
+       member, though. */
+    if (is_array_type(field_type) &&
+        (curr_token == tok_rbrace ||
+         (curr_token == tok_semicolon && next_token() == tok_rbrace)) &&
+        !is_incomplete_type(underlying_array_element_type(field_type)) &&
+        !is_first_field && (C_mode()
+#if MICROSOFT_EXTENSIONS_ALLOWED
+         /* Allowed in Microsoft C++ but only for aggregates. */
+         || (microsoft_mode && !is_non_aggregate_class &&
+             access == (an_access_specifier)as_public)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                       )) {
+      /* Okay -- unless we're in ANSI-C mode. */
+      if (strict_ansi_mode) {
+        pos_diagnostic(strict_ansi_error_severity,
+                       ec_incomplete_type_not_allowed,
+                       &locator->source_position);
+      }  /* if */
+    } else if (is_template_param_type(field_type)) {
+      check_assertion(skip_typerefs(field_type)->variant.template_param.kind ==
+                                   (a_template_param_type_kind)tptk_member);
+      /* Okay. */
+    } else {
+      if (!C_mode() && is_error_locator(*locator) && !is_unnamed) {
+        /* Don't issue an error since we can't be sure this was intended to
+           be field -- it could be an ill-formed function declaration with
+           a void return type, such as
+             void operator?:();
+           in which the param list is not processed. */
+      } else {
+        pos_error(ec_incomplete_type_not_allowed, &locator->source_position);
+      }  /* if */
+      field_type = error_type();
+    }  /* if */
+  }  /* if */
+  if (curr_token == tok_colon) {
+    /* Bit-field declaration -- be sure the type is okay. */
+    a_type_ptr  bit_field_type = skip_typerefs(field_type);
+    if (!is_integral_type(bit_field_type)) {
+      /* Error, not an integral type. */
+      if (is_error_type(bit_field_type)) {
+        /* An error has already been issued. */
+      } else if (is_template_param_type(bit_field_type)) {
+        /* We're in a prototype instantiation -- don't issue an error. */
+      } else {
+        /* Invalid type. */
+        pos_error(ec_bad_bit_field_type, decl_start_pos);
+        field_type = error_type();
+      }  /* if */
+    } else {
+      /* Integral base type.  In strict ANSI C mode, give a diagnostic about
+         a nonstandard base type (anything other than int, unsigned int, and
+         signed int). */
+      if (C_mode() && strict_ansi_mode) {
+        if (bit_field_type->variant.integer.enum_type ||
+            (bit_field_type->variant.integer.int_kind !=
+                                        (an_integer_kind)ik_int &&
+             bit_field_type->variant.integer.int_kind !=
+                                        (an_integer_kind)ik_unsigned_int)) {
+          pos_diagnostic(strict_ansi_error_severity, ec_nonstd_bit_field_type,
+                         decl_start_pos);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  *member_type = field_type;
+}  /* check_field_type */
+
+
+static void report_missing_constructor(a_symbol_ptr  tag_sym)
+/*
+tag_sym is a class/struct/union symbol for which no constructor was
+explicitly declared and which has at least one const or ref nonstatic data
+member.  Determine whether a diagnostic is actually required and put it out.
+*/
+{
+  a_class_symbol_supplement_ptr  cssp;
+  a_symbol_ptr                   sym;
+  a_boolean                      any_diagnostics_issued;
+
+  if (tag_sym->kind == (a_symbol_kind)sk_union_tag) {
+    /* Note that we do not do this check for unions.  This is partly because
+       a union may have a mixture of const and non-const declarations, and
+       it's not clear that the const members really need to be initialized. */
+  } else {
+    any_diagnostics_issued = FALSE;
+    cssp = tag_sym->variant.class_struct_union.extra_info;
+    /* If a diagnostic is required, each of the uninitialized const or ref
+       members will be listed, so loop through the symbols looking for
+       candidates. */
+    for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
+      if (sym->kind == (a_symbol_kind)sk_field) {
+        a_type_ptr     tp = sym->variant.field.ptr->type;
+        an_error_code  error_code;
+
+        if (is_reference_type(tp)) {
+          /* Member of reference type must be explicitly initialized. */
+          error_code = ec_reference_member;
+        } else if (is_const_qualified_type(tp)) {
+          /* Usually, a member of const type must be explicitly
+             initialized. */
+          if (type_has_default_constructor(tp)) {
+            /* A const data member that has its own default constructor will
+               be initialized when the default constructor for the current
+               class is generated.  So skip this one and keep looking. */
+            continue;
+          }  /* if */
+          error_code = ec_const_member;
+        } else {
+          /* Not a const or ref member.  Keep looking. */
+          continue;
+        }  /* if */
+        if (!any_diagnostics_issued) {
+          /* This is the first field for which a diagnostic should be issued.
+             Put out the "head" of the message first. */
+          if (!cssp->is_class_aggregate) {
+            /* Issue an error for a non-aggregate class, since there's no
+               other way to initialize an object of the class. */
+            pos_sy_start_error(ec_no_ctor_but_const_or_ref_member,
+                               &tag_sym->decl_position, tag_sym);
+          } else {
+            /* Issue a warning for an aggregate class.  If an attempt is made
+               to declare an object without appropriate initialization, an
+               error will be issued.  For example:
+                 class A { const int i; };  // Just a warning
+                 A x = { 0 };               // Okay
+                 A y = x;                   // Okay
+                 A z;                       // Error will be issued
+            */
+            pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
+                                 &tag_sym->decl_position, tag_sym);
+          }  /* if */
+          /* Remember that a diagnostic has already been issued. */
+          any_diagnostics_issued = TRUE;
+        }  /* if */
+        sym_add_diag_info(error_code, sym);
+      }  /* if */
+    }  /* for */
+    /* If a diagnostic was issue, end the diag-info list. */
+    if (any_diagnostics_issued) end_error();
+  }  /* if */
+}  /* report_missing_constructor */
 
 
 a_boolean scan_class_definition(a_type_ptr       class_type,
@@ -8452,100 +8667,14 @@ completed (C++ only).
               /* The type specified must be complete. */
               complete_type_is_needed(local_type);
               if (C_mode() && is_function_type(local_type) &&
-                  member_storage_class != (a_storage_class)sc_typedef) {
+                member_storage_class != (a_storage_class)sc_typedef) {
                 pos_error(ec_function_type_not_allowed,
                           &locator.source_position);
                 local_type = error_type();
-              } else if (is_incomplete_type(local_type)) {
-                /* As a C extension (and in C++ in Microsoft mode), allow an
-                   array of unknown size as the last member of a struct.
-                   It can't be the first member, though. */
-                if (is_array_type(local_type) &&
-                    (curr_token == tok_rbrace ||
-                     (curr_token == tok_semicolon &&
-                      next_token() == tok_rbrace)) &&
-                    !is_incomplete_type(
-                           underlying_array_element_type(local_type)) &&
-                    !is_first_field && (C_mode()
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                   /* Allowed in Microsoft C++ but only for aggregates. */
-                       || (microsoft_mode &&
-                           !class_aggregate_ruled_out &&
-                           access == (an_access_specifier)as_public)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                    )) {
-                  /* Okay -- unless we're in ANSI-C mode. */
-                  if (strict_ansi_mode) {
-                    pos_diagnostic(strict_ansi_error_severity,
-                                   ec_incomplete_type_not_allowed,
-                                   &locator.source_position);
-                  }  /* if */
-                } else if (is_template_param_type(local_type)) {
-                  check_assertion
-                    (skip_typerefs(local_type)->variant.template_param.kind ==
-                                      (a_template_param_type_kind)tptk_member);
-                  /* Okay. */
-#if 0
-/* The following code is removed on the assumption (based on Stroustrup et al.,
-   document X3J16/92-133) that any "free-symbol" referenced in a prototype
-   instantiation must be completely defined at that point. */
-                } else if (is_nonreal_instantiation) {
-                  /* Issue no error on incomplete types if the class currently
-                     being defined is a prototype instantiation or a class
-                     nested within a prototype instantiation. */
-                  /* Is it better to set the type to error-type or just to
-                     skip the call to decl_nonstatic_data_member?  Or is there
-                     another approach? */
-                  local_type = error_type();
-#endif /* if 0 */
-                } else {
-                  if (!C_mode() && is_error_locator(locator) &&
-                      !unnamed_field) {
-                    /* Don't issue an error since we can't be sure this was
-                       intended to be field -- it could be an ill-formed
-                       function declaration with a void return type, such as
-                         void operator?:();
-                       in which the param list is not processed. */
-                  } else {
-                    pos_error(ec_incomplete_type_not_allowed,
-                              &locator.source_position);
-                  }  /* if */
-                  local_type = error_type();
-                }  /* if */
-              }  /* if */
-              if (curr_token == tok_colon) {
-                /* Bit-field declaration -- be sure the type is okay.  Do it
-                   here rather than in the subroutine because here we have
-                   the right error position. */
-                a_type_ptr  bit_field_type = skip_typerefs(local_type);
-                if (!is_integral_type(bit_field_type)) {
-                  /* Error, not an integral type. */
-                  if (is_error_type(bit_field_type)) {
-                    /* An error has already been issued. */
-                  } else if (is_template_param_type(bit_field_type)) {
-                    /* We're in a prototype instantiation -- don't issue an
-                       error. */
-                  } else {
-                    /* Invalid type. */
-                    pos_error(ec_bad_bit_field_type, &decl_start_pos);
-                    local_type = error_type();
-                  }  /* if */
-                } else {
-                  /* Integral base type.  In strict ANSI C mode, give a
-                     diagnostic about a nonstandard base type (anything other
-                     than int, unsigned int, and signed int). */
-                  if (C_dialect != C_dialect_cplusplus && strict_ansi_mode) {
-                    if (bit_field_type->variant.integer.enum_type ||
-                        (bit_field_type->variant.integer.int_kind !=
-                                           (an_integer_kind)ik_int &&
-                         bit_field_type->variant.integer.int_kind !=
-                                           (an_integer_kind)ik_unsigned_int)) {
-                      pos_diagnostic(strict_ansi_error_severity,
-                                     ec_nonstd_bit_field_type,
-                                     &decl_start_pos);
-                    }  /* if */
-                  }  /* if */
-                }  /* if */
+              } else {
+                check_field_type(&locator, &local_type, is_first_field,
+                                 unnamed_field, access,
+                                 class_aggregate_ruled_out, &decl_start_pos);
               }  /* if */
               /* Set the flag to record that at least one named field was
                  encountered. */
@@ -8568,21 +8697,6 @@ completed (C++ only).
                        members is an aggregate (WP 8.5.1). */
                     class_aggregate_ruled_out = TRUE;
                   }  /* if */
-#if 0
-                } else {
-                  /* It is not explicit in the WP, but is seems appropriate
-                     that a class with a field of nonaggregate class type (or
-                     array thereof) should not itself be an aggregate. */
-                  a_type_ptr  tp = local_type;
-
-                  if (is_array_type(tp)) {
-                    tp = underlying_array_element_type(tp);
-                  }  /* if */
-                  if (is_class_struct_union_type(tp) &&
-                     !symbol_supplement_for_class(tp)->is_class_aggregate) {
-                    class_aggregate_ruled_out = TRUE;
-                  }  /* if */
-#endif /* if 0 */
                 }  /* if */
               }  /* if */
               if (!any_const_or_ref_fields &&
@@ -8700,69 +8814,10 @@ next_declaration:
          has a default constructor, since it will be initialized properly
          when the default constructor for the current class is generated. */
       if (any_const_or_ref_fields && cssp->constructor == NULL) {
-        /* The current class has at least one const or ref nonstatic data
-           member. */
-        if (is_union_type(class_type)) {
-          /* Note that we do not do this check for unions.  This is partly
-             because a union may have a mixture of const and non-const
-             declarations, and it's not clear that the const members really
-             need to be initialized. */
-        } else {
-          a_symbol_ptr  sym;
-          a_boolean     any_diagnostics_issued = FALSE;
-
-          /* List each of the uninitialized const or ref member. */
-          for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
-            if (sym->kind == (a_symbol_kind)sk_field) {
-              a_type_ptr     tp = sym->variant.field.ptr->type;
-              an_error_code  error_code;
-
-              if (is_reference_type(tp)) {
-                /* Member of reference type must be explicitly initialized. */
-                error_code = ec_reference_member;
-              } else if (is_const_qualified_type(tp)) {
-                /* Usually, a member of const type must be explicitly
-                   initialized. */
-                if (type_has_default_constructor(tp)) {
-                  /* A const data member that has its own default constructor
-                     will be initialized when the default constructor for the
-                     current class is generated.  So skip this one and keep
-                     looking. */
-                  continue;
-                }  /* if */
-                error_code = ec_const_member;
-              } else {
-                /* Not a const or ref member.  Keep looking. */
-                continue;
-              }  /* if */
-              if (!any_diagnostics_issued) {
-                /* This is the first field for which a diagnostic should be
-                   issued.  Put out the "head" of the message first. */
-                if (!cssp->is_class_aggregate) {
-                  /* Issue an error for a non-aggregate class, since there's
-                     no other way to initialize an object of the class. */
-                  pos_sy_start_error(ec_no_ctor_but_const_or_ref_member,
-                                     &error_position, tag_sym);
-                } else {
-                  /* Issue a warning for an aggregate class.  If an attempt
-                     is made to declare an object without appropriate
-                     initialization, an error will be issued.  For example:
-                       class A { const int i; };  // Just a warning
-                       A x = { 0 };               // Okay -- ARM 8.4.1
-                       A y = x;                   // Probably okay -- ARM 8.4.1
-                       A z;                       // Error will be issued    */
-                  pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
-                                       &error_position, tag_sym);
-                }  /* if */
-                any_diagnostics_issued = TRUE;
-              }  /* if */
-              sym_add_diag_info(error_code, sym);
-            }  /* if */
-          }  /* for */
-          if (any_diagnostics_issued) {
-            end_error();
-          }  /* if */
-        }  /* if */
+        /* The current class has no user-defined constructor and at least
+           one const or ref nonstatic data member.  A diagnostic may be
+           required. */
+        report_missing_constructor(tag_sym);
       }  /* if */
       if (!is_nonreal_instantiation) {
         /* Check to see if a remark should be issued on direct base classes
@@ -8838,46 +8893,10 @@ next_declaration:
         }  /* if */
       }  /* if */
       if (override_registry != NULL) {
-        /* Check each entry in the override registry for conditions that
-           would warrant a warning.  There are two cases: when the overridden
-           function is an overload set in a base class and one or more virtual
-           functions was overridden by a declaration in the current class and
-           one or more was not overridden; though allowed, this could produce
-           subtle inconsistencies in a user program, so issue a warning.  The
-           other case is where a declaration in the derived class might have
-           been intended to override a base class virtual function, but
-           didn't.  Again, it's perfectly legal, but it *might* have been a
-           mistake.  Both these warnings should perhaps be remarks. */
-        an_override_registry_entry_ptr  orep, next_orep;
-
-        /* Loop through the registry of overrides. */
-        orep = override_registry;
-        do {
-          check_assertion(orep->override_count <=
-                                    orep->virtual_function_count);
-          if (orep->override_count == orep->virtual_function_count) {
-            /* Okay -- no diagnostic, even if there were additional
-               nonoverriding declarations of the same name. */
-          } else {
-            /* Report possible "failed overrides". */
-            a_symbol_list_entry_ptr  slep = orep->override_failures;
-            for (; slep != NULL; slep = slep->next) {
-              pos_sy2_warning(ec_nonoverriding_function_decl,
-                              &slep->symbol->decl_position, slep->symbol,
-                              orep->overridden_sym);
-            }  /* for */
-            if (orep->virtual_function_count > 1 && orep->override_count > 0) {
-              /* Issue a diagnostic on partial override of an overloaded
-                 virtual function. */
-              pos_sy2_warning(ec_partial_override, &tag_sym->decl_position,
-                              orep->overridden_sym, tag_sym);
-            }  /* if */
-          }  /* if */
-          /* Return the entry to the available list and advance. */
-          next_orep = orep->next;
-          free_override_registry_entry(orep);
-          orep = next_orep;
-        } while (orep != NULL);
+        /* Check for incomplete overriding of virtual functions, and issue
+           diagnostics where appropriate. */
+        check_override_registry(override_registry, tag_sym);
+        /* All entries on the list have been freed, so clear the pointer. */
         override_registry = NULL;
       }  /* if */
     }  /* if */
