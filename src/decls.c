@@ -4395,6 +4395,30 @@ skip_overloading:;
           check_assertion(srk_flags & SRK_DECLARATION);
         }  /* if */
       }  /* if */
+      /* Move the variable entry to the end of the variables list if this is
+         its definition. */
+      if (srk_flags & SRK_DEFINITION) {
+        /* This is definition of a variable that has previously been declared.
+           In C++ only one declaration of a variable can be construed to be
+           its definition, so if we are in C++ mode this is it. */
+        if (C_mode() && sym->defined && (srk_flags & SRK_TENTATIVE_DEF)) {
+          /* In C ignore a tentative definition (i.e., one for which no
+             initializer is present) if the variable has already been defined
+             in a previous tentative definition. */
+        } else {
+          /* This is a definition of a variable that was not previously
+             defined, so unlink the variable entry and relink it at the end
+             of the variables list, so that variables appear in the order in
+             which they are defined. */
+          /* This is only possible for file-scope variables, never for local
+             variables, since it is only by means of a prior extern declaration
+             or (in C mode only) a prior tentative definition that we can be
+             defining a variable that has already been declared. */
+          check_assertion(in_file_scope(variable_ptr));
+          remove_from_variables_list(variable_ptr);
+          add_to_variables_list(variable_ptr, /*at_file_scope=*/TRUE);
+        }  /* if */
+      }  /* if */
     }  /* if */
     /* Link the symbol to the IL variable entry. */
     sym->variant.variable.ptr = variable_ptr;
