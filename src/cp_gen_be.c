@@ -4289,6 +4289,89 @@ implements an array-to-pointer decay; return FALSE otherwise.
 }  /* is_array_decay_cast */
 
 
+static void gen_dot_static(an_expr_node_ptr operand_1,
+                           a_boolean        is_lvalue_1,
+                           char             *opstr,
+                           an_expr_node_ptr operand_2,
+                           a_boolean        is_lvalue_2)
+/*
+operand_1 and operand_2 are the operands of a "dot-static" operation, e.g.,
+eok_lvalue_dot_static.  operand_1 is an lvalue if is_lvalue_1 is TRUE,
+and operand_2 is an lvalue if is_lvalue_2 is TRUE.  Put out the operation,
+with the operator indicated by opstr.
+*/
+{
+  a_boolean      unknown_function_case = FALSE;
+  a_constant_ptr con;
+  a_type_ptr     operand_1_type = operand_1->type;
+  a_boolean      need_context_pop = FALSE;
+
+  /* Put out the first operand. */
+  /* Also determine the class type underlying the first operand. */
+  if (is_lvalue_1) {
+    gen_lvalue(operand_1);
+    /* Watch out for prototype instantiations. */
+    if (is_template_param_type(operand_1_type)) {
+      operand_1_type = NULL;
+    } else {
+      operand_1_type = type_pointed_to(operand_1_type);
+    }  /* if */
+  } else {
+    gen_expr_with_parens(operand_1);
+  }  /* if */
+  if (operand_1_type != NULL && opstr[0] != '.') {
+    /* Watch out for prototype instantiations. */
+    if (is_template_param_type(operand_1_type)) {
+      operand_1_type = NULL;
+    } else {
+      operand_1_type = type_pointed_to(operand_1_type);
+    }  /* if */
+  }  /* if */
+  if (operand_1_type != NULL && !is_template_param_type(operand_1_type)) {
+    operand_1_type = skip_typerefs(operand_1_type);
+    /* Push a name context for the class, unless the class is nonreal.  This
+       allows names in the second operand to be referred to without
+       qualification.  Don't push a context for a nonreal class or
+       a template parameter. */
+    check_assertion(is_immediate_class_type(operand_1_type));
+    if (!operand_1_type->variant.class_struct_union.is_nonreal_class) {
+      push_name_context(operand_1_type->variant.class_struct_union.extra_info->
+                                                                  assoc_scope);
+      need_context_pop = TRUE;
+    }  /* if */
+  }  /* if */
+  /* If the second operand has been turned into a constant (i.e., it
+     was a const-valued variable), use a comma operator in the output
+     to avoid generating something like "x.2". */
+  if (!is_lvalue_2 && is_constant_node(operand_2)) {
+    con = operand_2->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      if (con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function ||
+          con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_template_ref) {
+        unknown_function_case = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!unknown_function_case) opstr = ",";
+  }  /* if */
+  /* Put out the operator. */
+  write_tok_str(opstr);
+  /* Put out the second operand. */
+  if (unknown_function_case) {
+    /* Put out an unknown function without a leading "&". */
+    form_unknown_function_constant(con, &octl);
+  } else if (is_lvalue_2) {
+    gen_lvalue_no_parens(operand_2);
+  } else {
+    /* Put parentheses around the expression if it was changed to the ","
+       form. */
+    gen_expr(operand_2, opstr[0] == ',');
+  }  /* if */
+  if (need_context_pop) pop_name_context();
+}  /* gen_dot_static */
+
+
 static void gen_lvalue_full(an_expr_node_ptr node,
                             a_boolean        need_parens)
 /*
@@ -4369,18 +4452,16 @@ precedence confusion and need_parens is TRUE.
         case eok_lvalue_dot_static:
           /* Static member selection, lvalue.m. */
           if (need_parens) write_tok_ch('(');
-          gen_lvalue(operand_1);
-          write_tok_str(".");
-          gen_lvalue(operand_2);
+          gen_dot_static(operand_1, /*is_lvalue_1=*/TRUE, ".",
+                         operand_2, /*is_lvalue_2=*/TRUE);
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
           break;
         case eok_rvalue_dot_static:
           /* Static member selection, rvalue.m. */
           if (need_parens) write_tok_ch('(');
-          gen_expr_with_parens(operand_1);
-          write_tok_str(".");
-          gen_lvalue(operand_2);
+          gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE, ".",
+                         operand_2, /*is_lvalue_2=*/TRUE);
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
           break;
@@ -5030,43 +5111,6 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
 }  /* gen_bound_function */
 
 
-static void gen_dot_static(char             *opstr,
-                           an_expr_node_ptr operand_2)
-/*
-operand_2 is the second operand of a "dot-static" operation, e.g.,
-eok_lvalue_dot_static.  The first operand has already been put out.
-Put out the operator indicated by opstr and the second operand (as
-an rvalue).
-*/
-{
-  a_boolean      unknown_function_case = FALSE;
-  a_constant_ptr con;
-
-  /* If the second operand has been turned into a constant (i.e., it
-     was a const-valued variable), use a comma operator in the output
-     to avoid generating something like "x.2". */
-  if (is_constant_node(operand_2)) {
-    con = operand_2->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_template_param) {
-      if (con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function ||
-          con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_template_ref) {
-        unknown_function_case = TRUE;
-      }  /* if */
-    }  /* if */
-    if (!unknown_function_case) opstr = ",";
-  }  /* if */
-  write_tok_str(opstr);
-  if (unknown_function_case) {
-    /* Put out an unknown function without a leading "&". */
-    form_unknown_function_constant(con, &octl);
-  } else {
-    gen_expr_with_parens(operand_2);
-  }  /* if */
-}  /* gen_dot_static */
-
-
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens)
 /*
@@ -5461,18 +5505,18 @@ finish_new_style_cast:
           goto done_with_operation;
         case eok_points_to_static:
           /* Static member selection, p->m. */
-          gen_expr_with_parens(operand_1);
-          gen_dot_static("->", operand_2);
+          gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE, "->",
+                         operand_2, /*is_lvalue_2=*/FALSE);
           goto done_with_operation;
         case eok_lvalue_dot_static:
           /* Static member selection, lvalue.m. */
-          gen_lvalue(operand_1);
-          gen_dot_static(".", operand_2);
+          gen_dot_static(operand_1, /*is_lvalue_1=*/TRUE, ".",
+                         operand_2, /*is_lvalue_2=*/FALSE);
           goto done_with_operation;
         case eok_rvalue_dot_static:
           /* Static member selection, rvalue.m. */
-          gen_expr_with_parens(operand_1);
-          gen_dot_static(".", operand_2);
+          gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE, ".",
+                         operand_2, /*is_lvalue_2=*/FALSE);
           goto done_with_operation;
         case eok_shiftl:
           opstr = "<<";
