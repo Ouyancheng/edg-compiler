@@ -460,7 +460,7 @@ emitted is given by pos.
     if (type->kind != type_kind) {
       pos_ty_error(ec_mode_incompatible_with_type, pos, type);
     } else if (type->kind == (a_type_kind)tk_integer) {
-      ikind = int_kind_for_bit_size((unsigned int(size * targ_char_bit),
+      ikind = int_kind_for_bit_size((unsigned int)(size * targ_char_bit),
                                     is_signed_integral_type(type));
       if (ikind == (an_integer_kind)ik_none) {
         pos_error(ec_no_type_of_specified_width, pos);
