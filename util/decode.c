@@ -4229,24 +4229,28 @@ virtual function.  The syntax is:
 
 */
 {
-  long num;
-  char buffer[50];
+  long      num;
+  char      buffer[50];
+  a_boolean v_form = FALSE;
 
-  write_id_ch('(', dctl);
-  if (*ptr == 'h') {
-    ptr++;
-    write_id_str("offset ", dctl);
-  } else if (*ptr == 'v') {
-    ptr++;
-    write_id_str("virtual offset ", dctl);
-  } else {
+  if (*ptr != 'h' && *ptr != 'v') {
     bad_mangled_name(dctl);
+  } else {
+    v_form = (*ptr == 'v');
+    write_id_str("(offset ", dctl);
+    ptr = get_number(ptr+1, &num, dctl);
+    (void)sprintf(buffer, "%ld", num);
+    write_id_str(buffer, dctl);
+    if (v_form) {
+      write_id_str(", virtual offset ", dctl);
+      ptr = advance_past_underscore(ptr, dctl);
+      ptr = get_number(ptr, &num, dctl);
+      (void)sprintf(buffer, "%ld", num);
+      write_id_str(buffer, dctl);
+    }  /* if */
+    ptr = advance_past_underscore(ptr, dctl);
+    write_id_str(") ", dctl);
   }  /* if */
-  ptr = get_number(ptr, &num, dctl);
-  (void)sprintf(buffer, "%ld", num);
-  write_id_str(buffer, dctl);
-  write_id_str(") ", dctl);
-  ptr = advance_past_underscore(ptr, dctl);
   return ptr;
 }  /* demangle_call_offset */
 
