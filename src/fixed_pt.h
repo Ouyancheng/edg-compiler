@@ -99,7 +99,7 @@ int fxp_compare(a_fixed_point_value      *value_1,
                 a_fixed_point_value      *value_2,
 	        a_fixed_point_type_descr *fxp_descr_2);
 
-extern unsigned int fxp_hash(a_fixed_point_value *value);
+extern a_constant_hash_value fxp_hash(a_fixed_point_value *value);
 
 #endif /* ifndef FIXED_PT_H */
 

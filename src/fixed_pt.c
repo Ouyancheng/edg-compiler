@@ -71,14 +71,7 @@ fixed-point values as implicitly scaled integer values.)
   char        *str;
 
   clear_constant(&integer, (a_constant_repr_kind)ck_integer);
-#if LONG_LONG_ALLOWED
-  integer.type =
-              integer_type(is_signed ? (an_integer_kind)ik_long_long
-                                     : (an_integer_kind)ik_unsigned_long_long);
-#else /* !LONG_LONG_ALLOWED */
-  integer.type = integer_type(is_signed ? (an_integer_kind)ik_long
-                                        : (an_integer_kind)ik_unsigned_long);
-#endif /* LONG_LONG_ALLOWED */
+  integer.type= integer_type(is_signed ? targ_intmax_kind : targ_uintmax_kind);
   integer.variant.integer_value = *ival;
   str = str_for_integer_constant(&integer);
   fp_string_to_float((a_float_kind)fk_long_double, str, fval, err);
@@ -936,7 +929,7 @@ This routine requires that a_fixed_point_value be an_integer_value.
 }  /* fxp_compare */
 
 
-unsigned int fxp_hash(a_fixed_point_value  *value)
+a_constant_hash_value fxp_hash(a_fixed_point_value  *value)
 /*
 Return a hash value derived from the given fixed-point value.  This is used
 in building the hash table for shareable constants.  (This implementation
@@ -947,14 +940,11 @@ assumes a_fixed_point_value is a synonym for an_integer_value.)
   a_boolean   ovflo;
 
   clear_constant(&int_constant, (a_constant_repr_kind)ck_integer);
-#if LONG_LONG_ALLOWED
-  int_constant.type = integer_type((an_integer_kind)ik_unsigned_long_long);
-#else /* !LONG_LONG_ALLOWED */
-  int_constant.type = integer_type((an_integer_kind)ik_unsigned_long);
-#endif /* LONG_LONG_ALLOWED */
+  int_constant.type = integer_type(targ_intmax_kind);
   int_constant.variant.integer_value = *value;
   
-  return (unsigned int)value_of_integer_constant(&int_constant, &ovflo);
+  return (a_constant_hash_value)value_of_integer_constant(&int_constant,
+                                                          &ovflo);
 }  /* fxp_hash */
 
 #endif /* FIXED_POINT_ALLOWED */
