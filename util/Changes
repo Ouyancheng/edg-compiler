@@ -1,10 +1,5 @@
 Version 3.2
 
-3/6/03   __cxa_vec_ctor no longer returns a value
-
-The version of __cxa_vec_ctor returned the pointer to the array being
-constructed, in violation of the IA-64 ABI.  This has been fixed.
-
 2/20/03  Demangling of non-nested type names with template arguments,
          Cfront-like ABI
 
@@ -24,6 +19,7 @@ the old form, so it has been updated to also handle the new form.
 Certain mangled names of virtual function tables in the Cfront-like
 ABI did not demangle correctly.  Now fixed.
 
+-------------------------------------------------------------------------------
 Version 3.1, January 26, 2003
 
 1/2/03   Prelinker: diagnose attempt to build without automatic instantiation
