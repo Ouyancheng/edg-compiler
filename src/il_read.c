@@ -187,7 +187,7 @@ entry_number.
                            (entry_number-1) * sizeof_il_entry[(int)entry_kind];
 #if ORPHAN_PROCESSING_NEEDED
     /* If this pointer references an entry other than a string kind in
-       the file scope, the additional space for the orphan IL lists pointers
+       the file scope, the additional space for the orphan IL lists pointer
        that precedes the IL entry must be added onto the displacement into
        the area for each entry kind.  Also the pointer for this entry
        must be incremented over the orphan pointer. */
@@ -653,6 +653,10 @@ necessary to make it directly accessible in memory.
     walk_file_scope_il((an_entry_process_function_ptr)NULL,
                        (a_string_entry_process_function_ptr)NULL,
                        ptr_remap_function);
+    /* Remap the "next" pointers in orphaned file scope IL entries for
+       local types and local static variables of functions scope blocks. */
+    remap_orphaned_il_list_next_pointers(ptr_remap_function);
+
     /* Save the remap list for this region as the file-scope remap list. */
     fs_block_remap_list = block_remap_list;
   } else {

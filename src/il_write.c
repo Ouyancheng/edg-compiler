@@ -20,14 +20,18 @@ il_write.c -- Write the intermediate language to a file.
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 
 #include "il_file.h"
+#include "il_walk.h"
 #include "il_write.h"
 #include "il.h"
 #include "error.h"
 #include "version.h"
 
-#if ALTERNATE_IL_FILE_FORMAT
-#include "il_walk.h"
+static a_boolean
+		writing_file_scope_il;
+			/* TRUE if writing the file-scope IL, FALSE if writing
+			   IL for a function scope. */
 
+#if ALTERNATE_IL_FILE_FORMAT
 static an_il_entry_number
 		entry_numbers_array[(int)iek_last],
 		fs_entry_numbers_array[(int)iek_last];
@@ -37,10 +41,6 @@ static an_il_entry_number
 			   of that kind.  Used to track the number of entries
 			   and also to assign entry numbers.  Each table
 			   type has entry numbers starting from 1. */
-static a_boolean
-		writing_file_scope_il;
-			/* TRUE if writing the file-scope IL, FALSE if writing
-			   IL for a function scope. */
 typedef char	*a_char_ptr;
 			/* Useful to indicate "char *" as a type in calling
 			   chg_pointer. */
@@ -372,7 +372,7 @@ Write the initial information to the IL file, if there is one.
                  f_il_output);
     (void)fwrite((char *)&il_header, sizeof(il_header), 1, f_il_output);
 #if ORPHAN_PROCESSING_NEEDED
-    /* Also leave space for the orphaned_file_scope_il_entries[]. */
+    /* Leave space for the orphaned_file_scope_il_entries[]. */
     (void)fwrite((char *)orphaned_file_scope_il_entries,
                  sizeof(orphaned_file_scope_il_entries), 1, f_il_output);
 #endif /* ORPHAN_PROCESSING_NEEDED */
@@ -425,20 +425,20 @@ Finish writing the IL file, if there is one.
          file offset to the start of the file scope region
          il_header
     */
-#if ORPHANED_PROCESSING_NEEDED
+#if ORPHAN_PROCESSING_NEEDED
     /*   orphaned_file_scope_il_entries[]
     */
-#endif
+#endif /* ORPHAN_PROCESSING_NEEDED */
     /* and that zeroes were written in all but the first item
        when the file was begun (see start_il_file).  il_header was
        written again by write_memory_region when the file-scope memory
        region was written.
     */
-#if ORPHANED_PROCESSING_NEEDED
-    /* The orphaned_file_scope_il_entries[] was also written again by 
+#if ORPHAN_PROCESSING_NEEDED
+    /* The orphaned_file_scope_il_entries[] was also written again by
        write_memory_region when the file-scope memory region was written.
     */
-#endif
+#endif /* ORPHAN_PROCESSING_NEEDED */	
     /* Write a zero region number that indicates the end of the list
        of regions. */
     (void)fwrite((char *)&end_flag, sizeof(end_flag), 1, f_il_output);
@@ -670,6 +670,7 @@ Write the indicated memory region to the file f_il_output.
     /* Write the region number. */
     (void)fwrite((char *)&region_number,
                  sizeof(region_number), 1, f_il_output);
+    writing_file_scope_il = (region_number == FILE_SCOPE_REGION_NUMBER);
 #if ALTERNATE_IL_FILE_FORMAT
     /* Alternate file format. */
 #if CHECKING && DEBUG && SABER
@@ -679,7 +680,6 @@ Write the indicated memory region to the file f_il_output.
       int              int_entry_kind;
       char             zero = 0;
 
-      writing_file_scope_il = (region_number == FILE_SCOPE_REGION_NUMBER);
       /* For a function scope, clear the array of entry counts. */
       if (!writing_file_scope_il) {
         for (int_entry_kind = (int)iek_none;
@@ -736,6 +736,22 @@ Write the indicated memory region to the file f_il_output.
     { sizeof_t               total_bytes;
       a_mem_block_header_ptr hdr;
 
+#if ORPHAN_PROCESSING_NEEDED
+      /* For all memory regions, walk the IL tree for the region to catch
+         all orphaned file scope IL entry references. */
+      if (writing_file_scope_il) {
+        /* The memory region is the file scope region. */
+        walk_file_scope_il((an_entry_process_function_ptr)NULL,
+                           (a_string_entry_process_function_ptr)NULL,
+                           (a_remap_function_ptr)NULL);
+      } else {
+        /* The memory region is a function scope. */
+        walk_routine_scope_il(region_number,
+                              (an_entry_process_function_ptr)NULL,
+                              (a_string_entry_process_function_ptr)NULL,
+                              (a_remap_function_ptr)NULL);
+      }  /* if */
+#endif /* ORPHAN_PROCESSING_NEEDED */
       /* Determine the total size of all the blocks.  This includes the 
          headers as well as the block contents.  Note that we write out only
          to next_avail_in_block, not to after_end_of_block, since that's
@@ -773,11 +789,11 @@ Write the indicated memory region to the file f_il_output.
          able to check addresses in il_header to see if they're valid
          file-scope addresses.
       */
-#if ORPHANED_PROCESSING_NEEDED
+#if ORPHAN_PROCESSING_NEEDED
       /* Also the orphaned_file_scope_il_entries array must be written now
          for the same reason.
       */
-#endif
+#endif /* ORPHAN_PROCESSING_NEEDED */
      /*  Recall that the beginning of the file looks like:
            magic string that identifies an IL file (already written properly)
            number of regions (written as 0)
