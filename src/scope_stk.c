@@ -3246,7 +3246,7 @@ unit.
   db_enter(3, "wrapup_scope");
 #if DEBUG
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (debug_level != 3 || db_flag_is_set("dump_decl_pos_info")) {
+  if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
     switch(kind) {
       case sck_func_prototype:
       case sck_namespace_extension:
