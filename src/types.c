@@ -84,6 +84,8 @@ predicates.
 /* Union types are simply union types. */
 #define is_union(tp) ((tp)->kind == (a_type_kind)tk_union)
 
+#define is_class_struct_union(tp) (is_class_or_struct(tp) || is_union(tp))
+
 /* Aggregate types are array and class/struct (but not union) types. */
 #define is_aggregate(tp) (is_array(tp) || is_class_or_struct(tp))
 
@@ -314,7 +316,7 @@ this includes incomplete class, struct, or union types.
 */
 {
   tp = skip_typerefs(tp);
-  return(is_class_or_struct(tp) || is_union(tp));
+  return is_class_struct_union(tp);
 }  /* is_class_struct_union_type */
 
 
@@ -324,7 +326,7 @@ Return TRUE if the type is a complete class, struct, or union type.
 */
 {
   tp = skip_typerefs(tp);
-  return(!is_incomplete(tp) && (is_class_or_struct(tp) || is_union(tp)));
+  return (!is_incomplete(tp) && is_class_struct_union(tp));
 }  /* is_complete_class_struct_union_type */
 
 
@@ -431,6 +433,46 @@ routine directly.
 }  /* f_is_qualified_type */
 
 
+a_boolean is_base_class_of(a_type_ptr       derived_class,
+                           a_type_ptr       base_class,
+                           a_base_class_ptr *p_base_class)
+/*
+derived_class and base_class are both class types.  If base_class is a
+(direct or indirect) base class of derived_class, set *p_base_class to
+point to the appropriate base class entry, and return TRUE.  Otherwise,
+return FALSE.  Either class is allowed to be incomplete (in which case
+FALSE is returned).  In C mode, FALSE is always returned.
+*/
+{
+  a_boolean        is_base_class = FALSE;
+  a_base_class_ptr bcp = NULL;
+
+  /* Check for C++ mode.  This is important because the class type supplement
+     is not allocated in C mode. */
+  /* Check that both classes are complete, i.e., that their definitions have
+     been seen. */
+  if (C_dialect == C_dialect_cplusplus &&
+      derived_class->variant.class_struct_union.extra_info->
+                                                         assoc_scope != NULL &&
+      base_class->variant.class_struct_union.extra_info->assoc_scope != NULL) {
+    /* See if the base class appears on the base class list for the derived
+       type.  The base class list contains all base classes, both direct
+       and indirect. */
+    for (bcp = derived_class->variant.class_struct_union.extra_info->
+                                                                  base_classes;
+         bcp != NULL;
+         bcp = bcp->next) {
+      if (bcp->type == base_class) {
+        is_base_class = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  *p_base_class = bcp;
+  return is_base_class;
+}  /* is_base_class_of */
+
+
 void check_fixup_list_for_array_types(void)
 /*
 Check the list of array types to be fixed up, to see if any of their element
@@ -505,7 +547,7 @@ cannot be determined until the struct or union is completed.
       tp = skip_typerefs(tp->variant.array.element_type);
     } while (is_array(tp));
     /* Check for an incomplete struct or union type. */
-    if (is_incomplete(tp) && (is_class_or_struct(tp) || is_union(tp))) {
+    if (is_incomplete(tp) && is_class_struct_union(tp)) {
       is_arr_of_incomp = TRUE;
     }  /* if */
   }  /* if */
@@ -980,9 +1022,8 @@ a_boolean f_types_are_compatible(a_type_ptr type_1,
                                  a_type_ptr type_2)
 /*
 Compare two types for compatibility.  See section 3.1.2.6 in the standard.
-An error type is considered compatible with any other type.
-This routine always checks for compatibility of type-qualifiers; see
-types_pointed_to_are_compatible for an alternative.  This routine should
+An error type is considered compatible with any other type.  This routine
+always checks for compatibility of type-qualifiers.  This routine should
 never be called directly; it's meant to be called only by the macro
 types_are_compatible, which does the initial test for exact pointer equality.
 */
@@ -1250,58 +1291,428 @@ and arguments of old-style calls.
 }  /* interchangeable_types */
 
 
-a_boolean types_pointed_to_are_compatible(a_type_ptr type_1,
-                                          a_type_ptr type_2,
-                                          a_boolean  ptrs_to_void_compatible)
+static a_boolean dest_of_ptr_cast_big_enough(a_type_ptr source_type,
+                                             a_type_ptr dest_type)
 /*
-type_1 and type_2 are pointer types.  Return TRUE if the types they point
-to are compatible, ignoring any top-level type qualifiers on those
-types.  Treat a pointer to void as being compatible with any other
-pointer (to object or incomplete) type if ptrs_to_void_compatible is TRUE.
+Return TRUE if a pointer of type "source_type" will fit in an entity of
+type "dest_type" (an integral or pointer type).  This is used in testing
+whether or not non-portable casts involving pointers should be allowed.
 */
 {
-  a_boolean compat = FALSE;
-  register a_type_ptr ptr_type1;
-  register a_type_ptr ptr_type2;
+  source_type = skip_typerefs(source_type);
+  dest_type = skip_typerefs(dest_type);
+  return (dest_type->size >= source_type->size);
+}  /* dest_of_ptr_cast_big_enough */
 
-  db_enter (4, "types_pointed_to_are_compatible");
 
-  type_1 = skip_typerefs(type_1);
-  type_2 = skip_typerefs(type_2);
+static a_boolean is_address_of_string_constant(a_constant *constant)
+/*
+Return TRUE if the given constant is the address of a string constant.
+*/
+{
+  a_boolean is_string;
 
+  is_string  = (constant->kind == (a_constant_repr_kind)ck_address &&
+                constant->variant.address.kind ==
+                                  (an_address_base_kind)abk_constant &&
+                constant->variant.address.variant.constant->kind ==
+                                  (a_constant_repr_kind)ck_string);
+  return is_string;
+}  /* is_address_of_string_constant */
+
+
+a_boolean impl_pointer_conversion(a_type_ptr source_type,
+                                  a_boolean  source_is_constant,
+                                  a_constant *source_constant,
+                                  a_type_ptr dest_type,
+                                  a_boolean  check_as_operands_not_conversion,
+                                  a_boolean  *pointer_normalization_needed,
+                                  a_boolean  *warning_suggested)
+/*
+Return TRUE if it's okay to implicitly convert something of type source_type
+(any type) to something of type dest_type (a pointer type).
+If source_is_constant is TRUE, the source is a constant, and source_constant
+points to the constant value.  (That's needed to check for conversions of a
+null pointer constant to a pointer type.)  If check_as_operands_not_conversion
+is TRUE, the two types are the types of the operands of an operation; only
+do the checks required in that case, which are fewer than the checks required
+for a conversion.  *pointer_normalization_needed is returned TRUE if the
+conversion involves a pointer normalization (null pointer constant --> pointer
+or pointer --> "void *").  *warning_suggested is returned TRUE if the
+conversion is nonstandard and should probably be flagged with a warning.
+In strict ANSI mode, if a conversion flagged with *warning_suggested is done,
+the warning is required.
+
+Note that any type qualifiers on the types themselves (rather than the
+types pointed to) are ignored.
+
+See 4.6 (pointer conversions) and 5.17 (assignment operators) in the ARM,
+and 3.3.6 (pointer - pointer), 3.3.8 (relational operators), 3.3.9 (equality
+operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
+*/
+{
+  a_boolean        okay = FALSE;
+  a_type_ptr       dest_type_pointed_to, source_type_pointed_to;
+  a_type_ptr       unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
+  a_base_class_ptr base_class;
+
+  db_enter(4, "impl_pointer_conversion");
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "impl_pointer_conversion: source_type = ");
+    db_type(source_type);
+    fprintf(f_debug, ", dest_type = ");
+    db_type(dest_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  *pointer_normalization_needed = FALSE;
+  *warning_suggested = FALSE;
 #if CHECKING
-  if (type_1->kind != (a_type_kind)tk_pointer ||
-      type_2->kind != (a_type_kind)tk_pointer) {
-    internal_error("types_pointed_to_are_compatible: non-pointer types");
+  if (!is_pointer_type(dest_type)) {
+    internal_error("impl_pointer_conversion: dest_type is not pointer");
   }  /* if */
 #endif /* CHECKING */
-  if (type_1 == type_2) {
-    /* For speed: if the types are identical, they are compatible. */
-    compat = TRUE;
-  } else {
-    /* Remove any type qualifiers, check for compatibility of the types pointed
-       to.  skip_typerefs is used instead of make_unqualified_type because
-       it's needed for the is_void test (it removes typedefs too), and it's
-       faster. */
-    ptr_type1 = skip_typerefs(type_1->variant.pointer_type_pointed_to);
-    ptr_type2 = skip_typerefs(type_2->variant.pointer_type_pointed_to);
-    if (types_are_compatible(ptr_type1, ptr_type2) ||
-        (ptrs_to_void_compatible &&
-         ((is_void(ptr_type1)      && !is_function(ptr_type2)) ||
-          (!is_function(ptr_type1) && is_void(ptr_type2))))) {
-      compat = TRUE;
+  /* Get the type pointed to and drop type qualifiers and typedefs. */
+  dest_type_pointed_to = pointer_referenced_type(dest_type);
+  unqual_dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
+  if (source_is_constant && is_null_pointer_constant(source_constant)) {
+    /* A null pointer constant may be converted to a pointer to any type.
+       ANSI C 3.3.9 (equality operators); ANSI C 3.3.15 (?: operator);
+       ANSI C 3.3.16.1 (assignment); ARM 4.6 (pointer conversions).
+       This test is done early because a null pointer constant may be
+       an integer (0) or a pointer ((void *)0). */
+    okay = TRUE;
+    *pointer_normalization_needed = TRUE;
+  } else if (is_pointer(source_type)) {
+    /* Pointer --> pointer. */
+    /* Get the type pointed to and drop type qualifiers and typedefs. */
+    source_type_pointed_to = pointer_referenced_type(source_type);
+    unqual_source_type_pointed_to = skip_typerefs(source_type_pointed_to);
+    if (types_are_compatible(unqual_source_type_pointed_to,
+                             unqual_dest_type_pointed_to)) {
+      /* The types pointed to are compatible, ignoring the type qualifiers.
+         ANSI C 3.3.6 (pointer - pointer: caller will check that types are
+         object types); ANSI C 3.3.8 (relational operators: caller will check
+         that types are both object or both incomplete); ANSI C 3.3.9
+         (equality operators); ANSI C 3.3.15 (?: operator); ANSI C 3.3.16.1
+         (assignment: preservation of qualifiers is tested below). */
+      okay = TRUE;
+    } else if (is_error(unqual_dest_type_pointed_to) ||
+               is_error(unqual_source_type_pointed_to)) {
+      /* Pointer --> pointer-to-error and pointer-to-error --> pointer are
+         always allowed. */
+      okay = TRUE;
+    } else {
+      /* The types pointed to are not compatible.  See if the pointers are
+         compatible anyway because one or the other is a "void *". */
+      if (is_void(unqual_dest_type_pointed_to)) {
+        /* Destination type is "void *". */
+        if (is_object(unqual_source_type_pointed_to) ||
+            is_incomplete(unqual_source_type_pointed_to)) {
+          /* In ANSI C, a pointer to an object or incomplete type
+             may be converted to a pointer to a qualified or unqualified
+             version of void.  ANSI C 3.3.9 (equality operators);
+             ANSI C 3.3.15 (?: operator); ANSI C 3.3.16.1 (assignment:
+             preservation of qualifiers is tested below).  In C++, a pointer
+             to any non-const and non-volatile object type may be converted
+             to "void *".  ARM 4.6 (pointer conversions: preservation of
+             qualifiers is tested below; "object type" includes incomplete
+             types in the ARM definition). */
+          okay = TRUE;
+          *pointer_normalization_needed = TRUE;
+        } else if (C_dialect == C_dialect_cplusplus &&
+                   is_function(unqual_source_type_pointed_to)) {
+          /* In C++, a pointer to a function may be converted to "void *" if
+             the pointer will fit in a "void *".  ARM 4.6 (pointer
+             conversions). */
+          if (dest_of_ptr_cast_big_enough(source_type, dest_type)) {
+            okay = TRUE;
+            *pointer_normalization_needed = TRUE;
+          }  /* if */
+        }  /* if */
+      } else if (C_dialect == C_dialect_cplusplus &&
+                 is_class_struct_union(unqual_source_type_pointed_to) &&
+                 is_class_struct_union(unqual_dest_type_pointed_to) &&
+                 is_base_class_of(unqual_source_type_pointed_to,
+                                  unqual_dest_type_pointed_to,
+                                  &base_class) &&
+                 !base_class->ambiguous && !base_class->inaccessible) {
+        /* In C++, a pointer to a class may be implicitly converted to a
+           pointer to an accessible base class of that class provided the
+           conversion is unambiguous (ARM 4.6). */
+        okay = TRUE;
+      } else if (C_dialect != C_dialect_cplusplus &&
+                 !check_as_operands_not_conversion &&
+                 is_void_type(unqual_source_type_pointed_to) &&
+                 is_object(unqual_dest_type_pointed_to) ||
+                 is_incomplete(unqual_dest_type_pointed_to)) {
+        /* In C but not C++, a "void *" may be converted to a pointer to an
+           object or incomplete type.  ANSI C 3.3.16.1 (assignment). */
+        okay = TRUE;
+      } else if (source_is_constant &&
+                 is_address_of_string_constant(source_constant) &&
+                 is_character_type(unqual_source_type_pointed_to) &&
+                 is_character_type(unqual_dest_type_pointed_to)) {
+        /* Allow a character string to be converted to a pointer to any kind
+           of char.  This is an extension in both C and C++. */
+        okay = TRUE;
+        if (strict_ansi_mode) *warning_suggested = TRUE;
+      } else if (C_dialect == C_dialect_pcc) {
+        /* In pcc mode, allow conversion between incompatible pointer types,
+           with a warning. */
+        okay = TRUE;
+        *warning_suggested = TRUE;
+      } else if (interchangeable_types(unqual_dest_type_pointed_to,
+                                       unqual_source_type_pointed_to)) {
+        /* In ANSI C and C++ mode, allow conversion between pointers to
+           interchangeable types, with a warning.  This covers cases
+           like unsigned char * --> char *. */
+        okay = TRUE;
+        *warning_suggested = TRUE;
+      }  /* if */
     }  /* if */
+    if (okay && !check_as_operands_not_conversion) {
+      /* The types pointed to must be such that the type pointed to by the
+         left has all the qualifiers of the type pointed to by the right.
+         It might have additional qualifiers.  ANSI C 3.3.16.1 (assignment);
+         ARM 4.6 (pointer conversions: qualifiers cannot be dropped
+         implicitly). */
+      if ((is_const_qualified_type(source_type_pointed_to) &&
+           !is_const_qualified_type(dest_type_pointed_to)) ||
+          (is_volatile_qualified_type(source_type_pointed_to) &&
+           !is_volatile_qualified_type(dest_type_pointed_to))) {
+        okay = FALSE;
+      }  /* if */
+    }  /* if */
+  } else if (C_dialect == C_dialect_pcc &&
+             !check_as_operands_not_conversion &&
+             is_integral(source_type)) {
+    /* In pcc mode, allow integer --> pointer with a warning.  The null
+       pointer constant --> pointer case has been handled above and does
+       not come here. */
+    okay = TRUE;
+    *warning_suggested = TRUE;
+  } else if (is_error(source_type)) {
+    /* Error --> pointer is always allowed. */
+    okay = TRUE;
   }  /* if */
 
 #if DEBUG
   if (debug_level >= 4) {
-    fprintf(f_debug, "types_pointed_to_are_compatible: %s\n",
-                     compat ? "TRUE" : "FALSE");
+    fprintf(f_debug, "impl_pointer_conversion: %s\n",
+                     okay ? "okay" : "not okay");
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  return(compat);
-}  /* types_pointed_to_are_compatible */
+  return okay;
+}  /* impl_pointer_conversion */
+
+
+a_boolean impl_conversion(a_type_ptr source_type,
+                          a_boolean  source_is_constant,
+                          a_constant *source_constant,
+                          a_type_ptr dest_type,
+                          a_boolean  *warning_suggested)
+/*
+Return TRUE if it is okay to implicitly convert something of type source_type
+to something of type dest_type.  If source_is_constant is TRUE, the source
+is a constant, and source_constant points to the constant value.  (That's
+needed to check for conversions of a null pointer constant to a pointer type.)
+Any type qualifiers on the types themselves are ignored.  *warning_suggested
+is returned TRUE if the conversion is nonstandard and should probably be
+flagged with a warning.  In strict ANSI mode, if a conversion flagged with
+*warning_suggested is done, the warning is required.
+
+See chapter 4 of the ARM (standard conversions).  Note that integral
+promotions, default argument promotions, the usual arithmetic conversions,
+array --> pointer to element, and function --> pointer to function are
+handled in normal expression processing rather than here.
+
+See also 3.3.16.1 in the ANSI C standard (simple assignment).
+*/
+{
+  a_boolean okay = FALSE;
+  a_boolean pointer_normalization_needed;
+
+  db_enter(4, "impl_conversion");
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "impl_conversion: source_type = ");
+    db_type(source_type);
+    fprintf(f_debug, ", dest_type = ");
+    db_type(dest_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  *warning_suggested = FALSE;
+  /* Drop any type qualifiers and typedefs on the two types. */
+  source_type = skip_typerefs(source_type);
+  dest_type = skip_typerefs(dest_type);
+  if (is_arithmetic(dest_type)) {
+    /* Destination type is arithmetic. */
+    if (is_arithmetic(source_type)) {
+      /* Arithmetic --> arithmetic.  Okay. */
+      okay = TRUE;
+    } else if (C_dialect == C_dialect_pcc &&
+               is_pointer(source_type) &&
+               is_integral(dest_type) &&
+               dest_of_ptr_cast_big_enough(source_type, dest_type)) {
+      /* In pcc mode, allow pointer --> integer if the integer is big enough.
+         Issue a warning. */
+      okay = TRUE;
+      *warning_suggested = TRUE;
+    } else {
+      /* Non-arithmetic --> arithmetic.  Error. */
+      okay = FALSE;
+    }  /* if */
+  } else if (is_pointer(dest_type)) {
+    /* Destination type is pointer.  See if the types are compatible.
+       In C, the operands must be pointers to qualified or unqualified
+       versions of compatible types (i.e., object, incomplete, or function
+       types), and null pointer constants and "void *" pointers are specially
+       handled (ANSI C 3.3.15).  Ditto in C++ (ARM 4.6, 5.16). */
+    okay = impl_pointer_conversion(source_type, source_is_constant,
+                                   source_constant, dest_type,
+                                   /*check_as_operands_not_conversion=*/FALSE,
+                                   &pointer_normalization_needed,
+                                   warning_suggested);
+  } else if (is_error(dest_type)) {
+    /* Anything can be converted to an error type. */
+    okay = TRUE;
+  }  /* if */
+  /* If compatibility was not found any other way, check for the source
+     having an error type. */
+  if (!okay && is_error(source_type)) okay = TRUE;
+
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "impl_conversion: %s\n", okay ? "okay" : "not okay");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return okay;
+}  /* impl_conversion */
+
+
+a_boolean expl_conversion(a_type_ptr source_type,
+                          a_boolean  source_is_constant,
+                          a_constant *source_constant,
+                          a_type_ptr dest_type,
+                          a_boolean  *warning_suggested)
+/*
+Return TRUE if it is okay to explicitly convert something of type source_type
+to something of type dest_type.  If source_is_constant is TRUE, the source
+is a constant, and source_constant points to the constant value.  (That's
+needed to check for conversions of a null pointer constant to a pointer type.)
+Any type qualifiers on the types themselves are ignored.  *warning_suggested
+is returned TRUE if the conversion is nonstandard and should probably be
+flagged with a warning.  In strict ANSI mode, if a conversion flagged with
+*warning_suggested is done, the warning is required.
+
+Any implicit conversion is allowed (see impl_conversion).  Also, the
+explicit conversions allowed in casts (ARM 5.2.3 and 5.4; ANSI C 3.3.4)
+are allowed.
+*/
+{
+  a_boolean        okay = FALSE, impl_okay, impl_warning_suggested = FALSE;
+  a_base_class_ptr base_class;
+
+  db_enter(4, "expl_conversion");
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "expl_conversion: source_type = ");
+    db_type(source_type);
+    fprintf(f_debug, ", dest_type = ");
+    db_type(dest_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  *warning_suggested = FALSE;
+  /* Drop any type qualifiers and typedefs on the two types. */
+  source_type = skip_typerefs(source_type);
+  dest_type = skip_typerefs(dest_type);
+
+  /* See if there is an implicit conversion between the types. */
+  impl_okay = impl_conversion(source_type, source_is_constant, source_constant,
+                              dest_type, &impl_warning_suggested);
+  if (impl_okay && !impl_warning_suggested) {
+    /* There is an implicit conversion, and it's not questionable. */
+    okay = TRUE;
+  } else if (is_pointer(source_type) && is_integral(dest_type) &&
+             dest_of_ptr_cast_big_enough(source_type, dest_type)) {
+    /* Pointer --> integral is okay if the integer is big enough. */
+    okay = TRUE;
+  } else if (is_integral(source_type) && is_pointer(dest_type)) {
+    /* Integral --> pointer. */
+    okay = TRUE;
+  } else if (is_pointer(source_type) && is_pointer(dest_type)) {
+    /* Pointer --> pointer.  Get the types pointed to. */
+    a_type_ptr source_type_pointed_to, dest_type_pointed_to;
+    source_type_pointed_to = pointer_referenced_type(source_type);
+    source_type_pointed_to = skip_typerefs(source_type_pointed_to);
+    dest_type_pointed_to = pointer_referenced_type(dest_type);
+    dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
+    if (C_dialect == C_dialect_cplusplus &&
+        is_class_struct_union(source_type_pointed_to) &&
+        is_class_struct_union(dest_type_pointed_to)) {
+      /* Pointer to class --> pointer to class. */
+      /* In C++, a pointer to a class can be cast to a pointer to an
+         unambiguously derived class if the base class is not
+         a virtual base class. */
+      if (is_base_class_of(dest_type_pointed_to,
+                           source_type_pointed_to,
+                           &base_class)) {
+        okay = (!base_class->ambiguous && !base_class->is_virtual);
+      } else if (is_base_class_of(source_type_pointed_to,
+                                  dest_type_pointed_to,
+                                  &base_class)) {
+        /* A cast in the other direction (derived --> base) would have been
+           accepted as an implicit cast.  Since we are here, we know that
+           the implicit cast was rejected, presumably because the base class
+           is ambiguous or inaccessible.  Therefore the conversion should
+           not be allowed as an explicit conversion either. */
+        /* okay = FALSE; -- already set. */
+      } else {
+        /* All other casts between pointers to classes are valid.  This
+           includes cases where one or the other of the classes is not
+           defined yet. */
+        okay = TRUE;
+      }  /* if */
+    } else if (is_function(source_type_pointed_to) ==
+               is_function(dest_type_pointed_to)) {
+      /* Pointer to function --> pointer to function, or pointer to
+         object/incomplete --> pointer to object/incomplete.  Allowed in both
+         C and C++. */
+      okay = TRUE;
+    } else {
+      /* Pointer to function --> pointer to object/incomplete, or pointer
+         to object/incomplete --> pointer to function.  Allowed in C++ if
+         the destination is big enough.  Allowed as an extension in C. */
+      if (dest_of_ptr_cast_big_enough(source_type, dest_type)) {
+        okay = TRUE;
+        *warning_suggested = (C_dialect != C_dialect_cplusplus);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!okay && impl_okay) {
+    /* There is a questionable implicit conversion, and no explicit conversion
+       that covers this case.  The conversion is allowed, but it's
+       questionable.  It's likely that there are no questionable implicit
+       conversions that aren't allowed as explicit conversions, but this code
+       is here in case one is added. */
+    okay = TRUE;
+    *warning_suggested = TRUE;
+  }  /* if */
+
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "expl_conversion: %s\n", okay ? "okay" : "not okay");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return okay;
+}  /* expl_conversion */
 
 
 a_type_ptr composite_type(a_type_ptr type_1,

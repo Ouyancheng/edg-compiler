@@ -271,6 +271,16 @@ extern void conv_lvalue_to_rvalue(an_operand         *operand,
 extern a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
 					           an_operand *operand_2);
 
+extern a_boolean check_compatibility_of_pointer_operands(
+                   an_operand        *operand_1,
+                   an_operand        *operand_2,
+                   a_source_position *operator_position,
+                   a_boolean         pointer_normalization_standard_in_C,
+                   a_boolean         pointers_to_functions_standard_in_C,
+                   a_boolean         pointers_to_incomplete_standard_in_C,
+                   a_boolean         mixed_object_and_incomplete_standard_in_C,
+                   a_type_ptr        *operation_type);
+
 extern void change_binary_operand_types(a_type_ptr         type,
 				        an_operand         *operand_1,
 				        an_operand         *operand_2,
@@ -283,8 +293,6 @@ extern void conv_function_designator_to_ptr_to_function(
 extern a_type_ptr get_logical_result_type(an_expression_kind expression_kind,
 				          an_operand         *operand_1,
 				          an_operand         *operand_2);
-
-extern a_boolean op_is_null_pointer_constant(an_operand *operand);
 
 extern a_boolean op_is_zero_constant(an_operand *operand);
 
@@ -392,9 +400,6 @@ extern void cast_node(an_expr_node_ptr *node,
 		      a_boolean        issue_type_chg_warning);
 
 extern void integral_promote_node(an_expr_node_ptr *node);
-
-extern a_boolean ptr_to_int_cast_okay(a_type_ptr ptr_type,
-                                      a_type_ptr int_type);
 
 extern void node_prepare_assignment(an_expr_node_ptr  *right_side_node,
 				    a_type_ptr        left_side_type,

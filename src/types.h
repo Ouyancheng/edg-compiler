@@ -65,6 +65,10 @@ extern a_boolean f_is_volatile_qualified_type(a_type_ptr tp);
 extern a_boolean f_is_qualified_type(a_type_ptr tp);
 extern a_boolean int_kind_is_signed(an_integer_kind kind);
 
+extern a_boolean is_base_class_of(a_type_ptr       derived_class,
+                                  a_type_ptr       base_class,
+                                  a_base_class_ptr *p_base_class);
+
 extern void check_fixup_list_for_array_types(void);
 extern void add_if_necessary_to_array_fixup_list(a_type_ptr array_type);
 extern void set_type_size(a_type_ptr type_ptr);
@@ -83,10 +87,19 @@ extern a_boolean interchangeable_types(a_type_ptr type_1,
 	 ((t1) == (t2) || f_types_are_compatible((t1), (t2)))
 extern a_boolean f_types_are_compatible(a_type_ptr type_1,
                                         a_type_ptr type_2);
-extern a_boolean types_pointed_to_are_compatible(
-                                      a_type_ptr type_1,
-                                      a_type_ptr type_2,
-                                      a_boolean  ptrs_to_void_compatible);
+extern a_boolean impl_pointer_conversion(
+                                  a_type_ptr source_type,
+                                  a_boolean  source_is_constant,
+                                  a_constant *source_constant,
+                                  a_type_ptr dest_type,
+                                  a_boolean  check_as_operands_not_conversion,
+                                  a_boolean  *pointer_normalization_needed,
+                                  a_boolean  *warning_suggested);
+extern a_boolean impl_conversion(a_type_ptr source_type,
+                                 a_boolean  source_is_constant,
+                                 a_constant *source_constant,
+                                 a_type_ptr dest_type,
+                                 a_boolean  *warning_suggested);
 extern a_type_ptr composite_type(a_type_ptr type_1,
                                  a_type_ptr type_2);
 extern a_type_ptr make_file_scope_type(a_type_ptr type);
