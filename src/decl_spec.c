@@ -1506,7 +1506,7 @@ the template.
   a_symbol_reference_kind srk_flags;
   a_boolean               delayed_nested_class_def = FALSE;
   a_boolean               namespace_extension_pushed = FALSE;
-  a_boolean               is_redeclaration;
+  a_boolean               is_redeclaration = FALSE;
   a_boolean               is_template_specific_decl = FALSE;
   a_boolean               is_predeclared_type_decl = FALSE;
   a_decl_pos_block        local_decl_pos_block;
@@ -1989,7 +1989,6 @@ the template.
        allocated in the file scope memory region, though local types will be
        added to the function scope's types list. */
     class_type = alloc_type(type_kind);
-    is_redeclaration = FALSE;
     if (scope_stack[effective_decl_level].kind ==
                                            (a_scope_kind)sck_func_prototype) {
       /* A type is actually declared in a function prototype scope only in
@@ -2105,7 +2104,9 @@ the template.
   } else {
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;
-    is_redeclaration = TRUE;
+    if (!is_template_specific_decl || !(*declares_something)) {
+      is_redeclaration = TRUE;
+    }  /* if */
     if (!friend_injection_enabled && !is_friend_decl) {
       /* In case the previous declaration was a friend declaration, ensure
          that the symbol is henceforth visible for lookup. */

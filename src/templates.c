@@ -10806,6 +10806,9 @@ that follows.
   a_boolean			is_definition;
   a_boolean			is_constructor = FALSE;
   a_decl_pos_block              decl_pos_block;
+#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
+  a_boolean                     first_decl = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
@@ -10852,10 +10855,10 @@ that follows.
         if (decl_is_definition) {
           type->autonomous_primary_tag_decl = TRUE;
         } else {
-          (void)set_src_seq_secondary_decl_fields(
-                                           (char *)type, type,
-                                           SSSD_AUTONOMOUS_TAG_DECL |
-                                           SSSD_SPECIALIZED_WITH_NEW_SYNTAX);
+          an_sssd_flag_set  flags = SSSD_AUTONOMOUS_TAG_DECL |
+                                    SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
+          (void)update_src_seq_secondary_decl((char *)type, type,
+                                              flags, &decl_pos_block);
         }  /* if */
       }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -10988,6 +10991,9 @@ that follows.
                          (curr_token == tok_colon &&
                           is_constructor));
       }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
+      if (already_specialized) first_decl = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
       if (scp->referenced && !already_specialized) {
         pos_sy_error(ec_specialization_of_referenced_entity,
                      &locator.source_position, sym);
@@ -11032,6 +11038,11 @@ that follows.
       /* Update cross reference info, etc. */
       record_symbol_declaration(srk_flags, sym, &locator.source_position,
                                 declarator_ssep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (is_definition || first_decl) {
+        update_decl_pos_info(scp, &decl_pos_block);
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Make sure that this declaration has the correct number of
          "template <>" clauses. */
       check_template_nesting_depth(sym, &locator.source_position, decl_state);
@@ -11040,9 +11051,11 @@ that follows.
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
         if (!is_definition) {
-          (void)set_src_seq_secondary_decl_fields(
-                                          (char *)vp, type,
-                                          SSSD_SPECIALIZED_WITH_NEW_SYNTAX);
+          an_sssd_flag_set  flags = SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
+
+          if (first_decl) flags |= SSSD_FIRST_DECLARATION;
+          (void)update_src_seq_secondary_decl((char *)vp, type, flags, 
+                                              &decl_pos_block);
         } else {
           /* The defining declaration of the variable.  Record the type.  */
           if (vp->declared_type == NULL) vp->declared_type = type;
@@ -11078,7 +11091,7 @@ that follows.
                       has_parenthesized_initializer,
                       /*is_old_style_param_decl=*/FALSE,
                       &incomplete_type_error_reported,
-                      (a_decl_pos_block_ptr)NULL);
+                      &decl_pos_block);
         }  /* if */
       } else {
         /* Issue an error if the exception specification on the instance does
@@ -11088,9 +11101,11 @@ that follows.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
-        { a_type_ptr  declared_type;
+        { a_type_ptr        declared_type;
+          an_sssd_flag_set  flags = SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
 
           declared_type = form_declared_type(type, &func_info);
+          if (first_decl) flags |= SSSD_FIRST_DECLARATION;
           if (is_definition) {
             /* The defining declaration of the routine.  Record the declared
                type. */
@@ -11106,15 +11121,13 @@ that follows.
                  entry representing the function definition will be inserted
                  following the class definition and a secondary source
                  sequence entry has been put out here. */
-              (void)set_src_seq_secondary_decl_fields(
-                                            (char *)rp, declared_type,
-                                            SSSD_SPECIALIZED_WITH_NEW_SYNTAX);
+              (void)update_src_seq_secondary_decl((char *)rp, declared_type,
+                                                  flags, &decl_pos_block);
             }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
           } else {
-            (void)set_src_seq_secondary_decl_fields(
-                                           (char *)rp, declared_type,
-                                           SSSD_SPECIALIZED_WITH_NEW_SYNTAX);
+            (void)update_src_seq_secondary_decl((char *)rp, declared_type,
+                                                flags, &decl_pos_block);
           }  /* if */
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
