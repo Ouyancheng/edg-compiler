@@ -977,7 +977,7 @@ Dump the contents of the indicated constant, for debug purposes.
     con_type = skip_typerefs(con_type);
     /* Dump the type preceding the constant, looking like a type cast. */
     (void)fputc('(', f_debug);
-    if (con_type->source_corresp.name != NULL) {
+    if (has_name(con_type)) {
       db_name(&con_type->source_corresp);
     } else {
       db_type(con_type);
@@ -1132,7 +1132,7 @@ Dump the contents of the indicated expression node for debug purposes.
       break;
     case enk_constant:
       const_ptr = node->variant.constant;
-      if (const_ptr->source_corresp.name == NULL) {
+      if (!has_name(const_ptr)) {
         fputs("constant: value = ", f_debug);
       } else {
 	fprintf(f_debug, "constant (%s): value = ",
@@ -2650,8 +2650,7 @@ bucket of the shareable_constants_table to use for the constant.
         case abk_constant:
           /* Hash the name if the constant has a name; otherwise, hash the
              constant pointed to. */
-          if (cp->variant.address.variant.constant->source_corresp.name !=
-                                                                        NULL) {
+          if (has_name(cp->variant.address.variant.constant)) {
             hash_value =
               hash_name(&cp->variant.address.variant.constant->source_corresp);
           } else {
@@ -3368,8 +3367,7 @@ a constant that appears on the constant list of an enum type.
 {
   a_boolean is_enum = FALSE;
 
-  if (con->kind == (a_constant_repr_kind)ck_integer &&
-      con->source_corresp.name != NULL) {
+  if (con->kind == (a_constant_repr_kind)ck_integer && has_name(con)) {
     /* The constant is a named constant with an integral representation. */
     a_type_ptr con_type = con->type;
     if (con_type->kind == (a_type_kind)tk_integer) {
@@ -5321,7 +5319,7 @@ processing.  If there is no next such field, return NULL.
 {
   for (; field != NULL; field = field->next) {
     /* Named fields are initializable. */
-    if (field->source_corresp.name != NULL) break;
+    if (has_name(field)) break;
     if (!C_mode()) {
       /* Anonymous unions are also initializable in C++. */
       a_type_ptr field_type = field->type;
@@ -7241,7 +7239,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           fprintf(f_debug, " (");
           if (declared_type == NULL) {
             fputs("type = ***NULL***", f_debug);
-          } else if (declared_type->source_corresp.name != NULL) {
+          } else if (has_name(declared_type)) {
             fputc('"', f_debug);
             db_type_name(declared_type);
             fputc('"', f_debug);
