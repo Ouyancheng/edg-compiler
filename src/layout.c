@@ -1018,6 +1018,11 @@ bcp.
 static a_boolean is_best_derivation(a_base_class_ptr  bcp,
                                     a_base_class_ptr  derived_bcp,
                                     a_type_ptr        class_type)
+/*
+Return TRUE if bcp is a direct base class (meaning derived_bcp is NULL) or if
+the base class in class_type that corresponds to derived_bcp is on a
+derivation path of the base classin class_type that corresponds to bcp.
+*/
 {
   a_boolean                 is_best_path;
   a_base_class_derivation_ptr  bcdp;
@@ -1051,25 +1056,6 @@ static a_boolean is_best_derivation(a_base_class_ptr  bcp,
         }  /* for */
         bcdp = bcdp->path->base_class->derivation;
       }  /* for */
-#if 0
-      /* Checking based on the derivation path is not really right.  If the
-         need arises we'll have to beef this up. */
-      if (bcp->is_virtual) {
-        step = bcp->paths_to_virtual_base_class->derivation;
-      } else {
-        step = bcp->derivation;
-      }  /* if */
-      for(;;) {
-        if (step->base_class == derived_bcp) {
-          is_best_path = TRUE;
-          break;
-        } else if (step->next->base_class == bcp) {
-          is_best_path = FALSE;
-          break;
-        }  /* if */
-        step = step->next;
-      }  /* if */
-#endif /* if 0 */
     }  /* if */
   }  /* if */
 done:
@@ -1394,21 +1380,29 @@ static void set_offsets_for_corresponding_virtual_base_classes(
                                              a_base_class_ptr   base_class,
                                              a_boolean          use_decl_order)
 /*
+Check each direct virtual base class in the list (or partial list) headed by
+base_class.  If use_decl_order is true, the qualifying entries are processed
+in list order; otherwise, they are processed from back to front -- a recursive
+call processes the successors first, then returns to the qualifying entry.
+The processing that is done is to allocate space for a virtual base class
+that has turned out not be embedded anywhere; once this is done, any virtual
+base class it is derived from is marked as embedded in it (if not already so
+designated).
 */
 {
-  a_base_class_ptr  bcp;
+  a_base_class_ptr             bcp;
+  a_base_class_derivation_ptr  bcdp;
 
   db_enter(4, "set_offsets_for_corresponding_virtual_base_classes");
   for (; base_class != NULL; base_class = base_class->next) {
     if (base_class->is_virtual && base_class->direct &&
-#if 0
-        first_is_direct(base_class) &&
-#endif /* if 0 */
         base_class->data_section_base_class == NULL) {
       if (!use_decl_order) {
         set_offsets_for_corresponding_virtual_base_classes(
                                         lob, base_class->next, use_decl_order);
       }  /* if */
+      /* base_class may be a base class of another type, not a base class of
+         lob->class_type.  Find the corresponding base class of the latter. */
       bcp = corresponding_base_class(base_class, lob->class_type,
                                      (a_base_class_ptr)NULL);
       if (bcp->data_section_base_class == NULL && bcp->offset == 0 &&
@@ -1423,15 +1417,26 @@ static void set_offsets_for_corresponding_virtual_base_classes(
           internal_error("set_offsets_for_corresp...: zero offset");
         }  /* if */
 #endif /* CHECKING */
-        bcp->offset = set_offset_and_alignment(lob, bcp->type->size,
-                                               bcp->type->alignment);
+        /* Does this virtual base class have a virtual base class on any its
+           own derivation paths?  If so, it is still a candidate for being
+           embedded, so don't allocate space for it yet. */
+        for (bcdp = bcp->derivation; bcdp != NULL; bcdp = bcdp->next) {
+          if (!bcdp->direct && bcdp->path->base_class->is_virtual) {
+            break;
+          }  /* if */
+        }  /* for */
+        if (bcdp == NULL) {
+          /* No virtual base classes on any of its derivations. */
+          bcp->offset = set_offset_and_alignment(lob, bcp->type->size,
+                                                 bcp->type->alignment);
 #if DEBUG
-        if (debug_level >= 4) {
-          fputs("updated offset for ", f_debug);
-          db_base_class(bcp, /*show_offset=*/TRUE);
-        }  /* if */
+          if (debug_level >= 4) {
+            fputs("updated offset for ", f_debug);
+            db_base_class(bcp, /*show_offset=*/TRUE);
+          }  /* if */
 #endif /* DEBUG */
-        fixup_embedded_virtual_base_classes(bcp, lob->class_type);
+          fixup_embedded_virtual_base_classes(bcp, lob->class_type);
+        }  /* if */
       }  /* if */
       if (!use_decl_order) break;
     }  /* if */
@@ -1447,10 +1452,10 @@ static void cfc_set_virtual_base_class_offsets(a_layout_block_ptr lob,
 lob->class_type is the most-derived-type whose offsets are currently being
 specified.  base_class may be NULL, in which case the direct base classes of
 lob->class_type are processed; if base_class is non-NULL, the direct base
-classes of base_class->type are process.  A non-NULL base_class is a direct
+classes of base_class->type are processed.  A non-NULL base_class is a direct
 or indirect nonvirtual base class of lob->class_type with a complete_subobject
 flag set to FALSE.  The processing involves going through the appropriate set
-of direct base classes (of either lob->class_type of of base_class->type) and
+of direct base classes (of either lob->class_type or of base_class->type) and
 locating virtual base classes that are not embedded anywhere else.  Space in
 lob->class_type must be reserved for them.
 
@@ -1465,74 +1470,59 @@ base class of class_type, and allocate space for the latter.
 
   db_enter(4, "cfc_set_virtual_base_class_offsets");
   if (base_class == NULL) {
+    /* Go through the base classes of lob->class_type, which is the most
+       derived class. */
     base_class_list = base_classes_of(lob->class_type);
+    /* Look for virtual bass classes which have already been determined to
+       be embedded in another data section.  If such class have virtual base
+       classes of their own, record their virtual base classes as embedded
+       within them. */
+    /* Why is this being done at precisely this point?  Virtual base classes
+       that could be embedded in a nonvirtual base class will already have
+       been dealt with (in set_data_section_base_class in class_decl.c).  That
+       leaves only those whose embedding has been deferred and will be
+       embedded, if anywhere, only in another virtual base class.  But if it
+       is a base class of two virtual base classes, one of which is already
+       embedded and the other of which is not (because it is a direct base
+       class, say), should the former have precedence?  For example:
+               V1        V1, V3, and V3 are virtual base classes,
+              /  \       V2 is embedded in Y (a complete subobject), and
+             V2   V3     V3, being a direct base class, is not embedded.
+              |   /      Should V1 be embedded in V2 or V3?  The current
+           X  Y  /       procecessing assures that it is embedded in V2-in-Y.
+            \ | /        (What does cfront do?  CC3 aborts on this example.)
+              D
+     One reason for doing it at this point is to assure that virtual base
+     classes that are both direct and indirect get embedded if they can be. */
     for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
       if (bcp->data_section_base_class != NULL) {
+        /* bcp is an embedded virtual base class. */
         fixup_embedded_virtual_base_classes(bcp, lob->class_type);
-      }  /* if */
-    }  /* for */
-    for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
-#if 0
-      if (bcp->direct && bcp->is_virtual &&
-#if 0
-          first_is_direct(bcp) &&
-#endif /* if 0 */
-          bcp->type->variant.class_struct_union.any_virtual_base_classes &&
-          bcp->data_section_base_class == NULL) {
-        /* Record the current offset in the data_section_offset of the
-           virtual base class entry.  This allows for direct access of
-           its fields (rather than through a pointer) as an optimization
-           under certain circumstances. */
-        bcp->offset = set_offset_and_alignment(lob, bcp->type->size,
-                                               bcp->type->alignment);
-#if DEBUG
-        if (debug_level >= 4) {
-          fputs("updated offset for ", f_debug);
-          db_base_class(bcp, /*show_offset=*/TRUE);
-        }  /* if */
-#endif /* DEBUG */
-        fixup_embedded_virtual_base_classes(bcp, lob->class_type);
-      }  /* if */
-#endif /* if 0 */
-      if (bcp->direct) {
-        if (!bcp->is_virtual) {
-          if (bcp->type->variant.class_struct_union.any_virtual_base_classes) {
-            break;
-          }  /* if */
-        } else if (first_derivation_is_direct(bcp) &&
-                   bcp->type->
-                        variant.class_struct_union.any_virtual_base_classes &&
-                   bcp->data_section_base_class == NULL) {
-          /* Record the current offset in the data_section_offset of the
-             virtual base class entry.  This allows for direct access of
-             its fields (rather than through a pointer) as an optimization
-             under certain circumstances. */
-          bcp->offset = set_offset_and_alignment(lob, bcp->type->size,
-                                                 bcp->type->alignment);
-#if DEBUG
-          if (debug_level >= 4) {
-            fputs("updated offset for ", f_debug);
-            db_base_class(bcp, /*show_offset=*/TRUE);
-          }  /* if */
-#endif /* DEBUG */
-          fixup_embedded_virtual_base_classes(bcp, lob->class_type);
-        }  /* if */
       }  /* if */
     }  /* for */
   } else {
+    /* Go though the base classes of a (direct or indirect) base class of
+       lob->class_type. */
     base_class_list = base_classes_of(base_class->type);
   }  /* if */
   if (use_decl_order) {
+    /* Examine all the direct virtual base classes in list order. */
     set_offsets_for_corresponding_virtual_base_classes(lob, base_class_list,
                                                        use_decl_order);
   }  /* if */
   for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && !bcp->complete_subobject) {
+      /* bcp is a direct base class (either of lob->class_type or of
+         base_class->type) and it is not a complete subobject.  That means
+         it must be the first non-virtual direct base class in the list.
+         There will not be any others, so we break after processing it. */
       cfc_set_virtual_base_class_offsets(lob, bcp, !use_decl_order);
       break;
     }  /* if */
   }  /* for */
   if (!use_decl_order) {
+    /* Examine all the direct virtual base classes in the opposite of
+       list order. */
     set_offsets_for_corresponding_virtual_base_classes(lob, base_class_list,
                                                        use_decl_order);
   }  /* if */

@@ -1831,8 +1831,22 @@ subobject (e.g., C).
   if (dsp->base_class->complete_subobject) {
     if (dsp->base_class->is_virtual &&
         dsp->base_class->data_section_base_class == NULL) {
-      /* If dsp refers to a virtual base class which is not itself embedded,
-         then don't (yet) mark the current base class as embedded in it. */
+      if (base_class->data_section_base_class == NULL &&
+          !dsp->base_class->direct) {
+        /* dsp refers to a virtual base class which is not itself embedded.
+           Only mark base_class as embedded within dsp->base_class (and then
+           only provisionally) if this is a direct derivation. */
+        if (dsp->next->base_class == base_class) {
+          /* It is a direct derivation.  See if the base class that corresponds
+             to base_class is embedded in the context of dsp->base_class->type.
+             If so, defer the designation. */
+          bcp = corresponding_base_class(base_class, dsp->base_class->type,
+                                         (a_base_class_ptr)NULL);
+          if (bcp->data_section_base_class == NULL) {
+            base_class->data_section_base_class = dsp->base_class;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     } else {
       /* Traverse the path. */
       for (;; dsp = dsp->next) {
@@ -1915,7 +1929,8 @@ path and access.
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
       /* In cfront mode set the data section base class, which is where the
          data section of this virtual base class may be embedded. */
-      if (base_class->data_section_base_class == NULL) {
+      if (base_class->data_section_base_class == NULL ||
+          base_class->data_section_base_class->is_virtual) {
         set_data_section_base_class(base_class, new_bcdp->path);
       }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
