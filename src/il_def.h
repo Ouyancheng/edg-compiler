@@ -464,9 +464,9 @@ typedef struct a_tagged_pointer {
 /*
 A entry on a list that represents the order in which declarations,
 statements, macros, pragmas, and comments appear within the source program.
-There is a list for the file scope, a list for each function scope, and a
-list for each class-struct-union scope.  Each entry on the list points to
-the entity represented, and when that entity is a declared entity or a
+There is a list for the file scope, a list for each function and block scope,
+and a list for each class-struct-union scope.  Each entry on the list points
+to the entity represented, and when that entity is a declared entity or a
 statement, it has a pointer back to its source sequence entry.
 */
 typedef struct a_source_sequence_entry {
@@ -666,10 +666,7 @@ typedef struct a_source_correspondence {
 			/* TRUE if an entry of type a_pragma has been created
 			   and bound to this entity.  The pragma entry, which
 			   will contain a pointer to this entity, is found by
-			   searching the pragmas list of the scope entry for
-			   the file scope if this entity belongs to the
-			   file-scope memory region or the pragmas list of
-			   the current function scope otherwise. */
+			   calling find_assoc_pragma. */
 #ifdef CIL
   unsigned int  is_local_to_function:1;
 			/* TRUE if a function scope intervenes in the scope
@@ -1497,7 +1494,7 @@ typedef struct a_pragma {
 			   string begins with the token immediately following
 			   the #pragma keyword. */
   union {
-    /* When kind == pk_none or refers to "front-end-only" pragma, no variant
+    /* When kind == pk_none or refers to a "front-end-only" pragma, no variant
        fields. */
     a_byte	dummy;
 			/* Remove this field (present only to avoid compiler
@@ -4416,8 +4413,7 @@ typedef struct a_statement {
 			/* TRUE if an entry of type a_pragma has been created
 			   and bound to this statement.  The pragma entry,
 			   which will contain a pointer to this statement, is
-			   found by searching the pragmas list of the scope
-			   entry for the current function scope. */
+			   found by calling find_assoc_pragma. */
   an_expr_node_ptr
                 expr;
                         /* The primary expression, if applicable
