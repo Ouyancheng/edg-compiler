@@ -152,7 +152,8 @@ extern void set_type_size(a_type_ptr type_ptr);
 extern a_type_ptr type_after_integral_promotion(a_type_ptr type);
 extern a_type_ptr default_argument_promotion(a_type_ptr old_type);
 extern a_type_ptr con_complete_object_type(a_constant_ptr constant);
-extern a_type_ptr node_complete_object_type(an_expr_node_ptr node);
+extern a_type_ptr node_complete_object_type(an_expr_node_ptr node,
+                                            a_boolean        call_case);
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), /*il_identical=*/FALSE))
 #define il_identical_types(t1, t2) \

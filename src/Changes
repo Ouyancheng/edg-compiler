@@ -1,5 +1,13 @@
 Version 2.17
 
+5/4/93  Calls of virtual functions from constructor and destructors
+
+Calls of virtual functions of a class from within the constructor or
+destructor of that class are now recognized as being non-virtual
+(ARM 12.7).  Formerly, they were generated as virtual calls.  With
+the way the virtual function tables were set up, this change should
+cause no difference in behavior, but the new code is more efficient.
+
 5/4/93  rvalue.member is an lvalue in C++
 
 According to ARM 5.2.4, if a nonstatic data member is selected from an

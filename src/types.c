@@ -1331,11 +1331,13 @@ type is to optimize base class casts and virtual function calls.
 }  /* con_complete_object_type */
 
 
-a_type_ptr node_complete_object_type(an_expr_node_ptr node)
+a_type_ptr node_complete_object_type(an_expr_node_ptr node,
+                                     a_boolean        call_case)
 /*
 Return the type of the complete object that contains the location indicated
 by node (an lvalue address), or NULL if no complete object can be determined.
-NULL is always a safe answer; non-NULL values may permit optimizations.
+call_case is TRUE if the answer will be used to optimize a virtual function
+call.  NULL is always a safe answer; non-NULL values may permit optimizations.
 Note that "complete object" means an object that is not a base class of
 another object, not necessarily a top-level object.  This is used only in
 C++ mode; it is useful to know what the complete object type is to optimize
@@ -1347,11 +1349,39 @@ base class casts and virtual function calls.
   an_expr_node_ptr      first_operand;
   a_new_delete_supplement_ptr
                         ndsp;
+  a_variable_ptr        var;
 
   switch (node->kind) {
     case enk_error:
+      /* Complete object type is not known. */
+      break;
     case enk_variable:
-      /* Complete object not known. */
+      /* Complete object type is not known in general, but if the variable
+         is the "this" parameter for a constructor or destructor, and we're
+         optimizing a virtual call case, it is known. */
+      var = node->variant.variable;
+      if (call_case && var->source_corresp.name == NULL &&
+          var->is_parameter &&
+          depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        /* The variable is a parameter and we're inside a function. */
+        a_scope_ptr scope =
+                          scope_stack[depth_innermost_function_scope].il_scope;
+        if (var == scope->variant.routine.this_param_variable) {
+          /* The variable is the "this" parameter variable of the current
+             function. */
+          a_routine_ptr curr_routine = scope->variant.routine.ptr;
+          if (curr_routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+              curr_routine->special_kind ==
+                                    (a_special_function_kind)sfk_destructor) {
+            /* The current function is a constructor or destructor.  We know
+               that the "this" parameter points to a complete object, at
+               least for purposes of resolving virtual calls (ARM 12.7). */
+            complete_object_type =
+                          curr_routine->source_corresp.class_of_which_a_member;
+          }  /* if */
+        } /* if */
+      }  /* if */
       break;
     case enk_constant:
       complete_object_type = con_complete_object_type(node->variant.constant);
@@ -1374,13 +1404,15 @@ base class casts and virtual function calls.
       } else if (op == (an_expr_operator_kind)eok_base_class_cast) {
         /* Cast to a base class.  Do a recursive call on the first operand
            to find the complete object. */
-        complete_object_type = node_complete_object_type(first_operand);
+        complete_object_type = node_complete_object_type(first_operand,
+                                                         call_case);
       } else if (op == (an_expr_operator_kind)eok_padd ||
                  op == (an_expr_operator_kind)eok_padd_subsc ||
                  op == (an_expr_operator_kind)eok_psubtract) {
         /* Pointer addition (subscripting) or subtraction.  Do a recursive
            call on the first operand to find the complete object. */
-        complete_object_type = node_complete_object_type(first_operand);
+        complete_object_type = node_complete_object_type(first_operand,
+                                                         call_case);
       }  /* if */
       break;
     case enk_temp_init:

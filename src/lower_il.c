@@ -4086,7 +4086,8 @@ more than once.
         internal_error("related_class_cast_step: derived cast is virtual");
       }  /* if */
 #endif /* CHECKING */
-      if (node_complete_object_type(source_node) == source_class) {
+      if (node_complete_object_type(source_node, /*call_case=*/FALSE) ==
+                                                                source_class) {
         /* We have a complete object, so it is possible to go directly to the
            virtual base class without using a pointer indirection. */
         /* Find the base class entry that relates the complete object class

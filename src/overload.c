@@ -2436,11 +2436,13 @@ Issue any suggested warning recorded in an argument match summary.
 }  /* issue_warning_from_arg_match_summary */
 
 
-static a_type_ptr operand_complete_object_type(an_operand *operand)
+static a_type_ptr operand_complete_object_type(an_operand *operand,
+                                               a_boolean  call_case)
 /*
 Return the type of the complete object that contains the location indicated
 by operand (an address), or NULL if no complete object can be determined.
-NULL is always a safe answer; non-NULL values may permit optimizations.
+call_case is TRUE if the answer will be used to optimize a virtual function
+call.  NULL is always a safe answer; non-NULL values may permit optimizations.
 Note that "complete object" means an object that is not a base class of
 another object, not necessarily a top-level object.  This is used only in
 C++ mode; it is useful to know what the complete object type is to optimize
@@ -2454,7 +2456,8 @@ base class casts and virtual function calls.
                           con_complete_object_type(&operand->variant.constant);
   } else if (is_expression_operand(operand)) {
     complete_object_type = 
-                        node_complete_object_type(operand->variant.expression);
+                         node_complete_object_type(operand->variant.expression,
+                                                   call_case);
   }  /* if */
   return complete_object_type;
 }  /* operand_complete_object_type */
@@ -2520,7 +2523,8 @@ Bind the operand for a function to an associated selector object.
        One would have to have a way to adjust the "this" pointer back
        to the derived class to optimize the first case.
     */
-    if (operand_complete_object_type(bound_function_selector) ==
+    if (operand_complete_object_type(bound_function_selector,
+                                     /*call_case=*/TRUE) ==
         type_pointed_to(bound_function_selector->type)) {
       function_operand->virtual_function = FALSE;
       /* Set the IL referenced flag for the function.  It wasn't set
