@@ -247,8 +247,10 @@ process_alias_fixup_list.
                     &ppp->pragma_position);
     /* Recreate the pragma string: "redefine_extname <src-name> <asm-name>". */
     ppp->pragma_text  = (char *)alloc_primary_file_scope_il(pragma_len);
-    (void)memcpy(ppp->pragma_text, "redefine_extname ", prefix_len);
-    (void)memcpy(ppp->pragma_text+prefix_len, src_name, src_name_len);
+    /*lint --e(668)*/(void)memcpy(ppp->pragma_text, "redefine_extname ",
+                                  prefix_len);
+    /*lint --e(668)*/(void)memcpy(ppp->pragma_text+prefix_len, src_name,
+                                  src_name_len);
     ppp->pragma_text[prefix_len+src_name_len] = ' ';
     (void)memcpy(ppp->pragma_text+prefix_len+src_name_len+1, asm_name,
                  asm_name_len+1);
