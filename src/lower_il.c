@@ -4338,31 +4338,18 @@ around the loop.
 
 
 void lower_expr_list(an_expr_node_ptr expr_list,
-                     unsigned int     is_lvalue_mask,
-                     a_boolean        is_conditional_operator)
+                     unsigned int     is_lvalue_mask)
 /*
 Do IL lowering of the indicated list of expressions and everything under it.
 is_lvalue_mask is a bit mask indicating which elements of the list are
 lvalues (0x1 for first operand, 0x2 for second operand, etc.)
-is_conditional_operator is TRUE if the expressions are operands of
-a conditional operator ("?", "&&", or "||").
 */
 {
   an_expr_node_ptr expr;
 
   for (expr = expr_list; expr != NULL; expr = expr->next) {
-    /* On operands after the first operand of a conditional operator,
-       increment the count of conditional operands. */
-    if (is_conditional_operator && expr != expr_list) {
-      num_conditional_exprs_inside_of++;
-    }  /* if */
     /* Lower the expression on the list. */
     lower_expr(expr, (a_boolean)(is_lvalue_mask & 1));
-    /* If the count of conditional operands was incremented above, restore it
-       to what it was. */
-    if (is_conditional_operator && expr != expr_list) {
-      num_conditional_exprs_inside_of--;
-    }  /* if */
     /* Move to the next bit in the lvalue mask. */
     is_lvalue_mask >>= 1;
   }  /* for */
@@ -5819,7 +5806,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   an_expr_node_ptr      operand_node, operand2, operand3, throw_operand;
   a_variable_ptr        var, temp_var;
   unsigned int          is_lvalue_mask;
-  a_boolean             is_conditional_operator;
   a_boolean             is_full_expression = FALSE;
 
   if (curr_full_expression == NULL) {
@@ -5904,12 +5890,10 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         /* Determine which operands if any are lvalues, and whether or not
            the operand has conditional operands. */
         is_lvalue_mask = 0;
-        is_conditional_operator = FALSE;
         if (op == (an_expr_operator_kind)eok_question) {
           /* Question mark's second and third operands are lvalues if the
              question mark itself is. */
           if (is_lvalue) is_lvalue_mask = 0x6;
-          is_conditional_operator = TRUE;
           /* Look for a "?" operator where one of the operands is a throw
              expression and the other has a non-void type.  The throw
              operation will be adjusted by putting a comma operation over
@@ -5933,16 +5917,12 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         } else if (op == (an_expr_operator_kind)eok_comma) {
           /* Comma's second operand is an lvalue if the comma itself is. */
           if (is_lvalue) is_lvalue_mask = 0x2;
-        } else if (op == (an_expr_operator_kind)eok_land ||
-                   op == (an_expr_operator_kind)eok_lor) {
-          /* "&&" and "||". */
-          is_conditional_operator = TRUE;
         } else {
           /* Other operators.  See if the first operand is an lvalue. */
           if (operator_takes_lvalue_operand(op)) is_lvalue_mask = 0x1;
         }  /* if */
         /* Lower the operands of the expression. */
-        lower_expr_list(operand_node, is_lvalue_mask, is_conditional_operator);
+        lower_expr_list(operand_node, is_lvalue_mask);
         /* Do any special lowering required for this operator after the
            operands have been lowered. */
         switch (op) {
@@ -8382,7 +8362,6 @@ of the front end.
   }  /* if */
 #endif /* CHECKING && ASSIGNMENT_TO_THIS_ALLOWED */
   avail_init_pos_modifiers = NULL;
-  num_conditional_exprs_inside_of = 0;
   curr_full_expression = NULL;
 #if DEBUG
   num_init_pos_modifiers_allocated        = 0;
