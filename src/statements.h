@@ -154,6 +154,99 @@ extern a_statement_ptr compound_statement(a_boolean at_function_level,
                                           a_boolean is_catch_clause);
 extern a_boolean curr_code_reachable(void);
 
+/*
+a_control_flow_desr is an entry used in tracking gotos, labels, and
+initializing declarations in order to diagnose errors in transferring
+control past an initialization.
+*/
+typedef enum a_control_flow_descr_kind_tag {
+  cfdk_block,		/* Start of a block. */
+  cfdk_init,		/* Refers to an stmk_init statement. */
+  cfdk_goto,		/* Refers to an stmk_goto statement. */
+  cfdk_label,		/* Refers to an stmk_label statement. */
+  cfdk_end_of_block	/* End of a block. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_control_flow_descr_kind;
+
+typedef struct a_control_flow_descr *a_control_flow_descr_ptr;
+typedef struct a_control_flow_descr {
+  a_control_flow_descr_ptr
+		next;
+			/* Pointer to the next entry in a linked list; NULL
+			   for the last entry on the list. */
+  a_control_flow_descr_ptr
+		prev;
+			/* Pointer to the preceding entry in a linked list;
+			   NULL for the first entry on the list. */
+  a_control_flow_descr_ptr
+		parent;
+			/* Pointer to an entry representing the parent
+			   block of the given entry.  NULL only for the
+			   cfdk_block and cfdk_end_of_block entries associated
+			   the routine scope; all other entries on a list
+			   have parents. */
+  a_control_flow_descr_kind
+		kind;
+			/* The kind of entry. */
+#if DEBUG
+  unsigned long id_number;
+			/* Unique identifying number for this entry. */
+#endif /* DEBUG */
+  union {
+    /* When kind == cfdk_block: */
+    struct {
+      a_control_flow_descr_ptr
+		end_of_block;
+			/* An entry representing the start of a block has a
+			   pointer to the entry representing the end of the
+			   same block. */
+      unsigned long
+		goto_count;
+			/* Number of goto statements in the current block and
+			   blocks contained within the current block.  This
+			   counter is decremented as goto entries are
+			   removed from the list. */
+      a_byte_boolean
+		any_labels;
+			/* TRUE if the current block contains any label
+			   statements or any blocks with label statements. */
+    } block;
+    /* When kind == cfdk_init: */
+    a_statement_ptr
+		init_statement;
+			/* A pointer to an stmk_init statement. */
+    /* When kind == cfdk_goto: */
+    struct {
+      a_statement_ptr
+		ptr;
+			/* A pointer to an stmk_goto statement. */
+      a_control_flow_descr_ptr
+		prev_goto;
+			/* A pointer to a cfdk_goto entry that points to a
+			   goto statement referring to the same label; NULL
+			   for the first goto statement for a given label in
+			   the program.  This pointer produces a chain that
+			   can be walked to visit all forward gotos referring
+			   to a given label. */
+      a_source_position
+		source_pos;
+			/* Source position of the goto statement. */
+    } goto_statement;
+    /* When kind == cfdk_label: */
+      a_statement_ptr
+		label_statement;
+			/* A pointer to an stmk_label statement. */
+    /* When kind == cfdk_end_of_block: */
+    a_control_flow_descr_ptr
+		start_of_block;
+			/* An entry representing the end of a block has a
+			   pointer to the entry representing the start of the
+			   same block. */
+  } variant;
+} a_control_flow_descr;
+
+
 /* Structure for saving the current state of the structured statement stack
    so that it can be reinitialized to handle a nested function and then
    restored to continue processing the current function. */
@@ -168,6 +261,12 @@ typedef struct a_struct_stmt_stack_state {
 		code_reachability;
 			/* Saved value of code_reachability (a static variable
 			   of statements.c). */
+  a_control_flow_descr_ptr
+		control_flow_list;
+			/* Saved pointer to head of control flow list. */
+  a_control_flow_descr_ptr
+		end_of_control_flow_list;
+			/* Saved pointer to tail of control flow list. */
 } a_struct_stmt_stack_state;
 
 extern void new_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
