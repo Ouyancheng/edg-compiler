@@ -513,6 +513,11 @@ typedef struct a_symbol {
 			   the current scope, i.e., another symbol with the
 			   same name is visible, and there is no reason to
 			   prefer one over the other. */
+      unsigned int
+		access_adjustment_made:1;
+			/* If TRUE an access declaration has been made for
+			   the projection symbol, in which case it cannot
+			   be overridden by a local symbol of the same name. */
     } projection;
     /* When kind = sk_overloaded_function: */
     a_symbol_ptr
@@ -557,6 +562,13 @@ EXTERN a_symbol_header_ptr
 			/* The actual symbol table.  Each bucket of the array
 			   contains a pointer to a list of symbol headers whose
 			   identifiers hash to that bucket. */
+
+/*
+Table of pointers to symbol headers for C++ operator name symbols, for
+names like "operator+".  Indexed by token value.
+*/
+EXTERN a_symbol_header_ptr
+		opname_symbol_table[(int)tok_last];
 
 /*
 Symbol information related to the current token:
@@ -836,6 +848,13 @@ extern a_symbol_ptr find_external_symbol(a_symbol_locator *location,
 
 extern void tildize_locator(a_symbol_locator *locator);
 
+extern void change_class_locator_into_constructor_locator(
+                                                    a_symbol_locator *locator);
+
+extern void make_opname_locator(a_token_kind      token,
+                                a_symbol_locator  *locator,
+                                a_source_position *pos);
+
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 
 extern a_boolean have_member_access_privilege(a_type_ptr class_type);
@@ -947,12 +966,6 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
   ((sym)->kind == (a_symbol_kind)sk_routine ||                        \
    (sym)->kind == (a_symbol_kind)sk_member_function ||                \
    (sym)->kind == (a_symbol_kind)sk_overloaded_function)
-
-/* Return TRUE if a symbol is a constructor symbol. */
-#define is_constructor_symbol(sym)                                    \
-  ((sym)->kind == (a_symbol_kind)sk_member_function &&                \
-   (sym)->variant.routine->special_kind ==                            \
-                            (a_special_function_kind)sfk_constructor) \
 
 /*
 Extract the type from a type symbol (one for which is_type_symbol is TRUE).
