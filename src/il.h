@@ -314,6 +314,9 @@ extern a_local_static_variable_init_ptr find_local_static_variable_init(
                                                       a_variable_ptr  var,
                                                       a_scope_ptr     scope);
 
+extern void add_to_local_static_variable_inits_list(
+                                   a_local_static_variable_init_ptr  lsvip);
+
 extern a_variable_ptr alloc_variable(a_storage_class  storage_class);
 
 extern void remove_from_variables_list(a_variable_ptr var_ptr);
