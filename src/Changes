@@ -1,5 +1,11 @@
 Version 2.13
 
+12/15/92  Tab separator in cross-reference output
+
+The fields in each line of cross-reference output are now separated
+by tabs rather than blanks.  This solves the problem caused by
+C++ names that contain embedded blanks, e.g., "operator new".
+
 12/15/92  Implicit type specifier on function
 
 In C++ mode the diagnostic issued on functions with an implicit return
