@@ -49,7 +49,7 @@ now emit old-style line directives when in GNU mode.
 11/17/04 GNU and Microsoft compatibility: Deprecated declarations
 
 In Microsoft and GNU modes, the front end allows declarations to be marked as
-deprecated (using "__declspec(deprecated)" and __attribute__((deprecated))"
+deprecated (using "__declspec(deprecated)" and "__attribute__((deprecated))"
 respectively).  However, the use of deprecated typedef declarations was not
 diagnosed with a warning.  For example (GNU mode):
 
