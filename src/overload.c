@@ -2559,20 +2559,37 @@ arguments of the call (given by arg_operand_list).
       }  /* if */
       underlying_type = skip_typerefs(underlying_type);
       if (is_function_type(underlying_type)) {
-        determine_function_viability((a_symbol_ptr)NULL,
-                                     /*is_template_id=*/FALSE,
-                                     (a_template_arg_ptr)NULL,
-                                     surrogate_function_conv_sym,
-                                     underlying_type,
-                                     arg_operand_list,
-                                     /*have_selector=*/TRUE,
-                                     ptr_class_object,
-                                     /*selector_is_object_pointer=*/TRUE,
-                                     (a_type_ptr)NULL,
-                                     /*ctor_conversion_case=*/FALSE,
-                                     /*effects_copy_initialization=*/FALSE,
-                                     candidate_functions,
-                                     &matched_except_for_missing_selector);
+        /* The conversion function returns an appropriate pointer or reference
+           to function. */
+        /* Find out whether the conversion function is callable for the
+           object we have (i.e., how do the cv-qualifiers match up). */
+        an_arg_match_summary
+                 match;
+        a_type_ptr this_param_type =
+                 this_param_type_for_overload_res(routine_type,
+                                                  surrogate_function_conv_sym,
+                                                  /*is_conv_func=*/TRUE);
+        determine_selector_match_level(ptr_class_object->type,
+                                       this_param_type,
+                                       &match);
+        if (match.match_level != aml_none) {
+          /* See how the arguments match up against the surrogate function
+             parameters. */
+          determine_function_viability((a_symbol_ptr)NULL,
+                                       /*is_template_id=*/FALSE,
+                                       (a_template_arg_ptr)NULL,
+                                       surrogate_function_conv_sym,
+                                       underlying_type,
+                                       arg_operand_list,
+                                       /*have_selector=*/TRUE,
+                                       ptr_class_object,
+                                       /*selector_is_object_pointer=*/TRUE,
+                                       (a_type_ptr)NULL,
+                                       /*ctor_conversion_case=*/FALSE,
+                                       /*effects_copy_initialization=*/FALSE,
+                                       candidate_functions,
+                                       &matched_except_for_missing_selector);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
