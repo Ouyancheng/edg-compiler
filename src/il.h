@@ -978,11 +978,11 @@ Return TRUE if a constant is an error constant.
 Macros used to determine the kind of a template argument.
 */
 #define is_type_templ_arg(arg) \
-  (arg->kind == (a_templ_arg_kind)tak_type)
+  ((arg)->kind == (a_templ_arg_kind)tak_type)
 #define is_nontype_templ_arg(arg) \
-  (arg->kind == (a_templ_arg_kind)tak_nontype)
+  ((arg)->kind == (a_templ_arg_kind)tak_nontype)
 #define is_template_templ_arg(arg) \
-  (arg->kind == (a_templ_arg_kind)tak_template)
+  ((arg)->kind == (a_templ_arg_kind)tak_template)
 
 /*
 Macro that returns TRUE if a constant entry is the exact address of
