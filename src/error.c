@@ -3671,6 +3671,20 @@ being processed.
   diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
 }  /* add_diag_info */
 
+
+void add_diag_info_with_pos_insert(an_error_code      error_code,
+                                   a_source_position  *pos)
+/*
+Add the specified diagnostic message to the multiple message diagnostic
+being processed.  pos refers to a source position that will be embedded
+in the message text using the "%p" convention.
+*/
+{
+  init_error_params();
+  error_msg_positions[1] = pos;
+  diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
+}  /* add_diag_info_with_pos_insert */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 void pos_sy_start_diagnostic(an_error_severity  error_severity,

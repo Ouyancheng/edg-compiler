@@ -400,6 +400,8 @@ extern void ty_add_diag_info(an_error_code error_code,
 extern void str_add_diag_info(an_error_code error_code,
                               char          *error_string);
 extern void add_diag_info(an_error_code error_code);
+void add_diag_info_with_pos_insert(an_error_code      error_code,
+                                   a_source_position  *pos);
 #if !STANDALONE_UTILITY_PROGRAM
 extern void pos_sy_start_diagnostic(an_error_severity  error_severity,
                                     an_error_code      error_code,
