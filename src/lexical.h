@@ -1245,6 +1245,10 @@ EXTERN char	*curr_token_asm_string;
 			/* When curr_token == tok_microsoft_asm, this points
 			   to the associated asm string. */
 
+EXTERN a_constant_ptr
+		name_linkage_constants;
+			/* A pointer to an array of constants representing
+			   the name linkages that the front end accepts. */
 
 #if ASM_SUPPORT_NEEDED
 
@@ -1758,6 +1762,8 @@ extern void pop_input_stack(void);
 
 extern void expand_curr_source_line(void);
 
+extern void ensure_min_curr_source_line_length(sizeof_t  min_len);
+
 extern void check_for_generation_of_pch_on_return_to_primary_file(void);
 
 extern a_boolean cache_function_body(
@@ -1806,6 +1812,10 @@ extern a_template_ptr scan_template_template_argument(
 #if CHECKING
 void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens);
 #endif /* CHECKING */
+
+/* Initialize the name linkage constants. */
+void init_name_linkage_constants(void);
+
 /* Initialize the lexical routines. */
 extern void lexical_reset(void);
 extern void lexical_one_time_init(void);

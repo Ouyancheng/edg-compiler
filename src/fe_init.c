@@ -773,6 +773,9 @@ source file's compilation.
   debug_level = save_debug_level;
 #endif /* DEBUG */
 
+  /* Create constants representing the recognized name linkages. */
+  init_name_linkage_constants();
+
   il_header.plain_chars_are_signed = targ_has_signed_chars;
 #ifdef FIL
   il_header.one_trip_do_loops = FALSE;

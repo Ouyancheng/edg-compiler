@@ -7720,24 +7720,24 @@ return TRUE and set *kind to the corresponding name-linkage kind.
 */
 {
   a_boolean            err = FALSE;
-  char                 *str;
   a_name_linkage_kind  local_kind;
 
-  str = const_for_curr_token.variant.string.value;
   /* ARM 7.4 specifies that the strings "C" and "C++" must be supported,
      but that implementations are permitted to add others, such as "Ada"
      or "FORTRAN".  If changes are made here to support other strings, be
      sure to update the name linkage kind enumeration. */
-  if (str == NULL) {
+  if (const_for_curr_token.variant.string.value == NULL) {
     /* There must have been an error in scanning the string literal (e.g.,
        no closing '"'. */
     err = TRUE;
   } else {
-    /* Look for the predefined string ("C++", "C", ...) which str matches. */
+    /* Look for the predefined string ("C++", "C", ...) which the current
+       token matches. */
     for (local_kind = (a_name_linkage_kind)nlk_cplusplus_external;
          (int)local_kind < (int)nlk_last;
          local_kind = (a_name_linkage_kind)(local_kind + 1)) {
-      if (strcmp(str, name_linkage_kind_names[local_kind]) == 0) {
+      if (eq_constants(&const_for_curr_token,
+                       &name_linkage_constants[(int)local_kind])) {
         /* Found a matching linkage kind string. */
         break;
       }  /* if */

@@ -3919,6 +3919,18 @@ reallocate curr_source_line to make it bigger.
 }  /* expand_curr_source_line */
 
 
+void ensure_min_curr_source_line_length(sizeof_t  min_len)
+/*
+Make sure the curr source line can hold at least min_len characters.
+*/
+{
+  while (min_len >
+               (sizeof_t)(after_end_of_curr_source_line - curr_source_line)) {
+    expand_curr_source_line();
+  }  /* while */
+}  /* ensure_min_curr_source_line_length */
+
+
 void conv_line_loc_to_source_pos(char              *loc_in_line,
                                  a_source_position *position_var)
 /*
@@ -12067,6 +12079,49 @@ Create the include file suffix list used for header files with no suffix.
     add_to_file_suffix_list(&include_file_suffix_list, "", 0);
   }  /* if */
 }  /* init_include_file_suffixes */
+
+
+void init_name_linkage_constants(void)
+/*
+Create an array of string constants from the string literals that describe
+which name linkages are recognized.  This process ensures that any needed
+host-target conversions are performed.
+*/
+{
+  a_name_linkage_kind  kind;
+  a_token_kind  ctoken;
+  a_boolean     err;
+  unsigned long num_chars;
+  an_error_code err_code;
+  char          *err_pos;
+
+  name_linkage_constants =
+                   (a_constant_ptr)alloc_fe((int)nlk_last*sizeof(a_constant));
+  for (kind = (a_name_linkage_kind)nlk_cplusplus_external;
+       (int)kind < (int)nlk_last;
+       kind = (a_name_linkage_kind)(kind + 1)) {
+    char      *name_linkage = name_linkage_kind_names[kind];
+    sizeof_t  orig_len = strlen(name_linkage);
+    /* First initialize the current source line to scan the string. */
+    ensure_min_curr_source_line_length(orig_len+2+2*LE_ESCAPE_LEN);
+    curr_source_line[0] = '"';
+    strcpy(curr_source_line+1, name_linkage);
+    curr_source_line[orig_len+1] = '"';
+    curr_source_line[orig_len+2] = LE_ESCAPE;
+    curr_source_line[orig_len+3] = LE_NEWLINE;
+    curr_source_line[orig_len+4] = LE_ESCAPE;
+    curr_source_line[orig_len+5] = LE_END_OF_LINE;
+    start_of_curr_token = curr_char_loc = curr_source_line;
+    /* Tokenize the string. */
+    ctoken = accum_quoted_string(tok_string_literal, &num_chars, &err);
+    check_assertion(!err && ctoken == tok_string_literal);
+    /* Convert it to internal form. */
+    conv_string_literal(num_chars, &err_code, &err_pos);
+    check_assertion(err_code == ec_no_error);
+    /* Copy the result for later use. */
+    copy_constant(&const_for_curr_token, name_linkage_constants+(int)kind);
+  }  /* for */
+}  /* init_name_linkage_constants */
 
 
 void lexical_one_time_init(void)

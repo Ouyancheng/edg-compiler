@@ -4406,7 +4406,7 @@ the "-D").
   in_preprocessing_directive = TRUE;
   fetch_pp_tokens = TRUE;
   for (; du_ptr != NULL; du_ptr = du_ptr->next) {
-    sizeof_t  du_len, line_length;
+    sizeof_t  du_len;
     char      *du_str = du_ptr->text, *equal_pos;
 
     if (strchr(du_str, ATTENTION_MARKER) != NULL) {
@@ -4428,11 +4428,7 @@ the "-D").
     du_len = strlen(du_str);
     /* Ensure the buffer holding the logical source line is large enough to
        hold the synthetic line we are going to create. */
-    line_length = du_len+2+2*LE_ESCAPE_LEN;
-    while (line_length >
-               (sizeof_t)(after_end_of_curr_source_line - curr_source_line)) {
-      expand_curr_source_line();
-    }  /* while */
+    ensure_min_curr_source_line_length(du_len+2+2*LE_ESCAPE_LEN);
     strcpy(curr_source_line, du_str);
     equal_pos = strchr(curr_source_line, '=');
     if (equal_pos == NULL) {
