@@ -1,5 +1,21 @@
 Version 2.29
 
+4/5/95   Enhanced support for #pragma pack
+
+It is now possible to maintain a stack of pack alignment values using
+"push" and "pop" with #pragma pack.  The syntax and semantics are
+consistent with what is supported by the Microsoft C and C++ compilers.
+For example:
+
+  #pragma pack (push, xxx)
+  #include "xxx.h"
+  #pragma pack (pop, xxx)
+
+which has the effect saving the current pack alignment value, processing
+the include file (which may leave the pack alignment with an unknown
+setting), and restoring the original value.  This is only available, of
+course, when USER_CONTROL_OF_STRUCT_PACKING is TRUE.
+
 4/5/95   Identifier lookup when caching pragma tokens
 
 When caching pragma tokens, identifiers must be looked up, otherwise
