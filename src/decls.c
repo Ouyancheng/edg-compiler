@@ -5098,7 +5098,17 @@ return a pointer to it in *symbol_ptr.
                      integer_type(targ_size_t_int_kind));
     }  /* if */
   }  /* if */
-
+  if (vla_enabled && innermost_function_scope != NULL) {
+    /* A typedef declaration inside a function. */
+    if (is_variably_modified_type(type_ptr)) {
+      a_statement_ptr  sp;
+      
+      sp = add_statement_at_stmt_pos((a_statement_kind)stmk_vla_typedef,
+                                     &locator->source_position);
+      sp->variant.vla_typedef = tp;
+      tp->variant.typeref.has_variably_modified_type = TRUE;
+    }  /* if */
+  }  /* if */
 return_point:
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
@@ -5449,16 +5459,6 @@ In C++ mode an error is issued if a type definition appears in a type-name
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   if (is_abstract_declarator_start()) {
     di_flags = DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED;
-    if (vla_enabled) {
-      /* A variable length array declaration may only appear in a function
-         prototype scope or inside a function. */
-      a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
-      if (ssep->kind == (a_scope_kind)sck_func_prototype ||
-          ssep->kind == (a_scope_kind)sck_function ||
-          ssep->kind == (a_scope_kind)sck_block) {
-        di_flags |= DI_VLA_ALLOWED;
-      }  /* if */
-    }  /* if */
     declarator(di_flags, &do_flags, *type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL,
                (a_symbol_locator *)NULL, type_ptr,
@@ -7769,9 +7769,8 @@ continue_with_declaration:
       if (vla_enabled) di_flags |= DI_VLA_ALLOWED;
     } else if (vla_enabled) {
       if (!function_definition_allowed &&
-          declared_storage_class != (a_storage_class)sc_extern &&
-          declared_storage_class != (a_storage_class)sc_static &&
           declared_storage_class != (a_storage_class)sc_asm) {
+        /* Not at file scope, so a VLA may appear on some declarations. */
         di_flags |= DI_VLA_ALLOWED;
       }  /* if */
     }  /* if */
@@ -8299,11 +8298,20 @@ continue_with_declaration:
 #endif /* DECL_MODIFIERS_IN_USE */
       } else if (is_function) {
         /* A function declaration with no body. */
-        if (func_info.vla_fixup_list != NULL) {
-          /* Throw away VLA info created for the function prototype. */
-          free_vla_fixup_list(func_info.vla_fixup_list);
-          func_info.vla_fixup_list = NULL;
-        }  /* if */
+        if (vla_enabled) {
+          if (func_info.vla_fixup_list != NULL) {
+            /* Throw away VLA info created for the function prototype. */
+            free_vla_fixup_list(func_info.vla_fixup_list);
+            func_info.vla_fixup_list = NULL;
+          }  /* if */
+          if (!function_definition_allowed) {
+            /* A function declaration at function or block scope. */
+            if (is_variably_modified_type(local_type_ptr)) {
+              pos_error(ec_variably_modified_type_not_allowed,
+                        &locator.source_position);
+            }  /* if */
+          }  /* if */
+        }  /* if */          
         decl_routine(&locator, local_storage_class, local_type_ptr,
                      &func_info, declarator_ssep, SRK_DECLARATION,
                      &local_decl_modifiers, &symbol_ptr, &linkage, &old_type,
@@ -8312,6 +8320,22 @@ continue_with_declaration:
         /* A variable declaration. */
         a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
 
+        if (vla_enabled && !function_definition_allowed) {
+          /* Local declaration. */
+          if (local_storage_class == (a_storage_class)sc_extern ||
+              local_storage_class == (a_storage_class)sc_static) {
+            if (is_vla_type(local_type_ptr)) {
+              /* An object with static storage duration cannot be a VLA. */
+              pos_error(ec_vla_is_not_auto, &locator.source_position);
+            } else if (local_storage_class == (a_storage_class)sc_extern &&
+                       is_variably_modified_type(local_type_ptr)) {
+              /* An entity with linkage cannot have a variably modified
+                 type. */
+              pos_error(ec_variably_modified_type_not_allowed,
+                        &locator.source_position);
+            }  /* if */
+          }  /* if */
+        }  /* if */
         /* Set a flag marking this as a defining declaration, if that's
            appropriate. */
         if (is_old_style_param_decl) {
