@@ -3648,7 +3648,7 @@ on for use in generating cross-reference output describing this declaration.
                                                       storage_class,
                                                       is_friend_decl);
   if (C_dialect == C_dialect_cplusplus) {
-    if (func_info->is_inline) {
+    if (func_info->is_inline && !extern_inline_allowed) {
       check_assertion_str(storage_class == (a_storage_class)sc_unspecified ||
                           storage_class == (a_storage_class)sc_static,
                           "decl_routine: bad storage class for inline");
@@ -4363,7 +4363,7 @@ is not a template declaration scope.
 #endif /* DECL_MODIFIERS_IN_USE */
 
   db_enter(3, "decl_function_template");
-  if (func_info->is_inline) {
+  if (func_info->is_inline && !extern_inline_allowed) {
     storage_class = (a_storage_class)sc_static;
   } else if (storage_class == (a_storage_class)sc_unspecified) {
     /* Default. */
@@ -7766,8 +7766,8 @@ continue_with_declaration:
           /* This is the definition of a static member function.  No storage
              class specifier (not even "static") is permitted. */
           if (local_storage_class != (a_storage_class)sc_unspecified) {
-            if (local_storage_class == (a_storage_class)sc_static &&
-                inline_specified) {
+            if (any_cfront_mode() && inline_specified &&
+                local_storage_class == (a_storage_class)sc_static) {
               /* Just give a warning on this.  The storage class designation
                  is taken to be redundant, since all "inline" member functions
                  (both static and nonstatic, in the sense applied to member
@@ -7778,8 +7778,9 @@ continue_with_declaration:
               pos_error(ec_storage_class_not_allowed, &decl_start_pos);
             }  /* if */
           }  /* if */
-          /* Set the storage class to sc_static. */
-          local_storage_class = (a_storage_class)sc_static;
+          /* Set the storage class to sc_unspecified for now.  It will be
+             checked and reset if necessary in define_member_function. */
+          local_storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
       }  /* if */
       /* Check for restrictions on use of the "inline" specifier. */
@@ -7788,8 +7789,10 @@ continue_with_declaration:
           /* Not a function declaration. */
           pos_error(ec_inline_and_nonfunction, &decl_start_pos);
         } else {
-          /* Set the storage class to sc_static. */
-          local_storage_class = (a_storage_class)sc_static;
+          if (!extern_inline_allowed) {
+            /* Set the storage class to sc_static. */
+            local_storage_class = (a_storage_class)sc_static;
+          }  /* if */
           func_info.is_inline = TRUE;
         }  /* if */
       }  /* if */

@@ -980,7 +980,8 @@ on a prior declaration.
                              DEPTH_OF_FILE_SCOPE,
                              /*suppress_redecl_error=*/TRUE);
     sym->header = hdr;
-    rp = make_routine(type_ptr, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
+    rp = make_routine(type_ptr, (a_storage_class)sc_unspecified,
+                      NO_SCOPE_DEPTH);
     sym->variant.routine.ptr = rp;
     set_source_corresp(&(rp->source_corresp), sym);
     set_class_membership(sym, &rp->source_corresp, class_type);
@@ -1066,25 +1067,34 @@ on a prior declaration.
     pos_error(ec_no_exception_support, &func_info->throw_position);
   }  /* if */
   if (func_info->is_inline) {
-    if (!sym->variant.routine.ptr->is_inline &&
-        sym->variant.routine.ptr->called) {
-      /* In the ARM, member functions could not be redeclared inline after
-         being called.  This restriction has been eliminated in the
-         working paper. */
-      pos_sy_remark(ec_called_function_redeclared_inline,
-                    &locator->source_position, sym);
+    if (!rp->is_inline) {
+      rp->is_inline = TRUE;
+      if (rp->called) {
+        /* In the ARM, member functions could not be redeclared inline after
+           being called.  This restriction has been eliminated in the
+           working paper. */
+        pos_sy_remark(ec_called_function_redeclared_inline,
+                      &locator->source_position, sym);
+      }  /* if */
     }  /* if */
-    sym->variant.routine.ptr->is_inline = TRUE;
-    /* Reset the storage class and name linkage. */
+  }  /* if */
+  /* Reset the storage class and name linkage. */
+  if (!extern_inline_allowed && rp->is_inline) {
     rp->storage_class = (a_storage_class)sc_static;
     rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
-  } else if (rp->storage_class == (a_storage_class)sc_extern) {
-    /* If the routine was given a storage class of sc_extern when it was
-       originally declared, change it to sc_unspecified now that the
-       definition has been seen.  Also set the referenced flag, assuming
-       a reference from another translation unit. */
+  } else if (rp->source_corresp.name_linkage ==
+                           (a_name_linkage_kind)nlk_cplusplus_external) {
+    /* The routine will have been given a storage class of sc_extern when it
+       was originally declared; change it to sc_unspecified now that the
+       definition has been seen. */
     rp->storage_class = (a_storage_class)sc_unspecified;
-    rp->source_corresp.referenced = TRUE;
+    rp->source_corresp.name_linkage =
+                                 (a_name_linkage_kind)nlk_cplusplus_external;
+    if (!rp->is_inline) {
+      /* Also set the referenced flag, assuming a reference from another
+         translation unit. */
+      rp->source_corresp.referenced = TRUE;
+    }  /* if */
   }  /* if */
   if (any_deferred_access_checks()) {
     /* Now that we know which function has been declared, recheck any

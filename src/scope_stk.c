@@ -2397,9 +2397,12 @@ NULL.
       /* Function. */
       rout_ptr = sym->variant.routine.ptr;
       storage_class = rout_ptr->storage_class;
-      if (storage_class == (a_storage_class)sc_unspecified) {
+      if (storage_class == (a_storage_class)sc_unspecified &&
+          !rout_ptr->is_inline) {
         /* Regard functions with "unspecified" storage class to be referenced
-           somewhere, even if not in the current translation unit. */
+           somewhere, even if not in the current translation unit; extern
+           inline functions are an exception, since there callability is
+           "as if" they had static storage. */
         rout_ptr->source_corresp.referenced = TRUE;
         sym->referenced = TRUE;
       } else if (rout_ptr->source_corresp.referenced) {
@@ -2430,6 +2433,11 @@ NULL.
               pos_sy_error(ec_never_defined, &sym->decl_position, sym);
             }  /* if */
           }  /* if */
+        } else if (rout_ptr->is_inline &&
+                   rout_ptr->storage_class == (a_storage_class)sc_extern) {
+          /* An extern-inline function that was reference but not defined. */
+          pos_sy_error(ec_extern_inline_never_defined, &sym->decl_position,
+                       sym);
         }  /* if */
       } else if (!sym->referenced) {
         /* Unreferenced function. */

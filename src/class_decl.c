@@ -653,6 +653,7 @@ routine recursively for each nested class.
   a_boolean                         any_function_bodies_to_scan = FALSE;
   a_boolean                         any_default_args_to_scan = FALSE;
   a_scope_ptr                       scope;
+  a_routine_ptr                     rp;
 
   db_enter(3, "delayed_scan_fixup_for_class");
   cssp = symbol_supplement_for_class(class_type);
@@ -905,7 +906,11 @@ routine recursively for each nested class.
           /* Let get_token know about the cache. */
           rescan_cached_tokens(&rfp->function_body_token_cache);
           /* Scan the function body. */
-          scan_function_body(rfp->symbol->variant.routine.ptr, &rfp->func_info,
+          rp = rfp->symbol->variant.routine.ptr;
+          if (rp->storage_class == (a_storage_class)sc_extern) {
+            rp->storage_class = (a_storage_class)sc_unspecified;
+          }  /* if */
+          scan_function_body(rp, &rfp->func_info,
                              (SFB_NO_CLASS_REACTIVATION |
                               SFB_NEW_STRUCT_STMT_STACK_REQUIRED));
           /* scan_function_body does not scan past the right brace. */
@@ -4081,7 +4086,7 @@ of the function, and again overloading is a possibility.
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      if (func_info->is_inline) {
+      if (func_info->is_inline && !extern_inline_allowed) {
         /* Treat any inline function as static. */
         storage_class = (a_storage_class)sc_static;
       }  /* if */
@@ -5012,42 +5017,30 @@ declared member functions.
      linkage -- if and when its linkage is promoted to C++, the linkage of
      the member functions will also be changed. */
   def_name_linkage = class_type->source_corresp.name_linkage;
+  if (def_name_linkage == (a_name_linkage_kind)nlk_none ||
+      def_name_linkage == (a_name_linkage_kind)nlk_internal) {
+    /* Either this is a local class (nlk_none) or a cfront-compatible
+       declaration (nlk_internal). */
+    rtn->source_corresp.name_linkage = def_name_linkage;
+    /* storage_class is already set to sc_static. */
+  } else if (func_info->is_inline && !extern_inline_allowed) {
+    rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    /* storage_class is already set to sc_static. */
+  } else {
+    /* Except for special cases, class member functions have C++ linkage
+       whatever the default name linkage may be.  That is, member functions
+       of a class have C++ name linkage even if the class definition is
+       wrapped in (for example) an extern "C" declaration. */
+    rtn->source_corresp.name_linkage =
+                               (a_name_linkage_kind)nlk_cplusplus_external;
+    /* The storage class will be changed to sc_unspecified if a definition is
+       seen. */
+    rtn->storage_class = (a_storage_class)sc_extern;
+  }  /* if */
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
     rtn->is_inline = TRUE;
-#if 0
-    /* Temporary special handling for inline member functions of nonlocal
-       classes -- until we support "extern inline" inline member functions
-       get nlk_internal and sc_static (which is the cfront behavior). */
-#endif /* if 0 */
-    if (def_name_linkage == (a_name_linkage_kind)nlk_none) {
-      /* Must be a local class. */
-      rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
-    } else {
-      rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
-    }  /* if */
-    /* storage_class is already set to sc_static. */
-  } else {
-    /* Noninline member function. */
-    rtn->is_inline = FALSE;
-    if (def_name_linkage == (a_name_linkage_kind)nlk_none ||
-        def_name_linkage == (a_name_linkage_kind)nlk_internal) {
-      /* Either this is a local class (nlk_none) or a cfront-compatible
-         declaration (nlk_internal). */
-      rtn->source_corresp.name_linkage = def_name_linkage;
-      /* storage_class is already set to sc_static. */
-    } else {
-      /* Except for special cases, class member functions have C++ linkage
-         whatever the default name linkage may be.  That is, member functions
-         of a class have C++ name linkage even if the class definition is
-         wrapped in (for example) an extern "C" declaration. */
-      rtn->source_corresp.name_linkage =
-                                 (a_name_linkage_kind)nlk_cplusplus_external;
-      /* The storage class be changed to sc_unspecified if a definition is
-         seen. */
-      rtn->storage_class = (a_storage_class)sc_extern;
-    }  /* if */
   }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
@@ -5373,11 +5366,11 @@ in-class member function declarations.)
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
     rtn->is_inline = TRUE;
+  }  /* if */
+  if (func_info->is_inline && !extern_inline_allowed) {
     rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
     rtn->storage_class = (a_storage_class)sc_static;
   } else {
-    /* Noninline member function. */
-    rtn->is_inline = FALSE;
     /* Member functions should have the same name linkage as the class of
        which they are members. */
     rtn->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
@@ -10165,6 +10158,7 @@ because they were used in declaring an external function or variable.
   a_symbol_ptr    sym;             
 
   db_enter(3, "check_class_linkage");
+  check_assertion(!extern_inline_allowed);
   /* Search for classes by making a pass over all the types associated with
      the file scope. */
   scope = il_header.primary_scope;

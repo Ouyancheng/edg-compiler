@@ -2704,7 +2704,10 @@ Returns TRUE if there is an error in the specifiers.
             error(ec_bad_param_storage_class);
             err = TRUE;
           }  /* if */
-        } else if (is_inline && curr_token != tok_static) {
+        } else if (is_inline && curr_token != tok_static &&
+                   (!extern_inline_allowed || curr_token != tok_extern)) {
+          /* "inline static" is allowed; if extern_inline_allowed is TRUE, so
+             is "inline extern"; otherwise, we issue an error. */
           error(ec_bad_storage_class_with_inline);
           err = TRUE;
         } else if (is_friend_decl
@@ -3125,7 +3128,9 @@ Returns TRUE if there is an error in the specifiers.
 	  err = TRUE;
 	} else if (!(input_flags & DSI_INLINE_ALLOWED) ||
                    (*storage_class != (a_storage_class)sc_unspecified &&
-                    *storage_class != (a_storage_class)sc_static)) {
+                    *storage_class != (a_storage_class)sc_static &&
+                    (!extern_inline_allowed ||
+                     *storage_class != (a_storage_class)sc_extern))) {
           /* "inline" allowed on certain function declarations only. */
           error(ec_inline_not_allowed);
           err = TRUE;
