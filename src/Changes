@@ -24,6 +24,11 @@ that Y is complete when the instantiation is done.
     A<Y> a;
   };
 
+This example also suggested a related fix: the bitwise copy of *p
+to type X (derived --> base) in the return should have caused an error
+when processed too early as it was, because the source type was
+incomplete.  Now it does.
+
 9/19/94  Abort in invalid vacuous destructor call
 
 A bug has been fixed that could cause the compiler to abort during
