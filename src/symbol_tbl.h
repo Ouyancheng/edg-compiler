@@ -838,8 +838,6 @@ extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_symbol_locator *location,
                                             a_symbol_ptr     old_sym_ptr);
 
-extern a_symbol_ptr make_projection_symbol(a_symbol_ptr basis_sym);
-
 extern a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
                                               a_type_ptr         class_type,
                                               a_source_position  *pos);
