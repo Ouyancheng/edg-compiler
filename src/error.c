@@ -801,6 +801,9 @@ error code.
     case ec_array_of_reference:
       m = "array of reference is not allowed";
       break;
+    case ec_missing_initializer:
+      m = "initializer is missing";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
