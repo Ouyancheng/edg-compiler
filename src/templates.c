@@ -562,7 +562,7 @@ as the decl_position of the template declaration as a whole.
      update_source_sequence_list directly. */
   update_source_sequence_list((char *)tp, (an_il_entry_kind)iek_template,
                               (a_source_sequence_entry_ptr)NULL);
-  if (depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
+  if (depth_scope_stack == depth_innermost_namespace_scope) {
     /* Set the source-sequence insert point for instantiations to NULL -- no
        instantiations should be inserted before it. */
     scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point = NULL;
