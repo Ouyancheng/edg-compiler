@@ -8200,6 +8200,7 @@ NULL.
     free_attribute_list(attributes);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if USER_CONTROL_OF_STRUCT_PACKING
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_modifiers != NULL && decl_modifiers->alignment != 0) {
     if (decl_modifiers->alignment < type_ptr->alignment) {
@@ -8217,6 +8218,7 @@ NULL.
                                MSAT_TYPEDEF);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);

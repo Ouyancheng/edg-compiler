@@ -3137,9 +3137,11 @@ These follow the tag kind, e.g., "struct __single_inheritance xxx".
   }  /* if */
   gen_microsoft_deprecated_spec(&type->source_corresp);
   if (is_definition) {
+#if USER_CONTROL_OF_STRUCT_PACKING
     if (type->alignment_set_explicitly) {
       gen_microsoft_align_declspec(type->alignment);
     }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (type->is_microsoft_intrinsic) {
       write_tok_str("__declspec(intrin_type) ");
     }  /* if */
@@ -4639,12 +4641,12 @@ declaration following this one is such a continuation.
   } else {
     a_type_ptr class_type;
     if (!suppress_specifiers) write_tok_str("typedef ");
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target &&
         type->alignment_set_explicitly) {
       gen_microsoft_align_declspec(type->alignment);
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_function_type(under_type) &&
         (class_type = f_skip_typerefs(under_type)->variant.routine.extra_info->
                                                          this_class) != NULL) {

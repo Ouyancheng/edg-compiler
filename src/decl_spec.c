@@ -197,6 +197,7 @@ string that is returned.
   return result;
 }  /* scan_GUID_string */
 
+#if USER_CONTROL_OF_STRUCT_PACKING
 
 static void scan_declspec_align(a_decl_modifiers_block_ptr  decl_modifiers)
 /*
@@ -234,6 +235,7 @@ alignment specification to *decl_modifiers.
   }  /* if */
 }  /* scan_declspec_align */
 
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 static void scan_declspec_property(a_decl_modifiers_block_ptr  decl_modifiers)
 /*
@@ -493,8 +495,10 @@ declaration of a class member.
         } else {
           decl_modifiers->flags |= DM_NOINLINE;
         }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
       } else if (strcmp(modifier, "align") == 0) {
         scan_declspec_align(decl_modifiers);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
         if (!is_class_decl) {
           /* "uuid" is allowed only on a C++ class declaration. */
@@ -857,11 +861,13 @@ used for diagnostics.
     if (extended_decl_info->decl_modifiers.is_microsoft_intrinsic) {
       class_type->is_microsoft_intrinsic = TRUE;
     }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
     if (extended_decl_info->decl_modifiers.alignment != 0) {
       set_declspec_align(class_type,
                          extended_decl_info->decl_modifiers.alignment,
                          err_pos);
     }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* update_extended_decl_info_for_class */
@@ -2949,6 +2955,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
        declaration. */
     process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
   }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_class_definition && prefix_decl_modifiers != NULL &&
       prefix_decl_modifiers->alignment != 0) {
@@ -2959,6 +2966,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
                        &locator.source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   if ((microsoft_mode or_near_and_far_enabled()) &&
       tag_sym->kind != (a_symbol_kind)sk_type) {

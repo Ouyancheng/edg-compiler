@@ -1394,11 +1394,13 @@ Dump the contents of the indicated type entry, for debug purposes.
             fputs("__typeof__ ", f_debug);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
           if (tp->alignment_set_explicitly) {
             fprintf(f_debug, "aligned(%d) ", tp->alignment);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
         }  /* if */
         db_abbreviated_type(tp->variant.typeref.type);
         break;

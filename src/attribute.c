@@ -1773,9 +1773,11 @@ a typedef, is_typedef is TRUE.
           tp->variant.float_kind = mode_type->variant.float_kind;
         }  /* if */
         tp->size = mode_type->size;
+#if USER_CONTROL_OF_STRUCT_PACKING
         if (!tp->alignment_set_explicitly) {
           tp->alignment = mode_type->alignment;
         }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       }  /* if */
       break;
     case ak_unused:

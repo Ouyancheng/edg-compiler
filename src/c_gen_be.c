@@ -2222,12 +2222,12 @@ Print a typedef declaration.
       dump_decl_associated_pragmas(&type->source_corresp);
       set_output_position(&type->source_corresp.decl_position);
       write_tok_str("typedef ");
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_dialect_is_generated_code_target &&
           type->alignment_set_explicitly) {
         dump_microsoft_align_declspec(type->alignment);
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED */
       dump_declaration_using_type(type->variant.typeref.type,
                                   &type->source_corresp);
 #if GNU_EXTENSIONS_ALLOWED
@@ -2614,9 +2614,11 @@ final semicolon if output_final_semi is TRUE.
     write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target) {
+#if USER_CONTROL_OF_STRUCT_PACKING
       if (type->alignment_set_explicitly) {
         dump_microsoft_align_declspec(type->alignment);
       }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       if (type->is_microsoft_intrinsic) {
         write_tok_str("__declspec(intrin_type) ");
       }  /* if */

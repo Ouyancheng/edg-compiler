@@ -1,5 +1,11 @@
 Version 3.6
 
+11/15/04 Build errors when USER_CONTROL_OF_STRUCT_PACKING is FALSE
+
+Configurations with MICROSOFT_EXTENSIONS_ALLOWED or GNU_EXTENSIONS_ALLOWED set
+to TRUE while USER_CONTROL_OF_STRUCT_PACKING was set to FALSE did not build
+correctly due to compiler and/or linker errors.  This is now fixed.
+
 11/14/04  Result of class rvalue "?" is a temporary
 
 The processing for the "?" operator when the result is a class

@@ -1565,9 +1565,11 @@ variant fields to default values.
   pte->emit_microsoft_class_decl_modifiers = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   pte->alignment_set_explicitly = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_EXTENSIONS_ALLOWED
   pte->variables_are_implicitly_referenced = FALSE;
   pte->copy_with_additional_attributes = FALSE;

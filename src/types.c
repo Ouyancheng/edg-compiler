@@ -975,7 +975,8 @@ found_specifier_type:
 
 #endif /* BACK_END_IS_CP_GEN_BE */
 
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if USER_CONTROL_OF_STRUCT_PACKING && \
+    (GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED)
 
 a_targ_alignment f_alignment_of_type(a_type_ptr  tp)
 /*
@@ -991,7 +992,7 @@ be called by using the macro alignment_of_type.
   return tp->alignment;
 }  /* f_alignment_of_type */
 
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING && ... */
 
 a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
                                            a_boolean   top_level)
@@ -8567,6 +8568,7 @@ not a class or enum type, return NULL.
   return result;
 }  /* uuid_string_of_type */
 
+#if USER_CONTROL_OF_STRUCT_PACKING
 
 void set_declspec_align(a_type_ptr         type,
                         a_targ_alignment   alignment,
@@ -8584,6 +8586,7 @@ set explicitly, issue a warning for the given position.
   type->alignment = alignment;
 }  /* set_declspec_align */
 
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */

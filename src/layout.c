@@ -226,11 +226,13 @@ Return the field alignment for the given type.
       result = float_field_alignments[type->variant.float_kind];
       break;
     case tk_typeref:
+#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       if (type->alignment_set_explicitly) {
         result = type->alignment;
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       /* Do not insert code here. */
       {
         result = field_alignment_for(skip_typerefs(type));
@@ -4662,6 +4664,7 @@ for handling virtual bases and functions.
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (class_type->alignment_set_explicitly) {
     /* Save the desired alignment and compute the alignment normally.
@@ -4670,6 +4673,7 @@ for handling virtual bases and functions.
     class_type->alignment = 1;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   clear_layout_block(&lob, class_type);
   if (C_dialect == C_dialect_cplusplus || gcc_mode) {
     compute_empty_class_bit(class_type);
@@ -4737,6 +4741,7 @@ for handling virtual bases and functions.
     }  /* if */
 #endif /* !IA64_ABI */
   }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (class_type->alignment_set_explicitly) {
     /* GNU allows the alignment to be increased.  If the class has the
@@ -4757,6 +4762,7 @@ for handling virtual bases and functions.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IA64_ABI
   if (C_dialect == C_dialect_cplusplus) {
     /* If there are empty bases "off the end" of the class, update the class
