@@ -1667,7 +1667,7 @@ initialized.  These are addressed in the course of the processing.
           /* It is a base class of the current class for which initialization
              is to be done. */
           a_boolean  indirect_nonvirtual_base_class_found = FALSE;
-          if (locator_for_curr_id.is_semivisible_nested_class) {
+          if (locator_for_curr_id.is_semivisible_nested_type) {
             /* The symbol in the locator is a nested class that is not
                visible according to the ARM lookup rules but is returned
                in support of the nested class anachronism (ARM 18.3.5).

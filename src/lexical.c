@@ -4545,7 +4545,7 @@ tokens should be rescanned.
     } else {
       /* Usual case (no leading "::"). */
       class_symbol = normal_id_lookup(&locator_for_curr_id, IDL_MUST_BE_CLASS);
-      if (locator_for_curr_id.is_semivisible_nested_class) {
+      if (locator_for_curr_id.is_semivisible_nested_type) {
         /* The symbol in the locator is a nested class that is not visible
            according to the ARM lookup rules but is returned in support of
            the nested class anachronism (ARM 18.3.5). Issue an anachronism

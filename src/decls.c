@@ -219,7 +219,7 @@ symbol.  Otherwise, return NULL.
          required). */
       assoc_symbol = NULL;
     } else {
-      if (locator_for_curr_id.is_semivisible_nested_class) {
+      if (locator_for_curr_id.is_semivisible_nested_type) {
         /* The symbol in the locator is a nested class that is not visible
            according to the ARM lookup rules but is returned in support of the
            nested class anachronism (ARM 18.3.5).  Issue an anachronism
@@ -295,7 +295,7 @@ specifier if the name has been declared.  Called only in C++.
       if (normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS) == NULL) {
         /* The name is not in the symbol table.  Treat is as a keyword. */
         is_overload = TRUE;
-      } else if (locator_for_curr_id.is_semivisible_nested_class) {
+      } else if (locator_for_curr_id.is_semivisible_nested_type) {
         /* There is a nested class named "overload" that is visible by
            the nested class anachronism (ARM 18.3.5).  Ignore it. */
         is_overload = TRUE;
@@ -5810,7 +5810,7 @@ process_class_specifier:
           }  /* if */
           /* The identifier is a type name and should be treated as a
              type specifier. */
-          if (locator_for_curr_id.is_semivisible_nested_class) {
+          if (locator_for_curr_id.is_semivisible_nested_type) {
             /* The symbol in the locator is a nested class that is not
                visible according to the ARM lookup rules but is returned
                in support of the nested class anachronism (ARM 18.3.5).

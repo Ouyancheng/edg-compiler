@@ -2384,14 +2384,14 @@ or struct definition.  The syntax is
       if (sym == NULL || !is_class_symbol(sym)) {
         error(ec_not_a_class_or_struct_name);
         goto skip_base_class;
-      } else if (locator_for_curr_id.is_semivisible_nested_class) {
+      } else if (locator_for_curr_id.is_semivisible_nested_type) {
         /* The symbol in the locator is a nested class that is not visible
            according to the ARM lookup rules but is returned in support of
            the nested class anachronism (ARM 18.3.5). Issue an anachronism
            diagnostic. */
         sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
                        locator_for_curr_id.specific_symbol);
-        }  /* if */
+      }  /* if */
       if (type_ptr->kind == (a_type_kind)tk_union) {
         /* We just ignore the base classes declared for a union.  The error
            has already been issued. */
