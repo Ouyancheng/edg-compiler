@@ -2199,8 +2199,9 @@ to the base class become inaccessible to the derived class in every case.
 an_access_specifier access_to_end_of_path(an_access_specifier    sym_access,
                                           a_derivation_step_ptr  path)
 /*
-Compute the accessibility (public, protected, private, inaccessible) to the
-base class represented by the end of the derivation path pointed to by "path".
+Compute the accessibility (public, protected, private, inaccessible) to an
+entity with access sym_access from the end of the derivation path pointed
+to by "path".
 */
 {
   if (path != NULL) {
@@ -2335,35 +2336,20 @@ is used is determining access to protected members and in the presence
 of protected derivations.
 */
 {
-  a_boolean             accessible = FALSE;
-  a_base_class_ptr      bcp;
-  a_derivation_step_ptr dsp;
+  a_boolean        accessible = FALSE;
+  a_base_class_ptr bcp;
 
   /* See if class_type is a base class of derived_class. */
   bcp = find_base_class_of(derived_class, class_type);
   if (bcp != NULL) {
-    /* Yes.  See if there are any private derivation steps on the
-       derivation. */
-    /* The requirement that there be no private derivation steps in the
-       derivation from derived_class to class_type guarantees that,
-       since we have member access to the derived class, we have access to
-       protected members of class_type.  Note that since we have member
-       access to the derived class and all the steps are public or protected,
-       friendship on any of the steps between the derived class and class_type
-       cannot affect the outcome.  Note that this aspect of the C++ language
-       is particularly poorly specified, so it wouldn't be surprising if this
-       has to be changed. */
-    for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
-      if (dsp->base_class->access == (an_access_specifier)as_private) {
-        /* Private step: no access. */
-        goto end_of_routine;
-      }  /* if */
-    }  /* for */
-    /* There are no private steps in the derivation, so there is access
-       via this derived class. */
-    accessible = TRUE;
+    /* Yes.  See if the derivation steps are such that a protected member
+       of the base class can be accessed in the derived class. */
+    if (access_to_end_of_path((an_access_specifier)as_protected,
+                              bcp->derivation) !=
+                                        (an_access_specifier)as_inaccessible) {
+      accessible = TRUE;
+    }  /* if */
   }  /* if */
-end_of_routine:;
   return accessible;
 }  /* have_protected_access_from_derived_class */
   
