@@ -2306,7 +2306,10 @@ value is used).
                   /* Negative subscript. */
                   valid = FALSE;
                 } else {
-                  num_elements = array_type->variant.array.number_of_elements;
+                  check_assertion(!array_type->
+                                       variant.array.is_variable_size_array);
+                  num_elements = array_type->
+                                     variant.array.variant.number_of_elements;
                   /* Do not check subscripts on arrays dimensioned as having
                      size 1, since that's probably a clue that the programmer
                      is cheating. */
