@@ -99,14 +99,6 @@ static a_constant_ptr
 			   linked list of constant entries.  The function
 			   hash_constant is used to determine the table
 			   entry/list that corresponds to a given constant. */
-static a_constant_ptr
-		func_shareable_constants_list;
-			/* List of shared constants for the current function.
-			   These are constants that refer to something local
-			   to the function, and therefore cannot be shared at 
-			   the file scope.  The only meaningful case is
-			   a constant indicating the address of a local
-			   variable. */
 
 #if DEBUG
 static unsigned long
@@ -981,7 +973,7 @@ Allocate and return "size" bytes of storage in the file scope memory region.
 
 char *alloc_cil(sizeof_t size)
 /*
-Allocate and return "size" bytes of storage in the current il memory region.
+Allocate and return "size" bytes of storage in the current IL memory region.
 */
 {
   char *ptr;
@@ -992,28 +984,48 @@ Allocate and return "size" bytes of storage in the current il memory region.
 
 void switch_il_region(a_memory_region_number region_number)
 /*
-Change the current il memory region to "region_number".
+Change the current IL memory region to "region_number".
 */
 {
   curr_il_region_number = region_number;
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf(f_debug, "Switching to il region %d.\n", curr_il_region_number);
+    fprintf(f_debug, "Switching to IL region %d.\n", curr_il_region_number);
   }  /* if */
 #endif /* DEBUG */
 }  /* switch_il_region */
 
 
-void new_il_region(void)
+a_scope_ptr new_il_region(a_scope_kind   kind,
+                          a_scope_number scope_number,
+                          a_routine_ptr  assoc_routine)
 /*
-Start a new memory region for the il because of a new function.
-Establish this new region as the current il region.
+Start a new IL memory region for the IL for the file scope or a function.
+kind indicates the kind of scope (file or function); scope_number gives
+the scope number; and if the scope is for a function, assoc_routine points to
+its routine entry.  Establish this new region as the current IL region.
+Allocate a scope entry in the new region and return a pointer to it.
 */
 {
-  switch_il_region(new_memory_region());
-  /* Clear the list of function-local shared constants, since anything on
-     the list at this point is from a previous function. */
-  func_shareable_constants_list = NULL;
+  a_scope_ptr sp;
+
+  if (kind == (a_scope_kind)sck_file) {
+    /* The file scope memory region is created in initialization. */
+    switch_il_region(FILE_SCOPE_REGION_NUMBER);
+  } else {
+#if CHECKING
+    if (kind != (a_scope_kind)sck_function) {
+      internal_error("new_il_region: bad scope kind");
+    }  /* if */
+#endif /* CHECKING */
+    /* Create a new region for a function scope. */
+    switch_il_region(new_memory_region());
+  }  /* if */
+  /* Allocate the IL scope entry. */
+  sp = alloc_scope(kind, scope_number, assoc_routine);
+  /* Remember the location of the primary scope entry. */
+  il_header.region_scope_entry[curr_il_region_number] = sp;
+  return sp;
 }  /* new_il_region */
   
 
@@ -1681,7 +1693,8 @@ put it on a list of constants).
          in mind that the only constants likely to be on this list
          are those that represent the address of a local variable, so the
          list is going to be fairly short. */
-      list_ptr = &func_shareable_constants_list;
+      list_ptr = &scope_stack[depth_innermost_function_scope].
+                                                      shareable_constants_list;
     } else {
       /* The constant can be shared at the file scope. */
       /* Look for a copy of the constant value in the
@@ -2095,7 +2108,8 @@ scope.  For block scopes, create the scope now if necessary.
     /* There is no IL scope. */
     if (ssep->kind == (a_scope_kind)sck_block) {
       /* Create the IL scope in a block scope. */
-      ssep->il_scope = sp = alloc_scope(ssep->number, (a_scope_kind)sck_block);
+      ssep->il_scope = sp = alloc_scope((a_scope_kind)sck_block, ssep->number,
+                                        (a_routine_ptr)NULL);
       /* Add it to the scopes list for the scope enclosing the scope indicated
          by ssep. */
       add_to_scopes_list(sp, ssep-1);
@@ -2194,7 +2208,8 @@ in_old_style_param_decl_list is TRUE.
   if (sp == NULL) {
     /* A prototype scope must be allocated.  add_to_scopes_list is not
        called because this is not a scope for a statement block. */
-    sp = alloc_scope(ssep->number, (a_scope_kind)sck_func_prototype);
+    sp = alloc_scope((a_scope_kind)sck_func_prototype, ssep->number,
+                     (a_routine_ptr)NULL);
     if (!in_old_style_param_decl_list) {
       /* Function prototype scope. */
       ssep->il_scope = sp;
@@ -3212,12 +3227,14 @@ pointer to it.
 }  /* alloc_ctor_init */
 
 
-a_scope_ptr alloc_scope(a_scope_number number,
-                        a_scope_kind   kind)
+a_scope_ptr alloc_scope(a_scope_kind   kind,
+                        a_scope_number number,
+                        a_routine_ptr  assoc_routine)
 /*
 Allocate a scope entry, and return a pointer to it.  Set fixed fields to
-default values.  number indicates the unique number for the scope, and
-kind indicates the scope kind (e.g., function, block).
+default values.  kind indicates the scope kind (e.g., function, block),
+number indicates the unique number for the scope, and assoc_routine
+points to the associated routine if the kind is sck_function.
 */
 {
   a_scope_ptr sp;
@@ -3241,7 +3258,7 @@ kind indicates the scope kind (e.g., function, block).
       sp->variant.assoc_type = NULL;
       break;
     case sck_function:
-      sp->variant.routine.ptr                 = NULL;
+      sp->variant.routine.ptr                 = assoc_routine;
       sp->variant.routine.parameters          = NULL;
       sp->variant.routine.constructor_inits   = NULL;
       sp->variant.routine.this_param_variable = NULL;
