@@ -1137,7 +1137,7 @@ is at least size_needed.
 }  /* expand_access_string_buffer */
 
 
-static add_char_to_access_string_buffer(char ch)
+static void add_char_to_access_string_buffer(char ch)
 /*
 Add the indicated character to the access_string_buffer.
 */
