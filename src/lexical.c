@@ -290,46 +290,49 @@ Clear the lint and pragma state in a token cache.
 
 #if 0
 #else /* 0 */
-static void unimplemented_keyword_warning(a_symbol_ptr  sym)
+static void unimplemented_keyword_diagnostic(a_symbol_ptr  sym)
 /*
 Issue a warning on unimplemented keywords.  These warnings appear once per
 compilation, not once per translation unit.
 */
 {
-  static a_boolean catch_warning_issued    = FALSE;
-  static a_boolean throw_warning_issued    = FALSE;
-  static a_boolean try_warning_issued      = FALSE;
+  static a_boolean catch_diagnostic_issued    = FALSE;
+  static a_boolean throw_diagnostic_issued    = FALSE;
+  static a_boolean try_diagnostic_issued      = FALSE;
 
   a_boolean        err = FALSE;
 
   switch (sym->variant.keyword_token) {
     case tok_catch:
-      if (!catch_warning_issued) {
+      if (!catch_diagnostic_issued) {
         err = TRUE;
-        catch_warning_issued = TRUE;
+        catch_diagnostic_issued = TRUE;
       }  /* if */
       break;
     case tok_throw:
-      if (!throw_warning_issued) {
+      if (!throw_diagnostic_issued) {
         err = TRUE;
-        throw_warning_issued = TRUE;
+        throw_diagnostic_issued = TRUE;
       }  /* if */
       break;
     case tok_try:
-      if (!try_warning_issued) {
+      if (!try_diagnostic_issued) {
         err = TRUE;
-        try_warning_issued = TRUE;
+        try_diagnostic_issued = TRUE;
       }  /* if */
       break;
 #if CHECKING
     default:
-      internal_error("unimplemented_keyword_warning: unexpected token kind");
+      internal_error
+                ("unimplemented_keyword_diagnostic: unexpected token kind");
 #endif /* if CHECKING */
   }  /* switch */
   if (err) {
-    sym_warning(ec_unimplemented_keyword, sym);
+    an_error_severity severity;
+    severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
+    sym_diagnostic(severity, ec_unimplemented_keyword, sym);
   }  /* if */
-}  /* unimplemented_keyword_warning */
+}  /* unimplemented_keyword_diagnostic */
 #endif /* if 0 */
 
 
@@ -4218,7 +4221,7 @@ id_scan:
                  when support is added. */
               if (ctoken == tok_catch ||
                   ctoken == tok_throw || ctoken == tok_try) {
-                unimplemented_keyword_warning(assoc_symbol);
+                unimplemented_keyword_diagnostic(assoc_symbol);
                 ctoken = tok_identifier;
               } else {
                 goto end_id_scan;

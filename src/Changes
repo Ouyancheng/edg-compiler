@@ -1,5 +1,10 @@
 Version 2.17
 
+4/28/93  Use of unimplemented reserved words
+
+Use of try, catch, and throw now cause a strict ANSI diagnostic
+to be issued in strict ANSI mode.
+
 4/28/93  Minimum alignment requirements for class/struct/union objects
 
 A new configuration constant, TARG_MINIMUM_STRUCT_ALIGNMENT, has been
