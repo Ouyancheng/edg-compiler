@@ -4714,6 +4714,13 @@ Set the operator, type, and operand list in an operator expression node.
     /* The value of the first operand of a comma operator is not used. */
     set_expr_result_not_used(operands);
   }  /* if */
+  /* The result_is_not_used flag of the node is preserved (it depends on
+     what's pointing to this node rather than the node itself).  However,
+     the subnodes (newly attached) may need to be flagged.  This comes up
+     when existing expression trees are being changed, as in IL lowering. */
+  if (node->result_is_not_used) {
+    set_expr_result_not_used(node);
+  }  /* if */
 }  /* set_node_operator */
 
 
