@@ -47,7 +47,7 @@ in the C-generating back end when LOWER_EXTERN_INLINE is TRUE and
 IA64_ABI is FALSE: each instantiation object file contained a
 definition of the external function, instead of an external
 reference to the function, which could cause link-time "duplicate
-definition" error.  Now fixed.
+definition" errors.  Now fixed.
 
 This directly affects only those using the C-generating back end,
 but anyone who copied the logic in the C-generating back end
