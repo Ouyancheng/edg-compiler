@@ -1,5 +1,21 @@
 Version 2.42
 
+7/2/99  Abstract class status of template classes
+
+The front end used to erroneously consider abstract certain classes generated
+from class templates with dependent base classes.  For example:
+
+  struct A {
+    virtual void f() = 0;
+  };
+  template<class T> struct B: virtual A {
+    void f() {}
+  };
+  template<class T> struct C: B<T>, virtual A {};
+  C<void> x; // Used to claim C<void> is abstract.
+
+This is now fixed.
+
 7/2/99  Microsoft compatibility: constructor chosen over conversion function
         to do conversion
 

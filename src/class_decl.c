@@ -1729,6 +1729,11 @@ current class -- see ARM 10.3).  If it is, mark the class accordingly.
   if (class_type->variant.class_struct_union.abstract) {
     /* The class is already marked "abstract", presumably as a result of
        having one or more pure virtual member functions. */
+  } else if (symbol_supplement_for_class(class_type)->is_nonreal_class) {
+    /* If the class is nonreal and not marked abstract, it could only be
+       abstract because it doesn't override an inherited pure virtual.
+       However, if that pure virtual member function comes from a dependent
+       base we cannot make a good decision yet. */
   } else {
     /* The class was not already marked "abstract".  Go through its base
        classes to look for a pure virtual function that is inherited without
