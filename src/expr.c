@@ -13288,6 +13288,58 @@ lowering or a back end to do the rewriting.
 }  /* check_return_value_optimization */
 
 
+static void check_for_return_of_address_of_local_variable(
+                                                    an_expr_node_ptr  expr,
+                                                    a_source_position *err_pos)
+/*
+The given expression is the expression on a return statement.  Issue
+a warning if the value returned is the address of a local variable.
+*err_pos gives the source position for the warning.
+*/
+{
+  an_error_code err_code = ec_no_error;
+
+  /* Remove casts and lvalue field selections. */
+  while (is_operation_node(expr) &&
+         (expr->variant.operation.kind ==
+                                  (an_expr_operator_kind)eok_cast ||
+          expr->variant.operation.kind ==
+                                  (an_expr_operator_kind)eok_base_class_cast ||
+          expr->variant.operation.kind ==
+                                  (an_expr_operator_kind)eok_field)) {
+    expr = expr->variant.operation.operands;
+  }  /* while */
+  if (is_variable_address_node(expr)) {
+    /* Check for the address of a variable that is non-static. */
+    a_variable_ptr var = expr->variant.variable;
+    if (!has_static_storage_duration(var->storage_class)) {
+      err_code = ec_returning_ptr_to_local_variable;
+    }  /* if */
+  } else if (is_constant_node(expr)) {
+    /* Check for a constant that is the address of a non-static variable. */
+    a_constant_ptr con = expr->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_address &&
+        con->variant.address.kind == (an_address_base_kind)abk_variable) {
+      a_variable_ptr var = con->variant.address.variant.variable;
+      if (!has_static_storage_duration(var->storage_class)) {
+        err_code = ec_returning_ptr_to_local_variable;
+      }  /* if */
+    }  /* if */
+  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    /* Check for the address of a temporary (e.g., the address of a compound
+       literal in C99 mode). */
+    if (expr->variant.init.result_is_addr &&
+        !expr->variant.init.static_temp) {
+      err_code = ec_returning_ptr_to_local_temp;
+    }  /* if */
+  }  /* if */
+  if (err_code != ec_no_error) { 
+    /* Issue the warning. */
+    pos_warning(err_code, err_pos);
+  }  /* if */
+}  /* check_for_return_of_address_of_local_variable */
+
+
 an_expr_node_ptr scan_return_expression(a_type_ptr         required_type,
                                         an_error_code      err_code,
                                         a_dynamic_init_ptr *dip)
@@ -13367,6 +13419,10 @@ required_type will be void if the expression should have void type
                                /*nontype_template_arg=*/FALSE,
                                err_code);
       expression = make_node_from_operand(&result);
+      if (!is_reference_type(required_type)) {
+        check_for_return_of_address_of_local_variable(expression,
+                                                      &result.position);
+      }  /* if */
     }  /* if */
     expression = wrap_up_full_expression(expression);
     if (void_return_case) set_expr_result_not_used(expression);

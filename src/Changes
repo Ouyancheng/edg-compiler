@@ -1,5 +1,15 @@
 Version 2.46
 
+1/23/01  Warning on returning address of local variable
+
+The front end now issues a warning on a return statement that returns
+the address of a local variable.
+
+  int *f() {
+    int i = 1;
+    return &i;
+  }
+
 1/22/01  Incorrect lookup in "p.template f<>()" during prototype instantiation
 
 When doing nonclass prototype instantiations, in examples such as the

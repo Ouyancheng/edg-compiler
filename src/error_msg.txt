@@ -1098,17 +1098,34 @@ ec_bad_complex_operation_result;;"complex floating-point operation result is out
 ec_real_imaginary_conversion;;"conversion between real and imaginary yields zero"
 ec_cannot_initialize_flexible_array_member;;"an initializer cannot be specified for a flexible array member"
 ec_imaginary_times_assign;;"imaginary *= imaginary sets the left-hand operand to zero"
-ec_undeclared_parameter;;"standard requires that %n be given a type by a subsequent declaration (\"int\" assumed)"
-ec_inline_never_defined;;"a definition is required for inline %n"
-ec_conversion_to_pointer_loses_bits;;"conversion from integer to smaller pointer"
-ec_missing_floating_point_type;;"a floating-point type must be included in the type specifier for a _Complex or _Imaginary type"
-ec_type_decl_in_anon_union;;"types cannot be declared in anonymous unions"
-###############################################################################
-#                                                             \  ___  /       #
-#                                                               /   \         #
-# Edison Design Group C++/C Front End                        - | \^/ | -      #
-#                                                               \   /         #
-# Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2000 Edison Design Group Inc.                   [_]          #
-#                                                                             #
-###############################################################################
+ec_undeclared_param
+{
+  a_symbol_ptr          member_sym, projection_member_sym;
+  a_boolean             is_arrow_operator, rvalue_result;
+  a_type_ptr            class_struct_union_type = NULL;
+  a_type_ptr            orig_class_struct_union_type;
+  a_boolean             err = FALSE, found_id = FALSE;
+  a_boolean             operand_1_is_complete_class = FALSE, local_err;
+  a_boolean             need_operand_1_type_check = FALSE;
+  a_boolean             allow_integral_constant_selection = FALSE;
+  a_boolean             need_member_sym_check;
+  a_ref_entry_ptr       rep;
+  a_type_ptr            routine_type;
+  a_boolean             is_qualified_name;
+  a_boolean             is_vacuous_destructor_reference = FALSE;
+  a_source_position     member_position, qualified_member_position;
+  an_identifier_options_set
+                        gid_flags;
+  a_type_ptr            dtor_type;
+  a_boolean             pcc_mode_integral_pointer_case = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position     operator_position;
+  a_source_position     end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_token_sequence_number
+                        operator_tok_seq_number;
+
+  db_enter(4, "scan_field_selection_operator");
+
+  /* Remember if this was an arrow or a dot selector. */
+  is_arrow_operator = (curr_token == tok
