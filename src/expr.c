@@ -10120,10 +10120,10 @@ this routien is called only when microsoft_mode is TRUE.
   /* Scan the identifier. */
   scan_identifier(&operand, (a_local_expr_options_set)EOPT_NO_OPTIONS,
                   &projection_sym_ptr);
-  sym_ptr = fundamental_symbol_of(projection_sym_ptr);
-  if (is_error_operand(&operand) || sym_ptr == NULL) {
+  if (is_error_operand(&operand) || projection_sym_ptr == NULL) {
     /* Some previous error. */
   } else {
+    sym_ptr = fundamental_symbol_of(projection_sym_ptr);
     /* Make sure the name referenced is a variable. */
     switch (sym_ptr->kind) {
       case sk_variable:
