@@ -542,6 +542,7 @@ used to represent stdin; it must return  NULL.
 }  /* end_of_directory_name */
 
 
+#if !STANDALONE_UTILITY_PROGRAM
 char *directory_of(char *file_name)
 /*
 Return a string that is the directory name for the given file.  If the
@@ -596,6 +597,7 @@ found_dir_name:;
   return(dir_name);
 }  /* directory_of */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 char *gs_directory_of(char *file_name)
 /*
@@ -729,6 +731,7 @@ be passed to the back end.
 }  /* derived_name */
 
 #endif /* NEED_DERIVED_NAME */
+#if !STANDALONE_UTILITY_PROGRAM
 
 char *combine_dir_and_file_name (char *dir_name,
                                  char *file_name,
@@ -914,6 +917,7 @@ place in file_name where the suffix begins.
 #undef SUFFIX_DELIMITER
 }  /* replace_file_name_suffix */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
 a_boolean get_file_modification_time(char   *file_name,
