@@ -1751,29 +1751,36 @@ indicates the kind of the current expression.
 
 
 static a_boolean overloaded_function_needs_selector(
-                                       a_symbol_ptr overloaded_function_symbol,
-                                       a_boolean    *maybe)
+                                       a_symbol_ptr overloaded_function_symbol)
 /*
 overloaded_function_symbol points to an sk_overloaded_function symbol.  Return
 TRUE if any specific function under that symbol requires a selector expression,
-i.e, is a nonstatic member function.  Return *maybe == TRUE if only some of the
-functions require a selector.  This routine is used only in C++ mode.
+i.e, is a nonstatic member function.  This routine is used only in C++ mode.
 */
 {
-  a_boolean     needs_selector;
-  a_routine_ptr routine_ptr;
+  a_boolean      needs_selector = FALSE;
+  a_routine_ptr  routine_ptr;
+  a_variable_ptr this_var;
+  a_type_ptr     this_class, function_class;
 
-  *maybe = FALSE;
   if (overloaded_function_symbol->class_of_which_a_member == NULL) {
     /* Not a member function, so a selector expression is never needed. */
-    needs_selector = FALSE;
   } else if (overloaded_function_symbol->variant.overloaded_function.
                                                       mixed_static_nonstatic) {
     /* The functions are member functions, and some of the functions are
        static and some nonstatic, so we don't know whether or not we need
-       the selector expression.  Therefore we have to keep it. */
-    needs_selector = TRUE;
-    *maybe = TRUE;
+       the selector expression.  See if there is a current "this"
+       variable that could apply. */
+    if (variable_this_exists(&this_var)) {
+      /* There is a "this" variable.  See if it is for a class that is
+         applicable to these functions. */
+      this_class = f_skip_typerefs(type_pointed_to(this_var->type));
+      function_class = overloaded_function_symbol->class_of_which_a_member;
+      if (is_same_class_or_base_class_thereof(this_class, function_class)) {
+        /* The "this" variable could apply to some function in the set. */
+        needs_selector = TRUE;
+      }  /* if */
+    }  /* if */
   } else {
     /* All of the member functions are static or all are nonstatic.  Look at
        the first function to see which. */
@@ -1782,9 +1789,6 @@ functions require a selector.  This routine is used only in C++ mode.
     if (routine_type_is_nonstatic_member_function(routine_ptr->type)) {
       /* Nonstatic member function. */
       needs_selector = TRUE;
-    } else {
-      /* Static member function. */
-      needs_selector = FALSE;
     }  /* if */
   }  /* if */
   return needs_selector;
@@ -6037,9 +6041,7 @@ bound_function_selector to the associated "this" pointer.
   a_routine_ptr     routine_ptr;
   a_source_position start_position;
   an_xref_entry_ptr xep;
-  a_variable_ptr    this_var;
   an_operand        this_pointer_operand;
-  a_boolean         maybe;
   a_boolean         address_of_qualified_member_name = FALSE;
   a_type_ptr        qual_class_type;
 
@@ -6314,26 +6316,9 @@ nonstatic_member_function:
           } else {
             /* We don't know the specific routine, but we may be able to tell
                whether or not the function will need a selector expression. */
-            if (overloaded_function_needs_selector(sym_ptr, &maybe)) {
+            if (overloaded_function_needs_selector(sym_ptr)) {
               /* The function needs or may need a selector expression. */
-              if (!maybe) {
-                /* The function definitely needs a selector expression.
-                   Process it like a normal nonstatic member function. */
-                goto nonstatic_member_function;
-              } else if (variable_this_exists(&this_var)) {
-                /* The function may need a selector expression, and there is
-                   a "this" variable in the current context, so process the
-                   function like a normal nonstatic member function.  The
-                   "this" operand will be discarded in
-                   select_overloaded_function it it turns out not to be
-                   needed. */
-                goto nonstatic_member_function;
-              }  /* if */
-              /* The function may need a selector expression, but there is
-                 no "this" variable in the current context, so assume we do
-                 not need one (an error will be generated in
-                 select_overloaded_function -- because there will be no
-                 match -- if it turns out we do). */
+              goto nonstatic_member_function;
             }  /* if */
             /* A "this" pointer is definitely not needed or not available. */
             make_indefinite_function_operand(projection_sym_ptr,
