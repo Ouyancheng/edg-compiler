@@ -53,7 +53,7 @@ problem.  Now fixed.
 
 10/10/02  Typedef using operator name undiagnosed
 
-The front end now diagnoses attempts to diagnose a typedef name in
+The front end now diagnoses attempts to typedef an operator name in
 namespace scope (it already issued an error when such typedefs appeared
 in class scope).  For example:
 

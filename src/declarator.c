@@ -3537,7 +3537,7 @@ to FALSE if the entity being declared is not initializable.
        operator functions. */
     *parenthesized_initializer_allowed = FALSE;
     if (input_flags & DI_IS_TYPEDEF_DECLARATION) {
-      /* "typedef int operator+" is now allowed. */
+      /* "typedef int operator+" is not allowed. */
       pos_error(ec_operator_name_not_allowed,
                 &locator->source_position);
       set_to_error_locator(*locator);
