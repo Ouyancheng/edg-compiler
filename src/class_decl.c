@@ -5123,6 +5123,7 @@ instantiations are recorded in the IL.
   /* Treat this as a prototype instantiation so that it doesn't end up in
      the IL if prototype_instantiations_in_il is FALSE. */
   rp->is_prototype_instantiation = TRUE;
+  rp->is_template_function = TRUE;
   sym->variant.routine.ptr = rp;
   set_source_corresp(&rp->source_corresp, sym);
   if (locator->is_class_member) {
@@ -5404,15 +5405,18 @@ of the function, and again overloading is a possibility.
     /* Create a dummy symbol to return when there's been an error.  This is
        required for further processing, in case there's a definition of the
        the routine body. */
+    a_routine_ptr	rp;
     sym = enter_symbol((a_symbol_kind)sk_routine, locator, DEPTH_OF_FILE_SCOPE,
                        /*suppress_redecl_error=*/FALSE);
-    sym->variant.routine.ptr = make_routine(function_type,
-                                            (a_storage_class)sc_static,
-                                            NO_SCOPE_DEPTH);
+    rp = make_routine(function_type, (a_storage_class)sc_static,
+                      NO_SCOPE_DEPTH);
+    sym->variant.routine.ptr = rp;
     /* If this is a friend declaration in a prototype instantiation,
        mark it as a prototype instantiation too. */
-    sym->variant.routine.ptr->is_prototype_instantiation =
-                     scope_stack[depth_scope_stack].in_prototype_instantiation;
+    if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+      rp->is_prototype_instantiation = TRUE;
+      rp->is_template_function = TRUE;
+    }  /* if */
     /* Set the source correspondence. */
     set_source_corresp(&sym->variant.routine.ptr->source_corresp, sym);
   } else if (!class_type->variant.class_struct_union.is_nonreal_class ||
@@ -6566,6 +6570,7 @@ declared member functions.
     tip->template_info = tssp = alloc_template_symbol_supplement(sym->kind);
     tssp->variant.function.routine = rtn;
     rtn->is_prototype_instantiation = TRUE;
+    rtn->is_template_function = TRUE;
     tip->prototype_scope_symbols = func_info->prototype_scope_symbols;
   }  /* if */
   if (!is_error_locator(*locator)) {

@@ -4333,6 +4333,7 @@ instantiation.
   /* Create the template argument list for the prototype routine. */
   rout_ptr->template_arg_list = create_prototype_arg_list(templ_param_list);
   rout_ptr->is_prototype_instantiation = TRUE;
+  rout_ptr->is_template_function = TRUE;
   return sym;
 }  /* make_function_template_prototype_symbol */
 

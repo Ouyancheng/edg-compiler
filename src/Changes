@@ -1,5 +1,18 @@
 Version 2.46
 
+1/2/01   Setting of is_template_function for member function prototype
+         instantiations
+
+The is_template_function flag was not set in the routine entry associated
+with the prototype instantiation of a member function of a class template
+(e.g., for A<T>::f and A<T>::g in the example below).  This has been fixed.
+
+  template <class T> struct A {
+    void f();
+    void g();
+  };
+  template <class T> void A<T>::g(){}
+
 1/1/01   Microsoft mode initialization oddity: abort in lower_constant
 
 A bug was introduced in 2.45 in the handling of an obscure Microsoft-mode

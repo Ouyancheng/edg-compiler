@@ -2012,6 +2012,9 @@ Display the indicated routine.
     disp_boolean("assignment_to_this_done", TRUE);
   }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+  if (ptr->is_prototype_instantiation) {
+    disp_boolean("is_prototype_instantiation", TRUE);
+  }  /* if */
   if (ptr->is_template_function) {
     disp_boolean("is_template_function", TRUE);
   }  /* if */
