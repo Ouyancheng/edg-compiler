@@ -3355,6 +3355,10 @@ Data structures related to variables:
 */
 enum a_storage_class_tag {
   /* Possible storage classes for variables and functions (see 3.5.1). */
+  /* Note that this represents the C concept of storage class.  In C++,
+     the keyword "static" is also used to indicate static members of
+     classes.  That kind of "static" is reflected in things other than
+     the storage class, e.g., the implicit_this_param_type for routines. */
   sc_extern,            /* External.  This implies a reference to something
                            defined in another compilation unit. */
   sc_static,            /* Static. */
@@ -3523,7 +3527,18 @@ typedef struct a_variable {
 #endif /* DO_IL_LOWERING */
   a_storage_class
                 storage_class;
-                        /* Storage class. */
+                        /* Storage class.  The storage class is not necessarily
+			   what was written in the source program; it is
+			   standardized to show the effective storage class
+			   rather than the keyword that appeared. */
+			/* Note that the C concept of "storage class" is used
+			   also in C++.  Other C++ uses of a storage class
+			   are not reflected in this field.  "static" on a
+			   class member, for example, is a storage class
+			   syntactically, but has a different effect, which
+			   is represented elsewhere (e.g., in the use of
+			   a field for a nonstatic data member and a variable
+			   for a static data member). */
   a_bit_field	address_taken:1;
                         /* TRUE if the address of this variable has been
                            taken somewhere. */
@@ -3941,8 +3956,19 @@ typedef struct a_routine {
 #endif /* ifdef FIL */
   a_storage_class
                 storage_class;
-                        /* Storage class. */
+                        /* Storage class.  The storage class is not necessarily
+			   what was written in the source program; it is
+			   standardized to show the effective storage class
+			   rather than the keyword that appeared. */
 #ifdef CIL
+			/* Note that the C concept of "storage class" is used
+			   also in C++.  Other C++ uses of a storage class
+			   are not reflected in this field.  "static" on a
+			   class member, for example, is a storage class
+			   syntactically, but has a different effect, which
+			   is represented elsewhere (e.g., in the
+			   implicit_this_param_type field for a routine
+			   type). */
   a_special_function_kind
 		special_kind;
 			/* An enumerator indicating the special member function
