@@ -55,6 +55,13 @@ represent new possibilities:
          ^^^^^^^^^^^------ Encoded expression.
        ^^----------------- "A" indicates array, "_" indicates expression
                            for number of elements.
+  -- To deal with an ambiguity when a nontype template argument that
+     is a literal constant appears last in a function template argument
+     list, a new unambiguous encoding for the length of a literal has
+     been added.  It encloses the length in underscores whether or not
+     the length is a single digit, e.g., "L_1_0" and "L_10_1234567890".
+     The old form continues to be used in class template arguments
+     (where there is no ambiguity problem) to preserve upward compatibility.
 
 5/10/96 IL CHANGE: new flags in a_routine, a_variable, a_type
 

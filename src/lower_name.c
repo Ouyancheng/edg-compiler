@@ -59,17 +59,27 @@ e.g., 1297 --> 4.
 }  /* digits_to_represent */
 
 
-static sizeof_t digits_to_represent_with_underscore(unsigned long value)
+static sizeof_t digits_to_represent_with_underscore(unsigned long value,
+                                                    a_boolean     old_form)
 /*
 Like digits_to_represent, returns the number of digits needed to represent
-the value.  However, if the number of digits is greater than one, add
-one to account for an underscore following the digits to separate them from
-things following in the mangled name.
+the value.  However, this is used for cases where the distinction between
+single-digit and multi-digit cases needs to be indicated.  With old_form
+TRUE, the representation will be simply "d" for single-digit cases, and
+"dd_" for multi-digit cases (which has some ambiguity problems in contexts
+where an underscore could be next).  With old_form FALSE, the representation
+is "_dd_" regardless of the length.
 */
 {
   sizeof_t ndigits = digits_to_represent(value);
 
-  if (ndigits > 1) ndigits++;
+  if (old_form) {
+    /* "d" or "dd_". */
+    if (ndigits > 1) ndigits++;
+  } else {
+    /* "_dd_". */
+    ndigits += 2;
+  }  /* if */
   return ndigits;
 }  /* digits_to_represent_with_underscore */
 
@@ -271,14 +281,23 @@ store_at != NULL, and (always) return the length of the encoding.
 
 static void store_digits_and_underscore(unsigned long value,
                                         sizeof_t      digits,
+                                        a_boolean     old_form,
                                         char          *store_at)
 /*
-Store the decimal representation of value at *store_at.  If the representation
-takes more than one digit, add an underscore after it.  digits indicates
-the size of the output including the underscore.
+Store the decimal representation of value at *store_at.  This is used for
+cases where the distinction between single-digit and multi-digit cases needs
+to be indicated.  With old_form TRUE, the representation will be simply "d"
+for single-digit cases, and "dd_" for multi-digit cases.  With old_form
+FALSE, the representation is "_dd_" regardless of the length.
+digits indicates the size of the output including any underscores, as
+determined by digits_to_represent_with_underscore.
 */
 {
-  (void)sprintf(store_at, "%lu%s", value, (digits > 1) ? "_" : "");
+  if (old_form) {
+    (void)sprintf(store_at, "%lu%s", value, (digits > 1) ? "_" : "");
+  } else {
+    (void)sprintf(store_at, "_%lu_", value);
+  }  /* if */
 }  /* store_digits_and_underscore */
 
 
@@ -326,11 +345,14 @@ encoding.
 
 
 static sizeof_t literal_representation(a_constant_ptr con,
+                                       a_boolean      old_form,
                                        char           *store_at)
 /*
 Place the literal form of the constant con at *store_at if store_at != NULL,
 and (always) return the length of the literal representation.  This is
 used to encode constants as part of the mangled names of template classes.
+If old_form is TRUE, use the old form of length specification in the
+mangling for lengths of literals.
 */
 {
   sizeof_t       literal_length, str_length, digits;
@@ -353,12 +375,13 @@ used to encode constants as part of the mangled names of template classes.
          This is compatible with cfront 3.0.1. */
       str = str_for_integer_constant(con);
       str_length = strlen(str);  /* Includes "-" sign if any. */
-      digits = digits_to_represent_with_underscore((unsigned long)str_length);
+      digits = digits_to_represent_with_underscore((unsigned long)str_length,
+                                                   old_form);
       literal_length = 1 + digits + str_length;
       if (store_at != NULL) {
         *store_at++ = 'L';
         store_digits_and_underscore((unsigned long)str_length, digits,
-                                    store_at);
+                                    old_form, store_at);
         store_at += digits;
         (void)memcpy(store_at, str, size_t_arg(str_length));
         /* Use "n" to represent a minus sign. */
@@ -396,12 +419,13 @@ used to encode constants as part of the mangled names of template classes.
           }  /* while */
         }  /* if */
       }
-      digits = digits_to_represent_with_underscore((unsigned long)str_length);
+      digits = digits_to_represent_with_underscore((unsigned long)str_length,
+                                                   old_form);
       literal_length = 1 + digits + str_length;
       if (store_at != NULL) {
         *store_at++ = 'L';
         store_digits_and_underscore((unsigned long)str_length, digits,
-                                    store_at);
+                                    old_form, store_at);
         store_at += digits;
         while (str_length > 0) {
           /* Move the string and recode non-alphanumeric characters. */
@@ -524,12 +548,13 @@ used to encode constants as part of the mangled names of template classes.
         (void)sprintf(buffer, "%ld", (long)delta);
         str = buffer;
         str_length = strlen(str);  /* Includes "-" sign if any. */
-        digits= digits_to_represent_with_underscore((unsigned long)str_length);
+        digits = digits_to_represent_with_underscore((unsigned long)str_length,
+                                                     old_form);
         literal_length = 1 + digits + str_length;
         if (store_at != NULL) {
           *store_at++ = 'L';
           store_digits_and_underscore((unsigned long)str_length, digits,
-                                      store_at);
+                                      old_form, store_at);
           store_at += digits;
           (void)memcpy(store_at, str, size_t_arg(str_length));
           /* Use "n" to represent a minus sign. */
@@ -562,13 +587,14 @@ used to encode constants as part of the mangled names of template classes.
         (void)sprintf(buffer, "%ld", (long)index);
         str = buffer;
         str_length = strlen(str);  /* Includes "-" sign if any. */
-        digits= digits_to_represent_with_underscore((unsigned long)str_length);
+        digits = digits_to_represent_with_underscore((unsigned long)str_length,
+                                                     old_form);
         literal_length += 2 + digits + str_length + 1;
         if (store_at != NULL) {
           *store_at++ = '_';
           *store_at++ = 'L';
           store_digits_and_underscore((unsigned long)str_length, digits,
-                                      store_at);
+                                      old_form, store_at);
           store_at += digits;
           (void)memcpy(store_at, str, size_t_arg(str_length));
           /* Use "n" to represent a minus sign. */
@@ -633,10 +659,13 @@ used to encode constants as part of the mangled names of template classes.
 
 
 static sizeof_t mangled_encoding_for_constant(a_constant_ptr con,
+                                              a_boolean      old_form,
                                               char           *store_at)
 /*
 Put out the mangled encoding for a constant at *store_at if store_at != NULL,
-and (always) return the length of the mangled form.
+and (always) return the length of the mangled form.   If old_form is TRUE,
+use the old form of length specification in the mangling for lengths of
+literals.
 */
 {
   sizeof_t mangled_form_length = 0, section_length;
@@ -659,7 +688,7 @@ and (always) return the length of the mangled form.
     if (store_at != NULL) store_at += section_length;
   }  /* if */
   /* Put out the literal representation for the constant. */
-  section_length = literal_representation(con, store_at);
+  section_length = literal_representation(con, old_form, store_at);
   mangled_form_length += section_length;
   if (store_at != NULL) store_at += section_length;
   return mangled_form_length;
@@ -684,6 +713,7 @@ template arguments, and as dimensions of arrays in template signatures.
     case enk_constant:
       mangled_expr_length = mangled_encoding_for_constant(
                                                         expr->variant.constant,
+                                                        /*old_form=*/FALSE,
                                                         store_at);
       break;
     case enk_operation:
@@ -871,11 +901,13 @@ If the indicated member variable is unnamed, give it a name.
 
 static sizeof_t mangled_template_arguments(
                                           a_template_arg_ptr template_arg_list,
+                                          a_boolean          old_form,
                                           char               *store_at)
 /*
 Determine the mangled form of the template arguments given by
 template_arg_list.  Place the output at *store_at if store_at != NULL,
-and (always) return the length of the output.
+and (always) return the length of the output.  If old_form is TRUE, use
+the old form of length specification in the mangling for lengths of literals.
 */
 {
   sizeof_t           mangled_name_length, digits, arg_length, total_arg_length;
@@ -919,11 +951,13 @@ and (always) return the length of the output.
            an "X". */
         if (pass == 1) {
           arg_length = mangled_encoding_for_constant(tap->variant.constant,
+                                                     old_form,
                                                      (char *)NULL) + 1;
         } else {
           mangled_name_length++;
           if (store_at != NULL) *store_at++ = 'X';
           con_length = mangled_encoding_for_constant(tap->variant.constant,
+                                                     old_form,
                                                      store_at);
           mangled_name_length += con_length;
           store_at += con_length;
@@ -1025,7 +1059,11 @@ and an indication of that fact should be put out.
     }  /* if */
     if (ctsp->template_arg_list != NULL) {
       /* A template class.  Add information on template arguments. */
+      /* old_form=TRUE forces use of the cfront-compatible mangling convention
+         for lengths on literals, which though ambiguous is okay here because
+         the class cannot be followed by an "_". */
       section_length = mangled_template_arguments(ctsp->template_arg_list,
+                                                  /*old_form=*/TRUE,
                                                   store_at);
       mangled_name_length += section_length;
       if (store_at != NULL) store_at += section_length;
@@ -1951,6 +1989,7 @@ types; just put out the base encoded name.
     if (routine->template_arg_list != NULL) {
       /* Put out the template arguments. */
       section_length = mangled_template_arguments(routine->template_arg_list,
+                                                  /*old_form=*/FALSE,
                                                   store_at);
       mangled_name_length += section_length;
       if (store_at != NULL) store_at += section_length;

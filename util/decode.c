@@ -231,12 +231,27 @@ static char *get_number_with_optional_underscore(
 /*
 Accumulate a number starting at position p and return its value in *num.
 If the number has more than one digit, it is followed by an underscore.
+(Or, in a newer representation, surrounded by underscores.)
 Return a pointer to the character position following the number.
 */
 {
-  /* Interpret "multi-digit" as "2-digit" because it's ambiguous otherwise. */
-  if (isdigit((unsigned char)p[0]) && isdigit((unsigned char)p[1]) &&
-      p[2] == '_') {
+  if (*p == '_') {
+    /* New encoding (not from front) -- the length is surrounded by
+       underscores whether it's a single digit or several digits,
+       e.g., "L_10_1234567890". */
+    p++;
+    /* Multi-digit number followed by underscore. */
+    p = get_number(p, num, dctl);
+    p = advance_past_underscore(p, dctl);
+  } else if (isdigit((unsigned char)p[0]) && isdigit((unsigned char)p[1]) &&
+             p[2] == '_') {
+    /* The cfront version -- a multi-digit length is followed by an
+       underscore, e.g., "L10_1234567890".  This doesn't work well because
+       something like "L11", intended to have a one-digit length, can
+       be made ambiguous by following it by a "_" for some other reason.
+       So this form is not used in new cases where that can come up, e.g.,
+       nontype template arguments for functions.  In any case, interpret
+       "multi-digit" as "2-digit" and don't look further for the underscore. */
     /* Multi-digit number followed by underscore. */
     p = get_number(p, num, dctl);
     p = advance_past_underscore(p, dctl);
