@@ -8486,6 +8486,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:  /* Used only in C mode. */
+                         /* Note that if this is changed inlining may
+                            have to be suppressed inside statement
+                            expressions, as is done in lower_c99.c. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("lower_expr: bad kind");

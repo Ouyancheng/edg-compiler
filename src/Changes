@@ -1,5 +1,13 @@
 Version 3.1
 
+8/7/02   Inlining in GNU C statement expressions
+
+A GNU C statement expression, i.e., ({ ... }), returns a value if
+the final statement is an expression statement.  Inlining can foul
+that up by rewriting a final statement that is a function call as
+a block statement.  To avoid that, inlining is now disabled in
+statement expressions.
+
 8/7/02   Start position on IL block statement for GNU C statement expression
 
 The start position was not set in the stmk_block statement attached

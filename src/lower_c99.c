@@ -1297,7 +1297,15 @@ second parameter.
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* GNU C statement expression, ({...}). */
-      lower_c99_statement(expr->variant.statement);
+      { a_boolean saved_inlining_enabled = inlining_enabled;
+        /* Turn off inlining, because the last statement creates a
+           value that gets returned, and it needs to be an expression
+           statement to get returned (inlining would turn it into a
+           block statement). */
+        inlining_enabled = FALSE;
+        lower_c99_statement(expr->variant.statement);
+        inlining_enabled = saved_inlining_enabled;
+      }
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     default:
