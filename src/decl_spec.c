@@ -2665,22 +2665,15 @@ exit_loop:
         }  /* if */
       }  /* if */
 #if RESTRICT_ALLOWED
-      if (*qualifiers & TQ_RESTRICT) {
-        /* The restrict qualifier may only be applied to pointer and reference
-           types (but not pointer-to-function-type), pointer-to-member types,
-           and (in parameter declarations only) array types. */
-        if (is_ptr_or_ref_type(*type_ptr) &&
-            !is_function_type(type_pointed_to(*type_ptr))) {
-          /* Okay. */
-        } else if (is_ptr_to_member_type(*type_ptr)) {
-          /* Okay. */
-        } else if (is_array_type(*type_ptr) && DSI_IS_PARAMETER) {
-          /* Okay. */
-        } else {
-          pos_error(ec_restrict_not_allowed, &start_pos);
-          *qualifiers &= ~TQ_RESTRICT;
-          err = TRUE;
-        }  /* if */
+      /* The restrict qualifier may only be applied to pointer and reference
+         types (but not pointer-to-function-type), pointer-to-member types,
+         and (in parameter declarations only) array types. */
+      if ((*qualifiers & TQ_RESTRICT) &&
+          !restrict_qualifier_is_allowed(*type_ptr, &start_pos)) {
+        /* Diagnostic has already been issued.  Just remove TQ_RESTRICT
+           from the qualifier set. */
+        *qualifiers &= ~TQ_RESTRICT;
+        err = TRUE;
       }  /* if */
 #endif /* RESTRICT_ALLOWED */
       if (*qualifiers != TQ_NONE) {
