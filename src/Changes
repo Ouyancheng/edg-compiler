@@ -1,5 +1,13 @@
 Version 2.24
 
+6/30/94  Last bit in bit vectors for decl_specifiers and declarator
+
+Names have been introduced to identify the last bit defined for the bit
+vectors that pass boolean information into and out of decl_specifiers and
+declarator.  They are DI_LAST, DO_LAST, DSI_LAST, and DSO_LAST.  They can
+be used as the basis for defining additional bits if you want to customize
+the interfaces to those routines.
+
 6/30/94  Error on parameter type
 
 In accord with a recent change to WP 8.3.5, we now issue an error on a

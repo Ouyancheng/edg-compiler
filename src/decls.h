@@ -282,6 +282,8 @@ typedef int a_decl_flag_set;
 #define DI_IS_FRIEND_DECL 0x800
 			/* If this bit is set the declarator is part of a
 			   friend declaration. */
+#define DI_LAST DI_IS_FRIEND_DECL
+			/* Last bit in the bit vector that is in use. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
 #define DO_NO_OUTPUT_FLAGS 0x0
@@ -295,6 +297,8 @@ typedef int a_decl_flag_set;
 			/* If this bit was set a nonstandard member-function
 			   typedef declaration was seen; these are recognized
 			   in cfront-compatibility mode only. */
+#define DO_LAST DO_CFRONT_MEMBER_FUNCTION_TYPEDEF
+			/* Last bit in the bit vector that is in use. */
 /* Constants defining bits in the input bit vector used in calls to
    decl_specifiers. */
 #define DSI_NO_INPUT_FLAGS 0x0
@@ -352,6 +356,8 @@ typedef int a_decl_flag_set;
 			/* If this bit is set decl_specifiers is being called
 			   for an old-style parameter declaration.  Some error
 			   checking is affected. */
+#define DSI_LAST DSI_IS_OLD_STYLE_PARAM_DECL
+			/* Last bit in the bit vector that is in use. */
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
@@ -412,6 +418,8 @@ typedef int a_decl_flag_set;
 #define DSO_CLASS_TEMPLATE 0x4000
 			/* If this bit is set the declaration appears to be
 			   that of a class template. */
+#define DSO_LAST DSO_CLASS_TEMPLATE
+			/* Last bit in the bit vector that is in use. */
 
 extern void declarator(a_decl_flag_set   input_flags,
                        a_decl_flag_set   *output_flags,
