@@ -8193,7 +8193,7 @@ lifetime is retained in the IL tree.
       check_assertion(olp->child_lifetime == NULL);
     } else {
       /* Remove the current object lifetime from the parent's child-lifetime
-         list.  Promote it's own children, if appropriate. */
+         list.  Promote its own children, if appropriate. */
       an_object_lifetime_ptr  child, end_of_child_list, *olp_loc;
 
       /* Determine the position of the current object lifetime in its
