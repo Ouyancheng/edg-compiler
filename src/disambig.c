@@ -409,6 +409,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
      would have to add things like tok_c99_bool to the cases below.) */
   check_assertion(!C_mode());
   for (;;) {
+    a_boolean	next_token_fetched = FALSE;
     switch (curr_token) {
       /* Storage class specifiers. */
       case tok_auto:
@@ -436,6 +437,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_declspec:
         prescan_extended_decl_modifiers(state, flags);
+        next_token_fetched = TRUE;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Type specifier - identifier that may be a simple type name.
@@ -559,9 +561,11 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
     /* If this token is not part of a decl-specifier then exit the loop. */
     if (!is_decl_specifier_token) break;
     any_decl_specifiers = TRUE;
-    /* Cache this token and get the next one. */
-    cache_curr_token(&state->cache);
-    get_token_and_coalesce_if_identifier(flags);
+    if (!next_token_fetched) {
+      /* Cache this token and get the next one. */
+      cache_curr_token(&state->cache);
+      get_token_and_coalesce_if_identifier(flags);
+    }  /* if */
   }  /* for */
   if (!any_decl_specifiers && !is_ctor_or_dtor_name) {
     /* A declaration must have at least one decl-specifier, or this must be
@@ -760,7 +764,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_bugs && microsoft_version >= 1310 &&
+    if (microsoft_bugs && microsoft_version < 1310 &&
         is_top_level && !is_template_decl(flags)) {
       /* The Microsoft compiler suffers from some of the same disambiguation
          problems that cfront does.  The 7.1 compiler (version 1310) fixes

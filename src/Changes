@@ -1,5 +1,15 @@
 Version 3.2
 
+2/5/03   Microsoft compatibility: parsing errors caused by prescan
+         problem with __declspec
+
+The routines used to prescan declarations did not handle __declspec
+properly.  This could result in disambiguation problems and/or spurious
+errors on declarations of members of template classes.  Now fixed.
+
+  template <class T> struct X{ __declspec(dllimport) X(); };
+  template <class T> __declspec(dllimport) X<T>::X() { }
+
 2/5/03   GNU C mode: Initialization of array of structs of size zero
 
 In GNU C, it is possible for a complete struct to have size zero.  The
