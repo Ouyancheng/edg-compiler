@@ -2487,7 +2487,7 @@ to indicate whether an enumeration is actually defined.
        IL list in the right order. */
   } else {
     /* Using an existing type.  Fetch the enumerated type pointer from it. */
-    enum_type = tag_sym->variant.enumeration.type;
+    enum_type = type_symbol_type(tag_sym);
     is_redeclaration = TRUE;
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace) {
