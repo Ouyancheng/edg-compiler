@@ -262,15 +262,10 @@ Instantiate the body of the template function associated with fiep.
   db_enter(3, "instantiate_template_function");
   rout_sym = fiep->routine_sym;
   rout_ptr = rout_sym->variant.routine.ptr;
-#if CHECKING
   if (rout_ptr->assoc_scope != NULL_region_number) {
-#if 0
-    internal_error("instantiate_template_function: already has a body");
-#else
+    /* Already instantiated. */
     goto done;
-#endif /* if 0 */
   }  /* if */
-#endif /* CHECKING */
   /* Set the linkage and storage class. */
   if (rout_sym->class_of_which_a_member != NULL) {
     /* Member functions are handled in check_class_linkage. */
@@ -295,16 +290,6 @@ Instantiate the body of the template function associated with fiep.
                    tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr,
                    rout_sym, fiep->template_sym, fiep->arg_list);
   rescan_reusable_cache(&tssp->token_cache);
-
-#if 0
-
-  /* Call set_routine_calling_method_flag and set_arg_transfer_method_flag??
-     This has already been done -- should it be done again? */
-
-  /* Check return type -- is it complete?  Is it an uninstantiated class? */
-
-#endif /* if 0 */
-
   if (rout_sym->class_of_which_a_member != NULL) {
     push_class_reactivation_scope(rout_sym->class_of_which_a_member);
   }  /* if */
@@ -316,14 +301,6 @@ Instantiate the body of the template function associated with fiep.
      type entry. */
   rout_ptr->assoc_scope = curr_il_region_number;
   rtsp->assoc_routine = rout_ptr;
-
-#if 0
-  if (tssp->func_info.prototype_scope_symbols != NULL) {
-    reactivate_prototype_scope_symbols(
-                    tssp->variant.function.func_info.prototype_scope_symbols);
-  }  /* if */
-#endif /* if 0 */
-
   /* For a member function create the implicit "this" param variable and
      set a pointer to it in the scope entry. */
   if (rtsp->implicit_this_param_type != NULL) {
@@ -388,27 +365,13 @@ Instantiate the body of the template function associated with fiep.
     default:;
       /* No action. */
   }  /* switch */
-
-#if 0
-  /* A call to new_struct_stmt_stack should not be required. */
-#endif /* if 0 */
-
   scope->assoc_block = compound_statement(/*at_function_level=*/TRUE,
                                           /*explicit_return_type=*/TRUE);
-
   /* Pop the function scope. */
   pop_scope();
   if (rout_sym->class_of_which_a_member != NULL) {
     pop_class_reactivation_scope();
   }  /* if */
-
-#if 0
-  /* The lint "argsused" and "varargs" flags are only applicable until
-     the end of a function declaration. */
-  lint_argsused_flag = FALSE;
-  lint_varargs_count = NOT_LINT_VARARGS;
-#endif /* if 0 */
-
   /* Check for the closing "}", not done in compound_statement.  Note that
      required_token is not called; if compound_statement returned on
      anything other than a right brace, it's because we should start parsing
@@ -428,10 +391,7 @@ Instantiate the body of the template function associated with fiep.
   /* Advance past the end-of-source token. */
   (void)get_token();
 
-#if 0
-#else
   done:;
-#endif /* if 0 */
   db_exit();
 }  /* instantiate_template_function */
 
@@ -491,8 +451,8 @@ void define_template_static_data_member(a_static_data_member_def_ptr  sdmdp)
     pop_scope();
 
   } else {
-    def_initializer(static_data_member_sym,
-                    &static_data_member_sym->decl_position);
+    (void)def_initializer(static_data_member_sym,
+                          &static_data_member_sym->decl_position);
   }  /* if */
   db_exit();
 }  /* define_template_static_data_member */
@@ -2519,9 +2479,7 @@ entry is pushed on the scope stack.
     a_func_info_block  func_info;
     a_type_ptr         bottom_derived_type = NULL;
     an_expr_node_ptr   dim_expr_ptr;
-    a_source_position  decl_start_pos;
 
-    decl_start_pos = pos_curr_token;
     add_stop_token(tok_semicolon);
     add_stop_token(tok_lbrace);
     add_stop_token(tok_colon);
@@ -2544,29 +2502,6 @@ entry is pushed on the scope stack.
     remove_stop_token(tok_lbrace);
     remove_stop_token(tok_semicolon);
     remove_stop_token(tok_colon);
-#if 0
-    if (sym != NULL) {
-      a_type_ptr  parent_type = sym->class_of_which_a_member;
-      if (parent_type != NULL) {
-        /* sym represents a class member.  Be sure it's a member of a
-           class template (or a class nested within a class template). */
-        if ((symbol_supplement_for_class(parent_type))->is_nonreal_class &&
-            parent_type->variant.class_struct_union.extra_info->
-                                                      assoc_scope != NULL) {
-          /* It is a member of a class template, and is identified with the
-             prototype instantiation of the class.  Check for the specific
-             kind of symbol later. */
-        } else {
-          if (!is_error_locator(locator)) {
-            pos_ty_error(ec_not_a_class_template, &locator.source_position,
-                         parent_type);
-            set_to_error_locator(locator);
-          }  /* if */
-          sym = NULL;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-#endif /* if 0 */
     if (!is_function_type(type) && locator.specific_symbol != NULL) {
       /* Name is a member of a class template (or a class nested within a class
          template).  It is not a function, so (in a legal program) it must be
