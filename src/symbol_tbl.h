@@ -1676,7 +1676,8 @@ and static and nonstatic data members -- and that "address taken" applies only
 to objects and functions.
 */
 typedef enum /*a_symbol_reference_kind*/ {
-  srk_declaration,	/* Declaration or definition. */
+  srk_declaration,	/* (Non-defining) declaration. */
+  srk_definition,       /* Definition. */
   srk_modification,	/* Reference that changes the value of an object. */
   srk_address_taken,	/* Address of an object or function taken. */
   srk_use,		/* Use of the value of an object. */
@@ -1975,9 +1976,10 @@ extern void push_class_reactivation_scope(a_type_ptr class_type);
 extern void pop_class_reactivation_scope(void);
 extern void set_decl_sequence_number(a_symbol_ptr  sym);
 /* Record use information (for cross-reference, etc.). */
+extern void mark_defined(a_symbol_ptr      sym_ptr,
+                        a_source_position *source_position);
 extern void mark_declared(a_symbol_ptr      sym_ptr,
-                          a_source_position *source_position,
-                          a_boolean         save_as_decl_position);
+                          a_source_position *source_position);
 extern void reference_to_symbol(a_symbol_reference_kind  kind,
                                 a_symbol_ptr             sym_ptr,
                                 a_source_position        *source_position,
