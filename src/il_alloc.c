@@ -16,8 +16,13 @@ il_alloc.c -- Allocation of intermediate language entries.
 /* Header files common to all files. */
 #include "fe_common.h"
 
-#include "il_alloc.h"
+#ifdef PCH_PRAGMA_GUARD
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* ifdef PCH_PRAGMA_GUARD */
 
+/* Additional header files. */
 #if !STANDALONE_UTILITY_PROGRAM
 #include "pch.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
