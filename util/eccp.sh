@@ -607,6 +607,7 @@ check_abbreviation()
 --strict_warnings
 --strip
 --strip_line_dirs
+--sun
 --suppress_c_to_obj_diagnostics
 --suppress_instantiation_flags
 --suppress_vtbl
@@ -1020,6 +1021,7 @@ process_option()
          --no_compound_literals | \
          --base_assign_op_is_default | \
          --no_base_assign_op_is_default | \
+         --sun | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
