@@ -5439,6 +5439,45 @@ this selection.
 }  /* gen_pm_simple_field_selection */
 
 
+static void gen_class_rvalue_question_mark(a_dynamic_init_ptr dip)
+/*
+dip is the dynamic initialization from an enk_temp_init expression
+node and corresponds to the temporary generated at the end of a "?"
+operation returning a class rvalue.  Generate code for it.
+*/
+{
+  check_assertion(!C_mode() && dip->is_result_for_class_rvalue_question_mark);
+  if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+    /* The class can be copied by a bitwise copy.  Just put out the
+       underlying expression. */
+    gen_expr_with_parens(dip->variant.expression);
+  } else {
+    /* The class requires a copy constructor.  Get the argument of the
+       copy constructor call, which should be the "?" operation. */
+    an_expr_node_ptr arg;
+    check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor);
+    arg = dip->variant.constructor.args;
+    check_assertion(arg != NULL && arg->next == NULL);
+    while (is_operation_node(arg) &&
+           arg->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+           arg->variant.operation.compiler_generated) {
+      /* Remove cv-qualifier adjustment casts. */
+      arg = arg->variant.operation.operands;
+    }  /* while */
+    check_assertion(is_operation_node(arg) &&
+                    arg->variant.operation.kind ==
+                                         (an_expr_operator_kind)eok_question &&
+                    !arg->variant.operation.
+                                       returns_lvalue_instead_of_usual_rvalue);
+    /* The value of the "?" is a pointer, so put the operation out
+       as an lvalue to undo the indirection. */
+    arg->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+    gen_lvalue(arg);
+    arg->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+  }  /* if */
+}  /* gen_class_rvalue_question_mark */
+
+
 static void gen_temp_init(an_expr_node_ptr expr)
 /*
 Generate code for an enk_temp_init node, which does creation/initialization
@@ -5459,6 +5498,10 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
     /* In C mode and sometimes in C++ mode, a temp-init node represents
        a compound literal. */
     gen_compound_literal((a_constant_ptr)NULL, dip, temp_type);
+  } else if (dip->is_result_for_class_rvalue_question_mark) {
+    /* This temporary is the result of a "?" operator returning
+       a class rvalue. */
+    gen_class_rvalue_question_mark(dip);
   } else {
     /* C++ mode; use gen_dynamic_init. */
     a_boolean cast_added = FALSE;

@@ -1824,6 +1824,10 @@ typedef struct a_dynamic_init {
 			/* If TRUE, the source construct is a compound
 			   literal (C99) and the entity was not fully
 			   initialized by the initializer. */
+  a_bit_field	is_result_for_class_rvalue_question_mark:1;
+			/* If TRUE, this entity is the temporary that is
+			   the result of a "?" operator that returns a
+			   class rvalue in C++. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */

@@ -6452,6 +6452,8 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
 {
   a_boolean  operand_1_is_const, do_folding = FALSE;
   a_type_ptr operation_type;
+  a_boolean  class_rvalue_case = FALSE;
+  a_boolean  class_rvalue_cctor_case = FALSE;
 
   if (result_is_an_lvalue) {
     /* If the result is an lvalue, the type of the "?" node must be a
@@ -6459,6 +6461,14 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
     operation_type = make_pointer_type(result_type);
   } else {
     operation_type = result_type;
+    /* Cases that return a class rvalue have to be handled specially: an
+       extra copy to a temporary is needed at the end. */
+    if (!C_mode() &&
+        is_class_struct_union_type(result_type) &&
+        /* Avoid potential grief on GNU 2-operand "?" for now. */
+        operand_2 != NULL) {
+      class_rvalue_case = TRUE;
+    }  /* if */
   }  /* if */
   /* If the first operand is a known constant, the operation can be
      folded. */
@@ -6473,6 +6483,10 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
                !identical_types(operand_2->type, operand_3->type)) {
       /* Can't fold cases where the operand types do not match (e.g.,
          because one is a throw and the other is not). */
+      /* do_folding = FALSE; -- already set. */
+    } else if (class_rvalue_case) {
+      /* Don't fold when the result is a class rvalue, because a copy
+         is required. */
       /* do_folding = FALSE; -- already set. */
     } else if (curr_object_lifetime != NULL &&
                curr_object_lifetime->destructions != NULL) {
@@ -6572,10 +6586,46 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
     error_in_operand(ec_constant_value_not_known, operand_1);
     make_error_operand(result);
   } else {
+    if (class_rvalue_case) {
+      /* When the result is a class rvalue, we will do a final copy. */
+      if (!symbol_supplement_for_class(result_type)->
+                                        construction_by_bitwise_copy_allowed) {
+        /* A copy constructor will be used to do the final copy, so the
+           operands of the "?" are the addresses of the class objects.
+           The class test here is needed for mixed throw/class cases. */
+        class_rvalue_cctor_case = TRUE;
+        if (is_class_struct_union_type(operand_2->type)) {
+          conv_class_operand_to_object_pointer(operand_2);
+          operation_type = operand_2->type;
+        }  /* if */
+        if (is_class_struct_union_type(operand_3->type)) {
+          conv_class_operand_to_object_pointer(operand_3);
+          operation_type = operand_3->type;
+        }  /* if */
+      }  /* if */
+    }  /* if */
     /* Build the expression tree for the operation. */
     build_question_result_operand(operand_1, operand_2, operand_3,
                                   operation_type, result);
     if (!C_mode()) {
+      if (class_rvalue_case) {
+        /* For the class rvalue case, make an extra copy, producing a
+           single temporary result for the whole operation. */
+        /* Give the operand a position so it can be used as an error position
+           in case the copy constructor is not callable. */
+        result->position = operand_2->position;
+        if (class_rvalue_cctor_case) {
+          /* Copy constructor call needed, so the operands and the "?"
+             result are pointers. */
+          conv_object_pointer_to_lvalue(result);
+        }  /* if */
+        temp_init_from_operand(result, /*result_is_addr=*/FALSE);
+        check_assertion(is_expression_operand(result) &&
+                        result->variant.expression->kind ==
+                                             (an_expr_node_kind)enk_temp_init);
+        result->variant.expression->variant.init.dynamic_init->
+                               is_result_for_class_rvalue_question_mark = TRUE;
+      }  /* if */
       if (result_is_an_lvalue) {
         check_assertion(is_expression_operand(result) &&
                         is_operation_node(result->variant.expression));
@@ -8739,7 +8789,7 @@ address of the temporary is returned.  This routine is only used in C++ mode.
     if (!optimized_case) {
       /* Create a temporary, copy the rvalue into the temporary, and return
          the address of the temporary. */
-      temp_init_from_operand(operand);
+      temp_init_from_operand(operand, /*result_is_addr=*/TRUE);
     }  /* if */
 #if CHECKING
   } else {
@@ -9093,7 +9143,10 @@ Convert an lvalue operand to an rvalue operand.  See section 3.2.2.1 of the
 standard.  In the general case, the lvalue is the address of something,
 and this conversion adds an indirection so that the operand refers to
 the rvalue pointed to.  Some cases are optimized.  If the operand is
-not an lvalue, it is left alone.
+not an lvalue, it is left alone.  Note that this routine does not add
+a copy when it converts a class lvalue to an rvalue in C++ mode;
+the standard requires that, but it's actually wanted only in some limited
+cases so we don't do it here.
 */
 {
   an_expr_node_ptr node;

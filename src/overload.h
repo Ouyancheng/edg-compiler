@@ -528,7 +528,8 @@ extern void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                           a_source_position *position,
                                           an_operand        *result);
 
-extern void temp_init_from_operand(an_operand *operand);
+extern void temp_init_from_operand(an_operand *operand,
+                                   a_boolean  result_is_addr);
 
 extern void overloaded_function_catch_up(
                                   a_symbol_ptr      function_symbol,

@@ -1690,6 +1690,7 @@ Initialize a dynamic_init entry of the kind specified.
 #endif /* DO_IL_LOWERING && MULTIPLE_INIT_ROUTINES */
   dip->is_explicit_cast = FALSE;
   dip->is_partially_initialized_compound_literal = FALSE;
+  dip->is_result_for_class_rvalue_question_mark = FALSE;
 #if CENTERLINE_CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

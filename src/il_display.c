@@ -4937,6 +4937,12 @@ Display the indicated dynamic_init structure.
   if (ptr->is_explicit_cast) {
     disp_boolean("is_explicit_cast", TRUE);
   }  /* if */
+  if (ptr->is_partially_initialized_compound_literal) {
+    disp_boolean("is_partially_initialized_compound_literal", TRUE);
+  }  /* if */
+  if (ptr->is_result_for_class_rvalue_question_mark) {
+    disp_boolean("is_result_for_class_rvalue_question_mark", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case dik_none:
