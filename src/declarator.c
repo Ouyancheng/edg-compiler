@@ -1810,9 +1810,15 @@ if this is the function declarator in a friend function declaration.
           if (default_arg_allowed_on_curr_param) {
             if (parent_scope_kind == (a_scope_kind)sck_class_struct_union) {
               /* A member function of a class (normal or template) inside
-                 a class declaration. */
-              cache_default_arg = TRUE;
-              is_member_or_friend_function = TRUE;
+                 a class declaration.  The is_top_level_declarator test is
+                 used to ignore default arguments in things like
+                 pointer-to-member declarations.  Such default arguments
+                 are cached in non-template contexts only. */
+              if (is_top_level_declarator ||
+                  !is_template_dependent_context()) {
+                cache_default_arg = TRUE;
+                is_member_or_friend_function = TRUE;
+              }  /* if */
             } else if (parent_scope_kind ==
                                    (a_scope_kind)sck_template_declaration) {
               /* A function template declaration.  Note that all default

@@ -1,5 +1,18 @@
 Version 3.6
 
+12/6/04  Spurious error on default argument pointer-to-member in template
+
+A spurious error was issued if a class template contained a pointer-to-member
+declaration in which a function parameter specified a default argument
+value.  Now fixed.  Note that such default arguments are not permitted by
+the C++ standard, but are accepted except in strict mode.
+
+  template <class T> struct X {
+    const int& (T::*ptr)(int* = 0) const;
+  };
+  struct Y {};
+  X<Y> xy;
+
 12/6/04  Microsoft compatibility: Attributes on elaborated class names
 
 In Microsoft mode, when attributes preceded an elaborated class name (i.e., a
