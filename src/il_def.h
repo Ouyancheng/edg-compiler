@@ -704,13 +704,22 @@ typedef struct an_instantiation_directive *an_instantiation_directive_ptr;
 typedef struct an_instantiation_directive {
   a_source_position
 		position;
-			/* Source position of the start of the instantiation
-			   directive. */
+			/* Source position of the "template" keyword in the
+			   of the instantiation directive. */
   a_tagged_pointer
 		entity;
 			/* Entry identifying the entity (a class, function,
 			   or static data member) specified in the template
 			   instantiation directive. */
+  a_byte_boolean
+		do_not_instantiate;
+			/* TRUE if the instantiation directive was used to
+			   indicate that the entity named should not be
+			   instantiated.  This is used in Microsoft mode,
+			   in which the "template" keyword in an instantiation
+			   directive may be prefixed with "extern" to indicate
+			   that the instantiation of an entity should be
+			   suppressed. */
 } an_instantiation_directive;
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

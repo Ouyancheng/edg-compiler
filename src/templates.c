@@ -10258,13 +10258,18 @@ symbol, otherwise we return NULL.
 
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-static void make_instantiation_directive(a_symbol_ptr                 sym,
-                                         a_source_sequence_entry_ptr  ssep,
-                                         a_source_position            *pos)
+static
+void make_instantiation_directive(a_pragma_kind		       pragma_kind,
+                                  a_symbol_ptr                 sym,
+                                  a_source_sequence_entry_ptr  ssep,
+                                  a_source_position            *pos)
 /*
-Create an IL entry to represent an instantiation directive.  sym identifies
-the entity being instantiated, pos is the source position of the template
-keyword, and ssep is the empty source sequence entry that should be used.
+Create an IL entry to represent an instantiation directive.  kind is used
+to distinguish an instantiation directive from a "do not instantiate"
+directive (which is specified as "extern template" in Microsoft mode).
+sym identifies the entity being instantiated, pos is the source position
+of the template keyword, and ssep is the empty source sequence entry that
+should be used.
 */
 {
   an_instantiation_directive_ptr  idp;
@@ -10275,6 +10280,9 @@ keyword, and ssep is the empty source sequence entry that should be used.
     idp->position = *pos;
     idp->entity.ptr = il_entry_for_symbol(sym, &kind);
     idp->entity.kind = (a_byte_il_entry_kind)kind;
+    if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
+      idp->do_not_instantiate = TRUE;
+    }  /* if */
     update_source_sequence_list((char *)idp,
                                  (an_il_entry_kind)iek_instantiation_directive,
                                  ssep);
@@ -10309,7 +10317,9 @@ If a template class name is used (i.e., A<int>) all of the member functions
 and static data members will be instantiated.
 
 kind is the pragma kind being processed.  For an explicit instantiation,
-the pragma kind of pk_instantiate is passed by the caller.  is_pragma is
+the pragma kind of pk_instantiate is passed by the caller.  In Microsoft
+mode pk_do_not_instantiate may be passed by the caller if the explicit
+instantiation directive began with the "extern" keyword.  is_pragma is
 TRUE if this is a pragma and FALSE if it is an explicit instantiation.
 */
 {
@@ -10356,7 +10366,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
                                            /*top_level=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!is_pragma) {
-        make_instantiation_directive(sym, ssep, &template_keyword_pos);
+        make_instantiation_directive(kind, sym, ssep, &template_keyword_pos);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (sym != NULL) {
@@ -10392,7 +10402,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
                                            /*top_level=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!is_pragma) {
-        make_instantiation_directive(sym, ssep, &template_keyword_pos);
+        make_instantiation_directive(kind, sym, ssep, &template_keyword_pos);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
@@ -10465,7 +10475,8 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
                                      is_pragma);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!is_pragma) {
-            make_instantiation_directive(sym, ssep, &template_keyword_pos);
+            make_instantiation_directive(kind, sym, ssep,
+                                         &template_keyword_pos);
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
@@ -10494,7 +10505,8 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
                                    is_pragma);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (!is_pragma) {
-          make_instantiation_directive(new_sym, ssep, &template_keyword_pos);
+          make_instantiation_directive(kind, new_sym, ssep,
+                                       &template_keyword_pos);
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
@@ -10643,12 +10655,12 @@ assumed if the return type is omitted.
 }  /* instantiation_pragma */
 
 
-static void explicit_instantiation(void)
+static void explicit_instantiation(a_template_decl_options_set options)
 /*
 Process an explicit instantiation directive.  Most of the processing is
 done by instantiation_directive.  This routine makes sure that the current
 scope is a valid one for an instantiation directive and disables any
-access errors that were detected.
+access errors that were detected.  options is a bit set of option flags.
 */
 {
   a_source_position		start_pos;
@@ -10668,13 +10680,21 @@ access errors that were detected.
   } else {
     /* The instantiation mode is set to "none" while the pragma processing is
        performed to ensure that no other instantiations are implicitly
-      requested as a consequence of scanning the pragma. */
+       requested as a consequence of scanning the pragma. */
+    a_pragma_kind	pragma_kind;
     instantiation_mode = tim_none;
+    /* In Microsoft mode the "extern" keyword may be used in an explicit
+       instantiation directive to indicate that an entity should not be
+       instantiated. */
+    if ((options & TDO_EXTERN) != 0) {
+      pragma_kind = (a_pragma_kind)pk_do_not_instantiate;
+    } else {
+      pragma_kind = (a_pragma_kind)pk_instantiate;
+    }  /* if */
     /* Note that the "template" keyword is bypassed in the subroutine. */
     start_pos = pos_curr_token;
     begin_deferral_of_access_checks();
-    instantiation_directive((a_pragma_kind)pk_instantiate, /*is_pragma=*/FALSE,
-                            &start_pos);
+    instantiation_directive(pragma_kind, /*is_pragma=*/FALSE, &start_pos);
     discard_deferred_access_checks();
     end_deferral_of_access_checks();
   }  /* if */
@@ -10684,14 +10704,16 @@ access errors that were detected.
 }  /* explicit_instantiation */
 
 
-void template_directive_or_declaration(a_token_kind  *final_token)
+void template_directive_or_declaration(
+			a_token_kind			*final_token,
+			a_template_decl_options_set	options)
 /*
 Scan a template declaration of an explicit instantiation.  This routine
 is called to decide whether the current statement is a template
 declaration or an explicit instantiation.  It then calls the appropriate
 routine.  Note that the final token is not consumed -- that is left to the
 caller.  For diagnostics, the kind of token expected (semicolon or right
-brace) is returned in *final_token.
+brace) is returned in *final_token.  options is a bit set of option flags.
 */
 {
   db_enter(3, "template_directive_or_declaration");
@@ -10706,6 +10728,11 @@ brace) is returned in *final_token.
     a_name_linkage_kind      saved_name_linkage;
     a_boolean                err = FALSE, saved_name_linkage_is_explicit;
 
+    if ((options & TDO_EXTERN) != 0) {
+      /* An "extern" storage class is only permitted on an explicit
+         instantiation directive in Microsoft mode. */
+      error(ec_bad_storage_class_on_template_decl);
+    }  /* if */
     /* Issue an error if this declaration has C linkage. */
     if (ssep->default_name_linkage == (a_name_linkage_kind)nlk_external) {
       pos_error(ec_bad_linkage_for_decl, &pos_curr_token);
@@ -10726,7 +10753,7 @@ brace) is returned in *final_token.
   } else {
     /* There is no template parameter list, this must be an explicit
        instantiation. */
-    explicit_instantiation();
+    explicit_instantiation(options);
   }  /* if */
   db_exit();
 }  /* template_directive_or_declaration */

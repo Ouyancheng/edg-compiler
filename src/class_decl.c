@@ -9580,7 +9580,7 @@ nested classes when their definition appears outside of the class template.
                template_directive_or_declaration. */
             a_token_kind  final_token = tok_semicolon;
 
-            template_directive_or_declaration(&final_token);
+            template_directive_or_declaration(&final_token, TDO_NO_OPTIONS);
             /* The terminating token will be either a semicolon or a right
                brace.  The latter has already been checked for, but the former
                has not. */

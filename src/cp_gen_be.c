@@ -4987,6 +4987,11 @@ Generate code for an instantiation directive.
   adv_curr_source_sequence_entry();
   /* Position the output file to the directive position. */
   set_output_position(&idp->position);
+  /* In Microsoft mode the "extern" keyword can be used to indicate that
+     the instantiation of an entity should be suppressed. */
+  if (idp->do_not_instantiate) {
+    write_tok_str("extern ");
+  }  /* if */
   write_tok_str("template ");
   kind = (an_il_entry_kind)idp->entity.kind;
   switch (kind) {

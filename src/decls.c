@@ -7431,7 +7431,7 @@ of local variables (and types, etc.) of functions and in blocks.
       /* Do the processing required for a template declaration.  If this is
          a top level declaration, the subroutine should not advance past the
          final token of the declaration. */
-      template_directive_or_declaration(&final_token);
+      template_directive_or_declaration(&final_token, TDO_NO_OPTIONS);
       /* The terminating token will be either a semicolon or a right
          brace.  The latter has already been checked for, but the former
          has not. */

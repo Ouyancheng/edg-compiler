@@ -2386,6 +2386,7 @@ a pointer to it.
   idp->position    = null_source_position;
   idp->entity.kind = (a_byte_il_entry_kind)iek_none;
   idp->entity.ptr  = NULL;
+  idp->do_not_instantiate = FALSE;
 
   return idp;
 }  /* alloc_instantiation_directive */

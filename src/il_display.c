@@ -3486,6 +3486,9 @@ Display the indicated instantiation-directive entry.
   disp_unsigned_long("position.column", (unsigned long)idp->position.column);
   disp_ptr("entity", (char *)idp->entity.ptr,
            (an_il_entry_kind)idp->entity.kind);
+  if (idp->do_not_instantiate) {
+    disp_boolean("do_not_instantiate", idp->do_not_instantiate);
+  }  /* if */
 }  /* disp_instantiation_directive */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

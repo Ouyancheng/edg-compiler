@@ -24,6 +24,17 @@ templates.h -- Declarations relating to templates.c (template support)
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+/*
+Flags used to specify options to the template declaration processing routines.
+*/
+typedef int a_template_decl_options_set;
+
+#define TDO_NO_OPTIONS		0x0
+#define TDO_EXTERN		0x1
+				/* TRUE if the "extern" keyword was specified
+				   before the "template" keyword. */
+
+
 extern
 a_template_cache_ptr cache_for_template(a_template_symbol_supplement_ptr tssp);
 
@@ -151,7 +162,9 @@ void delayed_scan_for_function_template_default_args(
                     a_template_symbol_supplement_ptr tssp,
                     a_boolean                        push_instantiation_scope);
 
-extern void template_directive_or_declaration(a_token_kind  *final_token);
+extern void template_directive_or_declaration(
+			a_token_kind			*final_token,
+			a_template_decl_options_set	options);
 
 extern
 void set_nested_template_class_symbol_info(a_symbol_ptr  sym,

@@ -1,5 +1,12 @@
 Version 2.35
 
+2/4/97  Microsoft compatibility: "extern template" suppresses instantiation
+
+In Microsoft mode, an explicit instantiation directive may be prefixed with
+the "extern" keyword to suppress the instantiation of the named entity.
+
+  extern template A<short>;  // do not instantiate members of A<short>
+
 2/4/97  Microsoft compatibility: class-key may be omitted on explicit
         instantiation
 
