@@ -581,6 +581,13 @@ EXTERN a_boolean
 			   default arguments. */
 
 EXTERN a_boolean
+		force_dependent_name_rules_for_base_class_lookup;
+			/* TRUE if the portion of dependent name lookup that
+			   involves the lookup of names in dependent base
+			   classes should be performed even if full dependent
+			   name processing is not being done. */
+
+EXTERN a_boolean
 		nonclass_prototype_instantiations;
 			/* TRUE if nonclass template declarations should
 			   have prototype instantiations performed on them. */

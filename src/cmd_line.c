@@ -3701,6 +3701,7 @@ This is done before command line processing.
   export_template_allowed = DEFAULT_EXPORT_TEMPLATE_ALLOWED;
   export_keyword_enabled = TRUE;
   curr_command_line_macro_def = NULL;
+  force_dependent_name_rules_for_base_class_lookup = FALSE;
 }  /* cmd_line_early_init */
 
 

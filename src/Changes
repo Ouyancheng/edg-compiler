@@ -1,5 +1,26 @@
 Version 2.46
 
+12/4/01  Dependent base class lookup when not doing dependent name processing
+
+A variable has been added to make it possible to do the base class portion
+of dependent name lookup without enabling full dependent name processing.
+Some compilers (e.g., g++) do use the standard rules for lookup of dependent
+base class members even though they don't fully implement the dependent
+lookup rules.  This provides a means to emulate that behavior.  The variable
+is named force_dependent_name_rules_for_base_class_lookup.
+
+  class A {
+    typedef int X;
+  };
+  template <class X> struct B {
+    struct C : X {
+      C(){}
+      C(X x) {}
+    };
+    C c;
+  };
+  B<A> b;
+
 11/30/01 Change in behavior of -H (list included files) option
 
 Formerly, the -H option (list included files) would cause the front end

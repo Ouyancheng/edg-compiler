@@ -8671,7 +8671,9 @@ if no such base-class symbol is found).
   for (; bcp != NULL; bcp = bcp->next) {
     /* When doing dependent name lookup certain base classes should be
        ignored for unqualified lookups. */
-    if (do_dependent_name_processing && !look_in_dependent_bases &&
+    if ((do_dependent_name_processing ||
+         force_dependent_name_rules_for_base_class_lookup) &&
+        !look_in_dependent_bases &&
         bcp->ignore_during_dependent_lookup) continue;
     /* For the most part, we are only interested in the direct base classes
        (either virtual or nonvirtual).  However, it may happen that a virtual
