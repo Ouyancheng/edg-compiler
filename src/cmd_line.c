@@ -1908,10 +1908,12 @@ enable_microsoft_mode:
       command_line_error(
               ec_cl_nonstandard_qualifier_deduction_option_only_in_cplusplus);
     }  /* if */
+#if ONE_INSTANTIATION_PER_OBJECT
     if (option_kind_used[(int)optk_one_instantiation_per_object]) {
       command_line_error(
               ec_cl_one_instantiation_per_object_option_only_in_cplusplus);
     }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {
       address_of_ellipsis_allowed = TRUE;
