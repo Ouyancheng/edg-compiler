@@ -3529,6 +3529,9 @@ structure.
       db_symbol(templ_sym, "template: ", 2);
     }  /* if */
 #endif /* DEBUG */
+#if RECORD_HIDDEN_NAMES_IN_IL
+    check_for_defeatable_name_hiding(sym);
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   } else {
     /* We are reusing a template function that already exists, so *new_list
        will not be used.  Return it to the available list for reuse. */
