@@ -1,5 +1,13 @@
 Version 2.39
 
+2/26/98   One instantiation per object mode: virtual function tables and
+          typeinfo variables
+
+In one instantiation per object mode, virtual function tables and typeinfo
+variables for polymorphic classes are now assigned to the slice containing
+the decider function for the virtual function table, rather than to
+the primary slice.
+
 2/26/98   Microsoft compatibility: __declspec permitted on "extern template"
           declaration
 

@@ -694,6 +694,9 @@ have been called on it at some previous point.
     typeinfo_var->storage_class = (a_storage_class)sc_static;
     typeinfo_var->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_internal;
+  } else if (!is_class_type) {
+    /* typeinfo variables for nonclass cases keep whatever storage class
+       they already have. */
   } else if (definition_needed) {
     /* For an externally-linked class, change the variable to an external
        definition. */
@@ -701,11 +704,16 @@ have been called on it at some previous point.
     /* The variable can be referenced from another compilation unit.
        This is probably already set. */
     typeinfo_var->source_corresp.referenced = TRUE;
-  }  /* if */
-  if (!has_name(typeinfo_var)) {
-    /* An unnamed typeinfo variable cannot have linkage. */
-    typeinfo_var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
-    typeinfo_var->storage_class = (a_storage_class)sc_static;
+#if ONE_INSTANTIATION_PER_OBJECT
+    if (one_instantiation_per_object) {
+      /* Put the typeinfo variable into the same slice as the virtual
+         function table. */
+      a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
+                                                    virtual_function_table_var;
+      typeinfo_var->instantiation_needed_bit_number =
+                                     vtbl_var->instantiation_needed_bit_number;
+    }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
   if (definition_needed) {
     /* The initial value of the typeinfo variable is an aggregate containing

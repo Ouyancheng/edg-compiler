@@ -4142,6 +4142,16 @@ virtual function table.
       (void)make_typeinfo_var(class_type);
     }  /* if */
 #endif /* GENERATE_EH_TABLES && !ABI_CHANGES_FOR_RTTI */
+#if ONE_INSTANTIATION_PER_OBJECT
+    if (one_instantiation_per_object) {
+      /* If there is a decider function, put the virtual function table into
+         the same slice as the decider function. */
+      if (first_virtual != NULL) {
+        vtbl_var->instantiation_needed_bit_number =
+                                first_virtual->instantiation_needed_bit_number;
+      }  /* if */
+    }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   }  /* if */
   /* Do not put out the initial value if the class should not be defined
      in this compilation. */
