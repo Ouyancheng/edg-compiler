@@ -100,7 +100,7 @@ typedef struct an_il_entry_prefix {
      struct the same size as a long.  (This is just for efficiency;
      other sizes will work too.) */
 #define NUM_OF_BIT_FIELDS_IN_PREFIX                                    \
-          (3 + (DO_IL_LOWERING != 0) + (MAINTAIN_NEEDED_FLAGS != 0))
+         (3 + ((DO_IL_LOWERING != 0)?1:0) + ((MAINTAIN_NEEDED_FLAGS != 0)?1:0))
 #if __MSDOS__
   /* Under MS-DOS compilers this bit field is probably bigger than
      an "int", so use "unsigned long". */
