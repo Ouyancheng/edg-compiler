@@ -2183,7 +2183,6 @@ case of inserting an if-equivalent into the middle of an expression.
   }  /* if */
 }  /* insert_if_statement */
 
-#if ASSIGNMENT_TO_THIS_ALLOWED
 
 static void enclose_routine_in_if(a_scope_ptr      scope,
                                   an_expr_node_ptr if_node,
@@ -2238,7 +2237,6 @@ to be returned.
   }  /* if */
 }  /* enclose_routine_in_if */
 
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 
 /*
 If variable != NULL, transfer the sequence number from it into stmt.
@@ -5557,21 +5555,10 @@ we know we are calling the destructor for a complete object.
   /* Get the class type. */
   class_type = dtor_routine->source_corresp.class_of_which_a_member;
   prelower_class_type(class_type);
-#if ASSIGNMENT_TO_THIS_ALLOWED
-  /* Assignment to "this" is allowed, so we always need the implicit
-     argument. */
-#else /* !ASSIGNMENT_TO_THIS_ALLOWED */
-  if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-    /* The class has at least one virtual base class. */
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-    /* 0x2 bit means "have complete object".  0x1 bit means "free storage"
-       which does not apply here. */
-    *implied_arg_node = node_for_integer_constant(
-                                                have_complete_object ? 2L : 0L,
+  /* 0x2 bit means "have complete object".  0x1 bit means "free storage"
+     which does not apply here. */
+  *implied_arg_node = node_for_integer_constant(have_complete_object ? 2L : 0L,
                                                 (an_integer_kind)ik_int);
-#if !ASSIGNMENT_TO_THIS_ALLOWED
-  }  /* if */
-#endif /* !ASSIGNMENT_TO_THIS_ALLOWED */
 }  /* make_dtor_implied_arg_list */
 
 
@@ -6054,16 +6041,22 @@ and update *insert_location.
 }  /* add_array_constructor_call */
 
 
+/* Declaration needed because of forward reference: */
+static void lower_virtual_function_call(an_expr_node_ptr expr);
+
+
 static void add_destructor_call(a_dynamic_init_ptr     dip,
                                 an_expr_node_ptr       entity_node,
                                 a_boolean              have_complete_object,
+                                a_boolean              honor_virtual,
                                 an_insert_location_ptr insert_location)
 /*
 Make a call statement that invokes a destructor as required in the dynamic
 initialization entry pointed to by dip.  entity_node is an expression
 that gives the address of the entity to be destroyed.  have_complete_object
 is TRUE if the entity is a complete object.  Insert the statement at
-*insert_location and update *insert_location.
+*insert_location and update *insert_location.  The call generated is
+a virtual call only if honor_virtual is TRUE and the destructor is virtual.
 */
 {
   a_routine_ptr    destr_routine = dip->destructor;
@@ -6082,6 +6075,18 @@ is TRUE if the entity is a complete object.  Insert the statement at
   entity_node->next = implied_arg_node;
   /* Make an expression statement containing the call expression. */
   call_stmt = make_call_statement(destr_routine, entity_node);
+  if (honor_virtual && destr_routine->is_virtual) {
+    /* Virtual destructor.  Generate a virtual call. */
+    an_expr_node_ptr call_node = call_stmt->expr;
+#if CHECKING
+    if (!is_operation_node(call_node) ||
+        call_node->variant.operation.kind != (an_expr_operator_kind)eok_call) {
+      internal_error("add_destructor_call: cannot find call node");
+    }  /* if */
+#endif /* CHECKING */
+    call_node->variant.operation.kind =(an_expr_operator_kind)eok_virtual_call;
+    lower_virtual_function_call(call_node);
+  }  /* if */
   /* If the destruction is for a whole variable, the position is available
      from the variable. */
   transfer_seq_from_var_to_statement(dip->variable, call_stmt);
@@ -6982,6 +6987,7 @@ and ipdp identifies the entity to be destroyed.  The statements are inserted at
   } else {
     /* Destruction of simple entity (non-array). */
     add_destructor_call(dip, entity_node, /*have_complete_object=*/TRUE,
+                        /*honor_virtual=*/FALSE,
                         insert_location);
   }  /* if */
 }  /* lower_destructor_dynamic_init */
@@ -7132,25 +7138,15 @@ entry and the type, not of the routine body if any
   class_type = type_pointed_to(first_param->type);
   class_type = skip_typerefs(class_type);
   prelower_class_type(class_type);
-#if ASSIGNMENT_TO_THIS_ALLOWED
   /* Add an int parameter that will indicate whether or not we have a
      complete object and whether or not the storage should be freed.
      add_destructor_params does the similar processing for param variables. */
-#else /* !ASSIGNMENT_TO_THIS_ALLOWED */
-  /* If the class has any virtual base classes, add an int parameter that
-     will indicate whether or not we have a complete object.
-     add_destructor_params does the similar processing for param variables. */
-  if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-    added_param = alloc_param_type(integer_type((an_integer_kind)ik_int));
-    /* Note that the original parameter entries have already been lowered,
-       so it is not necessary to set il_walk_flag to ensure that the
-       whole list will be visited. */
-    added_param->next = first_param->next;
-    first_param->next = added_param;
-#if !ASSIGNMENT_TO_THIS_ALLOWED
-  }  /* if */
-#endif /* !ASSIGNMENT_TO_THIS_ALLOWED */
+  added_param = alloc_param_type(integer_type((an_integer_kind)ik_int));
+  /* Note that the original parameter entries have already been lowered,
+     so it is not necessary to set il_walk_flag to ensure that the
+     whole list will be visited. */
+  added_param->next = first_param->next;
+  first_param->next = added_param;
 }  /* lower_destructor_routine */
 
 
@@ -8730,13 +8726,12 @@ for a "new" or destruction for a "delete".
   a_constant         null_constant;
   a_variable_ptr     temp_var;
   an_expr_node_ptr   temp_var_node, assign_node, compare_node, null_node;
-  an_expr_node_ptr   init_node, init_expr, temp_expr, alloc_node, cast_node;
+  an_expr_node_ptr   init_node, init_expr, alloc_node, cast_node;
   an_insert_location insert_location;
   an_init_pos_descr  ipd;
   a_dynamic_init_ptr dip;
   a_boolean          keep_dynamic_init, keep_constant, delete_case;
   a_type_ptr         array_type;
-  an_expr_node_ptr   implied_arg_list, end_implied_arg_list;
 
   dip = expr->variant.init.dynamic_init;
   /* Handle new of an array in a specialized routine.  Delete of an array
@@ -8774,8 +8769,9 @@ for a "new" or destruction for a "delete".
     /* The initialization is a constructor call.  That test also guarantees
        that we are not dealing with an array case or a delete case. */
     a_routine_ptr    ctor_routine = dip->variant.constructor.routine;
-    an_expr_node_ptr null_node, call_node;
+    an_expr_node_ptr temp_expr, null_node, call_node;
     a_type_ptr       rout_class;
+    an_expr_node_ptr implied_arg_list, end_implied_arg_list;
 
     /* See if the address comes from a call of the default "new" routine. */
     temp_expr = expr->variant.init.expr;
@@ -8911,6 +8907,7 @@ for a "new" or destruction for a "delete".
       /* Normal case; generate the code to do the destruction. */
       add_destructor_call(dip, var_rvalue_expr(temp_var),
                           /*have_complete_object=*/TRUE,
+                          /*honor_virtual=*/TRUE,
                           &insert_location);
     }  /* if */
   }  /* if */
@@ -8928,7 +8925,6 @@ for a "new" or destruction for a "delete".
 node_processed:;
 }  /* lower_new_init */
 
-#if ASSIGNMENT_TO_THIS_ALLOWED
 
 static a_boolean is_simple_delete_with_dtor_call(
                                               an_expr_node_ptr   expr,
@@ -8987,8 +8983,6 @@ can be rewritten as just a destructor call.  When TRUE is returned,
   return is_simple_delete;
 }  /* is_simple_delete_with_dtor_call */
 
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-#if ASSIGNMENT_TO_THIS_ALLOWED
 
 static void lower_simple_delete(an_expr_node_ptr expr,
                                 a_routine_ptr    dtor_routine,
@@ -9044,7 +9038,6 @@ dtor_routine points to the destructor routine and dtor_this is the
   }  /* if */
 }  /* lower_simple_delete */
 
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 
 /* Declaration needed because of forward reference: */
 static void add_constructor_wrapper_code(a_scope_ptr        scope,
@@ -9067,11 +9060,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   a_variable_ptr        var, temp_var;
   unsigned int          is_lvalue_mask;
   a_boolean             is_conditional_operator;
-#if ASSIGNMENT_TO_THIS_ALLOWED
-  a_routine_ptr         curr_routine;
   a_routine_ptr         dtor_routine;
   an_expr_node_ptr      dtor_this;
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 
   lower_os_type(expr->type);
   switch (expr->kind) {
@@ -9126,14 +9116,12 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         /* Cast of pointer-to-member to base or derived class is rewritten.
            This call also lowers any subtree. */
         lower_pm_related_class_cast(expr, is_lvalue);
-#if ASSIGNMENT_TO_THIS_ALLOWED
       } else if (op == (an_expr_operator_kind)eok_call &&
                  is_simple_delete_with_dtor_call(expr, &dtor_routine,
                                                  &dtor_this)) {
         /* Rewrite a simple delete with destructor call as just a destructor
            call. */
         lower_simple_delete(expr, dtor_routine, dtor_this);
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
       } else if (expr->variant.operation.new_or_delete_call_for_array &&
                  delete_call_requires_array_handling(expr)) {
 #if CHECKING
@@ -9247,7 +9235,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           case eok_passign:
             /* Check for assignment to "this" in a constructor. */
             if (nearest_function_scope != NULL) {
-              curr_routine = nearest_function_scope->variant.routine.ptr;
+              a_routine_ptr curr_routine =
+                                   nearest_function_scope->variant.routine.ptr;
               if (curr_routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
                 a_variable_ptr this_param_var =
@@ -10607,6 +10596,7 @@ at *insert_location, and *insert_location is updated.
     /* Normal case; generate the code to do the destruction. */
     subentity_node = make_init_entity_node(&ipd);
     add_destructor_call(dip, subentity_node, have_complete_object,
+                        /*honor_virtual=*/FALSE,
                         insert_location);
   }  /* if */
 }  /* lower_dtor_init */
@@ -10619,33 +10609,17 @@ scope.
 */
 {
   a_variable_ptr this_param_var, complete_obj_param_var;
-#if !ASSIGNMENT_TO_THIS_ALLOWED
-  a_type_ptr     class_type;
-  a_routine_ptr  dtor_routine = scope->variant.routine.ptr;
-#endif /* !ASSIGNMENT_TO_THIS_ALLOWED */
 
   this_param_var = scope->variant.routine.parameters;
-#if ASSIGNMENT_TO_THIS_ALLOWED
-  /* Assignment to "this" is allowed, so add a parameter of type int
-     after the "this" parameter.  The new parameter has the 0x2 bit on if
-     a complete object is being destroyed, and the 0x1 bit on if the
-     storage should be freed. */
-#else /* !ASSIGNMENT_TO_THIS_ALLOWED */
-  class_type = dtor_routine->source_corresp.class_of_which_a_member;
-  if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-    /* The class has virtual base classes, so add a parameter of type int
-       after the "this" parameter.  The new parameter is != 0 if a
-       complete object is being destroyed. */
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-    /* lower_destructor_routine adds the parameter to the routine type
-       param_type_list. */
-    complete_obj_param_var =
+  /* Add a parameter of type int after the "this" parameter.  The new
+     parameter has the 0x2 bit on if a complete object is being destroyed,
+     and the 0x1 bit on if the storage should be freed. */
+  /* lower_destructor_routine adds the parameter to the routine type
+     param_type_list. */
+  complete_obj_param_var =
                     make_param_variable(integer_type((an_integer_kind)ik_int));
-    complete_obj_param_var->next = this_param_var->next;
-    this_param_var->next = complete_obj_param_var;
-#if !ASSIGNMENT_TO_THIS_ALLOWED
-  }  /* if */
-#endif /* !ASSIGNMENT_TO_THIS_ALLOWED */
+  complete_obj_param_var->next = this_param_var->next;
+  this_param_var->next = complete_obj_param_var;
 }  /* add_destructor_params */
 
 
@@ -10707,11 +10681,9 @@ destructor scope.
          [endfor]
        endif
      [endif]
-     [If assignment to "this" is allowed:]
-       If this != NULL and (added parameter & 0x1) != 0:
-         delete((void)*this)
-       endif
-     [endif]
+     If (added parameter & 0x1) != 0:
+       delete((void)*this)
+     endif
      return;
   */
   int_type = integer_type((an_integer_kind)ik_int);
@@ -10848,11 +10820,8 @@ destructor scope.
     /* Put out code that tests whether or not the virtual base classes need
        to be destroyed.  This is done by testing whether or not the
        added parameter indicates we have a whole object. */
-#if ASSIGNMENT_TO_THIS_ALLOWED
-    /* Note that we can do a "!= 0" test even when assignment to "this" is
-       allowed, since the 0x1 bit (for "free storage") would only be on for
-       a whole object. */
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+    /* Note that we can do a "!= 0" test instead of a bit test because the
+       0x1 bit (for "free storage") would only be on for a whole object. */
     /* Make an expression node pointing to the zero constant. */
     zero_constant_node = node_for_integer_constant(0L,
                                                    (an_integer_kind)ik_int);
@@ -10874,15 +10843,12 @@ destructor scope.
     }  /* for */
     /* Note that the "if" created above effectively ends here. */
   }  /* if */
-#if ASSIGNMENT_TO_THIS_ALLOWED
   /* Add code to free the storage if the "free" bit (0x1) is on in the
      added parameter:
-       if (this != NULL && (param & 0x1) != 0) delete-routine((void *)this);
-     If no assignment to "this" was actually done in the body of the
-     destructor, the "this != NULL &&" part if not needed. */
-  { an_expr_node_ptr this_param_node, null_constant_node, this_compare_node;
-    an_expr_node_ptr and_node, and_compare_node, two_constant_node, if_node;
-    a_constant       null_constant;
+       if ((param & 0x1) != 0) delete-routine((void *)this);
+  */
+  { an_expr_node_ptr this_param_node;
+    an_expr_node_ptr and_node, two_constant_node, if_node;
     a_statement_ptr  call_stmt;
     a_routine_ptr    delete_routine;
     a_routine_type_supplement_ptr
@@ -10899,14 +10865,14 @@ destructor scope.
     zero_constant_node = node_for_integer_constant(0L,
                                                    (an_integer_kind)ik_int);
     and_node->next = zero_constant_node;
-    and_compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
-                                          int_type, and_node);
-    /* Make "this != NULL && (param & 0x1) != 0". */
-    if (!dtor_routine->assignment_to_this_done) {
-      /* No assignment to "this" done, so the "this != NULL" test is not
-         needed. */
-      if_node = and_compare_node;
-    } else {
+    if_node = make_operator_node((an_expr_operator_kind)eok_ine,
+                                 int_type, and_node);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+    /* If an assignment to "this" was done in the body of the destructor,
+       also test "this != NULL". */
+    if (dtor_routine->assignment_to_this_done) {
+      an_expr_node_ptr null_constant_node, this_compare_node;
+      a_constant       null_constant;
       /* Make "this != NULL". */
       this_param_node = var_rvalue_expr(this_param_var);
       make_zero_of_proper_type(this_param_var->type, &null_constant);
@@ -10914,11 +10880,13 @@ destructor scope.
       this_param_node->next = null_constant_node;
       this_compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
                                              int_type, this_param_node);
-      this_compare_node->next = and_compare_node;
+      /* Make "this != NULL && (param & 0x1) != 0". */
+      this_compare_node->next = if_node;
       if_node = make_operator_node((an_expr_operator_kind)eok_land,
                                    int_type, this_compare_node);
     }  /* if */
-    /* Make "if (this != NULL && (param & 0x1) != 0)". */
+#endif ASSIGNMENT_TO_THIS_ALLOWED
+    /* Make "if ((param & 0x1) != 0)". */
     insert_if_statement(if_node, &insert_location, &insert_location2);
     /* Make "delete-routine((void *)this);" under the "if". */
     this_param_node = var_rvalue_expr(this_param_var);
@@ -10945,11 +10913,9 @@ destructor scope.
     call_stmt = make_call_statement(delete_routine, this_param_node);
     insert_statement(call_stmt, &insert_location2);
   }
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   /* Add a return statement at the end of the routine. */
   return_stmt = alloc_statement((a_statement_kind)stmk_return);
   insert_statement(return_stmt, &insert_location);
-#if ASSIGNMENT_TO_THIS_ALLOWED
   { a_statement_ptr  block_stmt;
     an_expr_node_ptr this_param_node, null_constant_node, if_node;
     a_constant       null_constant;
@@ -10964,7 +10930,6 @@ destructor scope.
     /* Make the "if" statement. */
     enclose_routine_in_if(scope, if_node, &block_stmt, (a_variable_ptr)NULL);
   }
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 }  /* lower_destructor_code */
 
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
