@@ -1,5 +1,15 @@
 Version 2.14
 
+1/29/93 Conversion of pointers to more-qualified version
+
+The conversion of a pointer type to another pointer type that has more
+type qualifiers on levels other than the first, e.g., "int **" -->
+"const int**", which was already allowed in certain cases as an
+extension, has been broadened to allow addition of type qualifiers
+on array element types, e.g., "int (*)[5]" --> "const int (*)[5]".
+In cfront compatibility mode, a warning is no longer issued for
+these cases.
+
 1/28/93 IL representation of enum types changed
 
 The IL representation of enum types has been changed; see the enum_info
@@ -30,9 +40,9 @@ the use of an unsafe cast.  This access check is disabled in cfront mode.
 1/28/93 Protected member access checking for implicitly called functions
 
 Implicit calls to protected constructors and destructors should only be
-permitted for objects of a derived class with protected access.  Additional
-calls, such as construction of base class objects were incorrectly being
-accepted.  These cases now give the appropriate errors.
+permitted for objects of a derived class with protected access (ARM 11.5).
+The access control check was not being done in some cases.  These cases
+now give the appropriate errors.
 
 	class A {
 	protected:
