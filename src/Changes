@@ -124,7 +124,7 @@ an error is now issued instead of a warning.
          invocation
 
 An internal error could occur if, after an error in a macro invocation
-has been diagnosed (such as two many arguments), the flush_tokens
+has been diagnosed (such as too many arguments), the flush_tokens
 routine encounters a construct that could be a class template reference.
 This has been corrected.
 
