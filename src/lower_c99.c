@@ -1608,6 +1608,17 @@ Do C99 lowering on the indicated variable and its subtree.
   error_position = var->source_corresp.decl_position;
   lower_c99_source_correspondence(&var->source_corresp);
   lower_c99_initializer(var->init_kind, &var->initializer);
+#if GNU_EXTENSIONS_ALLOWED
+  if (force_variable_definition_via_zeroing && var->is_not_common &&
+      var->storage_class != (a_storage_class)sc_extern &&
+      var->init_kind == (an_init_kind)initk_none) {
+    /* GNU C allows variables without initializers to be marked as "nocommon",
+       which indicates that such variables nontentative definitions.
+       This can be translated to plain C IL by providing an explicitly
+       zeroing initializer. */
+    var->init_kind = (an_init_kind)initk_zero;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   error_position = saved_error_position;
 }  /* lower_c99_variable */
 
