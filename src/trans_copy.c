@@ -797,6 +797,89 @@ do any necessary processing, e.g., externalizing it if it is static.
   }  /* if */
 }  /* process_routine_if_unneeded_non_template */
 
+#if CHECKING
+
+static int corresp_ranking(char             *ptr,
+                           an_il_entry_kind kind)
+/*
+Return a correspondence ranking for the indicated entry, of kind "kind".
+The entry with the highest value should be the canonical entry.
+*/
+{
+  int rank = 0;
+
+  switch (kind) {
+    case iek_type:
+      { a_type_ptr type = (a_type_ptr)ptr;
+        if (is_immediate_class_type(type)) {
+          rank = class_type_has_body(type);
+          if (type->variant.class_struct_union.is_specialized) rank += 2;
+        } else if (is_immediate_enum_type(type)) {
+          rank = !is_incomplete_type(type);
+        } else {
+          rank = 0;
+        }  /* if */
+      }
+      break;
+    case iek_variable:
+      { a_variable_ptr var = (a_variable_ptr)ptr;
+        rank = (var->storage_class == (a_storage_class)sc_unspecified);
+        if (var->is_specialized) rank += 2;
+      }
+      break;
+    case iek_routine:
+      { a_routine_ptr rout = (a_routine_ptr)ptr;
+        rank = (rout->assoc_scope != NULL_region_number);
+        if (rout->is_specialized) rank += 2;
+      }
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return rank;
+}  /* corresp_ranking */
+
+
+static void check_correspondences(a_source_correspondence *scp,
+                                  an_il_entry_kind        kind)
+/*
+Check that the correspondences, if any, established for the entity whose
+source correspodence field is scp and whose kind is "kind" are consistent.
+*/
+{
+  a_trans_unit_corresp_ptr tucp = scp->trans_unit_corresp;
+
+  if (tucp == NULL) {
+    /* An entry without a correspondence should not have external linkage. */
+    if (scp->name != NULL &&
+        scp->name_linkage != (a_name_linkage_kind)nlk_external &&
+        scp->name_linkage != (a_name_linkage_kind)nlk_cplusplus_external) {
+#if DEBUG
+      db_entity_info((char *)scp, kind);
+#endif /* DEBUG */
+      unexpected_condition_str(
+                    "entity with external linkage does not have corresp info");
+    }  /* if */
+  } else {
+    if (tucp->canonical == tucp->primary) {
+      if (corresp_ranking(tucp->primary, kind) >
+          corresp_ranking((char*)scp, kind)) {
+        /* The primary IL entry is the canonical one, but the current entry
+           is better.  That means the correspondence information is wrong. */
+#if DEBUG
+        db_entity_info(tucp->primary, kind);
+        db_entity_info((char *)scp, kind);
+#endif /* DEBUG */
+        unexpected_condition_str("primary entry should not be canonical");
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_correspondences */
+
+#else /* !CHECKING */
+#define check_correspondences(scp, kind) /* Nothing */
+#endif /* CHECKING */
+
 
 static void f_mark_to_merge(char             *ptr,
                             an_il_entry_kind kind)
@@ -1000,6 +1083,7 @@ to the secondary translation unit.
   /* Visit all types. */
   prev_type = NULL;
   for (type = scope->types; type != NULL; type = type->next) {
+    check_correspondences(&type->source_corresp, iek_type);
     keep_on_list = TRUE;
     if (is_immediate_class_type(type) &&
         type->variant.class_struct_union.extra_info != NULL &&
@@ -1065,6 +1149,7 @@ to the secondary translation unit.
   for (variable = scope->variables;
        variable != NULL;
        variable = variable->next) {
+    check_correspondences(&variable->source_corresp, iek_variable);
     keep_on_list = TRUE;
     /* If we're supposed to copy only generated templates, other variables
        are made external (if necessary) and their definitions are
@@ -1151,6 +1236,7 @@ to the secondary translation unit.
   for (routine = scope->routines;
        routine != NULL;
        routine = routine->next) {
+    check_correspondences(&routine->source_corresp, iek_routine);
     keep_on_list = TRUE;
     /* If we're supposed to copy only generated templates, other routines
        are made external (if necessary) and their definitions are
