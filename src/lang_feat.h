@@ -22,14 +22,18 @@ Flag that is TRUE to allow the AT&T extensions to ANSI C preprocessing,
 i.e., #assert, #unassert, and the use of assertions in #if expressions.
 These extensions were added in System V release 4.
 */
+#ifndef ATT_PREPROCESSING_EXTENSIONS_ALLOWED
 #define ATT_PREPROCESSING_EXTENSIONS_ALLOWED TRUE
+#endif /* ifndef ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 
 /*
 Flag that is TRUE to include asm function definitions in the language.
 Note that in the standard version the code to implement this is not
 included, so this flag cannot be set to TRUE.
 */
+#ifndef ASM_FUNCTION_ALLOWED
 #define ASM_FUNCTION_ALLOWED FALSE
+#endif /* ifndef ASM_FUNCTION_ALLOWED */
 
 /*
 Flag that is TRUE if assignment to "this" (a C++ anachronism) should
@@ -37,21 +41,27 @@ be allowed.  This affects the source language accepted.  If assignment
 to "this" is allowed, the interface to and wrapper code within constructors
 and destructors may have to be changed.
 */
+#ifndef ASSIGNMENT_TO_THIS_ALLOWED
 #define ASSIGNMENT_TO_THIS_ALLOWED TRUE
+#endif /* ifndef ASSIGNMENT_TO_THIS_ALLOWED */
 
 /*
 Flag that is TRUE to allow dollar signs ($) in identifiers.  This is the
 default value for the flag that can be modified by a command line
 option.
 */
+#ifndef DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS
 #define DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS FALSE
+#endif /* ifndef DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS */
 
 /*
 Flag that is TRUE to allow anachronisms to be accepted in the source
 language.  This is the default value for a flag that can be modified by
 a command line option.
 */
+#ifndef DEFAULT_ALLOW_ANACHRONISMS
 #define DEFAULT_ALLOW_ANACHRONISMS TRUE
+#endif /* ifndef DEFAULT_ALLOW_ANACHRONISMS */
 
 /*
 Flag that is TRUE if integer arguments to prototyped functions are passed
@@ -70,13 +80,17 @@ not be widened depending on the implementation.  If we can say "this
 implementation always does widening," the two declarations can be
 considered compatible.
 */
+#ifndef PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED
 #define PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED FALSE
+#endif /* ifndef PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED */
 
 /*
 Flag that is TRUE if the "long long" data type and the associated language
 features (e.g., suffixes for constants) are allowed.
 */
+#ifndef LONG_LONG_ALLOWED
 #define LONG_LONG_ALLOWED TRUE
+#endif /* ifndef LONG_LONG_ALLOWED */
 
 /*
 Flag that is TRUE if pointers to incomplete arrays should be allowed
@@ -89,7 +103,9 @@ in pointer addition and subtraction operations, e.g.,
 If this is turned on, the back end must be able to deal with the
 resultant operations on pointers to zero-length types.
 */
+#ifndef PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
 #define PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED FALSE
+#endif /* ifndef PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
 
 /*
 Flag that is TRUE if C anachronisms should be allowed.  The anachronisms
@@ -100,7 +116,9 @@ are those of Appendix A, section 17 of K&R I:
   (2)  Omitted "=" in initialization:
          int i 1;
 */
+#ifndef C_ANACHRONISMS_ALLOWED
 #define C_ANACHRONISMS_ALLOWED FALSE
+#endif /* ifndef C_ANACHRONISMS_ALLOWED */
 
 #endif /* ifndef LANG_FEAT_H */
 
