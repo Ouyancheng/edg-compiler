@@ -1,5 +1,20 @@
 Version 2.46
 
+6/29/01  Requirement for object pointer for builtin operator forces
+         instantiation
+
+A requirement of a builtin operator that an operand type be a pointer
+to object type now forces the instantiation in overload resolution
+of the underlying type of the pointer when it is a template class.
+
+  template <class T> struct A {};
+  struct B { operator int(); };
+  int main () {
+    A<int> *p;
+    B x;
+    p[x];  // No error now
+  }
+
 6/29/01  Incorrect result from division of large values with simulated integers
 
 When using simulated integers (i.e., when INTEGER_VALUE_REPR_IS_HOST_INTEGER

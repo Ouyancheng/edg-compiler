@@ -6224,6 +6224,23 @@ be dependent).  This routine is called only in C++ mode.
 }  /* select_and_prepare_to_call_overloaded_function */
 
 
+static a_boolean is_object_pointer_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a pointer to an object type.
+Instantiate the underlying type if necessary to make it a complete type.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_pointer_type(tp)) {
+    a_type_ptr underlying_type = type_pointed_to(tp);
+    complete_type_is_needed(underlying_type);
+    result = is_object_type(underlying_type);
+  }  /* if */
+  return result;
+}  /* is_object_pointer_type */
+
+
 static void try_conversion_function_match(
                             an_operand               *source_operand,
                             a_type_ptr               dest_type,
@@ -6498,8 +6515,7 @@ This routine is only used in C++ mode.
           ((builtin_types_allowed & BTK_POINTER) != 0 &&
                                               is_pointer_type(return_type)) ||
           ((builtin_types_allowed & BTK_OBJECT_POINTER) != 0 &&
-                               is_pointer_type(return_type) &&
-                               is_object_type(type_pointed_to(return_type))) ||
+                                        is_object_pointer_type(return_type)) ||
           ((builtin_types_allowed & BTK_FUNCTION_POINTER) != 0 &&
                              is_pointer_type(return_type) &&
                              is_function_type(type_pointed_to(return_type))) ||
@@ -6834,8 +6850,7 @@ it fits that type description or can be converted to it.
       matches = is_pointer_type(type);
       break;
     case OBJECT_POINTER_TYPE_CODE:
-      matches = is_pointer_type(type) &&
-                is_object_type(type_pointed_to(type));
+      matches = is_object_pointer_type(type);
       break;
     case FUNCTION_POINTER_TYPE_CODE:
       matches = is_pointer_type(type) &&
