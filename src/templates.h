@@ -416,10 +416,6 @@ extern void template_directive_or_declaration(
 			a_token_kind			*final_token,
 			a_template_decl_options_set	options);
 
-extern void add_befriending_class_to_class_template(
-                       a_template_symbol_supplement_ptr     tssp,
-		       a_type_ptr                           class_declared_in);
-
 extern
 void set_nested_template_class_symbol_info(a_symbol_ptr  sym,
                                            a_type_kind	 type_kind);

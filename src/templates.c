@@ -9615,8 +9615,8 @@ template.  Also update any instances that have already been generated.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-void add_befriending_class_to_class_template(
-                       a_template_symbol_supplement_ptr     tssp,
+static void add_befriending_class_to_class_template
+                      (a_template_symbol_supplement_ptr     tssp,
 		       a_type_ptr                           class_declared_in)
 /*
 Indicate that the template designated by tssp is a friend of the class
