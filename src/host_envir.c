@@ -88,7 +88,7 @@ EXTERN_C int stat(char *path, struct stat *buf);
 
 #include <signal.h>
 /* SunOS 4.1 switched to the ANSI form of signal. */
-#if __ANSIC__ || sun
+#if __ANSIC__ || sun || __hpux
 typedef void a_signal_handler_return_value;
 #else /* !__ANSIC__ */
 typedef int a_signal_handler_return_value;
@@ -1492,7 +1492,7 @@ since the start of the compilation.  The value is converted to milliseconds.
   return cpu_time;
 #else /* !__ANSIC__ */
   /* This version uses the UNIX routines to get the CPU time. */
-  clock_t	cpu_time;
+  clock_t	cpu_time = 0;
   double	temp;
   struct tms	buffer;
 
@@ -1504,8 +1504,8 @@ since the start of the compilation.  The value is converted to milliseconds.
        value to milliseconds. */
     temp = cpu_time;
     temp = (cpu_time * 1000) / CLOCK_FREQUENCY;
+    cpu_time = temp;
   }  /* if */
-  cpu_time = temp;
   return cpu_time;
 #endif /* __ANSIC__ */
 }  /* get_cpu_time */

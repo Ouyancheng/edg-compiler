@@ -1,5 +1,11 @@
 Version 2.22
 
+1/31/94  Undefined result if times() should fail
+
+If the times() function (used with the -# option to get CPU time
+information) returned an error status the CPU time returned by
+get_cpu_time was undefined.  The return value is now set to zero
+
 1/27/94  Recognition of new keywords
 
 Remarks are issued when any of the new keywords that have been added
