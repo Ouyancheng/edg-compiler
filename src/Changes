@@ -426,7 +426,9 @@ definitions.  For example:
   __attribute__((const)) void f() {}  // C++-generating back end dropped
                                       // the attribute.
 
-This is now fixed.
+This is now fixed.  As part of this change the attribute-output routines
+in c_gen_be.c and cp_gen_be.c have been consolidated and moved to
+il_to_str.c.
 
 2/19/04  GNU mode: Diagnostics on functions with noreturn attribute
 
