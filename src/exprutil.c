@@ -3739,6 +3739,12 @@ the expression.
       if (!see_if_possible) {
         node = node->variant.operation.operands;
       }  /* if */
+    } else if (op == (an_expr_operator_kind)eok_subscript) {
+      /* "[]" operator -- transform to pointer addition. */
+      possible = TRUE;
+      if (!see_if_possible) {
+        node->variant.operation.kind = (an_expr_operator_kind)eok_padd_subsc;
+      }  /* if */
     } else if (op == (an_expr_operator_kind)eok_question) {
       /* "?" operator -- transform each branch independently to an address. */
       op1 = node->variant.operation.operands;
@@ -3761,18 +3767,18 @@ the expression.
           op2->next = op3;
         }  /* if */
       }  /* if */
-    } else if (op == (an_expr_operator_kind)eok_subscript) {
-      /* "[]" operator -- transform to pointer addition. */
+    } else if (op == (an_expr_operator_kind)eok_comma) {
+      /* "," operator -- try to transform the second operand to an lvalue. */
       op1 = node->variant.operation.operands;
-      /* See if the operand can be rewritten. */
-      conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+      op2 = op1->next;
+      conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
                                                /*see_if_possible=*/TRUE);
-      if (op1_possible) {
+      if (op2_possible) {
         possible = TRUE;
         if (!see_if_possible) {
-          conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+          conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
                                                    /*see_if_possible=*/FALSE);
-          op = (an_expr_operator_kind)eok_padd_subsc;
+          op1->next = op2;
         }  /* if */
       }  /* if */
     } else if (op == (an_expr_operator_kind)eok_value_field) {
