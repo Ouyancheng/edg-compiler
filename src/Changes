@@ -184,7 +184,9 @@ case correctly:
 The expression-processing routines were also modified to recognize the
 generated function for the bitwise copy assignment operator, and to
 generate an assignment to do bitwise copy, instead of a call, if that
-function is selected by overload resolution (1/24/96).
+function is selected by overload resolution (1/24/96).  Note: this change
+is not enabled in cfront mode, where it would introduce incompatibilities
+in rare cases.
 
 -------------------------------------------------------------------------------
 Version 2.31, January 19, 1996
