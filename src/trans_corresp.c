@@ -2118,7 +2118,6 @@ type.
       if (sec == type) {
         /* The type was first instantiated in a primary translation unit.
            There are no correspondences to be set. */
-        clear_class_type_correspondence(type, /*visited=*/TRUE);
         break;
       } else if (!in_secondary_trans_unit(sec)) {
         /* A primary translation unit correspondence: not what we are looking
