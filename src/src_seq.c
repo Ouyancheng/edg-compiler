@@ -622,14 +622,6 @@ updating list_ptr and end_of_list_ptr if appropriate.
                            &(scope_stack_ptr)->end_of_source_sequence_list)
 
 
-/* Macro to call unlink_src_seq_entries.  head and tail are source sequence
-   entry pointers that specify a sublist of a list of source sequence entries,
-   and il_scope points to the scope entry to which the list belongs. */
-#define unlink_il_scope_src_seq_entries(head, tail, il_scope)           \
-  f_unlink_src_seq_entries((head), (tail),                              \
-                           &(il_scope)->source_sequence_list,           \
-                           (a_source_sequence_entry_ptr *)NULL);
-
 /* Macro to call unlink_src_seq_entries when there is only one entry to
    unlink (not a list).  il_scope points to the scope entry to which the
    list belongs. */
