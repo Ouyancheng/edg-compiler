@@ -1279,20 +1279,15 @@ typedef struct a_symbol {
 		decl_position;
 			/* Source position of the declaration of this
 			   symbol. */
-  union {
-    /* When is_class_member is TRUE: */
-    a_type_ptr	class_type;
-			/* Pointer to the class of which this symbol is a
-			   member; in C a pointer to the struct/union in
-			   which the field was defined. */
-#if 0
-    /* When is_class_member is FALSE. */
-    a_namespace_ptr
-		namespace;
-			/* If the symbol is an immediate member of a namespace,
-			   a pointer to the latter; otherwise, NULL. */
-#endif /* if 0 */
-  } parent;
+  a_parent_class_or_namespace
+		parent;
+			/* When is_class_member is TRUE, parent.class_type
+			   points to the class of which the current symbol is
+			   a member; it may be assumed to be non-NULL.  When
+			   is_class_member is FALSE and the current entity
+			   was declared to be a namespace member (C++ only),
+			   parent.namespace_ptr points to the namespace;
+			   otherwise it is NULL. */
   a_symbol_kind kind;
 			/* The kind of symbol. */
   unsigned int	referenced:1;
@@ -1845,6 +1840,10 @@ typedef struct a_scope_stack_entry {
 			   last_scope, then transferred to the il_scope entry
 			   or into the parent scope when the current scope
 			   is popped. */
+  a_namespace_ptr
+		last_namespace;
+			/* End of list of namespace entries in this scope,
+			   NULL if there are none. */
   a_dynamic_init_ptr
 		last_dynamic_init;
 			/* End of list of local dynamic initializations, NULL

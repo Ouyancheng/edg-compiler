@@ -852,6 +852,8 @@ Put out a scope kind name (for debugging).
 
   switch (sck) {
     case sck_file:                   s = "file";                     break;
+    case sck_namespace:              s = "namespace";                break;
+    case sck_namespace_reactivation: s = "namespace reactivation";   break;
     case sck_func_prototype:         s = "function prototype";       break;
     case sck_block:                  s = "block";                    break;
     case sck_class_struct_union:     s = "class/struct/union";       break;
@@ -897,6 +899,14 @@ Dump the entire scope stack (for debugging).
       case sck_block:
         if (ssep->il_scope == NULL) {
           fprintf(f_debug, "null IL scope");
+        }  /* if */
+        break;
+      case sck_namespace:
+      case sck_namespace_reactivation:
+        if (ssep->il_scope == NULL) {
+          fprintf(f_debug, "null IL scope");
+        } else {
+          db_name(&ssep->il_scope->variant.assoc_namespace->source_corresp);
         }  /* if */
         break;
       case sck_class_struct_union:
@@ -7231,6 +7241,7 @@ specific version of the template.
   ssep->last_asm_entry           = NULL;
   ssep->first_scope              = NULL;
   ssep->last_scope               = NULL;
+  ssep->last_namespace           = NULL;
   ssep->last_dynamic_init        = NULL;
   ssep->last_pragma              = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
