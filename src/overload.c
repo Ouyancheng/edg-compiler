@@ -10833,7 +10833,9 @@ acceptable copy constructor is found but one would have been
 acceptable except that it's uncallable, return that one and set
 *uncallable to TRUE.  uncallable can be NULL if that feature is not
 wanted.  If a bitwise copy is allowed, return NULL and
-*class_bitwise_copy TRUE.  This routine is used only in C++ mode.
+*class_bitwise_copy TRUE (this is also returned when the class_type
+is template-dependent in a prototype instantiation).  This routine is
+used only in C++ mode.
 */
 {
   a_symbol_ptr                   sym, cctor_sym = NULL, uncallable_sym = NULL;
@@ -10856,8 +10858,10 @@ wanted.  If a bitwise copy is allowed, return NULL and
   *class_bitwise_copy = FALSE;
   class_type = skip_typerefs(class_type);
   cssp = symbol_supplement_for_class(class_type);
-  if (cssp->construction_by_bitwise_copy_allowed) {
-    /* A bitwise copy is allowed. */
+  if (cssp->construction_by_bitwise_copy_allowed ||
+      class_type->variant.class_struct_union.is_nonreal_class) {
+    /* A bitwise copy is allowed.  Also used when the class is nonreal,
+       because we don't know about constructors in that case. */
     cctor_sym = NULL;
     *class_bitwise_copy = TRUE;
   } else {
