@@ -38,9 +38,7 @@ il.c -- Construction of intermediate language trees.
 #include "func_def.h"
 #include "pch.h"
 #include "templates.h"
-#if DEBUG
 #include "class_decl.h"
-#endif /* DEBUG */
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #if MINIMAL_INLINING
