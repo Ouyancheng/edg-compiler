@@ -77,6 +77,9 @@ Flags to be set when using the KAI inliner.
 #define C_GEN_BE_GENERATES_ANSI_C 0
 #define GCC_IS_C_GEN_BE_TARGET 0
 #endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
+/* Implement long double as double. */
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
+#define TARG_SIZEOF_LONG_DOUBLE 8
 #endif /* SUNOS */
 
 #ifndef SUN_TEST_VERSION

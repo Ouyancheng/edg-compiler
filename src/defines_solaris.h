@@ -18,6 +18,11 @@ This version is for the Sun Solaris operating system.
 
 /* Configuration definitions determined by dettarg.c: */
 
+#ifdef SUNOS
+/* SPARC SunOS specific defines.
+#define TARG_LITTLE_ENDIAN FALSE
+#define TARG_JMP_BUF_NUM_ELEMENTS 9
+#else /* ifndef SUNOS */
 #ifdef sparc
 /* SPARC Solaris specific defines. */
 #define TARG_LITTLE_ENDIAN FALSE
@@ -27,6 +32,7 @@ This version is for the Sun Solaris operating system.
 #define TARG_LITTLE_ENDIAN TRUE
 #define TARG_JMP_BUF_NUM_ELEMENTS 10
 #endif /* ifdef sparc */
+#endif /* ifdef SUNOS */
 
 #define TARG_CHAR_BIT 8
 #define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
@@ -85,7 +91,7 @@ Definitions for Solaris:
 
 /*
 Determine the C compiler being used to configure initialization handling
-in the C generating back end.
+in the C-generating back end.
 */
 #ifdef SUNOS
 /* Don't configure under SunOS. */
