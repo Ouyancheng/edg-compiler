@@ -119,6 +119,14 @@ static a_boolean
 			/* TRUE if the host system uses little-endian
 			   byte ordering. */
 
+static sizeof_t
+		data_size_of_host_fp_value;
+			/* The number of bytes of the host floating point
+			   value that actually contain data.  This is
+			   smaller than the actual size on some systems
+			   (e.g., Intel long doubles use 10 bytes of the
+			   12 bytes of allocated space). */
+
 static a_boolean
 		long_double_has_no_implicit_bit = FALSE;
 			/* TRUE if the long double floating point type does
@@ -142,12 +150,11 @@ available.
   check_assertion_str(LDBL_MAX_EXP == 16384, /*lint !e506*/
                       "long_double_is_finite: unsupported exponent size");
   if (host_little_endian) {
-    /* The test for a 64 bit mantissa is intended to detect the Intel
-       80-bit long double format.  That format is typically stored in
-       a 12 byte value, so we can't use sizeof to get to the other
-       end of the value. */
-    p += (LDBL_MANT_DIG == 64 ? (LDBL_MANT_DIG + 16 / CHAR_BIT)
-                              : sizeof(long double));
+    /* Some long doubles don't use all of the allocated space.  This routine
+       is only used when the host floating point value is long double, so we
+       can assume that a property of a host floating point value applies to
+       a long double value too. */
+    p += data_size_of_host_fp_value;
     exponent = (p[-1] << CHAR_BIT) | p[-2];
   } else {
     /* Big-endian host. */
@@ -1204,7 +1211,8 @@ be NULL if the corresponding return value is not needed.
       if (pos_infinity != NULL) *pos_infinity = TRUE;
     }  /* if */
   } else if (temp == 0.0 &&
-             memcmp((char *)&temp, (char *)&zero, sizeof(zero)) != 0) {
+             memcmp((char *)&temp, (char *)&zero,
+                    data_size_of_host_fp_value) != 0) {
     /* Special handling to ensure that -0.0 comes out with the leading "-";
        some sprintfs do not process that correctly. */
     (void)strcpy(str, "-0.0");
@@ -1550,12 +1558,26 @@ Initialize static variables related to float_pt.c.
 {
   int		i = 1;
   sizeof_t	size;
+  int		host_fp_mant_dig;
 
   /* Determine whether the host system is big or little endian. */
   /* Suppress the CodeCenter warning that would be issued because we
      access an "int" using a "char" pointer. */
   /*SUPPRESS 112 */
   host_little_endian = (*(char *)&i) == 1;
+  /* Compute the number of bytes of the host floating point value that are
+     actually used to represent the value.  This is usually the same size
+     as the host floating point value, but on some systems may be smaller.
+     For example, the Intel long double uses only 10 bytes (80 bits) of
+     the 12 bytes of allocated space. */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  host_fp_mant_dig = LDBL_MANT_DIG;
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  host_fp_mant_dig = DBL_MANT_DIG;
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  data_size_of_host_fp_value = (host_fp_mant_dig == 64
+                              ? ((host_fp_mant_dig + 16) / CHAR_BIT)
+                              : sizeof(a_host_fp_value));
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   /* At least on Intel implementations, 80-bit floating-point values do not
      have an implicit mantissa bit. */
