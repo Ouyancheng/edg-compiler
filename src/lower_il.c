@@ -1001,7 +1001,7 @@ offset for the field.
   /* Allocate space for the whole name. */
   name_ptr = alloc_il((sizeof_t)(prefix_length + name_length + 1));
   /* Copy in the prefix. */
-  (void)memcpy(name_ptr, field_prefix, (int)prefix_length);
+  (void)memcpy(name_ptr, field_prefix, size_t_arg(prefix_length));
   /* Store the base class name. */
   (void)mangled_basic_class_name(base_class_type, name_ptr+prefix_length);
   name_ptr[prefix_length+name_length] = '\0';
@@ -2870,7 +2870,7 @@ used to encode constants as part of the mangled names of template classes.
         *store_at++ = 'L';
         (void)sprintf(store_at, "%lu", (unsigned long)str_length);
         store_at += digits;
-        (void)memcpy(store_at, str, (int)str_length);
+        (void)memcpy(store_at, str, size_t_arg(str_length));
         /* Use "n" to represent a minus sign. */
         if (*store_at == '-') *store_at = 'n';
         store_at += str_length;
@@ -2970,7 +2970,7 @@ used to encode constants as part of the mangled names of template classes.
                                                     store_at);
             } else {
               /* Normal variable. */
-              (void)memcpy(store_at, str, (int)str_length);
+              (void)memcpy(store_at, str, size_t_arg(str_length));
             }  /* if */
           } else {
             (void)mangled_function_name(routine,
@@ -2993,7 +2993,7 @@ used to encode constants as part of the mangled names of template classes.
             *store_at++ = 'O';
             (void)sprintf(store_at, "%lu", (unsigned long)str_length);
             store_at += digits;
-            (void)memcpy(store_at, str, (int)str_length);
+            (void)memcpy(store_at, str, size_t_arg(str_length));
             /* Use "n" to represent a minus sign. */
             if (*store_at == '-') *store_at = 'n';
             store_at += str_length;
@@ -3033,7 +3033,7 @@ used to encode constants as part of the mangled names of template classes.
           *store_at++ = 'L';
           (void)sprintf(store_at, "%lu", (unsigned long)str_length);
           store_at += digits;
-          (void)memcpy(store_at, str, (int)str_length);
+          (void)memcpy(store_at, str, size_t_arg(str_length));
           /* Use "n" to represent a minus sign. */
           if (*store_at == '-') *store_at = 'n';
           store_at += str_length;
@@ -3055,7 +3055,7 @@ used to encode constants as part of the mangled names of template classes.
         str_length = strlen(str);  /* Includes "-" sign if any. */
         literal_length += str_length;
         if (store_at != NULL) {
-          (void)memcpy(store_at, str, (int)str_length);
+          (void)memcpy(store_at, str, size_t_arg(str_length));
           /* Use "n" to represent a minus sign. */
           if (*store_at == '-') *store_at = 'n';
           store_at += str_length;
@@ -3071,7 +3071,7 @@ used to encode constants as part of the mangled names of template classes.
           *store_at++ = 'L';
           (void)sprintf(store_at, "%lu", (unsigned long)str_length);
           store_at += digits;
-          (void)memcpy(store_at, str, (int)str_length);
+          (void)memcpy(store_at, str, size_t_arg(str_length));
           /* Use "n" to represent a minus sign. */
           if (*store_at == '-') *store_at = 'n';
           store_at += str_length;
@@ -3090,7 +3090,7 @@ used to encode constants as part of the mangled names of template classes.
           if (store_at != NULL) {
             (void)sprintf(store_at, "%lu", (unsigned long)str_length);
             store_at += digits;
-            (void)memcpy(store_at, str, (int)str_length);
+            (void)memcpy(store_at, str, size_t_arg(str_length));
             store_at += str_length;
           }  /* if */
         } else {
@@ -3100,7 +3100,7 @@ used to encode constants as part of the mangled names of template classes.
           str_length = strlen(str);  /* Includes "-" sign if any. */
           literal_length += str_length;
           if (store_at != NULL) {
-            (void)memcpy(store_at, str, (int)str_length);
+            (void)memcpy(store_at, str, size_t_arg(str_length));
             /* Use "n" to represent a minus sign. */
             if (*store_at == '-') *store_at = 'n';
             store_at += str_length;
@@ -3178,7 +3178,7 @@ the name.
   name = type->source_corresp.name;
   mangled_name_length = strlen(name);
   if (store_at != NULL) {
-    (void)memcpy(store_at, name, (int)mangled_name_length);
+    (void)memcpy(store_at, name, size_t_arg(mangled_name_length));
     store_at += mangled_name_length;
   }  /* if */
   if (template_arg_list != NULL &&
@@ -3362,7 +3362,7 @@ initial parts of the qualified names.
       /* Actually store the name. */
       (void)sprintf(store_at, "%lu", (unsigned long)name_length);
       store_at += digits;
-      (void)memcpy(store_at, name, (int)name_length);
+      (void)memcpy(store_at, name, size_t_arg(name_length));
       store_at += name_length;
     }  /* if */
   }  /* if */
@@ -3521,7 +3521,7 @@ See ARM 7.2.1c for name encoding.
     section_length = strlen(s);
     mangled_name_length += section_length;
     if (store_at != NULL) {
-      (void)memcpy(store_at, s, (int)section_length);
+      (void)memcpy(store_at, s, size_t_arg(section_length));
       store_at += section_length;
     }  /* if */
     /* Do any processing needed after the description letter. */
@@ -3771,7 +3771,7 @@ types; just put out the base encoded name.
   section_length = strlen(name);
   mangled_name_length += section_length;
   if (store_at != NULL) {
-    (void)memcpy(store_at, name, (int)section_length);
+    (void)memcpy(store_at, name, size_t_arg(section_length));
     store_at += section_length;
   }  /* if */
   /* For a conversion function, add the type signature. */
@@ -3911,7 +3911,7 @@ the class of which the variable is a member.
   section_length = strlen(name);
   mangled_name_length += section_length;
   if (store_at != NULL) {
-    (void)memcpy(store_at, name, (int)section_length);
+    (void)memcpy(store_at, name, size_t_arg(section_length));
     store_at += section_length;
   }  /* if */
   /* Add two underscores after the name. */
@@ -4246,7 +4246,7 @@ function table is for class_type itself.  Place the mangled name at
 #define VTBL_STR "__vtbl__"
   mangled_name_length = sizeof(VTBL_STR) - 1;
   if (store_at != NULL) {
-    (void)memcpy(store_at, VTBL_STR, (int)mangled_name_length);
+    (void)memcpy(store_at, VTBL_STR, size_t_arg(mangled_name_length));
     store_at += mangled_name_length;
   }  /* if */
   if (bcp != NULL) {
@@ -5355,7 +5355,7 @@ this routine to do a relatively simple copy of the all the fields.
       name_length = strlen(name_ptr);
 #define SUB_PREFIX "_"
       new_name_ptr = alloc_il((sizeof_t)(name_length + sizeof(SUB_PREFIX)));
-      (void)memcpy(new_name_ptr, SUB_PREFIX, (int)(sizeof(SUB_PREFIX)-1));
+      (void)memcpy(new_name_ptr, SUB_PREFIX, size_t_arg(sizeof(SUB_PREFIX)-1));
       (void)strcpy(new_name_ptr + (sizeof(SUB_PREFIX)-1), name_ptr);
       subobject_type->source_corresp.name = new_name_ptr;
 #undef SUB_PREFIX
@@ -7014,7 +7014,7 @@ pointer to the routine.
      a name that is likely to be unique. */
   make_module_id();
   name = alloc_il(prefix_len + strlen(module_id) + 1);
-  (void)memcpy(name, prefix, (int)prefix_len);
+  (void)memcpy(name, prefix, size_t_arg(prefix_len));
   (void)strcpy(name+prefix_len, module_id);
   /* Make a type and routine entry for the routine. */
   init_rout = make_rout_entry(name, (a_storage_class)sc_unspecified,
