@@ -254,10 +254,10 @@ done:;
 }  /* do_default_arg_promotions_on_node */
 
 
-static an_expr_node_ptr make_call_node(a_routine_ptr      routine,
-                                       an_expr_node_ptr   arg_list,
-                                       a_boolean          honor_virtual,
-                                       an_insert_location *insert_location)
+an_expr_node_ptr make_call_node(a_routine_ptr      routine,
+                                an_expr_node_ptr   arg_list,
+                                a_boolean          honor_virtual,
+                                an_insert_location *insert_location)
 /*
 Make an expression that calls routine "routine" with arguments "arg_list",
 and return a pointer to it.  arg_list is assumed to be lowered already.

@@ -150,6 +150,47 @@ static a_routine_ptr  cast_cdouble_to_idouble = NULL;
 static a_routine_ptr  cast_clong_double_to_ilong_double = NULL;
 
 
+static an_expr_node_ptr make_prototyped_runtime_call(
+                                               char             *name,
+                                               a_routine_ptr    *routine,
+                                               a_type_ptr       return_type,
+                                               a_type_ptr       param1_type,
+                                               a_type_ptr       param2_type,
+                                               an_expr_node_ptr arg_expr_list)
+/*
+Create a call node with arguments given by arg_expr_list to a runtime routine.
+The called routine is *routine and is created with the given name and types if
+*routine is NULL (*routine is updated to point to the new routine).  Parameters
+can be left out by passing NULL parameter types (e.g., a non-NULL param1_type
+and a NULL param2_type creates a prototype for a function taking a single
+argument).
+*/
+{
+  an_expr_node_ptr  result;
+  if (*routine == NULL) {
+    /* Make the routine entry if it does not exist already. */
+    a_type_ptr        rout_type;
+    (void)make_runtime_routine(name, routine, return_type);
+    rout_type = (*routine)->type;
+    /* Prototype parameter list. */
+    rout_type->variant.routine.extra_info->prototyped = TRUE;
+    if (param1_type != NULL) {
+      a_param_type_ptr  first_param = alloc_param_type(param1_type);
+      rout_type->variant.routine.extra_info->param_type_list = first_param;
+      if (param2_type != NULL) {
+        first_param->next = alloc_param_type(param2_type);
+      }  /* if */
+    } else {
+      check_assertion(param2_type == NULL);
+    }  /* if */
+  }  /* if */
+  /* Make the call node. */
+  result = make_call_node(*routine, arg_expr_list, /*honor_virtual=*/FALSE,
+                          (an_insert_location *)NULL);
+  return result;
+}  /* make_prototyped_runtime_call */
+
+
 static void lower_c99_xnegate(an_expr_node_ptr  expr)
 /*
 Transform the given complex expression ("-z") into a function call (compatible
@@ -174,9 +215,11 @@ with C89).
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xnegate_call = make_runtime_rout_call(rout_name, &xnegate_routine,
-                                        return_type,
-                                        expr->variant.operation.operands);
+  xnegate_call = make_prototyped_runtime_call(
+                                            rout_name, &xnegate_routine,
+                                            return_type,
+                                            return_type, /*param2_type=*/NULL,
+                                            expr->variant.operation.operands);
   overwrite_node(expr, xnegate_call);
 }  /* lower_c99_xnegate */
 
@@ -205,8 +248,10 @@ Transform the given complex expression ("z1+z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xadd_call = make_runtime_rout_call(rout_name, &xadd_routine, return_type,
-                                     expr->variant.operation.operands);
+  xadd_call = make_prototyped_runtime_call(rout_name, &xadd_routine,
+                                           return_type,
+                                           return_type, return_type,
+                                           expr->variant.operation.operands);
   overwrite_node(expr, xadd_call);
 }  /* lower_c99_xadd */
 
@@ -235,9 +280,11 @@ Transform the given complex expression ("z1-z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xsubtract_call = make_runtime_rout_call(rout_name, &xsubtract_routine,
-                                          return_type,
-                                          expr->variant.operation.operands);
+  xsubtract_call = make_prototyped_runtime_call(
+                                            rout_name, &xsubtract_routine,
+                                            return_type,
+                                            return_type, return_type,
+                                            expr->variant.operation.operands);
   overwrite_node(expr, xsubtract_call);
 }  /* lower_c99_xsubtract */
 
@@ -266,9 +313,11 @@ Transform the given complex expression ("z1*z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xmultiply_call = make_runtime_rout_call(rout_name, &xmultiply_routine,
-                                          return_type,
-                                          expr->variant.operation.operands);
+  xmultiply_call = make_prototyped_runtime_call(
+                                            rout_name, &xmultiply_routine,
+                                            return_type,
+                                            return_type, return_type,
+                                            expr->variant.operation.operands);
   overwrite_node(expr, xmultiply_call);
 }  /* lower_c99_xmultiply */
 
@@ -297,9 +346,11 @@ Transform the given complex expression ("z1/z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xdivide_call = make_runtime_rout_call(rout_name, &xdivide_routine,
-                                        return_type,
-                                        expr->variant.operation.operands);
+  xdivide_call = make_prototyped_runtime_call(
+                                            rout_name, &xdivide_routine,
+                                            return_type,
+                                            return_type, return_type,
+                                            expr->variant.operation.operands);
   overwrite_node(expr, xdivide_call);
 }  /* lower_c99_xdivide */
 
@@ -330,8 +381,9 @@ Transform the given complex expression ("z1==z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xeq_call = make_runtime_rout_call(rout_name, &xeq_routine, return_type,
-                                    expr->variant.operation.operands);
+  xeq_call = make_prototyped_runtime_call(rout_name, &xeq_routine, return_type,
+                                          op_type, op_type,
+                                          expr->variant.operation.operands);
   overwrite_node(expr, xeq_call);
 }  /* lower_c99_xeq */
 
@@ -362,8 +414,9 @@ Transform the given complex expression ("z1!=z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xne_call = make_runtime_rout_call(rout_name, &xne_routine, return_type,
-                                    expr->variant.operation.operands);
+  xne_call = make_prototyped_runtime_call(rout_name, &xne_routine, return_type,
+                                          op_type, op_type,
+                                          expr->variant.operation.operands);
   overwrite_node(expr, xne_call);
 }  /* lower_c99_xne */
 
@@ -393,9 +446,12 @@ Transform the given complex expression ("z1 += z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xadd_assign_call = make_runtime_rout_call(rout_name, &xadd_assign_routine,
-                                            op_type,
-                                            expr->variant.operation.operands);
+  xadd_assign_call = make_prototyped_runtime_call(
+                                       rout_name, &xadd_assign_routine,
+                                       op_type,
+                                       expr->variant.operation.operands->type,
+                                       op_type,
+                                       expr->variant.operation.operands);
   xadd_assign_call = add_cast_if_necessary(xadd_assign_call, expr->type);
   overwrite_node(expr, xadd_assign_call);
 }  /* lower_c99_xadd_assign */
@@ -426,10 +482,12 @@ Transform the given complex expression ("z1 -= z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xsubtract_assign_call = make_runtime_rout_call(
-                            rout_name, &xsubtract_assign_routine,
-                            op_type,
-                            expr->variant.operation.operands);
+  xsubtract_assign_call = make_prototyped_runtime_call(
+                                       rout_name, &xsubtract_assign_routine,
+                                       op_type,
+                                       expr->variant.operation.operands->type,
+                                       op_type,
+                                       expr->variant.operation.operands);
   xsubtract_assign_call = add_cast_if_necessary(xsubtract_assign_call,
                                                 expr->type);
   overwrite_node(expr, xsubtract_assign_call);
@@ -461,10 +519,12 @@ Transform the given complex expression ("z1 *= z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xmultiply_assign_call = make_runtime_rout_call(
-                            rout_name, &xmultiply_assign_routine,
-                            op_type,
-                            expr->variant.operation.operands);
+  xmultiply_assign_call = make_prototyped_runtime_call(
+                                       rout_name, &xmultiply_assign_routine,
+                                       op_type,
+                                       expr->variant.operation.operands->type,
+                                       op_type,
+                                       expr->variant.operation.operands);
   xmultiply_assign_call = add_cast_if_necessary(xmultiply_assign_call,
                                                 expr->type);
   overwrite_node(expr, xmultiply_assign_call);
@@ -496,10 +556,12 @@ Transform the given complex expression ("z1 /= z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xdivide_assign_call = make_runtime_rout_call(
-                              rout_name, &xdivide_assign_routine,
-                              op_type,
-                              expr->variant.operation.operands);
+  xdivide_assign_call = make_prototyped_runtime_call(
+                                       rout_name, &xdivide_assign_routine,
+                                       op_type,
+                                       expr->variant.operation.operands->type,
+                                       op_type,
+                                       expr->variant.operation.operands);
   xdivide_assign_call = add_cast_if_necessary(xdivide_assign_call, expr->type);
   overwrite_node(expr, xdivide_assign_call);
 }  /* lower_c99_xdivide_assign */
@@ -581,7 +643,10 @@ Transform the given cast expression into a function call (compatible with C89).
           default:
             unexpected_condition_str("invalid floating-point kind");
       }  /* switch */
-      cast_call = make_runtime_rout_call(routine_name, routine, dst_type, src);
+      cast_call = make_prototyped_runtime_call(
+                                         routine_name, routine,
+                                         dst_type, src->type, (a_type_ptr)NULL,
+                                         src);
     } else if (is_imaginary_type(src_type)) {
       /* Convert imaginary to complex. */
       /* Create a new complex value 0.0 + x*__I__. */
@@ -605,7 +670,10 @@ Transform the given cast expression into a function call (compatible with C89).
          to the needed precision. */
       src = add_cast_if_necessary(src,
                                   float_type(dst_type->variant.float_kind));
-      cast_call = make_runtime_rout_call(routine_name, routine, dst_type, src);
+      cast_call = make_prototyped_runtime_call(
+                                         routine_name, routine,
+                                         dst_type, src->type, (a_type_ptr)NULL,
+                                         src);
     } else {
       /* Convert float to complex. */
       /* Create a new complex value x + 0.0*__I__. */
@@ -629,7 +697,10 @@ Transform the given cast expression into a function call (compatible with C89).
          to the needed precision. */
       src = add_cast_if_necessary(src,
                                   float_type(dst_type->variant.float_kind));
-      cast_call = make_runtime_rout_call(routine_name, routine, dst_type, src);
+      cast_call = make_prototyped_runtime_call(
+                                         routine_name, routine,
+                                         dst_type, src->type, (a_type_ptr)NULL,
+                                         src);
     }  /* if */
     overwrite_node(expr, cast_call);
   } else if (is_imaginary_type(dst_type)) {
@@ -652,9 +723,10 @@ Transform the given cast expression into a function call (compatible with C89).
         default:
           unexpected_condition_str("invalid floating-point kind");
       }  /* switch */
-      cast_call = make_runtime_rout_call(
+      cast_call = make_prototyped_runtime_call(
                            routine_name, routine,
-                           imaginary_type(src_type->variant.float_kind), src);
+                           imaginary_type(src_type->variant.float_kind),
+                           src->type, (a_type_ptr)NULL, src);
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
     } else {
@@ -682,9 +754,10 @@ Transform the given cast expression into a function call (compatible with C89).
         default:
           unexpected_condition_str("invalid floating-point kind");
       }  /* switch */
-      cast_call = make_runtime_rout_call(
+      cast_call = make_prototyped_runtime_call(
                            routine_name, routine,
-                           imaginary_type(src_type->variant.float_kind), src);
+                           imaginary_type(src_type->variant.float_kind),
+                           src->type, (a_type_ptr)NULL, src);
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
     } else {

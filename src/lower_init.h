@@ -38,6 +38,11 @@ extern void do_ptr_to_data_member_arg_promotion_on_node(an_expr_node_ptr expr);
 
 extern void do_default_arg_promotions_on_node(an_expr_node_ptr expr);
 
+extern an_expr_node_ptr make_call_node(a_routine_ptr      routine,
+                                       an_expr_node_ptr   arg_list,
+                                       a_boolean          honor_virtual,
+                                       an_insert_location *insert_location);
+
 extern a_routine_ptr make_runtime_routine(char          *name,
                                           a_routine_ptr *routine,
                                           a_type_ptr    return_type);
