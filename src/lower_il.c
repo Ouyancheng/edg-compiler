@@ -13671,6 +13671,9 @@ Do IL lowering of the indicated statement and everything under it.
   a_dynamic_init_ptr   saved_curr_cleanup_state;
 
   if (statement != NULL) {
+    a_statement_ptr saved_temp_init_statements = temp_init_statements;
+    temp_init_statements = NULL;
+
     /* Track the source position. */
     saved_code_pos = code_pos_for_lowering;
     set_position_from_stmt_source_position(code_pos_for_lowering,
@@ -13784,6 +13787,8 @@ Do IL lowering of the indicated statement and everything under it.
       default:
         unexpected_condition_str("lower_statement: bad kind");
     }  /* switch */
+    insert_temp_init_statements(statement);
+    temp_init_statements = saved_temp_init_statements;
     error_position = saved_error_position;
     code_pos_for_lowering = saved_code_pos;
   }  /* if */

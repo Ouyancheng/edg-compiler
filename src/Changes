@@ -1,5 +1,18 @@
 Version 3.3
 
+7/18/03  Missing stmk_init for lowered compound literal in C++ mode
+
+IL lowering failed to add an stmk_init statement to cause the
+initialization of a temporary added for a compound literal in
+C++ mode (meaning, at the moment, in g++ mode).  Depending on how a
+back end handled this incorrect IL, the compound literal might
+have ended up uninitialized.
+
+  extern "C" int printf(const char *, ...);
+  int main() {
+    printf("m=%x\n", ((struct { int m; }){ m:123 }).m );
+  }
+
 7/18/03  Access checking on member template in presence of using-declaration
 
 A spurious access error was sometimes generated on a use of an
