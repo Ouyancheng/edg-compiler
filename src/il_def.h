@@ -2856,7 +2856,8 @@ typedef struct a_type {
 		base_variable;
 			/* Pointer to the variable that is the "base" when
 			   the current pointer type is really a "based
-			   pointer" (used only when microsoft_mode is TRUE). */
+			   pointer"; the variable must itself be of pointer
+			   type.  Used only when microsoft_mode is TRUE. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_byte_boolean
 		is_reference;
