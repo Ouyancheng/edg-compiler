@@ -1242,6 +1242,15 @@ if [ $c_mode -eq 0 -a $more_than_one_c_file -eq 0 -a $cc_only -eq 0 -a	\
   feoptions=$feoptions" -tused"
 fi
 #
+# If the EDG_ONE_INSTANTIATION_PER_OBJECT flag is set, and we are not
+# in C mode, enable the one instantiation per object option.
+#
+EDG_ONE_INSTANTIATION_PER_OBJECT=${EDG_ONE_INSTANTIATION_PER_OBJECT-0}
+if [ $EDG_ONE_INSTANTIATION_PER_OBJECT -a $c_mode -eq 0 ] ; then
+  one_instantiation_per_object=1
+  feoptions=$feoptions" --one_instantiation_per_object"
+fi
+#
 # If one instantiation per object mode is used, we have to also use either
 # prelink_local_only or prelink_copy_if_nonlocal.  Force prelink_local_only
 # if neither of these options was specified.
