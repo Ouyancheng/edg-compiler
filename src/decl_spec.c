@@ -794,7 +794,9 @@ reference to a tag within a function prototype or a class definition -- the
 tag is entered into the innermost non-class/non-prototype scope, which is
 returned as its effective declaration level.  *tag_resolution is returned
 TRUE if this is the definition of a previously declared incomplete class or
-enum.
+enum.  *is_predeclared_type_decl is returned TRUE if this is the explicit
+declaration of a predeclared type like type_info in C++ or _GUID in Microsoft
+mode.
 
 This routine may look more complicated than is necessary -- it isn't.
 This routine can either be matching up a definition with a previous
@@ -1050,7 +1052,7 @@ caution when modifying this routine.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if (predeclared_type != NULL) {
-        /* It the type_info or _GUID symbol has no scope number, it hasn't
+        /* If the type_info or _GUID symbol has no scope number, it hasn't
            been added to the symbol table yet.  Use the current source
            position. */
         tag_sym->decl_position = locator_for_curr_id.source_position;
