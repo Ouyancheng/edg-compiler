@@ -7668,7 +7668,7 @@ will go on a sublist if it was allocated in the file-scope memory region.
       db_ss_list_for_scope(sp);
     }  /* if */
 #endif /* DEBUG */
-    if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+    if (depth_innermost_ss_list_scope == DEPTH_OF_FILE_SCOPE &&
         scope_stack_ptr->ss_list_instantiation_insert_point == NULL) {
       /* This is the first source sequence entry to be entered on the source
          sequence list since the insert point for instantiations was set to
