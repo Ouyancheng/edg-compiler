@@ -6655,7 +6655,7 @@ Allocate a pointer type for a based pointer, and initialize it.
   ptr->variant.pointer.base_variable = variable;
   set_type_size(ptr);
   return ptr;
-}  /* make_pointer_type */
+}  /* make_based_pointer_type */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
