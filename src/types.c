@@ -2240,7 +2240,8 @@ that is not required to be checked by the ANSI C standard.
        (6)  Pointers to interchangeable types are considered 
             interchangeable.  The standard doesn't say this, but it
             seems sensible given the other clauses (e.g., unsigned int *
-            and int * should be interchangeable).
+            and int * should be interchangeable), and is allowed as an
+            extension.
   */
   /* Drop type qualifiers and other typerefs.  This takes care of point (2)
      above. */
@@ -2306,9 +2307,11 @@ that is not required to be checked by the ANSI C standard.
     /* Pointer types.  Get the underlying types. */
     ptr_type_1 = skip_typerefs(type_1->variant.pointer.type);
     ptr_type_2 = skip_typerefs(type_2->variant.pointer.type);
-    if (ptr_type_1 == ptr_type_2 ||  /* This test for speed. */
-        interchangeable_types(ptr_type_1, ptr_type_2)) {
-      /* Pointers to interchangeable types are interchangeable. */
+    if (!strict_ansi_mode &&
+        (ptr_type_1 == ptr_type_2 ||  /* This test for speed. */
+         interchangeable_types(ptr_type_1, ptr_type_2))) {
+      /* Pointers to interchangeable types are interchangeable.  This is
+         an extension. */
       interch = TRUE;
     } else if ((is_void(ptr_type_1) && is_character(ptr_type_2)) ||
                (is_character(ptr_type_1) && is_void(ptr_type_2))) {

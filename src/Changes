@@ -1,5 +1,10 @@
 Version 2.21
 
+12/18/93 Pointers to interchangeable types not interchangeable in strict mode
+
+In strict mode, pointers to interchangeable types (e.g., "int *" and
+"unsigned int *") are no longer considered interchangeable.
+
 12/17/93 C-generating back end output of types
 
 The C-generating back end now outputs typedefs instead of the underlying
