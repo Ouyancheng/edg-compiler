@@ -1,5 +1,22 @@
 Version 2.46
 
+7/31/01  Spurious ambiguity when using nonstandard template lookup
+
+In default mode, the front end uses a nonstandard algorithm when looking
+up names in templates.  The algorithm used is similar to the rules from
+a draft version of the standard and more closely approximates the rules
+used by other compilers.  When using the nonstandard lookup, a spurious
+ambiguity was reported when a non-function name was found in the
+template definition context and a function name was found in the
+context in which the template was referenced.  This has been fixed.
+
+  namespace N {
+    template <class T> struct A { };
+    template <class T> struct B : A<T> { };
+  }
+  void A();
+  N::B<int> bi;
+
 7/30/01  Syntax checking for asm functions
 
 When ASM_FUNCTION_ALLOWED is TRUE, the front end used to discard the token

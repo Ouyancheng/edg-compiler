@@ -2597,6 +2597,17 @@ that do normal id lookup processing.
          be considered.  The "dependent" lookup portion has not been
          implemented yet. */
       ref_sym = NULL;
+    } else if (def_sym != NULL) {
+      a_symbol_ptr	fund_def_sym;
+      fund_def_sym = fundamental_symbol_of(def_sym);
+      if (!is_function_or_template_symbol(fund_def_sym)) {
+        /* The name found in the definition context is not a function.
+           Because only functions can come from the referencing context,
+           we know we'll get an ambiguity if we try to merge a function
+           and a nonfunction, so we ignore the name from the referencing
+           context. */
+        ref_sym = NULL;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (ref_sym != NULL && def_sym != NULL) {
