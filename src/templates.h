@@ -157,12 +157,11 @@ typedef unsigned int an_mtt_flag_set;
 #define MTT_ALLOW_CONVERSION 0x01
 			/* TRUE when a conversion from Derived<T>
 			   to Base<T> may be done if needed. */
-#define MTT_UNKNOWN_IMPLICIT_THIS_TYPE 0x02
-			/* TRUE if the implicit this parameter may not
+#define MTT_UNKNOWN_THIS_CLASS_TYPE 0x02
+			/* TRUE if the this class type may not
 			   be known yet.  When this flag is set, a
-			   NULL implicit this parameter type is
-			   ignored (i.e., no attempt is made to match
-			   it with the template type). */
+			   NULL this class type is ignored (i.e., no attempt
+                           is made to match it with the template type). */
 
 extern
 a_boolean matches_template_type(a_type_ptr           type,

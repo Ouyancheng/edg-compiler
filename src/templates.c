@@ -3998,8 +3998,8 @@ points to the template parameter list.
   }  /* if */
 #endif /* DEBUG */
   /* When this routine calls itself recursively, the recursive calls
-     should not allow conversions or the special unknown implicit
-     this parameter checks. */
+     should not allow conversions or the special unknown this class
+     type checks. */
   new_flags = MTT_NO_FLAGS;
   templ_type = skip_typedefs(templ_type);
   if (is_immediate_class_type(templ_type)) {
@@ -4312,15 +4312,15 @@ points to the template parameter list.
             }  /* for */
             if (match) {
               /* The routine types match so far.  Make sure the implicit
-                 this parameters, if present, match. */
+                 this classes, if present, match. */
               tp =  type->variant.routine.extra_info->this_class;
               ttp =  templ_type->variant.routine.extra_info->this_class;
               if (tp == NULL || ttp == NULL) {
                 /* One or both of the types does not have an implicit
-                   this parameter.  This is okay if they are both NULL. 
-                   It is also okay if the type has no implicit this type
-                   the unknown implicit this type flag was passed in, and
-                   the other this parameter type has no qualifiers. */
+                   this class.  This is okay if they are both NULL. 
+                   It is also okay if the type has no this class type,
+                   the unknown this class type flag was passed in, and
+                   the other this class type has no qualifiers. */
                 if (tp == ttp) {
                   /* They are both NULL, this is a match. */
                   match = TRUE;
@@ -4330,20 +4330,19 @@ points to the template parameter list.
                   match = FALSE;
                 } else { /* tp == NULL */
                   /* The template type is not NULL.  This is a match when
-                     the unknown implicit this flag is set and the this
+                     the unknown this class flag is set and the this
                      parameter from the template has no qualifiers. */
                   match = FALSE;
-                  if ((flags & MTT_UNKNOWN_IMPLICIT_THIS_TYPE) != 0) {
+                  if ((flags & MTT_UNKNOWN_THIS_CLASS_TYPE) != 0) {
                     match = templ_type->variant.routine.extra_info->qualifiers
                                               == (a_type_qualifier_set)TQ_NONE;
                   }  /* if */
                 }  /* if */
               } else {
-                /* They both have implicit this parameters, make sure the
+                /* They both have this class types, make sure the
                    types match. */
-                /* FIXME: this might be made more efficient, but I'm not sure. */
-                tp = implicit_this_param_type_of(type);
-                ttp = implicit_this_param_type_of(templ_type);
+                tp =  type->variant.routine.extra_info->this_class;
+                ttp =  templ_type->variant.routine.extra_info->this_class;
                 match = matches_template_type(tp, ttp, templ_arg_list,
                                               templ_param_list,
                                               new_flags);
@@ -5362,7 +5361,7 @@ the error type is a member, or is NULL for a nonmember.
     last_ptp = ptp;
   }  /* for */
   if (templ_rtsp->this_class != NULL) {
-    /* If this is a member function, set the implicit this parameter type. */
+    /* If this is a member function, set the this class type. */
     rtsp->this_class = parent_class;
   }  /* if */
   return rout_type;
@@ -5595,7 +5594,7 @@ information.
          is a member function declaration, it will be a nonstatic member
          function.  This is important because when the routine type
          is created, function_declarator needs to know whether to
-         add an implicit this-param pointer to the type. */
+         add a this class to the type. */
       di_flags |= DI_NONSTATIC_MEMBER;
     }  /* if */
     if (is_member_decl && (*dso_flags & DSO_CONSTRUCTOR) != 0) {
@@ -6088,8 +6087,8 @@ template argument list was provided.
 
 is_decl_context is TRUE if this routine is called to match a declaration with
 a template instance.  In such cases it is not known whether or not the
-function has an implicit this parameter type, so the implicit this
-type should not be used in the matching process.
+function has a this class type, so the this class should not be used in the
+matching process.
 */
 {
   a_boolean                         match = FALSE;
@@ -6161,7 +6160,7 @@ type should not be used in the matching process.
   if (matches_template_type(curr_type, templ_rout_type, 
                             templ_arg_list, templ_param_list,
                             (an_mtt_flag_set)
-                            (is_decl_context ? MTT_UNKNOWN_IMPLICIT_THIS_TYPE
+                            (is_decl_context ? MTT_UNKNOWN_THIS_CLASS_TYPE
                                             : MTT_NO_FLAGS))) {
     match = TRUE;
   }  /* if */
@@ -6178,12 +6177,12 @@ type should not be used in the matching process.
     if (new_type != NULL) {
       if (is_decl_context) {
         /* In declaration contexts we do not yet know whether the type
-           has an implicit this type.  Consequently, a NULL implicit this
+           has a this class type.  Consequently, a NULL this class
            type should be considered a match for a non-NULL one in the
            routine we are matching with. */
-        match = unknown_implicit_this_identical_types(curr_type, new_type);
+        match = unknown_this_class_identical_types(curr_type, new_type);
       } else {
-        /* In nondeclarative contexts, the implicit this parameter types must
+        /* In nondeclarative contexts, the this class parameter types must
            match exactly. */
         match = identical_types(curr_type, new_type);
       }  /* if */
@@ -6242,11 +6241,10 @@ return a pointer to the symbol; otherwise, return NULL.
 
 is_decl_context is TRUE if this routine is called to match a declaration with
 a template instance.  In such cases it is not known whether or not the
-function has an implicit this parameter type, so the implicit this
-type should not be used in the matching process.  explicit_arg_list is
-non-NULL if an explicitly specified template argument list was provided.
-*is_new_template_instance is returned TRUE if a new template instance is
-created with this call.
+function has a this class type, so the this class type should not be
+used in the matching process.  explicit_arg_list is non-NULL if an explicitly
+specified template argument list was provided.  *is_new_template_instance is
+returned TRUE if a new template instance is created with this call.
 */
 {
   a_symbol_ptr          		sym;
@@ -6298,9 +6296,9 @@ that an actual instance is not generated if one does not already exist.
 
 is_decl_context is TRUE if this routine is called to match a declaration with
 a template instance.  In such cases it is not known whether or not the
-function has an implicit this parameter type, so the implicit this
-type should not be used in the matching process.  explicit_arg_list is
-non-NULL if an explicitly specified template argument list was provided.
+function has a this class type, so the this class type should not be used
+in the matching process.  explicit_arg_list is non-NULL if an explicitly
+specified template argument list was provided.
 */
 {
   a_symbol_ptr          		sym;
