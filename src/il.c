@@ -3862,6 +3862,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->pure_virtual            = FALSE;
   rp->is_inline               = FALSE;
   rp->compiler_generated      = FALSE;
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  rp->assignment_to_this_done = FALSE;
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;
 #ifdef FIL

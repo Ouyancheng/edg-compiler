@@ -5294,6 +5294,7 @@ error_exit:
   db_exit();
 }  /* scan_conditional_operator */
 
+#if ASSIGNMENT_TO_THIS_ALLOWED
 
 static a_boolean check_assignment_to_this_pointer(an_operand *operand)
 /*
@@ -5321,6 +5322,7 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
           pos_warning(ec_assignment_to_this, &operand->position);
           make_lvalue_variable_operand(this_var, operand,
                                        operand->xref_entries_list);
+          current_routine_entry()->assignment_to_this_done = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5328,6 +5330,7 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
   return is_this;
 }  /* check_assignment_to_this_pointer */
 
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 
 static void change_assignment_result_to_lvalue(an_operand *result)
 /*
@@ -5402,14 +5405,20 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
       do_operand_transformations(operand_1,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
                                  expression_kind);
+#if ASSIGNMENT_TO_THIS_ALLOWED
       if (C_dialect == C_dialect_cplusplus &&
           is_an_rvalue(operand_1) &&  /* For speed. */
           check_assignment_to_this_pointer(operand_1)) {
         /* Anachronism -- assigning to the "this" pointer. */
         /* The subroutine changes operand_1 to the proper lvalue. */
-      } else if (check_modifiable_lvalue_operand(operand_1)) {
-        modifying_lvalue(operand_1, expression_kind);
+      } else {
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+        if (check_modifiable_lvalue_operand(operand_1)) {
+          modifying_lvalue(operand_1, expression_kind);
+        }  /* if */
+#if ASSIGNMENT_TO_THIS_ALLOWED
       }  /* if */
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
       result_type = make_unqualified_type(operand_1->type);
       /* It's okay for operand_2 to be an indefinite function. */
       do_operand_transformations(&operand_2,

@@ -254,6 +254,14 @@ supported.)
 */
 #define TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE TRUE
 
+/*
+Flag that is TRUE if assignment to "this" (a C++ anachronism) should
+be allowed.  This affects the source language accepted.  If assignment
+to "this" is allowed, the interface to and wrapper code within constructors
+and destructors may have to be changed.
+*/
+#define ASSIGNMENT_TO_THIS_ALLOWED TRUE
+
 #endif /* ifndef TARGET_H */
 
 

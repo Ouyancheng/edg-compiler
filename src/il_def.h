@@ -1790,6 +1790,12 @@ typedef struct a_routine {
   unsigned int	compiler_generated:1;
 			/* TRUE for functions that are created by the
 			   compiler, e.g., default constructors in C++. */
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  unsigned int	assignment_to_this_done:1;
+			/* TRUE if an assignment to "this" (an anachronism)
+			   was done in this function.  C++ member functions
+			   only. */
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that

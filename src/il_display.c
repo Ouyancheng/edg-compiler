@@ -1600,6 +1600,11 @@ Display the indicated routine.
   disp_boolean("pure_virtual", (a_boolean)ptr->pure_virtual);
   disp_boolean("is_inline", (a_boolean)ptr->is_inline);
   disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  if (ptr->asignment_to_this) {
+    disp_boolean("assignment_to_this", (a_boolean)ptr->assignment_to_this);
+  }  /* if */
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   disp_class_list("befriending_classes", ptr->befriending_classes);
   if (ptr->is_virtual) {
     disp_unsigned_long("virtual_function_number",
