@@ -55,6 +55,7 @@ in the include files will become external definitions for the symbols.
 #include "literals.h"
 #include "macro.h"
 #include "mem_manage.h"
+#include "overload.h"
 #include "preproc.h"
 #include "statements.h"
 #include "symbol_tbl.h"

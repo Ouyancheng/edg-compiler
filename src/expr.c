@@ -21,6 +21,7 @@ expr.c -- Expression scanning routines.
 #include "symbol_tbl.h"
 #include "expr.h"
 #include "exprutil.h"
+#include "overload.h"
 #include "preproc.h"
 #include "folding.h"
 #include "const_ints.h"

@@ -1,5 +1,10 @@
 Version 2.16
 
+4/26/93  exprutil.c broken up
+
+The code in exprutil.c has been split into exprutil.c and overload.c
+(overload resolution and conversions).
+
 4/25/93  IL lowering code broken up
 
 The code in lower_il.c (formerly a 12,000 line file) has been split into
