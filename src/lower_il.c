@@ -3422,17 +3422,17 @@ or contain a pointer to data member, which must be initialized to -1.
           a_constant_ptr field_con;
           con = alloc_constant((a_constant_repr_kind)ck_aggregate);
           con->type = type;
-          for (f = type->variant.class_struct_union.field_list;
+          for (f = next_initializable_field(
+                                  type->variant.class_struct_union.field_list);
                f != NULL;
                f = next_initializable_field(f->next)) {
             field_con = lower_zero_initialization(f->type);
             if (con->variant.aggregate.first_constant == NULL) {
               con->variant.aggregate.first_constant = field_con;
-              con->variant.aggregate.last_constant = field_con;
             } else {
               con->variant.aggregate.last_constant->next = field_con;
-              con->variant.aggregate.last_constant = field_con;
             }  /* if */
+            con->variant.aggregate.last_constant = field_con;
             /* Only the first field of a union type is zero-initialized.  */
             if (is_union_type(type)) {
               break;
