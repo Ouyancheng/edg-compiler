@@ -2277,15 +2277,25 @@ Output the default argument expression, if any, for the indicated
 parameter.
 */
 {
-  if (param->default_arg_expr != NULL) {
+  an_expr_node_ptr expr = param->default_arg_expr;
+
+  if (expr != NULL) {
     write_tok_str(" = ");
     if (param->passed_via_copy_constructor) {
       /* For a default argument for a parameter passed via a copy constructor,
          the default argument expression is an address. */
-      gen_lvalue_no_parens(param->default_arg_expr);
+      gen_lvalue_no_parens(expr);
+    } else if (is_pointer_type(param->type) &&
+               is_constant_node(expr) &&
+               expr->variant.constant->kind ==
+                                            (a_constant_repr_kind)ck_integer &&
+               cmplit_integer_constant(expr->variant.constant, 0L) == 0) {
+      /* A null pointer constant default argument.  Use a simple "0" and
+         count on implicit conversion.  This works around a bug in
+         MSVC++ 5.0. */
+      write_tok_ch('0');
     } else {
-      gen_initializer_expr(param->default_arg_expr, param->type,
-                           /*need_parens=*/TRUE);
+      gen_initializer_expr(expr, param->type, /*need_parens=*/TRUE);
     }  /* if */
   }  /* if */
 }  /* gen_default_arg_expr */

@@ -1,5 +1,12 @@
 Version 2.39
 
+5/3/98    C++-generating back end: avoid cast on null pointer in default
+          argument
+
+The C++-generating back end now puts out a simple 0 for a default argument
+expression that is a null pointer, rather than 0 cast to the proper
+pointer type.  This optimization avoids a bug in MSVC++ 5.0.
+
 5/3/96    Constant part of nonconstant aggregate initialization dropped
           when exceptions enabled
 
