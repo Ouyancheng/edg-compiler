@@ -755,6 +755,8 @@ ec_redeclaration_of_condition_decl_name;;"%sq, declared in condition, may not be
 ec_default_template_arg_not_allowed;;"default template arguments are not allowed for function templates"
 ec_exp_comma_or_gt;;"expected a \",\" or \">\""
 ec_missing_template_param_list;;"expected a template parameter list"
+ec_incr_of_bool_deprecated;;"incrementing a bool value is deprecated"
+ec_bool_type_not_allowed;;"bool type is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
