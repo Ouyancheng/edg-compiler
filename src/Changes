@@ -1,8 +1,21 @@
 Version 2.16
 
+4/8/93  Warning on missing expression in ctor-initializer
+
+Now, when a nonclass field is being initialized in a ctor-initializer and
+the init-expression is missing, a warning is issued.  Here's an example:
+
+  class A {
+    int i;
+    A() : i() { }       // Warning is now issued for empty "()"
+  };
+
+The ARM is not clear enough to justify issuing an error, though that is
+what cfront does.  This is probably a bug in the document.
+
 4/8/93  Member function instantiations in tim_none mode
 
-A bug has been fixed that caused member functions to instantiated
+A bug has been fixed that caused member functions to be instantiated
 even in tim_none mode.  This could cause multiple definition errors
 when linking programs.
 
