@@ -34,6 +34,11 @@ extern an_expr_node_ptr scan_expression(a_boolean *err);
 
 extern an_expr_node_ptr scan_void_expression(a_boolean *err);
 
+extern an_expr_node_ptr scan_required_type_expression(
+                                           a_type_ptr    required_type,
+                                           a_boolean     allow_top_level_comma,
+                                           an_error_code err_code);
+
 extern void scan_pp_expression(a_constant *constant,
 			       a_boolean  *err);
 
