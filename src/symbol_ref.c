@@ -1210,8 +1210,7 @@ created for this entity; otherwise, it is NULL.
     a_symbol_header_ptr  hdr = sym_ptr->header;
 
     if (is_tag_symbol(sym_ptr)) hdr->any_tag_decl = TRUE;
-    if (!sym_ptr->is_class_member &&
-        curr_command_line_macro_def == NULL) {
+    if (!sym_ptr->is_class_member) {
       if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
           sym_ptr->parent.namespace_ptr != NULL) {
         hdr->any_decl_in_file_or_namespace_scope = TRUE;
