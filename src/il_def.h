@@ -4434,9 +4434,8 @@ typedef struct a_class_type_supplement {
 #endif /* DO_IL_LOWERING */
 } a_class_type_supplement;
 
-
 enum a_template_param_type_kind_tag {
-  /* When a type is marked as a template parameter it may one of several
+  /* When a type is marked as a template parameter it may have one of several
      kinds (C++ front end only). */
   tptk_param,		/* The template param type represents a simple
 			   template parameter, e.g., for T in the following:
