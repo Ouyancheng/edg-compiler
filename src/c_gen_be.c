@@ -4092,7 +4092,7 @@ the file.
 
   /* Seek to the beginning of the file. */
   if (fseek(f, 0L, SEEK_SET) != 0) {
-    str_catastrophe(ec_file_write_error, "temporary file");
+    str_catastrophe(ec_file_write_error, "temporary");
   }  /* if */
   /* Copy the file. */
   while ((c = getc(f)) != EOF) {
@@ -7642,23 +7642,25 @@ Generate old-style (K&R/pcc) C from the intermediate language.
      The routine is always generated, but it's usually empty. */
   startline((a_seq_number)0);
   (void)fprintf(f_C_output, "__%s_file_scope_inits() {", module_name);
-  if (f_file_scope_inits != NULL) copy_and_delete_file(&f_file_scope_inits);
-  startline((a_seq_number)0);
-  putc('}', f_C_output);
-  if (f_file_scope_inits != NULL && il_header.main_routine == NULL) {
-    /* If this is not a main program, the file-scope-init routine was
-       not called from anywhere in this module.  It must be called
-       from the main program, by using the appropriate option. */
-    (void)fprintf(stderr,
+  if (f_file_scope_inits != NULL) {
+    if (il_header.main_routine == NULL) {
+      /* If this is not a main program, the file-scope-init routine was
+         not called from anywhere in this module.  It must be called
+         from the main program, by using the appropriate option. */
+      (void)fprintf(stderr,
               "This compilation contains file-scope union initializations.\n");
-    (void)fprintf(stderr,
+      (void)fprintf(stderr,
               "For it to execute correctly, you must include \"%s\" in\n",
               module_name);
-    (void)fprintf(stderr,
+      (void)fprintf(stderr,
               "the list of modules in the \"-i\" option during compilation\n");
-    (void)fprintf(stderr,
+      (void)fprintf(stderr,
               "of the associated main program.\n");
+    }  /* if */
+    copy_and_delete_file(&f_file_scope_inits);
   }  /* if */
+  startline((a_seq_number)0);
+  putc('}', f_C_output);
 #if CHECKING
   if (f_rout_static_inits != NULL || f_rout_dynamic_inits != NULL) {
     internal_error("Routine assignment inits not dumped out");
