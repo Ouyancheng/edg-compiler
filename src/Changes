@@ -1,5 +1,21 @@
 Version 3.0
 
+3/18/02  Microsoft compatibility: abort on const-qualified anonymous union
+
+The front end used to sometimes abort in Microsoft mode when an anonymous
+union was declared with a const qualifier.
+
+  struct S {
+    S(S const&);
+    const union {  // Used to cause an internal error
+      int p;
+      float q;
+    };
+  };
+  S::S(S const &b): p(b.p), q(b.q) {};
+  
+This is now fixed.
+
 3/18/02  Sun compatibility: abort on extern "C" static function
 
 The front end used to abort in Sun mode when a declaration of an extern "C"
