@@ -1717,13 +1717,18 @@ use typename.
 Switch that is TRUE if the C-generating or C++-generating back end should
 generate code for the GNU C compiler (gcc or g++).
 */
+#ifndef GCC_IS_GENERATED_CODE_TARGET
+#ifdef GCC_IS_C_GEN_BE_TARGET
+#define GCC_IS_GENERATED_CODE_TARGET GCC_IS_C_GEN_BE_TARGET
+#endif /* ifdef GCC_IS_C_GEN_BE_TARGET */
+#endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 
 #ifndef GCC_IS_GENERATED_CODE_TARGET
-#if defined(__GNUC__) || defined(GCC_IS_C_GEN_BE_TARGET)
+#ifdef __GNUC__
 #define GCC_IS_GENERATED_CODE_TARGET TRUE
-#else /* !(defined(__GNUC__) || defined(GCC_IS_C_GEN_BE_TARGET)) */
+#else /* ifndef __GNUC__ */
 #define GCC_IS_GENERATED_CODE_TARGET FALSE
-#endif /* defined(__GNUC__) || defined(GCC_IS_C_GEN_BE_TARGET) */
+#endif /* ifndef __GNUC__ */
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 

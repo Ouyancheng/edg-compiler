@@ -380,8 +380,10 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_va_arg,   "__builtin_va_arg");
     enter_keyword((a_token_kind)tok_va_end,   "__builtin_va_end");
     enter_keyword((a_token_kind)tok_va_copy, "__builtin_va_copy");
+#if GNU_EXTENSION_ALLOWED
     enter_keyword((a_token_kind)tok_va_start_single_operand,
                   "__builtin_varargs_start");
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* GCC_BUILTIN_VARARGS */
     /* Enable alternative token spellings. */
     enter_gnu_keyword((a_token_kind)tok_asm, "__asm");

@@ -63,12 +63,19 @@ Linux using the gcc/g++ header files.
   if (!gcc_mode) {
     /* The following macros enable the use of some Linux system header
        files (like stdio.h) when not in GNU C mode. */
+    /* Setting __STRICT_ANSI__ disables parts of Linux headers that rely on
+       GNU C extensions. */
     (void)enter_predef_macro("1", "__STRICT_ANSI__",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
-    (void)enter_predef_macro("va_list", "__gnuc_va_list",
-                             /*cannot_be_redefined=*/FALSE,
-                             /*ref_suppresses_pch_file=*/FALSE);
+    if (pass_stdarg_references_to_generated_code) {
+      /* <stdio.h> refers to __gnuc_va_list which is declared in the Linux
+         version of <stdarg.h>.  Since we're in a mode that bypasses the actual
+         inclusion of <stdarg.h>, we must define __gnu_va_list separately. */
+      (void)enter_predef_macro("va_list", "__gnuc_va_list",
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
   }  /* if */
 }  /* enter_linux_predefined_macros */
 
@@ -898,6 +905,7 @@ Enter predeclared symbols as required by the implementation.
                                                make_pointer_type(void_type());
     builtin_va_list_type->is_builtin_va_list = TRUE;
     add_to_types_list(builtin_va_list_type, DEPTH_OF_FILE_SCOPE);
+    /* enter_predefined_type also sets the name of the type. */
     enter_predefined_type(builtin_va_list_type, "__builtin_va_list");
 #endif /* GCC_BUILTIN_VARARGS */
   }  /* if */

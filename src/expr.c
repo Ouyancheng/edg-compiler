@@ -11832,7 +11832,9 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_va_arg:
     case tok_va_end:
     case tok_va_copy:
+#if GNU_EXTENSIONS_ALLOWED
     case tok_va_start_single_operand:
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13379,10 +13381,12 @@ see expr.h).
       scan_va_start_operator(&local_result, /*single_operand=*/FALSE);
       break;
 
+#if GNU_EXTENSIONS_ALLOWED
     case tok_va_start_single_operand:
       /* <varargs.h> va_start macro, when treated as a builtin. */
       scan_va_start_operator(&local_result, /*single_operand=*/TRUE);
       break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
     case tok_va_arg:
       /* <stdarg.h> va_arg macro, when treated as a builtin. */

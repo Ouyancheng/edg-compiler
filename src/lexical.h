@@ -141,7 +141,9 @@ typedef enum /*a_token_kind*/ {
   tok_intaddr,
   /* Used when <stdarg.h> is treated as a builtin. */
   tok_va_start, tok_va_arg, tok_va_end, tok_va_copy,
+#if GNU_EXTENSIONS_ALLOWED
   tok_va_start_single_operand,
+#endif /* GNU_EXTENSIONS_ALLOWED */
   tok_restrict,
   /* C99 types: _Bool, _Complex and _Imaginary. */
   tok_c99_bool,
@@ -260,7 +262,10 @@ EXTERN char	*token_names[(int)tok_last+1]
    "return", "short", "signed", "sizeof", "static", "struct",
    "switch", "typedef", "union", "unsigned", "void", "volatile",
    "while", "__generic", "__ALIGNOF__", "__INTADDR__",
-   "va_start", "va_arg", "va_end", "va_copy","va_start",
+   "va_start", "va_arg", "va_end", "va_copy",
+#if GNU_EXTENSIONS_ALLOWED
+   "__builtin_varargs_start",
+#endif /* GNU_EXTENSIONS_ALLOWED */
    "restrict",
    "_Bool", "_Complex", "_Imaginary", "__I__", "__NAN__", "__INFINITY__",
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -591,7 +596,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_va_arg */
    (an_opname_kind)onk_none,          /* tok_va_end */
    (an_opname_kind)onk_none,          /* tok_va_copy */
+#if GNU_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_va_start_single_operand */
+#endif /* GNU_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_restrict */
    (an_opname_kind)onk_none,          /* tok_c99_bool */
    (an_opname_kind)onk_none,          /* tok_c99_complex */
