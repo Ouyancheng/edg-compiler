@@ -11162,6 +11162,9 @@ caller.
     err = TRUE;
     sym = NULL;
   }  /* if */
+  /* If some kind of error has occurred, set the decl_scope_err flag
+     to suppress subsequent errors. */
+  if (err) decl_state->decl_scope_err = TRUE;
   if (sym != NULL) tssp = template_supplement_for_symbol(sym);
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template) {
     if (sym->is_class_member && !decl_state->is_template_friend) {
