@@ -55,27 +55,9 @@ extern void scan_initializer_expression(a_type_ptr       required_type,
                                         an_expr_node_ptr *expression,
                                         a_constant       *constant);
 
-extern a_routine_ptr select_default_constructor(a_type_ptr        class_type,
-                                                a_source_position *err_pos);
-
-extern a_routine_ptr select_destructor(a_type_ptr class_type);
-
 extern an_expr_node_ptr prep_rvalue_arg_expr(an_expr_node_ptr  expr,
                                              a_param_type_ptr  param,
                                              a_source_position *err_pos);
-
-extern a_symbol_ptr find_copy_constructor(a_type_ptr class_type,
-                                          a_boolean  const_object_required,
-                                          a_boolean  volatile_object_required,
-                                          a_boolean  *ambiguous,
-                                          a_boolean  *class_bitwise_copy);
-
-extern a_routine_ptr select_copy_constructor(
-                                    a_type_ptr        class_type,
-                                    a_boolean         const_object_required,
-                                    a_boolean         volatile_object_required,
-                                    a_source_position *err_pos,
-                                    a_boolean         *class_bitwise_copy);
 
 extern an_expr_node_ptr scan_class_initializer_expression(
                                             a_type_ptr    required_type,

@@ -1042,6 +1042,24 @@ extern a_symbol_ptr global_operator_new_or_delete_symbol(
                                           a_source_position  *pos,
                                           a_boolean          make_default_new);
 
+extern a_routine_ptr select_default_constructor(a_type_ptr        class_type,
+                                                a_source_position *err_pos);
+
+extern a_routine_ptr select_destructor(a_type_ptr class_type);
+
+extern a_symbol_ptr find_copy_constructor(a_type_ptr class_type,
+                                          a_boolean  const_object_required,
+                                          a_boolean  volatile_object_required,
+                                          a_boolean  *ambiguous,
+                                          a_boolean  *class_bitwise_copy);
+
+extern a_routine_ptr select_copy_constructor(
+                                    a_type_ptr        class_type,
+                                    a_boolean         const_object_required,
+                                    a_boolean         volatile_object_required,
+                                    a_source_position *err_pos,
+                                    a_boolean         *class_bitwise_copy);
+
 extern an_access_specifier compute_access(an_access_specifier access,
                                           an_access_specifier class_access);
 
