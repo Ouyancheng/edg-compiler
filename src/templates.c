@@ -14600,15 +14600,22 @@ added, FALSE if it was already on the list.
   a_boolean	added = FALSE;
 
   db_enter(5, "add_to_instantiations_required_list");
-  if (tip->next_in_instantiation_list != NULL ||
-      tip == instantiations_required_tail) {
+  if (tip->on_instantiations_list) {
     /* Already on the list -- don't try to add it again. */
     if (in_instantiation_wrapup &&
-        tip->instantiation_required) {
+        tip->instantiation_required &&
+        !master_instance_of(tip)->already_instantiated) {
       /* The instantiation required flag has been set for an entry already
          on the list.  This means that instantiation_wrapup must make another
-         pass over the instantiations list. */
-      entries_updated_during_instantiation_wrapup = TRUE;
+         pass over the instantiations list.  We don't need to do this if
+         we have already generated the instantiation. */
+      if (curr_translation_unit == trans_unit_for_symbol(tip->instance_sym)) {
+        /* We only update this flag if the symbol is for the current
+           translation unit.  We only reach this point if we were unable to
+           instantiate the entity.  If we can't instantiate it now, there
+           is no way that we will be able to do so later. */
+        entries_updated_during_instantiation_wrapup = TRUE;
+      }  /* if */
     }  /* if */
   } else {
     /* The entry must be added to the end of the list.  This is because new
@@ -14621,6 +14628,11 @@ added, FALSE if it was already on the list.
     }  /* if */
     instantiations_required_tail = tip;
     added = TRUE;
+    tip->on_instantiations_list = TRUE;
+    check_assertion_str2(curr_translation_unit ==
+                                      trans_unit_for_symbol(tip->instance_sym),
+                         "add_to_instantiations_required_list:",
+                         "symbol for wrong translation unit");
 #if EXPENSIVE_CHECKING
     /* Make sure none of the template arguments depend on template
        parameters. */

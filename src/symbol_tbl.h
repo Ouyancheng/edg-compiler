@@ -1477,6 +1477,9 @@ typedef struct a_template_instance {
 			   been supplied since the last time the check was
 			   done.  The can_be_instantiated routine should
 		           be used instead of this field. */
+  a_bit_field	on_instantiations_list:1;
+			/* TRUE if this entry is already on the instantiations
+			   required list. */
   a_source_position
 		explicit_instantiation_pos;
 			/* The position of the instantiation request pragma
