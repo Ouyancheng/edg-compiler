@@ -4728,7 +4728,8 @@ form.
   displaying_file_scope_il = FALSE;
   walk_routine_scope_il(region_number,
                         disp_entry, (a_string_entry_process_function_ptr)NULL,
-                        (a_remap_function_ptr)NULL);
+                        (a_remap_function_ptr)NULL,
+                        (a_walk_termination_test_function_ptr)NULL);
 }  /* disp_routine_scope_il */
 
 

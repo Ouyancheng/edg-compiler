@@ -767,7 +767,8 @@ Write the indicated memory region to the file f_il_output.
         /* The memory region is a function scope. */
         walk_routine_scope_il(region_number,
                               write_nonstring_entry, write_entry,
-                              (a_remap_function_ptr)NULL);
+                              (a_remap_function_ptr)NULL,
+                              (a_walk_termination_test_function_ptr)NULL);
       }  /* if */
       /* Write a zero entry kind, to indicate the end of the list of
          entries. */
@@ -803,7 +804,8 @@ Write the indicated memory region to the file f_il_output.
         walk_routine_scope_il(region_number,
                               (an_entry_process_function_ptr)NULL,
                               (a_string_entry_process_function_ptr)NULL,
-                              (a_remap_function_ptr)NULL);
+                              (a_remap_function_ptr)NULL,
+                              (a_walk_termination_test_function_ptr)NULL);
       }  /* if */
       /* Determine the total size of all the blocks.  This includes the 
          headers as well as the block contents.  Note that we write out only

@@ -245,17 +245,20 @@ That is what the remap function does.
 
 
 void walk_routine_scope_il(
-             a_memory_region_number              region_number,
-             an_entry_process_function_ptr       entry_process_function,
-             a_string_entry_process_function_ptr string_entry_process_function,
-             a_remap_function_ptr                remap_function)
+            a_memory_region_number               region_number,
+            an_entry_process_function_ptr        entry_process_function,
+            a_string_entry_process_function_ptr  string_entry_process_function,
+            a_remap_function_ptr                 remap_function,
+            a_walk_termination_test_function_ptr termination_test_function)
 /*
 Walk the intermediate language tree for a routine scope.  Begin with the
 scope entry for region region_number, and visit the whole scope tree.
 Process each non-string entry by calling entry_process_function on that
 entry, and each string entry by calling string_entry_process_function on
 that entry.  Remap each pointer to a new value by calling remap_function.
-entry_process_function, string_entry_process_function, or remap_function
+Test for termination (not processing an entry and not continuing deeper
+into the tree) by calling termination_test_function.  entry_process_function,
+string_entry_process_function, remap_function, or termination_test_function
 can be NULL to indicate that the corresponding function is unnecessary.
 */
 {
@@ -269,7 +272,7 @@ can be NULL to indicate that the corresponding function is unnecessary.
   /* Save the function pointers so they don't have to be passed around. */
   entry_process_func = entry_process_function;
   string_entry_process_func = string_entry_process_function;
-  walk_termination_test_func = NULL;
+  walk_termination_test_func = termination_test_function;
   walk_remap_func = remap_function;
   /* Walking a routine scope, not the file scope. */
   walking_file_scope = FALSE;

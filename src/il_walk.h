@@ -94,10 +94,11 @@ extern void walk_file_scope_il(
 
 /* Walk the intermediate language tree for a routine scope. */
 extern void walk_routine_scope_il(
-             a_memory_region_number              region_number,
-             an_entry_process_function_ptr       entry_process_function,
-             a_string_entry_process_function_ptr string_entry_process_function,
-             a_remap_function_ptr                remap_function);
+            a_memory_region_number               region_number,
+            an_entry_process_function_ptr        entry_process_function,
+            a_string_entry_process_function_ptr  string_entry_process_function,
+            a_remap_function_ptr                 remap_function,
+            a_walk_termination_test_function_ptr termination_test_function);
 
 #endif /* IL_WALK_NEEDED */
 
