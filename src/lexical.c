@@ -6697,6 +6697,25 @@ qualified name.
                          ec_nested_class_anachronism,
                          locator_for_curr_id.specific_symbol);
         }  /* if */
+        { a_symbol_ptr  specific_sym;
+	  /* See if this name is ambiguous.  This is done here because
+	     the specific symbol may be cleared and set to a different
+	     value before the access and ambiguity check is done below.
+	     The access check can still be done later, but the ambiguity
+	     check cannot because it must be done based on the projection
+	     symbol, not on the symbol pointed to by the projection symbol. */
+	  specific_sym = locator_for_curr_id.specific_symbol;
+	  if (specific_sym != NULL &&
+	      specific_sym->kind == (a_symbol_kind)sk_projection &&
+	      specific_sym->variant.projection.ambiguous) {
+	    pos_sy_error(ec_ambiguous_name,
+			 &locator_for_curr_id.source_position,
+			 specific_sym);
+	    make_specific_symbol_error_locator(&locator_for_curr_id);
+            class_symbol = locator_for_curr_id.specific_symbol;
+	    err = TRUE;
+	  }  /* if */
+	}
       }  /* if */
       if (qualifier_separator == tok_period) {
         if (class_symbol != NULL && is_class_symbol(class_symbol)) {
