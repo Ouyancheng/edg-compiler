@@ -442,8 +442,9 @@ property fields).
                    (has_unknown_specified_bound(temp_type) ||
                     temp_type->
                            variant.array.variant.number_of_elements != 0 ||
+                    gcc_mode ||
                     temp_type->variant.array.bound_is_zero)) {
-          /* Okay. */
+          /* Okay.  Note that in GNU C mode, parameters can have type X[][]. */
           tp = underlying_array_element_type(temp_type);
           if (tp != NULL) {
             tp = skip_typerefs(tp);
