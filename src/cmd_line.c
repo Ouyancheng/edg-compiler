@@ -901,11 +901,11 @@ Initialize the option information table.
                          pchek_command_line);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   add_option_description(optk_export_template,
-                         "export_template",
+                         "export",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_export_template,
-                         "no_export_template",
+                         "no_export",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #if DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE
