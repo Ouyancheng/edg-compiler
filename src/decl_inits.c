@@ -322,7 +322,7 @@ that routine.  This routine ignores a closing brace if that is appropriate.
          stop at a semicolon, however, if one is already in the stop-token
          array. */
       a_boolean  stop_at_semicolon = curr_stop_token_stack_entry->
-                                         stop_tokens[tok_semicolon] != 0;
+                                         stop_tokens[(int)tok_semicolon] != 0;
       push_stop_token_stack();
       if (stop_at_semicolon) add_stop_token(tok_semicolon);
       (void)required_token(tok_rbrace, ec_exp_rbrace);
