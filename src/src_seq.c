@@ -777,6 +777,7 @@ entry that has already been created and linked in for this entity.
            that this includes the case where the pointer has been cleared
            because a prior declaration was turned into a secondary declaration
            -- e.g., a forward reference to a function -- see mark_declared. */
+        a_boolean  update_source_corresp = TRUE;
         if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
             in_file_scope(new_ssep) && !scp->is_class_member &&
             (kind == (an_il_entry_kind)iek_routine ||
@@ -786,7 +787,23 @@ entry that has already been created and linked in for this entity.
              pointer in the IL entry.  (It's not really needed, and it
              introduces implementation difficulties for removing unneeded
              function bodies from the IL.) */
-        } else {
+          update_source_corresp = FALSE;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        } else if (kind == (an_il_entry_kind)iek_type &&
+                   is_template_dependent_context()) {
+          a_type_ptr  type = (a_type_ptr)scp;
+          if (is_immediate_class_type(type) &&
+              type->variant.class_struct_union.is_nonreal_class &&
+              !type->variant.class_struct_union.is_prototype_instantiation) {
+            /* A nonreal instantiation that is not a prototype instantiation.
+               Don't set the pointer in the IL entry because it can cause
+               difficulties when turning a class definition into a declaration
+               (sometimes done when a class body is unneeded). */
+            update_source_corresp = FALSE;
+          }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+        }  /* if */
+        if (update_source_corresp) {
           /* Set the source sequence entry pointer in the IL entry. */
           scp->source_sequence_entry = new_ssep;
         }  /* if */

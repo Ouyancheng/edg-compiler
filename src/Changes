@@ -1,5 +1,22 @@
 Version 3.2
 
+4/23/03  Internal error on dependent friend class
+
+When source sequence lists and prototype instantiations are recorded in the
+IL (i.e., GENERATE_SOURCE_SEQUENCE_LISTS and PROTOTYPE_INSTANTIATIONS_IN_IL
+are both TRUE), the front end sometimes aborted with an internal error if a
+unused class template contained a dependent friend class declaration.
+For example:
+
+  template<class T> class S;
+  template<class T> class R { friend class S<T>; };
+  template<class T> class S { inline void f(); };
+  template<class T> inline
+    void S<T>::f() {}
+    // This translation unit used to trigger an abort.
+
+This problem is now fixed.
+
 4/22/03  Internal errors caused by layout of prototype instantiations
 
 The front end used to perform complete class layout computations on
