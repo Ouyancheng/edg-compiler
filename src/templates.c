@@ -3905,6 +3905,89 @@ are looked up, if needed.  The symbol of the new instance is returned.
 }  /* copy_template_class_reference_with_substitution */
 
 
+static a_type_ptr copy_array_type_with_substitution(
+				a_type_ptr			type,
+				a_template_arg_ptr		templ_arg_list,
+				a_template_nesting_depth	depth,
+				a_source_position		*source_pos,
+				a_ctws_options_set		options,
+				a_boolean			*copy_error)
+/*
+type points to an array type.  Copy, with substitution, the element type.
+If the array type has a variable array dimension, do the substitution
+on the ck_template_param constant pointed to by the expression.
+*/
+{
+  an_expr_node_ptr	orig_expr;
+  an_expr_node_ptr	new_expr;
+  a_constant_ptr	orig_cp = NULL;
+  a_constant_ptr	new_cp = NULL;
+  a_type_ptr		new_type;
+  a_type_ptr		tp;
+  a_type_ptr		new_array_type;
+
+  tp = copy_type_with_substitution(type->variant.array.element_type,
+                                   templ_arg_list, depth, source_pos,
+                                   options, copy_error);
+  /* Determine whether the number of elements is fixed, or whether
+     it requires substitution. */
+  if (type->variant.array.is_variable_size_array) {
+    /* The array size points to an expression.  The expression is
+       expected to always point to a constant for cases that can
+       get here. */
+    orig_expr = type->variant.array.variant.element_count_expr;
+    check_assertion_str2(orig_expr->kind ==
+                                      (an_expr_node_kind)enk_constant,
+                         "copy_type_with_substitution:",
+                         "nonconstant array expression");
+    orig_cp = orig_expr->variant.constant;
+    new_cp = copy_template_param_con_with_substitution(
+                      orig_cp, templ_arg_list, depth, (a_type_ptr)NULL,
+                      source_pos, copy_error);
+  }  /* if */
+  if (tp == type->variant.array.element_type &&
+      orig_cp == new_cp) {
+    /* Reuse the current type. */
+    new_type = type;
+  } else {
+    if (!is_function_type(tp) &&
+        !is_void_type(tp) && !is_reference_type(tp)) {
+      /* Create a new array type. */
+      new_array_type = alloc_type((a_type_kind)tk_array);
+      *new_array_type = *type;
+      new_array_type->variant.array.element_type = tp;
+      if (orig_cp != new_cp) {
+        if (new_cp->kind != (a_constant_repr_kind)ck_template_param) {
+          /* The substituted value is now an integer value.  Extract
+             that value and use it as a constant bound.  Note that
+             overflow is ignored at this point. */
+          a_boolean	overflow;
+          check_assertion(new_cp->kind ==
+                                    (a_constant_repr_kind)ck_integer);
+          new_array_type->variant.array.is_variable_size_array = FALSE;
+          new_array_type->variant.array.variant.number_of_elements =
+                 unsigned_value_of_integer_constant(new_cp, &overflow);
+        } else {
+          /* The substituted value is still a ck_template_param
+             constant.  Create a new expression node to point to
+             the new constant. */
+          new_expr = alloc_expr_node((an_expr_node_kind)enk_constant);
+          *new_expr = *orig_expr;
+          new_expr->variant.constant = new_cp;
+          type->variant.array.variant.element_count_expr = new_expr;
+        }  /* if */
+      }  /* if */
+      new_type = new_array_type;
+    } else {
+      /* The element type is invalid. */
+      *copy_error = TRUE;
+      new_type = NULL;
+    }  /* if */
+  }  /* if */
+  return new_type;
+}  /* copy_array_type_with_substitution */
+
+
 static a_symbol_ptr copy_parent_type_with_substitution(
 				a_symbol_ptr			sym,
 				a_template_arg_ptr		templ_arg_list,
@@ -4248,29 +4331,9 @@ make_new_type:
         set_routine_calling_method_flag(new_type, &null_source_position);
         break;
       case tk_array:
-        /* Make an array type based on "type", making substitutions as
-           required in the element type.  Note that if the element type doesn't
-           require substitution, we don't create a new type entry. */
-        tp = copy_type_with_substitution(type->variant.array.element_type,
-                                         templ_arg_list, depth, source_pos,
-                                         options, copy_error);
-        if (tp == type->variant.array.element_type) {
-          /* Reuse the current type. */
-          new_type = type;
-        } else {
-          if (!is_function_type(tp) &&
-              !is_void_type(tp) && !is_reference_type(tp)) {
-            /* Create a new array type. */
-            tp2 = alloc_type((a_type_kind)tk_array);
-            *tp2 = *type;
-            tp2->variant.array.element_type = tp;
-            new_type = tp2;
-          } else {
-            /* The element type is invalid. */
-            *copy_error = TRUE;
-            new_type = NULL;
-          }  /* if */
-        }  /* if */
+        new_type = copy_array_type_with_substitution(
+                                      type, templ_arg_list, depth, source_pos,
+                                      options, copy_error);
         break;
       case tk_class:
       case tk_struct:
