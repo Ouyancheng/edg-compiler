@@ -4095,7 +4095,7 @@ static a_boolean type_matches_type_code(a_type_ptr type,
                                         char       type_code)
 /*
 Return TRUE if the indicated type matches the indicated type code, meaning
-it fits that type description or can be promoted to it.
+it fits that type description or can be converted to it.
 */
 {
   a_boolean matches = FALSE;
@@ -4127,7 +4127,9 @@ it fits that type description or can be promoted to it.
       matches = is_ptr_to_member_type(type);
       break;
     case BOOL_TYPE_CODE:
-      matches = is_bool_type(type);
+      matches = is_arithmetic_type(type) || /* Arithmetic includes bool. */
+                is_enum_type(type) || is_pointer_type(type) ||
+                is_ptr_to_member_type(type);
       break;
     default:
       unexpected_condition_str("type_matches_type_code: bad type code");
@@ -4176,15 +4178,16 @@ type_code.
 }  /* builtin_type_set_for_type_code */
 
 
-static an_arg_match_level builtin_type_operand_conversion_cost(
-                                                      char           type_code,
-                                                      an_opname_kind kind,
-                                                      an_operand     *operand)
+static void determine_builtin_type_operand_conversion_cost(
+                                            char                     type_code,
+                                            an_opname_kind           kind,
+                                            an_operand               *operand,
+                                            an_arg_match_summary_ptr arg_match)
 /*
 *operand is an operand for a builtin operation, whose type is constrained
 to be a type described by the indicated type code.  The operation is the
-builtin operator described by "kind".  Return the conversion cost (exact
-match, promotion, etc.) for the operand.
+builtin operator described by "kind".  Determine the conversion cost (exact
+match, promotion, etc.) for the operand and record it in arg_match.
 */
 {
   an_arg_match_level match_level = aml_exact;
@@ -4201,7 +4204,23 @@ match, promotion, etc.) for the operand.
     match_level = aml_std_conversion;
   } else {
     a_type_ptr operand_type = operand->type;
-    if (!any_cfront_mode() && is_enum_type(operand_type)) {
+    if (type_code == BOOL_TYPE_CODE) {
+      /* A bool operand is wanted. */
+      if (is_bool_type(operand_type)) {
+        /* A bool operand was provided, so this is an exact match. */
+        match_level = aml_exact;
+      } else {
+        /* Conversion of arithmetic, enum, pointer, or pointer to member
+           to bool; this is a standard conversion. */
+        match_level = aml_std_conversion;
+        if (is_pointer_type(operand_type) ||
+            is_ptr_to_member_type(operand_type)) {
+          /* Conversion of a pointer or pointer to member to bool is worse
+             than the others. */
+          arg_match->conversion.std.ptr_or_pm_to_bool = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if (!any_cfront_mode() && is_enum_type(operand_type)) {
       /* An enum type is not an integral type, so there's always at least
          a promotion cost.  There's also always at most a promotion cost,
          because the type after promotion is both a promoted integral type
@@ -4211,6 +4230,7 @@ match, promotion, etc.) for the operand.
                type_code == PROMOTED_ARITH_TYPE_CODE) {
       /* A promoted type is required.  See if the operand type is an integral
          type affected by promotion. */
+      /* No special handling is needed here for bool operands. */
       if (is_integral_type(operand_type)) {
         a_type_ptr promoted_type =
                                 operand_type_after_integral_promotion(operand);
@@ -4229,8 +4249,8 @@ match, promotion, etc.) for the operand.
       }  /* if */
     }  /* if */
   }  /* if */
-  return match_level;
-}  /* builtin_type_operand_conversion_cost */
+  arg_match->match_level = match_level;
+}  /* determine_builtin_type_operand_conversion_cost */
 
 
 static void try_builtin_operands_match(
@@ -4342,9 +4362,9 @@ the target type to be used).
         if (type_matches_type_code(operand_type, type_code)) {
           /* The type is correct.  See what the cost is (there might be
              a promotion). */
-          arg_match->match_level =
-                   builtin_type_operand_conversion_cost(type_code, kind,
-                                                        &arg_operand->operand);
+          determine_builtin_type_operand_conversion_cost(type_code, kind,
+                                                         &arg_operand->operand,
+                                                         arg_match);
         }  /* if */
       }  /* if */
     } else {
