@@ -1542,38 +1542,32 @@ Allocate a new active using directive entry, initialize its fields, and
 link it into a list of active using directives for the current scope.
 Reuse a freed entry if possible. */
 {
-  an_active_using_directive_ptr  audp;
-  a_scope_stack_entry_ptr	 ssep = &scope_stack[depth_scope_stack];
-  a_namespace_ptr		 nsp;
-  a_symbol_ptr			 ns_sym;
+  an_active_using_directive_ptr  	audp;
+  a_scope_stack_entry_ptr	 	ssep = &scope_stack[depth_scope_stack];
+  a_namespace_ptr		 	nsp;
+  a_symbol_ptr			 	ns_sym;
+  a_scope_depth			 	new_depth;
+  a_namespace_symbol_supplement_ptr	nssp;
 
   /* Get a pointer to the namespace to be used. */
   nsp = skip_namespace_aliases(udp->assoc_namespace);
-  /* See if this entry is already on the list. */
-  audp = ssep->active_using_directives;
-  while (audp != NULL) {
-    if (skip_namespace_aliases(audp->entry->assoc_namespace) == nsp) {
-      break;
-    }  /* if */
-    audp = audp->next;
-  }  /* while */
-  if (audp == NULL) {
-    /* The entry is not already on the list -- add it. */
-    a_scope_depth			new_depth;
-    a_namespace_symbol_supplement_ptr	nssp;
+  ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
+  nssp = ns_sym->variant.namespace_info.extra_info;
+  /* Determine the depth at which this using directive applies.  If
+     the new value is greater than the old value, use the new value.  This
+     test does two thing: it allows a namespace to be added to a list even
+     if it is already on a list for an enclosing scope, and it makes sure
+     that a namespace is not on the active using list for a given scope
+     more than once. */
+  new_depth = determine_scope_at_which_using_directive_applies(ns_sym);
+  if (new_depth > nssp->scope_depth_at_which_using_directive_applies) {
+    /* Add the using directive to the active list for this scope. */
+    nssp->scope_depth_at_which_using_directive_applies = new_depth;
     audp = alloc_active_using_directive();
     audp->entry = udp;
-    ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
-    nssp = ns_sym->variant.namespace_info.extra_info;
     audp->namespace_supplement = nssp;
     audp->next = ssep->active_using_directives;
     ssep->active_using_directives = audp;
-    /* Determine the depth at which this using directive applies.  If
-       the new value is greater than the old value, use the new value. */
-    new_depth = determine_scope_at_which_using_directive_applies(ns_sym);
-    if (new_depth > nssp->scope_depth_at_which_using_directive_applies) {
-      nssp->scope_depth_at_which_using_directive_applies = new_depth;
-    }  /* if */
     /* Add active using directives for the namespaces that should be
        visible because of the transitivity of using directives. */
     add_active_using_directives_for_namespace(nsp);
