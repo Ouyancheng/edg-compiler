@@ -11880,7 +11880,7 @@ Display a class list for debugging purposes.
 */
 {
   if (list == NULL) {
-    fprintf(f_debug, "<empty class list>");
+    fprintf(f_debug, "<empty class list>\n");
   } else {
     a_boolean              secondary = in_secondary_trans_unit(list);
     a_class_list_entry_ptr entry;
