@@ -611,7 +611,7 @@ error code.
       m = "type of cast must be arithmetic or pointer";
       break;
     case ec_initialization_not_reachable:
-      m = "dynamic initialization in unreachable block";
+      m = "dynamic initialization in unreachable code";
       break;
     case ec_unsigned_compare_with_zero:
       m = "pointless comparison of unsigned integer with zero";
