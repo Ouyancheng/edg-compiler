@@ -515,7 +515,6 @@ given coordinates.  args points to the template argument list (for a
 template template parameter), if any.
 */
 {
-  check_assertion(distinct_template_signatures);
   /* The encoding is "ZnZ" for a first-level parameter, and "Zn_mZ" for
      a non-first-level parameter, with "n" the parameter number, and
      "m" the depth number.  The "Z" on the end is to avoid ambiguities
