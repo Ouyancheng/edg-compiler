@@ -95,6 +95,7 @@ delete_unneeded_entries()
   unneeded="$unneeded __cplusplus"
   unneeded="$unneeded __GNUC_MINOR__"
   unneeded="$unneeded __GNUC__"
+  unneeded="$unneeded __GNUG__"
   unneeded="$unneeded __VERSION__"
   unneeded="$unneeded __STDC_HOSTED__"
   unneeded="$unneeded __STDC__"
