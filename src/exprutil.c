@@ -5797,7 +5797,8 @@ be used (e.g., eok_negate, not eok_inegate).
     if (is_operator_returning_bool(op)) {
       result_type = boolean_result_type();
     } else if (op == (an_expr_operator_kind)eok_indirect) {
-      if (!is_template_param_or_nonreal_class_type(operand->type)) {
+      /* "*" (indirection) operator. */
+      if (is_an_rvalue(operand) && is_pointer_type(operand->type)) {
         result_type = type_pointed_to(operand->type);
       }  /* if */
     }  /* if */
