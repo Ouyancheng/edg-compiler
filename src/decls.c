@@ -1134,12 +1134,25 @@ current scope.
                                          &pos_curr_token,
                                          scope_stack[decl_scope_level].number);
   assoc_object_sym->variant.variable.ptr = vp;
+  set_source_corresp(&vp->source_corresp, assoc_object_sym);
   if (at_file_or_namespace_scope) {
     set_namespace_membership(assoc_object_sym, &vp->source_corresp,
                              (a_namespace_ptr)NULL);
+  } else {
+    vp->source_corresp.is_local_to_function = TRUE;
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Mark the type declaration as autonomous. */
+  set_autonomous_tag_decl_flag(anon_union_type, /*is_definition=*/TRUE);
+  /* Also put out a source sequence entry for the variable (even though the
+     variable declaration doesn't actually appear). */
+  vp->declared_type = anon_union_type;
+  update_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable,
+                              (a_source_sequence_entry_ptr)NULL);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   check_anonymous_union_symbols(assoc_object_sym, (a_type_ptr)NULL,
                                 /*is_nonstd=*/FALSE);
+
 }  /* make_anonymous_union_variable */
 
 
@@ -6771,9 +6784,6 @@ TRUE if an error was reported while the decl-specifiers were scanned.
       /* The anonymous union variable is marked as referenced, as are all
          unnamed entities.  So its type is also marked referenced. */
       type_ptr->source_corresp.referenced = TRUE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      set_autonomous_tag_decl_flag(type_ptr, /*is_definition=*/TRUE);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (extern_implied && is_enum_type(type_ptr)) {
       /* This is a declaration like
                       extern "C" enum E { e1, e2, e3 };
