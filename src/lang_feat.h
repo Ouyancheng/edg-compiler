@@ -1597,9 +1597,6 @@ Flag that is TRUE if the IL and the front end code supporting Embedded C
 #ifndef NAMED_REGISTERS_ALLOWED
 #define NAMED_REGISTERS_ALLOWED FALSE
 #endif /* NAMED_REGISTERS_ALLOWED */
-#if !NAMED_REGISTERS_ALLOWED && DEFAULT_NAMED_REGISTERS_ENABLED
- #error -- Enabling of named registers not allowed
-#endif /* !NAMED_REGISTERS_ALLOWED && DEFAULT_NAMED_REGISTERS_ALLOWED */
 
 /*
 Flag that is TRUE if Embedded C (ISO/IEC TR 18037) named-register storage
@@ -1609,6 +1606,9 @@ of the global variable named_registers_enabled.
 #ifndef DEFAULT_NAMED_REGISTERS_ENABLED
 #define DEFAULT_NAMED_REGISTERS_ENABLED NAMED_REGISTERS_ALLOWED
 #endif /* DEFAULT_NAMED_REGISTERS_ENABLED */
+#if !NAMED_REGISTERS_ALLOWED && DEFAULT_NAMED_REGISTERS_ENABLED
+ #error -- Enabling of named registers not allowed
+#endif /* !NAMED_REGISTERS_ALLOWED && DEFAULT_NAMED_REGISTERS_ALLOWED */
 
 /*
 Check that no mutually exclusive dialect emulations are simultaneously
