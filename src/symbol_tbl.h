@@ -357,6 +357,9 @@ typedef struct a_class_symbol_supplement {
   unsigned int  has_copy_constructor:1;
 			/* TRUE if a copy constructor has either been declared
 			   or generated for the class. */
+  unsigned int  has_copy_constructor_for_const_object:1;
+			/* TRUE if there is a copy constructor for the class
+			   and it can be used to copy a const object. */
 } a_class_symbol_supplement;
 
 
