@@ -177,12 +177,9 @@ is done according to the output control block octl.
     /* No source correspondence entry, or else it has a different class
        parent; use the symbol name directly. */
     if (il_header.source_language == sl_Cplusplus) {
-      /* Put out the class qualifier on a class member. */
-      if (sym->is_class_member) {
-        form_class_qualifier(sym->parent.class_type, octl);
-      } else if (sym->parent.namespace_ptr != NULL) {
-        form_namespace_qualifier(sym->parent.namespace_ptr, octl);
-      }  /* if */
+      /* Put out the class or namespace qualifier on a member. */
+      form_class_or_namespace_qualifier(sym->is_class_member, sym->parent,
+                                        octl);
     }  /* if */
     octl->output_str(sym->header->identifier);
   }  /* if */

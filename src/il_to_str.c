@@ -184,8 +184,9 @@ The output includes template arguments on template classes.
 }  /* form_unqualified_name */
 
 
-void form_namespace_qualifier(a_namespace_ptr                       nsp,
-                              an_il_to_str_output_control_block_ptr octl)
+static void form_namespace_qualifier(
+                                    a_namespace_ptr                       nsp,
+                                    an_il_to_str_output_control_block_ptr octl)
 /*
 Output a namespace qualifier (e.g., "N::") that identifies the indicated
 namespace.  Do the output in the way described by octl.  Note that the
@@ -205,8 +206,9 @@ to output any part of the the name.  Called only for C++.
 }  /* form_namespace_qualifier */
 
 
-void form_class_qualifier(a_type_ptr                            class_type,
-                          an_il_to_str_output_control_block_ptr octl)
+static void form_class_qualifier(
+                              a_type_ptr                            class_type,
+                              an_il_to_str_output_control_block_ptr octl)
 /*
 Output a class qualifier (e.g., "A::B::") that identifies the indicated
 class type.  Do the output in the way described by octl.  Note that
@@ -222,16 +224,33 @@ be used to output any part of the name.  Called only for C++.
     class_type = scp->parent.class_type;
     scp = &class_type->source_corresp;
   }  /* while */
-  if (scp->is_class_member) {
-    /* Use recursion to handle multiple levels of nesting. */
-    form_class_qualifier(scp->parent.class_type, octl);
-  } else if (scp->parent.namespace_ptr != NULL) {
-    form_namespace_qualifier(scp->parent.namespace_ptr, octl);
-  }  /* if */
+  /* Use recursion to handle multiple levels of nesting. */
+  form_class_or_namespace_qualifier(scp->is_class_member, scp->parent, octl);
   /* Do the last level. */
   form_unqualified_name(scp, iek_type, octl);
   octl->output_str("::");
 }  /* form_class_qualifier */
+
+
+void form_class_or_namespace_qualifier(
+                         a_boolean                             is_class_member,
+                         a_parent_class_or_namespace           parent,
+                         an_il_to_str_output_control_block_ptr octl)
+/*
+Output a class or namespace qualifier for an entity, if necessary.
+is_class_member and parent give the class/namespace membership information
+for the entity: if is_class_member is TRUE, the entity is a member of the
+class indicated by parent.class_type.  If is_class_member is FALSE, and
+parent.namespace_ptr is non-NULL, the entity is a member of a namespace,
+and parent.namespace_ptr points to the namespace.
+*/
+{
+  if (is_class_member) {
+    form_class_qualifier(parent.class_type, octl);
+  } else if (parent.namespace_ptr != NULL) {
+    form_namespace_qualifier(parent.namespace_ptr, octl);
+  }  /* if */
+}  /* form_class_or_namespace_qualifier */
 
 
 void form_name(a_source_correspondence               *scp,
@@ -256,11 +275,8 @@ output in the way described by octl.
     /* If the name is a member of a class or namespace in C++, output the
        qualifier. */
     if (il_header.source_language == sl_Cplusplus) {
-      if (scp->is_class_member) {
-        form_class_qualifier(scp->parent.class_type, octl);
-      } else if (scp->parent.namespace_ptr != NULL) {
-        form_namespace_qualifier(scp->parent.namespace_ptr, octl);
-      }  /* if */
+      form_class_or_namespace_qualifier(scp->is_class_member, scp->parent,
+                                        octl);
     }  /* if */
     /* Output the base name. */
     form_unqualified_name(scp, kind, octl);
