@@ -2704,6 +2704,9 @@ Display the indicated dynamic_init structure.
   if (ptr->inside_conditional_expression) {
     disp_boolean("inside_conditional_expression", TRUE);
   }  /* if */
+  if (ptr->is_expr_temp_init) {
+    disp_boolean("is_expr_temp_init", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case dik_none:

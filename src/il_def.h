@@ -901,6 +901,9 @@ typedef struct a_dynamic_init {
 			   destruction list cannot predetermine which should
 			   be destroyed first; the dynamic init entries for
 			   both operands will have the flag set. */
+  unsigned int	is_expr_temp_init:1;
+			/* TRUE if this entry represents the initialization of
+			   an expression temporary. */
   bitfield_to_avoid_codecenter_warnings();
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */

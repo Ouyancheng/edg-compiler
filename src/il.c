@@ -4893,14 +4893,16 @@ void clear_dynamic_init(a_dynamic_init_ptr  dip,
 Initialize a dynamic_init entry of the kind specified.
 */
 {
-  dip->next       = NULL;
-  dip->variable   = NULL;
-  dip->destructor = NULL;
-  dip->lifetime   = NULL;
-  dip->next_in_destruction_list = NULL;
-  dip->init_expr_lifetime = NULL;
-  dip->follows_an_exec_statement = FALSE;
+  dip->next                          = NULL;
+  dip->variable                      = NULL;
+  dip->destructor                    = NULL;
+  dip->lifetime                      = NULL;
+  dip->next_in_destruction_list      = NULL;
+  dip->init_expr_lifetime            = NULL;
+  dip->follows_an_exec_statement     = FALSE;
   dip->inside_conditional_expression = FALSE;
+  dip->unordered                     = FALSE;
+  dip->is_expr_temp_init             = FALSE;
 #if CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
