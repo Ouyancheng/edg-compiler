@@ -4600,32 +4600,28 @@ are created by a new expression (in which case sym is NULL).  In both cases
         }  /* if */
       }  /* if */
     } else {
-      /* Uninitialized const new-object. */
-      if (any_cfront_mode() || microsoft_mode) {
-        /* No diagnostic required. */
+      /* Uninitialized const new-object. 
+         The case of a const temporary, as in:
+           typedef X const CX; CX().f();
+         also comes here (when X has no explicit default constructor). */
+      if (any_cfront_mode() || microsoft_mode ||
+          (is_empty_POD_class && !strict_ansi_mode)) {
+        /* No diagnostic required. (The "empty const object" case parallels
+           the case where such an object is a named variable (see above).
+           It is diagnosed in strict mode only.) */
       } else {
-        /* Issue a discretionary error -- unless it's an empty class, in
-           which case issue a discretionary error in strict mode, otherwise
-           a warning. */
-        if (is_empty_POD_class &&
-            (!strict_ansi_mode ||
-             (strict_ansi_error_severity != (an_error_severity)es_error &&
-              strict_ansi_error_severity != (an_error_severity)
-                                                   es_discretionary_error))) {
-          severity = es_warning;
-        } else {
-          severity = es_discretionary_error;
-        }  /* if */
+        /* Issue a discretionary error. */
         if (is_class_struct_union_type(type)) {
           /* Even if the class has an implicitly declared default constructor,
              a user-declared default constructor must be present (WP 5.3.4
              [expr.new]). */
           check_assertion(!type_has_user_declared_default_constructor(type));
-          pos_ty_diagnostic(severity,
+          pos_ty_diagnostic(es_discretionary_error,
                             ec_missing_default_constructor_on_unnamed_const,
                             &error_position, skip_typerefs(type));
         } else {
-          diagnostic(severity, ec_missing_initializer_on_unnamed_const);
+          diagnostic(es_discretionary_error,
+                     ec_missing_initializer_on_unnamed_const);
         }  /* if */
       }  /* if */
     }  /* if */

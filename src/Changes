@@ -1,5 +1,18 @@
 Version 2.42
 
+7/2/99  Diagnosing missing initializers for empty const POD objects
+
+By default, the front end used to warn about missing initializers on unnamed
+empty const POD objects, but was silent in the case of named variables.  (In
+strict mode, both cases are diagnosed with a discretionary error.)  This
+inconsistency has been removed by no longer issuing the warning by default.
+
+  struct X {};
+  int main() {
+    X const ncx; // No initializer warning by default
+    new X const; // Used to warn by default (no longer)
+  }
+
 7/2/99  Abstract class status of template classes
 
 The front end used to erroneously consider abstract certain classes generated
