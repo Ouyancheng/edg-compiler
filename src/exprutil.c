@@ -1765,7 +1765,7 @@ See section 3.2.1.5 of the standard.
 
   db_enter(4, "determine_arithmetic_conversions");
 
-  if (m_is_error_type(operand_1->type) || m_is_error_type(operand_2->type)) {
+  if (is_error_type(operand_1->type) || is_error_type(operand_2->type)) {
     result_type = error_type();
   } else {
     /* Get past possible typerefs. */
@@ -2062,7 +2062,7 @@ operands to the new type.  This is used for the operands of an operation,
 with the type probably determined by determine_arithmetic_conversions.
 */
 {
-  if (!m_is_error_type(type)) {
+  if (!is_error_type(type)) {
     if (operand_1->type != type) {
       /* Cast operand 1 to match the desired type. */
       cast_operand(type, operand_1, /*is_implicit_cast=*/TRUE);
@@ -4827,6 +4827,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   a_constant_ptr    arg_operand_constant;
   an_operand        implicit_arg_operand;
   a_user_conv_descr user_conversion;
+  a_type_ptr        unqual_arg_type, unqual_param_type;
 
   db_enter(4, "determine_arg_match_level");
   clear_arg_match_summary(arg_summary);
@@ -4940,7 +4941,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
      those that involve adding type qualifiers.  We therefore now have
      the essential underlying types for the rest of the checking. */
   arg_summary->base_param_type = param_type;
-  if (m_is_error_type(arg_type) || m_is_error_type(param_type)) {
+  unqual_arg_type = skip_typerefs(arg_type);
+  unqual_param_type = skip_typerefs(param_type);
+  if (is_immediate_error_type(unqual_arg_type) ||
+      is_immediate_error_type(unqual_param_type)) {
     /* An error type matches anything, but not very well. */
     arg_summary->match_level = aml_error;
     goto have_level;
@@ -4949,8 +4953,6 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
      or a match with promotions.  Cases other than those do their own
      checking of type qualifiers. */
   if (!ref_type_qualifiers_dropped) {
-    a_type_ptr unqual_arg_type = skip_typerefs(arg_type);
-    a_type_ptr unqual_param_type = skip_typerefs(param_type);
     /* Check for an exact match.  This is case [1] in the ARM. */
     if (types_are_compatible(unqual_arg_type, unqual_param_type)) {
       /* There is an exact match, possibly involving trivial conversions. */
@@ -5056,8 +5058,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     }  /* if */
     goto have_level;
   }  /* if */
-  param_is_class_type = is_class_struct_union_type(param_type);
-  arg_is_class_type = is_class_struct_union_type(arg_type);
+  param_is_class_type = is_immediate_class_type(unqual_param_type);
+  arg_is_class_type = is_immediate_class_type(unqual_arg_type);
   if (param_is_class_type && arg_is_class_type &&
       !ref_type_qualifiers_dropped &&
       (bcp = find_base_class_of(arg_type, param_type)) != NULL) {
