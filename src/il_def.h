@@ -81,6 +81,7 @@ typedef struct a_namespace   *a_namespace_ptr;
 typedef struct a_scope       *a_scope_ptr;
 typedef struct a_routine_fixup
                              a_routine_fixup_dummy_typedef;
+typedef struct a_template_decl *a_template_decl_ptr;
 typedef struct a_template *a_template_ptr;
 #if DO_IL_LOWERING
 typedef struct a_destructible_entity_descr
@@ -7435,7 +7436,6 @@ typedef struct a_template_parameter {
 			/* The kind of parameter: type, nontype or template. */
 } a_template_parameter;
 
-typedef struct a_template_decl *a_template_decl_ptr;
 typedef struct a_template_decl {
   /* The description of the template parameterization of a declaration.  The
      declarative entity (routine, variable or class supplement) points to an
