@@ -1,5 +1,29 @@
 Version 2.30
 
+8/28/95  Namespaces
+
+Namespaces are now supported.  This includes namespace definitions,
+namespace alias declarations, "using" declarations and directives, and
+new name lookup rules.  Namespaces are enabled by default (see
+DEFAULT_NAMESPACES_ENABLED) except in the cfront modes.  The command-line
+options --namespaces and --no_namespaces can be used to enable or
+disable the features.
+
+The name mangling for members of namespaces uses the same form as
+for class members, and there are no other ABI implications, so this
+feature is upward compatible with older versions except for the
+introduction of the new keywords "namespace" and "using".
+
+8/27/95  New placeholder typeref for nested classes defined outside of parent
+
+"Placeholder" typeref entries are placed in the IL to give added information
+about ordering for type entries.  They are used in IL lowering to
+guide the process of flattening class, local, and namespace type lists
+into a single file-scope type list.  A new placeholder has been added
+to indicate the point of definition of nested classes defined outside of
+their parent class.  As with all placeholders, this type looks like
+a useless typeref and is ignored in most cases.
+
 8/26/95  Adding linkage kinds
 
 Adding linkage kinds beyond "C" and "C++" has been made easier: there
@@ -289,7 +313,7 @@ array-->pointer decay in lvalues:
 
 8/8/95   IL CHANGE: an_access_adjustment ==> a_class_member_using_decl
 
-Certain entities have be renamed now that access-declarations are just a
+Certain entities have been renamed now that access-declarations are just a
 deprecated way writing using-declarations within a class definition:
 an_access_adjustment is now a_class_member_using_decl, and the field
 access_adjustments in a_class_type_supplement is now
