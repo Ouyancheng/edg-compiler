@@ -2736,7 +2736,7 @@ which is_class_struct_union_type is TRUE.
 Given a namespace pointer, return a pointer to the namespace symbol
 supplement.
 */
-#define namespace_supplement_for_namespace(nsp)				\
+#define symbol_supplement_for_namespace(nsp)	                     \
   (((a_symbol_ptr)(skip_namespace_aliases(nsp))->source_corresp.assoc_info)-> \
                                           variant.namespace_info.extra_info)
 

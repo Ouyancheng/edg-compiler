@@ -2589,7 +2589,7 @@ the scope pointers block for the global scope.
   if (nsp == NULL) {
     result = assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE]);
   } else {
-    result = &namespace_supplement_for_namespace(nsp)->pointers_block;
+    result = &symbol_supplement_for_namespace(nsp)->pointers_block;
   }  /* if */
   return result;
 }  /* pointers_block_for_namespace */

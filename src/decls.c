@@ -6488,7 +6488,7 @@ block.
            namespace or is enclosed by an unnamed namespace. */
         if (is_unnamed_namespace ||
             (ns_sym->parent.namespace_ptr != NULL &&
-             namespace_supplement_for_namespace(ns_sym->parent.namespace_ptr)->
+             symbol_supplement_for_namespace(ns_sym->parent.namespace_ptr)->
                                                   within_unnamed_namespace)) {
           ns_sym->variant.namespace_info.extra_info->
                                              within_unnamed_namespace = TRUE;

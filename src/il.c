@@ -3775,7 +3775,7 @@ with the class or namespace of which the entry is a member.
   } else if (nsp != NULL) {
     /* Use the IL scope from the namespace. */
     sp = nsp->variant.assoc_scope;
-    *pointers_block = &namespace_supplement_for_namespace(nsp)->pointers_block;
+    *pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
   } else {
     /* Use the IL scope associate with scope_level. */
     ssep = &scope_stack[scope_level];
@@ -6779,8 +6779,7 @@ with the class or namespace.
       check_assertion_str(!nsp->is_namespace_alias,
                           "add_to_pragma_list: namespace alias not expected");
       sp = nsp->variant.assoc_scope;
-      pointers_block =
-                  &namespace_supplement_for_namespace(nsp)->pointers_block;
+      pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
     }  /* if */
     /* If the scope of the class or pragma is still on the scope stack, get
        a pointer to the scope stack entry. */

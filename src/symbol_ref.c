@@ -329,7 +329,7 @@ list for the scope to which sym_ptr belongs.
   check_assertion(!sym_ptr->is_class_member);
   nsp = sym_ptr->parent.namespace_ptr;
   if (nsp != NULL) {
-    pointers_block = &namespace_supplement_for_namespace(nsp)->pointers_block;
+    pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
   } else {
     depth = scope_depth_of_symbol(sym_ptr, &is_local_to_function);
     if (depth == NO_SCOPE_DEPTH) {

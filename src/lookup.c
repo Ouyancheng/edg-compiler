@@ -2579,7 +2579,7 @@ as follows:
     udp = il_header.primary_scope->using_directives;
   } else {
     udp = ns_ptr->variant.assoc_scope->using_directives;
-    nssp = namespace_supplement_for_namespace(ns_ptr);
+    nssp = symbol_supplement_for_namespace(ns_ptr);
   }  /* if */
   /* Set a flag that indicates that this namespace is being processed so
      that in case of a recursive reference it is not visited again.
@@ -2596,7 +2596,7 @@ as follows:
     a_namespace_symbol_supplement_ptr	next_nssp;
     a_namespace_ptr			assoc_namespace;
     assoc_namespace = skip_namespace_aliases(udp->assoc_namespace);
-    next_nssp = namespace_supplement_for_namespace(assoc_namespace);
+    next_nssp = symbol_supplement_for_namespace(assoc_namespace);
     /* Skip this namespace if we have already looked in it. */
     if (next_nssp->visited_by_qualified_lookup) continue;
     sym = lookup_in_namespace(locator, assoc_namespace, options,

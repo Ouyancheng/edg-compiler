@@ -3054,10 +3054,9 @@ pointed to by scope_ptr.
 
   while (nsp != NULL) {
     if (!nsp->is_namespace_alias) {
-      a_scope_pointers_block_ptr	pointers_block;
-      a_scope_ptr			assoc_scope = nsp->variant.assoc_scope;
-      pointers_block = &namespace_supplement_for_namespace(nsp)->
-                                                                pointers_block;
+      a_scope_pointers_block_ptr  pointers_block;
+      a_scope_ptr                 assoc_scope = nsp->variant.assoc_scope;
+      pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
       wrapup_scope(assoc_scope, assoc_scope->kind,
                    pointers_block, /*is_namespace_wrapup=*/TRUE);
       /* Process any namespaces defined within this one. */
