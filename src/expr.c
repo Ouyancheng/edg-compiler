@@ -4179,7 +4179,7 @@ lifetime list in the right place).
 { if (exceptions_enabled && new_routine != NULL && !placement_new) {  \
     dyn_init_to_free_storage =                                        \
       f_determine_deletion_for_throw_before_new_init_done(            \
-        base_new_type, array_new, use_global_new, &placement_position);\
+        base_new_type, array_new, use_global_new, &new_position);     \
   }  /* if */                                                         \
 }  /* determine_deletion_for_throw_before_new_init_done */
 
@@ -4207,7 +4207,7 @@ specification allow a variable-sized array as the top type.
 {
   a_boolean         err = FALSE;
   a_source_position start_position, type_position;
-  a_source_position placement_position;
+  a_source_position new_position;
   a_type_ptr        new_type, base_new_type, ptr_new_type;
   a_type_ptr        unqual_new_type;
   an_expr_node_ptr  new_array_dimension, sizeof_node;
@@ -4252,13 +4252,13 @@ specification allow a variable-sized array as the top type.
     internal_error("scan_new_operator: expected new");
   }  /* if */
 #endif /* CHECKING */
+  copy_source_position(pos_curr_token, new_position);
 
   (void)get_token();
   /* Check for the presence of the "placement" term, which provides extra
      arguments for the operator new function.  It is a list of expressions
      in parentheses. */
   arg_operand_list = NULL;
-  copy_source_position(pos_curr_token, placement_position);
   trapped_left_paren = FALSE;
   if (curr_token == tok_lparen) {
     (void)get_token();
@@ -4409,7 +4409,7 @@ specification allow a variable-sized array as the top type.
                                               arg_operand_list,
                                               ec_no_matching_new_function,
                                               ec_ambiguous_overloaded_function,
-                                              &placement_position,
+                                              &new_position,
                                               &arg_match_list);
     /* We check later for function_symbol != NULL.  We don't set err
        here for that case because it shouldn't affect the scanning of
@@ -4481,7 +4481,7 @@ specification allow a variable-sized array as the top type.
     overloaded_function_catch_up(function_symbol,
                                  operator_new_symbol,
                                  /*is_qualified_name=*/FALSE,
-                                 &placement_position,
+                                 &new_position,
                                  /*elided_reference=*/(new_routine==NULL),
                                  /*address_taken=*/FALSE,
                                  (an_operand *)NULL,
