@@ -101,21 +101,6 @@ TARG_WCHAR_T_INT_KIND.)
 /*
 Integer types:
 */
-#define TARG_SHRT_MAX ((short)0x7fff)
-#define TARG_SHRT_MIN ((short)0x8000)
-#define TARG_USHRT_MAX ((unsigned short)0xffff)
-#define TARG_INT_MAX ((long)0x7fffffffL)
-#define TARG_INT_MIN ((long)0x80000000L)
-#define TARG_UINT_MAX ((unsigned long)0xffffffffL)
-#define TARG_LONG_MAX ((long)0x7fffffffL)
-#define TARG_LONG_MIN ((long)0x80000000L)
-#define TARG_ULONG_MAX ((unsigned long)0xffffffffL)
-#if LONG_LONG_ALLOWED
-#define TARG_LONG_LONG_MAX ((long)0x7fffffffL)
-#define TARG_LONG_LONG_MIN ((long)0x80000000L)
-#define TARG_ULONG_LONG_MAX ((unsigned long)0xffffffffL)
-#endif /* LONG_LONG_ALLOWED */
-
 /* Remember that the size of a type must be a multiple of the alignment. */
 #define TARG_SIZEOF_SHORT 2
 #define TARG_ALIGNOF_SHORT 2
@@ -279,13 +264,18 @@ Pointer types:
    This type must be signed.  See 3.3.6 in the standard and the header
    file <stddef.h>. */
 typedef long a_targ_ptrdiff_t;  /* Must be host "long". */
+/* TARG_PTRDIFF_T_MAX and TARG_PTRDIFF_T_MIN define the limits of the host
+   representation of ptrdiff_t constants; the range they define can be equal
+   to or smaller than the integer size implied by TARG_PTRDIFF_T_INT_KIND.
+   Except when the target ptrdiff_t is smaller than the host long, they
+   should be LONG_MAX and LONG_MIN. */
+#define TARG_PTRDIFF_T_MAX ((a_targ_ptrdiff_t)LONG_MAX)
+#define TARG_PTRDIFF_T_MIN ((a_targ_ptrdiff_t)LONG_MIN)
+/* Pick a typical representation for ptrdiff_t: the smaller of int or long
+   that can hold a pointer value. */
 #if TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT
-#define TARG_PTRDIFF_T_MAX TARG_INT_MAX
-#define TARG_PTRDIFF_T_MIN TARG_INT_MIN
 #define TARG_PTRDIFF_T_INT_KIND ik_int
 #else /* TARG_SIZEOF_POINTER > TARG_SIZEOF_INT */
-#define TARG_PTRDIFF_T_MAX TARG_LONG_MAX
-#define TARG_PTRDIFF_T_MIN TARG_LONG_MIN
 #define TARG_PTRDIFF_T_INT_KIND ik_long
 #endif /* TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT */
 
@@ -293,11 +283,16 @@ typedef long a_targ_ptrdiff_t;  /* Must be host "long". */
    This type must be unsigned.  See 3.3.3.4 in the standard and the header
    file <stddef.h>. */
 typedef unsigned long a_targ_size_t;  /* Must be host "unsigned long". */
+/* TARG_SIZE_T_MAX defines the limit of the host representation
+   of size_t constants; the range it defines can be equal to or smaller
+   than the integer size implied by TARG_SIZE_T_INT_KIND.  Except when
+   the target size_t is smaller than the host long, it should be ULONG_MAX. */
+#define TARG_SIZE_T_MAX ((a_targ_size_t)ULONG_MAX)
+/* Pick a typical representation for size_t: the smaller of unsigned int or
+   unsigned long that can hold a pointer value. */
 #if TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT
-#define TARG_SIZE_T_MAX TARG_UINT_MAX
 #define TARG_SIZE_T_INT_KIND ik_unsigned_int
 #else /* TARG_SIZEOF_POINTER > TARG_SIZEOF_INT */
-#define TARG_SIZE_T_MAX TARG_ULONG_MAX
 #define TARG_SIZE_T_INT_KIND ik_unsigned_long
 #endif /* TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT */
 
