@@ -485,10 +485,13 @@ always appear in the same order on the types list of a class scope.)
   a_type_ptr  result = type;
 
   while (result != NULL &&
-         /* Some routines are generated as part of prelowering. */
+         /* Some types are generated as part of prelowering. */
          (result->source_corresp.name_has_been_mangled ||
+          /* Nonprototype instantiations can differ from one translation unit
+             to another. */
           (is_immediate_class_type(result) &&
-           is_unspecialized_template_class(result)))) {
+           is_unspecialized_template_class(result) &&
+           !result->variant.class_struct_union.is_prototype_instantiation))) {
     result = result->next;
   }  /* while */
   return result;
@@ -909,11 +912,16 @@ type is in fact valid.
 {
   a_boolean       match = verify_name_correspondence(type);
   a_type_ptr      corresp_type = (a_type_ptr)canonical_il_entry_of(type);
-  a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list,
-                  corresp_enumerator =
-                        corresp_type->variant.integer.enum_info.constant_list;
 
-  if (match) {
+  if (!match) {
+    /* An error was already issued. */
+  } else if (!is_immediate_enum_type(corresp_type)) {
+    match = FALSE;
+    report_bad_trans_unit_corresp(type);
+  } else {
+    a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list,
+                    corresp_enumerator =
+                        corresp_type->variant.integer.enum_info.constant_list;
     for (; enumerator != NULL && corresp_enumerator != NULL;
          enumerator = enumerator->next,
                               corresp_enumerator = corresp_enumerator->next) {
@@ -932,17 +940,17 @@ type is in fact valid.
       report_bad_trans_unit_corresp(type);
       match = FALSE;
     }  /* if */
-  }  /* if */
-  if (match && 
-      (enumerator != NULL ||
-#if MICROSOFT_EXTENSIONS_ALLOWED
-       !same_str(type->variant.integer.uuid_string,
-                 corresp_type->variant.integer.uuid_string) ||
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-       type->variant.integer.int_kind !=
+    if (match && 
+        (enumerator != NULL ||
+  #if MICROSOFT_EXTENSIONS_ALLOWED
+         !same_str(type->variant.integer.uuid_string,
+                   corresp_type->variant.integer.uuid_string) ||
+  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+         type->variant.integer.int_kind !=
                                      corresp_type->variant.integer.int_kind)) {
-    report_bad_trans_unit_corresp(type);
-    match = FALSE;
+      report_bad_trans_unit_corresp(type);
+      match = FALSE;
+    }  /* if */
   }  /* if */
   if (!match) {
     set_no_enum_type_correspondence(type);
@@ -1290,8 +1298,7 @@ is in fact valid.
       if (!match && C_mode()) {
         set_no_trans_unit_corresp(type);
       }  /* if */
-    } else if (is_immediate_enum_type(type) &&
-               is_immediate_enum_type(corresp_type)) {
+    } else if (is_immediate_enum_type(type)) {
       match = verify_enum_type_correspondence(type);
       if (!match && C_mode()) {
         set_no_trans_unit_corresp(type);
@@ -1299,6 +1306,9 @@ is in fact valid.
     } else {
       match = identical_types(type, corresp_type) &&
               same_exception_spec(type, corresp_type);
+      if (!match && scp->is_class_member) {
+        process_bad_trans_unit_corresp(type);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (match &&
