@@ -1,5 +1,12 @@
 Version 2.14
 
+2/8/93  Added pragma scope kind
+
+A new scope kind sck_pragma has been added for front-end use only; no IL
+scope entries will be created with this kind.  This scope is used while
+pragmas are being scanned to allow symbols in template declaration
+scopes to be hidden.
+
 2/5/93  * pointer-to-void is not an lvalue
 
 The result of indirecting through a pointer to void is now represented
