@@ -7900,7 +7900,7 @@ completed (C++ only).
                 }  /* if */
               }  /* if */
               if (explicit_specified) {
-                check_assertion(is_constructor == TRUE);
+                check_assertion(is_constructor);
                 rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
               }  /* if */
             }  /* if */
