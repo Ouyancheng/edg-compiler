@@ -1398,10 +1398,11 @@ Syntax:
       } else {
         a_boolean have_selector = operand->bound_function;
         make_unknown_dependent_function_operand(
-                                            overloaded_function_symbol,
-                                            (a_boolean)operand->is_template_id,
-                                            operand->template_arg_list,
-                                            operand);
+                                         overloaded_function_symbol,
+                                         (a_boolean)operand->is_template_id,
+                                         operand->template_arg_list,
+                                         (a_boolean)operand->is_qualified_name,
+                                         operand);
         if (have_selector) {
           /* This comes up with operator() cases. */
           combine_unneeded_selector_with_operand(bound_function_selector,
@@ -2499,6 +2500,9 @@ nonstatic_member_function:
                                                   /*is_template_id=*/TRUE,
                                                   locator_for_curr_id.
                                                              template_arg_list,
+                                                  (a_boolean)
+                                                        locator_for_curr_id.
+                                                             is_qualified_name,
                                                   result);
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
@@ -7000,6 +7004,8 @@ to select one of the functions in the overload set.  See [over.over].
     make_unknown_dependent_function_operand(operand->variant.symbol,
                                             (a_boolean)operand->is_template_id,
                                             operand->template_arg_list,
+                                            (a_boolean)operand->
+                                                             is_qualified_name,
                                             operand);
   } else {
     /* The cast doesn't select one of the overloaded functions, so it's
@@ -11264,6 +11270,9 @@ overloaded_function:
                                                   /*is_template_id=*/TRUE,
                                                   locator_for_curr_id.
                                                              template_arg_list,
+                                                  (a_boolean)
+                                                       locator_for_curr_id.
+                                                             is_qualified_name,
                                                   result);
           break;
         case sk_undefined:

@@ -2834,12 +2834,15 @@ without a leading "&".  Do the output in the way described by octl.
               octl);
   } else {
     /* Normal case (not a conversion function). */
+    a_boolean saved_force_qualified_name = octl->force_qualified_name;
+    octl->force_qualified_name = con->variant.template_param.is_qualified_name;
     if (is_template && octl->output_template_name != NULL) {
       octl->output_template_name((char *)&con->source_corresp,
                                  iek_constant);
     } else {
       form_name(&con->source_corresp, iek_constant, octl);
     }  /* if */
+    octl->force_qualified_name = saved_force_qualified_name;
   }  /* if */
   if (is_template) {
     /* Add the template arguments. */

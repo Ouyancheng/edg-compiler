@@ -511,13 +511,17 @@ as the class type, and use as a base class.
 static a_symbol_ptr create_unknown_function_symbol(
 				a_symbol_header_ptr	sym_hdr,
 				a_type_ptr		parent_class,
-				a_namespace_ptr		parent_namespace)
+				a_namespace_ptr		parent_namespace,
+				a_boolean		is_qualified_name,
+				a_type_ptr		conversion_type)
 /*
 Create a ck_constant entry of kind tpck_unknown_function, and an sk_constant
 symbol that points to the constant.  These constants are used during
 prototype instantiations to represent functions in dependent calls.
 The symbol is created using the symbol header information from sym_hdr
 and the parent information specified by parent_class and parent_namespace.
+The is_qualified_name and conversion_type fields in the constant are set
+as indicated by is_qualified_name and conversion_type.
 */
 {
   /* Create a ck_template_param constant.  We don't know the type of the
@@ -554,6 +558,9 @@ and the parent information specified by parent_class and parent_namespace.
               constant, (a_template_param_constant_kind)tpck_unknown_function);
   sym->variant.constant = constant;
   constant->type = type_of_unknown_templ_param_nontype;
+  constant->variant.template_param.is_qualified_name = is_qualified_name;
+  constant->variant.template_param.variant.unknown_function.conversion_type =
+                                                               conversion_type;
   scp = &constant->source_corresp;
   if (scp != NULL) set_source_corresp_with_scope_depth(scp, sym, depth);
   if (parent_class != NULL) {
@@ -566,11 +573,14 @@ and the parent information specified by parent_class and parent_namespace.
 }  /* create_unknown_function_symbol */
 
 
-a_symbol_ptr find_unknown_function_symbol(a_symbol_ptr	orig_sym)
+a_symbol_ptr find_unknown_function_symbol(
+					a_symbol_ptr	orig_sym,
+					a_boolean	is_qualified_name)
 /*
 Find an sk_constant symbol that points to a constant of kind
 tpck_unknown_function.  The symbol name must match that of orig_sym
-and must have the same parent scope.
+and must have the same parent scope.  The is_qualified_name flag in
+the constant must match is_qualified_name.
 
 If a matching symbol cannot be found, one is created.  The list of
 previously created symbols is included in the "other symbols" list
@@ -581,7 +591,9 @@ of the symbol header.
 
   /* Look for a previously created unknown function symbol. */
   for (sym = orig_sym->header->other_symbols; sym != NULL; sym = sym->next) {
-    if (sym->is_unknown_function) {
+    if (sym->is_unknown_function &&
+        sym->variant.constant->variant.template_param.is_qualified_name ==
+                                                           is_qualified_name) {
       if (sym->is_class_member == orig_sym->is_class_member) {
         if (sym->is_class_member &&
             sym->parent.class_type == orig_sym->parent.class_type) {
@@ -608,7 +620,8 @@ of the symbol header.
       parent_namespace = orig_sym->parent.namespace_ptr;
     }  /* if */
     sym = create_unknown_function_symbol(orig_sym->header, parent_class,
-                                         parent_namespace);
+                                         parent_namespace, is_qualified_name,
+                                         (a_type_ptr)NULL);
     check_assertion(sym->kind == (a_symbol_kind)sk_constant);
     con = sym->variant.constant;
     check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
@@ -2134,18 +2147,16 @@ symbol header information from the locator.  Return the symbol created.
 */
 {
   a_symbol_ptr		sym;
-  a_constant_ptr	constant;
   a_type_ptr		conv_result;
 
-  sym = create_unknown_function_symbol(locator->symbol_header,
-                                       class_type, (a_namespace_ptr)NULL);
-  /* Update the constant associated with this symbol to reflect the
-     result type of the conversion function. */
-  constant = sym->variant.constant;
+  /* Put the result type of the conversion function into the constant
+     created. */
   conv_result = locator->variant.conversion_result_type;
   check_assertion(conv_result != NULL);
-  constant->variant.template_param.variant.unknown_function.conversion_type =
-                                                                   conv_result;
+  sym = create_unknown_function_symbol(locator->symbol_header,
+                                       class_type, (a_namespace_ptr)NULL,
+                                       (a_boolean)locator->is_qualified_name,
+                                       conv_result);
   return sym;
 }  /* create_unknown_conversion_symbol */
 

@@ -421,6 +421,7 @@ ck_template_param constant.
   check_assertion_str(cp->kind == (a_constant_repr_kind)ck_template_param,
                     "set_template_param_constant_kind: not ck_template_param");
   cp->variant.template_param.kind = kind;
+  cp->variant.template_param.is_qualified_name = FALSE;
   switch (kind) {
     case tpck_param:
       cp->variant.template_param.variant.coordinates.position = 0;

@@ -2443,6 +2443,7 @@ void make_unknown_dependent_function_operand(
                                           a_symbol_ptr       sym,
                                           a_boolean          is_template_id,
                                           a_template_arg_ptr template_arg_list,
+                                          a_boolean          is_qualified_name,
                                           an_operand         *operand)
 /*
 Make an operand for the address of an unknown function from the set
@@ -2450,9 +2451,10 @@ of overloaded functions indicated by sym.  This is used in prototype
 instantiations when the function to be selected is not known.  If the
 function name is followed by a list of explicit template arguments,
 is_template_id is TRUE and template_arg_list gives the argument list.
+is_qualified_name is TRUE if the source form used a qualified name.
 */
 {
-  a_symbol_ptr unk_sym = find_unknown_function_symbol(sym);
+  a_symbol_ptr unk_sym = find_unknown_function_symbol(sym, is_qualified_name);
 
   if (!is_template_id) {
     /* The symbol is a constant whose value is the "address" of the
@@ -2622,6 +2624,8 @@ user-defined conversions.
                                                   (a_boolean)operand->
                                                                 is_template_id,
                                                   operand->template_arg_list,
+                                                  (a_boolean)operand->
+                                                             is_qualified_name,
                                                   operand);
         } else {
 #if CHECKING
@@ -4734,6 +4738,8 @@ what will be done with the operand.
     make_unknown_dependent_function_operand(operand->variant.symbol,
                                             (a_boolean)operand->is_template_id,
                                             operand->template_arg_list,
+                                            (a_boolean)operand->
+                                                             is_qualified_name,
                                             operand);
   } else if (is_sym_for_member_operand(operand)) {
     /* Replace a symbol-for-member operand by a pointer-to-member. */

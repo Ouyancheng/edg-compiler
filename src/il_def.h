@@ -1877,6 +1877,10 @@ typedef struct a_constant {
       a_template_param_constant_kind
 		kind;
 			/* The kind of template param constant. */
+      a_byte_boolean
+		is_qualified_name;
+			/* For tpck_unknown_function, TRUE if a qualified
+			   name was used in the source code. */
       union {
 	/* When template param constant kind == tpck_param: */
         a_template_param_coordinate

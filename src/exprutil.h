@@ -923,6 +923,7 @@ extern void make_unknown_dependent_function_operand(
                                           a_symbol_ptr       sym,
                                           a_boolean          is_template_id,
                                           a_template_arg_ptr template_arg_list,
+                                          a_boolean          is_qualified_name,
                                           an_operand         *operand);
 
 extern void cast_operand(a_type_ptr new_type,

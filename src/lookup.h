@@ -242,7 +242,9 @@ a_symbol_ptr create_proxy_or_nonreal_class_member
 extern
 a_type_ptr proxy_class_for_template_param(a_type_ptr   templ_param_type);
 
-extern a_symbol_ptr find_unknown_function_symbol(a_symbol_ptr	orig_sym);
+extern a_symbol_ptr find_unknown_function_symbol(
+					a_symbol_ptr	orig_sym,
+					a_boolean	is_qualified_name);
 
 extern
 a_symbol_ptr look_up_conversion_function(a_type_ptr		parent_class,
