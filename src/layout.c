@@ -1859,7 +1859,7 @@ offset is zero.
           base_classes_of(bcp->type) == NULL &&
           gnu_conflict_found(type_for_gnu_conflicts(field->type), bcp,
                              /*in_field=*/FALSE,
-                             /*consider_virtual_bases=*/TRUE)) {
+                             /*consider_virtual_bases=*/FALSE)) {
         result = TRUE;
         break;
       }  /* if */
