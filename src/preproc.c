@@ -2534,6 +2534,8 @@ Display and return the amount of space used for preprocessing structures.
   unsigned long num, size, total;
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+  db_space_used_header("Preprocessing table use:");
+
 #if UPC_EXTENSIONS_ALLOWED
   db_space_used_lost("UPC pragma stack entries",
                      avail_upc_pragma_stack_entries,
