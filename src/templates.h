@@ -46,6 +46,10 @@ extern void find_member_function_template(
                                     a_symbol_ptr  rout_sym,
                                     a_symbol_ptr  corresp_prototype_tag_sym);
 
+extern void find_static_data_member_template(
+                                    a_symbol_ptr  static_data_member_sym,
+                                    a_symbol_ptr  corresp_prototype_tag_sym);
+
 extern void f_check_for_uninstantiated_template_class(a_type_ptr  type);
 
 extern void f_instantiate_template_class(a_type_ptr  type);

@@ -103,7 +103,7 @@ might not be able to if the template itself has not yet been defined.
     internal_error("f_instantiate_template_class: is specific template def");
 #endif /* CHECKING */
   } else {
-    /* There is a class template from which to generate this class and its
+    /* There is a class template from which to generate this class and it is
        a real instantiation. */
     tssp = template_sym->variant.templ.extra_info;
     p_token_cache = &tssp->token_cache;
@@ -1643,7 +1643,7 @@ and create a function instantiation entry to bind the two symbols together.
   fiep->arg_list =
              tp->variant.class_struct_union.extra_info->template_arg_list;
   tssp = sym->variant.templ.extra_info;
-  /* Link the new entry to the star of the instantiation list of the
+  /* Link the new entry to the start of the instantiation list of the
      function template. */
   fiep->next = tssp->variant.function.instantiations;
   tssp->variant.function.instantiations = fiep;
@@ -1664,6 +1664,76 @@ and create a function instantiation entry to bind the two symbols together.
   }  /* if */
   db_exit();
 }  /* find_member_function_template */
+
+
+void find_static_data_member_template(a_symbol_ptr  static_data_member_sym,
+                                      a_symbol_ptr  corresp_prototype_tag_sym)
+/*
+*/
+{
+  a_static_data_member_def_ptr      sdmdp;
+  a_scope_number                    corresp_prototype_decl_scope;
+  a_type_ptr                        tp;
+  a_symbol_ptr                      sym;
+  a_template_symbol_supplement_ptr  tssp;
+
+  db_enter(3, "find_static_data_member_template");
+  /* Find a static data member template function symbol on the inactive list
+     that is in the scope of the prototype instantiation. */
+  /* Get the scope in which the members of the class represented by
+     corresp_prototype_tag_sym were declared. */
+  tp = type_symbol_type(corresp_prototype_tag_sym);
+  corresp_prototype_decl_scope =
+               tp->variant.class_struct_union.extra_info->assoc_scope->number;
+  for (sym = static_data_member_sym->header->inactive_symbols;
+       sym != NULL;
+       sym = sym->next) {
+    if (sym->decl_scope == corresp_prototype_decl_scope &&
+        sym->kind == (a_symbol_kind)sk_static_data_member_template) {
+      break;
+    }  /* if */
+  }  /* for */
+#if CHECKING
+  if (sym == NULL) {
+    internal_error(
+               "find_static_data_member_template: no corresponding template");
+  }  /* if */
+#endif /* CHECKING */
+
+  /* sym is the template symbol with which static_data_member_sym is
+     associated.  Create a static data member def entry and set the pointers
+     to bind them all together. */
+  sdmdp = alloc_static_data_member_def();
+  sdmdp->template_sym = sym;
+  /* Get the template arg list for the class and use it.  Note that if
+     this is a nested class we have to climb the parent chain to find the
+     template class in which the template arg list is recorded. */
+  tp = static_data_member_sym->class_of_which_a_member;
+  while (tp->source_corresp.class_of_which_a_member != NULL) {
+    tp = tp->source_corresp.class_of_which_a_member;
+  }  /* if */
+  sdmdp->arg_list =
+             tp->variant.class_struct_union.extra_info->template_arg_list;
+  tssp = sym->variant.templ.extra_info;
+  /* Link the new entry to the start of the definition list of the static
+     data member template. */
+  sdmdp->next = tssp->variant.static_data_member.definitions;
+  tssp->variant.static_data_member.definitions = sdmdp;
+  /* The static data member definition entry points to its associated
+     symbol, but the latter does not need a back pointer. */
+  sdmdp->static_data_member_sym = static_data_member_sym;
+  /* The static data member is eligible for a compiler-generated definition
+     only if a template definition appears in the source.  That may have
+     aleady occurred, or it may happen later. */
+  if (tssp->parameters != NULL) {
+    /* A template definition has appeared.  Enter the definition entry onto
+       the instantiations_required list.  The definition will be generated
+       as part of instantiation_wrapup. */
+    add_to_instantiations_required_list(
+                              (a_function_instantiation_entry_ptr)NULL, sdmdp);
+  }  /* if */
+  db_exit();
+}  /* find_static_data_member_template */
 
 
 a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
