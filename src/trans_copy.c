@@ -1604,27 +1604,19 @@ to the secondary translation unit.
 #endif /* MAINTAIN_NEEDED_FLAGS */
     }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-    /* Remove entries from the il_header nontag_types_used_in_exception_or_rtti
-       list that shouldn't be copied. */
-    prev_type = NULL;
+    /* Mark the entries on the il_header nontag_types_used_in_exception_or_rtti
+       list that shouldn't be copied.  Every type must stay on the list
+       in the secondary IL, because the fact that the type exists in the
+       primary IL does not guarantee that the type is on the nontag_...
+       list in the primary IL.  The ones that don't need to be copied are
+       marked for merging. */
     for (type = il_header.nontag_types_used_in_exception_or_rtti;
          type != NULL;
          type = type->next) {
-      keep_on_list = TRUE;
       check_assertion(in_secondary_trans_unit(type));
       if (!entry_should_be_copied(type)) {
         check_assertion(!entry_should_overwrite_primary_entry(type));
-        keep_on_list = FALSE;
-      }  /* if */
-      if (keep_on_list) {
-        prev_type = type;
-      } else {
-        /* Remove this entry from the list. */
-        if (prev_type == NULL) {
-          il_header.nontag_types_used_in_exception_or_rtti = type->next;
-        } else {
-          prev_type->next = type->next;
-        }  /* if */
+        mark_to_merge(type, iek_type);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -2445,15 +2437,44 @@ into the primary translation unit il_header.
     il_header.main_routine = primary_main;
   }  /* if */
   /* Add copied types from the nontag_types_used_in_exception_or_rtti list
-     to the front of the primary IL list. */
-  { a_type_ptr last_eh_type;
-    last_eh_type = tup->il_header.nontag_types_used_in_exception_or_rtti;
-    if (last_eh_type != NULL) {
-      while (last_eh_type->next != NULL) last_eh_type = last_eh_type->next;
-      last_eh_type->next = il_header.nontag_types_used_in_exception_or_rtti;
-      il_header.nontag_types_used_in_exception_or_rtti =
-                         tup->il_header.nontag_types_used_in_exception_or_rtti;
+     to the corresponding primary IL list. */
+  { a_type_ptr eh_type, last_primary_eh_type;
+    /* Find the last entry on the primary IL list. */
+    last_primary_eh_type = il_header.nontag_types_used_in_exception_or_rtti;
+    if (last_primary_eh_type != NULL) {
+      while (last_primary_eh_type->next != NULL) {
+        last_primary_eh_type = last_primary_eh_type->next;
+      }  /* while */
     }  /* if */
+    for (eh_type = tup->il_header.nontag_types_used_in_exception_or_rtti;
+         eh_type != NULL;
+         eh_type = eh_type->next) {
+      a_boolean add_to_list;
+      a_type_ptr corresp_eh_type =
+                       (a_type_ptr)checked_trans_unit_copy_address_of(eh_type);
+      if (!entry_to_be_merged(eh_type)) {
+        /* Entries that were really copied get added to the list. */
+        add_to_list = TRUE;
+      } else {
+        /* Entities for which an instance already existed in the primary IL
+           are added to the list only if they are not already on the list. */
+        a_type_ptr primary_eh_type = 
+                   (a_type_ptr)checked_trans_unit_copy_address_of(
+                                                              corresp_eh_type);
+        add_to_list = (primary_eh_type->next == NULL &&
+                       primary_eh_type != last_primary_eh_type);
+        corresp_eh_type = primary_eh_type;
+      }  /* if */
+      if (add_to_list) {
+        if (last_primary_eh_type == NULL) {
+          il_header.nontag_types_used_in_exception_or_rtti = corresp_eh_type;
+        } else {
+          last_primary_eh_type->next = corresp_eh_type;
+        }  /* if */
+        last_primary_eh_type = corresp_eh_type;
+        corresp_eh_type->next = NULL;
+      }  /* if */
+    }  /* for */
   }
 }  /* merge_il_headers */
 
