@@ -981,6 +981,8 @@ See ARM 7.2.1c for name encoding.
         }  /* if */
         if (type->variant.integer.wchar_t_type) {
           s = "w";
+        } else if (type->variant.integer.bool_type) {
+          s = "b";
         } else {
           switch (type->variant.integer.int_kind) {
             case ik_char:           s = "c";  break;
