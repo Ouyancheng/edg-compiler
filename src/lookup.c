@@ -3194,6 +3194,9 @@ namespace_qualified_id_lookup.
                          (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
   a_boolean	direct_namespace_members_only = 
                          (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0;
+  a_boolean	check_decl_seq =
+                               (options & IDL_SUPPRESS_DECL_SEQ_CHECK) == 0 &&
+                               !is_linkage_or_friend_lookup;
   a_decl_sequence_number
 		decl_seq_number = NO_DECL_SEQUENCE_NUMBER;
 
@@ -3207,20 +3210,13 @@ namespace_qualified_id_lookup.
    (!must_be_class ||				     		      \
     is_class_or_class_proxy_symbol(fund_sym)) &&      		      \
    (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym)) &&	      \
-   (decl_seq_number == NO_DECL_SEQUENCE_NUMBER ||		      \
-    decl_seq_number >= (sym)->decl_seq))
+   (!check_decl_seq ||						      \
+    (decl_seq_number == NO_DECL_SEQUENCE_NUMBER ||	              \
+     decl_seq_number >= (sym)->decl_seq)))
 
   db_enter(4, "lookup_in_namespace");
-  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
-      do_dependent_name_processing) {
-    /* If we are inside an instantiation, get the declaration sequence number
-       that indicates which declarations should be visible at the point of
-       definition of the namespace. */
-    a_scope_stack_entry_ptr	ssep;
-    ssep = &scope_stack[depth_innermost_instantiation_scope];
-    check_assertion(ssep->template_decl_info != NULL);
-    decl_seq_number = ssep->template_decl_info->decl_seq;
-  }  /* if */
+  /* Get the declaration sequence number to be used for this lookup. */
+  decl_seq_number = get_effective_decl_seq();
   /* Search for a symbol in the right scope. */
   /* First, search the list of inactive symbols.  Namespace symbols
      are moved to the inactive list after the initial definition of
@@ -3345,6 +3341,11 @@ file scope.
                          (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
   a_boolean	direct_namespace_members_only = 
                          (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0;
+  a_boolean	check_decl_seq =
+                               (options & IDL_SUPPRESS_DECL_SEQ_CHECK) == 0 &&
+                               !is_linkage_or_friend_lookup;
+  a_decl_sequence_number
+		decl_seq_number = NO_DECL_SEQUENCE_NUMBER;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
@@ -3359,9 +3360,14 @@ file scope.
     symbol_may_precede_qualifier(fund_sym)) && 			      \
    (!must_be_class ||				      		      \
     is_class_or_class_proxy_symbol(fund_sym)) &&      		      \
-   (!must_be_tag || is_tag_symbol(fund_sym)))
+   (!must_be_tag || is_tag_symbol(fund_sym)) &&			      \
+   (!check_decl_seq ||						      \
+    (decl_seq_number == NO_DECL_SEQUENCE_NUMBER ||	              \
+     decl_seq_number >= (sym)->decl_seq)))
 
   db_enter(4, "file_scope_id_lookup");
+  /* Get the declaration sequence number to be used for this lookup. */
+  decl_seq_number = get_effective_decl_seq();
   if ((sym = locator->specific_symbol) != NULL) {
     /* There is an existing specific symbol. */
   } else {
@@ -3730,9 +3736,11 @@ If a match is found, add the entry to to symbol_list.
      using-directives. */
   if (nsp != NULL) {
     sym = namespace_qualified_id_lookup(locator, nsp,
-                                        IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
+                                        IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
+                                        IDL_SUPPRESS_DECL_SEQ_CHECK);
   } else {
-    sym = file_scope_id_lookup(locator, IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
+    sym = file_scope_id_lookup(locator, IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
+                                        IDL_SUPPRESS_DECL_SEQ_CHECK);
   }  /* if */
   if (sym != NULL) {
     a_symbol_ptr	fund_sym;
@@ -3837,6 +3845,26 @@ is set to NULL.
   *type_list = NULL;
   return symbol_list;
 }  /* argument_dependent_lookup */
+
+
+a_decl_sequence_number f_get_effective_decl_seq(void)
+/*
+Return the declaration sequence number to be used for lookups in the
+current scope.
+*/
+{
+  /* The macro that calls this function is responsible for making sure that
+     we are inside a template instantiation scope. */
+  /* Get the declaration sequence number that indicates which declarations
+     should be visible at the point of definition of the template. */
+  a_scope_stack_entry_ptr	ssep;
+  a_decl_sequence_number	decl_seq_number;
+
+  ssep = &scope_stack[depth_innermost_instantiation_scope];
+  check_assertion(ssep->template_decl_info != NULL);
+  decl_seq_number = ssep->template_decl_info->decl_seq;
+  return decl_seq_number;
+}  /* f_get_effective_decl_seq */
 
 
 void lookup_one_time_init(void)

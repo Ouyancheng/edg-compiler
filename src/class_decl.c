@@ -260,11 +260,11 @@ with the indicated scope stack entry.
   a_scope_stack_entry  *ssep = &scope_stack[depth_scope_stack];
 
   check_assertion(rfp->symbol != NULL);
-  if (ssep->kind == (a_scope_kind)sck_template_declaration) {
+  while (ssep->kind == (a_scope_kind)sck_template_declaration) {
     /* Presumably a member template declaration. Move up to what should
        be the surrounding class scope. */
     --ssep;
-  }
+  }  /* while */
   check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
   /* There's only one routine-fixup-list, and it's associated with the
      outermost enclosing class.  If this is a nested class, move up the

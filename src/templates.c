@@ -9954,25 +9954,24 @@ this is the template parameter list of a template template parameter.
 			     /*is_friend_decl=*/FALSE,
 			     &decl_state->param_list_cache);
     if (const_type_involves_template_param) {
-      /* The type of the constant parameter involves a template parameter
-         type so we can't scan the expression now.  When the type of the
-         constant involves a template parameter we have to save the
-         constant as a token cache, so we also set the flag that indicates
-         that the default argument contains a template parameter. */
+      /* The type of the constant parameter involves a template parameter.
+         When the type of the constant involves a template parameter we have
+         to save the constant as a token cache, so we also set the flag that
+         indicates that the default argument contains a template parameter. */
      def_arg_involves_template_param = TRUE;
-    } else {
-      /* The type doesn't involve a template parameter type.  Scan the
-         default argument expression.  Rescan a copy of the cache.
-         This is done so that when the default argument is scanned, the
-         last token of the cache is followed by the token that followed
-         it in the original source program with no intervening
-         tok_end_of_source. */
-      rescan_copy_of_cache(&def_arg_cache);
-      default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
-      scan_template_argument_constant_expression(param_type_ptr,
-					         default_arg_constant);
-      def_arg_involves_template_param = default_arg_constant->kind ==
-                                      (a_constant_repr_kind)ck_template_param;
+    }  /* if */
+    /* Scan the default argument expression.  Rescan a copy of the cache.
+       This is done so that when the default argument is scanned, the
+       last token of the cache is followed by the token that followed
+       it in the original source program with no intervening
+       tok_end_of_source. */
+    rescan_copy_of_cache(&def_arg_cache);
+    default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
+    scan_template_argument_constant_expression(param_type_ptr,
+					       default_arg_constant);
+    if (default_arg_constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+      def_arg_involves_template_param = TRUE;
     }  /* if */
     /* Update the default argument information in the template parameter. */
     if (def_arg_involves_template_param) {

@@ -145,6 +145,12 @@ represented as a bit set:
 				/* If a name is found in a base class, return
 			           that name but do not create a projection
 				   symbol. */
+#define IDL_SUPPRESS_DECL_SEQ_CHECK 0x20000
+				/* For namespace and file-scope qualified
+				   lookups, suppress the check of the
+				   declaration sequence number during
+				   instantiation lookups.  This is used
+				   for argument-dependent lookups. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
@@ -161,6 +167,15 @@ reused later.
                 IDL_TENTATIVE_TYPE_LOOKUP |				\
                 IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) == 0)
 
+
+/* Return the declaration sequence number to be used for lookups. */
+#define get_effective_decl_seq()					\
+  ((depth_innermost_instantiation_scope == NO_SCOPE_DEPTH ||		\
+   !do_dependent_name_processing)					\
+             ? NO_DECL_SEQUENCE_NUMBER					\
+             : f_get_effective_decl_seq())
+
+extern a_decl_sequence_number f_get_effective_decl_seq(void);
 
 extern
 a_boolean sym_matches_lookup_options(a_symbol_ptr		sym,
