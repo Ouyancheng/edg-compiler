@@ -3623,8 +3623,10 @@ Call the translation unit routine for the secondary translation units.
 {
   char	*file_name;
 
-  /* Make sure the same file name was not specified more than once. */
-  check_for_duplicated_file_names();
+  /* Make sure the same file name was not specified more than once.
+     Duplicates are permitted in trans_unit_test_mode (because that is
+     really the whole point of that mode). */
+  if (!trans_unit_test_mode) check_for_duplicated_file_names();
   while (argc_file_list > 0) {
     /* There is another file. */
     argc_file_list--;
