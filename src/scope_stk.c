@@ -3636,7 +3636,6 @@ body.  Only called in C++ mode.
               rp->storage_class = (a_storage_class)sc_extern;
               rp->source_corresp.name_linkage =
                                (a_name_linkage_kind)nlk_cplusplus_external;
-              set_inline_flag(rp, FALSE);
             }  /* if */
           }  /* if */
         }  /* if */

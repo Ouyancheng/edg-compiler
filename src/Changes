@@ -1,5 +1,22 @@
 Version 3.6
 
+1/7/05  Undefined virtual inline function causes wrong choice of key function 
+
+In strict ANSI C++ mode, an undefined virtual inline function always triggers
+a compilation error.  In other modes, however, such a member function was
+silently treated as a noninline function, which in turn made it a candidate
+for being the "key function" whose definition determines where the virtual
+function table is emitted.  This could result in spurious linker errors.
+For example:
+
+  struct S {
+    virtual inline void f();  // No longer a candidate key function even if the
+  } s;                        // member is undefined in this translation unit.
+
+This has now been fixed by leaving such functions marked as "inline."  Note
+that linker errors will still occur if no out-of-line code is generated for
+the definition of the inline member.
+
 1/6/05  GNU C/C++ compatibility: __alignof__ and field access
 
 When TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES is set to TRUE, a built-in type may
