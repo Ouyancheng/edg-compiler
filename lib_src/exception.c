@@ -74,7 +74,7 @@ no additional information is available.
 */
 {
   return "";
-}  /* bad_exception::~bad_exception */
+}  /* bad_exception::what */
 
 
 /*
