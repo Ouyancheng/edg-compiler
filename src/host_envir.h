@@ -689,10 +689,13 @@ EXTERN a_directory_name_entry_ptr
 			   they can be shared.  The name strings are in
 			   IL storage. */
 
+/* mk_errinfo includes host_envir.h, but err_codes.h does not exist yet. */
+#ifndef COMPILING_MK_ERRINFO
 /* Included because term_compilation needs "an_error_severity". */
 #ifndef ERROR_H
 #include "error.h"
 #endif /* ifndef ERROR_H */
+#endif /* !defined(COMPILING_MK_ERRINFO) */
 
 /* Add the default system include file search path. */
 extern void add_default_include_search_path(void);
