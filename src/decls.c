@@ -875,21 +875,19 @@ consistent with that of the previous declaration.
       /* Unless we are in strict mode, only issue a warning if this is a user
          redeclaration of a library new or delete routine: the restriction is
          relaxed to ease upgrading of old code. */
-      if (!strict_ansi_mode &&
-          !rp->source_corresp.is_class_member &&
+      if (is_redecl && !rp->source_corresp.is_class_member &&
           (is_new_operator(rp->opname_kind) ||
            is_delete_operator(rp->opname_kind))) {
         a_param_type_ptr  ptp = rp->type->
                                   variant.routine.extra_info->param_type_list;
-        if (ptp != NULL) {
-          if (ptp->next == NULL
-#if 0
-              /* Not yet implemented */
-              || is_nothrow_t_type(ptp->next->type)
-#endif /* if 0 */
-                                                   ) {
-            severity = es_warning;
-          }  /* if */
+        if (ptp != NULL && ptp->next == NULL) {
+          /* Note that we are not checking for the nothrow versions of
+             the redeclarable new and delete routines.  This is on the
+             assumption that any code in which they appear is new enough that
+             a missing exception specification can't be excused. */
+          /* Set the severity, depending on the strict mode setting. */
+          severity = strict_ansi_mode ? strict_ansi_error_severity :
+                                        es_warning;
         }  /* if */
       }  /* if */
       pos_sy_diagnostic(severity,
