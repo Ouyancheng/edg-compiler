@@ -4443,6 +4443,8 @@ typedef struct a_scope_orphaned_list_header {
   a_scope_orphaned_list_header_ptr
 		next;
 			/* Pointer to the next header on the list. */
+  a_routine_ptr	assoc_routine;
+			/* The function that the scope is part of. */
   a_type_ptr	orphaned_types;
 			/* Pointer to the orphaned file scope IL type entry
 			   list for a function scope. */

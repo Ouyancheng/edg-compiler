@@ -3196,6 +3196,7 @@ Display the indicated a_scope_orphaned_list_header entry.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_scope_orphaned_list_header);
+  disp_ptr("assoc_routine", (char *)ptr->assoc_routine, iek_routine);
   disp_ptr("orphaned_types", (char *)ptr->orphaned_types, iek_type);
   disp_ptr("orphaned_variables", (char *)ptr->orphaned_variables,
            iek_variable);

@@ -2120,6 +2120,8 @@ memory region (e.g., local types or static variables), create
 a_scope_orphaned_list_header entry to hold those pointers in the file scope
 so that orphan processing can be done on the lists later.  Also use recursion
 to visit all block scopes attached to this scope and do the same processing.
+The scope must be a function or block scope and must still be on the scope
+stack.
 */
 {
   a_type_ptr            types = scope->types;
@@ -2143,6 +2145,7 @@ to visit all block scopes attached to this scope and do the same processing.
 #if DEBUG && !STANDALONE_UTILITY_PROGRAM
     num_scope_orphaned_list_headers_allocated++;
 #endif /* DEBUG  && !STANDALONE_UTILITY_PROGRAM */
+    solhp->assoc_routine = current_routine_entry();
     solhp->orphaned_types = types;
     solhp->orphaned_variables = variables;
 #if GENERATE_SOURCE_SEQUENCE_LISTS

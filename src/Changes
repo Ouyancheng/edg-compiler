@@ -115,13 +115,14 @@ of the former in a_scope.  The new field, called src_seq_sublist_list, is
 used in function scopes only.  (Of course, these IL changes are visible
 only when GENERATE_SOURCE_SEQUENCE_LISTS is configured to TRUE.)
 
-3/21/94 an_orphan_il_list renamed a_scope_orphaned_list_header
+3/21/94 IL CHANGE: an_orphan_il_list renamed a_scope_orphaned_list_header
 
 The IL entry called an_orphan_il_list has been renamed
-a_scope_orphaned_list_header, and the field in il_header that points
-to that list has been renamed scope_orphaned_list_headers.
-The list of these entries is also now built in forward order
-instead of reverse order of source appearance.
+a_scope_orphaned_list_header, an assoc_routine field has been added
+to the entry, and the field in il_header that points
+to the list of such entries has been renamed scope_orphaned_list_headers.
+The list of entries is also now built in forward order instead of
+reverse order of source appearance.
 
 3/21/94 Constant expressions inside not-evaluated expressions
 
