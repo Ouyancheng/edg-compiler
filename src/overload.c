@@ -3787,7 +3787,7 @@ pointer type).
                                     /*check_as_operands_not_conversion=*/TRUE,
                                     &pointer_normalization_needed,
                                     /*suppress_extensions=*/TRUE,
-                                    ec_incompatible_conv_operands,/*arbitrary*/
+                                    ec_no_error, /* arbitrary */
                                     &warning_suggested)) {
           /* The conversion can be done. */
           /* As noted above, any match here is considered a standard
@@ -4158,7 +4158,7 @@ argument.  Adjust the operand type to match the type requirement.
       check_assertion(pointer_type != NULL);
       prep_conversion_operand(operand, pointer_type,
                               &arg_match->user_conversion,
-                              /*is_initialization=*/TRUE,  /* arbitrary */
+                              /*is_initialization=*/TRUE,
                               ec_no_error,
                               &operand->position);
     }  /* if */
