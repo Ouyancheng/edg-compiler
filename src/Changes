@@ -1,5 +1,11 @@
 Version 2.15
 
+2/26/93  Check type of extra argument for postfix incr/decr operator
+
+The type of the extra argument in declarations of postfix operator++ and
+operator-- is now being checked; an error is issued if it is not "int"
+(ARM 13.4.7).
+
 2/26/93  Prefix ++ and -- returning lvalues
 
 The prefix ++ and -- operators now return an lvalue in C++ mode,
