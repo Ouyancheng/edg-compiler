@@ -1982,7 +1982,7 @@ common_cfront_mode_settings:
     }  /* if */
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  /* Determine whether enum types are considered to be integral;
+  /* Determine whether enum types are considered to be integral. */
   enum_type_is_integral = C_mode();
   /* Determine the appropriate error level for anachronism messages based
      on whether anachronisms are to be allowed. */
