@@ -1,4 +1,4 @@
-Version 3.1
+fiVersion 3.1
 
 12/31/02 Microsoft compatibility: explicit instantiation without definition
 
@@ -1562,7 +1562,8 @@ while caching the tokens of the first one, producing incorrect results.
 When using the built-in stdarg processing va_list was put into the global
 namespace, but the C++ standard requires that it be in the std namespace.
 It is now put into the std namespace and a using-declaration is put into
-the global namespace if the include was of "stdarg.h" (rather than "cstdarg").  The old behavior can be obtained by setting DEFAULT_VA_LIST_IN_STD_NAMESPACE
+the global namespace if the include was of "stdarg.h" (rather than "cstdarg").
+The old behavior can be obtained by setting DEFAULT_VA_LIST_IN_STD_NAMESPACE
 to FALSE.
 
 9/9/02   Pragma redefine_extname
