@@ -848,8 +848,11 @@ on return.
 
   /* Copy the name into the file-scope IL memory region. */
   field_name = old_field_ptr->source_corresp.name;
-  name_length = strlen(field_name);
-  field_name = strcpy(alloc_il((sizeof_t)(name_length + 1)), field_name);
+  /* Watch out for anonymous union fields -- they have no name. */
+  if (field_name != NULL) {
+    name_length = strlen(field_name);
+    field_name = strcpy(alloc_il((sizeof_t)(name_length + 1)), field_name);
+  }  /* if */
   /* Make the field entry. */
   field_ptr = alloc_field();
   /* Copy the whole entry, then adjust a few fields. */
@@ -880,7 +883,7 @@ last field, or is NULL if there are no fields yet; it is updated on exit.
 *byte_offset gives the next available position in the structure, both on
 entry and (updated) on exit.  This routine is used for creating fields of
 wholly-generated structs, not for adding fields to existing structs.
-It cannot create bit fields. field_name may not be NULL.
+It cannot create bit fields.  field_name may not be NULL.
 */
 {
   sizeof_t         name_length;
