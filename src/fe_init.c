@@ -278,319 +278,12 @@ Install the keywords in the symbol table.
 }  /* keyword_init */
 
 
-static char *make_repl_text(char     *repl_text,
-                            sizeof_t *repl_text_length)
-/*
-Make a replacement text string for a macro, corresponding to the raw text
-given by repl_text.  repl_text == NULL implies an empty replacement string.
-The length of the repl_text string is returned in *repl_text_length if
-repl_text_length is not NULL.
-*/
-{
-  char     *repl_text_copy, *rtp;
-  sizeof_t repl_text_len, overhead;
-
-  repl_text_len = (repl_text != NULL) ? strlen(repl_text) : 0;
-  /* There is always an rt_null at the end of the string.  If the text is
-     not empty, there is also a header before it. */
-  overhead = 1;
-  if (repl_text_len > 0) {
-    overhead += 1+NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER;
-  }  /* if */
-  rtp = repl_text_copy = alloc_fe((sizeof_t)(repl_text_len+overhead));
-  if (repl_text_len > 0) {
-    /* Put the kind -- raw text -- in the header. */
-    *rtp++ = (char)rt_text;
-    /* Put the length in the header. */
-    put_macro_repl_text_number(repl_text_len, rtp);
-    /* Copy the text itself. */
-    (void)memcpy(rtp, repl_text, size_t_arg(repl_text_len));
-    rtp += repl_text_len;
-  }  /* if */
-  /* Put the terminating null on the string. */
-  *rtp = (char)rt_null;
-  /* Return the length of the repl_text_string including the encoded
-     information in the "overhead" area. */
-  if (repl_text_length != NULL) *repl_text_length = repl_text_len + overhead;
-  return(repl_text_copy);
-}  /* make_repl_text */
-
-
-a_symbol_ptr enter_predef_macro(char      *repl_text,
-	                        char      *macro_name,
-			        a_boolean cannot_be_redefined)
-/*
-Enter a predefined macro.  macro_name is the name, repl_text the replacement
-text string (or NULL for a special macro).  cannot_be_redefined is TRUE
-if this is a predefined macro that cannot be redefined.  A pointer to the
-symbol entry is returned.
-*/
-{
-  register a_symbol_ptr    sym_ptr;
-  register a_macro_def_ptr mdp;
-
-  sym_ptr = full_enter_symbol(macro_name, (sizeof_t)(strlen(macro_name)),
-                              (a_symbol_kind)sk_macro, NO_SCOPE_DEPTH);
-  sym_ptr->variant.macro_def = mdp = alloc_macro_def();
-  mdp->object_like = TRUE;
-  mdp->cannot_be_redefined = cannot_be_redefined;
-  mdp->param_list  = NULL;
-  mdp->repl_text   = (repl_text != NULL) ?
-                          make_repl_text(repl_text, (sizeof_t*)NULL) : NULL;
-  return(sym_ptr);
-}  /* enter_predef_macro */
-
-
-static a_boolean is_valid_identifier(char             *id_start,
-                                     sizeof_t         id_len,
-                                     a_symbol_ptr     *assoc_symbol,
-                                     a_symbol_locator *locator)
-/*
-Check the given identifier to see if it is valid as a macro name.
-If so, return TRUE; if not, return FALSE.  Return in *assoc_symbol
-a symbol entry for the identifier, if there is already one, and return
-a symbol locator in *locator.
-*/
-{
-  a_boolean         return_value = FALSE;
-  sizeof_t          i;
-  a_source_position position;
-
-  *assoc_symbol = NULL;
-
-  /* Identifier "position" is in the command line. */
-  position.seq = 0;
-  position.column = SP_COL_CMD_LINE;
-  clear_locator(locator, &position);
-  if (id_len < 1) {
-    /* Zero-length identifier is invalid. */
-  } else if (isdigit((unsigned char)*id_start)) {
-    /* The first character of an identifier cannot be a digit. */
-  } else {
-    for (i = 0; i < id_len; i++) {
-      /* Check each character to see if it is valid. */
-      if (!is_id_char[id_start[i]-CHAR_MIN]) goto return_point;
-    }  /* for */
-    /* The identifier is syntactically valid.  Look it up. */
-    if (((*assoc_symbol) = find_symbol(id_start, id_len, locator)) != NULL) {
-      /* Symbol is already in the symbol table.  Find any instance as a
-         macro. */
-      get_symbol_of_kind((a_symbol_kind)sk_macro, (*assoc_symbol));
-    }  /* if */
-    return_value = TRUE;
-  }  /* if */
-return_point:
-  return(return_value);
-}  /* is_valid_identifier */
-
-
-static void preproc_init(void)
-/*
-Initialize things related to preprocessing.
-*/
-{
-  time_t           timer;
-  char             date_of_translation[14];
-  char             time_of_translation[11];
-  a_def_undef_string_ptr
-                   du_ptr;
-  char             *du_str,
-                   *equal_pos;
-  char             *id_start, *value_start, *old_repl_text, *new_repl_text;
-  sizeof_t         id_len;
-  a_boolean        err;
-  a_symbol_ptr	   assoc_symbol;
-  a_symbol_locator locator;
-  a_macro_def_ptr  mdp;
-
-  /* Most of these variables control lexical functions, but they are defined
-     in preproc.h. */
-  fetch_pp_tokens = FALSE;
-  expand_macros = TRUE;
-  in_preprocessing_directive = FALSE;
-  processing_C_code_in_pragma = FALSE;
-  do_string_literal_concatenation = TRUE;
-  in_pp_if_expression = FALSE;
-  exp_header_name = FALSE;
-  exp_digit_sequence = FALSE;
-  do_not_put_curr_line_in_pp_output = TRUE;
-  pass_pp_directive_to_output = FALSE;
-  next_seq_in_pp_output = 1;
-  prev_pp_output_line_was_complete = TRUE;
-  currently_in_pp_if_skip = FALSE;
-  pp_if_stack_depth = -1;
-  base_pp_if_stack_depth = -1;
-
-  /* Get current date and time in proper form for __DATE__ and __TIME__. */
-  /* curr_date_time will be like "Sun Sep 16 01:03:52 1973\n". */
-  (void)time(&timer);
-  (void)strcpy(curr_date_time, ctime(&timer));
-  date_of_translation[0] = date_of_translation[12] = '"';
-  /* Copy "Mmm dd " into [1] .. [7]. */
-  (void)memcpy(&date_of_translation[1], &curr_date_time[4], 7);
-  /* Copy "yyyy" into [8] .. [11]. */
-  (void)memcpy(&date_of_translation[8], &curr_date_time[20], 4);
-  date_of_translation[13] = '\0';
-  time_of_translation[0] = time_of_translation[9] = '"';
-  /* Copy "hh:mm:ss" into [1] .. [8]. */
-  (void)memcpy(&time_of_translation[1], &curr_date_time[11], 8);
-  time_of_translation[10] = '\0';
-
-  (void)enter_predef_macro(date_of_translation, "__DATE__",
-                           /*cannot_be_redefined=*/TRUE);
-  (void)enter_predef_macro(time_of_translation, "__TIME__",
-                           /*cannot_be_redefined=*/TRUE);
-
-  /* __STDC__ is defined as 1 if we are compiling the ANSI C dialect
-     or if we are compiling C++ (ARM 16.10: "Whether __STDC__ is defined
-     and, if so, what its value is are implementation dependent."),
-     left undefined otherwise.  __STDC__ cannot be redefined when
-     compiling ANSI C, but can be redefined when compiling C++. */
-  if (C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus
-#if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
-      /* If configured to use old-style preprocessing in cfront
-         compatibility mode, do not define __STDC__ in that mode. */
-      && !any_cfront_mode()
-#endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
-                                                                      ) {
-    (void)enter_predef_macro("1", "__STDC__", C_dialect == C_dialect_ANSI);
-  }  /* if */
-  /* __cplusplus is defined as 1 if we are compiling C++, left undefined
-     otherwise.  For compatibility, c_plusplus is also defined. */
-  if (C_dialect == C_dialect_cplusplus) {
-    (void)enter_predef_macro("1", "__cplusplus", /*cannot_be_redefined=*/TRUE);
-    if (!strict_ansi_mode) {
-      (void)enter_predef_macro("1", "c_plusplus",
-                               /*cannot_be_redefined=*/TRUE);
-    }  /* if */
-  }  /* if */
-
-  /* __LINE__, __FILE__, and defined are special (they cannot be defined
-     in terms of a simple replacement string).  Therefore, they are entered
-     with a NULL replacement text, and code on the expansion end handles
-     them. */
-  line_macro_symbol    = enter_predef_macro((char *)NULL, "__LINE__",
-                                            /*cannot_be_redefined=*/TRUE);
-  file_macro_symbol    = enter_predef_macro((char *)NULL, "__FILE__",
-                                            /*cannot_be_redefined=*/TRUE);
-  defined_macro_symbol = enter_predef_macro((char *)NULL, "defined",
-                                            /*cannot_be_redefined=*/TRUE);
-  /* Enter system specific macros and assertions. */
-  enter_system_specific_predefined_macros_and_assertions();
-  /* Now process command-line defines of symbols (-D). */  
-  du_ptr = defs_from_cmd_line;
-  while (du_ptr != NULL) {
-    err = FALSE;
-    du_str = du_ptr->text;
-#if DEBUG
-    if (debug_level >= 4) {
-      fprintf(f_debug, "Command-line def: %s\n", du_str);
-    }  /* if */
-#endif /* DEBUG */
-    id_start = du_str;
-    if ((equal_pos = strchr(du_str, '=')) == NULL) {
-      /* No "=", define is just a name.  Value used is "1". */
-      id_len = strlen(id_start);
-      value_start = "1";
-    } else {
-      /* Define has a name and a value. */
-      id_len = equal_pos - id_start;
-      value_start = equal_pos+1;
-    }  /* if */
-    /* Check the identifier to make sure it is valid. */
-    if (!is_valid_identifier(id_start, id_len, &assoc_symbol, &locator)) {
-      err = TRUE;
-    } else {
-      /* Make the definition text for the macro. */
-      sizeof_t	repl_text_len;
-      new_repl_text = make_repl_text(value_start, &repl_text_len);
-      /* Create the symbol if necessary. */
-      if (assoc_symbol == NULL) {
-        assoc_symbol = enter_symbol((a_symbol_kind)sk_macro, &locator,
-                                    NO_SCOPE_DEPTH,
-                                    /*suppress_error=*/TRUE);
-        assoc_symbol->variant.macro_def = alloc_macro_def();
-      } else {
-        /* There's a previous definition of the macro.  If it's predefined,
-           the new definition must match the old. */
-        if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
-          /* Macro is predefined and cannot be redefined. */
-          /* If the macro has repl_text == NULL, it's defined by code in
-             macro.c (e.g., __LINE__) and can't be redefined.  Otherwise,
-             check that the old definition matches the new. */
-          old_repl_text = assoc_symbol->variant.macro_def->repl_text;
-          if (old_repl_text == NULL ||
-              smemcmp(old_repl_text, new_repl_text, repl_text_len) != 0) {
-            err = TRUE;
-            /* Note that this is a catastrophic error, so it doesn't matter
-               whether or not we change the definition of the macro in the
-               next few lines. */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      mdp = assoc_symbol->variant.macro_def;
-      /* Enter the definition. */
-      mdp->object_like = TRUE;
-      mdp->repl_text = new_repl_text;
-      /* We don't special-case expansion of literal constants here; the
-         payoff doesn't seem worth it.  If we wanted to, we would set
-         mdp->try_to_scan_and_save_constant_value if value_start seems
-         to be a literal constant. */
-    }  /* if */
-    if (err) {
-      str_command_line_error(ec_cl_invalid_macro_definition, du_str);
-    }  /* if */
-    du_ptr = du_ptr->next;
-  }  /* while */
-  /* Now undefines (-U).  Note that since they are done together after the
-     defines, they take precedence over them (which is how cpp does it). */
-  du_ptr = undefs_from_cmd_line;
-  while (du_ptr != NULL) {
-    err = FALSE;
-    du_str = du_ptr->text;
-#if DEBUG
-    if (debug_level >= 4) {
-      fprintf(f_debug, "Command-line undef: %s\n", du_str);
-    }  /* if */
-#endif /* DEBUG */
-    id_start = du_str;
-    id_len = strlen(id_start);
-    /* Check the identifier to make sure it is valid. */
-    if (!is_valid_identifier(id_start, id_len, &assoc_symbol, &locator)) {
-      err = TRUE;
-    } else {
-      if (assoc_symbol != NULL) {
-        if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
-          /* The macro is predefined; one is not allowed to undefine it. */
-          err = TRUE;
-        } else {
-          /* Remove the macro's definition.  The a_macro_def entry pointed to
-             by the symbol is not freed, and is therefore just lost.  */
-          remove_symbol(assoc_symbol);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    if (err) {
-      str_command_line_error(ec_cl_invalid_macro_undefinition, du_str);
-    }  /* if */
-    du_ptr = du_ptr->next;
-  }  /* while */
-}  /* preproc_init */
-
-
 static void target_init(void)
 /*
 Initialize target machine characteristics.
 */
 {
   /* The signedness of characters can be set on the command line. */
-  if (targ_has_signed_chars) {
-    /* Target has signed characters. */
-    /* Enter macro used to modify the definition of CHAR_MIN and CHAR_MAX in
-       the included limits.h. */
-    (void)enter_predef_macro("1", "__SIGNED_CHARS__",
-                             /*cannot_be_redefined=*/FALSE);
-  }  /* if */
   if (C_dialect == C_dialect_pcc) {
     /* In pcc mode, a "plain" char is the same as either "signed char"
        or "unsigned char". */
@@ -717,6 +410,7 @@ unit, in case multiple source files are allowed.
   il_one_time_init();
   lexical_one_time_init();
   macro_one_time_init();
+  preproc_one_time_init();
   statements_one_time_init();
   symbol_tbl_one_time_init();
   templates_one_time_init();
@@ -731,8 +425,9 @@ that occurs before determining whether a precompiled header can be used
 to replace the initial portion of this compilation.
 */
 {
+  time_t  timer;
 #if DEBUG
-  int save_debug_level;
+  int     save_debug_level;
 
   /* Drop the debug level to 0 during initialization.  If debug output
      is desired in initialization, it can be explicitly requested by
@@ -740,6 +435,11 @@ to replace the initial portion of this compilation.
   debug_level = 0;
 #endif /* DEBUG */
   db_enter(5, "fe_init");
+
+  /* Get current date and time in proper form for __DATE__ and __TIME__. */
+  /* curr_date_time will be like "Sun Sep 16 01:03:52 1973\n". */
+  (void)time(&timer);
+  (void)strcpy(curr_date_time, ctime(&timer));
 
   /* Set a current position indicating we are still in initialization. */
   pos_curr_token.seq = 0;
@@ -768,16 +468,18 @@ to replace the initial portion of this compilation.
   statements_init();
   pch_init();
   pragma_init();
-  /* preproc_init must be called after keyword initialization so that
-     macros have priority over keywords.  It also must be called after
-     lexical_init so that is_id_char is set.  And, it must be called after
-     macro_init so that predefined #assert predicates (if any) are
-     entered after assert_predicates has been cleared. */
   preproc_init();
   target_init();
   /* const_ints_init must be called after target_init so that
      int_kind_is_signed is properly initialized. */
   const_ints_init();
+  /* Initialize the symbol table (keywords and predefined macros).  Note that
+     keyword_init is called first, so that predefined macros will have
+     priority over keywords.  (Also, macro_init must have been called, so
+     that predefined #assert predicates (if any) are entered after
+     assert_predicates has been cleared. */
+  keyword_init();
+  init_predefined_macros(curr_date_time);
 #if COMPILE_MULTIPLE_SOURCE_FILES
   /* If more than one source file is being compiled, identify each
      source file as compilation starts. */
