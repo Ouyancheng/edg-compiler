@@ -2228,11 +2228,11 @@ Display the indicated object lifetime.
 {
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
-  disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
+  disp_ptr("destructions", (char *)ptr->destructions, iek_dynamic_init);
   disp_ptr("parent_lifetime", (char *)ptr->parent_lifetime,
            iek_object_lifetime);
-  disp_ptr("parent_dynamic_init", (char *)ptr->parent_dynamic_init,
-           iek_dynamic_init);
+  disp_ptr("parent_destruction_sublist",
+           (char *)ptr->parent_destruction_sublist, iek_dynamic_init);
   disp_ptr("child_lifetime", (char *)ptr->child_lifetime, iek_object_lifetime);
   disp_ptr("next", (char *)ptr->next, iek_object_lifetime);
 }  /* disp_object_lifetime */
@@ -2614,15 +2614,11 @@ Display the indicated dynamic_init structure.
   }  /* if */
   if (ptr->destructor != NULL) {
     disp_ptr("destructor", (char *)ptr->destructor, iek_routine);
-  }  /* if */
-  if (ptr->lifetime != NULL) {
-    disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
-    disp_ptr("prev_in_lifetime", (char *)ptr->prev_in_lifetime,
-             iek_dynamic_init);
-    if (ptr->dynamic_inits_unordered_with_respect_to_this_one != NULL) {
-      disp_ptr("dynamic_inits_unordered_with_respect_to_this_one",
-               (char *)ptr->dynamic_inits_unordered_with_respect_to_this_one,
+    if (ptr->lifetime != NULL) {
+      disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
+      disp_ptr("next_in_destructor_list", (char *)ptr->next_in_destructor_list,
                iek_dynamic_init);
+      disp_boolean("unordered", (a_boolean)ptr->unordered);
     }  /* if */
   }  /* if */
   if (ptr->init_expr_lifetime != NULL) {

@@ -850,32 +850,18 @@ typedef struct a_dynamic_init {
 			   operator, because the lifetime is under user
 			   control for those. */
   a_dynamic_init_ptr
-		prev_in_lifetime;
-			/* Pointer to the previous dynamic initialization in
-			   the same object lifetime.  "Previous" means the
-			   one created most recently before the current
-			   initialization.  NULL for the first initialization
-			   in a lifetime.  For destructor constructor_inits,
-			   the entry pointed to indicates the destruction
-			   to be done after this one.  NULL if the lifetime
-			   field is NULL. */
-  a_dynamic_init_ptr
-		dynamic_inits_unordered_with_respect_to_this_one;
-			/* If this dynamic initialization is in an expression
-			   and there are other dynamic initializations in the
-			   expression that are unordered with respect to this
-			   one (i.e., the language rules don't allow one to
-			   predict which of the initializations will be done
-			   first), this pointer points to a circular list of
-			   the dynamic initializations in the unordered set.
-			   All of those entries will have the same
-			   prev_in_lifetime pointer, which will not be a
-			   member of the set.  An initialization after the
-			   unordered set points back (via its prev_in_lifetime
-			   pointer) to any one of the initializations in the
-			   unordered set.  NULL if the dynamic initialization
-			   is not part of an unordered set.  NULL if the
-			   lifetime field is NULL. */
+		next_in_destruction_list;
+			/* If both destructor and lifetime are non-NULL
+			   (that is, if this entry requires an automatic
+			   destruction when the object lifetime terminates),
+			   a pointer to a dynamic init entry representing the
+			   next destruction to be done after this one, or
+			   NULL is this is the last to be done for the
+			   associated object lifetime.  Note: since
+			   destructions happen in an order opposite to that
+			   of initializations, the entry pointed to
+			   corresponds to the previous destructible dynamic
+			   initialization in the given object lifetime. */
   an_object_lifetime_ptr
 		init_expr_lifetime;
 			/* If non-NULL, defines the object lifetime for the
@@ -901,6 +887,16 @@ typedef struct a_dynamic_init {
 			/* This initialization (under an enk_temp_init) is
 			   inside a conditional part of an expression
 			   (e.g., under a "?" operator). */
+  unsigned int	unordered:1;
+			/* TRUE if this entry represents an automatic
+			   end-of-lifetime destruction and is unordered
+			   relative to another entry on the destructions list.
+			   For instance, in the expression (A(i) + A(j)),
+			   where A names a class with a destructor, the
+			   operands are unordered in the IL, so the
+			   destruction list cannot predetermine which should
+			   be destroyed first; the dynamic init entries for
+			   both operands will have the flag set. */
   bitfield_to_avoid_codecenter_warnings();
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
@@ -5053,24 +5049,24 @@ typedef struct an_object_lifetime {
 		entity;	/* Entity with which this object lifetime is
 			   associated.  See list of possible kinds above. */
   a_dynamic_init_ptr
-		dynamic_inits;
-			/* The dynamic initializations in this object lifetime,
-			   in reverse order of construction, i.e., the first on
-			   the list is the last created.  For destructors,
-			   the list is in the order the destructions should be
-			   done.  This list gives the complete set of objects
-			   in this object lifetime that require destruction. */
+		destructions;
+			/* A linked list of dynamic init entries (using
+			   the next_in_destruction_list pointer) identifying
+			   the destructions that are to be done when this
+			   object lifetime terminates; the order of the list
+			   is the order in which destructors should be called
+			   -- the first on the list is the last created. */
   an_object_lifetime_ptr
 		parent_lifetime;
 			/* The object lifetime that is the nearest enclosing
 			   lifetime around this one, or NULL if this is the
 			   lifetime for the file scope. */
   a_dynamic_init_ptr
-		parent_dynamic_init;
-			/* The point in the dynamic inits list of the parent
-			   lifetime where the present object lifetime
-			   appears.  NULL if this lifetime is not on the
-			   child list of another lifetime. */
+		parent_destruction_sublist;
+			/* Pointer to an entry in the parent lifetime's
+			   destructions list; it corresponds to where this
+			   object lifetime appears.  NULL if this lifetime
+			   is not on the child list of another lifetime. */
   an_object_lifetime_ptr
 		child_lifetime;
 			/* If this object lifetime has object lifetimes under

@@ -853,11 +853,11 @@ the file scope, do not process it (but record an orphan in the latter case).
                   (an_il_entry_kind)ptr->entity.kind);
         /* The dynamic_inits list is linked on the field "prev_in_lifetime"
            because the usual "next" is used for a different list. */
-        walk_list_on_link_field(ptr->dynamic_inits, a_dynamic_init_ptr,
-                                iek_dynamic_init, prev_in_lifetime);
+        walk_list_on_link_field(ptr->destructions, a_dynamic_init_ptr,
+                                iek_dynamic_init, next_in_destruction_list);
         remap_ptr(ptr->parent_lifetime, an_object_lifetime_ptr,
                   iek_object_lifetime);
-        remap_ptr(ptr->parent_dynamic_init, a_dynamic_init_ptr,
+        remap_ptr(ptr->parent_destruction_sublist, a_dynamic_init_ptr,
                   iek_dynamic_init);
         walk_list(ptr->child_lifetime, an_object_lifetime_ptr,
                   iek_object_lifetime);
@@ -1148,10 +1148,8 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
         remap_ptr(ptr->destructor, a_routine_ptr, iek_routine);
         remap_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
-        remap_next_ptr(ptr->prev_in_lifetime, a_dynamic_init_ptr,
+        remap_next_ptr(ptr->next_in_destruction_list, a_dynamic_init_ptr,
                        iek_dynamic_init);
-        remap_ptr(ptr->dynamic_inits_unordered_with_respect_to_this_one,
-                  a_dynamic_init_ptr, iek_dynamic_init);
         remap_ptr(ptr->init_expr_lifetime, an_object_lifetime_ptr,
                   iek_object_lifetime);
         switch (ptr->kind) {
