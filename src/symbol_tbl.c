@@ -4174,7 +4174,10 @@ for the function scope case; it must be NULL in other cases.
 static void check_referenced_member_functions(a_symbol_ptr  class_sym)
 /*
 Issue an error for member functions that have been referenced but are
-internally linked and undefined.
+internally linked and undefined.  Only report instances in which the IL
+entry is marked "referenced", since symbols for virtual functions may be
+marked as referenced without the associated routine having actually been
+called.
 */
 {
   a_symbol_ptr   sym, rout_sym;
@@ -4199,7 +4202,7 @@ internally linked and undefined.
       for (; rout_sym != NULL;
              rout_sym = (is_overloaded ? rout_sym->next : NULL)) {
         rp = rout_sym->variant.routine;
-        if (rout_sym->referenced) {
+        if (rp->source_corresp.referenced) {
           /* Referenced. */
           if (rp->storage_class == (a_storage_class)sc_static &&
               rp->assoc_scope == NULL_region_number) {
