@@ -1291,13 +1291,9 @@ if [ $EDG_ONE_INSTANTIATION_PER_OBJECT -ne 0 -a $c_mode -eq 0 ] ; then
   feoptions=$feoptions" --one_instantiation_per_object"
 fi
 #
-# If one instantiation per object mode is used, we have to also use either
-# prelink_local_only or prelink_copy_if_nonlocal.  Force prelink_local_only
-# if neither of these options was specified.
+# Convert --prelink_local_only to the appropriate prelinker option.
 #
-if [ $one_instantiation_per_object -ne 0 -a \
-     $prelink_copy_if_nonlocal -eq 0 ] ; then
-  prelink_local_only=1
+if [ $one_instantiation_per_object -ne 0 ] ; then
   prelink_options=$prelink_options" -O"
 fi
 #
@@ -1431,6 +1427,8 @@ do
     else
       instantiation_gen_c_dir=$TMPDIR/igc$$.dir
       remove_instantiation_gen_c_dir=1
+      # Attempt to remove any previously existing directory of this name.
+      rm -rf $instantiation_gen_c_dir
       mkdir $instantiation_gen_c_dir
       if [ $? -ne 0 ] ; then
         echo "eccp: cannot create temporary directory $instantiation_gen_c_dir"
