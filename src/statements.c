@@ -198,7 +198,7 @@ unreachable.
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-        routine_does_not_return |= node->variant.routine->type
+        routine_does_not_return |= skip_typerefs(node->variant.routine->type)
                                        ->variant.routine.extra_info
                                        ->does_not_return;
 #endif /* GNU_EXTENSIONS_ALLOWED */
