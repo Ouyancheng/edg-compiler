@@ -1931,7 +1931,7 @@ page size.
   caddr_t		addr = NULL;
   sizeof_t		size;
 #if USE_FIXED_ADDRESS_FOR_MMAP
-  static a_void_ptr	map_address = (a_void_ptr)FIXED_ADDRESS_FOR_MMAP;
+  a_void_ptr		map_address;
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 
   db_enter(4, "map_file_region");
@@ -1944,18 +1944,18 @@ page size.
       /* An extra byte is added to the size to stop CodeCenter from complaining
          about the after_end_of_block comparison in mem_manage.c. */
 #if USE_FIXED_ADDRESS_FOR_MMAP
+      map_address = ((char *)FIXED_ADDRESS_FOR_MMAP) + curr_size;
       addr = (a_void_ptr)mmap(map_address,
                               incremental_size,
                               PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
                               fd, (off_t)curr_size);
-      map_address = ((char *)map_address) + incremental_size;
 #else /* !USE_FIXED_ADDRESS_FOR_MMAP */
       addr = (a_void_ptr)mmap((char*)0, incremental_size + 1,
                               PROT_WRITE | PROT_READ, MAP_PRIVATE,
                               fd, (off_t)curr_size);
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 #if DEBUG
-      if (debug_level >= 5) {
+      if (debug_level >= 4) {
         fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
                 (unsigned long)incremental_size, addr);
       }  /* if */
@@ -1989,6 +1989,10 @@ file to a memory region.
                             fd, (off_t)offset);
   /* mmap returns (cresult_addr_t)-1 if the operation fails. */
 #if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
+            (unsigned long)size, address);
+  }  /* if */
   if (debug_level >= 1 && result_addr == (caddr_t)-1) {
     fprintf(f_debug, "Map failed: address=%p, size=%lu, offset=%lu\n",
             address, (unsigned long)size, (unsigned long)offset);
