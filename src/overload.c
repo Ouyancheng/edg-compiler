@@ -7493,6 +7493,7 @@ that the binding could be done except for the qualifiers).
        so the initialization would involve dropping qualifiers. */
     if (cfront_2_1_mode &&
         !*ref_to_const && is_const_qualified_type(source_type) &&
+        source_operand != NULL &&
         is_field_selection_lvalue_operand(source_operand)) {
       /* cfront 2.1 makes a field selected from a const structure compatible
          with a non-const reference to the underlying type:
@@ -7566,6 +7567,8 @@ initializer has previously been found to be acceptable, and
   } else if (is_reference_type(dest_type)) {
     /* Reference case.  See if the reference and operand types are such that
        the reference can be bound directly to the operand. */
+    a_type_ptr orig_dest_type = dest_type;
+    a_type_ptr orig_source_type = source_operand->type;
     direct_binding_possible =
                   direct_reference_binding_possible(source_operand,
                                                     (a_type_ptr)NULL,
@@ -7636,7 +7639,7 @@ initializer has previously been found to be acceptable, and
         /* [dcl.init.ref] of the WP requires that the copy constructor be
            callable whether or not it is actually called.  We never call
            it, but we must check it anyway. */
-        check_access_to_elided_copy_constructor(source_operand->type,
+        check_access_to_elided_copy_constructor(orig_source_type,
                                                 &source_operand->position);
       }  /* if */
       /* Convert the operand to a pointer to the class object. */
@@ -7650,7 +7653,7 @@ initializer has previously been found to be acceptable, and
         /* Type qualifiers were dropped on this binding. */
         pos_ty2_error(ec_qualifier_dropped_in_ref_init,
                       &source_operand->position,
-                      dest_type, source_operand->type);
+                      orig_dest_type, orig_source_type);
       } else if (!binding_to_rvalue_allowed && operand_was_rvalue) {
         /* Can't bind this reference to an rvalue. */
         an_error_severity err_severity = es_error;
@@ -7697,7 +7700,7 @@ initializer has previously been found to be acceptable, and
            handled above). */
         pos_ty2_error(ec_qualifier_dropped_in_ref_init,
                       &source_operand->position,
-                      dest_type, source_operand->type);
+                      orig_dest_type, orig_source_type);
         conv_to_error_operand(source_operand);
       } else {
         /* Allocate a temporary and copy the operand into it, converting
@@ -7707,7 +7710,8 @@ initializer has previously been found to be acceptable, and
            temporary is needed. */
         convert_operand_into_temp(source_operand, base_dest_type, dest_type,
                                   try_user_conversions,
-                                  !binding_to_rvalue_allowed &&
+                                  /*need_lvalue_result=*/
+                                     !binding_to_rvalue_allowed &&
                                      !any_cfront_mode() && !allow_anachronisms,
                                   /*consider_convs_to_derived=*/TRUE,
                                   conversion, incompatible_err, &err,
