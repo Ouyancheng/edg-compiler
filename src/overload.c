@@ -13083,7 +13083,7 @@ see conversion_to_class_possible.
     determine_dynamic_init_for_class_init(source_operand, param_type,
                                           conversion, (a_conv_descr *)NULL,
                                           /*fill_in_dtor=*/TRUE,
-                                          /*initializing_var_or_temp=*/FALSE,
+                                          /*initializing_var_or_temp=*/TRUE,
                                           &dip, &temp_init_node);
     make_expression_operand(temp_init_node, temp_init_node->type,
                             source_operand);
