@@ -1,5 +1,23 @@
 Version 2.46
 
+11/19/01 Abort while computing overriding virtual functions
+
+The front end used to abort under certain circumstance involving virtual
+functions defined both in a base subobject of a virtual base subobject and
+in a subobject derived from that virtual subobject.  For example:
+
+  struct S0 { virtual void f(); };
+  void S0::f() {}
+  struct S1: public S0 {};
+  struct S2: public virtual S1 { virtual void f(); };
+  void S2::f() {}
+  struct S3: public S2 {};
+  struct S4: public S2 {};
+  struct S5: public S3, public S4 {};  // Internal error while establishing
+                                       // that S2::f overrides S0::f.
+
+This is now fixed.
+
 11/19/01 Setting EH cleanup state at epilogue label in destructors
 
 The exception handling cleanup state is now set after epilogue labels
