@@ -1,5 +1,20 @@
 Version 2.42
 
+7/9/99   Correctly restore token positions after instantiating templates
+
+Occasionally, the end position of an IL entry was set to the end position of a
+template entity that was instantiated as part of the processing of the IL
+entry.  For example,
+
+  template <class T> struct Example { Example(T t1) {} };
+  main () {
+    // The end position of the following new-expression was set to the end
+    // position of the constructor above.
+    Example<int> *example = new Example<int>(1);
+  }
+
+This is now fixed.
+
 7/9/99   Do not grant access to an nontemplate function when an instance is
          nominated by a friend declaration
 

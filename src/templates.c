@@ -5733,6 +5733,9 @@ type based on the template argument list and the template parameter list
        processing. */
     a_source_position    saved_pos_curr_token;
     a_source_position    saved_error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position           saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if DECL_MODIFIERS_IN_USE
     a_source_position	 locator_position;
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -5758,6 +5761,9 @@ type based on the template argument list and the template parameter list
     /* Rescan the tokens of the function declaration. */
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     begin_deferral_of_access_checks();
     rescan_reusable_cache(&tcp->tokens);
     /* Note that is_member_decl is TRUE if the declaration was found in a
@@ -5825,6 +5831,9 @@ type based on the template argument list and the template parameter list
     }  /* if */
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Allocate the template function symbol.  Note that it is not entered
        into the symbol table -- it will appear on a function instantiation
        list under the function template symbol and, optionally, in the overload
@@ -9136,6 +9145,9 @@ resulting constant is stored in the pointer pointed to by "constant".
   a_symbol_locator   			param_locator;
   a_source_position  			saved_pos_curr_token;
   a_source_position  			saved_error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position           saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean				type_involves_template_param;
   a_boolean				constant_involves_template_param;
 
@@ -9145,6 +9157,9 @@ resulting constant is stored in the pointer pointed to by "constant".
             param_ptr->def_arg_involves_template_param;
   saved_pos_curr_token = pos_curr_token;
   saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (type_involves_template_param) {
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_scope is NULL because we don't yet know which instance
@@ -9193,6 +9208,9 @@ resulting constant is stored in the pointer pointed to by "constant".
   }  /* if */
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return constant_type;
 }  /* rescan_template_constant_parameter */
 
@@ -9213,6 +9231,9 @@ existing type is simply used.
 {
   a_source_position  			saved_pos_curr_token;
   a_source_position  			saved_error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position           saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_type_ptr				tp;
 
   if (param_ptr->def_arg_involves_template_param) {
@@ -9229,10 +9250,16 @@ existing type is simply used.
                                       /*push_stop_tokens=*/TRUE);
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     rescan_reusable_cache(&tcp->tokens);
     tp = delayed_scan_of_template_default_type_arg();
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Pop the template instantiation scope. */
     pop_template_instantiation_scope();
   } else {
@@ -11885,6 +11912,16 @@ Call the appropriate routine to instantiate the function or static
 data member specified by tip.
 */
 {
+  /* The instantiation process may rescan various things and invalidate the
+     current token positions as a result.  Save these positions so that they
+     may be restored when we are done. */
+  a_source_position saved_pos_curr_token = pos_curr_token;
+  a_source_position saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position saved_curr_construct_end_position =
+                                                 curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
   if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
     /* Static data member definition. */
     define_template_static_data_member(tip);
@@ -11900,6 +11937,11 @@ data member specified by tip.
       num_total_pending_instantiations--;
     }  /* if */
   }  /* if */
+  error_position = saved_error_position;
+  pos_curr_token = saved_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* instantiate_entity */
 
 
