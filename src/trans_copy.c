@@ -561,6 +561,32 @@ entry that is already in the primary file IL.
   (!has_corresp(ptr) || entry_should_be_merged((char *)(ptr), (kind)))
 
 
+static void merge_instantiation_flags(a_template_instance_ptr instance,
+                                      a_template_instance_ptr corresp_instance)
+/*
+instance and corresp_instance are the template instance pointers from
+two corresponding template functions or template static data members, or
+they are NULL if the entities are not templates.  If both entities have
+an associated template instance entry, merge the flags in those entries.
+corresp_instance is the instance in the primary translation unit, and
+instance is the one in the secondary translation unit.
+*/
+{
+  if (instance != NULL && corresp_instance != NULL) {
+    /* Transfer some information regarding instantiations. */
+    /* If you add a flag here, see also merge_instantiation_instances. */
+    corresp_instance->instantiation_required |=
+                                         instance->instantiation_required;
+    corresp_instance->already_instantiated |=
+                                         instance->already_instantiated;
+    corresp_instance->explicit_do_not_instantiate |=
+                                         instance->explicit_do_not_instantiate;
+    corresp_instance->suppress_instantiation |=
+                                         instance->suppress_instantiation;
+  }  /* if */
+}  /* merge_instantiation_flags */
+
+
 static a_boolean prepare_for_trans_unit_copy(
                                       a_scope_ptr scope,
                                       a_boolean   *any_removed_function_bodies)
@@ -741,6 +767,22 @@ the lists.
         mark_to_merge(variable);
         keep_on_list = TRUE;
       }  /* if */
+      if (scope->kind == (a_scope_kind)sck_class_struct_union) {
+        /* Merge instantiation information for static data members. */
+        a_variable_ptr corresp_variable =
+                               (a_variable_ptr)canonical_il_entry_of(variable);
+        a_symbol_ptr   sym =
+                           (a_symbol_ptr)(variable->source_corresp.assoc_info);
+        a_symbol_ptr   corresp_sym =
+                   (a_symbol_ptr)(corresp_variable->source_corresp.assoc_info);
+        if (sym != NULL && corresp_sym != NULL) {
+          a_template_instance_ptr instance =
+                          sym->variant.static_data_member.instance_ptr;
+          a_template_instance_ptr corresp_instance =
+                          corresp_sym->variant.static_data_member.instance_ptr;
+          merge_instantiation_flags(instance, corresp_instance);
+        }  /* if */
+      }  /* if */
     } else {
       /* This variable has no correspondence in the primary file IL. */
       if (translation_unit_needed_only_for_exported_templates) {
@@ -841,11 +883,7 @@ the lists.
           a_template_instance_ptr instance = sym->variant.routine.instance_ptr;
           a_template_instance_ptr corresp_instance =
                                      corresp_sym->variant.routine.instance_ptr;
-          if (instance != NULL && corresp_instance != NULL) {
-            /* Transfer some information regarding instantiations. */
-            corresp_instance->instantiation_required |=
-                                              instance->instantiation_required;
-          }  /* if */
+          merge_instantiation_flags(instance, corresp_instance);
         }  /* if */
       }
     } else {
@@ -1593,6 +1631,96 @@ into the primary translation unit il_header.
 }  /* merge_il_headers */
 
 
+static void merge_instantiation_instances(a_symbol_ptr sym,
+                                          a_symbol_ptr orig_sym,
+                                          a_boolean    overwrite)
+/*
+Merge the instantiation instance entry information, if any, for the
+given symbol.  sym is the symbol for a routine or static data member
+in a secondary translation unit, which has been copied to the
+primary IL.  overwrite is TRUE if the copy was done by overwriting
+an existing entry in the primary IL.  If so, orig_sym is the
+associated symbol for the original primary IL entry.
+*/
+{
+  a_template_instance_ptr instance;
+
+  if (sym->kind == (a_symbol_kind)sk_routine ||
+      sym->kind == (a_symbol_kind)sk_member_function) {
+    instance = sym->variant.routine.instance_ptr;
+  } else {
+    check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
+    instance = sym->variant.static_data_member.instance_ptr;
+  }  /* if */
+  if (instance != NULL) {
+    a_template_instance_ptr copy_instance;
+    a_template_instance_ptr saved_next;
+    a_template_instance_ptr saved_next_in_instantiation_list;
+    a_boolean               saved_instantiation_required;
+    a_boolean               saved_already_instantiated;
+    a_boolean               saved_explicit_do_not_instantiate;
+    a_boolean               saved_suppress_instantiation;
+    /* The entity is a template instance. */
+    if (overwrite) {
+      /* There is already a copy of this instance in the primary IL,
+         which must have an associated template instance entry.  We
+         will overwrite that instance entry. */
+      check_assertion(orig_sym != NULL &&
+                      orig_sym->kind == sym->kind);
+      if (orig_sym->kind == (a_symbol_kind)sk_routine ||
+          orig_sym->kind == (a_symbol_kind)sk_member_function) {
+        copy_instance = orig_sym->variant.routine.instance_ptr;
+      } else {
+        check_assertion(orig_sym->kind ==
+                                         (a_symbol_kind)sk_static_data_member);
+        copy_instance = orig_sym->variant.static_data_member.instance_ptr;
+      }  /* if */
+      check_assertion(copy_instance != NULL);
+      saved_next = copy_instance->next;
+      saved_next_in_instantiation_list =
+                   copy_instance->next_in_instantiation_list;
+      saved_instantiation_required =
+                   copy_instance->instantiation_required;
+      saved_already_instantiated =
+                   copy_instance->already_instantiated;
+      saved_explicit_do_not_instantiate =
+                   copy_instance->explicit_do_not_instantiate;
+      saved_suppress_instantiation =
+                   copy_instance->suppress_instantiation;
+    } else {
+      /* This is a new instance, for which there is no copy in the primary
+         IL.  Create a new instantiation list entry by making a copy of the
+         one from the secondary translation unit. */
+      copy_instance = alloc_template_instance();
+    }  /* if */
+    *copy_instance = *instance;
+    if (overwrite) {
+      /* Restore certain values from the original instance entry in the
+         primary translation unit. */
+      copy_instance->next = saved_next;
+      copy_instance->next_in_instantiation_list =
+                            saved_next_in_instantiation_list;
+      /* Note that some flags were previously merged, so saving/restoring
+         them here preserves the merged value.  See
+         merge_instantiation_flags. */
+      copy_instance->instantiation_required =
+                            saved_instantiation_required;
+      copy_instance->already_instantiated =
+                            saved_already_instantiated;
+      copy_instance->explicit_do_not_instantiate =
+                            saved_explicit_do_not_instantiate;
+      copy_instance->suppress_instantiation =
+                            saved_suppress_instantiation;
+      copy_instance->referencing_namespace = NULL;
+    } else {
+      /* The instance was newly created, not copied on top of an
+         existing entry. */
+      add_to_instantiations_required_list(copy_instance);
+    }  /* if */
+  }  /* if */
+}  /* merge_instantiation_instances */
+
+
 static void copy_instantiation_info_for_routine(a_routine_ptr routine)
 /*
 The indicated routine has been copied from the secondary translation
@@ -1607,7 +1735,6 @@ if appropriate.
   a_boolean     local_member_function = !in_secondary_trans_unit(routine);
   a_boolean     overwrite = (!local_member_function &&
                              entry_to_be_merged(routine));
-  a_routine_ptr primary_routine= (a_routine_ptr)canonical_il_entry_of(routine);
   a_symbol_ptr  sym = (a_symbol_ptr)(routine->source_corresp.assoc_info);
   a_symbol_ptr  orig_sym = NULL;
 
@@ -1633,46 +1760,45 @@ if appropriate.
          already a list entry for the routine in the primary IL. */
     } else {
       /* Add an entry for the routine. */
+      a_routine_ptr primary_routine =
+                                 (a_routine_ptr)canonical_il_entry_of(routine);
       add_to_inline_function_list(primary_routine);
     }  /* if */
   }  /* if */
   if (sym != NULL) {
-    a_template_instance_ptr instance = sym->variant.routine.instance_ptr;
-    if (instance != NULL) {
-      a_template_instance_ptr copy_instance;
-      a_template_instance_ptr saved_next = NULL;
-      a_template_instance_ptr saved_next_in_instantiation_list = NULL;
-      a_boolean               saved_instantiation_required = FALSE;
-      /* The routine is a template instance. */
-      if (overwrite) {
-        /* There is already a copy of this instance in the primary IL,
-           which must have an associated template instance entry.  We
-           will overwrite that instance entry. */
-        check_assertion(orig_sym != NULL);
-        copy_instance = orig_sym->variant.routine.instance_ptr;
-        check_assertion(copy_instance != NULL);
-        saved_next = copy_instance->next;
-        saved_next_in_instantiation_list =
-                     copy_instance->next_in_instantiation_list;
-        saved_instantiation_required = copy_instance->instantiation_required;
-      } else {
-        /* This is a new instance, for which there is no copy in the primary
-           IL.  Create a new instantiation list entry by making a copy of the
-           one from the secondary translation unit. */
-        copy_instance = alloc_template_instance();
-      }  /* if */
-      *copy_instance = *instance;
-      /* Note that some flags were previously merged, so saving/restoring
-         them here preserves the merged value. */
-      copy_instance->next = saved_next;
-      copy_instance->next_in_instantiation_list =
-                            saved_next_in_instantiation_list;
-      copy_instance->instantiation_required = saved_instantiation_required;
-      copy_instance->referencing_namespace = NULL;
-      if (!overwrite) add_to_instantiations_required_list(copy_instance);
-    }  /* if */
+    merge_instantiation_instances(sym, orig_sym, overwrite);
   }  /* if */
 }  /* copy_instantiation_info_for_routine */
+
+
+static void copy_instantiation_information_for_variable(a_variable_ptr var)
+/*
+The indicated variable (a static data member) has been copied from the
+secondary translation unit IL to the primary IL.  var points to the copy
+in the secondary translation unit.  Update any instantiation list information
+associated with the variable.
+*/
+{
+  a_boolean      overwrite = entry_to_be_merged(var);
+  a_symbol_ptr   sym = (a_symbol_ptr)(var->source_corresp.assoc_info);
+  a_symbol_ptr   orig_sym = NULL;
+
+  /* Note that local classes cannot have static data members. */
+  /* This routine runs while switched to the primary translation unit. */
+  check_assertion(in_secondary_trans_unit(var) &&
+                  is_primary_translation_unit);
+  if (overwrite) {
+    /* Note that if the variable was copied on top of an original variable
+       in the primary IL the symbol pointer from the original entry was
+       saved in the assoc_info field of the intermediate copy. */
+    a_variable_ptr corresp_var =
+                    (a_variable_ptr)checked_trans_unit_corresp_pointer_of(var);
+    orig_sym = (a_symbol_ptr)(corresp_var->source_corresp.assoc_info);
+  }  /* if */
+  if (sym != NULL) {
+    merge_instantiation_instances(sym, orig_sym, overwrite);
+  }  /* if */
+}  /* copy_instantiation_info_for_variable */
 
 
 static void wrap_up_moved_function(a_routine_ptr rout)
@@ -1771,6 +1897,15 @@ two-pass sweep.
       wrap_up_moved_function(routine);
     }  /* if */
   }  /* for */
+  if (scope->kind == (a_scope_kind)sck_class_struct_union &&
+      /* Do this only on the second pass. */
+      !do_inlines) {
+    /* Look for static data members that have instantiation information. */
+    a_variable_ptr var;
+    for (var = scope->variables; var != NULL; var = var->next) {
+      copy_instantiation_information_for_variable(var);
+    }  /* for */
+  }  /* if */
 }  /* finish_moved_function_processing */
 
 
