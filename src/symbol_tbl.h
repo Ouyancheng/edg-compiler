@@ -431,6 +431,10 @@ typedef struct a_symbol {
 		dominated:1;
 			/* TRUE if progenitor_symbol is dominated by another
 			   projection symbol (see ARM 10.1.1). */
+      unsigned int
+		hidden:1;
+                        /* TRUE if progenitor_symbol is hidden from the
+                           current scope by an overriding declaration. */
     } projection;
   } variant;
 } a_symbol;
