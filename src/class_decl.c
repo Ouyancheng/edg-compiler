@@ -4520,6 +4520,8 @@ empty statement block.
   pop_scope();
   /* Terminate the class reactivation scope. */
   pop_class_reactivation_scope();
+  /* Mark the symbol for this routine "defined". */
+  ((a_symbol_ptr)rout_ptr->source_corresp.assoc_info)->defined = TRUE;
   db_exit();
 }  /* define_special_member_function */
 
