@@ -691,10 +691,8 @@ extern void prep_assignment_operand(an_operand        *source_operand,
 #if GNU_EXTENSIONS_ALLOWED
 
 extern a_field_ptr transparent_union_conversion_possible(
-                                    an_operand       *source_operand,
-                                    a_type_ptr       union_type,
-                                    an_error_code    incompatible_err,
-                                    a_std_conv_descr *std_conv);
+                                                    an_operand *source_operand,
+                                                    a_type_ptr union_type);
 
 extern void prep_transparent_union_conversion_operand(
                                                  a_type_ptr  dest_type,

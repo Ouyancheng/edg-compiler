@@ -8208,12 +8208,8 @@ C-style casts and C++ functional-notation type conversions.
         } else if (gcc_mode && is_union_type(type_cast_to)) {
           /* It may be possible to convert *operand to the type of one of
              the members of the union.  If so, the conversion is allowed.  */
-          a_std_conv_descr  dummy;
-          a_type_ptr        union_type = skip_typerefs(type_cast_to);
-          a_field_ptr       field;
-
-          field = transparent_union_conversion_possible(operand, union_type,
-                                                        ec_bad_cast, &dummy);
+          a_field_ptr field =
+                  transparent_union_conversion_possible(operand, type_cast_to);
           if (field != NULL) {
             /* Convert from the type of the field to the type of the
                union, using a dynamic initializer generated on the fly. */

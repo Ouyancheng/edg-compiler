@@ -9729,11 +9729,8 @@ is NULL, the operand is not a parameter.
       /* The destination is a parameter of a union type declared as
          a transparent union (a GNU C extension).  The argument can be
          converted to the type of any member of the union. */
-      a_type_ptr         union_type = skip_typerefs(dest_type);
-      a_field_ptr        f;
-
-      f = transparent_union_conversion_possible(source_operand, union_type,
-                                                incompatible_err, &std_conv);
+      a_field_ptr f =
+              transparent_union_conversion_possible(source_operand, dest_type);
       /* If none of the fields was satisfactory, issue an error. */
       if (f == NULL) {
         goto error;
@@ -11807,36 +11804,26 @@ cases where bitwise copying applies.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-a_field_ptr transparent_union_conversion_possible(
-                                            an_operand       *source_operand,
-                                            a_type_ptr       union_type,
-                                            an_error_code    incompatible_err,
-                                            a_std_conv_descr *std_conv)
+a_field_ptr transparent_union_conversion_possible(an_operand *source_operand,
+                                                  a_type_ptr union_type)
 /*
 Return non-NULL if it is okay to implicitly convert source_operand to any
-of the fields of union_type (which must be a union).  This is the
-condition GCC uses for casting to a union and for passing a transparent
-union parameter.  If it is okay, *std_conv is set to describe the
-conversion, and the first field that satisfies the requirement is
-returned.  Otherwise, NULL is returned, and incompatible_err may be
-issued.
+of the fields of union_type (which must be a union, or a typeref for one).
+This is the condition GCC uses for casting to a union and for passing a
+transparent union parameter.  If it is okay, the first field that satisfies
+the requirement is returned.  Otherwise, NULL is returned.
 */
 {
-  a_type_ptr     source_type;
-  a_boolean      source_is_constant;
-  a_boolean      source_is_string;
-  a_constant_ptr source_constant;
-  a_field_ptr    f;
+  a_type_ptr  source_type;
+  a_field_ptr f;
 
   db_enter(3, "transparent_union_conversion_possible");
+  union_type = skip_typerefs(union_type);
   check_assertion(union_type->kind == (a_type_kind)tk_union);
   source_type = source_operand->type;
-  source_is_constant = is_constant_operand(source_operand);
-  source_is_string = (a_boolean)source_operand->is_simple_string_literal;
-  source_constant = source_is_constant ? &source_operand->variant.constant
-                                       : (a_constant_ptr)NULL;
   for (f = union_type->variant.class_struct_union.field_list;
-       f != NULL; f = f->next) {
+       f != NULL;
+       f = f->next) {
     /* Try every field type in turn.  Note that a more-or-less exact type
        match is required, not a conversion. */
     if (interchangeable_types(source_type, f->type)) {
