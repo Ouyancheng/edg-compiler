@@ -1064,7 +1064,6 @@ Print out the type specifier.
       dump_float_type_name(type->variant.float_kind);
       break;
 #ifdef CFE
-    case tk_class:
     case tk_struct:
       (void)fprintf(f_C_output, "struct %s", get_name(&type->source_corresp));
       break;
@@ -1325,9 +1324,6 @@ Dump the parameter list for the given routine (which is part of the given
 scope).  If names_only is TRUE, dump just the parameter names.
 */
 {
-#ifdef CFE
-  a_boolean                 implicit_this_param;
-#endif /* ifdef CFE */
 #ifdef FFE
   an_entry_description_ptr  edp;
   an_entry_param_ptr        epp;
@@ -1360,8 +1356,7 @@ scope).  If names_only is TRUE, dump just the parameter names.
   formal_param = scope->variant.routine.parameters;
 #endif /* ifdef FFE */
 #ifdef CFE
-  implicit_this_param = (scope->variant.routine.this_param_variable != NULL);
-  if (names_only && formal_param == NULL && !implicit_this_param &&
+  if (names_only && formal_param == NULL &&
       routine->type->variant.routine.extra_info->prototyped) {
     /* Void parameter list -- i.e., no parameters. */
     start_comment();
@@ -1378,18 +1373,6 @@ scope).  If names_only is TRUE, dump just the parameter names.
       if (names_only && formal_param != NULL) (void)fprintf(f_C_output, ",");
     }  /* if */
 #endif /* ifdef FFE */
-#ifdef CFE
-    if (implicit_this_param) {
-      /* C++ member function implicit "this" parameter. */
-      if (names_only) {
-        dump_var_name(scope->variant.routine.this_param_variable);
-        if (formal_param != NULL) fprintf(f_C_output, ", ");
-      } else {
-        dump_param_variable(scope->variant.routine.this_param_variable,
-                            /*ignore_storage_class=*/FALSE);
-      }  /* if */
-    }  /* if */
-#endif /* ifdef CFE */
     while (formal_param != NULL) {
       /* Dump the formal parameters. */
       if (names_only) {
@@ -1722,23 +1705,26 @@ Dump an enum.  Print the associated source name if there is one.
 
   start_unreferenced_bracket(&type->source_corresp);
   startline(type->source_corresp.decl_position.seq);
-  (void)fprintf(f_C_output, "enum %s {", get_name(&type->source_corresp));
+  (void)fprintf(f_C_output, "enum %s ", get_name(&type->source_corresp));
   constant = type->variant.integer.enum_constant_list;
-  enum_value = 0;
-  indent += 2;
-  while (constant != NULL) {
-    startline(constant->source_corresp.decl_position.seq);
-    fputs(get_name(&constant->source_corresp), f_C_output);
-    if (constant->variant.integer_value != enum_value) {
-      enum_value = constant->variant.integer_value;
-      (void)fprintf(f_C_output, " = %ld", enum_value);
-    }  /* if */
-    enum_value++;
-    constant = constant->next;
-    if (constant != NULL) putc(',', f_C_output);
-  }  /* while */
-  indent -= 2;
-  putc('}', f_C_output);
+  if (constant != NULL) {
+    putc('{', f_C_output);
+    enum_value = 0;
+    indent += 2;
+    while (constant != NULL) {
+      startline(constant->source_corresp.decl_position.seq);
+      fputs(get_name(&constant->source_corresp), f_C_output);
+      if (constant->variant.integer_value != enum_value) {
+        enum_value = constant->variant.integer_value;
+        (void)fprintf(f_C_output, " = %ld", enum_value);
+      }  /* if */
+      enum_value++;
+      constant = constant->next;
+      if (constant != NULL) putc(',', f_C_output);
+    }  /* while */
+    indent -= 2;
+    putc('}', f_C_output);
+  }  /* if */
   putc(';', f_C_output);
   end_unreferenced_bracket(&type->source_corresp);
 }  /* dump_enum */
@@ -1930,7 +1916,6 @@ all types, but for structs/unions put out only a forward reference.
 #endif /* CHECKING */
       if (!bodies) dump_enum(type);
       break;
-    case tk_class:
     case tk_struct:
       dump_struct(type, bodies);
       break;
@@ -1972,7 +1957,6 @@ symbol associated with them.
   for (;;) {
     for (type = type_list; type != NULL; type = type->next) {
       if (type->source_corresp.name != NULL ||
-          type->kind == (a_type_kind)tk_class ||
           type->kind == (a_type_kind)tk_struct ||
           type->kind == (a_type_kind)tk_union ||
           (type->kind == (a_type_kind)tk_integer &&
@@ -3556,8 +3540,7 @@ char_compare:
            This avoids the problem of referencing the result of the
            function call in a field selection.  The temporary will
            have been generated on a pre-scan of this code. */
-        struct_func_call = (return_type->kind == (a_type_kind)tk_class ||
-                            return_type->kind == (a_type_kind)tk_struct ||
+        struct_func_call = (return_type->kind == (a_type_kind)tk_struct ||
                             return_type->kind == (a_type_kind)tk_union);
         if (struct_func_call) {
           (void)fprintf(f_C_output, "(*(%s = ", temp_name((char *)expr));
@@ -4517,7 +4500,6 @@ characters should be put out separately (to initialize a substring, probably).
           ipdp->curr_elem = 0;
           elem_type = type->variant.array.element_type;
           break;
-        case tk_class:
         case tk_struct:
         case tk_union:
           ipdp->curr_field = type->variant.class_struct_union.field_list;
@@ -4641,8 +4623,7 @@ characters should be put out separately (to initialize a substring, probably).
         /* Advance to the next element in the aggregate or struct. */
         if (type->kind == (a_type_kind)tk_array) {
           (ipdp->curr_elem)++;
-        } else if (type->kind == (a_type_kind)tk_class ||
-                   type->kind == (a_type_kind)tk_struct) {
+        } else if (type->kind == (a_type_kind)tk_struct) {
           ipdp->curr_field = ipdp->curr_field->next;
 #if CHECKING
           if (ipdp->curr_field == NULL) {
@@ -4881,8 +4862,7 @@ parameters.
            does not allow initializers for those. */
         a_type_kind var_type_kind = skip_typerefs(variable->type)->kind;
         gen_assignments = !static_storage_class(variable->storage_class) &&
-                          (var_type_kind == (a_type_kind)tk_class ||
-                           var_type_kind == (a_type_kind)tk_struct ||
+                          (var_type_kind == (a_type_kind)tk_struct ||
                            var_type_kind == (a_type_kind)tk_union ||
                            var_type_kind == (a_type_kind)tk_array);
 #else /* !defined(CFE) */
@@ -4945,27 +4925,6 @@ is TRUE.
                     dump_initializers);
     }  /* if */
   }  /* for */
-#ifdef CFE
-  /* Dump variables that are static data members of C++ classes. */
-  if (il_header.source_language == sl_Cplusplus) {
-    a_type_ptr type;
-    for (type = scope->types; type != NULL; type = type->next) {
-      if (type->kind == (a_type_kind)tk_class ||
-          type->kind == (a_type_kind)tk_struct ||
-          type->kind == (a_type_kind)tk_union) {
-        if (type->variant.class_struct_union.extra_info != NULL) {
-          for (var_ptr = type->variant.class_struct_union.extra_info->
-                                                        assoc_scope->variables;
-               var_ptr != NULL;
-               var_ptr = var_ptr->next) {
-            dump_variable(var_ptr, dump_vars_without_initializers,
-                          dump_initializers);
-          }  /* for */
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-#endif /* CFE */
 }  /* dump_all_variables */
 
 #ifdef FFE
@@ -6651,8 +6610,7 @@ its subtree.
         }  /* if */
 #endif /* ifdef FFE */
 #ifdef CFE
-        if (node_type->kind == (a_type_kind)tk_class ||
-            node_type->kind == (a_type_kind)tk_struct ||
+        if (node_type->kind == (a_type_kind)tk_struct ||
             node_type->kind == (a_type_kind)tk_union) {
           /* A function call returning a struct or union.  Declare a temporary
              to hold the result. */
@@ -7552,26 +7510,6 @@ that have bodies.
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
     dump_routine(routine, bodies);
   }  /* for */
-#ifdef CFE
-  /* Dump routines that are static data members of C++ classes. */
-  if (il_header.source_language == sl_Cplusplus) {
-    a_type_ptr type;
-    for (type = scope->types; type != NULL; type = type->next) {
-      if (type->kind == (a_type_kind)tk_class ||
-          type->kind == (a_type_kind)tk_struct ||
-          type->kind == (a_type_kind)tk_union) {
-        if (type->variant.class_struct_union.extra_info != NULL) {
-          for (routine = type->variant.class_struct_union.extra_info->
-                                                         assoc_scope->routines;
-               routine != NULL;
-               routine = routine->next) {
-            dump_routine(routine, bodies);
-          }  /* for */
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-#endif /* CFE */
 }  /* dump_all_routines */
 
 
