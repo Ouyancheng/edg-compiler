@@ -1,5 +1,20 @@
 Version 3.5
 
+7/12/04 GNU compatibility: Distinguish GNU asm syntax from standard asm syntax
+
+In configurations supporting GNU extensions (i.e., with GNU_EXTENSIONS_ALLOWED
+set to TRUE), a flag was added to be able to distinguish the extended GNU
+syntax from the standard syntax.  This is significant for examples like the
+following:
+
+  void f() {
+    asm("print %%");     // Standard form: Back end should preserve argument
+                         // string with no change.
+    asm("printf %%"::);  // GNU form: Back should replace "%%" by "%".
+  }
+
+A flag gnu_asm_form has been added to an_asm_entry for this purpose.
+
 7/12/04  Microsoft compatibility: Multiple initializers for scalars
 
 The Microsoft compatibility issue described in the Changes entry of 6/24/99

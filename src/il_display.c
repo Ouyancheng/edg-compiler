@@ -5343,6 +5343,9 @@ Display the indicated asm entry.
   disp_ptr("next", (char *)ptr->next, iek_asm_entry);
   disp_ptr("asm_string", (char *)ptr->asm_string, iek_constant);
 #if GNU_EXTENSIONS_ALLOWED
+  if (ptr->gnu_asm_form) {
+    disp_boolean("gnu_asm_form", TRUE);
+  }  /* if */
   if (ptr->is_volatile) {
     disp_boolean("is_volatile", TRUE);
   }  /* if */

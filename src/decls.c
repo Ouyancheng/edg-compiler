@@ -9528,6 +9528,7 @@ instruction's operands.
   an_asm_entry_ptr          ap = NULL;
   a_source_position         asm_pos;
 #if GNU_EXTENSIONS_ALLOWED
+  a_boolean                 gnu_asm_form = FALSE;
   a_boolean                 is_volatile = FALSE;
   an_asm_operand_ptr        operands = NULL;
   a_named_register_list_ptr clobbers = NULL;
@@ -9599,6 +9600,7 @@ instruction's operands.
     /* Check for operands spec. */
     if (gnu_mode && is_asm_statement) {
       if (curr_token == tok_colon || curr_token == tok_colon_colon) {
+        gnu_asm_form = TRUE;
         operands = asm_operands_spec();
         clobbers = asm_clobbers_spec();
         validate_operands_and_clobbers(operands, clobbers);
@@ -9631,6 +9633,7 @@ instruction's operands.
     ap->asm_string = alloc_unshared_constant(&asm_string);
     copy_source_position(asm_pos, ap->source_corresp.decl_position);
 #if GNU_EXTENSIONS_ALLOWED
+    ap->gnu_asm_form = gnu_asm_form;
     ap->is_volatile = is_volatile;
     ap->operands = operands;
     ap->clobbers = clobbers;

@@ -2211,7 +2211,8 @@ to it.
   ap->next = NULL;
   ap->asm_string = NULL;
 #if GNU_EXTENSIONS_ALLOWED
-  ap->is_volatile = 0;
+  ap->gnu_asm_form = FALSE;
+  ap->is_volatile = FALSE;
   ap->operands = NULL;
   ap->clobbers = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
