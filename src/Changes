@@ -19,7 +19,7 @@ These problems are now fixed.
 2/9/04  Sun Compatibility: diagnostic on undefined inline function
 
 The Sun compiler sometimes accepts inline functions that are referenced
-but not defined.  In Sun mode, we now give a warning, instead of an error
+but not defined.  In Sun mode, we now give a warning instead of an error
 for such functions.
 
   struct A {
