@@ -617,7 +617,7 @@ s1.  So, for example, if s1 is "byte", s2 will match if it is either
 "byte" or "__byte__".
 */
 {
-  sizeof_t  length;
+  sizeof_t  length_1, length_2;
   a_boolean result;
 
   /* If the strings are an exact match, return quickly. */
@@ -629,15 +629,17 @@ s1.  So, for example, if s1 is "byte", s2 will match if it is either
   } else {
     /* Ignore the first two underscores of s2. */
     s2 += 2;
-    /* Calculate the length of the remaining string. */
-    length = (sizeof_t)strlen(s2);
+    /* Calculate the length of the remaining strings. */
+    length_1 = (sizeof_t)strlen(s1);
+    length_2 = (sizeof_t)strlen(s2);
     /* If the last two characters of s2 are not underscores, there is no
        match. */
-    if (length < 2 || s2[length - 2] != '_' || s2[length - 1] != '_') {
+    if (length_2 != length_1 + 2 ||
+        s2[length_2 - 2] != '_' || s2[length_2 - 1] != '_') {
       result = FALSE;
     } else {
-      /* Compare the remainder of the string. */
-      result = strncmp(s1, s2, strlen(s1)) == 0;
+      /* Compare the remainder of the strings. */
+      result = strncmp(s1, s2, length_1) == 0;
     }  /* if */
   }  /* if */
 
