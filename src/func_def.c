@@ -1082,9 +1082,12 @@ on a prior declaration.
                                        type_ptr->variant.routine.extra_info;
       if (rtsp->this_class != NULL) {
         rtsp->this_class = NULL;
-        rtsp->qualifiers = TQ_NONE;
         sym = member_function_redecl_sym(locator->specific_symbol, type_ptr,
                                          (a_template_param_ptr)NULL);
+        /* The qualifiers are cleared only after looking for a redeclaration
+           symbol.  This ensures that we find the same declaration Cfront
+           would find. */
+        rtsp->qualifiers = TQ_NONE;
         if (sym != NULL) {
           pos_sy_warning(ec_not_compatible_with_previous_decl,
                          &locator->source_position, locator->specific_symbol);
