@@ -3245,6 +3245,22 @@ indicated by error_position.
   pos_sy_warning(error_code, &error_position, symbol);
 }  /* sym_warning */
 
+
+void pos_stsy_warning(an_error_code     error_code,
+                      a_source_position *error_pos,
+                      char              *error_string,
+                      a_symbol_ptr      symbol)
+/*
+Report the indicated warning (with the indicated fill-in string and symbol)
+at the indicated position.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string;
+  error_msg_syms[1] = symbol;
+  diag_message(error_code, error_pos, es_warning, dck_standalone);
+}  /* pos_stsy_warning */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void pos_st_error(an_error_code     error_code,
