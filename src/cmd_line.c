@@ -993,11 +993,14 @@ Set other options whose values should be changed when Microsoft mode
 is enabled.
 */
 {
-  bool_is_keyword = FALSE;
+  /* The bool keyword is support by Microsoft Visual C++ 5.0. */
+  bool_is_keyword = microsoft_version >= 1100;
   wchar_t_is_keyword = FALSE;
-  explicit_keyword_enabled = FALSE;
+  /* The explicit keyword is support by Microsoft Visual C++ 5.0. */
+  explicit_keyword_enabled = microsoft_version >= 1100;
 #if !RUNTIME_USES_TYPENAME
-  typename_enabled = FALSE;
+  /* The typename keyword is support by Microsoft Visual C++ 5.0. */
+  typename_enabled = microsoft_version >= 1100;
 #endif /* !RUNTIME_USES_TYPENAME */
   implicit_typename_enabled = TRUE;
   guiding_decls_allowed = FALSE;

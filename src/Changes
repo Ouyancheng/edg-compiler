@@ -1,5 +1,14 @@
 Version 2.36
 
+4/21/97   Microsoft compatibility: bool, explicit, and typename are now
+          supported by the Microsoft compiler
+
+Version 11.00 of the Microsoft compiler (in Visual C++ 5.0) supports
+the bool, explicit, and typename keywords.  These features had been
+automatically disabled in Microsoft mode because they were not supported
+by the Microsoft compiler.  They are now enabled in Microsoft mode
+when the Microsoft version is 1100 or greater.
+
 4/18/97   Missing diagnostic when an operator name is used as a class
           template name
 
