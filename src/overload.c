@@ -5859,12 +5859,16 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 {
   a_type_ptr          required_type;
   char                *fmt_string = *fmt_string_ptr;
+  char                type_char;
   a_printf_scan_state pss = *pss_ptr;
   a_boolean           l_size, L_size, h_size, add_pointer;
   a_boolean           hh_size, j_size, z_size, t_size;
 #if LONG_LONG_ALLOWED
   a_boolean           ll_size;
 #endif /* LONG_LONG_ALLOWED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  a_boolean           is_fract_type;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   a_boolean           suppress_assignment = FALSE;
 
   *weakly_typed = FALSE;
@@ -5977,7 +5981,7 @@ after_precision:;
        decimal.  Determine the required type.  For most (but not all)
        scanf cases, "pointer to" will be added afterwards. */
     *indirect = add_pointer = is_scanf;
-    switch (*fmt_string++) {
+    switch (type_char = *fmt_string++) {
       case 'd':
       case 'i':
         /* int conversion.  If "l" was specified, long conversion;
@@ -6047,6 +6051,29 @@ after_precision:;
           required_type = integer_type((an_integer_kind)ik_unsigned_int);
         }  /* if */
         break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case 'r':
+      case 'R':
+        is_fract_type = TRUE;
+        /*FALLTHROUGH*/
+      case 'k':
+      case 'K':
+        /* Fixed-point conversions.  Note that the saturation behavior does
+           not matter, so we use alt_type to also allow the nonsaturating
+           type.  (Note: upper-case letters indicate unsigned fixed-point
+           types.) */
+        { a_fixed_point_precision
+                     precision = l_size ? (a_fixed_point_precision)fpp_long :
+                                 h_size ? (a_fixed_point_precision)fpp_short :
+                                          (a_fixed_point_precision)fpp_default;
+          a_boolean  is_unsigned = (type_char == 'R' || type_char == 'K');
+          required_type = fixed_point_type(precision, is_unsigned,
+                                           is_fract_type, /*saturating=*/TRUE);
+          *alt_type = fixed_point_type(precision, is_unsigned, is_fract_type,
+                                       /*saturating=*/FALSE);
+        }
+        break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case 'a':  /* Added in C99. */
       case 'A':  /* Added in C99. */
       case 'f':

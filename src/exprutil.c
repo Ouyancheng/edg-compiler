@@ -4242,6 +4242,50 @@ operator position (for errors).  Return FALSE if there is an error.
 
 #if FIXED_POINT_EXTENSIONS_ALLOWED
 
+void check_mixed_integer_fixed_point_arithmetic(
+                                            an_operand             *operand_1,
+                                            an_operand             *operand_2,
+                                            an_expr_operator_kind  op)
+/*
+Operator op is to be applied to the given operands.  If one of the operands
+has a fixed-point type and the other has an integral type, issue a warning
+for cases that are likely to overflow (e.g., _Fract + int).
+*/
+{
+  a_type_ptr  tp1 = skip_typerefs(operand_1->type),
+              tp2 = skip_typerefs(operand_2->type);
+
+  if ((tp1->kind == (a_type_kind)tk_fixed_point &&
+       tp2->kind == (a_type_kind)tk_integer) ||
+      (tp1->kind == (a_type_kind)tk_integer &&
+       tp2->kind == (a_type_kind)tk_fixed_point)) {
+    /* Mixed-type (integer/fixed-point) arithmetic. */
+    if (op == (an_expr_operator_kind)eok_fxadd ||
+        op == (an_expr_operator_kind)eok_fxsubtract ||
+        op == (an_expr_operator_kind)eok_fxadd_assign ||
+        op == (an_expr_operator_kind)eok_fxsubtract_assign) {
+      /* Addition and subtraction involving _Fract types and integer types
+         can easily lead to overflow because _Fract types can only hold
+         (at most) values between -1 and +1. */
+      an_operand  *integral_operand;
+      a_boolean   fract_type_involved;
+      if (tp1->kind != (a_type_kind)tk_fixed_point) {
+        integral_operand = operand_1;
+        fract_type_involved = tp2->variant.fixed_point.is_fract_type;
+      } else {
+        integral_operand = operand_2;
+        fract_type_involved = tp1->variant.fixed_point.is_fract_type;
+      }  /* if */
+      if (fract_type_involved && !(op_is_zero_constant(operand_1) ||
+                                   op_is_zero_constant(operand_2))) {
+        pos_warning(ec_integer_may_not_fit_in_fixed_point_result,
+                    &integral_operand->position);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_mixed_integer_fixed_point_arithmetic */
+
+
 static void adjust_fixed_point_binary_operands(
                                             an_operand             *operand_1,
                                             an_operand             *operand_2,
@@ -4285,26 +4329,7 @@ adding an integer to fixed-point type.)
     /* A mixed fixed-point/integral operation. */
     check_assertion(tp1->kind == (a_type_kind)tk_fixed_point ||
                     tp2->kind == (a_type_kind)tk_fixed_point);
-    if (op == (an_expr_operator_kind)eok_fxadd ||
-        op == (an_expr_operator_kind)eok_fxsubtract) {
-      an_operand  *integral_operand;
-      a_boolean   fract_type_involved;
-      if (tp1->kind != (a_type_kind)tk_fixed_point) {
-        integral_operand = operand_1;
-        fract_type_involved = tp2->variant.fixed_point.is_fract_type;
-      } else {
-        integral_operand = operand_2;
-        fract_type_involved = tp1->variant.fixed_point.is_fract_type;
-      }  /* if */
-      if (fract_type_involved && !(op_is_zero_constant(operand_1) ||
-                                   op_is_zero_constant(operand_2))) {
-        /* Addition and subtraction involving _Fract types and integer types
-           can easily lead to overflow because _Fract types can only hold
-           (at most) values between -1 and +1. */
-        pos_warning(ec_integer_may_not_fit_in_fixed_point_result,
-                    &integral_operand->position);
-      }  /* if */
-    }  /* if */
+    check_mixed_integer_fixed_point_arithmetic(operand_1, operand_2, op);
   }  /* if */
 }  /* adjust_fixed_point_binary_operands */
 

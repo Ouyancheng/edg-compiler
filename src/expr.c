@@ -12559,6 +12559,17 @@ See section 3.3.16 of the standard.
             /* If the first operand is arithmetic or enum, the second must
                be also. */
             (void)check_arithmetic_or_enum_operand(&operand_2);
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+            if (fixed_point_allowed) {
+              /* Warn about fixed-point arithmetic cases that are likely to
+                 overflow. */
+              an_expr_operator_kind  op = (an_expr_operator_kind)
+                  ((save_token == tok_plus_assign) ? eok_fxadd_assign
+                                                   : eok_fxsubtract_assign);
+              check_mixed_integer_fixed_point_arithmetic(operand_1, &operand_2,
+                                                         op);
+            }  /* if */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
           } else {
             a_boolean  nonobject_pointer =
                     (gcc_mode &&

@@ -871,6 +871,13 @@ extern a_boolean check_ptr_to_member_operands_for_compatibility(
                                           a_source_position *operator_position,
                                           a_type_ptr        *operation_type);
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+extern void check_mixed_integer_fixed_point_arithmetic(
+                                            an_operand             *operand_1,
+                                            an_operand             *operand_2,
+                                            an_expr_operator_kind  op);
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
 extern void change_binary_operand_types(a_type_ptr             type,
 				        an_operand             *operand_1,
 				        an_operand             *operand_2,
