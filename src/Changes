@@ -12,13 +12,13 @@ error, except in Microsoft mode where it is accepted.
 11/16/00 On Linux, __unix__ predefined instead of unix
 
 When the front end is compiled on a Linux system, the macro __unix__
-is now defined.
+is now predefined.
 
 11/15/00 Predefined macros on SPARC systems
 
 When the front end is compiled on a SPARC system, the macros
 sun, sparc, and unix are now predefined.  To change that, see
-sys_predef.c
+sys_predef.c.
 
 11/15/00 Use of front end routines in a back end or middle end
 
