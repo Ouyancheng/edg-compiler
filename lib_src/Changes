@@ -1,5 +1,12 @@
 Version 2.30
 
+1/24/96  nothrow operator new defined incorrectly
+
+The version of operator new that does not throw an exception was
+incorrectly defined with the same signature as the default
+operator new.  It should have included the "nothrow" parameter
+in its type.  This has been corrected.
+
 1/24/96  New predefined macros used for region number type and null
          region value
 
