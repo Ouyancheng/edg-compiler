@@ -886,6 +886,12 @@ targ_microsoft_bit_field_allocation is FALSE.)
       /* Always use the base type size and alignment. */
       container_size      = base_type->size;
       container_alignment = base_type->alignment;
+#if GNU_EXTENSIONS_ALLOWED
+      if (field->alignment) {
+        /* Honor the "packed" attribute, even on bit fields. */
+        container_alignment = field->alignment;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
 

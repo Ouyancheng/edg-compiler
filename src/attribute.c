@@ -927,6 +927,10 @@ messages about any invalid attributes.
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     switch (ap->kind) {
+      case ak_mode:
+        /* This attribute was already handled in
+           apply_attributes_to_variable_type. */
+        break;
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
         /* Make sure that the requested alignment is permissible. */

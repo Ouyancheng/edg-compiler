@@ -8665,6 +8665,9 @@ specific information about the member declaration, respectively.
   a_symbol_ptr                   member_sym = NULL;
   a_class_symbol_supplement_ptr  cssp;
   a_boolean                      unnamed_field = decl_info->is_unnamed_field;
+#if GNU_EXTENSIONS_ALLOWED
+  an_attribute_ptr               *last_attribute;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "decl_nonstatic_data_member");
   if (decl_info->is_member_template) {
@@ -8672,11 +8675,6 @@ specific information about the member declaration, respectively.
     member_type = error_type();
     set_to_named_error_locator(*locator);
   } else {
-#if GNU_EXTENSIONS_ALLOWED
-    /* The attributes might change the type of the field. */
-    member_type = apply_attributes_to_variable_type(attributes, 
-						    member_type);
-#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Do error checking on the type. */
     check_field_type(locator, &member_type, class_state, decl_info);
   }  /* if */
@@ -8702,6 +8700,17 @@ specific information about the member declaration, respectively.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     field->is_bit_field = TRUE;
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Find the last attribute. */
+  last_attribute = &attributes;
+  while (*last_attribute != NULL) {
+    last_attribute = &(*last_attribute)->next;
+  }  /* while */
+  /* Scan the attributes that follow the declarator. */
+  *last_attribute = scan_attributes();
+  /* Apply the attributes to the field. */
+  member_type = apply_attributes_to_variable_type(attributes, member_type);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Copy the type (which may have been changed by scan_bit_field_size) into
      the field entry. */
   field->type = member_type;
@@ -8774,6 +8783,9 @@ specific information about the member declaration, respectively.
 #if GNU_EXTENSIONS_ALLOWED
   /* Apply the attributes to the field. */
   apply_attributes_to_field(attributes, field);
+  /* We are done with the postfix attributes. */
+  free_attribute_list(*last_attribute);
+  *last_attribute = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Add the field to the temporary list for this class/struct/union. */
   if (class_state->end_of_field_list == NULL) {
@@ -10713,7 +10725,6 @@ the IL, the template header is passed via template_decl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr     prefix_attributes;
-  an_attribute_ptr     *last_prefix_attribute;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "class_member_declaration");
@@ -10747,18 +10758,11 @@ the IL, the template header is passed via template_decl.
   (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
                         &member_type, &qualifiers, 
 #if GNU_EXTENSIONS_ALLOWED
-			&prefix_attributes,
+                        &prefix_attributes,
 #else /* !GNU_EXTENSIONS_ALLOWED */
-			(an_attribute_ptr *)NULL,
+                        (an_attribute_ptr *)NULL,
 #endif /* !GNU_EXTENSIONS_ALLOWED */
-			&decl_info.decl_modifiers,  &decl_info.decl_pos_block);
-#if GNU_EXTENSIONS_ALLOWED
-  /* Find the last prefix_attribute. */
-  last_prefix_attribute = &prefix_attributes;
-  while (*last_prefix_attribute != NULL) {
-    last_prefix_attribute = &(*last_prefix_attribute)->next;
-  }  /* while */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+                        &decl_info.decl_modifiers,  &decl_info.decl_pos_block);
   decl_info.dso_flags = dso_flags;
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
@@ -10843,9 +10847,6 @@ the IL, the template header is passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean                         is_nonstatic_data_member = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-    an_attribute_ptr                  attributes = NULL;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
     declarator_start_pos = pos_curr_token;
     add_stop_token(tok_comma);
@@ -10972,12 +10973,6 @@ the IL, the template header is passed via template_decl.
                  friend_specified ? (a_type_ptr)NULL : class_type,
                  &locator, &local_type, &decl_info.declarator_ssep,
                  &func_info, &decl_info.decl_pos_block);
-#if GNU_EXTENSIONS_ALLOWED
-      /* Look for attributes that apply to the member. */
-      attributes = scan_attributes();
-      /* Combine the prefix_attributes and the postfix attributes. */
-      *last_prefix_attribute = attributes;
-#endif /* GNU_EXTENSIONS_ALLOWED */
       if (!C_mode()) {
         remove_stop_token(tok_lbrace);
         check_completed_member_type(&local_type, &locator, class_state,
@@ -11499,11 +11494,6 @@ the IL, the template header is passed via template_decl.
       any_decl_other_than_nonstatic_data_member = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-    /* We are done with the postfix attributes. */
-    *last_prefix_attribute = NULL;
-    free_attribute_list(attributes);
-#endif /* GNU_EXTENSIONS_ALLOWED */
     remove_stop_token(tok_comma);
     decl_info.is_first_in_declarator_list = FALSE;
     /* Loop for additional declarators. */
