@@ -268,9 +268,10 @@ a constant that appears on the constant list of an enum type.
   a_boolean is_enum = FALSE;
 
   if (con->kind == (a_constant_repr_kind)ck_integer && has_name(con)) {
-    /* The constant is a named integral (or enum) type. */
+    /* The constant is a named constant with an integral representation. */
     a_type_ptr con_type = con->type;
     if (con_type->kind == (a_type_kind)tk_integer) {
+      /* The constant has an integral or enum type. */
       /* In C, enumerators have "int" type (but an affiliated type that
          is the enumeration); in C++, enumerators have the enum type. */
       if (il_header.source_language == sl_C ?
@@ -1029,6 +1030,11 @@ is unnamed, generate a name.  Never generate a qualified name.
       if (tap != NULL) {
         /* This is a template class name.  Put out the template argument
            list, e.g., "<int, float>". */
+#if 0
+#else
+        internal_error(
+           "Templates are not yet implemented in the C++-generating back end");
+#endif /* 0 */
         write_tok_ch('<');
         for (;;) {
           if (tap->is_type) {
@@ -1175,11 +1181,29 @@ been implicitly cast to some other type.  The caller must handle the
 implicit cast if appropriate.
 */
 {
+  a_boolean      need_cast_close_paren = FALSE;
   a_boolean      negative = FALSE, err, minus_1_trick = FALSE;
   a_constant_ptr eff_constant = constant;
   a_constant     local_constant;
   a_type_ptr     con_type = skip_typerefs(constant->type);
 
+  /* If this is an integer value or enumerator constant cast to
+     an enum type in C mode, or an integer value cast to an enum
+     type in C++ mode (note that real enumerator constants don't
+     get here), ... */
+  if ((con_type->kind == (a_type_kind)tk_integer &&
+       con_type->variant.integer.enum_type) ||
+      /* ... or, if we're generating K&R C and it's an unsigned constant
+         (pcc doesn't support unsigned integral constants), ... */
+      (il_header.pcc_compatibility_mode &&
+       constant->kind == (a_constant_repr_kind)ck_integer &&
+       !(con_type->kind == (a_type_kind)tk_integer &&
+         int_kind_is_signed[(int)con_type->variant.integer.int_kind]))) {
+    /* ... then prefix the constant with an explicit cast. */
+    write_tok_ch('(');
+    gen_cast(constant->type);
+    need_cast_close_paren = TRUE;
+  }  /* if */
   if (sign_of_integer_constant(constant) < 0) {
     /* Negative value.  Put in parentheses. */
     negative = TRUE;
@@ -1212,8 +1236,7 @@ implicit cast if appropriate.
     an_integer_kind ikind = con_type->variant.integer.int_kind;
     /* Put out a suffix if needed. */
     /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
-       a prefix cast is used (the caller must handle that if it's
-       needed). */
+       a prefix cast is used (see above). */
     if (!il_header.pcc_compatibility_mode) {
       if (!int_kind_is_signed[(int)ikind]) {
         /* Unsigned constant. */
@@ -1240,6 +1263,7 @@ implicit cast if appropriate.
     if (minus_1_trick) write_tok_str("-1");
     write_tok_ch(')');
   }  /* if */
+  if (need_cast_close_paren) write_tok_ch(')');
 }  /* gen_integer_constant */
 
 
@@ -1361,10 +1385,10 @@ initializations.
       need_ampersand = FALSE;
       break;
     case abk_variable:
-      underlying_object_type =constant->variant.address.variant.variable->type;
+      underlying_object_type= constant->variant.address.variant.variable->type;
       break;
     case abk_constant:
-      underlying_object_type =constant->variant.address.variant.constant->type;
+      underlying_object_type= constant->variant.address.variant.constant->type;
       break;
     default:
       unexpected_condition_str("gen_constant: bad addr constant kind");
@@ -1378,7 +1402,7 @@ initializations.
        for which the array has zero size but the element size is
        known. */
     need_ampersand = FALSE;
-    underlying_object_type =underlying_object_type->variant.array.element_type;
+    underlying_object_type= underlying_object_type->variant.array.element_type;
     /* If the constant type desired is exactly the type that results from
        the type decay, we don't need a cast.  Otherwise, we do. */
     need_ptr_cast = TRUE;
@@ -1510,18 +1534,7 @@ Output the indicated constant.
       /* Don't do this here for address constants (they're handled below). */
     } else {
       /* If the constant is implicitly cast to another type, ... */
-      if (constant->implicit_cast ||
-          /* ... or if it's an integer value or enumerator constant cast to
-             an enum type in C mode, ... */
-          (il_header.source_language == sl_C &&
-           con_type->kind == (a_type_kind)tk_integer &&
-           con_type->variant.integer.enum_type) ||
-          /* ... or, if we're generating K&R C and it's an unsigned constant
-             (pcc doesn't support unsigned integral constants), ... */
-          (il_header.pcc_compatibility_mode &&
-           kind == (a_constant_repr_kind)ck_integer &&
-           !(con_type->kind == (a_type_kind)tk_integer &&
-             int_kind_is_signed[(int)con_type->variant.integer.int_kind]))) {
+      if (constant->implicit_cast) {
         /* ... then prefix the constant with an explicit cast. */
         write_tok_ch('(');
         gen_cast(orig_type);
