@@ -893,7 +893,8 @@ and return a pointer to it.  Its definition is
     unsigned int  flags;   // Flags
 #endif // !POINTERS_HAVE_AT_LEAST_32_BITS
 #else // !IA64_ABI
-    typeinfo      *tinfo;  // typeinfo for base class
+    const typeinfo
+                  *tinfo;  // typeinfo for base class
     short         offset;  // Offset of base class in derived class
     unsigned char flags;   // Flags
 #endif // !IA64_ABI
@@ -911,8 +912,11 @@ and return a pointer to it.  Its definition is
     /* field: typeinfo *tinfo (Cfront-like ABI). */
 #if !IA64_ABI
     make_lowered_field("tinfo", 
-                       make_pointer_type(make_typeinfo_type(tik_implementation,
-                                                            (a_type_ptr)NULL)),
+                       make_pointer_type(
+                                make_qualified_type(
+                                         make_typeinfo_type(tik_implementation,
+                                                            (a_type_ptr)NULL),
+                                         TQ_CONST)),
                        base_class_spec_type, &last_field);
 #else /* IA64_ABI */
     /* field: const class_type_info *tinfo (IA-64 ABI). */
