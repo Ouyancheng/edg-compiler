@@ -651,10 +651,12 @@ extern void lower_statement_list(a_statement_ptr statement_list,
 
 extern void lower_statement(a_statement_ptr statement);
 
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 extern a_boolean local_entities_should_be_promoted(a_scope_ptr scope);
 
 extern void promote_local_entities_to_file_scope(a_scope_ptr   scope,
                                                  a_routine_ptr routine);
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 
 extern void lower_il_memory_region(a_memory_region_number region_number);
 
