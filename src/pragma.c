@@ -1343,7 +1343,7 @@ Initialize the pragma description table.
 		((a_pragma_kind)pk_ident,
                  ident_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
-                 /*global=*/FALSE,
+                 /*global=*/TRUE,
                  /*automatically_include_in_il=*/FALSE,
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/TRUE,
