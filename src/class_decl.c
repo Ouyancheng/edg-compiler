@@ -873,7 +873,7 @@ old_class under new_class.  If old_class is NULL it means we don't know
 #endif /* CHECKING */
 done:
 #if CHECKING
-  if (new_base_class != NULL &&
+  if (new_base_class != NULL && base_class != NULL &&
       new_base_class->is_virtual != base_class->is_virtual) {
     /* Virtual and nonvirtual shouldn't base classes shouldn't match. */
     internal_error("corresponding_base_class: virtual-nonvirtual mismatch");
@@ -4503,7 +4503,6 @@ the object has already been reported to be too large.
 */
 {
   a_class_type_supplement_ptr	ctsp;
-  a_base_class_ptr              bcp;
   
   db_enter(4, "set_offsets_for_virtual_base_classes");
 
@@ -4537,7 +4536,8 @@ the object has already been reported to be too large.
                                                   p_bit_offset, p_alignment,
                                                   any_overflow);
 #else
-    bcp = ctsp->base_classes;
+    a_base_class_ptr   bcp = ctsp->base_classes;
+
     if (bcp != NULL) {
       /* Now add the virtual base classes to the storage.  This is done
          almost exactly as for nonvirtual base classes. */
