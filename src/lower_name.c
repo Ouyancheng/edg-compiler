@@ -2546,7 +2546,7 @@ mangled without parameter encoding.
   return mangling_needed;
 }  /* function_name_mangling_needed */
 
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
+#if AUTOMATIC_TEMPLATE_INSTANTIATION || MICROSOFT_EXTENSIONS_ALLOWED
 
 char *get_mangled_function_name(a_routine_ptr routine)
 /*
@@ -2578,7 +2578,7 @@ name in the routine entry.
   return mangled_name;
 }  /* get_mangled_function_name */
 
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION || MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void mangled_member_name(a_source_correspondence  *scp,
                                 a_boolean                is_specialization,

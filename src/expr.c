@@ -11881,7 +11881,9 @@ returned instead of the unqualified function name.
        function.  Create it now. */
     a_routine_ptr          rp = ssep->assoc_routine;
     char                   *name_ptr =
+#if MICROSOFT_EXTENSIONS_ALLOWED
                               decorated_name ? get_mangled_function_name(rp) :
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                rp->source_corresp.name;
     a_constant_ptr         name_string;
     a_targ_size_t          length = strlen(name_ptr)+1;
@@ -11902,7 +11904,8 @@ returned instead of the unqualified function name.
     name_string->source_corresp.is_local_to_function = TRUE;
     name_string->type = str_type;
     name_string->variant.string.length = length;
-    name_string->variant.string.value = alloc_text_of_string_literal(length);
+    name_string->variant.string.value =
+                               alloc_text_of_string_literal((sizeof_t)length);
     (void)memcpy(name_string->variant.string.value, name_ptr, length);
     /* Create the local static const array and initialize it with the
        string constant. */

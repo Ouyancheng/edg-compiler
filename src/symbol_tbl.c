@@ -10126,6 +10126,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(db_symbol_buffer_pointer),
       pch_saved_var_array_elem(num_access_error_descrs_allocated),
       pch_saved_var_array_elem(num_active_using_directives_allocated),
+      pch_saved_var_array_elem(num_generated_entity_blocks_allocated),
       pch_saved_var_array_elem(num_class_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_compares_for_symbols),
       pch_saved_var_array_elem(num_conversion_headers_allocated),
@@ -10261,6 +10262,7 @@ of the front end.
   num_fast_id_lookups                          = 0;
   num_slow_id_lookups                          = 0;
   num_active_using_directives_allocated        = 0;
+  num_generated_entity_blocks_allocated        = 0;
   num_progenitors_allocated                    = 0;
   num_exception_spec_error_descrs_allocated    = 0;
 #endif /* DEBUG */

@@ -54,9 +54,11 @@ EXTERN unsigned long
 #endif /* DEBUG */
 
 
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
+#if AUTOMATIC_TEMPLATE_INSTANTIATION || MICROSOFT_EXTENSIONS_ALLOWED
 extern char *get_mangled_function_name(a_routine_ptr routine);
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION || MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 extern char *get_mangled_static_data_member_name(a_variable_ptr variable);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
