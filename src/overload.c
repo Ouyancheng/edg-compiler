@@ -1275,12 +1275,14 @@ reference type if param_is_reference is TRUE.
 
 
 static a_boolean array_transformation_needed_on_reference_init(
-                                                         a_type_ptr arg_type,
-                                                         a_type_ptr param_type)
+                                                       a_type_ptr arg_type,
+                                                       a_type_ptr param_type,
+                                                       an_operand *arg_operand)
 /*
 Return TRUE if when initializing a parameter of type param_type (a reference
 type) from an argument of type arg_type (an array type), the array -->
-pointer transformation should be done.
+pointer transformation should be done.  arg_operand, if non-NULL, is
+the argument.
 */
 {
   a_boolean transform_needed = TRUE, dropping_qualifiers;
@@ -1290,7 +1292,7 @@ pointer transformation should be done.
      a reference to the right array type, e.g.,
        char (&r)[4] = "abc";
   */
-  if (direct_reference_binding_possible((an_operand *)NULL,
+  if (direct_reference_binding_possible(arg_operand,
                                         arg_type,
                                         param_type,
                                         &ref_to_const,
@@ -1473,7 +1475,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
      should be done. */
   if (is_array_type(arg_type) &&
       (!param_is_reference ||
-       array_transformation_needed_on_reference_init(arg_type, param_type))) {
+       array_transformation_needed_on_reference_init(arg_type, param_type,
+                                                     arg_operand))) {
     /* Simulate the array --> pointer transformation.  After the transformation
        we have only a type for the argument, and no arg_operand. */
     arg_type = type_after_array_to_pointer_transformation(arg_type);
@@ -11464,6 +11467,41 @@ is static; otherwise, it is automatic.  This is needed for cases like
 }  /* adjust_top_temporary_for_binding_to_reference */
 
 
+void force_complete_type_if_a_variable(an_operand *operand)
+/*
+If the indicated operand is a reference to a static data member
+variable (as either an lvalue or an rvalue), make sure the type of
+the static data member is completed by instantiating it if necessary.
+*/
+{
+  a_variable_ptr var = NULL;
+
+  /* See whether the operand is simply a reference to a variable. */
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    if (is_an_lvalue(operand)) {
+      if (is_variable_address_node(expr)) {
+        var = expr->variant.variable;
+      }  /* if */
+    } else if (is_variable_node(expr)) {
+      var = expr->variant.variable;
+    }  /* if */
+  } else if (is_constant_operand(operand)) {
+    a_constant_ptr con = &operand->variant.constant;
+    if (is_an_lvalue(operand)) {
+      if (con_is_exact_addr_of_variable(con, &var)) {
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (var != NULL) {
+    /* Yes, the operand is simply a variable.  If it's a static data
+       member, force instantiation of it (this does something
+       meaningful when the data member is an unknown-bound array). */
+    complete_variable_type_is_needed(var);
+  }  /* if */
+}  /* force_complete_type_if_a_variable */
+
+
 a_boolean direct_reference_binding_possible(
                                        an_operand   *source_operand,
                                        a_type_ptr   source_type,
@@ -11503,8 +11541,15 @@ direct binding is "possible" and not whether it is "valid".
   a_type_ptr base_dest_type, unqual_dest_type, unqual_source_type;
                                            
   if (function_symbol != NULL) *function_symbol = NULL;                   
-  if (source_operand != NULL) source_type = source_operand->type;
   base_dest_type = type_pointed_to(dest_type);
+  if (source_operand != NULL) {
+    /* Instantiate a static data member array to make sure we know
+       its size. */
+    if (is_array_type(base_dest_type)) {
+      force_complete_type_if_a_variable(source_operand);
+    }  /* if */
+    source_type = source_operand->type;
+  }  /* if */
   /* The "unqual" types are the unqualified versions of the base types,
      except that array types can still be qualified down at the element
      level. */

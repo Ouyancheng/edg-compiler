@@ -4039,6 +4039,7 @@ Syntax:
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
+    force_complete_type_if_a_variable(&operand);
     if (is_parenthesized) {
       /* When scanning the expression with a trapped left parenthesis, the
          position returned in the operand indicates the token following
@@ -4370,6 +4371,7 @@ implement <stdarg.h>, a standard feature.
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
+    force_complete_type_if_a_variable(&operand);
     if (is_parenthesized) {
       /* When scanning the expression with a trapped left parenthesis, the
          position returned in the operand indicates the token following
@@ -4526,6 +4528,7 @@ The parentheses are required, unlike for sizeof.
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     result = operand.type;
     is_type = FALSE;
+    force_complete_type_if_a_variable(&operand);
   }  /* if */
   if (is_error_type(result)) {
     /* We'll just return the error type. */
@@ -5009,6 +5012,7 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                 TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
+    force_complete_type_if_a_variable(&operand);
     typeid_type = operand.type;
     if (is_sym_for_member_operand(&operand)) {
       /* Can't take typeid of a member function.  Diagnose it as an
