@@ -16,6 +16,11 @@ as builtins, scanned specially, and recorded in the IL.  The C-generating
 back end and the C++-generating back end then put them out in their
 original forms in the generated code, along with an #include of <stdarg.h>.
 
+If you use IL lowering and MAKE_ALL_FUNCTIONS_UNPROTOTYPED is set to TRUE,
+this processing is suppressed (because IL lowering will remove the
+ellipsis on function definitions), so if you want to use this feature
+you'll have to change MAKE_ALL_FUNCTIONS_UNPROTOTYPED to FALSE.
+
 10/30/97  Spurious error on qualified operator names with explicit
           template arguments
 
