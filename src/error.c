@@ -4714,11 +4714,10 @@ Complete the multiple command line error being processed.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-void error_one_time_init(void)
+void error_early_init(void)
 /*
-Do one-time initialization of variables related to the error routines.
-(Variables that need to be reinitialized with each new translation unit
-are handled in error_init.)
+Do initialization that needs to be done very early, specifically before command
+line processing is done.
 */
 {
 #if CHECKING
@@ -4748,6 +4747,16 @@ are handled in error_init.)
   /* Zeroing this array causes it to be set to es_default. */
   memzero(current_severity_for_error_code,
            sizeof(current_severity_for_error_code));
+}  /* error_early_init */
+
+
+void error_one_time_init(void)
+/*
+Do one-time initialization of variables related to the error routines.
+(Variables that need to be reinitialized with each new translation unit
+are handled in error_init.)
+*/
+{
   /* Save variables from error.h and error.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {

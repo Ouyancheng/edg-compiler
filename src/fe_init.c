@@ -769,6 +769,7 @@ line processing is done.
   host_envir_early_init();
   cmd_line_early_init();
   mem_manage_early_init();
+  error_early_init();
   depth_scope_stack = NO_SCOPE_DEPTH;
 #if NEAR_AND_FAR_ALLOWED
   il_header.near_and_far_are_enabled = DEFAULT_NEAR_AND_FAR_ENABLED;
