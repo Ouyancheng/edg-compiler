@@ -560,7 +560,6 @@ also create an stmk_init statement at the current point in the code.
 {
   a_dynamic_init_ptr      new_dip;
   a_statement_ptr         init_stmt;
-  a_scope_stack_entry_ptr ssep;
   an_expr_node_ptr        node;
 
   db_enter(4, "gen_dynamic_initiailization");
@@ -592,18 +591,12 @@ also create an stmk_init statement at the current point in the code.
   }  /* switch */
   new_dip->destructor = dip->destructor;
   /* Attach the dynamic initialization entry to the scope list. */
-  ssep = &scope_stack[decl_scope_level];
-  if (ssep->il_scope->dynamic_inits == NULL) {
-    ssep->il_scope->dynamic_inits = new_dip;
-  } else {
-    ssep->last_dynamic_init->next = new_dip;
-  }  /* if */
-  ssep->last_dynamic_init = new_dip;
+  add_to_dynamic_inits_list(new_dip);
   /* Make the variable point at the dynamic initialization. */
   vp->init_kind = (an_init_kind)initk_dynamic;
   vp->initializer.dynamic = new_dip;
   new_dip->variable = vp;
-  if (ssep->kind == (a_scope_kind)sck_file) {
+  if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
     /* A dynamic file-scope initialization (possible only in C++) has
        no associated stmk_init statement. */
   } else {
@@ -923,11 +916,6 @@ The syntax is:
     if (local_di.kind == (a_dynamic_init_kind)dik_expression) {
       initialization_is_dynamic = TRUE;
     }  /* if */
-    if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
-      /* The initializer of a static data member was scanned with the original
-         class reactivated.  Restore the scope to what it was before. */
-      pop_scope();
-    }  /* if */
     /* Check for matching delimiter if lparen or lbrace appeared in front of
        the initializer. */
     if (paren_flag) {
@@ -938,6 +926,11 @@ The syntax is:
          closing brace now. */
       check_for_matching_closing_brace(brace_flag);
     }  /* if */
+  }  /* if */
+  if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+    /* The initializer of a static data member was scanned with the original
+       class reactivated.  Restore the scope to what it was before. */
+    pop_scope();
   }  /* if */
   if (put_init_in_variable) {
     /* There was no error that precludes initialization, so update the
