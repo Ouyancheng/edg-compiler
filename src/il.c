@@ -2572,6 +2572,39 @@ would not be considered "identical", since the type qualifiers are different.
 }  /* eq_constants */
 
 
+a_boolean expr_tree_contains_template_param_constant(an_expr_node_ptr  node,
+                                                     a_constant_ptr    cp)
+{
+  a_boolean         found = FALSE;
+  a_constant_ptr    cp2;
+  an_expr_node_ptr  op;
+
+  if (node->kind == (an_expr_node_kind)enk_constant) {
+    cp2 = node->variant.constant;
+    if (cp2->kind == (a_constant_repr_kind)ck_template_param) {
+      switch (cp2->variant.template_param.kind) {
+        case tpck_param:
+          found = eq_constants(cp, cp2);
+          break;
+        case tpck_expression:
+          found = expr_tree_contains_template_param_constant(
+                                cp2->variant.template_param.variant.expr, cp);
+          break;
+        default:;
+      }  /* switch */
+    }  /* if */
+  } else if (node->kind == (an_expr_node_kind)enk_operation) {
+    for (op = node->variant.operation.operands; op != NULL; op = op->next) {
+      if (expr_tree_contains_template_param_constant(op, cp)) {
+        found = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return found;
+}  /* expr_tree_contains_template_param_constant */
+
+
 static a_boolean has_non_file_scope_ref(a_constant *cp)
 /*
 Return TRUE if the constant pointer to by cp includes a reference to something
