@@ -1031,7 +1031,6 @@ An error or warning has been detected in a folding operation; err_code
 and err_severity indicate what it is.  If not in a constant_context, reduce
 an error to a warning and set *did_not_fold to TRUE.  If not in an
 evaluated_context, throw away the error and set *did_not_fold to TRUE.
-(When constant_context is TRUE, evaluated_context will always be TRUE.)
 Issue the diagnostic at source position *err_pos.  Set *result to the
 proper result (often, an error constant).  
 */

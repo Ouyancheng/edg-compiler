@@ -272,9 +272,7 @@ typedef struct an_expr_stack_entry {
 		evaluated;
 			/* Expression is evaluated, e.g., FALSE if it's the
 			   operand of a sizeof or in a "dead" part of a
-			   short-circuiting operation.  Always TRUE in
-			   a constant expression, even one inside a not-
-			   evaluated expression. */
+			   short-circuiting operation. */
   a_byte_boolean
 		potentially_evaluated;
 			/* Expression is potentially evaluated, e.g., FALSE
