@@ -224,7 +224,10 @@ A NULL state pointer may be provided if the tokens that are scanned do
 not need to be cached.
 */
 {
+#if MICROSOFT_EXTENSIONS_ALLOWED
   int	paren_count = 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
   for (;;) {
 #if NEAR_AND_FAR_ALLOWED
     if (is_near_or_far()) {
@@ -290,7 +293,7 @@ not need to be cached.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-}  /* prescan_microsoft_extended_decl_modifiers */
+}  /* prescan_extended_decl_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
