@@ -2480,6 +2480,7 @@ hold the command.
      for added escape characters. */
   if (part3 == NULL) part3 = "";
   length = (strlen(part1) + strlen(part2) + strlen(part3)) * 2;
+  check_assertion(length > 3);
   command = (char *)pl_malloc_with_check(length);
   to = command;
   for (pass = 1; pass <= 3; pass++) {
