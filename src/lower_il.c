@@ -15222,6 +15222,28 @@ files can reference it.
   name_len = strlen(name);
   new_name = alloc_lowered_name_string(name_len + 1);
   (void)strcpy(new_name, name);
+#if IA64_ABI
+  if (!is_variable) {
+    a_routine_ptr rout = (a_routine_ptr)scp;
+    if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+        rout->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* Keep the base_name_offset up to date.  Assume that the change
+         made by externalized_mangled_name is an insertion at the beginning
+         of the name. */
+      sizeof_t old_name_len = strlen(scp->name);
+#if CHECKING
+      char     cdchar = (rout->special_kind ==
+                         (a_special_function_kind)sfk_constructor ? 'C' : 'D');
+      check_assertion(scp->name[rout->variant.ctor_dtor.base_name_offset] ==
+                                                                       cdchar);
+#endif /* CHECKING */
+      rout->variant.ctor_dtor.base_name_offset += name_len - old_name_len;
+#if CHECKING
+      check_assertion(name[rout->variant.ctor_dtor.base_name_offset]==cdchar);
+#endif /* CHECKING */
+    }  /* if */
+  }  /* if */
+#endif /* IA64_ABI */
   scp->name = new_name;
   scp->name_linkage = visited_yet(scp) ?
                                    (a_name_linkage_kind)nlk_external :
