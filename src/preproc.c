@@ -1499,7 +1499,7 @@ Scan and process a #pragma directive.
        (e.g., should macros be expanded). */
     /* Look for the special case of "#pragma once".  This is different
        from other pragmas in that it must be handled in preprocessing
-       even when only generated a preprocessed output file. */
+       even when only generating a preprocessed output file. */
     if (pkdp != NULL && pkdp->kind == (a_pragma_kind)pk_once) {
       /* This file should be included only once, and if it is #included
          again in the same compilation unit, the include should be skipped.
