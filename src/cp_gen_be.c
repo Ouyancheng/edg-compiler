@@ -2393,7 +2393,9 @@ give the dynamic initialization entry and type for the compound literal.
   } else {
     check_assertion(is_scalar &&
                     dip->kind == (a_dynamic_init_kind)dik_expression);
-    gen_expression(dip->variant.expression);
+    /* "_with_parens" is needed because the top expression might
+       be a comma expression. */
+    gen_expr_with_parens(dip->variant.expression);
   }  /* if */
   if (is_scalar) write_tok_ch('}');
   write_tok_ch(')');
