@@ -189,6 +189,14 @@ static a_constant_ptr
 			   storage) for use with token caching entries,
 			   freed and available for reuse. */
 
+/*
+Flag that indicates whether a dollar sign was found in any identifiers.
+Used in strict ANSI mode to make sure that this is only warned about
+once per compilation unit.
+*/
+static a_boolean
+                dollar_in_id_warning_issued;
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -3767,6 +3775,16 @@ start_of_token_scan:  /* Restart here after scanning white space. */
         ctoken = tok_digit_sequence;
       }  /* if */
       goto end_of_token_scan;
+    case '$':
+      /* The dollar sign can optionally be accepted as an ID character.
+         If it is to be accepted then we goto the code responsible for
+         scanning identifiers, otherwise it is an unrecognized token. */
+      if (allow_dollar_in_id_chars) {
+        goto id_scan;
+      } else {
+        goto bad_token;
+      }  /* if */
+      /* This can't fall through into the next case. */
     case 'L':
       /* Probably an identifier, but check for a wide character
          constant (L'x') or wide string literal (L"xyz") first. */
@@ -3788,6 +3806,7 @@ start_of_token_scan:  /* Restart here after scanning white space. */
     case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': case 'U':
     case 'V': case 'W': case 'X': case 'Y': case 'Z':
     case '_':
+id_scan:
       /* Identifier (including keywords, macros, etc.). */
       /* See check_for_following_parenthesis in macro.c for code that
          also checks for the first character of an identifier. */
@@ -3795,7 +3814,24 @@ start_of_token_scan:  /* Restart here after scanning white space. */
          characters, underscores, and digits after the first character. */
       remember_token_start();
       ctoken = tok_identifier;
-      do {} while (is_id_char[*(++curr_char_loc)-CHAR_MIN]);
+
+      {
+        /* While looking for the end of the identifer, check to see if
+           it contains a dollar sign.  This is an extension and should
+           be flagged the first time it is seen if we are in strict
+           ANSI mode. */ 
+        register a_boolean   dollar_used = FALSE;
+        while (is_id_char[(ch = *(++curr_char_loc))-CHAR_MIN]) {
+          if (ch == '$') dollar_used = TRUE;
+        }  /* while */
+        if (dollar_used && allow_dollar_in_id_chars) {
+          if (strict_ansi_mode && !dollar_in_id_warning_issued) {
+            warning(ec_dollar_used_in_identifier);
+            dollar_in_id_warning_issued = TRUE;
+          }  /* if */
+        }  /* if */
+      }
+        
       end_of_curr_token = curr_char_loc - 1;
       /* Clear the symbol locator for the current identifier.  This is done 
          even if the identifier is not looked up in the symbol table. */
@@ -3952,6 +3988,7 @@ end_id_scan:
       }  /* if */
       break;
     default:
+bad_token:
       /* Something else, an error. */
       err_code_for_error_token = ec_bad_token;
       if (!fetch_pp_tokens) {
@@ -4803,6 +4840,7 @@ of the front end.
   cached_token_rescan_list = NULL;
   avail_cached_tokens = NULL;
   avail_cached_constants = NULL;
+  dollar_in_id_warning_issued = FALSE;
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;
@@ -4857,7 +4895,8 @@ of the front end.
      set applies.  See standard, 3.1.8. */
   for (c = CHAR_MIN; c <= CHAR_MAX; c++) {
     is_id_char[c-CHAR_MIN] = isascii(c) &&
-                             (isalpha(c) || isdigit(c) || (c == '_'));
+                             (isalpha(c) || isdigit(c) || (c == '_') ||
+                              (c == '$' && allow_dollar_in_id_chars));
   }  /* for */
   /* Also initialize pp_lexical_category, used to determine whether or
      not extra token-separating blanks are required between tokens resulting

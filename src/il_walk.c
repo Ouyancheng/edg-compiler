@@ -18,6 +18,7 @@ il_walk.c -- Routines to walk the intermediate language tree.
 #include "host_envir.h"
 
 #if IL_WALK_NEEDED
+#include "lang_feat.h"
 #include "il_walk.h"
 #include "il.h"
 #include "error.h"

@@ -1,5 +1,17 @@
 Version 2.08
 
+7/29/92  Optionally allow dollar signs in identifiers
+
+Allow dollar signs in identifiers if the -$ option is specified on
+the command line.  Provide a default value for the option in lang_feat.h
+(see below).  Modified lexical.h to accept the dollar sign.  In strict
+ANSI mode issue a warning the first time a dollar sign is seen.
+
+Added a new include file called lang_feat.h.  Moved 
+ASSIGNMENT_TO_THIS_ALLOWED from target.h to lang_feat.h.  Updated files
+to include lang_feat.h as needed.
+
+
 7/27/92  Accept function scope declarations of static functions
 
 Code such as:

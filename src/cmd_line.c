@@ -17,6 +17,7 @@ cmd_line.c -- Command-line parsing.
 #include "cmd_line.h"
 #include "host_envir.h"
 #include "error.h"
+#include "lang_feat.h"
 #include "lexical.h"
 #include "mem_manage.h"
 #include "il.h"
@@ -253,7 +254,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "AEPCKMHNnsuvwrmpVI:D:U:e:L:X:S:o:i:d:"
+#define COMMAND_LIST "AEPCKMHNnsuvwrmpV$I:D:U:e:L:X:S:o:i:d:"
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
@@ -328,7 +329,12 @@ Process the arguments on the command line that invoked the compiler.
 	   determine absolute means to avoid duplicate virtual function 
 	   table entries in separate compilations. */
 	suppress_virtual_function_table_definition = TRUE;
-	break; 
+	break;
+      case '$':
+        /* Toggle the value (use the non-default value) of the flag that
+           determines whether dollar signs are accepted in identifiers. */
+        allow_dollar_in_id_chars = !DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS; 
+        break;
       case 'v':
         /* Print out compiler version. */
         fprintf(stderr, "Edison Design Group C/C++ Front End, version %s\n",

@@ -256,14 +256,6 @@ supported.)
 #define TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE TRUE
 
 /*
-Flag that is TRUE if assignment to "this" (a C++ anachronism) should
-be allowed.  This affects the source language accepted.  If assignment
-to "this" is allowed, the interface to and wrapper code within constructors
-and destructors may have to be changed.
-*/
-#define ASSIGNMENT_TO_THIS_ALLOWED TRUE
-
-/*
 Flag that is TRUE if the class layout scheme used by AT&T's cfront should
 be duplicated.  The main issue is how the data sections for virtual base
 classes are put out.  The default behavior (when this flag is FALSE)

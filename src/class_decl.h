@@ -18,6 +18,9 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 #ifndef CLASS_DECL_H
 #define CLASS_DECL_H 1
 
+#ifndef LANG_FEAT_H
+#include "lang_feat.h"
+#endif /* ifndef LANG_FEAT_H */
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */

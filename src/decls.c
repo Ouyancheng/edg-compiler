@@ -23,6 +23,7 @@ decls.c -- Scanning of declarations.
 #include "error.h"
 #include "cmd_line.h"
 #include "types.h"
+#include "lang_feat.h"
 #include "mem_tables.h"
 #include "mem_manage.h"
 #include "expr.h"

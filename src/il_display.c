@@ -40,6 +40,7 @@ NEED_IL_DISPLAY and a call of il_display should be added in the front end.
 #include "il.h"
 #include "il_walk.h"
 #include "float_pt.h"
+#include "lang_feat.h"
 
 #if STANDALONE_UTILITY_PROGRAM
 

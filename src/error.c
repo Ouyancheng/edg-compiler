@@ -1613,6 +1613,9 @@ error code.
     case ec_addr_of_constructor_or_destructor:
       m = "a constructor or destructor may not have its address taken";
       break;
+    case ec_dollar_used_in_identifier:
+      m = "dollar sign ($) used in identifier";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

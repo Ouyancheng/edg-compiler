@@ -24,6 +24,9 @@ cmd_line.h -- Declarations relating to cmd_line.c (relating
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
+#ifndef LANG_FEAT_H
+#include "lang_feat.h"
+#endif /* ifndef LANG_FEAT_H */
 
 typedef enum /*a_C_dialect*/ {
   /* Possible C dialects to compile. */
@@ -167,6 +170,15 @@ EXTERN a_def_undef_string_ptr
 		undefs_from_cmd_line /* = NULL */;
 			/* The list of -D and -U options from the command
 			   line, defining and undefining macro symbols. */
+
+
+EXTERN a_boolean
+                allow_dollar_in_id_chars
+#if VAR_INITIALIZERS
+			          = DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS
+#endif /* VAR_INITIALIZERS */
+                                                                         ;
+
 
 
 /* Process the command line arguments. */
