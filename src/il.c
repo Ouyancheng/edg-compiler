@@ -9456,9 +9456,11 @@ If the type with which it is associated is not already marked as
 "autonomous", its definition is part of the declaration of another entity.
 But if it turns out that the latter should be removed from the IL, the tag
 itself should be made autonomous: that is the purpose of this routine.
+Since it may skip unneeded entities, it returns a pointer to the next in
+the list.
 */
 {
-  a_source_sequence_entry_ptr     next_ssep;
+  a_source_sequence_entry_ptr     next_ssep = ssep->next;
   a_src_seq_end_of_construct_ptr  sseocp;
   a_type_ptr                      tp;
   a_src_seq_secondary_decl_ptr    sssdp;
@@ -9479,7 +9481,6 @@ itself should be made autonomous: that is the purpose of this routine.
     a_boolean  make_autonomous = FALSE;
     a_boolean  okay_if_not_found = C_mode();
 
-    next_ssep = ssep->next;
     for (;;) {
       if (next_ssep == NULL) {
         check_assertion(okay_if_not_found);
