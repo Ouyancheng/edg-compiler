@@ -1,5 +1,15 @@
 Version 3.5
 
+9/8/04  Abort when preprocessing directive appears between an identifier
+        and a "<"
+
+An abort could occur while caching or flushing tokens if an identifier
+and a "<" are separated by a preprocessing directive.  Now fixed.
+
+  int x z
+  # define X x 
+  <T> 
+
 9/8/04  Warning eliminated on division by zero in unevaluated code
 
 A warning is no longer issued for a division by zero in a context

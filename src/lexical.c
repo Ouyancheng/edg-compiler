@@ -1095,7 +1095,7 @@ This is used to save tokens for later rescanning.
 }  /* cache_curr_token */
 
 
-static a_boolean is_template_reference(void)
+static a_boolean is_template_reference(a_symbol_header_ptr	sym_hdr)
 /*
 The current token is "<" and the previous token is an identifier.  Look
 up the identifier as a class name.  If it is a class template name,
@@ -1110,15 +1110,20 @@ more difficult to recognize that other matching token pairs
 references.
 */
 {
-  a_boolean	result = FALSE;
-  a_symbol_ptr  sym;
+  a_boolean		result = FALSE;
+  a_symbol_ptr		sym;
+  a_symbol_locator	locator;
 
   if (!fetch_pp_tokens) {
     /* This test can only be done when not fetching preprocessing
        tokens.  It is not possible to do the ID lookup in fetch_pp_tokens
-       mode. */
-    sym = normal_id_lookup(&locator_for_curr_id,
-                           IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
+       mode.  Create a locator that describes the identifier to be looked
+       up.  The caching process only deals with identifiers that have
+       not been coalesced yet, so we don't need to handle qualified name
+       cases. */
+    locator = cleared_locator;
+    locator.symbol_header = sym_hdr;
+    sym = normal_id_lookup(&locator, IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
     if (sym != NULL && is_class_template_or_injected_template_symbol(sym)) {
       result = TRUE;
     }  /* if */
@@ -8613,6 +8618,7 @@ an opening parenthesis).  Flush to the corresponding closing token.
   while (!done && (curr_token != closing_token ||
          paren_count != 0 || bracket_count != 0 || brace_count != 0)) {
     /* Count paired tokens within the skip. */
+    a_symbol_header_ptr prev_sym_header;
     switch (curr_token) {
       case tok_lparen:                           paren_count++;   break;
       case tok_rparen:    if (paren_count > 0)   paren_count--;   break;
@@ -8638,7 +8644,7 @@ an opening parenthesis).  Flush to the corresponding closing token.
     if ((pos_curr_token.seq - start_pos.seq) > max_lines) break;
     /* Check for the start of a template parameter list. */
     if (curr_token == tok_lt && prev_token == tok_identifier) {
-      if (is_template_reference()) {
+      if (!C_mode() && is_template_reference(prev_sym_header)) {
         flush_until_matching_token();
       }  /* if */
     }  /* if */
@@ -8649,6 +8655,7 @@ an opening parenthesis).  Flush to the corresponding closing token.
         (in_preprocessing_directive && curr_token == tok_newline)) break;
     /* None of the conditions was satisfied, so keep flushing tokens. */
     prev_token = curr_token;
+    prev_sym_header = locator_for_curr_id.symbol_header;
     (void)get_token();
   }  /* while */
 
@@ -8668,8 +8675,9 @@ suppress_warning is TRUE.  This is used when this routine is called
 to skip tokens for some purpose other than error recovery.
 */
 {
-  a_source_position start_pos;
-  a_token_kind      prev_token = tok_error;
+  a_source_position   start_pos;
+  a_token_kind        prev_token = tok_error;
+  a_symbol_header_ptr prev_sym_header;
 
   db_enter(3, "flush_tokens_with_stop_tokens");
   /* Save the current position, to see later how much we have flushed. */
@@ -8684,7 +8692,8 @@ to skip tokens for some purpose other than error recovery.
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
         curr_token == tok_lbrace ||
         (curr_token == tok_lt &&
-         ((prev_token == tok_identifier && is_template_reference()) ||
+         ((prev_token == tok_identifier && !C_mode() &&
+           is_template_reference(prev_sym_header)) ||
           prev_token == tok_template))) {
       flush_until_matching_token();
     }  /* if */
@@ -8694,6 +8703,7 @@ to skip tokens for some purpose other than error recovery.
     if (curr_token == tok_end_of_source || curr_token == tok_newline) break;
     /* None of the conditions was satisfied, so keep flushing tokens. */
     prev_token = curr_token;
+    prev_sym_header = locator_for_curr_id.symbol_header;
     (void)get_token();
   }  /* while */
   set_err_pos_to_curr_token();
