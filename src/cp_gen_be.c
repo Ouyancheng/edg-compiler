@@ -285,6 +285,7 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
                              a_boolean          force_parens);
+static void gen_ctor_initializers(a_constructor_init_ptr ctor_init);
 static void gen_statement(a_statement_ptr statement);
 static void gen_declaration(a_boolean for_init);
 /*
