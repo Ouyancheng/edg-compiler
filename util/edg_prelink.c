@@ -3152,7 +3152,7 @@ has changed then write the updated list of instantiations to the file.
         return_status = pl_recompile_file(
                        pifp, definition_list_option, def_list_display_option);
         if (use_definition_list) {
-          if (return_status != 0) {
+          if (return_status == 0) {
             /* Read the definition list file to see if the front end
                adopted any instantiations. */
             pl_check_for_adopted_instantiations(pifp);
