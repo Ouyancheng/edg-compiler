@@ -27,7 +27,6 @@ Placed in a separate file so they can be expanded several ways:
       -- Source sequence entries
       -- Object lifetimes
       -- The based types list
-      -- Template arguments
     Also, some back-pointers are not walked if they introduce cycles
     in the data structure where no entry in the cycle has a "needed"
     flag, since such cycles would cause recursion loops in this walk.
@@ -1699,7 +1698,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->asm_string, a_constant_ptr, iek_constant);
       }
       break;
-#if !NEEDED_FLAG_WALK
     case iek_template_arg:
       {
         a_template_arg_ptr ptr = (a_template_arg_ptr)entry_ptr;
@@ -1711,7 +1709,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         }  /* if */
       }
       break;
-#endif /* !NEEDED_FLAG_WALK */
     case iek_new_delete_supplement:
       {
         a_new_delete_supplement_ptr ptr =
