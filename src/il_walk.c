@@ -432,7 +432,7 @@ running them through walk_remap_func.
 #endif /* ifdef CFE */
   /* Note that nothing is needed for iek_source_sequence_entry nor for its
      subordinate entries like iek_comment, iek_src_seq_secondary_decl, and
-     iek_src_seq_end_of_construct, since such entries will never appear on a
+     iek_src_seq_end_of_construct, since such entries will never appear on an
      orphan list.  Ditto for iek_src_seq_sublist. */
 
 #undef remap_orphan_entry_first
@@ -509,7 +509,7 @@ running them through walk_remap_func.
 #endif /* ifdef CFE */
   /* Note that nothing is needed for iek_source_sequence_entry nor for its
      subordinate entries like iek_comment, iek_src_seq_secondary_decl, and
-     iek_src_seq_end_of_construct, since such entries will never appear on a
+     iek_src_seq_end_of_construct, since such entries will never appear on an
      orphan list. */
 
 #undef remap_orphan_entry_last
