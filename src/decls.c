@@ -4709,11 +4709,7 @@ not specifically allow this syntax, but it is supported by cfront.
       is_member_id = TRUE;
       /* Reset the fields in the locator to make it appear as if the
          qualifier was not present. */
-      locator_for_curr_id.is_qualified_name = FALSE;
-      locator_for_curr_id.is_file_scope_qualified_name = FALSE;
-      locator_for_curr_id.is_global_qualified_name = FALSE;
-      locator_for_curr_id.parent.class_type = NULL;
-      locator_for_curr_id.is_class_member = FALSE;
+      clear_qualifier_from_locator(&locator_for_curr_id);
       /* Accepting qualified member names is an extension so issue a
          diagnostic in strict ANSI mode. */
       if (strict_ansi_mode) {

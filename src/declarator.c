@@ -2289,6 +2289,9 @@ to FALSE if the entity being declared is not initializable.
         pos_diagnostic(strict_ansi_mode ?
                          strict_ansi_error_severity : es_warning,
                        ec_qualified_name_not_allowed, &pos_curr_token);
+        /* Reset the fields in the locator to make it appear as if the
+           qualifier were not present. */
+        clear_qualifier_from_locator(&locator_for_curr_id);
       }  /* if */
     }  /* if */
     /* The declarator may be a qualified name or a normal name. */
