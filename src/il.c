@@ -4457,6 +4457,7 @@ they are not already present.
      to the ultimate element type.  This can only happen with typedefs,
      as in "typedef int A[2][3]; const A a;", which makes "a" an
      array of array of const int. */
+#if 0
   while (is_array_type(base_type)) {
     base_type = array_element_type(base_type);
   }  /* while */
@@ -4464,8 +4465,15 @@ they are not already present.
   base_type_volatile_qualified = is_volatile_qualified_type(base_type);
   set_const_qualified  = is_const && !base_type_const_qualified;
   set_volatile_qualified = is_volatile && !base_type_volatile_qualified;
+#endif /* if 0 */
+  set_const_qualified = is_const && !is_const_qualified_type(base_type);
+  set_volatile_qualified =
+                        is_volatile && !is_volatile_qualified_type(base_type);
   if (set_const_qualified || set_volatile_qualified) {
     /* Some qualifiers need to be added. */
+    if (is_array_type(base_type)) {
+      base_type = underlying_array_element_type(base_type);
+    }  /* if */
     /* Type qualifiers are added by adding a typeref entry which includes
        the type qualifiers.  The original type is not modified. */
     /* See if a typeref for the base type has already been allocated.
@@ -4574,7 +4582,7 @@ Return a type that is the unqualified version of the type given by type.
 {
   /* Remove the minimum number of typerefs that will produce an unqualified
      type, in order to save typedefs if possible. */
-  while (is_qualified_type(type)) {
+  while (is_top_level_qualified_type(type)) {
     type = type->variant.typeref.type;
   }  /* while */
 
@@ -4598,13 +4606,18 @@ discarding typedefs.
   a_boolean  is_const, is_volatile;
   a_type_ptr  tp1 = *type1, tp2 = *type2;
 
-  if (is_qualified_type(tp1) && is_qualified_type(tp2)) {
+#if 0
+#else
+  /* Okay??? */
+  check_assertion(!is_array_type(tp1) && !is_array_type(tp2));
+#endif /* if 0 */
+  if (is_top_level_qualified_type(tp1) && is_top_level_qualified_type(tp2)) {
     /* Both types have type qualifiers.  Record exactly how they are
        qualified. */
-    type1_is_const = is_const_qualified_type(tp1);
-    type1_is_volatile = is_volatile_qualified_type(tp1);
-    type2_is_const = is_const_qualified_type(tp2);
-    type2_is_volatile = is_volatile_qualified_type(tp2);
+    type1_is_const = is_top_level_const_qualified_type(tp1);
+    type1_is_volatile = is_top_level_volatile_qualified_type(tp1);
+    type2_is_const = is_top_level_const_qualified_type(tp2);
+    type2_is_volatile = is_top_level_volatile_qualified_type(tp2);
     /* Strip off the qualifiers. */
     tp1 = skip_typerefs(tp1);
     tp2 = skip_typerefs(tp2);

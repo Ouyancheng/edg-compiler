@@ -3091,7 +3091,8 @@ reference entry, or is NULL if none is needed.
   a_type_ptr       variable_type = variable->type;
 
   if ((strict_ansi_mode || !C_mode()) &&
-      is_void_type(variable_type) && !is_qualified_type(variable_type)) {
+      is_void_type(variable_type) &&
+      !is_top_level_qualified_type(variable_type)) {
     /* If the variable has type void, make an rvalue instead of an lvalue.
        See ANSI C 3.2.2.1.  This helps with
          extern void x;
@@ -3144,7 +3145,7 @@ otherwise, return NULL.
   /* See if the variable has a known constant value. */
   if (C_dialect == C_dialect_cplusplus &&
       is_const_variable(var) &&
-      !is_volatile_qualified_type(var->type)) {
+      !is_top_level_volatile_qualified_type(var->type)) {
     if (var->init_kind == (an_init_kind)initk_static) {
       /* The variable has a constant initial value. */
       con_val = var->initializer.constant;

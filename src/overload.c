@@ -5217,7 +5217,7 @@ is used only in C++ mode.
      called for a const selector (see selector_match_with_this_param). */
   if (cfront_compatibility_mode &&
       is_const_qualified_type(operand->type) &&
-      !is_const_qualified_type(type_pointed_to(this_param_type))) {
+      !is_top_level_const_qualified_type(type_pointed_to(this_param_type))) {
     pos_warning(ec_const_function_anachronism, &operand->position);
     /* prep_special_selector_operand (call below) will drop the const. */
   }  /* if */
@@ -5504,10 +5504,11 @@ at *err_pos if not.
   a_boolean    ambiguous;
   a_boolean    class_bitwise_copy;
 
-  cctor_sym = find_copy_constructor(class_type,
-                                    is_const_qualified_type(source_type),
-                                    is_volatile_qualified_type(source_type),
-                                    &ambiguous, &class_bitwise_copy);
+  cctor_sym = find_copy_constructor(
+                            class_type,
+                            is_top_level_const_qualified_type(source_type),
+                            is_top_level_volatile_qualified_type(source_type),
+                            &ambiguous, &class_bitwise_copy);
   if (class_bitwise_copy) {
     /* A bitwise copy is allowed, so the "copy constructor" is accessible. */
   } else if (cctor_sym == NULL) {
@@ -5855,12 +5856,12 @@ of the temporary.  Only used in C++ mode.
       /* A copy constructor must be used.  An error is issued if an appropriate
          one does not exist or is inaccessible. */
       cctor_routine = select_copy_constructor(
-                                 temp_type,
-                                 is_const_qualified_type(operand->type),
-                                 is_volatile_qualified_type(operand->type),
-                                 &operand->position, temp_type,
-                                 &class_bitwise_copy, curr_expr_is_evaluated(),
-                                 /*suppress_access_check=*/FALSE);
+                           temp_type,
+                           is_top_level_const_qualified_type(operand->type),
+                           is_top_level_volatile_qualified_type(operand->type),
+                           &operand->position, temp_type,
+                           &class_bitwise_copy, curr_expr_is_evaluated(),
+                           /*suppress_access_check=*/FALSE);
       if (class_bitwise_copy) {
         /* A bitwise copy can be done. */
         /* cctor_case = FALSE;  -- already set */
@@ -6122,7 +6123,7 @@ user-defined conversion part (if any) of any required conversion.
       type_is_correct_or_derived = TRUE;
     }  /* if */
     /* Determine whether or not the reference is to a const type. */
-    ref_to_const = is_const_qualified_type(underlying_dest_type);
+    ref_to_const = is_top_level_const_qualified_type(underlying_dest_type);
     /* The destination type must have no fewer type qualifiers than the source
        type to be usable without conversion (ARM 8.4.3). */
     dropping_qualifiers = type_is_correct_or_derived &&

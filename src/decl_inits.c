@@ -748,7 +748,6 @@ ref field of a class object (or an array of same) remains uninitialized.
              if a const or ref type is encountered. */
             for (; fp != NULL; fp = fp->next) {
               tp = fp->type;
-              if (is_array_type(tp)) tp = underlying_array_element_type(tp);
               if (is_const_qualified_type(tp) || is_reference_type(tp)) {
                 /* Const qualified type or reference type. */
                 *incomplete_init = TRUE;
@@ -1729,18 +1728,16 @@ initialized.  These are addressed in the course of the processing.
         /* This is not a copy constructor.  See if this is a field that
            requires an initializer. */
         tp = sym->variant.field.ptr->type;
-        if (is_reference_type(tp)) {
-          /* Ref-type fields require an initializer. */
+        if (is_reference_type(tp) || is_const_qualified_type(tp)) {
+          /* Ref-type fields and const and array-of-const fields require an
+             initializer. */
         } else {
           if (is_array_type(tp)) {
             tp = skip_typerefs(underlying_array_element_type(tp));
           }  /* if */
-          if (is_const_qualified_type(tp)) {
-            /* Const and array-of-const fields require an initializer. */
-          } else if (is_class_struct_union_type(tp) &&
-                     ((cssp = symbol_supplement_for_class(tp))->
-                                                   constructor != NULL ||
-                      (exceptions_enabled && cssp->destructor != NULL))) {
+          if (is_class_struct_union_type(tp) &&
+              ((cssp = symbol_supplement_for_class(tp))->constructor != NULL ||
+               (exceptions_enabled && cssp->destructor != NULL))) {
             /* When the type of the field has a constructor, a constructor
                initializer is required.  Otherwise, if it has a destructor
                and exception handling is enabled, we put out a constructor
@@ -1937,7 +1934,7 @@ initialized.  These are addressed in the course of the processing.
                            locator_for_curr_id.specific_symbol);
           }  /* if */
           init_type = type_symbol_type(member_or_base_sym);
-          if (is_qualified_type(init_type)) {
+          if (is_top_level_qualified_type(init_type)) {
             bcp = NULL;
           } else {
             a_base_class_ptr  found_bcp = NULL;
@@ -2140,29 +2137,32 @@ scan_paren:
          any, has to be entered for exception handling support. */
       array_type = NULL;
       object_class_type = NULL;
+      cssp = NULL;
       is_const_qualified = FALSE;
       if (user_defined) err_pos = pos_curr_token;
       if (cip->kind == (a_constructor_init_kind)cik_field) {
         /* Get the field type.  For arrays, we want the element type. */
         tp = cip->variant.field->type;
-        if (is_array_type(tp)) {
-          array_type = skip_typerefs(tp);
-          tp = underlying_array_element_type(tp);
-        }  /* if */
         if (is_const_qualified_type(tp)) is_const_qualified = TRUE;
         tp = skip_typerefs(tp);
+        if (is_array_type(tp)) {
+          array_type = tp;
+          tp = skip_typerefs(underlying_array_element_type(tp));
+        }  /* if */
         object_class_type = tp;
+        if (is_class_struct_union_type(tp)) {
+          cssp = symbol_supplement_for_class(tp);
+        }  /* if */
         if (!user_defined) {
           err_pos = cip->variant.field->source_corresp.decl_position;
         }
       } else {
         /* Get the type of the base class. */
         tp = cip->variant.base_class->type;
+        cssp = symbol_supplement_for_class(tp);
         object_class_type = class_type;
         if (!user_defined) err_pos = cip->variant.base_class->decl_position;
       }  /* if */
-      cssp = is_class_struct_union_type(tp) ? symbol_supplement_for_class(tp) :
-                                              NULL;
       if (cip->initializer != NULL &&
           cip->initializer->kind != (a_dynamic_init_kind)dik_none) {
         /* This must be a special exception handling case -- the initializer
@@ -2586,46 +2586,48 @@ are created by a new expression (in which case sym is NULL).  In both cases
       /* Non-extern reference variables must be initialized (ARM 8.4.3). */
       sym_error(ec_missing_initializer_on_reference, sym);
     }  /* if */
+  } else if (is_const_qualified_type(type)) {
+    if (is_array_type(type)) type = underlying_array_element_type(type);
+    if (C_dialect == C_dialect_cplusplus &&
+        is_class_struct_union_type(type) &&
+        !symbol_supplement_for_class(type)->any_nonstatic_data_members) {
+      /* Uninitialized const object that is an "empty" class (i.e., one with
+         no nonstatic data members).  No error is issued. */
+      /* Note that the ARM can be read as requiring initialization of
+         const objects even when they are empty.  Other C++ compilers don't
+         enforce such a restriction, however. */
+    } else if (vp != NULL) {
+      /* Uninitialized const variable.  In C++ this is permitted only for
+         externally linked variables.  In ordinary C we issue a warning for
+         local variables (both static and automatic) here, but the warning
+         for static file scope variables is given later. */
+       name_linkage = (a_name_linkage_kind)vp->source_corresp.name_linkage;
+       if (C_dialect == C_dialect_cplusplus) {
+         if (name_linkage == (a_name_linkage_kind)nlk_none ||
+             (name_linkage == (a_name_linkage_kind)nlk_internal &&
+              decl_scope_level == DEPTH_OF_FILE_SCOPE)) {
+           /* In C++ const qualified variables that are internally linked
+              must be initialized (ARM 7.1.6). */
+           sym_error(ec_missing_initializer_on_const, sym);
+         }  /* if */
+       } else {
+         /* Ordinary C -- a warning, and only on local variables. */
+         if (name_linkage == (a_name_linkage_kind)nlk_none) {
+           sym_warning(ec_missing_initializer_on_const, sym);
+        }  /* if */
+      }  /* if */
+    } else {
+      /* Uninitialized const new-object.  Issue a warning.  (One can infer
+         from the ARM that an error is required, but it's not explicit.
+         Until the language definition is improved, we'll let it by.) */
+      warning(ec_missing_initializer_on_unnamed_const);
+    }  /* if */
   } else {
     if (is_array_type(type)) type = underlying_array_element_type(type);
-    if (is_const_qualified_type(type)) {
-      if (C_dialect == C_dialect_cplusplus &&
-          is_class_struct_union_type(type) &&
-          !symbol_supplement_for_class(type)->any_nonstatic_data_members) {
-        /* Uninitialized const object that is an "empty" class (i.e., one with
-           no nonstatic data members).  No error is issued. */
-        /* Note that the ARM can be read as requiring initialization of
-           const objects even when they are empty.  Other C++ compilers don't
-           enforce such a restriction, however. */
-      } else if (vp != NULL) {
-        /* Uninitialized const variable.  In C++ this is permitted only for
-           externally linked variables.  In ordinary C we issue a warning for
-           local variables (both static and automatic) here, but the warning
-           for static file scope variables is given later. */
-         name_linkage = (a_name_linkage_kind)vp->source_corresp.name_linkage;
-         if (C_dialect == C_dialect_cplusplus) {
-           if (name_linkage == (a_name_linkage_kind)nlk_none ||
-               (name_linkage == (a_name_linkage_kind)nlk_internal &&
-                decl_scope_level == DEPTH_OF_FILE_SCOPE)) {
-             /* In C++ const qualified variables that are internally linked
-                must be initialized (ARM 7.1.6). */
-             sym_error(ec_missing_initializer_on_const, sym);
-           }  /* if */
-         } else {
-           /* Ordinary C -- a warning, and only on local variables. */
-           if (name_linkage == (a_name_linkage_kind)nlk_none) {
-             sym_warning(ec_missing_initializer_on_const, sym);
-          }  /* if */
-        }  /* if */
-      } else {
-        /* Uninitialized const new-object.  Issue a warning.  (One can infer
-           from the ARM that an error is required, but it's not explicit.
-           Until the language definition is improved, we'll let it by.) */
-        warning(ec_missing_initializer_on_unnamed_const);
-      }  /* if */
-    } else if (is_class_struct_union_type(type) &&
-               (vp == NULL ||
-                vp->storage_class != (a_storage_class)sc_extern)) {
+    type = skip_typerefs(type);
+    if (is_class_struct_union_type(type) &&
+        (vp == NULL ||
+         vp->storage_class != (a_storage_class)sc_extern)) {
       /* The object is a class-struct-union type or an array whose element
          type is a class-struct-union type.  Issue a warning if there is a
          const qualified field or a field of reference type.  Note that this
@@ -2635,7 +2637,6 @@ are created by a new expression (in which case sym is NULL).  In both cases
          class declarations that contain nonstatic const or reference members
          and no constructor, but this seems to introduce an unnecessary
          incompatibility with C. */
-      type = skip_typerefs(type);
       init_required = FALSE;
       if (type->variant.class_struct_union.any_const_member ||
           (C_dialect == C_dialect_cplusplus &&

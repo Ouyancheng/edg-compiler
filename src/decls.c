@@ -1216,7 +1216,7 @@ type is legal.
              are discarded. */
           promote_float_to_double(new_type_ptr);
         }  /* if */
-        if (is_qualified_type(new_type_ptr) &&
+        if (is_top_level_qualified_type(new_type_ptr) &&
             !is_reference_type(new_type_ptr)) {
           /* Type qualifiers on a function return type are meaningless. */
           /* Issue just a remark for "volatile void" -- gcc uses that to
@@ -1346,11 +1346,10 @@ Check to see if any type qualifiers that are specified are meaningful.
     if ((is_function_type(*type_ptr) && C_dialect != C_dialect_cplusplus) ||
         is_void_type(*type_ptr)) {
       /* Type qualifiers on void types are useless.  On function types they
-         are undefined (3.5.3; this can happen with something like
+         are undefined (3.5.3).  This can happen with something like
            typedef int F();
            const F g;
-         ); we mark them as useless.
-      */
+         -- we mark them as useless. */
       warning(ec_useless_type_qualifiers);
       /* The useless qualifiers could be removed by the statement
       *type_ptr = make_unqualified_type(*type_ptr);
@@ -2305,7 +2304,7 @@ scope is that of a class definition.
             break;
           } else if (is_void_type(param_type_ptr) &&
                      param_type_ptr->kind == (a_type_kind)tk_typeref &&
-                     !is_qualified_type(param_type_ptr) &&
+                     !is_top_level_qualified_type(param_type_ptr) &&
                      param_storage_class == (a_storage_class)sc_unspecified) {
             /* A type name is bound to void type -- this construct is treated
                as a nonstandard way of signifying an empty param list. */
@@ -4212,7 +4211,7 @@ skip_overloading:;
   if (C_dialect == C_dialect_cplusplus) {
     if (!is_function && decl_scope_level == DEPTH_OF_FILE_SCOPE &&
         storage_class == (a_storage_class)sc_unspecified &&
-        type_or_element_type_is_const_qualified(type_ptr)) {
+        is_const_qualified_type(type_ptr)) {
       /* In C++ all const qualified objects at file scope with no explicit
          storage class are internally linked unless previously declared to
          be extern (ARM 7.1.1).  The storage class has been left "unspecified"
@@ -7190,7 +7189,6 @@ Returns TRUE if there is an error in the specifiers.
 	       ikind;
   a_float_kind fkind;
   a_type_ptr   temp_type;
-  a_type_ptr   base_type;
   a_boolean    explicitly_signed;
 
   a_boolean    is_const_qualified    = FALSE;
@@ -7424,7 +7422,7 @@ Returns TRUE if there is an error in the specifiers.
                 if (tag_sym != NULL && is_class_symbol(tag_sym)) {
                   tp = type_symbol_type(tag_sym);
                   if (tp->kind == (a_type_kind)tk_typeref) {
-                    if (is_qualified_type(tp)) {
+                    if (is_top_level_qualified_type(tp)) {
                       /* This should be an error:
                            typedef const struct A TA;
                            class B { friend TA; };
@@ -8446,30 +8444,33 @@ exit_loop:
     }  /* if */
     /* Add any type qualifiers (const or volatile) to the type. */
     if (is_const_qualified || is_volatile_qualified) {
-      if (C_dialect == C_dialect_cplusplus &&
-          (*type_ptr)->kind == (a_type_kind)tk_typeref) {
-        /* In C++ adding a qualifier to a typedef name that is already
-           identically qualified is okay, so don't even bother checking for
-           an error.  Note that make_qualified_type will not actually add
-           superfluous qualifiers. */
-      } else {
-        /* According to 3.5.3: "If the specification of an array type
-           includes any type qualifiers, the element type is so-qualified,
-           not the array type.", and this is interpreted recursively
-           for arrays of arrays.  The type qualifiers therefore apply
-           to the ultimate element type.  This can only happen with typedefs,
-           as in "typedef int A[2][3]; const A a;", which makes "a" an
-           array of array of const int. */
-        base_type = *type_ptr;
-        if (is_array_type(base_type)) {
-          base_type = underlying_array_element_type(base_type);
-        }  /* while */
-        if ((is_const_qualified && is_const_qualified_type(base_type)) ||
-            (is_volatile_qualified && is_volatile_qualified_type(base_type))) {
-          /* Duplication of type qualifier (probably because of a typedef
-             that is already qualified). */
-          error(ec_dupl_type_qualifier);
-          err = TRUE;
+      if ((*type_ptr)->kind == (a_type_kind)tk_typeref) {
+        if (C_dialect == C_dialect_cplusplus) {
+          /* In C++ adding a qualifier to a typedef name that is already
+             identically qualified is okay, so don't even bother checking for
+             an error.  Note that make_qualified_type will not actually add
+             superfluous qualifiers. */
+        } else {
+          /* In C we check for duplicate qualifiers on a declaration, even
+             if, in the case of an array type, one is a top-level qualifier
+             and the other qualifies an element type.  That's why top_level
+             is set to FALSE here -- that's normally not the case in C mode. */
+          /* According to 3.5.3: "If the specification of an array type
+             includes any type qualifiers, the element type is so-qualified,
+             not the array type.", and this is interpreted recursively
+             for arrays of arrays.  The type qualifiers therefore apply
+             to the ultimate element type.  This can only happen with typedefs,
+             as in "typedef int A[2][3]; const A a;", which makes "a" an
+             array of array of const int. */
+          if ((is_const_qualified &&
+               f_is_const_qualified_type(*type_ptr), /*top_level=*/FALSE) ||
+              (is_volatile_qualified &&
+               f_is_volatile_qualified_type(*type_ptr, /*top_level=*/FALSE))) {
+            /* Duplication of type qualifier (probably because of a typedef
+               that is already qualified). */
+            error(ec_dupl_type_qualifier);
+            err = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       /* Add the qualifiers if necessary.  make_qualified_type understands the
@@ -9997,7 +9998,7 @@ continue_with_declaration:
       } else if (!declares_something) {
         if (defines_something &&
             (storage_class != (a_storage_class)sc_unspecified ||
-             is_qualified_type(type_ptr))) {
+             is_top_level_qualified_type(type_ptr))) {
           /* If defines_something is TRUE and declares something is FALSE we
              have a class, struct, union, or enum declaration without a tag
              name and also without the name of an object but with a storage
@@ -10029,7 +10030,7 @@ continue_with_declaration:
                        strict_ansi_error_severity : es_warning,
                      ec_storage_class_not_allowed);
         }  /* if */
-        if (is_qualified_type(type_ptr)) {
+        if (is_top_level_qualified_type(type_ptr)) {
           diagnostic(C_dialect == C_dialect_cplusplus ? es_error : es_warning,
                      ec_const_volatile_not_allowed);
         }  /* if */

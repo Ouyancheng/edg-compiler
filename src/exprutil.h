@@ -435,7 +435,8 @@ Return TRUE if a variable is a constant identifier usable in
 constant expressions.  See ARM 7.1.6.
 */
 #define is_const_variable(var)                                          \
-	(is_const_qualified_type((var)->type) && is_integral_type((var)->type))
+	(is_integral_type((var)->type) &&                               \
+         is_top_level_const_qualified_type((var)->type) )
 
 
 extern void flush_ref_entries_except(a_ref_entry_ptr keep_list1,
