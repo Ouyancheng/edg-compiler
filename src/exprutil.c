@@ -4306,10 +4306,10 @@ Clear the fields of a user-defined conversion description entry to
 default values.
 */
 {
-  fdp->routine               = NULL;
-  fdp->class_bitwise_copy    = FALSE;
-  fdp->std_conversion_needed = FALSE;
-  fdp->result_is_an_lvalue   = FALSE;
+  fdp->routine                        = NULL;
+  fdp->class_identity_or_bitwise_copy = FALSE;
+  fdp->std_conversion_needed          = FALSE;
+  fdp->result_is_an_lvalue            = FALSE;
 }  /* clear_user_conv_descr */
 
 
@@ -4766,6 +4766,38 @@ entire conversion (or NULL if not known, e.g., for a builtin operator),
 }  /* set_arg_summary_for_user_conversion */
 
 
+static void set_user_conversion_for_class_copy(
+                                            an_operand        *arg_operand,
+                                            a_type_ptr        param_type,
+                                            a_user_conv_descr *user_conversion)
+/*
+arg_operand (of class type) is being passed as an argument to a parameter
+of type param_type.  Set *user_conversion to indicate the conversion that
+is required to do that (a bitwise copy or a copy constructor call).
+*/
+{
+  a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(param_type);
+  a_boolean                     ambiguous;
+
+  if (cssp->construction_by_bitwise_copy_allowed) {
+    /* This is a bitwise copy. */
+    user_conversion->class_identity_or_bitwise_copy = TRUE;
+  } else {
+    /* This case must require a copy constructor. */
+    if (conversion_to_class_possible(arg_operand, param_type,
+                                     user_conversion, &ambiguous,
+                                     (a_candidate_function_ptr *)NULL) ||
+        ambiguous) {
+      /* Conversion is okay. */
+#if CHECKING
+    } else {
+      internal_error("set_user_conversion_for_class_copy: conv not possible");
+#endif /* CHECKING */
+    }  /* if */
+  }  /* if */
+}  /* set_user_conversion_for_class_copy */
+
+
 void determine_arg_match_level(an_operand           *arg_operand,
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
@@ -4775,10 +4807,12 @@ void determine_arg_match_level(an_operand           *arg_operand,
 Determine how well an actual argument matches a formal parameter with type
 param_type.  The actual argument is usually given by arg_operand, but
 if arg_type is non-NULL, it provides the argument type for an argument
-about which nothing else is known (and arg_operand is ignored).  arg_summary
-is set to indicate the level of match.  This is used in resolving overloaded
-function calls.  See ARM 13.2.  User-defined conversions will be attempted
-only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
+about which nothing else is known (and arg_operand is ignored; this can
+only be used for selector operands, i.e., those being matched up with
+a "this" parameter).  arg_summary is set to indicate the level of match.
+This is used in resolving overloaded function calls.  See ARM 13.2.
+User-defined conversions will be attempted only if try_user_conversions
+is TRUE; it must be FALSE if arg_type is non-NULL.
 */
 {
   a_boolean         param_is_reference;
@@ -4922,6 +4956,15 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
         /* This is the "T --> (qualified T)& case, which is one of the
            "less desirable" cases. */
         arg_summary->less_desirable_exact_match = TRUE;
+      } else if (!param_is_reference &&
+                 is_class_struct_union_type(param_type)) {
+        /* The argument and parameter are the same class type, so this
+           qualifies as a class copy. */
+        /* arg_operand should be present, because it can be omitted only
+           for "this" parameter operands and they cannot have class type. */
+        check_assertion(arg_operand != NULL);
+        set_user_conversion_for_class_copy(arg_operand, param_type,
+                                           &arg_summary->user_conversion);
       }  /* if */
       goto have_level;
     }  /* if */
@@ -5003,8 +5046,10 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
          with something that requires a standard conversion that isn't
          class-related, the cost is considered to be a user-defined
          conversion. */
+      /* Note that this case is strange in that the level is
+         aml_user_conversion but user_conversion does not indicate a
+         user-defined conversion. */
       arg_summary->match_level = aml_user_conversion;
-      clear_user_conv_descr(&arg_summary->user_conversion);
     }  /* if */
     goto have_level;
   }  /* if */
@@ -5014,12 +5059,24 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
       (bcp = find_base_class_of(arg_type, param_type)) != NULL) {
     /* The argument is a derived class and the parameter is a base class,
        so the conversion can be done. */
-    /* This is permitted by the reference standard conversions (ARM 4.7) when
-       param_is_reference is TRUE, and by the aggregate initialization rules
-       (ARM 8.4.1) and the copy constructor rules (ARM 12.8) when
-       param_is_reference is FALSE. */
     arg_summary->match_level = aml_std_conversion;
     arg_summary->downward_cast_derivation = bcp->derivation;
+    if (param_is_reference) {
+      /* This case falls under the reference standard conversions (ARM 4.7). */
+      /* The operand need not be forced to an rvalue. */
+      arg_summary->user_conversion.result_is_an_lvalue =
+                                                     is_an_lvalue(arg_operand);
+    } else {
+      /* This case falls under the aggregate initialization rules (ARM 8.4.1)
+         or the copy constructor rules (ARM 12.8).  Note that this case
+         counts as a standard conversion even if a copy constructor is
+         called. */
+      /* arg_operand should be present, because it can be omitted only
+         for "this" parameter operands and they cannot have class type. */
+      check_assertion(arg_operand != NULL);
+      set_user_conversion_for_class_copy(arg_operand, param_type,
+                                         &arg_summary->user_conversion);
+    }  /* if */
     goto have_level;
   }  /* if */
   if (try_user_conversions) {
@@ -5713,6 +5770,12 @@ number of parameters.
     internal_error("function_template_matches_operand_list: bad symbol");
   }  /* if */
 #endif /* CHECKING */
+  if (templ_sym->variant.template_info->variant.function.cannot_be_called) {
+    /* The function parameters do not use all of the template parameters,
+       so this function cannot be made to match.  An error was issued
+       at the point of declaration. */
+    goto done;
+  }  /* if */
   routine = templ_sym->variant.template_info->variant.function.routine;
   rtsp = routine->type->variant.routine.extra_info;
   /* Compare the types of the arguments to the parameter types. */
@@ -8104,7 +8167,9 @@ return FALSE.  If more than one function matches, set *ambiguous to TRUE
 and return FALSE.  If ambiguity_list is non-NULL in that case, it is set
 to point to a list describing the set of ambiguous functions; the caller must
 free that list.  *ambiguity_list is set to NULL to indicate a case that
-is undecidable because of an error.  This routine is only used in C++.
+is undecidable because of an error.  Note that this routine does not
+check for the possibility of bitwise copying (see class_copy_possible).
+This routine is only used in C++ mode.
 */
 {
   a_boolean                     okay;
@@ -8227,8 +8292,11 @@ Otherwise return FALSE.  If more than one function matches, set
 *ambiguous to TRUE and return FALSE.  If ambiguity_list is non-NULL in
 that case, it is set to point to a list describing the set of ambiguous
 functions; the caller must free that list.  *ambiguity_list is set to
-NULL to indicate a case that is undecidable because of an error.  This
-routine is only used in C++ mode.
+NULL to indicate a case that is undecidable because of an error.  Note
+that this routine does not look for constructors that can be used as
+conversion functions (see conversion_to_class_possible) or for the
+possibility of bitwise copying (see class_copy_possible).  This routine
+is only used in C++ mode.
 */
 {
   a_boolean                okay;
@@ -8418,7 +8486,7 @@ equivalent pointer case).
     if (class_bitwise_copy_possible(source_type, dest_type,
                                     is_initialization)) {
       /* A bitwise copy of the class is allowed. */
-      user_conversion->class_bitwise_copy = TRUE;
+      user_conversion->class_identity_or_bitwise_copy = TRUE;
       okay = TRUE;
     } else if (conversion_to_class_possible(source_operand, dest_type,
                                             user_conversion, &ambiguous,
@@ -8547,7 +8615,7 @@ case in terms of the equivalent pointer case).
        Type qualifiers are ignored because they will be dropped on the source
        type in the conversion to an rvalue, and any qualifiers on the
        destination type can be added after that. */
-    user_conversion->class_bitwise_copy = TRUE;
+    user_conversion->class_identity_or_bitwise_copy = TRUE;
     okay = TRUE;
     /* If the source is an lvalue, convert it to an rvalue. */
     conv_lvalue_to_rvalue(source_operand, expression_kind);
@@ -8627,7 +8695,10 @@ source_operand is to be copied bitwise to an entity of type dest_type.
 Both have class types.  Adjust source_operand if necessary, specifically
 for the case where the source type is a derived class of dest_type.
 This is used both for initialization and for assignment.  See ARM 8.4.1
-(aggregate initialization) and 5.17 (assignment operators).
+(aggregate initialization) and 5.17 (assignment operators).  Note that
+this routine does not do the bitwise copy; it just prepares the operand
+for it.  Note also that this routine is called for the identity case
+where the class type is already correct and nothing should be done to it.
 */
 {
   a_type_ptr       source_type;
@@ -8676,7 +8747,7 @@ no additional conversion is needed after the conversion function is called.
 
   orig_operand = *operand;
   conversion_routine = user_conversion->routine;
-  if (user_conversion->class_bitwise_copy) {
+  if (user_conversion->class_identity_or_bitwise_copy) {
     /* Bitwise copy of a class. */
     prep_class_bitwise_copy_operand(operand, dest_type, expression_kind);
   } else if (conversion_routine->special_kind ==
@@ -8897,7 +8968,7 @@ always be TRUE in C mode.  expression_kind is the current expression kind.
   a_type_ptr   class_type = skip_typerefs(dest_type);
 
   *conversion_routine = user_conversion->routine;
-  *class_bitwise_copy = user_conversion->class_bitwise_copy;
+  *class_bitwise_copy = user_conversion->class_identity_or_bitwise_copy;
   if (*class_bitwise_copy) {
     /* The operation is a class bitwise copy, so leave it that way. */
     *conversion_routine = NULL;
