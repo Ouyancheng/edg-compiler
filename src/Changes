@@ -1,5 +1,18 @@
 Version 2.30
 
+10/2/95  Casts of bit fields to same type preserved
+
+Previously, a cast of a bit field to the type of the bit field was
+thrown away.  However, this is wrong, since the expression with
+the cast does not undergo integral promotions in the same way:
+
+  struct A { unsigned int i:5; } a;
+
+  a.i                 // Promotes to int
+  (unsigned int)a.i;  // Promotes to unsigned int
+
+This is fixed by preserving the cast in the IL tree.
+
 10/2/95  Use of qualified name in class member declaration
 
 In a class member declaration within a class definition, a qualified name

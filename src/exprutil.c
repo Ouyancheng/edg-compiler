@@ -1835,6 +1835,17 @@ invalid casts of that kind (e.g., ambiguous).
 }  /* add_cast_to_node */
 
 
+/*
+Test an expression node to see if it's a bit-field extraction.
+*/
+#define is_bit_field_extract_node(node) \
+  (is_operation_node(node) && \
+   ((node)->variant.operation.kind == \
+                                (an_expr_operator_kind)eok_value_bit_field || \
+    (node)->variant.operation.kind == \
+                               (an_expr_operator_kind)eok_extract_bit_field))
+
+
 void cast_node(an_expr_node_ptr  *node,
                a_type_ptr        new_type,
                a_boolean         check_cast_access,
@@ -1861,7 +1872,11 @@ inaccessible base classes.
   /* Drop any qualifiers on the destination type.  Qualifiers on an rvalue
      have no meaning. */
   new_type = make_unqualified_type(new_type);
-  if (il_identical_types((*node)->type, new_type)) {
+  if (il_identical_types((*node)->type, new_type) &&
+      /* Don't allow dropping a cast to the same type over a bit-field
+         extraction node, because the node with the cast has different
+         integral promotion behavior. */
+      !is_bit_field_extract_node(*node)) {
     /* If the new type is identical to the old type, just put the new type
        in the node (since it may be "identical" but not exactly the same). */
     (*node)->type = new_type;
@@ -1930,17 +1945,24 @@ ambiguous or inaccessible base classes.
   /* Drop any qualifiers on the destination type.  Qualifiers on an rvalue
      have no meaning. */
   new_type = make_unqualified_type(new_type);
-  /* Can't test for il_identical_types at this point, since for an
+  /* If the cast doesn't change the type, do nothing.
+     Can't test for il_identical_types at this point, since for an
      ok_expression the node type would have to be adjusted as well.
      Leave that to cast_node.  However, we can check for exact pointer
      equality ("il_identical_types" includes some cases where the pointers
      aren't exactly the same).  Don't do the optimization for constants,
      because type_change_constant does some special things with null
      pointer constants and casts. */
-  if (new_type != operand->type || is_constant_operand(operand)) {
+  if (new_type != operand->type || is_constant_operand(operand) ||
+      /* Don't allow dropping a cast to the same type over a bit-field
+         extraction node, because the node with the cast has different
+         integral promotion behavior. */
+      (is_expression_operand(operand) &&
+       is_bit_field_extract_node(operand->variant.expression))) {
     /* Save the operand's source position, etc. */
     orig_operand = *operand;
     if (m_is_error_type(new_type)) {
+      /* Casting to an error type.  Produce an error operand. */
       conv_to_error_operand(operand);
     } else {
       switch (operand->kind) {
@@ -2150,17 +2172,6 @@ member actually used in the IL).  This routine is only used in C++ mode.
   /* Restore the original source position, etc. */
   restore_operand_details_incl_ref(operand, &orig_operand);
 }  /* base_class_cast_operand */
-
-
-/*
-Test an expression node to see if it's a bit-field extraction.
-*/
-#define is_bit_field_extract_node(node) \
-  (is_operation_node(node) && \
-   ((node)->variant.operation.kind == \
-                                (an_expr_operator_kind)eok_value_bit_field || \
-    (node)->variant.operation.kind == \
-                               (an_expr_operator_kind)eok_extract_bit_field))
 
 
 static a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
