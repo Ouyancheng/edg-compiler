@@ -1195,16 +1195,11 @@ Macro that tests for variable names that are special.  They don't get
 subjected to the "fake static" transformation.  They also get put out even
 if unreferenced.
 */
-#if SUNCC
 #define is_magic_name(name)                                           \
    (name[0] == '_' /* for speed */ &&                                 \
     (strcmp((name), "__link") == 0 ||                                 \
-     strcmp((name), "__builtin_va_alist") == 0))
-#else /* !SUNCC */
-#define is_magic_name(name)                                           \
-   (name[0] == '_' /* for speed */ &&                                 \
-    strcmp((name), "__link") == 0)
-#endif /* SUNCC */
+     (sun_is_generated_code_target &&                                 \
+      strcmp((name), "__builtin_va_alist") == 0)))
 
 
 static void dump_variable_name(a_variable_ptr variable)
@@ -1660,8 +1655,8 @@ is non-NULL, in which case that is the function scope.
       /* This is the definition of an old-style function.  Put out the
          parameter id list. */
       dump_param_id_list(param_var);
-#if SUNCC
-      if (rtsp->has_ellipsis) {
+#if !C_GEN_BE_GENERATES_ANSI_C
+      if (sun_is_generated_code_target && rtsp->has_ellipsis) {
         /* This takes advantage of a special feature of the Sun cc compiler
            to handle variable argument lists.  The name "__builtin_va_alist"
            is recognized by the Sun compiler to indicate the end of a variable
@@ -1673,7 +1668,7 @@ is non-NULL, in which case that is the function scope.
         if (param_var != NULL) write_tok_str(", ");
         write_tok_str("__builtin_va_alist");
       }  /* if */
-#endif /* SUNCC */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #if defined(__hpux) || defined(__sgi)
       if (rtsp->has_ellipsis) {
 	/* The HP/UX and SGI C compilers require that va_alist appear in
@@ -3903,9 +3898,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if CHECKING
   a_param_type_ptr               param;
 #endif /* CHECKING */
-#if SUNCC
+#if !C_GEN_BE_GENERATES_ANSI_C
   a_boolean                      remainder_special_case = FALSE;
-#endif /* SUNCC */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
   check_assertion_str(expr != NULL, "dump_expr: NULL expression");
   switch (expr->kind) {
@@ -4296,8 +4291,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto process_assignment;
         case eok_remainder_assign:
           opstr = "%=";
-#if SUNCC
-          if (operand_2->kind == (an_expr_node_kind)enk_constant &&
+#if !C_GEN_BE_GENERATES_ANSI_C
+          if (sun_is_generated_code_target &&
+              operand_2->kind == (an_expr_node_kind)enk_constant &&
               operand_2->variant.constant->kind ==
                                             (a_constant_repr_kind)ck_integer &&
               eqlit_integer_constant(operand_2->variant.constant,
@@ -4306,7 +4302,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                code.  Generate "i %= (0, 1)" instead, which works. */
             remainder_special_case = TRUE;
           }  /* if */
-#endif /* SUNCC */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto process_assignment;
         case eok_iadd_assign:
 #if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
@@ -4363,18 +4359,16 @@ process_assignment:
           m_write_space();
           m_write_tok_str(opstr);
           m_write_space();
-#if SUNCC
+#if !C_GEN_BE_GENERATES_ANSI_C
           if (remainder_special_case) {
             /* The Sun cc compiler has a bug with "i %= 1" -- It generates no
                code.  Generate "i %= (0, 1)" instead, which works. */
             write_tok_str("(0,");
           }  /* if */
-#endif /* SUNCC */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
           dump_expr_with_parens(operand_2);
-#if SUNCC
-          if (remainder_special_case) write_tok_ch(')');
-#endif /* SUNCC */
 #if !C_GEN_BE_GENERATES_ANSI_C
+          if (remainder_special_case) write_tok_ch(')');
           /* If the destination is a bit field, finish off the sign-extension/
              truncation call started earlier. */
           end_adjust_bit_field_value(expr);
@@ -6237,13 +6231,13 @@ parameters.
         }  /* if */
       } /* if */
 #endif /* IA64_ABI */
-#if SUN_EXTENSIONS_ALLOWED
+#if SUN_EXTENSIONS_ALLOWED && C_GEN_BE_GENERATES_ANSI_C
       if (sun_is_generated_code_target) {
         /* Sun-specific "link scope specifiers" (__global, __symbol, or
            __hidden). */
         form_sun_link_scope_specifiers(variable->decl_modifiers, &octl);
       }  /* if */
-#endif /* SUN_EXTENSIONS_ALLOWED */
+#endif /* SUN_EXTENSIONS_ALLOWED && C_GEN_BE_GENERATES_ANSI_C */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_dialect_is_generated_code_target) {
         /* Microsoft-specific keywords. */
@@ -8168,13 +8162,13 @@ if this routine has a body (dump nothing if it has no body).
       write_space();
     } /* if */
 #endif /* IA64_ABI */
-#if SUN_EXTENSIONS_ALLOWED
+#if SUN_EXTENSIONS_ALLOWED && C_GEN_BE_GENERATES_ANSI_C
     if (sun_is_generated_code_target) {
       /* Sun-specific "link scope specifiers" (__global, __symbol, or
          __hidden). */
       form_sun_link_scope_specifiers(rout->decl_modifiers, &octl);
     }  /* if */
-#endif /* SUN_EXTENSIONS_ALLOWED */
+#endif /* SUN_EXTENSIONS_ALLOWED && C_GEN_BE_GENERATES_ANSI_C */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target) {
       /* Microsoft-specific keywords. */

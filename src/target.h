@@ -1148,7 +1148,7 @@ EXTERN a_boolean
                                                = SUN_IS_GENERATED_CODE_TARGET
 #endif /* VAR_INITIALIZERS */
                                                                              ;
-			/* TRUE if code is being generated for a SUNPro
+			/* TRUE if code is being generated for a Sun
 			   compiler. */
 
 EXTERN a_boolean

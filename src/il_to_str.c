@@ -2045,14 +2045,11 @@ output.
   char *bptr = buffer;
   int  nchars = 1;
 
-  if ((isprint((unsigned char)ch)
-#ifdef sun
+  if ((isprint((unsigned char)ch) &&
     /* The Sun cc (4.1.2) in -O mode when outputting assembly language
        has a bug that transforms quote into accent grave.  Avoid it. */
-       && ch != '\''
-#endif /* ifdef sun */
-                    ) ||
-       (ch == '\t' && octl->gen_raw_tab_in_literals)) {
+       !(sun_is_generated_code_target && ch == '\'')) ||
+      (ch == '\t' && octl->gen_raw_tab_in_literals)) {
     /* Escape some characters, e.g., quotes. */
     if (ch == '"' || ch == '\'' || ch == '\\' ||
         /* Avoid accidentally putting out trigraphs by escaping "?". */
