@@ -11764,7 +11764,7 @@ static void dump_pending_cleanup_state_setting(
                                      an_insert_location *insert_location)
 /*
 If *something_pending is TRUE, pending_cleanup_state indicates a cleanup
-state which code should should have been emitted to establish.  The output
+state which code should have been emitted to establish.  The output
 was delayed in the hope that it could be eliminated if another
 cleanup-state-set came next.  That hasn't happened, so put out the
 code to indicate the cleanup state (inserting it at insert_location), and
