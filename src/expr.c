@@ -961,6 +961,9 @@ build an argument operand list and return a pointer to it in
     add_stop_token(tok_comma);
     /* Scan a comma-separated list of arguments. */
     do {
+      /* In cfront mode, allow an extra comma at the end of the argument
+         list. */
+      if (cfront_compatibility_mode && curr_token == tok_rparen) break;
       /* Scan an argument expression.  Note that it is not converted to an
          rvalue yet. */
       scan_expr(&argument_operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
