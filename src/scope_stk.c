@@ -3722,6 +3722,9 @@ unit.
       } else if (is_prototype_instantiation) {
         /* Don't check on symbols entered in the scope of a class template
            prototype instantiation -- the information may not be complete. */
+      } else if (kind == (a_scope_kind)sck_template_instantiation) {
+        /* Don't check on symbols entered in instantiation scopes.  (These
+           should only be injected friends of prototype instantiations.) */
       } else if (kind == (a_scope_kind)sck_namespace && !is_namespace_wrapup) {
         /* Don't check symbols in namespaces and namespace extensions because
            we don't have complete information yet.  This will be done at the
