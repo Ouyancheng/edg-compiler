@@ -937,6 +937,8 @@ Instantiate the body of the template function associated with tip.
   scan_function_body(rout_ptr, &tssp->variant.function.func_info,
                      (SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
                       SFB_IS_INSTANTIATION));
+  /* scan_function_body does not scan past the right brace. */
+  if (curr_token == tok_rbrace) (void)get_token();
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(rout_sym, (a_statement_ptr)NULL);
   /* Pop the template instantiation scope. */

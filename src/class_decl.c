@@ -432,13 +432,12 @@ routine recursively for each nested class.
           scan_function_body(rfp->routine, &rfp->func_info,
                              (SFB_NO_CLASS_REACTIVATION |
                               SFB_NEW_STRUCT_STMT_STACK_REQUIRED));
+          /* scan_function_body does not scan past the right brace. */
+          if (curr_token == tok_rbrace) (void)get_token();
           /* In the normal case the current token should be end_of_source,
              which was inserted to mark the end of the cached token stream.
              If necessary, keep flushing until end-of-source is found. */
-          while (curr_token != tok_end_of_source) (void)get_token();
-          /* Advance past the end-of-source token, which was added in
-             the prescan routine. */
-          (void)get_token();
+          flush_past_token_cache_terminator();
         }  /* if */
       }  /* if */
       /* Advance to the next routine fixup entry before freeing the current
