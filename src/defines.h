@@ -89,13 +89,13 @@ Flags to be set when using the KAI inliner.
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
-#define TARG_JMP_BUF_NUM_ELEMENTS 12
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT 0
 #define USE_PRAGMA_IDENT_IN_GENERATED_CODE 1
 #define STDC_ZERO_IN_NONSTRICT_MODE 1
 #ifdef sparc
 /* SPARC Solaris version. */
 #define USE_INIT_SECTION_IN_GENERATED_C 1
+#define TARG_JMP_BUF_NUM_ELEMENTS 12
 #else /* !defined(sparc) */
 /* Intel Solaris version. */
 #define TARG_LITTLE_ENDIAN TRUE
