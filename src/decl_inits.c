@@ -2597,9 +2597,35 @@ initialized.  These are addressed in the course of the processing.
             init_type = skip_typerefs(
                              underlying_array_element_type(init_type));
           }  /* if */
+          /* Only one member of a union or an anonymous union subobject is
+             allowed to appear in the ctor-initializer list. */
+          if (is_union_type(class_type) ||
+              member_or_base_sym->
+                         variant.field.anonymous_parent_object != NULL) {
+            /* Check through fields for which initializers have already been
+               specified. */
+            for (cip = cip_list; cip != NULL; cip = cip->next) {
+              if (cip->initializer != NULL) {
+                if (cip->variant.field ==
+                                     member_or_base_sym->variant.field.ptr) {
+                  /* Error on duplicate initialization will be issued below. */
+                } else if (is_union_type(class_type) ||
+                           (cip->variant.field->
+                                    source_corresp.parent.class_type ==
+                            member_or_base_sym->variant.field.ptr->
+                                    source_corresp.parent.class_type)) {
+                  /* The union (or the anonymous union subobject) has already
+                     been initialized. */
+                  error(ec_union_already_initialized);
+                }  /* if */
+              }  /* if */
+            }  /* for */
+          }  /* if */
           /* Check the list for a constructor init entry that refers to this
              member.  If it's there we may have a reinitialization error. */
           for (new_cip = cip_list; new_cip != NULL; new_cip = new_cip->next) {
+             /* Note: at this point cip_list includes only fields, so we can
+                assume new_cip->kind is cik_field. */
             if (new_cip->variant.field ==
                                    member_or_base_sym->variant.field.ptr) {
               if (new_cip->initializer != NULL) {
