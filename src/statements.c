@@ -131,7 +131,7 @@ Set var to indicate that the associated code is unreachable.
 /*
 Declarations needed because of mutual recursion:
 */
-static a_boolean statement(void);
+static void statement(a_boolean is_dependent_statement);
 
 
 static void check_lint_notreached_state(void)
@@ -3060,12 +3060,10 @@ statement.  In C++ and C99, such a dependent statement implicitly defines
 a local scope.
 */
 {
-  a_boolean         block_added, is_executable;
+  a_boolean         block_added;
   a_statement_ptr   block;
-  a_source_position start_position;
 
   db_enter(3, "dependent_statement");
-  start_position = pos_curr_token;
   /* In C++ and C99, add a block (and potential scope).  Do not do so, however,
      if a block will be created anyway. */
   if ((C_mode() && !c99_mode) || curr_token == tok_lbrace) {
@@ -3077,12 +3075,7 @@ a local scope.
     block_added = TRUE;
   }  /* if */
   /* Now process the dependent statement itself. */
-  is_executable = statement();
-  if (any_cfront_mode() && !is_executable) {
-    /* In cfront mode, the dependent statement is not allowed to be a
-       declaration. */
-    pos_error(ec_dependent_stmt_is_declaration, &start_position);
-  }  /* if */
+  statement(/*is_dependent_statement=*/TRUE);
   if (block_added) {
     finish_block_statement(block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -5526,15 +5519,15 @@ Scan a default case label definition.  The syntax is:
 }  /* default_label */
 
 
-static a_boolean statement(void)
+static void statement(a_boolean is_dependent_statement)
 /*
-Scan a statement.  Add it to the current statement sequence.  Return
-TRUE if the statement is executable, FALSE if it is a declaration (C++ mode
-only).
+Scan a statement.  Add it to the current statement sequence.
+is_dependent_statement is TRUE if the statement is a dependent
+statement (of an "if", etc.).
 */
 {
   a_label_ptr      label;
-  a_boolean        prev_was_label = FALSE, is_declaration = FALSE;
+  a_boolean        prev_was_label = FALSE;
   a_boolean        get_another_statement;
 
   db_enter(3, "statement");
@@ -5757,26 +5750,36 @@ rescan_statement:
     default:
 expr_statement:
       /* An expression statement or a declaration.  Declarations can be
-         interspersed among executable statements in C++ and C99. */
-      if (C_dialect == C_dialect_cplusplus) {
-        /* Distinguishing between an expression and a declaration in C++
-           may require disambiguation. */
-        if (curr_token == tok_using || curr_token == tok_namespace ||
-            is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) {
-          is_declaration = TRUE;
+         interspersed among executable statements in C++ and C99,
+         but only the C++ case is handled here; in C99, a declaration
+         is not a statement but rather something that can appear
+         intermixed with statements within a compound-statement.
+         See compound_statement. */
+      if (!C_mode() &&
+          (curr_token == tok_using || curr_token == tok_namespace ||
+           is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED))) {
+        /* Scan a declaration (C++ only). */
+        if (any_cfront_mode() && is_dependent_statement) {
+          /* In cfront mode, a dependent statement is not allowed to be a
+             declaration. */
+          error(ec_dependent_stmt_is_declaration);
         }  /* if */
-      } else if (mixed_decls_and_statements_allowed) {
-        /* In C mode the distinction is more straightforward. */
-        if (is_decl_start(/*expr_context=*/TRUE,
-                          /*real_declarator_allowed=*/TRUE)) {
-          is_declaration = TRUE;
-        }  /* if */
-      }  /* if */
-      if (is_declaration) {
-        /* Scan a declaration (C++ and C99 only). */
+        decl_statement();
+      } else if (C_mode() &&
+                 (is_dependent_statement || prev_was_label) &&
+                 is_decl_start(/*expr_context=*/TRUE,
+                               /*real_declarator_allowed=*/TRUE)) {
+        /* In C mode, do a special test to give a better error message
+           when a declaration is used as a dependent statement, e.g.,
+             if (i) int j;
+           or for a labeled declaration, e.g.,
+             lab: int j;
+        */
+        error(is_dependent_statement ? ec_dependent_stmt_is_declaration :
+                                       ec_declaration_after_statements);
         decl_statement();
       } else {
-        /* expression-statement (3.6.3). */
+        /* An expression-statement. */
         add_stop_token(tok_semicolon);
         check_for_unreachable_code();
         expression_statement();
@@ -5789,7 +5792,6 @@ expr_statement:
   if (get_another_statement) goto rescan_statement;
 
   db_exit();
-  return !is_declaration;
 }  /* statement */
 
 
@@ -5930,20 +5932,21 @@ branching into it is disallowed).
 
   /* Scan the sequence of statements. */
   while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
-    if (mixed_decls_and_statements_allowed) {
-      /* In C++ and C99 modes, where declarations can be interspersed with
+    if (!C_mode()) {
+      /* In C++ mode, where declarations can be interspersed with
          executable statements, statement() handles declarations, too. */
-      (void)statement();
+      statement(/*is_dependent_statement=*/FALSE);
     } else {
       /* In C mode the declarations are expected to appear first.  Note that
          label statements may look like the start of a declaration, so we
-         have to check for ident followed by ":". */
+         have to check for ident followed by ":".  In C99 mode, declarations
+         may be interspersed with statements. */
       if ((curr_token != tok_identifier || next_token() != tok_colon) &&
           is_decl_start(/*expr_context=*/TRUE,
                         /*real_declarator_allowed=*/TRUE)) {
-        /* Scan any declarations.  In C, these must all be at the beginning
-           of the block. */
-        if (any_statements) {
+        /* Scan a declaration.  In pre-C99 C, these must all be at the
+           beginning of the block. */
+        if (!c99_mode && any_statements) {
           error(ec_declaration_after_statements);
           /* Special error-recovery trick: this tries to deal with mismatched
              braces, in the case where a "}" is missing and thus there appears
@@ -5959,14 +5962,12 @@ branching into it is disallowed).
         wrapup_decl_statement();
         /* Scan a statement. */
         any_statements = TRUE;
-        (void)statement();
+        statement(/*is_dependent_statement=*/FALSE);
       }  /* if */
     }  /* if */
   }  /* while */
 
-  if (mixed_decls_and_statements_allowed || !any_statements) {
-    wrapup_decl_statement();
-  }  /* if */
+  wrapup_decl_statement();
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry.  This is needed for lint "notreached" comments, and also, if this
      is the top level block of the function, so that they can be examined

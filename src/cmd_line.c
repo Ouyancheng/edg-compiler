@@ -1497,9 +1497,6 @@ Set the various flags appropriate to C99 mode.
   alternative_tokens_allowed = TRUE;
   /* In C99 mode, strict or otherwise, // comments are allowed. */
   end_of_line_comments_allowed = TRUE;
-  /* In C99 declarations and executable statements can be interspersed
-     within a block. */
-  mixed_decls_and_statements_allowed = TRUE;
   /* The final field of a struct may be an incomplete array. */
   flexible_array_members_allowed = TRUE;
   /* Universal character names are allowed. */
@@ -1740,9 +1737,6 @@ setting is used, and to set various unmentioned settings as needed.
   }  /* if */
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
-  /* In C++ declarations and executable statements can be interspersed
-     within a block. */
-  mixed_decls_and_statements_allowed = TRUE;
   /* Universal character names are allowed. */
   universal_character_names_allowed = TRUE;
 }  /* check_and_set_cplusplus_mode_options */
