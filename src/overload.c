@@ -1046,6 +1046,10 @@ This applies to projection and namespace projection symbols.
 #define is_ambiguous_by_inheritance(symbol) ((symbol)->ambiguous)
 
 
+static a_boolean same_candidate_function(a_candidate_function_ptr cfp1,
+                                         a_candidate_function_ptr cfp2);
+
+
 static void diagnose_overload_ambiguity(
                                   a_candidate_function_ptr candidate_functions,
                                   an_arg_operand_ptr       arg_operand_list,
@@ -1074,7 +1078,7 @@ already been done, and this routine does the end_error call.
       for (temp_cfp = candidate_functions;
            temp_cfp != cfp;
            temp_cfp = temp_cfp->next) {
-        if (temp_cfp->function_symbol == function_sym) goto next_function;
+        if (same_candidate_function(temp_cfp, cfp)) goto next_function;
       }  /* for */
       if (is_ambiguous_by_inheritance(function_sym)) {
         /* Function symbol is ambiguous by inheritance.  Use a special

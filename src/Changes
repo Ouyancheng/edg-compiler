@@ -1,5 +1,22 @@
 Version 2.46
 
+7/12/01  Elimination of duplicate functions in overloading error message
+
+In some cases involving namespaces and using-directives, an error
+message issued for an ambiguity in overload resolution listed the
+same function twice.  Now fixed.
+
+  namespace N {
+    template <class T> struct A {};
+    template <class T> void f(const T&);
+    template <class T> void f(A<T>);
+  }
+  using namespace N;
+  int main() {
+    A<int> ai;
+    f(ai);
+  }
+
 7/10/01  C++-generating back end: extraneous namespace qualifier on friend
          function declaration
 
