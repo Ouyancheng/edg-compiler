@@ -234,6 +234,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
   a_variable_remapping_for_inlining_ptr
                    vrip;
   a_routine_ptr    routine = scope->variant.routine.ptr;
+  a_statement_ptr  stmt;
 #if DEBUG
   a_boolean        first = TRUE;
 #endif /* DEBUG */
@@ -260,7 +261,8 @@ The code is inserted at *insert_location, and *insert_location is updated.
       /* We don't need the parameter if it's not referenced.  However, if
          the argument has side effects, we need to evaluate it. */
       if (node_has_side_effects(arg, (a_boolean *)NULL)) {
-        (void)insert_expr_statement(arg, insert_location);
+        stmt = insert_expr_statement(arg, insert_location);
+        set_stmt_pos_to_code_pos_for_lowering(stmt);
       }  /* if */
     } else {
       /* The parameter is referenced, so it has to be remapped. */
@@ -312,9 +314,10 @@ The code is inserted at *insert_location, and *insert_location is updated.
         vrip->variant.variable = temp_var;
         transfer_variable_attributes_to_temporary(param_var, temp_var);
         /* Initialize the variable to the argument value. */
-        (void)insert_var_assignment_statement(temp_var,
-                                              (an_expr_operator_kind)eok_last,
-                                              arg, insert_location);
+        stmt = insert_var_assignment_statement(temp_var,
+                                               (an_expr_operator_kind)eok_last,
+                                               arg, insert_location);
+        set_stmt_pos_to_code_pos_for_lowering(stmt);
         temp_var->initialization_rewritten_as_assignment = TRUE;
       }  /* if */
 #if DEBUG
@@ -907,7 +910,8 @@ If not, *failed is set.
             if (stmt_expr != NULL &&
                 node_has_side_effects(stmt_expr, (a_boolean *)NULL)) {
               stmt_expr = add_cast(stmt_expr, void_type());
-              (void)insert_expr_statement(stmt_expr, insert_location);
+              stmt = insert_expr_statement(stmt_expr, insert_location);
+              set_stmt_pos_to_code_pos_for_lowering(stmt);
             }  /* if */
           }  /* if */
           break;
@@ -1091,7 +1095,8 @@ If not, *failed is set.
           expr = make_operator_node(lowered_assignment_operator(var->type),
                                     f_skip_typerefs(var->type),
                                     var_expr);
-          (void)insert_expr_statement(expr, insert_location);
+          stmt = insert_expr_statement(expr, insert_location);
+          set_stmt_pos_to_code_pos_for_lowering(stmt);
           var->initialization_rewritten_as_assignment = TRUE;
         }
         break;

@@ -1,5 +1,12 @@
 Version 2.39
 
+2/7/98    Minimal inlining: source positions on more code
+
+Minimal inlining now inserts the source position on a few pieces of
+generated code where it had not been set previously, e.g., assignments
+that initialize temporaries that replace parameters.  This produces
+slightly better line number information in symbolic debugging output.
+
 2/2/97    Microsoft compatibility: #import
 
 The #import preprocessing directive is now supported in Microsoft mode.
