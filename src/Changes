@@ -22,14 +22,14 @@ An internal error would occur if a function template declaration made
 use of a nontype member of a dependent class, such as A<T>::X in the
 example below.  This has been fixed.
 
-template<class T> struct A {
-  static const int X = 1;
-};
-template <int I> struct B {};
-template<class T> B<A<T>::X> f();
-int main () {
-     f<int>();
-}
+  template<class T> struct A {
+    static const int X = 1;
+  };
+  template <int I> struct B {};
+  template<class T> B<A<T>::X> f();
+  int main () {
+       f<int>();
+  }
 
 1/19/98   type_of_unknown_templ_param_constant not saved in PCH file
 
