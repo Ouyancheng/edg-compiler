@@ -6937,7 +6937,9 @@ return a pointer to it.
                                             [(int)descr.is_fract_type]
                                             [(int)descr.saturating];
 
-  if (*p_result == NULL && !fixed_point_type_used_in_primary_IL(descr)) {
+  if (*p_result == NULL &&
+      (!is_primary_translation_unit ||
+       !fixed_point_type_used_in_primary_IL(descr))) {
     /* The type hasn't been created yet: Do so now. */
     *p_result = alloc_type((a_type_kind)tk_fixed_point);
     (*p_result)->variant.fixed_point = descr;
