@@ -754,13 +754,18 @@ to be kept.
     is_class = (entry_kind == iek_type &&
                 is_immediate_class_type((a_type_ptr)entry_ptr));
     if (is_class) {
+      a_type_ptr class_type = (a_type_ptr)entry_ptr;
       /* For a function-local class, the definition will never be removed,
          so mark it to be kept as soon as the keep_in_il flag is set on
          the class.  This is done before setting keep_in_il to avoid
          the rewalk of the subtree. */
-      is_function_local_class = class_is_function_local((a_type_ptr)entry_ptr);
-      if (is_function_local_class) {
-        set_class_keep_definition_in_il((a_type_ptr)entry_ptr);
+      is_function_local_class = class_is_function_local(class_type);
+      /* Ditto for an unnamed class, because you can't remove the definition
+         of an unnamed class. */
+      if (is_function_local_class ||
+          (!has_name(class_type) ||
+           class_type->variant.class_struct_union.originally_unnamed)) {
+        set_class_keep_definition_in_il(class_type);
       }  /* if */
     }  /* if */
     /* Set the flag. */
