@@ -29,15 +29,15 @@ typedef enum /*a_C_dialect*/ {
   /* Possible C dialects to compile. */
   C_dialect_ANSI,	/* ANSI C. */
   C_dialect_pcc,	/* UNIX pcc C. */
-  C_dialect_cpp		/* C++. */
+  C_dialect_cplusplus	/* C++. */
 } a_C_dialect;
 
 EXTERN a_C_dialect
 		C_dialect
 #if VAR_INITIALIZERS
-                          = C_dialect_cpp
+                          = C_dialect_cplusplus
 #endif /* VAR_INITIALIZERS */
-                                          ;
+                                               ;
 			/* The C dialect to be accepted. */
 EXTERN a_boolean
 		strict_ansi_mode /* = FALSE */;
