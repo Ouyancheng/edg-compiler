@@ -5418,6 +5418,13 @@ white_space_loop:
                 add_deletion_source_line_modif(comment_start_loc,
                                    (sizeof_t)(curr_char_loc-comment_start_loc),
                                                /*for_comment=*/TRUE);
+                if (slmp->being_rescanned_for_token_pasting) {
+                  /* If we are rescanning tokens to do the special
+                     token-pasting for pcc mode or Microsoft mode, clear
+                     the flag on the top-level macro call to indicate we
+                     have continued into the primary source line. */
+                  slmp->being_rescanned_for_token_pasting = FALSE;
+                }  /* if */
                 leave_insertion(slmp, curr_char_loc);
                 comment_start_loc = curr_char_loc;
               } while (!within_curr_source_line(curr_char_loc));
