@@ -35,6 +35,18 @@ typedef struct a_throw_stack_entry {
   void*		object_address;
 			/* Pointer to the memory allocated to store
 			   the copy of the object. */
+  a_byte_boolean
+		is_rethrow;
+			/* TRUE if this entry represents a rethrow.
+		  	   The object_address entry for a rethrow points
+			   to an object allocated by a previous throw. */
+  a_byte_boolean
+		discard_entry;
+			/* This field is used during the processing of
+			   nested throws.  This flag is set when a stack
+			   entry is no longer needed but cannot be freed
+			   because an entry higher on the stack has not
+			   yet been freed. */
 } a_throw_stack_entry;
 
 
@@ -771,11 +783,18 @@ a try block with a catch that matches the type of the object thrown.
       cleanup(ehsep, region);
       region = ehsep->variant.function.saved_region_number;
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
-      /* A try block that is being skipped -- do nothing. */
-#if 0
-      /* There needs to be code here to flag throw stack entries associated
-         with try blocks that are being skipped. */
-#endif /* 0 */
+      /* A try block that is being skipped. */
+      if (ehsep->variant.try_block.catch_info != NULL) {
+        /* A catch clause associated with this try block is currently
+	   being processed.  Because this try block is being bypassed the
+           throw entry is no longer needed.  It cannot be discarded yet
+           because the thrown objects are allocated using a stack.  Set
+           a flag that this entry should be discarded when it reaches the
+	   top of the stack. */
+        a_throw_stack_entry_ptr	tsep;
+        tsep = (a_throw_stack_entry_ptr)ehsep->variant.try_block.catch_info;
+        tsep->discard_entry = TRUE;
+      }  /* if */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
       /* Do nothing. */
     } else {
@@ -797,6 +816,28 @@ a try block with a catch that matches the type of the object thrown.
 }  /* __throw */
 
 
+static void push_throw_stack(a_typeinfo_ptr	typeinfo,
+			     a_boolean		is_pointer,
+			     void*		object_address,
+			     a_boolean		is_rethrow)
+/*
+Push an entry onto the throw stack and initialize its fields.
+*/
+{
+  a_throw_stack_entry_ptr	tsep;
+
+  tsep =
+      (a_throw_stack_entry_ptr)eh_alloc_on_stack(sizeof(a_throw_stack_entry));
+  tsep->next = curr_throw_stack_entry;
+  curr_throw_stack_entry = tsep;
+  tsep->typeinfo = typeinfo;
+  tsep->is_pointer = is_pointer;
+  tsep->object_address = object_address;
+  tsep->is_rethrow = is_rethrow;
+  tsep->discard_entry = FALSE;
+}  /* push_throw_stack */
+
+
 EXTERN_C void __rethrow(void)
 /*
 Rethrow the current thrown obejct.
@@ -806,6 +847,10 @@ Rethrow the current thrown obejct.
     /* No handler is currently active. */
     __call_terminate();
   }  /* if */
+  push_throw_stack(curr_throw_stack_entry->typeinfo,
+		   curr_throw_stack_entry->is_pointer,
+		   curr_throw_stack_entry->object_address,
+		   /*is_rethrow=*/TRUE);
   __throw();
 }  /* __rethrow */
 
@@ -818,7 +863,6 @@ Allocate space for the object to be thrown and save information about
 the type being thrown.
 */
 {
-  a_throw_stack_entry_ptr	tsep;
   void*				object_address;
 
   if (curr_throw_stack_entry != NULL) {
@@ -826,14 +870,8 @@ the type being thrown.
        previous throw. */
     set_base_class_flags(curr_throw_stack_entry->typeinfo, /*set_flag=*/FALSE);
   }  /* if */
-  tsep =
-      (a_throw_stack_entry_ptr)eh_alloc_on_stack(sizeof(a_throw_stack_entry));
   object_address = (void *)eh_alloc_on_stack(size);
-  tsep->next = curr_throw_stack_entry;
-  curr_throw_stack_entry = tsep;
-  tsep->typeinfo = typeinfo;
-  tsep->is_pointer = is_pointer;
-  tsep->object_address = object_address;
+  push_throw_stack(typeinfo, is_pointer, object_address, /*is_rethrow=*/FALSE);
   /* Set the base class flags for the thrown type. */
   set_base_class_flags(typeinfo, /*set_flag=*/TRUE);
   return object_address;
@@ -846,25 +884,37 @@ Free the space used to make the copy of the thrown object.  Called at
 the completion of a catch clause.
 */
 {
-  a_throw_stack_entry_ptr	tsep = curr_throw_stack_entry;
-  check_assertion(tsep != NULL);
-  /* Unlink this entry from the throw stack. */
-  curr_throw_stack_entry = tsep->next;
-  /* Clear the base class flags from the previous throw. */
-  set_base_class_flags(tsep->typeinfo, /*set_flag=*/FALSE);
-  /* Free the space used for the cop of the object. */
-  eh_free_on_stack(tsep->object_address);
-  /* Free the space used for the throw stack entry. */
-  eh_free_on_stack(tsep);
-  if (curr_throw_stack_entry != NULL) {
-    /* Set the base class flags for the thrown type that is now on the top
-       of the throw stack. */
-    set_base_class_flags(curr_throw_stack_entry->typeinfo, /*set_flag=*/TRUE);
-  }  /* if */
-#if 0
-  /* Need code here to free other entries that could not be released during
-     a processing of a rethrow. */
-#endif /* 0 */
+  check_assertion(curr_throw_stack_entry != NULL);
+  curr_throw_stack_entry->discard_entry = TRUE;
+  /* Free any entries with the discard_entry flag set.  This always frees
+     the top entry but may also free additional entries associated with
+     pending catches that were later skipped over by a throw. */
+  while (curr_throw_stack_entry != NULL &&
+         curr_throw_stack_entry->discard_entry) {
+    a_throw_stack_entry_ptr	tsep = curr_throw_stack_entry;
+    a_boolean			is_rethrow;
+    void*			object_address;
+    /* Unlink this entry from the throw stack. */
+    curr_throw_stack_entry = tsep->next;
+    /* Clear the base class flags from the previous throw. */
+    set_base_class_flags(tsep->typeinfo, /*set_flag=*/FALSE);
+    is_rethrow = tsep->is_rethrow;
+    object_address = tsep->object_address;
+    /* Free the space used for the throw stack entry.  Note that the stack
+       entry and the object must be freed in the reverse of the order
+       in which they were allocated since this is a stack. */
+    eh_free_on_stack(tsep);
+    if (!is_rethrow) {
+      /* Free the space used for the copy of the object. */
+      eh_free_on_stack(object_address);
+    }  /* if */
+    if (curr_throw_stack_entry != NULL) {
+      /* Set the base class flags for the thrown type that is now on the top
+         of the throw stack. */
+      set_base_class_flags(curr_throw_stack_entry->typeinfo,
+                           /*set_flag=*/TRUE);
+    }  /* if */
+  }  /* while */
 }  /* __free_thrown_object */
 
 /******************************************************************************
