@@ -218,16 +218,12 @@ Dump the name from a source correspondence (if any).
   if (sc->is_class_member) {
     db_type_name(sc->parent.class_type);
     fputs("::", f_debug);
-    name = unmangled_name_of(sc);
-    if (name == NULL) name = sc->name;
   } else if (sc->parent.namespace_ptr != NULL) {
     db_name(&sc->parent.namespace_ptr->source_corresp);
     fputs("::", f_debug);
-    name = unmangled_name_of(sc);
-    if (name == NULL) name = sc->name;
-  } else {
-    name = sc->name;
   }  /* if */
+  name = unmangled_name_of(sc);
+  if (name == NULL) name = sc->name;
   if (name != NULL) {
     fputs(name, f_debug);
   } else {
