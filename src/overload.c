@@ -5859,7 +5859,6 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 {
   a_type_ptr          required_type;
   char                *fmt_string = *fmt_string_ptr;
-  char                type_char;
   a_printf_scan_state pss = *pss_ptr;
   a_boolean           l_size, L_size, h_size, add_pointer;
   a_boolean           hh_size, j_size, z_size, t_size;
@@ -5867,6 +5866,7 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
   a_boolean           ll_size;
 #endif /* LONG_LONG_ALLOWED */
 #if FIXED_POINT_EXTENSIONS_ALLOWED
+  char                type_char;
   a_boolean           is_fract_type;
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   a_boolean           suppress_assignment = FALSE;
@@ -5981,7 +5981,10 @@ after_precision:;
        decimal.  Determine the required type.  For most (but not all)
        scanf cases, "pointer to" will be added afterwards. */
     *indirect = add_pointer = is_scanf;
-    switch (type_char = *fmt_string++) {
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    type_char = *fmt_string;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+    switch (*fmt_string++) {
       case 'd':
       case 'i':
         /* int conversion.  If "l" was specified, long conversion;
