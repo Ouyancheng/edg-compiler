@@ -1,5 +1,11 @@
 Version 2.31
 
+12/12/95  IL CHANGE: new field in a_statement
+
+A new field, has_empty_else_clause, has been added to a_statement to mark
+an "... else ;" construct in C-mode.  This means the IL now distinguishes
+between an empty else-statement and an omitted else-statement.
+
 12/11/95  Default handler must be last
 
 An error is now issued (instead of a warning) when the program declares a
