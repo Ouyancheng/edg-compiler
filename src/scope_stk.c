@@ -3077,6 +3077,7 @@ NULL.
     case sk_variable:
       /* Variable or parameter. */
       var_ptr = sym->variant.variable.ptr;
+      var_type = skip_typerefs(var_ptr->type);
       storage_class = var_ptr->storage_class;
       if (storage_class == (a_storage_class)sc_unspecified &&
           (!is_member_of_unnamed_namespace(&var_ptr->source_corresp) ||
@@ -3152,16 +3153,16 @@ NULL.
                   (sym->variant.variable.value_has_been_set &&
                    !sym->variant.variable.used)) &&
 #if GNU_EXTENSIONS_ALLOWED
-                 !var_ptr->type->variables_are_implicitly_referenced &&
+                 !var_type->variables_are_implicitly_referenced &&
                  var_ptr->section == NULL &&
                  !var_ptr->unused &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
                  !(is_class_struct_union_type(var_ptr->type) &&
                    (skip_typerefs(var_ptr->type)->
                                 variant.class_struct_union.is_nonreal_class ||
-                    symbol_supplement_for_class(skip_typerefs(var_ptr->type))->
+                    symbol_supplement_for_class(var_type)->
                                               any_template_dependent_fields ||
-                    symbol_supplement_for_class(skip_typerefs(var_ptr->type))->
+                    symbol_supplement_for_class(var_type)->
                                                  any_nonreal_base_classes))) {
         /* An unreferenced or unused variable or an unused parameter.
            If a class is nonreal or if it has a template-dependent field or
