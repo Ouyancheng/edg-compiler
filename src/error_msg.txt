@@ -1105,6 +1105,9 @@ ec_missing_floating_point_type;;"a floating-point type must be included in the t
 ec_type_decl_in_anon_union;;"types cannot be declared in anonymous unions"
 ec_returning_ptr_to_local_variable;;"returning pointer to local variable"
 ec_returning_ptr_to_local_temp;;"returning pointer to local temporary"
+ec_cl_export_template_option_only_in_cplusplus;;"option \"export_template\" can be used only when compiling C++"
+ec_cl_export_template_requires_dep_name;;"option \"export_template\" cannot be used with \"no_dep_name\""
+ec_cl_export_template_requires_no_implicit_include;;"option \"export_template\" cannot be used with \"implicit_include\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

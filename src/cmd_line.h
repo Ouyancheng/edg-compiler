@@ -191,6 +191,7 @@ typedef enum /*an_option_kind*/ {
   optk_ignore_namespace_std,
   optk_parse_nonclass_templates,
   optk_c99_mode,
+  optk_export_template,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -814,6 +815,13 @@ EXTERN a_boolean
 			   definition of a template. */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
+#if DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE && DEFAULT_EXPORT_TEMPLATE_ALLOWED
+ #error -- DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE and \
+           DEFAULT_EXPORT_TEMPLATE_ALLOWED cannot both be tue
+#endif /* DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE &&
+          DEFAULT_EXPORT_TEMPLATE_ALLOWED */
+
+
 EXTERN a_boolean
 		display_error_number /* = FALSE */;
 			/* Should the diagnostic message output include the
@@ -1358,6 +1366,11 @@ EXTERN a_boolean
 			/* TRUE if hexadecimal floating point constants
 			   are allowed (e.g., 0xabc.def).  This is true in
 			   C99 mode. */
+
+EXTERN a_boolean
+		export_template_allowed;
+			/* TRUE if the use of exported templates
+			   is permitted. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

@@ -351,6 +351,15 @@ line by --[no_]dep_name.
 #define DEFAULT_DEPENDENT_NAME_PROCESSING FALSE
 #endif /* DEFAULT_DEPENDENT_NAME_PROCESSING */
 
+/*
+Flag that is used as the default setting for the global variable
+export_template_allowed.  This controls whether the processing required
+to define and use exported templates should be done.  The variable can
+also be controlled from the command line by --[no_]export_template.
+*/
+#ifndef DEFAULT_EXPORT_TEMPLATE_ALLOWED
+#define DEFAULT_EXPORT_TEMPLATE_ALLOWED FALSE
+#endif /* DEFAULT_EXPORT_TEMPLATE_ALLOWED */
 
 /*
 Flag that is TRUE if Sun CC 5.0 compatibility features should be allowed by
