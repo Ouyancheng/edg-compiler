@@ -3929,6 +3929,7 @@ instantiations) below that on the scope stack.
     }  /* if */
   }  /* if */
   if (inst_placeholder != NULL) {
+#if 0
     /* A placeholder was created for the partial instantiation. */
     inst_placeholder_parent =
                        inst_placeholder->source_corresp.parent.class_type;
@@ -3944,6 +3945,10 @@ instantiations) below that on the scope stack.
             referenced_by_class_instantiation_placeholder_typeref = FALSE;
     }  /* if */
     cssp->partial_instantiation_placeholder = NULL;
+#else /* if !0 */
+    unexpected_condition_str2("add_placeholder_for_class_instantiation",
+                              "found partial instantiation placeholder");
+#endif /* if 0 */
   }  /* if */
   if (inst_placeholder_needed) {
     /* Allocate the placeholder type, set its fields, and add it to the
@@ -4019,6 +4024,7 @@ rather than determined directly.
         && !il_lowering_underway
 #endif /* DO_IL_LOWERING */
                                 ) {
+#if 0
       if (is_immediate_class_type(type_ptr)) {
         a_class_symbol_supplement_ptr cssp =
                                         symbol_supplement_for_class(type_ptr);
@@ -4030,6 +4036,7 @@ rather than determined directly.
           add_placeholder_for_class_instantiation(type_ptr);
         }  /* if */
       }  /* if */
+#endif /* if 0 */
       if (sp->kind == (a_scope_kind)sck_namespace) {
         /* We are adding a type to the types list of a namespace scope.  Add
            a placeholder type to the types list of the filescope -- it's used
