@@ -1,5 +1,11 @@
 Version 2.22
 
+1/24/94  const variable is not null pointer constant in cfront mode
+
+In cfront compatibility mode, a const variable with value zero is
+not considered a null pointer constant when matching a pointer argument
+of an overloaded function.
+
 1/24/94  IL change -- local type declared in function prototype
 
 A new flag, declared_in_function_prototype, is set in a type entry when it
