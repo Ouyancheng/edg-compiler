@@ -4224,9 +4224,7 @@ routine body is generated at this time.
   /* Check whether the routine needs special support for returning a class
      object by value.  This call should be superfluous; it is included just
      to be safe, in case the rules change on when the flag needs to be set. */
-  pos.seq = 0;
-  pos.column = SP_COL_UNKNOWN;
-  set_routine_calling_method_flag(rout_type, &pos);
+  set_routine_calling_method_flag(rout_type, &null_source_position);
   /* Create a locator for the symbol that will be created. */
   pos = class_type->source_corresp.decl_position;
   if (sfkind == (a_special_function_kind)sfk_operator) {

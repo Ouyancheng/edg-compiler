@@ -5338,8 +5338,7 @@ is_definition is TRUE if the label is being scanned as part of a label.
        at the function level even if we are inside some blocks.  Use
        a locator with an undefined source position; the decl_position will
        be handled explicitly shortly. */
-    locator_for_curr_id.source_position.seq = 0;
-    locator_for_curr_id.source_position.column = SP_COL_UNKNOWN;
+    locator_for_curr_id.source_position = null_source_position;
     label_sym = enter_symbol((a_symbol_kind)sk_label, &locator_for_curr_id,
                              depth_innermost_function_scope,
                              /*suppress_error=*/TRUE);

@@ -3346,13 +3346,7 @@ is allocated, it is allocated in the file scope.
 
               */
               a_param_type_ptr param1_on_which_first_loop_failed = param1;
-              a_source_position dummy_decl_pos;
 
-              /* Pass a NULL source position to make_param_type to avoid
-                 inapproriate diagnostics on a type that doesn't correspond
-                 directly to a source construct. */
-              dummy_decl_pos.seq = 0;
-              dummy_decl_pos.column = SP_COL_UNKNOWN;
               comp_param_list = end_comp_param_list = NULL;
               for (param1 = list1,  param2 = list2;
                    param1 != NULL;
@@ -3373,7 +3367,11 @@ is allocated, it is allocated in the file scope.
                      called yet for those parameters. */
                   param_type = composite_type(param1->type, param2->type);
                 }  /* if */
-                comp_param = make_param_type(param_type, &dummy_decl_pos);
+                /* Pass a NULL source position to make_param_type to avoid
+                   inapproriate diagnostics on a type that doesn't correspond
+                   directly to a source construct. */
+                comp_param = make_param_type(param_type,
+                                             &null_source_position);
                 /* Form the composite of the C++ default argument expressions;
                    it's guaranteed that at most one of the parameter lists
                    has a default argument expression. */

@@ -2612,19 +2612,13 @@ entered during initialization.
 {
   a_symbol_locator      location;
   register a_symbol_ptr sym_ptr;
-  a_source_position     pos;
 
   db_enter(4, "full_enter_symbol");
-
-  pos.seq = 0;
-  pos.column = SP_COL_UNKNOWN;
-  clear_locator(&location, &pos);
+  clear_locator(&location, &null_source_position);
   (void)find_symbol(identifier, length, &location);
   sym_ptr = enter_symbol(sym_kind, &location, scope_depth,
                          /*suppress_error=*/FALSE);
-
   db_exit();
-
   return sym_ptr;
 }  /* full_enter_symbol */
 
@@ -3032,7 +3026,6 @@ the compiler-generated flag should be cleared.
 */
 {
   a_symbol_locator               locator;
-  a_source_position              pos;
   a_symbol_ptr                   sym = NULL, ext_sym;
   a_type_ptr                     tp, rout_type, old_type;
   a_routine_type_supplement_ptr  extra_info;
@@ -3048,9 +3041,7 @@ the compiler-generated flag should be cleared.
 #endif /* CHECKING */
   /* Create a locator for the symbol that is to be created. This will also
      create the symbol header. */
-  pos.seq = 0;
-  pos.column = SP_COL_UNKNOWN;
-  make_opname_locator(opname, &locator, &pos);
+  make_opname_locator(opname, &locator, &null_source_position);
   /* Create a routine type. */
   rout_type = alloc_type((a_type_kind)tk_routine);
   extra_info = rout_type->variant.routine.extra_info;
@@ -3068,7 +3059,7 @@ the compiler-generated flag should be cleared.
   }  /* if */
   extra_info->param_type_list = alloc_param_type(tp);
   extra_info->prototyped = TRUE;
-  set_routine_calling_method_flag(rout_type, &pos);
+  set_routine_calling_method_flag(rout_type, &null_source_position);
   clear_func_info(&func_info);
   /* Create the symbol and routine entry.  Note that the routine entry
      is given a storage class of sc_extern since there is no definition
@@ -8218,8 +8209,7 @@ locator_for_curr_id.
   pip->next = NULL;
   pip->symbol = NULL;
   pip->type = NULL;
-  pip->type_pos.seq = 0;
-  pip->type_pos.column = SP_COL_UNKNOWN;
+  pip->type_pos = null_source_position;
   pip->storage_class = (a_storage_class)sc_unspecified;
   pip->implicitly_declared = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -8377,8 +8367,7 @@ Clear the fields of a function information block to default values.
   func_info->prototype_scope_symbols     = NULL;
   func_info->param_id_list               = NULL;
   func_info->throw_specification         = NULL;
-  func_info->throw_position.seq          = 0;
-  func_info->throw_position.column       = SP_COL_UNKNOWN;
+  func_info->throw_position              = null_source_position;
   func_info->scope_number                = NO_SCOPE_NUMBER;
   func_info->any_prototype_names_omitted = FALSE;
   func_info->is_inline                   = FALSE;
@@ -8578,21 +8567,20 @@ Allocate a new function instantiation entry and return a pointer to it.
 #if DEBUG
   num_template_instances_allocated++;
 #endif /* DEBUG */
-  tip->next                              = NULL;
-  tip->next_in_instantiation_list        = NULL;
-  tip->instance_sym                      = NULL;
-  tip->template_sym                      = NULL;
-  tip->arg_list                          = NULL;	
-  tip->template_info                     = NULL;
-  tip->instantiation_required            = FALSE;
-  tip->specific_decl                     = FALSE;
-  tip->specific_def                      = FALSE;
-  tip->explicit_instantiation            = FALSE;
-  tip->already_instantiated              = FALSE;
-  tip->explicit_do_not_instantiate       = FALSE;
-  tip->explicit_can_instantiate         = FALSE;
-  tip->explicit_instantiation_pos.seq    = 0;
-  tip->explicit_instantiation_pos.column = 0;
+  tip->next                        = NULL;
+  tip->next_in_instantiation_list  = NULL;
+  tip->instance_sym                = NULL;
+  tip->template_sym                = NULL;
+  tip->arg_list                    = NULL;	
+  tip->template_info               = NULL;
+  tip->instantiation_required      = FALSE;
+  tip->specific_decl               = FALSE;
+  tip->specific_def                = FALSE;
+  tip->explicit_instantiation      = FALSE;
+  tip->already_instantiated        = FALSE;
+  tip->explicit_do_not_instantiate = FALSE;
+  tip->explicit_can_instantiate    = FALSE;
+  tip->explicit_instantiation_pos  = null_source_position;
   db_exit();
   return tip;
 }  /* alloc_template_instance */
@@ -8745,8 +8733,7 @@ to avoid an 8-character external name clash with symbol_table.)
 
   /* Clear a locator that can be used to make initialization more efficient. */
   cleared_locator.symbol_header                   = NULL;
-  cleared_locator.source_position.seq             = 0;
-  cleared_locator.source_position.column          = SP_COL_UNKNOWN;
+  cleared_locator.source_position                 = null_source_position;
   cleared_locator.is_qualified_name               = FALSE;
   cleared_locator.is_global_qualified_name        = FALSE;
   cleared_locator.is_file_scope_qualified_name    = FALSE;
@@ -8766,8 +8753,7 @@ to avoid an 8-character external name clash with symbol_table.)
   cleared_symbol.next_in_scope                  = NULL;
   cleared_symbol.decl_scope                     = NO_SCOPE_NUMBER;
   cleared_symbol.decl_seq                       = 0;
-  cleared_symbol.decl_position.seq              = 0;
-  cleared_symbol.decl_position.column           = SP_COL_UNKNOWN;
+  cleared_symbol.decl_position                  = null_source_position;
   cleared_symbol.class_of_which_a_member        = NULL;
   cleared_symbol.referenced                     = FALSE;
   cleared_symbol.defined                        = FALSE;

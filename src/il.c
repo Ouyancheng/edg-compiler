@@ -3615,8 +3615,7 @@ to it.
   bcp->next                            = NULL;
   bcp->type                            = NULL;
   bcp->derived_class                   = NULL;
-  bcp->decl_position.seq               = 0;
-  bcp->decl_position.column            = SP_COL_UNKNOWN;
+  bcp->decl_position                   = null_source_position;
   bcp->is_virtual                      = FALSE;
   bcp->direct                          = FALSE;
   bcp->ambiguous                       = FALSE;
@@ -4660,13 +4659,10 @@ Copy the type entry "from" to "to".
          type is an incomplete class type (allowed by extension), and a
          routine type is placed on the list if its return type is an
          incomplete class type. */
-      /* err_pos is set to a NULL source position since no errors should be
-         issued about this type. */
-      a_source_position  err_pos;
-
-      err_pos.seq = 0;
-      err_pos.column = SP_COL_UNKNOWN;
-      add_to_dependent_type_fixup_list(tp, to, (a_param_type *)NULL, &err_pos);
+      /* Pass the NULL source position since no errors should be issued about
+         this type. */
+      add_to_dependent_type_fixup_list(tp, to, (a_param_type *)NULL,
+                                       &null_source_position);
     }  /* if */
   }  /* if */
 }  /* copy_type */
@@ -4687,13 +4683,11 @@ type in a function definition is based on a typedef).
   copy_type(from_type, to_type);
   old_ptp = from_type->variant.routine.extra_info->param_type_list;
   prev_new_ptp = NULL;
-  /* Pass a NULL source position to make_param_type to avoid inapproriate
-     diagnostics on a type that doesn't correspond directly to a source
-     construct. */
-  dummy_decl_pos.seq = 0;
-  dummy_decl_pos.column = SP_COL_UNKNOWN;
   for (; old_ptp != NULL; old_ptp = old_ptp->next) {
-    new_ptp = make_param_type(old_ptp->type, &dummy_decl_pos);
+    /* Pass a NULL source position to make_param_type to avoid inapproriate
+       diagnostics on a type that doesn't correspond directly to a source
+       construct. */
+    new_ptp = make_param_type(old_ptp->type, &null_source_position);
     /* Do a struct copy from the old param type to the new. */
     *new_ptp = *old_ptp;
     /* Expressions may not be shared -- that is, they may not be pointed to
@@ -5131,8 +5125,7 @@ region.
 #endif /* DEBUG */
   tsp->throw_spec_type_list = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  tsp->throw_position.seq = 0;
-  tsp->throw_position.column = SP_COL_UNKNOWN;
+  tsp->throw_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   return tsp;
@@ -6062,14 +6055,16 @@ Only used in C++.
 void set_routine_calling_method_flag(a_type_ptr         routine_type,
                                      a_source_position  *err_pos)
 /*
-Set the calling-method flag in the indicated routine type; that flag
-is used when the function result is returned to a temporary provided by
-the caller.  This routine may be called more than once, since the
-information on the return type can be incomplete at the original
-declaration of the function and must be completed by the point of call.
-Note: one cannot assume that a routine with a body has its flag set
-correctly; e.g., this may not be the case if the return type was incomplete
-at the point of definition.
+
+Set the calling-method flag in the indicated routine type; that flag is
+used when the function result is returned to a temporary provided by the
+caller.  Also issue a diagnostic if the return type is an abstract class.
+This routine may be called more than once, since the information on the
+return type can be incomplete at the original declaration of the function
+and must be completed by the point of call.  Note: one cannot assume that
+a routine with a body has its flag set correctly; e.g., this may not be
+the case if the return type was incomplete at the point of definition.
+
 */
 {
   a_routine_type_supplement_ptr rtsp;
@@ -6098,8 +6093,17 @@ at the point of definition.
         } else if (!symbol_supplement_for_class(return_type)->
                                         construction_by_bitwise_copy_allowed) {
           rtsp->value_returned_by_cctor = TRUE;
+          /* If the return type is an abstract class, issue an error.  Note
+             that construction_by_bitwise_copy_allowed will never be TRUE
+             for abstract classes.  Also note that this logic assumes the
+             value_returned_by_cctor will never be set elsewhere. */
           if (return_type->variant.class_struct_union.abstract) {
-            if (err_pos->seq != 0) {
+            if (err_pos->seq == 0) {
+              /* A null error position indicates a routine type for which
+                 there is no corresponding source position -- e.g., a type
+                 is being copied for some reason.  Issue no diagnostic in
+                 such cases. */
+            } else {
               pos_error(ec_function_returning_abstract_class, err_pos);
             }  /* if */
           }  /* if */
@@ -6838,10 +6842,9 @@ and return a pointer to it.
 #if DEBUG
   num_src_seq_secondary_decls_allocated++;
 #endif /* DEBUG */
-  sssdp->decl_position.seq    = 0;
-  sssdp->decl_position.column = SP_COL_UNKNOWN;
-  sssdp->entity.kind          = (a_byte_il_entry_kind)iek_none;
-  sssdp->entity.ptr           = NULL;
+  sssdp->decl_position = null_source_position;
+  sssdp->entity.kind   = (a_byte_il_entry_kind)iek_none;
+  sssdp->entity.ptr    = NULL;
 
   return sssdp;
 }  /* alloc_src_seq_secondary_decl */
@@ -6860,10 +6863,9 @@ return a pointer to it.
 #if DEBUG
   num_src_seq_end_of_constructs_allocated++;
 #endif /* DEBUG */
-  sseocp->source_position.seq    = 0;
-  sseocp->source_position.column = SP_COL_UNKNOWN;
-  sseocp->entity.kind            = (a_byte_il_entry_kind)iek_none;
-  sseocp->entity.ptr             = NULL;
+  sseocp->source_position = null_source_position;
+  sseocp->entity.kind     = (a_byte_il_entry_kind)iek_none;
+  sseocp->entity.ptr      = NULL;
 
   return sseocp;
 }  /* alloc_src_seq_end_of_construct */
@@ -6901,10 +6903,8 @@ Allocate a comment entry, initialize its fields, and return a pointer to it.
 #if DEBUG
   num_comments_allocated++;
 #endif /* DEBUG */
-  cp->range.start_position.seq    = 0;
-  cp->range.start_position.column = SP_COL_UNKNOWN;
-  cp->range.end_position.seq      = 0;
-  cp->range.end_position.column   = SP_COL_UNKNOWN;
+  cp->range.start_position = null_source_position;
+  cp->range.end_position   = null_source_position;
 
   return cp;
 }  /* alloc_comment */
@@ -7796,8 +7796,7 @@ of the front end.
   def_source_corresp.assoc_info = NULL;
   def_source_corresp.name = NULL;
   def_source_corresp.class_of_which_a_member = NULL;
-  def_source_corresp.decl_position.seq = 0;
-  def_source_corresp.decl_position.column = SP_COL_UNKNOWN;
+  def_source_corresp.decl_position = null_source_position;
   /* access is set to "public" because "no access restriction" is the default
      for everything except class members.  For the latter the field must be
      set manually. */

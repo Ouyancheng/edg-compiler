@@ -424,6 +424,14 @@ following, indicating something special:
 /* Macro to copy a source position. */
 #define copy_source_position(from, to) ((to) = (from))
 
+EXTERN a_source_position
+		null_source_position
+#if VAR_INITIALIZERS
+                                     = { 0, SP_COL_UNKNOWN }
+#endif /* VAR_INITIALIZERS */
+                                                            ;
+			/* NULL source position, for initialization. */
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
