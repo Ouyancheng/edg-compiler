@@ -1345,11 +1345,11 @@ literals.
     str = "__tm__";
   }  /* if */
   add_str_to_mangled_name(str, mctl);
-#if ABI_COMPATIBILITY_VERSION < 246
+#if ABI_COMPATIBILITY_VERSION > 245
   /* Suppress information on partial specializations in any parent types
      referenced in the template arguments. */
   mctl->suppress_partial_spec_args = TRUE;
-#endif /* ABI_COMPATIBILITY_VERSION < 246 */
+#endif /* ABI_COMPATIBILITY_VERSION > 245 */
   /* Run through the template argument list, determining the representation
      for each argument.  The first time through, determine the size;
      the second, put out the string. */
