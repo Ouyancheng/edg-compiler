@@ -18,8 +18,8 @@ similar to that in real declarators -- a parameter name can be referenced
 in a subsequent parameter declaration (e.g., in a sizeof expression) and
 duplicate parameter names are reported as errors.  Examples:
 
-  void (pf1) (int x, int array[sizeof(x)]);   // Now supported
-  void (pf2) (int x, int x);                  // Now reported
+  void (*pf1) (int x, int array[sizeof(x)]);   // Now supported
+  void (*pf2) (int x, int x);                  // Now reported
 
 4/9/93  More information about friend declarations in the IL
 
