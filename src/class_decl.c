@@ -4934,8 +4934,10 @@ destructors, assignment operators, and conversion functions.
   if (!have_access_to_symbol(sym)) {
     pos_sy_error(ec_inaccessible_special_function, err_pos, sym);
   }  /* if */
-  /* Mark the IL entry referenced. */
+  /* Mark the IL entry as referenced. */
   rp->source_corresp.referenced = TRUE;
+  /* Mark the IL entry as called. */
+  rp->called = TRUE;
    /* Mark the routine's class as referenced. */
   sym->class_of_which_a_member->source_corresp.referenced = TRUE;
   /* If necessary, create the function body for a compiler generated

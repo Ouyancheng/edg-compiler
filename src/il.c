@@ -5406,6 +5406,11 @@ is invalid (i.e., incomplete); an error node is returned for that case.
     pos_error(ec_incomplete_return_type_not_allowed, err_pos);
     call_node = error_node();
   } else {
+    if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
+      /* We know which routine is being called.  Set its called flag. */
+      a_routine_ptr routine = function_node->variant.routine;
+      routine->called = TRUE;
+    }  /* if */
     rtsp = function_type->variant.routine.extra_info;
     /* If the function is one for which the caller must supply a place for
        the result, allocate a temporary for that and insert it into the

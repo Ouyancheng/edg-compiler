@@ -4134,6 +4134,8 @@ As an anachronism, allow an expression inside the [ ].
         /* The delete routine is actually being called. */
         /* Mark the routine referenced. */
         mark_routine_referenced(delete_routine, &delete_position);
+        /* Mark the routine as called. */
+        delete_routine->called = TRUE;
         /* If the delete routine is one with two arguments, pass the size
            of the entity as the second argument. */
         delete_routine_rtsp = f_skip_typerefs(delete_routine->type)->

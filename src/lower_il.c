@@ -2624,6 +2624,7 @@ if the routine is virtual.
   /* Make a node for the address of the routine. */
   rout_node = function_addr_expr(routine);
   routine->source_corresp.referenced = TRUE;
+  routine->called = TRUE;
   rout_node->next = arg_list;
   /* Make the call node. */
   rout_type = skip_typerefs(routine->type);
