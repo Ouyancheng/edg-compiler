@@ -4059,6 +4059,7 @@ conversions.
           } else {
             /* Any other use of a bound function.  Error. */
             error_in_operand(ec_bound_function_must_be_called, operand);
+            operand->bound_function = FALSE;
           }  /* if */
         } else if (is_void_type(type_cast_to)) {
           /* Anything --> void, allowed. */
@@ -6558,6 +6559,7 @@ bad_start_of_primary:
         /* The bound function is about to be the operand of some
            operation other than a call, so there's a problem. */
         error_in_operand(ec_bound_function_must_be_called, &local_result);
+        local_result.bound_function = FALSE;
       }  /* if */
     }  /* if */
 
@@ -6677,6 +6679,7 @@ bad_start_of_primary:
     if (!(local_options & EOPT_ALLOW_BOUND_FUNCTION)) {
       /* Bound function not allowed. */
       error_in_operand(ec_bound_function_must_be_called, &local_result);
+      local_result.bound_function = FALSE;
     } else {
       /* Bound function allowed.  Return the operand for the object to
          which the function is bound in *bound_function_selector. */
