@@ -1749,6 +1749,18 @@ information should be ignored or if an error should be issued.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Macro that returns TRUE if the current token is the start of a pointer
+operator (*, &, or ptr-to-member).
+*/
+#define curr_token_is_ptr_operator()					\
+  (curr_token == tok_star ||						\
+   (curr_token == tok_ampersand && reference_allowed) ||		\
+   (!C_mode() && is_ptr_to_member_declarator_start()))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- because call_conv_allowed, p_calling_convention,
                     and p_unbound_calling_convention are only used when
@@ -1837,9 +1849,10 @@ are NULL.
        on successive iterations. */
     a_boolean	get_token_needed = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean	first_call_conv_allowed;
+    a_boolean	initial_call_conv_or_nonstd_qualifier_allowed;
+    a_boolean	is_nonstd_qualifier = FALSE;
     /* Set a flag that indicates this is the first pass through the loop. */
-    first_call_conv_allowed = first_loop;
+    initial_call_conv_or_nonstd_qualifier_allowed = first_loop;
     first_loop = FALSE;
     is_call_conv = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1932,25 +1945,18 @@ are NULL.
     } else if (is_microsoft_calling_convention()) {
       /* A Microsoft calling convention specifier. */
       a_call_conv_descr		ccd;
-      a_boolean			next_token_is_ptr_operator = FALSE;
       is_call_conv = TRUE;
       ccd.position = pos_curr_token;
       ccd.call_conv = scan_microsoft_qualifiers();
-      /* See if the next token is another pointer operator. */
-      if (curr_token == tok_star ||
-          (curr_token == tok_ampersand && reference_allowed) ||
-          (!C_mode() && is_ptr_to_member_declarator_start())) {
-        next_token_is_ptr_operator = TRUE;
-      }  /* if */
       /* Check for an calling convention used where none is allowed. */
       if (!call_conv_allowed) {
         pos_diagnostic(es_discretionary_error,
                        ec_calling_convention_not_allowed,
                        &ccd.position);
-      } else if (next_token_is_ptr_operator) {
-        /* The next token is another pointer operator so we know that
+      } else if (curr_token_is_ptr_operator()) {
+        /* Another pointer operator is next so we know that
            this is not an unbound calling convention. */
-        if (first_call_conv_allowed) {
+        if (initial_call_conv_or_nonstd_qualifier_allowed) {
           if (specifiers_type != NULL) {
             /* A specifiers type was present, the calling convention may
                be applied immediately. */
@@ -1979,7 +1985,21 @@ are NULL.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Not a pointer, reference, or pointer-to-member declarator. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* In Microsoft mode we can fall through into the qualifier processing
+         section if no pointer operators were found.  This is only done when
+         complete_type is non-null because Microsoft does not allow the
+         nonstandard qualifiers in nested declarators. */
+      if (!microsoft_mode || !initial_call_conv_or_nonstd_qualifier_allowed ||
+          !is_type_qualifier() || complete_type == NULL) break;
+      is_nonstd_qualifier = TRUE;
+      /* Suppress the get_token() that is normally done before scanning
+         the qualifiers below, as this will have been done when scanning
+         the Microsoft qualifiers. */
+      get_token_needed = FALSE;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
       break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Take a type qualifier list (const, volatile, or both) if one appears. */
     if (get_token_needed) (void)get_token();
@@ -1996,6 +2016,11 @@ are NULL.
            what, if anything, this should mean.  They are discarded. */
         continue;
       }  /* if */
+      /* If this is a nonstandard initial qualifier, like the const in
+         "int i, const j", it can only be applied if it appears by itself
+         with no pointer operator following it.  If a pointer operator
+         follows, it is discarded. */
+      if (is_nonstd_qualifier && curr_token_is_ptr_operator()) continue;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if RESTRICT_ALLOWED
       /* Check for invalid use of the restrict qualifier. */
