@@ -8681,9 +8681,9 @@ static void eliminate_unneeded_class_definitions(a_type_ptr  class_type)
         eliminate_unneeded_class_definitions(tp);
       }  /* if */
     }  /* for */
-    if (!class_type->variant.class_struct_union.definition_needed) {
-      turn_class_definition_into_declaration(class_type);
-    }  /* if */
+  }  /* if */
+  if (!class_type->variant.class_struct_union.definition_needed) {
+    turn_class_definition_into_declaration(class_type);
   }  /* if */
 }  /* eliminate_unneeded_class_definitions */
 
@@ -8869,11 +8869,9 @@ eliminated, if appropriate.
         tp->variant.class_struct_union.extra_info = NULL;
       }  /* if */
     } else {
-#if 0 /* Disabled temporarily. */
       if (is_immediate_class_type(tp)) {
         eliminate_unneeded_class_definitions(tp);
       }  /* if */
-#endif /* 0 */
       prev_tp = tp;
     }  /* if */
   }  /* for */
