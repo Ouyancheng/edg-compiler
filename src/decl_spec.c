@@ -4003,7 +4003,8 @@ decl_specifiers.
            applies to explicitly signed short, long, and long long. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode && microsoft_version >= 1200 &&
-            (int)size >= (int)size_int8 && (int)size <= (int)size_int64) {
+            (int)size >= (int)size_int8 &&
+            (int)size <= (int)size_int64) { /*lint !e685*/
           *type_ptr = microsoft_sized_signed_integer_type(
                                                       (an_integer_kind)ikind);
         } else
@@ -4015,7 +4016,8 @@ decl_specifiers.
       } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode && microsoft_version >= 1200 &&
-            (int)size >= (int)size_int8 && (int)size <= (int)size_int64) {
+            (int)size >= (int)size_int8 &&
+            (int)size <= (int)size_int64) { /*lint !e685*/
           *type_ptr = microsoft_sized_integer_type((an_integer_kind)ikind);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -1191,7 +1191,7 @@ declaration.
        (i.e., calling conventions). */
     check_assertion(!C_mode() &&
                     extra_info->routine_name_linkage >
-                                      (a_name_linkage_kind)nlk_last_standard);
+                        (a_name_linkage_kind)nlk_last_standard); /*lint !e685*/
     extra_info->routine_name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
   }  /* if */

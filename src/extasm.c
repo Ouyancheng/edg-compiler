@@ -711,7 +711,7 @@ extended asm statements.
   regmap = (struct name_to_reg *)alloc_general(
                          (sizeof_t)(regmap_size * sizeof(struct name_to_reg)));
   /* Start with i = 1 since anr_invalid is not copied. */
-  for (i = 1; i < (int)anr_last; i++) {
+  for (i = 1; i < (int)anr_last; i++) { /*lint !e681*/
     regmap[i-1].name = named_register_names[i];
     regmap[i-1].reg = i;
   }  /* for */

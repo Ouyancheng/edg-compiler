@@ -16167,7 +16167,7 @@ were entered in the hash table; otherwise returns FALSE.
     /* If the file does not exist, the open routine will return FALSE. */
     /* Skip over initial lines of the instantiation request file
        that don't contain instantiation entries. */
-    for (i = 1; i <= INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
+    for (i = 1; i <= INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {/*lint !e681*/
       /* Read and discard the line. */
       (void)read_line_from_file(f_instantiation_request);
     }  /* if */
