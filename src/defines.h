@@ -109,7 +109,9 @@ Flags to be set when using the KAI inliner.
 #define MAINTAIN_NEEDED_FLAGS 1
 #endif /* ifndef MAINTAIN_NEEDED_FLAGS */
 #ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES
+#if MAINTAIN_NEEDED_FLAGS
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES 1
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
 
 #endif /* !defined(OPTIMIZED_VERSION) */
