@@ -1720,6 +1720,10 @@ translation unit correspondence pointer if one is found.
     record_trans_unit_corresp(nsp, primary_std_namespace);
   } else {
     a_symbol_ptr  sym = nsp_sym->header->inactive_symbols;
+    if (trans_unit_corresp_pointer_of(nsp) == NULL) {
+      /* Mark this namespace as visited to avoid infinite recursion. */
+      set_no_trans_unit_corresp(nsp);
+    }  /* if */
     for (; sym != NULL; sym = sym->next) {
       if (sym->decl_scope != nsp_sym->decl_scope &&
           may_have_correspondence(sym) &&
@@ -1729,6 +1733,8 @@ translation unit correspondence pointer if one is found.
         if (is_namespace_symbol(sym) &&
             sym->variant.namespace_info.ptr->is_namespace_alias ==
                                                     nsp->is_namespace_alias) {
+          /* Mark as unvisited. */
+          trans_unit_corresp_pointer_of(nsp) = NULL;
           /* Record the correspondence. */
           record_trans_unit_corresp(nsp, sym->variant.namespace_info.ptr);
           break;
@@ -1738,10 +1744,6 @@ translation unit correspondence pointer if one is found.
         }  /* if */
       }  /* if */
     }  /* for */
-    if (trans_unit_corresp_pointer_of(nsp) == NULL) {
-      /* Mark this namespace as visited. */
-      set_no_trans_unit_corresp(nsp);
-    }  /* if */
   }  /* if */
 }  /* find_namespace_correspondence */
 
