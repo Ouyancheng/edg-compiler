@@ -1924,9 +1924,9 @@ checking instead of equivalence checking).
   if (type_1 == type_2) {
     equiv = TRUE;
   } else if (mem_region_table[NULL_region_number] == NULL) {
-     /* We are being called after fe_wrapup was called.  Proxy classes are
-        not a consideration.  The field source_corresp.assoc_info points
-        into freed memory. */
+    /* We are being called after fe_wrapup was called.  Proxy classes are
+       not a consideration.  The field source_corresp.assoc_info points
+       into freed memory. */
   } else {
     /* The pointers aren't the same, so the classes probably aren't
        equivalent, but do some special checking. */
