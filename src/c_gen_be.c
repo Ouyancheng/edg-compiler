@@ -1232,11 +1232,12 @@ static void dump_type_first_part(a_type_ptr type,
 Print the first of possibly two parts of a type reference.
 */
 {
-  a_type_ptr local_type;
+  a_type_ptr qual_type, local_type;
 
-  /* For the pointer case, ignore any typerefs that provide qualifiers
-     on the indirection. */
-  if (is_pointer_type(type)) {
+  /* Remove type qualifiers but not typedefs. */
+  qual_type = type;
+  type = unqualified_display_type(type);
+  if (type->kind == (a_type_kind)tk_pointer) {
     local_type = type_pointed_to(type);
     /* Recursive call to print out any lower indirections. */
     dump_type_first_part(local_type,
@@ -1245,7 +1246,7 @@ Print the first of possibly two parts of a type reference.
     /* Print out the star for this indirection. */
     fputc('*', f_C_output);
 #ifdef CFE
-    dump_type_qualifier(type, need_trailing_space);
+    dump_type_qualifier(qual_type, need_trailing_space);
 #endif /* ifdef CFE */
     if (need_paren) fputc('(', f_C_output);
   } else if (type->kind == (a_type_kind)tk_routine) {
@@ -1320,7 +1321,7 @@ Print the first of possibly two parts of a type reference.
 #endif /* ifdef FFE */
   } else {
 #ifdef CFE
-    dump_type_qualifier(type, /*need_trailing_space=*/TRUE);
+    dump_type_qualifier(qual_type, /*need_trailing_space=*/TRUE);
 #endif /* ifdef CFE */
     dump_type_specifier(type);
     if (need_trailing_space) fputc(' ', f_C_output);
@@ -1676,9 +1677,9 @@ function definition with a body (this controls dumping of parameters).
 {
   a_type_ptr local_type;
 
-  /* For the pointer case, ignore any typerefs that provide qualifiers
-     on the indirection. */
-  if (is_pointer_type(type)) {
+  /* Drop type qualifiers but not typedefs. */
+  type = unqualified_display_type(type);
+  if (type->kind == (a_type_kind)tk_pointer) {
     local_type = skip_typerefs(type);
     if (need_paren) fputc(')', f_C_output);
     dump_type_second_part(type_pointed_to(local_type),
