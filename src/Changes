@@ -1,5 +1,18 @@
 Version 2.40
 
+9/1/98    Reference initialized to static member function in overload set
+
+The processing to determine which member of a set of overloaded
+functions should be used when a reference is initialized did not
+work correctly for cases involving static member functions.  Now
+fixed.
+
+  struct A {
+    static int f(int);
+    static int f(short);
+  };
+  int (&r)(int) = A::f;
+
 8/19/98   Implicit return type on "main"
 
 In C++ mode a diagnostic is now issued on declarations of "main" with no

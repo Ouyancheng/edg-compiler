@@ -171,7 +171,8 @@ cast.
              dropped. */
           if (identical_types(routine_type, dest_underlying_type)) {
             if (dest_class ==
-                   (sym->is_class_member ? sym->parent.class_type : NULL)) {
+                   (routine_type_is_nonstatic_member_function(routine_type) ?
+                                              sym->parent.class_type : NULL)) {
               /* Exact match. */
               match_sym = proj_sym;
               *match_level = aml_exact;
@@ -249,19 +250,14 @@ cast.
         } else {
           /* Not a function template (i.e., a normal function). */
           routine_type = routine_symbol_type(sym);
-          if (is_ptr) {
-            ptr_routine_type = make_pointer_type(routine_type);
+          if (routine_type_is_nonstatic_member_function(routine_type)) {
+            /* The class of the pointer to member is always the class in
+               which the function is defined, not any derived class
+               indicated in the projection symbol. */
+            ptr_routine_type = ptr_to_member_type(routine_type,
+                                                  sym->parent.class_type);
           } else {
-            if (!sym->is_class_member) {
-              /* Can't match a non-member function to a pointer to member. */
-              ptr_routine_type = NULL;
-            } else {
-              /* The class of the pointer to member is always the class in
-                 which the function is defined, not any derived class
-                 indicated in the projection symbol. */
-              ptr_routine_type = ptr_to_member_type(routine_type,
-                                                    sym->parent.class_type);
-            }  /* if */
+            ptr_routine_type = make_pointer_type(routine_type);
           }  /* if */
           /* See if the type of the function can be converted to the required
              destination type.  For the explicit cast case, use
@@ -362,7 +358,7 @@ param_type.
       } else {
         /* Not a function template. */
         a_type_ptr routine_type = routine_symbol_type(sym), ptr_routine_type;
-        if (sym->is_class_member) {
+        if (routine_type_is_nonstatic_member_function(routine_type)) {
           ptr_routine_type = ptr_to_member_type(routine_type,
                                                 sym->parent.class_type);
         } else {
