@@ -697,14 +697,15 @@ itself recursively to process classes nested within this class.
   /* The assoc_scope pointer can be NULL if errors occurred during the
      instantiation of the class. */
   if (ctsp->assoc_scope != NULL) {
-    /* Function instantiation entries are not marked for actual instantiation
-       (that is, for generation of the function body) until there is an
-       invocation of the function.  (Note: if the function is virtual, it is
-       marked for instantiation when a constructor is defined for the class,
-       i.e., when it is determined that a virtual function table will be put
-       out.)  All instances are placed on the instantiation list.  In tim_all
-       mode the instantiations will be generated even if the instantiation
-       required flag is not set. */
+    /* Function instantiation entries are put on the list, but are not
+       marked for actual instantiation (that is, for generation of the
+       function body) at this time.  That will happen if/when there
+       is an invocation of the function, except if the function is virtual,
+       in which case it is marked for instantiation when a constructor
+       or destructor is defined for the class, i.e., when it is determined
+       that a virtual function table might be put out.  All instances are
+       placed on the instantiation list.  In tim_all mode the instantiations
+       will be generated even if the instantiation required flag is not set. */
     rout = ctsp->assoc_scope->routines;
     while (rout != NULL) {
       sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
@@ -788,27 +789,36 @@ itself recursively to process classes nested within this class.
 }  /* set_instantiation_required_for_template_class_members */
 
 
-void set_instantiation_required_for_virtual_functions(a_type_ptr  class_type)
+static void set_instantiation_required_on_routine_list(
+                              a_type_ptr                         class_type,
+                              an_overriding_virtual_function_ptr override_list)
 /*
-Calls update_instantiation_required_flag for all virtual functions that are
-members of the specified class, which is a class template instance.  This
-routine is called when a constructor body is scanned for the class (on the
-assumption that, if no constructor is defined in a given translation unit,
-no virtual function table will be defined, either).
+Set the instantiation-required flag on the virtual functions of the indicated
+class, if it is a template class.  Do not set the flag on any functions
+that are indicated as overridden on the override_list.
 */
 {
-  a_routine_ptr            rp;
-  a_symbol_ptr		   sym;
-  a_template_instance_ptr  tip;
-
-  check_assertion(class_type->variant.class_struct_union.is_template_class);
-  if (!class_type->variant.class_struct_union.is_specialized &&
+  if (class_type->variant.class_struct_union.is_template_class &&
+      !class_type->variant.class_struct_union.is_specialized &&
       class_type->variant.class_struct_union.any_virtual_functions) {
-    /* Loop through the routines list and check the virtual functions. */
-    rp = class_type->
-           variant.class_struct_union.extra_info->assoc_scope->routines;
+    /* Look for virtual functions on the class routines list. */
+    a_routine_ptr rp = class_type->variant.class_struct_union.extra_info->
+                                                         assoc_scope->routines;
     for (; rp != NULL; rp = rp->next) {
       if (rp->is_virtual) {
+        an_overriding_virtual_function_ptr ovfp;
+        a_symbol_ptr                       sym;
+        a_template_instance_ptr            tip;
+
+        for (ovfp = override_list; ovfp != NULL; ovfp = ovfp->next) {
+          if (ovfp->primary_function == rp) {
+            /* This function is overridden and therefore not in the set
+               of functions that can get called for an object of the
+               most-derived class type we are considering. */
+            goto next_function;
+          }  /* if */
+        }  /* for */
+        /* The function could be called, so mark it to be instantiated. */
         sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
         tip = sym->variant.routine.instance_ptr;
         if (tip != NULL && !tip->instantiation_required) {
@@ -817,6 +827,40 @@ no virtual function table will be defined, either).
                                              /*defer_inline=*/TRUE);
         }  /* if */
       }  /* if */
+next_function:;
+    }  /* for */
+  }  /* if */
+}  /* set_instantiation_required_on_routine_list */
+
+
+void set_instantiation_required_for_virtual_functions(a_type_ptr  class_type)
+/*
+Call update_instantiation_required_flag for all virtual functions that are
+members of the specified class, or are members of base classes and
+not overridden.  This routine is called when a constructor or
+destructor body is scanned for the class, on the assumption that the
+constructor or destructor will be referencing the virtual function
+table, and therefore the functions pointed to by the virtual function
+table will be needed.  class_type may be a non-template class; such
+classes still need to be processed because they might have base classes
+that are templates.
+*/
+{
+  a_base_class_ptr bcp;
+  a_class_type_supplement_ptr
+                   ctsp = class_type->variant.class_struct_union.extra_info;
+
+  if (class_type->variant.class_struct_union.
+                             any_virtual_functions_including_in_base_classes) {
+    /* Loop through the routines list and check the virtual functions. */
+    set_instantiation_required_on_routine_list(
+                                     class_type,
+                                     (an_overriding_virtual_function_ptr)NULL);
+    /* Do the same for base class virtual functions that are not overridden. */
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      set_instantiation_required_on_routine_list(
+                                            bcp->type,
+                                            bcp->overriding_virtual_functions);
     }  /* for */
   }  /* if */
 }  /* set_instantiation_required_for_virtual_functions */

@@ -1039,16 +1039,15 @@ and for the instantiation of template functions.
   if (is_instantiation &&
       (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor ||
        rout_ptr->special_kind == (a_special_function_kind)sfk_destructor)) {
-    /* If the current class is a template instance, set the
-       instantiation_required flag for each of its virtual functions (since
-       they will be needed for the virtual function table, which may end up
-       being defined in this translation unit).  The constructor and
-       destructor wrapper code may be expected to reference the virtual
-       function table. */
+    /* Set the instantiation_required flag for each of the virtual functions
+       of the class (since they will be needed for the virtual function
+       table, which may end up being defined in this translation unit).
+       The constructor and destructor wrapper code may be expected to
+       reference the virtual function table.  This is done even if the
+       class is not itself a template, because it may have base classes
+       that are templates and define non-overridden virtual functions. */
     check_assertion(class_type != NULL);
-    if (class_type->variant.class_struct_union.is_template_class) {
-      set_instantiation_required_for_virtual_functions(class_type);
-    }  /* if */
+    set_instantiation_required_for_virtual_functions(class_type);
   }  /* if */
   if (!is_instantiation) {
     /* For templates, the class and/or namespace scopes are pushed and
@@ -1641,15 +1640,15 @@ will return a pointer to the constructed object.
   scope->assoc_block->variant.block.statements = sp =
           alloc_statement((a_statement_kind)stmk_return);
   sp->expr = this_param_value_expr();
-  /* If the current class is a template instance, set the
-     instantiation_required flag for each of its virtual functions (since
-     they will be needed for the virtual function table, which may end up
-     being defined in this translation unit).  The constructor wrapper may
-     be expected to reference the virtual function table. */
+  /* Set the instantiation_required flag for each of the virtual functions
+     of the class (since they will be needed for the virtual function
+     table, which may end up being defined in this translation unit).
+     The constructor wrapper may be expected to reference the virtual
+     function table.  This is done even if the class is not itself a
+     template, because it may have base classes that are templates
+     and define non-overridden virtual functions. */
   class_type = rp->source_corresp.parent.class_type;
-  if (class_type->variant.class_struct_union.is_template_class) {
-    set_instantiation_required_for_virtual_functions(class_type);
-  }  /* if */
+  set_instantiation_required_for_virtual_functions(class_type);
   db_exit();
 }  /* make_default_constructor_body */
 
@@ -1671,15 +1670,15 @@ Create the body for a default destructor.  It will return no value.
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block->variant.block.statements =
           alloc_statement((a_statement_kind)stmk_return);
-  /* If the current class is a template instance, set the
-     instantiation_required flag for each of its virtual functions (since
-     they will be needed for the virtual function table, which may end up
-     being defined in this translation unit).  The destructor wrapper may
-     be expected to reference the virtual function table. */
+  /* Set the instantiation_required flag for each of the virtual functions
+     of the class (since they will be needed for the virtual function
+     table, which may end up being defined in this translation unit).
+     The destructor wrapper may be expected to reference the virtual
+     function table.  This is done even if the class is not itself a
+     template, because it may have base classes that are templates and
+     define non-overridden virtual functions. */
   class_type = rp->source_corresp.parent.class_type;
-  if (class_type->variant.class_struct_union.is_template_class) {
-    set_instantiation_required_for_virtual_functions(class_type);
-  }  /* if */
+  set_instantiation_required_for_virtual_functions(class_type);
   db_exit();
 }  /* make_default_destructor_body */
 

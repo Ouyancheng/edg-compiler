@@ -199,6 +199,11 @@ that A<int>::f was not marked for instantiation when A<int>::~A() was
 instantiated; normally the bug would be masked by the instantiation of a
 constructor, but in this case no A<int> constructor is needed.
 
+(11/25/97:) A further change.  The set of virtual functions in
+the virtual function table can include non-overridden functions
+from base classes, so the processing needs to mark such functions
+to be instantiated also.
+
 11/12/97  extern "C" declaration inhibits generation of PCH file
 
 When the last declaration in a header file had an explicit linkage
