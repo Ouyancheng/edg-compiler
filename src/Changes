@@ -1,5 +1,17 @@
 Version 2.46
 
+7/27/01  Precision of output of long double constants, with 128-bit
+         long doubles
+
+The change of 2/9/01 to add one more digit of precision on output
+of long doubles caused a small amount of grief on versions hosted
+on Solaris and generating compilable output to be processed
+by the Sun C++ compiler.  The value of LDBL_MIN as converted
+with the new length is not accepted by that compiler.  That's
+probably a bug in the Sun compiler, but to avoid it we have
+restored the old (one smaller) precision for hosts with
+LDBL_DIG > 30 (i.e., 128-bit long double).
+
 7/26/01  IL lowering of compound assignments to bool variables
 
 IL lowering now generates extra code to ensure that the result of

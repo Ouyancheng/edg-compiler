@@ -1224,7 +1224,13 @@ be NULL if the corresponding return value is not needed.
   } else if (kind == (a_float_kind)fk_double) {
     (void)sprintf(str, "%.18Le", temp);
   } else {
-    (void)sprintf(str, "%.*Le", LDBL_DIG + 1, temp);
+    /* In theory LDBL_DIG digits should be enough as the precision,
+       but LDBL_DIG+1 seems to help on some systems.  However, on Solaris,
+       with 128-bit long doubles, LDBL_DIG+1 hits the conversion of
+       LDBL_MIN in a funny place with regard to rounding and the Sun CC
+       compiler doesn't accept that value converted in that way.  So on
+       systems with 128-bit long double, just stick with LDBL_DIG. */
+    (void)sprintf(str, "%.*Le", (LDBL_DIG>30) ? LDBL_DIG : LDBL_DIG + 1, temp);
   }  /* if */
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   if (kind == (a_float_kind)fk_float) {
