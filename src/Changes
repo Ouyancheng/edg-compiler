@@ -1,5 +1,10 @@
 Version 3.2
 
+2/5/03   Microsoft compatibility: argument-dependent lookup
+
+Argument-dependent lookup is enabled when microsoft_version is >= 1310 (i.e.,
+for MSVC++ version 7.1 and above).
+
 2/5/03   Deduction should fail if creating a void parameter type
 
 An attempt to create a void parameter type as a result of template argument

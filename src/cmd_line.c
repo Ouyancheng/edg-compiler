@@ -1483,7 +1483,10 @@ by a command line option.
     if (!option_kind_used[(int)optk_class_name_injection]) {
       class_name_injection_enabled = TRUE;
     }  /* if */
-    if (!option_kind_used[(int)optk_arg_dependent_lookup]) {
+    if (!option_kind_used[(int)optk_arg_dependent_lookup] &&
+        microsoft_version < 1310) {
+      /* MSVC++ versions before 7.1 did not support argument-dependent
+         lookup. */
       arg_dependent_lookup_enabled = FALSE;
     }  /* if */
     if (!option_kind_used[(int)optk_friend_injection]) {
