@@ -1901,12 +1901,14 @@ Dump an enum.  Print the associated source name if there is one.
 #ifdef CFE
 
 static void dump_field_padding(a_targ_size_t    curr_offset,
+                               a_field_ptr      prev_field,
                                a_targ_alignment next_field_alignment,
                                a_byte           next_field_bit_size,
                                a_targ_size_t    next_field_offset)
 /*
 Output any declarations required to do padding between fields in a struct.
-The current bit offset in the struct is given by curr_offset.  The next field
+The current bit offset in the struct is given by curr_offset.  The previous
+field is given by prev_field (NULL if this is the first field).  The next field
 must be at bit offset next_field_offset, and that field has alignment
 as given by next_field_alignment and a bit size if a bit-field given
 by next_field_bit_size.  Note that in pcc mode there may be gaps caused
@@ -1954,11 +1956,25 @@ by unnamed non-bit-fields.
         /* Fill out the right number of full bytes. */
         a_targ_size_t num_bytes = (next_field_offset - curr_offset) /
                                   TARG_CHAR_BIT;
-        startline((a_seq_number)0);
-        (void)fprintf(f_C_output, "char __FILL_AT_%lu[%lu];",
-                      (unsigned long)(curr_offset / TARG_CHAR_BIT),
-                      (unsigned long)num_bytes);
-        curr_offset += num_bytes * TARG_CHAR_BIT;
+        if (((prev_field != NULL && prev_field->bit_size != 0) ||
+             next_field_bit_size != 0) &&
+            num_bytes < TARG_MAX_BIT_FIELD_SIZE) {
+          /* This gap is adjacent to a bit field, so put it out in bit-field
+             form. */
+          for (; num_bytes > 0; num_bytes--) {
+            startline((a_seq_number)0);
+            (void)fprintf(f_C_output, "unsigned int :%d;", (int)TARG_CHAR_BIT);
+            curr_offset += TARG_CHAR_BIT;
+          }  /* for */
+        } else {
+          /* The gap is not adjacent to a bit field, so put it out as an
+             array of characters. */
+          startline((a_seq_number)0);
+          (void)fprintf(f_C_output, "char __FILL_AT_%lu[%lu];",
+                        (unsigned long)(curr_offset / TARG_CHAR_BIT),
+                        (unsigned long)num_bytes);
+          curr_offset += num_bytes * TARG_CHAR_BIT;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (curr_offset != next_field_offset) {
@@ -1981,7 +1997,7 @@ Print a struct declaration.  Print the associated source name if there is one.
 Dump the definition ({...}) if body is TRUE.
 */
 {
-  a_field_ptr   field;
+  a_field_ptr   field, prev_field;
   a_targ_size_t curr_offset = 0;
 
   if (body && type->size == 0) {
@@ -1992,11 +2008,12 @@ Dump the definition ({...}) if body is TRUE.
     if (body) {
       fputs(" {", f_C_output);
       field = type->variant.class_struct_union.field_list;
+      prev_field = NULL;
       indent += 2;
       while (field != NULL) {
         /* Output a field to do necessary alignment if this field is not
            right after the previous field. */
-        dump_field_padding(curr_offset, field->type->alignment,
+        dump_field_padding(curr_offset, prev_field, field->type->alignment,
                            field->bit_size, field->bit_offset);
         startline(field->source_corresp.decl_position.seq);
         if (field->bit_size == 0) {
@@ -2032,10 +2049,11 @@ Dump the definition ({...}) if body is TRUE.
           /* Non bit-field. */
           curr_offset += skip_typerefs(field->type)->size * TARG_CHAR_BIT;
         }  /* if */
+        prev_field = field;
         field = field->next;
       }  /* while */
       /* Do any alignment required at the end. */
-      dump_field_padding(curr_offset, type->alignment, (a_byte)0,
+      dump_field_padding(curr_offset, prev_field, type->alignment, (a_byte)0,
                          type->size*TARG_CHAR_BIT);
       indent -= 2;
       startline((a_seq_number)0);
