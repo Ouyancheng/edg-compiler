@@ -6936,6 +6936,24 @@ completed (C++ only).
                C++, namely an unnamed class/struct/union type, possibly
                represented by a typedef name, whose subfields are to be
                visible as though they were fields of the current class. */
+            if (is_nonstd_anonymous_union &&
+                member_type->kind == (a_type_kind)tk_typeref) {
+              /* This is a case in which a struct is incorporated into
+                 another by means of a typeref reference -- e.g.,
+                   typedef struct { int i,j } S;
+                   struct X {
+                     S;   // has the effect of making i and j members of X
+                   };
+                 It's only possible in C mode. */
+              a_symbol_ptr  sym = (a_symbol_ptr)(member_type)->
+                                             source_corresp.assoc_info;
+              check_assertion(C_mode() && has_name(member_type));
+              if (sym != NULL) {
+                record_symbol_declaration(SRK_DECLARATION, sym,
+                                          &decl_start_pos,
+                                          (a_source_sequence_entry_ptr)NULL);
+              }  /* if */
+            }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
             is_anonymous_union = TRUE;
             /* Set the IL referenced flag for the anonymous union type. */
@@ -7037,7 +7055,8 @@ completed (C++ only).
           }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (local_declares_something || local_defines_something ||
-              is_anonymous_union) {
+              (is_anonymous_union &&
+               member_type->kind != (a_type_kind)tk_typeref)) {
             /* This is a free-standing declaration of a class, struct,
                union, or enum. */
             set_autonomous_tag_decl_flag(member_type,
