@@ -24,6 +24,7 @@ typedef struct a_macro_param   *a_macro_param_ptr;
 typedef struct a_macro_def     *a_macro_def_ptr;
 
 /* Some other things declared up front to avoid mutual recursion problems. */
+
 /* Type of a scope nesting depth.  This is the depth within the scope_stack. */
 typedef int	a_scope_depth;
 
@@ -36,6 +37,25 @@ typedef int	a_scope_depth;
 error -- DEPTH_OF_FILE_SCOPE is not defined correctly.
 #endif /* DEPTH_OF_FILE_SCOPE != 0 */
 #endif /* ifndef DEPTH_OF_FILE_SCOPE */
+
+/*
+Options for normal_id_lookup, scope_qualified_id_lookup, etc.,
+represented as a bit set:
+*/
+typedef int an_id_lookup_options_set;
+#define IDL_MUST_BE_CLASS 0x1	/* The symbol must be a class, struct, or
+				   union name, or a typedef of one of those. */
+#define IDL_MUST_BE_TAG 0x2	/* The symbol must be a class, struct, union,
+				   or enum (not a typedef of one of those). */
+#define IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL 0x4
+				/* Suppress the check for ambiguity and
+				   the access control check. */
+#define IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL 0x8
+				/* It's okay to return an sk_projection symbol.
+				   Ordinarily, such symbols are reduced to
+				   the original symbol they reference. */
+#define IDL_NO_OPTIONS 0	/* No special lookup options. */
+
 
 #ifndef LEXICAL_H
 #include "lexical.h"
@@ -765,23 +785,6 @@ and call a subroutine for class members.
 }  /* check_ambiguity_and_verify_access */
 
 
-/*
-Options for normal_id_lookup, scope_qualified_id_lookup, etc.,
-represented as a bit set:
-*/
-typedef int an_id_lookup_options_set;
-#define IDL_MUST_BE_CLASS 0x1	/* The symbol must be a class, struct, or
-				   union name, or a typedef of one of those. */
-#define IDL_MUST_BE_TAG 0x2	/* The symbol must be a class, struct, union,
-				   or enum (not a typedef of one of those). */
-#define IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL 0x4
-				/* Suppress the check for ambiguity and
-				   the access control check. */
-#define IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL 0x8
-				/* It's okay to return an sk_projection symbol.
-				   Ordinarily, such symbols are reduced to
-				   the original symbol they reference. */
-#define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                                      an_id_lookup_options_set options);
