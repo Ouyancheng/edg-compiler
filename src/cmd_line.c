@@ -907,6 +907,14 @@ Initialize the option information table.
                          "no_sun",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_sun_linker_scope,
+                         "sun_linker_scope",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_sun_linker_scope,
+                         "no_sun_linker_scope",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* SUN_EXTENSIONS_ALLOWED */
   add_option_description(optk_dependent_name_processing,
                          "dep_name",
@@ -2524,7 +2532,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
 
 static void check_and_set_sun_mode_options(void)
 /*
-Set the option needed to emulate the peculiarities of the Sun CC 5.0 compiler,
+Set the option needed to emulate the peculiarities of the Sun CC 5.x compiler,
 and check that no other modes conflict with this one.  (The processing of
 some modes, like ANSI, exclude the Sun mode already.  Hence those are not
 checked again here.)
@@ -2702,6 +2710,23 @@ was selected either.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* exclude_gnu_specific_options */
+
+
+static void exclude_sun_specific_options(void)
+/*
+Sun mode is not selected: Make sure no option specific to Sun mode was
+selected either.
+*/
+{
+#if SUN_EXTENSIONS_ALLOWED
+  if (sun_linker_scope_allowed) {
+    if (option_kind_used[(int)optk_sun_linker_scope]) {
+      command_line_error(ec_cl_sun_linker_scope_requires_sun_mode);
+    }  /* if */
+    sun_linker_scope_allowed = FALSE;
+  }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
+}  /* exclude_sun_specific_options */
 
 
 static void check_embedded_c_options(void)
@@ -3797,6 +3822,14 @@ enable_microsoft_mode:
         sun_mode = opt_value;
         C_dialect = C_dialect_cplusplus;
         break;
+      case optk_sun_linker_scope:
+        /* Sun CC 5.5 introduced the linker scope specifiers __global,
+           __symbolic, and __hidden.  This option controls whether the front
+           end should accept those specifiers.  ("__global" is unfortunately
+           used in the standard header files shipped with Sun CC versions
+           prior to 5.5.) */
+        sun_linker_scope_allowed = opt_value;
+        break;
 #endif /* SUN_EXTENSIONS_ALLOWED */
       case optk_dependent_name_processing:
         /* Enable dependent name processing for templates. */
@@ -4094,6 +4127,8 @@ enable_microsoft_mode:
   }  /* if */
   if (sun_mode) {
     check_and_set_sun_mode_options();
+  } else {
+    exclude_sun_specific_options();
   }  /* if */
   if (gcc_mode) {
     check_and_set_gcc_mode_options();

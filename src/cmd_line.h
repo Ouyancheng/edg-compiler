@@ -192,6 +192,7 @@ typedef enum /*an_option_kind*/ {
   optk_base_assign_op_is_default,
 #if SUN_EXTENSIONS_ALLOWED
   optk_sun_mode,
+  optk_sun_linker_scope,
 #endif /* SUN_EXTENSIONS_ALLOWED */
   optk_dependent_name_processing,
   optk_ignore_namespace_std,

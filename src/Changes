@@ -1,6 +1,29 @@
 Version 3.6
 
-11/10/04  C++-generating back end: typedefs in template arguments
+11/10/04 Sun compatibility: Link scope specifiers
+
+Version 3.5 of the front end introduced three new keywords in Sun mode:
+__global, __symbolic, and __hidden.  These keywords (introduced by Sun in
+version 5.5 of their CC compiler) are intended to indicate how external
+variables and functions are treated by the linker.
+
+However, it appears that the identifier __global is commonly used in Sun
+header files.  Therefore, to emulate Sun CC compilers without support for
+link scope specifiers, a new command-line option --[no_]sun_linker_scope
+has been added to indicate explicitly whether link scope specifiers should
+be recognized.  (The default setting of this option is determined by the
+new configuration macro DEFAULT_SUN_LINKER_SCOPE allowed.)  Furthermore,
+when these link scope specifiers are allowed, it is now possible to enable
+or disable them in the source using two new pragmas.  For example:
+
+  #pragma disable_ldscope  // Disable recognition of link scope specifiers.
+  int *__global;           // OK, __global is (temporarily) not a keyword.
+  #pragma enable_ldscope   // Re-enable recognition of link scope specifiers.
+
+Some Sun CC 5.5 headers use these pragmas in this way to retain backward
+compatibility with previous versions of those headers.
+
+11/10/04 C++-generating back end: typedefs in template arguments
 
 When generating the name of a template instance, the C++-generating back end
 put out the template argument list that was used when the template was

@@ -8190,6 +8190,14 @@ id_scan:
               /* Check for a keyword that is not yet implemented.  If one is
                  found, issue a diagnostic and treat the keyword as an
 		 identifier. */
+#if SUN_EXTENSIONS_ALLOWED
+              if (assoc_symbol->is_invisible) {
+                /* Some keywords (currently, the Sun linker scope specifiers)
+                   may be disabled and enabled using pragma directives. */
+                ctoken = tok_identifier;
+              } else
+#endif /* SUN_EXTENSIONS_ALLOWED */
+              /* Do not insert code here. */
               if (ctoken == tok_unimplemented) {
                 unimplemented_keyword_diagnostic(assoc_symbol);
                 ctoken = tok_identifier;

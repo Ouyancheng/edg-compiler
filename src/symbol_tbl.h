@@ -2451,7 +2451,8 @@ typedef struct a_symbol {
 			   scope to which it belongs.  This is also used for
 			   projection symbols to names found in base classes
 			   that are ignored during normal lookup (when doing
-			   dependent name processing. */
+			   dependent name processing.  It is also used to
+                           disable keywords using pragma directives. */
   a_bit_field	is_unknown_function:1;
 			/* TRUE if this symbol was created to represent an
 			   unknown function. */
@@ -4206,6 +4207,10 @@ extern a_boolean symbol_is_from_trans_unit(a_symbol_ptr			sym,
 					   a_translation_unit_ptr	tup);
 
 extern a_translation_unit_ptr trans_unit_for_symbol(a_symbol_ptr	sym);
+
+#if SUN_EXTENSIONS_ALLOWED
+extern void ldscope_pragma(a_pending_pragma_ptr  ppp);
+#endif /* SUN_EXTENSIONS_ALLOWED */
 
 extern void symbol_tbl_one_time_init(void);
 

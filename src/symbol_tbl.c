@@ -11093,6 +11093,52 @@ for the class template of which this class is an instance.
   return template_sym;
 }  /* class_template_for_injected_template_symbol */
 
+#if SUN_EXTENSIONS_ALLOWED
+
+static void set_keyword_visibility(char       *keyword,
+                                   a_boolean  is_visible)
+/*
+Retrieve the symbol for the given keyword (it must exist) and set its
+visibility as indicated.
+*/
+{
+  a_symbol_locator     locator;
+  a_symbol_header_ptr  sym_hdr = find_symbol_header(keyword,
+                                                    (sizeof_t)strlen(keyword),
+                                                    &locator);
+  a_symbol_ptr         sym = symbol_list_for_file_scope_symbols(sym_hdr);
+
+  for (; sym != NULL; sym = sym->next) {
+    if (sym->kind == (a_symbol_kind)sk_keyword) break;
+  }  /* for */
+  check_assertion(sym != NULL);
+  sym->is_invisible = !is_visible;
+}  /* set_keyword_visibility */
+
+
+void ldscope_pragma(a_pending_pragma_ptr  ppp)
+/*
+This routine is called when a Sun CC pragma with one of the following
+forms
+	#pragma enable_ldscope
+	#pragma disable_ldscope
+is called.  It controls whether __global, __symbolic, and __hidden are
+treated as keywords.
+*/
+{
+  a_boolean  keywords_visible;
+
+  switch (ppp->descr_ptr->kind) {
+    case pk_enable_ldscope:  keywords_visible = TRUE;  break;
+    case pk_disable_ldscope: keywords_visible = FALSE; break;
+    default:                 unexpected_condition();
+  }  /* switch */
+  set_keyword_visibility("__global", keywords_visible);
+  set_keyword_visibility("__symbolic", keywords_visible);
+  set_keyword_visibility("__hidden", keywords_visible);
+}  /* ldscope_pragma */
+
+#endif /* SUN_EXTENSIONS_ALLOWED */
 
 #if DEBUG
 unsigned long show_symbol_space_used(void)

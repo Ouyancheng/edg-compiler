@@ -404,6 +404,10 @@ possible.
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
     case pk_redefine_extname:
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if SUN_EXTENSIONS_ALLOWED
+    case pk_enable_ldscope:
+    case pk_disable_ldscope:
+#endif /* SUN_EXTENSIONS_ALLOWED */
       break;
     default:
       unexpected_condition_str2("alloc_pending_pragma:", "bad pragma kind");
@@ -1689,6 +1693,36 @@ Initialize the pragma description table.
                                          /*il_info_is_complete=*/TRUE,
                                          es_error);
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if SUN_EXTENSIONS_ALLOWED
+  if (sun_linker_scope_allowed) {
+    (void)add_immediate_pragma_kind_description(
+                                         (a_pragma_kind)pk_enable_ldscope,
+                                         ldscope_pragma,
+                                         /*is_pseudo_pragma=*/FALSE,
+                                         /*global=*/TRUE,
+                                         /*automatically_include_in_il=*/FALSE,
+                                         /*make_text_not_tokens=*/FALSE,
+                                         /*expand_macros=*/FALSE,
+                                         /*processing_C_code=*/FALSE,
+                                         /*fetch_pp_tokens=*/FALSE,
+                                         /*ignore_in_back_end=*/FALSE,
+                                         /*il_info_is_complete=*/TRUE,
+                                         es_error);
+    (void)add_immediate_pragma_kind_description(
+                                         (a_pragma_kind)pk_disable_ldscope,
+                                         ldscope_pragma,
+                                         /*is_pseudo_pragma=*/FALSE,
+                                         /*global=*/TRUE,
+                                         /*automatically_include_in_il=*/FALSE,
+                                         /*make_text_not_tokens=*/FALSE,
+                                         /*expand_macros=*/FALSE,
+                                         /*processing_C_code=*/FALSE,
+                                         /*fetch_pp_tokens=*/FALSE,
+                                         /*ignore_in_back_end=*/FALSE,
+                                         /*il_info_is_complete=*/TRUE,
+                                         es_error);
+  }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_suppress,
                  (an_immediate_pragma_function_ptr)diag_pragma,

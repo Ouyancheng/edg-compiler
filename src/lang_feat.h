@@ -376,7 +376,16 @@ sun_mode and can be overridden by the command-line options --sun and --no_sun.
 #if SUN_EXTENSIONS_ALLOWED
 #ifndef DEFAULT_SUN_COMPATIBILITY
 #define DEFAULT_SUN_COMPATIBILITY TRUE
-#endif /* DEFAULT_SUN_COMPATIBILITY */
+#endif /* ifndef DEFAULT_SUN_COMPATIBILITY */
+#endif /* SUN_EXTENSIONS_ALLOWED */
+
+/*
+Flag that is TRUE if Sun CC 5.5 linker scope specifiers (__global, __hidden,
+__symbolic) should be accepted by default in Sun mode. */
+#if SUN_EXTENSIONS_ALLOWED
+#ifndef DEFAULT_SUN_LINKER_SCOPE_ALLOWED
+#define DEFAULT_SUN_LINKER_SCOPE_ALLOWED TRUE
+#endif /* ifndef DEFAULT_SUN_LINKER_SCOPE_ALLOWED */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
 /*
@@ -755,7 +764,7 @@ EXTERN a_boolean
 #endif /* !SUN_EXTENSIONS_ALLOWED */
 #endif /* VAR_INITIALIZERS */
                                                     ;
-                        /* Accept C language features supported by SUN C++ 5.x
+                        /* Accept C language features supported by Sun C++ 5.x
                            compilers. */
 #else /* !(SUN_EXTENSIONS_ALLOWED || defined(_lint)) */
 /* Make sun_mode a constant-expression so some code can be optimized away.
@@ -763,6 +772,18 @@ EXTERN a_boolean
    by lint. */
 #define sun_mode FALSE
 #endif /* SUN_EXTENSIONS_ALLOWED || defined(_lint) */
+
+#if SUN_EXTENSIONS_ALLOWED
+EXTERN a_boolean
+                sun_linker_scope_allowed
+#if VAR_INITIALIZERS
+                                         = DEFAULT_SUN_LINKER_SCOPE_ALLOWED
+#endif /* VAR_INITIALIZERS */
+                                                                           ;
+                        /* TRUE if Sun C++ 5.5 linker scope specifiers
+                           (__global, __symbolic, __hidden) should be
+                           accepted. */
+#endif /* SUN_EXTENSIONS_ALLOWED */
 
 /*
 The global variable gcc_mode is defined here (rather than in cmd_line.h) so
