@@ -1178,8 +1178,12 @@ array_type.
        type is put on a list so it can be fixed later if the element type is
        defined.  (Note that an array of incomplete struct is an extension in
        C, but it's standard in C++.) */
-    add_to_dependent_type_fixup_list(underlying_elem_type, array_type,
-                                     (a_param_type_ptr)NULL, &error_position);
+    add_to_dependent_type_fixup_list(underlying_elem_type,
+                                     (a_dependent_type_fixup_kind)
+                                                dtfk_array_type_size,
+                                     (char *)array_type,
+                                     (a_byte_il_entry_kind)iek_type,
+                                     &error_position);
   } else {
     /* Get the number of elements.  Note that this is zero for an incomplete
        type like int a[]. */
