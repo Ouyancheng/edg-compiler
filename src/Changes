@@ -1,5 +1,27 @@
 Version 2.44
 
+5/15/00  C++-generating back end: typedefs preserved in initialization
+
+Formerly, the front end removed type qualifiers and typedefs from
+the type while processing the initialization of an entity.  This is
+largely harmless, but it did cause a problem in the C++-generating
+back end where a typedef might be removed in a cast and the type
+could not be exactly represented without using a typedef.
+
+  struct A {
+    virtual void fun()=0;
+  };
+  struct AA : A {
+    void fun() {}
+  };
+  extern "C" {
+    typedef void (A::*PMFA)();
+  }
+  struct tagD {
+    PMFA p;
+  } matrix = { (PMFA)(&AA::fun) };  // Formerly, the cast did not use the
+                                    // typedef, which lost the extern "C"
+
 5/15/00  g++ compatibility: std as an alias for the global namespace
 
 By default, the g++ compiler treats the "std" namespace as an alias for
