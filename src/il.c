@@ -191,6 +191,20 @@ Dump field *fp derived from base class *tp, for debug purposes.
 }  /* db_base_class_field */
 
 
+static void db_access_control(an_access_specifier as)
+/*
+Dump an access control specifier.
+*/
+{
+  switch (as) {
+    case as_public:	  fputs("public", f_debug);	  break;
+    case as_protected:	  fputs("protected", f_debug);	  break;
+    case as_private:	  fputs("private", f_debug);	  break;
+    case as_inaccessible: fputs("inaccessible", f_debug); break;
+  }  /* switch */
+}  /* db_access_control */
+
+
 static void db_base_class(a_base_class *bcp)
 /*
 Dump a base class entry, for debug purposes.
