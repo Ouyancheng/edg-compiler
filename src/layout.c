@@ -238,7 +238,7 @@ type entry for a class, struct, or union when layout processing commences.
   begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
   add_stop_token(tok_rparen);
   /* Check for a left parenthesis. */
-  required_token(tok_lparen, ec_exp_lparen);
+  (void)required_token(tok_lparen, ec_exp_lparen);
   if (curr_token == tok_rparen) {
     /* "()" means revert to the default (if any) specified on the command
        line.  The variable curr_max_member_alignment was already set to zero,
