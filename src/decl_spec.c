@@ -3681,7 +3681,6 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for and pass over the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
-    enum_type->incomplete = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode) {
       /* Look for any attributes that apply to this type. */
@@ -3790,6 +3789,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
         enum_type->variant.integer.int_kind = largest_enum_int_kind;
       }  /* if */
     }  /* if */
+    enum_type->incomplete = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
     if (gcc_mode) {
       an_integer_kind  int_kind = enum_type->variant.integer.int_kind;
