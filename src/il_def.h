@@ -1389,7 +1389,8 @@ enum an_integer_kind_tag {
   ik_unsized,           /* Used only in the Fortran front end, for constants
                            that do not yet have a size from context. */
 #endif /* ifdef FIL */
-  ik_last
+  ik_last,
+  ik_none = ik_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_integer_kind;
