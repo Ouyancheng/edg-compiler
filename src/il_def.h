@@ -259,6 +259,7 @@ enum a_name_linkage_kind_tag {
 			   Implies name mangling if that technique is used. */
 #endif /* ifdef CIL */
   nlk_external,		/* External linkage, as for an external routine. */
+  nlk_last_standard = nlk_external,
 #ifdef CUSTOM_NAME_LINKAGE_KINDS
   /* An implementation can add additional linkage kinds by defining this
      macro. */
@@ -266,6 +267,19 @@ enum a_name_linkage_kind_tag {
 #endif /* ifdef CUSTOM_NAME_LINKAGE_KINDS */
   nlk_last
 };
+/* If CUSTOM_NAME_LINKAGE_KINDS is TRUE, a few other macros should be defined
+   as well. */
+#ifdef CUSTOM_NAME_LINKAGE_KINDS
+#ifndef NUM_BITS_FOR_NAME_LINKAGE
+ #error -- NUM_BITS_FOR_NAME_LINKAGE must be defined when \
+           CUSTOM_NAME_LINKAGE_KINDS is defined
+#endif /* ifndef NUM_BITS_FOR_NAME_LINKAGE */
+#ifndef is_custom_name_linkage_kind_for_rout_type
+ #error -- is_custom_name_linkage_kind_for_rout_type must be defined when \
+           CUSTOM_NAME_LINKAGE_KINDS is defined
+#endif /* is_custom_name_linkage_kind_for_rout_type */
+#endif /* ifdef CUSTOM_NAME_LINKAGE_KINDS */
+
 /* Number of bits required to hold a name linkage.  nlk_last need not be
    accounted for. */
 #ifndef NUM_BITS_FOR_NAME_LINKAGE
@@ -287,13 +301,11 @@ typedef a_byte a_name_linkage_kind;
 #else /* ifndef is_custom_name_linkage_kind_for_rout_type */
 #define or_is_custom_name_linkage_kind_for_rout_type(nlk) /* Nothing */
 #endif /* ifdef is_custom_name_linkage_kind_for_rout_type */
-#if CHECKING
-/* This macro is used for consistency checking. */
+
 #define is_name_linkage_kind_for_rout_type(nlk)                         \
   (nlk == (a_name_linkage_kind)nlk_external ||                          \
    nlk == (a_name_linkage_kind)nlk_cplusplus_external                   \
    or_is_custom_name_linkage_kind_for_rout_type(nlk))
-#endif /* CHECKING */
 
 #if NEED_NAME_MANGLING
 /* Macro that determines whether name mangling should be done for

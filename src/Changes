@@ -1,5 +1,26 @@
 Version 2.46
 
+6/22/01  Effect and configuration of custom name linkage kinds
+
+The front end would abort on certain redeclarations when custom name linkage
+kinds were added by defining the macros CUSTOM_NAME_LINKAGE_KINDS,
+CUSTOM_NAME_LINKAGE_KIND_NAMES and NUM_BITS_FOR_NAME_LINKAGE while omitting
+a definition of is_custom_name_linkage_kind_for_rout_type (or when that
+macro resulted in a false expression).  For example:
+
+  void f();
+  extern "MyLinkage" void f();  // Used to abort in some configurations
+
+Furthermore, custom name linkages were applied to routine type even when the
+macro is_custom_name_linkage_kind_for_rout_type indicated that this should
+not be the case.  These problems are now fixed.
+
+To help prevent unintended configurations, a preprocessor error will now be
+issued if custom name linkages are added by defining CUSTOM_NAME_LINKAGE_KINDS
+while failing to define NUM_BITS_FOR_NAME_LINKAGE and
+is_custom_name_linkage_kind_for_rout_type.  (See also Changes entries of
+2/26/97 and 4/3/97.)
+
 6/22/01  Nontemplate friend declaration had is_template_function set
 
 The IL entry created for a nontemplate friend function declaration in the

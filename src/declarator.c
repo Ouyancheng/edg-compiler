@@ -1179,6 +1179,14 @@ declaration.
      which this type is associated. */
   extra_info->routine_name_linkage =
                           scope_stack[depth_scope_stack].default_name_linkage;
+  if (!is_name_linkage_kind_for_rout_type(extra_info->routine_name_linkage)) {
+    /* Custom name linkage kinds may presumably not affect routine types
+       (i.e., calling conventions). */
+    check_assertion(!C_mode() &&
+                    extra_info->routine_name_linkage >
+                                      (a_name_linkage_kind)nlk_last_standard);
+    extra_info->routine_name_linkage = nlk_cplusplus_external;
+  }  /* if */
   if (scope_stack[depth_scope_stack].name_linkage_is_explicit) {
     extra_info->routine_name_linkage_is_explicit = TRUE;
   }  /* if */

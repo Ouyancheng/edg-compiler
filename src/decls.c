@@ -1526,10 +1526,12 @@ internal linkage).
         idlbp->name_linkage = ssep->default_name_linkage;
       }  /* if */
     }  /* if */
-    if (idlbp->type->kind == (a_type_kind)tk_routine) {
+    if (idlbp->type->kind == (a_type_kind)tk_routine &&
+        is_name_linkage_kind_for_rout_type(idlbp->name_linkage)) {
       /* In case there's a change, reset the routine-name-linkage (i.e.,
          calling convention) in the routine type.  Note this is not done
-         when the type is based on a typedef. */
+         when the type is based on a typedef.  Also, certain custom
+         name linkage kinds may not apply to routine types. */
       idlbp->type->variant.routine.extra_info->
                             routine_name_linkage = idlbp->name_linkage;
     }  /* if */
