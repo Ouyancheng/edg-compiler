@@ -1,5 +1,11 @@
 Version 2.24
 
+6/22/94 C++-generating BE: Elimination of unnecessary casts on ptrs-to-members
+
+The C++-generating back end no longer puts out some unnecessary casts
+on pointer-to-member constants.  These casts, though correct, tickled a
+bug in cfront.
+
 6/22/94 Internal error on class_decl.c checking code fixed
 
 A piece of checking code in class_decl.c was missing a skip_typerefs,
