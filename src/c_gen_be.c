@@ -45,6 +45,7 @@ for production use.
 #include "il.h"
 #include "trans_lims.h"
 #include "float_pt.h"
+#include "const_ints.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
@@ -2033,25 +2034,6 @@ static void dump_lvalue(an_expr_node_ptr node);
 
 #ifdef CFE
 
-static a_boolean is_signed_int_kind(an_integer_kind kind)
-/*
-Return TRUE if the given integer kind is signed.
-*/
-/*
-This is a copy of the routine int_kind_is_signed in types.c of the C front end.
-*/
-{
-  return((kind == (an_integer_kind)ik_char &&
-                                           il_header.plain_chars_are_signed) ||
-         kind == (an_integer_kind)ik_signed_char                     ||
-         kind == (an_integer_kind)ik_short                           ||
-         kind == (an_integer_kind)ik_int                             ||
-         kind == (an_integer_kind)ik_long);
-}  /* is_signed_int_kind */
-
-#endif /* ifdef CFE */
-#ifdef CFE
-
 static a_boolean is_signed_bit_field(a_field_ptr field)
 /*
 Return TRUE if the indicated field (which is is bit-field) is signed.
@@ -2070,7 +2052,7 @@ Return TRUE if the indicated field (which is is bit-field) is signed.
     internal_error("is_signed_bit_field: bit field not integer");
   }  /* if */
 #endif /* CHECKING */
-  is_signed = is_signed_int_kind(type->variant.integer.int_kind);
+  is_signed = int_kind_is_signed(type->variant.integer.int_kind);
   return(is_signed);
 }  /* is_signed_bit_field */
 
@@ -4427,19 +4409,6 @@ the list pointed to by "ipdp".
 #endif /* ifdef CFE */
 #ifdef CFE
 
-/* Macro that returns TRUE if a variable's storage class has static storage
-   duration.  See 3.1.2.4.  Note that storage classes have been 
-   standardized during declaration processing. */
-/* This is a copy of the macro has_static_storage_duration in il.h
-   of the C front end. */
-#define static_storage_class(storage_class)                           \
-  ((storage_class) == (a_storage_class)sc_static ||                   \
-   (storage_class) == (a_storage_class)sc_extern ||                   \
-   (storage_class) == (a_storage_class)sc_unspecified)
-
-#endif /* ifdef CFE */
-#ifdef CFE
-
 static void set_init_file(a_variable_ptr variable,
                           FILE           **prev_f_C_output,
                           int            *prev_indent)
@@ -4631,7 +4600,7 @@ If this assignment is the first one, put out anything that must precede it.
          incompletely initialized.  See 3.5.7.  Only do this for variables
          that are initialized with an aggregate constant; those are the only
          cases where something can be partially initialized. */
-      if (!static_storage_class(variable->storage_class)) {
+      if (!has_static_storage_duration(variable->storage_class)) {
         if ((variable->init_kind == (an_init_kind)initk_static &&
              variable->initializer.constant->kind ==
                                          (a_constant_repr_kind)ck_aggregate) ||
@@ -5102,7 +5071,7 @@ following it will be rendered as executable code.
 
 #ifdef CFE
   if (!gen_assignments) {
-    if (!static_storage_class(variable->storage_class) &&
+    if (!has_static_storage_duration(variable->storage_class) &&
         (type->kind == (a_type_kind)tk_struct ||
          type->kind == (a_type_kind)tk_union ||
          type->kind == (a_type_kind)tk_array)) {
