@@ -5291,6 +5291,25 @@ of an error.
   *no_remaining_token = is_declspec;
 }  /* microsoft_specific_decl_specifiers */
 
+
+static void scan_and_append_microsoft_attributes(
+                                        an_ms_attribute_ptr  *p_ms_attributes,
+                                        a_boolean            is_parameter)
+/*
+The current token is assumed to be a square bracket that introduces
+Microsoft attributes.  Scan these attributes and append them to the
+list pointed to by *p_ms_attributes (if *p_ms_attributes is NULL,
+then the value of *p_ms_attributes will be modified).  is_parameter
+is TRUE if we're scanning a parameter declaration.
+*/
+{
+  an_ms_attribute_ptr  *last_ap = p_ms_attributes;
+  while (*last_ap != NULL) {
+    last_ap = &(*last_ap)->next;
+  }  /* while */
+  *last_ap = scan_microsoft_attributes(is_parameter);
+}  /* scan_and_append_microsoft_attributes */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean gpp_type_name_matches_class_name(a_symbol_ptr	sym)
@@ -5733,6 +5752,16 @@ Returns TRUE if there is an error in the specifiers.
             decl_pos_block->storage_class_pos = pos_curr_token;
           }  /* if */
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode && curr_token == tok_typedef &&
+            next_token() == tok_lbracket) {
+          /* Microsoft attributes can follow the typedef keyword. */
+          (void)get_token();
+          scan_and_append_microsoft_attributes(p_ms_attributes,
+                                               /*is_parameter=*/TRUE);
+          goto no_get_token;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         break;
 #if ASM_FUNCTION_ALLOWED
       case tok_asm:
@@ -5781,12 +5810,8 @@ Returns TRUE if there is an error in the specifiers.
         } else {
           /* Microsoft attributes are valid here.  Append them to any
              attributes that we might have seen before. */
-          an_ms_attribute_ptr  *last_ap = p_ms_attributes;
-          while (*last_ap != NULL) {
-            last_ap = &(*last_ap)->next;
-          }  /* while */
-          *last_ap = scan_microsoft_attributes(
-                                        (input_flags & DSI_IS_PARAMETER)!= 0);
+          scan_and_append_microsoft_attributes(
+                      p_ms_attributes, (input_flags & DSI_IS_PARAMETER) != 0);
           goto no_get_token;
         }  /* if */
         /*NOTREACHED*/

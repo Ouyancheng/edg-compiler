@@ -1,5 +1,13 @@
 Version 3.4
 
+2/19/04  Microsoft compatibility: Attributes on typedef
+
+Microsoft attributes normally precede a declaration.  For typedef
+declarations, however, they can now appear after the typedef keyword
+(in Microsoft mode).  For example:
+
+  typedef [string] unsigned short S[5];  // Now accepted in Microsoft mode.
+
 2/19/04  Incorrect use of mmap could cause memory corruption
 
 A change in the specification of the mmap function since the time that
