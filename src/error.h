@@ -277,7 +277,6 @@ typedef enum /*an_error_code*/ {
   ec_var_retained_incomp_type,
   ec_boolean_controlling_expr_is_constant,
   ec_switch_selector_expr_is_constant,
-  ec_address_of_void,
   ec_bad_param_specifier,
   ec_bad_specifier_outside_class_decl,
   ec_dupl_decl_specifier,

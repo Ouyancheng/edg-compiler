@@ -1065,9 +1065,6 @@ error code.
     case ec_switch_selector_expr_is_constant:
       m = "selector expression is constant";
       break;
-    case ec_address_of_void:
-      m = "taking the address of something of type void is not allowed";
-      break;
     case ec_bad_param_specifier:
       m = "invalid specifier on a parameter";
       break;
