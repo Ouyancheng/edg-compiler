@@ -5241,6 +5241,11 @@ its result still an lvalue.
     /* The source or destination types are floating types, so there's
        actual conversion involved. */
     /* is_still_an_lvalue = FALSE; -- already set. */
+  } else if (type_cast_to->size == type_before_cast->size &&
+             type_cast_to->alignment == type_before_cast->alignment) {
+    /* The types are not floating types, and they have the same size
+       and alignment. */
+    is_still_an_lvalue = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && C_mode() &&
              is_integral_type(type_before_cast) &&
@@ -5251,11 +5256,6 @@ its result still an lvalue.
     */
     is_still_an_lvalue = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (type_cast_to->size == type_before_cast->size &&
-             type_cast_to->alignment == type_before_cast->alignment) {
-    /* The types are not floating types, and they have the same size
-       and alignment. */
-    is_still_an_lvalue = TRUE;
   }  /* if */
 
   return is_still_an_lvalue;

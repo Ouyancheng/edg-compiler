@@ -51,10 +51,10 @@ a cast to the right pointer-to-function-type is inserted.  This is
 useful when a routine is declared several times in compatible but
 not identical ways, and called in range of several different declarations.
 
-4/12/95  Lvalue casts in Microsoft C mode
+4/12/95  Lvalue casts in Microsoft mode
 
-Lvalue casts involving integral types of unequal size are permitted in
-Microsoft C mode.
+Lvalue casts are permitted in Microsoft mode (including in C mode casts
+involving integral types of unequal size).
 
 4/11/95  Use of incomplete enum type in Microsoft mode
 
