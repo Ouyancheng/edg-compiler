@@ -566,10 +566,16 @@ and for the instantiation of template functions.
     } else {
       nsp = rout_ptr->source_corresp.parent.namespace_ptr;
       if (nsp != NULL) {
-        a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
-        if ((ssep->kind != (a_scope_kind)sck_namespace &&
-             ssep->kind != (a_scope_kind)sck_namespace_extension) ||
-            nsp != ssep->il_scope->variant.assoc_namespace) {
+        a_scope_stack_entry_ptr  decl_ssep = &scope_stack[decl_scope_level];
+        a_scope_stack_entry_ptr  curr_ssep = &scope_stack[depth_scope_stack];
+        if (curr_ssep->kind == (a_scope_kind)sck_template_instantiation) {
+          /* The namespace is pushed when the template instantiation
+             scope is pushed.  Don't do it again now. */
+          nsp = NULL;
+        } else if ((decl_ssep->kind != (a_scope_kind)sck_namespace &&
+                    decl_ssep->kind !=
+                                     (a_scope_kind)sck_namespace_extension) ||
+                   nsp != decl_ssep->il_scope->variant.assoc_namespace) {
           /* Push a namespace extension scope. */
           push_namespace_extension_scope(nsp);
         } else {

@@ -813,6 +813,11 @@ encountered.
   template_arg_list = prototype_type->variant.class_struct_union.extra_info->
                                                              template_arg_list;
   cssp->instantiation_in_progress = TRUE;
+  /* Record the namespace that is the "referencing context" namespace for
+     this instantiation.  For the prototype instantiation this is the
+     same as the namespace in which the template was defined. */
+  cssp->referencing_namespace =
+                 scope_stack[depth_innermost_namespace_scope].assoc_namespace;
   (void)push_template_instantiation_scope(tssp->declaration_scope,
 					  prototype_type,
 					  (a_routine_ptr)NULL, instance_sym,

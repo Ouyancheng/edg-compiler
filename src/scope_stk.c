@@ -42,6 +42,13 @@ Variables and constants related to the scope_stack:
 			   time it is reallocated; also the initial
 			   allocation. */
 
+#if CHECKING
+static a_boolean
+		pushing_template_instantiation_scope;
+			/* Flag that is set to TRUE while a new
+			   template instantiation context is in the
+			   process of being created. */
+#endif /* CHECKING */
 
 #if DEBUG
 int db_scope_kind(a_scope_kind sck)
@@ -220,18 +227,7 @@ within the scope specified by ssep.  Return TRUE if it is, FALSE otherwise.
     /* This is not a namespace scope.  A namespace cannot be enclosed
        within. */
   } else {
-    a_namespace_ptr	nsp;
-    /* If this is a class member, skip out to the outermost class type. */
-    if (sym->is_class_member) {
-      a_type_ptr	tp = sym->parent.class_type;
-      while (tp->source_corresp.is_class_member) {
-        tp = tp->source_corresp.parent.class_type;
-      }  /* while */
-      /* Get the namespace pointer from the outermost class. */
-      nsp = tp->source_corresp.parent.namespace_ptr;
-    } else {
-      nsp = sym->parent.namespace_ptr;
-    }  /* if */
+    a_namespace_ptr	nsp = parent_namespace_for_symbol(sym);
     if (nsp == NULL) {
       /* The symbol has no associated namespace, and so, is not enclosed
          within the current namespace. */
@@ -873,6 +869,7 @@ specific version of the template.
   ssep->is_try_block             = FALSE;
   ssep->within_try_block         = FALSE;
   ssep->within_unnamed_namespace = FALSE;
+  ssep->namespace_pushed         = FALSE;
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;
@@ -1414,6 +1411,49 @@ namespace extension scope whose parent is common_nsp.
 }  /* pop_namespace_extension_for_instantiation */
 
 
+static
+a_namespace_ptr referencing_namespace_for_instance(a_symbol_ptr instance_sym)
+/*
+Given a symbol that points to a particular instance of a template, return
+the namespace pointer of the namespace in which an instantiation of
+the template was first required.
+
+instance_sym points to a symbol for an instance of a template.  It may also
+be NULL if we don't yet know which instance we are dealing with.
+*/
+{
+  a_namespace_ptr	nsp = NULL;
+
+  if (instance_sym == NULL) {
+    /* We don't know which instance is being used yet. */
+  } else if (instance_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
+             instance_sym->kind == (a_symbol_kind)sk_union_tag) {
+    /* The instance points to a class symbol.  Return the referencing
+       namespace from the class symbol supplement. */
+    a_class_symbol_supplement_ptr	cssp;
+    cssp = instance_sym->variant.class_struct_union.extra_info;
+    nsp = cssp->referencing_namespace;
+    check_assertion_str2
+         (nsp == scope_stack[depth_innermost_namespace_scope].assoc_namespace,
+          "referencing_namespace_for_instance:",
+          "referencing namespace for template class is not current namespace");
+  } else {
+    /* The instance points to a routine or static data member.  Return
+       the referencing namespace from the template instance record. */
+    a_template_instance_ptr	tip;
+    if (instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+      tip = instance_sym->variant.static_data_member.instance_ptr;
+    } else {
+      check_assertion(instance_sym->kind == (a_symbol_kind)sk_routine ||
+                      instance_sym->kind == (a_symbol_kind)sk_member_function);
+      tip = instance_sym->variant.routine.instance_ptr;
+    }  /* if */
+    nsp = tip->referencing_namespace;
+  }  /* if */
+  return nsp;
+}  /* referencing_namespace_for_instance */
+
+
 a_scope_ptr push_template_instantiation_scope
                            (a_scope_number       scope_number_to_reuse,
                             a_type_ptr           assoc_type,
@@ -1435,6 +1475,8 @@ scopes.
   a_scope_stack_entry_ptr	ssep;
   a_scope_depth			context_scope =
                                               depth_innermost_namespace_scope;
+  a_namespace_ptr		reference_nsp;
+  a_boolean			referencing_namespace_pushed = FALSE;
 
   /* A nested instantiation is one that occurs within an other instantiation
      scope.  For example, a template friend defined inside a template class.
@@ -1446,11 +1488,29 @@ scopes.
        flags for any namespaces for which it is currently set. */
     set_active_using_list_scope_depths(depth_scope_stack,
                                        /*set_value=*/FALSE);
+#if CHECKING
+    /* Set a flag that indicates that the processing to push a new
+       instantiation scope is in progress. */
+    pushing_template_instantiation_scope = TRUE;
+#endif /* CHECKING */
+    reference_nsp = referencing_namespace_for_instance(instance_sym);
+    if (reference_nsp !=
+                scope_stack[depth_innermost_namespace_scope].assoc_namespace) {
+      /* The namespace from which the first reference that requires the
+         instantiation of this template is different than the current
+         namespace.  Reactivate the namespace associated with that
+         reference. */
+      if (reference_nsp != NULL) {
+        push_namespace_extension_scope(reference_nsp);
+        referencing_namespace_pushed = TRUE;
+        /* The context scope is now the namespace just pushed. */
+        context_scope = depth_innermost_namespace_scope;
+      }  /* if */
+    }  /* if */
     /* If the template was defined in a namespace, reactivate the namespace
        scope before pushing the instantiation scope. */
-    if (!template_sym->is_class_member &&
-         template_sym->parent.namespace_ptr != NULL) {
-      parent_nsp = template_sym->parent.namespace_ptr;
+    parent_nsp = parent_namespace_for_symbol(template_sym);
+    if (parent_nsp != NULL) {
       common_depth = find_depth_of_common_scope(parent_nsp);
       common_nsp = scope_stack[common_depth].assoc_namespace;
       if (common_nsp == parent_nsp) {
@@ -1467,11 +1527,13 @@ scopes.
         instantiation_prev_scope = depth_scope_stack;
       }  /* if */
     } else {
-      parent_nsp = NULL;
       common_depth = DEPTH_OF_FILE_SCOPE;
       common_nsp = NULL;
       instantiation_prev_scope = DEPTH_OF_FILE_SCOPE;
     }  /* if */
+#if CHECKING
+    pushing_template_instantiation_scope = FALSE;
+#endif /* CHECKING */
   }  /* if */
   scope = push_scope_full((a_scope_kind)sck_template_instantiation,
                           scope_number_to_reuse, assoc_type, assoc_routine,
@@ -1482,6 +1544,7 @@ scopes.
     ssep->previous_scope = instantiation_prev_scope;
     ssep->instantiation_context_scope = context_scope;
     ssep->instantiation_common_scope = common_depth;
+    ssep->namespace_pushed = referencing_namespace_pushed;
     /* Update the depth of the innermost instantiation scope so that it points
        to the namespace that is the parent of the template being
        instantiated. */
@@ -1516,12 +1579,14 @@ Interface to pop_scope that is used for template instantiation scopes.
   a_symbol_ptr			template_sym;
   a_namespace_ptr		common_nsp;
   a_namespace_ptr		parent_nsp;
+  a_boolean			referencing_namespace_pushed;
 
   check_assertion_str2(ssep->kind == (a_scope_kind)sck_template_instantiation,
                        "pop_template_instantiation_scope:",
                        "current scope is not instantiation scope");
   template_sym = ssep->template_sym;
   common_nsp = scope_stack[ssep->instantiation_common_scope].assoc_namespace;
+  referencing_namespace_pushed = ssep->namespace_pushed;
   /* Pop the actual template instantiation scope. */
   pop_scope();
   /* If the template was defined in a namespace, reactivate the namespace
@@ -1532,6 +1597,12 @@ Interface to pop_scope that is used for template instantiation scopes.
     if (common_nsp != parent_nsp) {
       pop_namespace_extension_for_instantiation(common_nsp);
     }  /* if */
+  }  /* if */
+  if (referencing_namespace_pushed) {
+    /* The namespace associated with the referencing context was pushed when
+       the instantiation scope was pushed.  Pop the namespace extension
+       scope now. */
+    pop_namespace_extension_scope();
   }  /* if */
   /* Reset the active using list flags to the values specified by
      the previous scope stack entries. */
@@ -2831,6 +2902,17 @@ This routine is called only in C++.
   a_namespace_ptr		curr_nsp = NULL;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
 
+#if CHECKING
+  /* A namespace extension should not be pushed inside of a template
+     instantiation scope unless we are in the process of pushing yet
+     another template instantiation scope. */
+  if (scope_stack[depth_scope_stack].kind ==
+                                   (a_scope_kind)sck_template_instantiation) {
+    check_assertion_str2(pushing_template_instantiation_scope,
+                         "push_namespace_extension_scope:",
+                         "namespace extension within template instantiation");
+  }  /* if */
+#endif /* CHECKING */
   /* If the current scope is a namespace (or namespace extension) scope,
      see if it matches the one that we are pushing.  If so, don't actually
      push the scope, just increment the count of the number of excess
@@ -2902,6 +2984,17 @@ This routine is called only in C++.
   a_namespace_ptr		curr_nsp = NULL;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
 
+#if CHECKING
+  /* A namespace extension should not be pushed inside of a template
+     instantiation scope unless we are in the process of pushing yet
+     another template instantiation scope. */
+  if (scope_stack[depth_scope_stack].kind ==
+                                   (a_scope_kind)sck_template_instantiation) {
+    check_assertion_str2(pushing_template_instantiation_scope,
+                         "push_namespace_extension_scope:",
+                         "namespace extension within template instantiation");
+  }  /* if */
+#endif /* CHECKING */
   /* If the current scope is a namespace (or namespace extension) scope,
      see if it matches the one that we are pushing.  If so, don't actually
      push the scope, just increment the count of the number of excess
@@ -2968,8 +3061,9 @@ This is used, for example, when scanning member functions.  This routine
 is called only in C++.
 */
 {
-  a_symbol_ptr class_symbol;
-  a_scope_ptr  il_scope;
+  a_symbol_ptr	class_symbol;
+  a_scope_ptr	il_scope;
+  a_boolean	namespace_pushed = FALSE;
 
   /* Get the symbol associated with the class. */
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
@@ -2984,7 +3078,21 @@ is called only in C++.
     push_class_reactivation_scope(class_symbol->parent.class_type);
   } else if (class_symbol->parent.namespace_ptr != NULL) {
     /* The class is nested in a namespace -- push enclosing namespace(s). */
-    push_namespace_reactivation_scope(class_symbol->parent.namespace_ptr);
+    a_namespace_ptr		parent_nsp;
+    a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+    parent_nsp = class_symbol->parent.namespace_ptr;
+    if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+      /* When a class is reactivated immediately within a template
+         instantiation scope, the namespace of the class must match the
+         current innermost namespace scope. */
+      check_assertion_str2(parent_nsp ==
+                 scope_stack[depth_innermost_namespace_scope].assoc_namespace,
+                           "push_class_reactivation_scope:",
+                           "pushing class not from curr. namespace");
+    } else {
+      push_namespace_reactivation_scope(parent_nsp);
+      namespace_pushed = TRUE;
+    }  /* if */
   }  /* if */
   /* Find the IL scope to get the scope number. */
   il_scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
@@ -2996,6 +3104,7 @@ is called only in C++.
   /* Push an entry for the scope. */
   (void)push_scope((a_scope_kind)sck_class_reactivation, il_scope->number,
                    class_type, (a_routine_ptr)NULL);
+  scope_stack[depth_scope_stack].namespace_pushed = namespace_pushed;
 }  /* push_class_reactivation_scope */
 
 
@@ -3005,10 +3114,12 @@ Pop one or more scopes pushed by push_class_reactivation_scope.  This routine
 is called only in C++.
 */
 {
-  a_scope_stack_entry_ptr ssep;
-  a_symbol_ptr            class_symbol;
+  a_scope_stack_entry_ptr	ssep;
+  a_symbol_ptr         		class_symbol;
+  a_boolean			namespace_pushed = FALSE;
 
   ssep = &scope_stack[depth_scope_stack];
+  namespace_pushed= ssep->namespace_pushed;
 #if CHECKING
   if (ssep->kind != (a_scope_kind)sck_class_reactivation) {
     internal_error(
@@ -3028,7 +3139,7 @@ is called only in C++.
   if (class_symbol->is_class_member) {
     /* Nested class.  Pop the containing class(es) too. */
     pop_class_reactivation_scope();
-  } else if (class_symbol->parent.namespace_ptr != NULL) {
+  } else if (namespace_pushed) {
     /* The class is nested in a namespace -- pop enclosing namespace(s). */
     pop_namespace_reactivation_scope();
   }  /* if */
@@ -3064,6 +3175,9 @@ of the front end.
 {
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
   num_classes_on_scope_stack = 0;
+#if CHECKING
+  pushing_template_instantiation_scope = FALSE;
+#endif /* CHECKING */
 }  /* scope_stk_init */
 
 /******************************************************************************

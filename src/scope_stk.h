@@ -199,6 +199,12 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if the current entry on the scope stack is
 			   itself an unnamed namespace or is a named
 			   namespace contained within an unnamed namespace. */
+  a_bit_field	namespace_pushed:1;
+			/* TRUE for template instantiation scopes if the
+			   namespace associated with the referencing context
+			   was reactivated when the template instantiation
+			   scope was pushed.  Also, TRUE for class reactivation
+			   scopes if the parent namespace was pushed. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be

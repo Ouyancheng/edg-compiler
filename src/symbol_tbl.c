@@ -6548,6 +6548,29 @@ of the class.
 }  /* determine_operator_lookup_namespaces */
 
 
+a_namespace_ptr parent_namespace_for_symbol(a_symbol_ptr sym)
+/*
+Return the parent namespace of sym.  If sym is a class member, return
+the parent of the outermost enclosing class.
+*/
+{
+  a_namespace_ptr	nsp;
+
+  /* If this is a class member, skip out to the outermost class type. */
+  if (sym->is_class_member) {
+    a_type_ptr	tp = sym->parent.class_type;
+    while (tp->source_corresp.is_class_member) {
+      tp = tp->source_corresp.parent.class_type;
+    }  /* while */
+    /* Get the namespace pointer from the outermost class. */
+    nsp = tp->source_corresp.parent.namespace_ptr;
+  } else {
+    nsp = sym->parent.namespace_ptr;
+  }  /* if */
+  return nsp;
+}  /* parent_namespace_for_symbol */
+
+
 a_template_param_ptr alloc_template_param
                                  (a_symbol_ptr sym,
 			          a_boolean    def_arg_involves_template_param)
