@@ -784,7 +784,7 @@ Process the arguments on the command line that invoked the compiler.
 #if !USE_MMAP_FOR_MEMORY_REGIONS
   a_boolean			non_pch_option_used = FALSE;
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  a_boolean                     suppress_do_preprocessing_only;
+  a_boolean                     suppress_do_preprocessing_only = FALSE;
 
   /* Set a current position indicating we are looking at the command line. */
   pos_curr_token.seq = 0;
