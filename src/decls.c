@@ -1614,6 +1614,11 @@ scope is that of a class definition.
            unless the function is a user-defined overloaded operator (except
            operator()(), as an extension) or a user-defined conversion.  Note
            that locator may be NULL (e.g., with abstract declarators). */
+        /* operator new() can also take default arguments in the second and
+           successive arguments -- this is implied by ARM 13.4, which excludes
+           operator new() from the restrictions that are listed for
+           overloaded operators in general.  We don't set the flag till after
+           the first parameter has been seen, however; see below. */
         if (locator != NULL && !locator->is_conversion_name &&
             (!locator->is_operator_name ||
              locator->variant.opname == (an_opname_kind)onk_function_call)) {
@@ -1747,13 +1752,14 @@ scope is that of a class definition.
           a_boolean           cache_default_arg;
           if (!default_arg_expr_allowed) {
             pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
-          } else if (locator->is_operator_name) {
-            /* This must be an operator()() declaration.  According to the
-               ARM a default argument is not allowed for any overloaded
-               operators, but operator()() is an exception in common use.
-               Accept this silently in cfront compatibility mode.
-               Otherwise produce at least a warning and possibly an error
-               in strict ANSI mode.  */
+          } else if (locator->is_operator_name &&
+                     locator->variant.opname ==
+                                         (an_opname_kind)onk_function_call) {
+            /* According to the ARM a default argument is not allowed for
+               any overloaded operators, but operator()() is an exception
+               in common use. Accept this silently in cfront compatibility
+               mode. Otherwise produce at least a warning and possibly an
+               error in strict ANSI mode.  */
             if (!cfront_compatibility_mode) {
               an_error_severity    severity;
               severity = strict_ansi_mode ? strict_ansi_error_severity :
@@ -1820,6 +1826,17 @@ scope is that of a class definition.
                                     ptp : (a_param_type_ptr)NULL);
           }  /* if */
           ptp->has_default_arg = default_arg_expr_allowed;
+        }  /* if */
+        if (C_dialect == C_dialect_cplusplus && !default_arg_expr_allowed) {
+          if (last_param_type == extra_info->param_type_list) {
+            /* The first parameter on the list has just been processed. */
+            if (locator != NULL && locator->is_operator_name &&
+                locator->variant.opname == (an_opname_kind)onk_new) {
+              /* Default argument expressions are permitted on the second and
+                 subsequent parameters of an operator new declaration. */
+              default_arg_expr_allowed = TRUE;
+            }  /* if */
+          }  /* if */
         }  /* if */
         /* Keep scanning parameter-declarations if there is a comma.
            However, also check for an ellipsis ("...") following the comma,
