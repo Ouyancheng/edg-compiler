@@ -177,6 +177,11 @@ Flags to be set when using the KAI inliner.
 #define RUNTIME_USES_NAMESPACES 1
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
 
+#ifdef __ELF__
+/* On ELF linux systems, use the INIT section for static initialization. */
+#define USE_INIT_SECTION_IN_GENERATED_C 1
+#endif /* __ELF__ */
+
 
 #else /* ifndef __linux__ */
 
