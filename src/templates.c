@@ -919,56 +919,97 @@ be NULL if the caller does not need to know whether a conversion was performed.
       /* The qualifier on templ_type did not also appear on type, so there is
          no match. */
     } else {
-      /* A real type "matches" a template parameter type if it is identical to
-         the real type, if any, that was previously associated with that
-         template type. */
-      /* For the nth template parameter find the nth template argument.  If
-         the nth template argument hasn't been created yet, create it along
-         with all missing template args that should precede it in the linked
-         list. */
-      prev_tap = NULL;
-      for (i = templ_type->variant.template_param.list_position; i > 0; --i) {
-        if (prev_tap == NULL) {
-          /* This must be the first time through the loop. */
-          tap = *templ_arg_list;
-        } else {
-          /* Not the first iteration. */
-          tap = prev_tap->next;
-        }  /* if */
-        /* If the template arg doesn't exist yet, create it and add it to the
-           list.  Note that some of the template args on the list will have
-           NULL type pointers. */
-        if (tap == NULL) {
-          tap = alloc_template_arg(/*is_arg_type=*/TRUE);
+      if (templ_type->variant.template_param.kind ==
+                             (a_template_param_type_kind)tptk_param) {
+        /* This is a template parameter from the original source program
+           and not a synthesized template parameter. */
+        /* A real type "matches" a template parameter type if it is identical
+           to the real type, if any, that was previously associated with that
+           template type. */
+        /* For the nth template parameter find the nth template argument.  If
+           the nth template argument hasn't been created yet, create it along
+           with all missing template args that should precede it in the linked
+           list. */
+        prev_tap = NULL;
+        for (i = templ_type->variant.template_param.list_position; i > 0; --i) {
           if (prev_tap == NULL) {
-            /* First iteration -- the start of the list. */
-            *templ_arg_list = tap;
+            /* This must be the first time through the loop. */
+            tap = *templ_arg_list;
           } else {
-            /* Add to the end of the list. */
-            prev_tap->next = tap;
+            /* Not the first iteration. */
+            tap = prev_tap->next;
           }  /* if */
-        }  /* if */
-        /* Remember the current entry so that next time though (if there is a
-           next time) we can find its successor or, if necessary, append a
-           new entry to it. */
-        prev_tap = tap;
-      }  /* for */
-      /* Now we have the nth template argument, which should correspond to
-         the nth template parameter, whose type is templ_type. */
-      if (tap->variant.type == NULL) {
-        /* No type has been bound to this template argument yet, so just use
-           "type".  This counts as a match. */
-        tap->variant.type = type;
-        match = TRUE;
-      } else {
-        /* A type was already bound to this template argument.  We have a match
-           if and only if the new type is the same as the one already there. */
-        if (identical_types(type, tap->variant.type)) {
-          /* Okay. */
+          /* If the template arg doesn't exist yet, create it and add it to the
+             list.  Note that some of the template args on the list will have
+             NULL type pointers. */
+          if (tap == NULL) {
+            tap = alloc_template_arg(/*is_arg_type=*/TRUE);
+            if (prev_tap == NULL) {
+              /* First iteration -- the start of the list. */
+              *templ_arg_list = tap;
+            } else {
+              /* Add to the end of the list. */
+              prev_tap->next = tap;
+            }  /* if */
+          }  /* if */
+          /* Remember the current entry so that next time though (if there is a
+             next time) we can find its successor or, if necessary, append a
+             new entry to it. */
+          prev_tap = tap;
+        }  /* for */
+        /* Now we have the nth template argument, which should correspond to
+           the nth template parameter, whose type is templ_type. */
+        if (tap->variant.type == NULL) {
+          /* No type has been bound to this template argument yet, so just use
+             "type".  This counts as a match. */
+          tap->variant.type = type;
           match = TRUE;
         } else {
-          /* Not a match.  Return FALSE. */
+          /* A type was already bound to this template argument.  We have a match
+             if and only if the new type is the same as the one already there. */
+          if (identical_types(type, tap->variant.type)) {
+            /* Okay. */
+            match = TRUE;
+          } else {
+            /* Not a match.  Return FALSE. */
+          }  /* if */
         }  /* if */
+      } else {
+        /* This is a template parameter associated with a member of a
+           proxy class (e.g., X in a type like T::X).  The members must have
+           the same name (e.g., T::X matches A::X) and the parent classes
+           must match. */
+        /* Skip typedefs on the real type. */
+        type = skip_typedefs(type);
+        if (type->source_corresp.class_of_which_a_member != NULL) {
+          tp = type->source_corresp.class_of_which_a_member;
+          ttp = templ_type->source_corresp.class_of_which_a_member;
+          if (ttp == NULL) {
+            /* No parent class -- no match. */
+          } else {
+            a_symbol_ptr  sym, templ_sym;
+
+            sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+            templ_sym = (a_symbol_ptr)templ_type->source_corresp.assoc_info;
+            if (sym->header != templ_sym->header) {
+              /* Members have different names -- no match. */
+            } else {
+              /* Convert the proxy class into its associated template
+                 parameter and call matches_template_type on the parent
+                 type. */
+              a_class_symbol_supplement_ptr  cssp;
+              cssp = symbol_supplement_for_class(ttp);
+              ttp = cssp->template_param_for_proxy_class;
+              if (matches_template_type(tp, ttp, templ_arg_list,
+                                        /*allow_conversion=*/FALSE,
+                                        (a_base_class_ptr*)NULL)) {
+                /* Members have the same names and the parent classes
+                   "match". */
+                match = TRUE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        } /* if */
       }  /* if */
     }  /* if */
   } else {
