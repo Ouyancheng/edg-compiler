@@ -380,7 +380,9 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_function_name, "__func__");
     enter_keyword((a_token_kind)tok_extension, "__extension__");
     enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");
+#if GNU_EXTENSIONS_ALLOWED
     enter_gnu_keyword((a_token_kind)tok_attribute, "__attribute");
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GCC_BUILTIN_VARARGS
     /* Enable built-in support for <stdarg.h> and <varargs.h>. */
     enter_keyword((a_token_kind)tok_va_start, "__builtin_stdarg_start");
