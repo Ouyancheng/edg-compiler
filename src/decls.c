@@ -1775,8 +1775,8 @@ determine_linkage:
 }  /* id_linkage */
 
 
-static a_boolean types_are_SVR4_compatible(a_type_ptr  tp1,
-                                           a_type_ptr  tp2)
+static a_boolean incompatible_types_are_SVR4_compatible(a_type_ptr  tp1,
+                                                        a_type_ptr  tp2)
 /*
 tp1 and tp2 are types that have already been determined to be incompatible.
 However, we are in SVR4-C mode and the compatibility rules are relaxed in some
@@ -1823,7 +1823,7 @@ cases.  Return TRUE if the two types are compatible by these relaxed rules.
     }  /* if */
   }  /* if */
   return compat;
-}  /* types_are_SVR4_compatible */
+}  /* incompatible_types_are_SVR4_compatible */
 
 
 a_boolean reconcile_external_symbol_types(
@@ -1850,6 +1850,7 @@ issued a similar error).  Return FALSE if there is some error.
   an_error_severity          severity;
   a_symbol_ptr               sym;
 
+  db_enter(4, "reconcile_external_symbol_types");
   esdp = ext_sym->variant.extern_symbol_descr;
   old_type = esdp->type;
   /* If the old and new types are the same, no checking or processing is
@@ -1876,7 +1877,8 @@ issued a similar error).  Return FALSE if there is some error.
                int g();      // Warning in SVR4 C mode.
                int x;        // Error in SVR4 C mode.
           */
-          if (is_routine && types_are_SVR4_compatible(old_type, type_ptr)) {
+          if (is_routine &&
+              incompatible_types_are_SVR4_compatible(old_type, type_ptr)) {
             severity = es_warning;
             /* Record the most recent type as the external symbol's type. */
             esdp->type = type_ptr;
@@ -1885,7 +1887,7 @@ issued a similar error).  Return FALSE if there is some error.
         } else if (is_array_type(type_ptr)) {
           /* Array types are compatible when the element types are the same
              no matter what the visibility constraints are. */
-          if (types_are_SVR4_compatible(old_type, type_ptr)) {
+          if (incompatible_types_are_SVR4_compatible(old_type, type_ptr)) {
             severity = es_warning;
             goto issue_diagnostic;
           }  /* if */
@@ -1958,7 +1960,7 @@ issued a similar error).  Return FALSE if there is some error.
                external symbol records another block extern declaration) or
                else there was an intervening declaration.  Issue a warning. */
             severity = es_warning;
-            if (types_are_SVR4_compatible(old_type, type_ptr)) {
+            if (incompatible_types_are_SVR4_compatible(old_type, type_ptr)) {
               /* If this is a variable, record the most recent type as the
                  external symbol's type. */
               if (!is_routine) esdp->type = type_ptr;
@@ -2027,6 +2029,7 @@ issue_diagnostic:
       }  /* if */
     }  /* if */
   }  /* if */
+  db_exit();
   return okay;
 }  /* reconcile_external_symbol_types */
 
@@ -2072,6 +2075,7 @@ created; the caller must set it.
   a_boolean                  is_implicit_declaration;
   a_boolean                  is_function;
 
+  db_enter(4, "create_external_symbol_for_linked_entity");
   if (func_info != NULL) {
     check_assertion(is_function_type(type_ptr));
     is_function = TRUE;
@@ -2243,6 +2247,7 @@ created; the caller must set it.
       }  /* if */
     }  /* if */
   }  /* if */
+  db_exit();
   return ext_sym;
 }  /* create_external_symbol_for_linked_entity */
 
@@ -3477,7 +3482,8 @@ on for use in generating cross-reference output describing this declaration.
           /* The old and new declarations are incompatible.  There is special
              handling for SVR4 C compatibility mode. */
           if (SVR4_C_mode &&
-              types_are_SVR4_compatible(type_ptr, routine_ptr->type)) {
+              incompatible_types_are_SVR4_compatible(type_ptr,
+                                                     routine_ptr->type)) {
             /* The routine types are incompatible, but in SVR4 mode this is
                not an error as long as the incompatibility is only in the
                return type. */
