@@ -42,7 +42,16 @@ EXTERN_C double strtod(char *, char **);
 /* Define is_NaN and is_finite.  They must work on an argument of type
    a_host_fp_value (typically double or long double). */
 #if EDG_WIN32
-/* Windows NT, 95, etc. */
+/* Windows, all versions. */
+#ifdef __MWERKS__
+#include <math.h>
+#define is_NaN(x) (isnan((double)(x)))
+#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#define is_finite(x) (isfinite((double)(x)))
+#else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
+#define is_finite(x) (isfinite((long double)(x)))
+#endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
+#else /* !defined(__MWERKS__) */
 #include <float.h>
 #define is_NaN(x) (_isnan((double)(x)))
 /* Note that MSVC has long double the same size as double so _finite
@@ -55,6 +64,7 @@ EXTERN_C double strtod(char *, char **);
 #define is_finite(x) (long_double_is_finite(x))  /* See definition below. */
 #define NEED_LONG_DOUBLE_IS_FINITE 1
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
+#endif /* ifdef __MWERKS__ */
 #else /* !EDG_WIN32 */
 #ifdef sun
 /* SunOS, Solaris, including Solaris on Intel X86. */
