@@ -2836,15 +2836,18 @@ enum a_template_param_type_kind_tag {
 			     };
 			   (where, during prototype instantiation, X is
 			   assumed to be a member of T and a type). */
-  tptk_type_of_member_constant
+  tptk_type_of_unknown_constant
 			/* The template param type represents the unknown
 			   type of a non-type member of a template param
-			   class, e.g., the type of T::k in the following:
+			   class, e.g., the type of T::k, and the type of
+                           the constant "1" in the following:
 			     template <class T> class A {
 			       int a[T::k];
+			       typename T::X<1> b;
 			     };
 			   (where, during prototype instantiation, k is
-			   assumed to be a member of T and a constant). */
+			   assumed to be a member of T and a constant).
+                          */
 };
 typedef a_byte a_template_param_type_kind;
 

@@ -923,7 +923,7 @@ class_struct_union:
     case tk_template_param:
       fputs("template-param", f_debug);
       if (tp->variant.template_param.kind ==
-                   (a_template_param_type_kind)tptk_type_of_member_constant) {
+                   (a_template_param_type_kind)tptk_type_of_unknown_constant) {
         fputs(" <unknown-type>", f_debug);
       } else {
         if (tp->variant.template_param.kind ==
