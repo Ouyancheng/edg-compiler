@@ -5898,15 +5898,15 @@ block.
       syntax_error(ec_exp_identifier);
     } else {
       /* Look up the namespace specifier. */
-      (void)coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+      sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
                                                        ilm_normal, &err);
-      sym = locator_for_curr_id.specific_symbol;
       if (!err) {
         if (sym != NULL &&
-            sym->kind == (a_symbol_kind)sk_namespace_projection &&
-            sym->ambiguous) {
+            locator_for_curr_id.specific_symbol->kind ==
+                                  (a_symbol_kind)sk_namespace_projection &&
+            locator_for_curr_id.specific_symbol->ambiguous) {
           /* The name for which an alias is being declared is ambiguous. */
-          sym_error(ec_ambiguous_name, sym);
+          sym_error(ec_ambiguous_name, locator_for_curr_id.specific_symbol);
         } else if (sym == NULL || sym->kind != (a_symbol_kind)sk_namespace) {
           /* Either nothing was found or what was found was not a namespace. */
           error(ec_missing_namespace_name);
