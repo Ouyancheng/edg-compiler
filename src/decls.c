@@ -1090,7 +1090,6 @@ locator_for_curr_id.
   }  /* if */
   /* Set the entry's fields to default values. */
   pip->next = NULL;
-  pip->locator = locator_for_curr_id;
   pip->symbol = NULL;
   pip->type = NULL;
   pip->storage_class = (a_storage_class)sc_unspecified;
@@ -1141,7 +1140,11 @@ return NULL.
   register a_param_id_ptr param_id = param_id_list;
 
   while (param_id != NULL) {
-    if (are_locators_for_same_symbol(param_id->locator, *locator)) break;
+    if (param_id->symbol != NULL &&
+        param_id->symbol->header == locator->symbol_header) {
+      /* Found a match. */
+      break;
+    }  /* if */
     /* Keep searching the param id list for this name. */
     param_id = param_id->next;
   }  /* while */
@@ -1161,49 +1164,62 @@ id list, *last_param_id points to the last entry on it.  type_ptr and
 storage_class are the type and storage class for the parameter.
 */
 {
-  a_param_id_ptr          new_param_id;
+  a_param_id_ptr  new_param_id;
+  a_symbol_ptr    sym;
+  a_boolean       unnamed_param = FALSE;
+  a_boolean       is_prototype_param_decl = (type_ptr != NULL);
 
   if (func_info != NULL) {
-#if 0
-    /* Note that there is no way to know whether this is a redeclaration
-       error after the call to enter_symbol. */
-#else
-    /* See if this identifier name already appears on the list.  If
-       so, generate an error and represent the parameter with an error
-       locator.  That means a param id is created for it. */
-    if (!is_error_locator(*locator) &&
-        param_id_on_list(locator, func_info->param_id_list)) {
-      error(ec_dupl_param_name);
-      set_to_error_locator(*locator);
-    }  /* if */
-#endif /* if 0 */
-    /* Enter a parameter symbol in the symbol table, checking for duplicate
-       parameters in so doing.  Parameter symbols are entered in the
-       function prototype scope only; the corresponding symbol in the function
-       scope itself is a variable symbol for which the variable's
-       is_parameter flag is set to TRUE. */
-    if (!is_error_locator(*locator) &&
-        param_id_on_list(locator, func_info->param_id_list)) {
-      error(ec_dupl_param_name);
-      set_to_error_locator(*locator);
-    }  /* if */
+    /* See if this identifier name already appears on the list.  If so, issue
+       an error.  Create a param_id entry if this is a prototype parameter
+       list, but not otherwise. */
     if (!is_error_locator(*locator)) {
-      (void)enter_symbol((a_symbol_kind)sk_parameter, locator,
-                         depth_scope_stack, /*suppress_redecl_error=*/FALSE);
+      if (param_id_on_list(locator, func_info->param_id_list) != NULL) {
+        error(ec_dupl_param_name);
+        set_to_error_locator(*locator);
+      } /* if */
+    } else if (is_prototype_param_decl) {
+      /* Assume that if an error locator is passed in and this is a prototype
+         parameter declaration that we have an unnamed parameter.  We'll need
+         a param_id entry to keep track of the type. */
+      unnamed_param = TRUE;
+    } /* if */
+    /* Create a param_id entry and enter it onto the param_id list.  Skip
+       this if we have an old-style param id list in which a duplicate was
+       encountered. */
+    if (is_prototype_param_decl || !is_error_locator(*locator)) {
+      new_param_id = alloc_param_id();
+      /* Save the type and storage class for the later declaration. */
+      new_param_id->type = type_ptr;
+      new_param_id->storage_class = storage_class;
+      /* Create a parameter symbol.  It is used during parameter processing
+         only.  The corresponding symbol in the function scope itself is a
+         variable symbol for which the variable's is_parameter flag is set to
+         TRUE. */
+      if (unnamed_param) {
+        /* Create no symbol for an unnamed parameter. */
+        sym = NULL;
+      } else if (type_ptr != NULL) {
+        /* Prototyped parameter list.  The symbol is entered in the the
+           function prototype scope.  It will later be copied to the function
+           scope when it is changed to sk_variable. */
+        sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
+                           depth_scope_stack, /*suppress_redecl_error=*/FALSE);
+      } else {
+        /* Must be an old-style parameter declaration.  The type and storage
+           class will be supplied later.  We won't actually enter this symbol
+           until the function scope is pushed. */
+        sym = make_parameter_symbol(locator);
+      }  /* if */
+      new_param_id->symbol = sym;
+      /* Put this entry on the end of the list of param ids. */
+      if (func_info->param_id_list == NULL) {
+        func_info->param_id_list = new_param_id;
+      } else {
+        (*last_param_id)->next = new_param_id;
+      }  /* if */
+      (*last_param_id) = new_param_id;
     }  /* if */
-    new_param_id = alloc_param_id();
-    /* Put the proper location into the parameter id entry. */
-    new_param_id->locator = *locator;
-    /* Save the type and storage class for the later declaration. */
-    new_param_id->type    = type_ptr;
-    new_param_id->storage_class = storage_class;
-    /* Put this entry on the end of the list of param ids. */
-    if (func_info->param_id_list == NULL) {
-      func_info->param_id_list = new_param_id;
-    } else {
-      (*last_param_id)->next = new_param_id;
-    }  /* if */
-    (*last_param_id) = new_param_id;
   }  /* if */
 }  /* add_to_param_id_list */
 
@@ -1727,12 +1743,12 @@ scope is that of a class definition.
                that case the names are not significant.  However, if the user
                makes a mistake, having as complete a list as possible
                minimizes the error recovery problems. */
-            add_to_param_id_list(&param_locator, param_type_ptr,
-                                 param_storage_class,
-                                 func_info, &last_param_id);
             if (is_error_locator(param_locator)) {
               func_info->any_prototype_names_omitted = TRUE;
             }  /* if */
+            add_to_param_id_list(&param_locator, param_type_ptr,
+                                 param_storage_class,
+                                 func_info, &last_param_id);
           }  /* if */
           if (curr_token == tok_assign && C_dialect == C_dialect_cplusplus) {
             /* Argument expressions are not allowed in overloaded operator
@@ -3859,8 +3875,7 @@ return_point:
 }  /* decl_typedef */
 
 
-static void decl_parameter(a_symbol_locator   *locator,
-                           a_symbol_ptr       *symbol_ptr)
+static void decl_parameter(a_param_id_ptr     param_id)
 /*
 Enter the declaration of an identifier for a parameter.  *locator gives
 the symbol locator (and thus its name and its declaration position).
@@ -3868,24 +3883,26 @@ Under ordinary circumstances, create and enter a symbol entry, and return
 a pointer to it in *symbol_ptr.
 */
 {
+  a_symbol_ptr   sym;
+  a_variable_ptr vp;
+
   db_enter(3, "decl_parameter");
-  if (is_error_locator(*locator)) {
-    /* Do not enter a symbol if *locator is an error locator -- it may
-       represent an unnamed parameter (which is legal in function
-       definitions in C++). */
-    *symbol_ptr = NULL;
+  vp = make_param_variable(param_id->type, param_id->storage_class);
+  add_to_parameters_list(vp);
+  sym = param_id->symbol;
+  if (sym == NULL) {
+    /* This param_id entry represents an unnamed parameter (which is legal
+       in function definitions in C++). */
   } else {
-    *symbol_ptr = enter_local_symbol((a_symbol_kind)sk_variable, locator,
-                                     decl_scope_level,
-                                     /*suppress_redecl_error=*/FALSE);
-    (*symbol_ptr)->defined = TRUE;
-    /* IL parameters are not allocated or added to the list of parameters
-       here because when old-style parameters are declared they can be
-       declared out of order.  See the section of function_definition
-       that handles parameters. */
+    remove_symbol(sym);
+    set_symbol_kind(sym, (a_symbol_kind)sk_variable);
+    sym->variant.variable = vp;
+    set_source_corresp(&(vp->source_corresp), sym);
+    reenter_symbol(sym, decl_scope_level, /*suppress_error=*/TRUE);
+    sym->defined = TRUE;
 #if DEBUG
     if (debug_level >= 3) {
-      db_symbol(*symbol_ptr, "", 4);
+      db_symbol(sym, "Changed from parameter symbol: ", 4);
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
@@ -6442,10 +6459,8 @@ prototype scope) now that we are in the body of the function.
        curr_symbol != NULL;
        curr_symbol = next_symbol) {
     next_symbol = curr_symbol->next_in_scope;
-    if (curr_symbol->kind != (a_symbol_kind)sk_parameter) {
-      reenter_symbol(curr_symbol, depth_scope_stack, /*suppress_error=*/TRUE);
-      curr_symbol->reentered_from_prototype_scope = TRUE;
-    }  /* if */
+    reenter_symbol(curr_symbol, depth_scope_stack, /*suppress_error=*/TRUE);
+    curr_symbol->reentered_from_prototype_scope = TRUE;
   }  /* for */
 }  /* reactivate_prototype_scope_symbols */
 
@@ -6479,7 +6494,6 @@ explicitly specified (rather than defaulted to "int").
   a_scope_ptr        scope_ptr;
   a_param_id_ptr     param_id;
   a_param_type_ptr   old_style_param_types, end_old_style_param_types;
-  a_symbol_ptr       param_symbol_ptr;
   an_id_linkage_kind linkage;
   a_type_ptr         return_type, old_type, unqualified_rout_type;
   a_routine_type_supplement_ptr
@@ -6616,9 +6630,11 @@ explicitly specified (rather than defaulted to "int").
      is returned by value. */
   make_return_value_pointer_variable(rout_type, scope_ptr);
   if (top_declarator_type_is_function) {
-    /* If a prototype scope was created to hold some types declared inside
-       the prototype parameters list, reactivate those symbols now so that
-       they will be available in the current scope. */
+    /* Parameter symbols that were created in the prototype scope (and then
+       removed in pop_scope) have to be reentered in the function scope; they
+       will be transformed in to variable symbols.  Also, in C mode, types
+       that were defined in the prototype scope need to reactivated now so
+       that they will be available in the current scope. */
     if (func_info->prototype_scope_symbols != NULL) {
       reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
     }  /* if */
@@ -6631,14 +6647,29 @@ explicitly specified (rather than defaulted to "int").
   /* If the parameters are old-style, process a set of declarations.
      If they are new-style, declare the identifiers that appeared in
      the function prototype. */
-  param_id = func_info->param_id_list;
   if (!prototyped) {
     /* Old-style id list. */
     old_style_param_types = end_old_style_param_types = NULL;
     /* Scan an optional list of declarations of parameters. */
-    if (param_id == NULL) {
+    if (func_info->param_id_list == NULL) {
       /* No parameters to declare. */
     } else {
+      /* When the id list was originally scanned, sk_parameter symbols were
+         created but not actually entered into the symbol table, since there
+         was no scope in which to enter them.  Now that the function scope
+         has been created, enter the param names. */
+      for (param_id = func_info->param_id_list;
+           param_id != NULL;
+           param_id = param_id->next) {
+#if CHECKING
+        if (param_id->symbol == NULL) {
+          internal_error(
+                      "function_definition: NULL old-style param_id symbol");
+        }  /* if */
+#endif /* CHECKING */
+        reenter_symbol(param_id->symbol, decl_scope_level,
+                       /*suppress_error=*/FALSE);
+      }  /* for */
       in_old_style_param_decl_list = TRUE;
       /* Switch memory regions so that any types in the parameter declarations
          will be allocated in the memory region in which the function appears.
@@ -6652,19 +6683,20 @@ explicitly specified (rather than defaulted to "int").
         /* This declaration is checked to make sure the identifier is on the
            param_id_list. */
         declaration(/*function_definition_allowed=*/FALSE, 
-                    /*extern_implied=*/FALSE, param_id);
+                    /*extern_implied=*/FALSE, func_info->param_id_list);
       }  /* while */
       /* Switch back to the memory region for the current routine body. */
       switch_il_region(function_memory_region);
       in_old_style_param_decl_list = FALSE;
       /* Scan the list of identifiers, assign types to any that remain
          undeclared, and create the variable entries. */
-      do {
-        if (param_id->symbol == NULL) {
+      for (param_id = func_info->param_id_list;
+           param_id != NULL;
+           param_id = param_id->next) {
+        if (param_id->type == NULL) {
           /* Enter any undeclared parameters with a type of int. */
           param_id->type = integer_type((an_integer_kind)ik_int);
           param_id->storage_class = (a_storage_class)sc_auto;
-          decl_parameter(&(param_id->locator), &param_id->symbol);
         }  /* if */
         /* The param_type entry must be allocated in the file-scope region. */
         ptp = alloc_param_type(param_id->type);
@@ -6674,8 +6706,7 @@ explicitly specified (rather than defaulted to "int").
            list rather than the order in which they appear in the
            declarations.  Note that the variable entry is allocated
            in the current (function) scope, not at the file scope. */
-        (void)make_parameter(param_id->type, param_id->storage_class,
-                             param_id->symbol);
+        decl_parameter(param_id);
         /* Now build the list of parameter types that is attached to the 
            routine type (needed for checking type compatibility -- see
            types_are_compatible). */
@@ -6685,7 +6716,7 @@ explicitly specified (rather than defaulted to "int").
           end_old_style_param_types->next = ptp;
         }  /* if */
         end_old_style_param_types = ptp;
-      } while ((param_id = param_id->next) != NULL);
+      }  /* for */
     }  /* if */
     /* Save the composite type determined by decl_var_or_routine, if any.
        It's restored below if the old and new types are compatible and
@@ -6742,6 +6773,7 @@ explicitly specified (rather than defaulted to "int").
         error(ec_all_proto_params_must_be_named);
       }  /* if */
     }  /* if */
+    param_id = func_info->param_id_list;
 #if CHECKING
     if ((param_id == NULL) != (ptp == NULL)) {
       internal_error("function_definition: param_id and ptp out of sync");
@@ -6750,9 +6782,8 @@ explicitly specified (rather than defaulted to "int").
     for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
-      decl_parameter(&(param_id->locator), &param_symbol_ptr);
-      (void)make_parameter(ptp->type, param_id->storage_class,
-                           param_symbol_ptr);
+      param_id->type = ptp->type;
+      decl_parameter(param_id);
 #if CHECKING
       if ((param_id->next == NULL) != (ptp->next == NULL)) {
         internal_error("function_definition: param_id and ptp out of sync");
@@ -6832,7 +6863,6 @@ processing of function definition.
   a_scope_ptr         scope;
   a_param_type_ptr    ptp;
   a_param_id_ptr      param_id;
-  a_symbol_ptr        param_symbol_ptr;
   int                 saved_container_pos, saved_depth_stmt_stack;
   int                 saved_code_reachable;
 
@@ -6874,6 +6904,12 @@ processing of function definition.
   rout_ptr->assoc_scope = curr_il_region_number;
   extra_info->assoc_routine = rout_ptr;
   rout_ptr->is_inline = TRUE;
+  /* Parameter symbols that were created in the prototype scope (and then
+     removed in pop_scope) have to be reentered in the function scope; they
+     will be transformed in to variable symbols. */
+  if (func_info->prototype_scope_symbols != NULL) {
+    reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
+  }  /* if */
   /* For a member function create the implicit "this" param variable and
      set a pointer to it in the scope entry. */
   if (extra_info->implicit_this_param_type != NULL) {
@@ -6904,8 +6940,8 @@ processing of function definition.
          param_id = param_id->next, ptp = ptp->next) {
     /* Declare each parameter identifier to have the associated type
        from the parameter type list. */
-    decl_parameter(&(param_id->locator), &param_symbol_ptr);
-    (void)make_parameter(ptp->type, param_id->storage_class, param_symbol_ptr);
+    param_id->type = ptp->type;
+    decl_parameter(param_id);
 #if CHECKING
     if ((param_id->next == NULL) != (ptp->next == NULL)) {
       internal_error(
@@ -7504,15 +7540,9 @@ continue_with_declaration:
           /* Enter the declared object as a variable rather than as a
              parameter.  */
           local_is_parameter = FALSE;
-        } else if (param_id->symbol != NULL) {
-          /* The parameter has already been declared.  We don't want to leave
-             the old parameter symbol in the symbol table since it is in an
-             incomplete state (NULL variable ptr) that could cause problems
-             later.  So issue the error here (rather than in enter_symbol) and
-             removed the old symbol from the symbol table. */
+        } else if (param_id->type != NULL) {
+          /* Parameter has already been declared. */
           error(ec_id_already_declared);
-          remove_symbol(param_id->symbol);
-          param_id->symbol = NULL;
         }  /* if */
         adjust_parameter_type(&local_type_ptr);
         is_function = top_declarator_type_is_function = FALSE;
@@ -7734,12 +7764,10 @@ continue_with_declaration:
       /* Enter the symbol with the proper type. */
       linkage = idl_none;
       if (local_is_parameter) {
-        decl_parameter(&locator, &symbol_ptr);
-        /* Save the symbol, type, and storage class for a parameter
-           (they're needed so that the parameters can be entered later in
-           the right order). */
-        param_id->symbol        = symbol_ptr;
-        param_id->type          = local_type_ptr;
+        symbol_ptr = param_id->symbol;
+        copy_source_position(locator.source_position,
+                             symbol_ptr->decl_position);
+        param_id->type = local_type_ptr;
         param_id->storage_class = local_storage_class;
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         decl_typedef(&locator, local_type_ptr, &symbol_ptr);
@@ -7777,11 +7805,7 @@ continue_with_declaration:
         has_initializer = TRUE;
       } else if (curr_token == tok_assign) {
         (void)get_token();
-        if (is_parameter) {
-          syntax_error(ec_initializer_in_param);
-        } else {
-          has_initializer = TRUE;
-        }  /* if */
+        has_initializer = TRUE;
       } else if (C_dialect == C_dialect_pcc && is_initializer_start()) {
         /* In pcc mode, the "=" may be omitted (K&R first edition, Appendix A,
            section 17 (Anachronisms)). */
