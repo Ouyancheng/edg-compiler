@@ -1,5 +1,11 @@
 Version 3.1
 
+7/1/02   GNU C compatibility: __BASE_FILE__ macro
+
+The GNU C macro __BASE_FILE__ is now implemented in gcc mode.  It
+is similar to __FILE__ but indicates the primary source file rather
+than the current source file.
+
 6/28/02  Warnings on just-past-end invalid subscripts, multi-dimensional
          array
 

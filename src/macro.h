@@ -34,6 +34,10 @@ EXTERN a_symbol_ptr
 		defined_macro_symbol;
 			/* Pointers to the symbol entries for the special
 			   macros "__LINE__", "__FILE__", and "defined". */
+EXTERN a_symbol_ptr
+	       	base_file_macro_symbol;
+			/* Pointer to the symbol entry for the special
+			   GNU macro __BASE_FILE__. */
 
 
 /* Find a macro symbol on a list of symbols. */

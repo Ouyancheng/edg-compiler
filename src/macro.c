@@ -2081,12 +2081,20 @@ end_scan_for_macro_modifs:;
                                   &line_number, &at_end_of_source);
         /* We assume we don't need to call ensure_arg_raw_text_space. */
         (void)sprintf(repl_text, "%lu", line_number);
-      } else if (macro_symbol == file_macro_symbol) {
+      } else if (macro_symbol == file_macro_symbol ||
+                 macro_symbol == base_file_macro_symbol) {
         /* __FILE__.  Make and return a string for a string literal 
           indicating the current file name. */
-        /* Convert the sequence number to a file name. */
-        conv_seq_to_file_and_line(start_pos.seq, &file_name, &full_name,
-                                  &line_number, &at_end_of_source);
+        /* Also GNU __BASE_FILE__. */
+        if (macro_symbol == base_file_macro_symbol) {
+          /* __BASE_FILE__.  Use the primary source file name. */
+          file_name = il_header.primary_source_file->file_name;
+        } else {
+          /* __FILE__.  Use the current source file name. */
+          /* Convert the sequence number to a file name. */
+          conv_seq_to_file_and_line(start_pos.seq, &file_name, &full_name,
+                                    &line_number, &at_end_of_source);
+        }  /* if */
         /* Determine the file name length.  Count each backslash as
            two characters because it must be escaped in the string. */
         repl_text_len = 0;
@@ -4564,6 +4572,9 @@ Enter symbols for the gcc predefined macros.
                            "__GNUC_MINOR__",
                            /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
+  base_file_macro_symbol = enter_predef_macro((char *)NULL, "__BASE_FILE__",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
 }  /* init_gcc_predefined_macros */
 
 
@@ -4945,6 +4956,7 @@ Do one-time initialization of variables related to macro processing.
       pch_saved_var_array_elem(Pragma_macro_symbol),
       pch_saved_var_array_elem(date_macro_symbol),
       pch_saved_var_array_elem(time_macro_symbol),
+      pch_saved_var_array_elem(base_file_macro_symbol),
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(assert_predicates),
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
@@ -4966,6 +4978,7 @@ Do one-time initialization of variables related to macro processing.
   register_trans_unit_variable(Pragma_macro_symbol);
   register_trans_unit_variable(date_macro_symbol);
   register_trans_unit_variable(time_macro_symbol);
+  register_trans_unit_variable(base_file_macro_symbol);
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   register_trans_unit_variable(assert_predicates);
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
@@ -4993,6 +5006,7 @@ after this function.
   Pragma_macro_symbol = NULL;
   date_macro_symbol = NULL;
   time_macro_symbol = NULL;
+  base_file_macro_symbol = NULL;
   macro_arg_list = NULL;
   end_of_macro_arg_list = NULL;
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
