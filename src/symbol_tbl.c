@@ -1671,8 +1671,11 @@ the proper insert location.
           old_sym_ptr = old_sym_ptr->next;
         }  /* while */
       }  /* for */
+      sym_name_space_kind = name_space_for_symbol_kind[(int)sym_ptr->kind];
+      /* See if this name a redeclaration of a template parameter name. */
       redeclared_template_param = (depth_innermost_instantiation_scope !=
 				   NO_SCOPE_DEPTH) &&
+				  sym_name_space_kind == nsk_other &&
 				  is_redeclared_template_param(sym_ptr);
       if (!suppress_error && redeclared_template_param &&
           scope_stack[scope_depth].template_param_decl_scope) {
@@ -1702,7 +1705,6 @@ the proper insert location.
            behind existing non-tag names in C++.  suppress_error is only TRUE
            when there has already been an error issued, so in practical terms
            the extra check costs nothing. */
-        sym_name_space_kind = name_space_for_symbol_kind[(int)sym_ptr->kind];
         for (; old_sym_ptr != NULL && old_sym_ptr->decl_scope == scope_number;
              old_sym_ptr = old_sym_ptr->next) {
           if (name_space_for_symbol_kind[(int)old_sym_ptr->kind] ==
