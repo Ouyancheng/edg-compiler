@@ -6329,7 +6329,10 @@ needs to be lowered if lower_source is TRUE.
   } else {
     /* A final cast is needed, so change the original node into the proper
        cast. */
+    a_boolean saved_compiler_generated =
+                                    node->variant.operation.compiler_generated;
     change_to_cast(node, result_node, node->type);
+    node->variant.operation.compiler_generated = saved_compiler_generated;
   }  /* if */
 }  /* lower_related_class_cast */
 

@@ -1,5 +1,11 @@
 Version 2.46
 
+4/18/01  Compiler-generated flag on lowered cast to derived class
+
+The IL lowering process applied to an explicit cast to a derived
+class produced a similar cast marked as compiler-generated.
+Now, the compiler_generated flag is FALSE in such cases.
+
 4/16/01  End position on operand for implicit "this" expression
 
 The end position is now set (in versions with EXTRA_SOURCE_POSITIONS_IN_IL
