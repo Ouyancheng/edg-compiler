@@ -1827,7 +1827,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 #define gen_type_name(type)                                           \
   gen_name(&(type)->source_corresp, iek_type,                         \
-           is_template_dependent_qualifier_type(type) ?               \
+           could_be_dependent_class_type(type) ?                      \
                                      GN_DEPENDENT : GN_NO_OPTIONS,    \
            (a_boolean *)NULL)
 #else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */

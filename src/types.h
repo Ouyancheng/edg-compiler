@@ -75,7 +75,6 @@ extern a_boolean is_aggregate_or_union_type(a_type_ptr tp);
 extern a_boolean is_ptr_to_member_type(a_type_ptr tp);
 extern a_boolean is_abstract_class_type(a_type_ptr tp);
 extern a_boolean is_template_param_type(a_type_ptr tp);
-extern a_boolean is_template_dependent_qualifier_type(a_type_ptr tp);
 extern a_boolean is_template_class_type(a_type_ptr tp);
 extern a_boolean is_polymorphic_class_type(a_type_ptr tp);
 extern a_boolean is_empty_class_type(a_type_ptr tp);
@@ -603,7 +602,7 @@ extern a_boolean type_contains_specific_template_template_param(
 extern a_boolean type_contains_specific_template_param_constant(
                                                          a_type_ptr     tp,
                                                          a_constant_ptr cp);
-extern a_boolean dependent_type_could_be_class(a_type_ptr tp);
+extern a_boolean could_be_dependent_class_type(a_type_ptr tp);
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

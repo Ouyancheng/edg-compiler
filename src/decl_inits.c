@@ -2711,7 +2711,7 @@ returned set to TRUE.
        S is a class type name or an initialization of a scalar like int i(0).
        This form of initialization is allowed in C++ mode only.  Note that
        the opening parenthesis has already been scanned in the caller. */
-    a_boolean  dependent_class_type = dependent_type_could_be_class(vp_type);
+    a_boolean  dependent_class_type = could_be_dependent_class_type(vp_type);
     if ((cssp != NULL && cssp->constructor != NULL) || dependent_class_type) {
       /* It's a class type and there's a constructor or we're dealing with a
          dependent type that could be such a class. */
@@ -3615,13 +3615,13 @@ initialized.  These are addressed in the course of the processing.
             /* Check if a template-dependent entity is being initialized: */
             if (member_or_base_sym->kind == (a_symbol_kind)sk_field) {
               /* A mem-initializer for a field: */
-              dependent_class_init = dependent_type_could_be_class(
+              dependent_class_init = could_be_dependent_class_type(
                                  member_or_base_sym->variant.field.ptr->type);
             } else if (is_type_symbol(member_or_base_sym)) {
               /* This is presumably a mem-initializer for a base. */
               a_type_ptr  type = type_symbol_type(member_or_base_sym);
               type = skip_typerefs(type);
-              dependent_class_init = dependent_type_could_be_class(type);
+              dependent_class_init = could_be_dependent_class_type(type);
               template_param_init =
                                (type->kind == (a_type_kind)tk_template_param);
             }  /* if */

@@ -528,19 +528,6 @@ Return TRUE if the given type is a template parameter type.
 }  /* is_template_param_type */
 
 
-a_boolean is_template_dependent_qualifier_type(a_type_ptr tp)
-/*
-Return TRUE if the given type is a template parameter type or a nonreal class
-type.
-*/
-{
-  tp = skip_typerefs(tp);
-  return is_template_param(tp) ||
-         (is_immediate_class_type(tp) &&
-          tp->variant.class_struct_union.is_nonreal_class);
-}  /* is_template_dependent_qualifier_type */
-
-
 a_boolean is_template_class_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a template class type -- an instance
@@ -6601,7 +6588,7 @@ in the type tree represented by tp.
 }  /* type_contains_specific_template_param_constant */
 
 
-a_boolean dependent_type_could_be_class(a_type_ptr tp)
+a_boolean could_be_dependent_class_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is dependent and might be a class type when
 instantiated (for a template parameter "T", this includes types such as "T",
@@ -6612,7 +6599,7 @@ instantiated (for a template parameter "T", this includes types such as "T",
   return is_template_param(tp) ||
          (is_class_struct_union(tp) &&
           tp->variant.class_struct_union.is_nonreal_class);
-}  /* dependent_type_could_be_class */
+}  /* could_be_dependent_class_type */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
