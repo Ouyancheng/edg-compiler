@@ -1,5 +1,27 @@
 Version 3.6
 
+
+1/21/05  Handling of types across translation units in C mode
+
+The handling of types across translation units in C mode (when simultaneously
+processing multiple translation units) has been reworked.  Now types are
+matched up across translation units only if they are involved in the
+declaration of routines or variables with external linkage.  For example:
+
+  // File 1:
+  struct S { int i; };
+  struct T { int i; } t;
+
+  // File 2:
+  struct S { char c; };    // Okay: Not related to "S" in File 1.
+  struct T { char c; } t;  // Error: "T" must match definition in File 1
+                           // because of the linked variable "t".
+
+Previously, an attempt was made to set up a correspondence between types even
+when they were not related by variables or routines with external linkage.
+The change fixes a number of cases that previously aborted and also corrects
+the diagnosis of cross-translation incompatibilities in various situations.
+
 1/19/05  Extended position information lost on field declarations
 
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the additional position information

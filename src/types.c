@@ -2925,9 +2925,7 @@ If the given types have a canonical correspondence in another translation
 unit change the pointers to point to those entries and return TRUE.
 Otherwise, return FALSE.  If seek_corresp is TRUE, the two types are
 expected to correspond, but the correspondence might not have been found
-through the symbol table because the types are unnamed (e.g., when unnamed
-class types are used in the declaration of entities with linkage in C).
-In that case, type_1 will have its correspondence set to type_2.
+through the symbol table:  Establish that correspondence now if appropriate.
 */
 {
   a_boolean   changed = FALSE;
@@ -2937,20 +2935,22 @@ In that case, type_1 will have its correspondence set to type_2.
               is_enum_1 = is_immediate_enum_type(new_type_1),
               is_enum_2 = is_immediate_enum_type(new_type_2);
 
-  /* For unnamed types (classes and enums), the correspondence matching is
-     driving by type comparisons.  If we are comparing two unnamed types of
-     the same kind, seek if perhaps the types do correspond to each other. */
+  /* In C mode, types correspondences are set as the result of checking for
+     type compatibility across translation units.  In C++ mode, a similar
+     mechanism is used for unnamed types (classes and enums). */
   if (seek_corresp &&
       ((is_class_1 && is_class_2 &&
-        (!has_name(new_type_1) ||
-         new_type_1->variant.class_struct_union.originally_unnamed) &&
-        (!has_name(new_type_2) ||
-         new_type_2->variant.class_struct_union.originally_unnamed)) ||
+        (C_mode() ||
+         ((!has_name(new_type_1) ||
+           new_type_1->variant.class_struct_union.originally_unnamed) &&
+          (!has_name(new_type_2) ||
+           new_type_2->variant.class_struct_union.originally_unnamed)))) ||
        (is_enum_1 && is_enum_2 &&
-        (!has_name(new_type_1) ||
-         new_type_1->variant.integer.originally_unnamed) &&
-        (!has_name(new_type_2) ||
-         new_type_2->variant.integer.originally_unnamed)))) {
+        (C_mode() ||
+         ((!has_name(new_type_1) ||
+           new_type_1->variant.integer.originally_unnamed) &&
+          (!has_name(new_type_2) ||
+           new_type_2->variant.integer.originally_unnamed)))))) {
     (void)seek_type_corresp(new_type_1, new_type_2);
   }  /* if */
   /* Convert each type to its canonical entry if applicable. */
@@ -3548,11 +3548,13 @@ for exact pointer equality.
           compat = TRUE;
           break;
         case tk_integer:
-          if (C_dialect == C_dialect_cplusplus &&
+          if ((C_dialect == C_dialect_cplusplus ||
+               (flags & TCF_SEEK_CORRESP) != 0) &&
               (type_1->variant.integer.enum_type ||
                type_2->variant.integer.enum_type)) {
             /* In C++, each enum type is a distinct type and is not compatible
-               with any other type. */
+               with any other type.  In C and C99, when looking for cross-
+               translation compatibility, similar rules apply. */
           } else {
             if (type_1->variant.integer.int_kind ==
                                            type_2->variant.integer.int_kind &&

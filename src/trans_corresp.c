@@ -1093,8 +1093,8 @@ need to be determined.
     case sk_union_tag:
       if (C_mode()) {
         /* In C mode structs, unions and enums will be matched up if they're
-           identical, but if they're not no error should be emitted.  Assume
-           they may have a correspondence at first. */
+           involved in the declaration of variables or routines with linkage.
+           Assume they may have a correspondence at first. */
         result = TRUE;
       } else {
         an_il_entry_kind             kind;
@@ -1860,35 +1860,22 @@ also deals with the consequences of type becoming the new canonical entry.
        matching the underlying types. */
     a_type_ptr  tp = skip_typerefs(type);
     a_type_ptr  corresp_tp = skip_typerefs(corresp_type);
+    /* In C mode, correspondences are only set for enum and class types
+       (and not for typedefs of such types). */
+    check_assertion(!C_mode());
     if (is_immediate_class_type(tp) &&
         tp->variant.class_struct_union.originally_unnamed &&
         is_immediate_class_type(corresp_tp) &&
         corresp_tp->variant.class_struct_union.originally_unnamed) {
       /* These are unnamed class types that acquired linkage through a typedef.
          Since the typedefs correspond, these types should too. */
-      if (C_mode()) {
-        /* In C mode a correspondence should be established only if the types
-           are actually compatible. */
-        if (!seek_type_corresp(tp, corresp_tp)) {
-          clear_type_correspondence(tp, /*visited=*/TRUE);
-          clear_type_correspondence(type, /*visited=*/TRUE);
-        }  /* if */
-      } else {
-        set_type_corresp(tp, corresp_tp);
-      }  /* if */
+      set_type_corresp(tp, corresp_tp);
     } else if (is_immediate_enum_type(tp) &&
                tp->variant.integer.originally_unnamed &&
                is_immediate_enum_type(corresp_tp) &&
                corresp_tp->variant.integer.originally_unnamed) {
       /* Same for unnamed enum types. */
-      if (C_mode()) {
-        if (!seek_type_corresp(tp, corresp_tp)) {
-          clear_type_correspondence(tp, /*visited=*/TRUE);
-          clear_type_correspondence(type, /*visited=*/TRUE);
-        }  /* if */
-      } else {
-        set_type_corresp(tp, corresp_tp);
-      }  /* if */
+      set_type_corresp(tp, corresp_tp);
     }  /* if */
   }  /* if */
 }  /* set_type_corresp */
@@ -1964,16 +1951,12 @@ symbols are listed under the same header).
     a_symbol_ptr                 sym1 = (a_symbol_ptr)scp1->assoc_info;
     a_symbol_ptr                 sym2 = (a_symbol_ptr)scp2->assoc_info;
     if (scp1->is_class_member) {
-      if (C_mode()) {
-        /* In C mode, two structs with the same name (and file scope) but with
-           incompatible fields can coexist.  The correspondence will be cleared
-           in that case, but no diagnostic should be produced. */
-      } else if (sym1 != NULL && sym2 != NULL &&
-                 sym1->kind == (a_symbol_kind)sk_member_function &&
-                 sym2->kind == (a_symbol_kind)sk_member_function &&
-                 sym1->variant.routine.ptr->special_kind ==
+      if (sym1 != NULL && sym2 != NULL &&
+          sym1->kind == (a_symbol_kind)sk_member_function &&
+          sym2->kind == (a_symbol_kind)sk_member_function &&
+          sym1->variant.routine.ptr->special_kind ==
                                     (a_special_function_kind)sfk_conversion &&
-                 sym2->variant.routine.ptr->special_kind ==
+          sym2->variant.routine.ptr->special_kind ==
                                     (a_special_function_kind)sfk_conversion) {
         /* Conversion functions don't really have names, so there is no need
            to check the name (a name is created for the entry, but it may
@@ -2101,17 +2084,15 @@ is in fact valid.
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
-      if (!C_mode()) {
-        if (scp->assoc_info != NULL &&
-            scp->assoc_info != (char*)unnamed_field_symbol()) {
-          /* A named field: */
-          process_bad_trans_unit_corresp(iek_field, field, corresp_field);
-        } else {
-          /* An unnamed field has a meaningless associated symbol.  Report
-             the error on the associated class instead. */
-          report_bad_trans_unit_corresp(scp->parent.class_type);
-          set_no_trans_unit_corresp(iek_field, field);
-        }  /* if */
+      if (scp->assoc_info != NULL &&
+          scp->assoc_info != (char*)unnamed_field_symbol()) {
+        /* A named field: */
+        process_bad_trans_unit_corresp(iek_field, field, corresp_field);
+      } else {
+        /* An unnamed field has a meaningless associated symbol.  Report
+           the error on the associated class instead. */
+        report_bad_trans_unit_corresp(scp->parent.class_type);
+        set_no_trans_unit_corresp(iek_field, field);
       }  /* if */
     }  /* if */
 #if CHECKING
@@ -2529,11 +2510,8 @@ is in fact valid.
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
-      if (!C_mode()) {
-        /* In C mode, constants have no linkage. */
-        process_bad_trans_unit_corresp(iek_constant,
-                                       constant, corresp_constant);
-      }  /* if */
+      process_bad_trans_unit_corresp(iek_constant,
+                                     constant, corresp_constant);
     }  /* if */
   }  /* if */
 done:
@@ -2544,11 +2522,11 @@ done:
 static void check_for_enumerator_conflicts(a_type_ptr  type)
 /*
 Check whether the enumerators attached to the given enum type conflict with
-other entities.  (Not significant in C mode: C enumerators have no linkage.)
+other entities.
 */
 {
   check_assertion(is_immediate_enum_type(type));
-  if (!type->source_corresp.is_class_member && !C_mode()) {
+  if (!type->source_corresp.is_class_member) {
     a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list;
     for (; enumerator != NULL; enumerator = enumerator->next) {
       a_symbol_ptr            enum_sym = (a_symbol_ptr)enumerator
@@ -2646,9 +2624,7 @@ type is in fact valid.
     }  /* if */
   }  /* if */
   if (!match) {
-    if (report_error && !C_mode()) {
-      /* In C mode, a correspondence mismatch is not an error.  (It just means
-         the types are unrelated.) */
+    if (report_error) {
       report_bad_trans_unit_corresp(type);
     }  /* if */
     set_no_enum_type_correspondence(type);
@@ -2775,9 +2751,7 @@ type is in fact valid.
     }  /* for */
     if ((field != NULL && corresp_field == NULL) ||
         (corresp_field != NULL && field == NULL)) {
-      /* In C mode, we simply ignore the correspondence.  In C++ mode, this
-         is an error. */
-      report_error = !C_mode();
+      report_error = TRUE;
       match = FALSE;
       goto done;
     }  /* if */
@@ -3118,14 +3092,8 @@ is in fact valid.
       /* corresp_type is also a class type since the type kinds are
          identical. */
       match = verify_class_type_correspondence(type);
-      if (!match && C_mode()) {
-        clear_type_correspondence(type, /*visited=*/TRUE);
-      }  /* if */
     } else if (is_immediate_enum_type(type)) {
       match = verify_enum_type_correspondence(type);
-      if (!match && C_mode()) {
-        clear_type_correspondence(type, /*visited=*/TRUE);
-      }  /* if */
     } else {
       match = identical_types(type, corresp_type) &&
               same_exception_spec(type, corresp_type);
@@ -3151,14 +3119,10 @@ is in fact valid.
        scp->access != corresp_scp->access ||
        scp->name_linkage != corresp_scp->name_linkage)) {
     match = FALSE;
-    if (C_mode() &&
-        (is_immediate_class_type(type) || is_immediate_enum_type(type))) {
-      /* Just ignore the correspondence in C mode. */
-      set_no_trans_unit_corresp(iek_type, type);
-    } else {
-      report_bad_trans_unit_corresp(type);
-    }  /* if */
-  }
+  }  /* if */
+  if (!match) {
+    report_bad_trans_unit_corresp(type);
+  }  /* if */
   return match;
 }  /* verify_type_correspondence */
 
@@ -3544,21 +3508,6 @@ are not checked.
            field = skip_generated_field(field->next),
              corresp_field = skip_generated_field(corresp_field->next)) {
         set_trans_unit_corresp(iek_field, field, corresp_field);
-        if (C_mode()) {
-          /* Special handling is needed for unnamed types defined as part of
-             field declarations.  In C mode, such types go into the file scope
-             but since they have no name find_type_correspondence will not
-             find a correspondence. */
-          a_type_ptr  field_type = field->type,
-                      corresp_field_type = corresp_field->type;
-          if (is_immediate_class_type(field_type) && !has_name(field_type) &&
-              is_immediate_class_type(corresp_field_type) &&
-              !has_name(corresp_field_type) &&
-              !has_correspondence(field_type)) {
-            set_trans_unit_corresp(iek_type, field_type, corresp_field->type);
-            establish_trans_unit_correspondences_for_class(field_type);
-          }  /* if */
-        }  /* if */
       }  /* for */
     }
 
@@ -3997,28 +3946,30 @@ Otherwise, return FALSE.
     /* type_1 either hasn't been visited yet, or it was found not to have a
        correspondence.  Even in the latter case it is possible that type_2
        is a corresponding entry because it might not have been considered
-       earlier (e.g., because it hadn't been instantiated yet).  To check
-       for this possibility, we establish the correspondence and then
-       verify it.  If verification finds that the types do not after all
-       match, the type is restored to its previous state wrt. correspondence
-       checking. */
+       earlier (e.g., because it hadn't been instantiated yet; in C mode,
+       this is not possible).  To check for this possibility, we establish
+       the correspondence and then verify it.  If verification finds that
+       the types do not after all match, the type is restored to its
+       previous state wrt. correspondence checking. */
     a_boolean  visited = (trans_unit_corresp_of(type_1) != NULL);
-    clear_type_correspondence(type_1, /*visited=*/FALSE);
-    set_trans_unit_corresp(iek_type, type_1, type_2);
-    if (is_immediate_class_type(type_1)) {
-      establish_trans_unit_correspondences_for_class(type_1);
-    } else if (is_immediate_enum_type(type_1)) {
-      establish_trans_unit_correspondences_for_enum(type_1);
-    } else {
-      unexpected_condition();
-    }  /* if */
-    result = verify_type_correspondence(type_1);
-    if (!result && !visited && total_errors == 0) {
-      /* Undo any correspondences established earlier.  This requires two
-         steps: One to detach the entities from each other, and a second
-         one to delete the correspondence entry altogether. */
-      clear_type_correspondence(type_1, /*visited=*/TRUE);
+    if (!visited || !C_mode()) {
       clear_type_correspondence(type_1, /*visited=*/FALSE);
+      set_trans_unit_corresp(iek_type, type_1, type_2);
+      if (is_immediate_class_type(type_1)) {
+        establish_trans_unit_correspondences_for_class(type_1);
+      } else if (is_immediate_enum_type(type_1)) {
+        establish_trans_unit_correspondences_for_enum(type_1);
+      } else {
+        unexpected_condition();
+      }  /* if */
+      result = verify_type_correspondence(type_1);
+      if (!result && !visited && total_errors == 0) {
+        /* Undo any correspondences established earlier.  This requires two
+           steps: One to detach the entities from each other, and a second
+           one to delete the correspondence entry altogether. */
+        clear_type_correspondence(type_1, /*visited=*/TRUE);
+        clear_type_correspondence(type_1, /*visited=*/FALSE);
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -4132,9 +4083,10 @@ with the tag of the same name.
 {
   a_boolean  result = FALSE;
 
+  check_assertion(!C_mode());
   if (is_tag_symbol(sym)) {
     result = TRUE;
-  } else if (!C_mode() && sym->kind == (a_symbol_kind)sk_type) {
+  } else if (sym->kind == (a_symbol_kind)sk_type) {
     /* A typedef symbol conflicts with a homonym tag symbol if it has
        linkage. */
     result = may_have_correspondence(sym);
@@ -4162,6 +4114,10 @@ entities.
     /* A class that acquired a name through a typedef declaration will be
        handled elsewhere.   Similarly, prototype instantiations are handled
        when the generic template is processed. */
+    handled_later = TRUE;
+  } else if (C_mode()) {
+    /* In C, types have no correspondence unless they're involved in the
+       declaration of entities with linkage. */
     handled_later = TRUE;
   } else if (!has_name(type)) {
     /* Cannot establish a correspondence without a name. */
@@ -4209,7 +4165,7 @@ entities.
                    (is_tag_symbol(sym) &&
                     !type_conflicts_with_tag(type_sym))) {
           /* Tag names have their own name space. */
-        } else if (!C_mode()) {
+        } else {
           f_report_bad_trans_unit_corresp((char*)type, &sym->decl_position);
         }  /* if */
       }  /* if */
@@ -5043,6 +4999,16 @@ translation unit correspondence pointer if one is found.
     /* Record the correspondence. */
     a_routine_ptr  corresp_routine = corresp_sym->variant.routine.ptr;
     set_trans_unit_corresp(iek_routine, routine, corresp_routine);
+    if (C_mode()) {
+      /* In C mode, type correspondences are only set as the result of
+         correspondences between variables and routines.  This occurs as
+         a side-effect of calls to f_types_are_compatible with the
+         TCF_SEEK_CORRESP flag set. */
+      (void)f_types_are_compatible(routine->type, corresp_routine->type,
+                                   TCF_SEEK_CORRESP |
+                                   TCF_REDECLARATION |
+                                   TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING);
+    }  /* if */
   } else if (trans_unit_corresp_of(routine) == NULL) {
     /* Mark this routine as visited. */
     set_no_trans_unit_corresp(iek_routine, routine);
@@ -5152,6 +5118,15 @@ translation unit correspondence pointer if one is found.
       } else {
         establish_trans_unit_correspondences_for_enum(var->type);
       }  /* if */
+    } else if (C_mode()) {
+      /* In C mode, type correspondences are only set as the result of
+         correspondences between variables and routines.  This occurs as
+         a side-effect of calls to f_types_are_compatible with the
+         TCF_SEEK_CORRESP flag set. */
+      (void)f_types_are_compatible(var->type, corresp_var->type,
+                                   TCF_SEEK_CORRESP |
+                                   TCF_REDECLARATION |
+                                   TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING);
     }  /* if */
   } else {
     /* Mark this variable as visited. */
