@@ -87,7 +87,7 @@ void operator delete(void*, void*);
 /*
 Placement array new.
 */
-void *operator new[](size_t, void*) /* throw()*/;
+void *operator new[](size_t, void*) throw();
 
 /*
 Placement array delete.
@@ -100,7 +100,12 @@ void operator delete[](void*, void*);
 Nothrow version of array new.
 */
 void *operator new[](size_t,
-                     const __EDG_STD_NAMESPACE::nothrow_t&) /* throw()*/;
+                     const __EDG_STD_NAMESPACE::nothrow_t&) throw();
+
+/*
+Placement array new.
+void *operator new[](size_t, void*) throw();
+*/
 #endif /* __ARRAY_OPERATORS */
 
 #endif
