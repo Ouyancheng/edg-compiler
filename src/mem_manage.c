@@ -50,6 +50,17 @@ static a_boolean
 			   is being used.  This causes the memory allocation
 			   routines to allocate the memory in a way that
 			   can be tracked by Purify. */
+
+/* Used to keep track of memory that is being thrown away so that purify
+   won't complain. */
+typedef struct a_discarded_memory_record *a_discarded_memory_record_ptr;
+typedef struct a_discarded_memory_record {
+  a_discarded_memory_record_ptr
+		next;
+			/* Pointer to the next entry in the list. */
+  char		*memory;
+			/* Pointer to the discarded memory. */
+} a_discarded_memory_record;
 #endif /* USING_PURIFY */
 
 
@@ -583,12 +594,19 @@ if the back end is executed in the same program.
 
 
 #if USING_PURIFY
-void discard_memory(char* ptr)
+void discard_memory(char *ptr)
 /*
 Throw away a block of memory in a way that Purify won't complain about.
 */
 {
-  discarded_memory = ptr;
+  a_discarded_memory_record_ptr	dmrp;
+  static a_discarded_memory_record_ptr	discarded_memory = NULL;
+
+  dmrp = (a_discarded_memory_record_ptr)
+              alloc_general(sizeof(a_discarded_memory_record));
+  dmrp->next = discarded_memory;
+  dmrp->memory = ptr;
+  discarded_memory = dmrp;
 }  /* discard_memory */
 #endif /* USING_PURIFY */
 

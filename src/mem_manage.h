@@ -132,7 +132,6 @@ extern void trim_memory_region(a_memory_region_number region_number);
    discarded. */
 #if USING_PURIFY
 extern void discard_memory(char* ptr);
-EXTERN char *discarded_memory;
 #else /* !USING_PURIFY */
 #define discard_memory(ptr) /* */
 #endif /* USING_PURIFY */
