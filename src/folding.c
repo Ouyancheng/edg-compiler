@@ -1007,7 +1007,6 @@ static void conv_ptr_to_member_to_ptr_to_member(
                                          a_constant        *old_constant,
                                          a_constant        *new_constant,
                                          a_boolean         is_implicit_cast,
-                                         a_boolean         is_reinterpret_cast,
                                          a_source_position *err_pos,
                                          an_error_code     *err_code,
                                          an_error_severity *err_severity)
@@ -1016,8 +1015,8 @@ Convert a pointer-to-member constant to a pointer-to-member constant of
 a different type.  old_constant is the original constant.  new_constant->type
 indicates the desired new type.  The converted constant is put into
 *new_constant.  This is an implicit cast if is_implicit_cast is TRUE.
-This is a reinterpret_cast (and therefore related class casts are not
-given special treatment) if is_reinterpret_cast is TRUE.
+Note that this should not be called to implement a reinterpret_cast operation
+since such casts on pointer-to-member types are not "constant operations".
 */
 {
   a_type_ptr       new_type = new_constant->type, new_class;
@@ -1038,13 +1037,11 @@ given special treatment) if is_reinterpret_cast is TRUE.
        changing. */
     copy_constant(old_constant, new_constant);
     implicit_cast(new_constant, new_type);
-  } else if (!is_reinterpret_cast &&
-             (bcp = find_base_class_of(old_class, new_class)) != NULL) {
+  } else if ((bcp = find_base_class_of(old_class, new_class)) != NULL) {
     /* Derived --> base (allowed only as an explicit cast).  Valid unless
        the cast is ambiguous. */
     fold_pm_base_class_cast(old_constant, bcp, new_constant, err_pos);
-  } else if (!is_reinterpret_cast &&
-             (bcp = find_base_class_of(new_class, old_class)) != NULL) {
+  } else if ((bcp = find_base_class_of(new_class, old_class)) != NULL) {
     /* Base --> derived (allowed as an implicit or explicit cast).  Valid
        unless the cast is ambiguous, the base class is inaccessible (if
        the cast is implicit), or the base class is a virtual base of the
@@ -1052,9 +1049,7 @@ given special treatment) if is_reinterpret_cast is TRUE.
     fold_pm_derived_class_cast(old_constant, bcp, new_constant,
                                is_implicit_cast, err_pos);
   } else {
-    /* Unrelated class types. */
-    copy_constant(old_constant, new_constant);
-    implicit_cast(new_constant, new_type);
+    internal_error("conv_ptr_to_member_to_ptr_to_member: unrelated classes");
   }  /* if */
 }  /* conv_ptr_to_member_to_ptr_to_member */
 
@@ -1334,8 +1329,7 @@ casts between unrelated classes.
       /* Converting from pointer-to-member to pointer-to-member. */
       if (!is_reinterpret_cast) {
         conv_ptr_to_member_to_ptr_to_member(constant, &new_constant,
-                                            is_implicit_cast,
-                                            is_reinterpret_cast, err_pos,
+                                            is_implicit_cast, err_pos,
                                             &err_code, &err_severity);
       } else {
         *did_not_fold = TRUE;
