@@ -4929,6 +4929,31 @@ only in C++ mode.
     make_specific_symbol_error_locator(&locator_for_curr_id);
   } else {
     /* "~identifier" is present. */
+    if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+      a_symbol_ptr sym;
+      /* Check for situations like p->~T, where T is a template parameter.
+         This is unlike other template parameter references because the T
+         must be replaced by the actual argument name before the lookup
+         is done.  Lookup the identifier and see if it is a template parameter.
+         If the type kind is tk_template_param then we are in a prototype
+         instantiation and no substitution is attempted.  Note that this
+         routine is not called for nonclass vacuous destructors. */
+      sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+      if (sym != NULL && sym->is_template_param &&
+          sym->kind == (a_symbol_kind)sk_type &&
+          is_class_symbol(sym)) {
+        a_symbol_ptr		type_sym;
+        a_source_position	saved_position;
+        saved_position = locator_for_curr_id.source_position;
+        /* Get the symbol pointer associated with the type pointed to. */
+        type_sym = (a_symbol_ptr)sym->variant.type->source_corresp.assoc_info;
+        make_locator_for_symbol(type_sym, &locator_for_curr_id);
+        locator_for_curr_id.source_position = saved_position;
+      } else {
+        /* We don't need to do anything here.  The locator will be reset
+           by tildize_locator. */
+      }  /* if */
+    }  /* if */
     /* Convert the locator to a locator for the destructor. */
     tildize_locator(&locator_for_curr_id);
   }  /* if */

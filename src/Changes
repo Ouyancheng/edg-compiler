@@ -1,5 +1,30 @@
 Version 2.20
 
+10/19/93 Explicit destructor calls using template parameters
+
+The front end now supports explicit destructor calls using the name of
+a template parameter as the destructor name.
+
+  template <class T> inline void dest(T& t)
+  {
+    t.~T();
+    (&t)->T::~T();
+  }
+  struct A {};
+  struct B {
+    ~B(){}
+  };
+
+  int main()
+  {
+    A a;
+    B b;
+    dest(a);  // Class with no destructor
+    dest(b);  // Class with destructor
+    dest(1);  // Nonclass
+    return 0;
+  }
+
 10/18/93 Restriction on inheritance: class X cannot inherit an X
 
 A change has been made to find_projected_symbol to deal with cases like
