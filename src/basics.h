@@ -509,8 +509,12 @@ of gcc, recognized a return type of "volatile void" as meaning that a function
 does not return.
 */
 #ifdef __GNUC__
+#if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 70)
 #define DOES_NOT_RETURN void __attribute__ ((noreturn))
+#endif /* __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 70) */
 #endif /* ifndef __GNUC__ */
+
+/* If not set above, use "void" for DOES_NOT_RETURN. */
 #ifndef DOES_NOT_RETURN
 #define DOES_NOT_RETURN void
 #endif /* ifndef DOES_NOT_RETURN */
