@@ -1,5 +1,11 @@
 Version 2.45
 
+9/29/00  Carriage returns now ignored by default
+
+The IGNORE_CARRIAGE_RETURN_IN_SOURCE configuration flag is now set
+to TRUE by default to ensure that source files created on Windows systems
+can be compiled elsewhere.
+
 9/28/00  Microsoft compatibility: Usual arithmetic conversions and sized
          types like __int32
 
