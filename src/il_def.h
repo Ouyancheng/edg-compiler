@@ -5795,9 +5795,6 @@ enum an_expr_operator_kind_tag {
   eok_xeq,              /* Complex equality. */
   eok_xne,              /* Complex inequality. */
   eok_xassign,          /* Complex assignment. */
-  eok_complex,          /* Join two real operands, produce a complex as the
-                           result.  The first operand is the real part, the
-                           second the imaginary part. */
 #endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
   eok_xadd_assign,      /* Complex add assign operator. */
@@ -5807,6 +5804,9 @@ enum an_expr_operator_kind_tag {
   eok_jmultiply,        /* Imaginary multiplication */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FIL
+  eok_complex,          /* Join two real operands, produce a complex as the
+                           result.  The first operand is the real part, the
+                           second the imaginary part. */
   eok_ceq,              /* Fortran character string equality. */
   eok_cne,              /* Fortran character string inequality. */
   eok_cgt,              /* Fortran character string greater than. */
