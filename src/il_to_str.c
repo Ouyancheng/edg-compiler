@@ -1099,7 +1099,7 @@ the way described by octl.
         /* No routine to do the expression output.  Do default
            non-compilable output. */
         check_assertion(!octl->gen_compilable_code);
-        octl->output_str("*");
+        octl->output_str("<variable>");
       } else {
         /* Output the expression using a special routine. */
         a_vla_dimension_ptr vlap = find_vla_dimension(type);
