@@ -1,5 +1,15 @@
 Version 2.42
 
+4/1/99   purify_discard_memory eliminated
+
+All calls of purify_discard_memory (in c_gen_be.c and cp_gen_be.c), and
+the macro itself, have been eliminated.  The macro was supposed to
+eliminate some spurious memory leak diagnostics from Purify, but in fact
+the pointers passed in were sometimes things that shouldn't be freed,
+which caused larger problems.  All things considered, eliminating
+the trickery and accepting the diagnostic from Purify seems like
+the best course of action.
+
 4/1/99   IL lowering problem with aggregate initialization and return value
          optimization
 

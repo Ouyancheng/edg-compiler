@@ -152,16 +152,6 @@ extern void free_all_memory_regions(void);
 /* Free the unused space in the final block of a memory region. */
 extern void trim_memory_region(a_memory_region_number region_number);
 
-/* purify_discard_memory is used to indicate that a piece of memory
-   is no longer needed but need not be freed.  This is used to prevent
-   purify from complaining about memory that is deliberately
-   discarded. */
-#ifdef USING_PURIFY
-#define purify_discard_memory(ptr) (void)free(ptr)
-#else /* !USING_PURIFY */
-#define purify_discard_memory(ptr) /* */
-#endif /* USING_PURIFY */
-
 #if DEBUG
 /* Display the amount of memory used, for debug purposes. */
 extern void show_mem_manage_space_used(unsigned long total_accounted_for);

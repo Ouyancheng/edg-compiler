@@ -6514,8 +6514,6 @@ If C_output_file_name is NULL, use stdout for the output.
       str_command_line_error(ec_cl_cannot_open_C_output_file,
                              C_output_file_name);
     }  /* if */
-    /* Make Purify happy. */
-    purify_discard_memory(C_output_file_name);
   }  /* if */
   /* Remember the primary output file. */
   f_primary = f_C_output;
