@@ -60,9 +60,6 @@ Flags to be set when using the KAI inliner.
 #define USING_QUANTIFY 1
 #define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
-#ifndef __ANSIC__
-#define __BSD__ 1
-#endif /* ifndef __ANSIC__ */
 #ifdef SELFCOMP_VERSION
 /* Self-compiled version. */
 #define ALTERNATE_IL_FILE_FORMAT 0
@@ -80,6 +77,7 @@ Flags to be set when using the KAI inliner.
 #endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
 
 #ifdef SOLARIS
+#define __ANSIC__ 1
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
@@ -90,6 +88,9 @@ Flags to be set when using the KAI inliner.
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
 #else /* !defined(SOLARIS) */
 /* SunOS version. */
+#ifndef __ANSIC__
+#define __BSD__ 1
+#endif /* ifndef __ANSIC__ */
 #ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 0
 #endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
