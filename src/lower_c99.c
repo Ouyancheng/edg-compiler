@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 2000-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -940,6 +940,12 @@ Otherwise, do nothing.
       if (is_bool_type(expr->type)) {
         lower_bool_compound_assignment(expr, /*is_lvalue=*/FALSE);
       }  /* if */
+      break;
+    case eok_ipost_incr:
+    case eok_ipre_incr:
+    case eok_ipost_decr:
+    case eok_ipre_decr:
+      lower_bool_incr_decr(expr);
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case eok_binary_question:
@@ -2013,6 +2019,6 @@ initialized for each compilation.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 2000-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

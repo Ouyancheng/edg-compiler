@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -6627,35 +6627,51 @@ Lower an eok_bool_cast node, which converts an operand to bool.
 }  /* lower_bool_cast */
 
 
-static void lower_bool_increment(an_expr_node_ptr expr)
+void lower_bool_incr_decr(an_expr_node_ptr expr)
 /*
 Rewrite an increment of a bool (eok_ipost_incr or eok_ipre_incr).
 Those operations set the lvalue to true instead of incrementing.
+For C99 mode, also handles decrement of a bool, which sets the
+lvalue to false.
 */
 {
   an_expr_node_ptr operand_node = expr->variant.operation.operands;
-  an_expr_node_ptr one_node;
-  a_constant       true_constant;
+  an_expr_node_ptr result_value_node;
+  a_constant       result_constant;
+  a_boolean        is_incr;
 
+  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ipre_incr ||
+      expr->variant.operation.kind == (an_expr_operator_kind)eok_ipost_incr) {
+    is_incr = TRUE;
+  } else {
+    check_assertion(
+      expr->variant.operation.kind == (an_expr_operator_kind)eok_ipre_decr ||
+      expr->variant.operation.kind == (an_expr_operator_kind)eok_ipost_decr);
+    is_incr = FALSE;
+  }  /* if */
   /* Build a constant one, but make sure it has bool type to preserve
-     bool-correctness in the IL for back ends that care. */
-  set_integer_constant(&true_constant, (a_host_large_integer)1,
+     bool-correctness in the IL for back ends that care.  For decrement,
+     build a constant zero. */
+  set_integer_constant(&result_constant,
+                       is_incr ? (a_host_large_integer)1 :
+                                 (a_host_large_integer)0,
                        targ_bool_int_kind);
-  true_constant.type = expr->type;
-  one_node = alloc_node_for_constant(&true_constant);
+  result_constant.type = expr->type;
+  result_value_node = alloc_node_for_constant(&result_constant);
   if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ipre_incr ||
       expr->result_is_not_used) {
     /* Preincrement: ++x becomes (x = 1).  Also used for postincrement
-       when result is not used. */
+       when result is not used.  Predecrement becomes (x = 0). */
     a_boolean returns_lvalue = expr->variant.operation.
                                         returns_lvalue_instead_of_usual_rvalue;
-    operand_node->next = one_node;
+    operand_node->next = result_value_node;
     set_node_operator(expr, (an_expr_operator_kind)eok_iassign,
                       expr->type, operand_node);
     expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                                 returns_lvalue;
   } else {
-    /* Postincrement: x++ becomes (temp = x, x = 1, temp). */
+    /* Postincrement: x++ becomes (temp = x, x = 1, temp).
+       Postdecrement: x-- becomes (temp = x, x = 0, temp). */
     an_expr_node_ptr x_lvalue_copy =
                           make_lvalue_reusable_copy(operand_node,
                                                     /*vars_can_change=*/FALSE);
@@ -6664,7 +6680,7 @@ Those operations set the lvalue to true instead of incrementing.
                                   make_reusable_copy(x_rvalue,
                                                      /*vars_can_change=*/TRUE);
     an_expr_node_ptr assign_node, comma_node;
-    x_lvalue_copy->next = one_node;
+    x_lvalue_copy->next = result_value_node;
     assign_node = make_operator_node((an_expr_operator_kind)eok_iassign,
                                      x_rvalue->type, x_lvalue_copy);
     comma_node = make_comma_node(x_rvalue, assign_node);
@@ -6672,7 +6688,7 @@ Those operations set the lvalue to true instead of incrementing.
     set_node_operator(expr, (an_expr_operator_kind)eok_comma,
                       x_rvalue_copy->type, comma_node);
   }  /* if */
-}  /* lower_bool_increment */                  
+}  /* lower_bool_incr_decr */                  
 
 
 #if !LOWER_LVALUE_RETURNING_OPERATIONS
@@ -8235,7 +8251,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                  true. */
               a_type_ptr operand_type = type_pointed_to(operand_node->type);
               if (is_bool_type(operand_type)) {
-                lower_bool_increment(expr);
+                lower_bool_incr_decr(expr);
               }  /* if */
             }  /* if */
             break;
@@ -13353,6 +13369,6 @@ for each compilation.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

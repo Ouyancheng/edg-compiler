@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -851,6 +851,8 @@ extern an_expr_operator_kind lowered_assignment_operator(a_type_ptr type);
 
 extern void transform_bool_cast(an_expr_node_ptr expr);
 
+extern void lower_bool_incr_decr(an_expr_node_ptr expr);
+
 extern void lower_bool_compound_assignment(an_expr_node_ptr expr,
                                            a_boolean        is_lvalue);
 
@@ -918,6 +920,6 @@ extern void clear_parent_information(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

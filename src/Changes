@@ -1,5 +1,11 @@
 Version 3.0
 
+2/26/02  C99, GNU C mode: lowering of bool increment/decrement
+
+In C99 mode and GNU C mode, when a bool value is incremented or
+decremented it should be set to 1 (true) or 0 (false), respectively.
+The lowered code for those cases now does that.
+
 2/25/02  LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C: no "L" suffix on constants
 
 When the LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C option is enabled,
