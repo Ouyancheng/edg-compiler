@@ -18367,7 +18367,9 @@ Add the routine to an "instantiation list" of inline functions.
 
   check_assertion(instantiate_extern_inline && rout_ptr->is_inline);
   /* Only add extern inline functions. */
-  if (rout_ptr->storage_class != (a_storage_class)sc_static) {
+  if (rout_ptr->storage_class != (a_storage_class)sc_static &&
+      /* An externalized static is not really extern inline. */
+      !rout_ptr->source_corresp.static_used_by_instantiation) {
     rlep = alloc_list_entry_for_routine();
     rlep->routine = rout_ptr;
     rlep->next = inline_function_list;

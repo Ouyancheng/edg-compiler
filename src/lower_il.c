@@ -12681,18 +12681,14 @@ the needed-flag walk for the file scope.
            should be externalized. */
         rout->source_corresp.static_used_by_instantiation = TRUE;
       }  /* if */
-      if (rout->source_corresp.static_used_by_instantiation &&
+      if (rout->source_corresp.static_used_by_instantiation
 #if ONE_INSTANTIATION_PER_OBJECT
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-          !rout->source_corresp.duplicate_static_in_instantiation_slices &&
+          && !rout->source_corresp.duplicate_static_in_instantiation_slices
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-          !rout->is_inline) {
-        if (rout->storage_class != (a_storage_class)sc_static) {
-          /* If the entity was changed to non-static after the flag was set,
-             just ignore the flag. */
-          rout->source_corresp.static_used_by_instantiation = FALSE;
-        } else {
+                                                                           ) {
+        if (rout->storage_class == (a_storage_class)sc_static) {
           externalize_source_correspondence(&rout->source_corresp,
                                             /*is_variable=*/FALSE);
           rout->storage_class = (a_storage_class)sc_unspecified;
@@ -12732,11 +12728,7 @@ the needed-flag walk for the file scope.
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
                                                                           ) {
-        if (var->storage_class != (a_storage_class)sc_static) {
-          /* If the entity was changed to non-static after the flag was set,
-             just ignore the flag. */
-          var->source_corresp.static_used_by_instantiation = FALSE;
-        } else {
+        if (var->storage_class == (a_storage_class)sc_static) {
           externalize_source_correspondence(&var->source_corresp,
                                             /*is_variable=*/TRUE);
           var->storage_class = (a_storage_class)sc_unspecified;

@@ -1040,7 +1040,8 @@ do any necessary processing, e.g., externalizing it if it is static.
         if (routine->assoc_scope == NULL_region_number) {
           routine->storage_class = (a_storage_class)sc_extern;
         } else {
-          /* A static inline function becomes extern inline. */
+          /* A static inline function becomes external, but not exactly
+             extern inline (it isn't instantiated). */
           check_assertion(routine->is_inline);
           routine->storage_class = (a_storage_class)sc_unspecified;
 #if INSTANTIATE_EXTERN_INLINE
@@ -2390,7 +2391,8 @@ classes, where it points to the primary IL copy.  Update the
     orig_sym = (a_symbol_ptr)(corresp_routine->source_corresp.assoc_info);
   }  /* if */
   if (instantiate_extern_inline && routine->is_inline &&
-      routine->storage_class == (a_storage_class)sc_unspecified) {
+      routine->storage_class == (a_storage_class)sc_unspecified &&
+      !routine->source_corresp.static_used_by_instantiation) {
     /* extern inline functions are put on a list so they can be
        "instantiated". */
     if (overwrite && orig_sym->defined) {
