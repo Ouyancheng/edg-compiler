@@ -218,11 +218,11 @@ by the front end.  This is useful on systems where the setjmp buffer
 is a structure instead of an array.
 */
 #ifndef USE_SYSTEM_JMP_BUF_DEFINITION
-#ifdef __linux__
+#if defined(__linux__) || defined(__hpux)
 #define USE_SYSTEM_JMP_BUF_DEFINITION TRUE
-#else /* ifndef __linux__ */
+#else /* if !(defined(__linux__) || defined(__hpux)) */
 #define USE_SYSTEM_JMP_BUF_DEFINITION FALSE
-#endif /* ifndef __linux__ */
+#endif /* if defined(__linux__) || defined(__hpux) */
 #endif /* ifndef USE_SYSTEM_JMP_BUF_DEFINITION */
 
 /*
