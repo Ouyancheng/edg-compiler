@@ -1637,6 +1637,7 @@ Returns TRUE if there is an error in the specifiers.
                  a ";" this is not of the form "friend T;". */
               if (next_token() != tok_semicolon) {
                 /* No semicolon -- back up. */
+                clear_specific_symbol(locator_for_curr_id);
                 unget_token();
                 curr_token = tok_friend;
               } else if (any_cfront_mode() && tag_sym == NULL) {
