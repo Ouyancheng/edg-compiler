@@ -7125,16 +7125,21 @@ statement expression, i.e., ({...}).
         dump_expr_with_parens(statement->expr);
         write_tok_str("; ");
       }  /* if */
-      write_tok_str("return");
-      if (statement->expr != NULL) {
-        write_space();
-        if (covariant_return_expr != NULL) {
-          dump_expression(covariant_return_expr);
-        } else {
-          dump_expression(statement->expr);
+      /* Do not put out an implicit return. */
+      if (statement->expr != NULL ||
+          seq_number_from_stmt_source_position(statement->position) != 0 ||
+          statement->next != NULL) {
+        write_tok_str("return");
+        if (statement->expr != NULL) {
+          write_space();
+          if (covariant_return_expr != NULL) {
+            dump_expression(covariant_return_expr);
+          } else {
+            dump_expression(statement->expr);
+          }  /* if */
         }  /* if */
+        write_tok_ch(';');
       }  /* if */
-      write_tok_ch(';');
       break;
     case stmk_block:
       write_tok_ch('{');
