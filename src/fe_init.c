@@ -535,12 +535,7 @@ Initialize target machine characteristics.
                "target_init: BITS_IN_INT_VALUE_PART in target.h is set wrong");
   }  /* if */
   if (BITS_IN_INT_VALUE_PART*INT_VALUE_PARTS_PER_INTEGER_VALUE !=
-#if LONG_LONG_ALLOWED
-      TARG_SIZEOF_LONG_LONG
-#else /* !LONG_LONG_ALLOWED */
-      TARG_SIZEOF_LONG
-#endif /* LONG_LONG_ALLOWED */
-                           *TARG_CHAR_BIT) {
+      TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT) {
     internal_error(
     "target_init: INT_VALUE_PARTS_PER_INTEGER_VALUE in target.h is set wrong");
   }  /* if */

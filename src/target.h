@@ -128,6 +128,12 @@ Integer types:
 #define TARG_ALIGNOF_LONG_LONG 8
 #endif /* LONG_LONG_ALLOWED */
 
+#if LONG_LONG_ALLOWED
+#define TARG_SIZEOF_LARGEST_INTEGER TARG_SIZEOF_LONG_LONG
+#else /* !LONG_LONG_ALLOWED */
+#define TARG_SIZEOF_LARGEST_INTEGER TARG_SIZEOF_LONG
+#endif /* LONG_LONG_ALLOWED */
+
 /*
 Type used as the representation of an integer value.  More precisely,
 this is the form used on the host to represent a target integer.
@@ -183,13 +189,8 @@ typedef unsigned long a_host_large_integer;
 #define BITS_IN_HOST_LARGE_INTEGER (sizeof(a_host_large_integer)*CHAR_BIT)
 /* The array is made up of elements of type an_int_value_part.
    Figure out how many. */
-#if LONG_LONG_ALLOWED
 #define INT_VALUE_PARTS_PER_INTEGER_VALUE                             \
-  (TARG_SIZEOF_LONG_LONG/SIZEOF_INT_VALUE_PART)
-#else /* !LONG_LONG_ALLOWED */
-#define INT_VALUE_PARTS_PER_INTEGER_VALUE                             \
-  (TARG_SIZEOF_LONG/SIZEOF_INT_VALUE_PART)
-#endif /* LONG_LONG_ALLOWED */
+  (TARG_SIZEOF_LARGEST_INTEGER/SIZEOF_INT_VALUE_PART)
 /* This is an array inside a struct instead of just an array so that
    its address behaves in a predictable way. */
 typedef struct an_integer_value {
@@ -224,12 +225,7 @@ errors are still generated for type mismatches.
    long (or a long long, if they are allowed). */
 #define TARG_MAX_BIT_FIELD_SIZE (TARG_SIZEOF_INT*TARG_CHAR_BIT)
 /* Check the value: */
-#if LONG_LONG_ALLOWED
-#define QQ_MAX_ALLOWED TARG_SIZEOF_LONG_LONG
-#else /* !LONG_LONG_ALLOWED */
-#define QQ_MAX_ALLOWED TARG_SIZEOF_LONG
-#endif /* LONG_LONG_ALLOWED */
-#if TARG_MAX_BIT_FIELD_SIZE > (QQ_MAX_ALLOWED*TARG_CHAR_BIT)
+#if TARG_MAX_BIT_FIELD_SIZE > (TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT)
 ??=error -- TARG_MAX_BIT_FIELD_SIZE is too big
 #endif /* TARG_MAX_BIT_FIELD_SIZE ... */
 /* Second check required for definition of a_field (see il_def.h).  We add
@@ -237,7 +233,6 @@ errors are still generated for type mismatches.
 #if BYTE_MAX < TARG_MAX_BIT_FIELD_SIZE+1
 ??=error -- TARG_MAX_BIT_FIELD_SIZE is too big.
 #endif /* BYTE_MAX < TARG_MAX_BIT_FIELD_SIZE */
-#undef QQ_MAX_ALLOWED
 
 /* Container size to be used for bit-fields.  If > 0, indicates the
    size in bytes of one of the integral types.  0 means "use the smallest
