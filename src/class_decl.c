@@ -7474,6 +7474,37 @@ Return TRUE if sym represents a copy assignment operator.
   return is_copy_assignment_op;
 }  /* is_copy_assignment_operator_sym */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_symbol_ptr copy_assignment_specialization(
+                                    a_symbol_ptr          templ_sym,
+                                    a_boolean             *is_ref_arg,
+                                    a_type_qualifier_set  *qualifiers,
+                                    a_boolean             *is_base_class_match)
+/*
+If the given template symbol has an explicit specialization that looks like
+a copy assignment operator, return the symbol for that specialization.
+Otherwise, return NULL.  is_ref_arg, qualifiers and is_base_class_match
+have the same meaning as the corresponding parameters of
+is_assignment_operator_for_copy.
+*/
+{
+  a_template_instance_ptr  inst = templ_sym->variant.template_info
+                                           ->variant.function.instantiations;
+  a_symbol_ptr             result = NULL;
+
+  for (; inst != NULL; inst = inst->next) {
+    if (inst->instance_sym->variant.routine.ptr->is_specialized &&
+        is_assignment_operator_for_copy(inst->instance_sym, is_ref_arg,
+                                        qualifiers, is_base_class_match)) {
+      result = inst->instance_sym;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* copy_assignment_specialization */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean assignment_operator_for_copy_exists(a_symbol_ptr  sym,
                                                      a_boolean     *const_okay)
@@ -7500,28 +7531,38 @@ TRUE if a const object can be copied.
     /* Loop through the one or more symbols looking for one with the right
        argument type. */
     for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
-      if (sym->kind == (a_symbol_kind)sk_member_function) {
-        qualifiers_accepted = TQ_NONE;
-        if (is_assignment_operator_for_copy(sym, &is_ref_arg,
-                                            &qualifiers_accepted,
-                                            &is_base_class_match)) {
-          /* Found an assignment operator that can serve to make a copy of
-             the current class. */
-          found_assignment_operator_for_copy = TRUE;
-          /* If it takes the object to be copied by value, a const object
-             may be copied; if it takes it by reference, a const qualifier
-             must be present on the parameter declaration. */
-          if (!is_ref_arg || (qualifiers_accepted & TQ_CONST) != 0) {
-            /* An copy assignment operator has been located, and it accepts
-               a const object. */
-            *const_okay = TRUE;
-            break;
-          } else {
-            /* This one does not accept a const object, so set *const_okay
-               to FALSE.  However, another in the overload list might accept
-               const, so keep looping. */
-            *const_okay = FALSE;
-          }  /* if */
+      a_symbol_ptr  viable_sym = NULL;
+      qualifiers_accepted = TQ_NONE;
+      if (sym->kind == (a_symbol_kind)sk_member_function &&
+          is_assignment_operator_for_copy(sym, &is_ref_arg,
+                                          &qualifiers_accepted,
+                                          &is_base_class_match)) {
+        viable_sym = sym;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_bugs &&
+                 sym->kind == (a_symbol_kind)sk_function_template) {
+        viable_sym = copy_assignment_specialization(sym, &is_ref_arg,
+                                                    &qualifiers_accepted,
+                                                    &is_base_class_match);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
+      if (viable_sym != NULL) {
+        /* Found an assignment operator that can serve to make a copy of
+           the current class. */
+        found_assignment_operator_for_copy = TRUE;
+        /* If it takes the object to be copied by value, a const object
+           may be copied; if it takes it by reference, a const qualifier
+           must be present on the parameter declaration. */
+        if (!is_ref_arg || (qualifiers_accepted & TQ_CONST) != 0) {
+          /* An copy assignment operator has been located, and it accepts
+             a const object. */
+          *const_okay = TRUE;
+          break;
+        } else {
+          /* This one does not accept a const object, so set *const_okay
+             to FALSE.  However, another in the overload list might accept
+             const, so keep looping. */
+          *const_okay = FALSE;
         }  /* if */
       }  /* if */
     }  /* for */

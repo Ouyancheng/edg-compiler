@@ -1,5 +1,24 @@
 Version 3.0
 
+4/10/02  Microsoft compatibility: use of specialized member template
+         for copy-assignment
+
+In Microsoft bugs mode the front end may now select an explicit
+specialization of a assignment operator template for copy-
+assignment operations.  For example:
+
+  template<typename T>
+  struct S {
+    template<typename U>
+    S<U>& operator(S<U> const&);
+    template<> S<T>& operator=(S<T> const&) {}
+  };
+  int main() {
+    S<int> s1, s2;
+    s1 = s2;  // Uses specialization defined above in microsoft bugs
+              // mode (instead of generated copy-assignment operator
+  }           // in ANSI mode).
+
 4/10/02  Internal error using UNC file names on Windows
 
 An internal error could occur when using UNC file names (e.g.,

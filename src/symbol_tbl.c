@@ -6441,7 +6441,16 @@ is returned TRUE if the parameter is not a reference parameter.
         a_boolean             is_ref_arg;
         a_type_qualifier_set  qualifiers = TQ_NONE;
         a_boolean             is_base_class_match = FALSE;
-
+        a_symbol_ptr          viable_sym = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_bugs && !base_class_match_allowed &&
+            sym->kind == (a_symbol_kind)sk_function_template) {
+          viable_sym = copy_assignment_specialization(sym, &is_ref_arg,
+                                                      &qualifiers,
+                                                      &is_base_class_match);
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
         if (sym->kind != (a_symbol_kind)sk_member_function) {
           /* Function templates are not considered, and projection symbols
              can also be ignored, since using-declarations cannot introduce
@@ -6450,6 +6459,9 @@ is returned TRUE if the parameter is not a reference parameter.
         } else if (is_assignment_operator_for_copy(sym, &is_ref_arg,
                                                    &qualifiers,
                                                    &is_base_class_match)) {
+          viable_sym = sym;
+        }  /* if */
+        if (viable_sym != NULL) {
           /* Found an assignment operator that can copy the current class. */
           if (is_base_class_match) {
             any_base_class_match = TRUE;
@@ -6479,7 +6491,7 @@ is returned TRUE if the parameter is not a reference parameter.
             *ambiguous = (sym_matches_exactly == opass_sym_matches_exactly);
             if (!sym_matches_exactly) continue;
           }  /* if */
-          opass_sym = sym;
+          opass_sym = viable_sym;
           opass_sym_matches_exactly = sym_matches_exactly;
           *pass_by_value = !is_ref_arg;
         }  /* if */
