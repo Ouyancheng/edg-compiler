@@ -1,5 +1,23 @@
 Version 2.09
 
+9/8/92 Fixed bug in generating body for default assignment operator
+
+When a base class had assignment operators for both const and nonconst
+objects, the compiler-generated assignment operator for a const object
+was not invoking the correct base class assignment operator.  It's now
+fixed, so that this works correctly now:
+
+  struct B {
+    B& operator=(const B&);
+    B& operator=(B&);
+  };
+  struct D : public B { };
+  void f(const D* pd)
+  {
+    D d;
+    d = *pd;      // Correct code is now generated for operator=(const D&)
+  }
+
 8/28/92  Interaction between late recognition of copy constructors and
          initialization by bitwise copy
 
