@@ -4022,7 +4022,9 @@ entities.
        If a correspondence has already been established, nothing needs to
        be done either. */
   } else if (templ->canonical_template != NULL &&
-             trans_unit_corresp_of(templ->canonical_template) != NULL) {
+             templ->canonical_template != templ &&
+             canonical_template_entry_of(templ->canonical_template) != 
+                                                   templ->canonical_template) {
     /* Templates are a somewhat unique in that there can be multiple IL
        entries corresponding to multiple declarations of the same template.
        In those cases, all entries belong to the same correspondence set. */
@@ -4709,9 +4711,7 @@ scope.  The process is repeated in nested class and namespace scopes.
     }  /* for */
   }
 
-  /* Visit all templates.  This will also examine instantiations and must
-     therefore occur after the other entities since they can appear in
-     template arguments. */
+  /* Visit all templates. */
   {
     a_template_ptr  templ;
     for (templ = scope->templates; templ != NULL; templ = templ->next) {
