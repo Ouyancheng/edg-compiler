@@ -259,7 +259,7 @@ the alignment that malloc uses for memory that is allocated.
 #endif /* ifndef MOST_STRICT_ALIGNMENT */
 
 /*
-Flags that is TRUE if a message containing the reason for a runtime
+Flag that is TRUE if a message containing the reason for a runtime
 abort should be displayed.
 */
 #ifndef DISPLAY_ABORT_DESCRIPTION
