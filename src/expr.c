@@ -428,7 +428,7 @@ current expression (used to decide how a comma should be treated).
     default:
       /* Not an operator; the expression ends. */
       done = TRUE;
-  }  /* switch */ /*lint !e788*/
+  }  /* switch */
 
   /* See if the new operator precedence is such that the operator is not
      part of the current expression.  This is the case if the
@@ -4042,7 +4042,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
       default:
         internal_error("scan_arith_prefix_operator: bad operator");
 #endif /* CHECKING */
-    }  /* switch */ /*lint !e788*/
+    }  /* switch */
 
     if (do_promotion) {
       /* Do integral promotions if required. */
@@ -8613,7 +8613,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
 #if CHECKING
     default: internal_error("scan_bit_operator: bad operator");
 #endif /* CHECKING */
-  }  /* switch */ /*lint !e788*/
+  }  /* switch */
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
@@ -9740,7 +9740,7 @@ See section 3.3.16 of the standard.
       default:
         unexpected_condition_str(
                                "scan_compound_assignment_operator: bad token");
-    }  /* switch */ /*lint !e788*/
+    }  /* switch */
     /* Make a clone of operand_1, to be used in the store. */
     clone_operand(operand_1, &operand_1_clone);
     operand_1_clone_unused = TRUE;
@@ -9834,7 +9834,7 @@ See section 3.3.16 of the standard.
           internal_error(
                  "scan_compound_assignment_operator: bad assignment operator");
 #endif /* CHECKING */
-      }  /* switch */ /*lint !e788*/
+      }  /* switch */
 
       if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
         make_error_operand(result);
@@ -10927,7 +10927,7 @@ These cases are handled here by coalescing two tokens.
       break;
     default:;
       /* No action. */
-  }  /* switch */ /*lint !e788*/
+  }  /* switch */
   if (compound_token != token) {
 #if C_ANACHRONISMS_ALLOWED
     if (equals_first) {
@@ -11381,7 +11381,7 @@ bad_start_of_primary:
       default:
         internal_error("scan_expr_full: bad operator token in loop");
 #endif /* CHECKING */
-    }  /* switch */ /*lint !e788*/
+    }  /* switch */
   }  /* for */
 
   /* Set error_position to the start of the expression. */

@@ -1384,7 +1384,7 @@ Routine to be called by the il_to_str routines to output a name.
       break;
     default:
       unexpected_condition_str("gen_name_reference: bad entry kind");
-  }  /* switch */ /*lint !e788*/
+  }  /* switch */
 }  /* gen_name_reference */
 
 
