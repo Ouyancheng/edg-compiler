@@ -1383,7 +1383,7 @@ initializations.
     case abk_routine:
       underlying_object_type = constant->variant.address.variant.routine->type;
       /* Exploit the implicit decay to pointer. */
-      need_ampersand = FALSE;
+      if (!do_indirection) need_ampersand = FALSE;
       break;
     case abk_variable:
       underlying_object_type= constant->variant.address.variant.variable->type;
@@ -1395,7 +1395,8 @@ initializations.
       unexpected_condition_str("gen_constant: bad addr constant kind");
   }  /* switch */
   underlying_object_type = skip_typerefs(underlying_object_type);
-  if (underlying_object_type->kind == (a_type_kind)tk_array) {
+  if (underlying_object_type->kind == (a_type_kind)tk_array &&
+      !do_indirection) {
     /* For an array, exploit the implicit decay to pointer.
        This is particularly helpful in cases where the underlying
        variable is something like
@@ -1461,8 +1462,6 @@ initializations.
   }  /* if */
   if (do_indirection) {
     /* Do one level of indirection, i.e., remove the "&". */
-    check_assertion_str(need_ampersand,
-                        "gen_address_constant: do_indirection, no ampersand");
     need_ampersand = FALSE;
   }  /* if */
   /* If using an ampersand, surround the name with parentheses to avoid
@@ -2984,6 +2983,36 @@ a member type, nonmember type, or friend.
 }  /* gen_type_decl */
 
 
+static void gen_ampersand(a_type_ptr type)
+/*
+Output an ampersand to indicate taking the address of something.  However,
+if the something (which has type "type") is an array or function, suppress
+the ampersand since C will assume one.
+*/
+{
+  if (is_function_type(type)) {
+    /* No ampersand needed. */
+  } else if (il_header.pcc_compatibility_mode && is_array_type(type)) {
+    /* pcc C compilers don't like ampersands in front of arrays.  However,
+       the address we want here must have type "pointer-to-array", and
+       the implicit decay to pointer will give "pointer-to-array-element",
+       so cast the decayed pointer to the right type. */
+    write_tok_ch('(');
+    /* Write the specifiers and the first part of the declarator. */
+    gen_type_first_part(type, /*under_lhs_declarator=*/TRUE,
+                        /*need_trailing_space=*/FALSE,
+                        /*add_const=*/FALSE);
+    /* Add an extra "pointer-to". */
+    write_tok_ch('*');
+    /* Write the second part of the declarator. */
+    gen_type_second_part(type, /*under_lhs_declarator=*/TRUE);
+    write_tok_ch(')');
+  } else {
+    write_tok_ch('&');
+  }  /* if */
+}  /* gen_ampersand */
+
+
 static an_expr_node_ptr optimized_expr_for_selection(
                                                 an_expr_node_ptr object_expr,
                                                 a_type_ptr       *naming_class)
@@ -3615,7 +3644,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       /* Otherwise, just put a "&" in front of the node, which cancels the
          implicit indirection. */
       write_tok_ch('(');
-      write_tok_ch('&');
+      gen_ampersand(type_pointed_to(expr->type));
       need_reference_close_paren = TRUE;
       need_parens = TRUE;
     }  /* if */
@@ -3833,7 +3862,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_ch(']');
           goto done_with_operation;
         case eok_field:
-          write_tok_str("&(");
+          gen_ampersand(type_pointed_to(expr->type));
+          write_tok_ch('(');
           gen_simple_field_selection(operand_1, operand_2);
           write_tok_ch(')');
           goto done_with_operation;
@@ -3853,7 +3883,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_pm_field:
           /* C++ "->*" operator. */
-          write_tok_str("&(");
+          gen_ampersand(type_pointed_to(expr->type));
+          write_tok_ch('(');
           gen_expr_with_parens(operand_1);
           write_tok_str("->*");
           gen_expr_with_parens(operand_2);
@@ -4009,7 +4040,7 @@ done_with_operation:
       break;
     case enk_variable_address:
       if (need_parens) m_write_tok_ch('(');
-      write_tok_ch('&');
+      gen_ampersand(expr->variant.variable->type);
       gen_variable_name(expr->variant.variable);
       if (need_parens) m_write_tok_ch(')');
       break;
@@ -4018,7 +4049,7 @@ done_with_operation:
       break;
     case enk_routine_address:
       if (need_parens) write_tok_ch('(');
-      write_tok_ch('&');
+      gen_ampersand(expr->variant.routine->type);
       gen_routine_name(expr->variant.routine);
       if (need_parens) write_tok_ch(')');
       break;
@@ -4421,7 +4452,7 @@ is the one associated with the pragma.
     disable_line_wrapping();
     write_str("#pragma ");
     check_assertion_str(pp->pragma_text != NULL,
-                        "dump_pragma: NULL pragma_text");
+                        "gen_pragma: NULL pragma_text");
     write_str(pp->pragma_text);
     end_output_line();
   }  /* if */
