@@ -1089,7 +1089,8 @@ extern int mbc_to_wide_char(char          *mb,
 #endif /* ifndef is_valid_sjis_second_char */
 
 /* Initialize for using mbc_length within one string of source characters. */
-#define mbc_scan_init() /* Nothing. */
+#define mbc_scan_init() ((void)0)
+#define mbc_scan_init_if_multibyte_chars_in_source_enabled() /* Nothing. */
 
 #else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
 /* Use the standard C library routines. */
@@ -1113,6 +1114,8 @@ Locale to set when multibyte characters are enabled in source code.
 #include <locale.h>
 /* Initialize for using mbc_length within one string of source characters. */
 #define mbc_scan_init() ((void)mblen(NULL, MB_CUR_MAX))
+#define mbc_scan_init_if_multibyte_chars_in_source_enabled() \
+  { if (multibyte_chars_in_source_enabled) mbc_scan_init(); }
 
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */

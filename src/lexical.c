@@ -4665,7 +4665,7 @@ normal_comment:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
         /* Initialize for scanning multibyte characters in the comment. */
-        if (multibyte_chars_in_source_enabled) mbc_scan_init();
+        mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         if (!in_preprocessing_directive && !currently_in_pp_if_skip) {
@@ -4828,7 +4828,7 @@ normal_comment:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
             /* Initialize for scanning multibyte characters in the comment. */
-            if (multibyte_chars_in_source_enabled) mbc_scan_init();
+            mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
           } else {
@@ -5204,7 +5204,7 @@ for header names in #include directives.
   curr_char_loc++;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Initialize for scanning multibyte characters in the string. */
-  if (multibyte_chars_in_source_enabled) mbc_scan_init();
+  mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Scan through the characters of the string looking for the closing quoting
      character. */

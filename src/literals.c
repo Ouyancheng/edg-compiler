@@ -691,7 +691,7 @@ processing, and in wide characters if the constant is wide).
   if (*err_code == ec_no_error) {
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
     /* Initialize for scanning multibyte characters in the string. */
-    if (multibyte_chars_in_source_enabled) mbc_scan_init();
+    mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
     set_unsigned_integer_value(&number, (a_host_large_integer)0);
     /* Accumulate the characters. */
@@ -837,7 +837,7 @@ processing, and in wide characters if the string is wide).
   str_start = pstr = alloc_text_of_string_literal(constant_size);
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Initialize for scanning multibyte characters in the string. */
-  if (multibyte_chars_in_source_enabled) mbc_scan_init();
+  mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Accumulate the characters. */
   for (i = 0; i < num_chars; i++) {
