@@ -4853,7 +4853,7 @@ entry_for_line_splice:
       eof_read_on_curr_input_stream = TRUE;
       /* Backslash at end of last line in a file -- error. */
       finish_off_source_line_so_it_can_be_displayed_in_error();
-      diagnostic_at_line_pos((microsoft_mode || gcc_mode) ?
+      diagnostic_at_line_pos((microsoft_mode || gnu_mode) ?
                                                          es_warning : es_error,
                              ec_last_line_backslash, loc_in_line);
       /* Ignore the backslash, end the logical line at this point. */
@@ -6355,7 +6355,7 @@ The token can be a normal or wide string literal.
                           is_wide, '"')
 #if GNU_EXTENSIONS_ALLOWED
       /* GCC permits a string literal to extend over multiple lines. */
-      && (!gcc_mode || curr_command_line_macro_def != NULL ||
+      && (!gnu_mode || curr_command_line_macro_def != NULL ||
           !scan_multiline_string(&num_chars, is_wide))
 #endif  /* GNU_EXTENSIONS_ALLOWED */
                                                       ) {
@@ -6988,9 +6988,10 @@ current token.  Loop to pick up all the adjacent string literals.
     do_string_literal_concatenation = FALSE;
     (void)get_token();
     do_string_literal_concatenation = TRUE;
-    /* In GNU C mode, treat __FUNCTION__ and __PRETTY_FUNCTION__ as string
-       literals (when they appear in function scope).  The case where these
-       appear as the first literal is handled in expression processing. */
+    /* In GNU C mode (but not in GNU C++ mode), treat __FUNCTION__ and
+       __PRETTY_FUNCTION__ as string literals (when they appear in function
+       scope).  The case where these appear as the first literal is handled
+       in expression processing. */
     if (gcc_mode && depth_innermost_function_scope != 0 &&
         (curr_token == tok_function_name ||
          curr_token == tok_decorated_function_name)) {

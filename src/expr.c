@@ -7574,10 +7574,10 @@ be set to the source position of the type.
     } else {
       /* C mode. */
 #if GNU_EXTENSIONS_ALLOWED
-      /* GNU C permits casting from a scalar to a union if the scalar's type
-         is the type of a member of the union.  The detailed check happens
-         in conversion_possible.  Also, do-nothing casts to struct types
-         are allowed. */
+      /* GNU C (but not GNU C++) permits casting from a scalar to a union
+         if the scalar's type is the type of a member of the union.  The
+         detailed check happens in conversion_possible.  Also, do-nothing
+         casts to struct types are allowed. */
       if (!gcc_mode)
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
@@ -8526,7 +8526,8 @@ C-style casts and C++ functional-notation type conversions.
              difference implied) and it is not forced to an rvalue. */
         } else if (gcc_mode && is_union_type(type_cast_to)) {
           /* It may be possible to convert *operand to the type of one of
-             the members of the union.  If so, the conversion is allowed.  */
+             the members of the union.  If so, the conversion is allowed.
+             (This is not the case in GNU C++ mode.) */
           a_field_ptr field =
                   transparent_union_conversion_possible(operand, type_cast_to);
           if (field != NULL) {
@@ -13314,11 +13315,11 @@ returned instead of the unqualified function name.
   a_variable_ptr           name_var = NULL;
   a_scope_stack_entry_ptr  ssep;
 
-  check_assertion(microsoft_mode || gcc_mode || (c99_mode && !decorated_name));
+  check_assertion(microsoft_mode || gnu_mode || (c99_mode && !decorated_name));
   check_assertion(depth_innermost_function_scope != 0);
   ssep = &scope_stack[depth_innermost_function_scope];
   if (gcc_mode) {
-    /* In GNU C mode, we create a constant operand. */
+    /* In GNU C mode (but not in GNU C++ mode) we create a constant operand. */
     set_curr_token_to_string_literal(ssep->assoc_routine->source_corresp.name);
     /* Make sure that e.g. __FUNCTION__ "(postfix)" is accepted. */
     concat_adjacent_string_literals(/*curr_token_set=*/TRUE);
@@ -13558,7 +13559,7 @@ see expr.h).
          name of the current function in C99, GNU C and Microsoft modes.
          (The "decorated" variant is recognized in Microsoft and GNU C modes
          only and in Microsoft mode it expands to the mangled name.) */
-      check_assertion(microsoft_mode || gcc_mode ||
+      check_assertion(microsoft_mode || gnu_mode ||
                       (c99_mode && curr_token == tok_function_name));
       if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
         /* We're not inside a function. */
@@ -13698,7 +13699,7 @@ see expr.h).
 
 #if GNU_EXTENSIONS_ALLOWED
     case tok_and_and:
-      if (!gcc_mode ||
+      if (!gnu_mode ||
           next_token() != tok_identifier) goto bad_start_of_primary;
       scan_address_of_label_expression(&local_result);
       break;
@@ -14739,8 +14740,8 @@ and [expr.const] in the ISO C++98 standard.
 
   db_enter(3, "scan_integral_constant_expression");
 
-  if (gcc_mode) {
-    /* gcc allows more than the standard allows. */
+  if (gnu_mode) {
+    /* GNU C and C++ allow more than the standard allows. */
     scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
                                                /*will_cast=*/FALSE,
                                                PREC_LOWEST,

@@ -3971,8 +3971,8 @@ unit.
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode && kind == (a_scope_kind)sck_file && is_namespace_wrapup) {
-    /* The GNU C alias attribute can refer to names of entities before those
+  if (gnu_mode && kind == (a_scope_kind)sck_file && is_namespace_wrapup) {
+    /* The GNU alias attribute can refer to names of entities before those
        entities are declared.  The actual IL connection is therefore set up
        when all the entities in a translation unit have been seen.  This must
        occur before unneeded entities are determined. */
@@ -4387,7 +4387,7 @@ been completed.
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
     a_boolean saved_defined = rp->defined;
 #if GNU_EXTENSIONS_ALLOWED
-    if (gcc_mode && rp->aliased_routine != NULL) {
+    if (gnu_mode && rp->aliased_routine != NULL) {
       /* Routine aliases are needed because they may be accessed from other
          translation units. */
       mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);

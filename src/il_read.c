@@ -886,6 +886,7 @@ display program) can query these entities.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   gcc_mode = il_header.gcc_mode;
+  gpp_mode = il_header.gpp_mode;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
 }  /* init_flags_and_types */

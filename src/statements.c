@@ -195,7 +195,7 @@ unreachable.
        but it doesn't seem worth it. */
     set_unreachable(curr_reachability);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode || gcc_mode) {
+  } else if (microsoft_mode || gnu_mode) {
     if (node->kind == (an_expr_node_kind)enk_operation &&
         (node->variant.operation.kind == (an_expr_operator_kind)eok_call ||
          node->variant.operation.kind ==
@@ -4764,7 +4764,7 @@ GNU allows a syntax similar to Fortran's assigned goto:
   check_for_unreachable_code();
   stmk = (a_statement_kind)stmk_goto;
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode && next_token() == tok_star) {
+  if (gnu_mode && next_token() == tok_star) {
     stmk = (a_statement_kind)stmk_assigned_goto;
     if (strict_ansi_mode) {
       diagnostic(strict_ansi_error_severity, ec_nonstd_assigned_goto);
@@ -5872,7 +5872,7 @@ Scan a case label definition.  The syntax is:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)get_token();
   constant_ptr = scan_case_label_constant(sssep);
-  if (gcc_mode && curr_token == tok_ellipsis) {
+  if (gnu_mode && curr_token == tok_ellipsis) {
     /* This is a GNU C case range. E.g.: case 'a' ... 'z': */
     /* Skip the ellipsis. */
     ellipsis_position = pos_curr_token;

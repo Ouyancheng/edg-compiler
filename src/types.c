@@ -1905,7 +1905,7 @@ and a diagnostic is issued (unless suppress_error is TRUE).
 #if CHECKING
     if (temp2 == 0 &&
         !(is_array_type(elem_type) &&
-          (gcc_mode || elem_type->variant.array.bound_is_zero))) {
+          (gnu_mode || elem_type->variant.array.bound_is_zero))) {
       internal_error("set_array_type_size: bad element type");
     }  /* if */
 #endif /* CHECKING */
@@ -3002,7 +3002,7 @@ for more information.
 #endif /* CHECKING */
       }  /* switch */
 #if GNU_EXTENSIONS_ALLOWED
-      if (gcc_mode && identical &&
+      if (gnu_mode && identical &&
           !same_type_attributes(type_1, type_2)) {
         /* The types have different attributes, so the types are different. */
         identical = FALSE;
@@ -3427,7 +3427,7 @@ for exact pointer equality.
 #endif /* CHECKING */
       }  /* switch */
 #if GNU_EXTENSIONS_ALLOWED
-      if (gcc_mode && compat &&
+      if (gnu_mode && compat &&
           !same_type_attributes(type_1, type_2)) {
         /* The types have different attributes, so the types are different. */
         if (error_matches_anything &&
@@ -6100,7 +6100,7 @@ is allocated, it is allocated in the file scope.
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode && skip_typerefs(type_1)->kind == skip_typerefs(type_2)->kind) {
+  if (gnu_mode && skip_typerefs(type_1)->kind == skip_typerefs(type_2)->kind) {
     comp_type = copy_gnu_type_attributes(comp_type, type_1);
     comp_type = copy_gnu_type_attributes(comp_type, type_2);
   }  /* if */

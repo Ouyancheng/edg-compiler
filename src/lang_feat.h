@@ -416,21 +416,21 @@ gpp_mode and can be overridden by the command-line options --g++ and --no_g++.
 #endif /* DEFAULT_GPP_COMPATIBILITY */
 
 /*
-The value of the __GNUC__ macro in gcc mode.
+The value of the __GNUC__ macro in GNU mode.
 */
 #ifndef GCC_VERSION
 #define GCC_VERSION 3
 #endif /* ifndef GCC_VERSION */
 
 /*
-The value of the __GNUC_MINOR__ macro in gcc mode.
+The value of the __GNUC_MINOR__ macro in GNU mode.
 */
 #ifndef GCC_MINOR_VERSION
 #define GCC_MINOR_VERSION 0
 #endif /* ifndef GCC_MINOR_VERSION */
 
 /*
-The value of the __VERSION__ macro in gcc mode.  Note that an extra
+The value of the __VERSION__ macro in GNU mode.  Note that an extra
 set of quotes is needed as this is the actual macro replacement string
 to be used.
 */

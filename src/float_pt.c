@@ -449,8 +449,8 @@ conversion can be done, return the result in "result".
       /* The number is slightly larger than the official maximum double, but
          on conversion to double it rounds to the maximum double, so it's
          okay. */
-    } else if (gcc_mode) {
-      /* gcc silently uses infinity for values that are too large. */
+    } else if (gnu_mode) {
+      /* GNU C and C++ silently uses infinity for values that are too large. */
     } else {
       /* Overflow. */
       *err = TRUE;
@@ -876,7 +876,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
   /* Check for a value that cannot be represented.  The "min_exp - 1" is
      used to permit the special denormalized value. */
   if (*exponent < (min_exp - 1) || *exponent > max_exp) {
-    if (gcc_mode) {
+    if (gnu_mode) {
       /* gcc silently uses infinity for values out of range.  The error flag is
          still returned, but will be cleared. */
       make_fp_infinity(float_value);
@@ -1154,7 +1154,7 @@ before setting it if there are unused bits.
     store_hex_fp_value(&mantissa, exponent, kind, float_value, any_digits);
   } else {
     /* Reset the error flag to prevent the overflow from being diagnosed. */
-    if (gcc_mode) *err = FALSE;
+    if (gnu_mode) *err = FALSE;
   }  /* if */
   /* If an underflow occurred, set the flag that indicates that the resulting
      value is not an exact representation of the specified value. */

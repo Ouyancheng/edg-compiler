@@ -4556,12 +4556,12 @@ Enter symbols for the C99 predefined macros.
 }  /* init_c99_predefined_macros */
 
 
-static void init_gcc_predefined_macros(void)
+static void init_gnu_predefined_macros(void)
 /*
-Enter symbols for the gcc predefined macros.
+Enter symbols for the predefined macros of GNU C and C++.
 */
 {
-  /* Note that gcc permits these macros to be redefined, so we do too. */
+  /* Note that GNU C/C++ permits these macros to be redefined, so we do too. */
   (void)enter_predef_macro(conv_unsigned_long_to_str
                                      ((unsigned long)GCC_VERSION),
                            "__GNUC__",
@@ -4578,7 +4578,7 @@ Enter symbols for the gcc predefined macros.
   base_file_macro_symbol = enter_predef_macro((char *)NULL, "__BASE_FILE__",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
-}  /* init_gcc_predefined_macros */
+}  /* init_gnu_predefined_macros */
 
 
 void init_predefined_macros(char  curr_date_time[26])
@@ -4808,8 +4808,8 @@ command line -D options.
                            "__EDG_VERSION__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-  /* In gcc mode, enter the macros that gcc defines. */
-  if (gcc_mode) init_gcc_predefined_macros();
+  /* In GNU C/C++ mode, enter the macros that GNU compilers define. */
+  if (gnu_mode) init_gnu_predefined_macros();
   if (building_runtime) {
     /* Define macros used to pass configuration information to the
        runtime library. */

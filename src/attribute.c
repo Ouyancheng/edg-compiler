@@ -594,6 +594,11 @@ attribute, set *kind to ak_last.
 */
 {
   switch (*kind) {
+    case ak_nocommon:
+      if (gpp_mode) {
+        *kind = (an_attribute_kind)ak_last;
+      }  /* if */
+      break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     case ak_visibility:
       if (gnu_visibility_attribute_enabled) break;

@@ -597,7 +597,7 @@ get_another:
         break;
 #if GNU_EXTENSIONS_ALLOWED
       case 'e':
-        if (gcc_mode) {
+        if (gnu_mode) {
           /* GNU C mode \e stands for the ASCII "ESC" character. */
           targ_ch = (unsigned char)TARG_ESC_CHAR;
         } else {

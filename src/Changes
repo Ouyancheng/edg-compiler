@@ -158,6 +158,12 @@ specialization should not be instantiated.  [8/8/02] Exceptions are enabled
 by default.  std::type_info needs no special pragma.  Unqualified names are
 not looked up in dependent base classes.  Infinity is silently used for
 out-of-range floating-point literals.  [8/13/02] Support for __null.
+[8/15/02] Switch case ranges.  The \e escape sequence in string and character
+literals.  A backslash can be the last character in a file.  Multiline
+string literals are accepted.  __FUNCTION__ expands to the undecorated name
+of the function in which it appears (but, unlike in GNU C mode, does not act
+like a string literal).  A few non-standard constant-expressions are accepted
+(e.g., (int)"str" & 0).  Support for extended variadic macros.
 
 8/5/02   Final name mangling not done on some promoted local static
          variables

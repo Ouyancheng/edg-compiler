@@ -621,7 +621,7 @@ if necessary.
   a_targ_alignment  pack_alignment;
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode && targ_bit_field_container_size < 0 &&
+  if (gnu_mode && targ_bit_field_container_size < 0 &&
       is_union_type(class_type)) {
     /* Versions of GNU C that follow a Microsoft-like bit field allocation
        strategy (negative targ_bit_field_container_size) do not honor the
@@ -1095,7 +1095,7 @@ there's no overflow TRUE is returned.
       /* If the alignment of this field was explicitly specified,
          honor that. */
       if (field->alignment != 0) {
-        if (gcc_mode && field->alignment < field_alignment &&
+        if (gnu_mode && field->alignment < field_alignment &&
             !(field->is_packed ||
               class_type->variant.class_struct_union.is_packed)) {
           /* GNU C compilers ignore alignment directives that reduce the
