@@ -1137,6 +1137,7 @@ values.
   operand->is_qualified_name = FALSE;
   operand->access_control_error_reported = FALSE;
   operand->is_operand_of_address_of = FALSE;
+  operand->is_template_id = FALSE;
   operand->position.seq = 0;
   operand->position.column = SP_COL_UNKNOWN;
   operand->ref_entries_list = NULL;
@@ -1542,22 +1543,24 @@ operand position.
 
 void make_indefinite_function_operand(a_symbol_ptr       routine_sym,
                                       a_boolean          is_qualified_name,
+                                      a_boolean          is_template_id,
                                       a_template_arg_ptr template_arg_list,
                                       an_operand         *operand)
 /*
 Make an operand for a C++ overloaded function symbol.  routine_sym points
 to the symbol entry for the function (possibly a projection symbol).
 is_qualified_name is TRUE if the function was named by a qualified name
-(e.g., "A::f").  template_arg_list is the template argument list, for
-explicit specification of function templates, or NULL if there is no
-template argument list.  The operand is put into *operand and is a
-function designator.
+(e.g., "A::f").  is_template_id is TRUE if routine_sym has an associated
+template argument list (for explicit specification of function templates);
+template_arg_list is the template argument list.  The operand is put into
+*operand and is a function designator.
 */
 {
   clear_operand((an_operand_kind)ok_indefinite_function, operand);
   operand->state = (an_operand_state)os_function_designator;
   operand->type = unknown_type();
   operand->is_qualified_name = is_qualified_name;
+  operand->is_template_id = is_template_id;
   operand->variant.symbol = routine_sym;
   operand->template_arg_list = template_arg_list;
   copy_source_position(pos_curr_token, operand->position);
@@ -2163,6 +2166,8 @@ user-defined conversions.
           overloaded_function_symbol = operand->variant.symbol;
           function_symbol = find_addr_of_overloaded_function_match(
                                                     overloaded_function_symbol,
+                                                    (a_boolean)operand->
+                                                             is_template_id,
                                                     operand->template_arg_list,
                                                     new_type,
                                                     /*is_cast=*/
@@ -5798,6 +5803,7 @@ is a "get" if put_operand is NULL.
         /* Do overload resolution to determine the function to call. */
         getput_sym = select_and_prepare_to_call_overloaded_function(
                                             getput_sym,
+                                            /*is_template_id=*/FALSE,
                                             (a_template_arg_ptr)NULL,
                                             /*have_selector=*/TRUE,
                                             &bound_function_selector,

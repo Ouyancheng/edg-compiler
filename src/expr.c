@@ -1414,6 +1414,7 @@ is after the closing parenthesis of the argument list.
     /* Note that a special case allows passing have_selector == TRUE and
        NULL for the selector operand when dealing with constructors. */
     constructor_sym = select_overloaded_function(constructor_sym,
+                                                 /*is_template_id=*/FALSE,
                                                  (a_template_arg_ptr)NULL,
                                                  /*have_selector=*/TRUE,
                                                  (an_operand *)NULL,
@@ -1622,6 +1623,7 @@ Syntax:
          function is overloaded or not. */
       make_indefinite_function_operand(member_function_symbol,
                                        /*is_qualified_name=*/FALSE,
+                                       /*is_template_id=*/FALSE,
                                        (a_template_arg_ptr)NULL,
                                        operand);
       bind_member_function_operand_to_selector(operand,
@@ -1734,6 +1736,7 @@ Syntax:
        on the argument types. */
     function_symbol = select_and_prepare_to_call_overloaded_function(
                                             overloaded_function_symbol,
+                                            (a_boolean)operand->is_template_id,
                                             operand->template_arg_list,
                                             (a_boolean)operand->bound_function,
                                             bound_function_selector,
@@ -2159,6 +2162,7 @@ object (usually, a copy of operand_1) is placed in *bound_function_selector.
     /* Overloaded function or member template. */
     make_indefinite_function_operand(locator->specific_symbol,
                                      (a_boolean)locator->is_qualified_name,
+                                     (a_boolean)locator->is_template_id,
                                      locator->template_arg_list,
                                      result);
   } else {
@@ -2716,6 +2720,7 @@ nonstatic_member_function:
           make_indefinite_function_operand(
                               locator_for_curr_id.specific_symbol,
                               (a_boolean)locator_for_curr_id.is_qualified_name,
+                              (a_boolean)locator_for_curr_id.is_template_id,
                               locator_for_curr_id.template_arg_list,
                               result);
           break;
@@ -5008,6 +5013,7 @@ specification allow a variable-sized array as the top type.
        call, since we may yet fold the call into a constructor call. */
     proj_function_symbol = select_overloaded_function(
                                               operator_new_symbol,
+                                              /*is_template_id=*/FALSE,
                                               (a_template_arg_ptr)NULL,
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
@@ -6154,6 +6160,8 @@ to select one of the functions in the overload set.  See [over.over].
   a_boolean          ambiguous;
 
   if (find_addr_of_overloaded_function_match(operand->variant.symbol,
+                                             (a_boolean)operand->
+                                                      is_template_id,
                                              operand->template_arg_list,
                                              type_cast_to,
                                              /*is_cast=*/TRUE,
@@ -9874,6 +9882,8 @@ normal_function:
             make_indefinite_function_operand(projection_sym_ptr,
                                              (a_boolean)locator_for_curr_id.
                                                              is_qualified_name,
+                                             (a_boolean)locator_for_curr_id.
+                                                             is_template_id,
                                              locator_for_curr_id.
                                                              template_arg_list,
                                              result);
@@ -9889,6 +9899,8 @@ normal_function:
             make_indefinite_function_operand(projection_sym_ptr,
                                              (a_boolean)locator_for_curr_id.
                                                              is_qualified_name,
+                                             (a_boolean)locator_for_curr_id.
+                                                             is_template_id,
                                              locator_for_curr_id.
                                                              template_arg_list,
                                              result);

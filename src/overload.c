@@ -71,6 +71,7 @@ Clear a conversion description.
 
 a_symbol_ptr find_addr_of_overloaded_function_match(
                                           a_symbol_ptr       ovl_sym,
+                                          a_boolean          is_template_id,
                                           a_template_arg_ptr template_arg_list,
                                           a_type_ptr         dest_type,
                                           a_boolean          is_cast,
@@ -79,23 +80,24 @@ a_symbol_ptr find_addr_of_overloaded_function_match(
                                           a_boolean          *ambiguous)
 /*
 ovl_sym is the symbol from an indefinite function operand representing
-the address of an overloaded function.  template_arg_list is the
-argument list if ovl_sym is a template and the reference has an explicit
-template argument list; otherwise, template_arg_list is NULL.  The
-indefinite function is being converted to a destination type dest_type.
-If dest_type is a pointer, reference, or pointer-to-member type that
-could be a pointer/reference to one of the overloaded functions, return
-a pointer to that function's symbol (possibly a projection symbol);
-otherwise, return NULL.  Also set *match_level to indicate whether or
-not any conversion is needed after the coercion to a specific function
-pointer and set *std_conv to indicate any such conversion.  If more than
-one function matches, return NULL and *ambiguous TRUE.  See WP
-[over.over], and ARM 13.3, "Address of Overloaded Function".  If is_cast
-is TRUE, this disambiguation is being done via an explicit cast.
+the address of an overloaded function.  is_template_id is TRUE if ovl_sym
+is followed by an explicit template argument list, in which case
+template_arg_list gives the argument list.  The indefinite function is
+being converted to a destination type dest_type.  If dest_type is a
+pointer, reference, or pointer-to-member type that could be a
+pointer/reference to one of the overloaded functions, return a pointer
+to that function's symbol (possibly a projection symbol); otherwise,
+return NULL.  Also set *match_level to indicate whether or not any
+conversion is needed after the coercion to a specific function pointer
+and set *std_conv to indicate any such conversion.  If more than one
+function matches, return NULL and *ambiguous TRUE.  See WP
+[over.over], and ARM 13.3, "Address of Overloaded Function".  If
+is_cast is TRUE, this disambiguation is being done via an explicit
+cast.
 */
 {
   a_boolean        is_ptr = FALSE, is_ref = FALSE, is_ptr_to_member = FALSE;
-  a_boolean        sym_is_list, any_function_templates;
+  a_boolean        sym_is_list, need_templates_pass;
   a_boolean        dest_type_has_type_qualifiers = FALSE;
   a_type_ptr       routine_type, dest_class, ptr_routine_type;
   a_type_ptr       dest_underlying_type;
@@ -143,9 +145,8 @@ is TRUE, this disambiguation is being done via an explicit cast.
       ovl_sym = ovl_sym->variant.overloaded_function.symbols;
     }  /* if */
     /* Check each function in the overload set to see if its type matches
-       the one desired.  The algorithm is the one for template matching
-       (ARM 14.4):
-         (1)  Look for an exact match.
+       the one desired.  The algorithm is as follows:
+         (1)  Look for an exact match on a non-template.
          (2)  Look for a function template that can yield a function with
               exactly the right type.
          (3)  Look for a match involving a conversion (this is possible only
@@ -154,34 +155,40 @@ is TRUE, this disambiguation is being done via an explicit cast.
        If there is more than one match at any level, the operation is
        ambiguous.  That's probably possible only when function templates
        are involved. */
-    /* Check first for an exact match. */
-    any_function_templates = FALSE;
-    for (proj_sym = ovl_sym;
-         proj_sym != NULL;
-         proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
-      /* Remove projections added for namespaces, if any. */
-      sym = fundamental_symbol_of(proj_sym);
-      if (sym->kind == (a_symbol_kind)sk_function_template) {
-        /* Function template.  Ignore on this pass, but enable a second pass
-           to try matching it. */
-        any_function_templates = TRUE;
-      } else {
-        /* Not a function template (i.e., a normal function). */
-        routine_type = routine_symbol_type(sym);
-        /* Note that the type qualifiers on both types have already been
-           dropped. */
-        if (identical_types(routine_type, dest_underlying_type)) {
-          if (dest_class ==
-                 (sym->is_class_member ? sym->parent.class_type : NULL)) {
-            /* Exact match. */
-            match_sym = proj_sym;
-            *match_level = aml_exact;
-            number_of_matches++;
+    need_templates_pass = FALSE;
+    if (is_template_id) {
+      /* There is an explicit template argument list, so do not look
+         for exact matches on non-templates. */
+      need_templates_pass = TRUE;
+    } else {
+      /* Check for an exact match on a non-template. */
+      for (proj_sym = ovl_sym;
+           proj_sym != NULL;
+           proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
+        /* Remove projections added for namespaces, if any. */
+        sym = fundamental_symbol_of(proj_sym);
+        if (sym->kind == (a_symbol_kind)sk_function_template) {
+          /* Function template.  Ignore on this pass, but enable a second pass
+             to try matching it. */
+          need_templates_pass = TRUE;
+        } else {
+          /* Not a function template (i.e., a normal function). */
+          routine_type = routine_symbol_type(sym);
+          /* Note that the type qualifiers on both types have already been
+             dropped. */
+          if (identical_types(routine_type, dest_underlying_type)) {
+            if (dest_class ==
+                   (sym->is_class_member ? sym->parent.class_type : NULL)) {
+              /* Exact match. */
+              match_sym = proj_sym;
+              *match_level = aml_exact;
+              number_of_matches++;
+            }  /* if */
           }  /* if */
         }  /* if */
-      }  /* if */
-    }  /* for */
-    if (number_of_matches == 0 && any_function_templates &&
+      }  /* for */
+    }  /* if */
+    if (number_of_matches == 0 && need_templates_pass &&
         is_function_type(dest_underlying_type)) {
       a_partial_order_candidate_ptr candidate_list = NULL;
       /* Try matching function templates.  Do not try if the underlying type
@@ -206,9 +213,7 @@ is TRUE, this disambiguation is being done via an explicit cast.
       }  /* for */
       if (candidate_list != NULL) {
         /* If any of the templates matched, select the best one using
-           the partial ordering rules.  If a best match cannot be selected,
-           an arbitrary member of the unordered set of templates will be
-           returned and the ambiguous flag will be set. */
+           the partial ordering rules. */
         a_boolean	   ambiguous;
         a_template_arg_ptr templ_arg_list;
 
@@ -239,7 +244,16 @@ is TRUE, this disambiguation is being done via an explicit cast.
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
         /* Remove projections added for namespaces, if any. */
         sym = fundamental_symbol_of(proj_sym);
-        if (sym->kind != (a_symbol_kind)sk_function_template) {
+        if (sym->kind == (a_symbol_kind)sk_function_template) {
+          /* Template.  Could be converted to "void *", but that would always
+             be ambiguous. */
+          if (is_ptr && is_void_type(dest_underlying_type)) {
+            goto is_ambiguous;
+          }  /* if */
+        } else if (is_template_id) {
+          /* There is an explicit template argument list, so do not consider
+             non-templates. */
+        } else {
           /* Not a function template (i.e., a normal function). */
           routine_type = routine_symbol_type(sym);
           if (is_ptr) {
@@ -284,12 +298,6 @@ is TRUE, this disambiguation is being done via an explicit cast.
             *match_level = aml_std_conversion;
             *std_conv = std_conversion;
             number_of_matches++;
-          }  /* if */
-        } else {
-          /* Template.  Could be converted to "void *", but that would always
-             be ambiguous. */
-          if (is_ptr && is_void_type(dest_underlying_type)) {
-            goto is_ambiguous;
           }  /* if */
         }  /* if */
       }  /* for */
@@ -1435,6 +1443,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
          designator or pointer to function; for the reference case it
          must be a function designator. */
       if (find_addr_of_overloaded_function_match(arg_operand->variant.symbol,
+                                                 (a_boolean)arg_operand->
+                                                                is_template_id,
                                                  arg_operand->
                                                              template_arg_list,
                                                  orig_param_type,
@@ -2018,6 +2028,7 @@ done:;
 
 static void try_overloaded_function_match(
                  a_symbol_ptr             overloaded_function_symbol,
+                 a_boolean                is_template_id,
                  a_template_arg_ptr       template_arg_list,
                  an_arg_operand_ptr       arg_operand_list,
                  a_boolean                have_selector,
@@ -2033,13 +2044,14 @@ match the argument list given by arg_operand_list and the selector given
 (if have_selector is TRUE) by bound_function_selector.  have_selector
 can be TRUE and bound_function_selector NULL when calling constructors.
 overloaded_function_symbol may be an overloaded function, a simple
-function, or a projection symbol for one of those.  template_arg_list
-gives a template argument list for explicit specification of function
-templates, or is NULL otherwise.  bound_function_selector is an
-object pointer if selector_is_object_pointer is TRUE, an object
-otherwise.  Any viable functions are added to the candidate_functions
-list along with information on the level of argument matches.  If a
-match would have been found except for the absence of a selector, set
+function, or a projection symbol for one of those.  is_template_id
+is TRUE if the symbol has an associated explicit template argument list;
+if so, template_arg_list gives the argument list.
+bound_function_selector is an object pointer if
+selector_is_object_pointer is TRUE, an object otherwise.  Any viable
+functions are added to the candidate_functions list along with
+information on the level of argument matches.  If a match would have
+been found except for the absence of a selector, set
 *matched_except_for_missing_selector TRUE; that allows a different
 error message.  If ctor_conversion_case is TRUE, this analysis is
 being done as part of resolving an implicit or explicit conversion
@@ -2150,7 +2162,7 @@ that are marked "explicit" are ignored.
          function). */
       routine = function_symbol->variant.routine.ptr;
       routine_type = routine->type;
-      if (template_arg_list != NULL) {
+      if (is_template_id) {
         /* An explicit list of template arguments (e.g., f<int>) rules out
            non-templates. */
         goto reject_function;
@@ -3283,6 +3295,7 @@ create_final_list:
 
 a_symbol_ptr select_overloaded_function(
                            a_symbol_ptr             overloaded_function_symbol,
+                           a_boolean                is_template_id,
                            a_template_arg_ptr       template_arg_list,
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
@@ -3295,10 +3308,11 @@ a_symbol_ptr select_overloaded_function(
 Determine which of the functions under overloaded_function_symbol should
 be called given an argument list arg_operand_list.  The symbol may be an
 overloaded function, a simple member or nonmember function, or a projection
-symbol for one of those.  If template_arg_list is non-NULL, it is a
-set of explicit arguments for a function template.  If have_selector
-is TRUE, *bound_function_selector is a selector object.  Note that,
-for constructor calls, bound_function_selector can be NULL when
+symbol for one of those.  is_template_id is TRUE if the symbol has an
+associated explicit template argument list; if so, template_arg_list
+gives the list of arguments.  If have_selector is TRUE,
+*bound_function_selector is a selector object.  Note that, for
+constructor calls, bound_function_selector can be NULL when
 have_selector is TRUE; we have a selector, but it's not available.
 That's okay for constructors, because they cannot be const- or
 volatile-qualified, and the selector expression is only needed for
@@ -3322,6 +3336,7 @@ called only in C++ mode.
   candidate_functions = NULL;
   /* Evaluate all matches in the function set. */
   try_overloaded_function_match(overloaded_function_symbol,
+                                is_template_id,
                                 template_arg_list,
                                 arg_operand_list,
                                 have_selector,
@@ -4197,6 +4212,7 @@ overloaded operator cases.
 
 a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                            a_symbol_ptr             overloaded_function_symbol,
+                           a_boolean                is_template_id,
                            a_template_arg_ptr       template_arg_list,
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
@@ -4212,14 +4228,15 @@ a_symbol_ptr select_and_prepare_to_call_overloaded_function(
 Determine which of the functions under overloaded_function_symbol should
 be called given an argument list arg_operand_list.  The symbol may be an
 overloaded function, a simple member or nonmember function, or a projection
-symbol for one of those.  If template_arg_list is non-NULL, it is a list
-of explicitly-specified arguments for a function template.  If
-have_selector is TRUE, *bound_function_selector is a selector object.
-Note that, for constructor calls, bound_function_selector can be NULL
-when have_selector is TRUE; we have a selector, but it's not
-available.  That's okay for constructors, because they cannot be
-const- or volatile-qualified, and the selector expression is only
-needed for that discrimination.  If have_selector is FALSE,
+symbol for one of those.  is_template_id is TRUE if the symbol has an
+associated explicit template argument list; if so, template_arg_list
+gives the argument list.  If have_selector is TRUE,
+*bound_function_selector is a selector object.  Note that, for
+constructor calls, bound_function_selector can be NULL when
+have_selector is TRUE; we have a selector, but it's not available.
+That's okay for constructors, because they cannot be const- or
+volatile-qualified, and the selector expression is only needed for
+that discrimination.  If have_selector is FALSE,
 bound_function_selector must still point at an operand that can be
 filled in if an implicit selector is generated is_qualified_name is
 TRUE if a qualified name was used to name the function (that
@@ -4244,6 +4261,7 @@ called only in C++ mode.
   db_enter(4, "select_and_prepare_to_call_overloaded_function");
   /* Select the best function out of the overload set. */
   function_symbol = select_overloaded_function(overloaded_function_symbol,
+                                               is_template_id,
                                                template_arg_list,
                                                have_selector,
                                                bound_function_selector,
@@ -5978,6 +5996,7 @@ functions could still apply).
                  the second operand as the first actual argument . */
               try_overloaded_function_match(
                                          member_functions_symbol,
+                                         /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
                                          arg_operand_list2,
                                          /*have_selector=*/TRUE,
@@ -6022,6 +6041,7 @@ functions could still apply).
             } else {
               try_overloaded_function_match(
                                          nonmember_functions_symbol,
+                                         /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
                                          arg_operand_list,
                                          /*have_selector=*/FALSE,
@@ -6353,6 +6373,7 @@ because of an error.  This routine is used only in C++ mode.
       /* The class has constructors. */
       /* Try all the constructors with that argument list. */
       try_overloaded_function_match(constructor_symbol,
+                                    /*is_template_id=*/FALSE,
                                     (a_template_arg_ptr)NULL,
                                     arg_operand_list,
                                     /*have_selector=*/FALSE, /* sic */
@@ -6872,6 +6893,8 @@ rewritten) for use in error messages.
 
       if (find_addr_of_overloaded_function_match(
                                            source_operand->variant.symbol,
+                                           (a_boolean)source_operand->
+                                                           is_template_id,
                                            source_operand->template_arg_list,
                                            dest_type,
                                            /*is_cast=*/FALSE,
@@ -8068,6 +8091,8 @@ direct binding is "possible" and not whether it is "valid".
 
     *function_symbol =
         find_addr_of_overloaded_function_match(source_operand->variant.symbol,
+                                               (a_boolean)source_operand->
+                                                                is_template_id,
                                                source_operand->
                                                              template_arg_list,
                                                dest_type,

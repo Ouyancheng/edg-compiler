@@ -311,6 +311,7 @@ extern void issue_warning_from_arg_match_summary(
 
 extern a_symbol_ptr find_addr_of_overloaded_function_match(
                                           a_symbol_ptr       ovl_sym,
+                                          a_boolean          is_template_id,
                                           a_template_arg_ptr template_arg_list,
                                           a_type_ptr         dest_type,
                                           a_boolean          is_cast,
@@ -327,6 +328,7 @@ extern void selector_match_with_this_param(
 
 extern a_symbol_ptr select_overloaded_function(
                            a_symbol_ptr             overloaded_function_symbol,
+                           a_boolean                is_template_id,
                            a_template_arg_ptr       template_arg_list,
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
@@ -378,6 +380,7 @@ extern void adjust_overloaded_function_call_arguments(
 
 extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                                  a_symbol_ptr       overloaded_function_symbol,
+                                 a_boolean          is_template_id,
                                  a_template_arg_ptr template_arg_list,
                                  a_boolean          have_selector,
                                  an_operand         *bound_function_selector,

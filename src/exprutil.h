@@ -229,6 +229,10 @@ typedef struct an_operand {
 			   significant in that it discriminates between
 			   the standard and nonstandard ways of taking
 			   a pointer-to-member address of a member function. */
+  a_bit_field	is_template_id:1;
+			/* TRUE if an explicit template argument list
+			   applies to variant.symbol.  template_arg_list
+			   gives the argument list. */
   a_source_position
 		position;
 			/* The source position for the operand. */
@@ -242,9 +246,8 @@ typedef struct an_operand {
 			   operand is known. */
   a_template_arg_ptr
 		template_arg_list;
-			/* A template argument list to be applied to
-			   variant.symbol, if one is needed (e.g., for
-			   explicit specification of function templates). */
+			/* When is_template_id is TRUE, a template argument
+			   list to be applied to variant.symbol. */
   union {
     /* When kind == ok_error, no variant fields. */
     /* When kind == ok_expression: */
@@ -801,6 +804,7 @@ extern void make_expression_operand(an_expr_node_ptr node,
 extern void make_indefinite_function_operand(
                                       a_symbol_ptr       routine_sym,
                                       a_boolean          is_qualified_name,
+                                      a_boolean          is_template_id,
                                       a_template_arg_ptr template_arg_list,
                                       an_operand         *operand);
 
