@@ -1410,7 +1410,7 @@ and issue an error if not.  If cap is NULL, return max_region_number
 }  /* cleanup_region_number */
 
 
-static a_cleanup_region_number context_cleanup_region_number(
+a_cleanup_region_number context_cleanup_region_number(
                                                   a_context_ptr        context,
                                                   a_cleanup_action_ptr cap)
 /*
