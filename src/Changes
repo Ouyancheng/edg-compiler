@@ -1,5 +1,20 @@
 Version 2.46
 
+2/6/02   C++-generating back end, MSVC++ output: no leading "::" in selection
+
+The MSVC++ compiler (versions before 7.0) does not accept a leading "::"
+following a field selection "->" or ".".  When MSVC is the generated
+code target, and the Microsoft version is less than or equal to 1200,
+the C++-generating back end now avoids generating such qualifiers.
+
+  struct one {
+    bool func();
+  };
+  struct two : public one {};
+  struct three : private two {
+    bool func() { return(one::func()); }  // Output now okay for MSVC++ 6
+  };
+
 2/6/02   Abort in add_dyn_init_cleanup: no temps
 
 An abort in add_dyn_init_cleanup in IL lowering has been fixed.

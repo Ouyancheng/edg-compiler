@@ -1987,26 +1987,37 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            for the namespace and either the name is not hidden or we are
            generating the declaration of that name. */
       } else if (msvc_is_generated_code_target &&
+                 microsoft_version <= 1200 &&
                  (options & GN_BOUND_MEMBER) && (options & GN_QUALIFIER)) {
         /* Microsoft compilers do not accept namespace qualifiers after a
-           field or member function selection operation. */
+           field or member function selection operation.  MSVC++ 7.0
+           fixed this. */
       } else {
         gen_namespace_qualifier(nsp,
                                 options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                                 need_closing_paren);
       }  /* if */
-    } else if (scp->qualification_needed && !(options & GN_DECLARATION)) {
+    } else if (scp->qualification_needed) {
       /* This is a reference to a file-scope entity from within a class
-         or function, so add a leading "::".  Don't do this on the
-         declaration of a name. */
-      if (options & GN_PARENS_IF_GLOBAL_QUALIFIER) {
-        /* Put parentheses around this name to avoid confusion with a
-           preceding name. For example:  "A::B ::C" is put out as
-           "A::B (::C)". */
-        write_tok_ch('(');
-        *need_closing_paren = TRUE;
+         or function, so add a leading "::". */
+      if (options & GN_DECLARATION) {
+        /* Don't do this on the declaration of a name. */
+      } else if (msvc_is_generated_code_target &&
+                 microsoft_version <= 1200 &&
+                 (options & GN_BOUND_MEMBER) && (options & GN_QUALIFIER)) {
+        /* Microsoft compilers do not accept namespace qualifiers after a
+           field or member function selection operation.  MSVC++ 7.0
+           fixed this. */
+      } else {
+        if (options & GN_PARENS_IF_GLOBAL_QUALIFIER) {
+          /* Put parentheses around this name to avoid confusion with a
+             preceding name. For example:  "A::B ::C" is put out as
+             "A::B (::C)". */
+          write_tok_ch('(');
+          *need_closing_paren = TRUE;
+        }  /* if */
+        write_tok_str("::");
       }  /* if */
-      write_tok_str("::");
     }  /* if */
   }  /* if */
   /* Finally, emit the unqualified part of the name, with or without
