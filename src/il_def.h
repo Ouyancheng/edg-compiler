@@ -1580,6 +1580,19 @@ typedef struct a_using_decl {
 
 
 /*
+Macro that is TRUE if we need the mechanism for generating multiple
+initialization routines in IL lowering.
+*/
+#if DO_IL_LOWERING
+#if ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+#define MULTIPLE_INIT_ROUTINES TRUE
+#endif /* ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_ALLOWED */
+#endif /* DO_IL_LOWERING */
+#ifndef MULTIPLE_INIT_ROUTINES
+#define MULTIPLE_INIT_ROUTINES FALSE
+#endif /* ifndef MULTIPLE_INIT_ROUTINES */
+
+/*
 Data structure a_dynamic_init describes a dynamic initialization of a simple
 (non-aggregate) variable, an aggregate variable (class or array), or a
 component of an aggregate variable (field or array element).  Dynamic-init
@@ -1738,13 +1751,13 @@ typedef struct a_dynamic_init {
 			   the entity has actually been initialized.  This flag
 			   is not set for variables with static storage
 			   duration. */
-#if ONE_INSTANTIATION_PER_OBJECT && DO_IL_LOWERING
+#if DO_IL_LOWERING && MULTIPLE_INIT_ROUTINES
   a_bit_field	included_in_slice:1;
 			/* Used to mark destructions associated with the
 			   initializations included in a file-scope
 			   initialization routine for a given instantiation
 			   slice. */
-#endif /* ONE_INSTANTIATION_PER_OBJECT && DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && MULTIPLE_INIT_ROUTINES */
   a_bit_field	is_explicit_cast:1;
 			/* If TRUE, the source construct that generated
 			   this initialization is an explicit cast. */

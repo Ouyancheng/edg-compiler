@@ -1645,9 +1645,9 @@ Initialize a dynamic_init entry of the kind specified.
   dip->is_guard_var_for_local_static_var_init = FALSE;
 #endif /* DO_IL_LOWERING */
   dip->overlaps_temps_in_inner_lifetime = FALSE;
-#if ONE_INSTANTIATION_PER_OBJECT && DO_IL_LOWERING
+#if DO_IL_LOWERING && MULTIPLE_INIT_ROUTINES
   dip->included_in_slice = FALSE;
-#endif /* ONE_INSTANTIATION_PER_OBJECT && DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && MULTIPLE_INIT_ROUTINES */
   dip->is_explicit_cast = FALSE;
   dip->is_partially_initialized_compound_literal = FALSE;
 #if CHECKING

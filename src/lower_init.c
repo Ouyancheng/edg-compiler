@@ -10976,17 +10976,6 @@ destructor scope, and also lower the user code.
   code_pos_for_lowering = saved_code_pos;
 }  /* lower_destructor_code */
 
-
-/*
-Macro that is TRUE if we need the mechanism for generating multiple
-initialization routines.
-*/
-#if ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-#define MULTIPLE_INIT_ROUTINES TRUE
-#else /* !(ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_...) */
-#define MULTIPLE_INIT_ROUTINES FALSE
-#endif /* ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_... */
-
 #if MULTIPLE_INIT_ROUTINES
 
 /*ARGSUSED*/  /* <-- tblock is not used. */
@@ -11150,7 +11139,7 @@ instantiations have been generated.
       file_scope->lifetime->destructions = dtor_process_list;
     }  /* if */
   }  /* if */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
+#endif /* MULTIPLE_INIT_ROUTINES */
   if (dip != NULL) {
     /* There are some file-scope dynamic initializations.  Generate a routine
        containing them. */
