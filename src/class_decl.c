@@ -4192,12 +4192,14 @@ offsets and alignments, *any_overflow is set and returned to the caller.
 }  /* set_offset_for_virtual_function_info */
 
 
+
+
 static void set_offsets_for_virtual_base_class_pointers(
-                                                 a_type_ptr     class_type,
-                                                 a_targ_size_t  *p_byte_offset,
-                                                 int            *p_bit_offset,
-                                                 a_targ_alignment *p_alignment,
-                                                 a_boolean       *any_overflow)
+                                             a_base_class_ptr  base_class_list,
+                                             a_targ_size_t     *p_byte_offset,
+                                             int               *p_bit_offset,
+                                             a_targ_alignment  *p_alignment,
+                                             a_boolean         *any_overflow)
 /*
 Set the pointer_offset fields in direct virtual base classes where the pointer
 is not shared (i.e., where the pointer from a base class is not used).
@@ -4209,42 +4211,56 @@ is not shared (i.e., where the pointer from a base class is not used).
   
   db_enter(4, "set_offsets_for_virtual_base_class_pointers");
   /* Traverse the list of base classes. */
-  bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-  if (bcp != NULL) {
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (!*any_overflow && bcp->direct && bcp->is_virtual) {
-        /* For virtual base classes we only reserve enough space for a
-           pointer to the actual data section.  The latter is added at the
-           end of the storage. */
-        if (bcp->pointer_base_class == NULL) {
+  for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
+    /* For virtual base classes we only reserve enough space for a pointer
+       to the actual data section.  The latter is added at the end of the
+       storage. */
+    /* Only pointers to direct virtual base classes need space reserved --
+       and only when the pointer is not shared, i.e., not already present in
+       the data section of another base class, as indicated by the
+       pointer_base_class field. */
+    if (bcp->direct && bcp->is_virtual && bcp->pointer_base_class == NULL) {
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+      /* Cfront puts out the pointers to virtual base class data sections in
+         reverse declaration order.  This is emulated by a recursive call
+         to allocate space for the next one before doing the current one. */
+      if (bcp->next != NULL) {
+        set_offsets_for_virtual_base_class_pointers(bcp->next, p_byte_offset,
+                                                    p_bit_offset, p_alignment,
+                                                    any_overflow);
+      }  /* if */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+      if (!*any_overflow) {
 #if TARG_ALL_POINTERS_SAME_SIZE
-          /* All pointers are the same size. */
-          alignment = (a_targ_alignment)TARG_ALIGNOF_POINTER;
-          size = (a_targ_size_t)TARG_SIZEOF_POINTER;
+        /* All pointers are the same size. */
+        alignment = (a_targ_alignment)TARG_ALIGNOF_POINTER;
+        size = (a_targ_size_t)TARG_SIZEOF_POINTER;
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
 ??=error set_offsets_for_virtual_base_class_pointers: different sized pointers
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
-          /* Adjust the current offset to ensure that the base class is
-             properly aligned. */
-          if (!do_alignment(p_byte_offset, p_bit_offset, alignment)) {
+        /* Adjust the current offset to ensure that the base class is
+           properly aligned. */
+        if (!do_alignment(p_byte_offset, p_bit_offset, alignment)) {
+          error(ec_struct_too_large);
+          *any_overflow = TRUE;
+        } else {
+          /* No error, so increment the offset. */
+          bcp->pointer_offset = *p_byte_offset;
+          if (*p_alignment < alignment) {
+            *p_alignment = alignment;
+          }  /* if */
+          if (!increment_field_offsets(p_byte_offset, p_bit_offset,
+                                       size, 0)) {
             error(ec_struct_too_large);
             *any_overflow = TRUE;
-          } else {
-            /* No error, so increment the offset. */
-            bcp->pointer_offset = *p_byte_offset;
-            if (*p_alignment < alignment) {
-              *p_alignment = alignment;
-            }  /* if */
-            if (!increment_field_offsets(p_byte_offset, p_bit_offset,
-                                         size, 0)) {
-              error(ec_struct_too_large);
-              *any_overflow = TRUE;
-            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
-    }  /* for */
-  }  /* if */
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+      break;
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+    }  /* if */
+  }  /* for */
   db_exit();
 }  /* set_offsets_for_virtual_base_class_pointers */
 
@@ -4692,6 +4708,8 @@ allocating any remaining fields whose allocation may have been delayed and
 making room for virtual base classes, which appear at the end of the layout.
 */
 {
+  a_base_class_ptr  base_class_list;
+
   db_enter(3, "finish_laying_out_class");
   if (C_dialect == C_dialect_cplusplus) {
 #if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
@@ -4702,7 +4720,9 @@ making room for virtual base classes, which appear at the end of the layout.
     set_offsets_for_remaining_fields(class_type, &byte_offset, &bit_offset,
                                      &alignment, &any_overflow);
 #endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
-    set_offsets_for_virtual_base_class_pointers(class_type, &byte_offset,
+    base_class_list = class_type->
+                          variant.class_struct_union.extra_info->base_classes;
+    set_offsets_for_virtual_base_class_pointers(base_class_list, &byte_offset,
                                                 &bit_offset, &alignment,
                                                 &any_overflow);
     set_offset_for_virtual_function_info(class_type, &byte_offset, &bit_offset,
