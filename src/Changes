@@ -1,14 +1,24 @@
 Version 2.29
 
+3/20/95  Type compatibility of known- and unknown-bound arrays in C++
+
+Now two array types with the same element type and of known- and
+unknown-bounds are considered compatible only for top-level types and only
+in the context of redeclarations.  For example,
+
+  extern int a[];
+  int a[3];               // still okay
+  extern int (*p)[];
+  int (*p)[3];            // now an incompatibility error in C++
+
 3/20/95  --nonconst_ref_anachronism
 
-Binding a reference to nonconst class to a class rvalue of the right
-type or a derived type thereof, allowed up until version 2.28, and
-now an anachronism, can now be allowed through the command-line option
---nonconst_ref_anachronism or disallowed through
---no_nonconst_ref_anachronism disables it.  The configuration
-flag DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM specifies the default
-(TRUE in the release).
+Binding a reference to nonconst class to a class rvalue of the right type
+or a derived type thereof, allowed up until version 2.28, and now an
+anachronism, can now be allowed and disallowed through command-line
+options --nonconst_ref_anachronism and --no_nonconst_ref_anachronism.  The
+configuration flag DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM specifies the
+default (TRUE in the release).
 
   struct A {
     A(int);
