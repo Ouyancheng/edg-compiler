@@ -1169,7 +1169,7 @@ second slot and A::g() the third.  When ABI_COMPATIBILITY_VERSION >= 232 we
 use an algorithm that produces results that match cfront's; otherwise, the
 old behavior is retained.
 
-5/6/76  IL CHANGE: field removed from a_class_type_supplement
+5/6/96  IL CHANGE: field removed from a_class_type_supplement
 
 The field anonymous_union_object.storage_class is no longer required and
 has been removed from a_class_type_supplement.  As a result, the union
