@@ -8,6 +8,9 @@ The following ill-formed program is now diagnosed correctly:
     A f();                       // Error: returns an abstract class
     virtual void g() = 0;
   };
+
+In addition, two new error messages were added to complain about arrays
+of abstract classes and parameters of abstract class type.
     
 4/4/94   Reworking of disambiguation routines
 
