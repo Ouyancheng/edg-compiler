@@ -501,6 +501,18 @@ classes, be contingent on the derivation selected.
 #define first_derivation_is_direct(bcp)                              \
   ((bcp)->derivation->direct)
 
+
+extern a_derivation_step_ptr cast_virtual_derivation_path_of(
+                                                         a_base_class_ptr bcp);
+
+/* Return a derivation path to be used for a cast to the indicated base
+   class.  For virtual base classes, this is a single step to the virtual
+   base class. */
+#define cast_derivation_path_of(bcp)                                  \
+  ((bcp)->is_virtual ? cast_virtual_derivation_path_of(bcp) :         \
+                       (bcp)->derivation->path)
+
+
 #if DEBUG
 extern void db_type_name(a_type_ptr  tp);
 

@@ -3342,6 +3342,21 @@ no direct derivation.
 }  /* direct_virtual_derivation_of */
 
 
+a_derivation_step_ptr cast_virtual_derivation_path_of(a_base_class_ptr bcp)
+/*
+Return the derivation path that should be used for a cast to the (virtual)
+base class bcp.  This path has a single step to the virtual base class.
+*/
+{
+  a_derivation_step_ptr dsp;
+
+  /* Step to the last derivation step on the path of the first derivation.
+     The last step is always to the virtual base class. */
+  for (dsp = bcp->derivation->path; dsp->next != NULL; dsp = dsp->next) {}
+  return dsp;
+}  /* cast_virtual_derivation_path_of */
+
+
 an_overriding_virtual_function_ptr alloc_overriding_virtual_function(void)
 /*
 Allocate an overriding-virtual-function entry, initialize its fields, and
