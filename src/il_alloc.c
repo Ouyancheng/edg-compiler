@@ -1050,6 +1050,10 @@ to default values.
       pte->variant.typeref.explicit_memory_attribute_made_implicit = FALSE;
 #endif /* NEAR_AND_FAR_ALLOWED */
       pte->variant.typeref.has_variably_modified_type = FALSE;
+#if BACK_END_IS_CP_GEN_BE
+      pte->variant.typeref.surrounding_name_linkage_state
+                                       = (a_name_linkage_kind)nlk_none;
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if CHECKING
       pte->variant.typeref.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
