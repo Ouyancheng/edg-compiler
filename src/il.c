@@ -3313,11 +3313,15 @@ or not the parameter should be passed using a copy constructor.
   if (C_dialect == C_dialect_cplusplus && !ptp->passed_via_copy_constructor) {
     param_type = ptp->type;
     param_type = skip_typerefs(param_type);
-    if (is_class_struct_union_type(param_type)) {
+    if (is_immediate_class_type(param_type)) {
       /* The parameter is a class passed by value.  See if the class
          has a "real" copy constructor. */
-      if (!is_incomplete_type(param_type) &&
-          !symbol_supplement_for_class(param_type)->
+      if (is_incomplete_type(param_type)) {
+        /* Delay setting the flag till the class is defined -- add it to the
+           fixup list. */
+        (void)add_if_necessary_to_dependent_type_fixup_list((a_type_ptr)NULL,
+                                                            ptp);
+      } else if (!symbol_supplement_for_class(param_type)->
                                         construction_by_bitwise_copy_allowed) {
         /* Yes. */
         ptp->passed_via_copy_constructor = TRUE;
@@ -4609,14 +4613,18 @@ Copy the type entry "from" to "to".
   *to = *from;
   to->next = next_ptr;
   to->based_types = NULL;
-  if (from_kind == (a_type_kind)tk_array) {
-    /* For an array type, check for an array based on an incomplete struct
-       or union type.  Such a type must be placed on the fixup list. */
-    add_if_necessary_to_array_fixup_list(to);
-  } else if (from_kind == (a_type_kind)tk_routine) {
-    /* For a routine type, the type supplement must also be copied. */
-    *extra_info = *from->variant.routine.extra_info;
-    to->variant.routine.extra_info = extra_info;
+  if (from_kind == (a_type_kind)tk_array ||
+      from_kind == (a_type_kind)tk_routine) {
+    if (from_kind == (a_type_kind)tk_routine) {
+      /* For a routine type, the type supplement must also be copied. */
+      *extra_info = *from->variant.routine.extra_info;
+      to->variant.routine.extra_info = extra_info;
+    }  /* if */
+    /* An array type is placed on a fixup list if the underlying element type
+       is an incomplete class type (allowed by extension), and a routine type
+       is placed on the list if its return type is an incomplete class type. */
+    (void)add_if_necessary_to_dependent_type_fixup_list(to,
+                                                        (a_param_type *)NULL);
   }  /* if */
 }  /* copy_type */
 
@@ -6016,11 +6024,14 @@ at the point of definition.
       /* If the function returns a class object that has a "real" copy
          constructor, make the caller provide a temporary for the result. */
       return_type = skip_typerefs(routine_type->variant.routine.return_type);
-      if (!is_incomplete_type(return_type) &&
-          is_class_struct_union_type(return_type) &&
-          !symbol_supplement_for_class(return_type)->
+      if (is_immediate_class_type(return_type)) {
+        if (is_incomplete_type(return_type)) {
+          (void)add_if_necessary_to_dependent_type_fixup_list(routine_type,
+                                                        (a_param_type *)NULL);
+        } else if (!symbol_supplement_for_class(return_type)->
                                         construction_by_bitwise_copy_allowed) {
-        rtsp->value_returned_by_cctor = TRUE;
+          rtsp->value_returned_by_cctor = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
