@@ -7380,9 +7380,10 @@ respectively.
       decl_info->storage_class != (a_storage_class)sc_typedef) {
     pos_error(ec_function_type_not_allowed, &locator->source_position);
     field_type = error_type();
-  } else if (is_union_type(class_type) && is_reference_type(field_type)) {
+  } else if (strict_ansi_mode && is_union_type(class_type) &&
+             is_reference_type(field_type)) {
     /* Unions are not allowed to have members of reference type. */
-    pos_error(ec_ref_type_not_allowed, &decl_info->decl_start_pos);
+    pos_error(ec_ref_not_allowed_in_union, &decl_info->decl_start_pos);
     field_type = error_type();
   } else if (is_abstract_class_type(field_type)) {
     /* Abstract class objects are prohibited (ARM 10.3). */

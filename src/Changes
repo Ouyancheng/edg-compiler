@@ -7,7 +7,8 @@ specified in a condition declaration.
 
 4/10/98   Union with member of reference type
 
-An error is now issued if a union member is declared with a reference type.
+In strict mode an error is now issued if a union member is declared
+with a reference type.
 
 4/10/98   Microsoft compatibility: qualifiers are ignored on class template
           arguments
