@@ -10,6 +10,11 @@ the proper type qualifiers on the result type.
 If x is qualified (e.g., volatile int), ++x in C mode now has the qualifiers
 dropped as it should.
 
+10/31/94 Qualifiers on type of x++
+
+If x is qualified (e.g., volatile int), x++ now has the qualifiers dropped
+as it should.
+
 10/31/94 Type qualifiers on rewrite of lvalue-returning assingment in IL
          lowering
 

@@ -2877,11 +2877,13 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
         /* Operand is not a modifiable lvalue. */
         err = TRUE;
       } else {
+        a_type_kind kind;
         /* Operand is okay. */
         modifying_lvalue(operand, /*value_used=*/TRUE);
-        result_type = operand->type;
+        result_type = make_unqualified_type(operand->type);
+        kind = skip_typerefs(result_type)->kind;
         if (curr_token == tok_plus_plus) {
-          switch (skip_typerefs(result_type)->kind) {
+          switch (kind) {
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipost_incr;
               break;
@@ -2897,7 +2899,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 #endif /* CHECKING */
           }  /* switch */
         } else {
-          switch (skip_typerefs(result_type)->kind) {
+          switch (kind) {
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipost_decr;
               break;
