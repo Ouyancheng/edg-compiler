@@ -8433,7 +8433,7 @@ any classes that declared the nested class as a template friend.
       a_template_ptr  templ = alloc_template();
       templ->kind = (a_template_kind)templk_member_class;
       set_source_corresp(&templ->source_corresp, sym);
-      set_class_membership(sym, &templ->source_corresp,
+      set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
                            class_type->source_corresp.parent.class_type);
       templ->source_corresp.access = class_type->source_corresp.access;
       add_to_templates_list(templ, depth_scope_stack);
