@@ -522,6 +522,7 @@ check_abbreviation()
 --far_data_pointers
 --force_vtbl
 --friend_injection
+--gcc
 --guiding_decls
 --ignore_std
 --implicit_extern_c_type_conversion
@@ -577,6 +578,7 @@ check_abbreviation()
 --no_extended_variadic_macros
 --no_extern_inline
 --no_friend_injection
+--no_gcc
 --no_guiding_decls
 --no_il_lowering
 --no_implicit_extern_c_type_conversion
@@ -1106,6 +1108,8 @@ process_option()
          --no_base_assign_op_is_default | \
          --sun | \
          --no_sun | \
+         --gcc | \
+         --no_gcc | \
          --dep_name | \
          --no_dep_name | \
          --parse_templates | \
