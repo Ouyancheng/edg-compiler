@@ -259,14 +259,15 @@ objects of their own type.
       case tk_union:
         fputs("union ", f_debug);
         goto print_name;
-      default:
-        if (has_name(tp)) {
-          if (is_immediate_enum_type(tp)) fputs("enum ", f_debug);
+      case tk_integer:
+        if (is_immediate_enum_type(tp)) {
+          fputs("enum ", f_debug);
 print_name:
           db_type_name(tp);
-        } else {
-          db_type(tp);
+          break;
         }  /* if */
+      default:
+        db_type(tp);
         break;
     }  /* switch */
   }  /* if */
@@ -9629,7 +9630,11 @@ eliminated, if appropriate.
     if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
       fprintf(f_debug, "%semoving ",
               il_entry_prefix_of(tp).keep_in_il ? "Not r" : "R");
-      db_abbreviated_type(tp);
+      if (has_name(tp)) {
+        db_type_name(tp);
+      } else {
+        db_abbreviated_type(tp);
+      }  /* if */
       fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
