@@ -4209,13 +4209,30 @@ generating cross-reference output describing this declaration.
         sym = linked_symbol;
         overload_symbol = add_symbol_to_overload_list(sym, homonym_symbol);
         sym->variant.routine.instance_ptr->specific_decl = TRUE;
+        routine_ptr = sym->variant.routine.ptr;
         if (is_function_def) {
+          routine_ptr->specific_def = TRUE;
           sym->variant.routine.instance_ptr->specific_def = TRUE;
-          sym->variant.routine.ptr->specific_def = TRUE;
           sym->variant.routine.instance_ptr->instantiation_required = FALSE;
         }  /* if */
-        routine_ptr = sym->variant.routine.ptr;
         old_decl_has_body = (routine_ptr->assoc_scope != NULL_region_number);
+        if (old_decl_has_body) {
+          check_assertion(sym->variant.routine.ptr->is_inline);
+          /* This is a case where an inline function template has been
+             declared, an instance of it has been referenced and therefore
+             instantiated on the fly, and now a specializing declaration
+             appears.  Issue an error (you can't reference an inline template
+             function that is specialized before the specialization is
+             declared) and obliterate evidence of the instantiation. */
+#if 0
+/* Temporary message. */
+#endif /* if 0 */
+          pos_sy_error(ec_already_defined, &locator->source_position, sym);
+          old_decl_has_body = FALSE;
+          sym->defined = FALSE;
+          routine_ptr->assoc_scope = NULL_region_number;
+          routine_ptr->type->variant.routine.extra_info->assoc_routine = NULL;
+        }  /* if */
         *old_type = routine_ptr->type;
         reconcile_routine_types(routine_ptr, type_ptr,
                                 /*preserve_rout_type=*/old_decl_has_body,
