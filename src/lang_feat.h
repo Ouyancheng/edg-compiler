@@ -304,7 +304,7 @@ of this guarantee renders the program undefined, the compiler may rely on
 it in performing optimizations.
 */
 #ifndef RESTRICT_ALLOWED
-#define RESTRICT_ALLOWED TRUE
+#define RESTRICT_ALLOWED FALSE
 #endif /* ifndef RESTRICT_ALLOWED */
 
 #endif /* ifndef LANG_FEAT_H */

@@ -42,6 +42,7 @@ the release should contain no defines.
 #define FIL 1
 #define GENERATE_SOURCE_SEQUENCE_LISTS 1
 #define LONG_LONG_ALLOWED 1
+#define RESTRICT_ALLOWED 1
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
 #define INCLUDE_EDG_TEST_PRAGMAS 1
 #define RECORD_HIDDEN_NAMES_IN_IL 1
