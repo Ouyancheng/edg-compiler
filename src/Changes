@@ -36,7 +36,7 @@ The copy of B::a in the generated copy constructor for B must use a copy
 constructor to copy each element of a.  Previously, this caused a
 segmentation violation.  (cfront gives "sorry, not implemented".)
 
-6/22/92  Fixed bug in setting storage class on mutiply declared functions.
+6/22/92  Fixed bug in setting storage class on multiply-declared functions.
 
 In the following case:
 
@@ -49,8 +49,8 @@ storage class.
 
 6/19/92  Support for "asm declarations".
 
-"asm" is now treated as a token, even in C mode.  An asm "declaration"
-(at file scope) and an asm "statement" (at function or block scope) is
+"asm" is now treated as a keyword, even in C mode.  An asm "declaration"
+(at file scope) and an asm "statement" (at function or block scope) are
 scanned by asm_declaration, a new function.  Some new IL support has
 been added: entries of type an_asm_entry are created and placed on a
 list pointed to from the current scope, and the asm entry points to the
@@ -100,7 +100,7 @@ error.c is part of a utility program.
 
 6/5/92  Added protected member access check of ARM 11.5.
 
-Access control checking has been enchanced to do the checking mandated
+Access control checking has been enhanced to do the checking mandated
 by ARM 11.5.
 
 6/5/92  Subscript checking disabled for arrays dimensioned [1].
