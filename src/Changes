@@ -1,7 +1,7 @@
 Version 2.18
 
 -------------------------------------------------------------------------------
-Version 2.17, May 15, 1993
+Version 2.17, May 17, 1993
 
 5/14/93 Diagnostic on initializing an aggregate without an initializer list
 
@@ -216,9 +216,7 @@ constant entries.  In this example an endless loop was created:
 
 The checking for conversions that will convert class type operands of
 operators to types appropriate for the built-in versions of those operators
-has been improved to (a) consider pointer-to-member types, and (b) to
-favor exact matches over those requiring standard conversions on the
-other (non-class) operands.
+has been improved to consider pointer-to-member types.
 
 4/29/93  OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
 
@@ -235,12 +233,12 @@ be non-NULL for both direct and indirect virtual base classes.  See the
 commentary in il_def.h for a precise description of how these fields are
 used and how they interact with each other.  There were some bugs in this
 area in "default" layout mode -- as opposed to the layout used for cfront
-object code compatibilty.  Those bugs have been fixed.
+object code compatibility.  Those bugs have been fixed.
 
 4/28/93  Spurious error on extern redeclarations
 
 A spurious error was sometimes issued when an array was defined and then
-redeclared with an an incomplete type.  Here's an example:
+redeclared with an incomplete type.  Here's an example:
 
   static int a[10];
   extern int a[];              // Spurious error no longer issued
