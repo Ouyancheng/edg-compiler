@@ -1321,19 +1321,6 @@ compiling ANSI C code in SVR4 C compatibility mode.
 #endif /* !defined(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C) */
 
 /*
-If ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C is TRUE, "(...)" will be put out
-as the parameter list for a routine with no parameters and has_ellipsis
-set to TRUE.  The setting of this switch is irrelevant in C mode
-if the construct is not allowed in the source (see
-allow_ellipsis_only_param_in_C_mode).  However, the source construct
-is always allowed in C++ mode, and this switch also controls the form of
-the generated C for that case.
-*/
-#ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
-#define ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C FALSE
-#endif /* !define(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C) */
-
-/*
 If the C-generating back end is being used, are bit fields in the
 generated C allowed to have base types other than the standard
 "int" and "unsigned int"?  Note that the setting of this switch must
@@ -1375,6 +1362,19 @@ for patch or munch).  The form of the generated lines is right for Solaris.
 #endif /* BACK_END_IS_C_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+/*
+If ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C is TRUE, "(...)" will be put out
+as the parameter list for a routine with no parameters and has_ellipsis
+set to TRUE.  The setting of this switch is irrelevant in C mode
+if the construct is not allowed in the source (see
+allow_ellipsis_only_param_in_C_mode).  However, the source construct
+is always allowed in C++ mode, and this switch also controls the form of
+the generated C for that case.
+*/
+#ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
+#define ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C FALSE
+#endif /* ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C */
+
 /*
 When generating C or C++ code, add extra braces around "if" statements
 without an "else" to avoid the "dangling else" problem.  This is necessary

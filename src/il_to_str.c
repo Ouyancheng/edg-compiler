@@ -475,6 +475,7 @@ way described by octl.
 {
   char *str;
 
+#if BACK_END_IS_C_GEN_BE
 #if LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
   if (octl->c_generating_back_end) {
     if (kind == (a_float_kind)fk_long_double) {
@@ -491,6 +492,7 @@ way described by octl.
     }  /* if */
   }  /* if */
 #endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
+#endif /* BACK_END_IS_C_GEN_BE */
   str = float_kind_name(kind);
 #if CHECKING
   if (*str == '*'
@@ -535,10 +537,10 @@ Do the output in the way described by octl.
   if (octl->gen_pcc_code) {
     /* Qualifiers are suppressed when generating K&R C. */
   } else {
-#if SUPPRESS_CONST_IN_GENERATED_C
+#if BACK_END_IS_C_GEN_BE && SUPPRESS_CONST_IN_GENERATED_C
     /* Suppress "const" in the output of the C-generating back end. */
     if (octl->c_generating_back_end) qualifiers &= ~TQ_CONST;
-#endif /* SUPPRESS_CONST_IN_GENERATED_C */
+#endif /* BACK_END_IS_C_GEN_BE && SUPPRESS_CONST_IN_GENERATED_C */
     output_qualifier(TQ_CONST, "const"); /*lint !e774*/
     output_qualifier(TQ_VOLATILE, "volatile");
 #if RESTRICT_ALLOWED
@@ -1068,6 +1070,7 @@ in the way described by octl.
           if (il_header.source_language == sl_C) {
             octl->output_str("void");
           }  /* if */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 #if !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
         } else if (octl->gen_compilable_code &&
                    (octl->c_generating_back_end ||
@@ -1077,6 +1080,7 @@ in the way described by octl.
              only if it can be handled.  Otherwise, "(...)" is rendered by
              "()" in the generated C. */
 #endif /* !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
         } else {
           /* This is a parameter list consisting of only an ellipsis, which
              is standard in C++ and may be accepted as an extension in C

@@ -3695,6 +3695,7 @@ Initialize a set of macros that are use to pass configuration information
 from the front end to the runtime.
 */
 {
+#if DO_IL_LOWERING
 #if DO_FULL_PORTABLE_EH_LOWERING
   char		*ptr;
   /* Define a macro that specifies the type of an element of the setjmp
@@ -3714,7 +3715,6 @@ from the front end to the runtime.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
-#if DO_IL_LOWERING
   /* Define the type of the offset field in the virtual function table. */
   (void)enter_predef_macro(int_kind_name(TARG_DELTA_INT_KIND),
 			   "__EDG_DELTA_TYPE",
