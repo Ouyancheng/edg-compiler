@@ -3447,6 +3447,10 @@ Display the indicated base class entry.
   disp_ptr("next", (char *)ptr->next, iek_base_class);
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_ptr("derived_class", (char *)ptr->derived_class, iek_type);
+  disp_source_position("decl_position", &ptr->decl_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_range("base_specifier_range", &ptr->base_specifier_range);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_boolean("direct", (a_boolean)ptr->direct);
   disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);
   disp_boolean("ambiguous", (a_boolean)ptr->ambiguous);

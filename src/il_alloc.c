@@ -725,6 +725,10 @@ to it.
   bcp->type                            = NULL;
   bcp->derived_class                   = NULL;
   bcp->decl_position                   = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  bcp->base_specifier_range.start      = null_source_position;
+  bcp->base_specifier_range.end        = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   bcp->is_virtual                      = FALSE;
   bcp->direct                          = FALSE;
   bcp->ambiguous                       = FALSE;

@@ -2845,6 +2845,14 @@ typedef struct a_base_class {
 			/* For a direct base class, the source position of
 			   its declaration.  Otherwise, the source position
 			   of a direct base class derived from it. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_range
+		base_specifier_range;
+			/* For a direct base class, the source positions
+			   corresponding to the start and end of the base
+			   specifier construct (i.e., possibly including the
+			   access specifier and "virtual"). */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_bit_field	direct:1;
 			/* TRUE if this is a direct base class of
 			   derived_class in any of its derivations. */

@@ -225,6 +225,23 @@ Dump decl-pos information for the specified symbol (for debugging).
                     vp->initializer_range.end.seq,
                     vp->initializer_range.end.column);
           }  /* if */
+        } else if (is_class_struct_union_symbol(sym)) {
+          a_base_class_ptr  bcp = base_classes_of(type_symbol_type(sym));
+          for (; bcp != NULL; bcp = bcp->next) {
+            if (bcp->base_specifier_range.start.seq != 0 ||
+                bcp->base_specifier_range.end.seq != 0) {
+              fprintf(f_debug, "    base class \"");
+              db_type_name(bcp->type);
+              fprintf(f_debug, "\", decl_position: %lu/%lu\n",
+                      bcp->decl_position.seq, bcp->decl_position.column);
+              fprintf(f_debug, "      specifier range: ");
+              fprintf(f_debug, "%4lu/%-3lu -- %4lu/%-3lu\n",
+                      bcp->base_specifier_range.start.seq,
+                      bcp->base_specifier_range.start.column,
+                      bcp->base_specifier_range.end.seq,
+                      bcp->base_specifier_range.end.column);
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

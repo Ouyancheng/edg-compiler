@@ -3826,6 +3826,10 @@ or struct definition.  The syntax is
                                                access);
             bcp->direct = TRUE;
             bcp->decl_position = base_class_decl_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+            bcp->base_specifier_range.start = base_specifier_start_pos;
+            bcp->base_specifier_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             goto skip_base_class;
           } else {
             /* At least one is non-virtual, so there is an ambiguity.  Mark
@@ -3910,6 +3914,10 @@ or struct definition.  The syntax is
         new_direct_bcp->complete_subobject = TRUE;
       }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      new_direct_bcp->base_specifier_range.start = base_specifier_start_pos;
+      new_direct_bcp->base_specifier_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Offset is updated in merge_field_lists. */
       new_direct_bcp->offset = 0;
       /* Add base classes derived from this base class to the current class's
