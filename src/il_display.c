@@ -1237,8 +1237,6 @@ Display the indicated field.
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_unsigned_long("bit_offset", ptr->bit_offset);
   disp_unsigned_long("bit_size", ptr->bit_size);
-  disp_ptr("parent_class_struct_union",
-           (char *)ptr->parent_class_struct_union, iek_type);
 }  /* disp_field */
 
 #endif /* ifdef CFE */

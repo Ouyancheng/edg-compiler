@@ -282,6 +282,10 @@ typedef struct a_symbol {
 		decl_position;
 			/* Source position of the declaration of this
 			   symbol. */
+  a_type_ptr	class_of_which_a_member;
+			/* For a symbol that is a class member, this points
+			   to the class type (this includes structs/unions
+			   when compiling C); NULL otherwise. */
   a_symbol_ptr	immediate_progenitor;
 			/* For a symbol inherited from a base class, this
 			   points to the symbol from which the current symbol
@@ -723,7 +727,7 @@ Clear a symbol locator.
   ((loc1).symbol_header == (loc2).symbol_header)
 
 /* Set a symbol locator to a dummy value indicating an error. */
-#define set_to_error_locator(loc) clear_error_locator(&loc, &error_position)
+#define set_to_error_locator(loc) clear_locator(&loc, &error_position)
 
 /* Test a locator to see if it is an error locator. */
 #define is_error_locator(loc) ((loc).symbol_header == NULL)

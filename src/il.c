@@ -2235,7 +2235,6 @@ to it.
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
-  vp->parent_class_struct_union   = NULL;
 #ifdef FIL
   vp->by_address                  = FALSE;
   vp->base_var                    = NULL;
@@ -2313,11 +2312,10 @@ to it.
   num_fields_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(fp->source_corresp));
-  fp->next                          = NULL;
-  fp->type                          = NULL;
-  fp->bit_offset                    = 0;
-  fp->bit_size                      = 0;
-  fp->parent_class_struct_union     = NULL;
+  fp->next       = NULL;
+  fp->type       = NULL;
+  fp->bit_offset = 0;
+  fp->bit_size   = 0;
 
   db_exit();
   return (fp);
@@ -2344,18 +2342,17 @@ to it.
   num_routines_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(rp->source_corresp));
-  rp->next                        = NULL;
-  rp->type                        = NULL;
-  rp->assoc_scope                 = NULL_region_number;
-  rp->parent_class_struct_union   = NULL;
-  rp->storage_class               = (a_storage_class)sc_unspecified;
-  rp->is_inline                   = FALSE;
-  rp->is_virtual                  = FALSE;
-  rp->befriending_classes         = NULL;
+  rp->next                = NULL;
+  rp->type                = NULL;
+  rp->assoc_scope         = NULL_region_number;
+  rp->storage_class       = (a_storage_class)sc_unspecified;
+  rp->is_inline           = FALSE;
+  rp->is_virtual          = FALSE;
+  rp->befriending_classes = NULL;
 #ifdef FIL
-  rp->is_fortran_entry            = FALSE;
-  rp->local_routine_scope         = NULL;
-  rp->intrinsic_func_code         = (an_intrinsic_function_code)ifc_none;
+  rp->is_fortran_entry    = FALSE;
+  rp->local_routine_scope = NULL;
+  rp->intrinsic_func_code = (an_intrinsic_function_code)ifc_none;
 #endif /* ifdef FIL */
 
   db_exit();

@@ -537,7 +537,6 @@ and the entry pointer is to an entry in the file scope, just return
           walk_source_corresp(ptr->source_corresp);
           remap_next_ptr(ptr->next, a_field_ptr, iek_field);
           walk_ptr(ptr->type, a_type_ptr, iek_type);
-          remap_ptr(ptr->parent_class_struct_union, a_type_ptr, iek_type);
         }
         break;
 #endif /* ifdef CFE */

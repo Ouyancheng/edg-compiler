@@ -1146,13 +1146,6 @@ typedef struct a_variable {
 			   initialization required. */
 #endif /* ifdef CIL */
   } initializer;
-#ifdef CIL
-  a_type_ptr
-		parent_class_struct_union;
-			/* For a C++ static data member, a pointer to the
-			   type entry identifying the class (or struct or
-			   union) of which it is a member; otherwise NULL. */
-#endif /* ifdef CIL */
 #ifdef FIL
   a_variable_ptr
                 base_var;
@@ -1202,9 +1195,6 @@ typedef struct a_field {
                         /* Size of this field (in bits).  Only non-zero
                            for bit-fields; for the others, the size is
                            gotten from the type. */
-  a_type_ptr    parent_class_struct_union;
-                        /* Pointer to the class, struct, or union type of
-                           which this field is a member. */
 } a_field;
 
 #endif /* ifdef CIL */
@@ -1292,11 +1282,6 @@ typedef struct a_routine {
 #ifdef CIL
                         /* See also prototype_scope under
                            a_routine_type_supplement. */
-  a_type_ptr
-		parent_class_struct_union;
-			/* For a C++ member function, a pointer to the
-			   type entry identifying the class (or struct or
-			   union) of which it is a member; otherwise NULL. */
 #endif /* ifdef CIL */
 #ifdef FIL
                         /* For Fortran ENTRYs, this points to the scope for
