@@ -1,5 +1,22 @@
 Version 2.28
 
+2/12/95  Implicit conversions to pointer-to-member types to match
+         builtin operators
+
+User-defined conversions to pointer to member types are now considered for
+operands of the ?, ==, and != operators:
+
+  struct A {};
+  typedef void (A::*pmf)();
+  struct B {
+    operator pmf();
+  };
+  main() {
+    B b;
+    1 ? b : 0;  // Now accepted
+    b == 0;     // Now accepted
+  }
+
 2/11/95  Type qualifiers on types of temporaries allocated for reference
          binding in IL lowering
 

@@ -596,8 +596,9 @@ for overload resolution.
 #define INTEGRAL_TYPE_CODE 'I'
 #define ARITH_TYPE_CODE 'A'
 #define POINTER_TYPE_CODE 'P'
-#define CORRESP_POINTER_TYPE_CODE 'C'
+#define CORRESP_POINTER_TYPE_CODE 'p'
 #define PTR_TO_MEMBER_TYPE_CODE 'M'
+#define CORRESP_PTR_TO_MEMBER_TYPE_CODE 'm'
 
 
 static char *name_for_type_code(char type_code)
@@ -614,13 +615,12 @@ Return a printable string describing a type code.
   } else if (type_code == POINTER_TYPE_CODE ||
              type_code == CORRESP_POINTER_TYPE_CODE) {
     str = "pointer";
-  } else {
-#if CHECKING
-    if (type_code != PTR_TO_MEMBER_TYPE_CODE) {
-      internal_error("name_for_type_code: bad type code");
-    }  /* if */
-#endif /* CHECKING */
+  } else if (type_code == PTR_TO_MEMBER_TYPE_CODE ||
+             type_code == CORRESP_PTR_TO_MEMBER_TYPE_CODE) {
     str = "pointer-to-member";
+  } else {
+    str = "?";
+    unexpected_condition_str("name_for_type_code: bad type code");
   }  /* if */
   return str;
 }  /* name_for_type_code */
@@ -3704,8 +3704,10 @@ code for the associated operand:
   I  Integral
   A  Arithmetic
   P  Pointer
-  C  Corresponding pointer, when two pointer operands must match in type
+  p  Corresponding pointer, when two pointer operands must match in type
   M  Pointer to member
+  m  Corresponding pointer to member, when two pointer to member operands
+     must match in type
 The first character of the overall string is "L" if the operator requires
 an lvalue as its first operand, e.g., "LAA;PI;IP".
 */
@@ -3768,20 +3770,20 @@ an lvalue as its first operand, e.g., "LAA;PI;IP".
         break;
       case onk_minus:
         /* "-" takes arith-arith, pointer-int, or pointer-pointer. */
-        operand_type_pattern = "AA;PI;CC";
+        operand_type_pattern = "AA;PI;pp";
         break;
       case onk_lt:
       case onk_le:
       case onk_gt:
       case onk_ge:
         /* Relational operators take arithmetic or pointer operands. */
-        operand_type_pattern = "AA;CC";
+        operand_type_pattern = "AA;pp";
         break;
       case onk_eq:
       case onk_ne:
         /* Equality operators take arithmetic, pointer, or pointer-to-member
            operands. */
-        operand_type_pattern = "AA;CC;MM";
+        operand_type_pattern = "AA;pp;mm";
         break;
       case onk_and_and:
       case onk_or_or:
@@ -3825,10 +3827,10 @@ an lvalue as its first operand, e.g., "LAA;PI;IP".
         break;
       case onk_question:
         /* "?" (which shows up here as a two-operand operator) takes
-           two operands (really the second and third) of arithmetic or
-           pointer type (the void and class cases are handled outside of
-           this routine). */
-        operand_type_pattern = "AA;CC";
+           two operands (really the second and third) of arithmetic,
+           pointer, or pointer-to-member type (the void and class cases
+           are handled outside of this routine). */
+        operand_type_pattern = "AA;pp;mm";
         break;
 #if CHECKING
       default:
@@ -3859,6 +3861,9 @@ type_code.
   if (type_code == POINTER_TYPE_CODE) {
     builtin_types_allowed |= BTK_POINTER;
   }  /* if */
+  /* Note that this routine is never called with
+     CORRESP_PTR_TO_MEMBER_TYPE_CODE. */
+  check_assertion(type_code != CORRESP_PTR_TO_MEMBER_TYPE_CODE);
   if (type_code == PTR_TO_MEMBER_TYPE_CODE) {
     builtin_types_allowed |= BTK_PTR_TO_MEMBER;
   }  /* if */
@@ -3871,18 +3876,20 @@ static void try_builtin_operands_match(
                        an_arg_operand_ptr       arg_operand_list,
                        a_candidate_function_ptr *candidate_functions,
                        char                     *pointer_type_pattern_position,
-                       a_type_ptr               pointer_type)
+                       a_type_ptr               pointer_type,
+                       a_boolean                ptr_to_member_case)
 /*
 Subroutine for try_conversions_for_builtin_operator.  Check to see how
 well the operand values given by arg_operand_list match the operand type
 pattern string given by operand_type_pattern.  If they match, add
 the built-in operator to the candidate_functions list.
 This is used for the case where the pattern string contains no corresponding
-pointer types, with pointer_type_pattern_position == pointer_type == NULL,
-and with those set non-NULL for pattern strings containing corresponding
-pointer types (they indicate the target pointer type to be used and, to
-allow a speed optimization, the pattern position which suggested that
-pointer type).
+pointer or pointer to member types, with pointer_type_pattern_position ==
+pointer_type == NULL, and with those set non-NULL for pattern strings
+containing corresponding pointer or pointer to member types types (they
+indicate the target pointer type to be used and, to allow a speed
+optimization, the pattern position which suggested that pointer type).
+ptr_to_member_case is TRUE for the pointer to member case.
 */
 {
   a_boolean                okay;
@@ -3946,7 +3953,8 @@ pointer type).
        arithmetic types is that a value of any arithmetic type can be
        implicitly converted into any other arithmetic type." */
     type_code = *type_pattern_position;
-    if (type_code != CORRESP_POINTER_TYPE_CODE) {
+    if (type_code != CORRESP_POINTER_TYPE_CODE &&
+        type_code != CORRESP_PTR_TO_MEMBER_TYPE_CODE) {
       /* Arithmetic or non-specific pointer type required. */
       if (is_class_struct_union_type(operand_type)) {
         /* The operand has a class type, so see if it can be converted to
@@ -3994,8 +4002,8 @@ pointer type).
         }  /* if */
       }  /* if */
     } else {
-      /* A specific pointer type is required.  Check that the operand
-         can be converted to the pointer type passed in. */
+      /* A specific pointer or pointer to member type is required.  Check
+         that the operand can be converted to the pointer type passed in. */
       if (is_class_struct_union_type(operand_type)) {
         /* The operand has a class type, so see if it can be converted to
            the pointer type. */
@@ -4017,15 +4025,28 @@ pointer type).
         }  /* if */
       } else {
         a_std_conv_descr std_conv;
+        a_boolean        source_is_constant;
         /* A non-class operand. */
         /* Do array --> pointer and function --> pointer transformations. */
         operand_type = do_implicit_type_transformations(operand_type,
                                                         &arg_operand->operand);
+        source_is_constant = is_constant_operand(&arg_operand->operand);
         /* If this operand is the one that suggested this pointer type,
            we already know it is compatible.  This is a speed optimization. */
         if (pointer_type_pattern_position == type_pattern_position ||
-            impl_pointer_conversion(operand_type,
-                                    is_constant_operand(&arg_operand->operand),
+            /* Otherwise, see if we can convert the type we have to the
+               pointer or pointer to member type we want. */
+            ptr_to_member_case ?
+              impl_ptr_to_member_conversion(
+                                    operand_type,
+                                    source_is_constant,
+                                    &arg_operand->operand.variant.constant,
+                                    pointer_type,
+                                    /*check_as_operands_not_conversion=*/TRUE,
+                                    &std_conv) :
+              impl_pointer_conversion(
+                                    operand_type,
+                                    source_is_constant,
                                     &arg_operand->operand.variant.constant,
                                     pointer_type,
                                     /*check_as_operands_not_conversion=*/TRUE,
@@ -4068,8 +4089,8 @@ static a_boolean pointer_type_previously_handled(
                                    a_type_ptr previous_pointer_type_considered)
 /*
 Helper routine for try_pointer_builtin_operands_match.  Return TRUE if
-pointer_type has already been tried as a target pointer type.
-class_type, if non-NULL, indicates the current operand class type.
+pointer_type has already been tried as a target pointer or pointer-to-member
+type.  class_type, if non-NULL, indicates the current operand class type.
 previous_class_type_considered, if non-NULL, indicates the class type of
 a previous operand converted to pointer; previous_pointer_type_considered,
 if non-NULL, indicates the pointer type of a previous non-class operand.
@@ -4112,7 +4133,8 @@ Subroutine for try_conversions_for_builtin_operator.  Check to see how
 well the operand values given by arg_operand_list match the operand type
 pattern string given by operand_type_pattern.  If they match, add
 the built-in operator to the candidate_functions list.  This is used for the
-case where the pattern string contains "CC", meaning two pointer operands
+case where the pattern string contains "pp", meaning two pointer operands
+that must have the same type, or "mm", meaning two pointer-to-member operands
 that must have the same type.
 */
 {
@@ -4125,6 +4147,7 @@ that must have the same type.
   a_type_ptr               previous_class_type_considered;
   a_type_ptr               previous_pointer_type_considered;
   a_boolean                any_ptr_conversion_function_this_operand;
+  a_boolean                ptr_to_member_case;
 
   db_enter(4, "try_pointer_builtin_operands_match");
   /* The reason the pointer case is more complicated than other cases is
@@ -4132,6 +4155,8 @@ that must have the same type.
      converted to any pointer type?" -- we must ask whether both of the
      pointer operands can be converted to a specific pointer type or
      something compatible with it. */
+  ptr_to_member_case = (operand_type_pattern[0] ==
+                                              CORRESP_PTR_TO_MEMBER_TYPE_CODE);
   /* Loop through the two operands. */
   previous_class_type_considered = NULL;
   previous_pointer_type_considered = NULL;
@@ -4160,7 +4185,8 @@ that must have the same type.
           return_type = type_pointed_to(return_type);
         }  /* if */
         return_type = skip_typerefs(return_type);
-        if (is_pointer_type(return_type)) {
+        if (ptr_to_member_case ? is_ptr_to_member_type(return_type) :
+                                 is_pointer_type(return_type)) {
           /* We've found a conversion function to a pointer type.  Make
              sure it's not a type we've already checked while examining a
              previous operand.  If it is, ignore it. */
@@ -4176,7 +4202,8 @@ that must have the same type.
                                        arg_operand_list,
                                        candidate_functions,
                                        type_pattern_position,
-                                       pointer_type);
+                                       pointer_type,
+                                       ptr_to_member_case);
           }  /* if */
         }  /* if */
       }  /* for */
@@ -4193,7 +4220,8 @@ that must have the same type.
       operand_type = do_implicit_type_transformations(operand_type,
                                                       &arg_operand->operand);
       operand_type = skip_typerefs(operand_type);
-      if (is_pointer_type(operand_type)) {
+      if (ptr_to_member_case ? is_ptr_to_member_type(operand_type) :
+                               is_pointer_type(operand_type)) {
         pointer_type = operand_type;
         /* If the type has been previously handled, ignore it. */
         if (!pointer_type_previously_handled(
@@ -4207,7 +4235,8 @@ that must have the same type.
                                      arg_operand_list,
                                      candidate_functions,
                                      type_pattern_position,
-                                     pointer_type);
+                                     pointer_type,
+                                     ptr_to_member_case);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -4239,7 +4268,7 @@ can be used, it is added to the candidate_functions list.
      are one or more semicolon-separated argument patterns, each one consisting
      of one letter (for unary operators) or two letters (for binary operators)
      indicating the allowed argument types.  As a concrete example, the
-     pattern for "-=" is "LAA;PI;CC", indicating that the operator requires
+     pattern for "-=" is "LAA;PI;pp", indicating that the operator requires
      an lvalue and takes operands of types arith-arith, pointer-int, or
      corresponding pointer-pointer. */
   operand_type_pattern = operand_type_pattern_for_operator(kind,
@@ -4266,10 +4295,12 @@ can be used, it is added to the candidate_functions list.
      types. */
   /* Loop for each ";"-separated pattern in the string. */
   do {
-    if (operand_type_pattern[0] == CORRESP_POINTER_TYPE_CODE) {
-      /* Both operands must have the same pointer type.  This case is more
-         complicated because it involves enumerating the pointer types that
-         can be generated by the applicable conversion functions. */
+    if (operand_type_pattern[0] == CORRESP_POINTER_TYPE_CODE ||
+        operand_type_pattern[0] == CORRESP_PTR_TO_MEMBER_TYPE_CODE) {
+      /* Both operands must have the same pointer or pointer-to-member type.
+         This case is more complicated because it involves enumerating the
+         pointer types that can be generated by the applicable conversion
+         functions. */
       try_pointer_builtin_operands_match(operand_type_pattern,
                                          arg_operand_list,
                                          candidate_functions);
@@ -4278,7 +4309,8 @@ can be used, it is added to the candidate_functions list.
       try_builtin_operands_match(operand_type_pattern,
                                  arg_operand_list,
                                  candidate_functions,
-                                 (char *)NULL, (a_type_ptr)NULL);
+                                 (char *)NULL, (a_type_ptr)NULL,
+                                 /*ptr_to_member_case=*/FALSE);
     }  /* if */
     /* Advance to the next pattern or stop the loop at the end of the
        string. */
