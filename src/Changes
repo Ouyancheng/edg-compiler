@@ -1,5 +1,13 @@
 Version 2.13
 
+1/6/93 Improved access checking of declarators
+
+The routines that scan and coalesce generalized identifiers have
+been improved to fix some remaining spurious access errors that
+were being generated.  The changes include the elimination of
+the class qualifier structure and the addition of the information
+that had been in the class qualifier to the symbol locator.
+
 1/6/93 IL lowering bug
 
 In lower_expr in IL lowering, a piece of code checked the
