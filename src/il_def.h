@@ -569,7 +569,7 @@ typedef struct a_src_seq_secondary_decl {
 			   declaration referred to by this entry; typically,
 			   it is the same as the type of the variable or
 			   routine to which this entry corresponds, but it
-			   needn't be.  It is appears on secondary declarations
+			   needn't be.  It appears on secondary declarations
 			   for typedefs, but NULL for secondary declarations
 			   of class, struct, union, and enum types. */
   a_bit_field	autonomous_tag_decl:1;
