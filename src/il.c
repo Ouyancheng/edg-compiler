@@ -6240,8 +6240,8 @@ pragma has not yet been found for the given IL entity).
   a_scope_ptr   sp;
 
   if (prev_assoc_pragma) {
-    /* A pragma has already been found that is associated il_entity.  Any
-       additional pragmas associated with the same entity will be among
+    /* A pragma has already been found that is associated with *il_entity.
+       Any additional pragmas associated with the same entity will be among
        its successors on the same list. */
     assoc_pragma = prev_assoc_pragma->next;
   } else {
