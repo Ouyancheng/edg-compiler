@@ -774,6 +774,9 @@ error code.
     case ec_missing_class_definition:
       m = "class or struct definition is missing";
       break;
+    case ec_name_not_found_in_class:
+      m = "name is not known in the indicated class";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
