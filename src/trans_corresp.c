@@ -2266,12 +2266,10 @@ are not checked.
           }  /* if */
           if (!has_correspondence(templ) ||
               templ->kind != corresp_templ->kind) {
-            /* Could only be due to an error.  Record the correspondence
-               so a diagnostic can be issued. */
+            /* Could only be due to an error. */
             f_report_bad_trans_unit_corresp(
                                 (char*)templ,
                                 &corresp_templ->source_corresp.decl_position);
-            set_no_trans_unit_corresp(iek_template, templ);
           } else {
             establish_instantiation_correspondences(templ);
           }  /* if */
@@ -2303,7 +2301,6 @@ are not checked.
             f_report_bad_trans_unit_corresp(
                              (char*)mem_type,
                              &corresp_mem_type->source_corresp.decl_position);
-            set_no_trans_unit_corresp(iek_type, mem_type);
           } else if (is_immediate_class_type(mem_type)) {
             establish_trans_unit_correspondences_for_class(mem_type);
             /* This could be a member of a template class.  If we're dealing
@@ -2483,6 +2480,37 @@ type (if any) in a secondary translation unit whose correspondence is the
 given type.
 */
 {
+  a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(type);
+  a_boolean   new_canon = FALSE;
+
+  check_assertion(trans_unit_corresp_of(type) != NULL &&
+                  type_has_definition(type));
+  if (canon != type && (!type_has_definition(canon) ||
+                        !in_secondary_trans_unit(type))) {
+    /* The canonical entry is about to change. */
+    new_canon = TRUE;
+    /* Prefer definitions as canonical entries, and definitions in primary
+       translation units in particular. */
+    trans_unit_corresp_of(type)->canonical = (char*)type;
+    /* Work from the noncanonical entry to set the correspondences of
+       members. */
+    type = canon;
+  }  /* if */
+  establish_trans_unit_correspondences_for_class(type);
+  if (new_canon) {
+    /* Since the canonical entry has changed, extra actions may be needed. */
+    /* Force the verification of the previous canonical entry against the
+       new one. */
+    (void)verify_class_type_correspondence(type);
+    if (!in_secondary_trans_unit(type) &&
+        type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
+      /* The master instance is found using the canonical entry.  We are
+         creating a new canonical entry, so we must make sure its master
+         instance pointer is set for the class members. */
+      set_master_instance_for_new_canonical_class(canon, type);
+    }  /* if */
+  }  /* if */
+#if 0 /* FIXME */
   if (in_secondary_trans_unit(type)) {
     a_type_ptr  corresp_type = (a_type_ptr)trans_unit_corresp_pointer_of(type);
 
@@ -2539,6 +2567,7 @@ given type.
       }  /* if */
     }  /* for */
   }  /* if */
+#endif /*FIXME*/
 }  /* establish_class_instantiation_corresp */
 
 
@@ -2567,7 +2596,8 @@ return FALSE.
        match, the type is restored to its previous state wrt. correspondence
        checking. */
     a_boolean  visited = (trans_unit_corresp_of(type_1) != NULL);
-    clear_type_correspondence(type_1, /*visited=*/FALSE);
+    // clear_type_correspondence(type_1, /*visited=*/FALSE);
+    check_assertion(!visited); //FIXME
     set_trans_unit_corresp(iek_type, type_1, type_2);
     if (is_immediate_class_type(type_1)) {
       establish_trans_unit_correspondences_for_class(type_1);
@@ -2730,7 +2760,6 @@ entities.
           /* Not a match.
              (Errors are reported elsewhere for class members.) */
           f_report_bad_trans_unit_corresp((char*)type, &sym->decl_position);
-          set_no_trans_unit_corresp(iek_type, type);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -3122,12 +3151,16 @@ and are handled elsewhere.
       record_function_template_instantiation(inst);
     }  /* for */
     /* Also process prototype instantiation. */
-    set_trans_unit_corresp(iek_routine,
-                           tssp->variant.function.routine,
-                           ((a_symbol_ptr)canonical_template_entry_of(templ)
+    if (canonical_il_entry_of(templ) != (char*)templ) {
+      set_trans_unit_corresp(iek_routine,
+                             tssp->variant.function.routine,
+                             ((a_symbol_ptr)canonical_template_entry_of(templ)
                                                    ->source_corresp.assoc_info)
-                                ->variant.template_info
-                                ->variant.function.routine);
+                                  ->variant.template_info
+                                  ->variant.function.routine);
+    } else {
+      set_no_trans_unit_corresp(iek_routine, tssp->variant.function.routine);
+    }  /* if */
   } else {
     unexpected_condition_str("Bad symbol");
   }  /* if */
