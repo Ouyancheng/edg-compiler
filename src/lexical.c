@@ -3702,6 +3702,18 @@ Test a character to see if it is an end-of-file character.
 #endif /* !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#if BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
+#define MBC_CHECKING_NEEDED_IN_LINE_READING TRUE
+#else /* !BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
+#if QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
+#define MBC_CHECKING_NEEDED_IN_LINE_READING TRUE
+#else /* !QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
+#define MBC_CHECKING_NEEDED_IN_LINE_READING FALSE
+#endif /* QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
+#endif /* BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+#if MBC_CHECKING_NEEDED_IN_LINE_READING
 
 static void find_column_for_source_line_mbc_including(
                                                      unsigned long new_column,
@@ -3734,7 +3746,7 @@ this start position.
   *mbc_column = column;
 }  /* find_column_for_source_line_mbc_including */
 
-#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#endif /* MBC_CHECKING_NEEDED_IN_LINE_READING */
 
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file)
 /*
@@ -3773,9 +3785,9 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
   char            *loc_in_line;
   a_boolean       return_value;
   unsigned long   curr_column;
-#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#if MBC_CHECKING_NEEDED_IN_LINE_READING
   unsigned long   mbc_column = 1;
-#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#endif /* MBC_CHECKING_NEEDED_IN_LINE_READING */
   int             next_ch;
   a_boolean       char_is_trapped = FALSE, has_invalid_char = FALSE;
   an_orig_line_modif_ptr
@@ -4107,6 +4119,7 @@ entry_for_possible_trigraph:
              pcc, but they are recognized in C++ and ANSI C modes. */
           if (C_dialect != C_dialect_pcc
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#if QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
               /* See whether the first question mark is actually a question
                  mark, or a character after the first in a multibyte
                  sequence. */
@@ -4114,6 +4127,7 @@ entry_for_possible_trigraph:
                   (find_column_for_source_line_mbc_including(curr_column-1,
                                                              &mbc_column),
                    mbc_column == curr_column-1))
+#endif /* QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
                                                 ) {
             /* Get the next character, the one following the two "?"s. */
@@ -4194,6 +4208,7 @@ entry_for_expand_buffer:
     if (*(loc_in_line-1) == '\\') {
 entry_for_line_splice:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#if BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
       if (multibyte_chars_in_source_enabled) {
         /* See whether the backslash is actually a backslash, or a character
            after the first in a multibyte sequence. */
@@ -4204,6 +4219,7 @@ entry_for_line_splice:
           goto add_newline_and_line_end_and_return;
         }  /* if */
       }  /* if */
+#endif /* BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
       /* Remove the backslash in the buffer. */
       loc_in_line--;
@@ -4648,8 +4664,10 @@ normal_comment:
         /* Advance past the "/" and "*". */
         curr_char_loc += 2;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#if STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
         /* Initialize for scanning multibyte characters in the comment. */
         if (multibyte_chars_in_source_enabled) mbc_scan_init();
+#endif /* STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         if (!in_preprocessing_directive && !currently_in_pp_if_skip) {
           /* Look for the special lint comments "notreached", "argsused", and
@@ -4809,8 +4827,10 @@ normal_comment:
             /* Reset the start of comment location for subsequent lines. */
             comment_start_loc = curr_source_line;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#if STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
             /* Initialize for scanning multibyte characters in the comment. */
             if (multibyte_chars_in_source_enabled) mbc_scan_init();
+#endif /* STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
           } else {
             /* Not an escape, i.e., a normal character. */
@@ -4825,11 +4845,13 @@ normal_comment:
             }  /* if */
             /* Advance to the next character position. */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#if STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
             if (multibyte_chars_in_source_enabled) {
               /* Advance to the next character, dealing with multibyte
                  characters. */
               curr_char_loc += mbc_length(curr_char_loc);
             } else
+#endif /* STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
             /* Do not insert code here -- this is the "else" of an "if". */
             {

@@ -1041,6 +1041,25 @@ for that.
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING FALSE
 #endif /* ifndef USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
 
+/*
+Indication of whether backslash, question mark, and star can appear as part of
+a multibyte character sequence.  If they cannot, processing for line splices,
+trigraphs, and C-style comments can be made more efficient.  For the
+Japanese EUC encoding, for example, those character codes never appear
+as part of other sequences, and these switches should be set to FALSE.
+The safe answer, in all cases, is TRUE: it may be slower than necessary,
+but it always gets the right answer.
+*/
+#ifndef BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
+#define BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR TRUE
+#endif /* ifndef BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
+#ifndef QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
+#define QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR TRUE
+#endif /* ifndef QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
+#ifndef STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
+#define STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR TRUE
+#endif /* ifndef STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
+
 /* Determine length of multibyte character sequence. */
 extern int mbc_length(char *ptr);
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
