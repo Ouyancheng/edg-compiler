@@ -4308,9 +4308,9 @@ static a_boolean check_implicit_upc_pointer_conversion(a_type_ptr  src,
                                                        a_type_ptr  dst)
 /*
 An implicit conversion is attempted from pointer type src to pointer type dst.
-Return FALSE if the conversion is between a pointer to shared and a pointer to
-non-shared, or if the conversion is between to pointer to shared types with
-unequal associated block sized.
+Return FALSE if the conversion is between a pointer to UPC "shared" and a
+pointer to non-shared, or if the conversion is between two pointer to UPC
+"shared" types with unequal associated block sizes.
 */
 {
   a_boolean  result = TRUE;
