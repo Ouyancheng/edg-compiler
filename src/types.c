@@ -2189,7 +2189,7 @@ is returned.
                          (int)kind);
       }  /* if */
 #endif /* DEBUG */
-      switch_to_file_scope(&region_to_switch_back_to);
+      switch_to_file_scope_region(&region_to_switch_back_to);
       new_type = alloc_type(kind);
       switch_back_to_original_region(region_to_switch_back_to);
       /* Remember the location of the file scope copy in case it's ever again
@@ -2221,7 +2221,7 @@ is returned.
             for (old_ec = old_type->variant.integer.enum_constant_list;
                  old_ec != NULL;
                  old_ec = old_ec->next) {
-              switch_to_file_scope(&region_to_switch_back_to);
+              switch_to_file_scope_region(&region_to_switch_back_to);
               new_ec = alloc_unshared_constant(old_ec);
               switch_back_to_original_region(region_to_switch_back_to);
               new_ec->type = make_file_scope_type(old_ec->type);
@@ -2267,7 +2267,7 @@ is returned.
           for (old_field = old_type->variant.class_struct_union.field_list;
                old_field != NULL;
                old_field = old_field->next) {
-            switch_to_file_scope(&region_to_switch_back_to);
+            switch_to_file_scope_region(&region_to_switch_back_to);
             new_field = alloc_field();
             switch_back_to_original_region(region_to_switch_back_to);
             *new_field = *old_field;
