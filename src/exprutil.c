@@ -6377,9 +6377,11 @@ non-NULL return *con_value == NULL.
     a_variable_ptr variable;
     con_expr_value = value_of_constant_var_lvalue_expr(node, &variable);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-    /* Below, we'll record the expression for the constant, so make the
-       rvalue version of the expression. */
-    node = expr_to_record_for_variable(variable, /*is_lvalue=*/FALSE);
+    if (con_expr_value != NULL) {
+      /* Below, we'll record the expression for the constant, so make the
+         rvalue version of the expression. */
+      node = expr_to_record_for_variable(variable, /*is_lvalue=*/FALSE);
+    }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   }  /* if */
   if (con_expr_value == NULL) {
