@@ -143,7 +143,7 @@ defined" errors on the variable.
           pointer-to-member of virtual base
 
 An error is now issued (as required by the emerging standard) on
-an explicit cast from a pinter-to-member of a derived class to
+an explicit cast from a pointer-to-member of a derived class to
 a pointer-to-member of a virtual base class.
 
 9/19/97   C++-generating back end: parentheses on ctor-init for array
