@@ -381,8 +381,7 @@ confusion in back ends.
     goto label1;  // Formerly failed to destroy c
   }
 
-9/17/02  GNU C++ compatibility: Calling convention differences ignored on
-         typedef redeclarations
+9/17/02  GNU C++ compatibility: Calling convention differences ignored
 
 In GNU C++ mode, the front end now accepts typedef redeclarations that include
 different calling conventions.  The calling convention of the first declaration
@@ -393,10 +392,8 @@ is retained in the IL.  For example:
     typedef void F();  // Accepted in GNU C++ mode; error otherwise.
   }
 
-In addition, the cdecl and stdcall attributes are ignored on typedef
-declarations (with a warning):
-
-  typedef void (*PF)() __attribute__((stdcall));  // Attribute ignored.
+g++ seems never to save extern "C" indications on function types,
+and therefore it never notes incompatibilities.
 
 9/16/02  Spurious error on injected class name in elaborated type
 
