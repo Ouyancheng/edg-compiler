@@ -1,5 +1,26 @@
 Version 2.30
 
+8/23/95  IL lowering: preservation of more type information on pointers to
+         members
+
+IL lowering rewrites pointers to members as a struct (for pointers to
+member functions) or an integral type (for pointers to data members).
+The rewriting is done by changing the original type entry for the
+pointer to member type to a pass-through tk_typeref that points to
+the new type.  There is a single new type entry used for all pointers
+to member functions, and a single new type entry used for all pointers
+to data members.  As a rule, is better to preserve uses of the original
+type pointer in operations, because that gives slightly more information
+about the original types.  The difference doesn't matter for code
+generation, but may matter for generation of symbolic debugging
+information.  A few cases in IL lowering have been changed to preserve
+the original type pointer in the IL.
+
+  class B { public: int f(); };
+  class D : public B { };
+  int (D::*xxx)();
+  main() { xxx = B::f; }  // Temp for pm constant preserves original type
+
 8/22/95  IL CHANGE: Type in ck_aggregate constants
 
 The type field in ck_aggregate constants is now filled in properly.

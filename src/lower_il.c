@@ -2749,14 +2749,14 @@ the constant.
            every use of it to reference the variable instead, so the constant
            will end up being used only in the initialization of the
            variable (and therefore unshared). */
-        assoc_var = make_file_scope_temporary(mptr_type);
+        assoc_var = make_file_scope_temporary(constant->type);
         /* Make the constant the initial value of the variable. */
         assoc_var->init_kind = (an_init_kind)initk_static;
         assoc_var->initializer.constant = constant;
       } else {
         /* The constant is in the function scope, so use a function-local
            static variable. */
-        assoc_var = make_unnamed_local_static_variable(mptr_type,
+        assoc_var = make_unnamed_local_static_variable(constant->type,
                                                    /*in_function_scope=*/TRUE);
         /* To initialize a local static variable to an aggregate we use
            a local-static-variable-init entry (to avoid memory region
@@ -4223,6 +4223,7 @@ Do IL lowering of the indicated type and everything under it.
         /* Change the type to a pure typeref to the new (lowered) type. */
         type_next = type->next;
         set_type_kind(type, (a_type_kind)tk_typeref);
+        type->size = type->alignment = 0;
         type->next = type_next;
         type->variant.typeref.type = new_type;
         /* Point to a copy of the original pointer-to-member type.  This
@@ -5227,8 +5228,11 @@ used as an lvalue if is_lvalue is TRUE.
       /* Pointer to member function.  Change the node to
            (temp = pmf, (temp.i != 0) ? temp.d += offset : 0, temp)
       */
+      /* Make sure __mptr (the struct that represents lowered pointers to
+         member functions) has been created. */
+      (void)make_mptr_type();
       /* Create the temporary. */
-      temp_var = make_lowered_temporary(make_mptr_type());
+      temp_var = make_lowered_temporary(source_node->type);
       /* Make "temp.i != 0". */
       temp_node = var_lvalue_expr(temp_var);
       select_i_node = field_rvalue_selection_expr(temp_node, mptr_i_field);
