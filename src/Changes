@@ -1,5 +1,17 @@
 Version 2.43
 
+11/29/99 Problem with #assert when one value is prefix of another
+
+The processing for #assert values (an AT&T preprocessing extension)
+did not work right when one value was a prefix of the other.  Now
+fixed.
+
+  #assert foo(a)
+  #assert foo(a b)
+  #if #foo(a)
+  int a;  // Should be compiled; formerly wasn't
+  #endif
+
 11/29/99 Template template parameters
 
 Template template parameters are now implemented, for example:

@@ -3579,6 +3579,29 @@ or
 }  /* proc_unassert */
 
 
+static an_assert_value_ptr next_matching_assert_value(
+                                             an_assert_value_ptr matched_value,
+                                             sizeof_t            matched_len)
+/*
+The #assert predicate value being scanned matches the first matched_len
+characters of the assert value matched_value.  However, we have discovered
+that the following characters do not match, so advance to the next value
+on the list that begins with the same characters, and return a pointer
+to it.  If there is no such value, return NULL.
+*/
+{
+  an_assert_value_ptr old_matched_value = matched_value;
+
+  while ((matched_value = matched_value->next) != NULL) {
+    if (smemcmp(matched_value->value, old_matched_value->value,
+                matched_len) == 0) {
+      break;
+    }  /* if */
+  }  /* for */
+  return matched_value;
+}  /* next_matching_assert_value */
+
+
 a_boolean scan_assert_predicate_reference(void)
 /*
 Scan a reference to an #assert predicate in a preprocessing #if.  Its form
@@ -3594,7 +3617,7 @@ indicated by "name", FALSE if not.
   a_boolean               save_fetch_pp_tokens = fetch_pp_tokens;
   a_boolean               save_expand_macros = expand_macros;
   an_assert_predicate_ptr app, prev_app;
-  an_assert_value_ptr     matched_value, old_matched_value;
+  an_assert_value_ptr     matched_value;
   sizeof_t                matched_len;
   char                    *after_matched_str;
   unsigned long           paren_count;
@@ -3662,15 +3685,9 @@ try_match_again:
             /* Mismatch.  Look for another value entry later on the list
                that starts with the currently matched string, and then try to
                match the new token against the continuation of that string. */
-            old_matched_value = matched_value;
-            while ((matched_value = matched_value->next) != NULL) {
-              /* Go try the match again if the new matched_value starts with
-                 the same characters matched in the old_matched_value. */
-              if (smemcmp(matched_value->value, old_matched_value->value,
-                          matched_len) == 0) {
-                goto try_match_again;
-              }  /* if */
-            }  /* for */
+            matched_value = next_matching_assert_value(matched_value,
+                                                       matched_len);
+            if (matched_value != NULL) goto try_match_again;
           }  /* if */
         }  /* if */
       }  /* while */
@@ -3682,6 +3699,15 @@ try_match_again:
         some_error_in_curr_directive = TRUE;
         matched_value = NULL;
       }  /* if */
+      /* See whether the assert value we've matched so far ends at this
+         point. */
+      while (matched_value != NULL &&
+             matched_value->value[matched_len] != '\0') {
+        /* No, it doesn't.  See whether there is another value that
+           starts with the same string. */
+        matched_value = next_matching_assert_value(matched_value,
+                                                   matched_len);
+      }  /* while */
       /* The result is TRUE if we have an entire value string that matches
          the entire token sequence (i.e., we have a matching string and
          the next thing after it is the terminating null character). */
