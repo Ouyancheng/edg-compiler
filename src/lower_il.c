@@ -2134,8 +2134,7 @@ any better if we did know it was a complete object).
        Work down through the first fields of classes, selecting each
        one as we go. */
     for (;;) {
-      field = vptr_class_type->variant.class_struct_union.field_list;
-      check_assertion(field != NULL);
+      field = field_at_offset(vptr_class_type, (a_targ_size_t)0);
       node = field_lvalue_selection_expr(node, field);
       /* Stop when we've done the field selection for the virtual function
          table pointer. */
