@@ -850,7 +850,6 @@ is added at the end of the directive.
   if (more != NULL) write_str(more);
   enable_line_wrapping();
   end_output_line();
-  set_unknown_output_position();
   indent = saved_indent;
 }  /* write_pp_directive */
 
@@ -862,6 +861,8 @@ code when doing annotations, presumably).
 */
 {
   write_pp_directive("#if 0", (char *)NULL);
+  /* Avoid generating a #line for a line number that doesn't exist. */
+  set_unknown_output_position();
 }  /* write_if_0_directive */
 
 
