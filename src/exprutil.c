@@ -3439,6 +3439,30 @@ case; see the header comment of that routine for details.
 
 #if C99_IL_EXTENSIONS_SUPPORTED
 
+static a_constant_ptr  imaginary_unit = (a_constant_ptr)NULL;
+
+void make_imaginary_unit_operand(an_operand  *result)
+/*
+Create the constant __I__ such that __I__*__I__ == -1.
+The identifier __I__ is EDG-specific (i.e., not specified by the C99
+standard).  The standard specifies macros I and _Imaginary_I that expand
+to this value.
+*/
+{
+  if (imaginary_unit == (a_constant_ptr)NULL) {
+    a_boolean  err = FALSE;
+    imaginary_unit = fs_constant((a_constant_repr_kind)ck_imaginary);
+    imaginary_unit->type = imaginary_type((a_float_kind)fk_float);
+    fp_string_to_float((a_float_kind)fk_float, "1",
+                       &imaginary_unit->variant.float_value,
+                       &err);
+    check_assertion(!err);
+    add_to_constants_list(imaginary_unit, /*at_file_scope=*/TRUE);
+  }  /* if */
+  make_constant_operand(imaginary_unit, result);
+}  /* make_imaginary_unit_operand */
+
+
 static void promote_operand_for_imaginary_operation(
                                               an_operand       *operand,
                                               a_float_kind  new_fkind,
@@ -8254,6 +8278,9 @@ are handled in expr_init.)
       pch_saved_var_array_elem(avail_dynamic_init_dtor_fixups),
       pch_saved_var_array_elem(avail_arg_match_summaries),
       pch_saved_var_array_elem(avail_candidate_functions),
+#if C99_IL_EXTENSIONS_SUPPORTED
+      pch_saved_var_array_elem(imaginary_unit),
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if DEBUG
       pch_saved_var_array_elem(num_arg_operands_allocated),
       pch_saved_var_array_elem(num_ref_entries_allocated),

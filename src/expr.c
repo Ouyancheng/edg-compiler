@@ -12147,29 +12147,6 @@ returned instead of the unqualified function name.
   make_lvalue_variable_operand(name_var, result, (a_ref_entry_ptr)NULL);
 }  /* make_function_name_operand */
 
-#if C99_IL_EXTENSIONS_SUPPORTED
-
-static a_constant_ptr  imaginary_unit = (a_constant_ptr)NULL;
-
-static void make_imaginary_unit_operand(an_operand  *result)
-/*
-Create the constant __I__ such that __I__*__I__ == -1.
-*/
-{
-  if (imaginary_unit == (a_constant_ptr)NULL) {
-    a_boolean  err = FALSE;
-    imaginary_unit = fs_constant((a_constant_repr_kind)ck_imaginary);
-    imaginary_unit->type = imaginary_type((a_float_kind)fk_float);
-    fp_string_to_float((a_float_kind)fk_float, "1",
-                       &imaginary_unit->variant.float_value,
-                       &err);
-    check_assertion(!err);
-    add_to_constants_list(imaginary_unit, /*at_file_scope=*/TRUE);
-  }  /* if */
-  make_constant_operand(imaginary_unit, result);
-}  /* make_imaginary_unit_operand */
-
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 static void scan_expr_full(an_operand               *result,
                            an_operand               *bound_function_selector,
