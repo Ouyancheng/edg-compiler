@@ -389,8 +389,9 @@ This is used as part of the typeinfo information.
   for (bcp = type->variant.class_struct_union.extra_info->base_classes;
        bcp != NULL;
        bcp = bcp->next) {
-    /* Include information only on direct and virtual base classes. */
-    if (bcp->direct || bcp->is_virtual) {
+    /* Include information only on direct, virtual, or ambiguous base
+       classes. */
+    if (bcp->direct || bcp->is_virtual || bcp->ambiguous) {
       /* The base class specification consists of three fields:
            1)  A pointer to the typeinfo variable for the base class.
            2)  The offset of the base class in the derived class.
@@ -676,8 +677,8 @@ static a_variable_ptr typeinfo_var_for_type(a_type_ptr    type,
 /*
 Create the typeinfo variable for the indicated type, and return a pointer
 to it.  Type qualifiers on the type are dropped.  For a pointer or reference
-to a class type, make the typeinfo variable for the underlying class and
-set *flags_value to indicate a pointer or reference.
+to a type, make the typeinfo variable for the underlying type and set
+*flags_value to indicate a pointer or reference.
 */
 {
   a_variable_ptr typeinfo_var;
@@ -686,14 +687,12 @@ set *flags_value to indicate a pointer or reference.
   typeinfo_type = type;
   *flags_value = 0;
   if (is_ptr_or_ref_type(type)) {
-    /* For a pointer or reference to a class type, use the typeinfo for the
-       class. */
-    a_type_ptr base_type = type_pointed_to(type);
-    if (is_class_struct_union_type(base_type)) {
-      typeinfo_type = base_type;
-      *flags_value = is_pointer_type(type) ? ETS_IS_POINTER : ETS_IS_REFERENCE;
-    }  /* if */
+    /* For a pointer or reference to a type, use the typeinfo for the
+       underlying type. */
+    typeinfo_type = type_pointed_to(type);
+    *flags_value = is_pointer_type(type) ? ETS_IS_POINTER : ETS_IS_REFERENCE;
   }  /* if */
+  /* Note that make_typeinfo_var drops type qualifiers on the type. */
   typeinfo_var = make_typeinfo_var(typeinfo_type);
   return typeinfo_var;
 }  /* typeinfo_var_for_type */
