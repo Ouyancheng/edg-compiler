@@ -211,7 +211,8 @@ the current statement sequence.
        If the dependent statement is a block (because the source dependent
        statement is a block), that block is used. */
     if ((*head_ptr)->kind == (a_statement_kind)stmk_block &&
-        (*head_ptr)->variant.block.extra_info->assoc_scope == NULL) {
+        (*head_ptr)->variant.block.extra_info->assoc_scope == NULL &&
+        !(*head_ptr)->dependent_statement) {
       /* There is an existing block from a source construct.  Find the 
          end of its statement list, and add there.  Note that blocks that
          contain declarations are ruled out: we don't want to add a
@@ -488,7 +489,7 @@ the associated il statement.
                               = FALSE;
   sssep->any_exec_statement_seen
                               = FALSE;
-  if (kind != ssk_compound) {
+  if (kind != ssk_compound || sp->dependent_statement) {
     /* For statements other than blocks, copy down the any_exec_statement_seen
        flag.  It's really being maintained for the block containing this
        non-block statement, and it gets copied back up at the end of the
@@ -570,10 +571,12 @@ a structured statement has ended.
 {
   register a_struct_stmt_stack_entry_ptr sssep;
   a_struct_stmt_kind                     kind;
+  a_statement_ptr                        sp;
   
   db_enter(4, "pop_stmt_stack");
   sssep = &struct_stmt_stack[depth_stmt_stack];
   kind = sssep->kind;
+  sp = sssep->statement;
   /* Close the final clause of the statement, if any. */
   if (kind != ssk_switch || sssep->curr_switch_clause != NULL) {
     term_stmt_clause(sssep);
@@ -582,7 +585,7 @@ a structured statement has ended.
      and set curr_reachability appropriately. */
   if (kind == ssk_while || kind == ssk_for || kind == ssk_do) {
     /* A loop. */
-    if (is_infinite_loop(sssep->statement)) {
+    if (is_infinite_loop(sp)) {
       /* An infinite loop.  The code after the loop is not reachable. */
       set_unreachable(curr_reachability);
     } else if (kind == ssk_while || kind == ssk_for) {
@@ -596,8 +599,7 @@ a structured statement has ended.
   } else {
     /* Non-loop statement. */
     if ((kind == ssk_switch && !sssep->switch_has_default_clause) ||
-        (kind == ssk_if &&
-                  sssep->statement->variant.if_stmt.else_statement == NULL)) {
+        (kind == ssk_if && sp->variant.if_stmt.else_statement == NULL)) {
       /* Switch statement without a default, or if without an else.  If the
          initial statement can be reached, the end can be reached. */
       merge_reachability(&sssep->start_reachable, &sssep->end_reachable);
@@ -608,7 +610,7 @@ a structured statement has ended.
   }  /* if */
   /* If the statement just exited is a non-block, propagate the
      any_exec_statement_seen flag upwards. */
-  if (kind != ssk_compound) {
+  if (kind != ssk_compound || sp->dependent_statement) {
     sssep[-1].any_exec_statement_seen = sssep->any_exec_statement_seen;
   }  /* if */
   /* Pop the stack. */
@@ -686,7 +688,18 @@ to the block statement in *block.  dependent_statement is TRUE if the
 block is being created to surround a dependent statement in C++.
 */
 {
+  a_boolean cfront_dependent_statement = 
+                              cfront_compatibility_mode && dependent_statement;
+
   *block = add_statement((a_statement_kind)stmk_block);
+  if (cfront_dependent_statement) {
+    /* This is a dependent statement in cfront mode, which is special in
+       that no scope is created for it.  Mark the block for special
+       processing in IL lowering or a back end: anything constructed
+       within the block must also be destroyed therein.  This flag must
+       be set before push_stmt_stack is called. */
+    (*block)->dependent_statement = TRUE;
+  }  /* if */
   /* Make the parent pointer in the block point to the nearest enclosing
      compound statement. */
   (*block)->variant.block.extra_info->parent_block =
@@ -696,11 +709,7 @@ block is being created to surround a dependent statement in C++.
   /* Push an associated scope.  This does not allocate the IL scope yet.
      Do not do this in cfront compatibility mode (the old rule was that no
      scope is created). */
-  if (cfront_compatibility_mode && dependent_statement) {
-    /* Mark the block for special processing in IL lowering or a back end:
-       Anything constructed within the block must also be destroyed therein. */
-    (*block)->dependent_statement = TRUE;
-  } else {
+  if (!cfront_dependent_statement) {
     (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
                      (a_type_ptr)NULL, (a_routine_ptr)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
@@ -721,15 +730,17 @@ block statement.
      is helpful in IL lowering. */
   block->variant.block.extra_info->end_of_block_reachable = 
                                                    curr_reachability.reachable;
-  /* Store the IL scope pointer in the block.  This is NULL except for
-     blocks with declarations. */
-  scope_ptr = scope_stack[decl_scope_level].il_scope;
-  if (scope_ptr != NULL) {
-    block->variant.block.extra_info->assoc_scope = scope_ptr;
-    scope_ptr->assoc_block = block;
+  if (!block->dependent_statement) {
+    /* Store the IL scope pointer in the block.  This is NULL except for
+       blocks with declarations. */
+    scope_ptr = scope_stack[decl_scope_level].il_scope;
+    if (scope_ptr != NULL) {
+      block->variant.block.extra_info->assoc_scope = scope_ptr;
+      scope_ptr->assoc_block = block;
+    }  /* if */
+    /* Pop the name scope. */
+    pop_scope();
   }  /* if */
-  /* Pop the name scope.  Do this only if a name scope was pushed. */
-  if (!block->dependent_statement) pop_scope();
   /* Pop the statement stack. */
   pop_stmt_stack();
 }  /* finish_block_statement */
