@@ -6424,8 +6424,8 @@ a template parameter constant.
 {
   a_boolean result = FALSE;
 
-  /* Template parameter types come up only in prototype instantiations. */
-  if (!C_mode() && is_template_dependent_context()) {
+  /* Template parameter types come up only in C++mode. */
+  if (!C_mode()) {
     a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                  TTT_PARAM_TYPES |
                                                  TTT_TEMPLATE_ARGS);
