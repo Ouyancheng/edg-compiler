@@ -2988,18 +2988,6 @@ scan_paren:
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
         }  /* if */
       }  /* if */
-      if (array_type != NULL &&
-          dip->kind == (a_dynamic_init_kind)dik_constructor) {
-        /* We have an array of objects with constructors.  Create a dynamic
-           init entry to handle the aggregate. */
-        dip->is_constructor_init = TRUE;
-        ctor_dip = dip;
-        dip =
-           alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-        /* Build the looping constant entry. */
-        repeat_nonconstant_init(ctor_dip, array_type, tp, dip,
-                                array_element_count(array_type, tp));
-      }  /* if */
       if (exceptions_enabled && cssp != NULL) {
         if (cssp->destructor != NULL) {
           /* If exception handling is enabled, record the destructor in the
@@ -3011,11 +2999,23 @@ scan_paren:
                                               /*honor_virtual=*/FALSE,
                                               /*evaluated=*/TRUE,
                                               /*suppress_access_check=*/FALSE);
+          /* Now, in case a destructor was found, record the need for a
+             destruction in the context of the current lifetime. */
+          record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                             /*block_lifetime=*/TRUE);
         }  /* if */
-        /* Now, in case a destructor was found, record the need for a
-           destruction in the context of the current lifetime. */
-        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                           /*block_lifetime=*/TRUE);
+      }  /* if */
+      if (array_type != NULL &&
+          dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        /* We have an array of objects with constructors.  Create a dynamic
+           init entry to handle the aggregate. */
+        dip->is_constructor_init = TRUE;
+        ctor_dip = dip;
+        dip =
+           alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+        /* Build the looping constant entry. */
+        repeat_nonconstant_init(ctor_dip, array_type, tp, dip,
+                                array_element_count(array_type, tp));
       }  /* if */
       /* Attach the new dynamic init entry to the constructor initializer. */
       dip->is_constructor_init = TRUE;
