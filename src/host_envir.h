@@ -363,9 +363,15 @@ are handled by the front end instead of the host C runtime library.
 /*
 Default temporary file directory.
 */
+#if __MSDOS__
+#ifndef DEFAULT_TMPDIR
+#define DEFAULT_TMPDIR "\\tmp\\"
+#endif /* ifndef DEFAULT_TMPDIR */
+#else /* !__MSDOS__ */
 #ifndef DEFAULT_TMPDIR
 #define DEFAULT_TMPDIR "/usr/tmp"
 #endif /* ifndef DEFAULT_TMPDIR */
+#endif /* !__MSDOS__ */
 
 /*
 Default system include directory.

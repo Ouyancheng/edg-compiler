@@ -71,11 +71,16 @@ figuring out which compiler it is.
 #ifdef __TURBOC__
 /* Turbo-C's library is ANSI compatible. */
 #define __ANSIC__ 1
-#else
+#else /* __TURBOC__ */
+#ifdef __ZTC__
+/* Zortech's library is ANSI compatible. */
+#define __ANSIC__ 1
+#else /* __ZTC__ */
 /* Then it must be MSC. */
 #define __MSC__ 1
 /* MSC's library is ANSI compatible. */
 #define __ANSIC__ 1
+#endif /* ifdef __ZTC__ */
 #endif /* ifdef __TURBOC__ */
 #else /* !defined(__MSDOS__) */
 #define __MSDOS__ 0
