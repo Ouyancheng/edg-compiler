@@ -1,5 +1,13 @@
 Version 2.46
 
+3/10/01  Microsoft C mode: plain char is the same as signed char or unsigned
+         char
+
+In Microsoft C mode, the "plain" char type (i.e., char without an explicit
+signed or unsigned) is equivalent to either signed char or unsigned char,
+depending on configuration.  That is, in this mode there are only two
+distinct char types instead of the three required by the C standard.
+
 3/10/01  Abort ("user_convert_operand: unusable conversion") on ambiguous
          conversion of operand of "?" operator
 

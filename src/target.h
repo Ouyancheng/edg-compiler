@@ -1121,6 +1121,8 @@ EXTERN a_boolean
 #define MSVC_IS_GENERATED_CODE_TARGET msvc_is_generated_code_target
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
+extern void set_plain_char_int_kind(a_boolean plain_chars_are_signed);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void init_microsoft_sized_int_types(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

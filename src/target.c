@@ -24,6 +24,35 @@ target.c -- Target configuration support
 /* Header files common to all files. */
 #include "fe_common.h"
 
+
+#if STANDALONE_UTILITY_PROGRAM
+static a_boolean plain_char_int_kind;
+			/* Ordinarily in cmd_line.h, but not available
+			   in standalone programs. */
+#endif /* STANDALONE_UTILITY_PROGRAM */
+
+
+void set_plain_char_int_kind(a_boolean plain_chars_are_signed)
+/*
+Set plain_char_int_kind, which indicates the integer kind for "plain"
+(neither signed or unsigned) char.  plain_chars_are_signed indicates
+whether it should be signed.
+*/
+{
+  if (C_dialect == C_dialect_pcc ||
+      (microsoft_mode && C_mode())) {
+    /* In pcc mode, a "plain" char is the same as either "signed char"
+       or "unsigned char".  Likewise in Microsoft C mode. */
+    plain_char_int_kind = plain_chars_are_signed ?
+                               (an_integer_kind)ik_signed_char :
+                               (an_integer_kind)ik_unsigned_char;
+  } else {
+    /* In standard mode, a "plain" char is different than "signed char" and
+       "unsigned char". */
+    plain_char_int_kind = (an_integer_kind)ik_char;
+  }  /* if */
+}  /* set_plain_char_int_kind */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void init_microsoft_sized_int_types(void)
@@ -36,20 +65,8 @@ keyword be entered into the symbol table.
 {
 #if STANDALONE_UTILITY_PROGRAM
   /* The signedness of characters can be set on the command line, but for
-     standalone utilities, we determine this from the IL header (very similar
-     code appears in target_init). */
-  an_integer_kind  plain_char_int_kind;
-  if (C_dialect == C_dialect_pcc) {
-    /* In pcc mode, a "plain" char is the same as either "signed char"
-       or "unsigned char". */
-    plain_char_int_kind = il_header.plain_chars_are_signed ?
-                               (an_integer_kind)ik_signed_char :
-                               (an_integer_kind)ik_unsigned_char;
-  } else {
-    /* In ANSI mode, a "plain" char is different than "signed char" and
-       "unsigned char". */
-    plain_char_int_kind = (an_integer_kind)ik_char;
-  }  /* if */
+     standalone utilities, we determine this from the IL header. */
+  set_plain_char_int_kind(il_header.plain_chars_are_signed);
 #endif /* STANDALONE_UTILITY_PROGRAM */
   /* Map __int8 to plain char if and only if 8-bit chars are being used. */
   if (targ_char_bit == 8) {

@@ -430,17 +430,7 @@ Initialize target machine characteristics.
 */
 {
   /* The signedness of characters can be set on the command line. */
-  if (C_dialect == C_dialect_pcc) {
-    /* In pcc mode, a "plain" char is the same as either "signed char"
-       or "unsigned char". */
-    plain_char_int_kind = targ_has_signed_chars ?
-                               (an_integer_kind)ik_signed_char :
-                               (an_integer_kind)ik_unsigned_char;
-  } else {
-    /* In ANSI mode, a "plain" char is different than "signed char" and
-       "unsigned char". */
-    plain_char_int_kind = (an_integer_kind)ik_char;
-  }  /* if */
+  set_plain_char_int_kind(targ_has_signed_chars);
   /* Set the element of int_kind_is_signed that corresponds to "plain"
      char. */
   int_kind_is_signed[(int)ik_char] = targ_has_signed_chars;
