@@ -3874,8 +3874,8 @@ were entered in the hash table; otherwise returns FALSE.
       (void)find_instance(line, /*add=*/TRUE);
       result = TRUE;
     }  /* while */
+    (void)fclose(f_instantiation_information);
   }  /* if */
-  (void)fclose(f_instantiation_information);
   return result;
 }  /* read_instantiation_information_file */
 
