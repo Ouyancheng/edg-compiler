@@ -1,5 +1,23 @@
 Version 2.16
 
+4/22/93  Elaborated-type-specifier using template param name
+
+Reversing a modification made 2/23/93 the use of a template parameter
+in an elaborated type specifier is now reported as an error, both during
+prototype instantiation and during real instantitions, even when the
+parameter type is a class type.  For instance,
+
+  template <class T> class A {
+    struct T t;     // Error now issued
+  };
+  A<int> a2;        // Error (as before) -- "struct int"
+  struct B {};
+  A<B> a1;          // Error now issued -- even though "struct B"
+
+The ARM is not clear about whether the new errors are appropriate.
+However, conversations with key members of the standards committee
+indicate that this is the direction in which the standard is going.
+
 4/22/93  Bug in constructor wrapper code (IL Lowering)
 
 A bug in the code generated to access virtual base classes in constructor
