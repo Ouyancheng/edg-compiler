@@ -1,5 +1,10 @@
 Version 2.13
 
+12/1/92  Type set in ck_dynamic_init constant entries in IL
+
+ck_dynamic_init constant entries had a NULL type pointer, which was
+contrary to the documentation.  They now have a type.
+
 11/30/92 Abort in pcc mode fixed
 
 In pcc mode, an enum bit-field whose type promotes to unsigned int
