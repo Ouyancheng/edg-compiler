@@ -1,5 +1,18 @@
 Version 2.22
 
+2/1/94   Assignment and comparison of different function pointer types
+
+Assignment and comparison of different function pointer types (an extension)
+is no longer allowed in C++ mode.  This example is still allowed
+in C mode but is now an error in C++ mode.
+
+void f(int);
+
+int main(void)
+{
+  void (*p)() = &f;
+}
+
 1/31/94  Source sequence entries for return statements
 
 In return statements that have an associated expression, the source sequence
