@@ -532,6 +532,8 @@ ref field of a class object (or an array of same) remains uninitialized.
         /* Class/struct/union.  Start with first field. */
         check_assertion(is_immediate_class_type(local_type));
         curr_field = local_type->variant.class_struct_union.field_list;
+        /* Skip past an unnamed field. */
+        curr_field = next_initializable_field(curr_field);
         any_more_members = (curr_field != NULL);
       }  /* if */
       /* Check for cases that involve initializing nothing, i.e., the
@@ -651,8 +653,8 @@ ref field of a class object (or an array of same) remains uninitialized.
           }  /* if */
         } else if (kind == (a_type_kind)tk_class ||
                    kind == (a_type_kind)tk_struct) {
-          /* Advance to the next field of the class or struct. */
-          curr_field = curr_field->next;
+          /* Advance to the next named field of the class or struct. */
+          curr_field = next_initializable_field(curr_field->next);
           /* Check for no fields remaining. */
           if (curr_field == NULL) {
             any_more_members = FALSE;
