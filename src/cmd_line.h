@@ -1470,6 +1470,14 @@ EXTERN a_boolean
 			/* TRUE if no diagnostic should be issued on
 			   anonymous types declared in anonymous unions. */
 
+#if IA64_ABI
+EXTERN a_boolean
+		emulate_gnu_layout_bugs;
+			/* TRUE if the IA-64 class layout algorithm should be
+			   modified to emulate early GNU implementations of
+			   that algorithm. */
+#endif /* IA64_ABI */
+
 EXTERN a_boolean
 		IEEE_handling_on_float_operation_exceptions
 #if VAR_INITIALIZERS

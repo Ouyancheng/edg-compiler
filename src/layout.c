@@ -1023,16 +1023,33 @@ targ_microsoft_bit_field_allocation is FALSE.)
     overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
                              container_alignment);
   }  /* if */
-  if ((bit_size == 0 &&
-       !targ_zero_width_bit_field_affects_struct_alignment) ||
-      (!targ_unnamed_bit_field_affects_struct_alignment &&
-       field->source_corresp.assoc_info == (char *)unnamed_field_symbol())) {
+  if (
+#if IA64_ABI
+      /* In the GNU implementation of the IA-64 ABI, zero-length bit fields
+         seem  to affect the alignment of unions, but not that of classes and
+         structs. */
+      !(emulate_gnu_layout_bugs && is_union_type(lob->class_type)) &&
+#endif /* IA64_ABI */
+      ((bit_size == 0 &&
+        !targ_zero_width_bit_field_affects_struct_alignment) ||
+       (!targ_unnamed_bit_field_affects_struct_alignment &&
+        field->source_corresp.assoc_info == (char *)unnamed_field_symbol()))) {
     /* This is a zero-width bit field or an unnamed bit field, but the
        alignment it forces should not affect the alignment of the struct as
        a whole. */
   } else {
     /* Remember the most stringent alignment requirement as the alignment
        requirement for the overall struct. */
+#if IA64_ABI
+      /* In the GNU implementation of the IA-64 ABI, zero-length bit fields
+         seem  to affect the alignment of unions.  The resulting alignment is
+         at least the alignment of an int. */
+      if (emulate_gnu_layout_bugs &&
+          is_union_type(lob->class_type) && bit_size == 0 &&
+          container_alignment < targ_alignof_int) {
+        container_alignment = targ_alignof_int;
+      }  /* if */
+#endif /* IA64_ABI */
 #if USER_CONTROL_OF_STRUCT_PACKING
     /* The alignment was not adjusted earlier on because the environment does
        not apply packing directives to the relative layout of bit fields that
@@ -1240,10 +1257,14 @@ subobject_type are considered in addition to direct bases.
   a_field_ptr                 field;
   a_type_ptr                  field_type;
   a_boolean                   result = FALSE;
+  a_boolean                   array_subobject = is_array_type(subobject_type);
 
   /* If the subobject is an array, get the (ultimate) element type. */
-  if (is_array_type(subobject_type) && 
-      !has_unknown_specified_bound(subobject_type)) {
+  if (array_subobject && emulate_gnu_layout_bugs) {
+    /* Early GNU implementations of the IA-64 class layout algorithm ignore
+       conflicts with array subobjects. */
+    goto done;
+  } else if (array_subobject && !has_unknown_specified_bound(subobject_type)) {
     num_array_elts = num_array_elements(subobject_type);
     subobject_type = underlying_array_element_type(subobject_type);
   } else {
@@ -1318,6 +1339,7 @@ subobject_type are considered in addition to direct bases.
       }  /* if */
     }  /* for */
   }  /* if */
+done:
   return result;
 }  /* subobject_conflict */
 
