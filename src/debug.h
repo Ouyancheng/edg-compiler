@@ -28,7 +28,6 @@ extern a_boolean proc_debug_option(char *debug_option);
 
 #endif /* ifndef DEBUG_H */
 
-
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
