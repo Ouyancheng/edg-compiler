@@ -2117,6 +2117,32 @@ declaration of this symbol.
 }  /* enter_local_symbol */
 
 
+static a_boolean is_default_operator_new(a_symbol_locator *locator,
+                                                a_type_ptr       type)
+/*
+Return TRUE if the locator is for an operator new() and the type indicates
+that it is the default operator new().
+*/
+{
+  a_boolean         match = FALSE;
+  a_param_type_ptr  ptp;
+
+  if (locator->is_operator_name &&
+      locator->variant.opname == (an_opname_kind)onk_new) {
+#if CHECKING
+    if (!is_function_type(type)) {
+      internal_error("is_default_operator_new: bad type");
+    } else if (type->variant.routine.extra_info->param_type_list == NULL) {
+      internal_error("is_default_operator_new: bad param type list");
+    }  /* if */
+#endif /* CHECKING */
+    if (type->variant.routine.extra_info->param_type_list->next == NULL) {
+      match = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* is_default_operator_new */
+
+
 static an_id_linkage_kind id_linkage(a_symbol_locator *locator,
                                      a_storage_class  storage_class,
                                      a_type_ptr       type,
@@ -2170,6 +2196,10 @@ will be involved in overloading.
        declared at the file scope level. */
     if (C_dialect == C_dialect_pcc &&
         (is_function || storage_class == (a_storage_class)sc_extern)) {
+      *effective_decl_level = DEPTH_OF_FILE_SCOPE;
+    } else if (C_dialect == C_dialect_cplusplus &&
+               is_default_operator_new(locator, type)) {
+      /* Default global operator new must always be entered at file scope. */
       *effective_decl_level = DEPTH_OF_FILE_SCOPE;
     } else {
       *effective_decl_level = decl_scope_level;
