@@ -1698,16 +1698,20 @@ pragmas, and by stdc_pragma for pragmas that appear in the file scope.
   a_stdc_pragma_value	value = (a_stdc_pragma_value)stdc_pv_none;
   a_boolean		err = FALSE;
   char			*str;
+  a_stdc_pragma_value	*state_var_ptr;
 
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {
     str = locator_for_curr_id.symbol_header->identifier;
     if (strcmp(str, "FP_CONTRACT") == 0) {
       kind = (a_stdc_pragma_kind)stdc_pk_fp_contract;
+      state_var_ptr = &curr_fp_contract_state;
     } else if (strcmp(str, "FENV_ACCESS") == 0) {
       kind = (a_stdc_pragma_kind)stdc_pk_fenv_access;
+      state_var_ptr = &curr_fenv_access_state;
     } else if (strcmp(str, "CX_LIMITED_RANGE") == 0) {
       kind = (a_stdc_pragma_kind)stdc_pk_cx_limited_range;
+      state_var_ptr = &curr_cx_limited_range_state;
     }  /* if */
   }  /* if */
   if (kind == (a_stdc_pragma_kind)(a_stdc_pragma_kind)stdc_pk_none) {
@@ -1744,6 +1748,9 @@ pragmas, and by stdc_pragma for pragmas that appear in the file scope.
       ppp->il_pragma_entry->variant.stdc.kind = kind;
       ppp->il_pragma_entry->variant.stdc.value = value;
     }  /* if */
+    /* Update the state variable that indicates the current setting of this
+       pragma. */
+    *state_var_ptr = value;
   }  /* if */
 }  /* process_stdc_pragma */
 

@@ -12279,6 +12279,9 @@ in il_init.)
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(last_macro),
 #endif /* RECORD_MACROS_IN_IL */
+      pch_saved_var_array_elem(curr_fp_contract_state),
+      pch_saved_var_array_elem(curr_fenv_access_state),
+      pch_saved_var_array_elem(curr_cx_limited_range_state),
 #if DEBUG
       pch_saved_var_array_elem(num_compares_for_shareable_constants),
       pch_saved_var_array_elem(num_func_shareable_constants),
@@ -12337,7 +12340,9 @@ of the front end.
   last_macro = NULL;
 #endif /* RECORD_MACROS_IN_IL */
   based_type_fixup_list = NULL;
-
+  curr_fp_contract_state = (a_stdc_pragma_value)stdc_pv_default;
+  curr_fenv_access_state = (a_stdc_pragma_value)stdc_pv_default;
+  curr_cx_limited_range_state = (a_stdc_pragma_value)stdc_pv_default;
 #if DEBUG
   num_shareable_constants                = 0;
   num_func_shareable_constants           = 0;

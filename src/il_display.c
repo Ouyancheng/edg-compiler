@@ -1441,6 +1441,26 @@ do_struct_union:
 }  /* disp_type */
 
 
+static void disp_stdc_pragma_value(char			*name,
+                                   a_stdc_pragma_value	value)
+/*
+Display a STDC pragma value along with a name.
+*/
+{
+  char	*s;
+
+  disp_name(name);
+  switch (value) {
+    case stdc_pv_none:    s = "none"; break;
+    case stdc_pv_off:     s = "off"; break;
+    case stdc_pv_on:      s = "on"; break;
+    case stdc_pv_default: s = "default"; break;
+    default: unexpected_condition(); break;
+  }  /* switch */
+  (void)printf("%s\n", s);
+}  /* disp_stdc_pragma_value */
+
+
 static void disp_storage_class_name(a_storage_class sclass)
 /*
 Display the name for the indicated storage class.
@@ -2030,6 +2050,17 @@ Display the indicated routine.
 #endif /* BACK_END_IS_CP_GEN_BE */
   if (ptr->suppress_inline_body) {
     disp_boolean("suppress_inline_body", TRUE);
+  }  /* if */
+  if (il_header.c99_mode) {
+    if (ptr->fp_contract != (a_stdc_pragma_value)stdc_pv_default) {
+      disp_stdc_pragma_value("fp_contract", ptr->fp_contract);
+    }  /* if */
+    if (ptr->fenv_access != (a_stdc_pragma_value)stdc_pv_default) {
+      disp_stdc_pragma_value("fenv_access", ptr->fenv_access);
+    }  /* if */
+    if (ptr->cx_limited_range != (a_stdc_pragma_value)stdc_pv_default) {
+      disp_stdc_pragma_value("cx_limited_range", ptr->cx_limited_range);
+    }  /* if */
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);

@@ -96,6 +96,24 @@ EXTERN a_boolean
 			   of the front end (e.g., when the C++-generating
 			   back end is used).  */
 
+EXTERN a_stdc_pragma_value
+		curr_fp_contract_state;
+			/* Used in C99 mode to reflect the current setting
+			   of the fp_contract state, which is set using the
+			   STDC FP_CONTRACT pragma. */
+
+EXTERN a_stdc_pragma_value
+		curr_fenv_access_state;
+			/* Used in C99 mode to reflect the current setting
+			   of the fenv_access state, which is set using the
+			   STDC FENV_ACCESS pragma. */
+
+EXTERN a_stdc_pragma_value
+		curr_cx_limited_range_state;
+			/* Used in C99 mode to reflect the current setting
+			   of the cx_limited_range state, which is set using
+			   the STDC CX_LIMITED_RANGE pragma. */
+
 #if ONE_INSTANTIATION_PER_OBJECT
 
 EXTERN unsigned long

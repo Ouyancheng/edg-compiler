@@ -5531,6 +5531,12 @@ skip_overloading:;
          specification is just ignored.) */
       pos_error(ec_no_exception_support, &func_info->throw_position);
     }  /* if */
+    if (c99_mode) {
+      /* In C99 mode, save the current settings of the predefined pragmas. */
+      routine_ptr->fp_contract = curr_fp_contract_state;
+      routine_ptr->fenv_access = curr_fenv_access_state;
+      routine_ptr->cx_limited_range = curr_cx_limited_range_state;
+    }  /* if */
   }  /* if */
   /* Do processing required for the rest of the pragmas, if any, that are
      bound to the current declaration.  Note that this has to be *after* the

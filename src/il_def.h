@@ -5323,6 +5323,15 @@ typedef struct a_routine {
 			   function is to be used only for inlining.  The
 			   effective declaration for other purposes is an
 			   extern declaration with no body." */
+  a_bit_field	fp_contract:2;
+			/* In C99 mode, the setting of the fp_contract mode
+			   at the point that this routine was defined. */
+  a_bit_field	fenv_access:2;
+			/* In C99 mode, the setting of the fenv_access mode
+			   at the point that this routine was defined. */
+  a_bit_field	cx_limited_range:2;
+			/* In C99 mode, the setting of the cx_limited_range
+			   mode at the point that this routine was defined. */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
