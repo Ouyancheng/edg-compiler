@@ -608,6 +608,9 @@ Dump information on a class member using-decl entry, for debug purposes.
     case iek_routine:    str = "member function";     break;
     case iek_type:       str = "member type";         break;
     case iek_constant:   str = "member constant";     break;
+#if RECORD_TEMPLATES_IN_IL
+    case iek_template:   str = "template";            break;
+#endif /* RECORD_TEMPLATES_IN_IL */
     default:             str = NULL;                  break;
   }  /* switch */
   fputs("\n    ", f_debug);
