@@ -1,5 +1,28 @@
 Version 2.30
 
+8/2/95   Mangled names for virtual function tables (cfront compatibility)
+
+The mangled names for virtual function tables involving nested classes
+have been adjusted to match cfront's name mangling.  For example:
+
+  struct AA { struct A {virtual int f();}; };  // Was __vtbl__Q2_2AA1A, now
+                                               //     __vtbl__8Q2_2AA1A
+
+  struct Space {
+    struct B {
+      virtual int f();  // Was __vtbl__11Q2_5Space1B__Q2_5Space1D, now
+                               __vtbl__1B__11Q2_5Space1D
+    };
+    struct D: virtual public B {
+      virtual int g();
+    };
+  };
+  int Space::B::f() { return 0; }
+  int Space::D::g() { return 0; }
+
+These changes apply only if CFRONT_OBJECT_CODE_COMPATIBILITY is set, and
+only with ABI_COMPATIBILITY_VERSION >= 230.
+
 7/26/95  Source sequence entry for template member function instantiation
 
 A change has been made to assure that a source sequence entry will be
