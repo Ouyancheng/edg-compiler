@@ -3340,6 +3340,21 @@ special function kind (e.g., constructor, destructor), if any.
                            &locator->source_position);
   } else {
     sym->class_of_which_a_member = class_type;
+    if (is_func_template) {
+      /* We must be in the midst of a prototype instantiation of a class
+         template.  The function template's parameter list and scope number
+         should correspond to those of the class template. */
+      a_template_symbol_supplement_ptr  tssp, class_tssp;
+      tssp = sym->variant.template.extra_info;
+      tp = class_type;
+      while (tp->source_corresp.class_of_which_a_member != NULL) {
+        tp = tp->source_corresp.class_of_which_a_member;
+      }  /* if */
+      class_tssp = symbol_supplement_for_class(tp)->class_template->
+                                                variant.template.extra_info;
+      tssp->declaration_scope = class_tssp->declaration_scope;
+      tssp->parameters = class_tssp->parameters;
+    }  /* if */
     /* Create the routine entry for the member function. */
     /* The routine is allocated in the current memory region, as indicated
        by curr_il_region_number -- i.e., in the memory region of the scope in
