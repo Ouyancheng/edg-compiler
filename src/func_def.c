@@ -809,7 +809,8 @@ and for the instantiation of template functions.
       a_symbol_ptr  rout_sym =
                             (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
       a_template_instance_ptr  tip = rout_sym->variant.routine.instance_ptr;
-      param_id = tip->param_id_list;
+      param_id = tip->param_id_list != NULL ? tip->param_id_list
+                                            : func_info->param_id_list;
     } else
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Do not insert code here. */
