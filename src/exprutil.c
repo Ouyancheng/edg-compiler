@@ -9081,34 +9081,6 @@ limited loophole allowed in cfront compatibility mode.
 }  /* is_field_selection_lvalue_operand */
 
 
-static a_boolean same_pointer_type_with_added_qualifiers(
-                                                        a_type_ptr dest_type,
-                                                        a_type_ptr source_type)
-/*
-Return TRUE if source_type and dest_type (which are pointer types) are
-compatible types except that dest_type may have some additional type qualifiers
-at some level(s).
-*/
-{
-  a_boolean same = FALSE;
-
-  do {
-    dest_type = type_pointed_to(dest_type);
-    source_type = type_pointed_to(source_type);
-    if (any_qualifier_missing(dest_type, source_type)) {
-      /* Some qualifier is missing, so give up. */
-      goto end_of_routine;
-    }  /* if */
-    dest_type = skip_typerefs(dest_type);
-    source_type = skip_typerefs(source_type);
-  } while (is_pointer_type(dest_type) && is_pointer_type(source_type));
-  /* After the pointers are stripped, the remaining types must be the same. */
-  if (types_are_compatible(dest_type, source_type)) same = TRUE;
-end_of_routine:
-  return same;
-}  /* same_pointer_type_with_added_qualifiers */
-
-
 void prep_initializer_operand(an_operand         *source_operand,
                               a_type_ptr         dest_type,
                               a_boolean          initializing_return_value,
@@ -9163,8 +9135,8 @@ prep_elision_initializer_operand.
     } else if (cfront_compatibility_mode &&
                is_pointer_type(unqual_dest_type) &&
                is_pointer_type(unqual_source_type) &&
-               same_pointer_type_with_added_qualifiers(unqual_dest_type,
-                                                       unqual_source_type)) {
+               same_type_with_added_qualifiers(unqual_dest_type,
+                                               unqual_source_type)) {
       /* The type is a pointer type and is correct, except that the
          destination type has some qualifiers that are not present on
          the source type (at any level).  Standard C++ processing can
