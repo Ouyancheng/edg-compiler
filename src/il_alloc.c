@@ -3048,7 +3048,9 @@ of the front end.
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
 #endif /* RECORD_MACROS_IN_IL */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   num_decl_position_supplements_allocated = 0;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
   num_per_instantiation_needed_flags_entries_allocated = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
