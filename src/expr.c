@@ -8400,6 +8400,9 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     scan_expr(&operand, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
     expr_stack->in_cctor_elision_initializer =
                                             saved_in_cctor_elision_initializer;
+    /* Instantiate the type if it is a template class.  The type has to be
+       complete so we can copy it. */
+    complete_type_is_needed(operand.type);
     if (is_void_type(operand.type)) {
       /* Cannot throw a void expression. */
       error_in_operand(ec_void_throw, &operand);
