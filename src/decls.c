@@ -589,6 +589,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
 {
   a_boolean       paren_initializer_seen = FALSE;
   a_boolean	  pointer_operator_seen = FALSE;
+
   /* Look for one or more instances of a sequence of tokens corresponding
      to ptr-operator.  Syntax:
          * cv-qualifier-list
@@ -3920,7 +3921,6 @@ declaration.
 */
 {
   a_source_sequence_entry_ptr  rout_ssep;
-  a_type_ptr                   rout_type = rp->type;
   a_param_id_ptr               param_id;
   a_param_type_ptr             ptp;
 
@@ -3929,14 +3929,15 @@ declaration.
        created.  No further action is required. */
   } else if (rp->source_corresp.source_sequence_entry == NULL) {
     /* This is probably a compiler-generated function. */
-  } else if (rp->type->kind != (a_type_kind)tk_routine) {
-    /* This must be a declaration in terms of a function typedef.  No default
+  } else if (func_info->function_type_from_typedef) {
+    /* This is a declaration in terms of a function typedef.  No default
        arguments can have been specified on this particular declaration. */
   } else {
     /* Scan the param-id entries looking for cases in which a default
        argument appeared in the current function declaration. */
     rout_ssep = NULL;
     param_id = func_info->param_id_list;
+    check_assertion(rp->type->kind == (a_type_kind)tk_routine);
     ptp = rp->type->variant.routine.extra_info->param_type_list;
     /* Be sure param-id and param-type lists are in sync. */
     check_assertion((param_id == NULL) == (ptp == NULL));
@@ -10553,6 +10554,8 @@ continue_with_declaration:
           func_info.is_inline = TRUE;
         }  /* if */
       }  /* if */
+      /* Indicate whether the function type is based on a typedef. */
+      func_info.function_type_from_typedef = !top_declarator_type_is_function;
       /* If the thing declared is a function, and if the token following looks
          like it could be part of a function-definition, go scan that. */
       if (function_definition_allowed && is_function &&
@@ -10573,8 +10576,6 @@ continue_with_declaration:
         }  /* if */
         remove_all_local_stop_tokens();
         func_info.is_definition = TRUE;
-        func_info.function_type_from_typedef =
-                                    !top_declarator_type_is_function;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         func_info.declarator_ssep = declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
