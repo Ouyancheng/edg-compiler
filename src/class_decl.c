@@ -10578,11 +10578,26 @@ the new declaration.
        fundamental symbol. */
     new_sym->decl_position = decl_pos;
     if (*other_sym == NULL) {
+      a_symbol_ptr  front_sym = NULL;
+      /* If this is a using-declaration referring to a dependent base member
+         (which is represented through a template parameter symbol), we want
+         to ensure that any member function of the same name already in this
+         class scope is found before the new using-declaration.  This is
+         achieved by arranging for the existing member symbol to remain at
+         the head of the list of symbols. */
+      if (is_nontype_template_param_symbol(fund_sym) &&
+          new_sym->decl_scope == new_sym->header->symbol->decl_scope) {
+        front_sym = new_sym->header->symbol;
+        remove_symbol(front_sym);
+      }  /* if */
       /* Just enter it, since no overloading is involved. */
-      reenter_symbol(new_sym, depth_scope_stack,
-                     /*suppress_error=*/TRUE);
+      reenter_symbol(new_sym, depth_scope_stack, /*suppress_error=*/TRUE);
       /* Save new_sym as *other_sym, in case is_overloaded is TRUE. */
       if (!new_sym->is_error) *other_sym = new_sym;
+      if (front_sym != NULL) {
+        /* Reenter front_sym so it remains at the head of the symbol list. */
+        reenter_symbol(front_sym, depth_scope_stack, /*suppress_error=*/TRUE);
+      }  /* if */
     } else {
       *other_sym = add_symbol_to_overload_list(new_sym, *other_sym,
                                               /*use_namespace=*/FALSE,

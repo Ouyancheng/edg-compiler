@@ -1,5 +1,23 @@
 Version 3.3
 
+6/25/03  Spurious error error caused by using-declaration referring to a
+         dependent base
+
+The front end sometimes emitted various spurious errors when a using-
+declaration referring to a member of a dependent base class was overloading
+a member of the derived class template.  For example:
+
+  template<typename T> struct B {
+    void f() const;
+  };
+  template<typename T> struct D: B<T> {
+    void f();
+    using B<T>::f;
+  };
+  template<typename T> void D<T>::f() {}  // Used to trigger a spurious error
+                                          // "inherited member is not allowed"
+This is now fixed.
+
 6/25/03  Internal error on invalid class definition in member of class template
 
 If a class definition appeared in an unexpected place within a class template
