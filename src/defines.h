@@ -503,7 +503,7 @@ Flags to be set when using the KAI inliner.
 #endif /* ifdef DEMO_VERSION */
 
 #ifndef DEFAULT_EDG_BASE
-#define DEFAULT_EDG_BASE "/c/edg/cpfe"
+#define DEFAULT_EDG_BASE "/c/edg/cpfe/release"
 #endif /* DEFAULT_EDG_BASE */
 #define __ANSIC__ 1
 #ifndef COMPILE_MULTIPLE_SOURCE_FILES
@@ -524,7 +524,9 @@ Flags to be set when using the KAI inliner.
 #if defined(__GNUC__) && !defined(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED)
 #define GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED 1
 #endif /* defined(__GNUC__) && !defined(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED) */
+#ifndef DEFAULT_GNU_COMPATIBILITY
 #define DEFAULT_GNU_COMPATIBILITY 0
+#endif /* ifndef DEFAULT_GNU_COMPATIBILITY */
 #define DEFAULT_USE_PREDEFINED_MACRO_FILE 1
 #ifndef IA64_ABI
 #define IA64_ABI 1
