@@ -10,7 +10,7 @@ parameters (pointed to by the routine type).  For example:
   void f(void*);  // This position recorded for "f"
   void f(void*);  // This position recorded for the specifier "void*"
 
-This has been changed to consitently record the first declaration.
+This has been changed to consistently record the first declaration.
 
 6/22/00  Abort on using-declaration of overloaded delete operators
 
