@@ -4644,14 +4644,14 @@ symbol.  Otherwise, return NULL.
          template argument with which it currently associated can be used in
          an elaborated-type-specifier of the required kind. */
       tp = sym->variant.type;
-      sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
-      if (sym != NULL && sym->kind == tag_kind) {
+      assoc_symbol = (a_symbol_ptr)tp->source_corresp.assoc_info;
+      if (assoc_symbol != NULL && assoc_symbol->kind == tag_kind) {
         /* Use the template argument to which the template parameter points. */
-        assoc_symbol = sym;
       } else {
         /* The template argument is the wrong kind of tag. */
-        type_error(ec_bad_template_arg_use, tp);
+        pos_syty_error(ec_bad_template_arg_use, &error_position, sym, tp);
         set_to_error_locator(*locator);
+        assoc_symbol = NULL;
       }  /* if */
     }  /* if */            
   }  /* if */

@@ -1760,7 +1760,7 @@ error code.
       m = "%t is not a class template";
       break;
     case ec_bad_template_arg_use:
-      m = "invalid use of template argument %t";
+      m = "template parameter %no with type %t is not allowed in this context";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
