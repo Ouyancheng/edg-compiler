@@ -21,7 +21,6 @@ error.c -- Error reporting routines.
 #include "float_pt.h"
 #include "const_ints.h"
 #include "il.h"
-#include "types.h"
 #if !STANDALONE_UTILITY_PROGRAM
 #include "symbol_tbl.h"
 #include "lexical.h"
@@ -2318,7 +2317,11 @@ used for classes and enums.
   add_string_to_segment(s, seg_ptr);
   /* If a class is an instantiation of a class template, put out the
      template arguments. */
-  if (is_immediate_class_type(type)) {
+  /* We do not use is_immediate_class_type here to avoid standalone
+     program problems. */
+  if (type->kind == (a_type_kind)tk_class  ||
+      type->kind == (a_type_kind)tk_struct ||
+      type->kind == (a_type_kind)tk_union) {
     ctsp = type->variant.class_struct_union.extra_info;
     if (ctsp != NULL) form_template_args(ctsp->template_arg_list, seg_ptr);
   }  /* if */
