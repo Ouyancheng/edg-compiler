@@ -2789,7 +2789,7 @@ final semicolon if output_final_semi is TRUE.
         }  /* if */
       }  /* if */
       if (type->kind != (a_type_kind)tk_union && !field->is_bit_field &&
-          field->next != NULL && is_immediate_class_type(field->next->type)) {
+          field->next != NULL) {
         /* Add any required padding between fields.  This only comes
            up for empty base class layout, so check this only when
            the next field has a class type.  Note that one reason to
@@ -2797,14 +2797,22 @@ final semicolon if output_final_semi is TRUE.
            when the GNU dual-alignment option is in effect the alignment
            of the field's type is not necessarily the alignment that
            was used to place the field. */
-        a_targ_alignment alignment =
+        a_type_ptr next_type = field->next->type;
+        if (is_array_type(next_type)) {
+          /* Arrays of class type have to be checked as well. */
+          next_type = underlying_array_element_type(next_type);
+        }  /* if */
+        next_type = skip_typerefs(next_type);
+        if (is_immediate_class_type(next_type)) {
+          a_targ_alignment alignment =
                                  f_skip_typerefs(field->next->type)->alignment;
 #if USER_CONTROL_OF_STRUCT_PACKING
-        if (pack_alignment != 0 && pack_alignment < alignment) {
-          alignment = pack_alignment;
-        }  /* if */
+          if (pack_alignment != 0 && pack_alignment < alignment) {
+            alignment = pack_alignment;
+          }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-        dump_field_padding(field, field->next->offset, alignment);
+          dump_field_padding(field, field->next->offset, alignment);
+        }  /* if */
       }  /* if */
     }  /* for */
     if (union_alignment_needed) {
