@@ -42,15 +42,12 @@ extern an_expr_node_ptr scan_required_type_expression(
 
 extern void scan_pp_expression(a_constant *constant);
 
-extern void scan_integral_constant_expression(a_constant *constant,
-			                      a_boolean  *err);
+extern void scan_integral_constant_expression(a_constant *constant);
 
 extern void scan_initializer_expression(a_type_ptr       required_type,
                                         a_boolean        *is_constant,
                                         an_expr_node_ptr *expression,
                                         a_constant       *constant);
-
-extern an_expr_node_ptr scan_argument_expression(void);
 
 extern a_symbol_ptr select_copy_constructor(
                                     a_type_ptr        class_type,
