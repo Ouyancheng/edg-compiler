@@ -2807,6 +2807,9 @@ destructors in the IA-64 ABI.
                                   (a_special_function_kind)sfk_constructor ||
                   routine->special_kind ==
                                   (a_special_function_kind)sfk_destructor);
+  check_assertion(kind == (a_ctor_or_dtor_kind)cdk_complete ||
+                  kind == (a_ctor_or_dtor_kind)cdk_subobject ||
+                  kind == (a_ctor_or_dtor_kind)cdk_deleting);
   /* Check to see if the routine already exists on the alternate_entry_points
      list. */
   for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
@@ -2844,6 +2847,9 @@ destructors in the IA-64 ABI.
                                   routine_type->variant.routine.return_type,
                                   this_param_type);
     new_routine->is_inline = routine->is_inline;
+#if DECL_MODIFIERS_IN_USE
+    new_routine->decl_modifiers = routine->decl_modifiers;
+#endif /* DECL_MODIFIERS_IN_USE */
 #if INSTANTIATE_EXTERN_INLINE
     new_routine->inline_instance_required = routine->inline_instance_required;
 #endif /* INSTANTIATE_EXTERN_INLINE */
