@@ -5325,6 +5325,10 @@ member declaration, respectively.
   if (is_void_type(member_type)) {
     error(ec_incomplete_type_not_allowed);
     member_type = error_type();
+  } else if (is_abstract_class_type(member_type)) {
+    /* Abstract class objects are prohibited (ARM 10.3). */
+    pos_error(ec_abstract_class_object_not_allowed,
+              &locator->source_position);
   }  /* if */
   if (class_state->is_local_class) {
     /* Static data members are not allowed in local classes. */
@@ -6425,6 +6429,10 @@ respectively.
       decl_info->storage_class != (a_storage_class)sc_typedef) {
     pos_error(ec_function_type_not_allowed, &locator->source_position);
     field_type = error_type();
+  } else if (is_abstract_class_type(field_type)) {
+    /* Abstract class objects are prohibited (ARM 10.3). */
+    pos_error(ec_abstract_class_object_not_allowed,
+              &locator->source_position);
   } else if (is_incomplete_type(field_type)) {
     /* As a C extension (and in C++ in Microsoft mode), allow an array of
        unknown size as the last member of a struct. It can't be the first
@@ -7957,13 +7965,8 @@ tracks information about the current declaration.
 */
 {
   if (decl_info->storage_class != (a_storage_class)sc_typedef) {
-    if (is_abstract_class_type(*type)) {
-      /* Abstract class objects are prohibited (ARM 10.3). */
-      pos_error(ec_abstract_class_object_not_allowed,
-                &locator->source_position);
-    } else if (any_cfront_mode() &&
-               check_member_function_typedef(*type,
-                                             &locator->source_position)) {
+    if (any_cfront_mode() &&
+        check_member_function_typedef(*type, &locator->source_position)) {
       /* This is declaration using a member function typedef.  A typedef has
          been previously been declared like this:
               typedef void A::t(int);  // Nonstandard

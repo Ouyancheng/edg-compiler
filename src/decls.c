@@ -7643,12 +7643,6 @@ continue_with_declaration:
               }  /* if */
             }  /* if */
           }  /* if */
-          if (local_is_old_style_param_decl) {
-            /* The check is made elsewhere for parameters. */
-          } else if (is_abstract_class_type(local_type_ptr)) {
-            /* Abstract class objects are prohibited (ARM 10.3). */
-            error(ec_abstract_class_object_not_allowed);
-          }  /* if */
         }  /* if */
       }  /* if */
       /* Enter the symbol with the proper type. */
@@ -7773,6 +7767,13 @@ continue_with_declaration:
         complete_type_is_needed(local_type_ptr);
       }  /* if */
       incomplete_type_error_reported = FALSE;
+      if (!C_mode() && var_ptr != NULL) {
+        if (is_abstract_class_type(local_type_ptr)) {
+          /* Abstract class objects are prohibited (ARM 10.3). */
+          pos_error(ec_abstract_class_object_not_allowed,
+                    &locator.source_position);
+        }  /* if */
+      }  /* if */
       /* Set the error position to the start of the initializer (that is, to
          the "=" if there is one) or to where the initializer should be in
          case there ought to be one. */
