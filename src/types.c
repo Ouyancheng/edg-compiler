@@ -5707,6 +5707,18 @@ with a template argument that is a template template parameter.
         }  /* if */
       }  /* if */
     }  /* for */
+    if (!found) {
+      /* Check whether this is a class type that is based on a template
+         template parameter. */
+      a_symbol_ptr	template_sym;
+      template_sym = class_template_for_type(type_ptr);
+      if (template_sym != NULL) {
+        if (template_sym->variant.template_info->
+                              variant.class_template.template_template_param) {
+          *force_end_of_traversal = found = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   return found;
 }  /* ttt_contains_template_template_param */
@@ -5742,19 +5754,6 @@ it returns TRUE if type_ptr is the specified template parameter type.
            argument. */
         found = ttt_contains_template_template_param(type_ptr, 
                                                      force_end_of_traversal);
-      }  /* if */
-      if (!found) {
-        /* We are not looking for a specific type parameter.  Check whether
-           this is a class type that is based on a template template
-           parameter. */
-        a_symbol_ptr	template_sym;
-        template_sym = class_template_for_type(type_ptr);
-        if (template_sym != NULL) {
-          if (template_sym->variant.template_info->
-                              variant.class_template.template_template_param) {
-            *force_end_of_traversal = found = TRUE;
-          }  /* if */
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
