@@ -994,7 +994,7 @@ on a prior declaration.
        template, set the specific_def flag in the instance entry. */
     if (sym->variant.routine.instance_ptr != NULL) {
       sym->variant.routine.instance_ptr->specific_def = TRUE;
-      sym->variant.routine.ptr->specific_def = TRUE;
+      sym->variant.routine.ptr->suppress_instantiation = TRUE;
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
     }  /* if */
     update_routine_decl_modifiers(rp, decl_modifiers,

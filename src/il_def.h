@@ -3574,6 +3574,19 @@ typedef struct a_variable {
 			   provided by the user.  FALSE for all other cases,
 			   including a static data member of a class that
 			   is a specialization of a template class. */
+  a_bit_field	is_explicit_specialization:1;
+			/* TRUE if is_template_static_data_member is TRUE and
+			   the member is an explicit specialization (i.e., if
+			   it has been explicitly declared with the template<>
+			   syntax). */
+  a_bit_field	suppress_instantiation:1;
+			/* TRUE if is_template_static_data_member is TRUE but
+			   the static data member should not be instantiated
+			   based on the template with which it is associated.
+			   This flag will be set if is_explicit_specialization
+			   is TRUE, or if the member was subject to an
+			   old-style specific definition, or if it was
+			   specified in a do-not-instantiate pragma. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
 			/* TRUE if this is a template static data member
@@ -3611,10 +3624,6 @@ typedef struct a_variable {
 			   process and should not be relied upon for any
 			   other purpose. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  a_bit_field	specific_def:1;
-			/* TRUE if this instance has been explicitly
-                           defined (in which case no implicit instantiation
-                           will be done). */
   a_bit_field	param_value_has_been_changed:1;
 			/* TRUE if is_parameter or is_handler_param is TRUE
 			   and the variable is assigned to or has had its
@@ -4032,6 +4041,19 @@ typedef struct a_routine {
 			   all other functions, including a function that is
 			   a member of a class that is a specialization of
 			   a template class. */
+  a_bit_field	is_explicit_specialization:1;
+			/* TRUE if is_template_function is TRUE and the
+			   function is an explicit specialization (i.e., if it
+			   has been explicitly declared with the template<>
+			   syntax). */
+  a_bit_field	suppress_instantiation:1;
+			/* TRUE when is_template_function is TRUE but the
+			   function should not be instantiated based on the
+			   template with which it is associated.  This flag
+			   will be set if is_explicit_specialization is TRUE,
+			   or if the routine was subject to an old-style
+			   specific definition, or if it was specified in a
+			   do-not-instantiate pragma. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
 			/* TRUE if this is a template function
@@ -4069,13 +4091,6 @@ typedef struct a_routine {
 			   process and should not be relied upon for any
 			   other purpose. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  a_bit_field	specific_def:1;
-			/* For instances of nonmember function templates and
-			   member functions of template classes, TRUE if this
-			   instance has been explicitly defined (in which case
-			   no implicit instantiation will be done). The
-			   specific_decl flag will always be TRUE when this
-			   flag is set. */
   a_bit_field	contains_try_block:1;
 			/* TRUE if the routine has a definition that contains
 			   at least one "try" block.  This may affect

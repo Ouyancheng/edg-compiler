@@ -1149,12 +1149,13 @@ to it.
   vp->modified_within_try_block   = FALSE;
   vp->is_template_static_data_member
                                   = FALSE;
+  vp->is_explicit_specialization  = FALSE;
+  vp->suppress_instantiation      = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   vp->can_be_instantiated         = FALSE;
   vp->do_not_instantiate          = FALSE;
   vp->instance_required           = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  vp->specific_def		  = FALSE;
   vp->param_value_has_been_changed= FALSE;
   vp->param_used_more_than_once   = FALSE;
   vp->is_handler_param            = FALSE;
@@ -1300,12 +1301,13 @@ to it.  The entry is allocated in the file scope memory region.
   rp->assignment_to_this_done   = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   rp->is_template_function      = FALSE;
+  rp->is_explicit_specialization = FALSE;
+  rp->suppress_instantiation    = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   rp->can_be_instantiated       = FALSE;
   rp->do_not_instantiate        = FALSE;
   rp->instance_required         = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  rp->specific_def              = FALSE;
   rp->contains_try_block        = FALSE;
   rp->superseded_external       = FALSE;
   rp->defined_in_friend_decl    = FALSE;

@@ -1215,6 +1215,12 @@ Display the indicated variable.
   if (ptr->is_template_static_data_member) {
     disp_boolean("is_template_static_data_member", TRUE);
   }  /* if */
+  if (ptr->is_explicit_specialization) {
+    disp_boolean("is_explicit_specialization", TRUE);
+  }  /* if */
+  if (ptr->suppress_instantiation) {
+    disp_boolean("suppress_instantiation", TRUE);
+  }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {
     disp_boolean("can_be_instantiated", TRUE);
@@ -1226,9 +1232,6 @@ Display the indicated variable.
     disp_boolean("instance_required", TRUE);
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  if (ptr->specific_def) {
-    disp_boolean("specific_def", TRUE);
-  }  /* if */
   if (ptr->is_parameter || ptr->is_handler_param) {
     disp_boolean("param_value_has_been_changed",
                  (a_boolean)ptr->param_value_has_been_changed);
@@ -1548,6 +1551,12 @@ Display the indicated routine.
   if (ptr->is_template_function) {
     disp_boolean("is_template_function", TRUE);
   }  /* if */
+  if (ptr->is_explicit_specialization) {
+    disp_boolean("is_explicit_specialization", TRUE);
+  }  /* if */
+  if (ptr->suppress_instantiation) {
+    disp_boolean("suppress_instantiation", TRUE);
+  }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {
     disp_boolean("can_be_instantiated", TRUE);
@@ -1559,9 +1568,6 @@ Display the indicated routine.
     disp_boolean("instance_required", TRUE);
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  if (ptr->specific_def) {
-    disp_boolean("specific_def", TRUE);
-  }  /* if */
   if (ptr->contains_try_block) {
     disp_boolean("contains_try_block", TRUE);
   }  /* if */

@@ -1672,7 +1672,7 @@ determine_linkage:
                             is_function_symbol(other_decl) &&
                             other_decl->variant.routine.instance_ptr != NULL);
     if (is_template_instance && !func_info->is_definition &&
-        !other_decl->variant.routine.instance_ptr->specific_def) {
+        !other_decl->variant.routine.ptr->defined) {
       /* A specific declaration of function template instance for which
          a specific definition has not been seen.  The storage class of this
          declaration must agree with the storage class of the template. */
@@ -3808,7 +3808,6 @@ on for use in generating cross-reference output describing this declaration.
         /* The current declaration is a definition. */
         if (!old_decl_has_body) {
           /* Okay. */
-          routine_ptr->specific_def = TRUE;
           sym->variant.routine.instance_ptr->specific_def = TRUE;
           /* Update the linkage information in the routine to reflect
              this declaration instead of the information inherited from
@@ -3822,9 +3821,10 @@ on for use in generating cross-reference output describing this declaration.
                           (storage_class == (a_storage_class)sc_static) ?
                                 (a_name_linkage_kind)nlk_internal :
                                 (a_name_linkage_kind)nlk_cplusplus_external;
+          routine_ptr->suppress_instantiation = TRUE;
         } else {
           /* There is already a definition.  This is some sort of error. */
-          if (routine_ptr->specific_def) {
+          if (sym->variant.routine.instance_ptr->specific_def) {
             /* Already defined. */
             pos_sy_error(ec_already_defined, &locator->source_position, sym);
           } else {
@@ -4655,7 +4655,7 @@ the symbol and its linkage (which is always "none").
          template, set the specific_def flag in the instance entry. */
       if (sym->variant.static_data_member.instance_ptr != NULL) {
         sym->variant.static_data_member.instance_ptr->specific_def = TRUE;
-        sym->variant.static_data_member.variable->specific_def = TRUE;
+        var->suppress_instantiation = TRUE;
       }  /* if */
       srk_flags = SRK_DECLARATION | SRK_DEFINITION;
       if (has_initializer || type_has_default_constructor(var->type)) {

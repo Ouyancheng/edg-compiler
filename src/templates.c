@@ -3671,7 +3671,7 @@ the function instantiation entry and set all the pointers.
     if (rout_sym->defined) {
       /* User-defined, so no instantiation is required. */
       tip->specific_def = TRUE;
-      rout_sym->variant.routine.ptr->specific_def = TRUE;
+      rout_sym->variant.routine.ptr->suppress_instantiation = TRUE;
     } else {
       /* Not defined by the user, so still a candidate for instantiation
          based on the template. */
@@ -7123,7 +7123,7 @@ that follows.
           if (vp->declared_type == NULL) vp->declared_type = type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        if (is_definition) vp->specific_def = TRUE;
+        if (is_definition) vp->suppress_instantiation = TRUE;
         if (is_definition) tip->specific_def = TRUE;
         tip->specific_decl = TRUE;
 #if 0
@@ -7157,7 +7157,7 @@ that follows.
           if (rp->declared_type == NULL) rp->declared_type = type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        if (is_definition) rp->specific_def = TRUE;
+        if (is_definition) rp->suppress_instantiation = TRUE;
         if (is_definition) tip->specific_def = TRUE;
         tip->specific_decl = TRUE;
 #if 0
