@@ -3226,7 +3226,7 @@ put out for them).
 */
 {
   a_param_type_ptr              param;
-  a_boolean                     first_argument = TRUE;
+  a_boolean                     any_arg_put_out = FALSE;
   a_routine_type_supplement_ptr rtsp;
 
   rout_type = skip_typerefs(rout_type);
@@ -3246,7 +3246,8 @@ put out for them).
       break;
     } else {
       /* The argument must be put out. */
-      if (!first_argument) write_tok_str(", ");
+      if (any_arg_put_out) write_tok_str(", ");
+      any_arg_put_out = TRUE;
       if (param != NULL && param->passed_via_copy_constructor) {
         /* For an argument passed using a copy constructor, optimize out
            the copy constructor reference. */
@@ -3265,7 +3266,6 @@ put out for them).
     }  /* if */
     arg = arg->next;
     if (param != NULL) param = param->next;
-    first_argument = FALSE;
   }  /* for */
   write_tok_ch(')');
 }  /* gen_argument_list */
