@@ -1,5 +1,11 @@
 Version 2.27
 
+12/13/94 IL CHANGE: added static_temp to enk_temp_init
+
+The enk_temp_init expression node now has a static_temp flag that
+indicates that the temporary must be static (e.g., for a temporary to
+which a static reference is bound).
+
 12/13/94 Incomplete classes nested within anonymous unions
 
 Several bugs have been fixed in how incomplete classes nested within
@@ -130,7 +136,7 @@ A new flag, implied_break_at_end, has been added to a_switch_clause to
 identify switch clauses that do not terminate in an explicit branch but
 implicitly branch to the first statement following the switch statement.
 
-12/7/94  IL_CHANGE: Added is_constructor_init to a_dynamic_init
+12/7/94  IL CHANGE: Added is_constructor_init to a_dynamic_init
 
 This new flag is set to TRUE if the dynamic init entry is connected to an
 entity in a ctor-initializer or dtor-initializer list (i.e., if the dynamic
@@ -186,7 +192,7 @@ a cast (e.g., one that adjusts const at some level), the type of the
 rewritten "?" or "," was incorrect (it was the type before the adjustment
 done by the cast).  Now fixed.
 
-11/30/94 IL_CHANGE: Added is_expr_temp_init to a_dynamic_init
+11/30/94 IL CHANGE: Added is_expr_temp_init to a_dynamic_init
 
 This new flag is set to TRUE if the dynamic init entry represents the
 initialization of an expression temporary.
