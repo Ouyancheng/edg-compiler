@@ -3228,9 +3228,17 @@ be issued at the given position.
     }  /* if */
     if (is_definition && !is_inline && (new_dll_flags & DM_DLLIMPORT) != 0 &&
         !clear_dll_import) {
-      /* Noninline function definitions cannot have the dllimport attribute. */
-      pos_error(ec_cannot_define_dllimport_function, diag_pos);
-      clear_dll_import = TRUE;
+      /* Noninline function definitions cannot have the dllimport attribute.
+         However, early versions of the Microsoft compilers did not diagnose
+         this when parsing a template in its generic form. */
+      an_error_severity  severity = es_error;
+      if (microsoft_version <= 1200 && routine->is_prototype_instantiation &&
+          routine->source_corresp.is_class_member) {
+        severity = es_warning;
+      } else {
+        clear_dll_import = TRUE;
+      }  /* if */
+      pos_diagnostic(severity, ec_cannot_define_dllimport_function, diag_pos);
     }  /* if */
     if (clear_dll_import && (routine->decl_modifiers & DM_DLLIMPORT) != 0) {
       /* Drop any previous dllimport attribute. */
