@@ -5028,6 +5028,93 @@ detected, issue a diagnostic at the given position.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static void check_incompatible_routine_redecl(
+                                       a_symbol_ptr   linked_sym,
+                                       a_type_ptr     new_type,
+                                       a_boolean      old_decl_has_body,
+                                       a_boolean      is_function_def,
+                                       an_error_code  error_code,
+                                       a_source_position_ptr
+                                                      diag_pos,
+                                       a_type_ptr     *old_type,
+                                       a_boolean      *linked_redecl_error,
+                                       a_boolean      *suppress_ext_sym_lookup)
+/*
+An incompatible declaration of routine represented by linked_sym has been
+parsed.  The (incompatible) redeclared type is new_type.  Issue a diagnostic
+(at the position described by diag_pos) and either record the original type
+in *old_type or force the creation of a new routine entry (and symbol) by
+setting *linked_redecl_error to TRUE.  Some modes (GNU C, Microsoft C, and
+SVR4) allow certain incompatibilities: Only a warning is issued in those
+cases.  Otherwise an error is issued and *suppress_ext_sym_lookup is set to
+TRUE to notify the caller that a new "extern symbol" should be forced.
+old_decl_has_body is TRUE if the function was previously defined, and
+is_function_def is TRUE if the redeclaration is a definition.
+*/
+{
+  a_routine_ptr  rp = linked_sym->variant.routine.ptr;
+  a_type_ptr     old_return_type = return_type_of(rp->type);
+  a_type_ptr     new_return_type = return_type_of(new_type);
+
+  if (gcc_mode &&
+      !skip_typerefs(new_type)->variant.routine.extra_info->prototyped &&
+      skip_typerefs(rp->type)->variant.routine.extra_info->prototyped &&
+      f_types_are_compatible(rp->type, new_type,
+                             TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                             TCF_NO_DEFAULT_ARG_PROMOTIONS)) {
+    /* GNU C compilers accept old-style definitions with unpromoted
+       types after having seen a prototype (also with unpromoted type).
+       In that case, the prototype declaration is retained for typing
+       purposes.  If a nondefining unprototype declaration follows a
+       a nondefining prototyped declaration, GNU C ignores the
+       prototype. */
+    *old_type = rp->type;
+    if (!old_decl_has_body && !is_function_def &&
+        new_type->kind == (a_type_kind)tk_routine) {
+      pos_sy_warning(ec_prototype_lost, diag_pos, linked_sym);
+      rp->type = new_type;
+    }  /* if */
+  } else if (SVR4_C_mode &&
+             incompatible_types_are_SVR4_compatible(new_type, rp->type)) {
+    /* The routine types are incompatible, but in SVR4 mode this is
+       not an error as long as the incompatibility is only in the
+       return type or if one of the declarations is prototyped while
+       the other is not. */
+    pos_sy_warning(ec_not_compatible_with_previous_decl, diag_pos, linked_sym);
+    *old_type = rp->type;
+    /* If this is the definition, reset the type of the routine entry
+       to use the new type. */
+    if (is_function_def) {
+      rp->type = new_type;
+    }  /* if */
+  } else if (microsoft_mode && C_mode() &&
+             identical_types(old_return_type, new_return_type)) {
+    /* In Microsoft C mode "anything goes" as far as function
+       redeclarations are concerned, provided the return types
+       are identical. */
+    pos_sy_warning(ec_not_compatible_with_previous_decl, diag_pos, linked_sym);
+    *old_type = rp->type;
+    if (is_function_def || !old_decl_has_body) {
+      rp->type = new_type;
+    }  /* if */
+  } else {
+    /* Issue an error on incompatible declarations. */
+    pos_sy_error(error_code, diag_pos, linked_sym);
+    if (rp->storage_class == (a_storage_class)sc_static) {
+      /* Reuse the routine entry to avoid error recovery problems
+         connected with constraints placed on static functions. */
+      *old_type = rp->type;
+      if (is_function_def) rp->type = new_type;
+    } else {
+      /* Force creation of a new symbol and a new routine entry. */
+      *linked_redecl_error = TRUE;
+    }  /* if */
+    /* Set a flag to suppress reuse of the existing external-routine
+       symbol. */
+    *suppress_ext_sym_lookup = TRUE;
+  }  /* if */
+}  /* check_incompatible_routine_redecl */
+
 #if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* decl_modifiers and/or attributes are not used in
                   some configurations. */
@@ -5414,78 +5501,13 @@ declaration.
         }  /* if */
         if (!routines_compat) {
           /* The old and new declarations are incompatible.  There is special
-             handling for SVR4, Microsoft C and GNU C compatibility modes. */
-          a_type_ptr  old_return_type = return_type_of(routine_ptr->type);
-          a_type_ptr  new_return_type = return_type_of(type_ptr);
-          if (SVR4_C_mode &&
-              incompatible_types_are_SVR4_compatible(type_ptr,
-                                                     routine_ptr->type)) {
-            /* The routine types are incompatible, but in SVR4 mode this is
-               not an error as long as the incompatibility is only in the
-               return type or if one of the declarations is prototyped while
-               the other is not. */
-            pos_sy_warning(ec_not_compatible_with_previous_decl,
-                           &locator->source_position, linked_symbol);
-            *old_type = routine_ptr->type;
-            /* If this is the definition, reset the type of the routine entry
-               to use the new type. */
-            if (is_function_def) {
-              routine_ptr->type = type_ptr;
-            }  /* if */
-          } else if (gcc_mode &&
-                     !skip_typerefs(type_ptr)
-                                    ->variant.routine.extra_info->prototyped &&
-                     skip_typerefs(routine_ptr->type)
-                                    ->variant.routine.extra_info->prototyped &&
-                     f_types_are_compatible(
-                                      routine_ptr->type, type_ptr,
-                                      TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
-                                      TCF_NO_DEFAULT_ARG_PROMOTIONS)) {
-            /* GNU C compilers accept old-style definitions with unpromoted
-               types after having seen a prototype (also with unpromoted type).
-               In that case, the prototype declaration is retained for typing
-               purposes.  If a nondefining unprototype declaration follows a
-               a nondefining prototyped declaration, GNU C ignores the
-               prototype. */
-            if (!is_function_def) {
-            }  /* if */
-            *old_type = routine_ptr->type;
-            /* Retain the new (unprototyped) type if no definition has been
-               seen yet 
-               current type is unprototyped. */
-            if (!old_decl_has_body && !is_function_def &&
-                type_ptr->kind == (a_type_kind)tk_routine) {
-              routine_ptr->type = type_ptr;
-              pos_sy_warning(ec_prototype_lost,
-                             &locator->source_position, linked_symbol);
-            }  /* if */
-          } else if (microsoft_mode && C_mode() &&
-                     identical_types(old_return_type, new_return_type)) {
-            /* In Microsoft C mode "anything goes" as far as function
-               redeclarations are concerned, provided the return types
-               are identical. */
-            pos_sy_warning(ec_not_compatible_with_previous_decl,
-                           &locator->source_position, linked_symbol);
-            *old_type = routine_ptr->type;
-            if (is_function_def || !old_decl_has_body) {
-              routine_ptr->type = type_ptr;
-            }  /* if */
-          } else {
-            /* Issue an error on incompatible declarations. */
-            pos_sy_error(error_code, &locator->source_position, linked_symbol);
-            if (routine_ptr->storage_class == (a_storage_class)sc_static) {
-              /* Reuse the routine entry to avoid error recovery problems
-                 connected with constraints placed on static functions. */
-              *old_type = routine_ptr->type;
-              if (is_function_def) routine_ptr->type = type_ptr;
-            } else {
-              /* Force creation of a new symbol and a new routine entry. */
-              linked_redecl_error = TRUE;
-            }  /* if */
-            /* Set a flag to suppress reuse of the existing external-routine
-               symbol. */
-            suppress_ext_sym_lookup = TRUE;
-          }  /* if */
+             handling for SVR4, Microsoft C, and GNU C compatibility modes. */
+          check_incompatible_routine_redecl(linked_symbol, type_ptr,
+                                            old_decl_has_body, is_function_def,
+                                            error_code,
+                                            &locator->source_position,
+                                            old_type, &linked_redecl_error,
+                                            &suppress_ext_sym_lookup);
           redecl_error_already_issued = TRUE;
         } else {
           /* The declarations are compatible.  Form the composite type. */
