@@ -211,6 +211,10 @@ typedef struct a_scope_stack_entry {
 			   defined.  This causes the lookup to look on the
 			   active list instead of the inactive list for
 			   the class members. */
+  a_bit_field	parent_instantiation_pushed:1;
+			/* TRUE for template instantiation scopes if an
+			   instantiation scope for an enclosing template class
+			   was pushed. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be
@@ -399,10 +403,12 @@ typedef struct a_scope_stack_entry {
 			   function scope or if the scope of a local class or
 			   template instantiation intervenes between the
 			   current scope and the containing function scope. */
-  a_template_param_ptr
-		template_param_list;
+  a_template_decl_info_ptr
+		template_decl_info;
                         /* When kind == sck_template_instantiation, contains
-			   a pointer to the template parameter list. */
+			   a pointer to the information about the template
+			   declaration from which the instantiation is
+			   being generated. */
   a_decl_sequence_number
 		last_label_decl_seq;
 			/* When kind == sck_function, the declaration sequence
@@ -684,13 +690,12 @@ extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
                                         a_namespace_ptr assoc_namespace);
 
 extern a_scope_ptr push_template_instantiation_scope
-                           (a_scope_number       scope_number_to_reuse,
+                           (a_template_cache_ptr cache,
 			    a_type_ptr           assoc_type,
 			    a_routine_ptr        assoc_routine,
 			    a_symbol_ptr         instance_sym,
 			    a_symbol_ptr         template_sym,
-			    a_template_arg_ptr   template_arg_list,
-			    a_boolean            nested_instantiation);
+			    a_template_arg_ptr   template_arg_list);
 
 extern void pop_template_instantiation_scope(void);
 

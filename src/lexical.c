@@ -6309,7 +6309,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
      is not necessary to distinguish between the type and constant case
      because we can use the type of the formal parameter to make this
      selection. */
-  param_ptr = template_sym->variant.template_info->parameters;
+  param_ptr = template_sym->variant.template_info->cache.decl_info->parameters;
   do {
     /* If the current token is a ">" then exit the loop.  This should only be
        possible on the first iteration if we have an empty argument list. */

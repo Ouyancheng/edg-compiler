@@ -80,6 +80,7 @@ static unsigned long
 		num_template_instances_allocated,
 		num_symbol_list_entries_allocated,
 		num_template_cache_segments_allocated,
+		num_template_decl_info_allocated,
 		num_namespace_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
@@ -674,9 +675,11 @@ do_variable:
         a_template_symbol_supplement_ptr  tssp;
         a_template_param_ptr              tplep;
         a_symbol_ptr                      inst_sym;
+        a_template_param_ptr		  templ_param_list;
+        a_template_decl_info_ptr	  template_decl_info;
 
         tssp = sym->variant.template_info;
-        if (tssp->token_cache.first_token != NULL) {
+        if (tssp->cache.tokens.first_token != NULL) {
           put_string("template body cached");
         }  /* if */
         if (sym->kind == (a_symbol_kind)sk_function_template) {
@@ -693,8 +696,15 @@ do_variable:
           }  /* switch */
         }  /* if */
         /* Output information from the template symbol supplement. */
+        if (sym->kind == (a_symbol_kind)sk_function_template) {
+          template_decl_info = tssp->variant.function.decl_cache.decl_info;
+        } else {
+          template_decl_info = tssp->cache.decl_info;
+        }  /* if */
+        templ_param_list = template_decl_info != NULL ?
+                                       template_decl_info->parameters : NULL;
         put_string("template parameters =\n");
-        for (tplep = tssp->parameters; tplep != NULL; tplep = tplep->next) {
+        for (tplep = templ_param_list; tplep != NULL; tplep = tplep->next) {
           fprintf(f_debug, "%*s", indentation + 2, "");
           db_symbol(tplep->param_symbol, "", indentation + 4);
           switch (tplep->param_symbol->kind) {
@@ -766,11 +776,6 @@ do_variable:
             fprintf(f_debug, "(routine ptr is NULL)");
           }  /* if */
           fprintf(f_debug, "\n");
-          if (tssp->variant.function.class_declared_in != NULL) {
-            fprintf(f_debug, "%*sclass_declared_in: ", indentation, "");
-            db_type(tssp->variant.function.class_declared_in);
-            fprintf(f_debug, "\n");
-          }  /* if */
           tip = tssp->variant.function.instantiations;
           while (tip != NULL) {
             fprintf(f_debug, "%*sinstantiation", indentation, "");
@@ -1367,6 +1372,27 @@ Free a template cache segment entry and return it to the available list.
 }  /* free_template_cache_segment */
 
 
+a_template_decl_info_ptr alloc_template_decl_info(void)
+/*
+Allocate a new template declaration information entry, initialize its
+fields, and return a pointer to it.
+*/
+{
+  a_template_decl_info_ptr  tdip;
+
+  /* Allocate a template declaration information entry. */
+  tdip = (a_template_decl_info_ptr)alloc_fe(sizeof(a_template_decl_info));
+  tdip->parameters = NULL;
+  tdip->declaration_scope = NO_SCOPE_NUMBER;
+  tdip->enclosing_scope = NULL;
+#if DEBUG
+  num_template_decl_info_allocated++;
+#endif /* DEBUG */
+
+  return tdip;
+}  /* alloc_template_decl_info */
+
+
 a_namespace_symbol_supplement_ptr alloc_namespace_symbol_supplement(void)
 /*
 Allocate a new template symbol supplement entry, initialize its fields, and
@@ -1391,6 +1417,30 @@ return a pointer to it.
 }  /* alloc_namespace_symbol_supplement */
 
 
+void clear_template_cache(a_template_cache_ptr	tcp,
+                          a_boolean		is_reusable)
+/*
+Initialize a template cache.
+*/
+{
+  clear_token_cache(&tcp->tokens, is_reusable);
+  tcp->decl_info = NULL;
+}  /* clear_template_cache */
+
+
+void set_template_cache_info(a_template_cache_ptr	tcp,
+			     a_token_cache_ptr		tokens,
+			     a_template_decl_info_ptr	tdip)
+/*
+Set the fields of a template cache entry.  Only set the field if a non-NULL
+value is passed in.
+*/
+{
+  if (tokens != NULL) tcp->tokens = *tokens;
+  if (tdip != NULL) tcp->decl_info = tdip;
+}  /* set_template_cache_info */
+
+
 a_template_symbol_supplement_ptr alloc_template_symbol_supplement(
                                                           a_symbol_kind  kind)
 /*
@@ -1409,12 +1459,10 @@ and return a pointer to it.
   num_template_symbol_supplements_allocated++;
 #endif /* DEBUG */
   /* Initialize its fields. */
-  tssp->parameters = NULL;
-  tssp->declaration_scope = NO_SCOPE_NUMBER;
   tssp->pending_instantiations = 0;
   tssp->pragmas_bound_to_template = NULL;
   tssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
-  clear_token_cache(&tssp->token_cache, /*reusable=*/TRUE);
+  clear_template_cache(&tssp->cache, /*reusable=*/TRUE);
   tssp->befriending_classes = NULL;
   tssp->cache_segment = NULL;
   switch (kind) {
@@ -1438,11 +1486,10 @@ and return a pointer to it.
       tssp->variant.function.routine = NULL;
       clear_func_info(&tssp->variant.function.func_info);
       tssp->variant.function.def_arg_expr_list = NULL;
-      clear_token_cache(&tssp->variant.function.decl_token_cache,
-                        /*reusable=*/TRUE);
+      clear_template_cache(&tssp->variant.function.decl_cache,
+                          /*reusable=*/TRUE);
       tssp->variant.function.cannot_be_called = FALSE;
       tssp->variant.function.unused_instantiations = 0;
-      tssp->variant.function.class_declared_in = NULL;
 #if CHECKING
       tssp->variant.function.avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */
@@ -1922,10 +1969,12 @@ instantiation scope for a symbol whose header matches the header of sym.
 Return TRUE if a match is found.
 */
 {
-  a_template_param_ptr	tpp;
-  a_boolean		result = FALSE;
+  a_template_param_ptr		tpp;
+  a_boolean			result = FALSE;
+  a_scope_stack_entry_ptr	ssep;
 
-  tpp = scope_stack[depth_innermost_instantiation_scope].template_param_list;
+  ssep = &scope_stack[depth_innermost_instantiation_scope];
+  tpp = ssep->template_decl_info->parameters;
   check_assertion(tpp != NULL);
   while (tpp != NULL && !result) {
     a_symbol_ptr  param_symbol = tpp->param_symbol;
@@ -6690,7 +6739,7 @@ and return a pointer to it.
   check_assertion(sym != NULL);
   ptr->next           = NULL;
   ptr->param_symbol   = sym;
-  clear_token_cache(&ptr->token_cache, /*reusable=*/TRUE);
+  clear_template_cache(&ptr->cache, /*reusable=*/TRUE);
   ptr->has_default_arg = FALSE;
   ptr->def_arg_involves_template_param = FALSE;
 #if CHECKING
@@ -6707,7 +6756,7 @@ and return a pointer to it.
 #endif /* CHECKING */
   }  /* if */
   if (def_arg_involves_template_param) {
-    clear_token_cache(&ptr->default_arg.token_cache, /*reusable=*/TRUE);
+    clear_template_cache(&ptr->default_arg.cache, /*reusable=*/TRUE);
   } else {
     if (sym->kind == (a_symbol_kind)sk_type) {
       ptr->default_arg.type = NULL;
@@ -6800,8 +6849,10 @@ for space tracking purposes.
   db_space_used_lost("template cache segment", avail_template_cache_segments,
                      num_template_cache_segments_allocated,
                      a_template_cache_segment);
+  db_space_used("template decl info", num_template_decl_info_allocated,
+                a_template_decl_info);
   db_space_used("namespace list entry", num_namespace_list_entries_allocated,
-               a_namespace_list_entry);
+                a_namespace_list_entry);
   db_space_used("projection symbol descr", num_projection_descrs_allocated,
                 a_projection_descr);
   db_space_used_lost("access error descr", avail_access_error_descrs,

@@ -1,5 +1,46 @@
 Version 2.31
 
+12/7/95   Incorrect handling of default template arguments and default
+          function template arguments when template parameter names
+          differ between declarations
+
+A bug has been fixed that resulted in spurious errors when default
+template parameters were declared across multiple template declarations
+using different template parameter names.
+
+  template <class T, class T2, class T3 = T2> struct A;
+  template <class U, class U2 = U, class U3> struct A;
+  template <class V, class V2, class V3> struct A { };
+  A<int, char> a2;
+  A<int> a3;
+
+A similar problem existed for template function default arguments.
+This has also been fixed.
+
+  template <class T> void f(T*, T*, T*, T* = new T);
+  template <class U> void f(U*, U*, U* = new U, U*);
+  int main() {
+    int *i;
+    f(i,i);
+  }
+
+12/7/95   Incorrect handling of templates first declared in friend
+          declarations
+
+Version 2.30 introduced a bug that caused templates first declared in
+a friend declaration to be instantiated improperly if the definition
+outside of the class used different template parameter names than
+the declaration inside the class.  This has been fixed.
+
+  template <class T> struct A {
+    template <class T2> friend void f(T2);
+  };
+  A<int> ai;
+  template <class T3> void f(T3){ T3 t;}
+  int main() {
+    f(1);  // Spurious error during instantiation
+  }
+
 12/7/95   IL CHANGE: new field in a_class_member_using_decl
 
 A new field, class_specified_in_qualifier, has been added to

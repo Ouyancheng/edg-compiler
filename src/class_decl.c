@@ -262,6 +262,7 @@ routine recursively for each nested class.
   a_type_ptr                        tp;
   a_class_symbol_supplement_ptr     cssp;
   a_symbol_ptr                      sym;
+  a_template_symbol_supplement_ptr  class_tssp = NULL;
   a_template_symbol_supplement_ptr  tssp = NULL;
   a_boolean                         is_real_template_instantiation = FALSE;
   a_boolean                         is_nonreal_template_instantiation = FALSE;
@@ -272,6 +273,7 @@ routine recursively for each nested class.
 
   db_enter(3, "delayed_scan_fixup_for_class");
   cssp = symbol_supplement_for_class(class_type);
+  class_tssp = cssp->template_info;
   rfp = cssp->routine_fixup_list;
   if (rfp != NULL) {
     /* Do processing for the current class only if there are tokens cached for
@@ -347,7 +349,15 @@ routine recursively for each nested class.
           /* Prototype instantiation. */
           if (sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
             a_def_arg_expr_fixup_ptr  daefp_end;
-
+            a_def_arg_expr_fixup_ptr  daefp_tmp = daefp;
+            /* Update the template declaration information to refer to
+               the declaration information of the enclosing class
+               template. */
+            while (daefp_tmp != NULL) {
+              check_assertion(class_tssp->cache.decl_info != NULL);
+              daefp_tmp->cache.decl_info = class_tssp->cache.decl_info;
+              daefp_tmp = daefp_tmp->next;
+            }  /* while */
             /* Link the default argument list from the template supplement
                onto the end of the list of current default arguments.  The
                list in the supplement must be for arguments that follow the
@@ -355,7 +365,10 @@ routine recursively for each nested class.
                of the current list and link the existing list to the end. */
             daefp_end = daefp;
             if (daefp_end != NULL) {
-              while (daefp_end->next != NULL) daefp_end = daefp_end->next;
+              /* Find the end of the list of new default argument entries. */
+              while (daefp_end->next != NULL) {
+                daefp_end = daefp_end->next;
+              }  /* while */
               tssp = sym->variant.routine.instance_ptr->template_info;
               daefp_end->next = tssp->variant.function.def_arg_expr_list;
               tssp->variant.function.def_arg_expr_list = daefp;
@@ -369,7 +382,7 @@ routine recursively for each nested class.
                that are not for member functions of the current class -- this
                includes friend declarations. */
             for (; daefp != NULL; daefp = daefp->next) {
-              discard_token_cache(&daefp->token_cache);
+              discard_token_cache(&daefp->cache.tokens);
             }  /* for */
           }  /* if */
         } else if (is_real_template_instantiation &&
@@ -380,7 +393,7 @@ routine recursively for each nested class.
              Use the cache from the template symbol supplement instead of
              the one that has just been created. */
           for (; daefp != NULL; daefp = daefp->next) {
-            discard_token_cache(&daefp->token_cache);
+            discard_token_cache(&daefp->cache.tokens);
           }  /* for */
           /* Scan the default arguments associated with the template for this
              function. */
@@ -388,8 +401,11 @@ routine recursively for each nested class.
           tssp = sym->variant.routine.instance_ptr->template_sym->
                                variant.routine.instance_ptr->template_info;
           delayed_scan_for_function_template_default_args(
-                                              tssp->variant.function.routine,
-                                              sym->variant.routine.ptr, tssp);
+                                           tssp->variant.function.routine,
+                                           sym->variant.routine.ptr,
+                                           sym->variant.routine.instance_ptr,
+                                           tssp,
+                                           /*push_instantiation_scope=*/FALSE);
         } else {
           /* A friend (or other non-member-function) declaration in a real
              template instantiation or any declaration in an ordinary
@@ -409,7 +425,7 @@ routine recursively for each nested class.
           for (; daefp != NULL; daefp = daefp->next) {
             /* It's a default arg expression that needs to be rescanned. */
             /* Let get_token know about the cache. */
-            rescan_cached_tokens(&daefp->token_cache);
+            rescan_cached_tokens(&daefp->cache.tokens);
             delayed_scan_of_default_arg_expr(daefp->param_type,
                                             /*check_for_errors=*/TRUE);
           }  /* for */
@@ -489,7 +505,7 @@ routine recursively for each nested class.
         } else if (is_nonreal_template_instantiation) {
           /* Prototype instantiation -- copy the cache for member functions. */
           tssp = sym->variant.routine.instance_ptr->template_info;
-          tssp->token_cache = rfp->function_body_token_cache;
+          tssp->cache.tokens = rfp->function_body_token_cache;
           clear_token_cache(&rfp->function_body_token_cache,
                            /*reusable=*/TRUE);
           /* Also copy the func_info block.  Null out the param-id pointer
@@ -6588,10 +6604,12 @@ completed (C++ only).
       parent_tssp = parent_cssp->template_info;
       class_tssp = tssp;
       tssp->variant.class_template.prototype_instantiation = tag_sym;
-      /* The parameters and declaration scope of the enclosing class are
-         used for the nested class as well. */
-      tssp->parameters = parent_tssp->parameters;
-      tssp->declaration_scope = parent_tssp->declaration_scope;
+      /* A member class of a template class whose body is
+         supplied in the class shares the template declaration
+	 information with the enclosing class. */
+      set_template_cache_info(&tssp->cache,
+                              (a_token_cache_ptr)NULL,
+                              parent_tssp->cache.decl_info);
       tssp->variant.class_template.name_linkage =
                              parent_tssp->variant.class_template.name_linkage;
       /* The cache segment information is used later to remove nested class
@@ -7467,15 +7485,19 @@ completed (C++ only).
               if (!friend_specified && is_nonreal_instantiation) {
                 /* A member function of a nonreal class serves as a
                    template, and since this is the definition the
-                   template-info associated with this member function must
-                   be updated, based on the template-info of the prototype
+                   template_info associated with this member function must
+                   be updated, based on the template_info of the prototype
                    instantiation.  Note that the current class may be
                    nested within the prototype instantiation. */
                 a_template_symbol_supplement_ptr  tssp;
 
+                /* A member function of a template class whose body is
+		   supplied in the class shares the template declaration
+		   information with the enclosing class. */
                 tssp = rout_sym->variant.routine.instance_ptr->template_info;
-                tssp->parameters = class_tssp->parameters;
-                tssp->declaration_scope = class_tssp->declaration_scope;
+                set_template_cache_info(&tssp->cache,
+                                        (a_token_cache_ptr)NULL,
+                                        class_tssp->cache.decl_info);
                 tssp->cache_segment = alloc_template_cache_segment(rout_sym,
                                                                    tssp);
                 tssp->cache_segment->first_token_number = first_token_number;

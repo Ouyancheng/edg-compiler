@@ -305,9 +305,9 @@ param_type.
         } else {
           ptr_routine_type = make_pointer_type(routine_type);
         }  /* if */
-        if (tentatively_matches_template_type(ptr_routine_type,
-                                              param_type,
-                                              tssp->parameters)) {
+        if (tentatively_matches_template_type(
+                    ptr_routine_type, param_type,
+                    tssp->variant.function.decl_cache.decl_info->parameters)) {
           /* This function matches.  Only one is allowed to match, so if
              a previous one matched, the overall match fails. */ 
           if (can_be_arg) {
@@ -2308,17 +2308,16 @@ evaluated (but not checked to see if the match is good enough).
       if (is_array_type(arg_type) &&
           (!param_is_reference ||
            array_transformation_needed_on_template_reference_init(
-                                                          arg_type,
-                                                          param_type,
-                                                          tssp->parameters))) {
+                   arg_type, param_type,
+                   tssp->variant.function.decl_cache.decl_info->parameters))) {
         /* Simulate the array --> pointer transformation.  */
         arg_type = type_after_array_to_pointer_transformation(arg_type);
       } else if (is_a_function_designator(&arg_operand->operand) &&
                  (!param_is_reference ||
                   function_transformation_needed_on_template_reference_init(
-                                                          arg_type,
-                                                          param_type,
-                                                          tssp->parameters))) {
+                                       arg_type, param_type,
+                                       tssp->variant.function.decl_cache.
+                                                     decl_info->parameters))) {
         /* Simulate the function --> pointer transformation. */
         arg_type = type_after_function_to_pointer_transformation(arg_type,
                                                         &arg_operand->operand);
@@ -2365,7 +2364,8 @@ evaluated (but not checked to see if the match is good enough).
          This conversion was not allowed by the ARM but has been blessed
          by the standards committee. */
       if (!matches_template_type(arg_type, param_type, &templ_arg_list,
-                                 tssp->parameters,
+                                 tssp->variant.function.decl_cache.
+                                                         decl_info->parameters,
                                  /*allow_conversion=*/TRUE,
                                  &base_class_conv_needed)) {
         /* Mismatch. */
@@ -2420,7 +2420,8 @@ evaluated (but not checked to see if the match is good enough).
   /* Make sure that the types of nontype template parameters that depend
      on other template parameters agree with the types of the deduced
      values. */
-  if (!verify_function_template_nontype_args(templ_arg_list, templ_sym)) {
+  if (!verify_function_template_nontype_args(templ_arg_list, templ_sym,
+                                             (a_template_param_ptr)NULL)) {
     goto done;
   }  /* if */
   if (arg_operand != NULL) {

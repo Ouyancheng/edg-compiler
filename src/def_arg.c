@@ -69,7 +69,7 @@ entry and initialize it.
   /* Clear the entity. */
   daefp->next = NULL;
   daefp->param_type = NULL;
-  clear_token_cache(&daefp->token_cache, /*reusable=*/FALSE);
+  clear_template_cache(&daefp->cache, /*reusable=*/FALSE);
 
   return daefp;
 }  /* alloc_def_arg_expr_fixup */
@@ -142,7 +142,7 @@ entry onto the list provided by the caller.
   /* Allocate a default arg expr fixup entry. */
   new_daefp = alloc_def_arg_expr_fixup();
   new_daefp->param_type = ptp;
-  new_daefp->token_cache = token_cache;
+  new_daefp->cache.tokens = token_cache;
   if (list == NULL) {
     /* No list pointer was passed by the caller.  This indicates that the
        argument information should simply be discarded. */

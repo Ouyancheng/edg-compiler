@@ -42,9 +42,12 @@ typedef struct a_def_arg_expr_fixup {
 			/* Next in a linked list of entries representing
 			   default argument expressions for the parameters
 			   of a given function. */
-  a_token_cache token_cache;
-			/* A pointer to the token cache that describes the
-			   default argument expression. */
+  a_template_cache
+		cache;
+			/* A pointer to the template cache that describes the
+			   default argument expression tokens, and the
+			   template declaration information if the tokens
+			   are part of a template. */
   a_param_type_ptr
 		param_type;
 			/* A pointer to the param type entry in which the

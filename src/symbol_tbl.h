@@ -30,6 +30,8 @@ typedef struct an_extern_type_fixup *an_extern_type_fixup_ptr;
 typedef struct a_template_param *a_template_param_ptr;
 typedef struct an_access_error_descr *an_access_error_descr_ptr;
 typedef struct a_template_cache_segment *a_template_cache_segment_ptr;
+typedef struct a_template_decl_info *a_template_decl_info_ptr;
+typedef struct a_template_cache *a_template_cache_ptr;
 
 /* The pointer to a_routine_fixup is declared here even though the struct
    itself is defined in class_decl.c.  This allows the pointer to be made
@@ -874,6 +876,44 @@ typedef struct a_func_info_block {
 } a_func_info_block;
 
 
+/*
+Structure that contains the information about a template declaration that
+is needed to recreate the context in which tokens from the declaration
+should be rescanned when creating an instantiation.
+*/
+typedef struct a_template_decl_info {
+  a_template_param_ptr
+		parameters;
+		/* The formal template parameters that must be visible when
+		   then tokens are rescanned. */
+  a_scope_number
+		declaration_scope;
+		/* The scope number assigned when the template declaration
+		   containing these tokens was scanned.  This scope
+		   needs to be used when the tokens are scanned for the
+		   parameter symbols to be visible. */
+  a_scope_ptr	enclosing_scope;
+		/* The scope containing the template declaration of which
+		   these tokens are a part. */
+} a_template_decl_info;
+
+
+/*
+Structure that contains a token cache that represents a template or
+part of a template, and the information needed to recreate the context
+in which the tokens should be rescanned.
+*/
+typedef struct a_template_cache {
+  a_token_cache	tokens;
+		/* The token cache containing the tokens. */
+  a_template_decl_info_ptr
+		decl_info;
+		/* Pointer to the template declaration information associated
+	           with the template declaration that contained the tokens
+		   in the token cache above. */
+} a_template_cache;
+
+
 typedef struct a_template_param {
   /* Information describing a template formal parameter.  Pointed to by the
      template symbol supplement. */
@@ -883,7 +923,8 @@ typedef struct a_template_param {
   a_symbol_ptr	param_symbol;
 			/* Symbol entry for a formal parameters of the
                            template. */
-  a_token_cache	token_cache;
+  a_template_cache
+		cache;
 			/* Contains the cached tokens that comprise the
 			   template parameter declaration.  Used to
 			   create the parameter types for instances of
@@ -939,9 +980,9 @@ typedef struct a_template_param {
 			   the actual argument corresponding to this parameter
 			   is omitted. */
     /* When def_arg_involves_template_param is TRUE. */
-    a_token_cache
-		token_cache;
-			/* Header of the token cache that contains the
+    a_template_cache
+		cache;
+			/* Header of the template cache that contains the
 			   tokens of the default argument expression. */
   } default_arg;
 } a_template_param;
@@ -1100,11 +1141,8 @@ typedef short an_unused_instantiation_count;
 typedef struct a_template_symbol_supplement {
   /* Additional information about a C++ class or function template
      supplementing the information residing in the class's symbol entry. */
-  a_template_param_ptr
-                parameters;
-			/* Symbol entries for formal parameters of the
-                           template. */
-  a_token_cache token_cache;
+  a_template_cache
+		cache;
                         /* The tokens comprising the template are cached
                            in order to be rescanned later during
                            instantiation.  Typically begins with the left
@@ -1113,12 +1151,6 @@ typedef struct a_template_symbol_supplement {
 			   may begin at a colon.  For templates for static
 			   data members it embraces the initializer
 			   expression, if any. */
-  a_scope_number
-                declaration_scope;
-                        /* The scope number assigned when the template
-                           declaration is processed.  This scope needs
-                           to be used at instantiation for symbol lookup
-                           to work properly. */
   a_pending_instantiation_count
 		pending_instantiations;
 			/* The number of instantiations of this template
@@ -1217,8 +1249,8 @@ typedef struct a_template_symbol_supplement {
 			/* List of entries describing default argument
 			   expressions associated with parameters for
 			   this template declaration. */
-      a_token_cache
-		decl_token_cache;
+      a_template_cache
+		decl_cache;
 			/* A cache of the tokens that comprise the function
 			   declaration.  These are rescanned later to create
 			   routine types for instances of the function
@@ -1250,15 +1282,6 @@ typedef struct a_template_symbol_supplement {
 			   instantiations that can be generated for a given
 			   function.  This field records the number of unused
 			   instantiations that have been performed so far. */
-      a_type_ptr
-	        class_declared_in;
-                        /* This field is used for template friend declarations
-			   that appear inside class definitions.  It points
-			   to the class in which the template declaration was
-			   found.  When instantiating the function the
-			   class scope must be reactivated.  If the class is
-			   a template instance, the template parameters must
-			   also be reactivated. */
     } function;
     /* When symbol kind = sk_static_data_member: */
     struct {
@@ -1283,7 +1306,7 @@ typedef struct a_namespace_symbol_supplement {
 			   symbols declared in the namespace and pointers to
 			   the last entries in linked lists of IL entries
 			   entered in the associated IL scope. */
-  a_scope_number
+  a_scope_depth
 		scope_depth_at_which_using_directive_applies;
 			/* Contains the scope depth of the scope at which
                            symbols from this namespace should be visible.
@@ -1294,7 +1317,7 @@ typedef struct a_namespace_symbol_supplement {
                            is visible at more than one point, this contains
                            the depth of the innermost scope at which it
                            is visible. */
-  a_scope_number
+  a_scope_depth
 		depth_innermost_active_using_directive;
 			/* The scope depth at which the innermost using
 			   directive for this namespace appeared.  Contains
@@ -1342,7 +1365,7 @@ typedef struct an_active_using_directive {
 			   alias, this field points to the namespace
 			   supplement associated with the underlying
 			   namespace. */
-  a_scope_number
+  a_scope_depth
 		scope_depth_at_which_using_directive_applies;
 			/* Contains the scope depth of the scope at which
                            symbols from this namespace should be visible.
@@ -1925,6 +1948,17 @@ extern void free_template_cache_segment(a_template_cache_segment_ptr tcsp);
 
 extern a_namespace_symbol_supplement_ptr
                                    alloc_namespace_symbol_supplement(void);
+
+extern a_template_decl_info_ptr alloc_template_decl_info(void);
+
+extern
+void clear_template_cache(a_template_cache_ptr	tcp,
+                          a_boolean		is_reusable);
+
+extern
+void set_template_cache_info(a_template_cache_ptr	tcp,
+			     a_token_cache_ptr		tokens,
+			     a_template_decl_info_ptr	tdip);
 
 extern a_template_symbol_supplement_ptr alloc_template_symbol_supplement(
                                                          a_symbol_kind  kind);

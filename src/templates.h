@@ -57,8 +57,9 @@ a_boolean tentatively_matches_template_type(
                                a_template_param_ptr templ_param_list);
 
 extern a_boolean verify_function_template_nontype_args(
-                                        a_template_arg_ptr templ_arg_list,
-                                        a_symbol_ptr       rout_templ_sym);
+                                        a_template_arg_ptr   templ_arg_list,
+                                        a_symbol_ptr         rout_templ_sym,
+                                        a_template_param_ptr templ_param_list);
 
 
 extern a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
@@ -101,10 +102,13 @@ extern a_boolean equiv_template_arg_lists(
 
 extern void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp);
 
-extern void delayed_scan_for_function_template_default_args(
-			  a_routine_ptr			   templ_rout,
-			  a_routine_ptr			   rout_ptr,
-			  a_template_symbol_supplement_ptr tssp);
+extern
+void delayed_scan_for_function_template_default_args(
+		    a_routine_ptr		     templ_rout,
+		    a_routine_ptr		     rout_ptr,
+                    a_template_instance_ptr	     tip,
+                    a_template_symbol_supplement_ptr tssp,
+                    a_boolean                        push_instantiation_scope);
 
 extern a_symbol_ptr template_declaration(a_boolean  *defines_something,
                                         a_boolean no_advance_past_final_token);
