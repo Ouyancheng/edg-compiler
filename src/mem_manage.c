@@ -71,12 +71,14 @@ static a_boolean
 			   mmap memory) is being used for memory region
 			   blocks. */
 
+#if 0
 static a_boolean
 		use_initialization_memory = TRUE;
 			/* TRUE if we are currently executing initialization
 			   code.  Specifically, this is code that is executed
 			   prior to determining whether to reload the
 			   compiler state from a precompiled header file. */
+#endif /* 0 */
 
 static a_boolean
 		record_malloc_history;
@@ -277,7 +279,7 @@ static int	page_size;
 			   be requested in increments of this size. */
 
 
-static a_void_ptr alloc_new_mem_block(sizeof_t size)
+a_void_ptr alloc_new_mem_block(sizeof_t size)
 /*
 Allocate a block of memory to be used for memory region storage.  This
 version uses a memory mapped file to obtain the storage.  This is done
@@ -533,13 +535,10 @@ Free any unallocated space remaining in the indicated memory block.
 }  /* trim_mem_block */
 
 
-void init_memory_region(a_memory_region_number region_number,
-                        sizeof_t               min_size)
+void ensure_mem_region_table_space(a_memory_region_number region_number)
 /*
-Initialize the indicated region number.  Allocate at least min_size bytes
-as the initial allocation for the region.  In general, new_memory_region
-should be called instead.  init_memory_region is called directly for the
-special "front end" memory region.
+Make sure that the memory region tables are large enough to hold
+the number of entries indicated by region_number.
 */
 {
   a_memory_region_number old_size;
@@ -602,6 +601,19 @@ special "front end" memory region.
     size_of_allocated_in_region = size_of_mem_region_table;
   }  /* if */
 #endif /* DEBUG */
+}  /* ensure_mem_region_table_space */
+
+
+void init_memory_region(a_memory_region_number region_number,
+                        sizeof_t               min_size)
+/*
+Initialize the indicated region number.  Allocate at least min_size bytes
+as the initial allocation for the region.  In general, new_memory_region
+should be called instead.  init_memory_region is called directly for the
+special "front end" memory region.
+*/
+{
+  ensure_mem_region_table_space(region_number);
   mem_region_table[region_number] = NULL;
   /* Allocate the initial memory block. */
   (void)alloc_mem_block(region_number, min_size);
@@ -712,6 +724,22 @@ if the back end is executed in the same program.
 #endif /* DEBUG */
   return ptr;
 }  /* alloc_general */
+
+
+#if !DEBUG
+/*ARGSUSED*/ /* <-- size is not used if !DEBUG. */
+#endif /* DEBUG */
+void free_general(a_void_ptr	ptr,
+                  sizeof_t	size)
+/*
+Free a block of memory to general storage.
+*/
+{
+  free(ptr);
+#if DEBUG
+  total_general_mem_allocated += size;
+#endif /* DEBUG */
+}  /* free_general */
 
 
 char *realloc_general(char     *old_ptr,

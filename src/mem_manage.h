@@ -102,6 +102,9 @@ extern char *alloc_pufe(sizeof_t size);
 #endif /* ifdef FFE */
 /* Allocate space in "general" storage. */
 extern char *alloc_general(sizeof_t size);
+/* Free space in "general" storage. */
+extern void free_general(a_void_ptr ptr,
+                    sizeof_t   size);
 /* Resize allocated space in "general" storage. */
 extern char *realloc_general(char     *old_ptr,
                              sizeof_t old_size,
@@ -110,12 +113,18 @@ extern char *realloc_general(char     *old_ptr,
 extern char *alloc_in_region(a_memory_region_number number,
                              sizeof_t               size);
 
+/* Make sure that mem_region_table is large enough. */
+extern
+void ensure_mem_region_table_space(a_memory_region_number region_number);
+
 /*
 Macro to allocate and return "size" bytes of storage that will last through
 execution of the front end.
 */
 #define alloc_fe(size) alloc_in_region(NULL_region_number, size)
 
+/* Allocate a block of memory to be used for memory region storage. */
+extern a_void_ptr alloc_new_mem_block(sizeof_t size);
 /* Create a new memory region. */
 extern a_memory_region_number new_memory_region(void);
 /* Initialize a memory region. */
@@ -188,6 +197,12 @@ EXTERN a_boolean
 			   management is done.  The memory for regions that
 			   may need to be written out as part of the PCH
 			   cannot be freed until after the PCH is written. */
+
+/*
+Macro that is TRUE if two memory allocation history entries are equivalent.
+*/
+#define equivalent_mem_alloc_history(m1, m2)				\
+  ((m1).addr == (m2).addr && (m1).size == (m2).size)
 
 #if DEBUG
 EXTERN unsigned long

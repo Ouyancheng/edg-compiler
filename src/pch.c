@@ -95,9 +95,100 @@ static an_error_code
 			/* An error code that specifies why a given
 			   precompiled header file could not be used. */
 
+/*
+Macro to write a value to the PCH output file.
+*/
+#define pch_write_value(value)						\
+  (void)fwrite(&value, sizeof(value), 1, f_pch_output);
+
+
+/*
+Macro to read a value from the PCH input file.
+*/
+#define pch_read_value(value)						\
+  if (fread(&(value), sizeof((value)), 1, f_pch_input) != 1) {		\
+    unexpected_condition_str("PCH read error");				\
+  }  /* if */
+
+
+/*
+Macro to perform an fread with an error check.
+*/
+#define fread_with_check(value, length, file)				\
+  if (fread((value), (length), 1, (file)) != 1) {			\
+    unexpected_condition_str("PCH read error");				\
+  }  /* if */
+
+
 #if DEBUG
 static long	num_pch_events_allocated;
 #endif /* DEBUG */
+
+#if CHECKING
+/* Enumeration of sections of the PCH file.  This is used to make sure that
+   the file is positioned at the correct location before a section of the
+   file is read. */
+typedef enum /* a_pch_file_section */ {
+  pfs_cmd_line_events,
+  pfs_other_events,
+  pfs_include_file_info,
+  pfs_mem_alloc_info,
+  pfs_saved_variables,
+  pfs_memory_regions,
+  pfs_last		/* Must be last. */
+} a_pch_file_section;
+
+static char	*file_section_names[(int)pfs_last + 1] =
+{
+  "cmd_line_events",
+  "other_events",
+  "include_file_info",
+  "mem_alloc_info",
+  "saved_variables",
+  "memory_regions",
+  "last"
+};
+
+
+static void write_file_section_id(a_pch_file_section section)
+/*
+Write the file section ID to the PCH file.
+*/
+{
+  pch_write_value(section);
+}  /* write_file_section_id */
+
+
+static void check_file_section_id(a_pch_file_section section)
+/*
+Read a file section ID from the PCH file and compare it with the expected
+value passed by the caller.
+*/
+{
+  a_pch_file_section	section_in_file;
+
+  pch_read_value(section_in_file);
+#if DEBUG
+  if (section_in_file != section) {
+    fprintf(f_debug, "Incorrect file section ID: expected %0d, got %0d\n",
+            section, section_in_file);
+    fprintf(f_debug, "  (expected name: %s, got name: %s\n",
+            file_section_names[(int)section],
+            file_section_names[(int)section_in_file]);
+  }  /* if */
+#endif /* DEBUG */
+  check_assertion_str2(section_in_file == section,
+                       "check_file_section_id:",
+                       "incorrect file section encountered");
+}  /* check_file_section_id */
+#else /* !CHECKING */
+/*
+When not generating checking code, these functions are replaced with NULL
+macros.
+*/
+#define write_file_section_id(value) /* Nothing. */
+#define check_file_section_id(value) /* Nothing. */
+#endif /* CHECKING */
 
 			
 #define PCH_BUFFER_INITIAL_ALLOCATION 2048
@@ -470,31 +561,6 @@ Create or truncate the precompiled header file.
 }  /* open_pch_output_file */
 
 
-/*
-Macro to write a value to the PCH output file.
-*/
-#define pch_write_value(value)						\
-  (void)fwrite(&value, sizeof(value), 1, f_pch_output);
-
-
-/*
-Macro to read a value from the PCH input file.
-*/
-#define pch_read_value(value)						\
-  if (fread(&(value), sizeof((value)), 1, f_pch_input) != 1) {		\
-    unexpected_condition_str("PCH read error");				\
-  }  /* if */
-
-
-/*
-Macro to perform an fread with an error check.
-*/
-#define fread_with_check(value, length, file)				\
-  if (fread((value), (length), 1, (file)) != 1) {			\
-    unexpected_condition_str("PCH read error");				\
-  }  /* if */
-
-
 static void pch_write_string(char	*str)
 /*
 Write a null terminated character string to the PCH output file.  The
@@ -738,6 +804,7 @@ variable lists.
   a_pch_saved_variable_ptr	psvp;
 
   db_enter(4, "read_saved_variables");
+  check_file_section_id(pfs_saved_variables);
   for (i = 0; i < num_of_saved_variable_lists; ++i) {
     psvp = saved_variable_array_list[i];
     for (psvp = saved_variable_array_list[i];
@@ -775,10 +842,75 @@ file.
 }  /* write_mem_alloc_history */
 
 
+static void read_mem_alloc_history(void)
+/*
+Read the memory allocation history information from the PCH input file and
+restore the memory allocation state.  First, make sure that any memory 
+already allocated by the current process matches the corresponding
+entries read from the file.  If so, duplicate the remaining entries in the
+allocation list so that we know we have reserved the memory needed to
+restore the memory regions.
+*/
+{
+  a_boolean			successful = TRUE;
+  a_mem_alloc_history_number	new_size;
+  a_mem_alloc_history_number	new_num_entries;
+  a_mem_alloc_history_ptr	new_alloc_hist;
+  a_mem_alloc_history_number	n;
+  sizeof_t			bytes_in_new_alloc_hist;
+
+  db_enter(4, "read_mem_alloc_history");
+  check_file_section_id(pfs_mem_alloc_info);
+  /* Read the memory allocation history information.  Read it into
+     a separate area so that it can be compared with the existing
+     information. */
+  pch_read_value(new_size);
+  pch_read_value(new_num_entries);
+  bytes_in_new_alloc_hist = new_num_entries * sizeof(a_mem_alloc_history);
+  new_alloc_hist = (a_mem_alloc_history_ptr)alloc_general
+                             (bytes_in_new_alloc_hist);
+  fread_with_check(new_alloc_hist,
+                   bytes_in_new_alloc_hist,
+                   f_pch_input);
+  /* Make sure the entries for the current compilation match the initial
+     entries read from the file. */
+  for (n = 0; n < num_of_mem_alloc_history_entries; ++n) {
+    if (!equivalent_mem_alloc_history(mem_alloc_history[n],
+                                     new_alloc_hist[n])) {
+      successful = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (successful) {
+    /* The memory allocations that have been done so far are compatible
+       with those done in the original compilation.  Perform the
+       remaining allocations needed to read in the memory regions. */
+    for (; n < new_num_entries; ++n) {
+      (void)alloc_new_mem_block(new_alloc_hist[n].size);
+      if (!equivalent_mem_alloc_history(mem_alloc_history[n],
+                                       new_alloc_hist[n])) {
+        successful = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+#if 0
+    /* How should this memory be freed if a failure occurred during
+       allocation? */
+#endif /* 0 */
+  }  /* if */
+  /* Free the new allocation history information. */
+  free_general((a_void_ptr)new_alloc_hist, bytes_in_new_alloc_hist);
+  db_exit();
+}  /* read_mem_alloc_history */
+
+
 static void write_a_memory_region(a_memory_region_number number)
 /*
 Write the blocks comprising a single memory region to the PCH output
-file.
+file.  The header information is written out as part of the memory
+block.  In order to use the precompiled header, we first guarantee that
+the memory blocks used for memory region storage have been allocated
+in exactly the same manner as that in which they were created.
 */
 {
   a_mem_block_header_ptr	mbhp = mem_region_table[number];
@@ -789,18 +921,49 @@ file.
 #endif /* DEBUG */
   while (mbhp != NULL) {
     sizeof_t	size;
-    size = mbhp->next_avail_in_block - mbhp->start_of_block;
+    size = mbhp->next_avail_in_block - (char *)mbhp;
     pch_write_value(size);
-    fwrite(mbhp->start_of_block, size, 1, f_pch_output);
+    pch_write_value(mbhp);
+    fwrite((char *)mbhp, size, 1, f_pch_output);
 #if DEBUG
     if (debug_level >= 0) {
       fprintf(f_debug, "Writing %lu bytes from %p\n", size,
-              mbhp->start_of_block);
+              mbhp);
     }  /* if */
 #endif /* DEBUG */
     mbhp = mbhp->next;
   }  /* while */
 }  /* write_a_memory_region */
+
+
+static void read_a_memory_region(a_memory_region_number number)
+/*
+Read the blocks comprising a single memory region from the PCH input
+file.  See write_a_memory_region for more information.
+*/
+{
+  a_mem_block_header_ptr	mbhp = mem_region_table[number];
+#if DEBUG
+  if (debug_level >= 0) {
+    fprintf(f_debug, "Reading memory region %0d\n", number);
+  }  /* if */
+#endif /* DEBUG */
+  for (;;) {
+    sizeof_t	size;
+    size = mbhp->next_avail_in_block - (char *)mbhp;
+    pch_read_value(size);
+    pch_read_value(mbhp);
+#if DEBUG
+    if (debug_level >= 0) {
+      fprintf(f_debug, "Reading %lu bytes into %p\n", size,
+              mbhp);
+    }  /* if */
+#endif /* DEBUG */
+    fread_with_check((char *)mbhp, size, f_pch_input);
+    /* See if this is the last block in the memory region. */
+    if (mbhp->next == NULL) break;
+  }  /* for */
+}  /* read_a_memory_region */
 
 
 static void write_memory_regions(void)
@@ -817,6 +980,9 @@ header information about the memory regions such as the memory_region_table.
      the IL header.  Note that index_for_il_file is not written. */
   pch_write_value(size_of_mem_region_table);
   pch_write_value(highest_used_region_number);
+#if DEBUG
+  pch_write_value(size_of_allocated_in_region);
+#endif /* DEBUG */
   fwrite(mem_region_table,
          sizeof(a_mem_block_header_ptr) * mem_regions_used, 1,
          f_pch_output);
@@ -825,7 +991,6 @@ header information about the memory regions such as the memory_region_table.
          f_pch_output);
 #if DEBUG
   /* Write the allocated_in_region information. */
-  pch_write_value(size_of_allocated_in_region);
   fwrite(allocated_in_region,
          sizeof(unsigned long) * mem_regions_used, 1,
          f_pch_output);
@@ -835,6 +1000,47 @@ header information about the memory regions such as the memory_region_table.
   }  /* for */
   db_exit();
 }  /* write_memory_regions */
+
+
+static void read_memory_regions(void)
+/*
+Read the memory region information from the PCH output file.  This includes
+header information about the memory regions such as the memory_region_table.
+*/
+{
+  a_memory_region_number	n;
+  a_memory_region_number	mem_regions_used;
+
+  db_enter(4, "read_memory_regions");
+  check_file_section_id(pfs_memory_regions);
+  /* Read the memory region table and the region_scope_entry table from
+     the IL header.  Note that index_for_il_file is not written. */
+  pch_read_value(size_of_mem_region_table);
+  pch_read_value(highest_used_region_number);
+#if DEBUG
+  pch_read_value(size_of_allocated_in_region);
+#endif /* DEBUG */
+  /* Make sure that the tables allocated to store the memory region
+     information are large enough. */
+  ensure_mem_region_table_space(highest_used_region_number);
+  mem_regions_used = highest_used_region_number + 1;
+  fread_with_check(mem_region_table,
+                  sizeof(a_mem_block_header_ptr) * mem_regions_used,
+                  f_pch_input);
+  fread_with_check(il_header.region_scope_entry,
+                   sizeof(a_scope_ptr) * mem_regions_used,
+                   f_pch_input);
+#if DEBUG
+  /* Read the allocated_in_region information. */
+  fread_with_check(allocated_in_region,
+                   sizeof(unsigned long) * mem_regions_used,
+                   f_pch_input);
+#endif /* DEBUG */
+  for (n = 0; n < mem_regions_used; ++n) {
+    read_a_memory_region(n);
+  }  /* for */
+  db_exit();
+}  /* read_memory_regions */
 
 
 void write_precompiled_header_file(void)
@@ -850,16 +1056,22 @@ current point.
   /* Current directory name. */
   pch_write_string(curr_dir_name);
   /* Write the event list that will be used for PCH file matching. */
+  write_file_section_id(pfs_cmd_line_events);
   write_pch_events(pch_cmd_line_event_list_head);
+  write_file_section_id(pfs_other_events);
   write_pch_events(pch_event_list_head);
   /* Write dependency checking information. */
   /* Include file names and timestamps. */
+  write_file_section_id(pfs_include_file_info);
   write_include_file_timestamps();
   /* Write the memory allocation history information. */
+  write_file_section_id(pfs_mem_alloc_info);
   write_mem_alloc_history();
   /* Write the compilation state to be restored. */
+  write_file_section_id(pfs_saved_variables);
   write_saved_variables();
   /* Write the memory region information. */
+  write_file_section_id(pfs_memory_regions);
   write_memory_regions();
   (void)fclose(f_pch_output);
 }  /* write_precompiled_header_file */
@@ -915,7 +1127,8 @@ and make the modification times match the current values for the files.
 {
   a_boolean	match = TRUE;
 
-  for (;;) {
+ check_file_section_id(pfs_include_file_info);
+ for (;;) {
     char	*file_name;
     time_t	time_from_file;
     time_t	curr_time;
@@ -952,6 +1165,7 @@ all match.
   a_boolean		match = TRUE;
 
   db_enter(4, "cmd_line_events_match");
+  check_file_section_id(pfs_cmd_line_events);
   /* Loop through the command line events until one that does not match
      is found. */
   for (pep = pch_cmd_line_event_list_head; pep != NULL; pep = pep->next) {
@@ -988,6 +1202,7 @@ pch file.  Return a pointer to the last matching event.
   a_boolean		match;
   
   db_enter(4, "compare_event_lists");
+  check_file_section_id(pfs_other_events);
   /* Clear the match_found flags in the event list for the current file. */
   for (pep = pch_event_list_head; pep != NULL; pep = pep->next) {
     pep->match_found = FALSE;
@@ -1145,7 +1360,7 @@ directory.  Return TRUE if an applicable PCH was found.
     /* See if this PCH file can be used. */
     last_matching_event = pch_is_applicable();
     is_applicable = last_matching_event != NULL;
-    result = TRUE;
+    if (is_applicable) result = TRUE;
 #if DEBUG
     if (debug_level >= 1) {
       fprintf(f_debug, "PCH file %s, applicable: %s",
@@ -1231,9 +1446,9 @@ may be used.
     }  /* if */
   }  /* if */
   if (can_use_pch) {
-#if 0
+    read_mem_alloc_history();
     read_saved_variables();
-#endif /* 0 */
+    read_memory_regions();
   }  /* if */
 }  /* restore_precompiled_header_information */
 
@@ -1259,7 +1474,7 @@ be used as part of the applicability check in subsequent compilations.
      using a precompiled header. */
   build_prefix_information();
   if (automatic_pch_processing) {
-    find_applicable_pch();
+    applicable_pch_found = find_applicable_pch();
   }  /* if */
   if (use_precompiled_header ||
       (automatic_pch_processing && applicable_pch_found)) {
