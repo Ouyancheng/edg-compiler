@@ -6721,7 +6721,7 @@ The current function source sequence entry is for that switch clause.
       write_tok_str("case ");
       gen_constant(con, /*need_parens=*/FALSE);
       con = con->next;
-      if (con->source_corresp.decl_position.seq == 0) {
+      if (con != NULL && con->source_corresp.decl_position.seq == 0) {
         a_constant_ptr  last = con;
         /* A GNU C case range.  Skip to the last constant with a null
            position. */
