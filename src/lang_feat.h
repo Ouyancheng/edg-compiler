@@ -353,6 +353,17 @@ a synonym for it.
 #endif /* ifndef PRAGMA_WEAK_ALLOWED */
 
 /*
+Flag that is TRUE if "//" is recognized by default in C mode as a comment
+delimiter.  This flag is ignored in C++ and in Microsoft C compatibility mode,
+since the feature is turned on by default in those cases.  Note: even when
+this flag is set, end-of-line comments are not allowed in strict ANSI/ISO C
+mode.  Used to set global variable end_of_line_comments_allowed.
+*/
+#ifndef END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE
+#define END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE FALSE
+#endif /* END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE */
+
+/*
 Flag that is TRUE if "#pragma ident" and "#ident" are recognized.
 Both are implemented by recording the string in a pragma entry and passing
 it to the back end.
