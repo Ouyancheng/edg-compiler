@@ -1,5 +1,13 @@
 Version 2.29
 
+3/13/95  Preserving "!= 0" in IL lowering
+
+Boolean controlling expressions in "?", "&&", "||", and "!" operators
+are defined by the IL as having a "standardized" value; if necessary,
+a "!= 0" test is added by the front end to ensure that.  IL lowering
+in some cases did transformations that destroyed that guarantee.
+Now corrected.
+
 3/13/95  Bug in finding user-defined conversion
 
 A bug has been fixed that resulted in a spurious error on the following:
