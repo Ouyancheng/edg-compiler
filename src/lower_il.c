@@ -10063,7 +10063,7 @@ with the outermost enclosing class, for later promotion out of the class
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
       mangle_promoted_entity_name(&type->source_corresp, routine, scope);
-      /* The is_local_function flag in the type is not cleared yet.  That
+      /* The is_local_to_function flag in the type is not cleared yet.  That
          happens at the end of lowering. */
       if (routine_class == NULL) {
         /* Not promoting from a member function: just add to the file-scope
