@@ -1375,7 +1375,11 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     /* Check for another exact match case, for pointers involving addition
        of type qualifiers on the type pointed to (the "T* --> (qualified T)*"
        case). */
-    if (is_pointer_type(param_type) && is_pointer_type(arg_type)) {
+    if (is_pointer_type(param_type) && is_pointer_type(arg_type)
+#ifdef pointer_types_have_same_repr
+        && pointer_types_have_same_repr(param_type, arg_type)
+#endif /* ifdef pointer_types_have_same_repr */
+                                                             ) {
       a_type_ptr arg_type_pointed_to = type_pointed_to(arg_type);
       a_type_ptr param_type_pointed_to = type_pointed_to(param_type);
       if (types_are_compatible_ignoring_qualifiers(arg_type_pointed_to,
@@ -2480,7 +2484,11 @@ evaluated (but not checked to see if the match is good enough).
         complete_type_is_needed(arg_type);
         if (is_incomplete_type(arg_type)) goto done;
       }  /* if */
-      if (is_pointer_type(arg_type) && is_pointer_type(param_type)) {
+      if (is_pointer_type(arg_type) && is_pointer_type(param_type)
+#ifdef pointer_types_have_same_repr
+          && pointer_types_have_same_repr(arg_type, param_type)
+#endif /* ifdef pointer_types_have_same_repr */
+                                                               ) {
         /* Check for cases where type qualifiers are being added down one
            level in a pointer case, e.g., int * --> const int *.
            This is another trivial conversion.
