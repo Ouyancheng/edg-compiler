@@ -116,6 +116,7 @@ be specified as NULL.  The name may be NULL.
         /* Otherwise: */
                                             (a_name_linkage_kind)nlk_none;
   rout->type = rout_type;
+  rout->compiler_generated = TRUE;
   /* Add the routine to the file scope list. */
   add_to_routines_list(rout, /*at_file_scope=*/TRUE);
   return rout;
