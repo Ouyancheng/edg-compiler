@@ -946,13 +946,12 @@ for a local entity, for the IA-64 ABI.
     suppress_param_encoding = TRUE;
     suppress_parent_encoding = TRUE;
   }  /* if */
-  mangled_function_name_externalized_if_necessary(
-                                         routine,
-                                         suppress_param_encoding,
-                                         suppress_parent_encoding,
-                                         /*force_primary_name=*/TRUE,
-                                         /*base_name_offset=*/(sizeof_t *)NULL,
-                                         mctl);
+  mangled_function_name(routine,
+                        suppress_param_encoding,
+                        suppress_parent_encoding,
+                        /*force_primary_name=*/TRUE,
+                        /*base_name_offset=*/(sizeof_t *)NULL,
+                        mctl);
   add_to_mangled_name('E', mctl);
 }  /* add_prefix_for_local_entity */
 
@@ -6066,15 +6065,19 @@ void mangle_promoted_entity_name(a_source_correspondence *scp,
 /*
 scp points to the source correspondence field of an entity that is
 being promoted out of the routine "routine" (or one of its block
-scopes) to the file scope.  kind indicates the kind of entity.
-scope indicates the scope out of which the entity is being promoted
-(a function or block scope).  Give the entity a mangled name if
-necessary.  If final is TRUE, do the final name mangling, which may
-produce a name that can no longer be embedded in other mangled names.
+scopes) to the file scope.  kind indicates the kind of entity (type,
+constant, or variable; not routine).  scope indicates the scope out
+of which the entity is being promoted (a function or block scope).
+Give the entity a mangled name if necessary.  If final is TRUE, do
+the final name mangling, which may produce a name that can no longer
+be embedded in other mangled names.
 */
 {
   a_mangling_control_block mctl;
 
+  check_assertion(kind == iek_variable ||
+                  kind == iek_constant ||
+                  kind == iek_type);
   /* Leave the name alone if the entity is unnamed. */
   if (scp->name != NULL) {
     start_mangling(&mctl);
@@ -6104,6 +6107,13 @@ produce a name that can no longer be embedded in other mangled names.
     }
 #else /* IA64_ABI */
     add_mangled_name_prefix(&mctl);
+    /* See if the routine is static and needs to be externalized.  If so,
+       start the mangled name with the externalizing prefix. */
+    if (routine->source_corresp.externalized ||
+        routine_should_be_externalized_for_exported_templates(routine)) {
+      start_externalized_name(&routine->source_corresp,
+                              /*is_variable=*/FALSE, &mctl);
+    }  /* if */
     add_prefix_for_local_entity(routine, &mctl);
     mangled_name_with_length(scp->name, &mctl);
     add_discriminator_if_necessary(scp, &mctl);
