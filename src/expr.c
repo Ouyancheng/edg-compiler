@@ -9550,6 +9550,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
       /* Some kind of error in the ambiguity and access control checking. */
       make_error_operand(result);
       change_refs_to_error(rep);
+      rep = NULL;
     } else {
       if (warning_on_for_init_difference) {
         /* Unless it is a qualified-name reference, if sym_ptr is visible with
@@ -9669,6 +9670,8 @@ normal_function:
             /* Function identifiers are not allowed in integral constant
                expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
+            change_refs_to_error(rep);
+            rep = NULL;
           } else {
             /* Make a function designator operand for the function. */
             make_function_designator_operand(sym_ptr,
@@ -9688,17 +9691,24 @@ normal_function:
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
+            change_refs_to_error(rep);
+            rep = NULL;
           } else if (sym_ptr->variant.field.anonymous_parent_object != NULL &&
                      (anon_var_sym = anonymous_parent_variable_of(sym_ptr)) !=
                                                                         NULL) {
             /* This field is a member of a top-level (variable) anonymous
                union. */
-            /* If we're inside a local class, we are not allowed to reference
-               non-static variables of the containing function.  If we're
-               inside a default argument expression, we're not allowed to
-               reference local variables of any containing function.
-               Check for those. */
-            if (bad_nested_function_variable_ref(anon_var_sym)) {
+            if (curr_expr_kind_is_const()) {
+              /* This is not allowed in a constant expression. */
+              error_and_make_error_operand(ec_expr_not_constant, result);
+              change_refs_to_error(rep);
+              rep = NULL;
+            } else if (bad_nested_function_variable_ref(anon_var_sym)) {
+              /* If we're inside a local class, we are not allowed to reference
+                 non-static variables of the containing function.  If we're
+                 inside a default argument expression, we're not allowed to
+                 reference local variables of any containing function.
+                 Check for those. */
               error_and_make_error_operand(ec_ref_to_nested_function_var,
                                            result);
               /* Avoid further diagnostics by making this an error
@@ -9768,6 +9778,8 @@ normal_function:
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
+            change_refs_to_error(rep);
+            rep = NULL;
           } else {
             /* Build an operand representing an uninterpreted member name.
                This is done because we don't know yet whether a name like
@@ -9788,6 +9800,7 @@ normal_function:
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
+            /* No need to call change_refs_to_error; rep is NULL. */
           } else {
             /* Make an operand for an indefinite function.  Note that we
                do not generate a "this" parameter at this point, even if
@@ -9806,6 +9819,7 @@ normal_function:
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
+            /* No need to call change_refs_to_error; rep is NULL. */
           } else {
             make_indefinite_function_operand(projection_sym_ptr,
                                              (a_boolean)locator_for_curr_id.
@@ -9842,12 +9856,14 @@ normal_function:
             /* Otherwise, an error. */
             error_and_make_error_operand(ec_type_identifier_not_allowed,
                                          result);
+            /* No need to call change_refs_to_error; rep is NULL. */
           }  /* if */
           break;
         case sk_namespace:
           /* The identifier is a namespace name. */
           error_and_make_error_operand(ec_namespace_name_not_allowed,
                                        result);
+          /* No need to call change_refs_to_error; rep is NULL. */
           break;
         case sk_parameter:
           if (expr_stack->is_default_arg_expression ||
@@ -9859,6 +9875,7 @@ normal_function:
                expression. */
             error_and_make_error_operand(ec_param_not_allowed, result);
             change_refs_to_error(rep);
+            rep = NULL;
           } else if (expr_stack->is_vla_dimension_expression) {
             /* Use of a parameter in function prototype VLA dimension
                expression, e.g.:
