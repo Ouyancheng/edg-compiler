@@ -583,8 +583,8 @@ extern void internal_error(char *error_message);
    uses below.  Otherwise, the declarations would be in the prototype scopes.
    The "struct" form is used instead of the typedef name to avoid having to
    include symbol_tbl.h and il_def.h in this file. */
-struct a_symbol;
-struct a_type;
+typedef struct a_symbol a_symbol_dummy_typedef;
+typedef struct a_type a_type_dummy_typedef;
 extern void command_line_error(char *error_message);
 extern void str_command_line_error(char *error_message,
                                    char *fill_in_string);
