@@ -12119,7 +12119,6 @@ returned instead of the unqualified function name.
     switch_to_file_scope_region(&region_to_switch_back_to);
     name_string = alloc_constant((a_constant_repr_kind)ck_string);
     switch_back_to_original_region(region_to_switch_back_to);
-    name_string->source_corresp.is_local_to_function = TRUE;
     name_string->type = string_type(length);
     name_string->variant.string.length = length;
     name_string->variant.string.value =
@@ -12135,6 +12134,8 @@ returned instead of the unqualified function name.
     name_var->source_corresp.is_local_to_function = TRUE;
     name_var->init_kind = (an_init_kind)initk_static;
     name_var->initializer.constant = name_string;
+    /* To be sure, always consider the variable's address has been taken. */
+    set_variable_address_taken(name_var);
     /* Remember the above construct for potential reuse. */
     if (decorated_name) {
       ssep->generated_entities->decorated_function_name = name_var;
