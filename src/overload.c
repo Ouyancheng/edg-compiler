@@ -3892,7 +3892,7 @@ and return NULL.  This routine is called only in C++ mode.
         }  /* for */
         if (!any_dependent_arg &&
             overloaded_function_symbol->is_class_member &&
-            (have_selector ?
+            ((have_selector && bound_function_selector != NULL) ?
                  is_or_contains_template_param(bound_function_selector->type) :
                  TRUE)) {
           /* The selector object is dependent.  An implicit selector is
