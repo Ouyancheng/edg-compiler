@@ -3391,9 +3391,6 @@ cross-reference output describing this declaration.
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Do processing required for the rest of the pragmas, if any, that are
-     bound to the current declaration. */
-  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   if (is_variable_def && is_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
        from "elsewhere".  (We use "is_variable_def" to exclude cases like
@@ -3408,6 +3405,11 @@ cross-reference output describing this declaration.
   }  /* if */
   /* Restore the scope stack. */
   if (namespace_reactivated) pop_namespace_extension_scope();
+  /* Do processing required for the rest of the pragmas, if any, that are
+     bound to the current declaration.  Note that this has to be *after* the
+     scope stack is restored, since processing depends on the pending_pragmas
+     pointer in the scope stack entry. */
+  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   /* Return symbol and linkage pointers. */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;
@@ -4119,9 +4121,6 @@ skip_overloading:;
       pos_error(ec_no_exception_support, &func_info->throw_position);
     }  /* if */
   }  /* if */
-  /* Do processing required for the rest of the pragmas, if any, that are
-     bound to the current declaration. */
-  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   /* Restore the scope stack. */
   if (namespace_reactivated)  {
     if (is_friend_decl) {
@@ -4130,6 +4129,11 @@ skip_overloading:;
       pop_namespace_extension_scope();
     }  /* if */
   }  /* if */
+  /* Do processing required for the rest of the pragmas, if any, that are
+     bound to the current declaration.  Note that this has to be *after* the
+     scope stack is restored, since processing depends on the pending_pragmas
+     pointer in the scope stack entry. */
+  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   /* Return symbol and linkage pointers. */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;
