@@ -77,6 +77,18 @@ typedef struct an_il_entry_prefix {
 			/* Flipped from 0 to 1 by IL lowering to indicate
 			   IL entries that have been visited. */
 #endif /* DO_IL_LOWERING */
+#if MAINTAIN_NEEDED_FLAGS
+  a_bit_field	keep_in_il:1;
+			/* TRUE if the entry should be kept in the IL tree
+			   (typically, on one of the lists pointed to from
+			   the scope entry).  This is important when the
+			   "needed" flag is being maintained, because an
+			   entry that is not actually needed must sometimes
+			   be retained in the IL tree anyway, for the sake
+			   of IL consistency (e.g., a file-scope entity that
+			   is declared but never referenced inside a "needed"
+			   function). */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #if ALTERNATE_IL_FILE_FORMAT
   a_bit_field	entry_written:1;
@@ -87,8 +99,8 @@ typedef struct an_il_entry_prefix {
      is where it is stored.   Pick a size that makes the whole prefix
      struct the same size as a long.  (This is just for efficiency;
      other sizes will work too.) */
-#define NUM_OF_BIT_FIELDS_IN_PREFIX (3 + (DO_IL_LOWERING != 0))
-
+#define NUM_OF_BIT_FIELDS_IN_PREFIX                                    \
+          (3 + (DO_IL_LOWERING != 0) + (MAINTAIN_NEEDED_FLAGS != 0))
 #if __MSDOS__
   /* Under MS-DOS compilers this bit field is probably bigger than
      an "int", so use "unsigned long". */
@@ -116,6 +128,17 @@ an IL entry prefix only if it exists.
 #else /* !DO_IL_LOWERING */
 #define clear_il_lowering_flag(epp) /* Nothing */
 #endif /* DO_IL_LOWERING */
+
+
+/*
+Macro used by clear_il_entry_prefix to clear the keep-in-IL flag in
+an IL entry prefix only if it exists.
+*/
+#if MAINTAIN_NEEDED_FLAGS
+#define clear_keep_in_il_flag(epp) (epp->keep_in_il_flag = FALSE)
+#else /* !MAINTAIN_NEEDED_FLAGS */
+#define clear_keep_in_il_flag(epp) /* Nothing */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 
 /*
@@ -150,6 +173,7 @@ the entry has been allocated in the file scope memory region, FALSE otherwise.
   epp->file_scope = is_in_file_scope;                                 \
   epp->il_walk_flag = 0;                                              \
   clear_il_lowering_flag(epp);                                        \
+  clear_keep_in_il_flag(epp);                                         \
   clear_entry_written_flag(epp);                                      \
   clear_il_entry_number(epp);                                         \
 }  /* clear_il_entry_prefix */
