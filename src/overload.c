@@ -3955,6 +3955,39 @@ the former has additional type qualifiers.
 }  /* candidate_return_type_same_with_added_qualifiers */
 
 
+static int compare_template_candidate_functions(a_candidate_function_ptr cfp1,
+                                                a_candidate_function_ptr cfp2)
+/*
+Compare two candidate functions.  If they can be distinguished on the
+basis of the template comparisons enumerated in [over.match.best] of
+the standard, return cmp set accordingly:
+
+  +1 if cfp1 is better than cfp2,
+   0 if cfp1 and cfp2 are equally good, or
+  -1 if cfp1 is worse than cfp2.
+
+*/
+{
+  int cmp = 0;
+
+  if (cfp1->is_function_template != cfp2->is_function_template) {
+    if (cfp1->is_function_template) {
+      /* cfp1 is a function template and cfp2 is not, so cfp2 is better. */
+      cmp = -1;
+    } else {
+      /* cfp2 is a function template and cfp1 is not, so cfp1 is better. */
+      cmp = 1;
+    }  /* if */
+  } else if (cfp1->is_function_template && cfp2->is_function_template) {
+    /* cfp1 and cfp2 are function templates.  Determine whether either of
+       the templates is more specialized than the other. */
+    cmp = compare_function_templates(cfp1->function_symbol,
+                                     cfp2->function_symbol);
+  }  /* if */
+  return cmp;
+}  /* compare_template_candidate_functions */
+
+
 static int compare_candidate_functions(a_candidate_function_ptr cfp1,
                                        a_candidate_function_ptr cfp2)
 /*
@@ -3972,7 +4005,13 @@ other.  Return
   int                  cmp = 0;
   a_type_qualifier_set cfp1_type_qualifiers_added = FALSE,
                        cfp2_type_qualifiers_added = FALSE;
+  a_boolean            late_template_test = FALSE;
 
+  if (microsoft_mode && microsoft_version >= 1310) {
+    /* MSVC++ 7.1 and 8.0 do a nonstandard late template test. 7.0 does
+       not, and 6.0 aborts on our test case. */
+    late_template_test = TRUE;
+  }  /* if */
   if (cfp1->is_user_conversion) {
     cfp1_type_qualifiers_added = cfp1->conversion.std.type_qualifiers_added;
     cfp2_type_qualifiers_added = cfp2->conversion.std.type_qualifiers_added;
@@ -3983,6 +4022,10 @@ other.  Return
       (cmp = compare_late_tiebreakers(cfp1, cfp2)) != 0) {
     /* There is something about one argument list that makes it better
        than the other. */
+  } else if (!late_template_test &&
+             (cmp = compare_template_candidate_functions(cfp1, cfp2)) != 0) {
+    /* The fact that one function is a function template and the other
+       is not can serve as a tie-breaker. */
   } else if (cfp1->is_user_conversion &&
              (cmp = compare_standard_conversions(&cfp1->conversion.std,
                                                  &cfp2->conversion.std,
@@ -4023,21 +4066,11 @@ other.  Return
       /* cfp2 uses the anachronism and cfp1 doesn't, so cfp1 is better. */
       cmp = 1;
     }  /* if */
-  } else if (cfp1->is_function_template != cfp2->is_function_template) {
+  } else if (late_template_test &&
+             (cmp = compare_template_candidate_functions(cfp1, cfp2)) != 0) {
     /* The fact that one function is a function template and the other
-       is not can serve as a tie-breaker. */
-    if (cfp1->is_function_template) {
-      /* cfp1 is a function template and cfp2 is not, so cfp2 is better. */
-      cmp = -1;
-    } else {
-      /* cfp2 is a function template and cfp1 is not, so cfp1 is better. */
-      cmp = 1;
-    }  /* if */
-  } else if (cfp1->is_function_template && cfp2->is_function_template) {
-    /* cfp1 and cfp2 are function templates.  Determine whether either of
-       the templates is more specialized than the other. */
-    cmp = compare_function_templates(cfp1->function_symbol,
-                                     cfp2->function_symbol);
+       is not can serve as a tie-breaker.  This late position for the
+       test is the nonstandard version. */
   }  /* if */
   return cmp;
 }  /* compare_candidate_functions */

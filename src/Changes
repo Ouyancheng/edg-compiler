@@ -1,5 +1,23 @@
 Version 3.6
 
+12/22/04 Overload resolution: templates and determining best candidate
+
+We were surprised to discover that we had implemented one of the
+sets of rules for selecting the best candidate function in overload
+resolution out of order.  Specifically, the template checks in
+13.3.3 were done after the check on the standard conversion on
+the return type.  Now fixed, except that Microsoft version 1310 and
+above continue to do it the former, nonstandard, way.
+
+  struct C {
+    inline operator int () { return 1; }
+    template <class T> inline operator T () { return 0; }
+  };
+  inline long f (long x) { return x; }
+  int main (int argc, char *argv[]) {
+    int i = f (C ());  // Standard value is 1, formerly got 0
+  }
+
 12/21/04 Microsoft compatibility: mixed void/non-void operands to "?" operator
 
 Microsoft C++ mode nows allows mixed void/non-void operands to the "?"
