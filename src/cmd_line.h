@@ -1254,6 +1254,17 @@ EXTERN char
 			   is a colon-separated list of suffixes (but without
 			   the "." delimiter). */
 
+EXTERN char
+		*curr_command_line_macro_def
+#if VAR_INITIALIZERS
+                                             = NULL
+#endif /* VAR_INITIALIZERS */
+                                                   ;
+			/* Non-NULL if and only if we are processing a
+			   command-line macro definition option of the form
+			   -D<def>.  In that case it points to the null-
+			   terminated byte string <def>. */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

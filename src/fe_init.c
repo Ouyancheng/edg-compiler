@@ -599,6 +599,7 @@ line processing is done.
   /* Do host-specific initialization.  This must be done first in this
      routine. */
   host_envir_early_init();
+  curr_command_line_macro_def = NULL;
 #if NEAR_AND_FAR_ALLOWED
   il_header.near_and_far_are_enabled = DEFAULT_NEAR_AND_FAR_ENABLED;
   il_header.far_data_pointers = DEFAULT_FAR_DATA_POINTERS;

@@ -2780,13 +2780,13 @@ beginning of the encoding of the replacement list.
           break;
 #if CHECKING
         default:
-          internal_error("proc_define: bad text section kind in macro def");
+          internal_error("db_dump_macro_def: bad section kind in macro def");
 #endif /* CHECKING */
       }  /* switch */
     }  /* for */
     fprintf(f_debug, "  end\n");
   }  /* if */
-}
+}  /* db_dump_macro_def */
 #endif /* DEBUG */
 
 void proc_define(void)
@@ -2866,15 +2866,24 @@ Scan and process a #define directive.
       redefinition = TRUE;
     }  /* if */
     if (assoc_symbol == NULL && !is_error_locator(locator_for_curr_id)) {
+      a_scope_depth  scope_depth;
       /* Enter the macro symbol.  assoc_symbol remains NULL if an error
          locator is being used.  This suppresses the creation of a
          macro IL entry.  It also prevents us from calling mark_defined
          on an error symbol. */
       copy_source_position(pos_curr_token,
                            locator_for_curr_id.source_position);
+      /* The macro symbol is entered in file scope, unless it is a macro
+         resulting from a "-D" command-line option. */
+      if (pos_curr_token.seq == 0 &&
+          pos_curr_token.column == SP_COL_CMD_LINE) {
+        scope_depth = NO_SCOPE_DEPTH;
+      } else {
+        scope_depth = DEPTH_OF_FILE_SCOPE;
+      }  /* if */
       assoc_symbol = enter_symbol((a_symbol_kind)sk_macro,
                                   &locator_for_curr_id,
-                                  DEPTH_OF_FILE_SCOPE,
+                                  scope_depth,
                                   /*suppress_error=*/TRUE);
     }  /* if */
     param_list = last_param = NULL;
@@ -3976,6 +3985,58 @@ from the front end to the runtime.
 }  /* init_runtime_macros */
 
 
+void process_command_line_macro_definitions(a_def_undef_string_ptr  du_ptr)
+{
+  in_preprocessing_directive = TRUE;
+  for (; du_ptr != NULL; du_ptr = du_ptr->next) {
+    sizeof_t  du_len, line_length;
+    char      *du_str = du_ptr->text, *equal_pos;
+
+    if (strchr(du_str, ATTENTION_MARKER) != NULL) {
+      /* Definition contains a newline character, which cannot be allowed
+         (it would be confused with a lexical escape character). */
+      str_command_line_error(ec_cl_invalid_macro_definition, du_str);
+      continue;
+    }  /* if */
+    /* Turn "-D" options into equivalent define directives so that we can
+       leave the processing to proc_define.  Allocate an extra 2 bytes for
+       "-D" options that do not contain an equal; they'll be processed as
+           define id 1
+       (i.e., a " 1" is appended).  During this processing, ensure that
+       diagnostics are correctly attributed by setting the global variable
+       curr_command_line_macro_def. */
+    curr_command_line_macro_def = du_str;
+    du_len = strlen(du_str);
+    /* Ensure the buffer holding the logical source line is large enough to
+       hold the synthetic line we are going to create. */
+    line_length = du_len+2+2*LE_ESCAPE_LEN;
+    while (line_length > after_end_of_curr_source_line - curr_source_line) {
+      expand_curr_source_line();
+    }  /* while */
+    strcpy(curr_source_line, du_str);
+    equal_pos = strchr(curr_source_line, '=');
+    if (equal_pos == NULL) {
+      /* "-DNAME(X)" becomes "NAME(X) 1". */
+      strcpy(curr_source_line+du_len, " 1");
+      du_len += 2;
+    } else {
+      /* "-DNAME=value" becomes "NAME value". */
+      *equal_pos = ' ';
+    }  /* if */
+    curr_source_line[du_len+0] = LE_ESCAPE;
+    curr_source_line[du_len+1] = LE_NEWLINE;
+    curr_source_line[du_len+2] = LE_ESCAPE;
+    curr_source_line[du_len+3] = LE_END_OF_LINE;
+    curr_char_loc = curr_source_line;
+    proc_define();
+    /* Reset curr_command_line_macro_def so that diagnostics are no longer
+       attributed to the command-line option we just processed. */
+    curr_command_line_macro_def = NULL;
+  }  /* while */
+  in_preprocessing_directive = FALSE;
+}  /* process_command_line_macro_definitions */
+
+
 void init_predefined_macros(char  curr_date_time[26])
 /*
 Enter symbols for predefined macros, including those established by
@@ -3984,14 +4045,11 @@ command line -D options.
 {
   a_def_undef_string_ptr
                    du_ptr;
-  char             *du_str,
-                   *equal_pos;
-  char             *id_start, *value_start, *old_repl_text, *new_repl_text;
+  char             *du_str, *id_start;
   sizeof_t         id_len;
   a_boolean        err, suppress_error;
-  a_symbol_ptr	   assoc_symbol;
+  a_symbol_ptr     assoc_symbol;
   a_symbol_locator locator;
-  a_macro_def_ptr  mdp;
 
   if (targ_has_signed_chars) {
     /* Target has signed characters. */
@@ -4186,73 +4244,7 @@ command line -D options.
   /* Enter system specific macros and assertions. */
   enter_system_specific_predefined_macros_and_assertions();
   /* Now process command-line defines of symbols (-D). */  
-  du_ptr = defs_from_cmd_line;
-  while (du_ptr != NULL) {
-    err = FALSE;
-    suppress_error = FALSE;
-    du_str = du_ptr->text;
-#if DEBUG
-    if (debug_level >= 4) {
-      fprintf(f_debug, "Command-line def: %s\n", du_str);
-    }  /* if */
-#endif /* DEBUG */
-    id_start = du_str;
-    if ((equal_pos = strchr(du_str, '=')) == NULL) {
-      /* No "=", define is just a name.  Value used is "1". */
-      id_len = strlen(id_start);
-      value_start = "1";
-    } else {
-      /* Define has a name and a value. */
-      id_len = equal_pos - id_start;
-      value_start = equal_pos+1;
-    }  /* if */
-    /* Check the identifier to make sure it is valid. */
-    if (!is_valid_identifier(id_start, id_len, &assoc_symbol, &locator)) {
-      err = TRUE;
-      /* The Microsoft compiler ignores invalid definitions. */
-      if (microsoft_mode) suppress_error = TRUE;
-    } else if (strchr(du_str, ATTENTION_MARKER) != NULL) {
-      /* Definition contains a newline character, which cannot be allowed
-         (it would be confused with a lexical escape character). */
-      err = TRUE;
-    } else {
-      /* Make the definition text for the macro. */
-      sizeof_t	repl_text_len;
-      new_repl_text = make_repl_text(value_start, &repl_text_len);
-      /* Create the symbol if necessary. */
-      if (assoc_symbol == NULL) {
-        assoc_symbol = enter_symbol((a_symbol_kind)sk_macro, &locator,
-                                    NO_SCOPE_DEPTH,
-                                    /*suppress_error=*/TRUE);
-        assoc_symbol->variant.macro_def = alloc_macro_def();
-      } else {
-        /* There's a previous definition of the macro.  If it's predefined,
-           the new definition must match the old. */
-        if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
-          /* Macro is predefined and cannot be redefined. */
-          /* If the macro has repl_text == NULL, it's defined by code in
-             macro.c (e.g., __LINE__) and can't be redefined.  Otherwise,
-             check that the old definition matches the new. */
-          old_repl_text = assoc_symbol->variant.macro_def->repl_text;
-          if (old_repl_text == NULL ||
-              smemcmp(old_repl_text, new_repl_text, repl_text_len) != 0) {
-            err = TRUE;
-            /* Note that this is a catastrophic error, so it doesn't matter
-               whether or not we change the definition of the macro in the
-               next few lines. */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      mdp = assoc_symbol->variant.macro_def;
-      /* Enter the definition. */
-      mdp->object_like = TRUE;
-      mdp->repl_text = new_repl_text;
-    }  /* if */
-    if (err && !suppress_error) {
-      str_command_line_error(ec_cl_invalid_macro_definition, du_str);
-    }  /* if */
-    du_ptr = du_ptr->next;
-  }  /* while */
+  process_command_line_macro_definitions(defs_from_cmd_line);
   /* Now undefines (-U).  Note that since they are done together after the
      defines, they take precedence over them (which is how cpp does it). */
   du_ptr = undefs_from_cmd_line;

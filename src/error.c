@@ -2878,10 +2878,10 @@ message appears by itself on a separate line.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static void diag_message (an_error_code              error_code,
-                          a_source_position          *error_pos,
-                          an_error_severity          severity,
-                          a_diagnostic_category_kind diag_kind)
+static void diag_message(an_error_code              error_code,
+                         a_source_position          *error_pos,
+                         an_error_severity          severity,
+                         a_diagnostic_category_kind diag_kind)
 /*
 Construct and write a diagnostic message.  The error code is error_code, and
 the position of the error is *error_pos.  severity gives the severity (e.g.,
@@ -2897,6 +2897,13 @@ and doing any required expansions, the diagnostic is written.
 #if CHECKING
   int                i;
 #endif /* CHECKING */
+
+  if (curr_command_line_macro_def != NULL) {
+    /* An error occurred while scanning a command-line macro definition.
+       Ignore the original error and issue a general error indicating
+       that the macro definition is invalid. */
+    str_command_line_error(ec_bad_cmd_line_macro, curr_command_line_macro_def);
+  }  /* if */
   if (check_severity(error_code, &error_pos, &severity, diag_kind)) {
     if (severity == es_catastrophe &&
         (diag_kind == dck_standalone || diag_kind == dck_primary)) {
