@@ -6417,16 +6417,7 @@ we still return TRUE so that an appropriate diagnostic can be generated when
 an attempt is made to use the thing after the qualifier.
 
 This routine performs ambiguity and access checking on the components of the
-qualified name.  Only the ambiguity errors are actually issued, however.
-Information about any access errors is accumulated in a list of
-an_access_error_descr entries pointed to by locator_for_curr_id.
-It is the responsibility of the caller to ensure that either
-issue_qualifier_access_errors or do_not_issue_qualifier_access_errors is
-called to do the appropriate processing and free the entries on the list.
-This routine issues any access errors encountered if the construct
-scanned is a pointer to member.
-
-This routine may only be called in C++ mode. 
+qualified name.
 */
 {
   a_type_ptr		class_type = NULL;
@@ -6442,12 +6433,6 @@ This routine may only be called in C++ mode.
   a_token_kind		next_tok_2;
   a_boolean		result = FALSE;
   a_boolean		err = FALSE;
-  an_access_error_descr_ptr
-			aedp = NULL;
-  an_access_error_descr_ptr
-			first_aedp = NULL;
-  an_access_error_descr_ptr
-			last_aedp = NULL;
   a_boolean		can_be_vacuous_dtor =
 				 (options & GID_VACUOUS_DTOR_RECOGNIZED);
   a_boolean		dtor_must_be_nonclass =
@@ -6700,19 +6685,8 @@ This routine may only be called in C++ mode.
                that the check will be suppressed for template parameters
                (i.e., the T in T::X).  Access for template parameters should
                be checked at the point at which the type is used as a 
-               template argument. Ambiguity errors will be issued but
-               access errors will only be detected.  A pointer to the
-               description of the access error,  if any, is returned in
-               aedp.  If an error occurred, link the description onto the
-               end of a list of errors. */
-            aedp = NULL;
-            member_check_ambiguity_verify_access_and_return_error_descr
-		                                (&locator_for_curr_id, &aedp);
-            if (aedp != NULL) {
-              if (last_aedp != NULL) last_aedp->next = aedp;
-              last_aedp = aedp;
-              if (first_aedp == NULL) first_aedp = aedp;
-            }  /* if */
+               template argument. */
+            member_check_ambiguity_and_verify_access(&locator_for_curr_id);
           }  /* if */
           if (is_class_symbol(class_symbol)) {
             /* Get the type associated with the class symbol. */
@@ -6866,8 +6840,6 @@ This routine may only be called in C++ mode.
     /* Clear the is_template_id flag in the locator in case it was set before
        this was recognized to be ptr-to-member. */
     locator_for_curr_id.is_template_id = FALSE;
-    /* For pointer to member, issue any access errors that were detected. */
-    if (first_aedp != NULL) issue_qualifier_access_errors(&first_aedp);
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;
     /* Restore the original error position. */
@@ -6876,20 +6848,6 @@ This routine may only be called in C++ mode.
     /* A possibly qualified identifier. */
     result = TRUE;
     if (is_qualified_name) {
-      /* Issue any access errors detected while scanning the class
-         qualifier.  If access errors are to be suppressed, free the list
-          of access errors. */
-      if (first_aedp != NULL) {
-        if (options & GID_SUPPRESS_ACCESS_ERRORS) {
-          /* Discard the errors. */
-          do_not_issue_qualifier_access_errors(&first_aedp);
-        } else if (options & GID_DEFER_ACCESS_ERRORS) {
-          /* Access errors are to be saved and possibly issued later. */
-        } else {
-          /* Issue the errors. */
-          issue_qualifier_access_errors(&first_aedp);
-        }  /* if */
-      }  /* if */
       /* Make sure that the class has been instantiated. */
       if (!err && class_type != NULL && class_type_is_really_a_class) {
         check_for_uninstantiated_template_class(class_type);
@@ -7042,8 +7000,7 @@ wrapup:
     locator_for_curr_id.is_file_scope_qualified_name =
 						is_file_scope_qualified_name;
     locator_for_curr_id.qualifier_class_type = class_type;
-    locator_for_curr_id.access_errors = first_aedp;
-    locator_for_curr_id.has_been_coalesced = TRUE;
+		    locator_for_curr_id.has_been_coalesced = TRUE;
     locator_for_curr_id.is_vacuous_destructor_reference = is_vacuous_dtor;
     locator_for_curr_id.is_nonclass_destructor = is_nonclass_dtor;
 
@@ -7223,16 +7180,6 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
     locator_for_curr_id.qualifier_class_type = class_type;
     locator_for_curr_id.is_vacuous_destructor_reference = is_vacuous_dtor;
     *err = TRUE;
-  }  /* if */
-  /* Issue access errors if needed. */
-  if (locator_for_curr_id.access_errors != NULL) {
-    if (options & GID_SUPPRESS_ACCESS_ERRORS) {
-      do_not_issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
-    } else if (options & GID_DEFER_ACCESS_ERRORS) {
-      /* Do nothing for the time being. */
-    } else {
-      issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
-    }  /* if */
   }  /* if */
   /* Set error position to the beginning of the coalesced pseudo-token. */
   error_position = pos_curr_token;

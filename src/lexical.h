@@ -213,37 +213,29 @@ typedef int an_identifier_options_set;
 			/* Causes an error to be issued if the identifier
 			   is an operator name of the form "operator =" or
 			   "operator int". */
-#define GID_SUPPRESS_ACCESS_ERRORS    0x20
-			/* Causes access errors detected while scanning
-			   the class qualifier portion of the name to be
-			   disregarded. */
-#define GID_DEFER_ACCESS_ERRORS	      0x40
-			/* Causes access errors detected while scanning the
-			   class qualifier to not be issued now but to be
-			   retained for possible use later. */
-#define GID_VACUOUS_DTOR_RECOGNIZED   0x80
+#define GID_VACUOUS_DTOR_RECOGNIZED   0x20
 			/* Enables recognition of destructor calls, as part
 			   of a qualified name, for non-class types and class
 			   types that have no destructors (e.g., A::~A or
 			   int::~int). */
-#define GID_DTOR_MUST_BE_NONCLASS     0x100
+#define GID_DTOR_MUST_BE_NONCLASS     0x40
 			/* Enables recognition of destructor calls for
 			   non-class types and class types that have no
 			   destructors that are not part of a qualified name
 			   (e.g., ~A or ~int). */
 #define GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION \
-				      0x200
+				      0x80
 			/* If the identifier is a qualified name the
 			   class component must refer to the prototype
 			   instantiation. */
-#define GID_IS_NEW_TYPE_NAME	      0x400
+#define GID_IS_NEW_TYPE_NAME	      0x100
 			/* Specifies that the name being scanned is the type
 			   name in a new expression.  This causes the check
 			   for an unexpected template argument list to be
 			   suppressed because a new type name may be followed
 			   by a less than sign. */
 #define GID_IS_FIELD_SELECTION_OPERAND \
-				      0x800
+				      0x200
 			/* Specifies that the name being scanned is the
 			   operand following a "." or "->" operator. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
@@ -1243,7 +1235,7 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
 /* Return TRUE if the current token is the start of a C++ qualified
    name (including a simple identifier). */
 #define is_qualified_name_start()                                        \
-  (is_generalized_identifier_start(GID_DEFER_ACCESS_ERRORS))
+  (is_generalized_identifier_start(GID_NO_OPTIONS))
 
 /* Same thing for use in switch statements, in the form
      case QUALIFIED_NAME_START_CASE:

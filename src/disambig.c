@@ -76,9 +76,7 @@ scanned are coalesced prior to analysis.
 */
 {
   (void)get_token();
-  (void)is_generalized_identifier_start(GID_NO_OPTIONS |
-                                        GID_DEFER_ACCESS_ERRORS |
-                                        GID_TEMPLATE_ARGS_OPTIONAL);
+  (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL);
 }  /* get_token_and_coalesce_if_identifier */
 
 
@@ -509,9 +507,7 @@ evidence to the contrary.
   a_boolean	is_first_declarator = TRUE;
   db_enter(3, "prescan_declaration");
   /* Coalesce the identifier if this is a tok_identifier. */
-  (void)is_generalized_identifier_start(GID_NO_OPTIONS |
-                                        GID_DEFER_ACCESS_ERRORS |
-                                        GID_TEMPLATE_ARGS_OPTIONAL);
+  (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL);
   for (;;) {
     /* Scan the decl specifiers. */
     prescan_decl_specifiers(token_cache_ptr, may_be_decl);

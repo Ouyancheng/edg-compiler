@@ -6070,7 +6070,7 @@ Scan the body of a class definition, including the base classes list.
                constructors and/or destructors. */
             is_destructor = is_constructor = FALSE;
             if (curr_token == tok_compl ||
-                (is_generalized_identifier_start(GID_DEFER_ACCESS_ERRORS) &&
+                (is_generalized_identifier_start(GID_NO_OPTIONS) &&
                  locator_for_curr_id.is_destructor_name)) {
               is_destructor = TRUE;
               member_type = unknown_type();

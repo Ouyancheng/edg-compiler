@@ -1928,7 +1928,8 @@ of a function template.
               DSI_INLINE_ALLOWED |
               DSI_TYPE_SPECIFIER_ALLOWED |
               DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-              DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+              DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
+              DSI_DEFER_ACCESS_CHECKS;
   di_flags = DI_REAL_DECLARATOR_ALLOWED |
              DI_QUALIFIED_NAME_ALLOWED |
              DI_PARENTHESIZED_INITIALIZER_ALLOWED |
@@ -5504,7 +5505,8 @@ assumed if the return type is omitted.
 
     add_stop_token(tok_newline);
     (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-			   DSI_TYPE_SPECIFIER_ALLOWED),
+			   DSI_TYPE_SPECIFIER_ALLOWED |
+                           DSI_DEFER_ACCESS_CHECKS),
                           &dso_flags, &storage_class, &type, &qualifiers);
     if (is_error_type(type) && !is_declarator_start()) {
       /* Error of some sort. */

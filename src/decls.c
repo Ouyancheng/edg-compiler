@@ -63,10 +63,10 @@ might result from class template names that are missing argument lists.
 
   assoc_symbol = NULL;
   /* Set the options.  Since this call is a "probe" to determine if the
-     current identifier is a type name, don't issue access errors yet, and
-     don't complain if the name is that of a template but there are no
-     template args (since it may actually be a different use of the name). */
-  options = GID_DEFER_ACCESS_ERRORS;
+     current identifier is a type name, don't complain if the name is that
+     of a template but there are no template args (since it may actually
+     be a different use of the name). */
+  options = GID_NO_OPTIONS;
   if (is_new_type_name) options |= GID_IS_NEW_TYPE_NAME;
   if (in_prescan) options |= GID_TEMPLATE_ARGS_OPTIONAL;
   if (is_generalized_identifier_start(options)) {
@@ -89,11 +89,6 @@ might result from class template names that are missing argument lists.
       if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
         /* Symbol was found, but it is not a type name symbol.  Return NULL. */
         assoc_symbol = NULL;
-      }  /* if */
-      /* If a type symbol was found, issue any access errors that may have
-         occurred. */
-      if (assoc_symbol) {
-        issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3489,10 +3484,6 @@ not specifically allow this syntax, but it is supported by cfront.
     if (locator_for_curr_id.qualifier_class_type == ssep->assoc_type &&
         locator_for_curr_id.is_global_qualified_name == FALSE) {
       is_member_id = TRUE;
-      /* Issue any access errors encountered while scanning the
-         qualifier -- even though there shouldn't be any for this
-         case. */
-      issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
       /* Reset the fields in the locator to make it appear as if the
          qualifier was not present. */
       locator_for_curr_id.is_qualified_name = FALSE;
@@ -4501,6 +4492,12 @@ of local variables (and types, etc.) of functions and in blocks.
       /* "inline" is allowed only on function declarations at file scope. */
       if (!extern_implied) dsi_flags |= DSI_INLINE_ALLOWED;
     }  /* if */
+  }  /* if */
+  if (function_definition_allowed) {
+    /* This is a file scope or namespace scope declaration.  Indicate
+       that access checking should be deferred until the declarator has
+       been scanned. */
+    dsi_flags |= DSI_DEFER_ACCESS_CHECKS;
   }  /* if */
   /* Scan the initial declaration specifiers (including storage class,
      type specifiers, and type qualifiers).  For a function definition,

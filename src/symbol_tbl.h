@@ -207,11 +207,6 @@ typedef struct a_symbol_locator {
 			   to the type of the qualifier, which may not
 			   actually be a class type (e.g., for int::~int
 			   this will point to the type "int"). */
-  an_access_error_descr_ptr
-		access_errors;
-			/* If is_qualified_name is TRUE, this points to a
-			   linked list of access errors that occurred while
-			   scanning the class qualifier. */
   union {
     /* When both is_operator_name and is_conversion_name are FALSE, both
        variants are undefined. */
@@ -1606,10 +1601,10 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if kind is sck_template_instantiation and
 			   what is being instantiated is the prototype for a
 			   class template. */
-  unsigned int	defer_access_checking:1;
+  unsigned int	defer_access_checks:1;
 			/* TRUE while scanning the decl-specifiers and
 			   declarator of a global or namespace-level
-                           declaration.  Access checking for names
+                           declaration.  Access checks for names
 			   scanned while this is TRUE cannot be done
 			   until the declarator has been scanned. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -1861,13 +1856,13 @@ typedef struct a_scope_stack_entry {
 			   do not affect access control. */
   an_access_error_descr_ptr
 		deferred_access_checks;
-			/* When defer_access_checking is TRUE, this contains
+			/* When defer_access_checks is TRUE, this contains
 			   a list of access checks that were done (and failed)
 			   and must be repeated once the declarator has been
 			   scanned. */
   an_access_error_descr_ptr
 		last_deferred_access_check;
-			/* When defer_access_checking is TRUE, this points
+			/* When defer_access_checks is TRUE, this points
 			   to the last element in a list of access checks. */
 } a_scope_stack_entry;
 
@@ -2121,30 +2116,14 @@ extern a_boolean have_protected_member_access_privilege(a_type_ptr class_type);
 
 extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
 
-extern void issue_qualifier_access_errors(an_access_error_descr_ptr *adep);
+extern void member_check_ambiguity_and_verify_access
+			(a_symbol_locator		*loc);
 
-extern void do_not_issue_qualifier_access_errors
-					(an_access_error_descr_ptr *adep);
-
-extern void member_check_ambiguity_verify_access_and_return_error_descr
-			(a_symbol_locator		*loc,
-			 an_access_error_descr_ptr	*aedp_ptr);
+extern void perform_deferred_access_checks(void);
 
 extern void overload_check_ambiguity_and_verify_access(
                                            a_symbol_locator *locator,
                                            a_symbol_ptr     overloaded_symbol);
-
-
-/*
-Verify that the indicated member symbol is not ambiguous and that we have
-access to it; issue an error if appropriate.  This is called from the macro
-check_ambiguity_and_verify_access.  This macro provides a NULL pointer
-for the access descriptor pointer when calling the routine
-member_check_ambiguity_verify_access_and_return_error_descr.
-*/
-#define member_check_ambiguity_and_verify_access(locator)		\
-  member_check_ambiguity_verify_access_and_return_error_descr		\
-			(locator, (an_access_error_descr_ptr*)NULL);
 
 
 /*

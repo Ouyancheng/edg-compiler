@@ -2177,7 +2177,7 @@ bound with the function in *bound_function_selector.
       gid_flags |= GID_DTOR_MUST_BE_NONCLASS;
     }  /* if */
   }  /* if */
-  if (is_generalized_identifier_start(gid_flags | GID_DEFER_ACCESS_ERRORS)) {
+  if (is_generalized_identifier_start(gid_flags)) {
     found_id = TRUE;
     member_sym = NULL;
     /* See if the name following the operator is a C++ qualified name, as

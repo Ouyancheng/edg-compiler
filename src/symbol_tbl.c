@@ -4346,57 +4346,35 @@ Allocate an access error description entry.  Reuse a freed entry if possible.
 }  /* alloc_access_error_descr */
 	
 
-void issue_qualifier_access_errors(an_access_error_descr_ptr *aedp_ptr)
+static void free_access_error_descr_list(an_access_error_descr_ptr aedp)
 /*
-Loop through the list of access errors, pointed to by *aedp,
-that were detected while scanning the class qualifier.  Issue the
-errors, free the list, and clear the pointer.
+Free the access error description entries pointed to by aedp.
+Put the freed entries on the available list to be reused.
 */
 {
-  an_access_error_descr_ptr	aedp = *aedp_ptr;
-
-  while (aedp != NULL) {
-    issue_access_error(aedp->sym, &aedp->position);
-    aedp = aedp->next;
-  }  /* while */
-  /* This frees the list of access errors and sets the pointer in
-     The name may seem a odd, but in all other instances, one calls either
-     issue_qualifier_access_error or do_not_issue_qualifier_access_error,
-     so we make do with an odd looking call here. */
-  do_not_issue_qualifier_access_errors(aedp_ptr);
-}  /* issue_qualifier_access_errors */
-
-
-void do_not_issue_qualifier_access_errors(an_access_error_descr_ptr *aedp_ptr)
-/*
-Free the access error description entries pointed to by aedp_ptr and
-clear the pointer in aedp.  Put the freed entries on the available
-list to be reused.
-*/
-{
-  an_access_error_descr_ptr	last_ptr = *aedp_ptr;
+  an_access_error_descr_ptr	last_ptr = aedp;
   an_access_error_descr_ptr	next;
   /* Find the last element of the list.  The available list will be linked
      onto the end of the list passed by the caller. */
   if (last_ptr != NULL) {
     while ((next = last_ptr->next) != NULL) last_ptr = next;
     last_ptr->next = avail_access_error_descrs;
-    avail_access_error_descrs = *aedp_ptr;
-    *aedp_ptr = NULL;
+    avail_access_error_descrs = aedp;
   }  /* if */
-}  /* do_not_issue_qualifier_access_errors */
+}  /* free_access_error_descr_list */
 
 
-void member_check_ambiguity_verify_access_and_return_error_descr
-			(a_symbol_locator		*locator,
-			 an_access_error_descr_ptr	*aedp_ptr)
+void member_check_ambiguity_and_verify_access
+			(a_symbol_locator		*locator)
 /*
 Verify that the indicated member symbol is not ambiguous and that we have
-access to it.  If the user did not supply an error description pointer,
-then issue the error, otherwise return the information to the caller so
-that the caller can issue an error later if appropriate.  In case of an
-ambiguity, the locator is set to an error locator.  Note that no access
-checking is done on overloaded function symbols.
+access to it.  In case of an ambiguity, the locator is set to an error
+locator.  Note that no access checking is done on overloaded function symbols.
+
+If an error is detected, the scope stack is consulted to see if access
+errors should be deferred and rechecked later.  If so, an access
+error descriptor is added to the list on the scope stack.  Otherwise,
+the error is issued immediately.
 */
 {
   a_symbol_ptr   sym = locator->specific_symbol;
@@ -4412,8 +4390,9 @@ checking is done on overloaded function symbols.
   } else if (fundamental_symbol_of(sym)->kind !=
 	                            (a_symbol_kind)sk_overloaded_function &&
              !have_access_to_symbol(sym)) {
+    a_scope_stack_entry_ptr	ssep = &scope_stack[decl_scope_level];
     /* The symbol is not accessible. */
-    if (aedp_ptr == NULL ) {
+    if (!ssep->defer_access_checks) {
       issue_access_error(fundamental_symbol_of(sym),
                          &locator->source_position);
       locator->access_control_error_reported = TRUE;
@@ -4422,10 +4401,47 @@ checking is done on overloaded function symbols.
       aedp = alloc_access_error_descr();
       aedp->sym = fundamental_symbol_of(sym);
       aedp->position = locator->source_position;
-      *aedp_ptr = aedp;
+      if (ssep->deferred_access_checks == NULL) {
+        ssep->deferred_access_checks = aedp;
+      }  /* if */
+      if (ssep->last_deferred_access_check != NULL) {
+        ssep->last_deferred_access_check->next = aedp;
+      }  /* if */
+      ssep->last_deferred_access_check = aedp;
     }  /* if */
   }  /* if */
-}  /* member_check_ambiguity_verify_access_and_return_error_descr */
+}  /* member_check_ambiguity_verify_access */
+
+
+void perform_deferred_access_checks(void)
+/*
+Go through the list of deferred access checks and repeat the test.  If
+the symbol is still no accessible, issue an error.  Reset the flag in
+the scope stack that indicates that access checks should be deferred.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+
+#if 0
+  /* This routine will need to be modified when namespaces are implemented. */
+#endif /* 0 */
+  ssep = &scope_stack[decl_scope_level];
+  if (ssep->defer_access_checks) {
+    an_access_error_descr_ptr	aedp = ssep->deferred_access_checks;
+    if (aedp != NULL) {
+      for (; aedp != NULL; aedp = aedp->next) {
+        if (!have_access_to_symbol(aedp->sym)) {
+          issue_access_error(fundamental_symbol_of(aedp->sym),
+                             &aedp->position);
+        }  /* if */
+      }  /* for */
+      free_access_error_descr_list(aedp);
+      ssep->defer_access_checks = FALSE;
+      ssep->deferred_access_checks = NULL;
+      ssep->last_deferred_access_check = NULL;
+    }  /* if */
+  }  /* if */
+}  /* perform_deferred_access_checks */
 
 
 void overload_check_ambiguity_and_verify_access(
@@ -4441,8 +4457,7 @@ the sk_overloaded_function symbol containing the locator symbol, or
 a projection symbol pointing to that sk_overloaded_function symbol.
 */
 {
-  /* This routine looks like
-     member_check_ambiguity_verify_access_and_return_error_descr. */
+  /* This routine looks like member_check_ambiguity_verify_access. */
   if (overloaded_symbol->class_of_which_a_member == NULL) {
     /* Non-class-members cannot be ambiguous and are always accessible. */
   } else {
@@ -6710,7 +6725,7 @@ of the template.
   ssep->slow_lookup_required     = FALSE;
   ssep->return_value_optimization_possible = FALSE;
   ssep->in_prototype_instantiation = FALSE;
-  ssep->defer_access_checking    = FALSE;
+  ssep->defer_access_checks      = FALSE;
   ssep->symbols                  = NULL;
   ssep->last_symbol              = NULL;
   ssep->il_scope                 = sp;
@@ -6763,6 +6778,8 @@ of the template.
   ssep->next_scope_that_affects_access_control =
                           depth_of_innermost_scope_that_affects_access_control;
   ssep->deferred_access_checks   = NULL;
+  ssep->last_deferred_access_check
+                                 = NULL;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -7719,11 +7736,14 @@ End a name scope by popping an entry off the scope stack.
   /* There should be no entries left on the curr_construct_pragmas list when
      the scope stack is popped. */
   check_assertion_str2(ssep->curr_construct_pragmas == NULL,
-		       "pop_scope_stack:", "curr_construct_pragmas != NULL");
+		       "pop_scope:", "curr_construct_pragmas != NULL");
   if (ssep->pending_pragmas != NULL) {
     /* Issue diagnostics on any pragmas that are still on the pending list. */
     end_of_scope_pragma_processing(ssep->pending_pragmas);
   }  /* if */
+  check_assertion_str2(ssep->defer_access_checks == FALSE &&
+                       ssep->deferred_access_checks == NULL,
+                       "pop_scope:", "deferred access checks still on list");
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
   if (db_active) {
@@ -8618,7 +8638,6 @@ are handled in symbol_tbl_init.)
   cleared_locator.is_template_id                  = FALSE;
   cleared_locator.specific_symbol                 = NULL;
   cleared_locator.qualifier_class_type            = NULL;
-  cleared_locator.access_errors                   = NULL;
   cleared_locator.variant.conversion_result_type  = NULL;
 
   /* Static variables in symbol_tbl.c: */

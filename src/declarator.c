@@ -1709,11 +1709,7 @@ otherwise it is NULL.  The syntax is:
            locator_for_curr_id.is_qualified_name)) {
         a_boolean        	  err;
         an_identifier_options_set options;
-        /* Access checking is suppressed for declarators.  When the
-           declarator contains a class qualifier it is defining something
-           already declared in the class definition.  This should not be
-           considered an access violation. */
-        options = GID_DISALLOW_GLOBAL_QUALIFIER | GID_SUPPRESS_ACCESS_ERRORS;
+        options = GID_DISALLOW_GLOBAL_QUALIFIER;
         if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED)) {
           options |= GID_DISALLOW_QUALIFIED_NAME;
         }  /* if */
@@ -1800,6 +1796,10 @@ otherwise it is NULL.  The syntax is:
                    deactivated once the entire declarator has been scanned. */
                 push_class_reactivation_scope(member_parent_type);
                 class_scope_deactivation_required = TRUE;
+                /* Recheck any access errors that occurred while scanning
+                   the specifiers or the beginning of the declarator
+                   now that we know the class of the thing being declared. */
+                perform_deferred_access_checks();
               }  /* if */
             }  /* if */
           }  /* if */
@@ -2186,6 +2186,17 @@ function_lparen:
       complete_type = bottom_derived_type = error_type();
     }  /* if */
   }  /* if */
+  {
+    a_scope_stack_entry_ptr	ssep = &scope_stack[decl_scope_level];
+    /* If any access checks may have been deferred (and not yet rechecked),
+       check them now.  This will cause errors to be issued for access
+       errors on nonmember functions.  Member function tests will have
+       been handled earlier when the class reactivation scope was
+       pushed. */
+    if (ssep->defer_access_checks) {
+      perform_deferred_access_checks();
+    }  /* if */
+  }
   if (class_scope_deactivation_required) {
     /* A class scope was reactivated when a qualified name was seen. */
     if (specifiers_type != NULL) {

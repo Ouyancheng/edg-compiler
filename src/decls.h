@@ -94,7 +94,7 @@ Macro that returns TRUE if the current token is an identifier that is
 a template-id.
 */
 #define identifier_is_template_id()                                  \
-  (is_generalized_identifier_start(GID_DEFER_ACCESS_ERRORS) ?        \
+  (is_generalized_identifier_start(GID_NO_OPTIONS) ?        \
          locator_for_curr_id.is_template_id : FALSE)
 
 /*
