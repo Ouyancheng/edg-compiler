@@ -1733,7 +1733,7 @@ return types).
       answer = TRUE;
     }  /* if */
   } /* if */
-  if (!answer) {
+  if (!answer && loc->symbol_header != NULL) {
     /* Misdeclared destructors may not be marked as class members: */
     char *name = loc->symbol_header->identifier;
     if (name != NULL && name[0] == '~') {
