@@ -364,7 +364,7 @@ the target integers.
 /* Type of the elements of the array.  These must be at least half the
    size of a_host_large_integer (some large and efficient integer type on
    the host), and (for space reasons) preferably exactly half.
-   Typically, this is a 16-bit value.  The bit size and minimum and
+   Typically, this is a 16-bit value.  The bit size and
    maximum values indicate the range of values to be used, which may
    be smaller than the range actually available. */
 typedef unsigned short an_int_value_part;
