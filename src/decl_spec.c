@@ -1293,6 +1293,11 @@ the template.
     if (is_friend_decl) srk_flags |= SRK_FRIEND;
     record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
                               (a_source_sequence_entry_ptr)NULL);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Set the first_declaration flag in the associated source-sequence
+       secondary declaration entry. */
+    if (!is_class_definition) set_first_declaration_flag((char *)class_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
     if (tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {
       /* Use of template parameter name as a proxy tag name during a
@@ -1546,6 +1551,11 @@ to indicate whether an enumeration is actually defined.
         mark_defined(tag_sym, &locator.source_position);
       } else {
         mark_declared(tag_sym, &locator.source_position);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* Set the first_declaration flag in the associated source-sequence
+           secondary declaration entry. */
+        set_first_declaration_flag((char *)enum_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     } else {
       /* Unnamed enum.  Create a symbol to represent it. */

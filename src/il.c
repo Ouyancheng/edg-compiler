@@ -8472,6 +8472,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_boolean                     is_anon_union_parent = FALSE;
       a_boolean                     new_specialization = FALSE;
       a_boolean                     func_prototype_decl = FALSE;
+      a_boolean                     first_decl = FALSE;
       a_boolean                     other_scope_def = FALSE;
       a_type_ptr                    type_entry_type = NULL;
       a_type_ptr                    declared_type = NULL;
@@ -8493,6 +8494,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           if (sssdp->implicit_decl) is_implicit = TRUE;
           if (sssdp->declared_in_func_prototype) func_prototype_decl = TRUE;
           if (sssdp->specialized_with_new_syntax) new_specialization = TRUE;
+          if (sssdp->first_declaration) first_decl = TRUE;
           if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
             type_entry_type = (a_type_ptr)sssdp->entity.ptr;
           }  /* if */
@@ -8576,6 +8578,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         }  /* if */
         if (new_specialization) {
           fprintf(f_debug, "%stemplate<>",
+                           (lparen_printed ? ", " : " ("));
+          lparen_printed = TRUE;
+        }  /* if */
+        if (first_decl) {
+          fprintf(f_debug, "%sfirst decl",
                            (lparen_printed ? ", " : " ("));
           lparen_printed = TRUE;
         }  /* if */
@@ -9471,6 +9478,27 @@ entry, if there is one.
     }  /* if */
   }  /* if */
 }  /* set_autonomous_tag_decl_flag */
+
+
+void set_first_declaration_flag(char *entity)
+/*
+Set the first_declaration flag in the source-sequence secondary entry that
+corresponds to *entity.
+*/
+{
+  a_source_sequence_entry_ptr   ssep;
+  a_src_seq_secondary_decl_ptr  sssdp;
+
+  if (!source_sequence_entries_disallowed) {
+    ssep = last_matching_source_sequence_entry(entity);
+    check_assertion(ssep != NULL &&
+                    ss_entry_kind(ssep) ==
+                          (an_il_entry_kind)iek_src_seq_secondary_decl);
+    sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+    sssdp->first_declaration = TRUE;
+  }  /* if */
+}  /* set_first_declaration_flag */
+
 
 a_type_ptr type_from_src_seq_declaration(a_source_sequence_entry_ptr ssep)
 /*

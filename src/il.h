@@ -840,6 +840,8 @@ extern a_source_sequence_entry_ptr last_matching_source_sequence_entry(
 extern void set_autonomous_tag_decl_flag(a_type_ptr  type,
                                          a_boolean   is_definition);
 
+extern void set_first_declaration_flag(char *entity);
+
 extern a_type_ptr type_from_src_seq_declaration(
                                              a_source_sequence_entry_ptr ssep);
 
