@@ -4159,7 +4159,7 @@ generating cross-reference output describing this declaration.
         redecl_error_already_issued = TRUE;
         linked_redecl_error = TRUE;
         /* Set a flag to suppress reuse of the existing external-routine
-           symbol and of the routione already in use.  Also, to suppress a
+           symbol and of the routine already in use.  Also, to suppress a
            possible declared-but-not-used message, set the referenced flag
            in the linked symbol. */
         suppress_ext_sym_lookup = TRUE;

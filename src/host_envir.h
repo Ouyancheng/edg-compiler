@@ -500,7 +500,7 @@ pragma warning is issued and the pragma is discarded.
 
 /*
 Flag that is TRUE if names that are hidden, where the hiding can be defeated
-by useing global qualification or an elaborated type specifier, should be
+by using global qualification or an elaborated type specifier, should be
 recorded in the IL.  Automatically TRUE if BACK_END_IS_CP_GEN_BE is TRUE.
 */
 #ifndef RECORD_HIDDEN_NAMES_IN_IL
