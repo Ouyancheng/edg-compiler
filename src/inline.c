@@ -777,6 +777,10 @@ variables.
     con = expr->variant.constant;
     if (!in_file_scope(con)) {
       expr->variant.constant = alloc_shareable_constant(con);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      /* The expression tree would also be in another function scope. */
+      expr->variant.constant->expr = NULL;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
   } else if (kind == (an_expr_node_kind)enk_operation) {
     /* Look for operations that now have constant operands because of

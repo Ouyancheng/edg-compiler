@@ -1,5 +1,15 @@
 Version 3.0
 
+4/8/02   Bad expr pointer, inlining + RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+When the RECORD_CONSTANT_EXPRESSIONS_IN_IL option is on at the same
+time as IL lowering (an unusual combination), inlining may produce a
+situation where a constant is copied from one function scope memory
+region to another.  If the constant points to an expression, the
+expression pointer must be cleared, because it can't point into the
+other memory region.  The clearing is now done.  Formerly, the
+failure to clear the pointer could cause an abort during an IL walk.
+
 4/8/02   Template function with explicit arguments treated as simple function
 
 In accordance with the proposed resolution to Core Issue 115, the front
