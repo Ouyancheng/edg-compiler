@@ -1,5 +1,10 @@
 Version 2.22
 
+1/5/94   Routine names changed for improved portability
+
+The names of two routines have been changed because they were not
+unique within the first 31 characters.
+
 1/4/94   Name mangling for member constants
 
 Member constants (e.g., enumerators) now have their names mangled when

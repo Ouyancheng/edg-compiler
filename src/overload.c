@@ -2834,7 +2834,7 @@ underlying type.
 }  /* underlying_selector_class */
 
 
-static void f_check_protected_member_access_catch_up(
+static void f_catch_up_check_protected_member_access(
                                    a_symbol_ptr      sym,
                                    an_operand        *bound_function_selector,
                                    a_source_position *err_pos)
@@ -2856,7 +2856,7 @@ an error.
   class_type = underlying_selector_class(bound_function_selector);
   /* Do the access check. */
   f_check_protected_member_access(sym, err_pos, class_type);
-}  /* f_check_protected_member_access_catch_up */
+}  /* f_catch_up_check_protected_member_access */
 
 
 /*
@@ -2865,12 +2865,12 @@ is being accessed through the selector "selector".  *err_pos is the
 source position for an error.  This is being done after
 overloaded_function_catch_up.
 */
-#define check_protected_member_access_catch_up(sym, selector, err_pos)\
+#define catch_up_check_protected_member_access(sym, selector, err_pos)\
 { if (access_for_symbol(fundamental_symbol_of(sym)) ==                \
                                 (an_access_specifier)as_protected) {  \
-    f_check_protected_member_access_catch_up(sym, selector, err_pos); \
+    f_catch_up_check_protected_member_access(sym, selector, err_pos); \
   }  /* if */                                                         \
-}  /* check_protected_member_access_catch_up */
+}  /* catch_up_check_protected_member_access */
 
 
 a_boolean variable_this_exists(a_variable_ptr *this_var)
@@ -3074,7 +3074,7 @@ case).  call_position gives the source position of the call.
       if (!access_error_reported) {
         /* Do the ARM 11.5 access checking for the type of selector used
            to access a protected member. */
-        check_protected_member_access_catch_up(function_symbol,
+        catch_up_check_protected_member_access(function_symbol,
                                                bound_function_selector,
                                                call_position);
       }  /* if */

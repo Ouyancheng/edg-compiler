@@ -161,7 +161,7 @@ for tp is currently in progress.
 }  /* instantiation_in_progress */
 
 
-static void update_instantiation_required_for_template_class_members
+static void set_instantiation_required_for_template_class_members
 						(a_type_ptr	class_type)
 /*
 Calls update_instantiation_required_flag for all member functions and
@@ -178,7 +178,7 @@ itself recursively to process classes nested within this class.
   a_routine_ptr			rout;
   a_type_ptr			type;
 
-  db_enter(4, "update_instantiation_required_for_template_class_members");  
+  db_enter(4, "set_instantiation_required_for_template_class_members");  
   ctsp = class_type->variant.class_struct_union.extra_info;
   /* The assoc_scope pointer can be NULL if errors occurred during the
      instantiation of the class. */
@@ -231,13 +231,13 @@ itself recursively to process classes nested within this class.
       a_type_kind	tk = type->kind;
       if (tk == (a_type_kind)tk_class ||
           tk == (a_type_kind)tk_struct || tk == (a_type_kind)tk_union) {
-        update_instantiation_required_for_template_class_members(type);
+        set_instantiation_required_for_template_class_members(type);
       }  /* if */
       type = type->next;
     }  /* while */
   }  /* if */
   db_exit();
-}  /* update_instantiation_required_for_template_class_members */
+}  /* set_instantiation_required_for_template_class_members */
 
 
 void f_check_for_uninstantiated_template_class(a_type_ptr  tp)
@@ -364,7 +364,7 @@ might not be able to if the template itself has not yet been defined.
       (void)scan_class_definition(class_type, DEPTH_OF_FILE_SCOPE,
                                   /*is_local_class=*/FALSE,
                                   /*is_prototype_instantiation=*/FALSE);
-      update_instantiation_required_for_template_class_members(class_type);
+      set_instantiation_required_for_template_class_members(class_type);
       pop_scope();
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
