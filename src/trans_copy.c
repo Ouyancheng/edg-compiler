@@ -394,10 +394,11 @@ Also remove any nested object lifetimes.
 }  /* remove_dynamic_initialization */
 
 
-static void clear_variable_initialization(a_variable_ptr variable)
+static void clear_variable_definition(a_variable_ptr variable)
 /*
-Eliminate the initialization of the indicated variable to turn it
-into a declaration instead of a definition.
+Eliminate the definition of the indicated variable, if any, to turn it
+into a declaration instead of a definition.  Among other things, this
+includes removing any initialization.
 */
 {
   if (variable->init_kind == (an_init_kind)initk_dynamic) {
@@ -412,7 +413,7 @@ into a declaration instead of a definition.
   if (variable->storage_class == (a_storage_class)sc_unspecified) {
     variable->storage_class = (a_storage_class)sc_extern;
   }  /* if */
-}  /* clear_variable_initialization */
+}  /* clear_variable_definition */
 
 
 static void clear_body_for_routine(a_routine_ptr routine)
@@ -461,8 +462,8 @@ in the primary IL, should be merged into that variable.
   a_variable_ptr corresp_variable =
                                (a_variable_ptr)canonical_il_entry_of(variable);
 
-  if (variable->init_kind != (an_init_kind)initk_none) {
-    if (corresp_variable->init_kind == (an_init_kind)initk_none) {
+  if (variable->storage_class == (a_storage_class)sc_unspecified) {
+    if (corresp_variable->storage_class != (a_storage_class)sc_unspecified) {
       /* This variable has a definition, and the corresponding variable
          has no definition.  Therefore the definition must be merged into
          the corresponding variable. */
@@ -598,9 +599,7 @@ do any necessary processing, e.g., externalizing it if it is static.
     if (!variable->is_template_static_data_member ||
         variable->is_specialized) {
       /* The variable is not a generated template. */
-      if (variable->init_kind != (an_init_kind)initk_none) {
-        clear_variable_initialization(variable);
-      }  /* if */
+      clear_variable_definition(variable);
 #if DO_IL_LOWERING
       if (il_lowering_needed() &&
           variable->storage_class == (a_storage_class)sc_static) {
@@ -886,7 +885,7 @@ the lists.
        dyn_init = dyn_init->next) {
     variable = dyn_init->variable;
     /* Remove an entry if the corresponding variable is no longer
-       initialized.  See clear_variable_initialization. */
+       initialized.  See clear_variable_definition. */
     if (variable->init_kind == (an_init_kind)initk_none) {
       if (prev_dyn_init == NULL) {
         scope->dynamic_inits = dyn_init->next;
@@ -1397,16 +1396,18 @@ end_of_type_list_add:;
           a_variable_ptr primary_variable =
                    (a_variable_ptr)checked_trans_unit_corresp_pointer_of(
                                                              corresp_variable);
-          if (primary_variable->init_kind != (an_init_kind)initk_none) {
-            /* Eliminate the body of the primary variable (this happens when
-               the secondary has a specialization and the primary does not). */
+          if (primary_variable->storage_class ==
+                                             (a_storage_class)sc_unspecified) {
+            /* Eliminate the definition of the primary variable (this happens
+               when the secondary has a specialization and the primary does
+               not). */
             if (corresp_variable->is_specialized &&
                 !primary_variable->is_specialized) {
               /* This variable is both specialized and used in the
                  non-specialized version.  That's an error. */
               report_bad_trans_unit_corresp(corresp_variable);
             } else {
-              clear_variable_initialization(primary_variable);
+              clear_variable_definition(primary_variable);
             }  /* if */
           }  /* if */
           if (!is_class_scope) {
