@@ -1591,9 +1591,8 @@ Interface to pop_scope that is used for template instantiation scopes.
   pop_scope();
   /* If the template was defined in a namespace, reactivate the namespace
      scope before pushing the instantiation scope. */
-  if (!template_sym->is_class_member &&
-       template_sym->parent.namespace_ptr != NULL) {
-    parent_nsp = template_sym->parent.namespace_ptr;
+  parent_nsp = parent_namespace_for_symbol(template_sym);
+  if (parent_nsp != NULL) {
     if (common_nsp != parent_nsp) {
       pop_namespace_extension_for_instantiation(common_nsp);
     }  /* if */
