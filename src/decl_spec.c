@@ -2200,8 +2200,10 @@ the template.
       *declares_something = FALSE;
     }  /* if */
   } else {
+    a_class_type_supplement_ptr  ctsp;
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;
+    ctsp = class_type->variant.class_struct_union.extra_info;
     if (!is_template_specific_decl || !(*declares_something)) {
       is_redeclaration = TRUE;
     }  /* if */
@@ -2223,10 +2225,11 @@ the template.
       }  /* if */
     }  /* if */
     /* Record cross-reference information. */
-    if (!is_friend_decl &&
+    if (!is_friend_decl && !locator.is_template_id &&
         class_type->variant.class_struct_union.is_prototype_instantiation &&
-        class_type->variant.class_struct_union.extra_info->template_arg_list
-                                                                    != NULL) {
+        ctsp->template_arg_list != NULL &&
+        !(ctsp->assoc_scope != NULL &&
+          ctsp->assoc_scope->depth_in_scope_stack != NO_SCOPE_DEPTH)) {
       /* A prototype instantiation of a class template (as opposed of that of
          a class nested in a class template).
          This can only happen in the emulation of a peculiar Microsoft bug
