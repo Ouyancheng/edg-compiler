@@ -3880,6 +3880,9 @@ char_compare:
     case eok_comma:
 #if CHECKING
       check_result_not_used_flag(operand_1);
+      if (expr->type != operand_2->type) {
+        internal_error("dump_expression: comma expr has wrong type");
+      }  /* if */
 #endif /* CHECKING */
       dump_expression(operand_1, /*need_parens=*/TRUE);
       fputs(", ", f_C_output);
