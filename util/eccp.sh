@@ -1440,10 +1440,8 @@ do
          ! -d $instantiation_dir ] ; then
       mkdir $instantiation_dir
       if [ $? -ne 0 ] ; then
-        echo "eccp: cannot create instantiation directory $instantiation_dir"
+        echo "eccp: cannot create instantiation directory \"$instantiation_dir\""
         exit 1
-      else
-        echo "eccp: created instantiation directory \"$instantiation_dir\""
       fi
     fi
   fi
