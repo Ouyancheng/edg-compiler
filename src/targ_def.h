@@ -361,7 +361,7 @@ and a_host_large_unsigned.
 There is no host integer that is large enough, so use an array to represent
 the target integers.
 */
-/* Type of the elements of the array.  These must be at least half the
+/* Type of the elements of the array.  These must be at most half the
    size of a_host_large_integer (some large and efficient integer type on
    the host), and (for space reasons) preferably exactly half.
    Typically, this is a 16-bit value.  The bit size and
