@@ -1707,9 +1707,13 @@ scan_arg_for_scan_initialization:
         } else {
           /* A default constructor does exist.  Generate the dynamic init
              entry. */
+          a_param_type_ptr  ptp = (skip_typerefs(rp->type))->
+                                   variant.routine.extra_info->param_type_list;
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
           dip->variant.constructor.routine = rp;
-          dip->variant.constructor.args = NULL;
+          /* A user defined default constructor may have default args that
+             should be incorporated into the constructor call. */
+          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
         }  /* if */
       }  /* if */
       if (array_type != NULL &&
