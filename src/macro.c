@@ -1184,6 +1184,7 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
       found_end_of_operator = TRUE;
     } else {
       error(ec_exp_rparen);
+      curr_char_loc = start_of_curr_token;
     }  /* if */
   }  /* if */
   /* Restore the previous state for fetching pp-tokens, and expanding
@@ -1262,6 +1263,7 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
       found_end_of_operator = TRUE;
     } else {
       error(ec_exp_rparen);
+      curr_char_loc = start_of_curr_token;
     }  /* if */
   }  /* if */
   /* Restore the previous state for fetching pp-tokens, and expanding
