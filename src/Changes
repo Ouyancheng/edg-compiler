@@ -1,5 +1,24 @@
 Version 2.31
 
+12/14/95  Members of class templates need not have definitions when the
+          entire class is being instantiated
+
+When a template class name is used in an "instantiate" pragma, all of 
+the members of the class are instantiated.  When an instantiation is
+requested by a pragma, an error is issued if the body of the member
+function is not supplied (making the instantiation impossible).  The
+error is now suppressed if the instantiation was requested by an
+instantiation of the entire class.  The error is still issued if
+the member was specifically named in the instantiation pragma.
+
+  template <class T> struct A {
+    A();
+    A(const A&);  // Deliberately not defined
+  };
+  template <class T> A<T>::A(){}
+  #pragma instantiate A<int>  // No longer an error
+  #pragma instantiate A<int>::A()  // Still an error
+
 12/13/95  Pointer-to-member template parameters that depend on other template
           parameter types
 

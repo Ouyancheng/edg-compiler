@@ -6162,9 +6162,11 @@ template entities.
       /* A template can be declared and referenced without ever being defined.
          If, however, an instantiation was explicitly requested an error is
          issued.  In any case, the instantiation cannot be done without
-         a template definition. */
+         a template definition.  The error is not issued if the instantiation
+         was requested by an instantiation of the entire class (meaning that
+         all members should be instantiated). */
       result = FALSE;
-      if (tip->explicit_instantiation) {
+      if (tip->explicit_instantiation && !tip->class_explicitly_instantiated) {
         pos_sy_error(ec_instantiation_requested_no_definition_supplied,
   	           &tip->explicit_instantiation_pos,
   		    tip->instance_sym);
@@ -6919,9 +6921,11 @@ instantiated.
 }  /* sym_can_be_instantiated */
 
 
-static void update_instantiation_flags(a_symbol_ptr	      sym,
-				       a_pragma_kind	      pragma_kind,
-				       a_source_position      *pos)
+static
+void update_instantiation_flags(a_symbol_ptr	      sym,
+ 		                a_pragma_kind	      pragma_kind,
+				a_source_position     *pos,
+                                a_boolean	      is_class_instantiation)
 /*
 Given a pointer to either a routine, member function, or static data member
 symbol, set either the instantiation required flag (if instantiate is TRUE)
@@ -6944,12 +6948,14 @@ or the specific definition flag (if instantiate is FALSE).
     if (pragma_kind == (a_pragma_kind)pk_instantiate) {
       instantiation_required_flag = TRUE;
       tip->explicit_instantiation = TRUE;
+      tip->class_explicitly_instantiated = is_class_instantiation;
       tip->explicit_instantiation_pos = *pos;
     } else if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
       instantiation_required_flag = FALSE;
       tip->specific_def = TRUE;
       tip->explicit_instantiation = FALSE;
       tip->explicit_do_not_instantiate = TRUE;
+      tip->class_explicitly_instantiated = FALSE;
     } else { /* pragma_kind == (a_pragma_kind)pk_can_instantiate */
       /* For the can_instantiate pragma set the instantiation required
          flag to its current value.  The purpose of this is to ensure
@@ -7020,11 +7026,13 @@ data members within a given template class.
                list_sym = is_list ? list_sym->next : NULL) {
             /* Only set the flags for things that can be instantiated. */
             if (sym_can_be_instantiated(list_sym, /*issue_errors=*/FALSE)) {
-              update_instantiation_flags(list_sym, pragma_kind, pos);
+              update_instantiation_flags(list_sym, pragma_kind, pos,
+                                         /*is_class_instantiation=*/TRUE);
            	}  /* if */
           }  /* for */
         } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
-          update_instantiation_flags(mem_sym, pragma_kind, pos);
+          update_instantiation_flags(mem_sym, pragma_kind, pos,
+                                     /*is_class_instantiation=*/TRUE);
         } else if (mem_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
                    mem_sym->kind == (a_symbol_kind)sk_union_tag) {
           /* Instantiate the members of any nested classes. */
@@ -7172,11 +7180,13 @@ assumed if the return type is omitted.
       } else if ((new_sym = sym_if_template_class_member_function(sym))
 								 != NULL) {
 	sym = new_sym;
-	update_instantiation_flags(sym, pragma_kind, &start_pos);
+	update_instantiation_flags(sym, pragma_kind, &start_pos,
+                                   /*is_class_instantiation=*/FALSE);
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
                  sym->variant.static_data_member.instance_ptr != NULL) {
 	/* A static data member -- set the instantiation flags. */
-	update_instantiation_flags(sym, pragma_kind, &start_pos);
+	update_instantiation_flags(sym, pragma_kind, &start_pos,
+                                   /*is_class_instantiation=*/FALSE);
       } else if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
 		 sym->kind == (a_symbol_kind)sk_function_template) {
         /* An overloaded function name or a plain function template name.
@@ -7268,7 +7278,8 @@ assumed if the return type is omitted.
 	err = TRUE;
       } else {
         /* Update the flags for the symbol found. */
-        update_instantiation_flags(sym, pragma_kind, &start_pos);
+        update_instantiation_flags(sym, pragma_kind, &start_pos,
+                                   /*is_class_instantiation=*/FALSE);
       }  /* if */
     } else {
       /* A regular function name that is expected to represent one or
@@ -7317,7 +7328,8 @@ assumed if the return type is omitted.
 	err = TRUE;
       } else if (!err) {
         /* Update the flags for the symbol found. */
-        update_instantiation_flags(new_sym, pragma_kind, &start_pos);
+        update_instantiation_flags(new_sym, pragma_kind, &start_pos,
+                                   /*is_class_instantiation=*/FALSE);
       }  /* if */
     }  /* if */
   } else {

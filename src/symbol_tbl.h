@@ -1066,6 +1066,13 @@ typedef struct a_template_instance {
   a_bit_field	explicit_instantiation:1;
 			/* TRUE if an instantiation has been explicitly
 			   requested using a pragma directive. */
+  a_bit_field	class_explicitly_instantiated:1;
+			/* TRUE if the instantiation request specified the
+			   class (meaning that all its members should be
+			   instantiated).  When the class is specified for
+			   instantiation, no error is issued if template
+			   definitions are not available for some of the
+			   members. */
   a_bit_field	already_instantiated:1;
 			/* TRUE if instantiation has already been performed
 			   (for instance, for inline functions, which are

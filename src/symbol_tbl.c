@@ -6792,6 +6792,8 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->specific_decl               = FALSE;
   tip->specific_def                = FALSE;
   tip->explicit_instantiation      = FALSE;
+  tip->class_explicitly_instantiated
+                                   = FALSE;
   tip->already_instantiated        = FALSE;
   tip->explicit_do_not_instantiate = FALSE;
   tip->explicit_can_instantiate    = FALSE;
