@@ -147,6 +147,9 @@ extern a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,
 extern void add_to_types_list(a_type_ptr     type_ptr,
                               a_scope_depth  scope_level);
 
+extern void remove_from_types_list(a_type_ptr     type_ptr,
+                                   a_scope_depth  scope_level);
+
 extern void move_to_end_of_types_list(a_type_ptr     type_ptr,
                                       a_scope_depth  scope_level);
 
