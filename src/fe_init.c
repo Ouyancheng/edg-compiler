@@ -712,6 +712,7 @@ unit, in case multiple source files are allowed.
 #if CHECKING
   check_target_configuration();
 #endif /* CHECKING */
+  symbol_tbl_one_time_init();
 }  /* fe_one_time_init */
 
 
@@ -750,7 +751,7 @@ to replace the initial portion of this compilation.
   host_init();
   il_init();
   lexical_init();
-  sym_tbl_init();
+  symbol_tbl_init();
   keyword_init();
   class_decl_init();
   def_arg_init();
