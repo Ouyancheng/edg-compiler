@@ -141,9 +141,6 @@ Allocate and initialize a precompiled header event record.
   a_pch_event_ptr pep;
 
   /* Allocate a new entry. */
-#if 0
-  /* Special handling needed for command line events? */
-#endif /* 0 */
   if (kind == pchek_command_line) {
     /* Command line events are reused for multiple source files so
        must be allocated in general memory. */
@@ -202,7 +199,7 @@ file.
   if (pch_event_list_tail != NULL) pch_event_list_tail->next = pep;
   pch_event_list_tail = pep;
 #if DEBUG
-  if (debug_level >= 0) {
+  if (debug_level >= 4) {
     fprintf(f_debug, "Added PCH event: %s, value=%s, line %0d, col %0d\n",
             pch_event_kind_names[(int)pep->kind],
             pep->value == NULL ? "(NULL)" : pep->value,
@@ -246,7 +243,7 @@ the command line.
   }  /* if */
   pch_cmd_line_event_list_tail = pep;
 #if DEBUG
-  if (debug_level >= 0) {
+  if (debug_level >= 4) {
     fprintf(f_debug, "Added PCH event: %s, value=%s\n",
             pch_event_kind_names[(int)pep->kind],
             pep->value == NULL ? "(NULL)" : pep->value);
@@ -303,7 +300,6 @@ be used as part of the applicability check in subsequent compilations.
 {
   build_prefix_information();
 #if 0
-#else
   write_precompiled_header_file();
 #endif
 }  /* precompiled_header_processing */
