@@ -1,5 +1,23 @@
 Version 2.41
 
+2/2/99    Source sequence lists: internal error when class template
+          instantiation is triggered by namespace member function
+
+With TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS configured to TRUE,
+if a namespace member function definition triggered the instantiation of a
+class template that was a member of the same namespace, an internal error
+was sometimes produced when the definition did not appear in the scope of
+the namespace.  Now fixed.
+
+  namespace N {
+    template <class T> struct A {
+      A(int i = 0);
+    };
+    void f();
+  }
+  void N::f() { A<int> a; }     // Abort while generating source sequence
+                                //   entries for constructor of A<int>
+
 1/30/99   Minimal inlining: no temporary for parameter when argument
           is unaliased automatic variable
 
