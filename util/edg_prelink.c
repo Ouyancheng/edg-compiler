@@ -320,7 +320,8 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_command_line_error,
   pl_ec_instantiation_loop,
   pl_ec_lib_file_not_found,
-  pl_ec_error_occurred_during_name_decoding
+  pl_ec_error_occurred_during_name_decoding,
+  pl_ec_warning
 } a_pl_error_code;
 
 
@@ -374,6 +375,9 @@ string.
   case pl_ec_error_occurred_during_name_decoding:
     m = "an error occurred during name decoding of \"%s\"";
     break;
+  case pl_ec_warning:
+    m = "%s: warning: ";
+    break;
   default:
     pl_internal_error("invalid error code");
   }  /* switch */
@@ -408,7 +412,7 @@ a corresponding %s.  If the message contains such a %s,
 insertion_string must not be NULL.
 */
 {
-  fprintf(stderr, pl_error_text(pl_ec_error), message_prefix);
+  fprintf(stderr, pl_error_text(pl_ec_warning), message_prefix);
   fprintf(stderr, pl_error_text(error_code), insertion_string);
   fprintf(stderr, "\n");
 }  /* pl_warning */
