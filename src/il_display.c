@@ -3101,6 +3101,7 @@ Display the indicated class_member_using_decl entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_class_member_using_decl);
   disp_access("access", ptr->access);
+  if (ptr->hidden) disp_boolean("hidden", TRUE);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
   disp_ptr("class_specified_in_qualifier",

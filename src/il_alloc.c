@@ -723,6 +723,7 @@ pointer to it.
 #endif /* DEBUG */
   cmudp->next                         = NULL;
   cmudp->access                       = (an_access_specifier)as_public;
+  cmudp->hidden                       = FALSE;
   cmudp->entity.kind                  = (a_byte_il_entry_kind)kind;
   cmudp->entity.ptr                   = (char *)NULL;
   cmudp->class_specified_in_qualifier = NULL;

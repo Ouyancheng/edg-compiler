@@ -2354,6 +2354,11 @@ typedef struct a_class_member_using_decl {
                 access; /* The access control kind for a base member,
                            possibly adjusting the access that had been
 			   specified for the base class as a whole. */
+  a_byte_boolean
+		hidden;
+			/* TRUE if a base class member brought into a derived
+			   class by a using-declaration is subsequently
+			   hidden by declaration in the derived class. */
   a_tagged_pointer
 		entity;
 			/* The entity (field, function, member type, etc.)
