@@ -487,6 +487,10 @@ typedef struct a_class_def_state {
   a_bit_field	any_const_or_ref_fields:1;
 			/* TRUE if any nonstatic data members have reference
 			   or const-qualified type. */
+  a_bit_field	is_template_instantiation:1;
+			/* TRUE if the class is a template instantiation
+			   (real or nonreal), including classes nested within
+			   template instances. */
   a_bit_field	is_nonreal_instantiation:1;
 			/* TRUE if the class is a prototype instantiation of
 			   a class template. */
@@ -537,6 +541,7 @@ class being defined.
   cdsp->any_named_fields = FALSE;
   cdsp->any_friend_decls = FALSE;
   cdsp->any_const_or_ref_fields = FALSE;
+  cdsp->is_template_instantiation = FALSE;
   cdsp->is_nonreal_instantiation = FALSE;
   cdsp->is_local_class = FALSE;
   cdsp->last_field_is_incomplete_array = FALSE;
@@ -1091,14 +1096,73 @@ is first used.  Does the fixup on the friend function that is normally done
 when the enclosing class is instantiated.
 */
 {
-  a_routine_ptr  rp = rfp->symbol->variant.routine.ptr;
+  a_routine_ptr                rp = rfp->symbol->variant.routine.ptr;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_scope_depth                scope_depth = NO_SCOPE_DEPTH;
+  a_source_sequence_entry_ptr  insert_point;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+  db_enter(3, "microsoft_friend_function_fixup");
   /* Reset the routine fixup pointer in the routine to prevent this
      process from being attempted again. */
   rp->routine_fixup = NULL;
   /* Reactivate the scope containing the function definition. */
   push_class_and_template_reactivation_scope(rfp->class_type,
                                              /*is_template_based=*/TRUE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (!scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_entries_disallowed) {
+    a_type_ptr                   tp;
+    a_source_sequence_entry_ptr  ssep;
+
+    /* Turn on the generation of source sequence entries. */
+    source_sequence_entries_disallowed = FALSE;
+    /* Now put out the source sequence entry for the routine, after
+       clearing the source-sequence pointer to be sure it will be
+       reset. */
+    rp->source_corresp.source_sequence_entry = NULL;
+    add_to_source_sequence_list((char *)rp, (an_il_entry_kind)iek_routine);
+    /* Set the declared type in the source sequence entry.  The default
+       args are not copied because they are associated with the declared type
+       of the secondary-decl entry that appeared in the class definition. */
+    tp = copy_routine_type_with_param_types(rfp->func_info.declared_type,
+                                            /*copy_default_args=*/FALSE);
+    set_routine_declared_type(rp, tp);
+    scope_depth = scope_depth_for_class_ss_list(rfp->class_type);
+    if (scope_depth != NO_SCOPE_DEPTH) {
+      ssep = rp->source_corresp.source_sequence_entry;
+      /* Save the current instantiation insert point before resetting it.
+         It will be restored later. */
+      insert_point = scope_stack[scope_depth].
+                             ss_list_instantiation_insert_point;
+      /* Assure that instantiations triggered within the body of the
+         relocated function are recorded in the source-sequence list
+         immediately before it. */
+      scope_stack[scope_depth].ss_list_instantiation_insert_point = ssep;
+      if (insert_point != NULL || scope_depth != depth_scope_stack) {
+        /* Move the source sequence entry that was just entered to an
+           appropriate spot.  (Normally, the reference that triggers the
+           instantiation of the function appears inside a function body,
+           but that will never be the right place to which to anchor the
+           definition.) */
+        f_move_src_seq_list(ssep, ssep, &scope_stack[depth_scope_stack],
+                            insert_point, &scope_stack[scope_depth]);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Make sure various flags are set correctly in the routine entry.  This
+     won't have been done before, since decl_routine was called for a
+     declaration, not a definition. */
+  rp->defined = TRUE;
+  ((a_symbol_ptr)rp->source_corresp.assoc_info)->defined = TRUE;
+  if (rp->storage_class == (a_storage_class)sc_extern) {
+    rp->storage_class = (a_storage_class)sc_unspecified;
+  }  /* if */
+  rp->defined_in_friend_decl = TRUE;
   /* Let get_token know about the cache. */
   rescan_cached_tokens(&rfp->function_body_token_cache);
   /* Scan the function body. */
@@ -1112,8 +1176,16 @@ when the enclosing class is instantiated.
      which was inserted to mark the end of the cached token stream.
      If necessary, keep flushing until end-of-source is found. */
   flush_past_token_cache_terminator();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (scope_depth != NO_SCOPE_DEPTH) {
+    scope_stack[scope_depth].ss_list_instantiation_insert_point = insert_point;
+  }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Pop the reactivated class scope from the scope stack. */
   pop_class_reactivation_scope();
+  db_exit();
 }  /* microsoft_friend_function_fixup */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4891,7 +4963,8 @@ of the function, and again overloading is a possibility.
             /* Since this is a non-defining entry, it is represented by a
                secondary-decl entry in the source sequence list.  Enter the
                current function type. */
-            (void)update_src_seq_secondary_decl((char *)rp, function_type,
+            (void)update_src_seq_secondary_decl((char *)rp,
+                                                func_info->declared_type,
                                                 SSSD_FRIEND_DECL,
                                                 &decl_info->decl_pos_block);
           }  /* if */
@@ -9978,6 +10051,10 @@ to be returned to the caller.
       }  /* if */
       if (friend_specified) {
         /* Process a friend function declaration. */
+        if (function_def_present && microsoft_mode &&
+            class_state->is_template_instantiation) {
+          func_info.is_definition = FALSE;
+        }  /* if */
         rout_sym = decl_friend_function(&locator, class_type, local_type,
                                         &func_info, &decl_info);
       } else if (is_member_template_rescan) {
@@ -10066,12 +10143,12 @@ to be returned to the caller.
       if (function_def_present) {
         a_token_sequence_number  first_token_number;
         a_token_sequence_number  last_token_number;
-        if (!friend_specified) {
-          /* The inline flag is set for friend functions in
-             decl_friend_function, which also handles cases in which it
-             should be left unset despite the presence of a function body. */
-          check_assertion(rout_sym->variant.routine.ptr->is_inline);
-        }  /* if */
+
+        /* The inline flag is set for friend functions in
+           decl_friend_function, which also handles cases in which it should
+           be left unset despite the presence of a function body. */
+        check_assertion(friend_specified ||
+                        rout_sym->variant.routine.ptr->is_inline);
         remove_stop_token(tok_comma);
         /* Cache the tokens comprising the function definition so that they
            can be rescanned once the entire class definition has been
@@ -10592,6 +10669,7 @@ nested classes when their definition appears outside of the class template.
         class_state.is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
       }  /* if */
     }  /* if */
+    class_state.is_template_instantiation = is_template_instantiation;
     /* Find the prototype instantiation symbol associated with this
        real instantiation. */
     class_state.corresp_prototype_tag_sym =
