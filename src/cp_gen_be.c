@@ -270,11 +270,13 @@ typedef int a_gen_name_options_set;
 			/* gen_name is invoked to emit the name of a member
 			   function or field.  In Microsoft mode, such a
 			   name cannot be qualified with a namespace name. */
+#ifdef PARSED_TEMPLATES_IN_IL
 #define GN_DEPENDENT 0x20
 			/* The name to generate depends on a template
 			   parameter. */
 #define GN_NO_TEMPLATE_ARGS 0x40
 			/* Do not generate the template arguments. */
+#endif /* PARSED_TEMPLATES_IN_IL */
 
 
 /* Needed because of forward references: */
@@ -5097,7 +5099,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_address:
           write_tok_ch('&');
           if (is_operation_node(operand_1) &&
-              operand_1->variant.operation.kind == eok_lvalue) {
+              operand_1->variant.operation.kind ==
+                                          (an_expr_operator_kind)eok_lvalue) {
             operand_1 = operand_1->variant.operation.operands;
           }  /* if */
           /* Fall through. */
