@@ -2433,11 +2433,11 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
       if (type->variant.integer.enum_info.constant_list == NULL) break;
       /* Output enums only on the first pass. */
       if (pass == 1) {
-        if (start_unreferenced_bracket(&type->source_corresp)) {
-          dump_enum_definition(type);
-          write_tok_ch(';');
-          end_unreferenced_bracket(&type->source_corresp);
-        }  /* if */
+        /* start_unreferenced_bracket is not used here because the enumerator
+           constants might be referenced even though the enum type itself is
+           not. */
+        dump_enum_definition(type);
+        write_tok_ch(';');
       }  /* if */
       break;
     case tk_struct:
