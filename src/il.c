@@ -9430,6 +9430,7 @@ processing.  If there is no next such field, return NULL.
   return field;
 }  /* next_initializable_field */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_compound_assignment_operator(an_expr_operator_kind  op)
 /*
@@ -9551,20 +9552,10 @@ type (i.e., a non-floating-point arithmetic type).
                                 (a_boolean)result->variant.
                                                 fixed_point.is_fract_type,
                                 saturating);
-#if !STANDALONE_UTILITY_PROGRAM
-      if (in_front_end) {
-        result = fixed_point_type(descr);
-      } else
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-      /* Do not add code here. */
-      {
-        /* In a back end, we can't allocate a type, so make one in a static
-           variable. */
-        static a_type local_type;
-        result = &local_type;
-        clear_type(result, (a_type_kind)tk_fixed_point);
-        result->variant.fixed_point = descr;
-      }  /* if */
+      /* We can't allocate a type in a back end, so this code doesn't
+         work there without some special adjustment. */
+      check_assertion(in_front_end);
+      result = fixed_point_type(descr);
     }  /* if */
   }  /* if */
   return result;
@@ -9625,7 +9616,6 @@ fixed-point operations.
   return operation_type;
 }  /* expression_operation_type */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 void remove_from_routines_list(a_routine_ptr rout_ptr,
                                a_scope_depth scope_depth)
