@@ -415,6 +415,12 @@ typedef struct a_tmpl_decl_state {
 			/* Source range information for the template
 			   definition (if any). */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_template_decl_ptr
+		template_decl;
+			/* IL representation of the template parameterization
+			   of the entity being declared. */
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 } a_tmpl_decl_state;
 
 /* Forward declaration. */
@@ -11650,6 +11656,128 @@ instantiation, then you don't know what X is.
   db_exit();
 }  /* prescan_nonclass_template_declaration */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+
+static a_template_decl_ptr make_template_decl(a_template_param_ptr tp_list)
+/*
+Create an IL structure describing the parameterization of a template using the
+information gathered in the front end structures.
+*/
+{
+  a_template_decl_ptr       result = alloc_template_decl();
+  a_template_parameter_ptr  il_tpp = NULL;
+  a_template_param_ptr      sym_tpp;
+
+  /* Copy the template parameter list into the IL: */
+  for (sym_tpp = tp_list; sym_tpp != NULL; sym_tpp = sym_tpp->next) {
+    a_template_parameter_ptr  new_tpp = alloc_template_parameter();
+    switch (sym_tpp->param_symbol->kind) {
+      case sk_type:
+        new_tpp->kind = (a_template_parameter_kind)tpk_type;
+        new_tpp->variant.type.ptr = sym_tpp->variant.type;
+        new_tpp->variant.type.default_arg_type = sym_tpp->default_arg.type;
+        new_tpp->source_corresp = *source_corresp_for_il_entry(
+                                      (char*)sym_tpp->variant.type, iek_type);
+        break;
+      case sk_constant:
+        new_tpp->kind = (a_template_parameter_kind)tpk_nontype;
+        new_tpp->variant.nontype.constant = sym_tpp->variant.constant.ptr;
+        new_tpp->variant.nontype.default_arg_constant =
+                                                sym_tpp->default_arg.constant;
+        new_tpp->source_corresp = *source_corresp_for_il_entry(
+                          (char*)sym_tpp->variant.constant.ptr, iek_constant);
+        break;
+      case sk_class_template:
+        new_tpp->kind = (a_template_parameter_kind)tpk_template;
+        /* FIXME Ask John. */
+        unexpected_condition_str("Not yet implemented");
+        break;
+      default:
+        unexpected_condition_str("make_template_decl: unexpected symbol kind");
+    }  /* switch */
+    if (il_tpp == NULL) {
+      result->param_list = new_tpp;
+    } else {
+      il_tpp->next = new_tpp;
+    }  /* if */
+    il_tpp = new_tpp;
+  }  /* for */
+  return result;
+}  /* make_template_decl */
+
+
+static void attach_template_decl_structure(a_tmpl_decl_state_ptr  decl_state,
+                                           a_symbol_ptr           sym)
+/*
+This routine is responsible for attaching the template parameterization info
+(extracted from decl_state) to the IL entity referred to by sym.
+If applicable, source sequence entries are also created as needed.
+*/
+{
+  if (sym != NULL && !sym->is_error && decl_state->template_decl != NULL) {
+    switch (sym->kind) {
+      case sk_class_template:
+        if (sym->variant.template_info != NULL) {
+          a_symbol_ptr proto = sym->variant.template_info->
+                               variant.class_template.prototype_instantiation;
+          if (proto != NULL) {
+            a_type_ptr                  tp = type_symbol_type(proto);
+            a_class_type_supplement_ptr ctsp;
+            check_assertion(is_class_struct_union_type(tp));
+            ctsp = tp->variant.class_struct_union.extra_info;
+            check_assertion(ctsp != NULL);
+            if (ctsp->template_decl == NULL || decl_state->defines_something) {
+              ctsp->template_decl = decl_state->template_decl;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        break;
+      case sk_function_template:
+        if (sym->variant.template_info != NULL) {
+          a_routine_ptr rp =
+                         sym->variant.template_info->variant.function.routine;
+          check_assertion(rp->is_prototype_instantiation);
+          if (rp->template_decl == NULL || decl_state->defines_something) {
+            rp->template_decl = decl_state->template_decl;
+          }  /* if */
+        }  /* if */
+        break;
+      case sk_class_or_struct_tag:
+      case sk_union_tag:
+        if (sym->variant.class_struct_union.type != NULL) {
+          a_type_ptr tp = sym->variant.class_struct_union.type;
+          a_class_type_supplement_ptr ctsp;
+          check_assertion(is_class_struct_union_type(tp));
+          ctsp = tp->variant.class_struct_union.extra_info;
+          check_assertion(ctsp != NULL);
+          if (ctsp->template_decl == NULL || decl_state->defines_something) {
+            ctsp->template_decl = decl_state->template_decl;
+          }  /* if */
+        }  /* if */
+      case sk_member_function:
+        if (sym->variant.routine.ptr != NULL) {
+          a_routine_ptr rp = sym->variant.routine.ptr;
+          check_assertion(rp->is_prototype_instantiation);
+          if (rp->template_decl == NULL || decl_state->defines_something) {
+            rp->template_decl = decl_state->template_decl;
+          }  /* if */
+        }  /* if */
+      case sk_static_data_member:
+        if (sym->variant.variable.ptr != NULL) {
+          a_variable_ptr vp = sym->variant.variable.ptr;
+          check_assertion(vp->is_template_static_data_member);
+          if (vp->template_decl == NULL || decl_state->defines_something) {
+            vp->template_decl = decl_state->template_decl;
+          }  /* if */
+        }  /* if */
+      default:
+        unexpected_condition_str(
+                         "attach_template_decl_structure: unexpected symbol");
+    }  /* switch */
+  }  /* if */
+}  /* attach_template_decl_structure */
+
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static void scan_template_param_clauses(
 				a_tmpl_decl_state_ptr	decl_state,
@@ -11673,6 +11801,9 @@ also for template template parameters (when is_template_param is TRUE).
   a_template_decl_info_ptr	    prev_template_decl_info = NULL;
   a_template_decl_info_ptr	    template_decl_info = NULL;
   a_boolean			    param_list_seen = FALSE;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position                 template_pos;
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
 
   /* Loop until there are no more template parameter clauses.  Note that
      this routine is not called for explicit instantiations, in which
@@ -11685,6 +11816,9 @@ also for template template parameters (when is_template_param is TRUE).
     /* Bypass "template".  The next token should be "<".  This is done
        before the scope is pushed so that any pragma associated with the
        tok_template token will be processed in the current scope. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
+    template_pos = pos_curr_token;
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
     if (curr_token == tok_lt) {
       /* Bypass the "<". */
@@ -11716,6 +11850,17 @@ also for template template parameters (when is_template_param is TRUE).
         /* Record that a template parameter list has been seen.  A
            subsequent missing parameter list is an error. */
         param_list_seen = TRUE;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        {
+          a_template_decl_ptr template_decl =
+                        make_template_decl(decl_state->decl_info->parameters);
+          template_decl->parent = decl_state->template_decl;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          template_decl->template_pos = template_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+          decl_state->template_decl = template_decl;
+        }
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       } else if (is_template_param) {
         /* A template parameter declaration with a missing template
            parameter list. */
@@ -11733,6 +11878,17 @@ also for template template parameters (when is_template_param is TRUE).
         }  /* if */
         /* Bypass the ">". */
         (void)get_token();
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        {
+          a_template_decl_ptr template_decl =
+                                         make_template_decl(/*tp_list=*/NULL);
+          template_decl->parent = decl_state->template_decl;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          template_decl->template_pos = template_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+          decl_state->template_decl = template_decl;
+        }
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       }  /* if */
     } else {
       error(ec_missing_template_param_list);
@@ -12040,6 +12196,9 @@ any non-empty template parameter lists that were scanned.
                                                 /*keep_default_args=*/TRUE);
   } /* if */
   complete_il_template_entry(decl_state, sym, p_template_body_cache);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  attach_template_decl_structure(decl_state, sym);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */
     (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,
@@ -12818,7 +12977,7 @@ are either the specialization of a template or a template declaration.
   a_scope_depth			orig_depth = depth_scope_stack;
 
   check_assertion_str2(curr_token == tok_template,
-                       "template__or_specialization_declaration:",
+                       "template_or_specialization_declaration:",
                        "expected tok_template");
   init_templ_decl_state(&decl_state);
   /* Note that select_curr_construct_pragmas is called in the caller.
