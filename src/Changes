@@ -1,5 +1,11 @@
 Version 2.31
 
+12/7/95   IL CHANGE: new field in a_class_member_using_decl
+
+A new field, class_specified_in_qualifier, has been added to
+a_class_member_using_decl.  It indicates how the using-declaration actually
+appeared in the source and is used by the C++-generating back end.
+
 12/7/95   Instantiation of template class to look for conversion functions
 
 In cases like the following the front end failed to instantiate a template
