@@ -1,5 +1,18 @@
 Version 2.46
 
+1/8/01   Wrong selection of conversion function in C++-generating back end
+
+The C++-generating back used to sometimes incorrectly put out an explicit
+call to a conversion function as an explicit cast.  For example:
+
+  struct B { operator int*(); };
+  struct D: B { operator int*(); };
+  void f(D *p) {
+    p->B::operator int*();  // Used to be rendered as ((int *)(*p));
+  }
+
+This is now fixed.
+
 1/5/01   Poorly worded diagnostic for invalid STDC pragma
 
 The message issued for an invalid STDC pragma was mangled.  This has been
