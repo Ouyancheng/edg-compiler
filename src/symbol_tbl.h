@@ -1343,6 +1343,14 @@ typedef struct a_template_instance {
 			   been supplied since the last time the check was
 			   done.  The can_be_instantiated routine should
 		           be used instead of this field. */
+  a_bit_field	is_static_or_inline:1;
+			/* TRUE if the routine has previously been determined
+			   to be static or inline (or should be treated as
+			   such for instantiation purposes).  This is the saved
+			   result of is_static_or_inline_template_entity.
+			   That routine should always be used instead of
+			   checking this flag directly (because it may not
+			   have been set yet). */
   a_source_position
 		explicit_instantiation_pos;
 			/* The position of the instantiation request pragma

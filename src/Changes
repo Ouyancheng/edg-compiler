@@ -1,5 +1,30 @@
 Version 2.46
 
+1/23/01  Prelinker loop when the module-id includes the compilation time
+
+The front end creates a "module-id" that is used to create names that
+are required to be unique across an entire program (for example, when
+creating the names of unnamed namespace members).  In certain unusual
+circumstances, the time and date of the compilation are used as
+components of the module-id.  This caused problems when templates with
+external linkage include types from unnamed namespaces in their
+signatures.  Because the module-id would change each time the file was
+compiled, and because the module-id is incorporated in the mangled
+name, the prelinker could not successfully assign the instantiation to
+a file and end up with an instantiation of the expected function,
+resulting in a prelinker loop.  This is now fixed.
+
+  namespace {
+    struct X {};
+  }
+  template <class T> void g(X, T){}
+  template <class T> void f(T t) {
+    X x;
+    g(x, t);
+  }
+
+  template void f(int);
+
 1/23/01  Warning on returning address of local variable
 
 The front end now issues a warning on a return statement that returns

@@ -5730,6 +5730,28 @@ care about.
 }  /* ttt_is_local_type */
 
 
+static a_boolean ttt_is_unnamed_namespace_type(a_type_ptr  type_ptr,
+                                   a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is a type declared
+in an unnamed namespace.
+*/
+{
+  a_boolean  result = FALSE;
+
+  /* Only check types that are namespace members.  When checking something
+     like a nested class, traverse_type_tree will check its parents. */
+  if (!type_ptr->source_corresp.is_class_member &&
+      type_ptr->source_corresp.parent.namespace_ptr != NULL) {
+    if (is_member_of_unnamed_namespace(&type_ptr->source_corresp)) {
+      *force_end_of_traversal = result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* ttt_is_unnamed_namespace_type */
+
+
 static a_boolean ttt_is_error_type(a_type_ptr  type_ptr,
                                    a_boolean   *force_end_of_traversal)
 /*
@@ -6563,6 +6585,26 @@ union or enum type or is a type tree containing such a type.
 
   return (traverse_type_tree(type_ptr, ttt_is_local_type, ttt_flags));
 }  /* is_or_contains_local_type */
+
+
+a_boolean is_or_contains_unnamed_namespace_type(a_type_ptr  type_ptr)
+/*
+Return TRUE if the type pointed to by type_ptr is itself a type declared in
+an unnamed namespace, or is a type tree containing such a type.
+*/
+{
+  a_boolean	result;
+
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_THIS_PARAM_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_SKIP_TYPEREFS |
+                                               TTT_EXCEPTION_SPECS);
+
+  result = (traverse_type_tree(type_ptr, ttt_is_unnamed_namespace_type,
+                                ttt_flags));
+  return result;
+}  /* is_or_contains_unnamed_namespace_type */
 
 
 a_boolean is_or_contains_unnamed_or_local_type(a_type_ptr  type_ptr,

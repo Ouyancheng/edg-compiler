@@ -13891,7 +13891,7 @@ template or a member function of a template class.
 }  /* rout_is_inline_template_function */
 
 
-static a_boolean is_static_or_inline_template_entity
+static a_boolean f_is_static_or_inline_template_entity
 					(a_template_instance_ptr tip)
 /*
 Determines whether a template instance pointer refers to a function that
@@ -13908,8 +13908,11 @@ data member is a member of an unnamed namespace.
     result = TRUE;
   } else if (sym->kind != (a_symbol_kind)sk_static_data_member &&
              sym->variant.routine.ptr->storage_class ==
-                                                 (a_storage_class)sc_static) {
-    /* Return TRUE if the function is marked as static. */
+                                                 (a_storage_class)sc_static ||
+             is_or_contains_unnamed_namespace_type(
+                                             sym->variant.routine.ptr->type)) {
+    /* Return TRUE if the function is marked as static, or if the routine type
+       contains a type from an unnamed namespace. */
     result = TRUE;
   } else {
     /* A function or static data member -- check if it is a member of an
@@ -13926,8 +13929,26 @@ data member is a member of an unnamed namespace.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Save the result.  If this flag is set, its value is used instead of
+     calling this routine again. */
+  tip->is_static_or_inline = result;
   return result;
-}  /* is_static_or_inline_template_entity */
+}  /* f_is_static_or_inline_template_entity */
+
+
+/*
+Macro that calls f_is_static_or_inline_template_entity.  If we have already
+determined that the entity is static or inline, the call is suppressed and the
+previously computed value is returned.
+
+Note that the routine can be called more than once if the flag is FALSE.
+This is needed because a routine could be declared and later declared inline.
+*/
+#define is_static_or_inline_template_entity(tip)			\
+  ((tip)->is_static_or_inline						\
+		? (tip)->is_static_or_inline				\
+		: f_is_static_or_inline_template_entity(tip))
+
 
 #if !INSTANTIATION_BY_IMPLICIT_INCLUSION
 /*ARGSUSED*/ /* <-- implicit_inclusion_okay is not used if no implicit
@@ -14633,6 +14654,7 @@ specified by tip.
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
+
 static void update_instantiation_required_flag(
 					a_template_instance_ptr tip,
                                         a_boolean               value,
@@ -15021,8 +15043,12 @@ and "do not instantiate" flags are set here.
     a_boolean				instance_required;
     a_boolean				is_static_data_member;
 
-    /* Skip non-external function. */
-    if (is_static_or_inline_template_entity(tip)) continue;
+    /* Skip non-external functions.  Note that this tests the flag in
+       the instance entry instead of calling the function
+       is_static_or_inline_emplate_entity.  This is necessary because that
+       function cannot be called successfully after the file scope has
+       been lowered. */
+    if (tip->is_static_or_inline) continue;
     /* Get a pointer to the IL entry to be processed. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       is_static_data_member = TRUE;
@@ -15184,6 +15210,9 @@ that might be required.
     for (tip = instantiations_required;
          tip != NULL;
          tip = tip->next_in_instantiation_list) {
+      /* Make sure the is_static_or_inline flag is set (if needed)
+         for this entity. */
+      (void)is_static_or_inline_template_entity(tip);
       /* Skip entries that have already been instantiated. */
       if (tip->already_instantiated) continue;
       /* See if the entity should be instantiated.  Note that the value
