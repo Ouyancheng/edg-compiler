@@ -533,7 +533,7 @@ is ambiguous.
        We want to make sure that we find the virtual base classes at
        the top level when possible. */
     do {
-      void*		new_ptr;
+      void*		new_ptr = NULL;
       a_typeinfo_ptr	test_info = bcsp->typeinfo;
       a_boolean         is_accessible;
       if (ptr != NULL) {
