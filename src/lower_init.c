@@ -13,26 +13,25 @@ lower_init.c -- IL lowering: initializations and new/delete.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+#if DO_IL_LOWERING
+/* Header files used by files involved in IL lowering. */
+#include "lower_hdrs.h"
+#endif /* DO_IL_LOWERING */
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 /* Only include this code if it is needed: */
 #if DO_IL_LOWERING
 
-#include "target.h"
-#include "lower_il.h"
-#include "lower_init.h"
-#include "lower_eh.h"
-#include "il.h"
-#include "types.h"
-#include "mem_manage.h"
-#include "debug.h"
-#include "folding.h"
-#include "cmd_line.h"
+/* Additional header files. */
 #include "expr.h"
 #include "exprutil.h"
-#include "const_ints.h"
-#include "pch.h"
 
 static a_routine_ptr
 		file_scope_init_routine,

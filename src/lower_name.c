@@ -13,18 +13,21 @@ lower_name.c -- Do name mangling for IL lowering.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+#if NEED_NAME_MANGLING
+/* Header files used by files involved in IL lowering. */
+#include "lower_hdrs.h"
+#endif /* NEED_NAME_MANGLING */
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 /* Only include this code if it is needed: */
 #if NEED_NAME_MANGLING
-
-#include "lower_name.h"
-#include "lower_il.h"
-#include "const_ints.h"
-#include "float_pt.h"
-#include "types.h"
-#include "il.h"
 
 
 static sizeof_t mangled_encoding_for_type(a_type_ptr type,

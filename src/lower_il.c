@@ -13,18 +13,30 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+#if DO_IL_LOWERING
+/* Header files used by files involved in IL lowering. */
+#include "lower_hdrs.h"
+#endif /* DO_IL_LOWERING */
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+#if DO_IL_LOWERING
+/* Additional header files. */
+#include "exprutil.h"
+#include "class_decl.h"
+#include "layout.h"
+#endif /* DO_IL_LOWERING */
 
 /* Only include this code if it is needed.  The first few routines are
    needed if name mangling is needed, even if IL lowering is not. */
 /* NEED_NAME_MANGLING is always TRUE if DO_IL_LOWERING is TRUE. */
 #if NEED_NAME_MANGLING
-
-/* There are more includes below.  These are just those needed for
-   the name mangling routines. */
-#include "il.h"
-
 
 static a_targ_ptrdiff_t pm_cast_offset(a_constant_ptr constant)
 /*
@@ -178,25 +190,6 @@ IL lowering.
    even if lowering is not done. */
 /* Everything below this point is related to IL lowering. */
 #if DO_IL_LOWERING
-
-#include "target.h"
-#include "lang_feat.h"
-#include "lower_il.h"
-#include "lower_name.h"
-#include "lower_init.h"
-#include "lower_eh.h"
-#include "debug.h"
-#include "error.h"
-#include "cmd_line.h"
-#include "types.h"
-#include "exprutil.h"
-#include "lexical.h"
-#include "folding.h"
-#include "const_ints.h"
-#include "class_decl.h"
-#include "layout.h"
-#include "mem_manage.h"
-#include "pch.h"
 
 /*
 IL lowering is only needed in this compilation if the source language
