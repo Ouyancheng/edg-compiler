@@ -611,6 +611,7 @@ to represent the template parameters.
          only and will not appear in the IL passed on to the back end.  It
          is therefore not added to any scope types list. */
       template_param_type = alloc_type((a_type_kind)tk_template_param);
+      set_type_size(template_param_type);
       set_source_corresp(&template_param_type->source_corresp, sym);
       /* The type symbol for the template parameter points for now to the
          template-param type -- "for now", since it will be replaced with
