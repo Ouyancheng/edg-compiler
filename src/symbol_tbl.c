@@ -554,16 +554,10 @@ and indentation is the indentation desired.
 
   /* If this symbol is for a secondary translation unit, display the
      translation unit. */
-  if (sym->decl_scope != NO_SCOPE_NUMBER) {
-     a_translation_unit_ptr	tup;
-     tup = trans_unit_for_scope[sym->decl_scope];
-     if (tup != NULL && tup != translation_units &&
-         /* The source_file pointer is not set yet early in initialization. */
-         tup->source_file != NULL) {
-       (void)sprintf(buffer, "trans unit %s",
-                     tup->source_file->name_as_written);
-       put_string(buffer);
-     }  /* if */
+  str = db_symbol_trans_unit(sym);
+  if (str != NULL) {
+    (void)sprintf(buffer, "trans unit %s", str);
+    put_string(buffer);
   }  /* if */
 
   /* Display the file name (if not the primary source file) and the line
@@ -10366,11 +10360,15 @@ Return the translation unit pointer for the translation unit in which
 "sym" was declared.
 */
 {
-  a_scope_number	scope_number;
+  a_scope_number	 scope_number;
+  a_translation_unit_ptr tup;
 
+  check_assertion(sym != NULL);
   scope_number = sym->decl_scope;
   check_assertion(scope_number != NO_SCOPE_NUMBER);
-  return trans_unit_for_scope[scope_number];
+  tup = trans_unit_for_scope[scope_number];
+  check_assertion(tup != NULL);
+  return tup;
 }  /* trans_unit_for_symbol */
 
 
