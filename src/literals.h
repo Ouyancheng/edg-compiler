@@ -49,6 +49,7 @@ extern void conv_char_literal(unsigned long num_chars,
 extern void conv_string_literal(unsigned long num_chars,
                                 an_error_code *err_code,
                                 char          **err_pos);
+extern void widen_string_literal(a_constant_ptr con);
 extern void concat_string_literals(a_token_cache_ptr cache,
                                    a_boolean         wide_literals);
 

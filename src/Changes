@@ -1,5 +1,14 @@
 Version 3.5
 
+5/12/04  Microsoft compatibility: token pasting, L##__FUNCTION__
+
+MSVC++ 7.0 and 7.1 allow token pasting in a macro to paste an "L"
+on the front of the function-name keywords like __FUNCTION__.
+The result is a wide-string version of the function name.
+This feature is now emulated when microsoft_version >= 1300.
+It is implemented (in both MSVC++ and the EDG front end) by way of
+a secret operator named __LPREFIX.
+
 5/12/04  Microsoft compatibility: Spurious correspondence error on variables
          with selectany, dllimport, or dllexport specifiers
 

@@ -1798,6 +1798,66 @@ nothing.
   }  /* while */
 }  /* free_macro_arg_entries */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean is_microsoft_function_name_paste(a_macro_arg_ptr map,
+                                                 char             *prev_text,
+                                                 sizeof_t         prev_len,
+                                                 char             **post_end)
+/*
+We are in Microsoft mode and we are doing a token paste in a macro
+expansion.  Return TRUE if the paste operation is pasting "L" to one
+of the Microsoft function-name keywords like __FUNCTION__.  
+The raw value of the macro argument map is the text following
+the "##", and prev_text (of length prev_len) is the text preceding
+the ##.  If TRUE is returned, *post_end is set to the character
+position after the end of the function-name keyword.
+*/
+{
+  a_boolean result = FALSE;
+
+  check_assertion(microsoft_mode);
+  /* MSVC++ 7.0 and 7.1 do this special pasting. */
+  if (microsoft_version >= 1300 &&
+      prev_len >= 1 && prev_text[prev_len-1] == 'L') {
+    if (prev_len == 1 ||
+        (prev_len >= LE_ESCAPE_LEN+1 &&
+         prev_text[prev_len-LE_ESCAPE_LEN-1] == LE_ESCAPE &&
+         prev_text[prev_len-LE_ESCAPE_LEN  ] == LE_END_OF_TOKEN)) {
+      /* The preceding text ends with a token that is "L". */
+      if (map->raw_len >= 3 &&
+          map->raw_text[0] == '_' &&
+          map->raw_text[1] == '_') {
+        /* Compare the raw_text of map against the function-name tokens. */
+        unsigned int i;
+        a_token_kind func_name_token[] = {tok_function_name,
+                                          tok_decorated_function_name,
+                                          tok_pretty_function_name};
+        for (i = 0; i < sizeof(func_name_token)/sizeof(a_token_kind); i++) {
+          char     *tok = spelling_for_function_name_token(func_name_token[i]);
+          sizeof_t tok_len = strlen(tok);
+          if (map->raw_len >= tok_len &&
+              strncmp(map->raw_text, tok, size_t_arg(tok_len)) == 0) {
+            /* The beginning of the raw text matches the token.  See if the
+               text ends at that point or there is an end-of-token marker. */
+            if (map->raw_len == tok_len ||
+                (map->raw_len >= tok_len + LE_ESCAPE_LEN &&
+                 map->raw_text[tok_len  ] == LE_ESCAPE &&
+                 map->raw_text[tok_len+1] == LE_END_OF_TOKEN)) {
+              /* Yes, everything is as required. */
+              result = TRUE;
+              *post_end = map->raw_text + tok_len;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_microsoft_function_name_paste */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static char *find_final_inert_escape(char     *text_loc,
                                      sizeof_t sect_len)
@@ -1890,6 +1950,10 @@ hence its name should not be changed.
 {
   sizeof_t  result = 0;
   a_boolean prev_section_is_paste = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  char      *prev_text = NULL;
+  sizeof_t  prev_len = 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   for (; *rtp != (int)rt_null;) {
     sizeof_t             sect_len, rts_number;
@@ -1898,6 +1962,10 @@ hence its name should not be changed.
     get_macro_repl_text_number(rts_number, rtp);
     if (rts_kind == rt_text) {
       sect_len = rts_number;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      prev_text = rtp;
+      prev_len = sect_len;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       rtp += sect_len;
     } else if (rts_kind == rt_paste) {
       /* Just a placeholder for "##"; it will not take up space in the
@@ -1915,6 +1983,22 @@ hence its name should not be changed.
           if (prev_section_is_paste &&
               map->raw_text[0] == LE_ESCAPE &&
               map->raw_text[1] == LE_INERT_MACRO) sect_len -= LE_ESCAPE_LEN;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          { char *post_end;
+            if (microsoft_mode && prev_section_is_paste &&
+                is_microsoft_function_name_paste(map,
+                                                 prev_text,
+                                                 prev_len,
+                                                 &post_end)) {
+              /* This is token pasting of L##__FUNCTION__ or the like, which
+                 will be replaced by __LPREFIX(__FUNCTION__).  The "L" is
+                 also removed. */
+              result += strlen(token_names[tok_microsoft_lprefix])+2-1;
+            }  /* if */
+          }
+          prev_text = map->raw_text;
+          prev_len = map->raw_len;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           break;
         case rt_stringized_raw_argument:
         case rt_charized_raw_argument:
@@ -2784,6 +2868,38 @@ end_arg_expansion:;
                  because we want to have the identifier text abut the preceding
                  token. */
             }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            { char *post_end;
+              if (microsoft_mode && prev_section_is_paste &&
+                  is_microsoft_function_name_paste(map,
+                                                   rescan_loc,
+                                                   (sizeof_t)(src_loc-
+                                                              rescan_loc),
+                                                   &post_end)) {
+                /* This is token pasting of L##__FUNCTION__ or the like, which
+                   is replaced by __LPREFIX(__FUNCTION__).  Note that
+                   length_of_replacement_text has to do the right length
+                   computation for this. */
+                char     *tok = token_names[tok_microsoft_lprefix];
+                sizeof_t tok_len = strlen(tok);
+                sizeof_t fnk_len;
+                src_loc--;  /* Back up to remove the "L". */
+                /* Add "__LPREFIX(". */
+                (void)memcpy(src_loc, tok, size_t_arg(tok_len));
+                src_loc += tok_len;
+                *src_loc++ = '(';
+                /* Copy the function-name keyword. */
+                fnk_len = post_end - map->raw_text;
+                (void)memcpy(src_loc, text_loc, size_t_arg(fnk_len));
+                src_loc += fnk_len;
+                /* Add the closing parenthesis. */
+                *src_loc++ = ')';
+                /* Anything after the keyword is copied below. */
+                text_loc += fnk_len;
+                sect_len -= fnk_len;
+              }  /* if */
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             { char *final_inert_escape =
                                    find_final_inert_escape(text_loc, sect_len);
               if (final_inert_escape != NULL) {

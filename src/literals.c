@@ -1175,7 +1175,7 @@ processing, and in wide characters if the string is wide).
 }  /* conv_string_literal */
 
 
-static void widen_string_literal(a_constant_ptr con)
+void widen_string_literal(a_constant_ptr con)
 /*
 Change the indicated narrow string literal into a wide string literal.
 */

@@ -33,6 +33,8 @@ expr.c -- Expression scanning routines.
    mangled name of the current function.  Hence, we may need access to the
    mangling routines. */
 #include "lower_name.h"
+/* widen_string_literal is used by scan_microsoft_lprefix_operator. */
+#include "literals.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 /* Needed for GNU statement expression, ({...}). */
@@ -12855,6 +12857,7 @@ Return TRUE if the indicated token is one that could start an expression.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
+    case tok_microsoft_lprefix:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
     case tok_upc_localsizeof:
@@ -14305,9 +14308,9 @@ simple_name:
   }  /* if */
 }  /* set_curr_token_to_function_name_string */
 
-#if BACK_END_IS_CP_GEN_BE
+#if MICROSOFT_EXTENSIONS_ALLOWED || BACK_END_IS_CP_GEN_BE
 
-static char *spelling_for_function_name_token(a_token_kind token)
+char *spelling_for_function_name_token(a_token_kind token)
 /*
 Return the spelling of the function-name token for the indicated
 token kind, e.g., __FUNCTION__ for tok_function_name.  The string
@@ -14334,7 +14337,7 @@ returned is not in the IL and must be copied if needed there.
   return name;
 }  /* spelling_for_function_name_token */
 
-#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || BACK_END_IS_CP_GEN_BE */
 
 static void make_function_name_operand(an_operand *result)
 /*
@@ -14461,6 +14464,73 @@ end_of_routine:
   (void)get_token();
 }  /* make_function_name_operand */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void scan_microsoft_lprefix_operator(an_operand *result)
+/*
+Scan the Microsoft __LPREFIX operator.  __LPREFIX("string") is treated
+as L"string".  This is used when token pasting is done on L##__FUNCTION__
+and the other function-name tokens.
+*/
+{
+  a_boolean         err = FALSE;
+  a_source_position start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+  start_position = pos_curr_token;
+  if (curr_expr_kind_is(ek_pp)) {
+    /* __LPREFIX not allowed in preprocessing expression. */
+    pos_error(ec_bad_pp_operator, &start_position);
+    err = TRUE;
+  } else if (curr_expr_kind_is(ek_integral_constant)) {
+    /* __LPREFIX not allowed in integral constant expression. */
+    pos_error(ec_bad_integral_operator, &start_position);
+    err = TRUE;
+  } else if (curr_expr_kind_is(ek_template_arg)) {
+    /* __LPREFIX not allowed in a template argument expression. */
+    pos_error(ec_bad_templ_arg_expr_operator, &start_position);
+    err = TRUE;
+  }  /* if */
+  /* Get past the opening __LPREFIX token. */
+  (void)get_token();
+  /* Check for the opening "(". */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  if (token_is_function_name_string_literal(curr_token)) {
+    set_curr_token_to_function_name_string(/*do_concat=*/FALSE);
+  }  /* if */
+  if (curr_token != tok_string_literal) {
+    syntax_error(ec_exp_string_literal);
+    make_error_operand(result);
+  } else {
+    if (err || is_error_constant(&const_for_curr_token)) {
+      /* There was a previous error. */
+      make_error_operand(result);
+    } else {
+      check_assertion(const_for_curr_token.kind ==
+                                              (a_constant_repr_kind)ck_string);
+      /* Widen the string unless it's already wide. */
+      if (!is_wchar_t_array_type(const_for_curr_token.type)) {
+        widen_string_literal(&const_for_curr_token);
+      }  /* if */
+      make_string_constant_operand(&const_for_curr_token, result);
+    }  /* if */
+    /* Advance past the string literal token. */
+    (void)get_token();
+  }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Check for the closing ")". */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
+}  /* scan_microsoft_lprefix_operator */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean operand_is_string_literal(an_operand *operand)
 /*
@@ -14673,6 +14743,14 @@ see expr.h).
          current function. */
       make_function_name_operand(&local_result);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_microsoft_lprefix:
+      /* Microsoft __LPREFIX.  __LPREFIX("string") is treated as L"string".
+         This is used when token pasting is done on L##__FUNCTION__ and
+         the other function-name tokens. */
+      scan_microsoft_lprefix_operator(&local_result);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if TARG_HAS_IEEE_FLOATING_POINT
     case tok_nan:
       /* The EDG-specific token "__NAN__" representing a Not-a-Number
