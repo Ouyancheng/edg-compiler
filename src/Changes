@@ -76,7 +76,7 @@ the checking introduced in version 2.33: the front end now issues a
 discretionary error in -A mode, no diagnostic at all in cfront mode, and a
 warning otherwise.
 
-  struct S { virtual ~f(); };
+  struct S { virtual ~S(); };
   const S s;                   // Now an error in -A mode and a warning in
                                //   non-cfront mode
 
