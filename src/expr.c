@@ -4298,7 +4298,8 @@ be inappropriate, because the feature is probably used to implement
 a_type_ptr scan_typeof_operator(void)
 /*
 Scan the typeof operator.  This is a GNU C extension that is similar
-to sizeof, but returns the type rather than the size.
+to sizeof, but returns the type rather than the size.  It is used
+in type contexts, not expression contexts.
 
 Syntax:
         typeof ( type-name )    or   __typeof__ ( type-name )
@@ -4320,12 +4321,6 @@ The parentheses are required, unlike for sizeof.
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.evaluated = FALSE;
   expr_stack_entry.potentially_evaluated = FALSE;
-#if CHECKING
-  if (curr_expr_kind_is(ek_pp)) {
-    /* Typeof not possible for preprocessing expressions. */
-    internal_error("scan_typeof_operator: in preprocessing expr");
-  }  /* if */
-#endif /* CHECKING */
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
