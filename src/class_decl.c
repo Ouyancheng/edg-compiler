@@ -8201,10 +8201,11 @@ member.  Determine whether a diagnostic is actually required and put it out.
 
 
 static a_symbol_ptr class_member_declaration(
-                                a_type_ptr              class_type,
-                                a_class_def_state_ptr   class_state,
-                                a_boolean               is_member_template,
-                                a_boolean               *skip_semicolon_check)
+                        a_type_ptr             class_type,
+                        a_class_def_state_ptr  class_state,
+                        a_boolean              is_member_template,
+                        a_boolean              *skip_semicolon_check,
+                        a_type_ptr             *member_template_instance_type)
 /*
 Scan a member declaration appearing inside a class definition.  class_type
 is the type of the class.  class_state points to a block of information
@@ -8225,11 +8226,14 @@ following the member declaration.
   a_symbol_ptr         rout_sym;
   a_member_decl_info   decl_info;
   a_boolean            first_declarator_diagnostics;
+  a_boolean            is_member_template_rescan;
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
   decl_start_pos = pos_curr_token;
   initialize_member_decl_info(&decl_info, &decl_start_pos);
+  is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
+                                 (a_scope_kind)sck_template_instantiation);
   /* Set the flags to control the calls to decl_specifiers. */
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
               DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
@@ -8522,6 +8526,10 @@ following the member declaration.
         /* Process a friend function declaration. */
         rout_sym = decl_friend_function(&locator, class_type, local_type,
                                         &func_info, decl_info.decl_modifiers);
+      } else if (is_member_template_rescan) {
+        *member_template_instance_type = local_type;
+        remove_stop_token(tok_comma);
+        goto next_declaration;
       } else if (is_member_template) {
         /* Process the member function template. */
         decl_member_function_template(&locator, class_type, local_type,
@@ -8804,6 +8812,7 @@ class (prototype instantiation of a class template).
   a_scope_depth      scope_level;
   a_symbol_ptr       sym;
   a_source_position  decl_start_pos;
+  a_type_ptr         dummy_type;
 
   db_enter(3, "class_member_template_declaration");
   decl_start_pos = pos_curr_token;
@@ -8815,7 +8824,7 @@ class (prototype instantiation of a class template).
   class_state_ptr = scope_stack[scope_level].class_def_state;
   sym = class_member_declaration(class_type, class_state_ptr,
                                  /*is_member_template=*/TRUE,
-                                 &skip_semicolon_check);
+                                 &skip_semicolon_check, &dummy_type);
   if (sym == NULL) {
     pos_error(ec_bad_member_template_decl, &decl_start_pos);
   } else if (sym->kind != (a_symbol_kind)sk_function_template) {
@@ -8825,6 +8834,31 @@ class (prototype instantiation of a class template).
   db_exit();
   return sym;
 }  /* class_member_template_declaration */
+
+
+a_type_ptr rescan_member_template_declaration(a_type_ptr  class_type)
+/*
+The current token is the start of a member template function declaration
+which is being rescanned as part of its instantiation.  class_type is the
+parent type.  A pointer to the member type (the result of calling
+decl_specifiers and declarator) is returned.
+*/
+{
+  a_type_ptr         member_template_instance_type = NULL;
+  a_class_def_state  class_state;
+  a_boolean          skip_semicolon_check;
+
+  db_enter(3, "rescan_member_template_declaration");
+  /* Initialize class_state to default values.  It should have no decisive
+     effect on the limited processing that is to be done. */
+  initialize_class_def_state(&class_state);
+  (void)class_member_declaration(class_type, &class_state,
+                                 /*is_member_template=*/FALSE,
+                                 &skip_semicolon_check,
+                                 &member_template_instance_type);
+  db_exit();
+  return member_template_instance_type;
+}  /* rescan_member_template_declaration */
 
 
 a_boolean scan_class_definition(a_type_ptr       class_type,
@@ -8859,6 +8893,7 @@ nested classes when their definition appears outside of the class template.
   a_token_sequence_number          token_number_of_closing_brace;
   a_class_def_state                class_state;
   a_boolean                        skip_semicolon_check;
+  a_type_ptr                       dummy_type;
 
   db_enter(3, "scan_class_definition");
   initialize_class_def_state(&class_state);
@@ -9077,7 +9112,7 @@ nested classes when their definition appears outside of the class template.
         }  /* if */
         (void)class_member_declaration(class_type, &class_state,
                                        /*is_template_member=*/FALSE,
-                                       &skip_semicolon_check);
+                                       &skip_semicolon_check, &dummy_type);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member
              declaration.  It's optional after the last declaration (that's

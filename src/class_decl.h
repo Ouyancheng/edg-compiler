@@ -46,6 +46,8 @@ extern void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp);
 
 extern a_symbol_ptr class_member_template_declaration(a_type_ptr  class_type);
 
+extern a_type_ptr rescan_member_template_declaration(a_type_ptr  class_type);
+
 extern a_boolean scan_class_definition(
                                    a_type_ptr       class_type,
                                    a_scope_depth    effective_decl_level,
