@@ -5606,14 +5606,15 @@ Dump all labels on the list.
 
 /* Forward declaration. */
 static void dump_all_statements(a_statement_ptr statement);
+static void dump_prescan_temps(a_statement_ptr statement);
 
+#ifdef CFE
 
-static void dump_block(a_statement_ptr statement)
+static void dump_block_declarations(a_statement_ptr statement)
 /*
-Dump out the contents of a block (but not the surrounding { and }).
+Dump out the declarations (if any) for a block.
 */
 {
-#ifdef CFE
   a_scope_ptr scope;
 
   scope = statement->variant.block.extra_info->assoc_scope;
@@ -5622,15 +5623,27 @@ Dump out the contents of a block (but not the surrounding { and }).
     dump_all_type_declarations(scope->types);
 #if CHECKING
     if (scope->routines != NULL) {
-      internal_error("dump_block: non-NULL routines list");
+      internal_error("dump_block_declarations: non-NULL routines list");
     }  /* if */
 #endif /* CHECKING */
     dump_all_variables(scope,
                        /*interleave_asm_decls=*/FALSE,
                        /*dump_vars_without_initializers=*/TRUE,
                        /*dump_initializers=*/TRUE);
+    dump_prescan_temps(statement->variant.block.statements);
     dump_rout_initializations((a_routine_ptr)NULL);
   }  /* if */
+}  /* dump_block_declarations */
+
+#endif /* ifdef CFE */
+
+static void dump_block(a_statement_ptr statement)
+/*
+Dump out the contents of a block (but not the surrounding { and }).
+*/
+{
+#ifdef CFE
+  dump_block_declarations(statement);
 #endif /* ifdef CFE */
   dump_all_statements(statement->variant.block.statements);
 }  /* dump_block */
@@ -6841,13 +6854,24 @@ Generate C for a statement.
         fputs("break;", f_C_output);
         indent -= 4;
       } else {
-        /* Dump the block body statement (usually empty), without the closing
-           brace. */
+        /* Dump the block body statement (usually empty), without surrounding
+           braces. */
 	indent += 4;
-	dump_block(body_statement);
-        /* If there were statements in the body statement, break out of the
-           switch. */
+        if (body_statement->variant.block.extra_info->assoc_scope != NULL) {
+          /* Dump declarations in the block. */
+          dump_block_declarations(body_statement);
+          /* Do the prescan for temporaries needed in the switch clauses,
+             which was put off until now (when we are inside the braces
+             for the scope). */
+          for (switch_clause = statement->variant.switch_stmt.clause_list;
+               switch_clause != NULL;
+               switch_clause = switch_clause->next) {
+            dump_prescan_temps(switch_clause->statements);
+          }  /* for */
+        }  /* if */
+        /* If there are statements in the body statement, dump them. */
         if (body_statement->variant.block.statements != NULL) {
+          dump_all_statements(body_statement->variant.block.statements);
           startline((a_seq_number)0);
           fputs("break;", f_C_output);
         }  /* if */
@@ -7499,17 +7523,32 @@ its subtree.
         dump_prescan_temps(statement->variant.loop_statement);
         break;
       case stmk_block:
-        dump_prescan_temps(statement->variant.block.statements);
+        /* If the block has its own scope, do not prescan now for temporaries;
+           that should be done once the block itself is started. */
+        if (statement->variant.block.extra_info->assoc_scope == NULL) {
+          dump_prescan_temps(statement->variant.block.statements);
+        }  /* if */
         break;
 #ifdef CFE
       case stmk_switch:
         { a_switch_clause_ptr clause;
-          for (clause = statement->variant.switch_stmt.clause_list;
-               clause != NULL;
-               clause = clause->next) {
-            dump_prescan_temps(clause->statements);
-          }  /* for */
-          dump_prescan_temps(statement->variant.switch_stmt.body_statement);
+          a_statement_ptr     body_statement =
+                                 statement->variant.switch_stmt.body_statement;
+          /* If the body statement has its own scope, do not prescan now for
+             temporaries; that should be done once the block itself is
+             started. */
+          if (body_statement != NULL &&
+              body_statement->kind == (a_statement_kind)stmk_block &&
+              body_statement->variant.block.extra_info->assoc_scope != NULL) {
+            /* The body statement is a block with a scope. */
+          } else {
+            for (clause = statement->variant.switch_stmt.clause_list;
+                 clause != NULL;
+                 clause = clause->next) {
+              dump_prescan_temps(clause->statements);
+            }  /* for */
+            dump_prescan_temps(body_statement);
+          }  /* if */
         }
         break;
 #endif /* ifdef CFE */
