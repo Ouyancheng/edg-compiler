@@ -4020,85 +4020,88 @@ and return NULL.  This routine is called only in C++ mode.
         do_arg_dep_lookup = FALSE;
       }  /* if */
     }  /* if */
-    if (is_template_dependent_context()) {
-      a_boolean defer_overload_resolution = FALSE;
-      /* In a prototype instantiation.  See whether the call is dependent
-         (i.e., has arguments of dependent types). */
-      for (arg_operand = arg_operand_list;
-           arg_operand != NULL;
-           arg_operand = arg_operand->next) {
-        if (is_template_dependent_type(arg_operand->operand.type)) {
-          dependent_call = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
-      if (!dependent_call &&
-          overloaded_function_symbol->is_class_member &&
-          ((have_selector && bound_function_selector != NULL) ?
-                  is_template_dependent_type(bound_function_selector->type) :
-                  TRUE)) {
-        /* The selector object is dependent.  An implicit selector is
-           always dependent in a prototype instantiation. */
+  }  /* if */
+  if (is_template_dependent_context()) {
+    a_boolean defer_overload_resolution = FALSE;
+    /* In a prototype instantiation.  See whether the call is dependent
+       (i.e., has arguments of dependent types). */
+    for (arg_operand = arg_operand_list;
+         arg_operand != NULL;
+         arg_operand = arg_operand->next) {
+      if (is_template_dependent_type(arg_operand->operand.type)) {
         dependent_call = TRUE;
+        break;
       }  /* if */
-      if (!dependent_call && is_template_id &&
-          template_arg_list_involves_template_param(template_arg_list)) {
-        /* A call like f<T>(1), where the explicit template argument
-           list includes dependent arguments. */
-        dependent_call = TRUE;
-      }  /* if */
-      if (is_block_extern_symbol(overloaded_function_symbol)) {
-        /* A block extern declaration can be dependent (e.g., it
-           can have dependent parameter types or dependent default
-           argument expressions), so we can't do overload resolution. */
-        defer_overload_resolution = TRUE;
-      }  /* if */
-      if (dependent_call || defer_overload_resolution) {
-        /* We can't do overload resolution (e.g., because some of the
-           arguments have template-dependent types).  Return a flag
-           indicating that. */
-        check_assertion(unknown_dependent_function != NULL);
-        *unknown_dependent_function = TRUE;
-        function_symbol = NULL;
-        *arg_match_list = NULL;
-        goto have_function;
-      }  /* if */
-      if (scope_stack[depth_scope_stack].in_nonreal_instantiation &&
-          do_dependent_name_processing) {
-        /* The current context is a nonreal instantiation (probably of
-           a default argument expression).  We needed to do the above
-           code so we wouldn't get confused on a call that is
-           dependent on template parameters, but now we should go to
-           the normal processing because this is, after all, an
-           instantiation. */
-        goto in_instantiation;
-      }  /* if */
-    } else if (do_dependent_name_processing &&
-               depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
-      /* In a real (not prototype) instantiation, and doing dependent
-         name processing.  Look up this call to see whether it was a
-         dependent call in the prototype instantiation.  If it was a
-         nondependent call, it was recorded, along with (usually) the
-         symbol chosen by overload resolution. */
+    }  /* for */
+    if (!dependent_call && overloaded_function_symbol != NULL &&
+        overloaded_function_symbol->is_class_member &&
+        ((have_selector && bound_function_selector != NULL) ?
+                is_template_dependent_type(bound_function_selector->type) :
+                TRUE)) {
+      /* The selector object is dependent.  An implicit selector is
+         always dependent in a prototype instantiation. */
+      dependent_call = TRUE;
+    }  /* if */
+    if (!dependent_call && is_template_id &&
+        template_arg_list_involves_template_param(template_arg_list)) {
+      /* A call like f<T>(1), where the explicit template argument
+         list includes dependent arguments. */
+      dependent_call = TRUE;
+    }  /* if */
+    if (overloaded_function_symbol != NULL &&
+        is_block_extern_symbol(overloaded_function_symbol)) {
+      /* A block extern declaration can be dependent (e.g., it
+         can have dependent parameter types or dependent default
+         argument expressions), so we can't do overload resolution. */
+      defer_overload_resolution = TRUE;
+    }  /* if */
+    if (dependent_call || defer_overload_resolution) {
+      /* We can't do overload resolution (e.g., because some of the
+         arguments have template-dependent types).  Return a flag
+         indicating that. */
+      check_assertion(unknown_dependent_function != NULL);
+      *unknown_dependent_function = TRUE;
+      function_symbol = NULL;
+      *arg_match_list = NULL;
+      goto have_function;
+    }  /* if */
+    if (scope_stack[depth_scope_stack].in_nonreal_instantiation &&
+        do_dependent_name_processing) {
+      /* The current context is a nonreal instantiation (probably of
+         a default argument expression).  We needed to do the above
+         code so we wouldn't get confused on a call that is
+         dependent on template parameters, but now we should go to
+         the normal processing because this is, after all, an
+         instantiation. */
+      goto in_instantiation;
+    }  /* if */
+  } else if (do_dependent_name_processing &&
+             depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    /* In a real (not prototype) instantiation, and doing dependent
+       name processing.  Look up this call to see whether it was a
+       dependent call in the prototype instantiation.  If it was a
+       nondependent call, it was recorded, along with (usually) the
+       symbol chosen by overload resolution. */
 in_instantiation:
-      if (!do_arg_dep_lookup) {
-        /* Calls where argument-dependent lookup is turned off are
-           not recorded, but they're always considered non-dependent. */
-        dependent_call = FALSE;
-      } else {
-        a_nondependent_call_info_ptr ndcall_info;
-        ndcall_info = get_nondependent_call_info(paren_tok_seq_number);
-        dependent_call = (ndcall_info == NULL);
-        if (!dependent_call && ndcall_info->symbol != NULL) {
-          /* We know the function selected for this nondependent call during
-             the prototype instantiation.  Use that without going through
-             overload resolution. */
-          overloaded_function_symbol = ndcall_info->symbol;
-          do_arg_dep_lookup = FALSE;
-          known_to_be_visible = TRUE;
-        }  /* if */
+    if (!do_arg_dep_lookup) {
+      /* Calls where argument-dependent lookup is turned off are
+         not recorded, but they're always considered non-dependent. */
+      dependent_call = FALSE;
+    } else {
+      a_nondependent_call_info_ptr ndcall_info;
+      ndcall_info = get_nondependent_call_info(paren_tok_seq_number);
+      dependent_call = (ndcall_info == NULL);
+      if (!dependent_call && ndcall_info->symbol != NULL) {
+        /* We know the function selected for this nondependent call during
+           the prototype instantiation.  Use that without going through
+           overload resolution. */
+        overloaded_function_symbol = ndcall_info->symbol;
+        do_arg_dep_lookup = FALSE;
+        known_to_be_visible = TRUE;
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (overloaded_function_symbol != NULL) {
     if (!do_arg_dep_lookup) {
       /* No argument-dependent lookup.  Use only the function symbol
          provided. */

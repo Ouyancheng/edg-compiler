@@ -5817,8 +5817,7 @@ and that has suppressed calling it as virtual; that's also reflected in
 is_virtual, but knowing that the user did it explicitly controls whether
 a diagnostic is put out in some cases.  compiler_generated is TRUE if
 this call is compiler-generated (e.g., for an implicit conversion via
-a conversion function).  function_type can be NULL in a prototype
-instantiation case.
+a conversion function).
 */
 {
   an_expr_operator_kind         op;
@@ -5829,9 +5828,7 @@ instantiation case.
   a_dynamic_init_ptr            dip;
   a_routine_ptr                 rp = NULL;
 
-  if (function_type != NULL) {
-    function_type = skip_typerefs(function_type);
-  }  /* if */
+  function_type = skip_typerefs(function_type);
   if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
     /* We know which routine is being called. */
     rp = function_node->variant.routine;
@@ -5842,8 +5839,7 @@ instantiation case.
      function returning a class/struct/enum type that is incomplete
      at the point of declaration of the function so long as it is completed
      by the time the function is defined or called (if it is). */
-  if (function_type != NULL &&
-      !check_function_return_type(function_type, err_pos,
+  if (!check_function_return_type(function_type, err_pos,
                                   /*is_expr_use=*/TRUE, rp)) {
     /* There was some error in the return type, and a diagnostic was issued. */
     call_node = error_node();
@@ -5863,17 +5859,9 @@ instantiation case.
   }  /* if */
   /* Determine the return type, dealing with reference types and
      cv-qualifiers. */
-  if (function_type != NULL) {
-    return_type = il_return_type_of(function_type);
-  } else {
-    return_type = type_of_unknown_templ_param_nontype;
-  }  /* if */
+  return_type = il_return_type_of(function_type);
   /* Determine the operator to use for the call. */
-  if (function_type == NULL) {
-    /* Call of function whose type is not (completely) known, in a
-       prototype instantiation. */
-    op = (an_expr_operator_kind)eok_generic_call;
-  } else if (is_ptr_to_member_type(function_node->type)) {
+  if (is_ptr_to_member_type(function_node->type)) {
     /* Call using a pointer-to-member-function. */
     op = (an_expr_operator_kind)eok_pm_call;
   } else if (is_virtual) {
@@ -5886,19 +5874,17 @@ instantiation case.
   /* Make an expression for the function call. */
   call_node = make_operator_node(op, return_type, function_node);
   call_node->variant.operation.compiler_generated = compiler_generated;
-  if (function_type != NULL) {
-    rtsp = function_type->variant.routine.extra_info;
-    if (rtsp->value_returned_by_cctor) {
-      temp_init_node = create_expr_temporary(return_type,
-                                             /*result_is_addr=*/FALSE,
-                                             /*is_explicit_cast=*/FALSE,
-                                             err_pos);
-      dip = temp_init_node->variant.init.dynamic_init;
-      set_dynamic_init_kind(dip,
+  rtsp = function_type->variant.routine.extra_info;
+  if (rtsp->value_returned_by_cctor) {
+    temp_init_node = create_expr_temporary(return_type,
+                                           /*result_is_addr=*/FALSE,
+                                           /*is_explicit_cast=*/FALSE,
+                                           err_pos);
+    dip = temp_init_node->variant.init.dynamic_init;
+    set_dynamic_init_kind(dip,
                       (a_dynamic_init_kind)dik_call_returning_class_via_cctor);
-      dip->variant.expression = call_node;
-      call_node = temp_init_node;
-    }  /* if */
+    dip->variant.expression = call_node;
+    call_node = temp_init_node;
   }  /* if */
 done:
   return call_node;
@@ -5921,36 +5907,31 @@ attached to function_node.  A skip_typerefs need not have been done
 on function_type.  compiler_generated is TRUE if this is a compiler-
 generated call (e.g., for an implicit conversion via a conversion
 function).  *call_pos gives the source position of the call.
-function_type can be NULL in a prototype instantiation case.
 */
 {
   an_expr_node_ptr call_node;
   a_type_ptr       return_type;
 
-  if (function_type != NULL) {
-    function_type = skip_typerefs(function_type);
-  }  /* if */
+  function_type = skip_typerefs(function_type);
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
                              virtual_suppressed, compiler_generated, call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
-  if (function_type != NULL) {
-    /* A function call returning a reference is an lvalue. */
-    return_type = function_type->variant.routine.return_type;
-    if (is_reference_type(return_type)) {
-      conv_object_pointer_to_lvalue(result);
-      call_node->implicit_reference_indirection = TRUE;
+  /* A function call returning a reference is an lvalue. */
+  return_type = function_type->variant.routine.return_type;
+  if (is_reference_type(return_type)) {
+    conv_object_pointer_to_lvalue(result);
+    call_node->implicit_reference_indirection = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_bugs && !C_mode() &&
-               is_class_struct_union_type(return_type)) {
-      /* In Microsoft C++ mode, a function that returns a class type is
-         considered to return an lvalue. */
-      conv_class_operand_to_object_pointer(result);
-      conv_object_pointer_to_lvalue(result);
+  } else if (microsoft_bugs && !C_mode() &&
+             is_class_struct_union_type(return_type)) {
+    /* In Microsoft C++ mode, a function that returns a class type is
+       considered to return an lvalue. */
+    conv_class_operand_to_object_pointer(result);
+    conv_object_pointer_to_lvalue(result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    }  /* if */
   }  /* if */
 }  /* make_function_call */
 
@@ -5986,11 +5967,7 @@ An operand for the overall call is constructed in *result.
     /* Make the function address node.  This might have type pointer-to-
        member-function in a case like (p->*pmf)(). */
     function_node = make_node_from_operand(function_operand);
-    if (is_template_dependent_context() &&
-        is_template_dependent_type(function_node->type)) {
-      /* Call in a prototype instantiation. */
-      function_type = NULL;
-    } else if (is_ptr_to_member_type(function_node->type)) {
+    if (is_ptr_to_member_type(function_node->type)) {
       /* Call using a pointer-to-member-function. */
       function_type = pm_member_type(function_node->type);
     } else {
@@ -6000,20 +5977,18 @@ An operand for the overall call is constructed in *result.
     if (function_operand->bound_function) {
       /* Bound function.  bound_function_selector indicates the object. */
       implicit_this_argument = make_node_from_operand(bound_function_selector);
-      if (function_type != NULL) {
-        /* Cast if necessary to handle any const etc. adjustment. */
-        /* There might be a cast to a base class here if the function has
-           been projected into a derived class with a using declaration.
-           No access checking is done on the cast, because the using
-           declaration adjusts access. */
-        cast_node(&implicit_this_argument,
-                  implicit_this_param_type_of(function_type),
-                  /*check_cast_access=*/FALSE,  /* sic */
-                  /*is_implicit_cast=*/TRUE,
-                  /*is_reinterpret_cast=*/FALSE,
-                  /*reinterpret_semantics=*/FALSE,
-                  &bound_function_selector->position);
-      }  /* if */
+      /* Cast if necessary to handle any const etc. adjustment. */
+      /* There might be a cast to a base class here if the function has
+         been projected into a derived class with a using declaration.
+         No access checking is done on the cast, because the using
+         declaration adjusts access. */
+      cast_node(&implicit_this_argument,
+                implicit_this_param_type_of(function_type),
+                /*check_cast_access=*/FALSE,  /* sic */
+                /*is_implicit_cast=*/TRUE,
+                /*is_reinterpret_cast=*/FALSE,
+                /*reinterpret_semantics=*/FALSE,
+                &bound_function_selector->position);
       /* Pass a "this" pointer as the first argument. */
       implicit_this_argument->next = argument_list;
       argument_list = implicit_this_argument;

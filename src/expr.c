@@ -1388,17 +1388,23 @@ Syntax:
       /* The routine to be called cannot be determined because one or more
          of the arguments has a template-dependent type.  Use a generic
          function of the right name. */
-      make_unknown_dependent_function_operand(
+      if (try_surrogate_functions) {
+        /* Leave the operand alone if it's a class operand for which
+           we tried surrogate functions. */
+        prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+      } else {
+        make_unknown_dependent_function_operand(
                                             overloaded_function_symbol,
                                             (a_boolean)operand->is_template_id,
                                             operand->template_arg_list,
                                             operand);
-      if (have_selector) {
-        /* This comes up with operator() cases. */
-        a_boolean is_arrow_operator = TRUE;
-        combine_unneeded_selector_with_operand(bound_function_selector,
-                                               &is_arrow_operator,
-                                               operand);
+        if (have_selector) {
+          /* This comes up with operator() cases. */
+          a_boolean is_arrow_operator = TRUE;
+          combine_unneeded_selector_with_operand(bound_function_selector,
+                                                 &is_arrow_operator,
+                                                 operand);
+        }  /* if */
       }  /* if */
     } else if (routine_type == NULL) {
       /* None of the overloaded functions matches the argument list. */
@@ -1449,6 +1455,17 @@ Syntax:
   if (vacuous_destructor_case) {
     /* Vacuous destructor case; leave the original operand alone. */
     copy_operand(operand, result);
+  } if (unknown_dependent_function) {
+    /* A call of a function whose type is not completely known, in
+       a prototype instantiation.  Make a generic call. */
+    an_expr_node_ptr function_node, call_node;
+    check_assertion(!operand->bound_function);
+    function_node = make_node_from_operand(operand);
+    function_node->next = argument_list;
+    call_node = make_operator_node((an_expr_operator_kind)eok_generic_call,
+                                    type_of_unknown_templ_param_nontype,
+                                    function_node);
+    make_expression_operand(call_node, call_node->type, result);
   } else {
     /* Build the call node and an operand for it. */
     assemble_function_call(operand, bound_function_selector, argument_list,
