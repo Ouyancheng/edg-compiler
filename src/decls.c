@@ -8156,7 +8156,8 @@ current scope.
            declared in the file scope -- e.g.,
              int i; using ::i;
            Issue a warning and ignore the using-declaration. */
-        check_assertion(locator_for_curr_id.is_global_qualified_name);
+        check_assertion(locator_for_curr_id.is_global_qualified_name ||
+                        nonstandard_using_decl_allowed);
         warning(ec_useless_using_declaration);
       } else {
         check_assertion(qualifier_namespace_ptr(locator_for_curr_id) != NULL ||
