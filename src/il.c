@@ -29,13 +29,15 @@ il.c -- Construction of intermediate language trees.
 #include "const_ints.h"
 #include "exprutil.h"
 #include "folding.h"
-#include "templates.h"
 
 #if ALTERNATE_IL_FILE_FORMAT
 #include "il_file.h"
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 #if !STANDALONE_UTILITY_PROGRAM
+#include "class_decl.h"
+#include "templates.h"
+
 /*
 Pointers to shared types.  These are cleared by il_init.
 */
@@ -3922,7 +3924,7 @@ discarding typedefs.
       /* Either both are const, both are volatile, or both are const volatile.
          Return both types with all qualifiers stripped off. */
     } else {
-      /* The are differently qualified.  Strip off the qualifiers and then
+      /* They are differently qualified.  Strip off the qualifiers and then
          add them back on as appropriate. */
       tp1 = skip_typerefs(tp1);
       tp2 = skip_typerefs(tp2);
@@ -3940,41 +3942,7 @@ discarding typedefs.
     *type1 = tp1;
     *type2 = tp2;
   }  /* if */
-}  /* skip_common_qualifiers */
-
-
-void set_routine_calling_method_flag(a_type_ptr routine_type)
-/*
-Set the calling-method flag in the indicated routine type; that flag
-is used when the function result is returned to a temporary provided by
-the caller.  This routine may be called more than once, since the
-information on the return type can be incomplete at the original
-declaration of the function and must be completed by the point of call.
-*/
-{
-  a_routine_type_supplement_ptr rtsp;
-  a_type_ptr                    return_type;
-
-  routine_type = skip_typerefs(routine_type);
-  rtsp = routine_type->variant.routine.extra_info;
-  if (rtsp->assoc_routine != NULL) {
-    /* The routine has been defined, so the flag is set correctly. */
-  } else if (C_dialect != C_dialect_cplusplus) {
-    /* The flags cannot be set in C mode. */
-  } else {
-    /* If the function returns a class object that has a "real" copy
-       constructor, make the caller provide a temporary for the result. */
-    return_type = routine_type->variant.routine.return_type;
-    return_type = skip_typerefs(return_type);
-    if (is_class_struct_union_type(return_type)) {
-      if (!is_incomplete_type(return_type) &&
-          !symbol_supplement_for_class(return_type)->
-                                        construction_by_bitwise_copy_allowed) {
-        rtsp->caller_provides_place_to_put_return_value = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* set_routine_calling_method_flag */
+}  /* skip_common_type_qualifiers */
 
 
 void copy_type(a_type_ptr from,
@@ -5362,6 +5330,40 @@ enk_temp_node.
 }  /* attach_expr_under_temp_init */
 
 
+void set_routine_calling_method_flag(a_type_ptr routine_type)
+/*
+Set the calling-method flag in the indicated routine type; that flag
+is used when the function result is returned to a temporary provided by
+the caller.  This routine may be called more than once, since the
+information on the return type can be incomplete at the original
+declaration of the function and must be completed by the point of call.
+*/
+{
+  a_routine_type_supplement_ptr rtsp;
+  a_type_ptr                    return_type;
+
+  routine_type = skip_typerefs(routine_type);
+  rtsp = routine_type->variant.routine.extra_info;
+  if (rtsp->assoc_routine != NULL) {
+    /* The routine has been defined, so the flag is set correctly. */
+  } else if (C_dialect != C_dialect_cplusplus) {
+    /* The flags cannot be set in C mode. */
+  } else {
+    /* If the function returns a class object that has a "real" copy
+       constructor, make the caller provide a temporary for the result. */
+    return_type = routine_type->variant.routine.return_type;
+    return_type = skip_typerefs(return_type);
+    if (is_class_struct_union_type(return_type)) {
+      if (!is_incomplete_type(return_type) &&
+          !symbol_supplement_for_class(return_type)->
+                                        construction_by_bitwise_copy_allowed) {
+        rtsp->caller_provides_place_to_put_return_value = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* set_routine_calling_method_flag */
+
+
 an_expr_node_ptr func_call_expr(an_expr_node_ptr  function_node,
                                 a_type_ptr        function_type,
                                 a_boolean         is_virtual,
@@ -5467,6 +5469,50 @@ is invalid (i.e., incomplete); an error node is returned for that case.
   }  /* if */
   return call_node;
 }  /* func_call_expr */
+
+
+void mark_routine_referenced(a_routine_ptr     routine,
+                             a_source_position *position)
+/*
+Mark the indicated routine as actually referenced.  "Actually" means
+as opposed to referenced in a virtual function call that may call some
+other virtual function.  Note that an actual reference does not necessarily
+mean that the routine is called; this reference might be taking the address
+of the routine.  It does, however, force instantiation if the function
+is a template function, and/or definition if the function is the right kind
+of compiler-generated function (e.g., a constructor).
+*/
+{
+  a_symbol_ptr                       assoc_sym;
+  a_function_instantiation_entry_ptr instance_ptr;
+
+  /* Set the referenced flag.  This is only necessary for virtual
+     functions referenced by qualified name.  For non-virtual functions,
+     the normal reference-processing routines have already set the IL
+     referenced flag. */
+  routine->source_corresp.referenced = TRUE;
+  /* If the routine is a nonstatic member function, mark the class of which
+     it is a member as referenced.  This ensures that a class will not
+     end up marked as unreferenced when one of its nonstatic member functions
+     (which references the class at least in its "this" parameter) is
+     marked referenced. */
+  if (routine_type_is_nonstatic_member_function(routine->type)) {
+    routine->source_corresp.class_of_which_a_member->
+                                              source_corresp.referenced = TRUE;
+  }  /* if */
+  /* If the routine is compiler-generated and its definition has not
+     yet been put out, force the definition now. */
+  force_definition_of_compiler_generated_routine(routine, position);
+  /* If the function is an instance of a function template, mark it
+     as requiring an instantiation. */
+  assoc_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
+  if (assoc_sym != NULL) {
+    instance_ptr = assoc_sym->variant.routine.instance_ptr;
+    if (instance_ptr != NULL) {
+      update_instantiation_required_flag(instance_ptr, TRUE);
+    }  /* if */
+  }  /* if */
+}  /* mark_routine_referenced */
 
 
 a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
