@@ -2174,6 +2174,8 @@ extern void unmap_memory(a_void_ptr	addr,
 extern sizeof_t seek_to_page_alignment(FILE *file);
 
 extern void open_mapped_il_temp_file(void);
+
+extern void close_mapped_il_temp_file(void);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*

@@ -2477,6 +2477,15 @@ memory for IL memory blocks.
 }  /* open_mapped_il_temp_file */
 
 
+void close_mapped_il_temp_file(void)
+/*
+Close the file used for allocation of file mapped memory for IL memory blocks.
+*/
+{
+  (void)CloseHandle(f_mmap_file);
+}  /* close_mapped_il_temp_file */
+
+
 void open_mapped_input_file(char *file_name)
 /*
 Open a file that contains memory region information that will be mapped
@@ -2811,6 +2820,15 @@ memory for IL memory blocks.
   mmap_file_number = fileno(f_mmap_file);
   db_exit();
 }  /* open_mapped_il_temp_file */
+
+
+void close_mapped_il_temp_file(void)
+/*
+Close the file used for allocation of file mapped memory for IL memory blocks.
+*/
+{
+  (void)fclose(f_mmap_file);
+}  /* close_mapped_il_temp_file */
 
 #endif /* EDG_WIN32 */
 
