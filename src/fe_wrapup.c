@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -345,6 +345,14 @@ already been copied over.
     /* Do removal of unneeded IL entities for the primary translation
        unit.  That was done for secondary translation units in part 3. */
     file_scope_il_wrapup_remove_unneeded_il();
+#if ENSURE_TYPE_LIST_ORDERING
+    if (total_errors == 0 && !trans_unit_test_mode &&
+        translation_units->next != NULL) {
+      /* Fix ordering problems for C generation when secondary translation
+         units are involved. */
+      fix_type_list_ordering_problems();
+    }  /* if */
+#endif /* ENSURE_TYPE_LIST_ORDERING */
     /* Check for memory regions that were not written out but now should
        be.  Among other things, this deals with functions that have
        keep_definition_in_il set but not definition_needed, and inline
@@ -612,6 +620,6 @@ and after the back end (if any) is executed.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1999 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -4409,6 +4409,17 @@ typedef struct a_type {
 			   was defined at the point where <stdarg.h> was
 			   included. */
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
+#if ENSURE_TYPE_LIST_ORDERING
+  a_bit_field	type_processed_for_ordering:1;
+			/* Set during the processing that fixes ordering
+			   problems in the file scope types list when there
+			   are secondary translation units, to indicate that
+			   the definition for the type has already been
+			   seen. */
+  a_bit_field	type_processed_as_complete_for_ordering:1;
+			/* Similar to previous, but marks whether the type
+			   has been processed as a complete type. */
+#endif /* ENSURE_TYPE_LIST_ORDERING */
 #if DO_IL_LOWERING
   a_variable_ptr
 		typeinfo_var;
@@ -9702,6 +9713,6 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1999 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

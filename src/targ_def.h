@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2439,6 +2439,17 @@ variables will be (selectively) promoted to the actual file scope.
 #endif /* ifndef PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 
 /*
+This switch controls whether a post-pass is done after IL lowering
+to ensure that the types list is in order, in the sense that the
+C-generating back end can generate compilable code from it.  The
+fixup is needed sometimes when secondary translation units are
+involved.
+*/
+#ifndef ENSURE_LOWERED_TYPE_LIST_ORDERING
+#define ENSURE_LOWERED_TYPE_LIST_ORDERING BACK_END_IS_C_GEN_BE
+#endif /* ifndef ENSURE_LOWERED_TYPE_LIST_ORDERING */
+
+/*
 This switch controls whether or not all functions and function calls will
 be turned into old-style unprototyped form.  This is what cfront effectively
 does, in generating old-style C that is compiled by a C compiler.
@@ -2790,6 +2801,6 @@ aren't enabled.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

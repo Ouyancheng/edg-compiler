@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2001 Edison Design Group Inc.                        [_]          *
+* Copyright 2001-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -3065,6 +3065,253 @@ before lowering and needed flag marking of the primary IL.
   db_exit();
 }  /* rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary */
 
+#if ENSURE_TYPE_LIST_ORDERING
+#if !DO_IL_LOWERING
+ #error -- ENSURE_TYPE_LIST_ORDERING requires IL lowering
+#endif /* !DO_IL_LOWERING */
+
+static void process_type_for_ordering(a_type_ptr type,
+                                      a_boolean  must_be_complete,
+                                      a_type_ptr *insert_pointer);
+static void process_referenced_types_for_ordering(a_type_ptr type,
+                                                  a_boolean  must_be_complete,
+                                                  a_type_ptr *insert_pointer);
+
+
+static void process_referenced_type_for_ordering(a_type_ptr type,
+                                                 a_boolean  must_be_complete,
+                                                 a_type_ptr *insert_pointer)
+/*
+The indicated type is referenced from another type.  If it's a type
+that is on the file-scope list, move it to the list of processed types
+by inserting it following *insert_pointer and updating *insert_pointer.
+If must_be_complete is TRUE, the type is used in a way that requires
+it to be complete.
+*/
+{
+  if (must_be_complete ? type->type_processed_as_complete_for_ordering :
+                         type->type_processed_for_ordering) {
+    /* The type has already been processed in the appropriate way. */
+  } else {
+    a_boolean need_default_processing = TRUE;
+    if (is_immediate_class_type(type)) {
+      /* This is a struct or union, which goes on the type list. */
+      /* structs and unions are declared in the first pass through the
+         types in c_gen_be, so their names are always available.  Their
+         definitions are put out in the second pass, however, so if
+         a definition is needed here the reference must be to something
+         earlier on the list. */
+      if (must_be_complete) {
+        process_type_for_ordering(type, must_be_complete, insert_pointer);
+      } else {
+        type->type_processed_for_ordering = TRUE;
+      }  /* if */
+      need_default_processing = FALSE;
+    } else if (is_immediate_enum_type(type)) {
+      /* This is an enum, which goes on the type list.  enums are put out
+         as definitions in the first pass in c_gen_be, so they are always
+         available. */
+      type->type_processed_for_ordering = TRUE;
+      type->type_processed_as_complete_for_ordering = TRUE;
+      need_default_processing = FALSE;
+    } else if (type->kind == (a_type_kind)tk_typeref &&
+               typeref_is_typedef(type)) {
+      /* This is a typedef, which goes on the type list. */
+      /* These are put out as definitions in the second pass in c_gen_be,
+         so they are available -- even as incomplete types -- only after
+         their appearance in the type list. */
+      if (!type->type_processed_for_ordering) {
+        process_type_for_ordering(type, must_be_complete, insert_pointer);
+        need_default_processing = FALSE;
+      }  /* if */
+    }  /* if */
+    if (need_default_processing) {
+      /* This type is either one that doesn't go on the type list, or
+         it's a typedef type that has not been processed as a complete
+         type yet. */
+      process_referenced_types_for_ordering(type, must_be_complete,
+                                            insert_pointer);
+      type->type_processed_for_ordering = TRUE;
+      if (must_be_complete) {
+        type->type_processed_as_complete_for_ordering = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* process_referenced_type_for_ordering */
+    
+
+static void process_referenced_types_for_ordering(a_type_ptr type,
+                                                  a_boolean  must_be_complete,
+                                                  a_type_ptr *insert_pointer)
+/*
+Process any types referenced by the indicated type as being referenced
+by the ordering processing.  "type" itself is not processed at this
+level.  See process_referenced_type_for_ordering for the description of
+must_be_complete and insert_pointer.
+*/
+{
+  switch (type->kind) {
+    case tk_typeref:
+      /* A typedef or cv-qualifier.  Process the underlying type. */
+      process_referenced_type_for_ordering(type->variant.typeref.type,
+                                           must_be_complete,
+                                           insert_pointer);
+      break;
+    case tk_pointer:
+      /* A pointer type.  Process the underlying type, which does
+         not need to be complete. */
+      process_referenced_type_for_ordering(type->variant.typeref.type,
+                                           /*must_be_complete=*/FALSE,
+                                           insert_pointer);
+      break;
+    case tk_array:
+      /* An array type.  Process the underlying type. */
+      process_referenced_type_for_ordering(type->variant.typeref.type,
+                                           must_be_complete,
+                                           insert_pointer);
+      break;
+    case tk_routine:
+      /* A function type.  The return type and the parameter types
+         do not have to be complete. */
+      process_referenced_type_for_ordering(type->variant.routine.return_type,
+                                           /*must_be_complete=*/FALSE,
+                                           insert_pointer);
+      { a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
+        a_param_type_ptr              ptp;
+        for (ptp = rtsp->param_type_list;
+             ptp != NULL;
+             ptp = ptp->next) {
+          process_referenced_type_for_ordering(ptp->type,
+                                               /*must_be_complete=*/FALSE,
+                                               insert_pointer);
+        }  /* for */
+      }
+      break;
+    case tk_struct:
+    case tk_union:
+      if (must_be_complete) {
+        /* struct or union type.  Process the member types. */
+        a_field_ptr field;
+        for (field = type->variant.class_struct_union.field_list;
+             field != NULL;
+             field = field->next) {
+          process_referenced_type_for_ordering(field->type,
+                                               must_be_complete,
+                                               insert_pointer);
+        }  /* for */
+      }  /* if */
+      break;
+    default:
+      /* No processing */
+      break;
+  }  /* switch */
+}  /* process_referenced_types_for_ordering */
+      
+
+static void process_type_for_ordering(a_type_ptr type,
+                                      a_boolean  must_be_complete,
+                                      a_type_ptr *insert_pointer)
+/*
+Move the indicated type to the list of types processed by the type-ordering
+algorithm, by inserting it following *insert_pointer and updating
+*insert_pointer.  Before doing that, make sure that all types referenced
+by the type have already been moved (so they are on the list before they
+are used).  If must_be_complete is TRUE, the type is used in a way that
+requires it to be complete.  The type passed in must be one that appears
+on the file-scope types list (i.e., struct, union, enum, or typedef).
+*/
+{
+  a_type_ptr prev_type, temp_type;
+
+  /* Find the type preceding "type" on the list.  Start looking at
+     *insert_pointer, which will often be the preceding type. */
+  if (*insert_pointer == NULL) {
+    prev_type = NULL;
+    temp_type = il_header.primary_scope->types;
+  } else {
+    prev_type = *insert_pointer;
+    temp_type = prev_type->next;
+  }  /* if */
+  for (; temp_type != type;
+       prev_type = temp_type, temp_type = temp_type->next) {
+#if CHECKING
+    if (temp_type == NULL) {
+#if DEBUG
+      (void)fprintf(f_debug, "Missing type: ");
+      db_abbreviated_type(type);
+      (void)fprintf(f_debug, "\n");
+#endif /* DEBUG */
+      /* The most likely cause of this abort is a cycle in the type
+         dependencies that cannot be resolved.  If such a cycle happens,
+         it's not possible to generate valid C code for the program. */
+      internal_error("process_type_for_ordering: type not found");
+    }  /* if */
+#endif /* CHECKING */
+  }  /* for */
+  /* Remove the type from the list. */
+  if (prev_type == NULL) {
+    il_header.primary_scope->types = type->next;
+  } else {
+    prev_type->next = type->next;
+  }  /* if */
+  type->next = NULL;
+  /* Process any types referenced from this type. */
+  process_referenced_types_for_ordering(type, must_be_complete,
+                                        insert_pointer);
+  /* Add the type to the list of processed types. */
+  if (*insert_pointer == NULL) {
+    type->next = il_header.primary_scope->types;
+    il_header.primary_scope->types = type;
+  } else {
+    type->next = (*insert_pointer)->next;
+    (*insert_pointer)->next = type;
+  }  /* if */
+  *insert_pointer = type;
+  type->type_processed_for_ordering = TRUE;
+  if (must_be_complete) type->type_processed_as_complete_for_ordering = TRUE;
+}  /* process_type_for_ordering */
+
+
+void fix_type_list_ordering_problems(void)
+/*
+Fix any ordering problems on the file scope types list that would cause
+errors when C code is generated by the C-generating back end.  Such
+problems come up (rarely) when multiple translation units are 
+processed.  This code runs after IL lowering.
+*/
+{
+  a_type_ptr insert_pointer = NULL;
+  a_type_ptr type;
+
+  /* Run through the file-scope types list.  Move each type to a list of
+     processed types, making sure that all the types it references
+     are processed previously so that they will precede the type on the
+     list. */
+  /* We're modeling references in types output in the second pass of
+     c_gen_be here.  In the first pass, structs and unions are output
+     as declarations, and enums as definitions, so their names are
+     always available in the second pass, but the definitions of structs
+     and unions are not available unless they appear earlier in the
+     list.  typedefs are put out in the second pass, so their names
+     are not available unless they appear earlier in the list.  However,
+     their types need not be complete at the point of definition. */
+  for (;;) {
+    if (insert_pointer == NULL) {
+      type = il_header.primary_scope->types;
+    } else {
+      type = insert_pointer->next;
+    }  /* if */
+    if (type == NULL) break;
+    process_type_for_ordering(type,
+                              /*must_be_complete=*/
+                                              (is_immediate_class_type(type) ||
+                                               is_immediate_enum_type(type)),
+                              &insert_pointer);
+  }  /* for */
+  translation_units->file_scope_pointers_block.last_type = insert_pointer;
+}  /* fix_type_list_ordering_problems */
+
+#endif /* ENSURE_TYPE_LIST_ORDERING */
 
 /******************************************************************************
 *                                                             \  ___  /       *
@@ -3072,6 +3319,6 @@ before lowering and needed flag marking of the primary IL.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2001 Edison Design Group Inc.                        [_]          *
+* Copyright 2001-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
