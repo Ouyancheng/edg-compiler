@@ -3214,7 +3214,7 @@ a block of source position information when the context is a declaration.
 a_boolean is_constructor_decl(a_type_ptr    class_type)
 /*
 class_type is a pointer to the class that is currently being defined.  Return
-TRUE and modify locator_for_curr_id appropriate if the current declaration
+TRUE and modify locator_for_curr_id appropriately if the current declaration
 is a that of a constructor.
 */
 {
@@ -3371,7 +3371,7 @@ is a that of a constructor.
     }  /* if */
   }  /* if */
   if (cache_in_use) {
-    /* If we haven't done do yet, reset the token stream. */
+    /* If we haven't done so yet, reset the token stream. */
     rescan_cached_tokens(&cache);
   }  /* if */
   if (is_constructor && type_mismatch) {
