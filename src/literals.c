@@ -15,10 +15,6 @@ literals.c -- Literal constant conversion to and from internal form.
 
 /* Header files common to all files. */
 #include "fe_common.h"
-/* Include types.h before the hdrstop.  It will cause symbol_tbl.h and
-   lexical.h to be pulled in, too, so they don't need to be specified
-   explicitly. */
-#include "types.h"
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header

@@ -15,8 +15,6 @@ const_ints.c -- Manipulation of target integer constants.
 
 /* Header files common to all files. */
 #include "fe_common.h"
-/* Additional header file. */
-#include "types.h"
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header
