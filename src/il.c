@@ -4001,46 +4001,6 @@ rather than determined directly.
 }  /* add_to_types_list */
 
 
-void remove_from_types_list(a_type_ptr     type_ptr,
-                            a_scope_depth  scope_level)
-/*
-Remove the indicated type from the types list of an IL scope.  Use scope_level
-to find the appropriate IL scope; when scope_level is NO_SCOPE_DEPTH, the
-scope is computed rather than determined directly.
-*/
-{
-  a_scope_ptr                 sp;
-  a_scope_pointers_block_ptr  pointers_block;
-  a_type_ptr                  tp, prev_tp;
-
-  /* Get a pointer to the scope entry. */
-  sp = get_scope_for_list(scope_level, &type_ptr->source_corresp,
-                          &pointers_block);
-  check_assertion_str(sp != NULL, "remove_from_types_list: NULL scope");
-  /* Scan the list until a match is found. */
-  prev_tp = NULL;
-  tp = sp->types;
-  while (tp != type_ptr) {
-    prev_tp = tp;
-    tp = tp->next;
-    check_assertion_str2(tp != NULL, "remove_from_types_list:",
-                         "cannot find type on types list");
-  }  /* while */
-  /* Link around the entry. */
-  if (prev_tp == NULL) {
-    sp->types = type_ptr->next;
-  } else {
-    prev_tp->next = type_ptr->next;
-  }  /* if */
-  if (pointers_block != NULL) {
-    /* Fix up the pointer to the end of the list, if required. */
-    if (pointers_block->last_type == type_ptr) {
-      pointers_block->last_type = prev_tp;
-    }  /* if */
-  }  /* if */
-}  /* remove_from_types_list */
-
-
 void move_to_end_of_types_list(a_type_ptr     type_ptr,
                                a_scope_depth  scope_level)
 /*
