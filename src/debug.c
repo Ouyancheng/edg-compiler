@@ -386,7 +386,8 @@ correspondence, do nothing.
       source_corresp_for_il_entry((char *)scp, entry_kind) != NULL &&
       scp->name != NULL) {
     /* Get the entity name. */
-    char *name = db_name_str(scp, entry_kind);
+    char *name = db_name_str_full(scp, entry_kind,
+                                  /*include_func_params=*/FALSE);
     char *name_with_params = NULL;
     if (entry_kind == (an_il_entry_kind)iek_routine) {
       /* Also generate a version with parameter types in case it's needed. */
