@@ -1,5 +1,22 @@
 Version 2.18
 
+6/11/93  Setting of break_seq_number
+
+break_seq_number, which gives the sequence number of the break statement
+(if any) at the end of a switch clause, is now set correctly (i.e., it
+is left NULL) for the first clause in
+
+  void f(int arg1, int arg2) {
+      switch (arg1) {
+        case 1:
+          if (arg2 == 0) break;
+          /*FALLSTHRU*/
+        case 2:
+          arg2 = 1;
+      }
+  }
+
+
 6/10/93  Display of typedef names in diagnostic messages
 
 Some bugs have been fixed to correct the display of typedef names in

@@ -1258,7 +1258,6 @@ See also 3.6.6.3.
     if (sssep->kind == ssk_switch &&
         sssep->curr_switch_clause != NULL) {
       /* A break that exits a switch clause. */
-      sssep->curr_switch_clause->break_seq_number = pos_curr_token.seq;
       if (depth_stmt_stack != 0 &&
           &struct_stmt_stack[depth_stmt_stack-1] == sssep) {
         /* This break statement exits a switch clause in a way that can
@@ -1266,6 +1265,7 @@ See also 3.6.6.3.
            the clause.  No goto is required.  However, the current switch
            clause must be ended.  Note that this special trick can be done
            only when the break is at the top level in the case clause. */
+        sssep->curr_switch_clause->break_seq_number = pos_curr_token.seq;
         sssep->curr_switch_clause = NULL;
         term_stmt_clause(sssep);
         set_unreachable(curr_reachability);
