@@ -117,6 +117,11 @@ typedef struct a_pch_saved_variable {
   sizeof_t	var_size;
 			/* The size of the variable (that is, the number of
 			   bytes that comprise its value). */
+  a_byte_boolean
+		indirect;
+			/* TRUE if var_address should be dereferenced
+			   in order to get the true address of the
+			   data to be stored. */
 #if DEBUG
   char		*var_name;
 			/* The name of the variable being saved.  Used for
@@ -139,9 +144,20 @@ preprocessing.  The actual string generated is ', "var-name"'.
 Macro used to initialize one element of an array of a_pch_saved_variable.
 */
 #define pch_saved_var_array_elem(var)                                   \
-  { (a_void_ptr)&var, sizeof(var) pch_saved_var_name(var) }
+  { (a_void_ptr)&var, sizeof(var), FALSE pch_saved_var_name(var) }
+
+/*
+Similar to pch_saved_var_array_elem, except used when the variable
+contains the address of the data to be stored.
+*/
+#define pch_indirect_saved_var_array_elem(var)                          \
+  { (a_void_ptr)&var, sizeof(var), TRUE pch_saved_var_name(var) }
+
+/*
+Macro used to mark the end of a list of saved variables.
+*/
 #define pch_saved_var_array_terminating_elem()                          \
-  { (a_void_ptr)NULL, (sizeof_t)0 pch_saved_var_name(NULL) }
+  { (a_void_ptr)NULL, (sizeof_t)0, FALSE pch_saved_var_name(NULL) }
 
 extern void register_pch_saved_variables(a_pch_saved_variable array[]);
 
