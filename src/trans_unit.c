@@ -426,6 +426,12 @@ treated as separate translation units of a single compilation.
 {
   a_translation_unit_ptr	trans_unit;
 
+  db_enter(1, "process_translation_unit");
+#if DEBUG
+  if (db_flag_is_set("trans_unit")) {
+    fprintf(f_debug, "Processing translation unit %s\n", file_name);
+  }  /* if */
+#endif  /* DEBUG */
 #if CHECKING
   if (!is_primary && exported_file == NULL) {
     /* We can't load a normal secondary translation unit after an exported
@@ -507,6 +513,7 @@ treated as separate translation units of a single compilation.
     proc_secondary_translation_units();
   }  /* if */
 #endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
+  db_exit();
 }  /* process_translation_unit */
 
 #if DEBUG
