@@ -79,6 +79,9 @@ typedef struct an_aggregate_init_info {
                 designation_state;
                         /* Have we just collected a partial or complete
                            designation? */
+  a_boolean compound_literal;
+			/* TRUE if and only if the initializer is scanned for
+			   a compound literal construct. */
 } an_aggregate_init_info;
 
 
@@ -95,6 +98,7 @@ Initialize an entry of type an_aggregrate_init_info.
   init_info->init_end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   init_info->designation_state = ds_no_designation;
+  init_info->compound_literal = FALSE;
 }  /* initialize_init_info */
 
 
@@ -1528,7 +1532,8 @@ subaggregate. The function returns a pointer to IL a_constant entity.
     } else if (microsoft_mode) {
       /* A Microsoft extension permits a nonconstant initializer in the
          aggregate initialization of an automatic variable. */
-      nonconst_allowed = !init_info->static_lifetime;
+      nonconst_allowed = !(init_info->static_lifetime ||
+                           init_info->compound_literal);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       nonconst_allowed = FALSE;
@@ -1988,6 +1993,7 @@ function get_initializer does all the hard work.
 
   check_assertion(C_mode() && (curr_token == tok_lbrace));
   initialize_init_info(&info, is_static);
+  info.compound_literal = TRUE;
   compound_constant = get_initializer(type, &info,
                                       (an_aggregate_init_context_ptr)NULL,
                                       &no_token_consumed,
