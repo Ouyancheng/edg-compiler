@@ -3479,7 +3479,8 @@ Call the translation unit routine for the secondary translation units.
                                     gs_directory_of(file_name);
       change_primary_include_search_dir(dir_name_of_primary_source_file);
     }  /* if */
-    process_translation_unit(file_name, /*is_primary=*/FALSE);
+    process_translation_unit(file_name, /*is_primary=*/FALSE,
+                             /*for_exported_templates=*/FALSE);
   }  /* while */
 }  /* proc_secondary_translation_units */
 

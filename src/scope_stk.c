@@ -4241,11 +4241,15 @@ e.g., because it's externally defined.
       is_needed = FALSE;
     } else if (rout->is_template_function &&
                !rout->is_specialized &&
-               instantiation_mode == tim_used) {
+               instantiation_mode == tim_used &&
+               !translation_unit_needed_only_for_exported_templates) {
       /* Another exception is function template instances when the source
          is compiled with the -tused option (meaning that any reference
          triggers an instantiation).  The instantiation is needed only if
-         it is referenced. */
+         it is referenced.  This processing is suppressed in secondary
+         translation units loaded for the purpose of defining exported
+         templates because instances of such templates are not necessarily
+         referenced from the translation unit in which they are defined. */
       a_symbol_ptr             rout_sym;
       a_template_instance_ptr  tip;
 

@@ -14632,7 +14632,8 @@ the exported templates in that file.
   /* FIXME - need to handle directory name, include search paths, etc. */
   /* Pop the file scope of the current translation unit. */
   pop_scope();
-  process_translation_unit(etfp->source_file_name, /*is_primary=*/FALSE);
+  process_translation_unit(etfp->source_file_name, /*is_primary=*/FALSE,
+                           /*for_exported_templates=*/TRUE);
   /* Save the translation unit pointer associated with this exported template
      file. */
   etfp->translation_unit = curr_translation_unit;

@@ -363,12 +363,15 @@ a pointer to the entry created.
 
 
 void process_translation_unit(char	*file_name,
-			      a_boolean	is_primary)
+			      a_boolean	is_primary,
+			      a_boolean	for_exported_templates)
 /*
 This routine processes a translation unit (a source file and any
 files included by that source file).  file_name is the name of the
 primary source file of the translation unit.  is_primary is TRUE if the
-translation unit is the primary translation unit.
+translation unit is the primary translation unit.  for_exported_templates
+is TRUE if the translation unit is being processed for the purpose of
+defining exported templates.
 
 There is usually one translation unit per compilation.  When the
 COMPILE_MULTIPLE_SOURCE_FILES flag is TRUE, the front end can
@@ -392,6 +395,7 @@ treated as separate translation units of a single compilation.
   }  /* if */
   /* Initialize the front end. */
   is_primary_translation_unit = is_primary;
+  translation_unit_needed_only_for_exported_templates = for_exported_templates;
   trans_unit_file_name = file_name;
   compute_il_prefix_size();
   if (is_primary_translation_unit) fe_init_part_1();
