@@ -23,6 +23,7 @@ templates.c -- Support for C++ templates.
 #include "error.h"
 #include "func_def.h"
 #include "il.h"
+#include "il_to_str.h"
 #include "lexical.h"
 #include "mem_manage.h"
 #include "lower_name.h"
@@ -176,9 +177,15 @@ static sizeof_t pos_in_templ_str_buffer;
 			/* The number of characters that have been added to
 			   templ_str_buffer thus far in processing. */
 
-static a_seq_number curr_seq;
+static a_seq_number
+		curr_seq;
 			/* The sequence number of the source position of the
 			   most recently added token, etc., in the buffer. */
+
+static an_il_to_str_output_control_block
+		octl;
+			/* Output control block used to interface to the
+			   il_to_str routines. */
 
 static void expand_templ_str_buffer(sizeof_t size_needed)
 /*
@@ -253,7 +260,6 @@ Copy characters representing the current token into templ_str_buffer, and
 increase pos_in_templ_str_buffer by the number of characters added.
 */
 {
-  char             *str;
   a_seq_number     seq_incr;
   a_column_number  column_incr;
 
@@ -287,45 +293,34 @@ increase pos_in_templ_str_buffer by the number of characters added.
     add_whitespace_to_template_string(seq_incr, column_incr);
   }  /* if */
   /* Now put out the characters representing the token. */
-  switch (curr_token) {
-    case tok_int_constant:
-    case tok_float_constant:
-    case tok_string_literal:
-    case tok_char_constant:
-      /* Literal constant. */
-#if 0
-/* Fix this with a call to a general constant-to-string routine. */
-#endif /* if 0 */
-      str = "???";
-      break;
+  if (curr_token == tok_int_constant || curr_token == tok_float_constant ||
+      curr_token == tok_string_literal || curr_token == tok_char_constant) {
+    /* Write out a string that represents the constant. */
+    form_constant(&const_for_curr_token, &octl);
+  } else if (curr_token == tok_newline) {
+    /* Ignore tok_newline.  It only comes up in pragma token caches, and
+       when the sequence number changes the required number of newline
+       characters will be added to the cache anyway. */
 #if CHECKING
     /* Check for tokens that should not show up in the cached tokens of
        a template declaration. */
-    case tok_end_of_source:
-    case tok_header_name:
-    case tok_pp_number:
-    case tok_digit_sequence:
-    case tok_cpp_quote:
-    case tok_ptr_to_member:
-      internal_error("make_template_string: unexpected token");
+  } else if (curr_token == tok_end_of_source ||
+             curr_token == tok_header_name ||
+             curr_token == tok_pp_number ||
+             curr_token == tok_digit_sequence ||
+             curr_token == tok_cpp_quote ||
+             curr_token == tok_ptr_to_member) {
+    internal_error("make_template_string: unexpected token");
 #endif /* CHECKING */
-    case tok_newline:
-      /* Ignore tok_newline.  It only comes up in pragma token caches, and
-         when the sequence number changes the required number of newline
-         characters will be added to the cache anyway. */
-      str = NULL;
-      break;
-    case tok_identifier:
-      /* An identifier. */
-      check_assertion(!locator_for_curr_id.has_been_coalesced);
-      str = locator_for_curr_id.symbol_header->identifier;
-      break;
-    default:
-      /* A keyword or other token whose literal name can be put out. */
-      str = token_names[(int)curr_token];
-  }  /* switch */
-  /* Add the string to templ_str_buffer. */
-  add_string_to_template_string(str);
+  } else if (curr_token == tok_identifier) {
+    /* An identifier. */
+    check_assertion(!locator_for_curr_id.has_been_coalesced);
+    add_string_to_template_string(locator_for_curr_id.symbol_header->
+                                                               identifier);
+  } else {
+    /* A keyword or other token whose literal name can be put out. */
+    add_string_to_template_string(token_names[(int)curr_token]);
+  }  /* if */    
   db_exit();
 }  /* add_token_to_template_string */
 
@@ -339,8 +334,8 @@ encountered, whatever their other characteristics, are included.
 {
   a_pending_pragma_ptr  ppp;
   a_boolean             is_pseudo_pragma;
-  a_seq_number     seq_incr;
-  a_column_number  column_incr;
+  a_seq_number          seq_incr;
+  a_column_number       column_incr;
 
   db_enter(5, "add_curr_token_pragmas_to_template_string");
   for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
@@ -5603,6 +5598,12 @@ Initializations for template.
   f_instantiation_info = NULL;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#if RECORD_TEMPLATES_IN_IL
+  /* Initialize the output control block for the il-to-str routines. */
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = add_string_to_template_string;
+  octl.gen_compilable_code = TRUE;
+#endif /* RECORD_TEMPLATES_IN_IL */
 }  /* templates_init */
 
 /******************************************************************************
