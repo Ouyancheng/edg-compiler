@@ -3799,8 +3799,30 @@ The syntax is:
              The <name> is limited to <unqualified-name> or
              <unqualified-name> <template-args>, but we don't check that. */
           a_func_block func_block;
-          ptr = demangle_type(ptr, dctl);
-          write_id_str(op_str, dctl);
+          a_boolean    gpp_qualified_name = FALSE;
+          if (emulate_gnu_abi_bugs) {
+            /* g++ 3.2 sometimes puts out a qualified name as the second
+               operand.  Look ahead to see whether that form is used.
+               If so, we want to skip over the type but not output it,
+               because the qualified name repeats that type. */
+            char *ptr2;
+            dctl->suppress_id_output++;
+            dctl->suppress_substitution_recording++;
+            ptr2 = demangle_type(ptr, dctl);
+            dctl->suppress_id_output--;
+            dctl->suppress_substitution_recording--;
+            if (*ptr2 == 'N') {
+              gpp_qualified_name = TRUE;
+              /* Scan the type again to get substitutions recorded. */
+              dctl->suppress_id_output++;
+              ptr = demangle_type(ptr, dctl);
+              dctl->suppress_id_output--;
+            }  /* if */
+          }  /* if */
+          if (!gpp_qualified_name) {
+            ptr = demangle_type(ptr, dctl);
+            write_id_str(op_str, dctl);
+          }  /* if */
           ptr = demangle_name(ptr, &func_block, dctl);
           if (emulate_gnu_abi_bugs) {
             /* g++ 3.2 puts out the parameter types following the name
