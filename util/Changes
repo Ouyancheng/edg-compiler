@@ -1,5 +1,13 @@
 Version 2.29
 
+3/38/95  eccp and the order of object files and libraries passed to the linker
+
+Formerly, eccp maintained separate lists of object files, libraries
+specified as full path names, and libraries specified using the
+-lname option.  These lists were then passed separately to the linker.
+Now, a single list is maintained preserving the order specified by the
+user.  This change required a corresponding change in the prelinker.
+
 3/22/95  Header files used by mk_errinfo
 
 Uses of nonstandard header files have been removed from mk_errinfo.c.
