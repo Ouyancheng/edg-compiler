@@ -663,29 +663,49 @@ to be issued; otherwise set err_code to ec_no_error.
   a_fixed_point_type_descr
 		*fxp_descr;
   a_boolean	overflow = FALSE;
-  an_internal_float_value
-		*fp_value;
-  a_float_kind	float_kind;
   a_type_ptr	float_tp = skip_typerefs(old_constant->type);
+  a_float_kind	float_kind = float_tp->variant.float_kind;
+  an_internal_float_value
+		*float_value;
 
-  check_assertion(old_constant->kind == (a_constant_repr_kind)ck_float);
+#if C99_IL_EXTENSIONS_SUPPORTED
+  an_internal_float_value zero;
+
+  if (float_tp->kind == (a_type_kind)tk_complex) {
+    /* Converting from complex to fixed-point.  The real part of the
+       constant is converted to fixed-point, and the imaginary part is
+       discarded. */
+    float_value = &old_constant->variant.complex_value->real;
+  } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
+    /* Converting from imaginary to fixed-point.  The result is zero. */
+    fp_host_large_integer_to_float(float_kind, (a_host_large_integer)0,
+                                   &zero, &err);
+    float_value = &zero;
+  } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  /* Do not insert code here. */
+  {
+    check_assertion(old_constant->kind == (a_constant_repr_kind)ck_float);
+    float_value = &old_constant->variant.float_value;
+  }  /* if */
   set_constant_kind(new_constant, (a_constant_repr_kind)ck_fixed_point);
   *err_code = ec_no_error;
   fxp_descr = fxp_descr_for_constant(new_constant);
-  fp_value = &old_constant->variant.float_value;
-  float_kind = float_tp->variant.float_kind;
   /* Convert the floating-point value into the internal mantissa
      representation.  This is done even in the NaN and infinity case
      to set is_negative flag, etc. */
-  load_hex_fp_value(fp_value, float_kind,
+  load_hex_fp_value(float_value, float_kind,
                     &mantissa, &exponent, &is_negative,
                     /*restore_implicit_bit=*/TRUE);
 #if TARG_HAS_IEEE_FLOATING_POINT
-  if (fp_is_nan_or_infinity(fp_value, float_kind)) {
+  if (fp_is_nan_or_infinity(float_value, float_kind)) {
     /* Not-a-number or infinity.  Treat this as an overflow. */
     overflow = TRUE;
   }  /* if */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+  /* The fixed-point representation has no negative zero, so clear the
+     is_negative flag if the mantissa is zero. */
+  if (is_negative && mantissa_is_zero(&mantissa)) is_negative = FALSE;
   /* Convert and store the mantissa as a fixed-point value. */
   conv_mantissa_to_fixed_point(&mantissa, exponent, is_negative,
                                fxp_descr, overflow,
@@ -719,35 +739,71 @@ be issued, set err_code and err_severity to the values for the message
 to be issued; otherwise set err_code to ec_no_error.
 */
 {
-  a_mantissa	mantissa;
-  long		exponent;
-  a_boolean	is_negative;
-  a_boolean	err;
-  a_boolean	inexact;
+  a_mantissa		mantissa;
+  long			exponent;
+  a_boolean		is_negative;
+  a_boolean		err;
+  a_boolean		inexact;
   a_fixed_point_type_descr
-		*fxp_descr;
-  a_type_ptr	float_tp = skip_typerefs(new_constant->type);
+			*fxp_descr;
+  a_type_ptr		float_tp = skip_typerefs(new_constant->type);
+  a_float_kind		float_kind = float_tp->variant.float_kind;
+  an_internal_float_value
+			*float_value;
+  a_boolean		skip_conversion = FALSE;
+  a_constant_repr_kind	constant_kind = (a_constant_repr_kind)ck_float;
 
   check_assertion(old_constant->kind == (a_constant_repr_kind)ck_fixed_point);
-  set_constant_kind(new_constant, (a_constant_repr_kind)ck_float);
+#if C99_IL_EXTENSIONS_SUPPORTED
+  /* We may be converting to a nonreal floating type. */
+  if (float_tp->kind == (a_type_kind)tk_complex) {
+    constant_kind = (a_constant_repr_kind)ck_complex;
+  } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
+    constant_kind = (a_constant_repr_kind)ck_imaginary;
+  }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  set_constant_kind(new_constant, constant_kind);
   *err_code = ec_no_error;
   fxp_descr = fxp_descr_for_constant(old_constant);
-  /* Convert the fixed-point value into the internal mantissa
-     representation. */
-  load_hex_fxp_value(&old_constant->variant.fixed_point_value,
-                     fxp_descr, &mantissa, &exponent, &is_negative);
-  /* Convert and store the mantissa as a floating-point value. */
-  conv_mantissa_to_floating_point(&mantissa, exponent, is_negative,
-                                  float_tp->variant.float_kind,
-                                  &new_constant->variant.float_value,
-                                  /*overflow=*/FALSE, &err, &inexact);
-  /* No diagnostic is given for an inexact result. */
-  if (err) {
-    /* The conversion to floating-point does not fit in the result type.
-       This should not occur unless there are fixed-point or floating-point
-       types with unusual sizes. */
-    *err_code = ec_fixed_to_float_conversion;
-    *err_severity = es_error;
+#if C99_IL_EXTENSIONS_SUPPORTED
+  if (float_tp->kind == (a_type_kind)tk_complex) {
+    /* Converting to complex.  The value is converted into the real
+       part, and the imaginary part is set to zero. */
+    float_value = &new_constant->variant.complex_value->real;
+    fp_host_large_integer_to_float(float_kind, (a_host_large_integer)0,
+                                   &new_constant->variant.complex_value->imag,
+                                   &err);
+    check_assertion(!err);
+  } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
+    /* Converting to imaginary.  The result is zero. */
+    fp_host_large_integer_to_float(float_kind, (a_host_large_integer)0,
+                                   &new_constant->variant.float_value, &err);
+    check_assertion(!err);
+    skip_conversion = TRUE;
+  } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  /* Do not insert code here. */
+  {
+    float_value = &new_constant->variant.float_value;
+  }  /* if */
+  if (!skip_conversion) {
+    /* Convert the fixed-point value into the internal mantissa
+      representation. */
+    load_hex_fxp_value(&old_constant->variant.fixed_point_value,
+                       fxp_descr, &mantissa, &exponent, &is_negative);
+    /* Convert and store the mantissa as a floating-point value. */
+    conv_mantissa_to_floating_point(&mantissa, exponent, is_negative,
+                                    float_tp->variant.float_kind,
+                                    float_value,
+                                    /*overflow=*/FALSE, &err, &inexact);
+    /* No diagnostic is given for an inexact result. */
+    if (err) {
+      /* The conversion to floating-point does not fit in the result type.
+         This should not occur unless there are fixed-point or floating-point
+         types with unusual sizes. */
+      *err_code = ec_fixed_to_float_conversion;
+      *err_severity = es_error;
+    }  /* if */
   }  /* if */
 }  /* conv_fixed_point_to_float */
 

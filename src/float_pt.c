@@ -258,6 +258,23 @@ Convert a string to a long double.
 
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 
+#if DEBUG
+
+void db_internal_float_value(an_internal_float_value *ifv)
+/*
+Display an internal floating-point value, for debugging purposes.
+*/
+{
+  int i;
+
+  for (i = 0; i < sizeof(a_host_fp_value); ++i) {
+    fprintf(f_debug, "%2x ", ifv->bytes[i]);
+  }  /* for */
+  fprintf(f_debug, "\n");
+}  /* db_internal_float_value */
+
+#endif /* DEBUG */
+
 static void conv_host_fp_to_float(a_host_fp_value	temp,
 				  a_boolean		*err,
 				  float			*result)

@@ -1614,8 +1614,9 @@ to the constant is maintained, by adding a cast if necessary.
           break;
 #if FIXED_POINT_ALLOWED
         case tk_fixed_point:
-          /* Imaginary to fixed-point.  Not folded at compile time. */
-          *did_not_fold = TRUE;
+          /* Imaginary to fixed-point. */
+          conv_float_to_fixed_point(constant, &new_constant,
+                                    &err_code, &err_severity);
           break;
 #endif /* FIXED_POINT_ALLOWED */
         default:
@@ -1644,8 +1645,9 @@ to the constant is maintained, by adding a cast if necessary.
           break;
 #if FIXED_POINT_ALLOWED
         case tk_fixed_point:
-          /* Complex to fixed-point.  Not folded at compile time. */
-          *did_not_fold = TRUE;
+          /* Complex to fixed-point. */
+          conv_float_to_fixed_point(constant, &new_constant,
+                                    &err_code, &err_severity);
           break;
 #endif /* FIXED_POINT_ALLOWED */
         default:
@@ -1665,6 +1667,12 @@ to the constant is maintained, by adding a cast if necessary.
           break;
         case tk_float:
           /* Converting fixed-point to floating-point. */
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case tk_imaginary:
+          /* Fixed-point to imaginary. */
+        case tk_complex:
+          /* Fixed-point to complex. */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           conv_fixed_point_to_float(constant, &new_constant,
                                     &err_code, &err_severity);
           break;
@@ -1672,12 +1680,6 @@ to the constant is maintained, by adding a cast if necessary.
           /* Converting fixed-point to fixed-point. */
           conv_fixed_point_to_fixed_point(constant, &new_constant,
                                           &err_code, &err_severity);
-          break;
-        case tk_imaginary:
-          /* Fixed-point to imaginary.  Not folded at compile time. */
-        case tk_complex:
-          /* Fixed-point to complex.  Not folded at compile time. */
-          *did_not_fold = TRUE;
           break;
         default:
           unexpected_condition_str(

@@ -1,5 +1,12 @@
 Version 3.5
 
+7/14/04  Embedded C: Compile-time conversion fixed-point to/from complex
+
+Compile-time conversion between fixed-point and complex/imaginary values
+is now supported.
+
+  _Accum y = (_Complex double)0 / 0.5r;
+
 7/14/04  Embedded C: Incorrect conversion of certain floating-point values
 
 When converting compile-time values from floating-point to fixed-point,
