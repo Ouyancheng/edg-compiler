@@ -4819,6 +4819,8 @@ to it.
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
+  /* One of the variant fields, chosen arbitrarily, is initialized. */
+  vp->initializer.constant        = NULL;
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
   vp->is_template_static_data_member
