@@ -4221,13 +4221,22 @@ Syntax:
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(sizeof_type);
   /* The operand of a sizeof may not have function type or incomplete
-     type. */
+     type (except in GNU C mode, where function types and void are treated
+     as byte-sized). */
   if (is_function_type(sizeof_type)) {
-    pos_error(ec_sizeof_function, &type_position);
-    sizeof_type = error_type();
+    if (gcc_mode) {
+      sizeof_type = integer_type((an_integer_kind)ik_char);
+    } else {
+      pos_error(ec_sizeof_function, &type_position);
+      sizeof_type = error_type();
+    }  /* if */
   } else if (is_incomplete_type(sizeof_type)) {
-    pos_error(ec_incomplete_type_not_allowed, &type_position);
-    sizeof_type = error_type();
+    if (gcc_mode && is_void_type(sizeof_type)) {
+      sizeof_type = integer_type((an_integer_kind)ik_char);
+    } else {
+      pos_error(ec_incomplete_type_not_allowed, &type_position);
+      sizeof_type = error_type();
+    }  /* if */
   }  /* if */
 
   if (vla_enabled && is_vla_type(sizeof_type)) {
