@@ -2040,9 +2040,9 @@ is called.
      instantiated. */
   typedef_will_be_implicitly_instantiated_if_referenced =
            type->source_corresp.is_class_member &&
-           type->source_corresp->parent.class_type->
+           type->source_corresp.parent.class_type->
                                 variant.class_struct_union.is_template_class &&
-           !type->source_corresp->parent.class_type->
+           !type->source_corresp.parent.class_type->
                                      variant.class_struct_union.is_specialized;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
