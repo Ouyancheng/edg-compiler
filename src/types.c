@@ -6970,8 +6970,9 @@ using a GNU attribute.  Components under typedefs are not considered.  The
 warning is issued for the given position.
 */
 {
-  a_source_position  saved_pos = error_position;
+  a_source_position  saved_pos;
 
+  saved_pos = error_position;
   error_position = *pos;
   (void)traverse_type_tree(type, ttt_warn_about_use_of_gnu_deprecated_type,
                            TTT_STOP_AT_TYPEDEFS |
