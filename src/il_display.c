@@ -3586,7 +3586,7 @@ This routine is called during IL walking.
           disp_namespace((a_namespace_ptr)entry_ptr);
           break;
         case iek_using_decl:
-          disp_using_decl((a_using_directive_ptr)entry_ptr);
+          disp_using_decl((a_using_decl_ptr)entry_ptr);
           break;
         case iek_dynamic_init:
           disp_dynamic_init((a_dynamic_init_ptr)entry_ptr);
