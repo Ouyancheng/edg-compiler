@@ -4822,9 +4822,9 @@ points to the template parameter list.
                        identical_types(f_skip_typerefs(type),
                                        f_skip_typerefs(tap->variant.type))) {
               /* The Microsoft compiler has a bug that ignores qualifiers
-                 when comparing the template arguments values.  Consider the
-                 deduction to match if the types are the same after stripping
-                 qualifiers. */
+                 when comparing the two deduced values of a given template
+                 argument.  Consider the deduction to match if the types are
+                 the same after stripping qualifiers. */
               match = TRUE;
             } else {
               /* Not a match.  Return FALSE. */
