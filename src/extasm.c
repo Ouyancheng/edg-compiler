@@ -310,6 +310,7 @@ done_with_modifiers:
       case 'R':
         ck = (an_asm_operand_constraint_kind)aoc_reg_legacy;    
         break;
+      case 'q':
       case 'Q':
         ck = (an_asm_operand_constraint_kind)aoc_reg_q;         
         break;
@@ -620,6 +621,7 @@ The syntax is
   /* There is no hard limit on the number of clobbers. */
   a_named_register           reg;
   int                        nparsed = 0;
+  char                       *name;
   a_named_register_list_ptr  first_reg = NULL, last_reg = NULL;
 
   db_enter(3, "asm_clobbers_spec");
@@ -627,15 +629,21 @@ The syntax is
     (void)get_token();
     while (curr_token == tok_string_literal) {
       nparsed++;
-      reg = name_to_register(const_for_curr_token.variant.string.value);
-      if (reg != (a_named_register)anr_invalid) {
-        /* Add this register to our list. */
-        if (first_reg == NULL) {
-          first_reg = last_reg = alloc_named_register_list();
-        } else {
-          last_reg->next = alloc_named_register_list();
+      name = const_for_curr_token.variant.string.value;
+      if (strcmp(name, "memory") == 0) {
+        /* The string "memory" can appear in place of a register name.  */
+        reg = (a_named_register)anr_memory;
+      } else {
+        reg = name_to_register(name);
+        if (reg != (a_named_register)anr_invalid) {
+          /* Add this register to our list. */
+          if (first_reg == NULL) {
+            first_reg = last_reg = alloc_named_register_list();
+          } else {
+            last_reg->next = alloc_named_register_list();
+          }  /* if */
+          last_reg->reg = reg;
         }  /* if */
-        last_reg->reg = reg;
       }  /* if */
       /* advance past string */
       (void)get_token();

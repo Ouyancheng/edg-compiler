@@ -2501,6 +2501,7 @@ typedef struct an_asm_operand_constraint {
 /* Enumeration of registers and their names. All machine-specific. */
 enum a_named_register_tag {
   anr_invalid = 0,
+  anr_memory,                         /* memory */
 #if GNU_X86_ASM_EXTENSIONS_ALLOWED
   anr_a,   anr_b,   anr_c,   anr_d,   /* eax, ebx, ecx, edx */
   anr_si,  anr_di,  anr_bp,  anr_sp,  /* esi, edi, ebp, esp */
@@ -2528,6 +2529,7 @@ EXTERN char *named_register_names[(int)anr_last + 1]
 #if VAR_INITIALIZERS
 = {
   /* anr_invalid */ "invalid",
+  /* anr_memory */  "memory",
 #if GNU_X86_ASM_EXTENSIONS_ALLOWED
   /* anr_a */       "ax",
   /* anr_b */       "bx",

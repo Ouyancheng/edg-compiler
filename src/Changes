@@ -1,5 +1,11 @@
 Version 3.1
 
+6/11/02  gcc compatibility: "register" and "q" in asm
+
+The gcc asm support now accepts "q" as a constraint code (equivalent
+to "Q") and "memory" as a legal register on all machines in the context
+of the clobber expression.
+
 6/3/02   Improper tiebreaker processing in overload resolution (reference
          versus pointer)
 
