@@ -90,16 +90,23 @@ enum an_operand_kind_tag {
   ok_constant,		/* A constant value. */
   ok_indefinite_function,
 			/* A function name that's not fully discriminated yet,
-			   i.e., a C++ overloaded function.  Has very limited
-			   lifetime. */
+			   i.e., a C++ overloaded function.  With state ==
+			   os_function_designator, represents the function
+			   itself and has very limited lifetime.  With state ==
+			   os_rvalue, represents the address of an overloaded
+			   function, and survives until it meets a destination
+			   type (which selects a specific function) or until
+			   used in some other way (which is an error).  Not
+			   used in C. */
   ok_sym_for_ptr_to_member,
-			/* A qualified name symbol preserved so that its
-			   address can be taken as a pointer-to-member.
-			   Has very limited lifetime. */
+			/* A symbol for a data member or member function
+			   preserved so that its address can be taken as a
+			   pointer-to-member.  Has a very limited lifetime.
+			   Not used in C. */
   ok_undefined_symbol	/* An undefined symbol encountered while scanning an
 			   expression.  Could be an implicit function
 			   declaration or a genuine undefined symbol.
-			   Has very limited lifetime. */
+			   Has a very limited lifetime. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_operand_kind;
@@ -118,9 +125,9 @@ typedef a_byte an_operand_state;
    routines: */
 typedef struct an_operand {
   a_type_ptr    type;
-			/* Type of this operand.  NULL for ok_undefined_symbol,
-			   ok_indefinite_function, and
-			   ok_sym_for_ptr_to_member. */
+			/* Type of this operand.  A tk_unknown type if not
+			   applicable (ok_indefinite_function,
+			   ok_sym_for_ptr_to_member, ok_undefined_symbol). */
   an_operand_kind
 		kind;
 			/* The kind of operand. */
@@ -135,10 +142,13 @@ typedef struct an_operand {
 			   relative to which this function is selected. */
   a_byte_boolean
 		virtual_function;
-			/* TRUE if the operand is a virtual function.
-			   If the function is overloaded, TRUE indicates that
-			   the function might be virtual.  Set FALSE by
-			   use of a qualified name for the function. */
+			/* TRUE if the operand represents a virtual
+			   function. */
+  a_byte_boolean
+		is_qualified_name;
+			/* TRUE if the operand was generated from a qualified
+			   name.  Used only when kind ==
+			   ok_indefinite_function. */
   a_source_position
 		position;
 			/* The source position for the operand. */
@@ -261,22 +271,22 @@ Macro that is TRUE if the operand is a constant operand.
 	((operand)->kind == (an_operand_kind)ok_constant)
 
 /*
-Macro that is TRUE if the operand is an undefined symbol operand.
-*/
-#define is_undefined_symbol_operand(operand)				\
-	((operand)->kind == (an_operand_kind)ok_undefined_symbol)
-
-/*
 Macro that is TRUE if the operand is an indefinite function operand.
 */
 #define is_indefinite_function_operand(operand)				\
 	((operand)->kind == (an_operand_kind)ok_indefinite_function)
 
 /*
-Macro that is TRUE if the operand is a qualified member name operand.
+Macro that is TRUE if the operand is a pointer-to-member symbol operand.
 */
 #define is_sym_for_ptr_to_member_operand(operand)			\
 	((operand)->kind == (an_operand_kind)ok_sym_for_ptr_to_member)
+
+/*
+Macro that is TRUE if the operand is an undefined symbol operand.
+*/
+#define is_undefined_symbol_operand(operand)				\
+	((operand)->kind == (an_operand_kind)ok_undefined_symbol)
 
 /*
 Macro that is TRUE if the operand is an lvalue.  Note that this isn't
@@ -358,6 +368,10 @@ extern void check_for_operator_overloading(
 
 extern void check_return_type(an_operand *operand,
                               a_type_ptr routine_type);
+
+extern void bind_member_function_operand_to_selector(
+                                      an_operand *function_operand,
+                                      an_operand *bound_function_selector);
 
 extern a_constant_ptr var_constant_value(a_variable_ptr var);
 
@@ -471,6 +485,7 @@ extern void make_expression_operand(an_expr_node_ptr node,
 			            an_operand       *operand);
 
 extern void make_indefinite_function_operand(a_symbol_ptr routine_sym,
+                                             a_boolean    is_qualified_name,
                                              an_operand   *operand);
 
 extern void make_sym_for_ptr_to_member_operand(a_symbol_ptr      member_sym,
@@ -506,9 +521,12 @@ extern void conv_to_error_operand(an_operand *operand);
 
 extern a_boolean check_function_pointer_operand(an_operand *operand);
 
-extern void make_function_designator_operand(a_routine_ptr     routine,
-				             an_operand        *result,
-                                             an_xref_entry_ptr xep);
+extern void make_function_designator_operand(
+                                      a_symbol_ptr      routine_sym,
+                                      a_boolean         is_qualified_name,
+                                      a_source_position *position,
+                                      an_xref_entry_ptr xep,
+                                      an_operand        *result);
 
 extern void build_unary_result_operand(an_operand            *operand,
                                        an_expr_operator_kind kind,
