@@ -253,7 +253,8 @@ has type pointer to element.
   /* Make a constant for the address of the array, implicitly cast it to
      pointer-to-element-type, and make an expression whose value is the
      address constant.  This gives an address with the right type. */
-  set_variable_address_constant(var, &addr_constant);
+  set_variable_address_constant(var, &addr_constant,
+                                /*set_address_taken_flag=*/FALSE);
   implicit_cast(&addr_constant, ptr_element_type);
   var_node = alloc_node_for_constant(&addr_constant);
   return var_node;
@@ -386,7 +387,7 @@ is virtual and honor_virtual is TRUE.  The virtual call is *not* lowered.
   }
 #endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
   /* Make a node for the address of the routine. */
-  rout_node = function_addr_expr(routine);
+  rout_node = function_addr_expr(routine, /*set_address_taken_flag=*/FALSE);
   routine->called = TRUE;
   rout_node->next = arg_list;
   /* Lower the function type (or record it as an orphan).  This is important
@@ -1371,7 +1372,8 @@ A pointer to the expression created is returned.
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
   gen_func_ptr_type = make_vptp_type();
   if (ctor_routine != NULL) {
-    func_addr_node = function_addr_expr(ctor_routine);
+    func_addr_node = function_addr_expr(ctor_routine,
+                                        /*set_address_taken_flag=*/TRUE);
     /* Cast the function pointer to the generic function type. */
     func_addr_node = add_cast_if_necessary(func_addr_node, gen_func_ptr_type);
   } else {
@@ -1391,7 +1393,8 @@ A pointer to the expression created is returned.
   size_elem_node->next = func_addr_node;
   if (exceptions_enabled && dtor_routine != NULL) {
     /* __vec_new_eh call, with destructor. */
-    an_expr_node_ptr dtor_addr_node = function_addr_expr(dtor_routine);
+    an_expr_node_ptr dtor_addr_node = function_addr_expr(dtor_routine,
+                                              /*set_address_taken_flag=*/TRUE);
     dtor_addr_node = add_cast_if_necessary(dtor_addr_node, gen_func_ptr_type);
     func_addr_node->next = dtor_addr_node;
     call_node = make_runtime_rout_call("__vec_new_eh", &vec_new_eh_routine,
@@ -1434,7 +1437,8 @@ array is to be freed.  A pointer to the expression created is returned.
                                                 (an_integer_kind)ik_int);
   gen_func_ptr_type = make_vptp_type();
   if (dtor_routine != NULL) {
-    func_addr_node = function_addr_expr(dtor_routine);
+    func_addr_node = function_addr_expr(dtor_routine,
+                                        /*set_address_taken_flag=*/TRUE);
     /* Cast the function pointer to the generic function type. */
     func_addr_node = add_cast_if_necessary(func_addr_node, gen_func_ptr_type);
   } else {
@@ -1483,7 +1487,8 @@ A pointer to the expression created is returned.
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
   /* Build a node for the address of the copy constructor. */
-  func_addr_node = function_addr_expr(cctor_routine);
+  func_addr_node = function_addr_expr(cctor_routine,
+                                      /*set_address_taken_flag=*/TRUE);
   /* Cast the function pointer to the generic function type. */
   func_addr_node = add_cast_if_necessary(func_addr_node, make_vptp_type());
   /* The call looks like
@@ -2052,8 +2057,8 @@ termination.
     /* Address of __sti__module_id for "ctor" field. */
     init_con2 = alloc_constant((a_constant_repr_kind)ck_address);
     if (file_scope_init_routine != NULL) {
-      set_routine_address_constant(file_scope_init_routine, init_con2);
-      file_scope_init_routine->address_taken = TRUE;
+      set_routine_address_constant(file_scope_init_routine, init_con2,
+                                   /*set_address_taken_flag=*/TRUE);
       implicit_cast(init_con2, ptr_func_type);
     } else {
       /* No init routine.  Use NULL. */
@@ -2062,8 +2067,8 @@ termination.
     /* Address of __std__module_id for "dtor" field. */
     init_con3 = alloc_constant((a_constant_repr_kind)ck_address);
     if (file_scope_term_routine != NULL) {
-      set_routine_address_constant(file_scope_term_routine, init_con3);
-      file_scope_term_routine->address_taken = TRUE;
+      set_routine_address_constant(file_scope_term_routine, init_con3,
+                                   /*set_address_taken_flag=*/TRUE);
       implicit_cast(init_con3, ptr_func_type);
     } else {
       /* No init routine.  Use NULL. */

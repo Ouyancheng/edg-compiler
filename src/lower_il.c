@@ -2457,7 +2457,8 @@ Do IL lowering of a pointer-to-member constant.
     func_con = alloc_constant((a_constant_repr_kind)ck_address);
     if (routine != NULL) {
       /* For a non-virtual function, a pointer to the routine. */
-      set_routine_address_constant(routine, func_con);
+      set_routine_address_constant(routine, func_con,
+                                   /*set_address_taken_flag=*/TRUE);
     } else {
       /* For a virtual function, the offset of the virtual function table
          pointer in the class of the routine.  Also handles the NULL case. */
@@ -2606,7 +2607,8 @@ Do IL lowering of the indicated constant and everything under it.
                  ck_aggregate constant is not allowed here, use the address
                  of a temporary variable initialized with the ck_aggregate
                  constant. */
-              set_variable_address_constant(temp_var, constant);
+              set_variable_address_constant(temp_var, constant,
+                                            /*set_address_taken_flag=*/TRUE);
             }  /* if */
             break;
 #if CHECKING
@@ -2993,11 +2995,11 @@ virtual function table.
                                           void_type());
     }  /* if */
     /* Put the pointer to the function into the table. */
-    set_routine_address_constant(func_to_call, func_con);
+    set_routine_address_constant(func_to_call, func_con,
+                                 /*set_address_taken_flag=*/TRUE);
     implicit_cast(func_con, vptp_type);
     /* Mark the routine as referenced. */
     func_to_call->source_corresp.referenced = TRUE;
-    func_to_call->address_taken = TRUE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (automatic_instantiation_mode) {
       /* If the function is a template function, now marked as referenced,

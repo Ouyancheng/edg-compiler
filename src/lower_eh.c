@@ -463,7 +463,8 @@ This is used as part of the typeinfo information.
       typeinfo_var = bcp->type->typeinfo_var;
       check_assertion_str(typeinfo_var != NULL,
                           "make_base_class_array_var: NULL typeinfo var");
-      set_variable_address_constant(typeinfo_var, typeinfo_con);
+      set_variable_address_constant(typeinfo_var, typeinfo_con,
+                                    /*set_address_taken_flag=*/TRUE);
       /* Make the offset constant. */
       if (bcp->is_virtual) {
         /* Virtual base class.  The offset is to the pointer, and a flag in the
@@ -562,7 +563,8 @@ is TRUE, change the typeinfo variable to static.
     make_zero_of_proper_type(curr_field_type, id_con);
   } else {
     /* Externally linked class; make id object variable. */
-    set_variable_address_constant(make_id_object_var(type), id_con);
+    set_variable_address_constant(make_id_object_var(type), id_con,
+                                  /*set_address_taken_flag=*/TRUE);
   }  /* if */
   /* Destructor pointer. */
   curr_field = curr_field->next;
@@ -584,7 +586,8 @@ is TRUE, change the typeinfo variable to static.
   } else {
     /* The class has a destructor.  Make a pointer to the routine. */
     dtor_routine->source_corresp.referenced = TRUE;
-    set_routine_address_constant(dtor_routine, dtor_con);
+    set_routine_address_constant(dtor_routine, dtor_con,
+                                 /*set_address_taken_flag=*/TRUE);
     implicit_cast(dtor_con, curr_field_type);
   }  /* if */
   /* Base class array pointer. */
@@ -599,7 +602,8 @@ is TRUE, change the typeinfo variable to static.
        an array of pointers to the typeinfo information for the base classes,
        and use its address here. */
     a_variable_ptr bc_var = make_base_class_array_var(type);
-    set_variable_address_constant(bc_var, bc_con);
+    set_variable_address_constant(bc_var, bc_con,
+                                  /*set_address_taken_flag=*/TRUE);
     /* Make the type pointer-to-element instead of pointer-to-array. */
     implicit_cast(bc_con, curr_field_type);
   }  /* if */
@@ -1809,7 +1813,9 @@ value of region_table_var.  Return the address of the aggregate constant.
     make_zero_of_proper_type(ptr_func_type, dtor_con);
   } else {
     /* The class has a destructor.  Make a pointer to the routine. */
-    set_routine_address_constant(dtor_routine, dtor_con);
+    dtor_routine->source_corresp.referenced = TRUE;
+    set_routine_address_constant(dtor_routine, dtor_con,
+                                 /*set_address_taken_flag=*/TRUE);
     implicit_cast(dtor_con, ptr_func_type);
   }  /* if */
   /* Make the handle. */
@@ -2164,7 +2170,8 @@ If type is NULL, add an ellipsis entry.
   } else {
     /* Normal case. */
     typeinfo_var = typeinfo_var_for_type(type, &flags_value);
-    set_variable_address_constant(typeinfo_var, typeinfo_con);
+    set_variable_address_constant(typeinfo_var, typeinfo_con,
+                                  /*set_address_taken_flag=*/TRUE);
   }  /* if */
   flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(flags_con, flags_value,

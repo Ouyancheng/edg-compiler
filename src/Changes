@@ -1,5 +1,11 @@
 Version 2.26
 
+9/7/94   address_taken on routines and variables in IL lowering
+
+IL lowering did not set address_taken on routines passed to __vec_new
+and the like, nor on variables whose addresses are placed in exception
+handling data structures.  Now it does.
+
 9/6/94   Conversions on template nontype arguments
 
 Recent X3J16/WG21 decisions have made it clear that conversions (other than

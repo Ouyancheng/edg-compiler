@@ -3156,7 +3156,8 @@ reference entry, or is NULL if none is needed.
     } else {
       /* Normal case; set up an address-of-variable constant. */
       clear_operand((an_operand_kind)ok_constant, result);
-      set_variable_address_constant(variable, &result->variant.constant);
+      set_variable_address_constant(variable, &result->variant.constant,
+                                    /*set_address_taken_flag=*/FALSE);
       result->type = variable_type;
     }  /* if */
     result->state = (an_operand_state)os_lvalue;
@@ -3323,7 +3324,8 @@ associated reference entry, or is NULL if none is needed.
   }  /* if */
   /* Set up an address-of-function constant. */
   clear_operand((an_operand_kind)ok_constant, result);
-  set_routine_address_constant(routine, &result->variant.constant);
+  set_routine_address_constant(routine, &result->variant.constant,
+                               /*set_address_taken_flag=*/FALSE);
   /* The type of the operand is the function type. */
   result->type = routine->type;
   result->state = (an_operand_state)os_function_designator;

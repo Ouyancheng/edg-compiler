@@ -2220,30 +2220,40 @@ produced.
 
 
 void set_routine_address_constant(a_routine_ptr routine,
-                                  a_constant    *con)
+                                  a_constant    *con,
+                                  a_boolean     set_address_taken_flag)
 /*
 Fill in the constant "con" as a ck_address constant for the address of
-the indicated routine.
+the indicated routine.  If set_address_taken_flag is TRUE, the
+address_taken flag in the routine is set (it's not always set
+because the constant might be used in a way that doesn't really take
+the address of the routine, e.g., a call).
 */
 {
   clear_constant(con, (a_constant_repr_kind)ck_address);
   con->variant.address.kind = (an_address_base_kind)abk_routine;
   con->variant.address.variant.routine = routine;
   con->type = make_pointer_type(routine->type);
+  if (set_address_taken_flag) routine->address_taken = TRUE;
 }  /* set_routine_address_constant */
 
 
 void set_variable_address_constant(a_variable_ptr variable,
-                                   a_constant    *con)
+                                   a_constant     *con,
+                                   a_boolean      set_address_taken_flag)
 /*
 Fill in the constant "con" as a ck_address constant for the address of
-the indicated variable.
+the indicated variable.  If set_address_taken_flag is TRUE, the
+address_taken flag in the variable is set (it's not always set
+because the constant might be used in a way that doesn't really take
+the address of the variable, e.g., an lvalue).
 */
 {
   clear_constant(con, (a_constant_repr_kind)ck_address);
   con->variant.address.kind = (an_address_base_kind)abk_variable;
   con->variant.address.variant.variable = variable;
   con->type = make_pointer_type(variable->type);
+  if (set_address_taken_flag) variable->address_taken = TRUE;
 }  /* set_variable_address_constant */
 
 
@@ -5920,10 +5930,14 @@ return a pointer to it.
 }  /* var_rvalue_expr */
 
 
-an_expr_node_ptr function_addr_expr(a_routine_ptr rout)
+an_expr_node_ptr function_addr_expr(a_routine_ptr rout,
+                                    a_boolean     set_address_taken_flag)
 /*
 Build an expression node that represents the address of the function rout
-and return a pointer to it.
+and return a pointer to it.  If set_address_taken_flag is TRUE, the
+address_taken flag in the routine is set (it's not always set because
+the node might be used in a way that doesn't really take the address
+of the routine, e.g., to call the routine).
 */
 {
   an_expr_node_ptr node;
@@ -5931,6 +5945,7 @@ and return a pointer to it.
   node = alloc_expr_node((an_expr_node_kind)enk_routine_address);
   node->type = make_pointer_type(rout->type);
   node->variant.routine = rout;
+  if (set_address_taken_flag) rout->address_taken = TRUE;
   return node;
 }  /* function_addr_expr */
 
@@ -6481,7 +6496,7 @@ for errors (e.g., the function has an invalid return type).
   an_expr_node_ptr node, func_addr_node;
 
   /* Make a node for the address of the function. */
-  func_addr_node = function_addr_expr(rout);
+  func_addr_node = function_addr_expr(rout, /*set_address_taken_flag=*/FALSE);
   /* Link the operands to the function address node. */
   func_addr_node->next = dest;
   dest->next = source;

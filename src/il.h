@@ -82,10 +82,13 @@ extern void clear_constant(a_constant           *cp,
 extern void set_error_constant(a_constant *cp);
 
 extern void set_routine_address_constant(a_routine_ptr routine,
-                                         a_constant    *con);
+                                         a_constant    *con,
+                                         a_boolean     set_address_taken_flag);
 
-extern void set_variable_address_constant(a_variable_ptr variable,
-                                          a_constant    *con);
+extern void set_variable_address_constant(
+                                        a_variable_ptr variable,
+                                        a_constant     *con,
+                                        a_boolean      set_address_taken_flag);
 
 extern void set_constant_address_constant(a_constant_ptr constant,
                                           a_constant    *con);
@@ -340,7 +343,9 @@ extern an_expr_node_ptr var_lvalue_expr(a_variable_ptr var);
 
 extern an_expr_node_ptr var_rvalue_expr(a_variable_ptr var);
 
-extern an_expr_node_ptr function_addr_expr(a_routine_ptr rout);
+extern an_expr_node_ptr function_addr_expr(
+                                         a_routine_ptr rout,
+                                         a_boolean     set_address_taken_flag);
 
 extern an_expr_node_ptr add_indirection_to_node(an_expr_node_ptr node);
 
