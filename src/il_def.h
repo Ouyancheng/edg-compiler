@@ -1319,6 +1319,7 @@ enum a_special_function_kind_tag {
   sfk_conversion,	/* A conversion operator function. */
   sfk_new,		/* An operator new function. */
   sfk_delete,		/* An operator delete function. */
+  sfk_assignment,	/* An assignment operator function. */
   sfk_operator,		/* Any other operator function. */
   sfk_last		/* Must be last. */
 };
@@ -1334,7 +1335,7 @@ EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
 #if VAR_INITIALIZERS
 = {
    "none", "constructor", "destructor", "conversion",
-   "new", "delete", "operator",
+   "new", "delete", "assignment", "operator",
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
