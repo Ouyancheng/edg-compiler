@@ -484,6 +484,7 @@ Display the indicated source correspondence entry.
         (void)printf("%c", ((curr_byte >> i)&1) ? '1' : '0');
       }  /* for */
     }  /* while */
+    (void)printf("\n");
   }  /* if */
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 }  /* disp_source_corresp */
