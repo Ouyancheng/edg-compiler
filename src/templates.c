@@ -18661,8 +18661,9 @@ instantiated.  Pure virtual functions cannot be instantiated.
       }  /* if */
     } else if (is_inline_template_function(tip)) {
       /* An inline function is allowed in an explicit instantiation, but not
-         in a pragma. */
-      result = !is_pragma;
+         in a pragma.  The Sun compiler does not instantiate inline functions
+         when a class instantiation directive is used. */
+      result = !is_pragma && !sun_mode;
       if (issue_errors) {
         sym_diagnostic(is_pragma ? es_error : es_remark,
                        ec_inline_function_cannot_be_instantiated,

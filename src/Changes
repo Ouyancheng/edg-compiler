@@ -1,5 +1,16 @@
 Version 3.1
 
+7/2/02   Sun compatibility: Explicit instantiation of a class does not
+         instantiate inline members
+
+In Sun mode, the explicit instantiation of a class does not cause the
+instantiation of inline member functions.
+
+  template <class T> struct A {
+    void f() { g(); }  // error if instantiated -- g is undefined
+  };
+  template class A<int>;
+
 7/2/02   GNU C compatibility: Unprototyped function redeclaration
          supersedes prior prototyped declaration
 
