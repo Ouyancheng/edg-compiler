@@ -2101,8 +2101,10 @@ bound with the function in *bound_function_selector.
             projection_member_sym = locator_for_curr_id.specific_symbol;
             member_sym = fundamental_symbol_of(projection_member_sym);
             /* Make sure the name is a member of the class indicated by the
-               left-hand side, or one of its base classes. */
-            if (!is_same_class_or_base_class_thereof(class_struct_union_type,
+               left-hand side, or one of its base classes.  The NULL check
+               is needed to catch cases like p->::x. */
+            if (projection_member_sym->class_of_which_a_member == NULL ||
+                !is_same_class_or_base_class_thereof(class_struct_union_type,
                                                      projection_member_sym->
                                                     class_of_which_a_member)) {
               pos_ty_error(ec_name_not_member_of_class_or_base_classes,
