@@ -159,6 +159,7 @@ typedef long a_signed_integer_value;
 #define MAX_INTEGER_VALUE LONG_MAX
 #define MIN_INTEGER_VALUE LONG_MIN
 #define MAX_UNSIGNED_INTEGER_VALUE ULONG_MAX
+#define BITS_IN_AN_INTEGER_VALUE (sizeof(an_integer_value) * CHAR_BIT)
 /* The printf formatting specifier to be used to print the integer type. */
 #define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%ld"  /* long */
 #define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%lu"  /* unsigned long */
@@ -204,6 +205,8 @@ typedef unsigned long a_host_large_unsigned;
 typedef struct an_integer_value {
   an_int_value_part part[INT_VALUE_PARTS_PER_INTEGER_VALUE];
 } an_integer_value;
+#define BITS_IN_AN_INTEGER_VALUE (BITS_IN_INT_VALUE_PART *		\
+				  INT_VALUE_PARTS_PER_INTEGER_VALUE)
 
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
