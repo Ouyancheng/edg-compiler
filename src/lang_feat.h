@@ -270,6 +270,23 @@ extension provided by Microsoft C and C++ compilers.
 #ifndef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 #define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS FALSE
 #endif /* ifndef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+
+/*
+Flag that is TRUE if the "restrict" keyword is allowed (in both C and C++).
+This extension implements NCEG proposal X3J11.1 92-068 ("Aliasing Control
+via Restricted Pointers" by Bill Homer of CRI), which was adapted for C++
+in proposal X3J16/92-0057 (by Mike Holly).  Briefly stated, restrict is a
+type qualifier that may be applied to pointers and references and to arrays
+that appear as function parameter types.  Its use represents a guarantee by
+the programmer that, within the scope of the pointer declaration, the
+object pointed to can be accessed only by that pointer; since any violation
+of this guarantee renders the program undefined, the compiler may rely on
+it in performing optimizations.
+*/
+#ifndef RESTRICT_ALLOWED
+#define RESTRICT_ALLOWED TRUE
+#endif /* ifndef RESTRICT_ALLOWED */
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
