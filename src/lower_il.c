@@ -2572,7 +2572,7 @@ the constant.
         switch_back_to_original_region(region_to_switch_back_to);
     }  /* if */
       /* The variable must be allocated. */
-      make_mptr_type();
+      (void)make_mptr_type();
       if (lowering_file_scope) {
         assoc_var = make_file_scope_temporary(mptr_type);
       } else {
