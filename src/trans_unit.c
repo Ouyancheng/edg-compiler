@@ -622,6 +622,7 @@ translation unit processing.
   translation_units_tail = NULL;
   translation_unit_needed_only_for_exported_templates = FALSE;
   curr_translation_unit_stack_entry = NULL;
+  secondary_trans_units_on_stack = 0;
 }  /* trans_unit_init */
 
 
