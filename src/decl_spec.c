@@ -3756,7 +3756,7 @@ from decl_specifiers only.
 }  /* add_type_qualifiers */
 
 
-static a_boolean implicit_int_member_with_name_of_type()
+static a_boolean implicit_int_member_with_name_of_type(void)
 /*
 Helper called from decl_specifiers to determine if the current identifier
 might have meant to be a declarator in Cfront or Microsoft mode.  Both those
@@ -3773,7 +3773,7 @@ any parameters.  Cfront will, but that behavior is not imitated here.
 
   check_assertion(curr_token == tok_identifier);
   sym = locator_for_curr_id.symbol_header->symbol;
-  if (sym && is_type_symbol(sym)) {
+  if (sym != NULL && is_type_symbol(sym)) {
     (void)next_two_tokens(tok_lparen, &token_after_next);
     result = (token_after_next == tok_rparen);
   } else {
