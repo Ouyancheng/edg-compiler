@@ -1324,9 +1324,9 @@ Write a #line directive for the indicated line number and file.
   end_output_line_if_begun();
   curr_output_line = line_number;
   curr_output_pos_known = TRUE;
-  if (gen_old_style_line_dirs) {
+  if (gen_old_style_line_dirs || gcc_is_generated_code_target) {
     /* Generate old-style directives, i.e., the kind output by the Reiser
-       cpp. */
+       cpp and by the GNU preprocessor. */
     (void)fprintf(f_C_output, "# %lu", curr_output_line);
   } else {
     (void)fprintf(f_C_output, "#line %lu", curr_output_line);
@@ -1344,7 +1344,7 @@ Write a #line directive for the indicated line number and file.
     (void)write_file_name(curr_output_file->file_name, f_C_output,
                           process_escapes);
     (void)putc('"', f_C_output);
-    if (gen_old_style_line_dirs && gcc_is_generated_code_target &&
+    if (gcc_is_generated_code_target &&
         new_output_file->from_system_include_dir) {
       /* When generating code to be compiled by g++, include the system header
          flag on the line directive if the source is from a system include. */

@@ -4110,12 +4110,6 @@ enable_microsoft_mode:
      generating back end is tied to the source language selection. */
   select_cp_gen_be_target_dialect();
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if BACK_END_IS_CP_GEN_BE || BACK_END_IS_C_GEN_BE
-  /* When generating code for gcc/g++, output old-style line directives. */
-  if (gcc_is_generated_code_target) {
-    gen_old_style_line_dirs = TRUE;
-  }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE || BACK_END_IS_C_GEN_BE */
 }  /* proc_command_line */
 
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
