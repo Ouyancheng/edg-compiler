@@ -1,5 +1,13 @@
 Version 2.35
 
+1/16/97 C and C++ function types should not be distinct in Microsoft mode
+
+The front end was configured to consider C and C++ function types as
+distinct types in Microsoft mode, while the Microsoft compiler does
+not treat such types as distinct.  This resulted in a spurious "object
+of abstract class type is not allowed" error when using some of the
+Microsoft header files.  This has been corrected.
+
 1/15/97 Improved diagnostics on invalid use of abstract class
 
 For a invalid use of an abstract class (e.g., declaring an object with

@@ -985,9 +985,7 @@ is enabled.
   implicit_typename_enabled = TRUE;
   guiding_decls_allowed = FALSE;
   old_specializations_allowed = TRUE;
-#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
-  impl_conv_between_c_and_cpp_function_ptrs_allowed = TRUE;
-#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+  c_and_cpp_function_types_are_distinct = FALSE;
   extern_inline_allowed = FALSE;
   targ_enum_types_can_be_smaller_than_int = FALSE;
   stack_referenced_include_directories = TRUE;
