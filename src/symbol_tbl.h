@@ -478,6 +478,22 @@ to the first byte of the number; it is advanced past the number on return.
 
 
 /*
+Kinds of fixup to be performed on entries in the dependent type fixup list.
+*/
+enum a_dependent_type_fixup_kind_tag {
+  dtfk_arg_transfer_method,	
+			/* Set the arg transfer method flag in a param type. */
+  dtfk_routine_calling_method,
+			/* Set the routine calling method flag in a routine
+			   type. */
+  dtfk_array_type_size,	/* Set the size of an array type. */
+  dtfk_check_op_arrow_return_type
+			/* Check the return type of an operator-> function. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_dependent_type_fixup_kind;
+
+/*
 Entries identifying array types, routine types, and parameters that are
 dependent on an incomplete class type and that must be fixed up when the
 class is completed.  For example, the array types must have their sizes
@@ -493,24 +509,19 @@ typedef struct a_dependent_type_fixup {
 		decl_position;
 			/* Source position at which a diagnostic is to be
 			   issued, if required. */
-  a_byte_boolean
-		is_param_type;
-			/* TRUE if it is a dependent parameter type that
-			   requires fixup; FALSE if it is a (routine or array)
-			   type. */
-  union {
-    /* If is_param_type is FALSE: */
-    a_type_ptr	type;
-			/* Pointer to type entry -- either a routine type in
-			   which the return type is an incomplete class type
-			   or an array type whose underlying element type is
-			   an incomplete class type. */
-    /* If is_param_type is TRUE: */
-    a_param_type_ptr
-		param_type;
-			/* Pointer to a param type entry that points to an
-			   incomplete class type. */
-  } variant;
+  a_dependent_type_fixup_kind
+		fixup_kind;
+			/* The kind of fixup to be applied to the entity. */
+  a_tagged_pointer
+		entity;
+			/* A pointer to a type or to a param type.  When the
+			   entity is a type, it may be an array whose
+			   underlying element type is an incomplete class type
+			   or it may be a routine type whose return type is an
+			   incomplete class type; when the entity is a param
+			   type, the type is an incomplete class type.  The
+			   fixup takes place when the incomplete class type
+			   is completed. */
 } a_dependent_type_fixup;
 
 
@@ -2289,10 +2300,12 @@ extern void add_to_param_id_list(a_symbol_locator            *locator,
 extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
                                        a_param_id_ptr    param_id_list);
 
-extern void add_to_dependent_type_fixup_list(a_type_ptr         class_type,
-                                             a_type_ptr         type,
-                                             a_param_type_ptr   ptp,
-                                             a_source_position  *pos);
+extern void add_to_dependent_type_fixup_list(
+                                      a_type_ptr                   class_type,
+                                      a_dependent_type_fixup_kind  fixup_kind,
+                                      char                         *ptr,
+                                      a_byte_il_entry_kind         entity_kind,
+                                      a_source_position            *pos);
 
 extern void check_dependent_type_fixup_list(a_type_ptr  class_type);
 
