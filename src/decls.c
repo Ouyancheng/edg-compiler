@@ -108,7 +108,7 @@ might result from class template names that are missing argument lists.
         assoc_symbol = NULL;
         /* Clear the specific_symbol pointer in the locator, to avoid
            biasing subseqent lookup of this identifier. */
-        locator_for_curr_id.specific_symbol = NULL;
+        clear_specific_symbol(locator_for_curr_id);
       }  /* if */
     }  /* if */
   }  /* if */
