@@ -12,6 +12,22 @@ other.  They are now correctly treated as indistinguishable.
   template <class T2> int f(const T2 &p, float = 0.0f) { return p->b; }
   int x = f((int *)0);  // Now ambiguous
 
+A related bug has also been corrected.  In determining whether a
+conversion for a parameter is possible in overload resolution,
+the front end mistakenly concluded that an argument of type P1
+could be used with a parameter of type P2& if P1 can be converted
+to P2.  This was incorrect.  A pointer to char, for example,
+cannot be passed to a reference to pointer to const char.  This
+mistake was generally hidden by the above problem, but can be
+seen in the difference in error messages on the following:
+
+  void foo(int);
+  void foo(const char*&);
+  int main() {
+    char* cp = 0;
+    foo(cp);
+  }
+
 5/30/02  Spurious remark ("controlling expression is constant") on
          dependent expression
 

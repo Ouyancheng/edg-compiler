@@ -1602,7 +1602,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     /* Check for another exact match case, for pointers involving addition
        of type qualifiers on the type pointed to (the "T* --> qualified T *"
        case). */
-    if (is_pointer_type(param_type) && is_pointer_type(arg_type)
+    if (!param_is_reference && is_pointer_type(param_type) &&
+        is_pointer_type(arg_type)
 #ifdef pointer_types_have_same_repr
         /* Checking that the pointer representation is the same here forces
            a conversion that changes pointer representation to be a
@@ -3294,91 +3295,103 @@ apply that would make one better than the other, and return
         }  /* if */
       } else {
         /* Not cfront mode. */
-        /* Test for adding cv-qualifiers immediately below a reference. */
         a_boolean param1_is_ref =
                              is_ref_or_ref_equivalent(param_type1, arg_match1);
         a_boolean param2_is_ref =
                              is_ref_or_ref_equivalent(param_type2, arg_match2);
-        a_type_ptr
-                  base_param_type1 = param_type1,
-                  base_param_type2 = param_type2;
-        a_type_qualifier_set
-                  qualifiers1 = TQ_NONE, qualifiers2 = TQ_NONE;
-        if (param1_is_ref) {
-          base_param_type1 = type_pointed_to(param_type1);
-          qualifiers1 = get_type_qualifiers(base_param_type1);
-        }  /* if */
-        if (param2_is_ref) {
-          base_param_type2 = type_pointed_to(param_type2);
-          qualifiers2 = get_type_qualifiers(base_param_type2);
-        }  /* if */
-        /* The tiebreaker for adding cv-qualifiers under a reference is
-           applied only when both parameters are references, according to the
-           standard.  However, in a compatibility mode it is applied when
-           at least one parameter is a reference. */
-        if ((param1_is_ref && param2_is_ref) ||
-            (single_ref_qual_ovl_res_tiebreaker &&
-             (param1_is_ref || param2_is_ref) &&
-             /* In Microsoft bugs mode, the tie-breaker applies only when the
-                argument is not a constant. */
-             (!microsoft_bugs || !arg_match1->arg_is_constant))) {
-          /* The tiebreaker applies only when the qualifiers under the
-             references are different. */
-          if (qualifiers1 != qualifiers2) {
-            /* The tiebreaker applies only if the underlying types are the
-               same. */
-            if (types_are_compatible_ignoring_qualifiers(base_param_type1,
-                                                         base_param_type2)) {
-              a_boolean any_extra_in_2 =
+        /* If one conversion sequence is an identity conversion (i.e.,
+           no change at all) and the other has a qualification conversion,
+           the identity conversion is a subsequence of the other and is
+           better.  Note that if one of the conversions is an identity
+           conversion the other must have type_qualifiers_added TRUE because
+           of the test above.  Also note that for a reference parameter
+           type_qualifiers_added TRUE does not indicate a qualification
+           conversion. */
+        if (!param2_is_ref &&
+            is_identity_conversion(&arg_match1->conversion.std)) {
+          cmp = 1;
+        } else if (!param1_is_ref &&
+                   is_identity_conversion(&arg_match2->conversion.std)) {
+          cmp = -1;
+        } else {
+          /* Test for adding cv-qualifiers immediately below a reference. */
+          a_type_ptr           base_param_type1 = param_type1,
+                               base_param_type2 = param_type2;
+          a_type_qualifier_set qualifiers1 = TQ_NONE,
+                               qualifiers2 = TQ_NONE;
+          if (param1_is_ref) {
+            base_param_type1 = type_pointed_to(param_type1);
+            qualifiers1 = get_type_qualifiers(base_param_type1);
+          }  /* if */
+          if (param2_is_ref) {
+            base_param_type2 = type_pointed_to(param_type2);
+            qualifiers2 = get_type_qualifiers(base_param_type2);
+          }  /* if */
+          /* The tiebreaker for adding cv-qualifiers under a reference is
+             applied only when both parameters are references, according to the
+             standard.  However, in a compatibility mode it is applied when
+             at least one parameter is a reference. */
+          if ((param1_is_ref && param2_is_ref) ||
+              (single_ref_qual_ovl_res_tiebreaker &&
+               (param1_is_ref || param2_is_ref) &&
+               /* In Microsoft bugs mode, the tie-breaker applies only when
+                  the argument is not a constant. */
+               (!microsoft_bugs || !arg_match1->arg_is_constant))) {
+            /* The tiebreaker applies only when the qualifiers under the
+               references are different. */
+            if (qualifiers1 != qualifiers2) {
+              /* The tiebreaker applies only if the underlying types are the
+                 same. */
+              if (types_are_compatible_ignoring_qualifiers(base_param_type1,
+                                                           base_param_type2)) {
+                a_boolean any_extra_in_2 =
                         any_qualifier_in_set_missing(qualifiers1, qualifiers2);
-              a_boolean any_extra_in_1 =
+                a_boolean any_extra_in_1 =
                         any_qualifier_in_set_missing(qualifiers2, qualifiers1);
-              if (any_extra_in_1 && !any_extra_in_2) {
-                /* param_type1 has more qualifiers than param_type2, so
-                   fewer qualifiers are added to get to param_type2, and
-                   argument 2 is better. */
-                cmp = -1;
-              } else if (any_extra_in_2 && !any_extra_in_1) {
-                /* param_type2 has more qualifiers than param_type1, so
-                   fewer qualifiers are added to get to param_type1, and
-                   argument 1 is better. */
-                cmp = 1;
+                if (any_extra_in_1 && !any_extra_in_2) {
+                  /* param_type1 has more qualifiers than param_type2, so
+                     fewer qualifiers are added to get to param_type2, and
+                     argument 2 is better. */
+                  cmp = -1;
+                } else if (any_extra_in_2 && !any_extra_in_1) {
+                  /* param_type2 has more qualifiers than param_type1, so
+                     fewer qualifiers are added to get to param_type1, and
+                     argument 1 is better. */
+                  cmp = 1;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
-        }  /* if */
-        if (any_cfront_mode() || microsoft_mode || sun_mode) {
-          /* Older compilers allow comparing a pointer under a reference
-             with a pointer. */
-          param_type1 = base_param_type1;
-          param_type2 = base_param_type2;
-        }  /* if */
-        if (cmp != 0) {
-          /* There was a reference cv-qualifier tiebreaker, so no further
-             testing is necessary. */
-        } else if (is_pointer_type(param_type1) &&
-                   is_pointer_type(param_type2)) {
-          /* Check for adding cv-qualifiers under a pointer.  For multi-level
-             pointers, the cv-qualifiers can be added at several levels. */
-          a_boolean qualifiers_added;
-          if (arg_match1->conversion.std.type_qualifiers_added &&
-              same_type_with_added_qualifiers(param_type2, param_type1,
-                                              /*ignore_qualifiers=*/FALSE,
-                                              &qualifiers_added) &&
-              qualifiers_added) {
-            /* param_type1 has more qualifiers than param_type2, and the
-               types are otherwise compatible.  Therefore fewer qualifiers
-               are added to get to param_type2, and argument 2 is better. */
-            cmp = -1;
-          } else if (arg_match2->conversion.std.type_qualifiers_added &&
-                     same_type_with_added_qualifiers(param_type1, param_type2,
+          if (cmp != 0) {
+            /* There was a reference cv-qualifier tiebreaker, so no further
+               testing is necessary. */
+          } else if (is_pointer_type(param_type1) &&
+                     is_pointer_type(param_type2)) {
+            /* Check for adding cv-qualifiers under a pointer.  For multi-level
+               pointers, the cv-qualifiers can be added at several levels. */
+            a_boolean qualifiers_added;
+            if (arg_match1->conversion.std.type_qualifiers_added &&
+                same_type_with_added_qualifiers(param_type2,
+                                                param_type1,
+                                                /*ignore_qualifiers=*/FALSE,
+                                                &qualifiers_added) &&
+                qualifiers_added) {
+              /* param_type1 has more qualifiers than param_type2, and the
+                 types are otherwise compatible.  Therefore fewer qualifiers
+                 are added to get to param_type2, and argument 2 is better. */
+              cmp = -1;
+            } else if (arg_match2->conversion.std.type_qualifiers_added &&
+                       same_type_with_added_qualifiers(
+                                                   param_type1,
+                                                   param_type2,
                                                    /*ignore_qualifiers=*/FALSE,
-                                                     &qualifiers_added) &&
-                     qualifiers_added) {
-            /* param_type2 has more qualifiers than param_type1, and the
-               types are otherwise compatible.  Therefore fewer qualifiers
-               are added to get to param_type1, and argument 1 is better. */
-            cmp = 1;
+                                                   &qualifiers_added) &&
+                       qualifiers_added) {
+              /* param_type2 has more qualifiers than param_type1, and the
+                 types are otherwise compatible.  Therefore fewer qualifiers
+                 are added to get to param_type1, and argument 1 is better. */
+              cmp = 1;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */

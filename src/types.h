@@ -573,6 +573,14 @@ typedef struct a_std_conv_descr {
 			   issued if this conversion is done. */
 } a_std_conv_descr;
 
+/*
+Return TRUE if the indicated standard conversion is an identity conversion
+(i.e., no conversion at all, ignoring lvalue-to-rvalue conversions).
+*/
+#define is_identity_conversion(conv) \
+  (!(conv)->nontrivial_conversion && \
+   !(conv)->type_qualifiers_added)
+
 
 extern void clear_std_conv_descr(a_std_conv_descr_ptr std_conv);
 extern a_boolean exception_spec_is_less_restrictive(a_type_ptr  type1,
