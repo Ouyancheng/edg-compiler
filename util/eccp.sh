@@ -382,6 +382,8 @@ do
          --no_anachronisms | \
     -# | --timing | \
          --display_error_number | \
+         --create_pch | \
+         --pch | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Check for C or C++ mode
@@ -416,6 +418,7 @@ do
     -X | --xref | \
          --list | \
          --error_output | \
+         --use_pch | \
          --diag_suppress | \
          --diag_remark | \
          --diag_warning | \
@@ -443,6 +446,7 @@ do
     -X* | --xref=* | \
           --list=* | \
           --error_output=* | \
+          --use_pch=* | \
           --diag_suppress=* | \
           --diag_remark=* | \
           --diag_warning=* | \
