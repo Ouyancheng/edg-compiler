@@ -29,6 +29,9 @@ symbol_tbl.c - Symbol table management routines.
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
+/* exprutil.h is needed to get an_expr_stack_entry for the scope stack. */
+#include "exprutil.h"
+
 
 /* The multiplier used in the hash algorithm that generates an index
    in the hash table from an identifier name string.  Do not change
@@ -6925,6 +6928,8 @@ specific version of the template.
                                  = NULL;
   ssep->saved_curr_deferred_access_scope
 				 = curr_deferred_access_scope;
+  ssep->saved_expr_stack         = expr_stack;  /* See also the setting of
+                                                   expr_stack to NULL below. */
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -7121,6 +7126,9 @@ specific version of the template.
          become invisible. */
       ssep->depth_template_declaration_scope =
         depth_template_declaration_scope = NO_SCOPE_DEPTH;
+      /* Keep the expression stack for the instantiation separate from
+         the stack at this point (we may be inside an expression). */
+      expr_stack = NULL;
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -8104,6 +8112,7 @@ End a name scope by popping an entry off the scope stack.
     depth_of_innermost_scope_that_affects_access_control =
                                   ssep->next_scope_that_affects_access_control;
     curr_deferred_access_scope = ssep->saved_curr_deferred_access_scope;
+    expr_stack = ssep->saved_expr_stack;
   }  /* if */
   /* Maintain the current declarative level.  It is the same as 
      depth_scope_stack except when struct/union field scopes are

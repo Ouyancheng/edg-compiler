@@ -1872,6 +1872,12 @@ typedef struct a_scope_stack_entry {
 			/* The value of curr_deferred_access_scope when
 			   this scope was pushed.  Used to restore the value
 			   when the scope is popped. */
+  struct an_expr_stack_entry /* struct form used to avoid having to include
+			        exprutil.h all over. */
+		*saved_expr_stack;
+			/* The value of expr_stack when this scope was pushed,
+			   used to restore the value when the scope is
+			   popped. */
 } a_scope_stack_entry;
 
 
