@@ -1,5 +1,18 @@
 Version 2.19
 
+8/14/93 IL CHANGE: initk_zero initialization kind for variables
+
+The IL for dynamically-initialized static variables is changed by IL
+lowering so that the initialization is actually done by generated
+statements and expressions.  Formerly, after the transformation the
+variable was marked as requiring no initialization.  However, this
+caused problems, because it makes it impossible to distinguish a
+tentative definition of a variable from a "real" definition, and
+that is important if the definition appears in a library.  Now,
+a variable that is defined but for which all initialization has been
+rendered as code is given the initialization kind initk_zero, which
+means "statically initialize to zero".
+
 8/13/93 Member function as argument to function template
 
 The following no longer causes an internal error:
