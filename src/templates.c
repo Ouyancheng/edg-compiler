@@ -6736,12 +6736,12 @@ the function instantiation entry and set all the pointers.
     }  /* if */
   }  /* if */
   if (tssp != NULL) {
-    if (rout_sym->defined ||
+    if (rout_sym->defined
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        (microsoft_mode &&
-         !rout_sym->variant.routine.ptr->declared_only_as_friend)
+        || (microsoft_mode &&
+            !rout_sym->variant.routine.ptr->declared_only_as_friend)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                 ) {
+                                                                    ) {
       /* When the function has already been defined, no instantiation is
          required.  Otherwise, in Microsoft mode this is still regarded as
          a specialization, provided at least one of the declarations was
