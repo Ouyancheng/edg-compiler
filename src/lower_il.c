@@ -595,6 +595,29 @@ and return a pointer to the base class entry.  It must be found.
 }  /* find_virtual_base_class_of */
 
 
+static a_base_class_ptr find_direct_or_virtual_base_class_of(
+                                                   a_type_ptr  derived_class,
+                                                   a_type_ptr  base_class_type)
+/*
+Return a pointer to the direct or virtual base class of derived_class with
+a type identical to base_class_type.  It must be found.
+*/
+{
+  a_base_class_ptr  bcp;
+
+  bcp = base_classes_of(derived_class);
+  for (;;) {
+    check_assertion(bcp != NULL);
+    if ((bcp->direct || bcp->is_virtual) && bcp->type == base_class_type) {
+      /* Found. */
+      break;
+    }  /* if */
+    bcp = bcp->next;
+  }  /* for */
+  return bcp;
+}  /* find_direct_or_virtual_base_class_of */
+
+
 char *alloc_lowered_name_string(sizeof_t size)
 /*
 Allocate a name string of length "size" and return a pointer to it.
@@ -4445,7 +4468,6 @@ more than once.
   } else {
     bcp = find_direct_or_virtual_base_class_of(dest_class, source_class);
   }  /* if */
-  check_assertion(bcp != NULL);
   /* If this step is to a virtual base class, and no previous step was a
      step to a virtual base class, pass the virtual base class type down
      in the recursive processing to let the bottom-most call deal with
@@ -4715,7 +4737,6 @@ class to the class of node in *offset.
                                (an_expr_operator_kind)eok_pm_base_class_cast) {
     /* Casting from a derived class to a base class. */
     bcp = find_direct_or_virtual_base_class_of(source_class, dest_class);
-    check_assertion(bcp != NULL);
     if (bcp->is_virtual) {
       /* For a virtual base class skip, assume that we have a whole object
          and compute the offset from there.  The C++ language should probably
@@ -4732,7 +4753,6 @@ class to the class of node in *offset.
   } else {
     /* Casting from a base class to a derived class. */
     bcp = find_direct_or_virtual_base_class_of(dest_class, source_class);
-    check_assertion(bcp != NULL);
 #if CHECKING
     if (bcp->is_virtual) {
       internal_error("compute_pm_cast_offset: derived class is virtual");
