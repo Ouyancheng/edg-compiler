@@ -868,7 +868,8 @@ Initialize everything that has to do with the front end.
   open_file_and_push_input_stack(
                strcpy(alloc_il((sizeof_t)(strlen(primary_source_file_name)+1)),
                       primary_source_file_name),
-               (a_directory_name_entry_ptr)NULL);
+               (a_directory_name_entry_ptr)NULL,
+               /*is_system_include=*/FALSE);
   /* Read the first line. */
 #if DEBUG
   /* Establish the initial debug level (from the command line, or 0 by

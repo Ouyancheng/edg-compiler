@@ -620,6 +620,7 @@ Scan and process a #include directive.
 {
   char                       *name_start_pos;
   a_directory_name_entry_ptr search_path;
+  a_boolean		     is_system_include;
 
   /* The syntax is one of the following (see standard, 3.8.2):
 
@@ -642,7 +643,8 @@ Scan and process a #include directive.
     /* A header name was scanned. */
     /* Pick the appropriate search path of directories for "name" vs.
        <name>. */
-    if (*start_of_curr_token == '<') {
+    is_system_include = *start_of_curr_token == '<';
+    if (is_system_include) {
       search_path = sys_incl_search_path;
     } else {
       search_path = incl_search_path;
@@ -656,7 +658,8 @@ Scan and process a #include directive.
     ignore_harmless_trailing_comment();
     /* Push the name and associated search directory onto the input stack,
        thus starting input from that file. */
-    open_file_and_push_input_stack(name_start_pos, search_path);
+    open_file_and_push_input_stack(name_start_pos, search_path,
+                                   is_system_include);
   }  /* if */
 }  /* proc_include */
 
@@ -780,7 +783,8 @@ may have extra operand at end).
                               temp_line,
                               temp_file,
                               (char *)NULL,  /* Indicates #line entry. */
-                              &(curr_ise->assoc_il_file));
+                              &(curr_ise->assoc_il_file),
+                              /*is_system_include=*/FALSE);
   if (generate_pp_output) {
     /* Generate the line-identifying directive if necessary for preprocessing
        output.  Force out because cpp always puts one out. */

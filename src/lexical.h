@@ -1147,16 +1147,18 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
 
 
 /* Push a file onto the input stack. */
-extern void open_file_and_push_input_stack(
-                                      char                       *file_name,
-                                      a_directory_name_entry_ptr search_path);
+extern void open_file_and_push_input_stack
+                                (char                       *file_name,
+                                 a_directory_name_entry_ptr search_path,
+				 a_boolean                  is_system_include);
 extern FILE *open_file_for_input(char                       *file_name,
                                  a_directory_name_entry_ptr search_path,
                                  a_boolean                  replace_suffix,
                                  char                       **full_file_name);
-extern void push_input_stack (FILE  *new_input_file,
-                              char  *file_name,
-                              char  *full_file_name);
+extern void push_input_stack (FILE      *new_input_file,
+                              char      *file_name,
+                              char      *full_file_name,
+			      a_boolean is_system_include);
 
 /* Set the error position to the current token position. */
 #define set_err_pos_to_curr_token()                                   \

@@ -1817,14 +1817,18 @@ partially_process_line_splice:
 }  /* gen_raw_listing_output_for_curr_line */
 
 
-void open_file_and_push_input_stack(char                       *file_name,
-                                    a_directory_name_entry_ptr search_path)
+void open_file_and_push_input_stack
+                                (char                       *file_name,
+                                 a_directory_name_entry_ptr search_path,
+				 a_boolean	            is_system_include)
 /*
 Push the indicated file onto the input stack, so that the next time a line
 is read, it will come from that file.  If the file cannot be opened,
 generate a catastrophic error and do not return.  search_path gives the
 list of directories to be tried, in order, or is NULL if there is no
 search path.  file_name must be allocated in IL storage.
+is_system_include is TRUE for files included with the #include <file.h>
+notation and FALSE for all other files.
 */
 {
   char  *full_file_name;
@@ -1833,7 +1837,7 @@ search path.  file_name must be allocated in IL storage.
   db_enter(2, "open_file_and_push_input_stack");
   input_file = open_file_for_input(file_name, search_path,
                                    /*replace_suffix=*/FALSE, &full_file_name);
-  push_input_stack(input_file, file_name, full_file_name);
+  push_input_stack(input_file, file_name, full_file_name, is_system_include);
   db_exit();
 }  /* open_file_and_push_input_stack */
 
@@ -2009,9 +2013,10 @@ returned.
 }  /* open_file_for_input */
   
 
-void push_input_stack (FILE  *new_input_file,
-                       char  *file_name,
-                       char  *full_file_name)
+void push_input_stack (FILE      *new_input_file,
+                       char      *file_name,
+                       char      *full_file_name,
+		       a_boolean is_system_include)
 /*
 Push the indicated file onto the input stack.
 */
@@ -2106,7 +2111,8 @@ Push the indicated file onto the input stack.
   record_start_of_source_file(parent_file,
                               (a_seq_number)seq_number_last_read+1,
                               (a_line_number)1, file_name,
-                              full_file_name, &(curr_ise->assoc_il_file));
+                              full_file_name, &(curr_ise->assoc_il_file),
+			      is_system_include);
   /* The two il file pointers start out the same.  They will be made to
      point to distinct entries if a #line directive is processed:
      assoc_il_file will point to the entry for the #line, and
