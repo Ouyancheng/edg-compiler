@@ -1466,6 +1466,9 @@ static a_flag_name
   { "warn_about_tail_padding_use", &warn_about_tail_padding_use },
   { "reuse_tail_padding", &targ_reuse_tail_padding },
 #endif /* IA64_ABI */
+#if DEBUG
+  { "space_used", &display_space_used },
+#endif /* DEBUG */
   { NULL, NULL }  /* must be last */
 };
 

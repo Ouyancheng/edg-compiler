@@ -1520,6 +1520,13 @@ EXTERN a_boolean
 			/* TRUE if no diagnostic should be issued on
 			   anonymous types declared in anonymous unions. */
 
+#if DEBUG
+EXTERN a_boolean
+		display_space_used /* = 0 */;
+			/* TRUE if the space used information should be
+			   shown at the end of compilation. */
+#endif /* DEBUG */
+
 #if IA64_ABI
 EXTERN a_boolean
 		emulate_gnu_abi_bugs
