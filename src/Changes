@@ -1,5 +1,21 @@
 Version 2.45
 
+8/22/00  C++-generating back end: qualified names for local types
+
+When generating code to refer to a protected indirect base class defined in
+function scope, the C++-generating back end sometimes used a qualified name
+(which cannot be done for local names).
+
+  void g() { 
+    class A {}; 
+    class B : public A {}; 
+    class C : protected B { 
+      A *f(); // C++-generating back end used to regenerate "::A *f();"
+    }; 
+  }
+
+This is now fixed.
+
 8/22/00  Pcc mode: local typedef applied to extern variable
 
 In Pcc mode, the type declared on a block extern declaration is remembered

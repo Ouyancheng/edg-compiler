@@ -578,9 +578,10 @@ hidden name checking on its own members, too.
     if (bcp->direct || (top_level && bcp->is_virtual)) {
       check_hiding_by_inherited_names(bcp->type, sp, /*top_level=*/FALSE);
     }  /* if */
-    if (!bcp->direct) {
+    if (!bcp->direct && !bcp->type->source_corresp.is_local_to_function) {
       /* The base class may be inaccessible or ambiguous by inheritance, but
-         it may be able to refer to it through qualified access. */
+         it may be able to refer to it through qualified access (if it is not
+         a local class). */
       check_defeatable_base_inaccessibility(class_type, bcp);
     }  /* if */
   }  /* for */
