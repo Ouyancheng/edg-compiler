@@ -2206,43 +2206,56 @@ body.  Only called in C++ mode.
             if (tip != NULL && tip->explicit_instantiation) {
               /* An error will already have been issued on the instantiation
                  attempt. */
-            } else if (is_inline_virtual) {
-              /* An undefined inline virtual function.  This is definitely
-                 an error when extern_inline_allowed is TRUE (because simply
-                 being declared virtual counts as a use, and inline functions
-                 that are used must be defined), and it is plausibly an error
-                 otherwise.  However, cfront accepts it (though it may put
-                 out bad code). */
-              if (within_unnamed_class) {
-                /* Diagnostic has already been put out. */
-              } else {
-                pos_sy_diagnostic(any_cfront_mode() ? es_warning : es_error,
-                                  ec_virtual_inline_never_defined,
-                                  &sym->decl_position, sym);
-                if (any_cfront_mode()) {
-                  /* Modify the routine entry so that the IL will be valid;
-                     otherwise there may appear to be a reference to an
-                     undefined function with static storage class. */
-                  rp->storage_class = (a_storage_class)sc_extern;
-                  rp->source_corresp.name_linkage =
-                                   (a_name_linkage_kind)nlk_cplusplus_external;
-                  rp->is_inline = FALSE;
-                }  /* if */
-              }  /* if */
+            } else if (within_unnamed_class && rp->is_virtual) {
+              /* Diagnostic has already been issued. */
             } else if (is_function_local) {
-              /* A referenced but undefined member function of a local
-                 class. */
+              /* An undefined member function of a local class. */
               if (rp->is_virtual) {
                 /* Diagnostic has already been put out. */
               } else {
                 pos_sy_error(ec_local_class_function_def_missing,
                              &sym->decl_position, sym);
               }  /* if */
-            } else if (rp->is_inline ||
-                       rp->storage_class != (a_storage_class)sc_extern) {
+            } else if (rp->source_corresp.referenced &&
+                       (rp->is_inline ||
+                        rp->storage_class != (a_storage_class)sc_extern)) {
               /* A referenced but undefined member function that is either
                  extern-inline or has internal linkage. */
               pos_sy_error(ec_never_defined, &sym->decl_position, sym);
+            } else if (is_inline_virtual) {
+              /* A non-local inline virtual function that is undefined and
+                 unreferenced. */
+              if (strict_ansi_mode) {
+                /* In strict mode this is an error, because simply being
+                   declared virtual counts as a use, and inline functions
+                   that are used must be defined. */
+                pos_sy_diagnostic(strict_ansi_discretionary_severity,
+                                  ec_virtual_inline_never_defined,
+                                  &sym->decl_position, sym);
+#if DO_IL_LOWERING
+              } else if (inline_virtual_function_definitions_needed(
+                                                 scope->variant.assoc_type)) {
+                /* The virtual function table will be generated for the
+                   class in this translation unit, so the function's
+                   address will be taken.  Since there's no definition,
+                   this will usually result in a linker error, so the user
+                   may benefit from an earlier diagnostic. */
+                pos_sy_warning(ec_virtual_inline_never_defined,
+                               &sym->decl_position, sym);
+#endif /* DO_IL_LOWERING */
+              } else {
+                /* By default we issue no diagnostic. */
+              }  /* if */
+              /* Modify the routine entry so that the IL will be valid.
+                 (Otherwise, for example, if a virtual function table is put
+                 out for the class of which this function is a member, there
+                 may appear to be a reference to an undefined function with
+                 static storage class.  This way, a linker error will be
+                 forced.) */
+              rp->storage_class = (a_storage_class)sc_extern;
+              rp->source_corresp.name_linkage =
+                               (a_name_linkage_kind)nlk_cplusplus_external;
+              rp->is_inline = FALSE;
             }  /* if */
           }  /* if */
         }  /* if */
