@@ -3843,7 +3843,7 @@ the expression.
 {
   an_expr_node_ptr node = *p_node, var_node, op1, op2, op3;
   a_type_ptr       new_type;
-  a_boolean        is_operation, op2_possible, op3_possible;
+  a_boolean        is_operation, op1_possible, op2_possible, op3_possible;
 
   *converted = FALSE;
   is_operation = is_operation_node(node);
@@ -3876,6 +3876,24 @@ the expression.
         op1->next = op2;
         op2->next = op3;
         node->type = op2->type;
+      }  /* if */
+    }  /* if */
+  } else if (is_operation &&
+      node->variant.operation.kind == (an_expr_operator_kind)eok_value_field) {
+    /* Selection of a field from an rvalue.  Try to find an lvalue in
+       the struct rvalue, and if one can be found rewrite the operation
+       as a normal field selection. */
+    op1 = node->variant.operation.operands;
+    /* See if both branches can be rewritten. */
+    conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+                                             /*see_if_possible=*/TRUE);
+    if (op1_possible) {
+      *converted = TRUE;
+      if (!see_if_possible) {
+        conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+                                                 /*see_if_possible=*/FALSE);
+        node->variant.operation.kind = (an_expr_operator_kind)eok_field;
+        node->type = make_pointer_type(node->type);
       }  /* if */
     }  /* if */
   } else if (is_operation &&
@@ -3972,8 +3990,11 @@ address of the temporary is returned.  This routine is only used in C++ mode.
           { a_class_symbol_supplement_ptr cssp =
                                     symbol_supplement_for_class(operand->type);
             if (!cssp->construction_by_bitwise_copy_allowed) {
+#if DEBUG
+              db_expression(node);
+#endif /* DEBUG */
               internal_error(
-                "conv_class_rvalue_expr_to_object_pointer: couldn't find var");
+                          "conv_operand_to_object_pointer: couldn't find var");
             }  /* if */
           }
 #endif /* CHECKING */
