@@ -25,7 +25,6 @@ Placed in a separate file so they can be expanded several ways:
       -- "using" declarations and directives
       -- The hidden name table
       -- Source sequence entries
-      -- Object lifetimes
       -- The based types list
     Also, some back-pointers are not walked if they introduce cycles
     in the data structure where no entry in the cycle has a "needed"
@@ -1477,27 +1476,25 @@ do_set_proper_definition_needed_flag:
       /* No pointers. */
       break;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if !NEEDED_FLAG_WALK
     case iek_object_lifetime:
       {
         an_object_lifetime_ptr ptr = (an_object_lifetime_ptr)entry_ptr;
-        remap_ptr(ptr->entity.ptr, a_char_ptr,
-                  (an_il_entry_kind)ptr->entity.kind);
+        remap_ptr_not_needed(ptr->entity.ptr, a_char_ptr,
+                             (an_il_entry_kind)ptr->entity.kind);
         /* The destructors list is linked on the field
            "next_in_destruction_list" because the usual "next" is used for
            a different list. */
         walk_list_on_link_field(ptr->destructions, a_dynamic_init_ptr,
                                 iek_dynamic_init, next_in_destruction_list);
-        remap_ptr(ptr->parent_lifetime, an_object_lifetime_ptr,
-                  iek_object_lifetime);
-        remap_ptr(ptr->parent_destruction_sublist, a_dynamic_init_ptr,
-                  iek_dynamic_init);
+        remap_ptr_not_needed(ptr->parent_lifetime, an_object_lifetime_ptr,
+                             iek_object_lifetime);
+        remap_ptr_not_needed(ptr->parent_destruction_sublist,
+                             a_dynamic_init_ptr, iek_dynamic_init);
         walk_list(ptr->child_lifetime, an_object_lifetime_ptr,
                   iek_object_lifetime);
         remap_next_ptr(ptr->next, an_object_lifetime_ptr, iek_object_lifetime);
       }
       break;
-#endif /* !NEEDED_FLAG_WALK */
     case iek_scope:
       {
         a_scope_ptr  ptr = (a_scope_ptr)entry_ptr;
@@ -1540,9 +1537,8 @@ do_set_proper_definition_needed_flag:
 #ifdef CFE
             walk_list(ptr->variant.routine.constructor_inits,
                       a_constructor_init_ptr, iek_constructor_init);
-            walk_ptr_not_needed(ptr->variant.routine.
-                                                 lifetime_of_local_static_vars,
-                                an_object_lifetime_ptr, iek_object_lifetime);
+            walk_ptr(ptr->variant.routine. lifetime_of_local_static_vars,
+                     an_object_lifetime_ptr, iek_object_lifetime);
             walk_ptr(ptr->variant.routine.this_param_variable, a_variable_ptr,
                      iek_variable);
             remap_ptr_not_needed(ptr->variant.routine.return_value_variable,
@@ -1565,8 +1561,7 @@ do_set_proper_definition_needed_flag:
         /* "assoc_block" is done after the declarations. */
         /* The lifetime pointer needs to be walked and not remapped in
            the file scope and function scopes. */
-        walk_ptr_not_needed(ptr->lifetime, an_object_lifetime_ptr,
-                            iek_object_lifetime);
+        walk_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
         walk_list(ptr->constants, a_constant_ptr, iek_constant);
 #ifdef CFE
 #if DO_SUBTREE_WALK
