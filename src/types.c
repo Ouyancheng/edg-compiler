@@ -105,6 +105,9 @@ predicates.
 /* Array types are simply array types. */
 #define is_array(tp) ((tp)->kind == (a_type_kind)tk_array)
 
+/* VLA Array types (called only if is_array is TRUE). */
+#define array_is_vla(tp) ((tp)->variant.array.is_vla)
+
 /* Struct types are simply struct types (or, in C++, class/struct types). */
 #define is_class_or_struct(tp)                                        \
   ((tp)->kind == (a_type_kind)tk_struct || (tp)->kind == (a_type_kind)tk_class)
@@ -379,6 +382,28 @@ Return TRUE if the given type is an array type (3.1.2.5).  Note that
   tp = skip_typerefs(tp);
   return(is_array(tp));
 }  /* is_array_type */
+
+
+a_boolean is_vla_type(a_type_ptr  tp)
+/*
+Return TRUE if the type pointed to by tp is a variable length array type.
+If tp is a multidimensional array, return TRUE if any of its dimensions
+is nonconstant.
+*/
+{
+  a_boolean is_vla = FALSE;
+
+  if (vla_enabled && is_array_type(tp)) {
+    do {
+      if (array_is_vla(skip_typerefs(tp))) {
+        is_vla = TRUE;
+        break;
+      }  /* if */
+      tp = array_element_type(tp);
+    } while (tp != NULL && is_array_type(tp));
+  }  /* if */
+  return is_vla;
+}  /* is_vla_type */
 
 
 a_boolean is_char_array_type(a_type_ptr tp)
@@ -1882,7 +1907,9 @@ Return TRUE if the two array types have identical bounds.
   an_expr_node_ptr  node_1, node_2;
 
   check_assertion(is_array(type_1) && is_array(type_2));
-  if (type_1->variant.array.is_variable_size_array) {
+  if (array_is_vla(type_1) || array_is_vla(type_2)) {
+    /* One or both of the types is a variable length array. */
+  } else if (type_1->variant.array.is_variable_size_array) {
     if (type_2->variant.array.is_variable_size_array) {
       /* Both arrays have variable bounds. */
       node_1 = type_1->variant.array.variant.element_count_expr;
@@ -2574,6 +2601,10 @@ for exact pointer equality.
                                        type_2->variant.array.element_type,
                                        sub_flags)) {
               if (identical_array_type_level(type_1, type_2)) {
+                compat = TRUE;
+              } else if (array_is_vla(type_1) || array_is_vla(type_2)) {
+                /* One or the other is a VLA, which is compatible with any
+                   array of the same element type. */
                 compat = TRUE;
               } else if (C_mode() || top_level_for_redeclaration) {
                 /* Check whether one of the arrays has unknown bounds.  Note
@@ -4746,6 +4777,11 @@ is allocated, it is allocated in the file scope.
              because if both types are equivalent to the composite type,
              the first operand is returned, and we'd like the element type
              to be the one from the non-incomplete array. */
+          /* It's not entirely clear how composite types should be formed
+             involving VLAs.  For the time being... */
+          check_assertion_str(!array_is_vla(base_type_1) &&
+                              !array_is_vla(base_type_2),
+                              "composite_type: VLAs are not yet supported");
           check_assertion(!base_type_1->variant.array.is_variable_size_array);
           check_assertion(!base_type_2->variant.array.is_variable_size_array);
           if (base_type_1->variant.array.variant.number_of_elements != 0) {
@@ -5079,7 +5115,8 @@ based on the specified template parameter constant.
   a_constant_ptr      cp;
 
   if (is_array(type_ptr)) {
-    if (type_ptr->variant.array.is_variable_size_array) {
+    if (type_ptr->variant.array.is_variable_size_array &&
+        !array_is_vla(type_ptr)) {
       count = type_ptr->variant.array.variant.element_count_expr;
       if (expr_tree_contains_template_param_constant(
                                         count,
@@ -5215,6 +5252,26 @@ bound.
   }  /* if */
   return found;
 }  /* ttt_is_ptr_or_ref_to_unknown_bound_array */
+
+
+static a_boolean ttt_is_or_contains_vla_with_unspecified_bound(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+/*
+Return TRUE if type_ptr is a pointer or reference to an array of unknown
+bound.
+*/
+{
+  a_boolean   found = FALSE;
+
+  if (is_array(type_ptr)) {
+    if (array_is_vla(type_ptr) &&
+        !type_ptr->variant.array.has_assoc_vla_dimension) {
+      *force_end_of_traversal = found = TRUE;
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* ttt_is_or_contains_vla_with_unspecified_bound */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -5600,6 +5657,26 @@ TRUE; otherwise, return *is_ref FALSE.
   *is_ref = type_is_ref_to_unknown_bound_array;
   return result;
 }  /* is_or_contains_ptr_or_ref_to_unknown_bound_array */
+
+
+a_boolean is_or_contains_vla_type_with_unspecified_bound(a_type_ptr  tp)
+/*
+Return TRUE is tp is or contains a variable length array type with an
+unspecified bound (i.e., declared with [*]).
+*/
+{
+  a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE |
+                                              TTT_PARAM_TYPES |
+                                              TTT_SKIP_TYPEREFS);
+  a_boolean                       result = FALSE;
+
+  if (vla_enabled) {
+    result = traverse_type_tree(tp,
+                                ttt_is_or_contains_vla_with_unspecified_bound,
+                                tt_flags);
+  }  /* if */
+  return result;
+}  /* is_or_contains_vla_type_with_unspecified_bound */
 
 
 /* Type of service function called by traverse_and_modify_type_tree to return

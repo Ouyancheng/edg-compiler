@@ -63,6 +63,7 @@ extern a_boolean is_reference_type(a_type_ptr tp);
 extern a_boolean is_ptr_or_ref_type(a_type_ptr tp);
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_array_type(a_type_ptr tp);
+extern a_boolean is_vla_type(a_type_ptr tp);
 extern a_boolean is_char_array_type(a_type_ptr tp);
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean is_wchar_t_array_type(a_type_ptr tp);
@@ -569,6 +570,7 @@ extern void set_used_in_exception_flag(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_ptr_or_ref_to_unknown_bound_array(
                                                            a_type_ptr tp,
                                                            a_boolean  *is_ref);
+extern a_boolean is_or_contains_vla_type_with_unspecified_bound(a_type_ptr tp);
 extern a_type_ptr strip_local_and_nonreal_typedefs(a_type_ptr  type);
 
 extern a_boolean routine_linkages_are_compatible(
