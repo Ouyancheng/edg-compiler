@@ -1357,6 +1357,9 @@ do_struct_union:
       if (ptr->variant.class_struct_union.is_empty_class) {
         disp_boolean("is_empty_class", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.has_zero_init_component) {
+        disp_boolean("has_zero_init_component", TRUE);
+      }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
       if (ptr->variant.class_struct_union.max_member_alignment != 0) {
         disp_unsigned_long("max_member_alignment",

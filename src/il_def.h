@@ -4300,6 +4300,13 @@ typedef struct a_type {
 			   (direct or indirect) with such things.  Computed in
 			   do_class_layout. */
       a_bit_field
+		has_zero_init_component:1;
+			/* TRUE if an object of this type has no nontrivial
+			   default constructor, or if a call to that
+			   constructor is insufficient to value-initialize
+			   the object (i.e., a part of it must be zero-
+			   initialized). */
+      a_bit_field
 		contains_flexible_array_member:1;
 			/* TRUE if this is a struct and the last field is an
 			   incomplete array type or if it is a union and one

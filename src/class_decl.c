@@ -4319,7 +4319,7 @@ or struct definition.  The syntax is
                                    GID_IMPLICIT_TYPE_CONTEXT, ilm_class, &err);
       /* Be sure a type symbol was found and that it identifies a class. */
       if (sym == NULL || !is_class_symbol(sym)) {
-        /* Not a class symbol.  In most cases, issue and error and skip it.
+        /* Not a class symbol.  In most cases, issue an error and skip it.
            When a template param is involved, just skip it. */
         if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
           a_type_ptr  tp = skip_typedefs(type_symbol_type(sym));
@@ -4388,6 +4388,12 @@ or struct definition.  The syntax is
             error(ec_incomplete_type_not_allowed);
             goto skip_base_class;
           }  /* if */
+        }  /* if */
+        if (base_class_type
+                       ->variant.class_struct_union.has_zero_init_component) {
+          /* At least a part of this base class must be zero initialized when
+             value-initializing object of the type being parsed. */
+          type_ptr->variant.class_struct_union.has_zero_init_component = TRUE;
         }  /* if */
       }  /* if */
       /* Issue a diagnostic if an explicit access specifier was not provided
@@ -8807,6 +8813,11 @@ specific information about the member declaration, respectively.
       if (tp->variant.class_struct_union.any_const_member) {
         class_type->variant.class_struct_union.any_const_member = TRUE;
       }  /* if */
+      /* Similarly with the flag indicating that zero-initialization may be
+         needed as part of value-initialization. */
+      if (tp->variant.class_struct_union.has_zero_init_component) {
+        class_type->variant.class_struct_union.has_zero_init_component = TRUE;
+      }  /* if */
       if (C_dialect == C_dialect_cplusplus) {
         a_class_symbol_supplement_ptr  member_cssp;
 
@@ -8842,17 +8853,28 @@ specific information about the member declaration, respectively.
            (or array thereof). */
         if (!member_cssp->is_POD) class_state->POD_ruled_out = TRUE;
       }  /* if */
-    }  /* if */
-  } else if (C_dialect == C_dialect_cplusplus && !class_state->POD_ruled_out) {
-    if (is_reference_type(member_type)) {
-      /* A POD may not have a field with a reference type. */
-      class_state->POD_ruled_out = TRUE;
     } else {
-      /* A POD may not have a field with a type that is a pointer-to-member
-         (or array thereof). */
-      a_type_ptr  tp = member_type;
-      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-      if (is_ptr_to_member_type(tp)) class_state->POD_ruled_out = TRUE;
+      /* The field's type is an array of nonclass elements. */
+      class_type->variant.class_struct_union.has_zero_init_component = TRUE;
+    }  /* if */
+  } else {
+    if (unnamed_field && field->is_bit_field) {
+      /* Unnamed bit fields do not need to be initialized.  Other fields that
+         do not have a class (or array of class) type may need to be zero-
+         initialized. */
+      class_type->variant.class_struct_union.has_zero_init_component = TRUE;
+    }  /* if */
+    if (C_dialect == C_dialect_cplusplus && !class_state->POD_ruled_out) {
+      if (is_reference_type(member_type)) {
+        /* A POD may not have a field with a reference type. */
+        class_state->POD_ruled_out = TRUE;
+      } else {
+        /* A POD may not have a field with a type that is a pointer-to-member
+           (or array thereof). */
+        a_type_ptr  tp = member_type;
+        if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+        if (is_ptr_to_member_type(tp)) class_state->POD_ruled_out = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Check for the case in which the type is or contains a routine type for
