@@ -1,5 +1,16 @@
 Version 2.21
 
+11/15/94 Referenced flag for template static data members
+
+The referenced flag for template static data members initialized
+using default initialization was not being set properly under
+certain conditions.  This has been fixed.
+
+  template <class T> struct A {
+    static int x;
+  };
+  template <class T> int A<T>::x;
+
 11/14/93 Abort with -x on file-scope termination routine
 
 A bug has been fixed that caused an abort in IL lowering or in

@@ -650,14 +650,6 @@ and the class instantiation will detect the runaway case.
       pos_error(ec_exp_semicolon, &pos_curr_token);
       while (curr_token != tok_end_of_source) (void)get_token();
     }  /* if */
-    /* Usually template functions are instantiated "on demand" and the
-       referenced flag will already have been set.  But if the
-       instantiation mode says to instantiate whether or not there is
-       a reference, we should set the referenced flag anyway, so that
-       the back-end will be sure to generate the function. */ 
-    var_ptr->source_corresp.referenced = TRUE;
-    var_ptr->is_template_static_data_member = TRUE;
-    tip->already_instantiated = TRUE;
     /* By pass end-of-source token, which is probably the terminator token
        in the cache. */
     (void)get_token();
@@ -668,6 +660,13 @@ and the class instantiation will detect the runaway case.
     (void)def_initializer(static_data_member_sym,
                           &static_data_member_sym->decl_position);
   }  /* if */
+  /* Usually template functions are instantiated "on demand" and the
+     referenced flag will already have been set.  But if the
+     instantiation mode says to instantiate whether or not there is
+     a reference, we should set the referenced flag anyway, so that
+     the back-end will be sure to generate the function. */ 
+  var_ptr->source_corresp.referenced = TRUE;
+  var_ptr->is_template_static_data_member = TRUE;
   tip->already_instantiated = TRUE;
   db_exit();
 }  /* define_template_static_data_member */
