@@ -1,5 +1,14 @@
 Version 2.31
 
+12/19/95  C++-generating back end: Strange for-init declarations
+
+Strange for-init declarations that declare no variable are now handled
+correctly by the C++-generating back end.
+
+  main () {
+    for (struct A { int i; } ; ; ) {}
+  }
+
 12/19/95  Setting depth_in_scope_stack in block scopes
 
 A bug has been fixed in setting the field depth_in_scope_stack for
