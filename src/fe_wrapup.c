@@ -169,23 +169,12 @@ It's a static entity that may be referenced from exported templates.
     } else {
       /* For others, someone will decide where the definition is put out:
          either the prelinker or the extern inline lowering mechanism. */
-#if ONE_INSTANTIATION_PER_OBJECT
-      if (one_instantiation_per_object && !is_variable &&
-          !in_secondary_trans_unit(scp)) {
-        /* Assign a slice number for one-instantiation-per-object mode if there
-           isn't one already. */
-        if (rout->instantiation_needed_bit_number == 0) {
-          rout->instantiation_needed_bit_number =
-                                      assign_instantiation_needed_bit_number();
-        }  /* if */
-      }  /* if */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
       if (!rout->is_inline && is_template) {
         /* A non-inline static template.  This is already on the instantiation
            lists. */
       } else {
         /* Other cases are treated as if they were extern inline. */
-        rout->consider_to_be_extern_inline = TRUE;
+        check_assertion(rout->is_inline);
         if (instantiate_extern_inline &&
             !rout->on_inline_function_list) {
           /* Add the function to the inline functions list, which is an
