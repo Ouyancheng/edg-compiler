@@ -792,10 +792,12 @@ typedef struct a_type {
                         /* Pointer to the next type declared in the same
                            scope, NULL if this type is the last in the
                            scope. */
-  a_type_ptr    assoc_pointer_type;
-                        /* If a type that is a pointer to this type has
-                           been allocated, this points to it.  NULL otherwise.
-                           Used to avoid allocating duplicate type entries. */
+  char		*based_type_array;
+			/* Pointer to an array that holds pointers to types
+			   based on this one, e.g., pointer-to-this-one,
+			   const-this-one, used to find those types for
+			   reuse.  Usable only within the front end
+			   (hence the char * type). */
   a_targ_size_t
                 size;
                         /* sizeof() for this type, or 0 if the type is
