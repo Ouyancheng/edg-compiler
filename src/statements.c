@@ -5403,6 +5403,7 @@ branching into it is disallowed).
       sp = add_statement_at_stmt_pos((a_statement_kind)stmk_expr,
                                      &null_source_position);
       sp->expr = alloc_expr_node((an_expr_node_kind)enk_throw);
+      sp->expr->type = void_type();
       set_unreachable(curr_reachability);
     }  /* if */
   }  /* if */
