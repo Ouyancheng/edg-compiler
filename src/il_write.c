@@ -20,7 +20,7 @@ il_write.c -- Write the intermediate language to a file.
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 
 #if !ORPHAN_PROCESSING_NEEDED
-??=error -- ORPHAN_PROCESSING_NEEDED must be set if IL writing is needed.
+ #error -- ORPHAN_PROCESSING_NEEDED must be set if IL writing is needed.
 #endif /* !ORPHAN_PROCESSING_NEEDED */
 
 #include "il_file.h"
