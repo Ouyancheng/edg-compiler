@@ -3241,7 +3241,7 @@ of a "&" operator if is_operand_of_address_of is TRUE.
      Cfront does not do this checking, so we omit it in cfront mode.
      Also skip this check if an access control error has already been
      issued for the identifier. */
-  if (!cfront_compatibility_mode && check_protected_access) {
+  if (!any_cfront_mode() && check_protected_access) {
     check_protected_member_access(member_sym, position,
                                   member_proj_sym->class_of_which_a_member);
   }  /* if */
