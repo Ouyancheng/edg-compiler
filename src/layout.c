@@ -3656,11 +3656,6 @@ Reserve space at the end of the class object for virtual base classes.
     /* Record the size and alignment of the class before space is added for
        virtual base classes. */
     pad_bit_field(lob);
-#if IA64_ABI
-    /* The size without virtual base classes includes all subobjects that have
-       been laid out thus far.  */
-    adjust_size_for_empty_bases(lob);
-#endif /* IA64_ABI */
     ctsp->size_without_virtual_base_classes = lob->byte_offset;
     ctsp->alignment_without_virtual_base_classes = lob->alignment;
 #if IA64_ABI
