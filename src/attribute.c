@@ -69,6 +69,11 @@ static an_alias_fixup_ptr
 static an_alias_fixup_ptr
 	avail_alias_fixups;
 
+#if DEBUG
+static unsigned long
+	num_alias_fixups_allocated;
+#endif /* DEBUG */
+
 
 static void add_alias_fixup(a_symbol_ptr        alias,
                             char*               alias_name,
@@ -85,6 +90,9 @@ Allocate a fixup entry for a new alias described by the given parameters.
     avail_alias_fixups = avail_alias_fixups->next;
   } else {
     entry = (an_alias_fixup_ptr)alloc_fe(sizeof(an_alias_fixup));
+#if DEBUG
+    ++num_alias_fixups_allocated;
+#endif /* DEBUG */
   }  /* if */
   entry->next = alias_fixup_list;
   alias_fixup_list = entry;
@@ -212,6 +220,11 @@ Traverse the list of alias fixups and set the alias fields as needed.
 
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
 
+#if DEBUG
+static unsigned long
+	pragma_extname_string_space;
+#endif /* DEBUG */
+
 void redefine_extname_pragma(a_pending_pragma_ptr  ppp)
 /*
 Process the Solaris redefine_extname pragma by recording an appropriate
@@ -248,6 +261,9 @@ process_alias_fixup_list.
                     &ppp->pragma_position);
     /* Recreate the pragma string: "redefine_extname <src-name> <asm-name>". */
     ppp->pragma_text  = (char *)alloc_primary_file_scope_il(pragma_len);
+#if DEBUG
+    pragma_extname_string_space += pragma_len;
+#endif /* DEBUG */
     /*lint --e(668)*/(void)memcpy(ppp->pragma_text, "redefine_extname ",
                                   prefix_len);
     /*lint --e(668)*/(void)memcpy(ppp->pragma_text+prefix_len, src_name,
@@ -274,6 +290,11 @@ static a_type_ptr copy_type_and_apply_attributes(an_attribute_ptr attributes,
 /* Previously allocated attributes available for reuse. */
 static an_attribute_ptr avail_attributes;
 
+#if DEBUG
+static unsigned long
+	num_attributes_allocated;
+#endif /* DEBUG */
+
 
 static an_attribute_ptr alloc_attribute(an_attribute_kind  kind,
                                         a_source_position  *pos)
@@ -293,6 +314,9 @@ pointed to be "pos" can be freed when this routine returns.
   } else {
     /* Allocate memory for a new attribute. */
     ap = (an_attribute_ptr)alloc_fe(sizeof(an_attribute));
+#if DEBUG
+    ++num_attributes_allocated;
+#endif /* DEBUG */
   }  /* if */
   ap->kind = kind;
   ap->next = NULL;
@@ -2132,6 +2156,30 @@ be initialized for each compilation.
   avail_alias_fixups = NULL;
   alias_fixup_list = NULL;
 }  /* attribute_init */
+
+#if DEBUG
+
+unsigned long show_attribute_space_used(void)
+/*
+Display and return the amount of space used for various GNU attribute-related
+entities.
+*/
+{
+  unsigned long grand_total = 0;
+  unsigned long num, size, total;
+
+  db_space_used_header("GNU attributes use:");
+#if GNU_EXTENSIONS_ALLOWED
+  db_space_used("GNU attributes", num_attributes_allocated, an_attribute);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  db_space_used("alias fixups", num_alias_fixups_allocated, an_alias_fixup);
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+  db_space_used("pragma extname strings", pragma_extname_string_space, char);
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+  return grand_total;
+}  /* show_attribute_space_used */
+
+#endif /* DEBUG */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 

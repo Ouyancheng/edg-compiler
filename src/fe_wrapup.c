@@ -59,6 +59,9 @@ Show the amount of memory allocated.
   total_space += show_expr_space_used();
   total_space += show_il_space_used();
   total_space += show_statements_space_used();
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+  total_space += show_attribute_space_used();
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if DO_IL_LOWERING
   total_space += show_lowering_space_used();
 #endif /* DO_IL_LOWERING */
