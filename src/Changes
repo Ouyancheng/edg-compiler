@@ -1,5 +1,19 @@
 Version 3.6
 
+3/11/05  Microsoft C compatibility: Integer variable redeclarations
+
+In Microsoft C mode, the front end already accepted redeclaring an integer
+variable with a different integer type if the new type has the same size and
+alignment as the type used in the original declaration.  However, this was
+not always accepted if the new type was expressed as a typedef.  For example:
+
+  unsigned int i;
+  unsigned long i;  // Already accepted in Microsoft C mode (with a warning).
+
+  typedef unsigned long UL;
+  UL i;  // Now also accepted in Microsoft C mode (with a warning).
+         // Previously an error.
+
 3/11/05  C99 mode: void type parameter
 
 In C89 and C++, an empty parameter list can be written as "(void)".  In non-

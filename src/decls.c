@@ -4901,10 +4901,10 @@ declaration.
         *old_type = variable_ptr->type;
         if (!types_are_redecl_compatible(type_ptr, *old_type)) {
           an_error_severity  severity = es_none;
+          a_type_ptr         orig_type = skip_typerefs(*old_type);
+          a_type_ptr         redecl_type = skip_typerefs(type_ptr);
 
           if (gcc_mode && gnu_version < 30000) {
-            a_type_ptr  orig_type = skip_typerefs(*old_type);
-            a_type_ptr  redecl_type = skip_typerefs(type_ptr);
             if (types_are_redecl_compatible(redecl_type, orig_type)) {
               /* Earlier versions of GNU C (but not GNU C++) accept
                  redeclarations of variables that only differ in
@@ -4920,9 +4920,9 @@ declaration.
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (C_mode() && microsoft_mode &&
-              is_integral_type(type_ptr) && is_integral_type(*old_type) &&
-              type_ptr->size == (*old_type)->size &&
-              type_ptr->alignment == (*old_type)->alignment) {
+              is_integral_type(redecl_type) && is_integral_type(orig_type) &&
+              redecl_type->size == orig_type->size &&
+              redecl_type->alignment == orig_type->alignment) {
             /* Just issue a warning in Microsoft C mode.  MSVC uses the first
                declaration, so adjust type_ptr. */
             severity = es_warning;
