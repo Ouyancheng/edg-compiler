@@ -1,5 +1,14 @@
 Version 3.2
 
+3/6/03   "restrict" keyword in template strings
+
+When building template strings, the processing for the "restrict" keyword
+is now the same as that used when emitting "restrict" in code generated
+by the C++-generating back end.  If SUPPRESS_RESTRICT_IN_GENERATED_CODE
+is TRUE, it is not emitted at all.  Otherwise, it is emitted as "restrict"
+unless GCC_IS_GENERATED_CODE_TARGET is TRUE, in which case it is
+emitted as "__restrict__".
+
 3/5/03   IA-64 ABI: __cxa_vec_ctor returns void
 
 The IA-64 ABI runtime routine __cxa_vec_ctor returns void, not

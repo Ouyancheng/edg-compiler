@@ -12928,6 +12928,15 @@ of characters added.
     check_assertion(!ctp->variant.locator.has_been_coalesced);
     put_str_to_temp_text_buffer(ctp->variant.locator.symbol_header->
                                                                identifier);
+#if GCC_IS_GENERATED_CODE_TARGET || SUPPRESS_RESTRICT_IN_GENERATED_CODE
+  } else if (token == tok_restrict) {
+#if !SUPPRESS_RESTRICT_IN_GENERATED_CODE
+    /* When targeting a gcc/g++ compiler, put out "__restrict__" since
+       "restrict" may not be accepted. */
+    put_str_to_temp_text_buffer("__restrict__");
+#endif /* !SUPPRESS_RESTRICT_IN_GENERATED_CODE */
+#endif /* GCC_IS_GENERATED_CODE_TARGET ||
+          SUPPRESS_RESTRICT_IN_GENERATED_CODE */
   } else if (microsoft_mode && token == tok_asm) {
     /* In Microsoft mode always put out "__asm", since "asm" is not
        necessarily accepted by the Microsoft compiler. */
