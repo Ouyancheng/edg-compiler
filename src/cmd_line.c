@@ -661,7 +661,7 @@ processing routine to update the severity.
     }  /* if */
 #endif /* DEBUG */
     if (isdigit(*opt_start)) {
-      int error_number = scan_opt_arg_number(opt_start);
+      int error_number = (int)scan_opt_arg_number(opt_start);
       error = set_severity_for_error_number(error_number, severity);
       if (error) {
         str_command_line_error(ec_cl_invalid_error_number, opt_start);
