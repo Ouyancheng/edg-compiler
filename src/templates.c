@@ -11100,7 +11100,9 @@ list.
 static a_boolean is_inline_template_function(a_template_instance_ptr tip)
 /*
 Determines whether a template instance pointer refers to a function that
-is inline.
+is inline.  This involves more than simply checking the is_inline flag
+in the routine entry because, if the function has not yet been instantiated,
+the template from which the routine would be generated must be checked.
 */
 {
   a_boolean	result = FALSE;
@@ -11115,7 +11117,7 @@ is inline.
        the function template definition, if any. */
     a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
     result =  rout->is_inline;
-    if (!result) {
+    if (!result && !rout->is_specialized) {
       if (rout->assoc_scope == NULL_region_number) {
         a_template_symbol_supplement_ptr	tssp;
         tssp = template_supplement_for_symbol(tip->template_sym);
@@ -11126,6 +11128,24 @@ is inline.
   }  /* if */
   return result;
 }  /* is_inline_template_function */
+
+
+a_boolean rout_is_inline_template_function(a_routine_ptr	rout)
+/*
+Interface to is_inline_template_function that takes a routine pointer
+as its argument.  rout must be a pointer to an instance of a function
+template or a member function of a template class.
+*/
+{
+  a_symbol_ptr			sym;
+  a_template_instance_ptr	tip;
+
+  sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
+  check_assertion(sym != NULL && is_function_symbol(sym));
+  tip = sym->variant.routine.instance_ptr;
+  check_assertion(tip != NULL);
+  return is_inline_template_function(tip);
+}  /* rout_is_inline_template_function */
 
 
 static a_boolean is_static_or_inline_template_function
