@@ -2747,9 +2747,9 @@ a_boolean	emulate_gnu_abi_bugs = DEFAULT_EMULATE_GNU_ABI_BUGS;
 
 /*
 TRUE if the host integer representation is little-endian.
+External because it's declared extern in host_envir.h.
 */
-static a_boolean
-		host_little_endian;
+a_boolean	host_little_endian;
 
 /*
 Bits used to represent cv-qualifiers in a bit set.
