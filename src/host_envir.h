@@ -474,6 +474,8 @@ In such an environment, one can use an instantiation mechanism that
 instantiates templates wherever they are used, and counts on the
 linker to discard the extra copies.  The fact that one can do so
 does not mean one wants to -- see INSTANTIATE_TEMPLATES_EVERYWHERE_USED.
+Note that a simplified interpretation of this flag is "Do we have
+COMDAT sections?"
 */
 #ifndef LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
 #if IA64_ABI
