@@ -2649,9 +2649,11 @@ Display the indicated statement.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   disp_name("kind");
   switch (ptr->kind) {
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
     case stmk_empty:
       (void)printf("stmk_empty\n");
       break;
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
     case stmk_expr:
       (void)printf("stmk_expr\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);

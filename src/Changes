@@ -1,5 +1,10 @@
 Version 2.44
 
+3/2/00   Compilation problem when REPRESENT_EMPTY_STATEMENTS_IN_IL is 0
+
+When REPRESENT_EMPTY_STATEMENTS_IN_IL is 0, the file il_display.c did not
+build properly.  This problem was introduced in 2.43.  Now fixed.
+
 3/2/00   Internal error on redeclaration incompatibility in SVR4 mode
 
 The front end sometimes aborted its processing with an internal error when
