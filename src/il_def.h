@@ -24,9 +24,9 @@ No #ifndef IL_DEF_H is needed here; this file is included by il.h,
 and protected by the ifndef there.
 */
 
-#ifndef TARGET_H
-#include "target.h"
-#endif /* ifndef TARGET_H */
+#ifndef TARG_DEF_H
+#include "targ_def.h"
+#endif /* ifndef TARG_DEF_H */
 #ifndef LANG_FEAT_H
 #include "lang_feat.h"
 #endif /* ifndef LANG_FEAT_H */
