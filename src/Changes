@@ -1,5 +1,24 @@
 Version 2.26
 
+10/6/94  Class scope reactivation for scanning a class member declarator
+
+A bug has been fixed in how the class scope is reactivated and deactivated
+in scanning the declarator for a class member outside the class definition.
+The scope is now reactivated as soon as the qualified name is seen and not
+deactivated until the entire declarator has been scanned.  For example:
+
+  struct A {
+    struct X { int i; };
+    void (*f())(X);
+  };
+  void (*A::f())(X) { return 0; }   // X used to be reported as undefined;
+                                    //    now it is recognized as A::X.
+
+(Note: there does not seem to any statement in the ARM or working paper
+explicitly requiring this approach.  However, it is consistent with
+existing practice, with assertions made at X3J16 meetings, and with
+Stroustrup, "The C++ Programming Language", 2nd edition, p. 165.)
+
 10/5/94  C++-generating back end: types declared in function declarators in C++
 
 A bug in the C++-generating back end was corrected, avoiding an internal
