@@ -980,9 +980,13 @@ routine entry and return TRUE; otherwise return FALSE.
           do {
             rp = sym->variant.routine;
             /* We are only interested in virtual functions with the same
-               type signature.  Look first at the arg types only. */
+               type signature.  See first whether the parameter types are
+               compatible and whether the implicit "this" param types are
+               consistent (either both must be absent or both must be present
+               and qualified identically). */
             if (rp->is_virtual &&
-                arg_types_are_compatible(rout->type, rp->type)) {
+                param_types_are_compatible(rout->type, rp->type) &&
+                this_param_types_correspond(rout->type, rp->type)) {
               /* Now compare the return types. */
               if (types_are_compatible(rout->type->variant.routine.return_type,
                                       rp->type->variant.routine.return_type)) {
