@@ -5115,23 +5115,25 @@ array "new".  Develop a dynamic initialization entry that describes
 the deallocation and return a pointer to it.
 */
 {
-  a_dynamic_init_ptr dyn_init_to_free_storage;
+  a_dynamic_init_ptr dyn_init_to_free_storage = NULL;
 
-  /* Mark the routine IL entry referenced. */
-  if_evaluating_mark_routine_referenced(delete_routine);
-  /* Mark the routine as called. */
-  delete_routine->called = TRUE;
-  /* The deletion is recorded in a dynamic initialization entry.
-     The delete routine is used as the "destructor". */
-  dyn_init_to_free_storage =
+  if (curr_expr_is_potentially_evaluated()) {
+    /* Mark the routine IL entry referenced. */
+    mark_routine_referenced(delete_routine);
+    /* Mark the routine as called. */
+    delete_routine->called = TRUE;
+    /* The deletion is recorded in a dynamic initialization entry.
+       The delete routine is used as the "destructor". */
+    dyn_init_to_free_storage =
                         alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
-  dyn_init_to_free_storage->destructor = delete_routine;
-  dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
-  dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
-  dyn_init_to_free_storage->is_array_freeing = array_new;
-  record_end_of_lifetime_destruction(dyn_init_to_free_storage,
-                                     /*static_lifetime=*/FALSE,
-                                     /*block_lifetime=*/FALSE);
+    dyn_init_to_free_storage->destructor = delete_routine;
+    dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
+    dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
+    dyn_init_to_free_storage->is_array_freeing = array_new;
+    record_end_of_lifetime_destruction(dyn_init_to_free_storage,
+                                       /*static_lifetime=*/FALSE,
+                                       /*block_lifetime=*/FALSE);
+  }  /* if */
   return dyn_init_to_free_storage;
 }  /* f_make_dyn_init_for_deletion_for_throw */
 
