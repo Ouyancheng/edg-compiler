@@ -785,7 +785,7 @@ ec_conflicts_with_using_decl;;"%np1 conflicts with using-declaration of %np2"
 ec_using_decl_conflicts_with_prev_decl;;"using-declaration of %np1 conflicts with %npd2"
 ec_cl_namespaces_option_only_in_cplusplus;;"namespaces option can be used only when compiling C++"
 ec_useless_using_declaration;;"using-declaration ignored -- it refers to the current namespace"
-ec_class_qualified_name_required;;"class-qualified name is required"
+ec_class_qualified_name_required;;"a class-qualified name is required"
 ec_argument_list_types_add_on;INTERNAL;"argument types are: (%s)"
 ec_operand_types_add_on;INTERNAL;"operand types are: %s"
 ec_using_declaration_ignored;;"using-declaration of %n ignored"
@@ -800,6 +800,8 @@ ec_type_qualifier_not_allowed;;"a type qualifier is not allowed"
 ec_template_instance_already_used;;"%npd1 was used before its template was declared"
 ec_static_nonstatic_with_same_param_types;;"static and nonstatic member functions with same parameter types cannot be overloaded"
 ec_no_prior_declaration;;"no prior declaration of %np"
+ec_template_id_not_allowed;;"a template-id is not allowed"
+ec_class_qualified_name_not_allowed;;"a class-qualified name is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
