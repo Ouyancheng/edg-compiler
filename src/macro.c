@@ -1279,12 +1279,14 @@ In such cases, charize is TRUE.
         /* End of argument. */
         break;
       } else if (p[1] == LE_NULL) {
-        /* A null is passed through as \0 if inside a string.  Otherwise,
+        /* A null is passed through as \000 if inside a string.  Otherwise,
            it's discarded. */
         if (within_char_literal) {
-          len += 2;
+          len += 4;
           if (src_loc != NULL) {
             *(*src_loc)++ = '\\';
+            *(*src_loc)++ = '0';
+            *(*src_loc)++ = '0';
             *(*src_loc)++ = '0';
           }  /* if */
         }  /* if */
