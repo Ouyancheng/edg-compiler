@@ -1493,7 +1493,6 @@ target C compiler.
 #endif /* ifndef USE_INIT_SECTION_IN_GENERATED_C */
 #endif /* BACK_END_IS_C_GEN_BE */
 
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
 If ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C is TRUE, "(...)" will be put out
 as the parameter list for a routine with no parameters and has_ellipsis
@@ -1564,8 +1563,6 @@ the initial value of old_specializations_for_generated_instances.
 #ifndef DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES
 #define DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES FALSE
 #endif /* DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES */
-
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 /*
 Flag that is TRUE if, when the C-generating back end (c_gen_be) or
