@@ -7312,19 +7312,23 @@ them.  The call has already been lowered.
 }  /* add_implied_args_to_call */
 
 
-static an_expr_node_ptr make_vtbl_entry_node(a_routine_ptr    routine_ptr,
+static an_expr_node_ptr make_vtbl_entry_node(an_expr_node_ptr func_node,
                                              an_expr_node_ptr object_node)
 /*
 Create an expression that computes the address of the virtual table entry
-for the function indicated by routine_ptr for the object whose address
-is given by object_node.  Return a pointer to the expression created.
+for the function whose address is given by func_node for the object whose
+address is given by object_node.  Return a pointer to the expression
+created.
 */
 {
+  a_routine_ptr             routine_ptr;
   an_expr_node_ptr          select_vptr_node, vptr_node, vtbl_entry_node;
   an_expr_node_ptr          index_node;
   a_constant_ptr            index_con;
   a_virtual_function_number index;
 
+  /* Find the routine entry. */
+  routine_ptr = routine_from_node(func_node);
   /* Make an expression tree for the value of the virtual function table
      pointer. */
   select_vptr_node = make_vptr_field_lvalue(object_node);
@@ -7353,7 +7357,6 @@ have already been lowered.
   an_expr_node_ptr vtbl_entry_node, vtbl_temp_node;
   an_expr_node_ptr assign_node, padd_node;
   a_variable_ptr   vtbl_temp_var;
-  a_routine_ptr    routine_ptr;
 
   /* The original tree has an eok_virtual_call node with operands as follows:
        (1) an enk_routine_address node for the virtual function.
@@ -7376,8 +7379,7 @@ have already been lowered.
      second by "object_temp". */
   /* Make a node for the address of the virtual table entry for the
      function. */
-  routine_ptr = routine_from_node(func_node);
-  vtbl_entry_node = make_vtbl_entry_node(routine_ptr, object_node);
+  vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
   /* Make the vtbl_temp temporary and an lvalue for it, and assign the
      virtual function table entry address to it. */
   vtbl_temp_var = make_temporary(vtbl_entry_node->type);
@@ -7419,8 +7421,6 @@ have already been lowered.
   set_node_operator(expr, (an_expr_operator_kind)eok_comma, expr->type,
                     assign_node);
   assign_node->next = func_node;
-  /* If the call is of a destructor, add the implied argument. */
-  add_implied_args_to_call(func_node, routine_ptr);
 }  /* lower_virtual_function_call */
 
 
@@ -7450,8 +7450,7 @@ have already been lowered.
   */
   /* Make a node for the address of the virtual table entry for the
      function, i.e., "(object->__vptr)+index". */
-  vtbl_entry_node = make_vtbl_entry_node(routine_from_node(func_node),
-                                         object_node);
+  vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
   /* Make an expression that extracts the "f" (function pointer) from the
      virtual table entry, as an lvalue. */
   func_select_node = field_lvalue_selection_expr(vtbl_entry_node,
@@ -8620,6 +8619,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         switch (op) {
           case eok_virtual_call:
             /* Virtual function call. */
+            /* If the call is of a destructor, add the implied argument. */
+            add_implied_args_to_call(expr, routine_from_node(operand_node));
             lower_virtual_function_call(expr);
             break;
           case eok_virtual_function_ptr:
