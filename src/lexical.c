@@ -2173,10 +2173,14 @@ Push the indicated file onto the input stack.
   if (list_included_files && depth_input_stack != 0) {
     fprintf(f_pp_output, "%s\n", curr_ise->file_name);
   }  /* if */
-  /* Modify the search rules for #include directives found within this source
-     file, so that the directory containing the current include file will be
-     searched first. */
-  push_primary_include_search_dir(curr_ise->dir_name);
+  if (curr_ise->assoc_actual_il_file != il_header.primary_source_file) {
+    /* Modify the search rules for #include directives found within this source
+       file, so that the directory containing the current include file will be
+       searched first.  Note that this is not done for the primary source
+       file.  The include search entry for the primary source file is
+       managed by the routines in cmd_line.c. */
+    push_primary_include_search_dir(curr_ise->dir_name);
+  }  /* if */
   if (C_dialect != C_dialect_pcc) {
     /* If not in pcc mode, keep the base of the preprocessing if stack
        up to date.  Each file's #ifs are kept separate; an #if must

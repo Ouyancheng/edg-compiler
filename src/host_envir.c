@@ -457,8 +457,8 @@ a similar change would be required in pop_primary_include_search_dir.
 void pop_primary_include_search_dir(char *dir_name)
 /*
 The directory name in the primary include file search path should revert to
-"dir_name", as the result of pushing a new include file onto the source
-input stack.  The directory name string should be allocated in general memory.
+"dir_name", as the result of popping an include file from the source
+input stack.
 */
 {
 #if !STACK_REFERENCED_INCLUDE_DIRECTORIES
@@ -474,7 +474,7 @@ input stack.  The directory name string should be allocated in general memory.
   dnep = incl_search_path;
   incl_search_path = incl_search_path->next;
   check_assertion(incl_search_path != NULL &&
-                  incl_search_path->dir_name == dir_name);
+                  (strcmp(incl_search_path->dir_name,dir_name) == 0));
   free_directory_name_entry(dnep);
 #endif /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
 }  /* pop_primary_include_search_dir */
