@@ -709,6 +709,14 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  add_option_description(optk_late_tiebreaker,
+                         "late_tiebreaker",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_late_tiebreaker,
+                         "early_tiebreaker",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1842,6 +1850,10 @@ enable_microsoft_mode:
         }  /* if */
         break;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+      case optk_late_tiebreaker:
+        /* Early vs. late overload resolution tiebreaker. */
+        do_late_ovl_res_tiebreaker = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1950,6 +1962,9 @@ enable_microsoft_mode:
               ec_cl_one_instantiation_per_object_option_only_in_cplusplus);
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+    if (option_kind_used[(int)optk_late_tiebreaker]) {
+      command_line_error(ec_cl_late_tiebreaker_option_only_in_cplusplus);
+    }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {
       address_of_ellipsis_allowed = TRUE;
@@ -2078,7 +2093,6 @@ enable_microsoft_mode:
       /* Set optional features to standard settings for strict C++ mode. */
       allow_copy_assignment_op_with_base_class_param = FALSE;
       ptr_to_unknown_bound_array_allowed_in_param_type = FALSE;
-      do_late_ovl_res_tiebreaker = FALSE;
       single_ref_qual_ovl_res_tiebreaker = FALSE;
       if (!(option_kind_used[(int)optk_alternative_tokens])) {
         /* If alternative_tokens was not explicitly set by a command line
@@ -2179,6 +2193,11 @@ enable_microsoft_mode:
         /* If nonstandard_qualifier_deduction was not set on the command line,
            turn it off now. */
         nonstandard_qualifier_deduction = FALSE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_late_tiebreaker])) {
+        /* If late tiebreaker was not explicitly set by a command line
+           option, force it off. */
+        do_late_ovl_res_tiebreaker = FALSE;
       }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the
