@@ -1265,6 +1265,7 @@ scope is that of a class definition.
   if (C_dialect == C_dialect_cplusplus) {
     a_type_ptr            this_param_type = NULL;
     a_type_qualifier_set  qualifiers;
+    a_boolean             restrict_qualified = FALSE;
 
     /* Create a pointer to the implicit this parameter.  This can be done
        for nonstatic function declarations within a class definition or
@@ -1283,6 +1284,15 @@ scope is that of a class definition.
       (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
                             &dummy_storage_class, &dummy_type_ptr,
                             &qualifiers);
+#if RESTRICT_ALLOWED
+      /* When a member function is declared with the restrict qualifier, the
+         qualifier attaches to the this pointer, not to *this (as with const
+         and volatile).  So save out the restrict qualifier. */
+      if (qualifiers & TQ_RESTRICT) {
+        restrict_qualified = TRUE;
+        qualifiers &= ~TQ_RESTRICT;
+      }  /* if */
+#endif /* RESTRICT_ALLOWED */
       /* If this is not a member function or it is but it is a static member
          function declared within a class definition, a qualifier on the
          function is illegal (ARM 8.2.5)..  However, qualifiers on a pointer
@@ -1297,8 +1307,7 @@ scope is that of a class definition.
                   scope_stack[decl_scope_level].kind ==
                                  (a_scope_kind)sck_class_struct_union)) {
         /* It is illegal to specify "const" or "volatile" on any function
-           other than a nonstatic member function (ARM 8.2.5).  We just
-           issue a warning since it is harmless. */
+           other than a nonstatic member function (ARM 8.2.5). */
         qualifier_err = TRUE;
       } else if (is_constructor || is_destructor) {
         /* A qualifier appearing on a constructor or destructor is not
@@ -1329,6 +1338,10 @@ scope is that of a class definition.
          "const pointer to const class-type". */
       this_param_type = make_pointer_type(this_param_type);
       qualifiers = TQ_CONST;
+#if RESTRICT_ALLOWED
+      /* Apply the restrict qualifier to the this pointer itself. */
+      if (restrict_qualified) qualifiers |= TQ_RESTRICT;
+#endif /* RESTRICT_ALLOWED */
       this_param_type = make_qualified_type(this_param_type, qualifiers);
       extra_info->implicit_this_param_type = this_param_type;
     }  /* if */
