@@ -7196,9 +7196,9 @@ static a_boolean is_invalid_catch_type(a_type_ptr type, a_source_position *pos)
     pos_error(ec_incomplete_type_not_allowed, pos);
     result = TRUE;
   } else if (is_ptr_or_ref_type(type)) {
-    if (is_incomplete_type(type_pointed_to(type))) {
-      pos_diagnostic(strict_ansi_mode ?
-                       strict_ansi_error_severity : es_warning,
+    type = type_pointed_to(type);
+    if (is_incomplete_type(type) && !is_void_type(type)) {
+      pos_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
                      ec_ptr_or_ref_to_incomplete_type, pos);
       result = TRUE;
     }  /* if */
