@@ -753,6 +753,50 @@ a type identical to base_class_type.  Return NULL if none is found.
 }  /* find_direct_or_virtual_base_class_of */
 
 
+a_boolean is_on_any_derivation_of(a_base_class_ptr  ref_bcp,
+                                  a_base_class_ptr  bcp)
+/*
+Return TRUE if ref_bcp appears as a step on any derivation of bcp.
+*/
+{
+  a_boolean                    found;
+  a_base_class_derivation_ptr  bcdp;
+  a_derivation_step_ptr        step;
+
+  if (ref_bcp == bcp) {
+    /* They're the same base class -- return TRUE. */
+    found = TRUE;
+  } else {
+    found = FALSE;
+    /* Loop through all the derivations of bcp and search the paths for a
+       match. */
+    for (bcdp = bcp->derivation; bcdp != NULL; bcdp = bcdp->next) {
+      /* First examine each step in the current path segment. */
+      for (step = bcdp->path; step != NULL; step = step->next) {
+        if (step->base_class == ref_bcp) {
+          found = TRUE;
+          goto done;
+        } else if (ref_bcp->direct || ref_bcp->is_virtual) {
+          /* If ref_bcp is a direct or virtual base class, it would have to
+             be the first entry in the list. */
+          break;
+        }  /* if */
+      }  /* for */
+      /* If the current derivation does not start with a direct base class,
+         it must start with a virtual base class whose own derivation(s)
+         also need to be scanned. */
+      if (!bcdp->direct &&
+          is_on_any_derivation_of(ref_bcp, bcdp->path->base_class)) {
+        found = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+done:
+  return found;
+}  /* is_on_any_derivation_of */
+
+
 a_base_class_ptr corresponding_base_class(a_base_class_ptr  base_class,
                                           a_type_ptr        new_class,
                                           a_base_class_ptr  disambiguator)
@@ -853,35 +897,25 @@ step on the derivation list serves to confirm the match.
            list.  Check the derivations to resolve the ambiguity. */
         if (disambiguator != NULL) {
           if (!bcp->direct) {
-            /* Find the immediate predecessor in bcp's derivation path.  Note
-               that bcp is nonvirtual, so we don't need to worry about multiple
-               paths in looking for its immediate predecessor. */
-            step = bcp->derivation->path;
-            for (; step->next->next != NULL; step = step->next);
-            if (step->base_class == disambiguator) {
+            if (is_on_any_derivation_of(disambiguator, bcp)) {
               new_base_class = bcp;
+#if CHECKING
+              /* Be sure the disambiguator actually worked by looking on
+                 through the base classes for another match. */
+              if (bcp->ambiguous) {
+                for (bcp = bcp->next; bcp != NULL; bcp = bcp->next) {
+                  if (bcp->type == base_class->type && bcp->ambiguous) {
+                    if (is_on_any_derivation_of(disambiguator, bcp)) {
+                      internal_error(
+                                "corresponding_base_class: bad disambiguator");
+                    }  /* if */
+                  }  /* if */
+                }  /* for */
+              }  /* if */
+#endif /* CHECKING */
               goto done;
             }  /* if */
           }  /* if */
-#if 0
-        } else if (equivalent_paths(bcp->derivation->path,
-                   base_class->derivation->path)) {
-          new_base_class = bcp;
-          goto done;
-        } else {
-          /* We still don't have a match.  The last possibility is to check
-             for cases where the paths are congruent once we move far
-             enough along bcp's derivation -- for instance, if the derivation
-             of bcp is A==>B==>C and the derivation of base_class is B==>C. */
-          for (step = bcp->derivation->path; step != NULL; step = step->next) {
-            if (step->base_class->type ==
-                          base_class->derivation->path->base_class->type &&
-                congruent_paths(step, base_class->derivation->path)) {
-              new_base_class = bcp;
-              goto done;
-            }  /* if */
-          }  /* for */
-#endif /* if 0 */
         } else {
           /* Neither bcp nor base_class is virtual, one or both is ambiguous,
              and there is no disambiguator.  The last avenue for confirming
