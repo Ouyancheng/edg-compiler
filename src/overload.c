@@ -7797,9 +7797,9 @@ conversion_for_direct_reference_binding_possible.
     type_is_correct_or_derived = TRUE;
   } else if ((any_cfront_mode()
 #if MICROSOFT_EXTENSIONS_ALLOWED
-             || microsoft_mode)
+             || microsoft_mode
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                &&
+                              ) &&
              is_pointer_type(unqual_dest_type) &&
              is_pointer_type(unqual_source_type) &&
              same_type_with_added_qualifiers(unqual_source_type,
