@@ -2993,13 +2993,13 @@ Write out attributes that apply to the indicated routine.
 
 static void write_asm_name(char *asm_name)
 /*
-Write out an asm name for a routine or variable. asm_name is allowed
+Write out an asm name for a routine or variable.  asm_name is allowed
 to be NULL.
 */
 {
   char *c;
 
-  if (asm_name) {
+  if (asm_name != NULL) {
     write_tok_str(" __asm__(\"");
     for (c = asm_name; *c != '\0'; c++) {
       (void)form_char(*c, &octl);
