@@ -1,5 +1,21 @@
 Version 2.42
 
+4/7/99   Initialization of class members and array elements of aggregate
+         class type
+
+Initializers appearing in a brace-enclosed list that apply to class
+aggregate subobjects are now handled correctly.  Here's an example from the
+C++ standard (8.5.1) that we now get right.
+
+  struct A {
+    int i;
+    operator int();
+  } a;
+  struct B {
+    A a1, a2;
+    int z;
+  } b = { 4, a, a };    // b.a1.i = 4, b.a2 = a, b.z = a.operator int()
+
 4/4/99   C++-generating back end: initial explicit declaration of a
          predeclared type
 

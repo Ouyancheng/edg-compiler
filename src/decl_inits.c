@@ -101,12 +101,26 @@ typedef struct an_aggregate_init_context {
 		end_of_constant_list;
 			/* Pointer to the end of the list that constant_list
 			   heads. */
+  a_constant_ptr
+		pending_init_con;
+			/* Pointer to a constant entry produced when
+			   scanning for a whole-class-object initializer for
+			   an aggregate class.  The class as a whole cannot
+			   be initialized, so the initializer is save to
+			   initialize a member. */
   a_byte_boolean
 		any_dynamic_initialization;
 			/* Flag that is TRUE if the current aggregate member
 			   requires dynamic initialization.  This information
 			   percolates back up when returning from recursive
 			   calls to get_initializer. */
+  a_byte_boolean
+		pending_init_levels;
+			/* When pending_init_con is non-NULL, the number of
+			   levels down at which to find the member to be
+			   initialized (since the first direct member of an
+			   aggregate class can itself be an aggregate class
+			   or an array). */
 } an_aggregate_init_context;
 
 
@@ -122,6 +136,22 @@ Initialize an entry of type an_aggregreate_init_context.
   init_context->constant_list = NULL;
   init_context->end_of_constant_list = NULL;
   init_context->any_dynamic_initialization = FALSE;
+  init_context->pending_init_con = NULL;
+  init_context->pending_init_levels = 0;
+  if (prev_init_context != NULL) {
+    a_constant_ptr  init_con = prev_init_context->pending_init_con;
+    unsigned long   levels_down = prev_init_context->pending_init_levels;
+
+    check_assertion((levels_down > 0) == (init_con != NULL));
+    if (init_con != NULL) {
+      /* Propagate the pending constant to the next context, and clear it
+         from the current current, decrementing the level indicator. */
+      init_context->pending_init_con = init_con;
+      init_context->pending_init_levels = levels_down - 1;
+      prev_init_context->pending_init_con = NULL;
+      prev_init_context->pending_init_levels = 0;
+    }  /* if */
+  }  /* if */
 }  /* initialize_init_context */
 
 
@@ -147,8 +177,9 @@ a copy is made and modified.
 
 
 static a_boolean check_for_string_constant_initializer(
-                                                a_type_ptr      *type_ptr,
-                                                a_constant_ptr  *init_con)
+                                 a_type_ptr                     *type_ptr,
+                                 a_constant_ptr                 *init_con,
+                                 an_aggregate_init_context_ptr  init_context)
 /*
 If the variable type (given in *type_ptr) is a character array and the
 initializer is a string literal, return TRUE and update *init_con to indicate
@@ -160,11 +191,27 @@ the string literal. (Note the extra level of indirection that allows that.)
 If there is an error, issue an error and return an error constant.
 */
 {
-  a_boolean  is_string_init = FALSE;
-  a_boolean  paren_flag = FALSE;
+  a_boolean      is_string_init = FALSE;
+  a_boolean      paren_flag = FALSE;
+  a_boolean      using_pending_init_con = FALSE;
+  a_constant_ptr cp;
 
   if (is_string_type(*type_ptr)) {
-    if (curr_token == tok_string_literal) {
+    if (init_context != NULL && init_context->pending_init_con != NULL) {
+      /* The initializer has already been scanned. */
+      if (init_context->pending_init_levels == 0) {
+        /* It applies to the current level.  Check whether it's a string
+           literal. */
+        cp = init_context->pending_init_con;
+        if (cp->kind == (a_constant_repr_kind)ck_string) {
+          is_string_init = TRUE;
+          using_pending_init_con = TRUE;
+          /* Clear the pointer in the context block so it won't be reused
+             later. */
+          init_context->pending_init_con = NULL;
+        }  /* if */
+      }  /* if */
+    } else if (curr_token == tok_string_literal) {
       is_string_init = TRUE;
     } else if (curr_token == tok_lparen) {
       if ((any_cfront_mode() || C_dialect == C_dialect_pcc ||
@@ -195,18 +242,32 @@ If there is an error, issue an error and return an error constant.
 
     /* The object to be initialized is an array (possibly incomplete) of
        char or wchar_t -- i.e., a string or wide string. */
-    is_wide_string = !is_char_array_type(local_type);
-    if (const_for_curr_token.kind != (a_constant_repr_kind)ck_string) {
-      /* The constant is not a string. */
-      err = TRUE;
-    } else if (is_wide_string ?
-                 (is_wchar_t_array_type(local_type) ==
-                           is_wchar_t_array_type(const_for_curr_token.type)) :
-                 is_char_array_type(const_for_curr_token.type)) {
+    if (!using_pending_init_con) {
+      /* The constant wasn't prescanned. */
+      cp = &const_for_curr_token;
+      if (cp->kind != (a_constant_repr_kind)ck_string) {
+        /* The constant is not a string. */
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!err) {
+      /* The constant and the array should have the same underlying character
+         element type -- e.g., it's a mismatch if one is a wide string
+         and the other a normal string. */
+      if (is_char_array_type(local_type)) {
+        err = !is_char_array_type(cp->type);
+      } else if (is_wchar_t_array_type(local_type) &&
+                 is_wchar_t_array_type(cp->type)) {
+        is_wide_string = TRUE;
+      } else {
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!err) {
       /* The constant is a string with characters that are compatible with
          the array element type.  (Note that an array of characters of any
          signedness can be initialized with a string literal: ANSI C 3.5.7.) */
-      num_elems = string_length = const_for_curr_token.variant.string.length;
+      num_elems = string_length = cp->variant.string.length;
       if (is_wide_string) {
         /* Adjust the wide string number of elements. */
         num_elems /= targ_sizeof_wchar_t;
@@ -234,12 +295,12 @@ If there is an error, issue an error and return an error constant.
             num_elems--;
             if (!is_wide_string) {
               string_length--;
-              const_for_curr_token.type = string_type(num_elems);
+              cp->type = string_type(num_elems);
             } else {
               string_length -= targ_sizeof_wchar_t;
-              const_for_curr_token.type = wide_string_type(num_elems);
+              cp->type = wide_string_type(num_elems);
             }  /* if */
-            const_for_curr_token.variant.string.length = string_length;
+            cp->variant.string.length = string_length;
           } else {
             /* The initializer string is too long for the array being
                initialized. */
@@ -247,23 +308,22 @@ If there is an error, issue an error and return an error constant.
           }  /* if */
         }  /* if */
       }  /* if */
-    } else {
-      /* The constant and the array do not have the same underlying character
-         element type; it must be that one is a wide string and the other
-         a normal string.  Note that there is no mismatch in that case if
-         wchar_t is char. */
-      err = TRUE;
     }  /* if */
     if (err) {
       /* There was an error of some kind. */
-      if (!is_error_type(const_for_curr_token.type)) {
+      if (!is_error_type(cp->type)) {
         pos_ty2_error(ec_bad_initializer_type, &error_position,
-                      const_for_curr_token.type, local_type);
+                      cp->type, local_type);
       }  /* if */
       *init_con = alloc_error_constant();
     } else {
-      /* Allocate the string constant. */
-      *init_con = alloc_unshared_constant(&const_for_curr_token);
+      if (!using_pending_init_con) {
+        /* Allocate the string constant. */
+        *init_con = alloc_unshared_constant(cp);
+      } else {
+        /* The prescanned constant was already allocated. */
+        *init_con = cp;
+      }  /* if */
       /* Pass the type back to the caller; the array size is now
          known if it was incomplete. */
       *type_ptr = local_type;
@@ -271,8 +331,10 @@ If there is an error, issue an error and return an error constant.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITI0NS_IN_IL */
-    /* Bypass the string and the right paren, if appropriate. */
-    (void)get_token();
+    if (!using_pending_init_con) {
+      /* Bypass the string and the right paren, if appropriate. */
+      (void)get_token();
+    }  /* if */
     if (paren_flag) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (curr_token == tok_rparen) {
@@ -739,7 +801,9 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
   a_boolean        is_constant;
   a_constant       constant, *cp = NULL;
 
-  if (check_for_string_constant_initializer(&type, &cp)) {
+  if (check_for_string_constant_initializer(
+                                   &type, &cp,
+                                   (an_aggregate_init_context_ptr)NULL)) {
     /* The object being initialized has type array of char or wchar_t, and
        is being initialized with a string. */
     is_constant = TRUE;
@@ -832,57 +896,57 @@ this function points to a tree that includes a dynamic-init entry.
   *any_dynamic_init = FALSE;
   initialize_init_context(&init_context, prev_init_context);
   local_type = skip_typerefs(*type);
-  /* There is special handling to initialize a field or array element that
-     is itself a class object.  If it is a C-style struct (an aggregate
-     class, which has no constructors -- see ARM 8.4.1) we assume the
-     initial values are to be applied on a member by member basis.  This
-     produces slightly anomalous behavior:
-        struct S { int a, b; };        // C-style struct (aggregate)
-        struct T { int a, b; T(); };   // nonaggregate due to T::T()
-        S s1 = { 1, 2 };               // okay (ARM 8.4.1)
-        S s2 = s1;                     // okay (ARM 8.4.1) even without copy
-                                       //   constructor S::S(const S&)
-        S sa1[] = { 1, 2, 1, 2 };      // equivalent to {{1,2},{1,2}}
-        S sa2[] = { s1, s2 };          // error!
-        T t1 = { 1, 2 };               // error -- must use T::T()
-        T t2 = t1;                     // okay -- uses T::T(const T&)
-        T ta[] = { t1, t2 };           // okay -- see ARM 12.6.1
-     The point to be noted is that if the initialization of sa1 is permitted
-     (which is required for C compatibility) the code to initialize sa2 must
-     be disallowed, despite what one might expect by looking at s2, t2, and
-     ta.  (If we wanted to support the initialization of sa2 and disallow that
-     of sa1, the check for is_class_aggregate in the following conditional
-     would have to be removed.) */
-  if (C_dialect == C_dialect_cplusplus) {
-    if (is_class_struct_union_type(local_type)) {
-      /* If this is not a C-style struct (i.e., if it is not one for which
-         C-style aggregate initialization is allowed) or if it has no
-         members, the object is initialized as a whole. */
-      if (!(symbol_supplement_for_class(local_type)->is_class_aggregate)) {
-        if (curr_token == tok_lbrace) {
-          pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
-                       local_type);
-          local_type = error_type();
-        } else {
-          whole_object_initialization = TRUE;
-        }  /* if */
+  if (!C_mode() && is_class_struct_union_type(local_type)) {
+    /* There is special handling to initialize a field or array element that
+       is itself a class object.  If the class is not an aggregate, then
+       whole-object initialization is done (by calling a constructor).
+       However, if it's an aggregate class, the initializer can apply to
+       either the initial field of the aggregate or to the class as a whole.
+          struct S { int a, b; };        // aggregate class
+          S s1 = { 1, 2 };               // okay
+          S s2 = s1;                     // okay
+          S sa1[] = { 1, 2, 1, 2 };      // equivalent to {{1,2},{1,2}}
+          S sa2[] = { s1, s2 };          // okay
+          S sa3[] = { s1, 1, 2 };        // okay
+    */
+    if (!(symbol_supplement_for_class(local_type)->is_class_aggregate)) {
+      if (curr_token == tok_lbrace) {
+        /* Only aggregates can be initialized by brace-enclosed lists. */
+        pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
+                     local_type);
+        local_type = error_type();
       } else {
-        a_field_ptr  fp;
-        fp = next_initializable_field(local_type->
-                                        variant.class_struct_union.field_list);
-        if (fp == NULL) {
-          /* An empty class.*/
-          if (curr_token == tok_lbrace) {
-            /* An empty class can be initialized with "{}". */
-          } else {
-            whole_object_initialization = TRUE;
-          }  /* if */
-        }  /* if */
+        /* We will check for a constructor. */
+        whole_object_initialization = TRUE;
+      }  /* if */
+    } else if (!top_level) {
+      /* An aggregate. */
+      a_field_ptr  fp;
+      fp = next_initializable_field(local_type->
+                                       variant.class_struct_union.field_list);
+      if (fp == NULL && curr_token == tok_lbrace) {
+        /* An empty class can be initialized with "{}". */
+      } else {
+        /* Since this is an aggregate, whole object initialization is
+           possible but not required.  That is determined by
+           scan_aggregate_class_initializer_expression. */
+        whole_object_initialization = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
   check_for_opening_brace(&brace_flag);
+  if (curr_token == tok_lbrace) {
+    /* We must have bypassed a left-brace only to encounter another.  This
+       can't be whole-object initialization.  E.g.,
+          S sa[] = { { 1, 2 }, { 1, 2 } };
+    */
+    whole_object_initialization = FALSE;
+  }  /* if */
   if (whole_object_initialization) {
+    a_boolean      err = FALSE, is_constant = FALSE;
+    a_constant     constant;
+    unsigned long  levels_down;
+
     cssp = symbol_supplement_for_class(local_type);
     check_assertion_str(!top_level,
                         "get_initializer: class encountered at top level");
@@ -892,22 +956,67 @@ this function points to a tree that includes a dynamic-init entry.
     /* This is an array element that can only be initialized by a
        constructor.  Treat the expression as an argument for the constructor
        call. */
-    if (!scan_class_initializer_expression(local_type, /*fill_in_dtor=*/FALSE,
-                                           &dip)) {
-      /* No constructor was found.  Abort the initialization. */
+    if (init_context.pending_init_con != NULL) {
+      /* The initializer has already been scanned. */
+      levels_down = init_context.pending_init_levels;
+      if (levels_down == 0) {
+        /* This is the level at which the initializer is to be applied. */
+        init_con = init_context.pending_init_con;
+        if (init_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+          dip = init_con->variant.dynamic_init;
+        } else {
+          is_constant = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if (!scan_aggregate_class_initializer_expression(
+                              local_type, init_info->static_lifetime,
+                              &levels_down, &is_constant, &dip, &constant)) {
+      /* No appropriate initializer was found. */
+      err = TRUE;
     } else {
-      init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      init_con->type = local_type;
-      init_con->variant.dynamic_init = dip;
-      init_context.any_dynamic_initialization = TRUE;
-      if (exceptions_enabled && cssp->destructor != NULL) {
-        /* If appropriate, add a destructor pointer to the dynamic init entry.
-           This is for the case in which an exception is thrown by the
-           constructor before the entire array has been initialized. */
-        a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
-        add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+      if (is_constant) {
+        /* A constant initializer was found. */
+        init_con = alloc_unshared_constant(&constant);
+      } else {
+        /* A dynamic initialization. */
+        check_assertion(dip != NULL);
+        init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+        init_con->variant.dynamic_init = dip;
       }  /* if */
     }  /* if */
+    if (!err) {
+      if (levels_down == 0) {
+        /* The initialization applies at the current level. */
+        init_con->type = local_type;
+        if (!is_constant) {
+          init_context.any_dynamic_initialization = TRUE;
+          if (exceptions_enabled) {
+            if (cssp->destructor != NULL) {
+              /* If appropriate, add a destructor pointer to the dynamic
+                 init entry. This is for the case in which an exception is
+                 thrown by the constructor before the entire array has been
+                 initialized. */
+              a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
+              add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Whole object initialization will not be done at this level after
+           all.  (This will only occur for aggregate classes.) */
+        whole_object_initialization = FALSE;
+        if (init_con != NULL) {
+          /* The initialization applies one or more levels down.  Remember
+             what was "prescanned". */
+          init_context.pending_init_con = init_con;
+          init_context.pending_init_levels = levels_down;
+          init_con = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (whole_object_initialization) {
+    /* Already done. */
   } else if (is_aggregate_or_union_type(local_type) ||
              (is_error_type(local_type) && brace_flag)) {
     /* Initialization of an array (complete or incomplete), struct, or
@@ -915,7 +1024,8 @@ this function points to a tree that includes a dynamic-init entry.
        array of char is initialized by a string.  The initial
        values can either appear inside a brace-enclosed list, or at
        the current level. */
-    if (check_for_string_constant_initializer(type, &init_con)) {
+    if (check_for_string_constant_initializer(type, &init_con,
+                                              &init_context)) {
       /* The object being initialized has type array of char or wchar_t, and
          is being initialized with a string. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -987,7 +1097,8 @@ this function points to a tree that includes a dynamic-init entry.
       any_more_initializers = TRUE;  /* Assume. */
       if (brace_flag) {
         /* The list for the aggregate at this level is enclosed in { }. */
-        if (curr_token == tok_rbrace) {
+        if (curr_token == tok_rbrace &&
+            init_context.pending_init_con == NULL) {
           /* Empty initializer list --  "{ }".  An error in C, okay in C++. */
           if (C_mode()) error(ec_exp_primary_expr);
           any_more_initializers = FALSE;
@@ -1278,33 +1389,50 @@ this function points to a tree that includes a dynamic-init entry.
     a_boolean  nonconst_allowed;
 
     dip = NULL;
-    if (!C_mode()) {
-      nonconst_allowed = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode) {
-      /* A Microsoft extension permits a nonconstant initializer in the
-         aggregate initialization of an automatic variable. */
-      nonconst_allowed = !init_info->static_lifetime;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (init_context.pending_init_con != NULL) {
+      /* The initializer has been prescanned when checking for whole-object
+         initialization.  Use the pending initializer rather than doing
+         another scan. */
+      check_assertion(init_context.pending_init_levels == 0);
+      init_con = init_context.pending_init_con;
+      init_con->type = local_type;
+      if (init_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+        dip = init_con->variant.dynamic_init;
+        check_assertion(dip != NULL);
+      }  /* if */
+      init_context.pending_init_con = NULL;
     } else {
-      nonconst_allowed = FALSE;
-    }  /* if */
-    init_con = scan_initializer_of_simple_object(
+      if (!C_mode()) {
+        nonconst_allowed = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_mode) {
+        /* A Microsoft extension permits a nonconstant initializer in the
+           aggregate initialization of an automatic variable. */
+        nonconst_allowed = !init_info->static_lifetime;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else {
+        nonconst_allowed = FALSE;
+      }  /* if */
+      init_con = scan_initializer_of_simple_object(
                                        nonconst_allowed,
                                        (a_boolean)init_info->static_lifetime,
                                        /*force_object_lifetime=*/FALSE,
                                        /*is_copy_initialization=*/TRUE,
                                        local_type, &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    init_info->init_end_position = curr_construct_end_position;
+      init_info->init_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (init_con == NULL) {
-      /* Returning NULL means a nonconstant expression was scanned, and so
-         a dynamic init entry was allocated and returned.  Create a dynamic
-         init constant to point to it. */
-      init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      init_con->variant.dynamic_init = dip;
-      init_con->type = local_type;
+      if (init_con == NULL) {
+        /* Returning NULL means a nonconstant expression was scanned, and so
+           a dynamic init entry was allocated and returned.  Create a dynamic
+           init constant to point to it. */
+        init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+        init_con->variant.dynamic_init = dip;
+        init_con->type = local_type;
+      }  /* if */
+    }  /* if */
+    if (dip != NULL) {
+      /* Dynamic initialization. */
       init_context.any_dynamic_initialization = TRUE;
       /* Since the destructor may have been added to a dynamic init entry
          that will not be "on top" when gen_dynamic_initialization is called,
