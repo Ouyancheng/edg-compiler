@@ -1,5 +1,31 @@
 Version 2.36
 
+4/9/97    Partially-lowered EH cleanup state determination at unreachable code
+
+When exception handling is partially-lowered, instructions must sometimes
+be emitted in unreachable code to indicate the current cleanup state,
+for implementations that use the instructions to generate a table.
+Formerly, this was done only at the ends of blocks and switch clauses,
+which did not handle cases where the source program contains unreachable
+code.  Now fixed.
+
+  struct A {A(); ~A(); operator bool();};
+  int func() {
+    A var1;
+    try {
+      A var2;
+      if (var1) goto label2;
+      return 1;
+      // Following code is unreachable
+      while (var2) {
+        label1: ;
+      }
+    label2:
+      if (var2) goto label1;
+    } catch (...) { }
+    return 0;
+  }
+
 4/9/97    Internal error on using-declaration that refers to undefined symbol
 
 An internal error would result when a using-declaration refers to a name

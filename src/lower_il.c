@@ -238,8 +238,6 @@ static void lower_routine(a_routine_ptr routine);
 static void lower_label(a_label_ptr label);
 static void lower_asm_entry(an_asm_entry_ptr asm_entry);
 static void lower_scope(a_scope_ptr scope);
-static void reset_cleanup_state_at_unreachable_end_of_block(
-                                          an_insert_location *insert_location);
 static a_boolean any_cleanup_actions(an_object_lifetime_ptr outer_lifetime);
 static a_boolean check_for_troublesome_ptr_to_member_constant(
                                                      a_constant_ptr constant,
@@ -7862,6 +7860,52 @@ there are no statements on the list.
   *p_last_statement = last_statement;
 }  /* lower_statement_list */
 
+#if !DO_FULL_PORTABLE_EH_LOWERING
+
+static void reset_cleanup_state_at_unreachable_point(a_statement_ptr statement)
+/*
+For the partially-lowered EH modes, we have to assume that the instruction
+used to indicate the current cleanup state may be used to create a table
+rather than being left as an executable instruction.  To accommodate that,
+we insert instructions to set the cleanup state at certain points that
+are unreachable code (i.e., following transfers of control and throws).
+An instruction to indicate the cleanup state is inserted following the
+indicated statement.
+*/
+{
+  if (exceptions_enabled) {
+    an_insert_location insert_location;
+    set_insert_location(statement, &insert_location);
+    insert_code_to_indicate_cleanup_state(&insert_location);
+  }  /* if */
+}  /* reset_cleanup_state_at_unreachable_point */
+
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+
+#if DO_FULL_PORTABLE_EH_LOWERING
+/*ARGSUSED*/  /* <-- "statement" is not used in that case. */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+static void reset_cleanup_state_at_transfer_of_control(
+                                                     a_statement_ptr statement)
+/*
+"statement" points to a transfer of control statement (goto, return)
+that has just been lowered.  Adjust the current cleanup state after the
+transfer of control.  This is necessary because the cleanup state is
+updated as destructions are generated preceding the transfer of
+control, so it no longer indicates the most-constructed state.
+In addition, for partially-lowered EH configurations a statement
+must be inserted after the statement to re-establish that
+most-constructed state.  (Note that the statement is being inserted
+as unreachable code.  The assumption is that the instruction may be
+used to build a table, rather than being something executable.)
+*/
+{
+  set_curr_cleanup_state_to_latest_initialization();
+#if !DO_FULL_PORTABLE_EH_LOWERING
+  reset_cleanup_state_at_unreachable_point(statement);
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+}  /* reset_cleanup_state_at_transfer_of_control */
+
 
 static void lower_switch_clause_list(a_switch_clause_ptr    clause_list,
                                      an_object_lifetime_ptr switch_lifetime)
@@ -7898,6 +7942,9 @@ it; otherwise, switch_lifetime is NULL.
     /* Get the statement list before any insertions done for the start
        of an object lifetime. */
     clause_statements = clause->statements;
+    /* At the start of each switch clause, the cleanup state is as it was
+       at the end of the switch expression. */
+    curr_context->curr_cleanup_state = saved_curr_cleanup_state;
     /* See if this clause is associated with the next object lifetime
        in sequence. */
     if (lifetime != NULL &&
@@ -7936,20 +7983,19 @@ it; otherwise, switch_lifetime is NULL.
           }  /* if */
           gen_cleanup_actions(switch_lifetime, &insert_location);
         }  /* if */
-      }  /* if */
-    }  /* if */
-    if (curr_context->curr_cleanup_state != saved_curr_cleanup_state) {
-      /* When a clause ends with a transfer of control, the current cleanup
-         state will be the state after any cleanup done before the transfer.
-         Restore the proper cleanup state. */
-      curr_context->curr_cleanup_state = saved_curr_cleanup_state;
+      } else {
+        /* The end of the switch clause is unreachable because of a transfer
+           of control or a throw. */
+        /* For a transfer of control, the current cleanup state will have
+           been adjusted to the most-constructed state.  For a throw,
+           however, it will not have been, so adjust it now. */
+        if (curr_context->curr_cleanup_state != saved_curr_cleanup_state) {
+          curr_context->curr_cleanup_state = saved_curr_cleanup_state;
 #if !DO_FULL_PORTABLE_EH_LOWERING
-      /* For the partially-lowered EH schemes, generate the cleanup state
-         operation since it might be used to build a table instead of being
-         considered executable.  */
-      set_insert_location(last_statement, &insert_location);
-      reset_cleanup_state_at_unreachable_end_of_block(&insert_location);
+          reset_cleanup_state_at_unreachable_point(last_statement);
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* lower_switch_clause_list */
@@ -8261,6 +8307,7 @@ Generate any cleanup actions required preceding the indicated goto statement.
            of it. */
         turn_branch_into_block(statement, &insert_location, &orig_statement);
         gen_cleanup_actions(outer_lifetime, &insert_location);
+        reset_cleanup_state_at_transfer_of_control(orig_statement);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -8314,40 +8361,6 @@ is begun.  The value of curr_context->curr_cleanup_state is saved in
 }  /* push_block_statement_context */
 
 
-#if DO_FULL_PORTABLE_EH_LOWERING
-/*ARGSUSED*/  /* <-- insert_location is not used in that case. */
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-static void reset_cleanup_state_at_unreachable_end_of_block(
-                                           an_insert_location *insert_location)
-/*
-We are currently at the end of a block whose end is unreachable.
-Usually, the cleanup state at the end of a block matches the cleanup
-state at the beginning, because either
-  (1)  the block has an associated lifetime, in which case it destroys
-       everything created therein, thus restoring the cleanup state
-       to what it was on entry, or
-  (2)  the block has no associated lifetime (it contains no
-       destructible objects), so it has no effect on the cleanup state.
-However, transfer statements (return, goto, throw) can cause the
-cleanup state to be changed to match the destination of the transfer,
-and because the code after them is unreachable, no destructions are
-emitted and the cleanup state remains in this altered state.
-The caller has determined that the current cleanup state was different
-than at the beginning of the block.  If appropriate, insert code at
-*insert_location to indicate the cleanup state.
-*/
-{
-#if !DO_FULL_PORTABLE_EH_LOWERING
-  /* For the partially-lowered EH schemes, generate the cleanup state
-     operation since it might be used to build a table instead of being
-     considered executable.  */
-  if (exceptions_enabled) {
-    insert_code_to_indicate_cleanup_state(insert_location);
-  }  /* if */
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-}  /* reset_cleanup_state_at_unreachable_end_of_block */
-
-
 static void pop_block_statement_context(
                                    a_statement_ptr    block_statement,
                                    a_statement_ptr    last_statement,
@@ -8368,57 +8381,55 @@ Any cleanup code inserted is placed after the last statement.
 curr_context->curr_cleanup_state had at the start of the block.
 */
 {
-  a_block_ptr            block = block_statement->variant.block.extra_info;
-  a_scope_ptr            scope = block->assoc_scope;
-  an_object_lifetime_ptr lifetime = block->lifetime;
-  an_insert_location     insert_location;
-
-  /* If the block was originally empty but some statements were
-     added (e.g., to initialize the catch handler parameter), find the
-     last statement. */
-  if (last_statement == NULL &&
-      block_statement->variant.block.statements != NULL) {
-    last_statement = last_statement_in_block(block_statement);
-  }  /* if */
-  /* Determine the insert location for the end of the block. */
-  if (last_statement == NULL) {
-    /* The block is empty, so insert at its beginning. */
-    set_block_start_insert_location(block_statement, &insert_location);
-  } else {
-    /* Insert after the last statement. */
-    set_insert_location(last_statement, &insert_location);
-  }  /* if */
-  if (block_statement == innermost_function_scope->assoc_block) {
-    scope = innermost_function_scope;
-  }  /* if */
   if (new_lifetime) {
+    a_block_ptr            block = block_statement->variant.block.extra_info;
+    a_scope_ptr            scope = block->assoc_scope;
+    an_object_lifetime_ptr lifetime = block->lifetime;
+    an_insert_location     insert_location;
+
     /* An object lifetime must be ended.  If there were labels in the
        block, this may end several object lifetimes.  (That's one reason
        why we can't just use curr_context->lifetime here.)   Note also
        that for the topmost block in a function, we end the lifetime
        here but do not pop the context. */
+    /* If the block was originally empty but some statements were
+       added (e.g., to initialize the catch handler parameter), find the
+       last statement. */
+    if (last_statement == NULL &&
+        block_statement->variant.block.statements != NULL) {
+      last_statement = last_statement_in_block(block_statement);
+    }  /* if */
+    /* Determine the insert location for the end of the block. */
+    if (last_statement == NULL) {
+      /* The block is empty, so insert at its beginning. */
+      set_block_start_insert_location(block_statement, &insert_location);
+    } else {
+      /* Insert after the last statement. */
+      set_insert_location(last_statement, &insert_location);
+    }  /* if */
+    if (block_statement == innermost_function_scope->assoc_block) {
+      scope = innermost_function_scope;
+    }  /* if */
     if (scope != NULL) lifetime = scope->lifetime;
     /* Insert any cleanup actions after the last statement in the block
        if the end of the block is reachable. */
     if (block->end_of_block_reachable) {
       gen_cleanup_actions(lifetime, &insert_location);
+    } else {
+      /* The end of the block is not reachable, because of a transfer of
+         control (goto, return) or a throw.  In the case of a transfer,
+         the current cleanup state will have been updated previously.
+         In the case of a throw, however, the current cleanup state may
+         need to be restored to what it was on entry to the block
+         (generating the cleanup actions would do that, but we aren't
+         generating them because the end of the block is not reachable). */
+      if (curr_context->curr_cleanup_state != saved_curr_cleanup_state) {
+        curr_context->curr_cleanup_state = saved_curr_cleanup_state;
+#if !DO_FULL_PORTABLE_EH_LOWERING
+        reset_cleanup_state_at_unreachable_point(last_statement);
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (saved_curr_cleanup_state != curr_context->curr_cleanup_state &&
-      !block->end_of_block_reachable &&
-      scope != innermost_function_scope) {
-    /* Adjust the cleanup state at the end of a block that ends with a
-       transfer of control.  There's no point in doing this for the top
-       block of a function.  The end_of_block_reachable test is usually
-       useless, but is needed (at least) for for-init declarations that
-       declare more than one variable (they use a block to group the
-       multiple initializations, and that block has neither a lifetime nor
-       a scope associated with it; the cleanup state on exit needs
-       to be the state after the initializations). */
-    curr_context->curr_cleanup_state = saved_curr_cleanup_state;
-    /* If necessary, emit code to indicate the cleanup state at the end
-       of the block. */
-    reset_cleanup_state_at_unreachable_end_of_block(&insert_location);
   }  /* if */
   if (context_pushed) {
     /* Pop the context pushed by push_block_statement_context. */
@@ -8527,6 +8538,7 @@ Lower an stmk_return statement.
       turn_branch_into_block(statement, &insert_location, &return_statement);
     }  /* if */
     gen_cleanup_actions(innermost_function_scope->lifetime, &insert_location);
+    reset_cleanup_state_at_transfer_of_control(return_statement);
   }  /* if */
   /* Maintain a list of all returns in the routine so that epilogue code
      can be added for destructors and for exception handling. */
@@ -8775,9 +8787,8 @@ handled).
       /* Insert
            if (!value_expr) goto break_label;
       */
-      { a_statement_ptr    goto_stmt, if_stmt;
-        a_dynamic_init_ptr saved_curr_cleanup_state =
-                                              curr_context->curr_cleanup_state;
+      { a_statement_ptr goto_stmt, if_stmt;
+
         goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
         goto_stmt->variant.label.ptr = break_label;
         /* The common lifetime for the goto and label is the lifetime of the
@@ -8796,10 +8807,6 @@ handled).
         /* If the condition variable requires destruction, put destruction
            code in preceding the goto. */
         gen_goto_cleanup_actions(goto_stmt);
-        if (curr_context->curr_cleanup_state != saved_curr_cleanup_state) {
-          curr_context->curr_cleanup_state = saved_curr_cleanup_state;
-          reset_cleanup_state_at_unreachable_end_of_block(&insert_location);
-        }  /* if */
       }
       /* Lower the dependent statement of the loop. */
       lower_statement(dep_statement);
