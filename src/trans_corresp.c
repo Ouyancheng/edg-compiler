@@ -5074,11 +5074,14 @@ way, determine to which other IL entry this might correspond.
        type is processed.  In those cases we look for the outermost parent
        type without a correspondence. */
     if (scp->is_class_member) {
-      if (kind == (an_il_entry_kind)iek_type &&
-          type_is_top_level_prototype_instantiation((a_type_ptr)scp)) {
+      if ((kind == (an_il_entry_kind)iek_type &&
+           type_is_top_level_prototype_instantiation((a_type_ptr)scp)) ||
+          kind == (an_il_entry_kind)iek_template) {
         /* Prototype instantiations are not always recorded in the IL.
            Therefore, set root to NULL so that the symbol table will be used
-           to find the named member instead. */
+           to find the named member instead.  Similar problems can occur
+           with member templates when their correspondence is needed before
+           the enclosing class has all its member correspondences set. */
         root = NULL;
       } else {
         /* Make sure the parent class has been processed. */
