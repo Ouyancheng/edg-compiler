@@ -1519,6 +1519,26 @@ receipt of a signal.
   /*NOTREACHED*/
 }  /* term_on_signal */
 
+#if DEBUG && !EDG_WIN32
+
+/*ARGSUSED*/ /* <-- Because "sig" is not used. */
+static a_signal_handler_return_value abort_on_cpu_limit(int sig)
+/*
+Routine set up as a signal handler, called to terminate compilation 
+with an internal error on receipt of a signal.
+*/
+{
+#if !USING_DRIVER
+  /* Print newline to make console output clean. */
+  fprintf(stderr, "\n");
+#endif /* !USING_DRIVER */
+  fprintf(stderr, "Internal error: CPU time limit exceeded.\n");
+  term_compilation(es_internal_error);
+  /*NOTREACHED*/
+}  /* abort_on_cpu_limit */
+
+#endif /* DEBUG && !EDG_WIN32 */
+
 /*
 The Sun C++ compiler requires a ... as the second parameter of the
 signal handler function.  Define a type to which the real signal handler
@@ -1553,6 +1573,10 @@ execution of the front end (for example, SIGINT).
      error will be reported where the file is written. */
   (void)signal(SIGXFSZ, SIG_IGN);
 #endif /* SIGXFSZ */
+#if DEBUG && !EDG_WIN32
+  /* Catch the signal that the CPU limit has been exceeded. */
+  (void)signal(SIGXCPU, (a_signal_handler *)abort_on_cpu_limit);
+#endif /* DEBUG && !EDG_WIN32 */
 #if __MICROSOFT_OS__
   /* Under MS-DOS, establish an atexit routine to close and delete all
      temporary files. */
