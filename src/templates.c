@@ -12319,6 +12319,7 @@ any non-empty template parameter lists that were scanned.
     /* Link in the a_template entry only if no prototype instantiation was
        recorded. */
     complete_il_template_entry(decl_state, sym, p_template_body_cache);
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
   } else {
     /* Since we record a prototype instantiation, remove the source sequence
        entry for the corresponding a_template entry.  (We never want both in
@@ -12326,6 +12327,7 @@ any non-empty template parameter lists that were scanned.
     remove_from_src_seq_list(
          decl_state->il_template_entry->source_corresp.source_sequence_entry);
     decl_state->il_template_entry->source_corresp.source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */
