@@ -6005,7 +6005,8 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
     /* Some error. */
     make_error_operand(result);
   } else if (curr_expr_kind_is_const() &&
-             !(is_template_dependent_context() &&
+             !(!C_mode() &&
+               is_template_dependent_context() &&
                is_constant_operand(operand_1) &&
                operand_1->variant.constant.kind ==
                                     (a_constant_repr_kind)ck_template_param)) {
