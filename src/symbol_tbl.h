@@ -479,7 +479,7 @@ enum a_dependent_type_fixup_kind_tag {
   dtfk_routine_calling_method,
 			/* Set the routine calling method flag in a routine
 			   type. */
-  dtfk_array_type_size,	/* Set the size of an array type. */
+  dtfk_array_type_size	/* Set the size of an array type. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_dependent_type_fixup_kind;
