@@ -130,12 +130,29 @@ EXTERN a_boolean
 			   suppressed. */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 EXTERN a_boolean
-		suppress_virtual_function_table_definition /* FALSE */;
+		suppress_virtual_function_table_definition /* = FALSE */;
 			/* If the heuristic used to determine whether a virtual
 			   function table should be defined cannot
 			   conclusively make such a determination, TRUE
 			   indicates that the definition should NOT be
 			   made. */
+#if 0
+EXTERN a_boolean
+		suppress_used_before_set_warnings /* = FALSE */;
+			/* TRUE if used-before-set warnings should not be
+			   issued on automatic local variables that are used
+			   before a value is assigned to them; FALSE by
+			   default.  Set by the -j command line option. */
+#else
+EXTERN a_boolean
+		suppress_used_before_set_warnings
+/* Temporarily the default is TRUE and -j makes it FALSE. */
+#if VAR_INITIALIZERS
+                                                  = TRUE
+#endif /* VAR_INITIALIZERS */
+                                                        ;
+#endif /* if 0 */
+
 EXTERN a_boolean
 		exceptions_enabled
 #if VAR_INITIALIZERS

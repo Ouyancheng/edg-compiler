@@ -255,7 +255,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "ABCEHKMNOPTabnsuvwxrmpV$I:D:U:e:L:X:S:o:i:d:t:F:"
+#define COMMAND_LIST "ABCEHKMNOPTabnsuvwxrmpjV$I:D:U:e:L:X:S:o:i:d:t:F:"
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
@@ -464,6 +464,15 @@ Process the arguments on the command line that invoked the compiler.
         /* Toggle the value (use the non-default value) of the flag that
            determines whether support for exceptions is disabled. */
         exceptions_enabled = !DEFAULT_EXCEPTIONS_ENABLED;
+        break;
+      case 'j':
+#if 0
+        /* Suppress used-before-set warnings. */
+        suppress_used_before_set_warnings = TRUE;
+#else
+/* Temporarily the default is TRUE and -j makes it FALSE. */
+        suppress_used_before_set_warnings = FALSE;
+#endif /* if 0 */
         break;
       case 'I':
         /* Include file directory, add to list. */

@@ -7196,7 +7196,8 @@ symbol "used" or "set", if appropriate.
           }  /* if */
         } else {
           /* This is the first use of the variable. */
-          if (!sym_ptr->variant.variable.value_has_been_set) {
+          if (!sym_ptr->variant.variable.value_has_been_set &&
+              !suppress_used_before_set_warnings) {
             /* But its value has not been set yet.  Issue a warning, if
                appropriate. */
             a_boolean                suppress_warning = FALSE;
