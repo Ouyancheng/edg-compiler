@@ -1,5 +1,15 @@
 Version 2.42
 
+4/21/99  Microsoft compatibility: storage class of local variable declared
+         with __declspec(dllimport)
+
+The storage class of a local variable declared with __declspec(dllimport)
+is now set to "extern" rather than "auto".
+
+  void f() {
+    __declspec(dllimport) int x;      // storage class is now "extern"
+  }
+
 4/21/99  C++-generating back end: invalid qualifier on namespace member
          declaration
 

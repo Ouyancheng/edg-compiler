@@ -1944,16 +1944,16 @@ returned set to TRUE.
        the declaration appears. */
     static_lifetime = (depth_innermost_function_scope == NO_SCOPE_DEPTH);
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (!var_err) {
-    /* A variable declared __declspec(dllimport) cannot be initialized. */
-    if (vp->decl_modifiers & DM_DLLIMPORT) {
-      pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
-    }  /* if */
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!var_err) {
     vp_type = vp->type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (vp->decl_modifiers & DM_DLLIMPORT) {
+      /* A variable declared __declspec(dllimport) cannot be initialized. */
+      pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
+      var_err = TRUE;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not add code here. */
     if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
         linkage != idl_none &&
         depth_innermost_function_scope != NO_SCOPE_DEPTH) {

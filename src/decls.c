@@ -9323,6 +9323,13 @@ continue_with_declaration:
                     &decl_pos_block.storage_class_pos);
           local_storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if ((decl_modifiers.flags & DM_DLLIMPORT) &&
+            local_storage_class == (a_storage_class)sc_unspecified) {
+          /* __declspec(dllimport) implies extern. */
+          local_storage_class = (a_storage_class)sc_extern;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (is_function) {
           /* A function with block scope (i.e., within an sck_function or
              sck_block scope) can only have an explicit storage class of
@@ -9381,13 +9388,6 @@ continue_with_declaration:
             }  /* if */
           }  /* if */
         }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if ((decl_modifiers.flags & DM_DLLIMPORT) &&
-            local_storage_class == (a_storage_class)sc_unspecified) {
-          /* __declspec(dllimport) implies extern. */
-          local_storage_class = (a_storage_class)sc_extern;
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       /* Enter the symbol with the proper type. */
       linkage = idl_none;
