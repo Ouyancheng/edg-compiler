@@ -3122,26 +3122,18 @@ to it.
 }  /* alloc_switch_clause */
 
 
-a_statement_ptr alloc_statement(a_statement_kind stmt_kind)
+void set_statement_kind(a_statement_ptr  sp,
+                        a_statement_kind stmt_kind)
 /*
-Allocate a statement entry, clear it to default values, and return a pointer
-to it.  The statement kind is set as indicated.
+Set the kind of the statement sp to stmt_kind, and set the associated variant
+fields to default values.
 */
 {
-  a_statement_ptr sp;
-  a_block_ptr     bp;
+  a_block_ptr bp;
 
-  db_enter(5, "alloc_statement");
-
-  sp = (a_statement_ptr)alloc_cil(sizeof(a_statement));
-#if DEBUG
-  num_statements_allocated++;
-#endif /* DEBUG */
-  sp->seq_number       = pos_curr_token.seq;
-  sp->next             = NULL;
-  sp->kind             = stmt_kind;
-  sp->expr             = NULL;
-  switch(stmt_kind) {
+  sp->kind = stmt_kind;
+  sp->expr = NULL;
+  switch (stmt_kind) {
     case stmk_expr:
     case stmk_return:
       /* No variant fields. */
@@ -3180,9 +3172,29 @@ to it.  The statement kind is set as indicated.
       break;
 #if CHECKING
     default:
-      internal_error("alloc_statement: bad kind");
+      internal_error("set_statement_kind: bad kind");
 #endif /* CHECKING */
   }  /* switch */
+}  /* set_statement_kind */
+
+
+a_statement_ptr alloc_statement(a_statement_kind stmt_kind)
+/*
+Allocate a statement entry, clear it to default values, and return a pointer
+to it.  The statement kind is set as indicated.
+*/
+{
+  a_statement_ptr sp;
+
+  db_enter(5, "alloc_statement");
+
+  sp = (a_statement_ptr)alloc_cil(sizeof(a_statement));
+#if DEBUG
+  num_statements_allocated++;
+#endif /* DEBUG */
+  sp->seq_number       = pos_curr_token.seq;
+  sp->next             = NULL;
+  set_statement_kind(sp, stmt_kind);
   db_exit();
   return (sp);
 }  /* alloc_statement */

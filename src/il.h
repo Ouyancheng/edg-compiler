@@ -165,6 +165,9 @@ extern an_expr_node_ptr alloc_node_for_constant(a_constant *constant);
 
 extern a_switch_clause_ptr alloc_switch_clause(void);
 
+extern void set_statement_kind(a_statement_ptr  sp,
+                               a_statement_kind kind);
+
 extern a_statement_ptr alloc_statement(a_statement_kind stmt_kind);
 
 extern a_scope_ptr alloc_scope(a_scope_number number,
