@@ -129,7 +129,7 @@ Report correspondence pointer for given entry.
             (unsigned)ptr, (unsigned)result);
   } else {
     result = NULL;
-    fprintf(f_debug, "No correspondence for 0x%x (primary trans. unit)",
+    fprintf(f_debug, "No correspondence for 0x%x",
             (unsigned)ptr);
   }  /* if */
   return result;
@@ -433,6 +433,9 @@ has not yet been examined for a matching entry in another translation unit.
     /* Allocate a correspondence node. */
     *tcp = alloc_trans_unit_corresp();
     (*tcp)->kind = kind;
+#if CHECKING
+    ++(*tcp)->count;
+#endif /* CHECKING */
   } else {
     /* Reuse the correspondence entry. */
     check_assertion((*tcp)->count == 1);
@@ -441,9 +444,6 @@ has not yet been examined for a matching entry in another translation unit.
   if (!in_secondary_trans_unit(entity)) {
     (*tcp)->primary = entity;
   }  /* if */
-#if CHECKING
-  ++(*tcp)->count;
-#endif /* CHECKING */
 }  /* f_set_no_trans_unit_corresp */
 
 #define set_no_trans_unit_corresp(kind, ptr)                                \
