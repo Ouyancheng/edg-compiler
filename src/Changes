@@ -40,7 +40,7 @@ a reference to a member of a namespace-scope anonymous union.  For example:
   namespace N {
     static union { int i; };
   }
-  int r = N::i;  // Used to be mistakenly rendered as "int r = (j);"
+  int r = N::i;  // Used to be mistakenly rendered as "int r = (i);"
 
 This is now fixed.
 
