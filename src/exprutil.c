@@ -3618,7 +3618,6 @@ issue an error.
     constant.variant.ptr_to_member.variant.routine = rout =
                                                member_sym->variant.routine.ptr;
     member_type = rout->type;
-    rout->address_taken = TRUE;
     if (!rout->is_virtual) {
       /* Force the routine to be instantiated or generated. */
       if_evaluating_mark_routine_referenced(rout);
