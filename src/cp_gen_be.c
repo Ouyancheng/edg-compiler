@@ -1752,7 +1752,18 @@ or enum.
   } else {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
-    write_tok_str(tag_kind(type->kind));
+    char *tag_kind_str = tag_kind(type->kind);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* The Microsoft compiler mangles class and struct types differently,
+       and the kind used on the initial declaration is the important one.
+       If this is the initial declaration, put out the proper original kind. */
+    if (il_header.source_language == sl_Cplusplus &&
+        !type->declaration_put_out) {
+      tag_kind_str =
+         tag_kind(type->variant.class_struct_union.extra_info->orig_type_kind);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    write_tok_str(tag_kind_str);
     write_space();
     if (type->declaration_put_out) {
       /* References after the declaration can use a global qualifier. */
