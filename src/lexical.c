@@ -4244,6 +4244,34 @@ IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL.
 }  /* get_qualified_name */
 
 
+a_symbol_ptr get_normal_id_or_qualified_name(an_id_lookup_options_set options)
+/*
+The current token is an identifier, which may be either the start of a
+qualified name or just a normal identifier.  Call get_qualified_name and then
+normal_id_lookup, and return a pointer to the symbol found, if any.
+options is a bit set of options controlling the lookup of the final
+id of a qualified name or the normal identifier.
+*/
+{
+  a_symbol_ptr symbol;
+
+  if (get_qualified_name(options)) {
+    /* The identifier is a qualified name. */
+    symbol = locator_for_curr_id.specific_symbol;
+#if CHECKING
+    if (symbol == NULL) {
+      internal_error(
+                   "get_normal_id_or_qualified_name: specific_symbol is NULL");
+    }  /* if */
+#endif /* CHECKING */
+  } else {
+    /* Normal identifier -- look it up. */
+    symbol = normal_id_lookup(&locator_for_curr_id, options);
+  }  /* if */
+  return symbol;
+}  /* get_normal_id_or_qualified_name */
+
+
 #if DEBUG
 unsigned long show_lexical_space_used(void)
 /*
