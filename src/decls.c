@@ -3055,7 +3055,7 @@ diagnostics.
             if (is_redecl) {
               if (!(routine->decl_modifiers & DM_DLLEXPORT)) {
                 /* Any previous declaration should have been declared
-                   with either dllexport.  Issue a warning. */
+                   with dllexport.  Issue a warning. */
                 invalid_redecl = TRUE;
               }  /* if */
             }  /* if */
@@ -3063,7 +3063,6 @@ diagnostics.
           case dmt_naked:
             if (!is_definition) {
               invalid_modifier = TRUE;
-              new_modifiers->flags &= (~modifier_value);
             }  /* if */
             break;
           case dmt_microsoft_inline:
@@ -3074,13 +3073,13 @@ diagnostics.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           default:
             invalid_modifier = TRUE;
-            new_modifiers->flags &= (~modifier_value);
             break;
         }  /* switch */
         if (invalid_modifier) {
           pos_st_diagnostic(es_discretionary_error,
                             ec_decl_modifiers_invalid_for_this_decl,
                             position, decl_modifier_names[bit_number]);
+          new_modifiers->flags &= (~modifier_value);
         }  /* if */
         any_invalid_redecl |= invalid_redecl;
       }  /* if */
