@@ -6345,7 +6345,7 @@ rather than determined directly.
 }  /* add_to_routines_list */
 
 
-void clear_function_body(a_routine_ptr  rp)
+static void clear_function_body(a_routine_ptr  rp)
 /*
 rp points to a routine whose definition is being eliminated.  Reset the entry
 to an undefined state and free the associated memory region.

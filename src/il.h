@@ -540,8 +540,6 @@ extern void remove_from_routines_list(a_routine_ptr rout_ptr,
 extern void add_to_routines_list(a_routine_ptr  rout_ptr,
                                  a_scope_depth  scope_level);
 
-extern void clear_function_body(a_routine_ptr  rp);
-
 extern void add_to_asm_entries_list(an_asm_entry_ptr asm_entry_ptr);
 
 extern void add_to_labels_list(a_label_ptr label_ptr);
