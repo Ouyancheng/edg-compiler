@@ -662,14 +662,14 @@ to be issued; otherwise set err_code to ec_no_error.
   an_internal_float_value
 		*fp_value;
   a_float_kind	float_kind;
-  a_type_ptr	float_type = skip_typerefs(old_constant->type);
+  a_type_ptr	float_tp = skip_typerefs(old_constant->type);
 
   check_assertion(old_constant->kind == (a_constant_repr_kind)ck_float);
   set_constant_kind(new_constant, (a_constant_repr_kind)ck_fixed_point);
   *err_code = ec_no_error;
   fxp_descr = fxp_descr_for_constant(new_constant);
   fp_value = &old_constant->variant.float_value;
-  float_kind = float_type->variant.float_kind;
+  float_kind = float_tp->variant.float_kind;
   /* Convert the floating-point value into the internal mantissa
      representation.  This is done even in the NaN and infinity case
      to set is_negative flag, etc. */
@@ -722,7 +722,7 @@ to be issued; otherwise set err_code to ec_no_error.
   a_boolean	inexact;
   a_fixed_point_type_descr
 		*fxp_descr;
-  a_type_ptr	float_type = skip_typerefs(new_constant->type);
+  a_type_ptr	float_tp = skip_typerefs(new_constant->type);
 
   check_assertion(old_constant->kind == (a_constant_repr_kind)ck_fixed_point);
   set_constant_kind(new_constant, (a_constant_repr_kind)ck_float);
@@ -734,7 +734,7 @@ to be issued; otherwise set err_code to ec_no_error.
                      fxp_descr, &mantissa, &exponent, &is_negative);
   /* Convert and store the mantissa as a floating-point value. */
   conv_mantissa_to_floating_point(&mantissa, exponent, is_negative,
-                                  float_type->variant.float_kind,
+                                  float_tp->variant.float_kind,
                                   &new_constant->variant.float_value,
                                   /*overflow=*/FALSE, &err, &inexact);
   /* No diagnostic is given for an inexact result. */
