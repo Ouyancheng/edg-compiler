@@ -396,9 +396,9 @@ typedef struct a_token_cache {
   a_byte_boolean
 		is_reusable;
 			/* TRUE if this cache will be reused (e.g.,
-			   for a template cache.  This should be TRUE if
+			   for a template cache).  This should be TRUE if
 			   there is any possibility that the cache may
-			   be resued. */
+			   be reused. */
 #if DEBUG
   unsigned long	token_count;
 			/* The number of tokens in this cache.  Used for
@@ -598,7 +598,7 @@ typedef struct an_include_file_history {
 			/* Length of full_name. */
   a_bit_field	suppress_subsequent_include:1;
 			/* TRUE if this file is potentially one that can
-			   have subsequence includes suppressed. */
+			   have subsequent includes suppressed. */
   a_bit_field	pragma_once:1;
 			/* TRUE if this file contained a "#pragma once"
 			   directive. */
