@@ -783,6 +783,9 @@ skip_tag_scan:
                                scope_stack[decl_scope_level].assoc_type);
           class_type->source_corresp.access = ssep->current_access;
         }  /* if */
+      } else if (!is_local_class) {
+        set_namespace_membership(tag_sym, &class_type->source_corresp,
+                                 (a_namespace_ptr)NULL);
       }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
       /* If the current declaration coexists with another declaration in the
@@ -1047,10 +1050,15 @@ to indicate whether an enumeration is actually defined.
       enum_type->source_corresp.referenced = FALSE;
       enum_type->source_corresp.decl_position = locator.source_position;
     }  /* if */
-    if (class_of_which_a_member != NULL) {
-      /* Add a pointer to the parent class in the symbol and the type. */
-      set_class_membership(tag_sym, &enum_type->source_corresp,
-                           class_of_which_a_member);
+    if (!C_mode()) {
+      if (class_of_which_a_member != NULL) {
+        /* Add a pointer to the parent class in the symbol and the type. */
+        set_class_membership(tag_sym, &enum_type->source_corresp,
+                             class_of_which_a_member);
+      } else {
+        set_namespace_membership(tag_sym, &enum_type->source_corresp,
+                                 (a_namespace_ptr)NULL);
+      }  /* if */
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
        should be set based on the access recorded in the current scope stack
@@ -1246,12 +1254,17 @@ to indicate whether an enumeration is actually defined.
         set_source_corresp(&(enum_con->source_corresp), enum_sym);
         enum_sym->variant.constant = enum_con;
         enum_con->type = enum_con_type;
-        /* Specify membership and access. */
-        if (class_of_which_a_member != NULL) {
-          set_class_membership(enum_sym, &enum_con->source_corresp,
-                               class_of_which_a_member);
+        if (!C_mode()) {
+          /* Specify membership and access. */
+          if (class_of_which_a_member != NULL) {
+            set_class_membership(enum_sym, &enum_con->source_corresp,
+                                 class_of_which_a_member);
+          } else {
+            set_namespace_membership(enum_sym, &enum_con->source_corresp,
+                                     (a_namespace_ptr)NULL);
+          }  /* if */
+          enum_con->source_corresp.access = access;
         }  /* if */
-        enum_con->source_corresp.access = access;
         mark_defined(enum_sym, &locator.source_position);
         /* Add the enumeration constant to the list under the enumerated
            type. */

@@ -1300,13 +1300,13 @@ will be involved in overloading.
             /* During prototype instantiation, use the instantiation scope
                as the effective declaration scope. */
           } else {
-            *effective_decl_level = DEPTH_OF_FILE_SCOPE;
+            *effective_decl_level = depth_innermost_namespace_scope;
           }  /* if */
           break;
         }  /* if */
       }  /* while */
     }  /* if */
-    file_scope = (*effective_decl_level == DEPTH_OF_FILE_SCOPE);
+    file_scope = (*effective_decl_level == depth_innermost_namespace_scope);
     if (is_error_locator(*locator)) {
       /* Symbol is compiler-generated as a result of an error, so there are
          no other declarations of the same symbol. */
@@ -3239,6 +3239,13 @@ skip_overloading:;
        alone in set_source_corresp. */
     source_corresp_ptr->is_local_to_function = FALSE;
   }  /* if */
+  if (!C_mode() && at_file_scope && !redeclaration) {
+    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+      set_namespace_membership(sym, source_corresp_ptr,
+                               scope_stack[depth_innermost_namespace_scope].
+                                           il_scope->variant.assoc_namespace);
+    }  /* if */
+  }  /* if */
   if (linkage == idl_external) {
     /* Indicate in the IL entry that the name is externally visible by
        assigning the external linkage kind that is the default for the current
@@ -3963,9 +3970,14 @@ return a pointer to it in *symbol_ptr.
   sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
-  if (class_type != NULL) {
-    set_class_membership(sym, &tp->source_corresp, class_type);
-    tp->source_corresp.access = ssep->current_access;
+  if (!C_mode()) {
+    if (class_type != NULL) {
+      set_class_membership(sym, &tp->source_corresp, class_type);
+      tp->source_corresp.access = ssep->current_access;
+    } else {
+      set_namespace_membership(sym, &tp->source_corresp,
+                               (a_namespace_ptr)NULL);
+    }  /* if */
   }  /* if */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position, declarator_ssep);
