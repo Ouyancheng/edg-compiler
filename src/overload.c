@@ -1434,6 +1434,20 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       arg_summary->match_level = aml_promotion;
       arg_converted_to_rvalue = TRUE;
       goto have_level;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_bugs &&
+               is_integral_type(unqual_arg_type) &&
+               unqual_arg_type->variant.integer.int_kind ==
+                                                    (an_integer_kind)ik_long &&
+               is_integral_type(unqual_param_type) &&
+               unqual_param_type->variant.integer.int_kind ==
+                                                    (an_integer_kind)ik_int) {
+      /* MSVC++ considers long --> int to be better than a standard conversion
+         (presumably because the representations are the same). */
+      arg_summary->match_level = aml_promotion;
+      arg_converted_to_rvalue = TRUE;
+      goto have_level;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Try a match involving standard conversions.  This is case [3] in
        the ARM. */

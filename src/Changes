@@ -1,5 +1,18 @@
 Version 2.37
 
+7/25/97   long --> int considered promotion in Microsoft bugs mode
+
+In Microsoft bugs mode, an implicit conversion of long to int is now
+considered a promotion instead of a standard conversion.  This matches
+the behavior of MSVC++ 4.2 and 5.0 and eliminates an ambiguity on
+cases like the following:
+
+  int abs(int);
+  double abs(double);
+  long f(long j) {
+    return abs(j);
+  }
+
 7/25/97   Error on typeid(overloaded-function)
 
 An error is now issued for a use of typeid on an overloaded function
