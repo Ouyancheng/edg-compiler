@@ -177,6 +177,102 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 }  /* check_for_matching_closing_brace */
 
 
+static void init_remaining_array_elements(a_type_ptr          array_type,
+                                          a_targ_size_t       curr_element,
+                                          a_constant_ptr      *con_list,
+                                          a_constant_ptr      *end_of_con_list,
+                                          a_dynamic_init_ptr  *di_list,
+                                          a_dynamic_init_ptr  *end_of_di_list)
+/*
+This routine is called from get_initializer when an array whose
+elements require constructor initialization (and/or destruction by
+calling a destructor) has been only partially initialized.  The
+remaining elements of the array receive initialization by the default
+constructor.  array_type is a pointer to the type entry for the array
+object.  curr_element identifies the next element to be initialized.
+*con_list and *di_list are list of constant entries and dynamic init
+entries (respectively) that represent the initialization of the array;
+*end_of_con_list and *end_of_di_list point to the terminal entries on
+the two list.
+*/
+{
+  a_type_ptr                     element_type;
+  a_targ_size_t                  number_of_uninitialized_elements;
+  a_constant_ptr                 cp, repeat_con;
+  a_routine_ptr                  ctor_rp;
+  a_class_symbol_supplement_ptr  cssp;
+  a_param_type_ptr               ptp;
+  a_dynamic_init_ptr             dip;
+
+  db_enter(4, "init_remaining_array_elements");
+
+  number_of_uninitialized_elements =
+                  array_type->variant.array.number_of_elements - curr_element;
+  if (number_of_uninitialized_elements > 0) {
+    /* There are one or more unitialized elements. */
+    element_type = array_element_type(array_type);
+    if (is_class_struct_union_type(element_type)) {
+      /* It is an array of class objects. */
+      cssp = symbol_supplement_for_class(element_type);
+      if (cssp->constructor != NULL || cssp->destructor != NULL) {
+        /* Initialization is required. */
+        if (cssp->constructor != NULL) {
+          /* Get the default constructor.  Note that it is an error if it
+             is missing. */
+          ctor_rp = select_default_constructor(element_type, &pos_curr_token);
+        }  /* if */
+        if (ctor_rp != NULL) {
+          /* If there's a constructor routine create a dik_constructor
+             dynamic init entry. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+          dip->variant.constructor.routine = ctor_rp;
+          /* A user defined default constructor may have default args that
+             should be incorporated into the constructor call. */
+          ptp = (skip_typerefs(ctor_rp->type))->
+                                   variant.routine.extra_info->param_type_list;
+          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+        } else {
+          /* If there's no constructor routine we use a dik_none dynamic
+             init entry. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+        }  /* if */
+        /* Register the destructor if there's one there. */
+        dip->destructor = select_destructor(element_type);
+        /* Now create the constant entry that will point to the new dynamic
+           init entry. */
+        cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+        cp->variant.dynamic_init = dip;
+        if (number_of_uninitialized_elements > 1) {
+          /* When there is more than one unitialized element remaining in the
+             array, we put out an init_repeat constant on top of the
+             dynamic init constant. */
+          repeat_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+          repeat_con->variant.init_repeat.count = 
+                                             number_of_uninitialized_elements;
+          repeat_con->variant.init_repeat.constant = cp;
+          cp = repeat_con;
+        }  /* if */
+        /* Add the constant entry to the list of constants. */
+        if (*con_list == NULL) {
+          *con_list = cp;
+        } else {
+          (*end_of_con_list)->next = cp;
+        }  /* if */
+        *end_of_con_list = cp;
+        /* Add the dynamic init entry to its list. */
+        if (*di_list == NULL) {
+          *di_list = dip;
+        } else {
+          (*end_of_di_list)->next = dip;
+        }  /* if */
+        *end_of_di_list = dip;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  db_exit();
+}  /* init_remaining_array_elements */
+
+
 static void scan_initializer_of_simple_object(a_boolean       nonconst_allowed,
                                               a_type_ptr      type,
                                               a_dynamic_init  *dip)
@@ -241,7 +337,7 @@ for unions and aggregates at that level).
   a_boolean           is_incomplete_array;
   a_type_ptr          local_type, member_type;
   a_boolean           brace_flag;
-  a_constant_ptr      con_list, end_con_list;
+  a_constant_ptr      con_list, end_of_con_list;
   a_constant_ptr      member_con;
   a_targ_size_t       curr_array_element;
   a_field_ptr         curr_field;
@@ -360,7 +456,7 @@ for unions and aggregates at that level).
         curr_field = local_type->variant.class_struct_union.field_list;
         done = (curr_field == NULL);
       }  /* if */
-      con_list = end_con_list = NULL;
+      con_list = end_of_con_list = NULL;
       took_extra_comma = FALSE;
       /* Loop, scanning initializers. */
       while (!done) {
@@ -387,9 +483,9 @@ for unions and aggregates at that level).
         if (con_list == NULL) {
           con_list = member_con;
         } else {
-          end_con_list->next = member_con;
+          end_of_con_list->next = member_con;
         }  /* if */
-        end_con_list = member_con;
+        end_of_con_list = member_con;
         /* Advance to the next member. */
         no_more_members = FALSE;
         if (kind == (a_type_kind)tk_error) {
@@ -409,8 +505,10 @@ for unions and aggregates at that level).
             /* Exit the loop if there are no elements remaining. */
             if (!is_incomplete_array &&
                 local_type->variant.array.number_of_elements <=
-                curr_array_element) no_more_members = TRUE;
+                                                         curr_array_element) {
+              no_more_members = TRUE;
             }  /* if */
+          }  /* if */
         } else if (kind == (a_type_kind)tk_class ||
                    kind == (a_type_kind)tk_struct) {
           /* Advance to the next field of the class or struct. */
@@ -474,17 +572,27 @@ for unions and aggregates at that level).
          in its initial value.  Note that arrays of char initialized
          to strings are not handled here. */
       if (is_incomplete_array) {
-        /* Note that curr_array_element indicates the NEXT array element
+        /* Note that curr_array_element indicates the *next* array element
            to be initialized, and is therefore one larger than the one
            last initialized.  Thus, it is the array size. */
         set_initialized_array_size(&local_type, curr_array_element);
         *type = local_type;
+      } else if (C_dialect == C_dialect_cplusplus && brace_flag &&
+                 kind == (a_type_kind)tk_array) {
+        /* When the number of initializers is fewer than the number of
+           array elements to be initialized, and when the element type is
+           such that a constructor is required to initialize the elements,
+           we are required to provide default initialization by calling
+           the default constructor. */
+        init_remaining_array_elements(local_type, curr_array_element,
+                                      &con_list, &end_of_con_list, di_list,
+                                      end_of_di_list);
       }  /* if */
       /* Allocate the aggregate constant that is the value for the
          initializer. */
       init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       init_con->variant.aggregate.first_constant = con_list;
-      init_con->variant.aggregate.last_constant  = end_con_list;
+      init_con->variant.aggregate.last_constant  = end_of_con_list;
       if (brace_flag) {
         /* Allow an extra comma before the "}" in a brace-enclosed list.
            Do not allow it if an extra comma was taken already in 
