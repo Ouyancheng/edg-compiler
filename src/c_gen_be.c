@@ -363,6 +363,20 @@ Write any common code needed in all C output files.
     fputs("#endif", f_C_output);
     startline((a_seq_number)0);
     fputs("#endif", f_C_output);
+#if sun && sparc
+    /* Define __ellipsis__, which is used for "..." in argument lists. */
+    startline((a_seq_number)0);
+    fputs("#ifdef __GNUC__", f_C_output);
+    startline((a_seq_number)0);
+    fputs("#define __ellipsis__ ...", f_C_output);
+    startline((a_seq_number)0);
+    fputs("#else", f_C_output);
+    startline((a_seq_number)0);
+    /* __builtin_va_alist is recognized by the Sun cc. */
+    fputs("#define __ellipsis__ __builtin_va_alist", f_C_output);
+    startline((a_seq_number)0);
+    fputs("#endif", f_C_output);
+#endif /* sun && sparc */
   }  /* if */
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -1604,13 +1618,10 @@ is TRUE, this is for the heading of a function being declared with a body.
     dump_param_list(routine, scope, /*names_only=*/TRUE);
 #if sun && sparc
     if (extra_info->has_ellipsis) {
-      /* This takes advantage of a special feature of the Sun C compiler
-         to handle variable argument lists.  The name "__builtin_va_alist"
-         is recognized by the Sun compiler along with some other reserved
-         identifiers found in the stdarg.h include file. */
+      /* Put out an ellipsis as "__ellipsis__", which is defined as a macro. */
       /* Suppress the comma if the ellipsis is the only argument. */
       if (extra_info->param_type_list != NULL) fputs(", ", f_C_output);
-      fputs("__builtin_va_alist", f_C_output);
+      fputs("__ellipsis__", f_C_output);
     }  /* if */
 #endif /* sun && sparc */
   } else {
