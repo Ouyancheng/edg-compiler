@@ -2755,8 +2755,8 @@ they should be used for the outermost instantiation scope.
 
   /* Push a scope that marks the start of the instantiation context on the
      scope stack. */
-  push_scope(sck_instantiation_context, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
-             (a_routine_ptr)NULL);
+  (void)push_scope((a_scope_kind)sck_instantiation_context, NO_SCOPE_NUMBER,
+                   (a_type_ptr)NULL, (a_routine_ptr)NULL);
   /* Push the namespace containing the point of instantiation. */
   if (reference_nsp !=
               scope_stack[depth_innermost_namespace_scope].assoc_namespace ||
