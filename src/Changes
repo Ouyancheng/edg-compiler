@@ -1,5 +1,29 @@
 Version 2.35
 
+1/30/97 IL lowering: duplicate wrapper routines created for virtual function
+        with covariant return type
+
+In some circumstances, IL lowering created two copies of a wrapper routine
+needed to interface to a virtual function with a covariant return type.
+
+  extern "C" int printf(char *, ...);
+  struct A {
+     virtual A* clone(int);
+  };
+  A* A::clone(int) { return this; }
+  struct B: virtual public A {
+    virtual B* clone(int);
+  };
+  B* B::clone(int) { return this; }
+  struct C: virtual public A,  public B {
+    virtual C* clone(int);
+  };
+  C* C::clone(int) {
+    printf("C:clone() returning this = 0x%x\n", this);
+    return this;
+  }
+  int main() {}
+
 1/30/96 #pragma pack directives and templates
 
 When USER_CONTROL_OF_STRUCT_PACKING is TRUE, the default "pack alignment"

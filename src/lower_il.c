@@ -3459,11 +3459,12 @@ overridden function).
      to see if one has already been created. */
   for (rout = overridden_function->next;
        rout != NULL &&
-         rout->overriding_function_for_covariant_return_type ==
-                                                           overriding_function;
+         rout->overriding_function_for_covariant_return_type != NULL;
        rout = rout->next) {
     if (rout->overridden_function_for_covariant_return_type ==
-                                                         overridden_function) {
+                                                         overridden_function &&
+        rout->overriding_function_for_covariant_return_type ==
+                                                         overriding_function) {
       /* Found an existing routine. */
       entry_routine = rout;
       goto end_of_routine;
