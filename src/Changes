@@ -12,7 +12,7 @@ different tag.  For example:
 
 The type kind recorded in the type entry for S is tk_class, but the
 orig_type_kind is tk_struct.  This is needed because the original tag kind
-is encoded in the mangled name the MSVC++ puts out.  (Note: this field is
+is encoded in the mangled name that MSVC++ puts out.  (Note: this field is
 not used by the EDG name mangler; it is provided for implementations that
 need to put out Microsoft-ABI-compatible object code.)
 
@@ -20,11 +20,11 @@ need to put out Microsoft-ABI-compatible object code.)
 
 When a using-directive lookup results in an ambiguity, and the set of
 names found includes both a set of overloaded function and a non-function,
-the resulting overload set is sometimes constructed improperly.  This
-can result in an internal error.  For the error to occur, the namespace
+the resulting overload set was sometimes constructed improperly.  This
+could cause an internal error.  For the error to occur, the namespace
 projection symbol must have been created by a previous lookup in which
 not all of the names found were functions.  In addition, the first
-function added to the lookup set must itself be an overload set.
+function added to the lookup set must itself have been an overload set.
 
 9/9/96  Spurious error when deducing array bounds
 
