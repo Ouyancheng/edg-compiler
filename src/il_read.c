@@ -35,9 +35,9 @@ il_read.c -- Read the intermediate language.
 #include "version.h"
 #include "mem_manage.h"
 
-#if __CENTERLINE__
+#ifdef __CENTERLINE__
 extern int centerline_untype(void *, unsigned int);
-#endif /* __CENTERLINE__ */
+#endif /* ifdef __CENTERLINE__ */
 
 
 static FILE	*f_il_input;
@@ -109,12 +109,12 @@ Interface to fread.  Read "size" bytes from f_il_input and put them at
 */
 /* Macro to inform CenterLine's environment that the area has been
    reused, to avoid wrong-type errors. */
-#if __CENTERLINE__
+#ifdef __CENTERLINE__
 #define conditional_centerline_untype(ptr, size)                      \
   (void)centerline_untype((void *)(ptr), (unsigned int)(size))
-#else /* !__CENTERLINE__ */
+#else /* !defined(__CENTERLINE__) */
 #define conditional_centerline_untype(ptr, size) /* Nothing */
-#endif /* __CENTERLINE__ */
+#endif /* ifdef __CENTERLINE__ */
 #define fread_with_check(ptr, size)                                   \
 { if (fread((ptr), size_t_arg(size), 1, f_il_input) != 1) {           \
     catastrophe(ec_bad_il_file);                                      \
