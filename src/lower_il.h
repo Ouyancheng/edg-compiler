@@ -902,6 +902,8 @@ extern void lower_full_expr(an_expr_node_ptr expr,
 
 extern a_param_type_ptr unlowered_param_type_list(a_type_ptr routine_type);
 
+extern a_param_type_ptr param_type_for_this(a_type_ptr routine_type);
+
 extern void lower_arg_expr_list(an_expr_node_ptr expr_list,
                                 a_type_ptr       called_rout_type,
                                 a_param_type_ptr param);

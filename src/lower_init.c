@@ -2469,6 +2469,9 @@ default_arg_list.
   rtsp = routine->type->variant.routine.extra_info;
   new_rtsp = new_routine->type->variant.routine.extra_info;
   this_param_type = new_rtsp->param_type_list->type;
+  /* This routine doesn't handle the extra argument for a return via
+     copy constructor.  It could be changed to do so. */
+  check_assertion(!rtsp->value_returned_by_cctor);
   /* Make a memory region, scope, and block for the routine definition. */
   new_routine_scope = make_routine_definition(new_routine,
                                               /*make_return=*/FALSE,
@@ -10614,12 +10617,13 @@ The overriding function must have a definition in the current compilation.
                          grcontext;
   a_statement_ptr        return_stmt;
   an_expr_node_ptr       expr;
-  a_param_type_ptr       ptp;
+  a_param_type_ptr       ptp, this_ptp;
   a_variable_ptr         param_var, last_param_var;
   a_type_ptr             routine_type = skip_typerefs(routine->type);
   a_routine_ptr          overriding_function, overridden_function;
   a_base_class_ptr       bcp;
   a_type_ptr             overriding_return_type, overridden_return_type;
+  a_variable_ptr         this_param = NULL;
 
   /* The routine type must be already lowered so that, among other things,
      the implicit "this" parameter is already in the parameter type list. */
@@ -10628,25 +10632,30 @@ The overriding function must have a definition in the current compilation.
   scope = make_routine_definition(routine, /*make_return=*/TRUE,
                                   &region_number);
   push_generated_routine_context(scope, region_number, &grcontext);
+  this_ptp = param_type_for_this(routine_type);
   /* Add parameter variables. */
   last_param_var = NULL;
-  for (ptp = skip_typerefs(routine->type)->
-                                   variant.routine.extra_info->param_type_list;
+  for (ptp = routine->type->variant.routine.extra_info->param_type_list;
        ptp != NULL;
        ptp = ptp->next) {
     a_type_qualifier_set qualifiers = ptp->qualifiers;
 #if IA64_ABI
-    if (last_param_var == NULL && (routine->delta != 0 ||
-                                   routine->vcall_index != 0)) {
-      /* We will be modifying the "this" pointer so it cannot be const. */
-      qualifiers &= ~TQ_CONST;
+    if (ptp == this_ptp) {
+      /* This is the "this" parameter. */
+      if (routine->delta != 0 || routine->vcall_index != 0) {
+        /* We will be modifying the "this" pointer so it cannot be const. */
+        qualifiers &= ~TQ_CONST;
+      }  /* if */
     }  /* if */
 #endif /* IA64_ABI */
     param_var = make_lowered_param_variable(make_qualified_type(ptp->type,
                                                                 qualifiers));
+    if (ptp == this_ptp) {
+      this_param = param_var;
+      param_var->is_this_parameter = TRUE;
+    }  /* if */
     if (last_param_var == NULL) {
       scope->variant.routine.parameters = param_var;
-      param_var->is_this_parameter = TRUE;
     } else {
       last_param_var->next = param_var;
     }  /* if */
@@ -10699,11 +10708,9 @@ The overriding function must have a definition in the current compilation.
      return statement because the logic above assumes that the return
      statement is the first thing in the block. */
   if (routine->delta != 0 || routine->vcall_index != 0) {
-    a_variable_ptr     this_param;
     an_expr_node_ptr   this_adjustment = NULL, delta_expr, vcall_expr;
     an_expr_node_ptr   index_expr, this_expr;
     an_insert_location insert_location;
-    this_param = scope->variant.routine.parameters;
     if (routine->delta != 0) {
       /* Add the "delta". */
       /* Cast the "this" parameter to "char *" to suppress scaling on the 

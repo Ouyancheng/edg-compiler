@@ -5123,15 +5123,7 @@ yet.
   entry_rout_type->variant.routine.extra_info->assoc_routine = NULL;
   /* Copy the parameter list. */
   entry_rout_type->variant.routine.extra_info->param_type_list = NULL;
-  src_ptp = overriding_rout_type->variant.routine.extra_info->param_type_list;
-#if IA64_ABI
-  /* If the overriding routine type has been lowered, skip the "this" pointer.
-     We are creating an unlowered routine type; the "this" pointer will be
-     added back when the routine type is lowered. */
-  if (visited_yet(overriding_rout_type)) {
-    src_ptp = src_ptp->next;
-  }  /* if */
-#endif /* IA64_ABI */
+  src_ptp = unlowered_param_type_list(overriding_rout_type);
   prev_ptp = NULL;
   for (; src_ptp != NULL; src_ptp = src_ptp->next) {
     ptp = alloc_param_type(src_ptp->type);
@@ -7065,8 +7057,19 @@ Do IL lowering of the indicated type and everything under it.
                                                         rtsp->assoc_routine)) {
               ptp->qualifiers = TQ_CONST;
             }  /* if */
-            ptp->next = rtsp->param_type_list;
-            rtsp->param_type_list = ptp;
+#if IA64_ABI
+            /* In the IA64 ABI, if there is both a "this" parameter and
+               a return value address, the return value address comes first. */
+            if (rtsp->value_returned_by_cctor) {
+              ptp->next = rtsp->param_type_list->next;
+              rtsp->param_type_list->next = ptp;
+            } else
+#endif /* IA64_ABI */
+            /* Do not insert code here. */
+            {
+              ptp->next = rtsp->param_type_list;
+              rtsp->param_type_list = ptp;
+            }  /* if */
             /* Leave the this_class and qualifiers unchanged; it's helpful
                to have them there to determine the "this" parameter type
                whether or not the routine type has been lowered. */
@@ -7683,11 +7686,39 @@ lowered, return the list after any implicit parameters added by lowering.
 #endif /* IA64_ABI */
     }  /* if */
     /* If the routine returns its value via a copy constructor, an extra
-       parameter is used to pass the address for the return value. */
+       parameter is used to pass the address for the return value.
+       Note that we're not implying anything about the order of added
+       parameters here; we're just stepping over the right number.
+       The Cfront-like ABI and the IA64 ABI have the "this" and
+       return value address parameters in different orders, but
+       it doesn't matter in stepping over them. */
     if (rtsp->value_returned_by_cctor) param = param->next;
   }  /* if */
   return param;
 }  /* unlowered_param_type_list */
+
+
+a_param_type_ptr param_type_for_this(a_type_ptr routine_type)
+/*
+routine_type is a lowered routine type.  Return a pointer to the
+a_param_type entry for the "this" parameter.
+*/
+{
+  a_param_type_ptr              param;
+  a_routine_type_supplement_ptr rtsp;
+
+  routine_type = skip_typerefs(routine_type);
+  check_assertion(visited_yet(routine_type));
+  rtsp = routine_type->variant.routine.extra_info;
+  check_assertion(rtsp->this_class != NULL);
+  param = rtsp->param_type_list;
+#if IA64_ABI
+  /* In the IA64 ABI, if there is both a "this" parameter and
+     a return value address, the return value address comes first. */
+  if (rtsp->value_returned_by_cctor) param = param->next;
+#endif /* IA64_ABI */
+  return param;
+}  /* param_type_for_this */
 
 
 void lower_arg_expr_list(an_expr_node_ptr expr_list,
@@ -8952,7 +8983,10 @@ have already been lowered.
 */
 {
   an_expr_node_ptr func_node, object_node, additional_args;
-  an_expr_node_ptr func_select_node, assign_node = NULL;
+  an_expr_node_ptr func_select_node, assign_node = NULL, return_node = NULL;
+  a_type_ptr       func_type;
+  a_routine_type_supplement_ptr
+                   rtsp;
 #if !IA64_ABI
   an_expr_node_ptr d_value_node;
   an_expr_node_ptr vtbl_temp_node, padd_node;
@@ -8969,8 +9003,26 @@ have already been lowered.
        eok_virtual_call(func, object, additional_args ...)
   */
   func_node = expr->variant.operation.operands;
+  func_type = f_skip_typerefs(type_pointed_to(func_node->type));
+  check_assertion(func_type->kind == (a_type_kind)tk_routine);
+  rtsp = func_type->variant.routine.extra_info;
   object_node = func_node->next;
   additional_args = object_node->next;
+  if (rtsp->value_returned_by_cctor) {
+    /* The function returns its value via a copy constructor and an
+       added return value address parameter. */
+#if IA64_ABI
+    /* In the IA-64 ABI, the return address precedes the "this" parameter. */
+    return_node = object_node;
+    object_node = additional_args;
+#else /* !IA64_ABI */
+    /* In the Cfront-like ABI, the return address follows the "this"
+       parameter. */
+    return_node = additional_args;
+#endif /* IA64_ABI */
+    additional_args = additional_args->next;
+    return_node->next = NULL;
+  }  /* if */
   func_node->next = NULL;
   object_node->next = NULL;
 #if IA64_ABI
@@ -8981,8 +9033,11 @@ have already been lowered.
         (temp->__vptr[index])(temp, additional_args ...))
   */
   { a_boolean args_have_side_effects =
-                                 expr_list_has_side_effects(additional_args,
-                                                            (a_boolean *)NULL);
+                               expr_list_has_side_effects(additional_args,
+                                                          (a_boolean *)NULL) ||
+                               (object_node != NULL &&
+                                node_has_side_effects(object_node,
+                                                      (a_boolean *)NULL));
     if (!is_invariant_expr(object_node,
                            /*vars_can_change=*/args_have_side_effects)) {
       /* The object node is not invariant, so assign it to a temporary. */
@@ -9001,6 +9056,13 @@ have already been lowered.
     object_node = make_reusable_copy(object_node,
                                    /*vars_can_change=*/args_have_side_effects);
   }
+  if (return_node != NULL) {
+    func_select_node->next = return_node;
+    return_node->next = object_node;
+  } else {
+    func_select_node->next = object_node;
+  }  /* if */
+  object_node->next = additional_args;
 #else /* !IA64_ABI */
   /* Cfront-like ABI: The rewritten form is as follows:
        ((vtbl_temp = (object->__vptr)+index),
@@ -9037,9 +9099,14 @@ have already been lowered.
   cast_node->next = d_value_node;
   /* Cast the result back to the "this" parameter type. */
   object_node = add_cast(padd_node, object_node->type);
-#endif /* !IA64_ABI */
   func_select_node->next = object_node;
-  object_node->next = additional_args;
+  if (return_node != NULL) {
+    object_node->next = return_node;
+    return_node->next = additional_args;
+  } else {
+    object_node->next = additional_args;
+  }  /* if */
+#endif /* !IA64_ABI */
   /* Reuse the node that was originally the first operand of
      the virtual call (i.e., the enk_routine_address node) as the new
      eok_call node.  Attach the function selection node, the object node, and
@@ -9117,6 +9184,9 @@ the expression have already been lowered.
   an_expr_node_ptr this_temp_node, select_d_node, padd_node, call_node;
   an_expr_node_ptr this_temp_assign_node, vtbl_temp_assign_node;
   an_expr_node_ptr select_i_node, compare_node, select_f_node;
+  an_expr_node_ptr return_node = NULL;
+  a_routine_type_supplement_ptr
+                   rtsp;
 #if !IA64_ABI
   an_expr_node_ptr select_f_for_cast_node, vtbl_d_value, this_increment_node;
 #endif /* !IA64_ABI */
@@ -9140,8 +9210,24 @@ the expression have already been lowered.
   routine_type = pm_member_type_possibly_lowered(pmf_node->type);
   ptr_routine_type = make_pointer_type(routine_type);
   class_type = pm_class_type_possibly_lowered(pmf_node->type);
+  rtsp = routine_type->variant.routine.extra_info;
   object_node = pmf_node->next;
   additional_args = object_node->next;
+  if (rtsp->value_returned_by_cctor) {
+    /* The function returns its value via a copy constructor and an
+       added return value address parameter. */
+#if IA64_ABI
+    /* In the IA-64 ABI, the return address precedes the "this" parameter. */
+    return_node = object_node;
+    object_node = additional_args;
+#else /* !IA64_ABI */
+    /* In the Cfront-like ABI, the return address follows the "this"
+       parameter. */
+    return_node = additional_args;
+#endif /* IA64_ABI */
+    additional_args = additional_args->next;
+    return_node->next = NULL;
+  }  /* if */
   pmf_node->next = NULL;
   object_node->next = NULL;
   object_type = object_node->type;
@@ -9360,10 +9446,24 @@ the expression have already been lowered.
   }  /* if */
   /* Make the call operands: func_addr_node (giving the function pointer),
      the this_temp (giving the object address), and any additional
-     arguments. */
+     arguments.  In the IA64 ABI, if there is a return value address
+     parameter it precedes the "this" parameter.  In the Cfront-like
+     ABI, it follows it. */
   this_temp_node = var_rvalue_expr(this_temp_var);
-  func_addr_node->next = this_temp_node;
-  this_temp_node->next = additional_args;
+  if (return_node != NULL) {
+#if IA64_ABI
+    func_addr_node->next = return_node;
+    return_node->next = this_temp_node;
+    this_temp_node->next = additional_args;
+#else /* !IA64_ABI */
+    func_addr_node->next = this_temp_node;
+    this_temp_node->next = return_node;
+    return_node->next = additional_args;
+#endif /* IA64_ABI */
+  } else {
+    func_addr_node->next = this_temp_node;
+    this_temp_node->next = additional_args;
+  }  /* if */
   /* Assemble the call node. */
   call_node = make_operator_node((an_expr_operator_kind)eok_call,
                                  expr->type, func_addr_node);
@@ -9414,7 +9514,12 @@ the top node of the indicated statement (which is an expression statement).
     /* Treat the "this" parameter as an lvalue to avoid extra tests for NULL
        on base class casts. */
     lower_expr(arg_node, /*is_lvalue=*/TRUE);
+#if !IA64_ABI
+    /* In the IA64 ABI, if there is both a "this" parameter and
+       a return value address, the return value address comes first.
+       In the Cfront-like ABI, the "this" parameter comes first. */
     prev_arg_node = arg_node;
+#endif /* !IA64_ABI */
     arg_node = arg_node->next;
   }  /* if */
   /* If the routine returns its result to a temporary supplied by the caller,
@@ -9428,7 +9533,7 @@ the top node of the indicated statement (which is an expression statement).
 #endif /* CHECKING */
     temp_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
                                       /*using_as_dest=*/TRUE);
-    temp_node->next = arg_node;
+    temp_node->next = prev_arg_node->next;
     prev_arg_node->next = temp_node;
     /* Change the result type of the call to "void". */
     expr->type = void_type();
@@ -14645,7 +14750,9 @@ Do IL lowering of the indicated scope and everything under it.
     /* Rewrite the parameters if necessary. */
     if (rtsp->value_returned_by_cctor) {
       /* If there is an implicit parameter for the return value address,
-         add it as an explicit first parameter.  Note that the variable is
+         add it as an explicit first parameter.  In the Cfront-like ABI,
+         if there is also a "this" parameter, the return value address
+         will end up being the second parameter.  Note that the variable is
          then lowered as part of the parameters below. */
       /* The variable is saved in a global variable for use in processing
          return statements. */
@@ -14660,8 +14767,19 @@ Do IL lowering of the indicated scope and everything under it.
          first parameter.  Note that the variable is then lowered as
          part of the parameters below. */
       param_var = scope->variant.routine.this_param_variable;
-      param_var->next = scope->variant.routine.parameters;
-      scope->variant.routine.parameters = param_var;
+#if IA64_ABI
+      /* In the IA64 ABI, if there is both a "this" parameter and
+         a return value address, the return value address comes first. */
+      if (return_value_pointer_variable != NULL) {
+        param_var->next = return_value_pointer_variable->next;
+        return_value_pointer_variable->next = param_var;
+      } else
+#endif /* IA64_ABI */
+      /* Do not insert code here. */
+      {
+        param_var->next = scope->variant.routine.parameters;
+        scope->variant.routine.parameters = param_var;
+      }  /* if */
       /* this_param_variable is not cleared.  It's harmless and it's
          helpful to be able to check it when one does not know whether or
          not it has been lowered. */
