@@ -5177,7 +5177,7 @@ exception specifications are not checked.
       okay = FALSE;
     }  /* if */
     if (is_ptr_to_member_type(dest_type) &&
-        !is_accessible_base_class(bcp) && !bcp->ambiguous) {
+        !is_accessible_base_class(bcp)) {
       /* Core issue 54 says that the inverse conversion is not valid if
          the standard conversion would fail because of lack of access.
          That's suspect for the pointer case, but makes some sense
