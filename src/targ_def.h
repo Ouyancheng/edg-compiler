@@ -661,7 +661,7 @@ between them with some language extension).
 
 Note that TARG_ALL_POINTERS_SAME_SIZE is not consulted in when near and far
 pointers exist (e.g., in 16-bit Microsoft mode).  So this really means,
-"ignoring 16-bit Microsoft mode, are all pointers the same size?"
+"ignoring near/far mode, are all pointers the same size?"
 */
 #ifndef TARG_ALL_POINTERS_SAME_SIZE
 #define TARG_ALL_POINTERS_SAME_SIZE TRUE
