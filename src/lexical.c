@@ -1570,6 +1570,7 @@ search path.  file_name must be allocated in IL storage.
   curr_ise->dir_name    = NULL;
   curr_ise->line_number = 0;
   curr_ise->position    = 0;
+  curr_ise->actual_line = 0;
   /* Open the new file. */
   if (depth_input_stack == 0 && strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
     /* Special code for stdin; no open needed. */
@@ -1655,6 +1656,10 @@ search path.  file_name must be allocated in IL storage.
        assoc_actual_il_file will stay as it is (pointing to the entry
        for the file actually being read). */
     curr_ise->assoc_actual_il_file = curr_ise->assoc_il_file;
+    /* Initialize the source file index used by the diagnostic routines
+       to reread source lines when needed. */
+    curr_ise->next_index_point = initialize_file_index(
+                                              curr_ise->assoc_actual_il_file);
     /* If generating preprocessing output, put out a line-identifying
        directive for the new file. */
     if (generate_pp_output) {
@@ -2129,6 +2134,15 @@ start_read_of_line:
     /* Not end of file, read the line. */
     curr_seq_number = ++seq_number_last_read;
     curr_ise->line_number++;
+    /* Check if this line being read is that next needed for the file index
+       table.  Remember that the first character has already been read into
+       ch. */
+    if (++(curr_ise->actual_line) == curr_ise->next_index_point) {
+      curr_ise->next_index_point = update_file_index(
+                                        curr_ise->assoc_actual_il_file,
+                                        curr_ise->actual_line,
+                                        ftell(curr_ise->file) - 1);
+    }  /* if */
     loc_in_line = curr_source_line;
     /* Read characters until the newline indicating end of line. */
     /* Every attempt is made to make this FAST, since every character of
@@ -2291,6 +2305,15 @@ line_loop:
   seq_number_last_read++;
   curr_ise->line_number++;
   curr_column = 0;
+  /* Check if this line being read is that next needed for the file index
+     table.  Remember that the first character has already been read into
+     ch. */
+  if (++(curr_ise->actual_line) == curr_ise->next_index_point) {
+    curr_ise->next_index_point = update_file_index(
+                                        curr_ise->assoc_actual_il_file,
+                                        curr_ise->actual_line,
+                                        ftell(curr_ise->file) - 1);
+  }  /* if */
   /* Check for an empty line. */
   if (ch != '\n') {
     /* Process characters until a newline is read. */

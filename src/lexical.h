@@ -322,6 +322,14 @@ typedef struct an_input_stack_entry {
 			   at entry to this file.  Needed because ANSI C
 			   requires that each #if be closed in the same
 			   file in which it began. */
+  a_line_number actual_line;
+			/* The physical line number of the line currently
+			   being read or last read from this file.  This
+			   field will not be modified by a #line directive. */
+  a_line_number next_index_point;
+			/* The next physical line number whose file position
+			   should be recorded in file position index table
+			   maintained for diagnostic generation. */
 } an_input_stack_entry;
 
 /* See lexical.c for the definitions of input_stack, depth_input_stack,
