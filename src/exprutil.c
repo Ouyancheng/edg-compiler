@@ -4488,8 +4488,8 @@ the conversion function.
   if (std_conversion_needed) {
     arg_summary->std_conversion_after_user_conversion = TRUE;
     /* Get the return type of the conversion routine. */
-    conversion_type = f_skip_typerefs(conversion_routine->type)->
-                                                   variant.routine.return_type;
+    conversion_type = f_skip_typerefs(conversion_routine->type);
+    conversion_type = conversion_type->variant.routine.return_type;
     /* If the standard conversion is a cast between related classes,
        set downward_cast_derivation. */
     determine_downward_cast_derivation(conversion_type, param_type,
@@ -6721,6 +6721,8 @@ pointer type).
            the pointer type. */
         /* If this operand is the one that suggested this pointer type,
            we already know it is compatible.  This is a speed optimization. */
+        conversion_routine = NULL;
+        std_conversion_needed = FALSE;
         if (pointer_type_pattern_position == type_pattern_position ||
             conversion_from_class_possible(&arg_operand->operand, pointer_type,
                                            /*integral_allowed=*/FALSE,
