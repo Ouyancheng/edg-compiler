@@ -1142,6 +1142,7 @@ Display the indicated based type list.
         case btk_volatile:       kind_str = "  volatile";                break;
         case btk_const_volatile: kind_str = "  const volatile";          break;
         case btk_reference:      kind_str = "  reference";               break;
+        case btk_ptr_to_member:  kind_str = "  pointer to member";       break;
 #endif /* ifdef CFE */
         case btk_pointer:        kind_str = "  pointer";                 break;
         default:                 kind_str = "  **BAD BASED TYPE KIND**"; break;
