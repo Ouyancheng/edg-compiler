@@ -7007,8 +7007,11 @@ at *insert_location, change the returns to gotos to the label, and
 return *label_added TRUE.  insert_block indicates the block in which
 *insert_location appears.  On return, there will always be a return
 statement at the insert point (either one that was already present as
-the statement to insert after/before, or one that was added) and
-*insert_location will be set to insert before the return.
+the statement to insert after, or one that was added) and
+*insert_location will be set to insert before the return.  Note
+that this routine cannot be called multiple times, because the
+precondition (insert after return) does not match the postcondition
+(insert before return).
 */
 {
   a_statement_ptr   top_level_return, stmt, prev_stmt;
@@ -7018,55 +7021,45 @@ the statement to insert after/before, or one that was added) and
 
   *label_added = FALSE;
   if (insert_location->kind == ilk_after_statement &&
-      insert_location->variant.stmt->next != NULL &&
-      insert_location->variant.stmt->next->kind ==
-                                               (a_statement_kind)stmk_return) {
-    /* Inserting before a return.  This is probably the second call of
-       add_epilogue_label (the first set the insert location to before
-       the return). */
-    top_level_return = insert_location->variant.stmt->next;
-  } else {
-    if (insert_location->kind == ilk_after_statement &&
-        insert_location->variant.stmt->kind == (a_statement_kind)stmk_block) {
-      /* We are adding after a block.  See whether the last statement of the
-         block is a return.  If so, move it out of the block. */
-      a_statement_ptr block_stmt = insert_location->variant.stmt;
-      if (move_final_return_out_of_block(block_stmt, block_stmt)) {
-        /* A return was moved out of the block.  Set the insert location
-           to the return.  This allows further optimization below. */
-        set_insert_location(block_stmt->next, insert_location);
-      }  /* if */
+      insert_location->variant.stmt->kind == (a_statement_kind)stmk_block) {
+    /* We are adding after a block.  See whether the last statement of the
+       block is a return.  If so, move it out of the block. */
+    a_statement_ptr block_stmt = insert_location->variant.stmt;
+    if (move_final_return_out_of_block(block_stmt, block_stmt)) {
+      /* A return was moved out of the block.  Set the insert location
+         to the return.  This allows further optimization below. */
+      set_insert_location(block_stmt->next, insert_location);
     }  /* if */
-    if (insert_location->kind == ilk_after_statement &&
-        insert_location->variant.stmt->kind == (a_statement_kind)stmk_return) {
-      /* We're inserting after a top-level return.  We can insert in
-         front of it and avoid adding another return. */
-      top_level_return = insert_location->variant.stmt;
-      /* Find the previous statement, which is needed for the insert
-         location. */
-      for (prev_stmt = NULL, stmt = insert_block->variant.block.statements;
-           stmt != top_level_return;
-           prev_stmt = stmt, stmt = stmt->next) {
-        check_assertion_str(stmt != NULL,
+  }  /* if */
+  if (insert_location->kind == ilk_after_statement &&
+      insert_location->variant.stmt->kind == (a_statement_kind)stmk_return) {
+    /* We're inserting after a top-level return.  We can insert in
+       front of it and avoid adding another return. */
+    top_level_return = insert_location->variant.stmt;
+    /* Find the previous statement, which is needed for the insert
+       location. */
+    for (prev_stmt = NULL, stmt = insert_block->variant.block.statements;
+         stmt != top_level_return;
+         prev_stmt = stmt, stmt = stmt->next) {
+      check_assertion_str(stmt != NULL,
                     "add_epilogue_label: insert_location not in insert_block");
-      }  /* for */
-      /* Make an insert location preceding the return. */
-      if (prev_stmt == NULL) {
-        set_block_start_insert_location(insert_block, insert_location);
-      } else {
-        set_insert_location(prev_stmt, insert_location);
-      }  /* if */
+    }  /* for */
+    /* Make an insert location preceding the return. */
+    if (prev_stmt == NULL) {
+      set_block_start_insert_location(insert_block, insert_location);
     } else {
-      /* We're not adding after/before a return, so add a return at the end. */
-      an_insert_location saved_insert_location;
-      top_level_return = alloc_statement((a_statement_kind)stmk_return);
-      saved_insert_location = *insert_location;
-      insert_statement(top_level_return, insert_location);
-      *insert_location = saved_insert_location;
-      /* Add the return to the return memo list. */
-      add_to_return_memo_list(top_level_return);
-      added_return = TRUE;
+      set_insert_location(prev_stmt, insert_location);
     }  /* if */
+  } else {
+    /* We're not adding after/before a return, so add a return at the end. */
+    an_insert_location saved_insert_location;
+    top_level_return = alloc_statement((a_statement_kind)stmk_return);
+    saved_insert_location = *insert_location;
+    insert_statement(top_level_return, insert_location);
+    *insert_location = saved_insert_location;
+    /* Add the return to the return memo list. */
+    add_to_return_memo_list(top_level_return);
+    added_return = TRUE;
   }  /* if */
   /* Now there is a top-level return statement and insert_location is set to
      insert in front of it.  The return statement is pointed to by
@@ -7163,6 +7156,7 @@ destructor scope, and also lower the user code.
   a_statement_ptr        user_code_stmts, epilogue_block = NULL;
   a_boolean              has_function_try_block = FALSE;
   a_constructor_init_ptr ctor_init;
+  a_boolean              epilogue_setup_done = FALSE;
   an_expr_node_ptr       zero_constant_node, complete_obj_param_node;
   an_expr_node_ptr       vtbl_addr_node, vptr_node;
   a_variable_ptr         primary_vtbl_var, vtbl_var;
@@ -7418,10 +7412,13 @@ destructor scope, and also lower the user code.
     lower_statement_list(user_code_stmts, &last_stmt);
     set_insert_location(last_stmt, &insert_location);
     /* Insert the code to destroy members and bases, generated earlier. */
+    /* This also changes the insert location from after the final return
+       to before it. */
     insert_dtor_member_and_base_destructions(epilogue_block,
                                              &insert_location,
                                              scope->assoc_block,
                                              &dtor_info);
+    epilogue_setup_done = TRUE;
   }  /* if */
   /* Add code to free the storage if the "free" bit (0x1) is on in the
      added parameter:
@@ -7435,13 +7432,16 @@ destructor scope, and also lower the user code.
     an_expr_node_ptr this_param_node;
     an_expr_node_ptr and_node, two_constant_node, if_node;
     a_param_type_ptr param1;
-    a_boolean        label_added;
 
-    /* If there are any returns in the catch clauses of the
-       function-try-block, add an epilogue label and change the returns
-       to gotos.  In the simplest case, changes the insert location from
-       after the return at the end of the routine to before it. */
-    add_epilogue_label(&insert_location, scope->assoc_block, &label_added);
+    if (!epilogue_setup_done) {
+      a_boolean label_added;
+      /* If there are any returns in the catch clauses of the
+         function-try-block, add an epilogue label and change the returns
+         to gotos.  In the simplest case, changes the insert location from
+         after the return at the end of the routine to before it. */
+      add_epilogue_label(&insert_location, scope->assoc_block, &label_added);
+      epilogue_setup_done = TRUE;
+    }  /* if */
     /* Make "param & 0x1". */
     complete_obj_param_node = var_rvalue_expr(complete_obj_param_var);
     two_constant_node = node_for_integer_constant(1L, (an_integer_kind)ik_int);
