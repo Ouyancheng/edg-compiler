@@ -1429,8 +1429,9 @@ Scan and process a #alias directive.
 #endif /* ALIAS_DIRECTIVE */
 
 
-static void pch_prefix_processing_for_pp_directive(a_pp_directive_kind kind,
-                                                   a_source_position   *pos)
+static void pch_prefix_processing_for_pp_directive(
+					a_pp_directive_kind	kind,
+                                        a_source_position	*pos)
 /*
 Create a precompiled header prefix event for a preprocessing directive.
 This is done by converting the tokens that follow the preprocessing
@@ -1446,14 +1447,15 @@ begin.
 */
 {
   a_boolean	is_pragma_hdrstop;
+  a_line_number	actual_line;
 
+   /* Save the line number of the beginning of the directive. */
+  actual_line = curr_ise->actual_line;
   /* Bypass the directive keyword. */
   (void)get_token();
   /* See if this is the special header stop pragma. */
   is_pragma_hdrstop = kind == ppd_pragma && curr_id_is("hdrstop");
   if (using_a_pch_file) {
-    /* Save the line number of the beginning of the directive. */
-    a_line_number	actual_line = curr_ise->actual_line;
     /* Skip to the end of this directive. */
     while (curr_token != tok_newline) (void)get_token();
     if (building_pch_prefix) {
@@ -1478,7 +1480,8 @@ begin.
       suppress_creation_of_pch();
     } else {
       convert_pp_directive_to_string();
-      add_pch_event(pchek_pp_directive, kind, pp_dir_string_buffer, pos);
+      add_pch_event(pchek_pp_directive, kind, pp_dir_string_buffer, pos,
+                    actual_line);
     }  /* if */
   }  /* if */
 }  /* pch_prefix_processing_for_pp_directive */

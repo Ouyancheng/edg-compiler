@@ -259,7 +259,8 @@ extern
 void add_pch_event(a_pch_event_kind	kind,
 		   a_pp_directive_kind	ppd_kind,
 		   char			*value,
-		   a_source_position	*position);
+		   a_source_position	*position,
+		   a_line_number	actual_line);
 
 extern
 void add_command_line_pch_event(a_pch_event_kind	kind,

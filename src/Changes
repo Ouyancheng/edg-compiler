@@ -1,5 +1,14 @@
 Version 2.37
 
+10/14/97  Internal error when using precompiled header files
+
+An internal error would occur when using precompiled headers if
+the final preprocessing directive to be included in the precompiled
+header file included a multi-line comment.  This has been fixed.
+
+  #include "b.h" /*
+  */
+
 10/13/97  Ability to put instantiation flags in a separate file
 
 The instantiation flags (i.e., the TIR, CBI, and DNI flags) that are

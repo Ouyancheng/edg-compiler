@@ -410,7 +410,8 @@ Allocate and initialize a precompiled header event record.
 void add_pch_event(a_pch_event_kind	kind,
 		   a_pp_directive_kind	ppd_kind,
 		   char			*value,
-		   a_source_position	*position)
+		   a_source_position	*position,
+		   a_line_number	actual_line)
 /*
 Add a precompiled header event record to the list of events for the current
 file.
@@ -430,13 +431,13 @@ file.
   }  /* if */
   pep->position = *position;
   /* Replace the sequence number with the actual file line number. */
-  pep->position.seq = curr_ise->actual_line;
+  pep->position.seq = actual_line;
   /* Add this entry to the list. */
   if (pch_event_list_head == NULL) pch_event_list_head = pep;
   if (pch_event_list_tail != NULL) pch_event_list_tail->next = pep;
   pch_event_list_tail = pep;
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 4 || db_flag_is_set("pch_event")) {
     fprintf(f_debug, "Added PCH event: %s, value=%s, line %0lu, col %0d\n",
             pch_event_kind_names[(int)pep->kind],
             pep->value == NULL ? "(NULL)" : pep->value,
