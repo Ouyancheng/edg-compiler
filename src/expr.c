@@ -3342,7 +3342,9 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   /* Determine the operator. */
   switch (save_token) {
     case tok_plus:
-      /* op does not need to be set -- see below. */
+      /* op does not need to be set (see below), but set it to avoid
+         warnings from analysis tools. */
+      op = (an_expr_operator_kind)eok_error;
       break;
     case tok_not:
       op = (an_expr_operator_kind)eok_not;
