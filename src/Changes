@@ -1,5 +1,17 @@
 Version 2.46
 
+2/9/02   Order of classes on routine befriending_classes list in IL
+
+Since some time in 1995, the befriending_classes list of a routine in
+the IL has been maintained so that if the routine is defined in a
+friend declaration, the class in which the friend declaration appears
+is first on the befriending_classes list.  It turns out that we haven't
+used this property since shortly after we instituted it, so the extra
+code to do the list maintenance has been removed.  (This is motivated
+by the fact that we did not want to add more code to maintain this
+property in multi-translation mode when IL from secondary translation
+units is copied to the primary IL.)
+
 2/7/02   Visibility of declarations designated by member using-declarations
 
 When checking the visibility of member using-declarations, the front end did

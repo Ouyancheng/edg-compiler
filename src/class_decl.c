@@ -5056,50 +5056,33 @@ twice; once to search for templates and again to search for nontemplates.
 }  /* member_function_redecl_sym */
 
 
-void update_friend_function_info(a_routine_ptr   rout_ptr,
-                                 a_type_ptr      class_type,
-                                 a_boolean       is_definition,
-                                 a_boolean       move_to_front)
+void update_friend_function_info(a_routine_ptr rout_ptr,
+                                 a_type_ptr    class_type)
 /*
 Update the list of befriending classes associated with rout_ptr to reflect
 that it is now a friend of class_type.  Also update class_type to indicate
-that the routine indicated by rout_ptr is a friend.  is_definition is TRUE
-when the function is defined in the friend declaration.  move_to_front
-is TRUE when an entry already on the list is being moved to the beginning
-of the list because we only now know that the function was defined in
-a friend declaration.  This is used for template instantiations.
+that the routine indicated by rout_ptr is a friend.
 */
 {
   a_class_list_entry_ptr clep;
-  a_class_list_entry_ptr prev_clep = NULL;
 
-  clep = rout_ptr->befriending_classes;
-  /* Issue a warning if this is a duplicate friend declaration. */
-  for (; clep != NULL; prev_clep = clep, clep = clep->next) {
+  /* Issue a remark if this is a duplicate friend declaration. */
+  for (clep = rout_ptr->befriending_classes; clep != NULL; clep = clep->next) {
     if (clep->class_type == class_type) {
-      /* Suppress the diagnostic when we are moving an existing entry to
-         the front of the list. */
-      if (!move_to_front) remark(ec_duplicate_friend_decl);
+      remark(ec_duplicate_friend_decl);
       break;
     } /* if */
   } /* for */
+  /* Add an entry to the list unless one is already there. */
   if (clep == NULL) {
     a_class_type_supplement_ptr ctsp;
     a_routine_list_entry_ptr    rlep;
-    check_assertion(!move_to_front);
     /* No duplication was detected. */
     clep = alloc_list_entry_for_class();
     clep->class_type = class_type;
-    /* Add a friend declaration that is a definition to the front of the
-       befriending_classes list and a nondefining declaration to the end. */
-    if (is_definition || rout_ptr->befriending_classes == NULL) {
-      clep->next = rout_ptr->befriending_classes;
-      rout_ptr->befriending_classes = clep;
-    } else {
-      a_class_list_entry_ptr  end_of_list = rout_ptr->befriending_classes;
-      while (end_of_list->next != NULL) end_of_list = end_of_list->next;
-      end_of_list->next = clep;
-    }  /* if */
+    /* Add a friend declaration to the befriending_classes list. */
+    clep->next = rout_ptr->befriending_classes;
+    rout_ptr->befriending_classes = clep;
     /* Now add the routine to the friends list for the current class. */
     ctsp = class_type->variant.class_struct_union.extra_info;
     rlep = alloc_list_entry_for_routine();
@@ -5119,15 +5102,6 @@ a friend declaration.  This is used for template instantiations.
       db_class_list(rout_ptr->befriending_classes);
     }  /* if */
 #endif /* DEBUG */
-  } else if (move_to_front) {
-    if (prev_clep == NULL) {
-      /* The entry is already on the front of the list. */
-    } else {
-      /* Move the entry to the front of the list. */
-      prev_clep->next = clep->next;
-      clep->next = rout_ptr->befriending_classes;
-      rout_ptr->befriending_classes = clep;
-    }  /* if */
   } /* if */
 }  /* update_friend_function_info */
 
@@ -5477,9 +5451,7 @@ of the function, and again overloading is a possibility.
     set_source_corresp(&sym->variant.routine.ptr->source_corresp, sym);
   } else if (!class_type->variant.class_struct_union.is_nonreal_class ||
              prototype_instantiations_in_il) {
-    update_friend_function_info(sym->variant.routine.ptr, class_type,
-                                (a_boolean)func_info->is_definition,
-                                /*move_to_front=*/FALSE);
+    update_friend_function_info(sym->variant.routine.ptr, class_type);
   }  /* if */
 done:
   if (func_info->is_definition) {

@@ -3312,14 +3312,12 @@ static void check_for_definition_in_friend_declaration(
 			    a_routine_ptr                    rout_ptr)
 /*
 Functions defined in friend declarations are treated specially in the
-IL.  The class in which the function is defined appears at the front
-of the befriending classes list, and the defined_in_friend_decl flag
-is set in the routine entry.  For template functions, we can't tell
-until the function is instantiated whether it is defined in a friend
-declaration (because there could be a specialization that we have not
-yet seen).  This routine is called when the function is instantiated,
-when we know whether or not the template was defined in a friend
-declaration.
+IL.  The defined_in_friend_decl flag is set in the routine entry.
+For template functions, we can't tell until the function is instantiated
+whether it is defined in a friend declaration (because there could be
+a specialization that we have not yet seen).  This routine is called
+when the function is instantiated, when we know whether or not the
+template was defined in a friend declaration.
 */
 {
   a_scope_ptr		   definition_scope;
@@ -3330,9 +3328,6 @@ declaration.
     definition_class = definition_scope->variant.assoc_type;
   }  /* if */
   if (definition_class != NULL) {
-    update_friend_function_info(rout_ptr, definition_class,
-                                /*is_definition=*/TRUE,
-                                /*move_to_front=*/TRUE);
     rout_ptr->defined_in_friend_decl = TRUE;
   }  /* if */
 }  /* check_for_definition_in_friend_declaration */
@@ -7389,9 +7384,7 @@ function a friend and update the friend information.
   a_class_list_entry_ptr   clep;
 
   for (clep = tssp->befriending_classes; clep != NULL; clep = clep->next) {
-    update_friend_function_info(rout_ptr, clep->class_type,
-                                /*is_definition=*/FALSE,
-                                /*move_to_front=*/FALSE);
+    update_friend_function_info(rout_ptr, clep->class_type);
   }  /* for */
   if (tssp->prototype_template != NULL) {
     /* This function is an instance of a member template declared in a
@@ -12740,9 +12733,7 @@ been instantiated, update the befriending information for the instances.
        tip != NULL; tip = tip->next) {
     a_symbol_ptr  instance_sym = tip->instance_sym;
     a_routine_ptr rout_ptr = instance_sym->variant.routine.ptr;
-    update_friend_function_info(rout_ptr, class_declared_in,
-                                /*is_definition=*/FALSE,
-                                /*move_to_front=*/FALSE);
+    update_friend_function_info(rout_ptr, class_declared_in);
   }  /* for */
   if (tssp->subordinate_templates != NULL) {
     /* This is a member function template declared in a class template.
