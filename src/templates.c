@@ -651,6 +651,7 @@ supplement already associated with ct_symbol.
     orig_tssp = sym->variant.template_info;
     /* Create the pointer back to the original template. */
     tssp->prototype_template = sym;
+    tssp->variant.class_template.prototype_instantiation_complete = TRUE;
     /* Add the new template to the list of templates based on the original
        template. */
     slep = alloc_symbol_list_entry();
@@ -703,13 +704,7 @@ might not be able to if the template itself has not yet been defined.
      this instantiation. */
   cssp->referencing_namespace =
                  scope_stack[depth_innermost_namespace_scope].assoc_namespace;
-  if (cssp->class_template == NULL) {
-    /* If the class_template pointer is NULL, this is expected to be a class
-       nested within a class template. */
-    template_sym = cssp->corresp_prototype_sym;
-  } else {
-    template_sym = cssp->class_template;
-  }  /* if */
+  template_sym = template_symbol_for_class_symbol(instance_sym);
   if (template_sym == NULL) {
     /* Not a class based on a class template. */
   } else if (cssp->is_nonreal_class) {
@@ -810,11 +805,18 @@ might not be able to if the template itself has not yet been defined.
       }  /* if */
 #endif /* CHECKING */
       mark_defined(instance_sym, &instance_sym->decl_position);
+      /* Scan the base specifiers list, if any, and the body of the class.
+         The pending class definition counter is incremented while processing
+         the instantiation.  This ensures that the fixup of the instantiation
+         will not be done until the instantiation scope has been popped. */
+      pending_class_definitions++;
       /* Scan the base specifiers list, if any, and the body of the class. */
       (void)scan_class_definition
                    (class_type, depth_innermost_namespace_scope,
                     depth_innermost_namespace_scope, /*is_local_class=*/FALSE,
-                    /*delayed_nested_class_def=*/is_class_member);
+                    /*delayed_nested_class_def=*/is_class_member,
+                    /*is_template_instantiation=*/TRUE);
+      pending_class_definitions--;
       set_instantiation_required_for_template_class_members(class_type);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* A template instantiation is considered to always be "autonomous",
@@ -831,6 +833,8 @@ might not be able to if the template itself has not yet been defined.
          which was inserted to mark the end of the cached token stream.
          If necessary, keep flushing until end-of-source is found. */
       flush_past_token_cache_terminator();
+      /* Do the class fixups for this instantiation. */
+      process_deferred_class_fixups_and_instantiations();
       /* Decrement the count of instantiations-in-progress for the current
          class template. */
       cssp->instantiation_in_progress = FALSE;
@@ -1154,7 +1158,7 @@ A pointer to the head of the list is returned in tcsp.
   };
 #endif /* CHECKING */
 #if DEBUG
-  if (debug_level >= 3) {
+  if (debug_level >= 3 || db_flag_is_set("instantiations")) {
     db_symbol(template_sym, "prototype instantiation of: ", 2);
   }  /* if */
 #endif /* DEBUG */
@@ -1183,11 +1187,17 @@ A pointer to the head of the list is returned in tcsp.
     internal_error("instantiate_class_template: bad 1st token in cache");
   }  /* if */
 #endif /* CHECKING */
-  /* Scan the base specifiers list, if any, and the body of the class. */
+  /* Scan the base specifiers list, if any, and the body of the class.
+     The pending class definition counter is incremented while processing
+     the instantiation.  This ensures that the fixup of the instantiation
+     will not be done until the instantiation scope has been popped. */
+  pending_class_definitions++;
   (void)scan_class_definition(prototype_type, depth_innermost_namespace_scope,
                               depth_innermost_namespace_scope,
                               /*is_local_class=*/FALSE,
-                              /*delayed_nested_class_def=*/is_class_member);
+                              /*delayed_nested_class_def=*/is_class_member,
+                              /*is_template_instantiation=*/TRUE);
+  pending_class_definitions--;
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
   /* Return the pointer to the list of template cache segments associated
@@ -1195,6 +1205,8 @@ A pointer to the head of the list is returned in tcsp.
   *tcsp = scope_stack[depth_innermost_instantiation_scope].
                                                   first_template_cache_segment;
   pop_template_instantiation_scope();
+  /* Do the class fixups for this instantiation. */
+  process_deferred_class_fixups_and_instantiations();
   cssp->instantiation_in_progress = FALSE;
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token stream.
@@ -1394,6 +1406,18 @@ supplement already associated with ft_symbol.
     slep->symbol = ft_symbol;
     slep->next = orig_tssp->subordinate_templates;
     orig_tssp->subordinate_templates = slep;
+    { a_routine_ptr	rp = tssp->variant.function.routine;
+      a_routine_ptr	orig_rp = orig_tssp->variant.function.routine;;
+      /* Copy the information that determines whether this function is inline
+         from the prototype template.  This cannot be determined accurately
+         for the subordinate template because the body will have already been
+         removed. */
+      tssp->variant.function.func_info.is_inline =
+                               orig_tssp->variant.function.func_info.is_inline;
+      rp->is_inline = orig_rp->is_inline;
+      rp->storage_class = orig_rp->storage_class;
+      rp->source_corresp.name_linkage = orig_rp->source_corresp.name_linkage;
+    }
   }  /* if */
 #if 0
   /* Is there any friend processing that needs to be done here? */
@@ -1451,7 +1475,7 @@ Instantiate the body of the template function associated with tip.
     goto done;
   }  /* if */
 #if DEBUG
-  if (debug_level >= 3) {
+  if (debug_level >= 3 || db_flag_is_set("instantiations")) {
     fprintf(f_debug, "instantiating: ");
     db_symbol(rout_sym, "", 0);
     db_symbol(template_sym, "\nbased on: ", 2);
@@ -6277,8 +6301,7 @@ as the current token; otherwise, it is consumed.
     template_decl_info->enclosing_template_decl = prev_template_decl_info;
     prev_template_decl_info = template_decl_info;
     if (curr_token == tok_lt) {
-      (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
-                       (a_type_ptr)NULL, (a_routine_ptr)NULL);
+      push_template_declaration_scope(template_decl_info);
       number_of_template_decl_scopes++;
       template_param_list = scan_template_param_list(template_decl_info,
                                                      nesting_depth);

@@ -2041,6 +2041,8 @@ extern void clear_qualifier_from_locator(a_symbol_locator  *locator);
 
 extern a_symbol_ptr corresp_prototype_for_class_symbol(a_symbol_ptr sym);
 
+extern a_symbol_ptr template_symbol_for_class_symbol(a_symbol_ptr class_sym);
+
 extern
 a_template_cache_segment_ptr alloc_template_cache_segment(
                                 a_symbol_ptr				sym,

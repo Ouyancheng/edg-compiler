@@ -233,25 +233,18 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if the current entry on the scope stack is
 			   itself an unnamed namespace or is a named
 			   namespace contained within an unnamed namespace. */
-  a_bit_field	namespace_pushed:1;
-			/* TRUE for template instantiation scopes if the
-			   namespace associated with the referencing context
-			   was reactivated when the template instantiation
-			   scope was pushed.  Also, TRUE for class reactivation
-			   scopes if the parent namespace was pushed. */
   a_bit_field	reactivated_class_being_defined:1;
 			/* TRUE for class reactivation scopes if the class
 			   being reactivated is in the process of being
 			   defined.  This causes the lookup to look on the
 			   active list instead of the inactive list for
 			   the class members. */
-  a_bit_field	parent_instantiation_pushed:1;
-			/* TRUE for template instantiation scopes if an
-			   instantiation scope for an enclosing template class
-			   was pushed. */
   a_bit_field	is_for_init_block:1;
 			/* TRUE if the scope is pushed for a C++ for-init
 			   declaration (sck_block only). */
+  a_bit_field	namespace_pushed:1;
+			   /* TRUE for class reactivation scopes if the
+                              parent namespace was pushed. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be
@@ -445,7 +438,11 @@ typedef struct a_scope_stack_entry {
                         /* When kind == sck_template_instantiation, contains
 			   a pointer to the information about the template
 			   declaration from which the instantiation is
-			   being generated. */
+			   being generated.
+                           When kind == sck_template_declaration, contains
+			   a pointer to the template declaration information
+			   for the current template declaration nested
+                           depth. */
   a_decl_sequence_number
 		last_label_decl_seq;
 			/* When kind == sck_function, the declaration sequence
@@ -541,12 +538,12 @@ typedef struct a_scope_stack_entry {
 			   to be skipped over for name lookup and other
 			   purposes.  This is primarily used to hide certain
 			   scopes during template instantiation. */
-  a_scope_depth	instantiation_context_scope;
+  a_scope_depth	instantiation_context_depth;
 			/* Present only for template instantiation scopes.
 			   Contains the scope depth of the innermost
 			   namespace scope at the point that the instantiation
 			   was initiated. */
-  a_scope_depth	instantiation_common_scope;
+  a_scope_depth	instantiation_common_depth;
 			/* Present only for template instantiation scopes.
 			   Contains the scope depth of the scope that is
 			   part of both the template definition context and
@@ -556,6 +553,12 @@ typedef struct a_scope_stack_entry {
 			   depth_of_initial_lookup_scope when a new scope
 			   is pushed.  This value is restored when the
 			   scope is popped. */
+  a_scope_depth	orig_depth;
+			/* For nonnested template instantiation scopes,
+			   specifies the scope depth before the process
+			   of pushing the instantiation context began.
+			   This is used to determine how many scopes should
+			   be popped when the instantiation scope is popped. */
   a_template_cache_segment_ptr
 		first_template_cache_segment;
 			/* Pointer to the first template cache segment entry
@@ -738,12 +741,16 @@ extern a_scope_ptr push_scope(a_scope_kind       kind,
                               a_type_ptr         assoc_type,
                               a_routine_ptr      assoc_routine);
 
+extern
+void push_template_declaration_scope(a_template_decl_info_ptr decl_info);
+
+
 extern a_scope_ptr push_for_init_scope(void);
 
 extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
                                         a_namespace_ptr assoc_namespace);
 
-extern a_scope_ptr push_template_instantiation_scope
+extern void push_template_instantiation_scope
                            (a_template_decl_info_ptr decl_info,
                             a_type_ptr               assoc_type,
                             a_routine_ptr            assoc_routine,
@@ -759,8 +766,11 @@ extern void push_namespace_extension_scope(a_namespace_ptr nsp);
 extern void pop_namespace_extension_scope(void);
 extern void push_namespace_reactivation_scope(a_namespace_ptr nsp);
 extern void pop_namespace_reactivation_scope(void);
-extern void push_class_reactivation_scope(a_type_ptr class_type);
+extern void push_class_reactivation_scope(a_type_ptr   class_type);
 extern void pop_class_reactivation_scope(void);
+extern void push_class_and_template_reactivation_scope(
+                                 a_type_ptr	class_type,
+                                 a_boolean      reactivate_template_params);
 
 extern
 a_scope_depth scope_depth_of_symbol(a_symbol_ptr  sym,

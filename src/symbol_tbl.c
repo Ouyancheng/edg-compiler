@@ -1339,6 +1339,32 @@ Otherwise, return NULL.
 }  /* corresp_prototype_for_class_symbol */
 
 
+a_symbol_ptr template_symbol_for_class_symbol(a_symbol_ptr class_sym)
+/*
+Return the template symbol for the template from which the class
+associated with class_sym was generated.  If class_sym points to an
+instance of a class template, the template symbol returned points to
+the class template symbol associated with the template definition.  If
+class_sym points to a class nested within a class template, the template
+symbol returned points to the prototype instantiation of the nested
+class.
+*/
+{
+  a_symbol_ptr			template_sym;
+  a_class_symbol_supplement_ptr	cssp;
+
+  cssp = class_sym->variant.class_struct_union.extra_info;
+  if (cssp->class_template == NULL) {
+    /* If the class_template pointer is NULL, this is expected to be a class
+       nested within a class template. */
+    template_sym = cssp->corresp_prototype_sym;
+  } else {
+    template_sym = cssp->class_template;
+  }  /* if */
+  return template_sym;
+}  /* template_symbol_for_class_symbol */
+
+
 a_template_cache_segment_ptr alloc_template_cache_segment(
                                 a_symbol_ptr				sym,
                                 a_template_symbol_supplement_ptr	tssp)

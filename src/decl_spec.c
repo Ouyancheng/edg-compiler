@@ -1276,7 +1276,8 @@ the template.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (scan_class_definition(class_type, effective_decl_level,
                               orig_decl_level, is_local_class,
-                              delayed_nested_class_def)) {
+                              delayed_nested_class_def,
+                              /*is_template_instantiation=*/FALSE)) {
       *defines_something = TRUE;
     } else {
       err = TRUE;

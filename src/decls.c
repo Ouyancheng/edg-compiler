@@ -4270,6 +4270,9 @@ is not a template declaration scope.
                         ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
         set_to_error_locator(*locator);
+      } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+        /* This is the symbol for a member template function.  Use
+           this symbol. */
       } else {
         /* This is a member function symbol of a prototype instantiation.
            Get the associated function template. */

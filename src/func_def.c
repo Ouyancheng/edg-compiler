@@ -561,7 +561,10 @@ and for the instantiation of template functions.
      just in case. */
   rout_type = skip_typerefs(rout_ptr->type);
   rtsp = rout_type->variant.routine.extra_info;
-  if (!C_mode()) {
+  if (!C_mode() && !(flags & SFB_IS_INSTANTIATION)) {
+    /* Reactivate the class and/or namespace of which the function body is
+       a member.  For template instantiations this is done when the
+       instantiation scope is pushed, so it should not be done here. */
     if (class_type != NULL) {
       /* Member function -- either an inline or "out-of-line" definition. */
       if (flags & SFB_NO_CLASS_REACTIVATION) {
@@ -804,14 +807,18 @@ and for the instantiation of template functions.
        wrapup_control_flow_processing. */
     restore_struct_stmt_stack(&saved_sss_state);
   }  /* if */
-  if (class_type != NULL) {
-    if (!(flags & SFB_NO_CLASS_REACTIVATION)) {
-      /* Pop the class symbol reactivation scope. */
-      pop_class_reactivation_scope();
-    }  /* if */
-  } else if (nsp != NULL) {
-    pop_namespace_extension_scope();
-  }  /* if */  
+  if (!(flags & SFB_IS_INSTANTIATION)) {
+    /* For templates, the class and/or namespace scopes are pushed and
+       popped when the instantiation scope is pushed/popped. */
+    if (class_type != NULL) {
+      if (!(flags & SFB_NO_CLASS_REACTIVATION)) {
+        /* Pop the class symbol reactivation scope. */
+        pop_class_reactivation_scope();
+      }  /* if */
+    } else if (nsp != NULL) {
+      pop_namespace_extension_scope();
+    }  /* if */  
+  }  /* if */
   /* Check for the closing "}", not done in compound_statement.  Note that
      required_token is not called; if compound_statement returned on
      anything other than a right brace, it's because we should start parsing

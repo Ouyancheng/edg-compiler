@@ -268,7 +268,7 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
              (because the inactive list is not ordered in any way).  Save the
              tag symbol and keep looking.  If nothing else turns up,
              use the tag symbol. */
-          if (!is_tag_symbol(sym)) {
+          if (!is_tag_symbol(fund_sym)) {
             tag_symbol = NULL;
             break;
           }  /* if */
@@ -1388,7 +1388,7 @@ that do normal id lookup processing.
                the inactive list is not ordered in any way).  Save the
                tag symbol and keep looking.  If nothing else turns up,
                    use the tag symbol. */
-            if (is_tag_symbol(inactive_sym) && !lookup_state->must_be_tag) {
+            if (is_tag_symbol(fund_sym) && !lookup_state->must_be_tag) {
               tag_symbol = inactive_sym;
             } else {
               /* Take the symbol. */
@@ -1607,7 +1607,7 @@ that do normal id lookup processing.
          yet found the symbol we are looking for.  Do the special
          template lookup that considers symbols from both the
          defining and referencing context. */
-      if (ssep->instantiation_context_scope !=
+      if (ssep->instantiation_context_depth !=
                                           ssep->previous_scope) {
         /* Only do the special lookup if the context scope is different
            from the current scope.  If they are the same, just keep
@@ -1714,9 +1714,9 @@ lookup_state is used to pass state information between the various routines
 that do normal id lookup processing.
 */
 {
-  a_scope_depth		common_depth = ssep->instantiation_common_scope;
+  a_scope_depth		common_depth = ssep->instantiation_common_depth;
   a_scope_depth		def_start = ssep->previous_scope;
-  a_scope_depth		ref_start = ssep->instantiation_context_scope;
+  a_scope_depth		ref_start = ssep->instantiation_context_depth;
   a_symbol_ptr		def_sym;
   a_symbol_ptr		ref_sym;
   a_symbol_ptr		sym = NULL;
@@ -2259,7 +2259,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
              (because the inactive list is not ordered in any way).  Save the
              tag symbol and keep looking.  If nothing else turns up,
              use the tag symbol. */
-          if (!is_tag_symbol(sym)) goto end_lookup;
+          if (!is_tag_symbol(fund_sym)) goto end_lookup;
           tag_symbol = sym;
         }  /* if */
       }  /* if */
@@ -2557,7 +2557,7 @@ namespace_qualified_id_lookup.
          (because the inactive list is not ordered in any way).  Save the
          tag symbol and keep looking.  If nothing else turns up,
          use the tag symbol. */
-      if (!is_tag_symbol(sym)) goto end_lookup;
+      if (!is_tag_symbol(fund_sym)) goto end_lookup;
       tag_symbol = sym;
     }  /* if */
   }  /* for */

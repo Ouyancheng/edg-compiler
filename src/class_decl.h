@@ -49,7 +49,10 @@ extern a_boolean scan_class_definition(
                                    a_scope_depth    effective_decl_level,
                                    a_scope_depth    orig_decl_level,
                                    a_boolean        is_local_class,
-                                   a_boolean        delayed_nested_class_def);
+                                   a_boolean        delayed_nested_class_def,
+                                   a_boolean	    is_template_instantiation);
+
+extern void process_deferred_class_fixups_and_instantiations(void);
 
 extern void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
                                           a_type_ptr    class_type,

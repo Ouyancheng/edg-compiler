@@ -681,7 +681,7 @@ routine recursively for each nested class.
 #endif /* if 0 */
   if (any_default_args_to_scan) {
     /* Reactivate the class. */ 
-    push_class_reactivation_scope(class_type);
+    push_class_and_template_reactivation_scope(class_type, is_template_based);
     /* First go though the routine fixup entries and scan the default
        argument expressions. */
     for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
@@ -816,7 +816,7 @@ routine recursively for each nested class.
   }  /* if */
   if (any_function_bodies_to_scan) {
     /* Reactivate the class. */ 
-    push_class_reactivation_scope(class_type);
+    push_class_and_template_reactivation_scope(class_type, is_template_based);
     /* Now go through the routine fixup entries a second time to scan inline
        function bodies. */
     for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
@@ -901,14 +901,19 @@ class definition was already pending.
   a_class_fixup_ptr	cfp;
   a_class_fixup_ptr	next_cfp;
 
-  for (cfp = class_fixup_list; cfp != NULL; cfp = next_cfp) {
+  /* Clear the pointers to the start of the fixup lists so that classes
+     created by the fixup process can be fixed up by a recursive call to
+     this routine.  This could happen if a function body contains a
+     nested class, for example. */
+  cfp = class_fixup_list;
+  class_fixup_list = NULL;
+  class_fixup_list_tail = NULL;
+  for (; cfp != NULL; cfp = next_cfp) {
     delayed_scan_fixup_for_class(cfp->class_type,
                                  cfp->is_template_instantiation);
     next_cfp = cfp->next;
     free_class_fixup(cfp);
   }  /* for */
-  class_fixup_list = NULL;
-  class_fixup_list_tail = NULL;
 }  /* process_deferred_class_fixups */
 
 
@@ -8743,7 +8748,8 @@ a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
                                 a_scope_depth    orig_decl_level,
                                 a_boolean        is_local_class,
-                                a_boolean        delayed_nested_class_def)
+                                a_boolean        delayed_nested_class_def,
+                                a_boolean	 is_template_instantiation)
 /*
 Scan the body of a class definition, including the base classes list.
 class_type points to the type entry of the class, struct, or union whose
@@ -8754,7 +8760,10 @@ namespace-qualified name, it is instead the scope depth before the namespace
 extension scope was pushed.  is_local_class is TRUE if the class definition
 appears inside a function body.  delayed_nested_class_def is TRUE if the
 class is a nested class whose parent class definition has already been
-completed (C++ only).
+completed (C++ only).  is_template_instantiation is TRUE when a template
+is being instantiated either for the purpose of producing the prototype
+instantiation or for generating a real instantiation.  It is also TRUE for
+nested classes when their definition appears outside of the class template.
 */
 {
   a_boolean                        err = FALSE;
@@ -8762,7 +8771,6 @@ completed (C++ only).
   a_scope_ptr                      scope_ptr;
   a_class_symbol_supplement_ptr    cssp;
   a_routine_fixup_ptr              saved_routine_fixup;
-  a_boolean                        is_template_instantiation;
   a_stop_token_array               save_stop_token_array;
   a_template_symbol_supplement_ptr class_tssp;
   a_token_sequence_number          token_number_of_closing_brace;
@@ -8774,16 +8782,6 @@ completed (C++ only).
   class_state.is_local_class = is_local_class;
   /* Increment the counter of class definitions currently in progress. */
   pending_class_definitions++;
-  /* Set a flag to indicate whether we scanning a class template declaration
-     for the sake of producing a "prototype instantiation" of the template.
-     Note that this is only set for the outermost class, not for classes
-     whose definitions are nested within the class template.  It is also
-     true for nested classes when their definition appears outside of
-     the class template.  The prototype instantiation amounts to scanning
-     the declarative sections (i.e., no function bodies or default arg
-     expressions) and issuing such syntax errors as can be detected. */
-  is_template_instantiation = (scope_stack[depth_scope_stack].kind ==
-                                     (a_scope_kind)sck_template_instantiation);
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   cssp = tag_sym->variant.class_struct_union.extra_info;
   class_tssp = cssp->template_info;
@@ -8832,11 +8830,13 @@ completed (C++ only).
                          tp->variant.class_struct_union.max_member_alignment;
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    if (delayed_nested_class_def) {
+    if (delayed_nested_class_def && !is_template_instantiation) {
       /* This is a definition of a C++ nested class that appears outside the
          scope of the parent class definition itself.  Reactivate the
          lexical context.  Note that this is done before  the base specifiers
-         are scanned so that symbols from the enclosing class are visible. */
+         are scanned so that symbols from the enclosing class are visible.
+         For template instantiations, this is done when the template
+         instantiation scope is pushed. */
       push_class_reactivation_scope(tag_sym->parent.class_type);
     }  /* if */
     if (curr_token == tok_colon) {
@@ -8854,8 +8854,11 @@ completed (C++ only).
         syntax_error(ec_missing_class_definition);
         err = TRUE;
       }  /* if */
-      if (delayed_nested_class_def && curr_token != tok_lbrace) {
-        /* Restore the scope stack to its original state. */
+      if (delayed_nested_class_def && !is_template_instantiation &&
+          curr_token != tok_lbrace) {
+        /* Restore the scope stack to its original state. For template
+           instantiations, this is done when the template instantiation
+           scope is popped. */
         pop_class_reactivation_scope();
       }  /* if */
     }  /* if */
@@ -9201,8 +9204,12 @@ next_declaration:
       /* A nested class defined outside the parent class definition. */
       a_type_ptr  placeholder;
 
-      /* Restore the scope stack to its original state. */
-      pop_class_reactivation_scope();
+      /* Restore the scope stack to its original state.  For template
+         instantiations this is done when the instantiation scope is
+         popped. */
+      if (!is_template_instantiation) {
+        pop_class_reactivation_scope();
+      }  /* if */
       if (!class_state.is_nonreal_instantiation) {
         if (class_type->variant.class_struct_union.
                    referenced_by_class_instantiation_placeholder_typeref) {
@@ -9269,13 +9276,7 @@ next_declaration:
            inline member function definitions must be done.  The actual
            processing will be done when all pending class definitions have
            been completed. */
-#if 0
         add_to_class_fixup_list(class_type, is_template_instantiation);
-#else
-        /* Temporary -- will be removed when context reactivation changes
-           are completed. */
-        delayed_scan_fixup_for_class(class_type, is_template_instantiation);
-#endif
       }  /* if */
       curr_routine_fixup = saved_routine_fixup;
       if (cssp->is_prototype_instantiation) {
@@ -9304,20 +9305,30 @@ next_declaration:
   }  /* if */
   /* Decrement the counter of class definitions currently in progress. */
   pending_class_definitions--;
-  if (pending_class_definitions == 0) {
-    /* While one or more class definitions are pending, the fixup of
-       member function bodies and default arguments is deferred until
-       all class definitions have been complete.  Nonclass template
-       definitions are also deferred.  When the count of pending class
-       definitions is zero, all class definitions have been completed
-       and any deferred class fixups and instantiations may now be done. */
-    process_deferred_class_fixups();
-    process_deferred_instantiation_requests();
-  }  /* if */
-
+  /* If there are no longer any classes in the process of being defined
+     do any class fixups and template instantiations that have been
+     deferred. */
+  process_deferred_class_fixups_and_instantiations();
   db_exit();
   return !err;
 }  /* scan_class_definition */
+
+
+void process_deferred_class_fixups_and_instantiations(void)
+/*
+While one or more class definitions are pending, the fixup of
+member function bodies and default arguments is deferred until
+all class definitions have been complete.  Nonclass template
+definitions are also deferred.  When the count of pending class
+definitions is zero, all class definitions have been completed
+and any deferred class fixups and instantiations may now be done.
+*/
+{
+  if (pending_class_definitions == 0) {
+    process_deferred_class_fixups();
+    process_deferred_instantiation_requests();
+  }  /* if */
+}  /* process_deferred_class_fixups_and_instantiations */
 
 
 /* Forward declaration for recursive call. */

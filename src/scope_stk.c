@@ -709,7 +709,6 @@ static a_scope_ptr push_scope_full(
 			       a_symbol_ptr             instance_sym,
 			       a_symbol_ptr             template_sym,
 			       a_template_arg_ptr       template_arg_list,
-			       a_boolean                nested_instantiation,
                                a_template_decl_info_ptr template_decl_info)
 /*
 Begin a new name scope by pushing an entry on the scope stack.  kind indicates
@@ -733,6 +732,8 @@ definition is based; and the template argument list the produces the
 specific version of the template.  template_decl_info is used for template
 instantiation scopes, and describes the context being created by the
 instantiation scope (the template parameters to be used, etc.).
+template_decl_info is also used for template declaration scopes and points
+to the declaration information for the template declaration scope being pushed.
 */
 {
   a_scope_stack_entry_ptr ssep;
@@ -879,7 +880,6 @@ instantiation scope (the template parameters to be used, etc.).
   ssep->within_unnamed_namespace = FALSE;
   ssep->namespace_pushed         = FALSE;
   ssep->reactivated_class_being_defined = FALSE;
-  ssep->parent_instantiation_pushed = FALSE;
   ssep->is_for_init_block        = FALSE;
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
@@ -911,10 +911,10 @@ instantiation scope (the template parameters to be used, etc.).
   ssep->instance_sym             = instance_sym;
   ssep->template_sym             = template_sym;
   ssep->template_arg_list        = template_arg_list;
-  ssep->nested_instantiation     = nested_instantiation;
+  ssep->nested_instantiation     = FALSE;
   ssep->source_position          = pos_curr_token;
   ssep->depth_innermost_function_scope = depth_innermost_function_scope;
-  ssep->template_decl_info       = NULL;
+  ssep->template_decl_info       = template_decl_info;
   ssep->last_label_decl_seq      = 0;
   ssep->pending_pragmas          = NULL;
   ssep->curr_construct_pragmas	 = NULL;
@@ -935,9 +935,10 @@ instantiation scope (the template parameters to be used, etc.).
   ssep->num_of_extra_times_pushed = 0;;
   ssep->active_using_directives   = NULL;
   ssep->previous_scope            = NO_SCOPE_DEPTH;
-  ssep->instantiation_context_scope = NO_SCOPE_DEPTH;
-  ssep->instantiation_common_scope = NO_SCOPE_DEPTH;
+  ssep->instantiation_context_depth = NO_SCOPE_DEPTH;
+  ssep->instantiation_common_depth = NO_SCOPE_DEPTH;
   ssep->saved_depth_of_initial_lookup_scope = depth_of_initial_lookup_scope;
+  ssep->orig_depth               = NO_SCOPE_DEPTH;
   ssep->first_template_cache_segment = NULL;
   ssep->last_template_cache_segment = NULL;
   ssep->class_def_state          = NULL;
@@ -1028,7 +1029,6 @@ instantiation scope (the template parameters to be used, etc.).
          recreated by pop_scope. */
       update_template_param_symbols(template_decl_info->parameters,
                                     template_arg_list);
-      ssep->template_decl_info = template_decl_info;
       /* The current stack state is suspended when an template instantiation
          is done.  It will be restored in pop_scope.  inside_local_class
          is reset by push_template_instantiation_scope. */
@@ -1297,7 +1297,6 @@ instantiation scopes.
                           assoc_routine, (a_namespace_ptr)NULL,
                           (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                           (a_template_arg_ptr)NULL,
-                          /*nested_instantiation=*/FALSE,
                           (a_template_decl_info_ptr)NULL);
   return scope;
 }  /* push_scope */
@@ -1346,7 +1345,6 @@ entry (for "extension-namespace-definitions").
                           (a_routine_ptr)NULL, assoc_namespace,
                           (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                           (a_template_arg_ptr)NULL,
-                          /*nested_instantiation=*/FALSE,
                           (a_template_decl_info_ptr)NULL);
   /* Add active using directives for the namespaces that should be
      visible because of the transitivity of using directives. */
@@ -1391,8 +1389,6 @@ DEPTH_FILE_SCOPE if there is none.
 }  /* find_depth_of_common_scope */
 
 
-
-
 static
 void push_namespace_extension_for_instantiation(a_namespace_ptr nsp,
                                                 a_namespace_ptr common_nsp,
@@ -1427,31 +1423,6 @@ the previous scope of the first scope pushed by this routine.
     scope_stack[depth_scope_stack].previous_scope = prev_scope;
   }  /* if */
 }  /* push_namespace_extension_for_instantiation */
-
-
-static
-void pop_namespace_extension_for_instantiation(a_namespace_ptr common_nsp)
-/*
-Pop the namespace extension scopes that were pushed to create the
-context for an instantiation.  Pop the scopes up to and including the
-namespace extension scope whose parent is common_nsp.
-*/
-{
-  a_scope_stack_entry_ptr	ssep;
-  a_namespace_ptr		parent_nsp;
-
-  ssep = &scope_stack[depth_scope_stack];
-  check_assertion_str2(ssep->kind == (a_scope_kind)sck_namespace_extension,
-                       "pop_namespace_extension_for_instantiation:",
-                       "entry not namespace extension");
-  /* Pop the reactivation scope. */
-  parent_nsp = ssep->assoc_namespace->source_corresp.parent.namespace_ptr;
-  pop_scope();
-  if (parent_nsp != common_nsp) {
-    /* A nested namespace.  Pop the enclosing namespaces too. */
-    pop_namespace_extension_for_instantiation(common_nsp);
-  }  /* if */
-}  /* pop_namespace_extension_for_instantiation */
 
 
 static
@@ -1558,106 +1529,283 @@ to the namespace and class that must be reactivated.
        using qualified names in friend declarations, so the namespace
        must be the same as the namespace containing the class. */
     *p_tp = parent_type;
-    *p_nsp = parent_namespace_for_symbol(template_sym);
+    *p_nsp = parent_namespace_for_symbol(instance_sym);
   } else {
     /* If we are instantiating a particular instance of a template, get
        the parent information from the template being instantiated. */
-    *p_nsp = parent_namespace_for_symbol(template_sym);
-    if (template_sym != NULL && template_sym->is_class_member &&
-        (template_sym->kind == (a_symbol_kind)sk_class_template ||
-         template_sym->kind == (a_symbol_kind)sk_function_template)) {
-      /* This is a member template -- use the parent class type as the
-         type that must be reactivated. */
-      *p_tp = template_sym->parent.class_type;
+    *p_nsp = parent_namespace_for_symbol(instance_sym);
+    if (instance_sym->is_class_member) {
+      *p_tp = instance_sym->parent.class_type;
     } else {
-      /* For nonmember templates, and for members of template classes that
-         are not themselves members, the class context, if needed, will
-         have been created by the caller. */
       *p_tp = NULL;
     }  /* if */
   }  /* if */
 }  /* get_parent_information_for_template */
 
 
+static void push_single_class_reactivation_scope(a_type_ptr class_type)
+/*
+Reactivate the class indicated by class type.  Do not push the scopes for
+any enclosing class types or namespaces.
+*/
+{
+  a_scope_ptr	il_scope;
+
+  /* Find the IL scope to get the scope number. */
+  il_scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
+  check_assertion_str2(il_scope != NULL,
+                       "push_single_class_reactivation_scope:",
+                       "NULL assoc_scope");
+  (void)push_scope((a_scope_kind)sck_class_reactivation, il_scope->number,
+                   class_type, (a_routine_ptr)NULL);
+}  /* push_single_class_reactivation_scope */
+
+
 static
-a_boolean push_enclosing_instantiation_scope(
+void reactivate_class_and_instantiation_scopes(
                       a_template_decl_info_ptr	decl_info,
                       a_type_ptr		parent_class,
-	              a_boolean			*instantiation_scope_pushed)
+                      a_symbol_ptr		instance_sym)
 /*
-This routine is used when instantiating a function that was declared
-within a template class definition.  The context must be reactivated
-so that names used in the template definition can be looked up properly.
-parent_class is the class that must be reactivated.  instantiation_scope_pushed
-is set to TRUE if a template instantiation scope needed to be pushed
-as part of reactivating the class.  decl_info is the template declaration
-information for the template being instantiated.
+Reactivate the class specified by parent_class and any classes that enclose
+parent class.  If any of the classes are template classes, push
+instantiation scopes for those classes too.  parent_class is the class
+that must be reactivated.  decl_info is the template declaration
+information for the template being instantiated.  instance_sym is the
+symbol to be used (if not NULL) as the instance symbol for the outermost
+instantiation scope that is pushed.
 */
 {
   a_type_ptr                        class_type;
-  a_symbol_ptr                      instance_sym;
-  a_symbol_ptr                      template_sym;
-  a_template_symbol_supplement_ptr  tssp;
-  a_class_symbol_supplement_ptr     cssp;
+  a_symbol_ptr                      class_sym;
+  a_symbol_ptr                      template_sym = NULL;
+  a_template_symbol_supplement_ptr  tssp = NULL;
   a_template_arg_ptr                template_arg_list;
-  a_boolean                         is_nested_instantiation = FALSE;
+  a_template_decl_info_ptr	    enclosing_tdip;
+  a_boolean			    is_template;
+  a_symbol_ptr			    enclosing_instance_sym = NULL;
 
   class_type = skip_typerefs(parent_class);
-  instance_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
-  *instantiation_scope_pushed = FALSE;
-  if (is_template_class_and_not_specific_def_symbol(instance_sym)) {
-    cssp = instance_sym->variant.class_struct_union.extra_info;
+  class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  check_assertion_str2(class_sym != NULL,
+                       "reactivate_class_and_instantiation_scopes:",
+                       "class type has NULL assoc_info");
+  is_template = is_template_class_and_not_specific_def_symbol(class_sym);
+  if (is_template) {
+    a_class_symbol_supplement_ptr     cssp;
+    cssp = class_sym->variant.class_struct_union.extra_info;
     template_sym = cssp->class_template;
     tssp = template_sym->variant.template_info;
+    /* Determine which template declaration information is to be used
+       when pushing the instantiation scope for the enclosing class.
+       For a member template defined outside of the class you need
+       to use the template parameter list from the definition of
+       the member template (as supplied by the decl_info pointer), not that
+       of the enclosing class.  If decl_info is NULL, the information from
+       the class is used instead. */
+    if (decl_info == NULL) decl_info = tssp->cache.decl_info;
+    enclosing_tdip = decl_info->enclosing_template_decl;
+    if (instance_sym == NULL) instance_sym = class_sym;
+    enclosing_instance_sym = NULL;
+  } else {
+    /* If this is not a template, use the decl_info value passed in as
+       the value passed to the recursive call below. */
+    enclosing_tdip = decl_info;
+    enclosing_instance_sym = instance_sym;
+  }  /* if */
+  if (class_sym->is_class_member) {
+    /* If this is not the outermost class, reactivate any enclosing
+       classes. */
+    reactivate_class_and_instantiation_scopes(enclosing_tdip,
+                                              class_sym->parent.class_type,
+                                              enclosing_instance_sym);
+  }  /* if */
+  if (is_template) {
     if (tssp->variant.class_template.prototype_instantiation_complete) {
-      /* Push an template instantiation scope associated with the
+      /* Push a template instantiation scope associated with the
          class in which this template was defined.  Don't do this if
          the prototype instantiation is already in process. */
-      a_template_decl_info_ptr	enclosing_tdip;
       template_arg_list = class_type->variant.class_struct_union.extra_info->
                                                            template_arg_list;
-      /* Determine which template declaration information is to be used
-         when pushing the instantiation scope for the enclosing class.
-         For a member template defined outside of the class you need
-         to use the template parameter list from the definition of
-         the member template, not that of the enclosing class. */
-      if (decl_info->enclosing_template_decl != NULL) {
-        enclosing_tdip = decl_info->enclosing_template_decl;
-      } else {
-        enclosing_tdip = tssp->cache.decl_info;
-      }  /* if */
-      (void)push_template_instantiation_scope(enclosing_tdip,
-					      class_type,
-					      (a_routine_ptr)NULL,
-					      instance_sym, template_sym,
-					      template_arg_list);
-      *instantiation_scope_pushed = TRUE;
+      (void)push_scope_full((a_scope_kind)sck_template_instantiation,
+                          decl_info->declaration_scope, class_type,
+                          (a_routine_ptr)NULL, (a_namespace_ptr)NULL,
+                          instance_sym, template_sym, template_arg_list,
+                          decl_info);
     }  /* if */
-    /* Reactivate the enclosing class scope. */
-    push_class_reactivation_scope(class_type);
-    /* This flag needs to be set both when a scope is pushed and when the
-       prototype scope is still pending. */
-    is_nested_instantiation = TRUE;
   }  /* if */
-  return is_nested_instantiation;
-}  /* push_enclosing_instantiation_scope */
+  /* Reactivate the enclosing class scope. */
+  push_single_class_reactivation_scope(class_type);
+}  /* reactivate_class_and_instantiation_scopes */
 
 
-static void pop_enclosing_instantiation_scope(a_boolean  instantiation_scope_pushed)
+static void push_instantiation_context(
+		a_template_decl_info_ptr	decl_info,
+		a_namespace_ptr			definition_nsp,
+		a_type_ptr			definition_class,
+		a_namespace_ptr			reference_nsp,
+		a_scope_depth			*p_common_depth,
+		a_scope_depth			*p_definition_depth,
+		a_scope_depth			*p_context_depth,
+                a_scope_depth			*p_after_definition_depth,
+                a_symbol_ptr			instance_sym)
 /*
-Pop any scopes pushed by a prior call of push_enclosing_instantiation_scope.
+Pushes the scopes necessary to create the appropriate context for a
+particular instantiation.  This process includes
+
+- pushing the namespace containing the point of instantiation for the template
+
+- pushing the namespaces necessary to recreate the context in which the
+  template was defined, up to the "common" scope (the first scope that is
+  part of both the definition and referencing context)
+
+- pushing any class reactivation scopes that may be necessary if the template
+  definition context is inside a class
+
+- pushing instantiation scopes associated with the class reactivations if the
+  class being reactivated is a class template
+
+definition_nsp is the template definition namespace to be extended.
+definition_class is the template definition class to be reactivated.
+reference_nsp is the referencing namespace to be reactivated.
+p_common_depth is set to the scope depth of the first scope that is common
+to both the defining and referencing contexts.  p_definition_depth is
+set to the innermost scope that is part of the template definition
+context.  p_context_depth is set to the scope depth of the referencing
+namespace.  When referencing_nsp is NULL, this is the current scope depth,
+otherwise it is the depth of the scope pushed for referencing_nsp.
+p_after_definition_depth is the scope depth of the scope whose previous
+scope needs to be updated to point to definition_depth when the scope
+stack is fixed up later.  instance_sym is the symbol to be used for
+the outermost class instantiation scope and is non-NULL for nontemplate
+member instantiations when the outermost instantiation scope is actually
+the instantiation scope for the member, not the class that is being
+reactivated.
 */
 {
-  /* Pop the enclosing class scope. */
-  pop_class_reactivation_scope();
-  if (instantiation_scope_pushed) {
-    /* Pop the template instantiation scope. */
-    pop_template_instantiation_scope();
+  a_scope_depth		common_depth;
+  a_scope_depth		context_depth;
+  a_scope_depth		definition_depth;
+  a_namespace_ptr	common_nsp;
+
+  /* Push the namespace containing the point of instantiation. */
+  if (reference_nsp !=
+              scope_stack[depth_innermost_namespace_scope].assoc_namespace) {
+    /* The namespace from which the first reference that requires the
+       instantiation of this template is different than the current
+       namespace.  Reactivate the namespace associated with that
+       reference. */
+    if (reference_nsp != NULL) {
+      push_namespace_extension_scope(reference_nsp);
+    }  /* if */
   }  /* if */
-}  /* pop_enclosing_instantiation_scope */
+  /* The context scope is the innermost namespace scope at this point. */
+  context_depth = depth_innermost_namespace_scope;
+  /* Push the namespace(s) containing the definition of the template. */
+  if (definition_nsp != NULL) {
+    common_depth = find_depth_of_common_scope(definition_nsp);
+    common_nsp = scope_stack[common_depth].assoc_namespace;
+    if (common_nsp == definition_nsp) {
+      if (common_depth != depth_scope_stack) {
+        definition_depth = common_depth;
+      } else {
+        definition_depth = depth_scope_stack;
+      }  /* if */
+    } else {
+      /* Reactivate the scope from the common namespace scope through the
+         parent namespace of the template. */
+      push_namespace_extension_for_instantiation(definition_nsp, common_nsp,
+                                                 common_depth);
+      definition_depth = depth_scope_stack;
+    }  /* if */
+  } else {
+    common_depth = DEPTH_OF_FILE_SCOPE;
+    common_nsp = NULL;
+    definition_depth = DEPTH_OF_FILE_SCOPE;
+  }  /* if */
+  /* The next scope pushed needs to have its previous scope set to the
+     definition depth.  Save the depth of the scope that will need to
+     be fixed up later. */
+  *p_after_definition_depth = depth_scope_stack + 1;
+  if (definition_class != NULL) {
+    /* This template was declared within a class, or classes (either a normal
+       class and/or a template class).  Push class reactivation scopes for the
+       enclosing classes.  For any enclosing classes that are template classes,
+       push an instantiation scope for the class as well. */
+    reactivate_class_and_instantiation_scopes(decl_info, definition_class,
+                                              instance_sym);
+  }  /* if */
+  /* Return the calculated scope depths to the caller. */
+  *p_common_depth = common_depth;
+  *p_definition_depth = definition_depth;
+  *p_context_depth = context_depth;
+}  /* push_instantiation_context */
 
 
-a_scope_ptr push_template_instantiation_scope
+static void fixup_instantiation_scopes(a_scope_depth	orig_depth,
+				       a_scope_depth	common_depth,
+				       a_scope_depth	definition_depth,
+				       a_scope_depth	context_depth,
+                                       a_scope_depth	after_definition_depth)
+/*
+Fix up the entries on the scope stack.  At this point the scope stack
+looks like:
+
+	7 instantiation scope for this entity
+	6 reactivation for class containing template (optional)
+	5 instantiation for class containing template (optional)
+	  (any number of classes may be reactivated)
+	4 namespace containing template (optional)
+	  (any number of namespaces may be pushed)
+	3 namespace containing point of instantiation (optional)
+	2 scope containing reference that caused the instantiation
+	1 some scope
+	0 file scope
+
+The following fixups need to be performed:
+
+- all instantiation scopes pushed, except the first one, must be
+  flagged as nested instantiations
+- the context and common scopes must be recorded in the nonnested
+  instantiation scope
+- the previous_scope of the outermost definition context scope and the
+  referencing context scope must be set to point to the common scope
+*/
+{
+  a_scope_depth			primary_instantiation_depth = NO_SCOPE_DEPTH;
+  a_scope_depth			depth;
+  a_scope_stack_entry_ptr	primary_ssep;
+
+  /* Mark all instantiation scopes that have been pushed as nested
+     instantiations.  Save the depth of the outermost instantiation
+     scope that was pushed.  It will be changed back to nonnested later.
+     When this loop completes, primary_instantiation_depth will
+     mark the first instantiation scope pushed. */
+  for (depth = depth_scope_stack; depth >= orig_depth; depth--) {
+    if (scope_stack[depth].kind == (a_scope_kind)sck_template_instantiation) {
+      primary_instantiation_depth = depth;
+      scope_stack[depth].nested_instantiation = TRUE;
+    }  /* if */
+  }  /* for */
+  primary_ssep = &scope_stack[primary_instantiation_depth];
+  /* Mark the initial instantiation scope as nonnested. */
+  primary_ssep->nested_instantiation = FALSE;
+  primary_ssep->instantiation_context_depth = context_depth;
+  primary_ssep->instantiation_common_depth = common_depth;
+  /* Set the previous_scope of the referencing context scope. */
+  if (context_depth != common_depth) {
+    scope_stack[context_depth].previous_scope = common_depth;
+  }  /* if */
+  /* The previous_scope of the initial definition context scope will have
+     already been set properly. */
+  /* The scope pushed after the definition namespace context has been
+     restored needs to have its previous scope field updated to point
+     to the definition context. */
+  scope_stack[after_definition_depth].previous_scope = definition_depth;
+}  /* fixup_instantiation_scopes */
+
+
+void push_template_instantiation_scope
                            (a_template_decl_info_ptr decl_info,
                             a_type_ptr               assoc_type,
                             a_routine_ptr            assoc_routine,
@@ -1669,20 +1817,19 @@ Interface to push_scope_full that is used for template instantiation
 scopes.
 */
 {
-  a_scope_ptr			scope;
   a_namespace_ptr		parent_nsp;
   a_type_ptr			parent_class;
   a_scope_depth			common_depth;
-  a_namespace_ptr		common_nsp;
-  a_scope_depth			instantiation_prev_scope;
   a_scope_depth			new_innermost_namespace_scope;
-  a_scope_stack_entry_ptr	ssep;
-  a_scope_depth			context_scope =
-                                              depth_innermost_namespace_scope;
+  a_scope_depth			context_depth;
+  a_scope_depth			definition_depth;
+  a_scope_depth			after_definition_depth;
+  a_scope_depth			orig_depth = depth_scope_stack;
   a_namespace_ptr		reference_nsp;
-  a_boolean			referencing_namespace_pushed = FALSE;
-  a_boolean			parent_instantiation_pushed = FALSE;
-  a_boolean			nested_instantiation = FALSE;
+  a_boolean			is_template = FALSE;
+  a_template_decl_info_ptr	enclosing_tdip;
+  a_symbol_ptr			enclosing_instance_sym;
+  a_boolean			is_nested_prototype_instantiation = FALSE;
 
   /* Clear the flag that indicates that we are in a local class so that any
      scopes pushed by this routine will not be indicated as being within
@@ -1691,203 +1838,154 @@ scopes.
      the flag that indicates whether we are within a function scope. */
   inside_local_class = FALSE;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
-  /* If the template was defined in a namespace, reactivate the namespace
-     scope before pushing the instantiation scope. */
-  get_parent_information_for_template(decl_info->enclosing_scope,
-                                      template_sym, instance_sym,
-                                      &parent_nsp, &parent_class);
-  if (parent_class != NULL) {
-    /* This template was declared within a class (either a normal class or
-       a template class).  If it is a template class, push an instantiation
-       scope for the enclosing scope. */
-    nested_instantiation = push_enclosing_instantiation_scope(
-                                             decl_info,
-                                             parent_class,
-                                             &parent_instantiation_pushed);
+  /* Determine whether the bottom-level entity is a template.  In some
+     cases the only instantiation scopes that are pushed are ones
+     that make up the context for the definition of an entity.  This
+     is the case for any nontemplate entity (member function, class, etc.)
+     defined within a template.  If this routine will push an instantiation
+     scope, get a pointer to the enclosing template declaration information
+     to be passed to the routine that pushes the context scopes. */
+  is_template = template_sym->kind == (a_symbol_kind)sk_class_template ||
+                template_sym->kind == (a_symbol_kind)sk_function_template;
+  if (is_template) {
+    /* Get a pointer to the enclosing template declaration information.  If
+       this pointer is NULL, the template declaration information from the
+       template symbol supplement will be used instead. */
+    enclosing_tdip = decl_info->enclosing_template_decl;
+    enclosing_instance_sym = NULL;
+  } else {
+    /* This entity is not a template, use the template declaration information
+       that was passed in. */
+    enclosing_tdip = decl_info;
+    /* For nontemplate members of template classes use the symbol for the
+       nontemplate member that is being instantiated as the instance
+       symbol for the outermost instantiation scope. */
+    enclosing_instance_sym = instance_sym;
   }  /* if */
-  /* A nested instantiation is one that occurs within an other instantiation
-     scope.  For example, a template friend defined inside a template class.
-     Only do the special namespace processing for the outer instantiation
-     scope. */
-  if (!nested_instantiation) {
+  /* See if this is a nested prototype instantiation.  A nested prototype
+     instantiation is the prototype instantiation of a member template
+     that is defined inside of the enclosing template.  In such cases
+     the prototype instantiation of the enclosing template is still in
+     progress.  When processing a nested prototype instantiation we simply
+     push a new template instantiation scope onto the existing context and
+     flag it as a nested instantiation. */
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    if (instance_sym != NULL &&
+        is_class_struct_union_symbol(instance_sym)) {
+      is_nested_prototype_instantiation = 
+                    instance_sym->variant.class_struct_union.extra_info->
+                                                  is_prototype_instantiation;
+    }  /* if */
+  }  /* if */
+#if CHECKING
+  /* Set a flag that indicates that the processing to push a new
+     instantiation scope is in progress. */
+  pushing_template_instantiation_scope = TRUE;
+#endif /* CHECKING */
+  if (!is_nested_prototype_instantiation) {
     /* Because a template instantiation introduces a new context for
        name lookup purposes, we need to clear the active using list
        flags for any namespaces for which it is currently set. */
     set_active_using_list_scope_depths(depth_scope_stack,
                                        /*set_value=*/FALSE);
-#if CHECKING
-    /* Set a flag that indicates that the processing to push a new
-       instantiation scope is in progress. */
-    pushing_template_instantiation_scope = TRUE;
-#endif /* CHECKING */
+    /* If the template was defined in a namespace, reactivate the namespace
+       scope before pushing the instantiation scope. */
+    get_parent_information_for_template(decl_info->enclosing_scope,
+                                        template_sym, instance_sym,
+                                        &parent_nsp, &parent_class);
     reference_nsp = referencing_namespace_for_instance(instance_sym);
-    if (reference_nsp !=
-                scope_stack[depth_innermost_namespace_scope].assoc_namespace) {
-      /* The namespace from which the first reference that requires the
-         instantiation of this template is different than the current
-         namespace.  Reactivate the namespace associated with that
-         reference. */
-      if (reference_nsp != NULL) {
-        push_namespace_extension_scope(reference_nsp);
-        referencing_namespace_pushed = TRUE;
-        /* The context scope is now the namespace just pushed. */
-        context_scope = depth_innermost_namespace_scope;
-      }  /* if */
-    }  /* if */
-    if (parent_nsp != NULL) {
-      common_depth = find_depth_of_common_scope(parent_nsp);
-      common_nsp = scope_stack[common_depth].assoc_namespace;
-      if (common_nsp == parent_nsp) {
-        if (common_depth != depth_scope_stack) {
-          instantiation_prev_scope = common_depth;
-        } else {
-          instantiation_prev_scope = depth_scope_stack;
-        }  /* if */
-     } else {
-        /* Reactivate the scope from the common namespace scope through the
-           parent namespace of the template. */
-        push_namespace_extension_for_instantiation(parent_nsp, common_nsp,
-                                                   common_depth);
-        instantiation_prev_scope = depth_scope_stack;
-      }  /* if */
-    } else {
-      common_depth = DEPTH_OF_FILE_SCOPE;
-      common_nsp = NULL;
-      instantiation_prev_scope = DEPTH_OF_FILE_SCOPE;
-    }  /* if */
-    /* At this point, instantiation_prev_scope points to the parent scope
+    push_instantiation_context(enclosing_tdip, parent_nsp, parent_class,
+                               reference_nsp, &common_depth, &definition_depth,
+                               &context_depth, &after_definition_depth,
+                               enclosing_instance_sym);
+    /* At this point, definition_depth points to the parent scope
        of the template being instantiated.  Save this value before it
        is potentially modified below. */
-    new_innermost_namespace_scope = instantiation_prev_scope;
-    if (parent_class != NULL) {
-      /* If the routine being instantiated was declared/defined in a
-         class definition (which may be a template class definition)
-         the class in which the template was declared must be
-         reactivated.  If the class is a template, the template
-         instantiation for the class will have been pushed by the
-         caller.  The reactivated scope(s) must be linked into the
-         chain of previous scopes that will be used for the template
-         lookup.  Link the first reactivated scope to the scope before
-         the instantiation process began (instantiation_prev_scope). */
-      a_scope_depth	next_depth = depth_scope_stack+1;
-      push_class_reactivation_scope(parent_class);
-      ssep = &scope_stack[next_depth];
-      ssep->previous_scope = instantiation_prev_scope;
-      instantiation_prev_scope = depth_scope_stack;
-    }  /* if */
-#if CHECKING
-    pushing_template_instantiation_scope = FALSE;
-#endif /* CHECKING */
+    new_innermost_namespace_scope = definition_depth;
   }  /* if */
-  scope = push_scope_full((a_scope_kind)sck_template_instantiation,
+#if CHECKING
+  pushing_template_instantiation_scope = FALSE;
+#endif /* CHECKING */
+  if (is_template) {
+    (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                           decl_info->declaration_scope, assoc_type,
                           assoc_routine, (a_namespace_ptr)NULL, instance_sym,
-                          template_sym, template_arg_list,
-                          nested_instantiation, decl_info);
-  if (!nested_instantiation) {
-    ssep = &scope_stack[depth_scope_stack];
-    ssep->previous_scope = instantiation_prev_scope;
-    ssep->instantiation_context_scope = context_scope;
-    ssep->instantiation_common_scope = common_depth;
-    ssep->namespace_pushed = referencing_namespace_pushed;
+                          template_sym, template_arg_list, decl_info);
+  }  /* if */
+  if (!is_nested_prototype_instantiation) {
+    a_scope_stack_entry_ptr	ssep;
+    /* Update the scope stack entries that have been pushed so that the
+       special instantiation context lookups can be done correctly. */
+    fixup_instantiation_scopes(orig_depth, common_depth, definition_depth,
+                               context_depth, after_definition_depth);
     /* Update the depth of the innermost instantiation scope so that it points
        to the namespace that is the parent of the template being
        instantiated. */
+    ssep = &scope_stack[depth_scope_stack];
     depth_innermost_namespace_scope =
          ssep->depth_innermost_namespace_scope = new_innermost_namespace_scope;
+    /* Set the active using flags for the newly created context. */
+    set_active_using_list_scope_depths(depth_scope_stack, /*set_value=*/TRUE);
     check_assertion(scope_stack[new_innermost_namespace_scope].assoc_namespace
                                                                 == parent_nsp);
-    /* Set the active using flags for the newly created context. */
-    set_active_using_list_scope_depths(depth_scope_stack,
-                                       /*set_value=*/TRUE);
+  } else {
+    /* A nested prototype instantiation must be flagged as a nested
+       instantiation. */
+    scope_stack[depth_scope_stack].nested_instantiation = TRUE;
+  }  /* if */
+  /* Save the original scope depth in the last scope pushed by this
+     routine.  This will be used later when popping the stack. */
+  scope_stack[depth_scope_stack].orig_depth = orig_depth;
 #if DEBUG
-    if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
-      fprintf(f_debug, "Pushed instantiation scope for: ");
-      db_symbol(instance_sym, "", 0);
-      fprintf(f_debug, "context_scope=%0d, common_scope=%0d\n", context_scope,
+  if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
+    fprintf(f_debug, "Pushed instantiation scope for: ");
+    db_symbol(instance_sym, "", 0);
+    if (!is_nested_prototype_instantiation) {
+      fprintf(f_debug, "context_depth=%0d, common_depth=%0d\n", context_depth,
               common_depth);
     }  /* if */
-#endif /* DEBUG */
-  } else {
-    /* A nested instantiation.  Save the flag that indicates whether an
-       instantiation scope was pushed for the enclosing class. */
-    ssep = &scope_stack[depth_scope_stack];
-    ssep->parent_instantiation_pushed = parent_instantiation_pushed;
+    fprintf(f_debug, "scope stack after instantiation scope:\n");
+    db_scope_stack();
   }  /* if */
-#if DEBUG
-    if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
-      fprintf(f_debug, "scope stack after instantiation scope:\n");
-      db_scope_stack();
-    }  /* if */
 #endif /* DEBUG */
-  return scope;
 }  /* push_template_instantiation_scope */
 
 
 void pop_template_instantiation_scope(void)
 /*
 Interface to pop_scope that is used for template instantiation scopes.
+Pops all of the scopes that were pushed by a given call to
+push_template_instantiation_scope.
 */
 {
-  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
-  a_symbol_ptr			template_sym;
-  a_symbol_ptr			instance_sym;
-  a_namespace_ptr		common_nsp;
-  a_boolean			referencing_namespace_pushed;
-  a_scope_depth			common_depth;
-  a_boolean			nested_instantiation;
-  a_boolean			parent_instantiation_pushed;
-  a_template_decl_info_ptr	template_decl_info;
+  a_scope_depth			orig_depth;
 
-  check_assertion_str2(ssep->kind == (a_scope_kind)sck_template_instantiation,
+  orig_depth = scope_stack[depth_scope_stack].orig_depth;
+  check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
                        "pop_template_instantiation_scope:",
-                       "current scope is not instantiation scope");
-  template_sym = ssep->template_sym;
-  instance_sym = ssep->instance_sym;
-  common_depth = ssep->instantiation_common_scope;
-  template_decl_info = ssep->template_decl_info;
-  nested_instantiation = ssep->nested_instantiation;
-  parent_instantiation_pushed = ssep->parent_instantiation_pushed;
-  referencing_namespace_pushed = ssep->namespace_pushed;
-  /* Pop the actual template instantiation scope. */
-  pop_scope();
-  if (!nested_instantiation) {
-    a_type_ptr	parent_class;
-    a_namespace_ptr	parent_nsp;
-    get_parent_information_for_template(template_decl_info->enclosing_scope,
-                                        template_sym, instance_sym,
-                                        &parent_nsp, &parent_class);
-    if (parent_class != NULL) {
-      /* If the routine being instantiated was declared/defined in
-         a class definition (which may be a template class definition),
-        pop the class reactivation that was pushed. */
-      pop_class_reactivation_scope();
-    }  /* if */
-    /* If the template was defined in a namespace, pop any namespace
-       extension scopes that were pushed when the template instantiation
-       scope was added. */
-    parent_nsp = parent_namespace_for_symbol(template_sym);
-    common_nsp = scope_stack[common_depth].assoc_namespace;
-    if (parent_nsp != NULL) {
-      if (common_nsp != parent_nsp) {
-        pop_namespace_extension_for_instantiation(common_nsp);
-      }  /* if */
-    }  /* if */
-    if (referencing_namespace_pushed) {
-      /* The namespace associated with the referencing context was pushed when
-         the instantiation scope was pushed.  Pop the namespace extension
-         scope now. */
-      pop_namespace_extension_scope();
-    }  /* if */
-  } else {
-    /* A nested instantiation.  Pop the enclosing instantiation scope. */
-    pop_enclosing_instantiation_scope(parent_instantiation_pushed);
-  }  /* if */
+                       "invalid orig_depth");
+  /* Pop scopes until the depth of the scope stack is equal to orig_depth,
+     which is the depth before any of the instantiation context scopes were
+     pushed. */
+  while (orig_depth < depth_scope_stack) pop_scope();
   /* Reset the active using list flags to the values specified by
      the previous scope stack entries. */
   set_active_using_list_scope_depths(depth_scope_stack,
                                      /*set_value=*/TRUE);
 }  /* pop_template_instantiation_scope */
+
+
+void push_template_declaration_scope(a_template_decl_info_ptr decl_info)
+/*
+Push a template declaration scope.
+*/
+{
+  (void)push_scope_full(sck_template_declaration, NO_SCOPE_NUMBER,
+                        (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                        (a_namespace_ptr)NULL, (a_symbol_ptr)NULL,
+                        (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
+                        decl_info);
+}  /* push_template_declaration_scope */
 
 
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
@@ -3807,57 +3905,119 @@ This routine is called only in C++.
 }  /* pop_namespace_reactivation_scope */
 
 
-void push_class_reactivation_scope(a_type_ptr class_type)
+static a_scope_depth reactivate_class_scope(a_type_ptr class_type)
 /*
 Push one or more scopes that will reactivate the indicated class type.
-This is used, for example, when scanning member functions.  This routine
-is called only in C++.
+Return the scope depth prior to the reactivation of the first class
+reactivation scope that is pushed.
 */
 {
-  a_symbol_ptr	class_symbol;
-  a_scope_ptr	il_scope;
+  a_symbol_ptr	class_sym;
   a_boolean	namespace_pushed = FALSE;
+  a_scope_depth	orig_depth = NO_SCOPE_DEPTH;
 
   /* Get the symbol associated with the class. */
-  class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
-#if CHECKING
-  if (class_symbol == NULL) {
-    internal_error(
-              "push_class_reactivation_scope: class type has NULL assoc_info");
-  }  /* if */
-#endif /* CHECKING */
-  if (class_symbol->is_class_member) {
+  class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
+  if (class_sym->is_class_member) {
     /* Nested class.  Push the containing class(es) first. */
-    push_class_reactivation_scope(class_symbol->parent.class_type);
-  } else if (class_symbol->parent.namespace_ptr != NULL) {
+    orig_depth = reactivate_class_scope(class_sym->parent.class_type);
+    /* Propagate the namespace pushed flag up to the innermost class
+       reactivation scope. */
+    namespace_pushed = scope_stack[depth_scope_stack].namespace_pushed;
+  } else if (class_sym->parent.namespace_ptr != NULL) {
     /* The class is nested in a namespace -- push enclosing namespace(s). */
     a_namespace_ptr		parent_nsp;
     a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
-    parent_nsp = class_symbol->parent.namespace_ptr;
+    parent_nsp = class_sym->parent.namespace_ptr;
     if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
       /* When a class is reactivated immediately within a template
          instantiation scope, the namespace of the class must match the
          current innermost namespace scope. */
       check_assertion_str2(parent_nsp ==
                  scope_stack[depth_innermost_namespace_scope].assoc_namespace,
-                           "push_class_reactivation_scope:",
+                           "reactivate_class_scope:",
                            "pushing class not from curr. namespace");
     } else {
       push_namespace_reactivation_scope(parent_nsp);
       namespace_pushed = TRUE;
     }  /* if */
   }  /* if */
-  /* Find the IL scope to get the scope number. */
-  il_scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
-#if CHECKING
-  if (il_scope == NULL) {
-    internal_error("push_class_reactivation_scope: NULL assoc_scope");
-  }  /* if */
-#endif /* CHECKING */
-  /* Push an entry for the scope. */
-  (void)push_scope((a_scope_kind)sck_class_reactivation, il_scope->number,
-                   class_type, (a_routine_ptr)NULL);
+  if (orig_depth == NO_SCOPE_DEPTH) orig_depth = depth_scope_stack;
+  push_single_class_reactivation_scope(class_type);
   scope_stack[depth_scope_stack].namespace_pushed = namespace_pushed;
+  return orig_depth;
+}  /* reactivate_class_scope */
+
+
+void push_class_and_template_reactivation_scope(
+                                 a_type_ptr	class_type,
+                                 a_boolean      reactivate_template_params)
+/*
+Push the scopes needed to reactivate the context of the specified class.
+If the class is a template class, or a class defined within a template class,
+this involves pushing the necessary template instantiation scopes as well.
+If reactivate_template_params is FALSE, the template instantiation scopes
+are not reactivated.
+*/
+{
+  a_boolean	is_template;
+  a_symbol_ptr	class_sym;
+  a_scope_depth	orig_depth = depth_scope_stack;
+
+  /* Get the symbol associated with the class. */
+  class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
+  check_assertion_str2(class_sym != NULL,
+                       "push_class_and_template_reactivation_scope:",
+                       "class type has NULL assoc_info");
+  /* Template instantiation scopes must be pushed for template
+     instances. */
+  is_template = is_template_instance_class_symbol(class_sym) &&
+                !is_template_instance_specific_def_symbol(class_sym) &&
+                depth_template_declaration_scope == NO_SCOPE_DEPTH &&
+                reactivate_template_params;
+  if (is_template) {
+    a_symbol_ptr			template_sym;
+    a_template_arg_ptr			template_arg_list;
+    a_template_decl_info_ptr		decl_info;
+    a_template_symbol_supplement_ptr	tssp;
+    /* Get a pointer to the symbol associated with the template from
+       which this class was generated. */
+    template_sym = template_symbol_for_class_symbol(class_sym);
+    template_arg_list = class_type->variant.class_struct_union.extra_info->
+                                                           template_arg_list;
+    /* Get the template declaration information associated with the class. */
+    tssp = template_supplement_for_symbol(template_sym);
+    decl_info = tssp->cache.decl_info;
+    push_template_instantiation_scope(decl_info, class_type,
+                                      (a_routine_ptr)NULL, class_sym,
+                                      template_sym, template_arg_list);
+    /* The push of the template instantiation scope will not reactivate the
+       class type (that it thinks is being instantiated).  Reactivate it
+       now. */
+    push_single_class_reactivation_scope(class_type);
+  } else {
+    /* A nontemplate class.  Just do a normal class reactivation.  The
+       original depth returned is used instead of the one saved above
+       because the original depth should not include any namespace
+       reactivation scopes that may have been pushed. */
+    orig_depth = reactivate_class_scope(class_type);
+  }  /* if */
+    /* Record the scope depth prior to the reactivation so that the scopes
+       reactivated can be popped later. */
+  scope_stack[depth_scope_stack].orig_depth = orig_depth;
+}  /* push_class_reactivation_scope */
+
+
+void push_class_reactivation_scope(a_type_ptr class_type)
+/*
+Push the scopes needed to reactivate the context of the specified class.
+This is an interface to push_class_and_template_reactivation_scope that
+causes only the class reactivation (and not any template instantiation
+scopes) to be pushed.
+*/
+{
+  push_class_and_template_reactivation_scope
+                           (class_type, /*reactivate_template_params=*/FALSE);
 }  /* push_class_reactivation_scope */
 
 
@@ -3868,31 +4028,20 @@ is called only in C++.
 */
 {
   a_scope_stack_entry_ptr	ssep;
-  a_symbol_ptr         		class_symbol;
+  a_scope_depth			orig_depth;
   a_boolean			namespace_pushed = FALSE;
 
   ssep = &scope_stack[depth_scope_stack];
   namespace_pushed= ssep->namespace_pushed;
-#if CHECKING
-  if (ssep->kind != (a_scope_kind)sck_class_reactivation) {
-    internal_error(
-                 "pop_class_reactivation_scope: entry not class reactivation");
-  }  /* if */
-#endif /* CHECKING */
-  /* Get the symbol associated with the class. */
-  class_symbol = (a_symbol_ptr)(ssep->assoc_type->source_corresp.assoc_info);
-#if CHECKING
-  if (class_symbol == NULL) {
-    internal_error(
-               "pop_class_reactivation_scope: assoc type has NULL assoc_info");
-  }  /* if */
-#endif /* CHECKING */
-  /* Pop the reactivation scope. */
-  pop_scope();
-  if (class_symbol->is_class_member) {
-    /* Nested class.  Pop the containing class(es) too. */
-    pop_class_reactivation_scope();
-  } else if (namespace_pushed) {
+  orig_depth = scope_stack[depth_scope_stack].orig_depth;
+  check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
+                       "pop_class_reactivation_scope:",
+                       "invalid orig_depth");
+  /* Pop scopes until the depth of the scope stack is equal to orig_depth,
+     which is the depth before any of the class reactivation scopes were
+     pushed. */
+  while (orig_depth < depth_scope_stack) pop_scope();
+  if (namespace_pushed) {
     /* The class is nested in a namespace -- pop enclosing namespace(s). */
     pop_namespace_reactivation_scope();
   }  /* if */
