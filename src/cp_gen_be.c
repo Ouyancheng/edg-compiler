@@ -1096,31 +1096,32 @@ omit the space.
 
   switch (storage_class) {
     case sc_extern:
-      str = "extern ";
+      str = "extern";
       break;
     case sc_static:
-      str = "static ";
+      str = "static";
       break;
     case sc_auto:
 #if 0
       /* "auto" could be suppressed in most cases.  The only tricky cases
          are ones involving disambiguation. */
 #endif /* 0 */
-      str = "auto ";
+      str = "auto";
       break;
     case sc_unspecified:
       /* Print nothing. */
       goto done;
     case sc_register:
-      str = "register ";
+      str = "register";
       break;
     case sc_typedef:
-      str = "typedef ";
+      str = "typedef";
       break;
     default:
       unexpected_condition_str("gen_storage_class: bad storage class");
   }  /* switch */
   write_tok_str(str);
+  write_space();
 done:;
 }  /* gen_storage_class */
 
@@ -1608,7 +1609,7 @@ entry).
       write_space();
     }  /* if */
   }  /* for */
-}  /* gen_pointer_type_qualifier */
+}  /* gen_pointer_type_qualifiers */
 
 
 static void gen_type_first_part(a_type_ptr type,
@@ -1807,6 +1808,9 @@ is non-NULL, in which case that is the function scope.
              name from the parameter variable.  Note that the type in the
              variable might be slightly different than (though, of course,
              compatible with) the type in the param_type entry. */
+          if (param_var->storage_class == (a_storage_class)sc_register) {
+            gen_storage_class(param_var->storage_class);
+          }  /* if */
           /* Watch out for unnamed parameters in C++. */
           gen_declaration_using_type(param_var->type,
                                      has_name(param_var) ?
@@ -1865,7 +1869,7 @@ Generate an array declarator for the indicated array type.
 
 
 static void gen_type_second_part(a_type_ptr type,
-				 a_boolean  need_paren)
+                                 a_boolean  need_paren)
 /*
 Output the second part of a type reference, the part of the declarator
 that follows the name.  If need_paren is TRUE, put a closing parenthesis
@@ -1899,7 +1903,7 @@ out first if anything is generated.
     if (need_paren) write_tok_str(")");
     gen_array_declarator(type);
     gen_type_second_part(type->variant.array.element_type,
-			 /*need_paren=*/TRUE);
+                         /*need_paren=*/TRUE);
   }  /* if */
 }  /* gen_type_second_part */
 
@@ -3592,6 +3596,16 @@ as the front end.
   free_memory_region(FILE_SCOPE_REGION_NUMBER);
 }  /* back_end */
 #endif /* (else of) STANDALONE_CP_GEN_BE */
+
+#else /* !BACK_END_IS_CP_GEN_BE */
+
+#ifdef USING_QUANTIFY
+/*
+Quantify has a bug that causes an error when an empty object file is used.
+When using quantify, generate a dummy variable.
+*/
+char quantify_dummy_in_cp_gen_be;
+#endif /* ifndef USING_QUANTIFY */
 
 #endif /* BACK_END_IS_CP_GEN_BE */
 
