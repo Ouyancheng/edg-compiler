@@ -3024,8 +3024,7 @@ the current class (class_type).
 
   if (class_type == friend_class_type) {
     /* Diagnostic on excessive narcissism. */
-    diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
-               ec_self_friendship);
+    warning(ec_self_friendship);
   } else {
     ctsp = friend_class_type->variant.class_struct_union.extra_info;
     /* Issue a remark if this is a duplicate friend declaration. */

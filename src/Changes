@@ -1,5 +1,10 @@
 Version 2.29
 
+5/19/95  Declaring a class a friend of itself
+
+We now issue a warning instead of an error in -A mode when a class is
+declared a friend of itself.
+
 5/19/95  Bug in ctor_initializer
 
 A bug has been fixed in ctor_initializer that could cause a null-pointer
