@@ -4003,6 +4003,14 @@ special function kind (e.g., constructor, destructor), if any.
       rtn->storage_class = (a_storage_class)sc_extern;
     }  /* if */
   }  /* if */
+  if (locator->is_operator_name) {
+    /* Overloaded operator function. */
+    rtn->special_kind = (a_special_function_kind)sfk_operator;
+    rtn->opname_kind = locator->variant.opname;
+  } else if (locator->is_conversion_name) {
+    /* User-defined conversion function. */
+    rtn->special_kind = (a_special_function_kind)sfk_conversion;
+  }  /* if */
   if (compiler_generated) {
     rtn->compiler_generated = TRUE;
   } else {
@@ -4053,8 +4061,6 @@ special function kind (e.g., constructor, destructor), if any.
     /* Do processing for special member functions, including assignment
        operators, constructors and destructors. */
     if (locator->is_operator_name) {
-      rtn->special_kind = (a_special_function_kind)sfk_operator;
-      rtn->opname_kind = locator->variant.opname;
       /* If this is an assignment operator, record a pointer to it in the
          symbol -- to facilitate generating default assignment operators. */
       if (rtn->opname_kind == (an_opname_kind)onk_assign) {
@@ -4087,7 +4093,6 @@ special function kind (e.g., constructor, destructor), if any.
       /* User-defined conversion function. */
       a_boolean  is_usable = TRUE;
 
-      rtn->special_kind = (a_special_function_kind)sfk_conversion;
       /* Check the target type of the conversion -- which is the return type
          of rout_type. */
       tp = skip_typerefs(rtn->type);
