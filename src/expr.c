@@ -8752,6 +8752,8 @@ Syntax:
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                                    ec_bad_cast,
                                                    &warning_suggested)) {
+          a_base_class_ptr bcp;
+          a_boolean        baseward_cast;
           /* Valid static_cast conversion. */
           if (cast_removes_qualifiers(source_type, type_cast_to)) {
             /* This static_cast casts away constness, which is not allowed. */
@@ -8772,6 +8774,25 @@ Syntax:
                                  /*is_implicit_cast=*/FALSE,
                                  /*is_reference_cast=*/FALSE);
           } else {
+            if (related_member_pointers(source_type, type_cast_to,
+                                        &baseward_cast, &bcp) &&
+                baseward_cast &&
+                !bcp->ambiguous &&
+                !is_accessible_base_class(bcp)) {
+              /* A conversion from pointer-to-member of derived to
+                 pointer-to-member of a private base should not be
+                 allowed.  This was discussed in core issue 54 and is
+                 tested by a Suite++ test.  Core issue 54 also makes
+                 the similar pointer case, pointer-to-private-base to
+                 pointer-to-derived, an error, but we think that doesn't
+                 make sense.  MSVC++ 7.1 and g++ 3.2 allow the pointer
+                 case and give an error on the pointer-to-member case,
+                 so there seems to be some consensus. */
+              pos_ty_diagnostic(es_discretionary_error,
+                                ec_inaccessible_base_class,
+                                &start_position,
+                                bcp->type);
+            }  /* if */
             /* Do the actual cast. */
             cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,
                          /*is_implicit_cast=*/FALSE,

@@ -1219,7 +1219,8 @@ If the cast cannot be folded, *did_not_fold is returned TRUE.
         /* Check that the base class is accessible from the current class. */
         base_class = dsp->base_class;
         if (!is_accessible_imm_base_class(base_class, curr_type)) {
-          pos_ty_diagnostic(es_discretionary_error, ec_inaccessible_base_class,
+          pos_ty_diagnostic(es_discretionary_error,
+                            ec_conv_from_inaccessible_base_class,
                             err_pos, base_class->type);
           break;
         }  /* if */

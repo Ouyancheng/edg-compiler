@@ -316,7 +316,7 @@ ec_no_access_to_name;;"%n is inaccessible"
 ec_ambiguous_name;;"%no is ambiguous"
 ec_old_style_parameter_list;;"old-style parameter list (anachronism)"
 ec_declaration_after_statements;;"declaration may not appear after executable statement in block"
-ec_inaccessible_base_class;;"implicit conversion to inaccessible base class %t is not allowed"
+ec_inaccessible_base_class;;"conversion to inaccessible base class %t is not allowed"
 REMOVED;ec_not_a_base_class_member;;"name is not a member of a base class of %sq"
 REMOVED;ec_access_adjustment_in_private_section;;"access adjustment in a \"private\" section is not allowed"
 REMOVED;ec_increasing_access_not_allowed;;"increasing an inherited member's access is not allowed"
@@ -1327,6 +1327,7 @@ ec_unrecognized_ms_attr;;"unrecognized attribute %sq"
 ec_ms_attr_not_allowed;;"attributes are not allowed here"
 ec_invalid_ms_attr_uuid_value;;"invalid argument value for the %sq attribute parameter"
 ec_too_many_ms_attr_args;;"too many attribute arguments"
+ec_conv_from_inaccessible_base_class;;"conversion from inaccessible base class %t is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
