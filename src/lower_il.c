@@ -2699,7 +2699,8 @@ virtual function table.
          function that was used to decide to put out the virtual function
          table, since that function forces the virtual function table to be
          put out, and not the other way around. */
-      if (func_to_call->is_instantiation && func_to_call != first_virtual) {
+      if (func_to_call->is_template_function &&
+          func_to_call != first_virtual) {
         func_to_call->instance_required = TRUE;
       }  /* if */
     }  /* if */
@@ -3041,7 +3042,7 @@ class_type if any are needed.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (automatic_instantiation_mode &&
         ctsp->template_arg_list != NULL && any_vtbl_ref &&
-        first_virtual != NULL && first_virtual->is_instantiation) {
+        first_virtual != NULL && first_virtual->is_template_function) {
       /* Automatic template instantiation is being done.  The class is a
          template class with virtual functions, and the decision on whether
          or not to put out the virtual function table is based on the function

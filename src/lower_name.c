@@ -1754,7 +1754,7 @@ if the function is a template function).
   sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
   char     *mangled_name, *store_at;
 
-  if (routine->is_instantiation && routine->source_corresp.name != NULL &&
+  if (routine->is_template_function && routine->source_corresp.name != NULL &&
       scp->name != NULL && !scp->name_has_been_mangled) {
     /* The routine is an instantiation of a template, so name mangling is
        needed.  Without it, two instances of the same function might promote
