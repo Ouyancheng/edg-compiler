@@ -14,12 +14,12 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 */
 
 #include "basic_hdrs.h"
-#if DO_IL_LOWERING
+#if NEED_NAME_MANGLING
 /* Header files common to all files. */
 #include "fe_common.h"
 /* Header files used by files involved in IL lowering. */
 #include "lower_hdrs.h"
-#endif /* DO_IL_LOWERING */
+#endif /* NEED_NAME_MANGLING */
 
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
