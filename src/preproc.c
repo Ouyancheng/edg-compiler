@@ -781,6 +781,7 @@ may have extra operand at end).
   int           digit;
   char          *temp_file;
   a_boolean     bad_line_number;
+
   /* The ULTRIX C compiler has trouble with the type of folded compile-time
      unsigned expressions, so we use a variable for this value. */
   a_line_number max_line_div_10 = MAX_LINE_NUMBER;
@@ -887,14 +888,18 @@ may have extra operand at end).
      directive.  curr_ise->assoc_il_file points to the new entry.
      Note that curr_ise->assoc_actual_il_file is NOT changed; it remains
      pointing to the entry for the actual file being read. */
-  record_start_of_source_file(curr_ise->assoc_actual_il_file,
-                              (a_seq_number)curr_seq_number+1,
-                              temp_line,
-                              temp_file,
-                              (char *)NULL,  /* Indicates #line entry. */
-                              (char *)NULL,  /* Indicates #line entry. */
-                              &(curr_ise->assoc_il_file),
-                              /*is_system_include=*/FALSE);
+  {
+    a_source_file_ptr	actual_sfp = curr_ise->assoc_actual_il_file;
+    record_start_of_source_file(curr_ise->assoc_actual_il_file,
+                                (a_seq_number)curr_seq_number+1,
+                                temp_line,
+                                temp_file,
+                                (char *)NULL,  /* Indicates #line entry. */
+                                (char *)NULL,  /* Indicates #line entry. */
+                                &(curr_ise->assoc_il_file),
+                                actual_sfp->is_include_file,
+                                actual_sfp->included_by_system_include);
+  }
   if (generate_pp_output) {
     /* Generate the line-identifying directive if necessary for preprocessing
        output.  Force out because cpp always puts one out. */

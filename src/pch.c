@@ -903,8 +903,10 @@ child files encountered.
   db_enter(5, "write_list_of_file_timestamps");
   for (; sfp != NULL; sfp = sfp->next) {
     time_t	time;
-    /* Don't do this for the primary source file. */
-    if (sfp != il_header.primary_source_file) {
+    /* Only do this for include files, not for the primary source file
+       or for the source file entry associated with a primary source
+       file from which precompiled header information has been restored. */
+    if (sfp->is_include_file) {
       (void)get_file_modification_time(sfp->full_name, &time);
       pch_write_string(sfp->full_name);
       pch_write_value(time);

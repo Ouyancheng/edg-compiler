@@ -2460,7 +2460,8 @@ Push the indicated file onto the input stack.
                               (a_seq_number)seq_number_last_read+1,
                               (a_line_number)1, display_name,
                               full_file_name, name_as_written,
-                              &(curr_ise->assoc_il_file), is_system_include);
+                              &(curr_ise->assoc_il_file), is_include_file,
+                              is_system_include);
   /* The two il file pointers start out the same.  They will be made to
      point to distinct entries if a #line directive is processed:
      assoc_il_file will point to the entry for the #line, and

@@ -1,6 +1,13 @@
 Version 2.27
 
-12/2/94  Setting the type field in proxy class symbols
+12/1/94  Incorrect dependency when a file both uses and creates a PCH
+
+When a file both uses and creates a precompiled header file, the
+front end was incorrectly indicating that the new PCH file was
+dependent on the primary source file associated with the PCH file being
+used.  This has been fixed.
+
+12/1/94  Setting the type field in proxy class symbols
 
 The type field in symbols for template proxy classes was not being
 set.  This did not affect the operation of the front end but
