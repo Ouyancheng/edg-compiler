@@ -5,15 +5,13 @@ Version 2.38
 Certain unusual invalid template argument lists could result in an
 abort when the template argument list is scanned.  This has been fixed.
 
-struct A {
-  template <class T> operator T();
-};
-
-int main()
-{
-  A a;
-  a.operator operator int int < void > () ; 
-}
+  struct A {
+    template <class T> operator T();
+  };
+  int main() {
+    A a;
+    a.operator operator int int < void > () ; 
+  }
 
 11/3/97   Destructions in dead code in conditional expressions
 
@@ -33,6 +31,22 @@ To avoid the problem, the removal is now suppressed in such cases
     0 && (A(), 0);
     1 ? 1 : (A(), 0);
   }
+
+11/1/97   Function type involving variable-length-array parameter
+
+When VLA support is enabled, the routine type of a function that takes a
+parameter involving a VLA type is now modified so that its param-type
+entries no longer has has_assoc_vla_dimension set.  The VLA information
+continues to be recorded for the type of the corresponding parameter
+variable.  For instance:
+
+  void f(int i, int (*p)[i]) { ... }
+
+The type of f is as though it had been declared "void f(int, int (*)[*])"
+whereas the type of variable entry for parameter p is "int (*)[i]".  This
+approach is required because the VLA expression belongs to the function
+scope memory region and therefore cannot be part of the "interface" of the
+function.
 
 11/1/97   Builtin processing for <stdarg.h>
 
@@ -78,7 +92,7 @@ when it was necessary to merge default argument specifications:
   struct S { S(const S&); };
   S f(int, int=0);
   S f(int=0, int);       // Bug in forming routine type for f
-  main() {
+  int main() {
     S s = f();           // Internal error appeared here
   }
 
