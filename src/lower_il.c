@@ -436,7 +436,8 @@ static void lower_destructor_dynamic_init(
                                        a_dynamic_init_ptr     dip,
                                        an_init_pos_descr_ptr  ipdp,
                                        an_insert_location_ptr insert_location);
-static void lower_virtual_function_call(an_expr_node_ptr expr);
+static void lower_call(an_expr_node_ptr expr,
+                       a_variable_ptr   temp_var);
 static void add_constructor_wrapper_code(a_scope_ptr        scope,
                                          an_insert_location *insert_location);
 static void gen_required_destructor_calls(
@@ -2141,11 +2142,7 @@ routine after it has discarded the troublesome lvalue cases).
 
   if (!node_has_side_effects(expr)) {
     /* Node has no side effects, so a straight copy will work. */
-    /* Temps cannot be cloned from IL lowering -- the wrong temp-allocation
-       routine would be called.  That's okay here, because an expression
-       that uses a temporary must assign something to that temporary, and
-       therefore would have a side effect and would not get here. */
-    expr_copy = copy_expr_tree(expr, /*clone_temps=*/FALSE);
+    expr_copy = copy_expr_tree(expr);
   } else {
     /* Change the original expression to assign the value to a temporary. */
     temp = make_temporary(expr->type);
@@ -2547,10 +2544,37 @@ to be returned.
 If variable != NULL, transfer the sequence number from it into stmt.
 */
 #define transfer_seq_from_var_to_statement(variable, stmt)            \
-{ if ((variable) != NULL) {                                           \
+{ if ((variable) != NULL && (stmt) != NULL) {                         \
     (stmt)->seq_number = (variable)->source_corresp.decl_position.seq;\
   }  /* if */                                                         \
 }  /* transfer_seq_from_var_to_statement */
+
+
+static a_statement_ptr insert_expr_statement(
+                                        an_expr_node_ptr       node,
+                                        an_insert_location_ptr insert_location)
+/*
+Make a statement from expression expr.  Insert the statement at
+*insert_location and update *insert_location.  Return a pointer to the
+statement, or NULL if no statement was created (in an expression insert
+context).
+*/
+{
+  a_statement_ptr stmt;
+
+  if (insert_location->expr_insert) {
+    /* Insert within an expression.  The statement need not be created. */
+    insert_expr(node, insert_location);
+    stmt = NULL;
+  } else {
+    /* Make the expression statement. */
+    stmt = alloc_statement((a_statement_kind)stmk_expr);
+    stmt->expr = node;
+    /* Insert the statement at the right location. */
+    insert_statement(stmt, insert_location);
+  }  /* if */
+  return stmt;
+}  /* insert_expr_statement */
 
 
 static a_statement_ptr insert_assignment_statement(
@@ -2561,7 +2585,8 @@ static a_statement_ptr insert_assignment_statement(
 /*
 Make a statement that assigns rvalue_expr to lvalue_expr using assignment
 operator op.  Insert the statement at *insert_location and update
-*insert_location.  Return a pointer to the statement.
+*insert_location.  Return a pointer to the statement, or NULL if no
+statement was created (in an expression insert context).
 */
 {
   a_statement_ptr  assign_stmt;
@@ -2571,11 +2596,8 @@ operator op.  Insert the statement at *insert_location and update
   /* Make the assignment operation. */
   assign_node = make_operator_node(op, type_pointed_to(lvalue_expr->type),
                                    lvalue_expr);
-  /* Make the expression statement for the assignment. */
-  assign_stmt = alloc_statement((a_statement_kind)stmk_expr);
-  assign_stmt->expr = assign_node;
-  /* Insert the statement at the right location. */
-  insert_statement(assign_stmt, insert_location);
+  /* Make the expression statement. */
+  assign_stmt = insert_expr_statement(assign_node, insert_location);
   return assign_stmt;
 }  /* insert_assignment_statement */
 
@@ -2588,7 +2610,8 @@ static a_statement_ptr insert_var_assignment_statement(
 /*
 Make a statement that assigns rvalue_expr to lvalue_var using assignment
 operator op.  Insert the statement at *insert_location and update
-*insert_location.  Return a pointer to the statement.
+*insert_location.  Return a pointer to the statement, or NULL if no
+statement was created (in an expression insert context).
 */
 {
   a_statement_ptr  assign_stmt;
@@ -6060,8 +6083,8 @@ Do IL lowering of the indicated type and everything under it.
             mark_as_not_visited(ptp);
             ptp->next = rtsp->param_type_list;
             rtsp->param_type_list = ptp;
-            /* The return value type becomes pointer to class. */
-            type->variant.routine.return_type = ptr_return_type;
+            /* The return value type becomes "void". */
+            type->variant.routine.return_type = void_type();
           }  /* if */
           /* If there is an implicit "this" parameter, make an explicit
              first parameter for it. */
@@ -7493,6 +7516,7 @@ be kept, FALSE if it should be deleted.
   a_constant_ptr    simple_constant;
   a_context_ptr     destructor_context;
   a_source_position saved_error_position;
+  a_statement_ptr   expr_stmt;
 
   *keep_dynamic_init = FALSE;
   saved_error_position = error_position;
@@ -7535,8 +7559,7 @@ be kept, FALSE if it should be deleted.
            we have a difficult job keeping track of the nodes that are in
            the file scope and those that are in the function scope.
            Similar reasoning applies to local static variables. */
-        dip->variant.expression = copy_expr_tree(dip->variant.expression,
-                                                 /*clone_temps=*/FALSE);
+        dip->variant.expression = copy_expr_tree(dip->variant.expression);
       }  /* if */
 do_assignment:;
 #if CHECKING
@@ -7547,6 +7570,16 @@ do_assignment:;
       /* Make a node for the entity to be initialized. */
       entity_node = make_init_entity_node(ipdp);
       add_init_assignment(dip, entity_node, insert_location);
+      break;
+    case dik_call_returning_class_via_cctor:
+      /* Initialize the entry by calling a routine that returns its result
+         via a copy constructor. */
+      /* The address of the temporary being initialized is added as an
+         implicit argument of the call. */
+      lower_call(dip->variant.expression, variable);
+      expr_stmt = insert_expr_statement(dip->variant.expression,
+                                        insert_location);
+      transfer_seq_from_var_to_statement(variable, expr_stmt);
       break;
     case dik_constructor:
       /* Initialize the entity by calling a constructor. */
@@ -8998,6 +9031,78 @@ the expression have already been lowered.
 }  /* lower_pm_call */
 
 
+static void lower_call(an_expr_node_ptr expr,
+                       a_variable_ptr   temp_var)
+/*
+Lower a call (normal, virtual, or pointer-to-member).  expr points to the
+call node.  temp_var, if non-NULL, indicates a temporary into which the
+call should return its value.
+*/
+{
+  a_type_ptr                    rout_type;
+  a_routine_type_supplement_ptr rtsp;
+  an_expr_node_ptr              prev_arg_node, arg_node, temp_node, first_arg;
+  an_expr_operator_kind         op = expr->variant.operation.kind;
+
+  first_arg = arg_node = expr->variant.operation.operands;
+  /* Extract the routine type. */
+  if (op == (an_expr_operator_kind)eok_pm_call) {
+    rout_type = pm_member_type_possibly_lowered(first_arg->type);
+  } else {
+    rout_type = type_pointed_to(first_arg->type);
+  }  /* if */
+  rout_type = skip_typerefs(rout_type);
+  rtsp = rout_type->variant.routine.extra_info;
+  /* Lower the expression giving the address of the routine. */
+  lower_normal_expr(arg_node);
+  prev_arg_node = arg_node;
+  arg_node = arg_node->next;
+  /* If the routine has a "this" parameter, lower it separately. */
+  if (rtsp->implicit_this_param_type != NULL) {
+    /* Treat the "this" parameter as an lvalue to avoid extra tests for NULL
+       on base class casts. */
+    lower_expr(arg_node, /*is_lvalue=*/TRUE);
+    prev_arg_node = arg_node;
+    arg_node = arg_node->next;
+  }  /* if */
+  /* If the routine returns its result to a temporary supplied by the caller,
+     add an argument for that temporary.  This only happens under a
+     dik_call_returning_class_via_cctor dynamic initialization entry. */
+  if (rtsp->caller_provides_place_to_put_return_value) {
+#if CHECKING
+    if (temp_var == NULL) {
+      internal_error("lower_call: missing temp_var for result");
+    }  /* if */
+#endif /* CHECKING */
+    temp_node = var_lvalue_expr(temp_var);
+    temp_node->next = arg_node;
+    prev_arg_node->next = temp_node;
+    /* Change the result type of the call to "void". */
+    expr->type = void_type();
+  }  /* if */
+  /* Lower the rest of the arguments. */
+  lower_arg_expr_list(arg_node, rout_type);
+  if (op == (an_expr_operator_kind)eok_virtual_call) {
+    /* Virtual function call. */
+    /* If the call is of a destructor, add the implied argument. */
+    add_implied_args_to_call(expr, routine_from_node(first_arg));
+    lower_virtual_function_call(expr);
+  } else if (op == (an_expr_operator_kind)eok_pm_call) {
+    /* Call of a function specified by a pointer-to-member. */
+    lower_pm_call(expr);
+  } else {
+    check_assertion(op == (an_expr_operator_kind)eok_call);
+    /* Normal call. */
+    if (first_arg->kind == (an_expr_node_kind)enk_routine_address) {
+      /* We know the specific routine being called. */
+      /* If the call is of a constructor or destructor, add the
+         implied arguments. */
+      add_implied_args_to_call(expr, routine_from_node(first_arg));
+    }  /* if */
+  }  /* if */
+}  /* lower_call */
+
+
 static void lower_pm_comparison(an_expr_node_ptr expr)
 /*
 Lower comparison of two pointers to members.
@@ -9706,7 +9811,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   a_dynamic_init_ptr    dip;
   a_variable_ptr        var, temp_var;
   unsigned int          is_lvalue_mask;
-  a_boolean             is_conditional_operator, is_call;
+  a_boolean             is_conditional_operator;
+  a_type_ptr            temp_type;
 
   lower_os_type(expr->type);
   switch (expr->kind) {
@@ -9761,12 +9867,16 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         /* Cast of pointer-to-member to base or derived class is rewritten.
            This call also lowers any subtree. */
         lower_pm_related_class_cast(expr, is_lvalue);
+      } else if (op == (an_expr_operator_kind)eok_call ||
+                 op == (an_expr_operator_kind)eok_virtual_call ||
+                 op == (an_expr_operator_kind)eok_pm_call) {
+        /* Calls of various kinds. */
+        lower_call(expr, (a_variable_ptr)NULL);
       } else {
         /* Determine which operands if any are lvalues, and whether or not
            the operand has conditional operands. */
         is_lvalue_mask = 0;
         is_conditional_operator = FALSE;
-        is_call = FALSE;
         if (op == (an_expr_operator_kind)eok_question) {
           /* Question mark's second and third operands are lvalues if the
              question mark itself is. */
@@ -9779,48 +9889,12 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                    op == (an_expr_operator_kind)eok_lor) {
           /* "&&" and "||". */
           is_conditional_operator = TRUE;
-        } else if (op == (an_expr_operator_kind)eok_call ||
-                   op == (an_expr_operator_kind)eok_virtual_call ||
-                   op == (an_expr_operator_kind)eok_pm_call) {
-          is_call = TRUE;
         } else {
           /* Other operators.  See if the first operand is an lvalue. */
           if (operator_takes_lvalue_operand(op)) is_lvalue_mask = 0x1;
         }  /* if */
-        /* Lower the operands of the expression.  For calls, the lowering
-           is done in a special way. */
-        if (is_call) {
-          a_type_ptr                    rout_type;
-          a_routine_type_supplement_ptr rtsp;
-          an_expr_node_ptr              arg_node = operand_node->next;
-          /* Extract the routine type. */
-          if (op == (an_expr_operator_kind)eok_pm_call) {
-            rout_type = pm_member_type_possibly_lowered(operand_node->type);
-          } else {
-            rout_type = type_pointed_to(operand_node->type);
-          }  /* if */
-          rout_type = skip_typerefs(rout_type);
-          rtsp = rout_type->variant.routine.extra_info;
-          /* Lower the expression giving the address of the routine. */
-          lower_normal_expr(operand_node);
-          /* If the routine has a "this" parameter or caller-supplied
-             result location, lower it separately. */
-          if (rtsp->implicit_this_param_type != NULL) {
-            /* Treat the "this" parameter as an lvalue to avoid extra
-               tests for NULL on base class casts. */
-            lower_expr(arg_node, /*is_lvalue=*/TRUE);
-            arg_node = arg_node->next;
-          }  /* if */
-          if (rtsp->caller_provides_place_to_put_return_value) {
-            lower_expr(arg_node, /*is_lvalue=*/TRUE);
-            arg_node = arg_node->next;
-          }  /* if */
-          lower_arg_expr_list(arg_node, rout_type);
-        } else {
-          /* Normal (non-call) case. */
-          lower_expr_list(operand_node, is_lvalue_mask,
-                          is_conditional_operator);
-        }  /* if */
+        /* Lower the operands of the expression. */
+        lower_expr_list(operand_node, is_lvalue_mask, is_conditional_operator);
         if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
           /* lvalue-returning assignment operator or prefix ++/--.  Rewrite
                x = y          really: &x = y
@@ -9848,29 +9922,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         /* Do any special lowering required for this operator after the
            operands have been lowered. */
         switch (op) {
-          case eok_virtual_call:
-            /* Virtual function call. */
-            /* If the call is of a destructor, add the implied argument. */
-            add_implied_args_to_call(expr, routine_from_node(operand_node));
-            lower_virtual_function_call(expr);
-            break;
           case eok_virtual_function_ptr:
             /* Determine virtual function address. */
             lower_virtual_function_ptr(expr);
-            break;
-          case eok_pm_call:
-            /* Call of a function specified by a pointer-to-member. */
-            lower_pm_call(expr);
-            break;
-          case eok_call:
-            /* Call. */
-            if (operand_node->kind == (an_expr_node_kind)enk_routine_address) {
-              /* We know the specific routine being called. */
-              a_routine_ptr rout = operand_node->variant.routine;
-              /* If the call is of a constructor or destructor, add the
-                 implied arguments. */
-              add_implied_args_to_call(expr, rout);
-            }  /* if */
             break;
           case eok_vacuous_destructor_call:
             /* A call of a "destructor" for a class or simple type that does
@@ -9987,14 +10041,29 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       }  /* if */
       break;
     case enk_temp_init:
-      operand_node = expr->variant.init.expr;
-      lower_expr(operand_node, is_lvalue);
-      /* Any code generated for the dynamic initialization will be
-         inserted above the operand expression. */
-      set_expr_insert_location(operand_node, &insert_location);
       dip = expr->variant.init.dynamic_init;
+      /* Determine the type of the temporary. */
+      temp_type = expr->type;
+      if (expr->variant.init.result_is_addr) {
+        /* The value of the enk_temp_init node is the address of the temporary,
+           so drop the pointer-to to get the temporary type. */
+        temp_type = type_pointed_to(temp_type);
+      }  /* if */
+      /* Create a temporary variable. */
+      dip->variable = make_temporary(temp_type);
+      /* Change the enk_temp_init to a reference to the value or address
+         of the temporary. */
+      if (expr->variant.init.result_is_addr) {
+        set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
+      } else {
+        set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+      }  /* if */
+      expr->variant.variable = dip->variable;
       /* Generate code for the dynamic init. */
       set_var_init_pos_descr(dip->variable, &ipd);
+      /* Any code generated for the dynamic initialization will be
+         inserted before the original expression. */
+      set_expr_insert_location(expr, &insert_location);
       lower_dynamic_init(dip, &ipd,
                          /*first_time_test_var=*/(a_variable_ptr)NULL,
                          /*is_expr_temporary=*/TRUE,
@@ -10006,9 +10075,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         internal_error("lower_expr: keep_dynamic_init unexpected");
       }  /* if */
 #endif /* CHECKING */
-      /* Overwrite the enk_temp_init with its operand.  This throws away
-         the operand node. */
-      overwrite_node(expr, operand_node);
       break;
     case enk_new_delete:
       lower_new_delete(expr);
