@@ -88,6 +88,9 @@ should be suppressed.
     case eok_call:
     case eok_virtual_call:
     case eok_pm_call:
+    case eok_va_start:
+    case eok_va_arg:
+    case eok_va_end:
       /* These all cause side effects. */
       has_side_effects = TRUE;
       break;
@@ -4321,6 +4324,234 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   result->position = start_position;
   db_exit();
 }  /* scan_typeid_operator */
+
+
+static an_expr_node_ptr scan_va_list_lvalue_expr(an_error_code err_code,
+                                                 a_boolean     *err)
+/*
+Scan an lvalue expression and return a pointer to it.  Check that the
+type of the expression is the builtin type va_list from <stdarg.h>.  If it
+isn't, or the expression isn't an lvalue, issue the error err_code, set
+*err to TRUE, and return NULL.
+*/
+{
+  an_operand       operand;
+  an_expr_node_ptr node;
+
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  do_operand_transformations(&operand,
+                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+  /* The operand must be an lvalue of the builtin type va_list. */
+  check_assertion(builtin_va_list_type != NULL);
+  if (!is_an_lvalue(&operand) ||
+      builtin_va_list_type != operand.type) {
+    if (!is_error_operand(&operand)) {
+      error_in_operand(err_code, &operand);
+    }  /* if */
+    *err = TRUE;
+  }  /* if */
+  if (!*err) {
+    node = make_node_from_operand(&operand);
+  } else {
+    node = NULL;
+  }  /* if */
+  return node;
+}  /* scan_va_list_lvalue_expr */
+
+
+static void scan_va_start_operator(an_operand *result)
+/*
+Scan a reference to the <stdarg.h> va_start macro, when it is treated
+as a builtin.  Its form is
+
+  va_start(va_list_var, last_param)
+
+where va_list_var is a variable declared with the builtin type va_list,
+and last_param is the last parameter before the "..." of the function.
+*/
+{
+  a_source_position start_position;
+  an_operand        operand;
+  an_expr_node_ptr  node1, node2;
+  a_boolean         err = FALSE;
+
+  db_enter(4, "scan_va_start_operator");
+  /* Save the position of the va_start keyword. */
+  start_position = pos_curr_token;
+  /* va_start not possible in preprocessing expressions. */
+  check_assertion_str(!curr_expr_kind_is(ek_pp),
+                      "scan_va_start_operator: in preprocessing expr");
+  if (curr_expr_kind_is_const()) {
+    /* va_start is not allowed in constant expressions. */
+    pos_error(ec_bad_va_start, &start_position);
+    err = TRUE;
+  }  /* if */
+  /* Advance past va_start. */
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  add_stop_token(tok_comma);
+  /* Scan the first expression. */
+  node1 = scan_va_list_lvalue_expr(ec_bad_va_start, &err);
+  /* Check for and pass over the comma. */
+  add_stop_token(tok_identifier);
+  (void)required_token(tok_comma, ec_exp_comma);
+  remove_stop_token(tok_identifier);
+  remove_stop_token(tok_comma);
+  /* Scan the second expression. */
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  do_operand_transformations(&operand,
+                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+  /* The expression must be a parameter of the function. */
+  if (is_an_lvalue(&operand) &&
+      is_expression_operand(&operand) &&
+      is_variable_address_node(node2 = operand.variant.expression) &&
+      node2->variant.variable->is_parameter) {
+    /* Okay. */
+  } else {
+    if (!is_error_operand(&operand)) {
+      error_in_operand(ec_bad_va_start, &operand);
+    }  /* if */
+    err = TRUE;
+  }  /* if */
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+  if (err) {
+    make_error_operand(result);
+  } else {
+    /* Create a va_start expression node. */
+    an_expr_node_ptr va_start_node;
+
+    node1->next = node2;
+    va_start_node = make_operator_node((an_expr_operator_kind)eok_va_start,
+                                       void_type(), node1);
+    make_expression_operand(va_start_node, va_start_node->type, result);
+  }  /* if */
+  /* Set the error position to the starting position. */
+  error_position = start_position;
+  result->position = start_position;
+  db_exit();
+}  /* scan_va_start_operator */
+
+
+static void scan_va_arg_operator(an_operand *result)
+/*
+Scan a reference to the <stdarg.h> va_arg macro, when it is treated
+as a builtin.  Its form is
+
+  va_arg(va_list_var, type)
+
+where va_list_var is a variable declared with the builtin type va_list,
+and type is the type of the argument to be extracted.
+*/
+{
+  a_source_position start_position, type_position;
+  an_expr_node_ptr  node;
+  a_type_ptr        type;
+  a_boolean         err = FALSE;
+
+  db_enter(4, "scan_va_arg_operator");
+  /* Save the position of the va_arg keyword. */
+  start_position = pos_curr_token;
+  /* va_arg not possible in preprocessing expressions. */
+  check_assertion_str(!curr_expr_kind_is(ek_pp),
+                      "scan_va_arg_operator: in preprocessing expr");
+  if (curr_expr_kind_is_const()) {
+    /* va_arg is not allowed in constant expressions. */
+    pos_error(ec_bad_va_arg, &start_position);
+    err = TRUE;
+  }  /* if */
+  /* Advance past va_arg. */
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  add_stop_token(tok_comma);
+  /* Scan the expression. */
+  node = scan_va_list_lvalue_expr(ec_bad_va_arg, &err);
+  /* Check for and pass over the comma. */
+  add_stop_token(tok_identifier);
+  (void)required_token(tok_comma, ec_exp_comma);
+  remove_stop_token(tok_identifier);
+  remove_stop_token(tok_comma);
+  /* Scan the type. */
+  type_position = pos_curr_token;
+  type_name(&type);
+  /* The type is not allowed to be an array, function, or reference type. */
+  if (is_function_type(type) ||
+      is_array_type(type) ||
+      is_reference_type(type)) {
+    pos_error(ec_bad_va_arg, &type_position);
+    err = TRUE;
+  }  /* if */
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+  if (err) {
+    make_error_operand(result);
+  } else {
+    /* Create a va_arg expression node. */
+    an_expr_node_ptr va_arg_node =
+             make_operator_node((an_expr_operator_kind)eok_va_arg, type, node);
+    make_expression_operand(va_arg_node, type, result);
+  }  /* if */
+  /* Set the error position to the starting position. */
+  error_position = start_position;
+  result->position = start_position;
+  db_exit();
+}  /* scan_va_arg_operator */
+
+
+static void scan_va_end_operator(an_operand *result)
+/*
+Scan a reference to the <stdarg.h> va_end macro, when it is treated
+as a builtin.  Its form is
+
+  va_end(va_list_var)
+
+where va_list_var is a variable declared with the builtin type va_list.
+*/
+{
+  a_source_position start_position;
+  an_expr_node_ptr  node;
+  a_boolean         err = FALSE;
+
+  db_enter(4, "scan_va_end_operator");
+  /* Save the position of the va_end keyword. */
+  start_position = pos_curr_token;
+  /* va_end not possible in preprocessing expressions. */
+  check_assertion_str(!curr_expr_kind_is(ek_pp),
+                      "scan_va_end_operator: in preprocessing expr");
+  if (curr_expr_kind_is_const()) {
+    /* va_end is not allowed in constant expressions. */
+    pos_error(ec_bad_va_end, &start_position);
+    err = TRUE;
+  }  /* if */
+  /* Advance past va_end. */
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  /* Scan the expression. */
+  node = scan_va_list_lvalue_expr(ec_bad_va_end, &err);
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+  if (err) {
+    make_error_operand(result);
+  } else {
+    /* Create a va_end expression node. */
+    an_expr_node_ptr va_end_node =
+      make_operator_node((an_expr_operator_kind)eok_va_end, void_type(), node);
+    make_expression_operand(va_end_node, va_end_node->type, result);
+  }  /* if */
+  /* Set the error position to the starting position. */
+  error_position = start_position;
+  result->position = start_position;
+  db_exit();
+}  /* scan_va_end_operator */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -10544,6 +10775,21 @@ see expr.h).
     case tok_typeid:
       /* typeid operation. */
       scan_typeid_operator(&local_result);
+      break;
+
+    case tok_va_start:
+      /* <stdarg.h> va_start macro, when treated as a builtin. */
+      scan_va_start_operator(&local_result);
+      break;
+
+    case tok_va_arg:
+      /* <stdarg.h> va_arg macro, when treated as a builtin. */
+      scan_va_arg_operator(&local_result);
+      break;
+
+    case tok_va_end:
+      /* <stdarg.h> va_end macro, when treated as a builtin. */
+      scan_va_end_operator(&local_result);
       break;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

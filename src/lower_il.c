@@ -649,6 +649,9 @@ operand.
     case eok_fpre_incr:
     case eok_ppost_incr:
     case eok_ppre_incr:
+    case eok_va_start:
+    case eok_va_arg:
+    case eok_va_end:
       takes_lvalue = TRUE;
       break;
     default:
