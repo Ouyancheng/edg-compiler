@@ -37,6 +37,14 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "mem_manage.h"
 
 /*
+IL lowering is only needed in this compilation if the source language
+is C++, there are no errors, and lowering hasn't been suppressed.
+*/
+#define il_lowering_needed()                                          \
+  (C_dialect == C_dialect_cplusplus && !suppress_il_lowering &&       \
+   total_errors == 0)
+
+/*
 This switch controls whether or not types and static variables that are local
 to function and block scopes are moved onto the file scope lists.  Such
 entities are allocated in the file scope memory region, but they are
@@ -4967,20 +4975,22 @@ the file scope memory region.
 {
   a_boolean should_generate = FALSE, force_static;
 
-  /* Force generation of the virtual function table variable (if any) for the
-     class. */
-  prelower_class_type(class_type);
-  /* See if the class has a virtual function table. */
-  if (class_type->variant.class_struct_union.extra_info->
+  if (il_lowering_needed()) {
+    /* Force generation of the virtual function table variable (if any) for the
+       class. */
+    prelower_class_type(class_type);
+    /* See if the class has a virtual function table. */
+    if (class_type->variant.class_struct_union.extra_info->
                                           virtual_function_table_var != NULL) {
-    /* See if the virtual function table will be defined in this
-       compilation. */
-    if (virtual_function_table_should_be_defined_here(class_type,
-                                                      &force_static)) {
-      /* The virtual function table will be defined, and it will have a
-         reference to the virtual destructor, so the virtual destructor should
-         be generated. */
-      should_generate = TRUE;
+      /* See if the virtual function table will be defined in this
+         compilation. */
+      if (virtual_function_table_should_be_defined_here(class_type,
+                                                        &force_static)) {
+        /* The virtual function table will be defined, and it will have a
+           reference to the virtual destructor, so the virtual destructor
+           should be generated. */
+        should_generate = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return should_generate;
@@ -11871,9 +11881,7 @@ C++ to C, so that a C back end can handle it without change.
   db_enter(1, "lower_il_memory_region");
   /* The lowering is only needed if the source language is C++, if the
      lowering phase is to be run, and if there have been no errors. */
-  if (C_dialect == C_dialect_cplusplus && 
-      !suppress_il_lowering &&
-      total_errors == 0) {
+  if (il_lowering_needed()) {
 #if DEBUG
     if (debug_level >= 1) {
       fprintf(f_debug, "Lowering IL in memory region %lu\n",
