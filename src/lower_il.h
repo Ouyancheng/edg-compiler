@@ -635,7 +635,7 @@ which always returns TRUE (meaning a virtual destructor for a class
 should always be generated).  This is the answer that does the most
 error checking, but FALSE would be equally proper.
 */
-#define virtual_dtor_should_be_generated_for_class() TRUE
+#define virtual_dtor_should_be_generated_for_class(class_type) TRUE
 
 #endif /* DO_IL_LOWERING */
 #endif /* ifndef LOWER_IL_H */
