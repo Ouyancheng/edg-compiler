@@ -1017,13 +1017,11 @@ typedef struct a_symbol {
     } overloaded_function;
     /* When kind = sk_class_template, sk_function_template, or
        sk_static_data_member_template: */
-    struct {
-      a_template_symbol_supplement_ptr
-                extra_info;
+    a_template_symbol_supplement_ptr
+                template_info;
 			/* Pointer to an entry providing additional info about
 			   a C++ class template, function template, or
 			   static data member template. */
-    } templ;
   } variant;
 } a_symbol;
 

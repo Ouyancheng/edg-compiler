@@ -5362,7 +5362,7 @@ TRUE; that allows a different error message.
                                           (a_symbol_kind)sk_function_template);
     if (function_template_case) {
       /* The symbol is a function template. */
-      routine_type = function_symbol->variant.templ.extra_info->
+      routine_type = function_symbol->variant.template_info->
                                                 variant.function.routine->type;
       routine_type = skip_typerefs(routine_type);      
     } else {
@@ -5814,7 +5814,7 @@ template has the right number of parameters.
     internal_error("function_template_matches_operand_list: bad symbol");
   }  /* if */
 #endif /* CHECKING */
-  routine = templ_sym->variant.templ.extra_info->variant.function.routine;
+  routine = templ_sym->variant.template_info->variant.function.routine;
   rtsp = routine->type->variant.routine.extra_info;
   /* Compare the types of the arguments to the parameter types. */
   ptp = rtsp->param_type_list;

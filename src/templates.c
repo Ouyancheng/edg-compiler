@@ -105,7 +105,7 @@ might not be able to if the template itself has not yet been defined.
   } else {
     /* There is a class template from which to generate this class and it is
        a real instantiation. */
-    tssp = template_sym->variant.templ.extra_info;
+    tssp = template_sym->variant.template_info;
     p_token_cache = &tssp->token_cache;
     if (p_token_cache->first_token == NULL) {
       /* The template itself has not yet been defined.  The caller will
@@ -194,7 +194,7 @@ encountered.
   a_token_cache                     *p_token_cache;
 
   db_enter(3, "instantiate_class_template");
-  tssp = template_sym->variant.templ.extra_info;
+  tssp = template_sym->variant.template_info;
   p_token_cache = &tssp->token_cache;
 #if CHECKING
   if (p_token_cache->first_token == NULL) {
@@ -278,7 +278,7 @@ Instantiate the body of the template function associated with fiep.
   }  /* if */
   rout_type = rout_ptr->type;
   rtsp = rout_type->variant.routine.extra_info;
-  tssp = fiep->template_sym->variant.templ.extra_info;
+  tssp = fiep->template_sym->variant.template_info;
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
   (void)push_scope((a_scope_kind)sck_template_instantiation,
                   tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr, fiep);
@@ -626,7 +626,7 @@ no need to actually instantiate X<int> in the example above.
   db_enter(3, "find_template_class");
   /* Make a pass over the symbols representing instantiations of the class
      template. */
-  tssp = class_template_sym->variant.templ.extra_info ;
+  tssp = class_template_sym->variant.template_info ;
   sym = tssp->variant.class_template.instantiations;
   prev_sym = NULL;
   for (; sym != NULL; sym = sym->next) {
@@ -1233,7 +1233,7 @@ Do some simple consistency checking on a function template argument list.
   a_template_param_ptr  tpp;
   a_template_arg_ptr    tap;
 
-  tpp = templ_sym->variant.templ.extra_info->parameters;
+  tpp = templ_sym->variant.template_info->parameters;
   for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
     if (!tap->is_type) {
       internal_error("check_template_arg_list: not a type arg");
@@ -1281,7 +1281,7 @@ templ_sym).
      list under the function template symbol and, optionally, in the overload
      list if it is also explicitly declared by the user. */
   sym = make_template_function_symbol(templ_sym, source_pos);
-  tssp = templ_sym->variant.templ.extra_info;
+  tssp = templ_sym->variant.template_info;
   templ_rout = tssp->variant.function.routine;
   /* All IL routines must be at the file scope level, so switch to that
      memory region if necessary to allocate the routine entry. */
@@ -1360,7 +1360,7 @@ return FALSE.
   *instance_sym = NULL;
   /* sym is the symbol for a template function to be returned.  Returning NULL
      means no template function could be found or created. */
-  tssp = templ_sym->variant.templ.extra_info;
+  tssp = templ_sym->variant.template_info;
   templ_rout_type = tssp->variant.function.routine->type;
   /* First be sure the number of parameters in the template function is
      equal to the number in param_type_list. */
@@ -1540,7 +1540,7 @@ the function instantiation entry and set all the pointers.
         /* User-defined, so no instantiation is required. */
         fiep->specific_def = TRUE;
       }  /* if */
-      tssp = templ_sym->variant.templ.extra_info;
+      tssp = templ_sym->variant.template_info;
       fiep->next = tssp->variant.function.instantiations;
       tssp->variant.function.instantiations = fiep;
       /* Make the function instantiation entry and its associated symbol
@@ -1642,7 +1642,7 @@ and create a function instantiation entry to bind the two symbols together.
   }  /* if */
   fiep->arg_list =
              tp->variant.class_struct_union.extra_info->template_arg_list;
-  tssp = sym->variant.templ.extra_info;
+  tssp = sym->variant.template_info;
   /* Link the new entry to the start of the instantiation list of the
      function template. */
   fiep->next = tssp->variant.function.instantiations;
@@ -1714,7 +1714,7 @@ void find_static_data_member_template(a_symbol_ptr  static_data_member_sym,
   }  /* if */
   sdmdp->arg_list =
              tp->variant.class_struct_union.extra_info->template_arg_list;
-  tssp = sym->variant.templ.extra_info;
+  tssp = sym->variant.template_info;
   /* Link the new entry to the start of the definition list of the static
      data member template. */
   sdmdp->next = tssp->variant.static_data_member.definitions;
@@ -1757,7 +1757,7 @@ structure.
   db_enter(3, "find_template_function");
   /* Make a pass over the entries representing instantiations of the function
      template. */
-  tssp = templ_sym->variant.templ.extra_info ;
+  tssp = templ_sym->variant.template_info ;
   fiep = tssp->variant.function.instantiations;
   prev_fiep = NULL;
   for (; fiep != NULL; fiep = fiep->next) {
@@ -1893,7 +1893,7 @@ that make up the declaration and do a prototype instantiation.
     if (sym != NULL) {
       if (sym->kind == (a_symbol_kind)sk_class_template) {
         is_redecl = TRUE;
-        tssp = sym->variant.templ.extra_info;
+        tssp = sym->variant.template_info;
         if (!sym->defined) {
           *resolution = TRUE;
         } else if (is_definition) {
@@ -1918,7 +1918,7 @@ that make up the declaration and do a prototype instantiation.
       /* Enter the symbol at file scope. */
       sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
                          DEPTH_OF_FILE_SCOPE, suppress_redecl_error);
-      tssp = sym->variant.templ.extra_info;
+      tssp = sym->variant.template_info;
       is_redecl = FALSE;
     }  /* if */
     if (is_definition || !is_redecl) {
@@ -2378,7 +2378,7 @@ entry is pushed on the scope stack.
     }  /* if */
     if (!is_function_type(type) && sym != NULL &&
         sym->kind == (a_symbol_kind)sk_static_data_member_template) {
-      sym->variant.templ.extra_info->parameters = template_param_list;
+      sym->variant.template_info->parameters = template_param_list;
       /* Special processing for static data member declarations. */
       if (curr_token == tok_assign) {
         (void)get_token();
@@ -2411,7 +2411,7 @@ entry is pushed on the scope stack.
         cache_function_template_tokens(&local_token_cache, /*is_ctor=*/TRUE);
         discard_token_cache(&local_token_cache);
       } else {
-        tssp = sym->variant.templ.extra_info;
+        tssp = sym->variant.template_info;
         tssp->variant.function.func_info = func_info;
         tssp->parameters = template_param_list;
         tssp->declaration_scope = scope_stack[decl_scope_level].number;
@@ -2456,7 +2456,7 @@ entry is pushed on the scope stack.
   if (prototype_type != NULL) {
 #if CHECKING
     if (sym == NULL || sym->kind != (a_symbol_kind)sk_class_template ||
-        !sym->defined || (tssp = sym->variant.templ.extra_info) == NULL ||
+        !sym->defined || (tssp = sym->variant.template_info) == NULL ||
         tssp->variant.class_template.instantiations == NULL ||
         tssp->variant.class_template.instantiations->
                          variant.class_struct_union.type != prototype_type) {

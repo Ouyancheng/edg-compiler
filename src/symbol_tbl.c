@@ -652,7 +652,7 @@ and indentation is the indentation desired.
         a_template_param_ptr              tplep;
         a_symbol_ptr                      inst_sym, mft_sym;
 
-        tssp = sym->variant.templ.extra_info;
+        tssp = sym->variant.template_info;
         if (tssp->token_cache.first_token != NULL) {
           put_string("template body cached");
         }  /* if */
@@ -896,7 +896,7 @@ is not a routine symbol, return FALSE.
       match = is_special_function_symbol(sym, kind);
       break;
     case sk_function_template:
-      match = (sym->variant.templ.extra_info->
+      match = (sym->variant.template_info->
                         variant.function.routine->special_kind == kind);
       break;
     default:
@@ -1230,7 +1230,7 @@ state.
 #if DEBUG
         num_template_symbol_supplements_allocated++;
 #endif /* DEBUG */
-        sym_ptr->variant.templ.extra_info = tssp;
+        sym_ptr->variant.template_info = tssp;
         /* Initialize fields in the template symbol supplement. */
         tssp->parameters = NULL;
         tssp->innermost_instantiation_scope = NO_SCOPE_DEPTH;
@@ -2104,7 +2104,7 @@ ct_symbol is the symbol of the class template.
   /* Determine kind of symbol to be entered.  It can be either a
      class_or_struct or a union depending on the type of the class
      template. */
-  switch (ct_symbol->variant.templ.extra_info->variant.class_template.type_kind) {
+  switch (ct_symbol->variant.template_info->variant.class_template.type_kind) {
     case tk_class:
     case tk_struct:  kind = (a_symbol_kind)sk_class_or_struct_tag;  break;
     case tk_union:   kind = (a_symbol_kind)sk_union_tag;            break;
@@ -4892,7 +4892,7 @@ values needed for the previous call.
 
   db_enter(4, "update_template_param_symbols");
   /* Get a pointer to the first template parameter. */
-  tpp = template_sym->variant.templ.extra_info->parameters;
+  tpp = template_sym->variant.template_info->parameters;
   /* Loop through the parameters and arguments.  There must be a
      one-to-one correspondence and the kinds must match.  This was
      verified when the argument list was scanned.  Update the parameter
@@ -4923,7 +4923,7 @@ declaration is scanned and are used as placeholders between instantiations.
 
   db_enter(4, "restore_default_template_params");
   /* Get a pointer to the first template parameter. */
-  tpp = template_sym->variant.templ.extra_info->parameters;
+  tpp = template_sym->variant.template_info->parameters;
   /* Loop through the parameters and and set them to either the original
      template type or the original template constant (as specified by the
      param_type or param_constant field). */
@@ -5169,7 +5169,7 @@ the function instantiation entry associated with the function.
          class template in the scope stack.  This is used by pop_scope to
          restore the parameter values in the case of a recursive
          instantiation. */
-      tssp = template_sym->variant.templ.extra_info;
+      tssp = template_sym->variant.template_info;
       ssep->depth_of_previous_instantiation =
           tssp->innermost_instantiation_scope;
       tssp->innermost_instantiation_scope = depth_scope_stack;
@@ -5619,7 +5619,7 @@ NULL.
       {
       a_template_symbol_supplement_ptr  tssp;
       a_symbol_ptr                      template_class_sym;
-      tssp = sym->variant.templ.extra_info;
+      tssp = sym->variant.template_info;
       template_class_sym = tssp->variant.class_template.instantiations;
       for (; template_class_sym != NULL;
              template_class_sym = template_class_sym->next) {
@@ -5630,7 +5630,7 @@ NULL.
     case sk_function_template:
       {
       a_function_instantiation_entry_ptr fiep;
-      fiep = sym->variant.templ.extra_info->variant.function.instantiations;
+      fiep = sym->variant.template_info->variant.function.instantiations;
       for (; fiep != NULL; fiep = fiep->next) {
         if (fiep->specific_decl) {
           /* A user declaration was provided, so the associated symbol should
@@ -5879,7 +5879,7 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
     /* Update the depth of the innermost instantiation in the template
        symbol supplement. */
-    tssp = template_sym->variant.templ.extra_info; 
+    tssp = template_sym->variant.template_info; 
     tssp->innermost_instantiation_scope = prev_depth;
   }  /* if */
   /* Determine the memory region to restore for the outer scope. */
@@ -6651,7 +6651,7 @@ which instantiations are required.
           /* Something can appear on the list with this flag FALSE if, for
              instance, a reference that forced instantiation was followed by
              a specific definition that made it unnecessary. */
-        } else if (fiep->template_sym->variant.templ.extra_info->
+        } else if (fiep->template_sym->variant.template_info->
                                            token_cache.first_token == NULL) {
           /* A function template can be declared and referenced without ever
              being defined. */

@@ -2365,7 +2365,7 @@ will be involved in overloading.
 
             if (other_decl->kind == (a_symbol_kind)sk_function_template) {
               a_template_symbol_supplement_ptr  tssp;
-              tssp = other_decl->variant.templ.extra_info;
+              tssp = other_decl->variant.template_info;
               if (is_function_template_decl) {
                 tp = tssp->variant.function.routine->type;
                 if (types_are_compatible(tp, type)) {
@@ -3679,7 +3679,7 @@ class template.
 #endif /* if 0 */
     }  /* if */
   }  /* if */
-  tssp = sym->variant.templ.extra_info;
+  tssp = sym->variant.template_info;
   rout_ptr = tssp->variant.function.routine;
   /* A routine entry is created for the function template, but it is not
      entered in the IL.  It is a convenient place to keep track of prototype
