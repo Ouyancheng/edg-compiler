@@ -1,5 +1,18 @@
 Version 2.45
 
+9/21/00  Incorrect line numbers following multi-line #line directive
+
+The line number used in diagnostics and in the __LINE__ macro was incorrect
+following a #line directive that spans more than one line.  This has been
+fixed.
+
+  extern "C" int printf(const char *, ...);
+  int  main() {
+  #line 1 "A\
+  B"
+    printf("%d\n", __LINE__);
+  }
+
 9/20/00  IL write-read error: unused complicated default arguments,
          IL lowering
 

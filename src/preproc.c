@@ -1134,7 +1134,7 @@ may have extra operand at end).
   curr_ise->line_number = temp_line - 1;  /* Number will be incremented. */
   /* If there is already an active #line, record the end of its range. */
   if (curr_ise->assoc_il_file != curr_ise->assoc_actual_il_file) {
-    record_end_of_source_file(curr_ise->assoc_il_file, curr_seq_number);
+    record_end_of_source_file(curr_ise->assoc_il_file, seq_number_last_read);
   }  /* if */
   /* The new entry is entered under the current file entry, whether that
      entry is for the primary source file, an include file, or a #line
@@ -1144,7 +1144,7 @@ may have extra operand at end).
   {
     a_source_file_ptr	actual_sfp = curr_ise->assoc_actual_il_file;
     record_start_of_source_file(curr_ise->assoc_actual_il_file,
-                                (a_seq_number)curr_seq_number+1,
+                                (a_seq_number)seq_number_last_read+1,
                                 temp_line,
                                 temp_file,
                                 (char *)NULL,  /* Indicates #line entry. */
