@@ -16647,22 +16647,26 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
        required list. */
     if ((options & SIR_CLEAR_VALUE) != 0) {
       /* If value is FALSE, only reset the flag if the SIR_CLEAR_VALUE
-         option was specified. */
-      if (use_master_instance && tip->instantiation_required) {
-        /* If the flag was previously set, decrement the count of
-           translation units that require the instantiation. */
-        mip->instance_required_count--;
+         option was specified.
+
+         When this routine is called with the SIR_CLEAR_VALUE flag, we
+         are doing removal of unneeded entities.  When called for the
+         primary translation unit we are dealing with the completed IL
+         (i.e., any IL from secondary translation units has already been
+         copied.  If the entry is not needed, reset the instantiation count. */
+      if (is_primary_translation_unit) {
+        mip->instance_required_count = 0;
 #if DEBUG
         if (db_flag_is_set("instantiations")) {
           db_instance_count(mip, /*increment=*/FALSE);
         }  /* if */
 #endif /* DEBUG */
         check_assertion(mip->instance_required_count >= 0);
-        /* If the instance count has been decremented to zero, reset the
-           add to request file flag. */
-        if (mip->instance_required_count == 0) {
-          mip->add_to_request_file = FALSE;
-        }  /* if */
+      }  /* if */
+      /* If the instance count has been decremented to zero, reset the
+         add to request file flag. */
+      if (is_primary_translation_unit && mip->instance_required_count == 0) {
+        mip->add_to_request_file = FALSE;
       }  /* if */
       tip->instantiation_required = FALSE;
     }  /* if */
@@ -16963,7 +16967,26 @@ for adding the entries to the actual instantiation request file.
     /* Make sure the entity was actually instantiated before adding it to
        the request file.  It is possible for the add_to_request_file
        flag to be set for entities that cannot be instantiated. */
-    if (mip->add_to_request_file && mip->already_instantiated) {
+    a_boolean	add_to_file;
+    add_to_file = mip->add_to_request_file && mip->already_instantiated;
+#if MAINTAIN_NEEDED_FLAGS
+    /* Suppress the entry if the IL entry was determined to be unneeded. */
+    if (add_to_file) {
+      a_symbol_ptr	sym = mip->instance->instance_sym;
+      a_boolean		needed;
+      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+        a_variable_ptr	variable = sym->variant.static_data_member.variable;
+        variable = (a_variable_ptr)canonical_il_entry_of(variable);
+        needed = variable->source_corresp.needed;
+      } else {
+        a_routine_ptr	routine = sym->variant.routine.ptr;
+        routine = (a_routine_ptr)canonical_il_entry_of(routine);
+        needed = routine->definition_needed;
+      }  /* if */
+      add_to_file = needed;
+    }
+#endif /* !MAINTAIN_NEEDED_FLAGS */
+    if (add_to_file) {
       char	*name;
       name = get_mangled_name_of_instance(mip);
       check_assertion(name != NULL);
@@ -17248,17 +17271,17 @@ be processed.
       do_not_instantiate = variable->do_not_instantiate
                          = tip->explicit_do_not_instantiate &&
                            variable->specialized_with_old_syntax;
-      instance_required = variable->instance_required
-                        = (mip->instance_required_count &&
+      instance_required = (mip->instance_required_count &&
                            !variable->is_specialized);
+      variable->instance_required = instance_required;
     } else {
       routine->can_be_instantiated = can_be_instantiated;
       do_not_instantiate = routine->do_not_instantiate
                          = tip->explicit_do_not_instantiate &&
                            routine->specialized_with_old_syntax;
-      instance_required = routine->instance_required
-                        = (mip->instance_required_count &&
+      instance_required = (mip->instance_required_count &&
                            !routine->is_specialized);
+      routine->instance_required = instance_required;
     }  /* if */
 #if DEBUG
     if (db_flag_is_set("uaif")) {

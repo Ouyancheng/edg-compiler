@@ -4148,6 +4148,70 @@ pointed to by scope_ptr.
 
 #if MAINTAIN_NEEDED_FLAGS
 
+static a_boolean variable_needed_even_if_unreferenced(a_variable_ptr	var)
+/*
+Return TRUE if "var" is needed even if it is unreferenced (e.g., because
+it is an external definition).
+*/
+{
+  a_boolean		is_needed = FALSE;
+
+  if (!var->is_template_static_data_member) {
+    /* A non-template variable. *\
+    if (var->storage_class == (a_storage_class)sc_unspecified ||
+      var->init_kind == (an_init_kind)initk_dynamic) {
+      /* This is an externally linked variable that has been defined, or
+         it is a variable local to this translation unit but with
+         dynamic initialization, in which case it is treated as "needed"
+         because the initialization may have side effects.  Mark it as
+         needed now. */
+    is_needed = TRUE;
+  } else {
+    /* A template static data member. */
+   if (!is_primary_translation_unit) {
+      /* Assume that all static data members from secondary translation units
+         are needed.  This will be reconsidered after the routine has
+         been copied to the primary translation unit. */
+      is_needed = TRUE;
+    } else if (var->is_specialized) {
+      /* A specialized static data member is always needed. */
+      is_needed = TRUE;
+    } else if (!var->is_specialized) {
+      /* An instantiation of a static data member must be considered
+         to be needed if it was automatically instantiated (i.e, it is
+         in the instantiation request file for this compilation), or if
+         it was explicitly instantiated.  For other cases, which include
+         things instantiated in -tused mode and things adopted by this
+         compilation, use the needed flag mechanism to determine whether
+         the instantiation is really needed. */
+      a_symbol_ptr		sym;
+      a_template_instance_ptr	tip;
+      a_master_instance_ptr	mip;
+
+      sym = (a_symbol_ptr)var->source_corresp.assoc_info;
+      check_assertion(sym != NULL);
+      tip = sym->variant.static_data_member.instance_ptr;
+      check_assertion(tip != NULL);
+      mip = tip->master_instance;
+      if (tip->explicit_instantiation ||
+	  (mip != NULL &&
+	   (mip->automatically_instantiated && !mip->add_to_request_file))) {
+        /* The instance exists as a result of an explicit instantiation
+	   directive, or as a result of being assigned to this file by
+	   the automatic instantiation mechanism.  The automatically
+           instantiated flag will be set for adopted entities.  The test
+           of add_to_request_file is used so that adopted entities will
+           not necessarily be considered to be needed. */
+        is_needed = TRUE;
+      } else {
+	is_needed = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_needed;
+}  /* variable_needed_even_if_unreferenced */
+
+
 static void set_needed_flags_for_typedefs(a_scope_ptr scope)
 /*
 Make a pass through the IL tree looking for typeref types that should be
@@ -4248,13 +4312,13 @@ been completed.
   /* Do processing on variables (or, if this a class scope, static data
      members). */
   for (vp = scope->variables; vp != NULL; vp = vp->next) {
-    if (vp->storage_class == (a_storage_class)sc_unspecified ||
-        vp->init_kind == (an_init_kind)initk_dynamic) {
-      /* This is an externally linked variable that has been defined, or
-         it is a variable local to this translation unit but with
-         dynamic initialization, in which case it is treated as "needed"
-         because the initialization may have side effects.  Mark it as
-         needed now. */
+    a_boolean is_needed;
+    /* Determine whether this variable should be considered "needed".  This
+       is true for variables that are referenced and for most external
+       definitions. */
+    is_needed = (vp->source_corresp.needed ||
+                 variable_needed_even_if_unreferenced(vp));
+    if (is_needed) {
       /* Turn off end_of_file_scope_needed_flags_phase to avoid walking the
          subtree, because we're going to do that in a moment. */
       end_of_file_scope_needed_flags_phase = FALSE;
@@ -4352,30 +4416,37 @@ e.g., because it's externally defined.
            other compilation units unless it is explicitly declared
            "extern inline". */
 	is_needed = FALSE;
+      } else if (!is_primary_translation_unit) {
+        /* Assume that all external routines from secondary translation units
+           are needed.  This will be reconsidered after the routine has
+           been copied to the primary translation unit. */
       } else if (rout->is_template_function &&
-		 !rout->is_specialized &&
-		 instantiation_mode == tim_used &&
-		 !translation_unit_needed_only_for_exported_templates) {
-	/* Another exception is function template instances when the source
-	   is compiled with the -tused option (meaning that any reference
-	   triggers an instantiation).  The instantiation is needed only if
-	   it is referenced.  This processing is suppressed in secondary
-	   translation units loaded for the purpose of defining exported
-	   templates because instances of such templates are not necessarily
-	   referenced from the translation unit in which they are defined. */
+		 !rout->is_specialized) {
+        /* An instantiation of an external template function must be considered
+           to be needed if it was automatically instantiated (i.e, it is
+           in the instantiation request file for this compilation), or if
+           it was explicitly instantiated.  For other cases, which include
+           things instantiated in -tused mode and things adopted by this
+           compilation, use the needed flag mechanism to determine whether
+           the instantiation is really needed. */
 	a_symbol_ptr             rout_sym;
 	a_template_instance_ptr  tip;
+	a_master_instance_ptr	 mip;
 
 	rout_sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
 	check_assertion(rout_sym != NULL);
 	tip = rout_sym->variant.routine.instance_ptr;
 	check_assertion(tip != NULL);
+        mip = tip->master_instance;
 	if (tip->explicit_instantiation ||
-	    (tip->master_instance != NULL &&
-	     master_instance_of(tip)->automatically_instantiated)) {
+	    (mip != NULL &&
+	     (mip->automatically_instantiated && !mip->add_to_request_file))) {
 	  /* The instance exists as a result of an explicit instantiation
 	     directive, or as a result of being assigned to this file by
-	     the automatic instantiation mechanism. */
+	     the automatic instantiation mechanism.  The automatically
+             instantiated flag will be set for adopted entities.  The test
+             of add_to_request_file is used so that adopted entities will
+             not necessarily be considered to be needed. */
 	} else {
 	  is_needed = FALSE;
 	}  /* if */
