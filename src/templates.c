@@ -6997,6 +6997,17 @@ that follows.
         sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
       }  /* if */
     }  /* if */
+    if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+      if (is_function_type(type) && sym != NULL &&
+          (is_constructor_symbol(sym) || is_destructor_symbol(sym) ||
+           is_conversion_function_symbol(sym))) {
+        /* No type specifier is required. */
+      } else {
+        /* Error on omitted type specifier. */
+        pos_diagnostic(es_discretionary_error,
+                       ec_missing_type_specifier, &decl_start_pos);
+      }  /* if */
+    }  /* if */
     if (is_error_locator(locator)) {
       /* Ignore it. */
     } else if (sym == NULL) {
@@ -7042,23 +7053,6 @@ that follows.
         is_definition = (curr_token == tok_lbrace ||
                          (curr_token == tok_colon &&
                           is_constructor_symbol(sym)));
-      }  /* if */
-      if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
-        if (is_function_type(type)) {
-          if (is_constructor_symbol(sym) || is_destructor_symbol(sym) ||
-              is_conversion_function_symbol(sym)) {
-            /* No type specifier is required. */
-          } else if (is_definition) {
-            /* Omitted type specifier on a definition. */
-            pos_remark(ec_missing_type_specifier, &decl_start_pos);
-          } else {
-            /* Omitted type specifier on a declaration. */
-            pos_diagnostic(es_discretionary_error,
-                           ec_missing_type_specifier, &decl_start_pos);
-          }  /* if */
-        } else {
-          pos_warning(ec_missing_type_specifier, &decl_start_pos);
-        }  /* if */
       }  /* if */
       if (is_definition) srk_flags |= SRK_DEFINITION;
       /* Update cross reference info, etc. */
