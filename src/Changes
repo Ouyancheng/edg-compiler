@@ -1,5 +1,18 @@
 Version 2.26
 
+10/5/94  C++-generating back end: types declared in function declarators in C++
+
+A bug in the C++-generating back end was corrected, avoiding an internal
+error on certain obscure cases where a class type was declared in a
+function declarator:
+
+  void f(struct A *arg) { }
+  struct A { int i; } *p;
+  void f()
+  {
+      f(p);
+  }
+
 10/5/94  C++-generating back end: vacuous destructor calls for template classes
 
 The C++-generating back end now puts out vacuous destructor calls for
