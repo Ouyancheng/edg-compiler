@@ -104,6 +104,7 @@ should be suppressed.
       }  /* if */
       break;
     case eok_vacuous_destructor_call:
+    case eok_value_vacuous_destructor_call:
       /* A vacuous destructor call like
            p->int::~int();
          is an expression that intentionally does nothing, so suppress
@@ -1499,6 +1500,8 @@ Syntax:
                     arg_operand_list;
   a_routine_ptr     routine = NULL;
   a_boolean         already_after_left_paren = FALSE;
+  an_expr_operator_kind
+                    op;
 
   db_enter(4, "scan_function_call");
 
@@ -1509,8 +1512,10 @@ Syntax:
     error_in_operand(ec_bad_constant_function_call, operand);
   } else if (is_expression_operand(operand) &&
              is_operation_node(operand->variant.expression) &&
-             operand->variant.expression->variant.operation.kind ==
-                          (an_expr_operator_kind)eok_vacuous_destructor_call) {
+             (op = operand->variant.expression->variant.operation.kind,
+              (op == (an_expr_operator_kind)eok_vacuous_destructor_call ||
+               op == (an_expr_operator_kind)eok_value_vacuous_destructor_call)
+                                                                           )) {
     /* This operand was generated from a vacuous destructor call, e.g.,
        p->int::~int().
     */
@@ -2457,6 +2462,7 @@ qualified_name_check:
     change_operand_refs_to_error(operand_1);
   } else if (is_vacuous_destructor_reference) {
     an_expr_node_ptr node;
+    a_boolean        rvalue_case;
     /* A reference to a destructor for a class or simple type that does not
        have one, e.g., p->int::~int(). */
     if (!is_arrow_operator && is_an_lvalue(operand_1)) {
@@ -2473,7 +2479,9 @@ qualified_name_check:
            int *p;
            p->T::~T();
          and get the name "T" in the output. */
-      cast_operand(make_pointer_type(dtor_type), operand_1,
+      rvalue_case = !is_arrow_operator && is_an_rvalue(operand_1);
+      cast_operand(rvalue_case ? dtor_type : make_pointer_type(dtor_type),
+                   operand_1,
                    /*check_cast_access=*/FALSE,
                    /*is_implicit_cast=*/FALSE,
                    /*is_reinterpret_cast=*/FALSE);
@@ -2501,10 +2509,13 @@ qualified_name_check:
        This is a pretty weird representation for this case, but it's a pretty
        weird case.  scan_function_call checks for this construct. */
     node = make_node_from_operand(operand_1);
+    rvalue_case = !is_arrow_operator && is_an_rvalue(operand_1);
     node = make_operator_node(
-                            (an_expr_operator_kind)eok_vacuous_destructor_call,
-                            void_type(),
-                            node);
+                   rvalue_case ?
+                     (an_expr_operator_kind)eok_value_vacuous_destructor_call :
+                     (an_expr_operator_kind)eok_vacuous_destructor_call,
+                   void_type(),
+                   node);
     make_expression_operand(node, node->type, result);
   } else {
     /* Record that the field was referenced, for cross-reference (etc.)

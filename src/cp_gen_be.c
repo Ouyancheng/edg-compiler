@@ -4324,12 +4324,20 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           gen_bound_function(operand_2, operand_1, /*suppress_virtual=*/FALSE);
           goto done_with_operation;
         case eok_vacuous_destructor_call:
-          /* Explicit call of a destructor for a type that doesn't have one,
-             e.g., "p->int::~int()". */
-          gen_expr_with_parens(operand_1);
-          write_tok_str("->");
-          /* Use the type name to create a "destructor" name. */
-          { a_type_ptr type = type_pointed_to(operand_1->type);
+        case eok_value_vacuous_destructor_call:
+          { a_type_ptr type;
+            /* Explicit call of a destructor for a type that doesn't have one,
+               e.g., "p->int::~int()". */
+            gen_expr_with_parens(operand_1);
+            if (expr->variant.operation.kind ==
+                          (an_expr_operator_kind)eok_vacuous_destructor_call) {
+              write_tok_str("->");
+              type = type_pointed_to(operand_1->type);
+            } else {
+              write_tok_ch('.');
+              type = operand_1->type;
+            }  /* if */
+            /* Use the type name to create a "destructor" name. */
             gen_type(type);
             write_str("::~");
             if (is_class_type_kind(type->kind)) {

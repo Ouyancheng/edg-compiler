@@ -6867,6 +6867,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             lower_virtual_function_ptr(expr);
             break;
           case eok_vacuous_destructor_call:
+          case eok_value_vacuous_destructor_call:
             /* A call of a "destructor" for a class or simple type that does
                not have one, e.g., p->int::~int().  Change the node into
                a cast to void. */

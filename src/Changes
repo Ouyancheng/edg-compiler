@@ -1,5 +1,16 @@
 Version 2.35
 
+2/27/97  IL CHANGE: vacuous destructor call on non-class rvalue
+
+A vacuous destructor (or pseudo-destructor) call of the form "x.X::~X()",
+where "x" is an rvalue of a non-class type, is now represented by
+an IL expression node with the new operator kind
+eok_value_vacuous_destructor_call.  Formerly, it was represented by
+a node with operator kind eok_vacuous_destructor_call, but that didn't
+provide enough information for the C++-generating back end.  Both
+those operator kinds are rewritten by IL lowering, so those using IL
+lowering will see no difference.
+
 2/26/97  Macros for adding name linkage kinds
 
 To facilitate maintaining implementation-defined name-linkage kinds, macros

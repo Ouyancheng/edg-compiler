@@ -4875,6 +4875,9 @@ enum an_expr_operator_kind_tag {
 			   that does not have one, e.g., p->int::~int().
 			   The operand is the pointer.  The result is
 			   void. */
+  eok_value_vacuous_destructor_call,
+			/* Similar to eok_vacuous_destructor_call, but operand
+			   is an rvalue. */
 #endif /* ifdef CIL */
   eok_land,             /* Logical intersection, with the operand standardized
                            to integer/logical. */
@@ -6955,6 +6958,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "&", "|", "^", ",",
    "virt func ptr",
    "vacuous dtor",
+   "value vacuous dtor",
 #endif /* ifdef CIL */
    "&&", "||",
 #ifdef FIL
