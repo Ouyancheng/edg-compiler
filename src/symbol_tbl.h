@@ -672,6 +672,7 @@ typedef struct a_template_param {
 			/* Extra field that can be initialized to prevent
 			   spurious reference to uninitialized data warnings
 			   from CodeCenter. */
+#endif /* CHECKING */
       union {
         /* When type_involves_template_param is FALSE. */
         a_constant_ptr
@@ -687,7 +688,6 @@ typedef struct a_template_param {
 			   tokens of the default argument expression. */
       } default_arg;
     } param_constant;
-#endif /* CHECKING */
   } variant;
 } a_template_param;
 
