@@ -8924,6 +8924,50 @@ The caller should check for that and avoid it.
 }  /* microsoft_lvalue_cv_qual_adjustment */
 
 
+static a_boolean is_cast_of_nonconstant_address_to_smaller_integer(
+                                                       an_operand *operand,
+                                                       a_type_ptr type_cast_to)
+/*
+Return TRUE if operand is the address of a variable or routine expressed
+in expression form (possibly with casts on top, but not casts that reduce
+the size) and type_cast_to is an integral type that is smaller than an
+address.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_integral_type(type_cast_to) &&
+      is_expression_operand(operand)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    a_targ_size_t    smallest_size = ~(a_targ_size_t)0;
+    /* Skip over any casts to integral or pointer types. */
+    while (is_operation_node(expr) &&
+           expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+           (is_integral_type(expr->type) || is_pointer_type(expr->type))) {
+      /* Keep track of the smallest cast size in the sequence. */
+      a_targ_size_t cast_size = f_skip_typerefs(expr->type)->size;
+      if (cast_size < smallest_size) smallest_size = cast_size;
+      expr = expr->variant.operation.operands;
+    }  /* while */
+    /* See if the thing underneath is the address of something.  Note that
+       fully constant cases get handled in folding and do not come here. */
+    if (is_variable_address_node(expr) ||
+        is_routine_address_node(expr)) {
+      a_targ_size_t addr_size = f_skip_typerefs(expr->type)->size;
+      /* Drop out if an intermediate cast was to a smaller size, because
+         a warning was already issued for that one. */
+      if (addr_size <= smallest_size) {
+        if (f_skip_typerefs(type_cast_to)->size < addr_size) {
+          /* Yes, this cast truncates the address. */
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_cast_of_nonconstant_address_to_smaller_integer */
+
+
 static void do_cast(a_type_ptr               type_cast_to,
                     an_operand               *operand,
                     an_operand               *bound_function_selector,
@@ -9088,6 +9132,14 @@ C-style casts and C++ functional-notation type conversions.
             /* Issue a warning on oddball cases. */
             if (warning_suggested != ec_no_error) {
               pos_warning(warning_suggested, start_position);
+            }  /* if */
+            if (is_cast_of_nonconstant_address_to_smaller_integer(
+                                                               operand,
+                                                               type_cast_to)) {
+              /* A cast of the address of a local variable to a small
+                 integer.  Issue a warning about truncation.  The warning for
+                 static cases comes out of folding. */
+              pos_warning(ec_integer_truncated, start_position);
             }  /* if */
             /* Do the actual cast. */
             cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,

@@ -1,5 +1,19 @@
 Version 3.6
 
+11/16/04 Warning on sequence of casts that truncates address of local variable
+
+A warning is now issued on a sequence of casts that casts the address of
+a local (non-static) variable to an integer type smaller than a pointer,
+possibly by way of one or more intermediate casts to integer types.
+Formerly, a warning was issued for such cases when the variable is
+static, but not when the variable is auto.
+
+  void g(int);
+  void f() {
+    auto unsigned int b;
+    g((unsigned short)(unsigned long)&b);  // Gets a warning now
+  }
+
 11/16/04 Microsoft compatibility: cast to abstract class no longer allowed
 
 The Microsoft extension to allow a cast to an abstract class type (see
