@@ -153,8 +153,30 @@ void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
 /*
 Determine the lowered representation of the indicated pointer-to-member
 function constant, and return information about it in *delta, *index,
-*func, and *offset.  *offset is only meaningful if *func is returned
-NULL.
+*func, and *offset.  Those values fill the fields of the mptr structure:
+*delta for the "d" field, *index for the "i" field, and one of
+*func or *offset for the "f" field.
+
+For the Cfront-like ABI:
+  *delta is the "this" adjustment to be made.
+  *index is 0 for NULL, -1 for a non-virtual function, and otherwise
+    is the index number of the virtual function in the virtual
+    function table.
+  *func is the function, for the non-virtual case, NULL otherwise.
+  *offset is the offset of the virtual function pointer in the class,
+    or 0 if the function is non-virtual.
+
+For the IA-64 ABI:
+  *delta is the "this" adjustment to be made.
+  *index is not used.
+  *func is the function, for the non-virtual case, NULL otherwise.
+  *offset is the offset of the entry for the virtual function in
+    the virtual function table (in bytes), or 0 for the non-virtual
+    case.
+  A NULL pointer has *delta == 0, *func == NULL, and *offset == 0.
+  Either *delta or *offset has the low-order bit indicating whether
+    the function is virtual, depending on
+    IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR.
 */
 {
   a_routine_ptr routine;
@@ -170,11 +192,13 @@ NULL.
   } else {
     *delta = pm_cast_offset(constant);
 #if IA64_ABI
+#if IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
     /* In the IA-64 ABI, the low-order bit indicates whether the function
        is virtual.  This is in the variant of the ABI for architectures
        where the address of a function can have the least-significant bit
        set. */
     *delta = *delta * 2 + (routine->is_virtual ? 1 : 0);
+#endif /* IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
 #endif /* IA64_ABI */
   }  /* if */
   /* The second field is
@@ -227,9 +251,11 @@ NULL.
 #else /* IA64_ABI */
     /* In the IA-64 ABI, the offset is the virtual function table offset
        in bytes of the function. */
-    /* This is for the variant for architectures where the address of a
-       function can have a 1 in the low-order bit. */
     *offset = routine->virtual_function_number * vtbl_entry_size();
+#if !IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
+    /* The low-order bit is 1 to indicate a virtual function. */
+    if (routine->is_virtual) *offset |= 1;
+#endif /* !IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
 #endif /* IA64_ABI */
     *func = NULL;
   }  /* if */
@@ -1127,7 +1153,8 @@ static a_field_ptr
 a_type_ptr make_mptr_type(void)
 /*
 Make the struct type used in pointers to member functions if it has not been
-made already, and return a pointer to it.  Its definition is
+made already, and return a pointer to it.  Its definition in the Cfront-like
+ABI is
 
   struct __mptr { short d; short i; __vptp f; };
 
@@ -1143,10 +1170,20 @@ In the IA-64 ABI, the structure is
 
   struct __mptr { __vptp f; ptrdiff_t d; };
 
-and the "i" field is not used.  The low-order bit of the "d" field indicates
-whether the function is virtual -- 1 means virtual, in which case the "f"
-field gives the virtual function table index for the routine (appropriately
-cast).
+and the "i" field is not used.  The "f" field is 0 for a NULL pointer,
+is a function pointer for the non-virtual function case, and is the
+virtual function table index (in bytes) plus 1 for the virtual function
+case.  The "d" field is the same as for the Cfront-like ABI: it's the
+adjustment to be added to "this".
+
+When IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR is TRUE, an alternate
+representation is used (needed for architectures where the address of
+a function can have the low-order bit set to 1).  The low-order bit of
+the "d" field indicates whether the function is virtual -- 1 means virtual.
+The "this" adjustment in the "d" field is shifted left one bit to
+accommodate this bit.  The "f" field is the same as for the normal
+IA-64 representation, except that in the virtual function case the
+index doesn't have one added to it.
 */
 {
   a_field_ptr   last_field;
@@ -8311,6 +8348,7 @@ used as an lvalue if is_lvalue is TRUE.
   an_expr_node_ptr select_i_node;
 #else /* IA64_ABI */
   an_expr_node_ptr select_f_node, compare2_node;
+  a_type_ptr       promoted_ptrdiff_t_type;
 #endif /* !IA64_ABI */
   an_expr_node_ptr select_d_node, incr_node, assign_node, comma_node;
   a_constant       offset_constant;
@@ -8336,6 +8374,8 @@ used as an lvalue if is_lvalue is TRUE.
       /* Pointer to member function.  Change the node to
            (temp = pmf, (temp.i != 0) ? temp.d += offset : 0, temp)
          The IA-64 version is
+           (temp = pmf, (temp.f != 0) ? temp.d += offset : 0, temp)
+         normally, and
            (temp = pmf, (temp.f != 0 || temp.d != 0)
                                       ? temp.d += offset : 0, temp)
          for the variant of the ABI for architectures where the address
@@ -8358,20 +8398,20 @@ used as an lvalue if is_lvalue is TRUE.
                                         integer_type((an_integer_kind)ik_int),
                                         select_i_node);
 #else /* IA64_ABI */
+      promoted_ptrdiff_t_type = type_after_integral_promotion(
+                                        integer_type(targ_ptrdiff_t_int_kind));
       /* Make (temp.f != 0 || temp.d != 0). */
       select_f_node = field_rvalue_selection_expr(temp_node, mptr_f_field);
-      select_f_node = add_cast(select_f_node,
-                               integer_type(targ_ptrdiff_t_int_kind));
-      select_f_node->next = node_for_integer_constant(0L,
+      select_f_node = add_cast(select_f_node, promoted_ptrdiff_t_type);
+      select_f_node->next = node_for_promoted_integer_constant(0L,
                                                       targ_ptrdiff_t_int_kind);
       compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
                                         integer_type((an_integer_kind)ik_int),
                                         select_f_node);
       temp_node = var_lvalue_expr(temp_var);
       select_d_node = field_rvalue_selection_expr(temp_node, mptr_d_field);
-      select_d_node = add_cast(select_d_node,
-                               integer_type(targ_ptrdiff_t_int_kind));
-      select_d_node->next = node_for_integer_constant(0L,
+      select_d_node = add_cast(select_d_node, promoted_ptrdiff_t_type);
+      select_d_node->next = node_for_promoted_integer_constant(0L,
                                                       targ_ptrdiff_t_int_kind);
       compare2_node = make_operator_node((an_expr_operator_kind)eok_ine,
                                          integer_type((an_integer_kind)ik_int),
@@ -8386,11 +8426,13 @@ used as an lvalue if is_lvalue is TRUE.
       select_d_node = field_lvalue_selection_expr(temp_node, mptr_d_field);
       /* Make a node for the offset constant. */
 #if IA64_ABI
+#if IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
       /* The low-order bit of the "d" field is used to indicate whether or not
-         the function is virtual.  This is for the variant of the ABI
-         for architectures where the address of a function might have
-         a low-order bit of 1. */
+         the function is virtual, so shift over the offset.  This is for
+         the variant of the ABI for architectures where the address of a
+         function might have a low-order bit of 1. */
       offset <<= 1;
+#endif /* IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
 #endif /* IA64_ABI */
       set_delta_constant(offset, &offset_constant);
       promote_integer_constant(&offset_constant);
@@ -9274,12 +9316,15 @@ the expression have already been lowered.
   an_expr_node_ptr pmf_node, object_node, additional_args, cast_object_node;
   an_expr_node_ptr this_temp_node, select_d_node, padd_node, call_node;
   an_expr_node_ptr this_temp_assign_node, vtbl_temp_assign_node;
-  an_expr_node_ptr select_i_node, compare_node, select_f_node;
+  an_expr_node_ptr compare_node, select_f_node;
   an_expr_node_ptr return_node = NULL;
   a_routine_type_supplement_ptr
                    rtsp;
 #if !IA64_ABI
+  an_expr_node_ptr select_i_node;
   an_expr_node_ptr select_f_for_cast_node, vtbl_d_value, this_increment_node;
+#else /* IA64_ABI */
+  an_expr_node_ptr select_fd_node;
 #endif /* !IA64_ABI */
   an_expr_node_ptr vtbl_addr_node;
   an_expr_node_ptr cast_node; /*lint !e578*/
@@ -9322,7 +9367,7 @@ the expression have already been lowered.
   pmf_node->next = NULL;
   object_node->next = NULL;
   object_type = object_node->type;
-  /* The rewritten form is as follows:
+  /* For the Cfront-like ABI, the rewritten form is as follows:
        ((this_temp = (object_type *)((char *)object + pmf.d)),
                                        -- Adjust "this" pointer by delta
                                           from pointer-to-member.
@@ -9366,6 +9411,31 @@ the expression have already been lowered.
      sure that if a reusable copy of pmf is needed, the temp for it
      is initialized before the call is begun.
   */
+  /* For the IA-64 ABI:
+       ((this_temp = (object_type *)((char *)object + pmf.d)),
+                                       -- Adjust "this" pointer by delta
+                                          from pointer-to-member.
+        (func_temp = (function_type *) -- The computed function address
+                                          gets cast to the proper function
+                                          type.
+                 ((pmf.f & 1) == 0) ?  -- Check virtual/non-virtual
+                                          pointer-to-member.
+                   pmf.f :             -- Function address for non-virtual
+                                          case.
+                                       -- Virtual function case:
+                   ((vtbl_temp =       -- Virtual function table entry address
+                                          is address of virtual function table
+                                          plus offset in table.
+                      *(__vtbl_entry **)this_temp +
+                                       -- Pointer to virtual function table is
+                                          found at offset zero in the object.
+                      ((ptrdiff_t)pmf.f / vtbl_entry_size),
+                                       -- Offset into table.
+                    *vtbl_temp))),     -- Address of virtual function to call.
+         func_temp(                    -- Call the function.
+                   this_temp,          -- "this" pointer for call.
+                   additional_args ...))
+  */
   /* Make sure __mptr (the struct that represents lowered pointers to member
      functions) has been created. */
   (void)make_mptr_type();
@@ -9374,6 +9444,7 @@ the expression have already been lowered.
   /* Make "(char *)object + pmf.d". */
   select_d_node = node_to_select_field_from_rvalue(pmf_node, mptr_d_field);
 #if IA64_ABI
+#if IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
   /* Shift right to eliminate the low-order bit, which is used to indicate
      whether or not the function is virtual.  This applies in the variant
      of the IA-64 ABI for architectures in which the low-order bit of
@@ -9382,6 +9453,7 @@ the expression have already been lowered.
                                                   targ_size_t_int_kind);
   select_d_node = make_operator_node((an_expr_operator_kind)eok_shiftr,
                                       select_d_node->type, select_d_node);
+#endif /* IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
 #endif /* IA64_ABI */
   cast_object_node = add_cast_to_char_star(object_node);
   cast_object_node->next = select_d_node;
@@ -9416,19 +9488,29 @@ the expression have already been lowered.
                                       integer_type((an_integer_kind)ik_int),
                                       select_i_node);
 #else /* IA64_ABI */
-    /* Make "(pmf.d & 1) == 0". */
-    select_i_node = node_to_select_field_from_rvalue(pmf_node, mptr_d_field);
-    select_i_node = integral_promote_node(select_i_node);
-    select_i_node->next = node_for_promoted_integer_constant(1L,
+    /* Make "(pmf.f & 1) == 0", testing for the non-virtual case.
+       For the variant for architectures where the low-order bit of the
+       address of a function can be 1, the bit is in the "d" field, so
+       the code is "(pmf.d & 1) == 0". */
+#if IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
+    select_fd_node = node_to_select_field_from_rvalue(pmf_node, mptr_d_field);
+#else /* !IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
+    select_fd_node = node_to_select_field_from_rvalue(pmf_node, mptr_f_field);
+#endif /* IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
+    select_fd_node = add_cast_if_necessary(select_fd_node,
+                                           type_after_integral_promotion(
+                                               integer_type(
+                                                    targ_ptrdiff_t_int_kind)));
+    select_fd_node->next = node_for_promoted_integer_constant(1L,
                                                     targ_ptrdiff_t_int_kind);
-    select_i_node = make_operator_node((an_expr_operator_kind)eok_and,
-                                       select_i_node->type,
-                                       select_i_node);
-    select_i_node->next = node_for_promoted_integer_constant(0L,
+    select_fd_node = make_operator_node((an_expr_operator_kind)eok_and,
+                                       select_fd_node->type,
+                                       select_fd_node);
+    select_fd_node->next = node_for_promoted_integer_constant(0L,
                                                     targ_ptrdiff_t_int_kind);
     compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
-                                      select_i_node->type,
-                                      select_i_node);
+                                      integer_type((an_integer_kind)ik_int),
+                                      select_fd_node);
 #endif /* IA64_ABI */
     /* Make "pmf.f". */
     pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
@@ -9450,7 +9532,7 @@ the expression have already been lowered.
     padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                    this_temp_node->type, this_temp_node);
 #else /* IA64_ABI */
-    padd_node = add_cast_to_char_star(var_rvalue_expr(this_temp_var));
+    padd_node = var_rvalue_expr(this_temp_var);
 #endif /* IA64_ABI */
     /* We now have a pointer to the virtual table pointer in the object.
        Cast it to a pointer to a pointer and indirect to get the value of 
@@ -9458,15 +9540,17 @@ the expression have already been lowered.
     ptr_to_vtbl_entry_type = pointer_to_vtbl_type();
     cast_node = add_cast(padd_node, make_pointer_type(ptr_to_vtbl_entry_type));
     vtbl_addr_node = add_indirection_to_node(cast_node);
-    /* Make "pmf.i", the offset into the virtual function table. */
     pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
+    /* Make the index into the virtual function table. */
 #if !IA64_ABI
     offset_node = node_to_select_field_from_rvalue(pmf_node, mptr_i_field);
 #else /* IA64_ABI */
     offset_node = node_to_select_field_from_rvalue(pmf_node, mptr_f_field);
     /* We're using the "f" field of __mptr as a ptrdiff_t. */
     offset_node = add_cast(offset_node, integer_type(targ_ptrdiff_t_int_kind));
-    /* Scale the offset by the size of a vtable entry. */
+    /* Scale the offset by the size of a vtable entry.  Note that this
+       drops off the low-order bit that indicates that the function is
+       virtual. */
     offset_node->next = node_for_integer_constant(vtbl_entry_size(),
                                                   targ_ptrdiff_t_int_kind);
     offset_node = make_operator_node((an_expr_operator_kind)eok_idivide,
@@ -9763,6 +9847,18 @@ first operand (but not the second) has been lowered already.
   a_boolean        vars_can_change;
   a_field_ptr      mptr_if_field;
 
+  /* Determine whether we are using the variant pointer-to-member-function
+     representation in the IA-64 ABI. */
+#undef IA64_ABI_VARIANT_PMF
+#if IA64_ABI
+#if IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
+#define IA64_ABI_VARIANT_PMF TRUE
+#endif /* IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
+#endif /* IA64_ABI */
+#ifndef IA64_ABI_VARIANT_PMF
+#define IA64_ABI_VARIANT_PMF FALSE
+#endif /* ifndef IA64_ABI_VARIANT_PMF */
+
   op1_node = expr->variant.operation.operands;
   op2_node = op1_node->next;
   if (is_or_was_ptr_to_member_function_type(op1_node->type)) {
@@ -9772,6 +9868,9 @@ first operand (but not the second) has been lowered already.
        law.  Note that op1 and op2 are rvalues. */
     /* The IA-64 ABI version is
          (op1.f == op2.f) && (op1.f == 0 || op1.d == op2.d)
+       In the variant for architectures where the low-order bit of
+       a function address can be 1, the test is simply
+         (op1.f == op2.f) && (op1.d == op2.d)
     */
     int_type = integer_type((an_integer_kind)ik_int);
     /* Make sure the struct type used to represent a pointer-to-member-function
@@ -9800,7 +9899,7 @@ first operand (but not the second) has been lowered already.
         op2_node = expr->variant.operation.operands;
       }  /* if */
     }  /* if */
-    /* Make op1.i and op2.i. */
+    /* Make op1.i and op2.i.  (For IA-64, the "f" field is used instead.) */
     select1_node = expr_for_pmf_component(op1_node, 
                                           mptr_if_field,
                                           /*need_copy=*/FALSE,
@@ -9811,44 +9910,49 @@ first operand (but not the second) has been lowered already.
                                           /*vars_can_change=*/FALSE);
     select1_node->next = select2_node;
     /* Make "op1.i == op2.i" (or "!=" for the ne_case). */
-    /* "op1.f == op2.f" (or !=) for the IA-64 ABI case. */
+    /* "op1.f == op2.f" (or "!=") for the IA-64 ABI case. */
     compare_i_node = make_operator_node(
                           (an_expr_operator_kind)(ne_case ? eok_ine : eok_ieq),
                           int_type, select1_node);
-#if !IA64_ABI
+#if !IA64_ABI_VARIANT_PMF
     if (is_constant_node(select1_node) &&
+        constant_bool_value_known_at_compile_time(
+                                             select1_node->variant.constant) &&
         is_false_constant(select1_node->variant.constant)) {
       /* If op1.i is zero, the whole expression reduces to
            0 == op2.i
          (or != for the ne_case).  This is a test against a null
          pointer to member constant.  Note that if op2.i was zero initially,
          the operands were swapped. */
+      /* In the IA-64 ABI, the "f" field is tested. */
       overwrite_node(expr, compare_i_node);
     } else 
-#endif /* !IA64_ABI */
-      /* Do not add code here. */
+#endif /* !IA64_ABI_VARIANT_PMF */
+    /* Do not add code here. */
     {
       /* Not a comparison against null. */
       vars_can_change = node_has_side_effects(op1_node, (a_boolean *)NULL) ||
                         node_has_side_effects(op2_node, (a_boolean *)NULL);
+#if IA64_ABI_VARIANT_PMF
+      /* In the variant IA-64 form, no separate test of op1.f == 0 is
+         needed -- a null value must have both fields zero. */
+      compare_i0_node = NULL;
+#else /* !IA64_ABI_VARIANT_PMF */
       select1_node = expr_for_pmf_component(op1_node, 
                                             mptr_if_field,
                                             /*need_copy=*/TRUE,
                                             vars_can_change);
-#if !IA64_ABI
       if (is_constant_node(select1_node)) {
         /* op1.i is constant, but it's not zero (that case was handled
            above).  So the "op1.i == 0 ||" part of the expression is
            not needed. */
         compare_i0_node = NULL;
-      } else 
-#endif /* !IA64_ABI */
-      /* Do not add code here. */
-      {
+      } else {
 #if IA64_ABI
         /* Cast the function pointer to a ptrdiff_t. */
         select1_node = add_cast(select1_node,
-                                integer_type(targ_ptrdiff_t_int_kind));
+                                type_after_integral_promotion(
+                                       integer_type(targ_ptrdiff_t_int_kind)));
 #endif /* IA64_ABI */
         /* Make "op1.i == 0" (or "!= 0" for the ne_case). */
         select1_node->next = node_for_promoted_integer_constant(0L,
@@ -9861,41 +9965,8 @@ first operand (but not the second) has been lowered already.
         compare_i0_node = make_operator_node
                         ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
                          int_type, select1_node);
-#if IA64_ABI
-        /* Add code for "&& (((op1.d | op2.d) & 1) == 0)".  This checks
-           that the low-order bit (indicating virtual function or not) is
-           clear in both entries.  Otherwise, we might have a pointer
-           to member in which "f" is zero to indicate a zero offset
-           in the virtual function table for a virtual function case.
-           This applies in the variant of the IA-64 ABI for architectures
-           where the address of a function can have the low-order bit set. */
-        select1_node = expr_for_pmf_component(op1_node, mptr_d_field,
-                                              /*need_copy=*/TRUE,
-                                              vars_can_change);
-        select1_node->next = expr_for_pmf_component(op2_node, mptr_d_field,
-                                                    /*need_copy=*/TRUE,
-                                                    vars_can_change);
-        select1_node = make_operator_node((an_expr_operator_kind)eok_or, 
-                                          select1_node->type, 
-                                          select1_node);
-        select1_node->next = node_for_promoted_integer_constant(
-                                                      1L,
-                                                      targ_ptrdiff_t_int_kind);
-        select1_node = make_operator_node((an_expr_operator_kind)eok_and, 
-                                          select1_node->type,
-                                          select1_node);
-        select1_node->next = node_for_promoted_integer_constant(
-                                                      0L,
-                                                      targ_ptrdiff_t_int_kind);
-        select1_node = make_operator_node
-                         ((an_expr_operator_kind)(ne_case ? eok_ine : eok_ieq),
-                          int_type, select1_node);
-        compare_i0_node->next = select1_node;
-        compare_i0_node = make_operator_node
-                        ((an_expr_operator_kind)(ne_case ? eok_lor : eok_land),
-                         int_type, compare_i0_node);
-#endif /* IA64_ABI */
       }  /* if */
+#endif /* !IA64_ABI_VARIANT_PMF */
       /* Make "op1.d == op2.d" (or "!=" for the ne_case). */
       select1_node = expr_for_pmf_component(op1_node, mptr_d_field,
                                             /*need_copy=*/TRUE,
@@ -9930,7 +10001,8 @@ first operand (but not the second) has been lowered already.
 #endif /* IA64_ABI */
       /* Make "(op1.i == 0 || (op1.d == op2.d && op1.f == op2.f))" (or "&&"
          for the ne_case). */
-      /* In the IA-64 case, "(op1.f == 0 || op1.d == op2.d)". */
+      /* In the IA-64 case, "(op1.f == 0 || op1.d == op2.d)", or
+         simply "(op1.d == op2.d)" in the variant form. */
       if (compare_i0_node == NULL) {
         /* The "or" was optimized away -- see above. */
         or_node = and_node;
@@ -9961,6 +10033,7 @@ first operand (but not the second) has been lowered already.
     expr->variant.operation.kind = ne_case ? (an_expr_operator_kind)eok_ine :
                                              (an_expr_operator_kind)eok_ieq;
   }  /* if */
+#undef IA64_ABI_VARIANT_PMF
 }  /* lower_pm_comparison */
 
 

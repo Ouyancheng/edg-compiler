@@ -113,6 +113,20 @@ solution in the runtime.
 #endif /* ifndef IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
 
 /*
+TRUE to use the variant representation of pointers to member
+functions with the IA-64 ABI.  The normal representation
+requires an architecture where the address of a function can
+never have the low-order bit set (that bit is used to indicate
+the virtual function case).  The variant representation moves
+the virtual-function bit to the low-order bit of the other
+field in the pointer-to-member-function representation.
+This is needed, for example, for the ARM architecture.
+*/
+#ifndef IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
+#define IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR FALSE
+#endif /* ifndef IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
+
+/*
 The original GNU implementation of the IA-64 ABI (specifically, version 3.2)
 has several bugs.  Set the following FLAG to TRUE if those bugs should be
 emulated by this implementation.  This is the initial value of the global
