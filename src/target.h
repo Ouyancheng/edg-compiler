@@ -628,8 +628,12 @@ guaranteed by the standard but is usually a safe assumption.
 The definitions here specify the number of elements in the array type
 and the integral kind for the array element type.
 */
+#ifndef TARG_JMP_BUF_NUM_ELEMENTS
 #define TARG_JMP_BUF_NUM_ELEMENTS 9  /* For SPARC, SunOS 4.1.2. */
+#endif /* TARG_JMP_BUF_NUM_ELEMENTS */
+#ifndef TARG_JMP_BUF_ELEMENT_INT_KIND
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
+#endif /* TARG_JMP_BUF_ELEMENT_INT_KIND */
 
 /*
 The integral kind to be used for a cleanup region number with exception
