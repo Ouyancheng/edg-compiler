@@ -298,10 +298,11 @@ Data structures and variables used to index into source files to locate
 a needed source line for a diagnostic.  For each source file, an index
 table is created and updated as the file is read.
 */
-#define PHYSICAL_LINE_COUNT_INCREMENT 100;
-				/* Constant value specifying the interval at
-				   which physical line positions will be
-				   recorded in the error_file_index entry. */
+#define INITIAL_PHYSICAL_LINE_COUNT_INCREMENT 100;
+				/* Constant value specifying the starting
+				   interval at which physical line positions
+				   will be recorded in the error_file_index
+				   entry. */
 #define NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES 10
 				/* Number of physical line indexes maintained
 		       		   for each source file. */
@@ -328,6 +329,13 @@ typedef struct an_error_file_index {
 				/* File position that is the beginning of
 				   the associated physical line and used 
 				   to fseek() into the file. */
+  long		physical_line_count_increment;
+				/* Value specifying the interval at which
+				   physical line positions will be recorded
+				   in the error_file_index entry.  Initially
+				   set to INITIAL_PHYSICAL_LINE_COUNT_INCREMENT
+				   but may be updated later if the file is
+				   large. */
 } an_error_file_index;
 
 static an_error_file_index_ptr
@@ -3458,6 +3466,8 @@ index entry should be made.
   new_file = (an_error_file_index_ptr)alloc_fe(sizeof(an_error_file_index));
   new_file->source_file = src_file;
   new_file->next_index_entry = 0;
+  new_file->physical_line_count_increment =
+					 INITIAL_PHYSICAL_LINE_COUNT_INCREMENT;
   /* Add the new entry at the head of the list. */
   new_file->previous = NULL;
   if ((new_file->next = head_of_file_index_list) == NULL) {
@@ -3470,7 +3480,7 @@ index entry should be made.
   head_of_file_index_list = new_file;
   /* Return the physical line number that the first index entry should be
      made. */
-  return PHYSICAL_LINE_COUNT_INCREMENT;
+  return INITIAL_PHYSICAL_LINE_COUNT_INCREMENT;
 }  /* initialize_file_index */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -3535,8 +3545,10 @@ made is returned.
     /* The index table is full.  Reorganize the table by compressing the
        first half of the table to cover a wider range of lines.  The line
        number gaps will be some integer multiple of
-       PHYSICAL_LINE_COUNT_INCREMENT.  The last half of the table is kept at
-       PHYSICAL_LINE_COUNT_INCREMENT spacing. */
+       INITIAL_PHYSICAL_LINE_COUNT_INCREMENT. The value of
+       curr_file->physical_line_count_increment is incremented by
+       INITIAL_PHYSICAL_LINE_COUNT_INCREMENT each time the table is
+       filled. */
     mid_index = NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES / 2;
     spacing = curr_file->line_number[mid_index] / mid_index;
     /* Eliminate the first entry in the top half of the table that is less
@@ -3559,9 +3571,25 @@ made is returned.
                                                                physical_line;
     curr_file->file_position[NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES - 1] =
                                                               file_pos;
+    /* Increments the physical line count increment value so that the
+       additional entries that are added to the list will be spaced further
+       apart. */
+    curr_file->physical_line_count_increment +=
+				 INITIAL_PHYSICAL_LINE_COUNT_INCREMENT;
   }  /* if */
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "Updated error file index entries:\n");
+    for (index = 0;
+         index < NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES; ++index) {
+      fprintf(f_debug, "entry %0d=%5d\n", index,
+              curr_file->line_number[index]);
+    }  /* for */
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   /* Return the physical line number at which the next entry should be made. */
-  return physical_line + PHYSICAL_LINE_COUNT_INCREMENT;
+  return physical_line + curr_file->physical_line_count_increment;
 }  /* update_file_index */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
