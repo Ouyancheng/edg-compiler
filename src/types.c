@@ -3891,8 +3891,8 @@ in C++ mode.  See ARM 13.
          the function on the basis of the return type, which is not
          valid. */
 #if CHECKING
-      if (types_are_compatible(old_type->variant.routine.return_type,
-                               new_type->variant.routine.return_type)) {
+      if (types_are_strictly_compatible(old_type->variant.routine.return_type,
+                                      new_type->variant.routine.return_type)) {
         /* The caller is supposed to have ensured that the case of
            completely compatible function types does not come here, since
            that's a case of redeclaration rather than overloading. */
