@@ -483,6 +483,8 @@ plus 1).
       match = TRUE;
     } else if (matching_typeinfo(etsp->typeinfo, typeinfo)) {
       match = TRUE;
+    } else if (etsp->typeinfo->unique_id == NULL) {
+      /* No unique ID -- don't check any further.  No match. */
     } else if (*(etsp->typeinfo->unique_id) != BCS_AMBIGUOUS) {
       /* An ambiguous base class -- no match. */
     } else if (*(etsp->typeinfo->unique_id) != BCS_NO_FLAGS) {
