@@ -1522,7 +1522,8 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
 
 
 static a_boolean gnu_conflict_found(a_type_ptr  subobject_type,
-                                    a_type_ptr  eb_type)
+                                    a_type_ptr  eb_type,
+                                    a_boolean   in_field)
 /*
 This is a helper routine to identify the "GNU first field conflict" (see
 gnu_first_field_conflict below).  It may call itself recursively if needed.
@@ -1533,7 +1534,10 @@ which a conflict is looked for.
 
 See gnu_first_field_conflict for a description of this GNU C++ layout bug.
 See also gnu_first_base_conflict for a similar problem with leading empty
-bases.
+bases.  Yet another similar issue occurs for nearly empty virtual bases
+that should normally be allocated at offset zero; in that case, in_field is
+TRUE indicating that conflicts must involve a field subobject (not just a
+base class of the complete object).
 */
 {
   a_boolean  result = FALSE;
@@ -1573,7 +1577,7 @@ bases.
           (defined(sparc) || defined(__sparc)) */
     if (field->offset < offset_limit && is_immediate_class_type(field_type)) {
       if (identical_types(field_type, eb_type) ||
-          gnu_conflict_found(field_type, eb_type)) {
+          gnu_conflict_found(field_type, eb_type, /*in_field*/FALSE)) {
         result = TRUE;
         break;
       }  /* if */
@@ -1586,8 +1590,8 @@ bases.
       if (bcp->offset == 0) {
         /* Unlike field subobjects, only base class subobjects at offset
            zero are considered for this kind of conflicts. */
-        if (identical_types(bcp->type, eb_type) ||
-            gnu_conflict_found(bcp->type, eb_type)) {
+        if ((!in_field && identical_types(bcp->type, eb_type)) ||
+            gnu_conflict_found(bcp->type, eb_type, in_field)) {
           result = TRUE;
           break;
         }  /* if */
@@ -1627,7 +1631,7 @@ offset is zero.
       if (bcp->offset == offset &&
           bcp->type->variant.class_struct_union.is_empty_class &&
           base_classes_of(bcp->type) == 0 &&
-          gnu_conflict_found(field->type, bcp->type)) {
+          gnu_conflict_found(field->type, bcp->type, /*in_field=*/FALSE)) {
         result = TRUE;
         break;
       }  /* if */
@@ -1668,11 +1672,37 @@ bcp base if it has a subobject of the same type as the first base.
     if (first_base != NULL) {
       check_assertion(first_base->offset == 0);
       result = gnu_conflict_found(skip_typerefs(bcp->type),
-                                  skip_typerefs(first_base->type));
+                                  skip_typerefs(first_base->type),
+                                  /*in_field=*/FALSE);
     }  /* if */
   }  /* if */
   return result;
 }  /* gnu_first_base_conflict */
+
+
+a_boolean gnu_virtual_base_conflict(a_type_ptr        class_type,
+                                    a_base_class_ptr  evbcp)
+/*
+evbcp is an empty virtual base class of class_type that we want to allocate at
+offset zero.  If a direct base allocated at offset zero already contains a
+subobject of type evbcp->type in its first few bytes, a GNU compiler will
+mistakenly assume that the virtual base cannot be allocated at that offset.
+This function returns TRUE in that case.
+*/
+{
+  a_boolean         result = FALSE;
+  a_base_class_ptr  bcp = base_classes_of(class_type);
+
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->offset_is_set && bcp->direct && bcp->offset == 0 &&
+        gnu_conflict_found(skip_typerefs(bcp->type),
+                           skip_typerefs(evbcp->type), /*in_field=*/TRUE)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* gnu_virtual_base_conflict */
 
 #endif /* !IA64_ABI */
 
@@ -1945,7 +1975,9 @@ Allocate bcp (an empty base class).
   an_unnormalized_bit_offset dummy = 0;
 
   /* Attempt to allocate the base at offset zero. */
-  if (!base_subobject_conflict(bcp, (a_targ_size_t)0)) {
+  if (!(base_subobject_conflict(bcp, (a_targ_size_t)0) ||
+        (emulate_gnu_abi_bugs && bcp->is_virtual &&
+         gnu_virtual_base_conflict(lob->class_type, bcp)))) {
     bcp->offset = 0;
   } else {
     /* It didn't work at offset zero; try putting it at the end of the object 
