@@ -3631,6 +3631,10 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       /* Pointer --> pointer-to-error and pointer-to-error --> pointer are
          always allowed. */
       okay = TRUE;
+    } else if (is_template_param_type(unqual_dest_type_pointed_to) ||
+               is_template_param_type(unqual_source_type_pointed_to)) {
+      /* Conversions between template parameter types are always allowed. */
+      okay = TRUE;
     } else {
       /* The types pointed to are not compatible.  See if the pointers are
          compatible anyway because one or the other is a "void *". */
