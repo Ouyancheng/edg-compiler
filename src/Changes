@@ -5,8 +5,9 @@ Version 2.35
 An error is now issued if a base-specifier depends on a template parameter
 in a context other than a prototype instantiation of a class template.
 This can only occur in otherwise ill-formed programs.  Note in the
-following example (which used to provoke an internal error) that X is not
-a class template but the return type of function template f:
+following example (which used to provoke an internal error with exception
+handling enabled) that X is not a class template but the return type of
+function template f:
 
   template <class T> struct A;
   template <class T> const struct X : A<T> { int i; } f(T);
