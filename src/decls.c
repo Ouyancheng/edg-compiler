@@ -334,7 +334,7 @@ the point where, if it is a declaration, the declarator should begin.  Both
 *may_be_decl and *may_be_expr will be TRUE upon entry, signifying that the
 ambiguity is not yet resolved.  We scan the tokens looking for evidence
 that it is in fact a declarator, and can be nothing else, (in which case
-*may_be_expr is set to FALSE) or cannot possiblly be a declarator (in which
+*may_be_expr is set to FALSE) or cannot possibly be a declarator (in which
 it is *may_be_decl that is set to FALSE).  Whichever way the ambiguity is
 resolved, scanning is stopped immediately.  If the ambiguity is not resolved
 we keep scanning till the end of the declarator and return leaving both
@@ -571,7 +571,7 @@ static void prescan_declaration(a_token_cache  *token_cache_ptr,
 /*
 Scan a sequence of tokens and cache them for rescanning later.  The purpose
 of this prescan is to help determine whether this is a declaration or an
-expression.  The caller guaratees that is_decl_start is TRUE for the current
+expression.  The caller guarantees that is_decl_start is TRUE for the current
 token.
 
 Assuming that we are in the midst of a declaration, we scan ahead to find
@@ -686,7 +686,7 @@ distinguish statements and expressions from declarations -- for example:
          typedef int I;
          I(i);                // declaration (= I i);
          I(i)++;              // cast i to I, then increment
-  (2) in an operator new expression, a parenthsized type vs. a placement
+  (2) in an operator new expression, a parenthesized type vs. a placement
       expression, e.g.,
          new (int(1.5)) A     // placement
          new (int(*  ))       // type
@@ -698,7 +698,7 @@ The ARM discusses disambiguation in section 6.8.  In general, if a sequence
 of tokens looks like a declaration, then it is a declaration, even if it
 could also be an expression.  The technique used here involves assuming
 a declaration and looking ahead as many tokens as necessary to confirm or
-disprove the assumption or, in the case of a more presistent ambiguity, to
+disprove the assumption or, in the case of a more persistent ambiguity, to
 decide on the basis of tokens following the "declaration".  Tokens are
 cached so that they can be rescanned by the caller.
 
@@ -2097,7 +2097,7 @@ a_variable_ptr make_param_variable(a_type_ptr       type_ptr,
                                    a_storage_class  storage_class)
 /*
 Allocate a variable entry with type type_ptr.  If type_ptr is NULL (as it
-will be in trying to creating an implicit this paramter for static member
+will be in trying to creating an implicit this parameter for static member
 functions) simply return NULL.
 */
 {
@@ -2900,7 +2900,7 @@ not be TRUE.
       } else {
         /* Copy the param type entries from the composite type onto the param
            type entries for the routine type.  This is done in case new param
-           type entries were created.  The original ones must be preseved,
+           type entries were created.  The original ones must be preserved,
            however, since they may be pointed to by the parameter variables
            with which they are associated. */
         rout_type_ptp = rout_type->variant.routine.extra_info->param_type_list;
@@ -4789,7 +4789,7 @@ to indicate whether an enumeration is actually defined.
            resolved within the function, as in
              int f(enum f p) {enum f{a, b};  ... }
            we must switch into the file scope for the duration of the
-           definition.  (In C++ a tag declarated in a prototype scope
+           definition.  (In C++ a tag declared in a prototype scope
            refers to a file scope type, so this check is not relevant.) */
         if (ssep->kind == (a_scope_kind)sck_function) {
           prototype_tag_resolution = TRUE;
