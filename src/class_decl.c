@@ -8409,7 +8409,7 @@ unit to determine which ones need to be changed from internal to external
 linkage and to make the change when appropriate.  This processing is
 required by the C++ language as described in the ARM, but it is no longer
 part of current C++ specification; consequently, this routine is called in
-cfront-compatiblity mode only.
+cfront-compatibility mode only.
 
 In cfront mode classes are internally linked (i.e., local to a translation
 unit) by default, but they become externally linked for one of two reasons:
