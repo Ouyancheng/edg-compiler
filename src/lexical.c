@@ -781,7 +781,7 @@ is actually the first token to not be included in the cache.
 
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- because "inside_microsoft_mode" is only used
+/*ARGSUSED*/ /* <-- because "inside_microsoft_asm" is only used
                     in Microsoft mode. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static
