@@ -892,6 +892,47 @@ scope lookup.  options specifies the options being used for the lookup.
 }  /* merge_function_into_lookup_set */
 
 
+static a_boolean symbols_from_same_scope(a_symbol_ptr curr_sym,
+                                         a_symbol_ptr new_sym)
+/*
+Returns TRUE if the two symbols are from the same scope.  curr_sym
+represents a lookup set that has been constructed and new_sym is
+a normal (not a synthesized projection symbol) that is being considered
+as an alternative to curr_sym because of the 1.5 namespace rule for
+struct names.  When curr_sym points to a set of overloaded functions,
+the overload set must be inspected to see if all of the members of the
+set are from the same scope.
+*/
+{
+  a_boolean		result = TRUE;
+  a_scope_number	curr_scope;
+
+  /* Get the scope associated with curr_sym. */
+  if (curr_sym->kind != (a_symbol_kind)sk_overloaded_function) {
+    curr_scope = fundamental_symbol_of(curr_sym)->decl_scope;
+  } else {
+    /* curr_sym is an overload set, see if all of the members of the set have
+       the same scope. */
+    a_symbol_ptr	overload_sym;
+    overload_sym = curr_sym->variant.overloaded_function.symbols;
+    curr_scope = fundamental_symbol_of(overload_sym)->decl_scope;
+    overload_sym = overload_sym->next;
+    for (; overload_sym != NULL; overload_sym = overload_sym->next) {
+      if (fundamental_symbol_of(overload_sym)->decl_scope != curr_scope) {
+        /* A scope mismatch -- stop the search. */
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* If we produced a single scope above, compare it with the new symbol. */
+  if (result) {
+    result = curr_scope == fundamental_symbol_of(new_sym)->decl_scope;
+  }  /* if */
+  return result;
+}  /* symbols_from_same_scope */
+
+
 static
 a_symbol_ptr add_symbol_to_lookup_set(
                                a_symbol_ptr		curr_sym,
@@ -965,7 +1006,7 @@ scope lookup.  options specifies the options being used for the lookup.
          and one is a tag and the other a nontag.  Set the error flag.
          It will be cleared later if we determine that this case is okay. */
       err = TRUE;
-      if (new_sym->decl_scope == fund_curr_sym->decl_scope) {
+      if (symbols_from_same_scope(fund_curr_sym, new_sym)) {
         a_boolean	new_is_tag = is_tag_symbol(new_sym);
         a_boolean	curr_is_tag = is_tag_symbol(fund_curr_sym);
         if (new_is_tag != curr_is_tag) {

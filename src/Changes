@@ -1,5 +1,21 @@
 Version 2.34
 
+10/25/96 Spurious ambiguity error on using directive lookup with struct
+         name and synthesized overload set
+
+A spurious ambiguity error was issued on the call of A() in the example below.
+This occurred when a using-directive lookup resulted in a set of overloaded
+functions from the same scope and a struct name that should be hidden.
+
+  namespace N {
+    struct A { };
+    int A();
+    int A(int);
+  }
+  using namespace N;
+  int i = A();
+
+
 10/23/96 Interaction of cfront mode and --extern_inline
 
 When the command line specifies both cfront-compatibility mode and
