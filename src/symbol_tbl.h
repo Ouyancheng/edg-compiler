@@ -835,7 +835,7 @@ typedef struct a_param_id {
 			   is declared. */
   a_byte_boolean
 		implicitly_declared;
-			/* TRUE for an old-style parameter that for which
+			/* TRUE for an old-style parameter for which
 			   an explicit declaration is omitted. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
