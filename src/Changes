@@ -1,5 +1,12 @@
 Version 2.20
 
+9/3/93   Generic function pointer type used by IL lowering changed
+
+The generic function pointer type used by IL lowering (for example,
+as part of the pointer-to-member-function struct) has been changed from
+int (*)() to void (*)().  This should not have any effect on back ends,
+since the type is always cast before it is used.
+
 9/2/93   IL for switch statements with non-top-level case labels
 
 In some very convoluted cases involving case labels that are not
