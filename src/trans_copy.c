@@ -260,7 +260,7 @@ is TRUE if it is known that the entry has been or will be processed
       /* Set the flag to request copying. */
       set_entry_needs_copy_flag(ptr);
 #if DEBUG
-      if (db_has_traced_name(ptr, kind)) {
+      if (db_trace("trans_copy", ptr, kind)) {
         fprintf(f_debug, "assigned addr for copy in secondary at %lx:\n",
                          (unsigned long)copy);
         db_entity_info(ptr, kind);
@@ -286,7 +286,7 @@ is TRUE if it is known that the entry has been or will be processed
       /* Set the flag to request copying. */
       set_entry_needs_copy_flag(ptr);
 #if DEBUG
-      if (db_has_traced_name(ptr, kind)) {
+      if (db_trace("trans_copy", ptr, kind)) {
         fprintf(f_debug, "assigned addr for copy to primary at %lx:\n",
                          (unsigned long)copy);
         db_entity_info(ptr, kind);
@@ -473,7 +473,7 @@ and remap the pointers in the copy by calling remap_function.
     scp = source_corresp_for_il_entry(copy, kind);
     if (scp != NULL) scp->copied_from_secondary_trans_unit = TRUE;
 #if DEBUG
-    if (db_has_traced_name(ptr, kind)) {
+    if (db_trace("trans_copy", ptr, kind)) {
       fprintf(f_debug, "copying from secondary to %lx:\n",
                        (unsigned long)copy);
       db_entity_info(ptr, kind);
@@ -1291,7 +1291,7 @@ the lists.
       keep_on_list = entry_should_be_copied(ref_type, iek_type);
     }  /* if */
 #if DEBUG
-    if (db_has_traced_name(type, iek_type)) {
+    if (db_trace("trans_copy", type, iek_type)) {
       fprintf(f_debug, "prepare_for_trans_unit_copy, ");
       fprintf(f_debug, "%skeeping on list, ", keep_on_list ? "" : "not ");
       fprintf(f_debug, "%smerging:\n",
@@ -1339,7 +1339,7 @@ the lists.
       }  /* if */
     }  /* if */
 #if DEBUG
-    if (db_has_traced_name(variable, iek_variable)) {
+    if (db_trace("trans_copy", variable, iek_variable)) {
       fprintf(f_debug, "prepare_for_trans_unit_copy, ");
       fprintf(f_debug, "%skeeping on list, ", keep_on_list ? "" : "not ");
       fprintf(f_debug, "%smerging:\n",
@@ -1435,7 +1435,7 @@ the lists.
       /* This routine has no correspondence in the primary file IL. */
     }  /* if */
 #if DEBUG
-    if (db_has_traced_name(routine, iek_routine)) {
+    if (db_trace("trans_copy", routine, iek_routine)) {
       fprintf(f_debug, "prepare_for_trans_unit_copy, ");
       fprintf(f_debug, "%skeeping on list, ", keep_on_list ? "" : "not ");
       fprintf(f_debug, "%smerging:\n",
@@ -1982,7 +1982,7 @@ secondary scope to the primary file IL.
         if (!entry_to_be_merged(type)) {
           /* An entry that had no correspondence. */
 #if DEBUG
-          if (db_has_traced_name(corresp_type, iek_type)) {
+          if (db_trace("trans_copy", corresp_type, iek_type)) {
             fprintf(f_debug,
                     "finish_trans_unit_copy, adding to list after copy:\n");
             db_entity_info((char *)corresp_type, iek_type);
@@ -2006,7 +2006,7 @@ secondary scope to the primary file IL.
           a_type_ptr primary_type =
                (a_type_ptr)checked_trans_unit_corresp_pointer_of(corresp_type);
 #if DEBUG
-          if (db_has_traced_name(corresp_type, iek_type)) {
+          if (db_trace("trans_copy", corresp_type, iek_type)) {
             fprintf(f_debug,
                     "finish_trans_unit_copy, merging into %lx after copy:\n",
                     (unsigned long)primary_type);
@@ -2069,7 +2069,7 @@ end_of_type_list_add:;
                    (a_variable_ptr)checked_trans_unit_corresp_pointer_of(
                                                              corresp_variable);
 #if DEBUG
-          if (db_has_traced_name(corresp_variable, iek_variable)) {
+          if (db_trace("trans_copy", corresp_variable, iek_variable)) {
             fprintf(f_debug,
                     "finish_trans_unit_copy, merging into %lx after copy:\n",
                     (unsigned long)primary_variable);
@@ -2108,7 +2108,7 @@ end_of_type_list_add:;
           }  /* if */
         }  /* if */
 #if DEBUG
-        if (db_has_traced_name(corresp_variable, iek_variable)) {
+        if (db_trace("trans_copy", corresp_variable, iek_variable)) {
           fprintf(f_debug,
                   "finish_trans_unit_copy, adding to list after copy:\n");
           db_entity_info((char *)corresp_variable, iek_variable);
@@ -2180,7 +2180,7 @@ end_of_variable_list_add:;
                    (a_routine_ptr)checked_trans_unit_corresp_pointer_of(
                                                               corresp_routine);
 #if DEBUG
-          if (db_has_traced_name(corresp_routine, iek_routine)) {
+          if (db_trace("trans_copy", corresp_routine, iek_routine)) {
             fprintf(f_debug,
                     "finish_trans_unit_copy, merging into %lx after copy:\n",
                     (unsigned long)primary_routine);
@@ -2231,7 +2231,7 @@ end_of_variable_list_add:;
           }  /* if */
         }  /* if */
 #if DEBUG
-        if (db_has_traced_name(corresp_routine, iek_routine)) {
+        if (db_trace("trans_copy", corresp_routine, iek_routine)) {
           fprintf(f_debug,
                   "finish_trans_unit_copy, adding to list after copy:\n");
           db_entity_info((char *)corresp_routine, iek_routine);
