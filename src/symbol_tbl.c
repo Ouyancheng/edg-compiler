@@ -4507,6 +4507,20 @@ table.
 }  /* make_unnamed_namespace_symbol */
 
 
+a_symbol_header_ptr make_unnamed_symbol_header(void)
+/*
+Return a unique unnamed symbol header.
+*/
+{
+  a_symbol_header_ptr	sym_hdr;
+
+  sym_hdr = alloc_symbol_header();
+  sym_hdr->identifier = "<unnamed>";
+  sym_hdr->identifier_length = 9;
+  return sym_hdr;
+}  /* make_unnamed_symbol_header */
+
+
 a_symbol_ptr make_unnamed_template_param_symbol(a_symbol_kind		kind,
 						a_source_position	*pos)
 /*
@@ -4516,12 +4530,8 @@ a unique symbol header.
 */
 {
   a_symbol_ptr		sym;
-  a_symbol_header_ptr	sym_hdr;
 
-  sym_hdr = alloc_symbol_header();
-  sym_hdr->identifier = "<unnamed>";
-  sym_hdr->identifier_length = 9;
-  sym = alloc_symbol(kind, sym_hdr, pos);
+  sym = alloc_symbol(kind, make_unnamed_symbol_header(), pos);
   sym->decl_scope = scope_stack[decl_scope_level].number;
   return sym;
 }  /* make_unnamed_template_param_symbol */
@@ -9575,19 +9585,17 @@ Clear the default argument fields of a template parameter entry based
 on kind of default argument it has.
 */
 {
-  if (def_arg_involves_template_param) {
-    ptr->def_arg_involves_template_param = TRUE;
-    clear_template_cache(&ptr->default_arg.cache, /*reusable=*/TRUE);
+  a_symbol_kind	kind = ptr->param_symbol->kind;
+
+  ptr->def_arg_involves_template_param = def_arg_involves_template_param;
+  if (kind == (a_symbol_kind)sk_type) {
+    ptr->default_arg.type = NULL;
+  } else if (kind == (a_symbol_kind)sk_constant) {
+    ptr->default_arg.constant = NULL;
   } else {
-    a_symbol_kind	kind = ptr->param_symbol->kind;
-    if (kind == (a_symbol_kind)sk_type) {
-      ptr->default_arg.type = NULL;
-    } else if (kind == (a_symbol_kind)sk_constant) {
-      ptr->default_arg.constant = NULL;
-    } else {
-      ptr->default_arg.templ = NULL;
-    }  /* if */    
-  }  /* if */
+    ptr->default_arg.templ = NULL;
+  }  /* if */    
+  clear_template_cache(&ptr->default_arg_cache, /*reusable=*/TRUE);
 }  /* clear_template_param_default_arg_info */
 
 

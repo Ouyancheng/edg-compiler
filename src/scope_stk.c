@@ -1395,7 +1395,8 @@ the scope being pushed.
                kind != (a_scope_kind)sck_namespace &&
                kind != (a_scope_kind)sck_namespace_extension) {
       if (kind == (a_scope_kind)sck_function &&
-          assoc_routine->compiler_generated) {
+          assoc_routine->compiler_generated &&
+          !assoc_routine->is_prototype_instantiation) {
         /* If the definition of a compiler-generated routine is kicked off
            within a prototype instantiation, the compiler generated routine
            should not be considered to be within a prototype instantiation. */

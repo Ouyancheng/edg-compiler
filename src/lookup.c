@@ -503,7 +503,7 @@ as the class type, and use as a base class.
 }  /* proxy_class_for_template_param */
 
 
-static a_symbol_ptr create_unknown_function_symbol(
+a_symbol_ptr create_unknown_function_symbol(
 				a_symbol_header_ptr	sym_hdr,
 				a_type_ptr		parent_class,
 				a_namespace_ptr		parent_namespace)
