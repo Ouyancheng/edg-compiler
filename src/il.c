@@ -325,8 +325,12 @@ information, such as its address and translation unit.
   char				*copy_addr = NULL;
   a_trans_unit_corresp_ptr	tucp;
 
-  fprintf(f_debug, "%s\n",
-                   db_name_str((a_source_correspondence *)entry, kind));
+  if (source_corresp_for_il_entry(entry, kind) != NULL) {
+    fprintf(f_debug, "%s\n",
+                     db_name_str((a_source_correspondence *)entry, kind));
+  } else {
+    fprintf(f_debug, "%s\n", il_entry_kind_names[(int)kind]);
+  }  /* if */
   fprintf(f_debug, "address = %p", entry);
   fprintf(f_debug, ", in %s trans unit", in_secondary_trans_unit(entry) ?
                                              "secondary" : "primary");
