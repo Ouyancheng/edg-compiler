@@ -146,7 +146,9 @@ typedef struct an_init_pos_descr {
   a_byte_boolean
 		whole_array;
 			/* TRUE if the entity is a whole array being
-			   initialized as one unit. */
+			   initialized as one unit (or the tail piece of
+			   an array being initialized as a unit, after initial
+			   elements are initialized individually). */
   a_byte_boolean
 		base_class_subobject;
 			/* TRUE if the entity is a base class of an object,
