@@ -1600,6 +1600,124 @@ used as an initial test before comparing the strings.
 }  /* get_file_identifier */
 
 
+/* Header comment for get_file_name_from_curr_dir. */
+/*
+Get the name of the next file in the current directory.  If first
+is TRUE, then this is the first call.  Returns a pointer to the file
+name string.  The value returned is only valid until the next call of
+this routine.  A NULL pointer is returned when there are no more directory
+entries.
+*/
+#if __WIN32__
+/*
+WIN32 (e.g., Windows-NT) version.
+*/
+
+#include <io.h>
+
+char *get_file_name_from_curr_dir(a_boolean first)
+{
+  static long			handle;
+  static struct _finddata_t	fileinfo;
+  char				*result;
+
+  if (first) {
+    /* On the first call, use the _findfirst call that specifies which
+       files are to be returned.  "handle" is saved in a static variable
+       that is used on subsequent calls to get the remaining directory
+       entries. */
+    handle = _findfirst("*.*", &fileinfo);
+    if (handle < 0) {
+      /* Directory could not be opened, or is empty. */
+      result = NULL;
+    } else {
+      result = fileinfo.name;
+    }  /* if */
+  } else {
+    /* On subsequent calls, use _findnext to find the next file that
+       matches the pattern. */
+    if (_findnext(handle, &fileinfo) < 0) {
+      /* Returns -1 when there are no more files. */
+      result = NULL;
+    } else {
+      result = fileinfo.name;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_file_name_from_curr_dir */
+#else /* !__WIN32__ */
+#if __MSDOS__
+/*
+DOS version.
+*/
+
+#include <dos.h>
+
+char *get_file_name_from_curr_dir(a_boolean first)
+{
+  static struct _find_t	fileinfo;
+  char			*result;
+
+  if (first) {
+    /* On the first call, use the _dos_findfirst call that specifies which
+       files are to be returned.  The _A_RDONLY attribute causes
+       both normal and read-only files to be returned. */
+    if (_dos_findfirst("*.*", _A_RDONLY, &fileinfo) != 0) {
+      /* Directory could not be opened, or is empty. */
+      result = NULL;
+    } else {
+      result = fileinfo.name;
+    }  /* if */
+  } else {
+    /* On subsequent calls, use _dos_findnext to find the next file that
+       matches the pattern. */
+    if (_dos_findnext(&fileinfo) != 0) {
+      /* Returns non-zero when there are no more files. */
+      result = NULL;
+    } else {
+      result = fileinfo.name;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_file_name_from_curr_dir */
+#else /* !__MSDOS__ */
+
+/*
+UNIX Version.
+*/
+#include <sys/types.h>
+#include <dirent.h>
+#include <sys/dirent.h>
+
+char *get_file_name_from_curr_dir(a_boolean first)
+/*
+See comment above.
+*/
+{
+  static DIR		*dir;
+  static struct dirent	*dir_entry;
+  char			*result;
+
+  if (first) {
+    /* Open the directory and save the directory pointer in a static
+       variable that can be used on subsequent calls. */
+    dir = opendir(".");
+    check_assertion(dir != NULL);
+  }  /* if */
+  dir_entry = readdir(dir);
+  if (dir_entry == NULL) {
+    /* The last entry was read. */
+    (void)closedir(dir);
+    result = NULL;
+  } else {
+    result = dir_entry->d_name;
+  }  /* if */
+  return result;
+}  /* get_file_name_from_curr_dir */
+#endif /* __MSDOS__ */
+#endif /* __WIN32__ */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
