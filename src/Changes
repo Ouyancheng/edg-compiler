@@ -1,5 +1,10 @@
 Version 2.30
 
+9/24/95  "explicit" recognized as an unimplemented keyword
+
+A diagnostic is now issued in strict mode if "explicit" is used
+in any context.
+
 9/22/95  Recognition of constructor declaration
 
 The spurious error has been eliminated and this sort of case is now

@@ -366,6 +366,10 @@ Install the keywords in the symbol table.
       enter_unimplemented_keyword("namespace", ec_unimplemented_keyword);
       enter_unimplemented_keyword("using",     ec_unimplemented_keyword);
     }  /* if */
+    /* Enter "explicit" as a keyword in strict mode. */
+    if (strict_ansi_mode) {
+      enter_unimplemented_keyword("explicit",  ec_unimplemented_keyword);
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* keyword_init */
