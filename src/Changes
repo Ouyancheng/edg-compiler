@@ -1,5 +1,16 @@
 Version 2.46
 
+2/2/01   C++-generating back end: nonconstant scalar compound literals
+
+The C++-generating back end aborted on attempting to output compound
+literals that are scalar and nonconstant (e.g., in C99 mode).
+Now fixed.
+
+  int main() {
+    int i = 1;
+    int *p = &(int){i+1};
+  }
+
 2/1/01   Error in lowering of C99 nonconstant initialization of union
          using designated initializers
 

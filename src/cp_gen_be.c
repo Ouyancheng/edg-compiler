@@ -1935,18 +1935,28 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   gen_unqualified_name(&(field)->source_corresp, iek_field)
 
 
-static void gen_compound_literal(a_constant_ptr literal_con)
+static void gen_compound_literal(a_constant_ptr     literal_con,
+                                 a_dynamic_init_ptr dip,
+                                 a_type_ptr         literal_type)
 /*
-Generate code for a compound literal (a C99 feature).  literal_con is
-the literal value.
+Generate code for a compound literal (a C99 feature).  If the
+compound literal is available only in constant form, literal_con points
+to the constant.  Otherwise, literal_con is NULL and dip and temp_type
+give the dynamic initialization entry and type for the compound literal.
 */
 {
-  a_boolean  is_scalar;
-  a_type_ptr literal_type = literal_con->type;
+  a_boolean is_scalar;
 
   /* An example of the form of a compound literal:
        (int []){1, 2, 3}
   */
+  if (literal_con != NULL) {
+    literal_type = literal_con->type;
+  } else if (dip->kind == (a_dynamic_init_kind)dik_constant ||
+             dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+    /* Constant dynamic initializations are handled as constants. */
+    literal_con = dip->variant.constant;
+  }  /* if */
   write_tok_ch('(');
   gen_cast(literal_type);
   is_scalar = !is_aggregate_or_union_type(literal_type);
@@ -1955,7 +1965,13 @@ the literal value.
        initializer. */
     write_tok_ch('{');
   }  /* if */
-  gen_initializer_constant(literal_con, literal_type);
+  if (literal_con != NULL) {
+    gen_initializer_constant(literal_con, literal_type);
+  } else {
+    check_assertion(is_scalar &&
+                    dip->kind == (a_dynamic_init_kind)dik_expression);
+    gen_expression(dip->variant.expression);
+  }  /* if */
   if (is_scalar) write_tok_ch('}');
   write_tok_ch(')');
 }  /* gen_compound_literal */
@@ -1972,7 +1988,8 @@ Output the name of the indicated variable, qualified if necessary.
   } else if (var->is_compound_literal) {
     /* Compound literal, e.g., (int []){1, 2, 3}. */
     check_assertion(var->init_kind == (an_init_kind)initk_static);
-    gen_compound_literal(var->initializer.constant);
+    gen_compound_literal(var->initializer.constant, (a_dynamic_init_ptr)NULL,
+                         (a_type_ptr)NULL);
   } else {
     gen_name(&var->source_corresp, iek_variable, GN_NO_OPTIONS,
              (a_boolean *)NULL);
@@ -4363,10 +4380,7 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
   }  /* if */
   if (C_mode()) {
     /* In C mode, a temp-init node represents a compound literal. */
-    check_assertion(
-                  dip->kind == (a_dynamic_init_kind)dik_constant ||
-                  dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate);
-    gen_compound_literal(dip->variant.constant);
+    gen_compound_literal((a_constant_ptr)NULL, dip, temp_type);
   } else {
     /* C++ mode; use gen_dynamic_init. */
     a_boolean cast_added = FALSE;
@@ -6121,10 +6135,7 @@ done_with_operation:
           /* Address of temp-init in C.  This comes up for the address
              of a C99 compound literal. */
           a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-          check_assertion(
-                  dip->kind == (a_dynamic_init_kind)dik_constant ||
-                  dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate);
-          gen_compound_literal(dip->variant.constant);
+          gen_compound_literal((a_constant_ptr)NULL, dip, temp_type);
         } else {
           /* Address of temp-init in C++.  This can come up if it is allowed
              to cast a class rvalue to a reference type. */
