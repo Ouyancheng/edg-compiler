@@ -2577,7 +2577,10 @@ describing this declaration.
             changed_to_inline = TRUE;
           }  /* if */
           routine_ptr->is_inline = func_info->is_inline;
-          routine_ptr->source_corresp.name_linkage = linkage;
+          routine_ptr->source_corresp.name_linkage =
+                          (storage_class == (a_storage_class)sc_extern) ?
+                                (a_name_linkage_kind)nlk_cplusplus_external :
+                                (a_name_linkage_kind)nlk_internal;
         } else {
           /* There is already a definition.  This is some sort of error. */
           if (routine_ptr->specific_def) {
