@@ -736,6 +736,11 @@ typedef struct a_class_symbol_supplement {
 			/* For an real instantiation, this is TRUE if the
 			   full instantiation is in the process of being
 			   generated. */
+  a_bit_field	referenced_by_namespace_type_placeholder_typeref:1;
+			/* TRUE if the class is a namespace member that is
+			   pointed to by a typeref on the file scope types
+			   list which is is_placeholder_for_namespace_type
+			   is set to TRUE. */
 } a_class_symbol_supplement;
 
 

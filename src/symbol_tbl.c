@@ -1476,6 +1476,7 @@ state.
         cssp->any_nonstatic_data_members = FALSE;
         cssp->any_nonreal_base_classes = FALSE;
         cssp->instantiation_in_progress = FALSE;
+        cssp->referenced_by_namespace_type_placeholder_typeref = FALSE;
       }
       break;
     case sk_variable:
