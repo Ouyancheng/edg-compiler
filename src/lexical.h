@@ -1268,7 +1268,8 @@ Variables pertaining to the current token:
 rest of the compiler.)
 See also the related variables in symbol_tbl.h.
 If new variables are added here, be sure to put them also into
-save_curr_token_state and restore_curr_token_state.
+cache_curr_token, get_token_from_cached_token_rescan_list, and
+get_token_from_reusable_cache_stack.
 */
 EXTERN a_token_kind
 		curr_token;
