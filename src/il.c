@@ -3988,6 +3988,10 @@ Make or find a type entry for a void type, and return a pointer to it.
 }  /* void_type */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- Because expl_mem_attr_implicit is only used in Microsoft
+                     mode. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_type_ptr get_based_type(a_type_ptr            base_type,
                                  a_based_type_kind     kind,
                                  a_type_qualifier_set  qualifiers,
@@ -4030,9 +4034,12 @@ list.
            looking. */
         ptr = NULL;
       } else if (kind == (a_based_type_kind)btk_qualified &&
-                 (ptr->variant.typeref.qualifiers != qualifiers ||
-                  ptr->variant.typeref.explicit_memory_attribute_made_implicit
-                                                  != expl_mem_attr_implicit)) {
+                 (ptr->variant.typeref.qualifiers != qualifiers
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                || ptr->variant.typeref.explicit_memory_attribute_made_implicit
+                                                  != expl_mem_attr_implicit
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                           )) {
         /* Qualifiers do not match -- keep looking. */
         ptr = NULL;
       } else {
@@ -4387,8 +4394,10 @@ are not already present.
       ptr = alloc_type((a_type_kind)tk_typeref);
       ptr->variant.typeref.type = base_type;
       ptr->variant.typeref.qualifiers = qualifiers_to_add;
+#if MICROSOFT_EXTENSIONS_ALLOWED
       ptr->variant.typeref.explicit_memory_attribute_made_implicit =
                                                         expl_mem_attr_implicit;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Remember the existence of this typeref type by putting a pointer
          to it in the based_types list. */
       add_based_type_list_member(base_type, (a_based_type_kind)btk_qualified,
