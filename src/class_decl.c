@@ -2722,14 +2722,23 @@ special function kind (e.g., constructor, destructor), if any.
       clep->symbol = sym;
       clep->next = cssp->conversion_list;
       cssp->conversion_list = clep;
-      /* If the return type of the conversion is a class type (without const
-         or volatile qualifier) set a flag to mark it as target of a
-         conversion. */
+      /* If the return type of the conversion is a class type or ref
+         class type, set a flag to mark it as target of a conversion. */
       tp = rtn->type->variant.routine.return_type;
-      if (!is_qualified_type(tp) && is_class_struct_union_type(tp) ) {
-        (symbol_supplement_for_class(skip_typerefs(tp)))->
-                  target_of_conversion_function = TRUE;
-      }  /* if */
+      tp = skip_typerefs(tp);
+      switch (is_reference_type(tp)) {
+        case TRUE:
+          tp = type_pointed_to(tp);
+          /* Special handling for "reference to const/volatile class" --
+             flag is not set in such cases. */
+          if (is_qualified_type(tp)) break;
+          /* Fall through to defalut processing. */
+        default:
+          if (is_class_struct_union_type(tp)) {
+            (symbol_supplement_for_class(skip_typerefs(tp)))->
+                      target_of_conversion_function = TRUE;
+          }  /* if */
+      }  /* switch */
     } else {
       rtn->special_kind = spec_kind;
     }  /* if */
