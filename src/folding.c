@@ -1254,20 +1254,17 @@ static void do_fnegate(a_constant        *constant,
 Do the negate operation on types of floats.
 */
 {
-  an_internal_float_value temp_zero;
-  a_type_ptr              constant_type = skip_typerefs(constant->type);
-  a_float_kind            float_kind = constant_type->variant.float_kind;
-  a_boolean               err;
+  a_type_ptr   constant_type = skip_typerefs(constant->type);
+  a_float_kind float_kind = constant_type->variant.float_kind;
+  a_boolean    err;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
   set_constant_kind(result, (a_constant_repr_kind)ck_float);
 
-  /* Make a floating-point zero, and subtract the constant from it. */
-  fp_long_to_float(float_kind, 0L, &temp_zero, &err);
-  fp_subtract(float_kind, &temp_zero, &constant->variant.float_value,
-              &result->variant.float_value, &err);
+  fp_negate(float_kind, &constant->variant.float_value,
+            &result->variant.float_value, &err);
   if (err) {
     *err_code = ec_bad_float_operation_result;
     *err_severity = es_error;

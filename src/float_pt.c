@@ -409,6 +409,26 @@ to TRUE.
 }  /* fp_subtract */
 
 
+void fp_negate(a_float_kind            kind,
+               an_internal_float_value *value_1,
+               an_internal_float_value *result,
+               a_boolean               *err)
+/*
+Negate the floating-point value value_1 and put the result in result.
+The result has kind "kind".  If there is any error, set *err to TRUE.
+There is a separate routine for this (rather than using fp_subtract
+and a zero constant) because of IEEE floating-point requirements.
+*/
+{
+  double tempr, temp1;
+
+  *err = FALSE;
+  temp1 = fetch_double(kind, value_1);
+  tempr = -temp1;
+  store_double(tempr, kind, result, err);
+}  /* fp_negate */
+
+
 void fp_multiply(a_float_kind            kind,
                  an_internal_float_value *value_1,
                  an_internal_float_value *value_2,
