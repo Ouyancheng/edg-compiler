@@ -314,7 +314,7 @@ Initialize a token cache, presumably so tokens can be added to it.
   cache->first_token = NULL;
   cache->last_token  = NULL;
   clear_lint_and_pragma_state(&cache->lint_and_pragma_state);
-}  /* init_token_cache */
+}  /* clear_token_cache */
 
 
 static a_cached_token_ptr alloc_cached_token(void)
