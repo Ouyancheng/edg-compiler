@@ -1546,6 +1546,15 @@ extern int smemcmp(char     *s1,
                    char     *s2,
                    sizeof_t length);
 
+/* Routines defined in host_util.h. */
+
+#if ONE_INSTANTIATION_PER_OBJECT
+extern unsigned long crc_32(char *str);
+
+extern char *generate_instantiation_output_file_name(char *mangled_name);
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+
+
 #endif /* ifndef HOST_ENVIR_H */
 
 /******************************************************************************

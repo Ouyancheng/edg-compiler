@@ -2705,6 +2705,14 @@ invocation of the front end.
 #endif /* MODULE_ID_NEEDED */
 }  /* host_envir_init */
 
+/*
+The host_util.h file is used to define functions that are used by both
+the front end, and utility programs such as the prelinker.  Include the
+file here to define these functions for the front end.
+*/
+
+#include "host_util.h"
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

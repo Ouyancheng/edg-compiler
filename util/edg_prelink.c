@@ -461,6 +461,39 @@ exit status.
 }  /* pl_internal_error */
 
 
+static void pl_assertion_failed(char	*filename,
+				int	line_number,
+				char	*string1,
+				char	*string2)
+/*
+Print an error message when an assertion fails.
+*/
+{
+  fprintf(stderr, "assertion failed: %s%s (%s, line %0d)\n", string1,
+          string2, filename, line_number);
+}  /* pl_assertion_failed */
+
+
+#if CHECKING
+/* Macro to test an assertion and generate an internal error if
+   the condition is not TRUE.  The macro expands to nothing when checking
+   code is not being used. */
+#define check_assertion(test)						\
+  if (!!(test)) {							\
+    pl_assertion_failed(__FILE__, __LINE__, "", "");			\
+  }
+#else /* CHECKING */
+#define check_assertion(test) /* Nothing */
+#endif /* CHECKING */
+
+/*
+The host_util.h file is used to define functions that are used by both
+the front end, and utility programs such as the prelinker.  Include the
+file here to define these functions for the prelinker.
+*/
+
+#include "host_util.h"
+
 /*
 Determine whether getcwd or getwd should be used to get the current
 directory.  getwd is used on BSD, getcwd on other systems.
@@ -2270,6 +2303,16 @@ the file is flagged as requiring recompilation.
           pifp->request_file_updated = TRUE;
           pifp->recompile = recompile_file;
           done = FALSE;
+          if (one_instantiation_per_object) {
+            /* In one instantiation per object mode, remove the file
+               associated with the instantiation that is no longer
+               needed. */
+            sprintf(pl_file_name_buffer, "%s/%s%s", instantiation_dir,
+                    generate_instantiation_output_file_name(psp->name),
+                    INSTANTIATION_OBJECT_SUFFIX);
+fprintf(stderr, "removing %s\n", pl_file_name_buffer);
+            unlink(pl_file_name_buffer);
+          }  /* if */
           if (verbose) {
             fprintf(stdout, pl_error_text(pl_ec_no_longer_needed),
                     message_prefix, pl_decoded_name(psp->name),

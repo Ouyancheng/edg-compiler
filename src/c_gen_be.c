@@ -6457,31 +6457,6 @@ must be redone for each generated C file.
 
 #if ONE_INSTANTIATION_PER_OBJECT
 
-unsigned long crc_32(char *str)
-/*
-Determines and returns the CRC-32 value for a null-terminated string.
-This is the CRC used by ZMODEM and PKZIP.  There are plenty of more
-efficient ways of computing CRC; this straightforward approach is used
-only because in this context the CRC is needed just a small number of times.
-*/
-{
-  unsigned long crc = 0xffffffff;
-
-  while (*str != '\0') {
-    unsigned long ch = (unsigned long)*str++;
-    int nbit;
-
-    for (nbit = 0; nbit < CHAR_BIT; nbit++, ch >>= 1) {
-      int low_bit = (ch^crc) & 1;
-      crc >>= 1;
-      if (low_bit) crc ^= 0xEDB88320L;
-    }  /* for */
-  }  /* while */
-  crc ^= 0xffffffff;
-  return crc;
-}  /* crc_32 */
-
-
 static void generate_one_instantiation_C_output_file(
                                      a_source_correspondence *scp,
                                      unsigned long           needed_bit_number)
@@ -6491,25 +6466,8 @@ routine or variable has the given source correspondence field and
 "needed" flag bit number.
 */
 {
-#define MAX_C_OUTPUT_FILE_LEN 31
-  char buffer[MAX_C_OUTPUT_FILE_LEN+1];
-  char *C_output_file_name = buffer;
+  char *C_output_file_name;
 
-  /* Determine the output file name.  Use the mangled name (or the beginning
-     of it) plus an underscore plus the hexadecimal for the CRC-32 checksum
-     for the whole mangled name. */
-#define MAX_LEN_WITHOUT_SUFFIX \
-                (MAX_C_OUTPUT_FILE_LEN-sizeof(GEN_C_FILE_SUFFIX)-8)
-#if CHECKING
-  { int max_len = MAX_LEN_WITHOUT_SUFFIX;
-    check_assertion(max_len > 0);
-  }
-#endif /* CHECKING */
-  (void)strncpy(buffer, scp->name, MAX_LEN_WITHOUT_SUFFIX);
-  buffer[MAX_LEN_WITHOUT_SUFFIX] = '\0';
-  (void)sprintf(buffer+strlen(buffer), "_%08lx", crc_32(scp->name));
-#undef MAX_C_OUTPUT_FILE_LEN
-#undef MAX_LEN_WITHOUT_SUFFIX
   if (f_C_file_list == NULL) {
     a_boolean cannot_open, bad_name;
 
@@ -6527,6 +6485,8 @@ routine or variable has the given source correspondence field and
                              il_header.template_info_file_name);
     }  /* if */
   }  /* if */
+  /* Generate a file name based on the mangled name of the entity. */
+  C_output_file_name = generate_instantiation_output_file_name(scp->name);
   /* Write the generated file name to the file passed back to the driver. */
   (void)fprintf(f_C_file_list, "%s\n", C_output_file_name);
   /* Add the right suffix for a generated C file. */
