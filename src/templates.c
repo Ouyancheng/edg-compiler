@@ -5830,6 +5830,7 @@ to represent the template parameters.
          parameter.  An error type cannot be used because the code that
          uses the parameter list does not expect error types. */
       sym->variant.type = alloc_type((a_type_kind)tk_template_param);
+      set_type_size(sym->variant.type);
     }  /* if */
     /* Allocate a template parameter and set its fields based on sym. */
     template_param = alloc_template_param(sym,
