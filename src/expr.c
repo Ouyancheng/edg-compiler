@@ -35,8 +35,7 @@ expr.c -- Expression scanning routines.
 
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
-static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
-                                     a_boolean  *cast_to_func_ptr);
+static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to);
 static void scan_expr_full(an_operand              *result,
                            an_operand              *bound_function_selector,
                            int                      prec_level,
@@ -4937,7 +4936,7 @@ in *end_position.  Various error cases are checked for (e.g.,
 the type defines something); FALSE is returned if there is an error.
 */
 {
-  a_boolean err = FALSE, cast_to_func_ptr;
+  a_boolean err = FALSE;
 
   /* Check for and pass over the "<". */
   (void)required_token(tok_lt, ec_exp_lt);
@@ -4947,7 +4946,7 @@ the type defines something); FALSE is returned if there is an error.
   *type_position = pos_curr_token;
   type_name(cast_type);
   /* Do initial checking on the type. */
-  err = cast_type_pre_check(cast_type, &cast_to_func_ptr);
+  err = cast_type_pre_check(cast_type);
   /* Check for and pass over the ">". */
   (void)required_token(tok_gt, ec_exp_gt);
   remove_stop_token(tok_gt);
@@ -6339,23 +6338,20 @@ only done in C mode.
 }  /* lvalue_cast */
 
 
-static a_boolean cast_type_pre_check(a_type_ptr *p_type_cast_to,
-                                     a_boolean  *cast_to_func_ptr)
+static a_boolean cast_type_pre_check(a_type_ptr *p_type_cast_to)
 /*
 Do a first check on the destination type of a cast to see if it is legal.
 This is very top-level checking applicable to all casts.  Return TRUE if
 there is an error.  *p_type_cast_to is the destination type of the cast,
 which may be updated on return if the cast should be to some other type.
-On return, *cast_to_func_ptr is TRUE if the cast is to a pointer-to-function
-type in C++ with anachronisms enabled.  This routine is called for both
-C-style casts and C++ functional-notation type conversions.  The current
-error_position must be set to the source position of the type.
+This routine is called for C-style casts, C++ functional-notation type
+conversions, and C++ new-style casts.  The current error_position must
+be set to the source position of the type.
 */
 {
   a_boolean  err = FALSE;
   a_type_ptr type_cast_to = *p_type_cast_to;
 
-  *cast_to_func_ptr = FALSE;
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(type_cast_to);
   /* Check the type to see if it's permissible. */
@@ -6410,16 +6406,6 @@ error_position must be set to the source position of the type.
         warning(ec_cast_to_qualified_type);
         *p_type_cast_to = type_cast_to = make_unqualified_type(type_cast_to);
       }  /* if */
-    }  /* if */
-    /* Determine whether or not the cast is to a pointer-to-function type
-       (this is needed in C++ to allow the anachronism of casting a bound
-       function pointer to a normal function pointer).  This has to be done
-       early so that we know to scan the expression in a special way that
-       allows the return of a bound function. */
-    if (C_dialect == C_dialect_cplusplus && allow_anachronisms &&
-        is_pointer_type(type_cast_to) &&
-        is_function_type(type_pointed_to(type_cast_to))) {
-      *cast_to_func_ptr = TRUE;
     }  /* if */
   }  /* if */
   return err;
@@ -6806,8 +6792,10 @@ FALSE if the bound function case is not one that undergoes the conversion.
   a_boolean converted = FALSE;
 
   check_assertion(operand->bound_function && bound_function_selector != NULL);
-  /* Do not convert cases that result from the operators .* and ->*. */
-  if (is_a_function_designator(operand)) {
+  /* Do not convert cases that result from the operators .* and ->*.
+     It's not that there would be anything wrong with that; we just don't
+     have a way of representing that in the IL. */
+  if (is_constant_operand(operand)) {
     a_constant_ptr con;
     a_symbol_ptr   sym;
     an_operand     orig_operand;
@@ -6815,7 +6803,6 @@ FALSE if the bound function case is not one that undergoes the conversion.
     orig_operand = *operand;
     pos_warning(ec_bound_function_must_be_called, &operand->position);
     /* Find the function underlying the operand. */
-    check_assertion(is_constant_operand(operand))
     con = &operand->variant.constant;
     check_assertion(con->kind == (a_constant_repr_kind)ck_address &&
                     con->variant.address.kind ==
@@ -6842,34 +6829,40 @@ FALSE if the bound function case is not one that undergoes the conversion.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void cast_bound_function(a_type_ptr        type_cast_to,
-                                a_boolean         cast_to_func_ptr,
-                                a_source_position *start_position,
-                                an_operand        *operand,
-                                an_operand        *bound_function_selector)
+static void bound_function_in_cast(a_type_ptr        type_cast_to,
+                                   a_source_position *start_position,
+                                   an_operand        *operand,
+                                   an_operand        *bound_function_selector)
 /*
-In C++, a bound function pointer may be cast to a normal function pointer
-as an anachronism, as in
-
-  struct A {int f();};
-  A *p = new A;
-  int (*pf)() = (int (*)())p->f;
-
-*operand is the bound function; *bound_function_selector is the object to
-which the function is bound.  type_cast_to is the destination pointer type.
-start_position gives the starting source position of the cast.
-See ARM 18.3.4.  cast_to_func_ptr is TRUE if cast_type_pre_check has
-determined that the anachronism might apply.
+The indicated operand is a bound function that is the operand of a cast.
+bound_function_selector is the associated object.  type_cast_to is the type
+being cast to.  Do any transformations that convert the operand to something
+other than a bound function in this cast context (these are extensions).
+If no such transformation applies, issue an error and change the operand
+to an error operand.  In all cases the operand as returned will no longer
+be a bound function.  *start_position gives the starting position of
+the cast.  Note that the cast is not actually done; the operand is
+merely transformed to something to which the cast may apply.
 */
 {
-  an_expr_node_ptr func_ptr_node, object_node;
-
-  if (cast_to_func_ptr &&
+  if (allow_anachronisms &&
+      is_pointer_type(type_cast_to) &&
+      is_function_type(type_pointed_to(type_cast_to)) &&
       is_pointer_type(operand->type) &&
       is_function_type(type_pointed_to(operand->type))) {
+    /* In C++, a bound function may be cast to a normal function pointer
+       as an anachronism, as in
+
+         struct A {int f();};
+         A *p = new A;
+         int (*pf)() = (int (*)())p->f;
+
+       See ARM 18.3.4. */
     pos_diagnostic(anachronism_error_severity,
                    ec_bound_function_cast_anachronism, start_position);
+    conv_lvalue_to_rvalue(operand);
     if (operand->virtual_function) {
+      an_expr_node_ptr func_ptr_node, object_node;
       /* The function is a virtual function, so use an
          eok_virtual_function_ptr operation to compute the address at
          runtime. */
@@ -6888,15 +6881,26 @@ determined that the anachronism might apply.
       discard_operand(bound_function_selector);
       operand->bound_function = FALSE;
     }  /* if */
-    /* Cast the node to the result type of the cast. */
-    cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
-                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode &&
+             is_ptr_to_member_type(type_cast_to) &&
+             is_function_type(pm_member_type(type_cast_to)) &&
+             is_pointer_type(operand->type) &&
+             is_function_type(type_pointed_to(operand->type))) {
+    /* The Microsoft compiler allows a bound function to be cast to
+       a pointer to member function. */
+    if (!conv_bound_function_to_pointer_to_member(operand,
+                                                  bound_function_selector)) {
+      error_in_operand(ec_bound_function_must_be_called, operand);
+      operand->bound_function = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Any other use of a bound function.  Error. */
     error_in_operand(ec_bound_function_must_be_called, operand);
     operand->bound_function = FALSE;
   }  /* if */
-}  /* cast_bound_function */
+}  /* bound_function_in_cast */
 
 
 static void cast_overloaded_function(a_type_ptr type_cast_to,
@@ -6938,20 +6942,17 @@ static void do_cast(a_type_ptr               type_cast_to,
                     an_operand               *bound_function_selector,
                     a_local_expr_options_set local_options,
                     a_boolean                err,
-                    a_boolean                cast_to_func_ptr,
                     a_source_position        *type_position,
                     a_source_position        *start_position)
 /*
 Do a cast operation.  The operand *operand is to be cast to the type
 type_cast_to.  If it is a bound function (only in C++),
-*bound_function_selector gives the associated object (cast_to_func_ptr
-will be TRUE in that case, indicating a cast of a bound function pointer
-to a normal function pointer, an anachronism).  err is TRUE if it has
-already been determined that the cast is invalid (this routine does
-additional checking).  type_position is the source position of the
-destination type in the cast.  start_position is the source position
-of the start of the cast.  This routine is called for both C-style casts
-and C++ functional-notation type conversions.
+*bound_function_selector gives the associated object, if any.
+err is TRUE if it has already been determined that the cast is invalid
+(this routine does additional checking).  type_position is the source
+position of the destination type in the cast.  start_position is the
+source position of the start of the cast.  This routine is called for
+C-style casts and C++ functional-notation type conversions.
 */
 {
   a_type_ptr    source_type, orig_type_cast_to = type_cast_to;
@@ -7006,26 +7007,21 @@ and C++ functional-notation type conversions.
            a conversion function, it should be. */
         rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, operand);
       }  /* if */
-      /* Get the source type after the transformations. */
-      source_type = operand->type;
       /* Check for different types of casts and do the cast. */
       if (!err) {
-        a_boolean      operand_is_constant = is_constant_operand(operand);
+        a_boolean      operand_is_constant;
         a_constant_ptr operand_con = NULL;
-        if (operand_is_constant) operand_con = &operand->variant.constant;
         /* The bound function test is done first to make sure bound functions
            cannot wander into the rest of the cases. */
         if (operand->bound_function) {
-          /* In C++, a bound function pointer can be cast to a normal function
-             pointer, as in
-               struct A {int f();};
-               A *p = new A;
-               int (*pf)() = (int (*)())p->f;
-             This is an anachronism.  See ARM 18.3.4. */
-          conv_lvalue_to_rvalue(operand);
-          cast_bound_function(type_cast_to, cast_to_func_ptr, start_position,
-                              operand, bound_function_selector);
-        } else if (is_indefinite_function_operand(operand)) {
+          bound_function_in_cast(type_cast_to, start_position, operand,
+                                 bound_function_selector);
+        }  /* if */
+        /* Get the source type after the transformations. */
+        source_type = operand->type;
+        operand_is_constant = is_constant_operand(operand);
+        if (operand_is_constant) operand_con = &operand->variant.constant;
+        if (is_indefinite_function_operand(operand)) {
           /* An overloaded function can be cast to a pointer type that
              disambiguates, but is not valid in any other kind of cast. */
           cast_overloaded_function(type_cast_to, operand);
@@ -7532,19 +7528,17 @@ Syntax:
 
 
 static void scan_cast_expression(a_type_ptr type_cast_to,
-                                 a_boolean  cast_to_func_ptr,
                                  a_boolean  allow_comma,
                                  int        prec_level,
                                  an_operand *operand,
                                  an_operand *bound_function_selector)
 /*
 Scan an expression that is the operand of a cast.  type_cast_to is the
-type to which the expression will be cast.  cast_to_func_ptr is TRUE
-if the cast is to a pointer-to-function type in C++.  allow_comma is
-TRUE if a top-level comma should be allowed in the expression.
-prec_level is the precedence level for the expression scan.  Return
-the expression in *operand, and if a bound function is scanned, return
-the selector in *bound_function_selector.
+type to which the expression will be cast.  allow_comma is TRUE if a
+top-level comma should be allowed in the expression.  prec_level is
+the precedence level for the expression scan.  Return the expression
+in *operand, and if a bound function is scanned, return the selector
+in *bound_function_selector.
 */
 {
   /* In non-strict mode, scan the operand of a cast to an integral type
@@ -7557,9 +7551,8 @@ the selector in *bound_function_selector.
   } else {
     /* Normal case. */
     a_local_expr_options_set cast_options = EOPT_OPERAND_OF_CAST;
-    if (cast_to_func_ptr) {
-      /* In C++, allow a bound function as the operand of a cast to a
-         normal function pointer. */
+    if (!C_mode()) {
+      /* In C++, allow a bound function as the operand of a cast. */
       cast_options |= EOPT_ALLOW_BOUND_FUNCTION;
     }  /* if */
     if (!allow_comma) cast_options |= EOPT_DISALLOW_COMMA_OPERATOR;
@@ -7591,7 +7584,6 @@ or
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_type_ptr        type_cast_to;
   a_boolean         err = FALSE;
-  a_boolean         cast_to_func_ptr;
   an_operand        local_bound_function_selector;
 
   db_enter(4, "scan_cast_or_expr");
@@ -7620,23 +7612,21 @@ or
     type_position = pos_curr_token;
     type_name(&type_cast_to);
     /* Check the type to see if it is valid in general terms. */
-    err = cast_type_pre_check(&type_cast_to, &cast_to_func_ptr);
+    err = cast_type_pre_check(&type_cast_to);
 
     /* The next token should be the closing rparen. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_matching_stop_token(tok_rparen);
 
     /* Scan the expression to be cast. */
-    scan_cast_expression(type_cast_to, cast_to_func_ptr,
-                         /*allow_comma=*/TRUE, PREC_CAST,
+    scan_cast_expression(type_cast_to, /*allow_comma=*/TRUE, PREC_CAST,
                          result, &local_bound_function_selector);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = result->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check compatibility of the types and do the cast. */
     do_cast(type_cast_to, result, &local_bound_function_selector,
-            local_options, err, cast_to_func_ptr, &type_position,
-            &start_position);
+            local_options, err, &type_position, &start_position);
   } else {
     /* This is an expression in parentheses. */
     /* Parentheses do not affect the fact that the expression is the
@@ -7723,7 +7713,6 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
   a_source_position             end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean                     err = FALSE;
-  a_boolean                     cast_to_func_ptr;
   a_symbol_ptr                  ctor_sym;
   an_expr_node_ptr              arg_expr_list;
   a_routine_ptr                 ctor_routine;
@@ -7736,7 +7725,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
   error_position = *start_position;
   /* Check the type to see if it is valid in general terms.  Note that
      this does a worthwhile check even in the class case (abstract class). */
-  err = cast_type_pre_check(&type_cast_to, &cast_to_func_ptr);
+  err = cast_type_pre_check(&type_cast_to);
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
     cssp = symbol_supplement_for_class(type_cast_to);
@@ -7849,13 +7838,11 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       /* Scan the expression inside the parentheses. */
       /* Since the expression in parentheses is syntactically an
          expression list, a top-level comma is not allowed. */
-      scan_cast_expression(type_cast_to, cast_to_func_ptr,
-                           /*allow_comma=*/FALSE, PREC_LOWEST, result,
-                           &local_bound_function_selector);
+      scan_cast_expression(type_cast_to, /*allow_comma=*/FALSE, PREC_LOWEST,
+                           result, &local_bound_function_selector);
       /* Check compatibility of the types and do the cast. */
       do_cast(type_cast_to, result, &local_bound_function_selector,
-              local_options, err, cast_to_func_ptr, start_position,
-              start_position);
+              local_options, err, start_position, start_position);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = end_pos_curr_token;

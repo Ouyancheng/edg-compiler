@@ -1,5 +1,18 @@
 Version 2.39
 
+5/3/98    Microsoft compatibility: cast of bound function to pointer to
+          member function
+
+In Microsoft mode, a bound function can now be cast to a pointer to member
+function.
+
+  struct S {
+    void f();
+  };
+  void f(S*p) {
+    void(S::*fp)() = (void (S::*)()) p->f;
+  }
+
 5/3/98    C++-generating back end: avoid cast on null pointer in default
           argument
 
