@@ -27,28 +27,6 @@ decl_inits.c -- Scanning of initializers in declarations.
 #include "cmd_line.h"
 
 
-static a_boolean has_constructor(a_type_ptr  tp)
-/*
-TEMPORARY ROUTINE -- identical to has_constructor in decl_inits.c.
-Probably should be moved to types.c or handled otherwise.
-*/
-{
-  a_boolean      found = FALSE;
-
-  if (C_dialect == C_dialect_cplusplus) {
-    skip_typerefs(tp);
-    if (tp->kind == (a_type_kind)tk_struct ||
-        tp->kind == (a_type_kind)tk_class) {
-      if (((a_symbol_ptr)tp->source_corresp.assoc_info)->
-                  variant.class_struct_union.extra_info->constructor != NULL) {
-        found = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return found;
-}  /* has_constructor */
-
-
 static void set_initialized_array_size(a_type_ptr    *type,
                                        a_targ_size_t size)
 /*
@@ -421,9 +399,8 @@ for unions and aggregates at that level).
        brace-enclosed) value. */
     check_for_opening_brace(&brace_flag);
     if (C_dialect == C_dialect_cplusplus) {
-      scan_initializer_expression(
-              /*convert_array_to_pointer=*/TRUE,
-              &is_constant, &expression, &constant, &err);
+      scan_initializer_expression(/*convert_array_to_pointer=*/TRUE,
+                                  &is_constant, &expression, &constant, &err);
     } else {
       scan_constant_initializer_expression(/*convert_array_to_pointer=*/TRUE,
                                            &constant, &err);
@@ -472,6 +449,56 @@ for unions and aggregates at that level).
 }  /* get_initializer */
 
 
+static void scan_constructor_args(an_expr_node_ptr  *arg_list)
+/*
+TEMPORARY routine.
+*/
+{
+  a_boolean                is_constant;
+  an_expr_node_ptr         expr, end_of_arg_list;
+  a_constant               constant;
+  a_boolean                err;
+
+  db_enter(4, "scan_constructor_args");
+  *arg_list = NULL;
+  end_of_arg_list = NULL;
+  add_stop_token(tok_comma);
+  /* Scan a comma-separated list of arguments. */
+  do {
+    /* Scan an argument expression. */
+    scan_initializer_expression(/*convert_array_to_pointer=*/FALSE,
+                                &is_constant, &expr, &constant, &err);
+    if (!err) {
+      if (is_constant) {
+        /* Just a temporary expedient! */
+        expr = alloc_node_for_constant(alloc_unshared_constant(&constant));
+      }  /* if */
+    }  /* if */
+    if (*arg_list == NULL) {
+      *arg_list = expr;
+    } else {
+      end_of_arg_list->next = expr;
+    }  /* if */
+    end_of_arg_list = expr;
+  } while (loop_token(tok_comma));
+  remove_stop_token(tok_comma);
+  db_exit();
+}  /* scan_constructor_args */
+
+
+static a_routine_ptr select_constructor(a_symbol_ptr      ctor_sym,
+                                        an_expr_node_ptr  *arg_list)
+/*
+TEMPORARY routine.
+*/
+{
+  if (ctor_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    ctor_sym = ctor_sym->variant.function_symbols;
+  }
+  return ctor_sym->variant.routine;
+}  /* select_constructor */
+
+
 static void gen_dynamic_initialization(a_variable_ptr      vp,
                                        a_dynamic_init_ptr  dip)
 /*
@@ -486,6 +513,7 @@ also create an stmk_init statement at the current point in the code.
   a_statement_ptr         init_stmt;
   a_scope_stack_entry_ptr ssep;
 
+  db_enter(4, "gen_dynamic_initiailization");
   /* Build the dynamic initialization entry. */
   new_dip = alloc_dynamic_init(dip->kind);
   switch (dip->kind) {
@@ -536,6 +564,7 @@ also create an stmk_init statement at the current point in the code.
     init_stmt->seq_number = vp->source_corresp.decl_position.seq;
     init_stmt->variant.dynamic_init = new_dip;
   }  /* if */
+  db_exit();
 }  /* gen_dynamic_initialization */
 
 
@@ -606,21 +635,20 @@ The syntax is:
 
 */
 {
-  a_boolean             err = FALSE;
-  a_boolean             put_init_in_variable;
-  a_variable_ptr        vp = NULL;
-  a_type_ptr            vp_type = NULL;
-  a_boolean             brace_flag = FALSE;
-  a_boolean             is_constant;
-  an_expr_node_ptr      expression;
-  a_constant            constant;
-  a_constant_ptr        cp;
-  an_init_kind          init_kind;
-  a_dynamic_init        local_di, *di_list, *end_of_di_list;
-  a_boolean             dynamic_init_required;
-  a_boolean             initialization_is_dynamic;
-  a_routine_ptr         rp;
-  an_expr_node_ptr      arg_list;
+  a_boolean                      err = FALSE;
+  a_boolean                      put_init_in_variable;
+  a_variable_ptr                 vp = NULL;
+  a_type_ptr                     vp_type = NULL;
+  a_boolean                      brace_flag = FALSE;
+  a_boolean                      is_constant;
+  an_expr_node_ptr               expression;
+  a_constant                     constant;
+  a_constant_ptr                 cp;
+  a_dynamic_init                 local_di, *di_list, *end_of_di_list;
+  a_boolean                      dynamic_init_required;
+  a_boolean                      initialization_is_dynamic;
+  an_expr_node_ptr               arg_list;
+  a_class_symbol_supplement_ptr  cssp = NULL;
 
   db_enter(3, "initializer");
 
@@ -674,24 +702,26 @@ The syntax is:
   put_init_in_variable = !err;
   if (vp_type == NULL) vp_type = error_type();
   initialization_is_dynamic = FALSE;
-  if (has_constructor(vp_type)) {
-    if (curr_token == tok_lbrace) {
+  if (is_class_struct_union_type(vp_type)) {
+    cssp = ((a_symbol_ptr)vp_type->source_corresp.assoc_info)->
+                                 variant.class_struct_union.extra_info;
+  }  /* if */
+  if (cssp != NULL && cssp->constructor != NULL) {
+    if (!paren_flag && curr_token == tok_lbrace) {
       error(ec_brace_initialization_not_allowed);
+      err = TRUE;
       flush_tokens();
     } else {
-#if CHECKING
-    internal_error("initializer: constructors not yet implemented");
-#endif /* CHECKING */
-#if 0
-      scan_constructor_args(vp_type, paren_flag, &arg_list);
-      rp = select_constructor(vp_type, arg_list);
+      scan_constructor_args(&arg_list);
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-      local_di.variant.constructor.routine = rp;
+      local_di.variant.constructor.routine =
+                              select_constructor(cssp->constructor, &arg_list);
       local_di.variant.constructor.args = arg_list;
-      local_di.variant.constructor.corresp_destructor =
-                                           select_destructor(vp_type);
+      if (cssp->destructor != NULL) {
+        local_di.variant.constructor.corresp_destructor =
+                              cssp->destructor->variant.routine;
+      }  /* if */
       initialization_is_dynamic = TRUE;
-#endif /* if 0 */
     }  /* if */
   } else if (is_aggregate_or_union_type(vp_type)) {
     if (paren_flag) {
@@ -700,10 +730,8 @@ The syntax is:
 #if CHECKING
     internal_error("initializer: constructors not yet implemented");
 #endif /* CHECKING */
-#if 0
-      scan_constructor_args(vp_type, paren_flag, &arg_list);
-      put_init_into_variable = FALSE;
-#endif /* if 0 */
+      scan_constructor_args(&arg_list);
+      err = TRUE;
     } else {
       di_list = end_of_di_list = NULL;
       cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
@@ -794,10 +822,17 @@ The syntax is:
       vp->init_kind = (an_init_kind)initk_static;
       vp->initializer.constant = cp;
     }  /* if */
+#if DEBUG
+    if (debug_level >= 3) {
+      db_variable(vp);
+      fputs(",\n", f_debug);
+      db_initializer(vp, 2);
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
   if (paren_flag) {
     remove_stop_token(tok_rparen);
-    required_token(tok_rparen, ec_exp_rparen);
+    (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
   db_exit();
 }  /* initializer */
