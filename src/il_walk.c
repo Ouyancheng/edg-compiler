@@ -135,6 +135,35 @@ processed; if not, ptr is remapped but the list is not traversed.
 }  /* walk_list */
 
 /*
+Macro to remap an orphan IL entry pointer from an "old" value to a "new"
+value.  This macro is similar to remap_ptr, but all pointers are processed
+as (char *),  ptr is the pointer, and entry_kind is the kind of entry
+pointed to.
+*/
+#define remap_orphan_ptr(ptr, entry_kind) \
+{ if (remap_func != NULL) { \
+    (ptr) = (char *)remap_func((char *)(ptr), (entry_kind)); \
+  } \
+}
+
+
+/*
+Process a list of identical type orphaned file scope IL entries linked
+together by the orphaned pointer preceding the IL entry structure.  Each
+IL entry will, in turn, be processed as and individual item or as a 
+potential list of like IL entries chained together by a "next" field.
+walk_style should be either walk_ptr for an individual entry or walk_list
+for IL entries with "next" fields.  ptr is the pointer to the first list,
+ptr_type is the type of the pointer and entry_kind is the kind of entries.
+*/
+#define walk_orphan_list(walk_style, ptr, ptr_type, entry_kind) \
+{ char **orph_ptr = &(char *)(ptr); \
+  for (; *orph_ptr != NULL; orph_ptr = (char**)(*orph_ptr-sizeof(char *))) { \
+    walk_style((ptr_type)(*orph_ptr), ptr_type, entry_kind) \
+  }  /* for */ \
+}  /* walk_orphan_list */
+
+/*
 Process the source correspondence field pointed to by ptr.
 */
 #ifdef CFE
@@ -170,7 +199,7 @@ allocated immediately preceding the entry.
 #endif /* CHECKING */
   /* Check if this IL entry is already on the orphaned entry list. */
   last_entry_ptr = &orphaned_file_scope_il_entries[(int)entry_kind].last_entry;
-  if (*(char *)(entry_ptr - sizeof(char *)) == NULL &&
+  if (*(char **)(entry_ptr - sizeof(char *)) == NULL &&
       entry_ptr != *last_entry_ptr) {
     /* This entry is not in the existing list; add it to the end of the
        list. */
@@ -420,16 +449,8 @@ Process the indicated scope.
   }  /* switch */
   /* "assoc_block" is done after the declarations. */
   walk_list(ptr->constants, a_constant_ptr, iek_constant);
-  if (ptr->kind == (a_scope_kind)sck_block ||
-      ptr->kind == (a_scope_kind)sck_function) {
-    /* Local types and static variables of a function or a block scope are
-       in the file scope memory region. */
-    remap_ptr(ptr->types, a_type_ptr, iek_type);
-    remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
-  } else {
-    walk_list(ptr->types, a_type_ptr, iek_type);
-    walk_list(ptr->variables, a_variable_ptr, iek_variable);
-  }  /* if */
+  walk_list(ptr->types, a_type_ptr, iek_type);
+  walk_list(ptr->variables, a_variable_ptr, iek_variable);
 #ifdef CFE
   walk_list(ptr->nonstatic_variables, a_variable_ptr, iek_variable);
 #endif /* ifdef CFE */
@@ -471,12 +492,12 @@ and the entry pointer is to an entry in the file scope, just return
     if (walk_subtree) {
       /* If we are walking through a function scope, and the entry here is
          in the file scope, just return. */
-      /* If a non-string gfile scope entry, ensure that the entry is on the 
-         the orphaned_file_scope_il_entries list. */
       if (!walking_file_scope && in_file_scope(entry_ptr)) {
-        if (is_string_entry_kind(entry_kind)) {
+        /* Add non-string file scope IL entries referenced at a
+           function scope to the orphaned IL entries lists. */
+        if (!is_string_entry_kind(entry_kind)) {
           add_orphaned_file_scope_il_entry(entry_ptr, entry_kind);
-        }  /* if */
+        }
         goto end_of_routine;
       }  /* if */
       /* See if this entry has been reached already, and if so, don't process
@@ -1452,6 +1473,118 @@ can be NULL to indicate that the corresponding function is unnecessary.
 }  /* walk_routine_scope_il */
 
 
+/*
+Local macro to ease stepping through the orphaned_file_scopes_il_entries
+array and process the lists of IL entries of each type pointed to by the
+"first_entry" of each array element.
+*/
+#define walk_orphan_list_first(walk_style, ptr_type, entry_kind) \
+  walk_orphan_list(walk_style, \
+               orphaned_file_scope_il_entries[(int)entry_kind].first_entry, \
+               ptr_type, entry_kind)
+
+
+void walk_orphaned_file_scope_il_entries(
+             an_entry_process_function_ptr       entry_process_function,
+             a_string_entry_process_function_ptr string_entry_process_function,
+             a_remap_function_ptr                remap_function)
+/*
+For each IL entry kind, process any orphaned file scope IL entries chained
+to the orphaned_file_scope_il_entries table.  As function scopes were
+walked, any file scope IL entries referenced were added onto the list of
+orphaned IL entries.  These IL entries may not be and probably are not
+referenced from the file scope IL tree.  Walk through the lists of orphaned
+IL entries of each kind.  If the IL type contains a "next" field, the IL
+entry linked on the orphaned list may, in turn, be the head of a list.
+*/
+{
+  an_entry_process_function_ptr       prev_entry_process_func =
+                                           entry_process_func;
+  a_string_entry_process_function_ptr prev_string_entry_process_func =
+                                           string_entry_process_func;
+  a_remap_function_ptr                prev_remap_func =
+                                           remap_func;
+
+  db_enter(4, "walk_orphan_file_scope_il_entries");
+  /* Save the function pointers so they don't have to be passed around. */
+  entry_process_func = entry_process_function;
+  string_entry_process_func = string_entry_process_function;
+  remap_func = remap_function;
+  walk_subtree = TRUE;
+
+  walk_orphan_list_first(walk_list, a_source_file_ptr, iek_source_file);
+  walk_orphan_list_first(walk_list, a_constant_ptr, iek_constant);
+  walk_orphan_list_first(walk_list, a_param_type_ptr, iek_param_type);
+  walk_orphan_list_first(walk_ptr, a_routine_type_supplement_ptr,
+                         iek_routine_type_supplement);
+  walk_orphan_list_first(walk_list, a_based_type_list_member_ptr,
+                         iek_based_type_list_member);
+  walk_orphan_list_first(walk_list, a_type_ptr, iek_type);
+  walk_orphan_list_first(walk_list, a_variable_ptr, iek_variable);
+#ifdef CFE
+  walk_orphan_list_first(walk_list, a_field_ptr, iek_field);
+#endif /* ifdef CFE */
+  walk_orphan_list_first(walk_list, a_routine_ptr, iek_routine);
+  walk_orphan_list_first(walk_list, a_label_ptr, iek_label);
+  walk_orphan_list_first(walk_list, an_expr_node_ptr, iek_expr_node);
+#ifdef CFE
+  walk_orphan_list_first(walk_list, a_switch_clause_ptr,iek_switch_clause);
+#endif /* ifdef CFE */
+  walk_orphan_list_first(walk_ptr, a_block_ptr, iek_block);
+  walk_orphan_list_first(walk_list, a_statement_ptr, iek_statement);
+  walk_orphan_list_first(walk_list, a_scope_ptr, iek_scope);
+  /* The string types iek_id_name, iek_string_text, and iek_other_text
+     are not maintained on an orphan list.  String types at the file
+     scope that are reference from a function scope are written in that
+     function scope region. */
+#ifdef FFE
+  walk_orphan_list_first(walk_ptr, an_internal_complex_value_ptr,
+                         iek_internal_complex_value);
+  walk_orphan_list_first(walk_ptr, a_bound_info_entry_ptr,
+                         iek_bound_info_entry);
+  walk_orphan_list_first(walk_ptr, a_do_loop_ptr, iek_do_loop);
+  walk_orphan_list_first(walk_list, a_label_list_entry_ptr,
+                         aiek_label_list_entry);
+  walk_orphan_list_first(walk_list, an_io_specifier_ptr, iek_io_specifier);
+  walk_orphan_list_first(walk_list, an_io_list_item_ptr, iek_io_list_item);
+  walk_orphan_list_first(walk_list, a_namelist_group_member_ptr,
+                         iek_namelist_group_member);
+  walk_orphan_list_first(walk_list, a_name_list_group_ptr,
+                         iek_namelist_group);
+  walk_orphan_list_first(walk_ptr, an_input_output_description_ptr,
+                         iek_input_output_description);
+  walk_orphan_list_first(walk_list, an_entry_param_ptr, iek_entry_param);
+  walk_orphan_list_first(walk_list, an_entry_description_ptr,
+                         iek_entry_description);
+#endif /* ifdef FFE */
+#ifdef CFE
+  walk_orphan_list_first(walk_list, a_dynamic_init_ptr, iek_dynamic_init);
+  walk_orphan_list_first(walk_list, an_access_adjustment_ptr,
+                         iek_access_adjustment);
+  walk_orphan_list_first(walk_list, an_overriding_virtual_function_ptr,
+                         iek_overriding_virtual_function);
+  walk_orphan_list_first(walk_list, a_derivation_step_ptr,
+                         iek_derivation_step);
+  walk_orphan_list_first(walk_list, a_base_class_ptr, iek_base_class);
+  walk_orphan_list_first(walk_list, a_class_list_entry_ptr,
+                         iek_class_list_entry);
+  walk_orphan_list_first(walk_ptr, a_class_type_supplement_ptr,
+                         iek_class_type_supplement);
+  walk_orphan_list_first(walk_list, a_constructor_init_ptr,
+                         iek_constructor_init);
+#endif /* ifdef CFE */
+
+  /* Restore the previous values of the function pointers etc. */
+  entry_process_func = prev_entry_process_func;
+  string_entry_process_func = prev_string_entry_process_func;
+  remap_func = prev_remap_func;
+
+  db_exit();
+}  /* walk_orphaned_file_scope_il_entries */
+
+#undef walk_orphan_list_first
+
+
 void remap_pointers_in_il_entry(char                 *entry_ptr,
                                 an_il_entry_kind     entry_kind,
                                 a_remap_function_ptr remap_function)
@@ -1507,6 +1640,115 @@ Remap the pointers in il_header by running them through remap_function.
   remap_func = prev_remap_func;
 }  /* remap_il_header_pointers. */
 
+
+/*
+Macros to facilitate remapping the pointers to IL entries in the orphaned
+file-scope IL entry table.
+*/
+#define remap_orphan_list_first(kind) \
+  remap_orphan_ptr(orphaned_file_scope_il_entries[(int)(kind)].first_entry, \
+                   (kind))
+#define remap_orphan_list_last(kind) \
+  remap_orphan_ptr(orphaned_file_scope_il_entries[(int)(kind)].last_entry, \
+                   (kind))
+
+void remap_orphaned_file_scope_entry_array_ptrs(
+                               a_remap_function_ptr remap_function)
+/*
+Remap the pointers in the orphaned_file_scope_il_entries array by running
+them through remap_function.
+*/
+{
+  a_remap_function_ptr prev_remap_func = remap_func;
+
+  remap_func = remap_function;
+  remap_orphan_list_first(iek_source_file);
+  remap_orphan_list_last(iek_source_file);
+  remap_orphan_list_first(iek_constant);
+  remap_orphan_list_last(iek_constant);
+  remap_orphan_list_first(iek_param_type);
+  remap_orphan_list_last(iek_param_type);
+  remap_orphan_list_first(iek_routine_type_supplement);
+  remap_orphan_list_last(iek_routine_type_supplement);
+  remap_orphan_list_first(iek_based_type_list_member);
+  remap_orphan_list_last(iek_based_type_list_member);
+  remap_orphan_list_first(iek_type);
+  remap_orphan_list_last(iek_type);
+  remap_orphan_list_first(iek_variable);
+  remap_orphan_list_last(iek_variable);
+#ifdef CFE
+  remap_orphan_list_first(iek_field);
+  remap_orphan_list_last(iek_field);
+#endif /* ifdef CFE */
+  remap_orphan_list_first(iek_routine);
+  remap_orphan_list_last(iek_routine);
+  remap_orphan_list_first(iek_label);
+  remap_orphan_list_last(iek_label);
+  remap_orphan_list_first(iek_expr_node);
+  remap_orphan_list_last(iek_expr_node);
+#ifdef CFE
+  remap_orphan_list_first(iek_switch_clause);
+  remap_orphan_list_last(iek_switch_clause);
+#endif /* ifdef CFE */
+  remap_orphan_list_first(iek_block);
+  remap_orphan_list_last(iek_block);
+  remap_orphan_list_first(iek_statement);
+  remap_orphan_list_last(iek_statement);
+  remap_orphan_list_first(iek_scope);
+  remap_orphan_list_last(iek_scope);
+  /* The string types iek_id_name, iek_string_text, and iek_other_text
+     are not maintained on an orphan list.  String types at the file
+     scope that are reference from a function scope are written in that
+     function scope region. */
+#ifdef FFE
+  remap_orphan_list_first(iek_internal_complex_value);
+  remap_orphan_list_last(iek_internal_complex_value);
+  remap_orphan_list_first(iek_bound_info_entry);
+  remap_orphan_list_last(iek_bound_info_entry);
+  remap_orphan_list_first(iek_do_loop);
+  remap_orphan_list_last(iek_do_loop);
+  remap_orphan_list_first(iek_label_list_entry);
+  remap_orphan_list_last(iek_label_list_entry);
+  remap_orphan_list_first(iek_io_specifier);
+  remap_orphan_list_last(iek_io_specifier);
+  remap_orphan_list_first(iek_io_list_item);
+  remap_orphan_list_last(iek_io_list_item);
+  remap_orphan_list_first(iek_namelist_group_member);
+  remap_orphan_list_last(iek_namelist_group_member);
+  remap_orphan_list_first(iek_namelist_group);
+  remap_orphan_list_last(iek_namelist_group);
+  remap_orphan_list_first(iek_input_output_description);
+  remap_orphan_list_last(iek_input_output_description);
+  remap_orphan_list_first(iek_entry_param);
+  remap_orphan_list_last(iek_entry_param);
+  remap_orphan_list_first(iek_entry_description);
+  remap_orphan_list_last(iek_entry_description);
+#endif /* ifdef FFE */
+#ifdef CFE
+  remap_orphan_list_first(iek_dynamic_init);
+  remap_orphan_list_last(iek_dynamic_init);
+  remap_orphan_list_first(iek_access_adjustment);
+  remap_orphan_list_last(iek_access_adjustment);
+  remap_orphan_list_first(iek_overriding_virtual_function);
+  remap_orphan_list_last(iek_overriding_virtual_function);
+  remap_orphan_list_first(iek_derivation_step);
+  remap_orphan_list_last(iek_derivation_step);
+  remap_orphan_list_first(iek_base_class);
+  remap_orphan_list_last(iek_base_class);
+  remap_orphan_list_first(iek_class_list_entry);
+  remap_orphan_list_last(iek_class_list_entry);
+  remap_orphan_list_first(iek_class_type_supplement);
+  remap_orphan_list_last(iek_class_type_supplement);
+  remap_orphan_list_first(iek_constructor_init);
+  remap_orphan_list_last(iek_constructor_init);
+#endif /* ifdef CFE */
+
+  /* Restore the previous value of the remap function pointer. */
+  remap_func = prev_remap_func;
+}  /* remap_orphaned_file_scope_entry_array_ptrs */
+
+#undef remap_orphan_list_first
+#undef remap_orphan_list_last
 
 #endif /* IL_WALK_NEEDED */
                      

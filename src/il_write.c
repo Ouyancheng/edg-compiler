@@ -131,6 +131,17 @@ entry_kind, and if it is a string, has length as given by entry_length.
                                       (entry_ptr - sizeof(an_il_entry_number));
   int                num_entries = 1;
 
+#if IL_WALK_NEEDED
+  /* If the IL entry is in the file-scope region, the additional pointer
+     for the orphaned IL entry list must be accommodated.  This pointer is
+     between the IL entry number and the beginning of the IL entry. */
+  if (in_file_scope(entry_ptr)) {
+    /* The IL entry number pointer must be decremented by the size of a
+       pointer. */
+    enp = (an_il_entry_number *)((char *)enp - sizeof(char *));
+  }
+#endif /* IL_WALK_NEEDED */
+
   /* String entries can be referenced from several places, possibly in
      different regions.  A string entry is written in the same region
      as the entry that references it, because there are file-scope strings
@@ -231,7 +242,9 @@ entry_kind, and if it is a string, has length as given by entry_length.
     *enp = *count_ptr + 1;
     /* For function-scope entries, turn on the bit in the number that
        distinguishes function entry numbers from file-scope numbers. */
-    if (!is_file_scope_entry) *enp |= FUNC_ENTRY_NUMBER_TAG;
+    if (!is_file_scope_entry) {
+      *enp |= FUNC_ENTRY_NUMBER_TAG;
+    }  /* if */
     /* Increment the table entry by 1, or by length for string entries. */
     *count_ptr += num_entries;
   }  /* if */
@@ -282,6 +295,13 @@ corresponding entry number, and return that number cast to "char *".
        been assigned is for a non-string entry in the file scope that is
        referenced from an entry in a function scope. */
     enp = (an_il_entry_number *)(entry_ptr - sizeof(an_il_entry_number));
+#if IL_WALK_NEEDED
+    /* If the entry_ptr points into the file scope memory region, the
+       orphaned IL entry pointer must be skipped over. */
+    if (in_file_scope(entry_ptr)) {
+      enp = (an_il_entry_number *)((char *)enp - sizeof(char *));
+    }  /* if */    
+#endif /* IL_WALK_NEEDED */
     if (*enp == 0) {
 #if CHECKING
       if (is_string_entry_kind(entry_kind)) {
@@ -351,6 +371,11 @@ Write the initial information to the IL file, if there is one.
     (void)fwrite((char *)&zero_file_position, sizeof(zero_file_position), 1,
                  f_il_output);
     (void)fwrite((char *)&il_header, sizeof(il_header), 1, f_il_output);
+#if IL_WALK_NEEDED
+    /* Also leave space for the orphaned_file_scope_il_entries[]. */
+    (void)fwrite((char *)orphaned_file_scope_il_entries,
+                 sizeof(orphaned_file_scope_il_entries), 1, f_il_output);
+#endif /* IL_WALK_NEEDED */
   }  /* if */
 #if ALTERNATE_IL_FILE_FORMAT
   /* Clear the array giving the count of entries of each kind for the
@@ -525,8 +550,23 @@ its length.
   /* Write the entry number. */
   (void)fwrite((char *)&entry_number, sizeof(entry_number), 1, f_il_output);
   /* For strings, write the length. */
+#if IL_WALK_NEEDED
+  /* For non-string entries in the file scope memory region, write the
+     orphaned file scope IL entry chain pointer. */
+#endif /* IL_WALK_NEEDED */
   if (is_string_entry) {
     (void)fwrite((char *)&entry_length, sizeof(entry_length), 1, f_il_output);
+#if IL_WALK_NEEDED
+  } else {
+    if (writing_file_scope_il) {
+      /* Must remap the orphaned file scope IL entry chain pointer.  Use
+         a local copy of the pointer. */
+      char *orphan_ptr = remap_ptr_to_entry_number(
+                           *(char **)(entry_ptr - sizeof(char *)), entry_kind);
+
+      (void)fwrite((char *)&orphan_ptr, sizeof(char *), 1, f_il_output);
+    }  /* if */
+#endif /* IL_WALK_NEEDED */
   }  /* if */
   /* Write the entry itself. */
   /* The (int) cast is for lint on non-ANSI systems.  Under ANSI C, fwrite is
@@ -564,6 +604,10 @@ Write the indicated memory region to the file f_il_output.
 {
   char            il_header_copy[sizeof(il_header)];
   a_file_position end_pos;
+#if ALTERNATE_IL_FILE_FORMAT
+  char		  orphaned_file_scope_il_entries_copy
+                             [sizeof(orphaned_file_scope_il_entries)];
+#endif /* ALTERNATE_IL_FILE_FORMAT */
 
   db_enter(2, "write_memory_region");
   /* Check that the file should in fact be created, which is indicated
@@ -586,7 +630,12 @@ Write the indicated memory region to the file f_il_output.
          for each entry ----|entry type
                             |entry number
                             |entry length (only for string entries)
-                            |the entry itself
+    */
+#if IL_WALK_NEEDED
+    /*                   or |orphaned IL entry link (file scope only)
+    */
+#endif /* IL_WALK_NEEDED */
+    /*                      |the entry itself
          zero byte indicating the end of the list.
     */
 #else /* !ALTERNATE_IL_FILE_FORMAT */
@@ -644,6 +693,11 @@ Write the indicated memory region to the file f_il_output.
         /* The memory region is the file scope region. */
         walk_file_scope_il(write_nonstring_entry, write_entry,
                            (a_remap_function_ptr)NULL);
+        /* Walk through the orphaned IL entries referenced from 
+           function scopes, but in the file scope memory region. */
+        walk_orphaned_file_scope_il_entries (write_nonstring_entry,
+                                             write_entry,
+                                             (a_remap_function_ptr)NULL);
       } else {
         /* The memory region is a function scope. */
         walk_routine_scope_il(region_number,
@@ -720,6 +774,11 @@ Write the indicated memory region to the file f_il_output.
            file offset to the start of the file scope region (written as 0)
            il_header (written as 0)
       */
+#if IL_WALK_NEEDED
+      /* and
+           orphaned_file_scope_il_entries[]
+      */
+#endif /* IL_WALK_NEEDED */
       /* Save the current (end of file) position. */
       end_pos = ftell(f_il_output);
       /* Seek to where the il_header was written. */
@@ -743,6 +802,29 @@ Write the indicated memory region to the file f_il_output.
       (void)fwrite((char *)&il_header, sizeof(il_header), 1, f_il_output);
       /* Restore il_header. */
       memcpy((char *)&il_header, il_header_copy, sizeof(il_header));
+#if IL_WALK_NEEDED
+#if ALTERNATE_IL_FILE_FORMAT
+      /* Save a copy of the orphaned IL entry array; it gets modified,
+         written, then restored. */
+      memcpy(orphaned_file_scope_il_entries_copy,
+             (char *)orphaned_file_scope_il_entries,
+             sizeof(orphaned_file_scope_il_entries));
+      /* The pointers in the orphaned IL entry table must be remapped to
+         entry_numbers. */
+      remap_orphaned_file_scope_entry_array_ptrs(
+                                   remap_ptr_to_entry_number);
+
+#endif /* ALTERNATE_IL_FILE_FORMAT */
+      /* Copy the orphaned_file_scope_il_entries array to the file. */
+      (void)fwrite((char *)orphaned_file_scope_il_entries,
+                   sizeof(orphaned_file_scope_il_entries), 1, f_il_output);
+#if ALTERNATE_IL_FILE_FORMAT
+      /* Restor the orphaned IL entry table. */
+      memcpy((char *)orphaned_file_scope_il_entries,
+             orphaned_file_scope_il_entries_copy,
+             sizeof(orphaned_file_scope_il_entries));
+#endif /* ALTERNATE_IL_FILE_FORMAT */
+#endif /* IL_WALK_NEEDED */
       /* Restore the position at the end of the file.  SEEK_END is not
          used because ANSI doesn't guarantee it for binary files. */
       if (fseek(f_il_output, end_pos, SEEK_SET) != 0) {
