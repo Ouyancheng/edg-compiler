@@ -12470,6 +12470,65 @@ set, and its source sequence entry, if any, has been put out.)
 }  /* complete_il_template_entry */
 
 
+unsigned long hash_string(char *str)
+/*
+Compute a hash value for the string "str".
+*/
+{
+  unsigned long value = 0;
+  for (; *str != '\0'; str++) {
+    value = (value << 5) + value + *str;
+  }  /* for */
+  return value;
+}  /* hash_string */
+
+
+static void record_cache_checksum(
+				a_tmpl_decl_state_ptr  decl_state,
+                                a_token_cache          *p_template_body_cache)
+/*
+Compute a checksum based on the tokens of the template body cache and store
+it in the IL template entry.
+*/
+{
+  /* Multiplier used to compute the cache checksum.  Should be prime. */
+#define CACHE_HASH_FACTOR ((unsigned int)73)
+  if (p_template_body_cache != NULL) {
+    unsigned long	cache_value = 0;
+    a_cached_token_ptr	token;
+    for (token = p_template_body_cache->first_token;
+         token != NULL; token = token->next) {
+      unsigned long	value = 0;
+      /* Ignore pragmas. */
+      if (token->extra_info_kind == teik_pragma) continue;
+      switch (token->extra_info_kind) {
+        case teik_identifier:
+          /* Hash the identifier string. */
+          value = hash_string(token->variant.locator.
+                                                    symbol_header->identifier);
+          break;
+        case teik_constant:
+          /* Get a hash value for the constant. */
+          value = (unsigned long)hash_constant(token->variant.constant);
+          break;
+        case teik_asm_string:
+          /* Hash the asm string. */
+          value = hash_string(token->variant.asm_string);
+          break;
+        default:
+          /* For other tokens, just use the token kind. */
+          value = (unsigned long)token->token;
+          break;
+      }  /* switch */
+      cache_value = (cache_value * CACHE_HASH_FACTOR) + value;
+    }  /* for */
+    check_assertion(decl_state->il_template_entry != NULL);
+    decl_state->il_template_entry->cache_checksum = cache_value;
+  }  /* if */
+#undef CACHE_HASH_FACTOR
+}  /* record_cache_checksum */
+
+
 static a_symbol_ptr template_static_data_member_declaration
                     (a_tmpl_decl_state_ptr            decl_state,
                      a_symbol_locator                 *locator,
@@ -13917,6 +13976,7 @@ any non-empty template parameter lists that were scanned.
      member bodies are extracted above. */
   record_string_version_of_template(decl_state, sym, p_template_body_cache);
 #endif /* RECORD_TEMPLATE_STRINGS */
+  record_cache_checksum(decl_state, p_template_body_cache);
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */
     (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,

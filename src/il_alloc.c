@@ -3158,6 +3158,7 @@ fields, and return a pointer to it.
   tp->canonical_template = NULL;
   tp->definition_template = NULL;
   tp->prototype_template = NULL;
+  tp->cache_checksum = 0;
   return tp;
 }  /* alloc_template */
 

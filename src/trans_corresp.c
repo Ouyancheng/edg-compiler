@@ -1940,6 +1940,23 @@ is in fact valid.
       match = FALSE;
       process_bad_trans_unit_corresp(iek_routine, routine);
     }  /* if */
+    /* If this is an inline function based on a template, compare the
+       template checksums. */
+    if (match && routine->is_template_function && routine->is_inline &&
+        !routine->is_specialized) {
+      a_template_ptr	templ;
+      a_template_ptr	corresp_templ;
+      templ = routine->assoc_template;
+      corresp_templ= corresp_routine->assoc_template;
+      templ = templ->canonical_template->definition_template;
+      corresp_templ = corresp_templ->canonical_template->definition_template;
+      if (templ != NULL && corresp_templ != NULL) {
+        if (templ->cache_checksum != corresp_templ->cache_checksum) {
+          match = FALSE;
+          process_bad_trans_unit_corresp(iek_routine, routine);
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (match && !trans_unit_test_mode && !routine->is_inline &&
         (!routine->is_prototype_instantiation ||
          routine->assoc_template->is_exported) &&

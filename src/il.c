@@ -126,7 +126,6 @@ for example there would only be one constant for the literal "0").
 			/* Size of the table; should be about twice
 			   the expected number of entries for a big
 			   program, and must be prime. */
-typedef unsigned int a_constant_hash_value;
 static a_constant_ptr
 		shareable_constants_table[SIZE_SHAREABLE_CONSTANTS_TABLE];
 			/* Each entry in the table points to a linear
@@ -179,7 +178,9 @@ Display memory use for based-type fixup entries.
 /* Forward declarations needed because of mutual recursion: */
 static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
                                             an_expr_copy_options_set options);
-static a_constant_hash_value hash_constant(a_constant *cp);
+
+
+a_constant_hash_value hash_constant(a_constant *cp);
 
 #if DEBUG
 
@@ -3784,7 +3785,7 @@ to refine the hash value developed in hash_constant.
 }  /* hash_type */
 
 
-static a_constant_hash_value hash_constant(a_constant *cp)
+a_constant_hash_value hash_constant(a_constant *cp)
 /*
 Return the hash value for the indicated constant, which gives the proper
 bucket of the shareable_constants_table to use for the constant.

@@ -8784,6 +8784,9 @@ typedef struct a_template {
 			   instance, this points to the template for
 			   the original member template declaration in the
 			   prototype instantiation. */
+  unsigned long	cache_checksum;
+			/* A checksum of the definition cache used to compare
+			   definitions from different translation units. */
 } a_template;
 
 #if RECORD_MACROS_IN_IL

@@ -1215,6 +1215,13 @@ skipping any namespace aliases that might be present.
 extern a_type_ptr init_predeclared_class(a_type_kind  kind,
                                          char         *name);
 
+/*
+Type used as a hash value of a constant entry.
+*/
+typedef unsigned int a_constant_hash_value;
+
+extern a_constant_hash_value hash_constant(a_constant *cp);
+
 extern void il_reset(void);
 
 extern void il_one_time_init(void);
