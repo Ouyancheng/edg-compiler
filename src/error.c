@@ -1838,7 +1838,11 @@ error code.
       m = "%n cannot be instantiated -- no template definition was supplied";
       break;
     case ec_instantiation_requested_and_specific_definition:
-      m = "%n cannot be instantiated -- a specific definition has been supplied";
+      m =
+        "%n cannot be instantiated -- a specific definition has been supplied";
+      break;
+    case ec_no_constructor:
+      m = "class %t has no constructor";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
