@@ -2028,6 +2028,9 @@ Display the indicated routine.
                                               surrounding_name_linkage_state);
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
+  if (ptr->suppress_inline_body) {
+    disp_boolean("suppress_inline_body", TRUE);
+  }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is
