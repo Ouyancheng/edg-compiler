@@ -1,5 +1,27 @@
 Version 2.27
 
+10/28/94 IL CHANGE: try block and goto/label
+
+A supplement has been added to stmk_try_block.  You can fix the affected
+references in your code by the following substitutions:
+
+  variant.try_block.statement --> variant.try_block->statement
+  variant.try_block.handlers  --> variant.try_block->handlers
+
+The variant for stmk_goto and stmk_label has been changed so that it is a
+struct.  You can fix the affected references in your code by the following
+substitution:
+
+  variant.label --> variant.label.ptr
+
+Note, however, that this change should probably be done manually because
+the string may come up in other cases (in does in our code: the symbol table
+has a variant label field, and the flow description entry does too).
+
+These changes were made to make room for a pointer to an object lifetime
+in those kinds of statements, in preparation for the lifetime-of-temporaries
+change.
+
 10/27/94 Keyword "restrict" added
 
 Support for keyword "restrict" has been added, consistent with the proposal
