@@ -13,23 +13,18 @@ symbol_tbl.c - Symbol table management routines.
 
 */
 
-#include "basics.h"
-#include "target.h"
-#include "const_ints.h"
-#include "symbol_tbl.h"
-#include "mem_manage.h"
-#include "debug.h"
-#include "error.h"
-#include "func_def.h"
-#include "il.h"
-#include "types.h"
-#include "cmd_line.h"
-#include "decls.h"
-#include "decl_inits.h"
-#include "symbol_ref.h"
-#include "templates.h"
-#include "il_to_str.h"
-#include "pch.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+/* Although symbol_tbl.c is not really a "declaration processing file",
+   it turns out that most of the header files it needs are in decl_hdrs.h. */
+#include "decl_hdrs.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Insert a marker in case headers are saved and restored. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
