@@ -42,6 +42,9 @@ Clear an output control block to default values.
   octl->output_default_arg  = NULL;
   octl->gen_compilable_code = FALSE;
   octl->gen_pcc_code        = FALSE;
+#if DEBUG
+  octl->debug_output        = FALSE;
+#endif /* DEBUG */
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -87,7 +90,14 @@ Output a string that describes the tag kind for the indicated type, i.e.,
     case tk_class:  str = "class";  break;
     case tk_struct: str = "struct"; break;
     case tk_union:  str = "union";  break;
-    default:        unexpected_condition_str("form_tag_kind: bad type kind");
+    default:
+#if DEBUG
+      if (octl->debug_output) {
+        str = "**BAD-TAG-KIND**";
+        break;
+      }  /* if */
+#endif /* DEBUG */
+      unexpected_condition_str("form_tag_kind: bad type kind");
   }  /* switch */
   octl->output_str(str);
 }  /* form_tag_kind */
@@ -115,6 +125,7 @@ This includes template arguments on template classes.
   }  /* if */
   if (name == NULL) {
     /* For entities without names, use <unnamed>. */
+    check_assertion(!octl->gen_compilable_code);
     octl->output_str("<unnamed>");
   } else {
     /* Output the base name. */
@@ -262,6 +273,12 @@ way described by octl.
       break;
 #endif /* LONG_LONG_ALLOWED */
     default:
+#if DEBUG
+      if (octl->debug_output) {
+        str = "**BAD-INT-KIND**";
+        break;
+      }  /* if */
+#endif /* DEBUG */
       unexpected_condition_str("form_int_kind_name: bad integer kind");
   }  /* switch */
   octl->output_str(str);
@@ -288,6 +305,12 @@ way described by octl.
       str = "long double";
       break;
     default:
+#if DEBUG
+      if (octl->debug_output) {
+        str = "**BAD-FLOAT-KIND**";
+        break;
+      }  /* if */
+#endif /* DEBUG */
       unexpected_condition_str("form_float_kind_name: bad float kind");
   }  /* switch */
   octl->output_str(str);
@@ -326,6 +349,7 @@ by octl.  Note that derived types should be handled above this level.
 {
   switch (type->kind) {
     case tk_error:
+      check_assertion(!octl->gen_compilable_code);
       octl->output_str("<error-type>");
       break;
     case tk_void:
@@ -371,9 +395,16 @@ by octl.  Note that derived types should be handled above this level.
       form_name((char *)type, iek_type, octl);
       break;
     case tk_unknown:
+      check_assertion(!octl->gen_compilable_code);
       octl->output_str("<unknown-type>");
       break;
     default:
+#if DEBUG
+      if (octl->debug_output) {
+        octl->output_str("**BAD-TYPE-KIND**");
+        break;
+      }  /* if */
+#endif /* DEBUG */
       unexpected_condition_str("form_type_specifier: bad type kind");
   }  /* switch */
 }  /* form_type_specifier */
@@ -563,6 +594,7 @@ the way described by octl.
 
   octl->output_str("[");
   if (type->variant.array.is_variable_size_array) {
+    check_assertion(!octl->gen_compilable_code);
     octl->output_str("<variable-sized>");
   } else if (type->variant.array.variant.number_of_elements == 0) {
     /* For unknown-bound arrays, put nothing between the []. */
@@ -631,6 +663,7 @@ Output a string for a type.  Do the output in the way described by octl.
 */
 {
   if (type == NULL) {
+    check_assertion(!octl->gen_compilable_code);
     octl->output_str("<null-type>");
   } else {
     /* Write the specifiers and the first part of the declarator. */
@@ -1153,6 +1186,7 @@ Output the indicated constant.  Do the output in the way described by octl.
   }  /* if */
   switch (kind) {
     case ck_error:
+      check_assertion(!octl->gen_compilable_code);
       octl->output_str("<error-constant>");
       break;
     case ck_integer:
@@ -1262,6 +1296,7 @@ Output the indicated constant.  Do the output in the way described by octl.
                        octl);
       break;
     case ck_template_param:
+      check_assertion(!octl->gen_compilable_code);
       octl->output_str("<template-param");
       switch (constant->variant.template_param.kind) {
         case tpck_param:
@@ -1280,12 +1315,12 @@ Output the indicated constant.  Do the output in the way described by octl.
           form_name((char *)constant, iek_constant, octl);
           break;
         default:
-          unexpected_condition_str(
-                            "form_constant: bad template param constant kind");
-      }
+          octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");
+      }  /* switch */
       octl->output_str(">");
       break;
     case ck_dynamic_init:
+      check_assertion(!octl->gen_compilable_code);
       octl->output_str("<dynamic-init-constant>");
       break;
     case ck_aggregate:
@@ -1300,9 +1335,16 @@ Output the indicated constant.  Do the output in the way described by octl.
       octl->output_str("}");
       break;
     case ck_init_repeat:
+      check_assertion(!octl->gen_compilable_code);
       octl->output_str("<init-repeat-constant>");
       break;
     default:
+#if DEBUG
+      if (octl->debug_output) {
+        octl->output_str("**BAD-CONSTANT-KIND**");
+        break;
+      }  /* if */
+#endif /* DEBUG */
       unexpected_condition_str("form_constant: bad constant kind");
   }  /* switch */
   if (need_cast_close_paren) octl->output_str(")");

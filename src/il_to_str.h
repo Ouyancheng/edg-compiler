@@ -62,15 +62,20 @@ typedef struct an_il_to_str_output_control_block {
 			   arguments should not be put out. */
   a_byte_boolean
 	gen_compilable_code;
-			/* TRUE if the generated code is intended to be
+			/* TRUE if the generated string is intended to be
 			   compiled later; FALSE means it's intended to
 			   be read by humans.  One reason for this flag:
 			   compilable code has to avoid bugs of the target
 			   compilers even if it makes the output less
 			   readable. */
   a_byte_boolean
-	gen_pcc_code;	/* TRUE if the generated code should be old-style
+	gen_pcc_code;	/* TRUE if the generated string should be old-style
 			   pcc/K&R C.  Used by the C-generating back end. */
+#if DEBUG
+  a_byte_boolean
+	debug_output;	/* TRUE if the generated string is part of debug
+			   output. */
+#endif /* DEBUG */
 } an_il_to_str_output_control_block;
 
 extern void clear_il_to_str_output_control_block(
