@@ -1,5 +1,10 @@
 Version 2.31
 
+1/10/96  edg_prelink inserts escapes before quotes in command line
+
+The prelinker now inserts an escape before quotes found in the
+compilation command line in the .ii file.
+
 1/4/96   Permit verbose mode to be turned off in the prelinker
 
 A new configuration flag has been added to edg_prelink.h called

@@ -2048,6 +2048,42 @@ static void pl_change_directory(char *new_dir)
 }  /* pl_change_directory */
 
 
+static char *build_command_line(char *part1,
+                                char *part2)
+/*
+Construct the command line by concatenating the strings in part1 and part2.
+If either string contains any quotes, insert an escape (\) before the
+quote.  Return a pointer to the dynamically allocated string created to
+hold the command.
+*/
+{
+  int		pass;
+  char		*to;
+  sizeof_t	length;
+  char		*command;
+
+  /* Allocate the command line with twice the space needed to make room
+     for added escape characters. */
+  length = (strlen(part1) + strlen(part2)) * 2;
+  command = (char *)pl_malloc_with_check(length);
+  to = command;
+  for (pass = 0; pass < 2; pass++) {
+    /* The first time through the loop copy from part1, the second time,
+       from part2. */
+    char	*from = pass == 0 ? part1 : part2;
+    /* Copy each string putting an escape character (\) before each
+       quote. */
+    while (*from != '\0') {
+      if (*from == '\'' || *from == '"') *to++ = '\\';
+      *to++ = *from++;
+    }  /* while */
+    /* Append a black on the first pass, a null character on the second. */
+    *to++ = pass == 0 ? ' ' : '\0';
+  }  /* for */
+  return command;
+}  /* build_command_line */
+
+
 static int pl_recompile_file(char	*command_line,
 			     char	*dir_name,
                              char	*file_name)
@@ -2055,8 +2091,6 @@ static int pl_recompile_file(char	*command_line,
 Execute the command to recompile a file.
 */
 {
-  static char	*shell_format_string = "%s %s";
-  sizeof_t	length;
   char		*command;
   int		result;
   a_boolean	chdir_needed;
@@ -2074,10 +2108,7 @@ Execute the command to recompile a file.
     /* Go to the appropriate directory before doing the compilation. */
     pl_change_directory(dir_name);
   }  /* if */
-  length = strlen(shell_format_string) + strlen(command_line) +
-           strlen(file_name);
-  command = (char *)pl_malloc_with_check(length);
-  sprintf(command, shell_format_string, command_line, file_name);
+  command = build_command_line(command_line, file_name);
   fprintf(stdout, pl_error_text(pl_ec_executing), message_prefix, command);
   fflush(stdout);
   result = system(command);
