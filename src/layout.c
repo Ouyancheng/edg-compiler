@@ -2223,18 +2223,21 @@ static void gnu_trim_trailing_base_bits(a_targ_size_t       *end_of_object,
 /*
 Version 3.3 of the GNU C++ compiler will allocate an empty virtual base
 in the bit field padding of a trailing bit field of another virtual base
-(if the latter virtual base class immediately precedes the empty virtual
-base in the overall object layout).  To emulate this behavior, this
-routine adjusts *end_of_object if the currently trailing base class ends
-with a bit field.
+(if the latter virtual base class is a non-POD class that immediately
+precedes the empty virtual base in the overall object layout).  To emulate
+this behavior, this routine adjusts *end_of_object if the currently trailing
+base class ends with a bit field.
 */
 {
   a_base_class_ptr  bcp = lob->trailing_nonempty_base;
+  a_type_ptr        btp = bcp->type;
 
   if (bcp != NULL && bcp->is_virtual && bcp->offset_is_set &&
-      bcp->offset + bcp->type->size >= *end_of_object) {
+      bcp->offset + btp->size >= *end_of_object &&
+      !(btp->source_corresp.assoc_info != NULL &&
+        symbol_supplement_for_class(btp)->is_POD)) {
     a_targ_size_t  offset;
-    a_field_ptr    last_field = trailing_nonclass_field(bcp->type, &offset);
+    a_field_ptr    last_field = trailing_nonclass_field(btp, &offset);
     if (last_field != NULL && last_field->is_bit_field &&
         (last_field->offset_bit_remainder + last_field->bit_size) %
                                                          targ_char_bit != 0) {
