@@ -397,8 +397,8 @@ typedef struct a_macro_def {
   unsigned int	ref_suppresses_pch_file:1;
 			/* TRUE if referencing this macro within a header is
 			   incompatible with creating a precompiled header
-			   file; TRUE, e.g., for predefined macros __DATE__,
-			   __TIME__, and __FILE__. */
+			   file; TRUE, e.g., for predefined macros __DATE__
+			   and __TIME__. */
   a_macro_param_ptr
 		param_list;
 			/* Pointer to a list of entries describing the
