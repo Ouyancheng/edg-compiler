@@ -32,7 +32,7 @@ value, a zero should be passed in.
      or done when the previous value was returned. */
   crc = prev_crc ^ 0xffffffff;
   while (*str != '\0') {
-    unsigned long ch = (unsigned long)*str++;
+    unsigned long ch = (unsigned char)*str++;
     int nbit;
 
     for (nbit = 0; nbit < CHAR_BIT; nbit++, ch >>= 1) {

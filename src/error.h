@@ -152,7 +152,7 @@ extern DOES_NOT_RETURN assertion_failed(char *filename,
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
 #define check_assertion(test)						\
-  if (!(test)) {							\
+  if (/*lint --e(774)*/!(test)) {					\
     assertion_failed(__FILE__, __LINE__,				\
                      (char *)NULL, (char *)NULL);			\
   }

@@ -1226,11 +1226,11 @@ but it always gets the right answer.
 #endif /* ifndef STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 
 /* Determine length of multibyte character sequence. */
-extern int mbc_length(char *ptr, a_boolean *error);
+extern int mbc_length(char *ptr, a_boolean *err);
 /* Convert multibyte character sequence to wide character. */
 extern int mbc_to_wide_char(char          *mb,
                             unsigned long *wc,
-                            a_boolean     *error);
+                            a_boolean     *err);
 
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
 /* Use custom processing for SJIS instead of the C library routines. */

@@ -79,7 +79,7 @@ Argument strings for fopen.
 and SVID compliant signal handlers in particular, return int. */
 #ifdef __ANSIC__
 #define SIGNAL_HANDLER_RETURNS_VOID 1
-#endif  /* __ANSIC__ */
+#else /* !defined(__ANSIC__) */
 #ifdef sun
 /* SunOS 4.1 switched to the ANSI form of signal. */
 #define SIGNAL_HANDLER_RETURNS_VOID 1
@@ -87,6 +87,7 @@ and SVID compliant signal handlers in particular, return int. */
 #ifdef __hpux
 #define SIGNAL_HANDLER_RETURNS_VOID 1
 #endif  /* __hpux */
+#endif  /* __ANSIC__ */
 
 #include <signal.h>
 #ifdef SIGNAL_HANDLER_RETURNS_VOID
@@ -918,7 +919,7 @@ place in file_name where the suffix begins.
 
 
 a_boolean get_file_modification_time(char   *file_name,
-                                     time_t *time)
+                                     time_t *p_time)
 /*
 Determine whether a file exists, and if so, return the last modification
 time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
@@ -937,10 +938,10 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
 #else /* ifndef S_ISREG */
     is_regular = ((buf.st_mode & S_IFREG) != 0);
 #endif /* ifdef S_ISREG */
-    if (is_regular && time != NULL) *time = buf.st_mtime;
+    if (is_regular && p_time != NULL) *p_time = buf.st_mtime;
   } else {
     /* If the file doesn't exist, set the time to zero just to be neat. */
-    if (time != NULL) *time = 0;
+    if (p_time != NULL) *p_time = 0;
   }  /* if */
   return is_regular;
 }  /* get_file_modification_time */
@@ -1667,18 +1668,15 @@ Display the difference in CPU time and elapsed time between two timers.
 }  /* display_time_used */
 
 
+/*lint -esym(528,chdir_with_check)*/ /* <-- Not used in some configurations. */
 static void chdir_with_check(char	*dir_name)
 /*
 Change to the specified directory, make sure the operation
-succeeded.  This routine is not used in some configurations.
+succeeded.
 */
 {
   if (chdir(dir_name) != 0) {
     str_catastrophe(ec_cannot_chdir, dir_name);
-    /* This routine is only used in certain configurations.  The
-       following call suppresses the not-used warning when this
-       routine is not used. */
-    chdir_with_check(dir_name);
   }  /* if */
 }  /* chdir_with_check */
 
@@ -2093,7 +2091,7 @@ Set module_id to the string.
       int	len2;
       len1 = strlen(str1);
       len2 = str2 == NULL ? 0 : strlen(str2);
-      if ((len1 + len2 + (len2 != 0)) > 8) {
+      if ((len1 + len2 + (int)(len2 != 0)) > 8) {
         /* The string (not including the file name) is longer than 8
            characters.  Use a CRC of the string instead. */
         unsigned long	crc;
@@ -2112,7 +2110,7 @@ Set module_id to the string.
       }
       file_name_len = strlen(file_name);
       module_id = alloc_general(file_name_len + 1 +
-                                len1 + len2 + (len2 != 0) + 1);
+                                len1 + len2 + (int)(len2 != 0) + 1);
       (void)strcpy(module_id, file_name);
       (void)strcat(module_id, "_");
       (void)strcat(module_id, str1);
@@ -2515,7 +2513,7 @@ Return "size" adjusted as needed to be a multiple of the system page size.
     check_assertion_str(HOST_ALLOCATION_INCREMENT % page_size == 0,
                         "invalid HOST_ALLOCATION_INCREMENT for page size");
   }  /* if */
-  size2 = (size / page_size) * page_size;
+  size2 = (size / (sizeof_t)page_size) * page_size;
   if (size2 < size) size2 += page_size;
   return size2;
 }  /* do_page_alignment */
@@ -2569,16 +2567,16 @@ a memory fault.
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
 int mbc_length(char      *ptr,
-               a_boolean *error)
+               a_boolean *err)
 /*
 Return the length of the multibyte character sequence beginning at ptr.
-If the sequence there is invalid, set *error to TRUE if error is non-NULL,
+If the sequence there is invalid, set *err to TRUE if err is non-NULL,
 and return 1.
 */
 {
   int len;
 
-  if (error != NULL) *error = FALSE;
+  if (err != NULL) *err = FALSE;
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
   /* Use custom code for SJIS instead of the C library routines. */
   { unsigned char ch = (unsigned char)*ptr;
@@ -2593,7 +2591,7 @@ and return 1.
         len = 2;
       } else {
         /* Invalid sequence.  Advance bytewise. */
-        if (error != NULL) *error = TRUE;
+        if (err != NULL) *err = TRUE;
         len = 1;
       }  /* if */
     } else {
@@ -2606,7 +2604,7 @@ and return 1.
   len = mblen(ptr, MB_CUR_MAX);
   if (len < 0) {
     /* Invalid multibyte sequence.  Advance bytewise. */
-    if (error != NULL) *error = TRUE;
+    if (err != NULL) *err = TRUE;
     len = 1;
   }  /* if */
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
@@ -2619,21 +2617,21 @@ and return 1.
 
 int mbc_to_wide_char(char          *mb,
                      unsigned long *wc,
-                     a_boolean     *error)
+                     a_boolean     *err)
 /*
 Convert a multibyte character sequence pointed to by mb to a single wide
 character returned in *wc.  Return the number of characters in the
 multibyte character sequence.  If the multibyte character sequence is
-invalid, set *error to TRUE if error is non-NULL, and return 1.
+invalid, set *err to TRUE if err is non-NULL, and return 1.
 */
 {
   int       numch;
-  a_boolean local_error = FALSE;
+  a_boolean local_err = FALSE;
 
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
   /* Use custom code for SJIS instead of the C library routines. */
-  numch = mbc_length(mb, &local_error);
-  if (local_error) {
+  numch = mbc_length(mb, &local_err);
+  if (local_err) {
     /* Bad multibyte character. */
     numch = 1;
     *wc = 0;
@@ -2653,13 +2651,13 @@ invalid, set *error to TRUE if error is non-NULL, and return 1.
       /* Invalid multibyte character sequence. */
       numch = 1;
       *wc = 0;
-      local_error = TRUE;
+      local_err = TRUE;
     } else {
       *wc = wchar;
     }  /* if */
   }
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
-  if (error != NULL) *error = local_error;
+  if (err != NULL) *err = local_err;
   return numch;
 }  /* mbc_to_wide_char */
 
