@@ -2260,7 +2260,8 @@ position of the restrict keyword (if it's there).  This function is called
 from decl_specifiers only.
 */
 {
-  a_boolean  err = FALSE;
+  a_boolean          err = FALSE;
+  an_error_severity  severity;
 
   if (*qualifiers != TQ_NONE) {
     if ((*type_ptr)->kind == (a_type_kind)tk_typeref) {
@@ -2300,14 +2301,15 @@ from decl_specifiers only.
         if ((*qualifiers &
              f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE)) != 0) {
           /* Duplication of type qualifier (probably because of a typedef
-             that is already qualified). */
-          an_error_severity es = es_error;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          /* In Microsoft mode, duplicate qualifiers result in a warning. */
-          if (microsoft_mode) es = es_warning;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          diagnostic(es, ec_dupl_type_qualifier);
-          if (es == es_error) err = TRUE;
+             that is already qualified).  In strict ANSI mode issue an
+             error or warning; otherwise, just issue a remark. */
+          if (strict_ansi_mode) {
+            severity = strict_ansi_error_severity;
+            if (severity == es_error) err = TRUE;
+          } else {
+            severity = es_remark;
+          }  /* if */
+          diagnostic(severity, ec_dupl_type_qualifier);
         }  /* if */
       }  /* if */
     }  /* if */
