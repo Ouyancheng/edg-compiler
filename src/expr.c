@@ -6733,8 +6733,14 @@ specification allow a variable-sized array as the top type.
     if (exceptions_enabled
 #if !ABI_CHANGES_FOR_PLACEMENT_DELETE
         /* When placement delete is not supported do not look for a delete
-           routine. */
-        && !placement_new
+           routine.  Treat a call of a new routine with a default argument
+           as similar to a placement new, because the runtime won't have
+           any way of calling the delete routine with the added argument. */
+        && (!placement_new &&
+            new_routine->type->variant.routine.extra_info->
+                                                 param_type_list != NULL &&
+            new_routine->type->variant.routine.extra_info->
+                                                 param_type_list->next == NULL)
 #endif /* !ABI_CHANGES_FOR_PLACEMENT_DELETE */
                          ) {
       delete_routine = determine_deletion_for_new(base_new_type,

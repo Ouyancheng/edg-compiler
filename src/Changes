@@ -1,5 +1,25 @@
 Version 3.3
 
+7/15/03  Call of placement delete with ABI_CHANGES_FOR_PLACEMENT_DELETE FALSE
+
+When ABI_CHANGES_FOR_PLACEMENT_DELETE is FALSE, placement delete is
+supposed to be disabled because the runtime cannot handle calling
+a non-default operator delete on a thrown exception.  A case using
+a default argument on the operator new snuck by that test:
+
+  struct A {
+    void* operator new(size_t alloc_size, size_t dummy=0);
+    void operator delete(void* p, size_t s);
+    A();
+  };
+  int main() {
+    A* ap = new A; 
+  }
+
+This caused IL lowering to generate an internal try-block, which
+is not supposed to happen when ABI_CHANGES_FOR_PLACEMENT_DELETE
+is FALSE.  Now fixed (the operator delete is not called on an exception).
+
 7/15/03  Microsoft mode: __declspec(intrin_type)
 
 The front end now accepts the Microsoft specifier __declspec(intrin_type).
