@@ -139,12 +139,6 @@ extern void remap_pointers_in_il_entry(char                 *entry_ptr,
 
 extern void remap_il_header_pointers(a_remap_function_ptr remap_function);
 
-
-extern void walk_orphaned_file_scope_il_entries(
-             an_entry_process_function_ptr       entry_process_function,
-             a_string_entry_process_function_ptr string_entry_process_function,
-             a_remap_function_ptr                remap_function);
-
 extern void remap_orphaned_file_scope_entry_array_ptrs(
                                        a_remap_function_ptr remap_function);
 #endif /* IL_WALK_NEEDED */

@@ -1337,106 +1337,6 @@ walking.
 }  /* walk_string_entry */
 
 
-void walk_file_scope_il(
-             an_entry_process_function_ptr       entry_process_function,
-             a_string_entry_process_function_ptr string_entry_process_function,
-             a_remap_function_ptr                remap_function)
-/*
-Walk the intermediate language tree for the file scope.  Begin with il_header
-and visit the whole file-scope tree, but do not go down into the information
-about each function.  Process each non-string entry by calling
-entry_process_function on that entry, and each string entry by calling
-string_entry_process_function on that entry.  Remap each pointer to a new
-value by calling remap_function.  entry_process_function,
-string_entry_process_function, or remap_function can be NULL to indicate
-that the corresponding function is unnecessary.
-
-The remapping function is used when reading in an IL file.  The IL tree
-was in memory in some way, and was written out exactly the way it
-looked.  Now it has been read back in, and each memory block is probably
-at a different location than when written out.  All of the pointers
-need to be updated from their "old" values to the proper "new" values.
-That is what the remap function does.
-*/
-{
-  db_enter(4, "walk_file_scope_il");
-  /* Save the function pointers so they don't have to be passed around. */
-  entry_process_func = entry_process_function;
-  string_entry_process_func = string_entry_process_function;
-  remap_func = remap_function;
-  walk_subtree = TRUE;
-  walking_file_scope = TRUE;
-  flag_value_meaning_visited = NOT_SET_YET;
-#ifdef FFE
-  array_bound_walk_index = 0;
-#endif /* ifdef FFE */
-
-  /* Process the IL header.  Note that all of these pointers are to the
-     file scope memory region. */
-  walk_ptr(il_header.primary_source_file, a_source_file_ptr, iek_source_file);
-  walk_ptr(il_header.primary_scope, a_scope_ptr, iek_scope);
-  remap_ptr(il_header.main_routine, a_routine_ptr, iek_routine);
-  walk_string_ptr(il_header.compiler_version, iek_other_text, 0);
-  walk_string_ptr(il_header.time_of_compilation, iek_other_text, 0);
-  /* region_scope_entry should not be walked. */
-  db_exit();
-}  /* walk_file_scope_il */
-
-
-void walk_routine_scope_il(
-             a_memory_region_number              region_number,
-             an_entry_process_function_ptr       entry_process_function,
-             a_string_entry_process_function_ptr string_entry_process_function,
-             a_remap_function_ptr                remap_function)
-/*
-Walk the intermediate language tree for a routine scope.  Begin with the
-scope entry for region region_number, and visit the whole scope tree.
-Process each non-string entry by calling entry_process_function on that
-entry, and each string entry by calling string_entry_process_function on
-that entry.  Remap each pointer to a new value by calling remap_function.
-entry_process_function, string_entry_process_function, or remap_function
-can be NULL to indicate that the corresponding function is unnecessary.
-*/
-{
-  an_entry_process_function_ptr       prev_entry_process_func =
-                                           entry_process_func;
-  a_string_entry_process_function_ptr prev_string_entry_process_func =
-                                           string_entry_process_func;
-  a_remap_function_ptr                prev_remap_func =
-                                           remap_func;
-  a_boolean                           prev_walking_file_scope =
-                                           walking_file_scope;
-  int                                 prev_flag_value_meaning_visited =
-                                           flag_value_meaning_visited;
-
-  db_enter(4, "walk_routine_scope_il");
-  /* Save the function pointers so they don't have to be passed around. */
-  entry_process_func = entry_process_function;
-  string_entry_process_func = string_entry_process_function;
-  remap_func = remap_function;
-  walk_subtree = TRUE;
-  /* Walking a routine scope, not the file scope. */
-  walking_file_scope = FALSE;
-  flag_value_meaning_visited = NOT_SET_YET;
-#ifdef FFE
-  array_bound_walk_index = 0;
-#endif /* ifdef FFE */
-
-  /* Process the scope and its subtree. */
-  walk_entry_and_subtree((char *)il_header.region_scope_entry[region_number],
-                         iek_scope);
-
-  /* Restore the previous values of the function pointers etc. */
-  entry_process_func = prev_entry_process_func;
-  string_entry_process_func = prev_string_entry_process_func;
-  remap_func = prev_remap_func;
-  walking_file_scope = prev_walking_file_scope;
-  flag_value_meaning_visited = prev_flag_value_meaning_visited;
-
-  db_exit();
-}  /* walk_routine_scope_il */
-
-
 /*
 Local macro to ease stepping through the orphaned_file_scopes_il_entries
 array and process the lists of IL entries of each type pointed to by the
@@ -1448,10 +1348,7 @@ array and process the lists of IL entries of each type pointed to by the
                ptr_type, entry_kind)
 
 
-void walk_orphaned_file_scope_il_entries(
-             an_entry_process_function_ptr       entry_process_function,
-             a_string_entry_process_function_ptr string_entry_process_function,
-             a_remap_function_ptr                remap_function)
+static void walk_orphaned_file_scope_il_entries(void)
 /*
 For each IL entry kind, process any orphaned file scope IL entries chained
 to the orphaned_file_scope_il_entries table.  As function scopes were
@@ -1462,18 +1359,7 @@ IL entries of each kind.  If the IL type contains a "next" field, the IL
 entry linked on the orphaned list may, in turn, be the head of a list.
 */
 {
-  an_entry_process_function_ptr       prev_entry_process_func =
-                                           entry_process_func;
-  a_string_entry_process_function_ptr prev_string_entry_process_func =
-                                           string_entry_process_func;
-  a_remap_function_ptr                prev_remap_func =
-                                           remap_func;
-
   db_enter(4, "walk_orphan_file_scope_il_entries");
-  /* Save the function pointers so they don't have to be passed around. */
-  entry_process_func = entry_process_function;
-  string_entry_process_func = string_entry_process_function;
-  remap_func = remap_function;
   walk_subtree = TRUE;
 
   walk_orphan_list_first(walk_list, a_source_file_ptr, iek_source_file);
@@ -1538,15 +1424,114 @@ entry linked on the orphaned list may, in turn, be the head of a list.
                          iek_constructor_init);
 #endif /* ifdef CFE */
 
-  /* Restore the previous values of the function pointers etc. */
-  entry_process_func = prev_entry_process_func;
-  string_entry_process_func = prev_string_entry_process_func;
-  remap_func = prev_remap_func;
-
   db_exit();
 }  /* walk_orphaned_file_scope_il_entries */
 
 #undef walk_orphan_list_first
+
+
+void walk_file_scope_il(
+             an_entry_process_function_ptr       entry_process_function,
+             a_string_entry_process_function_ptr string_entry_process_function,
+             a_remap_function_ptr                remap_function)
+/*
+Walk the intermediate language tree for the file scope.  Begin with il_header
+and visit the whole file-scope tree, but do not go down into the information
+about each function.  Process each non-string entry by calling
+entry_process_function on that entry, and each string entry by calling
+string_entry_process_function on that entry.  Remap each pointer to a new
+value by calling remap_function.  entry_process_function,
+string_entry_process_function, or remap_function can be NULL to indicate
+that the corresponding function is unnecessary.
+
+The remapping function is used when reading in an IL file.  The IL tree
+was in memory in some way, and was written out exactly the way it
+looked.  Now it has been read back in, and each memory block is probably
+at a different location than when written out.  All of the pointers
+need to be updated from their "old" values to the proper "new" values.
+That is what the remap function does.
+*/
+{
+  db_enter(4, "walk_file_scope_il");
+  /* Save the function pointers so they don't have to be passed around. */
+  entry_process_func = entry_process_function;
+  string_entry_process_func = string_entry_process_function;
+  remap_func = remap_function;
+  walk_subtree = TRUE;
+  walking_file_scope = TRUE;
+  flag_value_meaning_visited = NOT_SET_YET;
+#ifdef FFE
+  array_bound_walk_index = 0;
+#endif /* ifdef FFE */
+
+  /* Process the IL header.  Note that all of these pointers are to the
+     file scope memory region. */
+  walk_ptr(il_header.primary_source_file, a_source_file_ptr, iek_source_file);
+  walk_ptr(il_header.primary_scope, a_scope_ptr, iek_scope);
+  remap_ptr(il_header.main_routine, a_routine_ptr, iek_routine);
+  walk_string_ptr(il_header.compiler_version, iek_other_text, 0);
+  walk_string_ptr(il_header.time_of_compilation, iek_other_text, 0);
+  /* region_scope_entry should not be walked. */
+
+  /* Walk through the orphaned IL entries referenced from 
+     function scopes, but in the file scope memory region. */
+  walk_orphaned_file_scope_il_entries();
+  db_exit();
+}  /* walk_file_scope_il */
+
+
+void walk_routine_scope_il(
+             a_memory_region_number              region_number,
+             an_entry_process_function_ptr       entry_process_function,
+             a_string_entry_process_function_ptr string_entry_process_function,
+             a_remap_function_ptr                remap_function)
+/*
+Walk the intermediate language tree for a routine scope.  Begin with the
+scope entry for region region_number, and visit the whole scope tree.
+Process each non-string entry by calling entry_process_function on that
+entry, and each string entry by calling string_entry_process_function on
+that entry.  Remap each pointer to a new value by calling remap_function.
+entry_process_function, string_entry_process_function, or remap_function
+can be NULL to indicate that the corresponding function is unnecessary.
+*/
+{
+  an_entry_process_function_ptr       prev_entry_process_func =
+                                           entry_process_func;
+  a_string_entry_process_function_ptr prev_string_entry_process_func =
+                                           string_entry_process_func;
+  a_remap_function_ptr                prev_remap_func =
+                                           remap_func;
+  a_boolean                           prev_walking_file_scope =
+                                           walking_file_scope;
+  int                                 prev_flag_value_meaning_visited =
+                                           flag_value_meaning_visited;
+
+  db_enter(4, "walk_routine_scope_il");
+  /* Save the function pointers so they don't have to be passed around. */
+  entry_process_func = entry_process_function;
+  string_entry_process_func = string_entry_process_function;
+  remap_func = remap_function;
+  walk_subtree = TRUE;
+  /* Walking a routine scope, not the file scope. */
+  walking_file_scope = FALSE;
+  flag_value_meaning_visited = NOT_SET_YET;
+#ifdef FFE
+  array_bound_walk_index = 0;
+#endif /* ifdef FFE */
+
+  /* Process the scope and its subtree. */
+  walk_entry_and_subtree((char *)il_header.region_scope_entry[region_number],
+                         iek_scope);
+
+  /* Restore the previous values of the function pointers etc. */
+  entry_process_func = prev_entry_process_func;
+  string_entry_process_func = prev_string_entry_process_func;
+  remap_func = prev_remap_func;
+  walking_file_scope = prev_walking_file_scope;
+  flag_value_meaning_visited = prev_flag_value_meaning_visited;
+
+  db_exit();
+}  /* walk_routine_scope_il */
 
 
 void remap_pointers_in_il_entry(char                 *entry_ptr,
