@@ -613,9 +613,6 @@ extern an_expr_node_ptr make_base_class_lvalue_from_var(
                                              a_base_class_ptr bcp,
                                              a_boolean        complete_object);
 
-extern an_expr_node_ptr add_cast(an_expr_node_ptr node,
-                                 a_type_ptr       new_type);
-
 extern void change_to_cast(an_expr_node_ptr node,
                            an_expr_node_ptr operand_node,
                            a_type_ptr       new_type);
@@ -645,9 +642,6 @@ extern an_expr_node_ptr make_vbase_class_lvalue_from_var(
                                              a_variable_ptr   var,
                                              a_base_class_ptr bcp,
                                              a_boolean        complete_object);
-
-extern an_expr_node_ptr add_cast_if_necessary(an_expr_node_ptr node,
-                                              a_type_ptr       new_type);
 
 extern a_boolean is_invariant_expr(an_expr_node_ptr expr,
                                    a_boolean        vars_can_change);
