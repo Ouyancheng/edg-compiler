@@ -2710,10 +2710,10 @@ Returns TRUE if there is an error in the specifiers.
         } else if (is_friend_decl
 #if MICROSOFT_EXTENSIONS_ALLOWED
                    /* In Microsoft-compatibility mode a friend function can
-                      be declared "static". */
-                   && (!microsoft_mode || curr_token != tok_static)
+                      be declared "static" or "extern". */
+                   && !microsoft_mode
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                   ) {
+                                     ) {
           error(ec_storage_class_in_friend_decl);
           err = TRUE;
         } else if (curr_token == tok_mutable) {
@@ -2730,7 +2730,7 @@ Returns TRUE if there is an error in the specifiers.
                    curr_token != tok_static) {
           error(ec_storage_class_not_allowed);
           err = TRUE;
-        } else if (is_member_decl &&
+        } else if (is_member_decl && !is_friend_decl &&
                    curr_token != tok_static && curr_token != tok_typedef) {
           error(ec_bad_member_storage_class);
           err = TRUE;
@@ -2984,10 +2984,9 @@ Returns TRUE if there is an error in the specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
                 /* In Microsoft-compatibility mode a friend function can be
                    declared "static". */
-                && (!microsoft_mode ||
-                    *storage_class == (a_storage_class)sc_static)
+                && !microsoft_mode
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                 ) {
+                                  ) {
               error(ec_storage_class_in_friend_decl);
               err = TRUE;
               *storage_class = (a_storage_class)sc_unspecified;

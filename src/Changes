@@ -1,9 +1,9 @@
 Version 2.33
 
-9/12/96 Microsoft compatibility: "static" on friend function declaration
+9/12/96 Microsoft compatibility: storage on friend function declaration
 
 In Microsoft-compatibility mode a friend function declaration can now be
-declared with static storage class.
+declared with a storage class ("static" or "extern").
 
 9/12/96 Microsoft compatibility: empty enumerator list allowed in C mode
 

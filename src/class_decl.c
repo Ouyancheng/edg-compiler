@@ -4065,15 +4065,25 @@ of the function, and again overloading is a possibility.
           set_to_named_error_locator(*locator);
         }  /* if */          
       }  /* if */
-      if (func_info->is_inline
+      /* Default storage class setting. */
+      storage_class = (a_storage_class)sc_extern;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          || (microsoft_mode &&
-              decl_info->storage_class == (a_storage_class)sc_static)
+      if (microsoft_mode && storage_class != (a_storage_class)sc_unspecified) {
+        /* In Microsoft mode "extern" and "static" are permitted on a
+           nonmember friend declaration. */
+        storage_class = decl_info->storage_class;
+        if (storage_class != (a_storage_class)sc_static &&
+            storage_class != (a_storage_class)sc_extern) {
+          /* The storage class of a function has to be extern or static. */
+          pos_warning(ec_bad_function_storage_class,
+                      &decl_info->decl_start_pos);
+          storage_class = (a_storage_class)sc_extern;
+        }  /* if */
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                     ) {
+      if (func_info->is_inline) {
+        /* Treat any inline function as static. */
         storage_class = (a_storage_class)sc_static;
-      } else {
-        storage_class = (a_storage_class)sc_extern;
       }  /* if */
       decl_routine(locator, storage_class, function_type, func_info,
                    declarator_ssep, srk_flags, decl_info->decl_modifiers,
@@ -4091,6 +4101,13 @@ of the function, and again overloading is a possibility.
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_self_friendship);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode &&
+          decl_info->storage_class != (a_storage_class)sc_unspecified) {
+        /* Member function -- storage class is not allowed. */
+        pos_warning(ec_storage_class_not_allowed, &decl_info->decl_start_pos);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* It's a member function.  Find the right type signature for this
          member function name.  This could potentially be an instance of
          a member function template.  If none can be found, NULL is
