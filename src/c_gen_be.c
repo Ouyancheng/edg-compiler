@@ -2997,8 +2997,12 @@ process_assignment:
         case eok_comma:
 #if CHECKING
 #if !STANDALONE_UTILITY_PROGRAM
-          check_assertion_str(il_identical_types(operand_2->type, expr_type),
-                              "dump_expr: bad type on eok_comma");
+          if (!il_identical_types(operand_2->type, expr_type)) {
+#if DEBUG
+            db_expression(expr);
+#endif /* DEBUG */
+            internal_error("dump_expr: bad type on eok_comma");
+          }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
           check_result_not_used_flag(operand_1);
 #endif /* CHECKING */
@@ -3016,13 +3020,17 @@ process_assignment:
           goto done_with_operation;
         case eok_question:
           /* Three operand operator. */
+#if CHECKING
 #if !STANDALONE_UTILITY_PROGRAM
-          check_assertion_str(il_identical_types(operand_2->type,
-                                                 expr_type) &&
-                              il_identical_types(operand_2->next->type,
-                                                 expr_type),
-                              "dump_expr: bad type on eok_question");
+          if (!il_identical_types(operand_2->type, expr_type) ||
+              !il_identical_types(operand_2->next->type, expr_type)) {
+#if DEBUG
+            db_expression(expr);
+#endif /* DEBUG */
+            internal_error("dump_expr: bad type on eok_question");
+          }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* CHECKING */
           dump_boolean_controlling_expression(operand_1);
           write_tok_str(" ? ");
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -3160,11 +3168,17 @@ done_with_operation:
       break;
 #if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
     case enk_object_lifetime:
+#if CHECKING
 #if !STANDALONE_UTILITY_PROGRAM
-      check_assertion_str(il_identical_types(expr->type,
-                                     expr->variant.object_lifetime.expr->type),
-                          "dump_expr: bad type on enk_object_lifetime");
+      if (!il_identical_types(expr->type,
+                              expr->variant.object_lifetime.expr->type)) {
+#if DEBUG
+        db_expression(expr);
+#endif /* DEBUG */
+        internal_error("dump_expr: bad type on enk_object_lifetime");
+      }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* CHECKING */
       /* Ignore this node (use what's under it). */
       dump_expr(expr->variant.object_lifetime.expr, need_parens);
       break;
