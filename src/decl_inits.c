@@ -1335,7 +1335,7 @@ returned set to TRUE.
        class reactivated. */
     push_class_reactivation_scope(symbol_ptr->class_of_which_a_member);
   } else if (static_lifetime && long_lifetime_temps &&
-             depth_innermost_function_scope != DEPTH_OF_FILE_SCOPE) {
+             depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     /* This is the initialization of a local static variable, and the user
        has opted for long-lifetime temporaries.  Push an expr-temporary
        lifetime to help handle the case. */
