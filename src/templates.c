@@ -2730,8 +2730,8 @@ Instantiate the body of the template function associated with tip.
   }  /* if */
 done:;
   /* The already instantiated flag is set even if certain error conditions
-     (such as runaway instantiation) to prevent the compiler from attempting
-     to instantiate this function again. */
+     exist (such as runaway instantiation), to prevent the compiler from
+     attempting to instantiate this function again. */
   tip->already_instantiated = TRUE;
   db_exit();
 }  /* instantiate_template_function */
@@ -2873,8 +2873,8 @@ and the class instantiation will detect the runaway case.
 #endif /* 0 */
 done:
   /* The already instantiated flag is set even if certain error conditions
-     (such as runaway instantiation) to prevent the compiler from attempting
-     to instantiate this static data member again. */
+     exist (such as runaway instantiation), to prevent the compiler from
+     attempting to instantiate this static data member again. */
   tip->already_instantiated = TRUE;
   db_exit();
 }  /* define_template_static_data_member */
