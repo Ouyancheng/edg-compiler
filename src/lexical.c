@@ -9615,9 +9615,13 @@ this routine.  Its value is unchanged if no errors are detected.
           if (param_ptr->has_default_arg) {
             /* A type parameter with a default value.  The default can be
 	       either a type or a token cache that needs to be scanned. */
-            arg_ptr->variant.type =
+            if (!templ_templ_param_of_curr_decl) {
+              arg_ptr->variant.type =
                      rescan_template_type_default_arg(template_sym,
                                                       param_ptr, arg_list);
+            } else {
+              arg_ptr->variant.type = param_ptr->default_arg.type;
+            }  /* if */
           } else {
             /* A type parameter with no default argument.  This occurs only
                in error cases.  Use an error type. */

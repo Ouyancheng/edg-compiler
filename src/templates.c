@@ -12027,6 +12027,10 @@ parameter entry for the parameter.
       template_param->def_arg_involves_template_param = TRUE;
       set_template_cache_info(&template_param->default_arg_cache,
                               &def_arg_cache, decl_state->decl_info);
+      /* Consider this template parameter list to be dependent so that
+         it (and the default argument) will be rescanned for each
+         instantiation. */
+      decl_state->has_dependent_templ_param = TRUE;
     } else {
       /* Discard the default argument token cache if it is not needed for
          later use. */
@@ -12162,6 +12166,7 @@ parameter depends on a template parameter.
       template_param->def_arg_involves_template_param = TRUE;
       set_template_cache_info(&template_param->default_arg_cache,
                               &def_arg_cache, decl_state->decl_info);
+      decl_state->has_dependent_templ_param = TRUE;
     } else {
       /* Discard the default argument token cache. */
       discard_token_cache(&def_arg_cache);
@@ -12293,20 +12298,6 @@ depends on a another template parameter.
      template parameter. */
   check_template_param_default_args(local_decl_state.decl_info->parameters,
                                     /*is_partial_specialization=*/FALSE);
-  if (local_decl_state.has_dependent_templ_param) {
-    /* If one of the template parameters of the template template parameter
-       is dependent, propagate this information up to the enclosing
-       template. */
-    parent_decl_state->has_dependent_templ_param = TRUE;
-    tssp->variant.class_template.involves_template_param = TRUE;
-    if (!is_rescan) {
-      /* Don't attempt to save the cache information if, during a rescan,
-         the template is still dependent. */
-      set_template_cache_info(&template_param->cache, param_cache,
-                              parent_decl_state->decl_info);
-      *param_cache_used = TRUE;
-    }  /* if */
-  }  /* if */
   if (curr_token == tok_assign) {
     a_token_cache			def_arg_cache;
     a_template_ptr			def_arg_templ;
@@ -12340,10 +12331,28 @@ depends on a another template parameter.
       template_param->def_arg_involves_template_param = TRUE;
       set_template_cache_info(&template_param->default_arg_cache,
                               &def_arg_cache, parent_decl_state->decl_info);
+      /* Consider this template template parameter to be dependent so that
+         it (and the default argument) will be rescanned for each
+         instantiation. */
+      local_decl_state.has_dependent_templ_param = TRUE;
     } else {
       /* Discard the default argument token cache if it is not needed for
          later use. */
       discard_token_cache(&def_arg_cache);
+    }  /* if */
+  }  /* if */
+  if (local_decl_state.has_dependent_templ_param) {
+    /* If one of the template parameters of the template template parameter
+       is dependent, propagate this information up to the enclosing
+       template. */
+    parent_decl_state->has_dependent_templ_param = TRUE;
+    tssp->variant.class_template.involves_template_param = TRUE;
+    if (!is_rescan) {
+      /* Don't attempt to save the cache information if, during a rescan,
+         the template is still dependent. */
+      set_template_cache_info(&template_param->cache, param_cache,
+                              parent_decl_state->decl_info);
+      *param_cache_used = TRUE;
     }  /* if */
   }  /* if */
   return template_param;
