@@ -10318,6 +10318,19 @@ Display and return the amount of space used for various IL tables.
 #endif /* DEBUG */
 
 
+void init_type_of_type_info(void)
+/*
+Create an undefined (i.e., "predeclared") type for the type associated with
+type_info.  The symbol created is not entered into the symbol table.
+*/
+{
+  type_of_type_info = alloc_type((a_type_kind)tk_class);
+  type_of_type_info->source_corresp.name_linkage =
+                               (a_name_linkage_kind)nlk_cplusplus_external;
+  make_symbol_for_type_of_type_info();
+}  /* init_type_of_type_info */
+
+
 void il_one_time_init(void)
 /*
 Do one-time initialization of variables related to the IL. (Variables

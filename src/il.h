@@ -835,6 +835,8 @@ extern void f_add_orphaned_file_scope_il_entry(char             *entry_ptr,
 extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
+extern void init_type_of_type_info(void);
+
 extern void il_reset(void);
 
 extern void il_one_time_init(void);
