@@ -4826,6 +4826,7 @@ gives the source position of the member name reference.
                                 /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/FALSE,
                                 /*is_object_pointer=*/TRUE);
+        class_struct_union_type = desired_class;
       }  /* if */
       /* If the member symbol is a projection symbol (i.e., it's inherited
          into the class where it is being referenced), cast the left operand
@@ -4841,17 +4842,55 @@ gives the source position of the member name reference.
                                 /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/TRUE,
                                 /*is_object_pointer=*/TRUE);
+        class_struct_union_type = bcp->type;
       }  /* if */
-      if (projection_member_sym != member_sym &&
-          member_sym->kind == (a_symbol_kind)sk_projection) {
-        /* This comes up with overload sets that contain using-declarations.
-           Cast from the using-declaration class to the class of the member. */
-        bcp= member_sym->variant.projection.extra_info->fundamental_base_class;
-        base_class_cast_operand(operand_1, bcp, is_arrow_operator,
-                                /*check_cast_access=*/FALSE,
-                                /*is_implicit_cast=*/TRUE,
-                                /*implicit_in_naming=*/TRUE,
-                                /*is_object_pointer=*/TRUE);
+      if (projection_member_sym != member_sym) {
+        if (member_sym->parent.class_type != class_struct_union_type) {
+          /* In some cases, the member_sym and the projection_member_sym
+             don't quite meet up -- there's a gap in the base class
+             sequence.  This happens, for example, when a template
+             instance is generated; it is generated in the fundamental
+             class and no projection symbol exists for it.  Look for the
+             member of the overload set of projection_member_sym that is
+             the appropriate projection symbol. */
+          a_symbol_ptr fund_sym = fundamental_symbol_of(projection_member_sym);
+          a_symbol_ptr fund_member_sym = fundamental_symbol_of(member_sym);
+          a_symbol_ptr sym;
+          check_assertion(fund_sym->kind ==
+                                        (a_symbol_kind)sk_overloaded_function);
+          for (sym = fund_sym->variant.overloaded_function.symbols;
+               ;
+               sym = sym->next) {
+            check_assertion(sym != NULL);
+            fund_sym = fundamental_symbol_of(sym);
+            /* If the symbol is a member function template, see if the
+               function_symbol is an instance of the template.  Otherwise,
+               just compare the pointers. */
+            if (fund_sym->kind == (a_symbol_kind)sk_function_template &&
+                fund_member_sym->variant.routine.instance_ptr != NULL &&
+                fund_member_sym->variant.routine.instance_ptr->
+                                                    template_sym == fund_sym) {
+              member_sym = sym;
+              break;
+            }  /* if */
+          }  /* for */
+          /* Remove any namespace projection symbols. */
+          while (member_sym->kind == (a_symbol_kind)sk_namespace_projection) {
+            member_sym = namespace_projection_fundamental_symbol(sym);
+          }  /* while */
+        }  /* if */
+        if (member_sym->kind == (a_symbol_kind)sk_projection) {
+          /* This comes up with overload sets that contain using-declarations.
+             Cast from the using-declaration class to the class of the
+             member. */
+          bcp = member_sym->variant.projection.extra_info->
+                                                        fundamental_base_class;
+          base_class_cast_operand(operand_1, bcp, is_arrow_operator,
+                                  /*check_cast_access=*/FALSE,
+                                  /*is_implicit_cast=*/TRUE,
+                                  /*implicit_in_naming=*/TRUE,
+                                  /*is_object_pointer=*/TRUE);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5089,39 +5128,9 @@ identifier in the call.
     /* The function needs a selector. */
     if (!*have_selector) {
       /* We don't have a selector.  Try to generate one. */
-      /* Get the symbol used to name the function, which shows the inheritance
-         relationship between the naming class and the actual class of the
-         function. */
-      a_symbol_ptr sym = overloaded_function_symbol;
-      a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
-      if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function &&
-          !fund_sym->is_class_member) {
-        check_assertion(fund_sym->synthesized_namespace_projection);
-        /* This symbol was fabricated because of a lookup.  It could
-           contain member and non-member symbols, so we can't just get
-           the class type from the overloaded function symbol.  Find
-           the symbol in the overload set that corresponds to
-           function_symbol and use that. */
-        for (sym = fund_sym->variant.overloaded_function.symbols;
-             ;
-             sym = sym->next) {
-          check_assertion(sym != NULL);
-          fund_sym = fundamental_symbol_of(sym);
-          /* If the symbol is a member function template, see if the
-             function_symbol is an instance of the template.  Otherwise,
-             just compare the pointers. */
-          if (fund_sym->kind == (a_symbol_kind)sk_function_template ?
-                (base_function_symbol->variant.routine.instance_ptr != NULL &&
-                 base_function_symbol->variant.routine.instance_ptr->
-                                                    template_sym == fund_sym) :
-                (fund_sym == base_function_symbol)) break;
-        }  /* for */
-        /* Remove any namespace projection symbols. */
-        while (sym->kind == (a_symbol_kind)sk_namespace_projection) {
-          sym = namespace_projection_fundamental_symbol(sym);
-        }  /* while */
-      }  /* if */
-      if (make_this_pointer_operand(function_symbol, sym, function_position,
+      if (make_this_pointer_operand(function_symbol,
+                                    overloaded_function_symbol,
+                                    function_position,
                                     (a_boolean)function_operand->
                                          access_control_error_reported,
                                     bound_function_selector)) {
