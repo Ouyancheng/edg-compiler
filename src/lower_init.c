@@ -4353,8 +4353,9 @@ arrays with class elements.
   a_dynamic_init_ptr          dip = ndsp->dynamic_init, elem_dip;
   a_routine_ptr               new_routine = ndsp->routine;
   a_type_ptr                  array_type, elem_type, ptr_elem_type;
-  an_expr_node_ptr            entity_node, new_node;
+  an_expr_node_ptr            entity_node, new_node, compare_node;
   an_expr_node_ptr            assign_node, num_elem_node, vec_new_node;
+  a_constant                  null_constant;
   a_variable_ptr              temp_var;
   a_constant                  num_elem_constant;
   a_boolean                   preserve_size_node;
@@ -4398,12 +4399,10 @@ arrays with class elements.
          A *p = new (x, y, z) A[3];
        The "new" call is assigned to a temporary, and entity_node uses
        the temporary, as in
-         ((temp = (type *)new-call(...)), (type *)__vec_new(temp, ...))
-       The comma expression is necessary because we can't count on the
-       order of evaluation of arguments of the __vec_new call and the new-call
-       may contain the assignment to a temporary needed to make a reusable
-       copy of the size expression.  */
-    /* Make the "new" call. */
+         ((temp = (type *)new-call(...)) != NULL ?
+                                 (type *)__vec_new(temp, ...) : NULL)
+    */
+    /* Prepare the argument list for the "new" call. */
     check_assertion_str(new_routine != NULL,
                        "lower_array_new: placement new with null new_routine");
     lower_arg_expr_list(ndsp->arg, new_routine->type,
@@ -4423,7 +4422,7 @@ arrays with class elements.
     size_node = ndsp->arg;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Add the size of the runtime prefix used to keep track of the array
-       size. */
+       size to the argument for the operator new[] call. */
     { an_expr_node_ptr size_node_next = size_node->next;
       an_expr_node_ptr prefix_size_node;
 
@@ -4445,6 +4444,7 @@ arrays with class elements.
       size_node->next = size_node_next;
     }
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+    /* Make the "new" call. */
     new_node = make_call_node(new_routine, size_node,
                               /*honor_virtual=*/FALSE,
                               (an_insert_location *)NULL);
@@ -4455,23 +4455,17 @@ arrays with class elements.
                                            (an_expr_operator_kind)eok_passign,
                                            add_cast_if_necessary(new_node,
                                                                ptr_elem_type));
-    /* Start the insert list with the assignment. */
-    insert_expr(assign_node, &insert_location);
+    /* Add the != NULL test. */
+    make_zero_of_proper_type(ptr_elem_type, &null_constant);
+    assign_node->next = alloc_node_for_constant(&null_constant);
+    compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+                                      integer_type((an_integer_kind)ik_int),
+                                      assign_node);
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Add the array prefix size to get from the address returned to
-       the actual starting address of the array.  Put a "?" guard around
-       the increment to avoid incrementing temp if it is NULL. */
-    { a_constant       null_constant;
-      an_expr_node_ptr compare_node, add_node, assign_node, question_node;
-      an_expr_node_ptr temp_var_node;
+       the actual starting address of the array. */
+    { an_expr_node_ptr temp_var_node, add_node;
 
-      /* Make "temp != 0". */
-      temp_var_node = var_rvalue_expr(temp_var);
-      make_zero_of_proper_type(temp_var_node->type, &null_constant);
-      temp_var_node->next = alloc_node_for_constant(&null_constant);
-      compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
-                                        integer_type((an_integer_kind)ik_int),
-                                        temp_var_node);
       /* Make "temp = (type *)((char *)temp + __array_new_prefix_size)". */
       temp_var_node = var_rvalue_expr(temp_var);
       temp_var_node = add_cast_if_necessary(temp_var_node, char_star_type());
@@ -4482,12 +4476,7 @@ arrays with class elements.
       assign_node = make_var_assignment_expr(temp_var,
                                             (an_expr_operator_kind)eok_passign,
                                              add_node);
-      /* Make "(temp != 0) ? (temp = ...) : 0". */
-      compare_node->next = assign_node;
-      assign_node->next = alloc_node_for_constant(&null_constant);
-      question_node = make_operator_node((an_expr_operator_kind)eok_question,
-                                         assign_node->type, compare_node);
-      insert_expr(question_node, &insert_location);
+      insert_expr(assign_node, &insert_location);
     }
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     entity_node = var_rvalue_expr(temp_var);
@@ -4641,6 +4630,14 @@ arrays with class elements.
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   insert_expr(vec_new_node, &insert_location);
   vec_new_node = insert_location.variant.expr;
+  if (ndsp->placement_new) {
+    /* Placement new.  Add the "?" operator over the whole expression. */
+    compare_node->next = vec_new_node;
+    make_zero_of_proper_type(vec_new_node->type, &null_constant);
+    vec_new_node->next = alloc_node_for_constant(&null_constant);
+    vec_new_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                      vec_new_node->type, compare_node);
+  }  /* if */
   /* Overwrite expr with a cast of the result of __vec_new (of type void *)
      to the right pointer type. */
   change_to_cast(expr, vec_new_node, expr->type);
