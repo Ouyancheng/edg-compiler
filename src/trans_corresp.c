@@ -1743,7 +1743,13 @@ symbols are listed under the same header).
                       (sym1->kind == (a_symbol_kind)sk_routine &&
                        sym1->variant.routine.ptr
                            ->befriending_classes != NULL));
-      expect_error();
+      if (sym1->is_class_member &&
+          sym1->kind == (a_symbol_kind)sk_member_function &&
+          sym1->variant.routine.ptr->is_prototype_instantiation) {
+        report_bad_trans_unit_corresp(sym1->parent.class_type);
+      } else {
+        expect_error();
+      }  /* if */
     }  /* if */
   }  /* if */
   return match;
