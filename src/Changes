@@ -1,4 +1,7 @@
-Version 2.07
+Version 2.08
+
+-------------------------------------------------------------------------------
+Version 2.07, July 2, 1992
 
 7/1/92   Error is now issued on taking the address of a constructor
          or destructor.
