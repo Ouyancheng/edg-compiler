@@ -29,6 +29,7 @@ extern char *realloc(char *ptr, unsigned size);
 #include "il.h"
 #include "mem_manage.h"
 #include "error.h"
+#include "host_envir.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"

@@ -1873,7 +1873,7 @@ should be added.
 
   size = curr_size + incremental_size;
   /* The file must be large enough to contain the mapped area. */
-  if (fseek(file, size, SEEK_SET) == 0) {
+  if (fseek(file, (long)size, SEEK_SET) == 0) {
     /* Write a character at the last allocated position. */
     putc(0, file);
     /* Make sure the write to the file is actually done. */
@@ -1882,7 +1882,7 @@ should be added.
        about the after_end_of_block comparison in mem_manage.c. */
     addr = (a_void_ptr)mmap((char*)0, incremental_size + 1,
                             PROT_WRITE | PROT_READ, MAP_PRIVATE,
-                            fd, curr_size);
+                            fd, (a_ptrdiff)curr_size);
 #if DEBUG
     if (debug_level >= 5) {
       fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",

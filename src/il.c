@@ -32,13 +32,13 @@ il.c -- Construction of intermediate language trees.
 #include "folding.h"
 #include "lexical.h"
 #include "il_to_str.h"
-#include "pch.h"
 
 #if ALTERNATE_IL_FILE_FORMAT
 #include "il_file.h"
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 #if !STANDALONE_UTILITY_PROGRAM
+#include "pch.h"
 #include "func_def.h"
 #include "templates.h"
 
