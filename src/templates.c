@@ -14763,7 +14763,6 @@ the exported templates in that file.
   a_translation_unit_ptr	saved_tup = curr_translation_unit;
 
   /* Compile the specified translation unit. */
-  /* FIXME - need to handle directory name, include search paths, etc. */
   process_translation_unit(etfp->source_file_name, /*is_primary=*/FALSE, etfp);
   /* Save the translation unit pointer associated with this exported template
      file. */
