@@ -1969,6 +1969,7 @@ they should be used for the outermost instantiation scope.
   a_scope_depth		context_depth;
   a_scope_depth		definition_depth;
   a_namespace_ptr	common_nsp;
+  a_scope_depth		depth_of_first_context_scope = NO_SCOPE_DEPTH;
 
   /* Push the namespace containing the point of instantiation. */
   if (reference_nsp !=
@@ -1978,7 +1979,9 @@ they should be used for the outermost instantiation scope.
        namespace.  Reactivate the namespace associated with that
        reference. */
     if (reference_nsp != NULL) {
+      depth_of_first_context_scope = depth_scope_stack + 1;
       push_namespace_extension_scope(reference_nsp);
+      check_assertion(depth_scope_stack >= depth_of_first_context_scope);
     }  /* if */
   }  /* if */
   /* The context scope is the innermost namespace scope at this point,
@@ -2019,6 +2022,17 @@ they should be used for the outermost instantiation scope.
     common_depth = DEPTH_OF_FILE_SCOPE;
     common_nsp = NULL;
     definition_depth = DEPTH_OF_FILE_SCOPE;
+  }  /* if */
+  /* If we pushed some context scopes, reset the previous scope of the first
+     context scope so that its previous scope is the file scope.
+     Strictly speaking, this shouldn't be necessary, but is done for safety.
+     When a context scope is pushed, the instantiation_context_lookup is used
+     to correctly inspect the defintion, context, and common scopes.  In
+     other words, when the previous scope is not already the file scope,
+     the previous scope pointer of this scope shouldn't be used. */
+  if (depth_of_first_context_scope != NO_SCOPE_DEPTH) {
+    scope_stack[depth_of_first_context_scope].previous_scope =
+                                                           DEPTH_OF_FILE_SCOPE;
   }  /* if */
   /* The next scope pushed needs to have its previous scope set to the
      definition depth.  Save the depth of the scope that will need to
@@ -2107,10 +2121,6 @@ The following fixups need to be performed:
   primary_ssep->nested_instantiation = FALSE;
   primary_ssep->instantiation_context_depth = context_depth;
   primary_ssep->instantiation_common_depth = common_depth;
-  /* Set the previous_scope of the referencing context scope. */
-  if (context_depth != common_depth) {
-    scope_stack[context_depth].previous_scope = common_depth;
-  }  /* if */
   /* The previous_scope of the initial definition context scope will have
      already been set properly. */
   /* The scope pushed after the definition namespace context has been

@@ -1,5 +1,29 @@
 Version 2.39
 
+1/30/98   Lookup errors caused by interaction of templates and namespaces
+
+A bug in the manipulation of the scope stack when instantiating templates
+while using namespaces could result in spurious undefined symbol errors.
+This has been fixed.
+
+template <class T> class X {};
+namespace N1 {
+  namespace N2 {
+    class A {};
+  }
+}
+namespace N1 {
+  namespace N2 {
+    namespace N3 {
+      using namespace N1::N2;
+      class B {
+        X<int> x;
+      };
+      A f(); // Spurious error on this line
+    }
+  }
+}
+
 1/29/98   Microsoft compatibility: constant field selection in constant
           expression
 
