@@ -2793,7 +2793,8 @@ to indicate whether an enumeration is actually defined.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (extended_decl_info.decl_modifiers.uuid_string != NULL) {
+  if (!C_mode() && microsoft_mode &&
+      extended_decl_info.decl_modifiers.uuid_string != NULL) {
     if (enum_type->variant.integer.uuid_string != NULL) {
       /* Issue an error if __declspec(uuid(...)) strings are present and
          they aren't identical. */
