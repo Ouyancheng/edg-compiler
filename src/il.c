@@ -4909,6 +4909,7 @@ to it.
   fp->type       = NULL;
   fp->bit_offset = 0;
   fp->bit_size   = 0;
+  fp->is_bit_field = FALSE;
   fp->bit_field_is_signed = FALSE;
 
   db_exit();
@@ -5709,8 +5710,8 @@ return a pointer to it.
   field_node->variant.field = field;
   node->next = field_node;
   /* Use a different operator for bit field references. */
-  op = (field->bit_size != 0) ? (an_expr_operator_kind)eok_bit_field :
-                                (an_expr_operator_kind)eok_field;
+  op = (field->is_bit_field) ? (an_expr_operator_kind)eok_bit_field :
+                               (an_expr_operator_kind)eok_field;
   /* The selected field has all the type qualifiers of both the field
      and the selecting pointer. */
   selection_type = type_plus_qualifiers_from_second_type(field->type,

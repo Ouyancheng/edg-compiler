@@ -2594,6 +2594,7 @@ typedef struct a_variable {
 } a_variable;
 
 #ifdef CIL
+
 /*
 Data structures related to fields (members) of structs and unions:
 */
@@ -2622,8 +2623,9 @@ typedef struct a_field {
                         /* Size of this field (in bits).  Only non-zero
                            for bit-fields; for the others, the size is
                            gotten from the type. */
-  a_byte_boolean
-		bit_field_is_signed;
+  unsigned int  is_bit_field:1;
+			/* TRUE if the field represents a bit field. */
+  unsigned int  bit_field_is_signed:1;
 			/* TRUE if the field is a signed bit field. */
 } a_field;
 

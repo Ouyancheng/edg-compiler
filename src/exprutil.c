@@ -3491,7 +3491,7 @@ of the pointer to that bit field, in *ptr_type.
   if (!strict_ansi_mode) {
     /* See if the bit field is an even number of bytes long. */
     field_size = field->bit_size;
-    if (field_size % TARG_CHAR_BIT == 0) {
+    if (field_size > 0 && (field_size % TARG_CHAR_BIT == 0)) {
       field_size /= TARG_CHAR_BIT;
       /* See if the bit field is at an even byte offset. */
       field_offset = field->bit_offset;

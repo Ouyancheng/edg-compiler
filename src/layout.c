@@ -245,11 +245,6 @@ must be unsigned.
 }  /* check_enum_type_for_bit_field */
 
 
-/* A value used by class declaration processing only to represent the
-   size of a an unnamed bit field with a declared length of zero. */
-#define UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE (TARG_MAX_BIT_FIELD_SIZE + 1)
-
-
 void scan_bit_field_size(a_boolean         *unnamed_bit_field,
                          a_type_ptr        *p_base_type,
                          long              *p_bit_field_size,
@@ -320,28 +315,23 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       bit_field_size = max_size_allowed;
     } else if (bit_field_size == 0) {
       /* The bit-field size is zero, so the field must be unnamed. */
-      if (*unnamed_bit_field || cfront_compatibility_mode) {
-        /* Use a special value other than zero for the size of an unnamed
-           zero length bit field.  This is required for distinguishing a
-           field entry of type bit_field_type representing a zero length
-           bit field from a field entry for an ordinary field of the same
-           type that is unnamed (an extension). */
-        bit_field_size = UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE;
-        if (!(*unnamed_bit_field)) {
-          /* Cfront compatibility -- permit named bit fields to have zero
-             size, but change the value of *unnamed_bit_field so that they
-             will not be entered into the symbol table.  Note that it would
-             be possible for the name to be used again (though this would not
-             be acceptable to cfront), but it also means the field will not
-             be subject to initialization (cfront allows such fields to be
-             initialized and may generate invalid C as a result) and it means
-             the field cannot be referenced (again, cfront allows it and
-             generates invalid C). */
-          pos_warning(ec_zero_length_bit_field_must_be_unnamed,
-                      &locator->source_position);
-          *unnamed_bit_field = TRUE;
-        }  /* if */
+      if (*unnamed_bit_field) {
+        /* Okay. */
+      } else if (cfront_compatibility_mode) {
+        /* Cfront compatibility -- permit named bit fields to have zero
+           size, but change the value of *unnamed_bit_field so that they
+           will not be entered into the symbol table.  Note that it would
+           be possible for the name to be used again (though this would not
+           be acceptable to cfront), but it also means the field will not
+           be subject to initialization (cfront allows such fields to be
+           initialized and may generate invalid C as a result) and it means
+           the field cannot be referenced (again, cfront allows it and
+           generates invalid C). */
+        pos_warning(ec_zero_length_bit_field_must_be_unnamed,
+                    &locator->source_position);
+        *unnamed_bit_field = TRUE;
       } else {
+        /* Error. */
         pos_error(ec_zero_length_bit_field_must_be_unnamed,
                   &locator->source_position);
         bit_field_size = 1;
@@ -705,7 +695,6 @@ if there's no overflow TRUE is returned.
   a_boolean	   overflow;
   a_targ_size_t    save_byte_offset;
   int		   save_bit_offset;
-  a_boolean        unnamed_zero_length_bit_field = FALSE;
 
   db_enter(4, "set_field_size_and_offset");
   /* Set the size and alignment for the field's type, if necessary. */
@@ -715,13 +704,7 @@ if there's no overflow TRUE is returned.
     overflow = FALSE;
   } else {
     /* Check for a bit-field. */
-    if (field->bit_size != 0) {
-      if (field->bit_size == UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE) {
-        /* A special value was used to mark the field entry as representing
-           an unnamed zero-length bit field.  Restore bit_size to zero. */
-        field->bit_size = 0;
-        unnamed_zero_length_bit_field = TRUE;
-      }  /* if */
+    if (field->is_bit_field) {
       /* Do any necessary alignment for a bit-field. */
       overflow = !align_offsets_for_bit_field((int)field->bit_size,
                                               p_byte_offset, p_bit_offset,
@@ -733,9 +716,9 @@ if there's no overflow TRUE is returned.
     }  /* if */
     if (!overflow) {
       if (is_unnamed_field(field)) {
-        /* This is an unnamed bit field (or unnamed non-bit field).  The
-           alignment it forces should not affect the alignment of the struct
-           as a whole. */
+        /* This is an unnamed bit field (or unnamed non-bit field in pcc mode).
+           The alignment it forces should not affect the alignment of the
+           struct as a whole. */
       } else {
         /* Remember the most stringent alignment requirement as the alignment
            requirement for the overall struct. */
@@ -749,7 +732,7 @@ if there's no overflow TRUE is returned.
       save_byte_offset = *p_byte_offset;
       save_bit_offset = *p_bit_offset;
       /* Increment the current offsets to account for the field. */
-      if (field->bit_size != 0 || unnamed_zero_length_bit_field) {
+      if (field->is_bit_field) {
         /* For a bit-field. */
         overflow = !increment_field_offsets(p_byte_offset, p_bit_offset,
                                             (a_targ_size_t)0,

@@ -3925,18 +3925,18 @@ class, struct, or union.
     local_byte_offset = lob->byte_offset;
     local_bit_offset = lob->bit_offset;
   }  /* if */
+  /* Create the field entry. */
+  field = alloc_field();
+  field->type = *member_type;
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
     /* Scan the bit-field size and determine the bit-field type. */
     scan_bit_field_size(&unnamed_field, member_type, &bit_field_size,
                         &bit_field_is_signed, locator);
+    field->is_bit_field = TRUE;
+    field->bit_size = (a_byte)bit_field_size;
+    field->bit_field_is_signed = bit_field_is_signed;
   }  /* if */
-  /* Create the field entry.  For unnamed fields it will not actually become
-     part of the IL. */
-  field = alloc_field();
-  field->type = *member_type;
-  field->bit_size = (a_byte)bit_field_size;
-  field->bit_field_is_signed = bit_field_is_signed;
   /* For an unnamed field, do not create the field symbol. */
   if (unnamed_field) {
     /* All field entries for an unnamed fields share the same symbol.  It is

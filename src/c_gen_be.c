@@ -1926,7 +1926,7 @@ Dump the definition ({...}) if body is TRUE.
 #if 0
         /* Test for unnamed zero-length bit fields. */
 #endif /* 0 */
-        if (field->bit_size == 0) {
+        if (!field->is_bit_field) {
           /* Not bit field. */
           simple_type_reference(field_name(field), field->type);
         } else {

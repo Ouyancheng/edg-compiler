@@ -1755,7 +1755,6 @@ The result is placed in *result.
   a_field_ptr           field;
   a_type_ptr            result_type;
   a_boolean             rvalue_selection;
-  a_boolean             is_bit_field;
   a_type_ptr            selection_type;
   an_expr_operator_kind op;
   a_boolean             did_not_fold;
@@ -1795,27 +1794,26 @@ The result is placed in *result.
          eok_value_field -> eok_value_bit_field
          eok_field       -> eok_bit_field
     */
-    is_bit_field = (field->bit_size != 0);
     if (rvalue_selection) {
       /* For "rvalue . field", the type of the selection is the same
          as the result type. */
       selection_type = result_type;
-      op = is_bit_field ? (an_expr_operator_kind)eok_value_bit_field :
-                          (an_expr_operator_kind)eok_value_field;
+      op = field->is_bit_field ? (an_expr_operator_kind)eok_value_bit_field :
+                                 (an_expr_operator_kind)eok_value_field;
     } else {
       /* For "lvalue . field" and "rvalue -> field", the type of the
          selection (giving, as it does, the address of the resulting
          lvalue) is pointer-to the field type. */
       selection_type = make_pointer_type(result_type);
-      op = is_bit_field ? (an_expr_operator_kind)eok_bit_field :
-                          (an_expr_operator_kind)eok_field;
+      op = field->is_bit_field ? (an_expr_operator_kind)eok_bit_field :
+                                 (an_expr_operator_kind)eok_field;
     }  /* if */
     did_not_fold = TRUE;
     if (is_constant_operand(operand_1) && curr_expr_is_evaluated() &&
         expr_stack->fold_constant_addr_exprs) {
       /* Don't try to fold bit fields except when their addresses
          can be taken (as an extension). */
-      if (field->bit_size == 0
+      if (!field->is_bit_field
 #if ADDR_OF_BIT_FIELD_ALLOWED
           || is_bit_field_whose_address_can_be_taken(field, &selection_type)
 #endif /* ADDR_OF_BIT_FIELD_ALLOWED */
@@ -1836,7 +1834,7 @@ The result is placed in *result.
     if (did_not_fold) {
       if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
         /* The operation must fold to a constant in a constant expression. */
-        if (field->bit_size != 0) {
+        if (field->is_bit_field) {
           /* A bit-field selection cannot be folded.  There will be a
              warning or error issued later.  Nothing is needed now. */
         } else {
@@ -3021,7 +3019,7 @@ operation is a pointer-to-member (see ARM 5.3).
         check_assertion(member_sym->kind == (a_symbol_kind)sk_field);
         /* Change the kind in the reference entries to address-taken. */
         change_ref_kinds(operand.ref_entries_list, SRK_ADDRESS_TAKEN);
-        if (member_sym->variant.field.ptr->bit_size != 0) {
+        if (member_sym->variant.field.ptr->is_bit_field) {
           /* Cannot take the address of a bit field. */
           error_in_operand(ec_address_of_bit_field, &operand);
           make_error_operand(result);

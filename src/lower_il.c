@@ -1398,8 +1398,8 @@ an address for the struct, and produces the address of the field.
   field_node->variant.field = field;
   node->next = field_node;
   /* Use a different operator for bit field references. */
-  op = (field->bit_size != 0) ? (an_expr_operator_kind)eok_value_bit_field :
-                                (an_expr_operator_kind)eok_value_field;
+  op = (field->is_bit_field) ? (an_expr_operator_kind)eok_value_bit_field :
+                               (an_expr_operator_kind)eok_value_field;
   /* The selected field has all the type qualifiers of both the field
      and the selecting pointer. */
   selection_type = type_plus_qualifiers_from_second_type(field->type,
