@@ -3503,10 +3503,7 @@ See standard, 3.8.1.
         ik == (an_integer_kind)ik_unsigned_long)) {
     /* The type is not long, so change it.  It's changed to unsigned long
        if the current type is unsigned, otherwise to long. */
-    if (ik == (an_integer_kind)ik_unsigned_char  ||
-        (ik == (an_integer_kind)ik_char && !targ_has_signed_chars) ||
-        ik == (an_integer_kind)ik_unsigned_short ||
-        ik == (an_integer_kind)ik_unsigned_int)  {
+    if (!int_kind_is_signed(ik)) {
       ik = (an_integer_kind)ik_unsigned_long;
     } else {
       ik = (an_integer_kind)ik_long;
