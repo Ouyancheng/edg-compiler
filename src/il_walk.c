@@ -391,7 +391,7 @@ cases (anonymous unions containing types).
 #include "walk_entry.h"
 
 
-void set_routine_definition_needed(a_routine_ptr rout)
+static void set_routine_definition_needed(a_routine_ptr rout)
 /*
 Set the definition_needed flag on the indicated routine.  This means the
 definition of the routine is needed, and not just the declaration.
@@ -529,7 +529,7 @@ body of the function when the routine "defined" flag gets set after some
 }  /* remark_routine_definition_needed */
 
 
-void set_class_definition_needed(a_type_ptr type)
+static void set_class_definition_needed(a_type_ptr type)
 /*
 Set the definition_needed flag on the indicated class type.  This means the
 definition of the class is needed, and not just the declaration.
