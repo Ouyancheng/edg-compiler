@@ -6619,6 +6619,27 @@ skip_processing:
 }  /* coalesce_template_class_reference */
 
 
+static a_boolean symbol_is_or_contains_template(a_symbol_ptr sym)
+/*
+Return TRUE if sym points to a template symbol or an overload set
+containing a function template symbol.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (sym->kind == (a_symbol_kind)sk_class_template ||
+      sym->kind == (a_symbol_kind)sk_function_template) {
+    /* Okay -- the symbol found refers to a template. */
+  } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    for (sym = sym->variant.overloaded_function.symbols;
+         sym != NULL && !result; sym = sym->next) {
+      if (sym->kind == (a_symbol_kind)sk_function_template) result = TRUE;
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* symbol_is_or_contains_template */
+
+
 static a_boolean f_check_for_template_declarator_errors(
 				an_identifier_options_set	options,
 				a_source_position		*error_pos)
@@ -6634,8 +6655,7 @@ in a declarator of a template declaration.
     /* An error has already been issued. */
   } else if (!locator_for_curr_id.is_qualified_name) {
     /* No error tests are done on unqualified names. */
-  } else if (sym->kind == (a_symbol_kind)sk_class_template ||
-             sym->kind == (a_symbol_kind)sk_function_template) {
+  } else if (symbol_is_or_contains_template(sym)) {
     /* Okay -- the symbol found refers to a template. */
   } else if (options & GID_IS_TEMPLATE_SPECIALIZATION) {
     /* We are processing a template specialization (but not a full
@@ -6663,20 +6683,20 @@ in a declarator of a template declaration.
 
       tp = sym->parent.class_type;
       type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
-      is_template_class = is_template_class_symbol(type_sym);
       is_prototype_instantiation = is_prototype_instantiation_symbol(type_sym);
-      if (!is_template_class && !is_prototype_instantiation) {
-        /* The class is not a template class. */
-        pos_ty_error(ec_not_a_class_template, error_pos, tp);
-        any_errors = TRUE;
+      if (is_real_class_symbol(type_sym)) {
+        /* The class is a real class type (either normal or template based).
+           Let any possible errors be reported by the normal declaration
+           processing routines. */
       } else if (!is_prototype_instantiation) {
-        /* The class is a template class but not the prototype
-           instantiation.  Decide which of two errors should be issued
-           for this case.  The usual cause of this error is using an
-           incorrect template argument list (one that does not match the
-           template parameter list, but this may also be caused if the
-           class template definition is currently incomplete (so there is
-           no prototype instantiation yet). */
+        /* If the class is not a real class type, then it is expected
+           to be the prototype instantiation.  Decide which of two
+           errors should be issued for this case.  The usual cause of
+           this error is using an incorrect template argument list
+           (one that does not match the template parameter list, but
+           this may also be caused if the class template definition is
+           currently incomplete (so there is no prototype
+           instantiation yet). */
         a_symbol_ptr				template_sym;
         a_template_symbol_supplement_ptr	tssp;
         template_sym =
