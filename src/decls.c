@@ -5671,6 +5671,8 @@ block.
           add_to_namespaces_list(nsp);
         }  /* if */
       }  /* if */
+      /* Bypass the identifier. */
+      (void)get_token();
     }  /* if */
     remove_stop_token(tok_semicolon);
     (void)required_token(tok_semicolon, ec_exp_semicolon);
