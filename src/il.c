@@ -8580,18 +8580,20 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
       if (is_immediate_class_type(tp)) {
         a_class_type_supplement_ptr  ctsp;
         ctsp = tp->variant.class_struct_union.extra_info;
+        if (ctsp != NULL) {
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
-        if (ctsp->assoc_operator_new_routine != NULL &&
-            !ctsp->assoc_operator_new_routine->source_corresp.needed) {
-          ctsp->assoc_operator_new_routine = NULL;
-        }  /* if */
+          if (ctsp->assoc_operator_new_routine != NULL &&
+              !ctsp->assoc_operator_new_routine->source_corresp.needed) {
+            ctsp->assoc_operator_new_routine = NULL;
+          }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
-        if (ctsp->assoc_operator_delete_routine != NULL &&
-            !ctsp->assoc_operator_delete_routine->source_corresp.needed) {
-          ctsp->assoc_operator_delete_routine = NULL;
-        }  /* if */
+          if (ctsp->assoc_operator_delete_routine != NULL &&
+              !ctsp->assoc_operator_delete_routine->source_corresp.needed) {
+            ctsp->assoc_operator_delete_routine = NULL;
+          }  /* if */
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
+        }  /* if */
       }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR | DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DEBUG
