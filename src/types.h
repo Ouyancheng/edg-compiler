@@ -446,6 +446,7 @@ circuit some of the processing in common cases.
                           TCF_IGNORE_TYPE_QUALIFIERS |                \
                           TCF_IMPLICIT_CONVERSION))
 
+extern a_boolean is_address_of_string_constant(a_constant *constant);
 
 extern a_boolean same_type_with_added_qualifiers
                                     (a_type_ptr source_type,

@@ -2974,8 +2974,9 @@ whether or not non-portable casts involving pointers should be allowed.
   return (dest_type->size >= source_type->size);
 }  /* dest_of_ptr_cast_big_enough */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static a_boolean is_address_of_string_constant(a_constant *constant)
+a_boolean is_address_of_string_constant(a_constant *constant)
 /*
 Return TRUE if the given constant is the address of a string constant
 or wide string constant.
@@ -2991,6 +2992,7 @@ or wide string constant.
   return is_string;
 }  /* is_address_of_string_constant */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean same_type_with_added_qualifiers(a_type_ptr source_type,
 					  a_type_ptr dest_type,

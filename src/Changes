@@ -1,5 +1,18 @@
 Version 2.42
 
+5/14/99  C++-generating back end: string passed to template reference param
+
+The C++-generating back end now adds a cast to a string that is bound to
+a reference to ensure that, when the reference is a parameter of a
+template, the string is used as an address and not as an array of
+characters.
+
+  template<class _P>
+  inline const _P& max(const _P& p1, const _P& p2) { return p1; }
+  void foo() {
+    max((char*)"short", (char*)"longer");  // Casts formerly dropped
+  }
+
 5/14/99  C++-generating back end: avoid extern "C" inline
 
 The C++-generating back end now avoids putting out

@@ -3871,10 +3871,26 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
     write_tok_str("0)");
   } else {
     /* Other cases -- just put out the value. */
+    a_boolean cast_added = FALSE;
+    /* For a temporary that is the address of a string constant, add
+       a cast to ensure that the string is treated as the address rather
+       than as an array of char.  This is important when the expression
+       is passed as an argument to a template function: we want the
+       proper type to be deduced. */
+    if (dip->kind == (a_dynamic_init_kind)dik_expression &&
+        is_constant_node(dip->variant.expression)) {
+      a_constant_ptr con = dip->variant.expression->variant.constant;
+      if (is_address_of_string_constant(con) && con->implicit_cast) {
+        write_tok_ch('(');
+        gen_cast(con->type);
+        cast_added = TRUE;
+      }  /* if */
+    }  /* if */
     gen_dynamic_init(dip,
                      (a_type_ptr)NULL, /* Not a reference, not needed. */
                      /*parenthesized_init=*/FALSE,
                      /*force_parens=*/FALSE);
+    if (cast_added) write_tok_ch(')');
   }  /* if */
 }  /* gen_temp_init */
 
