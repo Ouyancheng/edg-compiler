@@ -101,6 +101,18 @@ a template-id.
          locator_for_curr_id.is_template_id : FALSE)
 
 /*
+Macro to be used in conjunction with is_type_specifier to check for
+Microsoft extensions.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define or_is_microsoft_type_specifier()                              \
+  || (microsoft_mode &&                                               \
+      (curr_token == tok_int32 || curr_token == tok_int64))
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define or_is_microsoft_type_specifier()  /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Macro that is TRUE if the current token is the start of a type
 specifier (except for the typedef and friend cases).  (3.5.2)
 */
@@ -112,7 +124,7 @@ specifier (except for the typedef and friend cases).  (3.5.2)
    curr_token == tok_unsigned || curr_token == tok_struct   ||        \
    curr_token == tok_union    || curr_token == tok_enum     ||        \
    curr_token == tok_class    || curr_token == tok_wchar_t  ||	      \
-   curr_token == tok_bool)
+   curr_token == tok_bool     or_is_microsoft_type_specifier())
 
 /*
 Macro that is TRUE if the current token is the start of a type qualifier
