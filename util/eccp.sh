@@ -746,14 +746,15 @@ do
       # An instantiation file exists which means the compilation involves
       # templates.  Construct the new .ii file.
       ii_tmp_file=$TMPDIR/$$edgII
-      sed -e "1,3 d" $ii_file_name >$ii_tmp_file
       if [ $old_ii_format -ne 1 ] ; then
 #       New format
+        sed -e "1,3 d" $ii_file_name >$ii_tmp_file
         echo $instantiation_command_line >$ii_file_name
         pwd >>$ii_file_name
 	echo $cfile >>$ii_file_name
       else
 #       Old format
+        sed -e "1,1 d" $ii_file_name >$ii_tmp_file
         echo $instantiation_command_line $cfile >$ii_file_name
       fi
       cat $ii_tmp_file >>$ii_file_name
