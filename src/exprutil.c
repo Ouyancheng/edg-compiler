@@ -602,6 +602,37 @@ current token will be used as the operand position.
 }  /* make_constant_operand */
 
 
+void make_sym_constant_operand(a_symbol_ptr sym,
+			       an_operand   *operand)
+/*
+Make a constant operand for the value of the given sk_constant symbol.
+The position of the current token will be used as the operand position.
+*/
+{
+  a_constant *con_ptr, constant;
+  a_type_ptr underlying_type;
+
+  check_assertion(sym->kind == (a_symbol_kind)sk_constant);
+  con_ptr = sym->variant.constant;
+  if (is_reference_type(con_ptr->type)) {
+    /* The constant has a reference type.  This happens for a constant
+       that is an argument for a nontype template parameter that has
+       a reference type. */
+    /* Make a version of the constant with pointer type, and make an lvalue
+       based on that constant. */
+    copy_constant(con_ptr, &constant);
+    underlying_type = type_pointed_to(constant.type);
+    constant.type = make_pointer_type(underlying_type);
+    make_constant_operand(&constant, operand);
+    operand->state = (an_operand_state)os_lvalue;
+    operand->type = underlying_type;
+  } else {
+    /* Normal (non-reference) case. */
+    make_constant_operand(con_ptr, operand);
+  }  /* if */
+}  /* make_sym_constant_operand */
+
+
 void make_string_constant_operand(a_constant *constant,
                                   an_operand *operand)
 /*
