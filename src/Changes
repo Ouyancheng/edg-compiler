@@ -1,5 +1,20 @@
 Version 2.27
 
+11/23/94 Change in disambiguation for error cases
+
+The disambiguation of a function declarator versus a parenthesized
+initializer formerly considered the type of the entity that would be
+initialized (and whether a parenthesized initializer could be applied
+to such a thing).  This was not correct, since disambiguation is
+supposed to be purely syntactic.  As a consequence of this change,
+some error cases are now disambiguated differently:
+
+  void f(undefined);
+
+This is now seen as a parenthesized initializer on a declaration of
+a variable f, rather than a declaration of a function f.  The variable
+has type void, so an error is then issued regarding the variable declaration.
+
 11/18/94 Folding of constant addressing expression in initializer expressions
          for function-local variables
 
