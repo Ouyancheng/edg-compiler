@@ -485,6 +485,8 @@ do
          --no_svr4 | \
          --brief_diagnostics | \
          --no_brief_diagnostics | \
+         --nonconst_ref_anachronism | \
+         --no_nonconst_ref_anachronism | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Check for C or C++ mode
