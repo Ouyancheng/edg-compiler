@@ -1957,6 +1957,7 @@ either an expression statement or a declaration statement.
 */
 {
   a_statement_ptr   sp;
+  a_boolean         saved_flag;
 
   db_enter(3, "for_statement");
 
@@ -1986,7 +1987,14 @@ either an expression statement or a declaration statement.
   remove_stop_token(tok_semicolon);
   /* Scan the incrementing expression if it is present. */
   if (curr_token != tok_rparen) {
+    /* Be sure that now used-before-set warnings are issued in scanning
+       the increment expression -- after all, a variable it references could
+       be set within the body of the loop.  */
+    saved_flag = suppress_used_before_set_warnings;
+    suppress_used_before_set_warnings = TRUE;
     sp->variant.for_loop.extra_info->increment = scan_void_expression();
+    /* Restore the global variable. */
+    suppress_used_before_set_warnings = saved_flag;
   }  /* if */
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
