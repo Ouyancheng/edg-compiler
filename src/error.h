@@ -579,6 +579,12 @@ Error routines.
 #if CHECKING
 extern void internal_error(char *error_message);
 #endif /* CHECKING */
+/* Make sure "a_symbol" and "a_type" are known as struct tags before their
+   uses below.  Otherwise, the declarations would be in the prototype scopes.
+   The "struct" form is used instead of the typedef name to avoid having to
+   include symbol_tbl.h and il_def.h in this file. */
+struct a_symbol;
+struct a_type;
 extern void command_line_error(char *error_message);
 extern void str_command_line_error(char *error_message,
                                    char *fill_in_string);
