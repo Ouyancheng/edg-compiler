@@ -7329,7 +7329,13 @@ constant is allocated (as a shareable constant).
      another type, and the straight enk_variable_address or enk_routine_address
      cannot represent that case.  Ditto if the offset is non-zero. */
   if (constant->kind == (a_constant_repr_kind)ck_address &&
-      !constant->implicit_cast && constant->variant.address.offset == 0) {
+      !constant->implicit_cast && constant->variant.address.offset == 0
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      /* Use the constant form if there's extra information in it on the
+         expression that generated the constant. */
+      && constant->expr == NULL
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+                                                                       ) {
     abkind = constant->variant.address.kind;
     if (abkind == (an_address_base_kind)abk_routine) {
       /* The constant is the address of a function; use an address-of-function

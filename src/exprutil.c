@@ -2728,11 +2728,11 @@ user-defined conversions.
         /* If the pointer to member is to a related class, or the pointer
            to function differs because of a conversion (e.g., a C++ vs.
            C linkage on the function type), adjust the operand. */
-        if (operand->type != new_type) {
-          cast_operand(new_type, operand, check_cast_access,
-                       is_implicit_cast,
-                       is_reinterpret_cast, reinterpret_semantics);
-        }  /* if */
+        /* This also takes care of recording the cast when
+           RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE. */
+        cast_operand(new_type, operand, check_cast_access,
+                     is_implicit_cast,
+                     is_reinterpret_cast, reinterpret_semantics);
         break;
 #if CHECKING
       default:
