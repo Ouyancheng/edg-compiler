@@ -177,6 +177,9 @@ typedef struct a_symbol_locator {
 			   process.  This is TRUE for template references
 			   that have been coalesced and for specific symbol
 			   error locators. */
+  unsigned int	is_template_id:1;
+			/* TRUE if the coalesced identifer is a template-id
+			   (i.e., template-name < template-arg-list >). */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,

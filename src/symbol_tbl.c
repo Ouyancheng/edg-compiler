@@ -9184,6 +9184,7 @@ to avoid an 8-character external name clash with symbol_table.)
   cleared_locator.is_nonclass_destructor          = FALSE;
   cleared_locator.is_error                        = FALSE;
   cleared_locator.do_not_clear_specific_symbol    = FALSE;
+  cleared_locator.is_template_id                  = FALSE;
   cleared_locator.specific_symbol                 = NULL;
   cleared_locator.variant.conversion_result_type  = NULL;
 
