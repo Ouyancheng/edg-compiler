@@ -6590,6 +6590,7 @@ of the template.
   ssep->is_loop_scope            = FALSE;
   ssep->slow_lookup_required     = FALSE;
   ssep->return_value_optimization_possible = FALSE;
+  ssep->is_prototype_instantiation_scope = FALSE;
   ssep->symbols                  = NULL;
   ssep->last_symbol              = NULL;
   ssep->il_scope                 = sp;
@@ -6705,6 +6706,12 @@ of the template.
         /* Static data members don't have their own scope so the
            template parameters are added at the instantiation scope. */
         reactivate_template_params = TRUE;
+      } else if (is_class_template_symbol(template_sym)) {
+        if (instance_sym != NULL && is_template_class_symbol(instance_sym)) {
+          ssep->is_prototype_instantiation_scope =
+                    instance_sym->variant.class_struct_union.extra_info->
+                                                is_prototype_instantiation;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (reactivate_template_params) {
@@ -7737,13 +7744,24 @@ should only be called if cross-reference information is being generated
   a_line_number line_number;
   a_boolean     at_end_of_source;
 
-  /* Ignore compiler-generated symbols and references whose position
-     is the command line. */
-  if (!sym_ptr->is_error &&
-      sym_ptr->kind != (a_symbol_kind)sk_extern_variable &&
-      sym_ptr->kind != (a_symbol_kind)sk_extern_routine &&
-      !is_unnamed_class_symbol(sym_ptr) &&
-      source_position->seq != 0) {
+  if (sym_ptr->is_error) {
+    /* Ignore errors. */
+  } else if (sym_ptr->kind == (a_symbol_kind)sk_extern_variable ||
+             sym_ptr->kind == (a_symbol_kind)sk_extern_routine) {
+    /* Ignore extern variable and routine symbols.  They are really just
+       shadow symbols for the the real ones. */
+  } else if (is_unnamed_class_symbol(sym_ptr)) {
+    /* Ignore symbols for unnamed classes */
+  } else if (source_position->seq == 0) {
+    /* This symbol is not associated with any particular source position. */
+  } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+             (sym_ptr->is_template_param ||
+              scope_stack[depth_innermost_instantiation_scope].
+                                           is_prototype_instantiation_scope)) {
+    /* Ignore template parameter symbols encountered during template
+       instantiation and any symbols encountered during prototype
+       instantiation. */
+  } else {
     /* The record written to the file is a text line that looks like
 
        symbol-id name X file-name line-number column-number
@@ -7791,6 +7809,32 @@ should only be called if cross-reference information is being generated
     /* Convert the source position to file name/line number. */
     conv_seq_to_file_and_line(source_position->seq, &file_name, &full_name,
                               &line_number, &at_end_of_source);
+#if 0 && DEBUG
+    fprintf(f_xref_info, "%lu\t", (unsigned long)sym_ptr);
+    if (db_active) {
+      FILE* f_debug_save = f_debug;
+      f_debug = f_xref_info;
+      if (is_type_symbol(sym_ptr)) {
+        db_type_name(type_symbol_type(sym_ptr));
+      } else {
+        a_source_correspondence *scp; 
+        scp = source_corresp_entry_for_symbol(sym_ptr);
+        if (scp != NULL) {
+          db_name(scp);
+        } else {
+          fprintf(f_xref_info, "%s", sym_ptr->header->identifier);
+        }  /* if */
+      }  /* if */
+      f_debug = f_debug_save;
+    } else {
+      fprintf(f_xref_info, "%s", sym_ptr->header->identifier);
+    }  /* if */
+    fprintf(f_xref_info, "\t%c\t%s\t%lu\t%d\n",
+                         code,
+                         file_name,
+                         line_number,
+                         source_position->column);
+#else /* !0 && DEBUG */
     fprintf(f_xref_info, "%lu\t%s\t%c\t%s\t%lu\t%d\n",
                          (unsigned long)sym_ptr,
                          sym_ptr->header->identifier,
@@ -7798,6 +7842,7 @@ should only be called if cross-reference information is being generated
                          file_name,
                          line_number,
                          source_position->column);
+#endif /* if 0 && DEBUG */
   }  /* if */
 }  /* write_xref_entry */
 
@@ -7981,15 +8026,14 @@ created for this entity; otherwise, it is NULL.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Update the cross reference file if it exists and if this is not a
-     template instantiation. */
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
-    if (f_xref_info != NULL) {
-      /* If writing cross-reference information, write an entry for this
-         declaration. */
-      write_xref_entry(srk_flags, sym_ptr, source_position);
-    }  /* if */
+  /* Update the cross reference file if it exists. */
+  if (f_xref_info != NULL) {
+    /* If writing cross-reference information, write an entry for this
+       declaration. */
+    write_xref_entry(srk_flags, sym_ptr, source_position);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
     if (sym_ptr->kind == (a_symbol_kind)sk_label) {
       /* Don't issue a source sequence entry for a label definition --
          a label is always defined by an stmk_label statement, for which
@@ -8014,8 +8058,8 @@ created for this entity; otherwise, it is NULL.
       sym_update_source_sequence_list(sym_ptr, source_position,
                                       is_primary_decl, ssep);
     }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_definition) {
     if (!sym_ptr->defined) {
       /* The source position in the IL entry is updated only after the source
@@ -8049,12 +8093,58 @@ symbol "used" or "set", if appropriate.
   a_source_correspondence *scptr;
   a_symbol_kind           sym_kind = sym_ptr->kind;
  
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
-    if (f_xref_info != NULL) {
-      /* If writing cross-reference information, write an entry for this
-         declaration. */
-      write_xref_entry(kind, sym_ptr, source_position);
+  /* If writing cross-reference information, write an entry for this
+     declaration. */
+  if (f_xref_info != NULL) {
+    a_symbol_ptr             sym_for_xref = sym_ptr;
+    a_symbol_reference_kind  kind_for_xref = kind;
+    a_type_ptr               tp = sym_ptr->variant.type;
+
+    if (sym_kind == (a_symbol_kind)sk_type) {
+      if (sym_ptr->is_template_param) {
+        /* A reference to a template parameter during template instantiation is
+           actually a reference to the template argument that it represents. */
+        tp = sym_ptr->variant.type;
+        if (tp->kind == (a_type_kind)tk_template_param) {
+          /* We are in the midst of a template definition. */
+        } else {
+          /* We are in the midst of a template instantion. */
+          for(;;) {
+            if (tp->kind == (a_type_kind)tk_typeref) {
+              if (tp->variant.typeref.is_const ||
+                  tp->variant.typeref.is_volatile) {
+                tp = tp->variant.typeref.type;
+              } else {
+                sym_for_xref = (a_symbol_ptr)tp->source_corresp.assoc_info;
+                check_assertion(sym_for_xref != NULL);
+                kind_for_xref |= SRK_IMPLICIT_TEMPLATE_ARG;
+                break;
+              }  /* if */
+            } else if (is_array_type(tp)) {
+              tp = array_element_type(tp);
+            } else if (is_ptr_or_ref_type(tp)) {
+              tp = type_pointed_to(tp);
+            } else {
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      }  /* if */
+    } else if (is_class_symbol(sym_ptr)) {
+      tp = type_symbol_type(sym_ptr);
+      if (is_immediate_class_type(tp) &&
+          sym_ptr->class_of_which_a_member == NULL) {
+        a_class_symbol_supplement_ptr  cssp;
+        cssp = sym_ptr->variant.class_struct_union.extra_info;
+        if (cssp->is_prototype_instantiation) {
+          /* A reference to a top-level prototype instantiation (i.e., not a
+             nested class) is put out as a reference to the template itself. */
+          sym_for_xref = cssp->class_template;
+          check_assertion(sym_for_xref != NULL);
+        }  /* if */
+      }  /* if */
     }  /* if */
+    write_xref_entry(kind, sym_for_xref, source_position);
   }  /* if */
   /* Set the referenced flag in the symbol. */
   sym_ptr->referenced = TRUE;
