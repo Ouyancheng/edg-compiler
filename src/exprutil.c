@@ -4954,7 +4954,7 @@ return without setting *optimized_case to TRUE.
         if (int_kind_is_signed[(int)ikind]) {
           sign_extend_integer_value(&operand->variant.constant.
                                                          variant.integer_value,
-                                    targ_char_bit);
+                                    (int)targ_char_bit);
         }  /* if */ 
         operand->type = char_type;
         operand->state = (an_operand_state)os_rvalue;
