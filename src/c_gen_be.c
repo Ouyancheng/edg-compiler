@@ -152,6 +152,12 @@ static FILE	*f_primary;
 static FILE	*f_C_output;
 			/* File to which the generated C is currently being
 			   written. */
+#if ONE_INSTANTIATION_PER_OBJECT
+static FILE	*f_C_file_list = NULL;
+			/* When each instantiation is written to a separate
+			   file, this file contains the list of file names
+			   generated. */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 /* Current output position -- file, line, sequence number, column: */
 static a_source_file_ptr
 		curr_output_file;
@@ -893,16 +899,14 @@ Return TRUE if the code for the entity with the given source correspondence
 information should be output.  In some modes, a #if 0 will be put out.
 */
 {
-  a_boolean output_code_for_entity = TRUE;
+  a_boolean output_code_for_entity;
 
-  if (!source_corresp->
 #if MAINTAIN_NEEDED_FLAGS
-                       needed
+  output_code_for_entity = needed_flag_is_set(source_corresp);
 #else /* !MAINTAIN_NEEDED_FLAGS */
-                       referenced
+  output_code_for_entity = source_corresp->referenced;
 #endif /* MAINTAIN_NEEDED_FLAGS */
-                                 ) {
-    output_code_for_entity = FALSE;
+  if (!output_code_for_entity) {
     if (annotate) {
       write_if_0_directive();
       output_code_for_entity = TRUE;
@@ -4726,6 +4730,24 @@ parameters.
   /* Determine whether or not the variable has a constant initializer.
      Non-constant initializers are handled by dump_dynamic_init. */
   init_con = constant_initializer(variable, &init_kind);
+#if ONE_INSTANTIATION_PER_OBJECT
+  if (init_con != NULL && needed_flag_bit_number != 0) {
+    /* We're generating separate files for each instantiation, so do not
+       put instantiation definitions into the primary output file, or
+       primary-file variable definitions into the instantiation files. */
+    if (variable->instantiation_needed_bit_number != 0) {
+      /* This variable is an instantiation and goes out only it its own
+         file. */
+      if (needed_flag_bit_number != variable->instantiation_needed_bit_number){
+        init_con = NULL;
+      }  /* if */
+    } else {
+      /* This variable belongs in the primary output file.  Don't put it out
+         if the current output file is for an instantiation. */
+      if (needed_flag_bit_number != 1) init_con = NULL;
+    }  /* if */
+  }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* See if this is a variable with a special name that shouldn't get
      changed (e.g., __link). */
   name = variable->source_corresp.name;
@@ -6013,6 +6035,24 @@ if this routine has a body (dump nothing if it has no body).
   a_boolean       is_definition;
   a_storage_class storage_class;
 
+#if ONE_INSTANTIATION_PER_OBJECT
+  if (has_defn && needed_flag_bit_number != 0) {
+    /* We're generating separate files for each instantiation, so do not
+       put instantiation definitions into the primary output file, or
+       primary-file routine definitions into the instantiation files. */
+    if (rout->instantiation_needed_bit_number != 0) {
+      /* This routine is an instantiation and goes out only it its own
+         file. */
+      if (needed_flag_bit_number != rout->instantiation_needed_bit_number) {
+        has_defn = FALSE;
+      }  /* if */
+    } else {
+      /* This routine belongs in the primary output file.  Don't put it out
+         if the current output file is for an instantiation. */
+      if (needed_flag_bit_number != 1) has_defn = FALSE;
+    }  /* if */
+  }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   if (!has_defn && dump_defn) {
     /* The routine has no body (i.e., no definition), and we're supposed
        to dump it only if it has a definition, so do nothing. */
@@ -6186,35 +6226,20 @@ definitions needed to support the generated code.
 }  /* dump_header_code */
 
 
-static void c_gen_be(void)
+static void generate_C_output_file(char *C_output_file_name)
 /*
-Generate C from the intermediate language.
+Generate a C output file (with the given name) from the intermediate language.
+If C_output_file_name is NULL, use stdout for the output.
 */
 {
-  a_scope_ptr       scope;
-  char              *C_output_file_name;
   a_boolean         cannot_open, bad_name;
+  a_scope_ptr       scope;
   a_source_position pos;
-#if STANDALONE_UTILITY_PROGRAM
-  /* This is a command-line option normally, but it's not available in the
-     standalone version. */
-  char              *gen_c_file_name = NULL;
-#endif /* STANDALONE_UTILITY_PROGRAM */
 
-  /* Open the output file. */
-  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) == 0) {
-    /* Primary source file is stdin, so use stdout here. */
+  if (C_output_file_name == NULL) {
+    /* For a NULL name, use stdout. */
     f_C_output = stdout;
   } else {
-    /* If the generated C file name was specified on the command line,
-       use that value.  Otherwise, generate a file name based on the
-       source file name. */
-    if (gen_c_file_name != NULL) {
-      C_output_file_name = gen_c_file_name;
-    } else {
-      C_output_file_name = derived_name(primary_source_file_name,
-                                        GEN_C_FILE_SUFFIX);
-    }  /* if */
     f_C_output = open_output_file(C_output_file_name, /*binary_file=*/FALSE,
                                   /*update_mode=*/FALSE,
                                   &cannot_open, &bad_name);
@@ -6229,22 +6254,6 @@ Generate C from the intermediate language.
   }  /* if */
   /* Remember the primary output file. */
   f_primary = f_C_output;
-
-#if !C_GEN_BE_GENERATES_ANSI_C
-  /* Make a string based on the module name that is used to qualify
-     static names to make them unique. */
-  module_id = make_module_id();
-  /* Get module name for use in name of file-scope init routine. */
-  module_init_id = module_id;
-#if !USE_INIT_SECTION_IN_GENERATED_C
-  if (il_header.source_language != sl_Cplusplus) {
-    /* Use shorter module id in C mode because the name might have to
-       be used in a "-i" option. */
-    module_init_id = derived_name(primary_source_file_name, "");
-    change_non_id_characters(module_init_id);
-  }  /* if */
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
   /* Print an identifying heading in the output file. */
   (void)fprintf(f_C_output,
   "/* Translated by the Edison Design Group C++/C front end (version %s) */\n",
@@ -6393,12 +6402,13 @@ Generate C from the intermediate language.
       (f_C_output != stdout && fclose(f_C_output))) {
     str_catastrophe(ec_file_write_error, "generated C output");
   }  /* if */
-}  /* c_gen_be */
+}  /* generate_C_output_file */
 
 
-static void init_c_gen_be(void)
+static c_gen_be_init(void)
 /*
-Initialize for the C-generating back end.
+Initialize for the C-generating back end.  These are initializations that
+must be redone for each generated C file.
 */
 {
   line_wrapping_disabled = 0;
@@ -6436,6 +6446,100 @@ Initialize for the C-generating back end.
   covariant_return_expr = NULL;
   covariant_return_wrapper_scope = NULL;
   covariant_return_master_scope = NULL;
+#if ASM_FUNCTION_ALLOWED
+  within_asm_function_definition = FALSE;
+#endif /* ASM_FUNCTION_ALLOWED */
+}  /* c_gen_be_init */
+
+#if ONE_INSTANTIATION_PER_OBJECT
+
+static void generate_one_instantiation_C_output_file(
+                                     a_source_correspondence *scp,
+                                     unsigned long           needed_bit_number)
+/*
+Generate the C output file for the instantiation whose associated
+routine or variable has the given source correspondence field and
+"needed" flag bit number.
+*/
+{
+  char *C_output_file_name;
+
+  /* Determine the output file name. */
+#if 0
+  /* Need to make something shorter than just the mangled name. */
+#else /* !0 */
+  C_output_file_name = derived_name(scp->name, GEN_C_FILE_SUFFIX);
+#endif /* 0 */
+  /* Write the generated file name to the file passed back to the driver. */
+  (void)fprintf(f_C_file_list, "%s\n", C_output_file_name);
+  /* Add the directory name specified. */
+  C_output_file_name = combine_dir_and_file_name(
+                                              il_header.instantiation_dir_name,
+                                              C_output_file_name,
+                                              (char *)NULL, 0);
+  needed_flag_bit_number = needed_bit_number;
+  /* Do initialization. */
+  c_gen_be_init();
+  /* Generate the C output file. */
+  generate_C_output_file(C_output_file_name);
+  needed_flag_bit_number = 0;
+}  /* generate_one_instantiation_C_output_file */
+
+
+static void generate_instantiation_C_output_files(void)
+/*
+We are putting each instantiation into its own C output file.  Generate
+the C output files for all instantiations.
+*/
+{
+  a_routine_ptr  rout;
+  a_variable_ptr var;
+
+  /* Look through the list of routines to find all instantiated functions. */
+  for (rout = il_header.primary_scope->routines;
+       rout != NULL;
+       rout = rout->next) {
+    if (rout->instantiation_needed_bit_number != 0) {
+      generate_one_instantiation_C_output_file(&rout->source_corresp,
+                                        rout->instantiation_needed_bit_number);
+    }  /* if */
+  }  /* for */
+  /* Look through the list of variables to find all instantiated static
+     data members. */
+  for (var = il_header.primary_scope->variables;
+       var != NULL;
+       var = var->next) {
+    if (var->instantiation_needed_bit_number != 0) {
+      generate_one_instantiation_C_output_file(&var->source_corresp,
+                                         var->instantiation_needed_bit_number);
+    }  /* if */
+  }  /* for */
+}  /* generate_instantiation_C_output_files */
+
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+
+static void c_gen_be_one_time_init(void)
+/*
+Initialize for the C-generating back end.  These are initializations that
+need to be done only once even if multiple C files are generated.
+The IL is already available when this routine is called.
+*/
+{
+#if !C_GEN_BE_GENERATES_ANSI_C
+  /* Make a string based on the module name that is used to qualify
+     static names to make them unique. */
+  module_id = make_module_id();
+  /* Get module name for use in name of file-scope init routine. */
+  module_init_id = module_id;
+#if !USE_INIT_SECTION_IN_GENERATED_C
+  if (il_header.source_language != sl_Cplusplus) {
+    /* Use shorter module id in C mode because the name might have to
+       be used in a "-i" option. */
+    module_init_id = derived_name(primary_source_file_name, "");
+    change_non_id_characters(module_init_id);
+  }  /* if */
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);
@@ -6453,9 +6557,6 @@ Initialize for the C-generating back end.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   octl.suppress_local_typedefs = TRUE;
   octl.c_generating_back_end = TRUE;
-#if ASM_FUNCTION_ALLOWED
-  within_asm_function_definition = FALSE;
-#endif /* ASM_FUNCTION_ALLOWED */
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* When generating K&R C, double and long double must be the same size. */
   if (targ_sizeof_double != targ_sizeof_long_double ||
@@ -6464,7 +6565,83 @@ Initialize for the C-generating back end.
          "double and long double must be the same size when generating K&R C");
   }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-}  /* init_c_gen_be */
+#if ONE_INSTANTIATION_PER_OBJECT
+  f_C_file_list = NULL;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+}  /* c_gen_be_one_time_init */
+
+
+static void c_gen_be(void)
+/*
+Generate C from the intermediate language.
+*/
+{
+  char *C_output_file_name;
+#if STANDALONE_UTILITY_PROGRAM
+  /* This is a command-line option normally, but it's not available in the
+     standalone version. */
+  char *gen_c_file_name = NULL;
+#endif /* STANDALONE_UTILITY_PROGRAM */
+
+  /* Do one-time initialization. */
+  c_gen_be_one_time_init();
+
+  /* Determine the C output file name. */
+  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) == 0) {
+    /* Primary source file is stdin, so use stdout here. */
+    C_output_file_name = NULL;
+  } else {
+    /* If the generated C file name was specified on the command line,
+       use that value.  Otherwise, generate a file name based on the
+       source file name. */
+    if (gen_c_file_name != NULL) {
+      C_output_file_name = gen_c_file_name;
+    } else {
+      C_output_file_name = derived_name(primary_source_file_name,
+                                        GEN_C_FILE_SUFFIX);
+    }  /* if */
+  }  /* if */
+
+#if ONE_INSTANTIATION_PER_OBJECT
+  if (il_header.instantiation_file_list_name != NULL) {
+    a_boolean cannot_open, bad_name;
+
+    /* Generating one C file per instantiation.  For the primary file, use
+       bit number 1 in the per-instantiation "needed" bit vector. */
+    needed_flag_bit_number = 1;
+    /* Open a file in which the list of generated file names will be
+       returned. */
+    f_C_file_list = open_output_file(il_header.instantiation_file_list_name,
+                                     /*binary_file=*/FALSE,
+                                     /*update_mode=*/FALSE,
+                                     &cannot_open, &bad_name);
+    if (bad_name) {
+      str_command_line_error(ec_cl_invalid_output_file,
+                             il_header.instantiation_file_list_name);
+    } else if (cannot_open) {
+      str_command_line_error(ec_cl_cannot_open_output_file,
+                             il_header.instantiation_file_list_name);
+    }  /* if */
+  }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+  /* Do initialization. */
+  c_gen_be_init();
+  /* Generate the C output file. */
+  generate_C_output_file(C_output_file_name);
+
+#if ONE_INSTANTIATION_PER_OBJECT
+  if (il_header.instantiation_file_list_name != NULL) {
+    generate_instantiation_C_output_files();
+    /* Close the file containing the list of generated file names, checking
+       for previous errors. */
+    if (fflush(f_C_file_list) ||
+        ferror(f_C_file_list) ||
+        fclose(f_C_file_list)) {
+      str_catastrophe(ec_file_write_error, "generated C output file list");
+    }  /* if */
+  }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+}  /* c_gen_be */
 
 
 #if STANDALONE_C_GEN_BE
@@ -6483,8 +6660,6 @@ from the primary source file name in the IL information.
   FILE *f_il_input;
   int  optind = 1;
 
-  /* Initialize. */
-  init_c_gen_be();
   /* The source file name is unknown until the IL is read correctly. */
   primary_source_file_name = NULL;
 
@@ -6535,9 +6710,6 @@ Simple "back end" that generates C.  This version is for use as a
 subroutine called in the same program as the front end.
 */
 {
-  /* Initialize. */
-  init_c_gen_be();
-
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* If the intermediate language was written to a file, read it back in. */
   /* The source file name is unknown until the IL is read correctly. */
