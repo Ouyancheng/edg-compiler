@@ -22,11 +22,13 @@ larger than the number of bits in the base type of the bit field.
 Heretofore, the size of such bit fields was truncated to the
 size of the underlying type.  This is allowed by the standard but
 surprising to some users.  Now, if TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE
-is TRUE (which is the default unless ABI_COMPATIBILITY_VERSION is
-less than 301), padding bits are added following the bit field
-to bring the bit field up to the declared size.  The bit field
-itself holds no more bits: the added bits are padding bits, not
-data bits.
+is TRUE (which is the default), padding bits are added following 
+the bit field to bring the bit field up to the declared size.
+The bit field itself holds no more bits: the added bits are 
+padding bits, not data bits.  This is an ABI CHANGE; it is
+disabled if ABI_COMPATIBILITY_VERSION is less than 301 or if
+TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE is explicitly set to
+FALSE.
 
   struct A {
     char i : 1024;  // A char-sized bit field followed by padding bits
