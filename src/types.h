@@ -101,39 +101,45 @@ an enum type).
 #define typeref_is_qualified(tp)                                      \
  ((tp)->variant.typeref.qualifiers != TQ_NONE)
 #define typeref_is_const_qualified(tp)                                \
- ((tp)->variant.typeref.qualifiers & TQ_CONST)
+ (((tp)->variant.typeref.qualifiers & TQ_CONST) != 0)
 #define typeref_is_volatile_qualified(tp)                             \
- ((tp)->variant.typeref.qualifiers & TQ_VOLATILE)
+ (((tp)->variant.typeref.qualifiers & TQ_VOLATILE) != 0)
+
+extern a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
+                                                  a_boolean   top_level);
+
+#define get_type_qualifiers(tp)                                       \
+  (((tp)->kind == (a_type_kind)tk_typeref ||                          \
+    (tp)->kind == (a_type_kind)tk_array) ?                            \
+      (f_get_type_qualifiers((tp), /*top_level=*/C_mode())) :         \
+      (a_type_qualifier_set)TQ_NONE)
+
+#define get_top_level_type_qualifiers(tp)                             \
+  ((tp)->kind == (a_type_kind)tk_typeref ?                            \
+      (f_get_type_qualifiers((tp), /*top_level=*/TRUE)) :             \
+      (a_type_qualifier_set)TQ_NONE)
 
 /*
 Check for type qualifiers.  In C++ this includes looking for qualifiers
 on the underlying element type of an array.
 */
 #define is_qualified_type(tp)                                         \
-  (((tp)->kind == (a_type_kind)tk_typeref ||                          \
-    (tp)->kind == (a_type_kind)tk_array) &&                           \
-   f_is_qualified_type((tp), /*top_level=*/C_mode()))
+  (get_type_qualifiers(tp) != TQ_NONE)
 #define is_const_qualified_type(tp)                                   \
-  (((tp)->kind == (a_type_kind)tk_typeref ||                          \
-    (tp)->kind == (a_type_kind)tk_array) &&                           \
-   f_is_const_qualified_type((tp), /*top_level=*/C_mode()))
+  ((get_type_qualifiers(tp) & TQ_CONST) != 0)
 #define is_volatile_qualified_type(tp)                                \
-  (((tp)->kind == (a_type_kind)tk_typeref ||                          \
-    (tp)->kind == (a_type_kind)tk_array) &&                           \
-   f_is_volatile_qualified_type((tp), /*top_level=*/C_mode()))
+  ((get_type_qualifiers(tp) & TQ_VOLATILE) != 0)
+
 /*
 Check for "top-level" type qualifiers -- i.e., don't look at the element
 type if tp is an array.
 */
 #define is_top_level_qualified_type(tp)                               \
-  ((tp)->kind == (a_type_kind)tk_typeref &&                           \
-   f_is_qualified_type((tp), /*top_level=*/TRUE))
+  (get_top_level_type_qualifiers(tp) != TQ_NONE)
 #define is_top_level_const_qualified_type(tp)                         \
-  ((tp)->kind == (a_type_kind)tk_typeref &&                           \
-   f_is_const_qualified_type((tp), /*top_level=*/TRUE))
+  ((get_top_level_type_qualifiers(tp) & TQ_CONST) != 0)
 #define is_top_level_volatile_qualified_type(tp)                      \
-  ((tp)->kind == (a_type_kind)tk_typeref &&                           \
-   f_is_volatile_qualified_type((tp), /*top_level=*/TRUE))
+  ((get_top_level_type_qualifiers(tp) & TQ_VOLATILE) != 0)
 
 /*
 Return TRUE if the type qualifiers on two types match.  Typedefs and
@@ -141,15 +147,19 @@ the underlying types are ignored.  On an array type it is the element
 type that is checked for qualifiers.
 */
 #define type_qualifiers_match(tp1, tp2)                               \
-  (is_const_qualified_type(tp1) == is_const_qualified_type(tp2) &&    \
-   is_volatile_qualified_type(tp1) == is_volatile_qualified_type(tp2))
+  (get_type_qualifiers(tp1) == get_type_qualifiers(tp2))
 
-extern a_boolean f_is_const_qualified_type(a_type_ptr tp,
-                                           a_boolean  top_level);
-extern a_boolean f_is_volatile_qualified_type(a_type_ptr tp,
-                                              a_boolean  top_level);
-extern a_boolean f_is_qualified_type(a_type_ptr tp,
-                                     a_boolean  top_level);
+/*
+Return TRUE if tp1 does not have some top-level type qualifiers that
+tp2 has.  Note that this macro does not check that the underlying
+types are compatible.
+*/
+#define any_qualifier_missing(tp1, tp2)                               \
+  ((tp2)->kind == (a_type_kind)tk_typeref ?                           \
+          f_any_qualifier_missing(tp1, tp2) : FALSE)
+
+extern a_boolean f_any_qualifier_missing(a_type_ptr  tp1,
+                                         a_type_ptr  tp2);
 
 extern a_boolean is_on_any_derivation_of(a_base_class_ptr  bcp,
                                          a_base_class_ptr  ref_bcp);
@@ -355,16 +365,6 @@ extern a_boolean is_or_contains_ptr_or_ref_to_unknown_bound_array(
                                                            a_type_ptr tp,
                                                            a_boolean  *is_ref);
 extern a_type_ptr strip_local_typedefs(a_type_ptr  type);
-
-/*
-Return TRUE if type_1 does not have some top-level type qualifier that
-type_2 has.  Note that this macro does not check that the underlying
-types are compatible.
-*/
-#define any_qualifier_missing(type_1, type_2)                         \
-  ((is_const_qualified_type(type_2) && !is_const_qualified_type(type_1)) || \
-   (is_volatile_qualified_type(type_2) &&                             \
-                                    !is_volatile_qualified_type(type_1)))
 
 /*
 Return the type of the variable (lvalue) represented by node.  This mainly
