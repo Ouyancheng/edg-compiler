@@ -1133,7 +1133,7 @@ the variable containing the constant is emitted in a COMDAT group.
   /* Initialize the variable. */
   typeinfo_name_var->init_kind = (an_init_kind)initk_static;
   typeinfo_name_var->initializer.constant = string_con;
-  if (use_comdat) {
+  if (use_comdat && !force_static) {
     put_variable_into_comdat_group(typeinfo_name_var);
   }  /* if */
 #else /* !IA64_ABI */
@@ -1280,11 +1280,13 @@ have been called on it at some previous point.
 #if ONE_INSTANTIATION_PER_OBJECT
     if (one_instantiation_per_object) {
       /* Put the typeinfo variable into the same slice as the virtual
-         function table. */
+         function table, if there is one. */
       a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
                                                     virtual_function_table_var;
-      typeinfo_var->instantiation_needed_bit_number =
+      if (vtbl_var != NULL) {
+        typeinfo_var->instantiation_needed_bit_number =
                                      vtbl_var->instantiation_needed_bit_number;
+      }  /* if */
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if IA64_ABI

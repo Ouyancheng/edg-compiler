@@ -849,6 +849,9 @@ includes removing any initialization.
   variable->init_kind = (an_init_kind)initk_none;
   if (variable->storage_class == (a_storage_class)sc_unspecified) {
     variable->storage_class = (a_storage_class)sc_extern;
+#if IA64_ABI
+    variable->comdat_group = NULL;
+#endif /* IA64_ABI */
   }  /* if */
   if (!variable->is_specialized) {
     switch_canonical_for_deleted_definition(&variable->source_corresp);

@@ -5957,6 +5957,9 @@ parameters.
   a_storage_class
                  storage_class = variable->storage_class;
   a_boolean      forced_referenced;
+#if IA64_ABI && GCC_IS_GENERATED_CODE_TARGET
+  a_boolean      force_zeroing_of_comdat_variable = FALSE;
+#endif /* IA64_ABI && GCC_IS_GENERATED_CODE_TARGET */
 #if ONE_INSTANTIATION_PER_OBJECT
   a_boolean      part_of_current_output_file = TRUE;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -6080,7 +6083,14 @@ parameters.
         dump_variable_storage_class(variable);
       }  /* if */
 #if IA64_ABI
-      if (variable->comdat_group != NULL) {
+      if (variable->comdat_group != NULL
+#if ONE_INSTANTIATION_PER_OBJECT
+          && part_of_current_output_file
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                        ) {
+        /* A variable in a COMDAT.  Must be a definition. */
+        check_assertion(variable->storage_class ==
+                                              (a_storage_class)sc_unspecified);
 #if GCC_IS_GENERATED_CODE_TARGET
         /* GCC does not support COMDAT, but it does support weak, which
            provides a sufficient approximation. */
@@ -6091,6 +6101,16 @@ parameters.
         write_tok_str(variable->comdat_group);
         write_space();
         end_comment();
+        write_space();
+#if GCC_IS_GENERATED_CODE_TARGET
+        if (dump_vars_without_initializers && 
+            init_kind == (an_init_kind)initk_none) {
+          /* GCC does not accept weak variables that do not have explicit
+             initializers, so force the variable to be initialized
+             to zero. */
+          force_zeroing_of_comdat_variable = TRUE;
+        }  /* if */
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
       } /* if */
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -6164,23 +6184,13 @@ parameters.
          the size of the executable.  However, do put out definitions
          for template static data members that are arrays, or otherwise
          the template prelinker could loop. */
-#if IA64_ABI && GCC_IS_GENERATED_CODE_TARGET
-      if (dump_vars_without_initializers && 
-          init_kind == (an_init_kind)initk_none &&
-          variable->comdat_group != NULL) {
-        /* GCC does not accept weak variables that do not have explicit
-           initializers, so temporarily pretend the variable is initialized to
-           zero. */
-        init_kind = initk_zero;
-      }  /* if */
-#endif /* IA64_ABI && GCC_IS_GENERATED_CODE_TARGET */
       if ((dump_initializers && init_con != NULL) ||
+#if IA64_ABI && GCC_IS_GENERATED_CODE_TARGET
+           force_zeroing_of_comdat_variable ||
+#endif /* IA64_ABI && GCC_IS_GENERATED_CODE_TARGET */
           (init_kind == (an_init_kind)initk_zero &&
            (!has_static_storage_duration(variable->storage_class) ||
             !is_array_type(variable->type) ||
-#if IA64_ABI && GCC_IS_GENERATED_CODE_TARGET
-            variable->comdat_group != NULL ||
-#endif /* IA64_ABI && GCC_IS_GENERATED_CODE_TARGET */
             variable->is_template_static_data_member))) {
         dump_initializer(variable, init_con, /*is_dynamic_init=*/FALSE);
       }  /* if */
@@ -7710,6 +7720,9 @@ if this routine has a body (dump nothing if it has no body).
                                                         );
   a_boolean       is_definition;
   a_storage_class storage_class = rout->storage_class;
+#if ONE_INSTANTIATION_PER_OBJECT
+  a_boolean       part_of_current_output_file = TRUE;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
   if (rout->suppress_inline_body && has_defn) {
     /* The body is present only to be used for inlining.  This happens
@@ -7748,6 +7761,7 @@ if this routine has a body (dump nothing if it has no body).
       if (needed_flag_bit_number != 1) has_defn = FALSE;
     }  /* if */
     if (!has_defn) {
+      part_of_current_output_file = FALSE;
       storage_class = (a_storage_class)sc_extern;
     }  /* if */
   }  /* if */
@@ -7836,7 +7850,13 @@ if this routine has a body (dump nothing if it has no body).
     /* Output the storage class. */
     dump_storage_class(storage_class);
 #if IA64_ABI
-    if (rout->use_comdat) {
+    if (rout->use_comdat
+#if ONE_INSTANTIATION_PER_OBJECT
+        && part_of_current_output_file
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                      ) {
+      /* A routine in a COMDAT.  Must be a definition. */
+      check_assertion(rout->storage_class == (a_storage_class)sc_unspecified);
 #if GCC_IS_GENERATED_CODE_TARGET
       /* GCC does not support COMDAT, but it does support weak, which provides
          a sufficient approximation. */
@@ -7847,6 +7867,7 @@ if this routine has a body (dump nothing if it has no body).
       write_tok_str(rout->source_corresp.name);
       write_space();
       end_comment();
+      write_space();
     } /* if */
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
