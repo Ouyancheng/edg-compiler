@@ -93,9 +93,9 @@ constants).  The number may have a "u" or "l" suffix, or both.
   /* Evaluate the literal as an unsigned long. */
   if (radix == 10) {
     /* Decimal. */
-    set_unsigned_integer_value(&ten, 10L);
+    set_unsigned_integer_value(&ten, (a_host_large_unsigned)10);
     intdigit = *start_of_curr_token - '0';
-    set_unsigned_integer_value(&number, intdigit);
+    set_unsigned_integer_value(&number, (a_host_large_unsigned)intdigit);
     for (temp_ptr = start_of_curr_token+1;
          temp_ptr <= real_end_pos; temp_ptr++) {
       intdigit = *temp_ptr - '0';
@@ -103,13 +103,13 @@ constants).  The number may have a "u" or "l" suffix, or both.
       multiply_integer_values(&number, &ten, /*is_signed=*/FALSE, &err);
       if (err) ovflo = TRUE;
       /* Add in digit, checking for overflow. */
-      set_unsigned_integer_value(&digit, intdigit);
+      set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
       add_integer_values(&number, &digit, /*is_signed=*/FALSE, &err);
       if (err) ovflo = TRUE;
     }  /* for */
   } else if (radix == 8) {
     /* Octal.*/
-    set_unsigned_integer_value(&number, 0L);
+    set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
     for (temp_ptr = start_of_curr_token+1;
          temp_ptr <= real_end_pos; temp_ptr++) {
       intdigit = *temp_ptr - '0';
@@ -123,12 +123,12 @@ constants).  The number may have a "u" or "l" suffix, or both.
       shift_left_integer_value(&number, 3, &err);
       if (err) ovflo = TRUE;
       /* Or in digit. */
-      set_unsigned_integer_value(&digit, intdigit);
+      set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
       or_integer_values(&number, &digit);
     }  /* for */
   } else {
     /* radix == 16 (hexadecimal). */
-    set_unsigned_integer_value(&number, 0L);
+    set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
     for (temp_ptr = start_of_curr_token+2;
          temp_ptr <= real_end_pos; temp_ptr++) {
       intdigit = hexvalue(*temp_ptr);
@@ -136,7 +136,7 @@ constants).  The number may have a "u" or "l" suffix, or both.
       shift_left_integer_value(&number, 4, &err);
       if (err) ovflo = TRUE;
       /* Or in digit. */
-      set_unsigned_integer_value(&digit, intdigit);
+      set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
       or_integer_values(&number, &digit);
     }  /* for */
   }  /* if */
@@ -706,7 +706,7 @@ processing, and in wide characters if the constant is wide).
     /* Initialize for scanning multibyte characters in the string. */
     if (multibyte_chars_in_source_enabled) mbc_scan_init();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-    set_unsigned_integer_value(&number, 0L);
+    set_unsigned_integer_value(&number, (a_host_large_integer)0);
     /* Accumulate the characters. */
     for (i = 0; i < num_chars; i++) {
       /* Convert one character of the char constant. */
@@ -720,7 +720,7 @@ processing, and in wide characters if the constant is wide).
          characters that don't fit. */
       if (is_wide && i > 0) continue;
       /* Put the character in the right place. */
-      set_unsigned_integer_value(&ch_int_val, ch);
+      set_unsigned_integer_value(&ch_int_val, (a_host_large_unsigned)ch);
       if (targ_char_constant_first_char_most_significant) {
         /* 'ab' == 0x6162. */
         /* Do sign extension if necessary, but only on the first character. */

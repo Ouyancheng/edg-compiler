@@ -38,32 +38,34 @@ extern void fp_string_to_float(a_float_kind            kind,
 extern char *fp_to_string(a_float_kind            kind,
                           an_internal_float_value *float_value);
 
-extern void fp_long_to_float(a_float_kind            kind, 
-                             long                    long_value,
-                             an_internal_float_value *float_value,
-                             a_boolean               *err);
+extern
+void fp_host_large_integer_to_float(a_float_kind            kind,
+		                    a_host_large_integer    int_value,
+                                    an_internal_float_value *float_value,
+                                    a_boolean               *err);
 
 #ifdef CFE
-extern void fp_unsigned_long_to_float(
+extern void fp_host_large_unsigned_to_float(
                       a_float_kind            kind, 
-                      unsigned long           unsigned_long_value,
+                      a_host_large_unsigned   unsigned_value,
                       an_internal_float_value *float_value,
                       a_boolean               *err);
 #endif /* ifdef CFE */
 
-extern void fp_to_long(a_float_kind            kind,
-                       an_internal_float_value *float_value,
-                       long                    *long_value,
-                       a_boolean               *err,
-                       a_boolean               *depends_on_rounding_mode);
+extern void fp_to_host_large_integer(
+			a_float_kind            kind,
+			an_internal_float_value *float_value,
+			a_host_large_integer    *int_value,
+			a_boolean               *err,
+			a_boolean               *depends_on_rounding_mode);
 
 #ifdef CFE
-extern void fp_to_unsigned_long(
-                            a_float_kind            kind,
-                            an_internal_float_value *float_value,
-                            unsigned long           *unsigned_long_value,
-                            a_boolean               *err,
-                            a_boolean               *depends_on_rounding_mode);
+extern void fp_to_host_large_unsigned(
+			a_float_kind            kind,
+			an_internal_float_value *float_value,
+			a_host_large_unsigned   *unsigned_value,
+			a_boolean               *err,
+			a_boolean               *depends_on_rounding_mode);
 #endif /* ifdef CFE */
 #ifdef FFE
 

@@ -5165,7 +5165,7 @@ pp tokens).
     const_for_curr_token.type = bool_type();
     /* The integer value is either 1 (true) or 0 (false). */
     set_integer_value(&const_for_curr_token.variant.integer_value,
-                      (long)(ctoken == tok_true));
+                      (a_host_large_integer)(ctoken == tok_true));
     const_for_curr_token.non_arithmetic = TRUE;
   }  /* if */
 }  /* scan_boolean_constant */

@@ -346,8 +346,8 @@ found return a pointer to it.  Return NULL if it's not found.
 }  /* find_pack_alignment_stack_entry */
 
 
-a_boolean check_pack_alignment_value(long              value,
-                                     a_targ_alignment  *alignment)
+a_boolean check_pack_alignment_value(a_host_large_integer value,
+                                     a_targ_alignment     *alignment)
 /*
 Check to be sure value is a valid "pack alignment" -- that it is a power of
 2 within the range of the minimum and maximum allowed.
@@ -396,11 +396,11 @@ the top entry is removed.  curr_max_member_alignment is then set either to n
 if n is supplied or to the value associated with the last entry popped.
 */
 {
-  a_boolean           err = FALSE;
-  a_boolean           is_push = FALSE, is_pop = FALSE;
-  long                val;
-  an_error_severity   severity;
-  a_boolean           updated = FALSE;
+  a_boolean            err = FALSE;
+  a_boolean            is_push = FALSE, is_pop = FALSE;
+  a_host_large_integer val;
+  an_error_severity    severity;
+  a_boolean            updated = FALSE;
 
   db_enter(3, "pack_pragma");
   /* Save the stop token state, push a pragma scope, etc. */

@@ -373,7 +373,8 @@ fields to default values.
       /* No variant fields to set. */
       break;
     case ck_integer:
-      set_integer_value(&cp->variant.integer_value, 0L);
+      set_integer_value(&cp->variant.integer_value,
+                        (a_host_large_integer)0);
       break;
     case ck_string:
       cp->variant.string.length = 0;

@@ -2411,7 +2411,8 @@ is the one associated with the definition of the enum.
     /* Output the enumeration constants. */
     /* Start with an expected value of 0 next. */
     next_enum_value = *enum_con;
-    set_integer_value(&next_enum_value.variant.integer_value, 0L);
+    set_integer_value(&next_enum_value.variant.integer_value,
+                      (a_host_large_integer)0);
     for (;;) {
       /* Process macros, etc. */
       (void)process_preprocessing_directives();

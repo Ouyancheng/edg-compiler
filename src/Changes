@@ -1,5 +1,32 @@
 Version 2.35
 
+2/19/97  IL CHANGE: a_targ_size_t now has the same type as a_host_large_integer
+
+Formerly, a_targ_size_t, which is used to represent address offsets in the IL,
+was defined as an unsigned long.  As a result, is was not possible to
+represent offsets larger than 32 bits on systems where an unsigned long
+is 32 bits and an unsigned long long type exists to represent larger
+values.  a_targ_size_t is now set to the same type used to represent
+a_host_large_integer.  Consequently, it is now possible to represent larger
+offsets in the IL.
+
+2/19/97  Integer folding and conversion routines did not support host
+         integers larger than a host long
+
+Formerly, the integer folding and conversion routines supported operations on
+values larger than host long only when INTEGER_VALUE_REPR_IS_A_HOST_INTEGER was
+FALSE (i.e., when the simulated integer routines were being used).  It was
+possible to configure the front end to use a long long value as the
+representation of an_integer_value, but operations that involved converting
+integers to floating point and vice-versa would only work on values that could
+be represented by a host long.  These routines have been modified to operate on
+values whose type is specified by the typedefs a_host_large_integer and
+a_host_large_unsigned.  These typedefs are automatically set to
+TYPE_OF_AN_INTEGER_VALUE and TYPE_OF_A_SIGNED_INTEGER_VALUE, respectively.
+Consequently, it is now possible to configure the front end to use long
+long as the representation of an_integer_value without using simulated
+integers.
+
 2/19/97  Multibyte characters accepted in source
 
 Multibyte character sequences are now accepted in comments, string

@@ -309,46 +309,47 @@ variable, and return a pointer to that null-terminated string.
 }  /* fp_to_string */
 
 
-void fp_long_to_float(a_float_kind            kind,
-                      long                    long_value,
-                      an_internal_float_value *float_value,
-                      a_boolean               *err)
+void fp_host_large_integer_to_float(a_float_kind            kind,
+		                    a_host_large_integer    int_value,
+                                    an_internal_float_value *float_value,
+                                    a_boolean               *err)
 /*
-Convert long_value to a floating-point value of kind "kind" in *float_value.
-Return *err TRUE if there is some error.
+Convert a host large integer (int_value) to a floating-point value of
+kind "kind" in *float_value. Return *err TRUE if there is some error.
 */
 {
   *err = FALSE;
-  store_double((double)long_value, kind, float_value, err);
-}  /* fp_long_to_float */
+  store_double((double)int_value, kind, float_value, err);
+}  /* fp_host_large_integer_to_float */
 
 #ifdef CFE
 
-void fp_unsigned_long_to_float(
+void fp_host_large_unsigned_to_float(
                       a_float_kind            kind, 
-                      unsigned long           unsigned_long_value,
+                      a_host_large_unsigned   unsigned_value,
                       an_internal_float_value *float_value,
                       a_boolean               *err)
 /*
-Convert unsigned_long_value to a floating-point value of kind "kind" in
+Convert unsigned_value to a floating-point value of kind "kind" in
 *float_value.  Return *err TRUE if there is some error.
 */
 {
   *err = FALSE;
-  store_double((double)unsigned_long_value, kind, float_value, err);
-}  /* fp_unsigned_long_to_float */
+  store_double((double)unsigned_value, kind, float_value, err);
+}  /* fp_host_large_unsigned_to_float */
 
 #endif /* ifdef CFE */
 
-void fp_to_long(a_float_kind            kind,
-                an_internal_float_value *float_value,
-                long                    *long_value,
-                a_boolean               *err,
-                a_boolean               *depends_on_rounding_mode)
+void fp_to_host_large_integer(
+			a_float_kind            kind,
+			an_internal_float_value *float_value,
+			a_host_large_integer    *int_value,
+			a_boolean               *err,
+			a_boolean               *depends_on_rounding_mode)
 /*
-Convert float_value to a long value in long_value.  Return *err TRUE if there
-is some error.  If the result depends on the rounding mode,
-*depends_on_rounding_mode is returned TRUE (*long_value is set anyway).
+Convert float_value to a host large integer value in int_value.  Return
+*err TRUE if there is some error.  If the result depends on the rounding mode,
+*depends_on_rounding_mode is returned TRUE (*int_value is set anyway).
 */
 {
   double temp;
@@ -356,26 +357,28 @@ is some error.  If the result depends on the rounding mode,
   *err = FALSE;
   *depends_on_rounding_mode = FALSE;
   temp = fetch_double(kind, float_value);
-  if (temp > (double)(LONG_MAX) || temp < (double)LONG_MIN) {
+  if (temp > (double)(MAX_HOST_LARGE_INTEGER) ||
+      temp < (double)MIN_HOST_LARGE_INTEGER) {
     /* Floating value is too big or too small. */
     *err = TRUE;
   } else {
-    *long_value = (long)temp;
+    *int_value = (a_host_large_integer)temp;
   }  /* if */
-}  /* fp_to_long */
+}  /* fp_to_host_large_integer */
 
 #ifdef CFE
 
-void fp_to_unsigned_long(a_float_kind            kind,
-                         an_internal_float_value *float_value,
-                         unsigned long           *unsigned_long_value,
-                         a_boolean               *err,
-                         a_boolean               *depends_on_rounding_mode)
+void fp_to_host_large_unsigned(
+			a_float_kind            kind,
+			an_internal_float_value *float_value,
+			a_host_large_unsigned   *unsigned_value,
+			a_boolean               *err,
+			a_boolean               *depends_on_rounding_mode)
 /*
-Convert float_value to an unsigned long value in unsigned_long_value.
+Convert float_value to a host large unsigned value in unsigned_value.
 Return *err TRUE if there is some error.  If the result depends on the
 rounding mode, *depends_on_rounding_mode is returned TRUE
-(*unsigned_long_value is set anyway).
+(*unsigned_value is set anyway).
 */
 {
   double temp;
@@ -383,13 +386,13 @@ rounding mode, *depends_on_rounding_mode is returned TRUE
   *err = FALSE;
   *depends_on_rounding_mode = FALSE;
   temp = fetch_double(kind, float_value);
-  if (temp > (double)(ULONG_MAX) || temp < (double)0) {
+  if (temp > (double)(MAX_HOST_LARGE_UNSIGNED) || temp < (double)0) {
     /* Floating value is too big or too small. */
     *err = TRUE;
   } else {
-    *unsigned_long_value = (unsigned long)temp;
+    *unsigned_value = (a_host_large_unsigned)temp;
   }  /* if */
-}  /* fp_to_unsigned_long */
+}  /* fp_to_host_large_unsigned */
 
 #endif /* ifdef CFE */
 #ifdef FFE

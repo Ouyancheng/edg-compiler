@@ -1563,8 +1563,9 @@ common_cfront_mode_settings:
            the member's type.  In effect, the pack alignment value is the
            maximum alignment permitted for a nonstatic data member.  This
            default value may be overridden by #pragma pack. */
-        if (!check_pack_alignment_value(scan_opt_arg_number(opt_arg),
-                                        &default_max_member_alignment)) {
+        if (!check_pack_alignment_value(
+                         (a_host_large_integer)scan_opt_arg_number(opt_arg),
+                         &default_max_member_alignment)) {
           /* Invalid value. */
           command_line_error(ec_bad_pack_alignment);
         }  /* if */

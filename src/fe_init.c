@@ -128,7 +128,7 @@ Do required initialization for host-dependent things.
     /* Make sure that AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG is
       set correctly. */
     b = (AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG !=
-         ((BITS_IN_AN_INTEGER_VALUE) > (sizeof(long) * CHAR_BIT)));
+     ((BITS_IN_AN_INTEGER_VALUE) > (sizeof(a_host_large_integer) * CHAR_BIT)));
     if (b) {
       unexpected_condition_str2
                        ("host_init: AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG",

@@ -285,11 +285,11 @@ in *new_constant, with type as indicated therein.  Return *err_code and
 *err_code == ec_no_error if everything went fine.
 */
 {
-  long          old_value;
-  unsigned long unsigned_old_value;
-  a_boolean     err;
-  a_type_ptr    constant_type = skip_typerefs(new_constant->type);
-  a_float_kind  float_kind = constant_type->variant.float_kind;
+  a_host_large_integer	old_value;
+  a_host_large_unsigned	unsigned_old_value;
+  a_boolean     	err;
+  a_type_ptr    	constant_type = skip_typerefs(new_constant->type);
+  a_float_kind  	float_kind = constant_type->variant.float_kind;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
@@ -300,16 +300,17 @@ in *new_constant, with type as indicated therein.  Return *err_code and
     /* The source is a signed integer value. */
     old_value = value_of_integer_constant(old_constant, &err);
     if (!err) {
-      fp_long_to_float(float_kind, old_value,
-                       &new_constant->variant.float_value, &err);
+      fp_host_large_integer_to_float(float_kind, old_value,
+                                     &new_constant->variant.float_value, &err);
     }  /* if */
   } else {
     /* The source is an unsigned integer value. */
     unsigned_old_value = unsigned_value_of_integer_constant(old_constant,
                                                             &err);
     if (!err) {
-      fp_unsigned_long_to_float(float_kind, unsigned_old_value, 
-                                &new_constant->variant.float_value, &err);
+      fp_host_large_unsigned_to_float(float_kind, unsigned_old_value, 
+                                      &new_constant->variant.float_value,
+                                      &err);
     }  /* if */
   }  /* if */
 #if AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
@@ -343,11 +344,11 @@ is returned TRUE if the result has been determined but might be different
 depending on the rounding mode.
 */
 {
-  long             int_value;
-  unsigned long    unsigned_int_value;
-  an_integer_value result_value;
-  a_boolean        err, is_signed;
-  a_float_kind     float_kind =
+  a_host_large_integer	int_value;
+  a_host_large_unsigned	unsigned_int_value;
+  an_integer_value	result_value;
+  a_boolean        	err, is_signed;
+  a_float_kind     	float_kind =
                          skip_typerefs(old_constant->type)->variant.float_kind;
 
   *err_code = ec_no_error;
@@ -356,16 +357,14 @@ depending on the rounding mode.
   is_signed = int_constant_is_signed(new_constant);
   if (is_signed) {
     /* Destination is a signed integer. */
-    fp_to_long(float_kind,
-               &old_constant->variant.float_value, &int_value, &err,
-               depends_on_rounding_mode);
+    fp_to_host_large_integer(float_kind, &old_constant->variant.float_value,
+                             &int_value, &err, depends_on_rounding_mode);
     if (!err) set_integer_value(&result_value, int_value);
   } else {
     /* Destination is an unsigned integer. */
-    fp_to_unsigned_long(float_kind,
-                        &old_constant->variant.float_value,
-                        &unsigned_int_value, &err,
-                        depends_on_rounding_mode);
+    fp_to_host_large_unsigned(float_kind, &old_constant->variant.float_value,
+                              &unsigned_int_value, &err,
+                              depends_on_rounding_mode);
     if (!err) set_unsigned_integer_value(&result_value, unsigned_int_value);
   }  /* if */
 #if AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
@@ -1213,7 +1212,7 @@ casts between unrelated classes.
     }  /* if */
     set_constant_kind(&new_constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&new_constant.variant.integer_value,
-                      (long)!is_false_constant(constant));
+                      (a_host_large_integer)!is_false_constant(constant));
     goto exit;
   }  /* if */
   if (constant->kind == (a_constant_repr_kind)ck_address) {
@@ -1484,7 +1483,7 @@ Do the negate operation on all types of integers.
   *err_severity = es_warning;
 
   /* Compute 0 - constant. */
-  set_integer_value(&result_value, 0L);
+  set_integer_value(&result_value, (a_host_large_integer)0);
   is_signed = int_constant_is_signed(constant);
   subtract_integer_values(&result_value, &constant->variant.integer_value,
                           is_signed, &err);
@@ -1585,7 +1584,7 @@ Do the "!" (not) operation on all types of scalars.
   } else {
     set_constant_kind(result, (a_constant_repr_kind)ck_integer);
     set_integer_value(&result->variant.integer_value,
-                      (long)is_false_constant(constant));
+                      (a_host_large_integer)is_false_constant(constant));
   }  /* if */
 #if DEBUG
   if (*did_not_fold) {
@@ -2034,8 +2033,8 @@ Compare integers constant_1 and constant_2 according to the relational
 operator "op", and return a 0 or 1 integer in "result".
 */
 {
-  int  cmp;
-  long result_value;
+  int	cmp;
+  int	result_value;
 
   /* Develop a strcmp-like relation value in cmp:
        constant_1 > constant_2   1
@@ -2056,7 +2055,8 @@ operator "op", and return a 0 or 1 integer in "result".
 #endif /* CHECKING */
   }  /* switch */
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  set_integer_value(&result->variant.integer_value, result_value);
+  set_integer_value(&result->variant.integer_value,
+                    (a_host_large_integer)result_value);
 
 #if DEBUG
   db_binary_operation(db_operator_names[op],
@@ -2151,7 +2151,8 @@ Do the logical "and" (&&) operation on integers, floats, and pointers.
   }  /* if */
   if (!*did_not_fold) {
     set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-    set_integer_value(&result->variant.integer_value, (long)res);
+    set_integer_value(&result->variant.integer_value,
+                      (a_host_large_integer)res);
   }  /* if */
 #if DEBUG
   if (*did_not_fold) {
@@ -2189,7 +2190,8 @@ Do the logical "or" (||) operation on integers, floats, and pointers.
   }  /* if */
   if (!*did_not_fold) {
     set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-    set_integer_value(&result->variant.integer_value, (long)res);
+    set_integer_value(&result->variant.integer_value,
+                      (a_host_large_integer)res);
   }  /* if */
 #if DEBUG
   if (*did_not_fold) {
@@ -2353,7 +2355,7 @@ relational operator "op", and return a 0 or 1 integer in "result".
 */
 {
   int          cmp;
-  long         result_value;
+  int          result_value;
   a_boolean    unordered;
   a_float_kind float_kind =
                            skip_typerefs(constant_1->type)->variant.float_kind;
@@ -2392,7 +2394,8 @@ relational operator "op", and return a 0 or 1 integer in "result".
     }  /* switch */
   }  /* if */
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  set_integer_value(&result->variant.integer_value, result_value);
+  set_integer_value(&result->variant.integer_value,
+                    (a_host_large_integer)result_value);
 
 #if DEBUG
   db_binary_operation(db_operator_names[op],
@@ -2661,7 +2664,7 @@ set if the operation cannot be folded.
 */
 {
   a_constant offset_1, offset_2;
-  long       result_value;
+  int        result_value;
   int        cmp;
 
   *did_not_fold = FALSE;
@@ -2697,7 +2700,8 @@ set if the operation cannot be folded.
 #endif /* CHECKING */
     }  /* switch */
     set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-    set_integer_value(&result->variant.integer_value, result_value);
+    set_integer_value(&result->variant.integer_value,
+                      (a_host_large_integer)result_value);
   }  /* if */
 #if DEBUG
   if (debug_level  >= 5) {
@@ -2722,7 +2726,7 @@ constant_1 and constant_2 are compared according to the indicated operator,
 and *result is set to an integer 0 or 1 for the result.
 */
 {
-  long result_value = FALSE;
+  int result_value = FALSE;
 
   if (constant_1->variant.ptr_to_member.casting_base_class ==
                         constant_2->variant.ptr_to_member.casting_base_class &&
@@ -2747,7 +2751,8 @@ and *result is set to an integer 0 or 1 for the result.
      case. */
   if (op == (an_expr_operator_kind)eok_pmne) result_value = !result_value;
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  set_integer_value(&result->variant.integer_value, result_value);
+  set_integer_value(&result->variant.integer_value,
+                    (a_host_large_integer)result_value);
 #if DEBUG
   if (debug_level  >= 5) {
     db_binary_operation(db_operator_names[op],

@@ -352,6 +352,22 @@ host long long.
 #define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%lx"  /* hexadecimal */
 #endif /* ifndef PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE */
 
+/*
+Host types used to manipulate integer values.  When
+AN_INTEGER_VALUE_IS_LARGER_THEN_HOST_LONG is FALSE, these types
+are the same as an_integer_value and a_signed_integer_value.
+*/
+typedef a_signed_integer_value a_host_large_integer;
+typedef an_integer_value a_host_large_unsigned;
+
+/*
+Minimum and maximum values that can be represented in a_host_large_integer
+and a_host_large_unsigned.
+*/
+#define MAX_HOST_LARGE_INTEGER MAX_INTEGER_VALUE
+#define MIN_HOST_LARGE_INTEGER MIN_INTEGER_VALUE
+#define MAX_HOST_LARGE_UNSIGNED MAX_UNSIGNED_INTEGER_VALUE
+
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 /*
@@ -376,12 +392,17 @@ typedef unsigned short an_int_value_part;
    The idea is that any operation involving two an_int_value_part
    values in the range MIN_INT_VALUE_PART..MAX_INT_VALUE_PART can
    be done in a_host_large_integer without special coding to deal
-   with overflows. */
+   with overflows.  These types are also used to manipulate integer
+   values that are a subset of the values that can be represented by
+   an_integer_value when AN_INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is
+   FALSE.  Many operations can be done using these types, because
+   most constant values are small.  When the values are too large,
+   alternate routines are used. */
 typedef long a_host_large_integer;
 typedef unsigned long a_host_large_unsigned;
 #define MAX_HOST_LARGE_INTEGER LONG_MAX
 #define MIN_HOST_LARGE_INTEGER LONG_MIN
-#define MAX_HOST_LARGE_UNSIGNED LONG_UMAX
+#define MAX_HOST_LARGE_UNSIGNED ULONG_MAX
 
 /* Define a macro that has the same value as TARG_CHAR_BIT.  This is done
    because TARG_CHAR_BIT cannot be used outside of targ_def.h (it gets
@@ -727,13 +748,13 @@ typedef long a_targ_ptrdiff_t;  /* Must be host "long". */
 /* a_targ_size_t is the container used to hold size_t values on the host.
    It must be large enough to hold all the target size_t values, but can
    be larger. */
-typedef unsigned long a_targ_size_t;  /* Must be host "unsigned long". */
+typedef a_host_large_unsigned a_targ_size_t;  /* Must a_host_large_unsigned. */
 /* TARG_SIZE_T_MAX defines the limit of the host representation
    of size_t constants; the range it defines can be equal to or smaller
    than the integer size implied by TARG_SIZE_T_INT_KIND.  Except when
    the target size_t is smaller than the host long, it should be ULONG_MAX. */
 #ifndef TARG_SIZE_T_MAX
-#define TARG_SIZE_T_MAX ((a_targ_size_t)ULONG_MAX)
+#define TARG_SIZE_T_MAX ((a_targ_size_t)MAX_HOST_LARGE_UNSIGNED)
 			/* Default value, used to initialize global variable
 			   targ_size_t_max. */
 #endif /* ifndef TARG_SIZE_T_MAX */

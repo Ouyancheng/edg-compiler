@@ -71,12 +71,6 @@ const_ints.h -- Declarations related to manipulation of target integer
   *(op_1) = *(op_1) ^ *(op_2)
 
 
-/* Create a mask in which the "bits" low order bits of the integer value
-   are set to one.  bits must be at least one. */
-#define make_integer_value_mask(mask, bits)				\
-  *(mask) = (~(an_integer_value)0) >> (BITS_IN_AN_INTEGER_VALUE - (bits))
-
-
 /* Sign extend an integer value.  The current value consists of "bits"
    bits.  The high order bit of the field is the sign bit. */
 #define sign_extend_integer_value(value, bits)				\
@@ -99,11 +93,11 @@ const_ints.h -- Declarations related to manipulation of target integer
 
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
-extern void set_integer_value(an_integer_value *intval,
-                              long             value);
+extern void set_integer_value(an_integer_value		*intval,
+                              a_host_large_integer	value);
 
-extern void set_unsigned_integer_value(an_integer_value *intval,
-                                       unsigned long    value);
+extern void set_unsigned_integer_value(an_integer_value		*intval,
+                                       a_host_large_unsigned	value);
 
 extern void or_integer_values(an_integer_value *op_1,
 		              an_integer_value *op_2);
@@ -113,9 +107,6 @@ extern void and_integer_values(an_integer_value *op_1,
 
 extern void xor_integer_values(an_integer_value *op_1,
 		               an_integer_value *op_2);
-
-extern void make_integer_value_mask(an_integer_value *mask,
-				    int	      	     bits);
 
 extern void sign_extend_integer_value(an_integer_value *value,
 				      int	        bits);
@@ -127,13 +118,17 @@ extern void incr_integer_value(an_integer_value *intval);
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 
+extern void make_integer_value_mask(an_integer_value *mask,
+				    int	      	     bits);
+
 extern a_boolean int_constant_is_signed(a_constant_ptr constant);
 
-extern long value_of_integer_constant(a_constant *cp,
-                                      a_boolean  *ovflo);
+extern a_host_large_integer value_of_integer_constant(a_constant *cp,
+                                                      a_boolean  *ovflo);
 
-extern unsigned long unsigned_value_of_integer_constant(a_constant *cp,
-                                                        a_boolean  *ovflo);
+extern
+a_host_large_unsigned unsigned_value_of_integer_constant(a_constant *cp,
+                                                         a_boolean  *ovflo);
 
 extern int cmp_integer_constants(a_constant *con1,
                                  a_constant *con2);

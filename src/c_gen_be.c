@@ -1778,7 +1778,8 @@ if output_final_semi is TRUE.
   /* Output the enumeration constants. */
   /* Start with an expected value of 0 next. */
   next_enum_value = *enum_con;
-  set_integer_value(&next_enum_value.variant.integer_value, 0L);
+  set_integer_value(&next_enum_value.variant.integer_value,
+                    (a_host_large_integer)0);
   for (;;) {
     set_output_position(&enum_con->source_corresp.decl_position);
     /* Output the constant's name. */

@@ -44,8 +44,8 @@ static an_integer_value
 
 
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-void set_integer_value(an_integer_value *intval,
-                       long             value)
+void set_integer_value(an_integer_value		*intval,
+                       a_host_large_integer	value)
 /*
 Set the integer value entry *intval to the signed value "value".
 */
@@ -60,8 +60,8 @@ Set the integer value entry *intval to the signed value "value".
 }  /* set_integer_value */
 
 
-void set_unsigned_integer_value(an_integer_value *intval,
-                                unsigned long    value)
+void set_unsigned_integer_value(an_integer_value	*intval,
+                                a_host_large_unsigned	value)
 /*
 Set the integer value entry *intval to the unsigned value "value".
 */
@@ -81,30 +81,31 @@ Set the integer value entry *intval to the unsigned value "value".
 /* is_signed is not used when integer values are host integers. */
 /*ARGSUSED*/
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-static void conv_integer_value_to_long(an_integer_value *intval,
-                                       a_boolean	 is_signed,
-                                       long 		 *value,
-                                       a_boolean	 *err)
+static void conv_integer_value_to_host_large_integer(
+			        an_integer_value	*intval,
+                                a_boolean		is_signed,
+				a_host_large_integer	*value,
+                                a_boolean		*err)
 /*
-Extract a host long from an_integer_value.  is_signed indicates whether
-the integer value should be considered signed or unsigned.  If is_signed
-is TRUE the value returned in "value" will be signed, otherwise
+Extract a host large integer from an_integer_value.  is_signed indicates
+whether the integer value should be considered signed or unsigned.  If
+is_signed is TRUE the value returned in "value" will be signed, otherwise
 the value returned in "value" will be unsigned.  Set err to
-TRUE if the value cannot be represented is a host long (or unsigned
-long if is_signed is FALSE) otherwise set err to FALSE.
+TRUE if the value cannot be represented is a host large integer (or host
+large unsigned if is_signed is FALSE) otherwise set err to FALSE.
 */
 {
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  *value = (long)*intval;
+  *value = (a_host_large_integer)*intval;
   *err = FALSE;
 #else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   int			i;
   int	        	bits_so_far = 0;
   int	        	bits_discarded = BITS_IN_AN_INTEGER_VALUE -
-			                 (sizeof(long) * CHAR_BIT);
+			             (sizeof(a_host_large_integer) * CHAR_BIT);
   an_int_value_part	this_part;
   an_int_value_part	empty_bits;
-  unsigned long		result = 0;
+  a_host_large_unsigned	result = 0;
   a_boolean		overflow = FALSE;
   a_boolean		is_negative;
   /* The low order parts will be used to construct the result.  The high
@@ -129,11 +130,13 @@ long if is_signed is FALSE) otherwise set err to FALSE.
   }  /* for */
   /* If the sign of the result is not the same as the sign of the original
      number then an overflow occurred. */
-  if (is_signed && is_negative != (long)result < 0) overflow = TRUE;
-  *value = (long)result;
+  if (is_signed && is_negative != (a_host_large_integer)result < 0) {
+    overflow = TRUE;
+  }  /* if */
+  *value = (a_host_large_integer)result;
   *err = overflow;
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-}  /* conv_integer_value_to_long */
+}  /* conv_integer_value_to_host_large_integer */
 
 
 a_boolean int_constant_is_signed(a_constant_ptr constant)
@@ -151,47 +154,48 @@ Return TRUE if the given integer constant's type is signed.
 }  /* int_constant_is_signed */
 
 
-long value_of_integer_constant(a_constant *cp,
-                               a_boolean  *ovflo)
+a_host_large_integer value_of_integer_constant(a_constant *cp,
+                                               a_boolean  *ovflo)
 /*
-Retrieve the value of the integer constant cp and return it as a host "long".
-If the value is not representable as a long, return *ovflo TRUE.
+Retrieve the value of the integer constant cp and return it as a host large
+integer.  If the value is not representable as a host large integer,
+return *ovflo TRUE.
 */
 {
-  long		value;
-  a_boolean	is_signed = int_constant_is_signed(cp);
-  a_boolean	err;
+  a_host_large_integer	value;
+  a_boolean		is_signed = int_constant_is_signed(cp);
+  a_boolean		err;
 
   *ovflo = FALSE;
-  conv_integer_value_to_long(&cp->variant.integer_value, is_signed,
-                             &value, &err);
+  conv_integer_value_to_host_large_integer(&cp->variant.integer_value,
+                                           is_signed, &value, &err);
   if ((value < 0 && !is_signed) || err) {
     /* Unsigned constant with value too large to represent or an
-       integer value that can't be represented as a long. */
+       integer value that can't be represented as a host large integer. */
     *ovflo = TRUE;
   }  /* if */
   return value;
 }  /* value_of_integer_constant */
 
 
-unsigned long unsigned_value_of_integer_constant(a_constant *cp,
-                                                 a_boolean  *ovflo)
+a_host_large_unsigned unsigned_value_of_integer_constant(a_constant *cp,
+                                                         a_boolean  *ovflo)
 /*
 Retrieve the value of the integer constant cp and return it as a host
-"unsigned long".  If the value is not representable as an unsigned long,
+large unsigned.  If the value is not representable as a host large unsigned,
 return *ovflo TRUE.
 */
 {
-  long		value;
-  a_boolean	is_signed = int_constant_is_signed(cp);
-  a_boolean	err;
+  a_host_large_integer	value;
+  a_boolean		is_signed = int_constant_is_signed(cp);
+  a_boolean		err;
 
   *ovflo = FALSE;
-  conv_integer_value_to_long(&cp->variant.integer_value, is_signed,
-                             &value, &err);
+  conv_integer_value_to_host_large_integer(&cp->variant.integer_value,
+                                           is_signed, &value, &err);
   if ((value < 0 && is_signed) || err) {
     /* Signed constant with negative value or an integer value that can't
-       be represented as a long. */
+       be represented as a host large unsigned. */
     *ovflo = TRUE;
   }  /* if */
   return value;
@@ -284,7 +288,7 @@ Compare the integer constant con1 to the long value value2, and return
   int              cmp;
   an_integer_value intval2;
 
-  set_integer_value(&intval2, value2);
+  set_integer_value(&intval2, (a_host_large_integer)value2);
   cmp = cmp_integer_values(&con1->variant.integer_value,
                            int_constant_is_signed(con1),
                            &intval2,
@@ -307,7 +311,7 @@ and return
   int              cmp;
   an_integer_value intval2;
 
-  set_unsigned_integer_value(&intval2, unsigned_value2);
+  set_unsigned_integer_value(&intval2, (a_host_large_unsigned)unsigned_value2);
   cmp = cmp_integer_values(&con1->variant.integer_value,
                            int_constant_is_signed(con1),
                            &intval2,
@@ -391,7 +395,7 @@ Increment the integer value *intval.  No overflow checking is done.
 {
   an_integer_value	one;
   a_boolean		err;
-  set_integer_value(&one, 1L);
+  set_integer_value(&one, (a_host_large_integer)1);
   add_integer_values(intval, &one, /*is_signed=*/FALSE, &err);
 }  /* incr_integer_value */
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
@@ -445,14 +449,14 @@ Return the number of bits required to represent the indicated constant.
      of bits. */
   if (sign_of(value) && int_constant_is_signed(cp)) {
     /* Constant is negative. */
-    set_integer_value(&mask, 0L);
+    set_integer_value(&mask, (a_host_large_integer)0);
     complement_integer_value(&mask);
     sign_mask = mask;
   } else {
     /* Constant is nonnegative or unsigned. */
-    set_integer_value(&mask, 1L);
+    set_integer_value(&mask, (a_host_large_integer)1);
     complement_integer_value(&mask);
-    set_integer_value(&sign_mask, 0L);
+    set_integer_value(&sign_mask, (a_host_large_integer)0);
   }  /* if */
   /* Stop when the mask includes all the significant bits of the value. */
   for (;;) {
@@ -589,7 +593,6 @@ err is TRUE if an overflow occurred and FALSE otherwise.
 }  /* subtract_mixed_signed_integer_values */
 
 
-#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 void make_integer_value_mask(an_integer_value *mask,
 			     int	      bits)
 /*
@@ -597,13 +600,23 @@ Create a mask in which the "bits" low order bits of the integer value
 are set to one.  bits must be at least one.
 */
 {
-  set_integer_value(mask, 0L);
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  set_integer_value(mask, (a_host_large_integer)0);
   complement_integer_value(mask);
   shift_right_integer_value(mask, BITS_IN_AN_INTEGER_VALUE - bits,
 			    /*is_signed=*/FALSE, /*sign_extend=*/FALSE);
+#else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  /* The version that works on a host type was originally a macro.  It
+     was converted to a function to work around a gcc bug that caused
+     the macro to fail when an_integer_value was a long long. */
+  int			shift_count = BITS_IN_AN_INTEGER_VALUE - bits;
+  an_integer_value	result = (~(an_integer_value)0);
+  result = result >> shift_count;
+  *mask = result;
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 }  /* make_integer_value_mask */
 
-
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 void sign_extend_integer_value(an_integer_value *value,
 			       int	        bits)
 /*
@@ -851,7 +864,7 @@ Negate an integer value.  The result is returned in the first operand
 */
 {
   an_integer_value  result;
-  set_integer_value(&result, 0L);
+  set_integer_value(&result, (a_host_large_integer)0);
   subtract_integer_values(&result, op_1, /*is_signed=*/TRUE, err);
   *op_1 = result;
 }  /* negate_integer_value */
@@ -1233,7 +1246,7 @@ are done with op_1.
   }  /* if */
   /* Check for division by zero, a zero dividend, and for cases where
      the divisor is greater than the dividend. */
-  set_integer_value(&zero_iv, 0L);
+  set_integer_value(&zero_iv, (a_host_large_integer)0);
   if (cmp_integer_values(&op_2, /*op_1_signed=*/FALSE, &zero_iv,
                                 /*op_2_signed=*/FALSE) == 0) {
     /* Divisor is zero -- this is an error. */
@@ -1470,14 +1483,14 @@ The result is returned in the first operand (op_1 = op_1 % op_2).
   an_integer_value	quotient;
   an_integer_value	minus_one;
 
-  set_integer_value(&minus_one, -1L);
+  set_integer_value(&minus_one, (a_host_large_integer)-1);
   if (cmp_integer_values(op_2, is_signed,
                          &minus_one, /*op_2_signed=*/TRUE) == 0) {
     /* x % -1 is always 0.  Done as a special case to avoid potential
        problems when evaluating smallest-int % -1 on a two's complement
        machine.  The corresponding division overflows, but % is
        well-defined. */
-    set_integer_value(op_1, 0L);
+    set_integer_value(op_1, (a_host_large_integer)0);
     *err = FALSE;
   } else {
     /* No overflow. */
@@ -1533,7 +1546,8 @@ preceded by a "-".
   }  /* if */
   /* Divide the number into pieces that are in the range of 0 to
      max_power_of_10.  These are stored in the parts array. */
-  set_integer_value(&iv_max_power_of_10, max_power_of_10);
+  set_integer_value(&iv_max_power_of_10,
+                    (a_host_large_integer)max_power_of_10);
   for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1;; --i) {
     /* If the remaining value is less than the maximum power of
        ten, then convert it to a long and we are done.  Otherwise
@@ -1541,15 +1555,15 @@ preceded by a "-".
        remainder and continue looping. */
     if (cmp_integer_values(&value, /*op_1_signed=*/FALSE,
 			   &iv_max_power_of_10, /*op_2_signed=*/FALSE) <= 0) {
-      conv_integer_value_to_long(&value, /*is_signed=*/FALSE,
-                                 &parts[i], &err);
+      conv_integer_value_to_host_large_integer(&value, /*is_signed=*/FALSE,
+                                               &parts[i], &err);
       break;
     } else {
       divide_and_remainder_integer_values(&value, &iv_max_power_of_10,
 					  &value, &remainder,
 					  /*is_signed=*/FALSE, &err);
-      conv_integer_value_to_long(&remainder, /*is_signed=*/FALSE,
-                                 &parts[i], &err);
+      conv_integer_value_to_host_large_integer(&remainder, /*is_signed=*/FALSE,
+                                               &parts[i], &err);
     }  /* if */
   }  /* for */
   /* Print the first part. The first part includes the sign and is
@@ -1657,11 +1671,11 @@ so no checking is done.
     exponent = digits_before_decimal - digits;
   }  /* if */
   /* Convert the string to an integer value. */
-  set_integer_value(intval, 0L);
-  set_integer_value(&ten, 10L);
+  set_integer_value(intval, (a_host_large_integer)0);
+  set_integer_value(&ten, (a_host_large_integer)10);
   for (i = 0; i < digits; ++i) {
     an_integer_value	digit_iv;
-    set_integer_value(&digit_iv, (long)digit_string[i] - '0');
+    set_integer_value(&digit_iv, (a_host_large_integer)digit_string[i] - '0');
     multiply_integer_values(intval, &ten, /*is_signed=*/TRUE, &overflow);
     if (overflow) break;
     if (is_signed && is_negative) {
@@ -1875,13 +1889,14 @@ for the integer kind ikind.
   if (is_signed) {
     an_integer_value one;
     a_boolean	   err;
-    set_integer_value(&one, 1L);
+    set_integer_value(&one, (a_host_large_integer)1);
     min_integer_value_of_kind[ikind] = max_integer_value_of_kind[ikind];
     add_integer_values(&min_integer_value_of_kind[ikind], &one,
                       /*is_signed=*/FALSE, &err);
     sign_extend_integer_value(&min_integer_value_of_kind[ikind], bit_size + 1);
   } else {
-    set_integer_value(&min_integer_value_of_kind[ikind], 0L);
+    set_integer_value(&min_integer_value_of_kind[ikind],
+                      (a_host_large_integer)0);
   }  /* if */
 }  /* init_int_kind_min_max_values */
 

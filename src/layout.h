@@ -51,8 +51,9 @@ extern void reset_pack_alignment_state(a_targ_alignment            alignment,
 
 extern void restore_pack_alignment_state(a_pack_alignment_state_ptr state);
 
-extern a_boolean check_pack_alignment_value(long              value,
-                                            a_targ_alignment  *alignment);
+extern
+a_boolean check_pack_alignment_value(a_host_large_integer value,
+                                     a_targ_alignment      *alignment);
 
 extern void pack_pragma(a_pending_pragma_ptr ppp);
 

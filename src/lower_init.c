@@ -4347,7 +4347,7 @@ arrays with class elements.
         /* The multiplication is still needed.  This must be a multi-
            dimensional array case. */
         set_unsigned_integer_value(&size_constant.variant.integer_value,
-                                   (unsigned long)con_for_size);
+                                   con_for_size);
         constant_node = alloc_node_for_constant(&size_constant);
         nonconstant_node->next = constant_node;
         num_elem_node = make_operator_node(
