@@ -1316,6 +1316,11 @@ typedef struct an_exported_template_file {
 } an_exported_template_file;
 
 
+typedef int an_instance_required_count;
+			/* Type used to record the number of translation units
+			   for which an instance of a given template is
+			   required. */
+
 /*
 Entry that describes the use of a template instance across the entire
 set of translation units that are being processed.  A template instance
@@ -1337,9 +1342,11 @@ typedef struct a_master_instance {
 			   canonical one. */
   char		*name;
 			/* The mangled name of the entity. */
-  a_bit_field	instantiation_required:1;
-			/* TRUE if the instantiation_required flag has been
-			   set for this entity in any translation unit. */
+  an_instance_required_count
+		instance_required_count;
+			/* The number of translation units for which the
+			   instantiation_required flag is set for this
+			   instance. */
   a_bit_field	already_instantiated:1;
 			/* TRUE if instantiation has already been performed
 			   (for instance, for inline functions, which are

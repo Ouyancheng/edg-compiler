@@ -10005,7 +10005,7 @@ pointer to it.
   mip->next                        = NULL;
   mip->instance                    = NULL;
   mip->name                        = NULL;
-  mip->instantiation_required      = FALSE;
+  mip->instance_required_count     = 0;
   mip->already_instantiated        = FALSE;
   mip->automatically_instantiated  = FALSE;
   mip->add_to_request_file	   = FALSE;

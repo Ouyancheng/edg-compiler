@@ -16088,8 +16088,9 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   tssp = template_supplement_for_symbol(tip->template_sym);
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("uirf")) {
-    fprintf(f_debug, "Setting instantiation_required flag to %s for ",
-            value ? "TRUE" : "FALSE");
+    fprintf(f_debug,
+            "Setting instantiation_required flag to %s for (options=%d)",
+            value ? "TRUE" : "FALSE", (int)options);
     db_symbol(tip->instance_sym, "", 0);
     fprintf(f_debug, "is_function_symbol=%d\n", is_function_symbol(sym));
     fprintf(f_debug, "defined=%d\n", sym->defined);
@@ -16133,8 +16134,13 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
     if ((options & SIR_CLEAR_VALUE) != 0) {
       /* If value is FALSE, only reset the flag if the SIR_CLEAR_VALUE
          option was specified. */
+      if (use_master_instance && tip->instantiation_required) {
+        /* If the flag was previously set, decrement the count of
+           translation units that require the instantiation. */
+        mip->instance_required_count--;
+        check_assertion(mip->instance_required_count >= 0);
+      }  /* if */
       tip->instantiation_required = FALSE;
-      if (use_master_instance) mip->instantiation_required = FALSE;
     }  /* if */
   } else if (pending_class_definitions != 0 ||
              defer_inline_function_fixup_and_instantiations != 0) {
@@ -16157,7 +16163,11 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
     a_boolean	flag_already_set;
     flag_already_set = tip->instantiation_required;
     tip->instantiation_required = TRUE;
-    if (use_master_instance) mip->instantiation_required = TRUE;
+    if (use_master_instance && !flag_already_set) {
+      /* If the flag was not previously set, inccrement the count of
+         translation units that require the instantiation. */
+      mip->instance_required_count++;
+    }  /* if */
     if (!flag_already_set) {
       /* Record the namespace from which this instantiation is first used. */
       tip->referencing_namespace = determine_referencing_namespace();
@@ -16625,18 +16635,18 @@ be processed.
       do_not_instantiate = variable->do_not_instantiate
                          = tip->explicit_do_not_instantiate;
       instance_required = variable->instance_required
-                        = (mip->instantiation_required &&
+                        = (mip->instance_required_count &&
                            !variable->is_specialized);
     } else {
       routine->can_be_instantiated = can_be_instantiated;
       do_not_instantiate = routine->do_not_instantiate
                          = tip->explicit_do_not_instantiate;
       instance_required = routine->instance_required
-                        = (mip->instantiation_required &&
+                        = (mip->instance_required_count &&
                            !routine->is_specialized);
     }  /* if */
 #if DEBUG
-    if (debug_level >= 4) {
+    if (db_flag_is_set("uaif")) {
       db_name(is_static_data_member ?
                  &variable->source_corresp : &routine->source_corresp);
       fputs(":\n", f_debug);
@@ -16644,6 +16654,9 @@ be processed.
               mip->already_instantiated);
       fprintf(f_debug, " instance_required=%d\n", instance_required);
       fprintf(f_debug, " can_be_instantiated=%d\n", can_be_instantiated);
+      fprintf(f_debug, " is_exported=%d\n", is_exported);
+      fprintf(f_debug, " instance_required_count=%d\n",
+              (int)mip->instance_required_count);
     }  /* if */
 #endif /* DEBUG */
     if (instantiation_flags_needed()) {
@@ -16896,7 +16909,7 @@ correspondence information established first.
     /* If the instantiation required flag is set in this translation unit,
        set it in the master instance too. */
     if (tip->instantiation_required) {
-      tip->master_instance->instantiation_required = TRUE;
+      tip->master_instance->instance_required_count++;
     }  /* if */
   }  /* for */
 }  /* set_master_instance_information */
