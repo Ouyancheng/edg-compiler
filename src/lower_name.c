@@ -2441,8 +2441,13 @@ If the indicated namespace is unnamed, give it a name.
     }  /* if */
     name_len = 3 + strlen(module_id) + 1;
     name = alloc_lowered_name_string(name_len);
+#if IA64_ABI
+    /* g++ uses "_GLOBAL__N_" and recognizes that in its demangler. */
+    (void)strcpy(name, "_GLOBAL__N_");
+#else /* !IA64_ABI */
     (void)strcpy(name, "__N");
-    (void)strcpy(name+3, module_id);
+#endif /* IA64_ABI */
+    (void)strcpy(name+strlen(name), module_id);
     nsp->source_corresp.name = name;
     nsp->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */

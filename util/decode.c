@@ -3638,6 +3638,13 @@ output the characters).  This is used for module ids (an EDG extension).
   if (num <= 0) {
     bad_mangled_name(dctl);
   } else {
+    if (num >= 11 && start_of_id_is("_GLOBAL__N_", ptr)) {
+      /* g++ uses names beginning with "_GLOBAL__N_" to identify unnamed
+         namespaces, and the EDG C++ Front End does also to be compatible
+         with that. */
+      write_id_str("<unnamed>", dctl);
+      output_chars = FALSE;
+    }  /* if */
     for (; num > 0; ptr++, num--) {
       if (*ptr == '\0') {
         /* The name string ends before enough characters have been
@@ -3646,8 +3653,12 @@ output the characters).  This is used for module ids (an EDG extension).
         break;
       } else if (!isalnum((unsigned char)*ptr) && *ptr != '_') {
         /* Invalid character in identifier. */
-        bad_mangled_name(dctl);
-        break;
+        /* g++ names for unnamed namespaces contain bad characters,
+           e.g., periods. */
+        if (output_chars) {
+          bad_mangled_name(dctl);
+          break;
+        }  /* if */
       } if (stop_on_underscore && *ptr == '_') {
         /* Stop outputting characters on the first underscore. */
         output_chars = FALSE;
