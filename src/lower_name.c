@@ -990,7 +990,7 @@ template arguments, and as dimensions of arrays in template signatures.
     case enk_operation:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       check_assertion(expr->variant.operation.kind !=
-                                             (an_expr_operator_kind)eok_assume);
+                                            (an_expr_operator_kind)eok_assume);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Operation.  Output has the form
            Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template
