@@ -519,7 +519,9 @@ Dump an indirect base class entry, for debug purposes.
 {
   a_derivation_step_ptr  dsp;
 
-  fprintf(f_debug, "\n    %s", bcp->type->source_corresp.name);
+  fputs("\n    ", f_debug);
+  db_type_name(bcp->type);
+  fprintf(f_debug, ", at offset %lu", bcp->offset);
   if (bcp->is_virtual) fputs(", is_virtual", f_debug);
   if (bcp->ambiguous) fputs(", ambiguous", f_debug);
   if (bcp->any_virtual_steps_in_derivation) fputs (", virtual steps", f_debug);
