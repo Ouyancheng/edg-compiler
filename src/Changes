@@ -1,5 +1,10 @@
 Version 2.11
 
+9/29/92  referenced flag for virtual function table variables
+
+The referenced flag for virtual function tables (created by IL
+lowering) is now set more correctly.
+
 9/28/92  Initialization of arrays of C-style structs in C++ mode
 
 Spurious errors were issued for code of this sort:

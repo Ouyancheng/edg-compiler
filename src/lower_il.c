@@ -3750,6 +3750,10 @@ It might be changed later to add a definition.
      storage class is adjusted at that point. */
   vtbl_var = make_variable(mangled_name, /*already_il_name=*/TRUE, array_type,
                            (a_storage_class)sc_extern);
+  /* make_variable creates a variable with referenced set TRUE, but the
+     variable is not necessarily going to be referenced, so clear the
+     flag. */
+  vtbl_var->source_corresp.referenced = FALSE;
   /* Remember the variable in the class type supplement or the base class
      entry so it can be found when constructor/destructor lowering is done. */
   if (bcp == NULL) {
@@ -4208,6 +4212,8 @@ be local to the current compilation even if the class is externally linked.
     /* For an externally-linked class, change the variable to an external
        definition. */
     vtbl_var->storage_class = (a_storage_class)sc_unspecified;
+    /* The variable can be referenced from another compilation unit. */
+    vtbl_var->source_corresp.referenced = TRUE;
   } else {
     /* For an internally-linked class or one with no linkage, or when
        forced to by the flag force_static, change the storage class to
@@ -4260,10 +4266,6 @@ class_type if any are needed.
         define_one_virtual_function_table(class_type, (a_base_class_ptr)NULL,
                                           force_static);
       }  /* if */
-      /* The vtbl variable is referenced if the class is referenced. */
-      if (class_type->source_corresp.referenced) {
-        ctsp->virtual_function_table_var->source_corresp.referenced = TRUE;
-      }  /* if */
     }  /* if */
     /* Generate the virtual function table for each base class when it
        is contained within a complete object of the primary class. */
@@ -4282,10 +4284,6 @@ class_type if any are needed.
                                             ctsp->virtual_function_table_var) {
             define_one_virtual_function_table(class_type, bcp, force_static);
           }  /* if */
-        }  /* if */
-        /* The vtbl variable is referenced if the class is referenced. */
-        if (class_type->source_corresp.referenced) {
-          bcp->virtual_function_table_var->source_corresp.referenced = TRUE;
         }  /* if */
       }  /* for */
     }  /* if */
