@@ -1069,11 +1069,8 @@ when it is a secondary file.
   } else {
     /* Preprocessing output cannot be generated for secondary translation
        units. */
-    f_pp_output = NULL;
     generate_pp_output = FALSE;
     do_preprocessing_only = FALSE;
-    list_included_files = FALSE;
-    list_makefile_dependencies = FALSE;
   }  /* if */
 }  /* fe_translation_unit_init */
 
