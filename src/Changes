@@ -1,5 +1,14 @@
 Version 3.1
 
+11/11/02 Stricter diagnostics for void parameter types
+
+The front end used to issue a warning when a function parameter list
+consists solely of a typedef alias for void.  Now an error is issued
+in strict mode, and a warning otherwise.
+
+  typedef void V;
+  void f(V);  // Error in strict mode; warning otherwise.
+
 11/11/02 Cv-qualifiers on function types
 
 The C++ standardization committee has clarified (as a resolution to Core

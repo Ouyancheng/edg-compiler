@@ -1353,10 +1353,10 @@ declaration.
                      !is_qualified_type(param_type_ptr) &&
                      param_storage_class == (a_storage_class)sc_unspecified) {
             /* A type name is bound to void type -- this construct is treated
-               as a nonstandard way of signifying an empty param list. */
-            if (strict_ansi_mode) {
-              pos_warning(ec_nonstd_void_param_list, &param_type_pos);
-            }  /* if */
+               as a nonstandard way of signifying an empty param list.  Issue
+               an error in strict mode; a warning otherwise. */
+            pos_diagnostic(strict_ansi_mode ? es_error : es_warning,
+                           ec_nonstd_void_param_list, &param_type_pos);
             remove_stop_token(tok_comma);
             break;
           }  /* if */
