@@ -145,6 +145,11 @@ EXTERN char	*token_names[(int)tok_last+1]
 #endif /* VAR_INITIALIZERS */
 ;
 
+/*
+Forward declaration of a_pending_pragma_ptr.
+*/
+typedef struct a_pending_pragma *a_pending_pragma_ptr;
+
 
 /* These includes are placed here so that a_token_kind will be defined
    for general use before including these files. */
@@ -281,11 +286,6 @@ typedef enum a_pragma_binding_kind {
   pbk_last
 		/* Must be last. */
 } a_pragma_binding_kind;
-
-/*
-Forward declaration of a_pending_pragma_ptr.
-*/
-typedef struct a_pending_pragma *a_pending_pragma_ptr;
 
 
 /*
