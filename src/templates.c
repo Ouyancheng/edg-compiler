@@ -62,6 +62,12 @@ typedef struct an_instance_lookup_entry {
 			   the instantiation list file.  This will typically
 			   be the mangled name of the function or static
 			   data member. */
+  a_master_instance_ptr
+		master_instance;
+			/* Pointer to the master instance entry associated with
+			   this template.  This will be NULL for the lookup
+			   entries associated with templates themselves
+			   (and not instances of templates). */
   a_byte_boolean
 		in_request_file;
 			/* TRUE if the name is present in the request file. */
@@ -308,6 +314,18 @@ static a_can_instantiate_entry_ptr can_instantiate_list;
 static a_def_arg_expr_fixup_ptr	curr_default_args;
 			/* Pointer to the default argument entries for
                            the function template being scanned. */
+
+static a_master_instance_ptr
+		master_instantiations_list;
+			/* List of master instance entries for external
+			   template entities (functions and static data
+			   members).  This is a list of instances for all
+			   translation units. */
+
+static a_master_instance_ptr
+		master_instantiations_tail;
+			/* Points to the end of the
+			   master_instantiations_list. */
 
 static a_template_instance_ptr instantiations_required;
 			/* Points to the first entry on a list of template
@@ -1059,7 +1077,7 @@ itself recursively to process classes nested within this class.
       } else if (rout->is_prototype_instantiation) {
         /* Don't add prototype instantiations of member templates to the
            instantiations required list. */
-      } else if (!tip->instantiation_required) {
+      } else {
         /* Simply add the function to the instantiation list, without setting
            the flag. */
         a_boolean	flag_value = FALSE;
@@ -1076,7 +1094,7 @@ itself recursively to process classes nested within this class.
           }  /* if */
         }
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-        set_instance_required(sym, flag_value, /*defer_inline=*/TRUE);
+        set_instance_required(sym, flag_value, SIR_DEFER_INLINE);
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -1126,8 +1144,8 @@ itself recursively to process classes nested within this class.
       tip = sym->variant.static_data_member.instance_ptr;
       /* We makes sure tip is non-NULL to guard against potential error
          cases. */
-      if (tip != NULL && !tip->instantiation_required) {
-        set_instance_required(sym, /*value=*/FALSE, /*defer_inline=*/TRUE);
+      if (tip != NULL) {
+        set_instance_required(sym, /*value=*/FALSE, SIR_DEFER_INLINE);
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -3466,7 +3484,7 @@ done:;
   /* The already instantiated flag is set even if certain error conditions
      exist (such as runaway instantiation), to prevent the compiler from
      attempting to instantiate this function again. */
-  tip->already_instantiated = TRUE;
+  master_instance_of(tip)->already_instantiated = TRUE;
   db_exit();
 }  /* instantiate_template_function */
 
@@ -3504,7 +3522,7 @@ and the class instantiation will detect the runaway case.
   /* The already instantiated flag is set even if certain error conditions
      exist (such as runaway instantiation), to prevent the compiler from
      attempting to instantiate this static data member again. */
-  tip->already_instantiated = TRUE;
+  master_instance_of(tip)->already_instantiated = TRUE;
   if (tssp->pending_instantiations >= max_pending_instantiations) {
     /* This instantiation occurs within the context of other instantiations
        of the same static data member.  When the number of such instantiations
@@ -7363,11 +7381,9 @@ type based on the template argument list and the template parameter list
      invocation of the function.  In tim_all mode the instantiations
      will be generated even if the instantiation required flag is not
      set. */
-  if (!tip->instantiation_required) {
-    /* If the flag is set then the entry is already on the list and the flag
-       should not be reset. */
-    set_instance_required(sym, /*value=*/FALSE, /*defer_inline=*/FALSE);
-  }  /* if */
+  /* Note that if the instance required flag is already set, it will not
+     be cleared by this call. */ 
+  set_instance_required(sym, /*value=*/FALSE, SIR_NONE);
   db_exit();
   return sym;
 }  /* make_template_function */
@@ -7789,15 +7805,14 @@ the function instantiation entry and set all the pointers.
          invocation of the function.  In tim_all mode the instantiations
          will be generated even if the instantiation required flag is not
          set. */
-      if (!tip->instantiation_required) {
-        /* If the flag is set then the entry is already on the list and
-           the flag should not be reset.  If the flag is not already set,
+      {
+        /* Note that the flag will not be reset by this call, even if
+           the instantiate flag is FALSE.  If the flag is not already set,
            set it based on whether the routine described by the specific
            declaration has been called or has had its address taken. */
         a_boolean	instantiate;
         instantiate = rp->address_taken || rp->called;
-        update_instantiation_required_flag(tip, instantiate,
-                                           /*defer_inline=*/FALSE);
+        update_instantiation_required_flag(tip, instantiate, SIR_NONE);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -14412,7 +14427,8 @@ added, FALSE if it was already on the list.
   if (tip->next_in_instantiation_list != NULL ||
       tip == instantiations_required_tail) {
     /* Already on the list -- don't try to add it again. */
-    if (in_instantiation_wrapup && tip->instantiation_required) {
+    if (in_instantiation_wrapup &&
+        tip->instantiation_required) {
       /* The instantiation required flag has been set for an entry already
          on the list.  This means that instantiation_wrapup must make another
          pass over the instantiations list. */
@@ -14571,14 +14587,17 @@ a template definition file to provide definitions for externally linked
 template entities.
 */
 {
-  a_boolean	result = TRUE;
-  a_boolean	specialized;
-  a_boolean	specialization_defined;
-  a_boolean	template_def;
+  a_boolean		result = TRUE;
+  a_boolean		specialized;
+  a_boolean		specialization_defined;
+  a_boolean		template_def;
+  a_master_instance_ptr	mip;
 
-  if (!tip->already_instantiated && !tip->explicit_do_not_instantiate &&
+  mip = master_instance_of(tip);
+  if (!mip->already_instantiated && !tip->explicit_do_not_instantiate &&
       (tip->explicit_instantiation ||
-       ((tip->instantiation_required || instantiation_mode == tim_all) &&
+       ((tip->instantiation_required ||
+         instantiation_mode == tim_all) &&
         (instantiation_mode != tim_none ||
          is_static_or_inline_template_entity(tip))))) {
     /* For error checking purposes, find out if a specific definition
@@ -14705,10 +14724,12 @@ a template definition file to provide definitions for externally linked
 template entities.
 */
 {
-  a_boolean	result = TRUE;
-  a_boolean	template_def;
-  a_boolean	specialized;
+  a_boolean		result = TRUE;
+  a_boolean		template_def;
+  a_boolean		specialized;
+  a_master_instance_ptr	mip;
 
+  mip = master_instance_of(tip);
   /* For error checking purposes, find out if a specialization declaration
      exists and whether a body exists for the template definition. */
   if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -14724,7 +14745,7 @@ template entities.
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (!template_def && !specialized && !tip->suppress_instantiation &&
         !tip->explicit_do_not_instantiate &&
-        !tip->already_instantiated && implicit_template_inclusion_mode &&
+        !mip->already_instantiated && implicit_template_inclusion_mode &&
         implicit_inclusion_okay) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
@@ -14749,7 +14770,7 @@ template entities.
     }  /* if */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (!template_def && !specialized && !tip->suppress_instantiation &&
-        !tip->already_instantiated && implicit_template_inclusion_mode &&
+        !mip->already_instantiated && implicit_template_inclusion_mode &&
         implicit_inclusion_okay) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
@@ -14759,7 +14780,7 @@ template entities.
     }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
-  result = template_def && !specialized && !tip->already_instantiated &&
+  result = template_def && !specialized && !mip->already_instantiated &&
            !tip->suppress_instantiation && !tip->explicit_do_not_instantiate;
   tip->can_be_instantiated = result;
   return result;
@@ -14933,7 +14954,6 @@ Call the appropriate routine to instantiate the function or static
 data member specified by tip.
 */
 {
-  a_template_instance_ptr	orig_tip = tip;
   a_boolean			trans_unit_stack_pushed = FALSE;
 
   /* The instantiation process may rescan various things and invalidate the
@@ -15012,10 +15032,6 @@ data member specified by tip.
   if (trans_unit_stack_pushed) {
     /* Restore the previously active translation unit. */
     pop_translation_unit_stack();
-    /* If the instantiation was successful, copy the already_instantiated
-       flag to the template instance entry of the primary translation unit. */
-    if (tip != NULL &&
-        tip->already_instantiated) orig_tip->already_instantiated = TRUE;
   }  /* if */
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
@@ -15038,6 +15054,7 @@ to it.
                                 alloc_fe(sizeof(an_instance_lookup_entry));
   ilp->next = NULL;
   ilp->name = NULL;
+  ilp->master_instance = NULL;
   ilp->in_request_file = FALSE;
   ilp->in_definition_list_file = FALSE;
   ilp->instantiation_requested = FALSE;
@@ -15275,12 +15292,15 @@ object or library with which this file is being linked).
 */
 {
   char				*name;
-  an_instance_lookup_entry_ptr	ilp;
+  an_instance_lookup_entry_ptr	ilp = NULL;
+  a_master_instance_ptr		mip;
 
+  mip = master_instance_of(tip);
   *not_defined_elsewhere = FALSE;
   *instantiate = FALSE;
-  name = get_mangled_name_for_symbol(tip->instance_sym);
-  ilp = find_instance(name, /*add=*/FALSE);
+  check_assertion(tip->master_instance != NULL);
+  name = tip->master_instance->name;
+  if (name != NULL) ilp = find_instance(name, /*add=*/FALSE);
   if (ilp != NULL && ilp->in_request_file) {
     if (!ilp->instantiation_requested) {
       /* The entity was named in the instantiation request file. */
@@ -15288,7 +15308,8 @@ object or library with which this file is being linked).
       ilp->instantiation_requested = TRUE;
     }  /* if */
   } else if (definition_list_file_name != NULL &&
-             tip->instantiation_required && !tip->already_instantiated &&
+             tip->instantiation_required &&
+             !mip->already_instantiated &&
              (ilp == NULL || !ilp->in_definition_list_file)) {
     /* The entity was not in the instantiation list file, but neither is
        it in the list of already-defined entities.  Instantiate it here. */
@@ -15364,29 +15385,32 @@ instantiation request file.
 */
 {
   if (request_file_check_needed) {
-    a_boolean	instantiate;
-    a_boolean	not_defined_elsewhere;
-    a_boolean	add_to_request_file = FALSE;
+    a_boolean			instantiate;
+    a_boolean			not_defined_elsewhere;
+    a_boolean			add_to_request_file = FALSE;
+    a_master_instance_ptr	mip;
+    mip = master_instance_of(tip);
     check_if_present_in_request_file(tip, &instantiate,
                                      &not_defined_elsewhere);
     if (not_defined_elsewhere) {
       /* If the entity is known not to be defined elsewhere, see if an
          instantiation should be performed here.  Only external entities
          can be added to a request file. */
-      if (tip->instantiation_required && !tip->already_instantiated &&
+     if (tip->instantiation_required &&
+         !mip->already_instantiated &&
           !is_static_or_inline_template_entity(tip)) {
         add_to_request_file = TRUE;
       }  /* if */
     }  /* if */
     if (instantiate || add_to_request_file) {
       /* An instantiation should be done here. */
-      tip->automatically_instantiated = TRUE;
+      mip->automatically_instantiated = TRUE;
     }  /* if */
     if (add_to_request_file) {
       /* The instantiation was not requested by the prelinker, but was
          "adopted" by this translation unit because it is known not to
          be defined anywhere else. */
-      tip->add_to_request_file = TRUE;
+      mip->add_to_request_file = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_if_entity_should_be_automatically_instantiated */
@@ -15449,7 +15473,7 @@ specified by tip.
 #endif /* DEBUG */
   /* Do the instantiation. */
   instantiate_entity(tip);
-  if (tip->add_to_request_file) {
+  if (master_instance_of(tip)->add_to_request_file) {
     /* This flag is set once we know we have instantiated something that
        is to be added to the request file.  This triggers the generation
        of a list of added entities at the end of the compilation. */
@@ -15829,30 +15853,91 @@ a specialized instance.
 }  /* exported_definition_is_available */
 
 
-static void update_instantiation_required_flag(
-					a_template_instance_ptr tip,
-                                        a_boolean               value,
-					a_boolean		defer_inline)
+static void find_or_create_master_instance(a_template_instance_ptr	tip)
 /*
-Updates the instantiation required flag in a template instance entry.  If the
-flag is set to TRUE the instance entry is added to a list of entries for which
-instantiation is required.  If the flag is set to FALSE the entry is simply
-added to the list.  Once set to TRUE, the flag cannot be reset to FALSE.
-Inline functions are instantiated as they are added to the list, unless
-defer_inline is TRUE.
+Assign a master instance entry for the template instance "tip".
+*/
+{
+  a_boolean			is_static = FALSE;
+  a_symbol_ptr			sym = tip->instance_sym;
+  an_instance_lookup_entry_ptr	ilp = NULL;
+  a_master_instance_ptr		mip = NULL;
+
+  /* If the entity has internal linkage, don't do the lookup by name. */
+  if (sym->kind != (a_symbol_kind)sk_static_data_member &&
+      (sym->variant.routine.ptr->storage_class ==
+                                                 (a_storage_class)sc_static)) {
+    is_static = TRUE;
+  }  /* if */
+  if (!is_static) {
+    /* For a non-static entity, look for an existing master entry. */
+    char	*name;
+    name = get_mangled_name_for_symbol(sym);
+    ilp = find_instance(name, /*add=*/TRUE);
+    mip = ilp->master_instance;
+  }  /* if */
+  if (mip == NULL) {
+    /* There is no previous master instance.  Create one. */
+    mip = alloc_master_instance();
+    if (ilp != NULL) {
+      /* For nonstatic entities, record the mangled name used.  This points to
+         the same copy of the string used by the instance lookup table. */
+      mip->name = ilp->name;
+      ilp->master_instance = mip;
+    }  /* if */
+    /* The master instance points back to one of the translation unit
+       instance (an arbitrary one). */
+    mip->instance = tip;
+    if (tip->instance_sym == tip->template_sym) {
+      /* The instance refers to a member of a prototype instantiation.
+         Don't put this on the master instance list. */
+    } else {
+      /* Add this entry to the list of master instances. */
+      if (master_instantiations_list == NULL) {
+        master_instantiations_list = mip;
+      } else {
+        master_instantiations_tail->next = mip;
+      }  /* if */
+      master_instantiations_tail = mip;
+    }  /* if */
+  }  /* if */
+  /* Save a pointer to the master instance in the template instance. */
+  tip->master_instance = mip;
+}  /* find_or_create_master_instance */
+
+
+static void update_instantiation_required_flag(
+			a_template_instance_ptr			tip,
+			a_boolean				value,
+			a_set_instance_required_options_set	options)
+/*
+Updates the instantiation required flag of the template instance specified
+by "tip" and adds the entry to the list of template instances for this
+translation unit.  "value" is the value to which the instantiation
+required flag is to be set.  If the flag is already set, it is not cleared
+unless the SIR_CLEAR_VALUE flag is set in "options".
 */
 {
   a_symbol_ptr			   sym;
   a_template_symbol_supplement_ptr tssp;
   a_boolean			   add_to_list = TRUE;
   a_boolean			   added_to_list = FALSE;
+  a_master_instance_ptr		   mip;
+  a_boolean			   defer_inline;
 
   db_enter(5, "update_instantiation_required_flag");
+  defer_inline = (options & SIR_DEFER_INLINE) != 0;
   /* Inline functions are not treated differently for instantiation purposes
      in Microsoft mode. */
   if (microsoft_bugs) defer_inline = TRUE;
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
+  if (tip->master_instance == NULL) {
+    /* This instance does not yet point to master instance.  Find
+       or create one now. */
+    find_or_create_master_instance(tip);
+  }  /* if */
+  mip = master_instance_of(tip);
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("uirf")) {
     fprintf(f_debug, "Setting instantiation_required flag to %s for ",
@@ -15885,7 +15970,12 @@ defer_inline is TRUE.
   } else if (!value) {
     /* When value is FALSE we still add the entry to the instantiations
        required list. */
-    tip->instantiation_required = FALSE;
+    if ((options & SIR_CLEAR_VALUE) != 0) {
+      /* If value is FALSE, only reset the flag if the SIR_CLEAR_VALUE
+         option was specified. */
+      tip->instantiation_required = FALSE;
+      mip->instantiation_required = FALSE;
+    }  /* if */
   } else if (pending_class_definitions != 0 ||
              defer_inline_function_fixup_and_instantiations != 0) {
     /* A class definition is in progress, or if only
@@ -15904,14 +15994,16 @@ defer_inline is TRUE.
     }  /* if */
     deferred_instantiations_tail = slep;
   } else {
-    a_boolean	flag_already_set = tip->instantiation_required;
+    a_boolean	flag_already_set;
+    flag_already_set = tip->instantiation_required;
     tip->instantiation_required = TRUE;
+    mip->instantiation_required = TRUE;
     if (!flag_already_set) {
       /* Record the namespace from which this instantiation is first used. */
       tip->referencing_namespace = determine_referencing_namespace();
     }  /* if */
     if (!defer_inline && is_inline_template_function(tip)) {
-      if (!tip->already_instantiated &&
+      if (!mip->already_instantiated &&
           should_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
         /* Inline (member or nonmember) functions are instantiated at the
            point of first use, in case the back end requires the function
@@ -15932,7 +16024,7 @@ defer_inline is TRUE.
 	 are very difficult to detect when the instantiations are done
 	 serially. */
       if (in_instantiation_wrapup) {
-        if (!tip->already_instantiated &&
+        if (!mip->already_instantiated &&
             should_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
           /* Implicit inclusion is not done for "on the fly" instantiations
              because the includes cannot be processed in the middle of
@@ -15968,7 +16060,7 @@ defer_inline is TRUE.
        assignment by the automatic instantiation mechanism. */
     if (value &&
         entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE) &&
-        tip->automatically_instantiated && !tip->already_instantiated) {
+        mip->automatically_instantiated && !mip->already_instantiated) {
       /* Implicit inclusion is not done for "on the fly" instantiations
          because the includes cannot be processed in the middle of
          the instantiation of another function.  The entry will be put
@@ -15982,17 +16074,19 @@ defer_inline is TRUE.
 }  /* update_instantiation_required_flag */
 
 
-void set_instance_required(a_symbol_ptr	sym,
-			   a_boolean	value,
-			   a_boolean	defer_inline)
+void set_instance_required(a_symbol_ptr				sym,
+			   a_boolean				value,
+			   a_set_instance_required_options_set	options)
 /*
 Updates the instantiation required flag in the template instance and/or
 the inline_instance_required field in the routine entry associated with sym.
 The symbol passed in must be for a function or a static data member,
 but it need not be for a template entity or an inline function.
-"value" is the value to which the field(s) are to be set.  defer_inline
-is passed to update_instantiation_required_flag.  Does nothing if called
-in C mode.
+"value" is the value to which the field(s) are to be set.  "options"
+is a set of option flags.  If the flag is already set and "value" is FALSE,
+the flag is not cleared unless the SIR_CLEAR_VALUE flag is set in options.
+
+Does nothing if called in C mode.
 */
 {
   /* Do nothing in C mode. */
@@ -16014,7 +16108,7 @@ in C mode.
       tip = sym->variant.routine.instance_ptr;
     }  /* if */
     if (tip != NULL) {
-      update_instantiation_required_flag(tip, value, defer_inline);
+      update_instantiation_required_flag(tip, value, options);
     }  /* if */
 #if INSTANTIATE_EXTERN_INLINE
     /* The inline instance required flag is set for all functions (even
@@ -16024,7 +16118,11 @@ in C mode.
         sym->kind == (a_symbol_kind)sk_routine) {
       a_routine_ptr	rp;
       rp = sym->variant.routine.ptr;
-      rp->inline_instance_required = value;
+      if (value || (options & SIR_CLEAR_VALUE) != 0) {
+        /* If value is FALSE, only reset the flag if the SIR_CLEAR_VALUE
+           option was specified. */
+        rp->inline_instance_required = value;
+      }  /* if */
     }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
   }  /* if */
@@ -16057,8 +16155,7 @@ update_instantiation_required_flag to do the appropriate processing.
         check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
         tip = sym->variant.static_data_member.instance_ptr;
       }  /* if */
-      update_instantiation_required_flag(tip, /*value=*/TRUE,
-                                         /*defer_inline=*/FALSE);
+      update_instantiation_required_flag(tip, /*value=*/TRUE, SIR_NONE);
     }  /* for */
     /* Free any list entries that were used. */
     free_list_of_symbol_list_entries(deferred_instantiations);
@@ -16166,27 +16263,12 @@ for adding the entries to the actual instantiation request file.
     /* Make sure the entity was actually instantiated before adding it to
        the request file.  It is possible for the add_to_request_file
        flag to be set for entities that cannot be instantiated. */
-    if (tip->add_to_request_file && tip->already_instantiated) {
+    a_master_instance_ptr	mip;
+    mip = master_instance_of(tip);
+    if (mip->add_to_request_file && mip->already_instantiated) {
       char	*name;
-      if (symbol_is_from_trans_unit(tip->instance_sym, translation_units)) {
-        /* A symbol from the primary translation unit.  We don't use
-           get_mangled_name_for_symbol here because the file scope has already
-           been lowered. */
-        if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-          a_variable_ptr	vp;
-          vp = tip->instance_sym->variant.static_data_member.variable;
-          name = vp->source_corresp.name;
-        } else {
-          a_routine_ptr	rp;
-          rp = tip->instance_sym->variant.routine.ptr;
-          name = rp->source_corresp.name;
-        }  /* if */
-      } else {
-        /* A symbol from a secondary translation unit.  We can use
-           get_mangled_name_for_symbol because secondary file scopes do
-           not get lowered. */
-        name = get_mangled_name_for_symbol(tip->instance_sym);
-      }  /* if */
+      name = mip->name;
+      check_assertion(name != NULL);
       fputs(name, f_definition_list);
       fputs("\n", f_definition_list);
     }  /* if */
@@ -16309,29 +16391,33 @@ Create the exported template information file.
 
 void update_auto_instantiation_flags(void)
 /*
-Go through the instantiations_required list and set the fields in the
-variable and routine entries that are used to pass information to the
-link-time instantiation processor.  The "instance required", "can instantiate"
-and "do not instantiate" flags are set here.
+This routine generates the information that is passed to the template
+prelinker.  Depending on the configuration this is done either by
+writing information to the template information file, or by setting
+fields in the variable and routine entries that result in the
+generation of special variables in the generated code.
+
+The master_instantiations_list is used to find the entries that must
+be processed.
 */
 {
-  a_template_instance_ptr	tip;
+  a_master_instance_ptr		mip;
 
   db_enter(3, "update_auto_instantiation_flags");
   /* Make a pass through all of the instantiations to set the
      flags to be passed to the link time instantiation mechanism.
      This needs to be done after all instantiations have been done
      so that the flags are in their final state. */
-  tip = instantiations_required;
-  for (; tip != NULL; tip = tip->next_in_instantiation_list) {
-    a_symbol_ptr			instance_sym = tip->instance_sym;
-    a_routine_ptr			routine;
-    a_variable_ptr			variable;
-    a_boolean				can_be_instantiated;
-    a_boolean				do_not_instantiate;
-    a_boolean				instance_required;
-    a_boolean				is_static_data_member;
-    a_boolean				is_exported;
+  for (mip = master_instantiations_list; mip != NULL; mip = mip->next) {
+    a_template_instance_ptr	tip = mip->instance;
+    a_symbol_ptr		instance_sym = tip->instance_sym;
+    a_routine_ptr		routine;
+    a_variable_ptr		variable;
+    a_boolean			can_be_instantiated;
+    a_boolean			do_not_instantiate;
+    a_boolean			instance_required;
+    a_boolean			is_static_data_member;
+    a_boolean			is_exported;
 
     /* Skip non-external functions.  Note that this tests the flag in
        the instance entry instead of calling the function
@@ -16339,13 +16425,17 @@ and "do not instantiate" flags are set here.
        function cannot be called successfully after the file scope has
        been lowered. */
     if (tip->is_static_or_inline) continue;
-    /* Get a pointer to the IL entry to be processed. */
+    /* Get a pointer to the IL entry to be processed.  The instance used
+       is an arbitrary one, so we need to get the canonical entry
+       to ensure that the flags used and set are the correct ones. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       is_static_data_member = TRUE;
       variable = instance_sym->variant.static_data_member.variable;
+      variable = (a_variable_ptr)canonical_il_entry_of(variable);
     } else {
       is_static_data_member = FALSE;
       routine = instance_sym->variant.routine.ptr;
+      routine = (a_routine_ptr)canonical_il_entry_of(routine);
     }  /* if */
     is_exported = template_is_exported(tip->template_sym);
     /* Don't set the can_be_instantiated flag for exported templates.  They
@@ -16353,9 +16443,9 @@ and "do not instantiate" flags are set here.
        The flag is not set because the prelinker uses an alternate
        mechanism to assign exported templates, so there is no need to
        look for a definition now. */
-    can_be_instantiated = !is_exported && (tip->already_instantiated ||
-                 entity_can_be_instantiated(tip,
-                                            /*implicit_inclusion_okay=*/TRUE));
+    can_be_instantiated = !is_exported && (mip->already_instantiated ||
+                entity_can_be_instantiated(tip,
+                                           /*implicit_inclusion_okay=*/FALSE));
     /* When not using a template information file, set the can_be_instantiated
        flag for any exported templates.  This is done so that the prelinker
        can assign the instantiation to any file that references the template
@@ -16368,14 +16458,14 @@ and "do not instantiate" flags are set here.
       do_not_instantiate = variable->do_not_instantiate
                          = tip->explicit_do_not_instantiate;
       instance_required = variable->instance_required
-                        = (tip->instantiation_required &&
+                        = (mip->instantiation_required &&
                            !variable->is_specialized);
     } else {
       routine->can_be_instantiated = can_be_instantiated;
       do_not_instantiate = routine->do_not_instantiate
                          = tip->explicit_do_not_instantiate;
       instance_required = routine->instance_required
-                        = (tip->instantiation_required &&
+                        = (mip->instantiation_required &&
                            !routine->is_specialized);
     }  /* if */
 #if DEBUG
@@ -16384,7 +16474,7 @@ and "do not instantiate" flags are set here.
                  &variable->source_corresp : &routine->source_corresp);
       fputs(":\n", f_debug);
       fprintf(f_debug, " already_instantiated=%d\n",
-              tip->already_instantiated);
+              mip->already_instantiated);
       fprintf(f_debug, " instance_required=%d\n", instance_required);
       fprintf(f_debug, " can_be_instantiated=%d\n", can_be_instantiated);
     }  /* if */
@@ -16399,7 +16489,8 @@ and "do not instantiate" flags are set here.
           generate_template_files()) {
         /* The flags are to be placed in the template information file. */
         char	*name;
-        name = get_mangled_name_for_symbol(instance_sym);
+        name = mip->name;
+        check_assertion(name != NULL);
         write_instantiation_flags_to_template_info_file(
              name, instance_required, do_not_instantiate, can_be_instantiated,
              tip->template_sym);
@@ -16438,7 +16529,8 @@ and "do not instantiate" flags are set here.
 #endif /* MAINTAIN_NEEDED_FLAGS */
       if (instantiation_file_generated) {
         char	*name;
-        name = get_mangled_name_for_symbol(instance_sym);
+        name = mip->name;
+        check_assertion(name != NULL);
         write_instantiation_file_name_to_template_info_file(name);
       }  /* if */
     }  /* if */
@@ -16520,11 +16612,13 @@ that might be required.
     for (tip = instantiations_required;
          tip != NULL;
          tip = tip->next_in_instantiation_list) {
+      a_master_instance_ptr	mip;
+      mip = master_instance_of(tip);
       /* Make sure the is_static_or_inline flag is set (if needed)
          for this entity. */
       (void)is_static_or_inline_template_entity(tip);
       /* Skip entries that have already been instantiated. */
-      if (tip->already_instantiated) continue;
+      if (mip->already_instantiated) continue;
 #if DEBUG
       if (db_flag_is_set("dani")) {
         fprintf(f_debug, "do_any_needed_instantiations, checking: ");
@@ -16538,8 +16632,9 @@ that might be required.
          should_be_instantiated can result the generation of diagnostics
          that are required even if the entity can't be instantiated. */
       (void)entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE);
-      if ((instantiation_mode == tim_all || tip->instantiation_required) &&
-          !tip->already_instantiated) {
+      if ((instantiation_mode == tim_all ||
+           tip->instantiation_required) &&
+          !mip->already_instantiated) {
         if (should_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE)) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           /* Reset the insert point for instantiations to NULL.  This assures
@@ -16554,7 +16649,7 @@ that might be required.
       /* See if the entity should be instantiated as a result of an
          assignment by the automatic instantiation mechanism. */
       if (entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE) &&
-          tip->automatically_instantiated && !tip->already_instantiated) {
+          mip->automatically_instantiated && !mip->already_instantiated) {
         do_automatic_instantiation_of_entity(tip);
       }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
@@ -17051,7 +17146,7 @@ or the specific definition flag (if instantiate is FALSE).
        check is done only once for the class. */
     if (!is_pragma && !is_class_instantiation) check_instantiation_scope(sym);
     update_instantiation_required_flag(tip, instantiation_required_flag,
-                                       /*defer_inline=*/FALSE);
+                                       SIR_NONE);
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
@@ -17891,6 +17986,8 @@ One-time initialization for templates.c static variables.
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(instantiations_required),
       pch_saved_var_array_elem(instantiations_required_tail),
+      pch_saved_var_array_elem(master_instantiations_list),
+      pch_saved_var_array_elem(master_instantiations_tail),
       pch_saved_var_array_elem(exported_templates_list),
       pch_saved_var_array_elem(exported_templates_tail),
 
@@ -17968,6 +18065,8 @@ Initializations for template.
   deferred_instantiations_in_process = FALSE;
   num_total_pending_instantiations = 0;
   primary_il_may_reference_other_trans_units = FALSE;
+  master_instantiations_list = NULL;
+  master_instantiations_tail = NULL;
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION

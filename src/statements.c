@@ -791,7 +791,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
           report_switch_past_init(cfdp, prev_severity);
           /* All case labels will have been removed.  Is there any reason to
              keep this block around? */
-          check_assertion(cfdp->variant.block.last_case_label == NULL)
+          check_assertion(cfdp->variant.block.last_case_label == NULL);
           if (!cfdp->variant.block.any_labels &&
               !cfdp->variant.block.any_vla_variables &&
               cfdp->variant.block.goto_count == 0) {

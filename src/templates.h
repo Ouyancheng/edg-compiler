@@ -70,6 +70,21 @@ typedef int an_equiv_templ_arg_options_set;
 			   a partial specialization. */
 
 /*
+Flags used to specify options to set_instance_requried and
+update_instantiation_required_flag.
+*/
+typedef int a_set_instance_required_options_set;
+#define SIR_NONE		0x0
+#define SIR_DEFER_INLINE	0x1
+			/* TRUE if the instantiation of an inline function
+			   should be deferred and not done immediately upon
+			   the call. */
+#define SIR_CLEAR_VALUE		0x2
+			/* Normally the value specified on a call is merged
+			   with the earlier value.  This flag forces the
+			   instance required flag to be cleared. */
+
+/*
 Structure used to keep track of the class template partial specializations
 or function templates that match a given instance.
 */
@@ -338,9 +353,10 @@ extern
 void update_nested_template_class_symbol_info(a_symbol_ptr       sym,
                                               a_type_kind	 type_kind);
 
-extern void set_instance_required(a_symbol_ptr	sym,
-			   a_boolean	value,
-			   a_boolean	defer_inline);
+extern
+void set_instance_required(a_symbol_ptr				sym,
+			   a_boolean				value,
+			   a_set_instance_required_options_set	options);
 
 extern void process_deferred_instantiation_requests(void);
 

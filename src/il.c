@@ -4651,7 +4651,7 @@ for the scope, which means no last-pointer is being maintained (anymore).
          is a namespace member or the file scope otherwise. */
       nsp = scp->parent.namespace_ptr;
       if (nsp == NULL) {
-        check_assertion(!scp->is_local_to_function)
+        check_assertion(!scp->is_local_to_function);
         scope_level = DEPTH_OF_FILE_SCOPE;
       }  /* if */
     }  /* if */
@@ -6707,7 +6707,7 @@ function).
     if (sym->kind == (a_symbol_kind)sk_static_data_member ||
         sym->kind == (a_symbol_kind)sk_member_function ||
         sym->kind == (a_symbol_kind)sk_routine) {
-      set_instance_required(sym, TRUE, /*defer_inline=*/FALSE);
+      set_instance_required(sym, TRUE, SIR_NONE);
     }  /* if */
   }  /* if */
 }  /* instantiate_il_entity */
@@ -9603,7 +9603,7 @@ forced only if instantiate is TRUE.
      mechanism like the template instantiation mechanism. */
   assoc_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
   if (instantiate && assoc_sym != NULL) {
-    set_instance_required(assoc_sym, TRUE, /*defer_inline=*/FALSE);
+    set_instance_required(assoc_sym, TRUE, SIR_NONE);
   }  /* if */
 }  /* mark_routine_referenced_full */
 
@@ -11757,13 +11757,9 @@ eliminated, if appropriate.
       /* If the instantiation_required flag was set, clear it now. */
       if (vp->is_template_static_data_member && !vp->is_specialized) {
         a_symbol_ptr             sym;
-        a_template_instance_ptr  tip;
-
         sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
         if (sym != NULL) {
-          tip = sym->variant.static_data_member.instance_ptr;
-          check_assertion(tip != NULL);
-          tip->instantiation_required = FALSE;
+          set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
         }  /* if */
       }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
@@ -11895,7 +11891,7 @@ eliminated, if appropriate.
             }  /* if */
           }  /* if */
           if (okay_to_clear_flag) {
-            set_instance_required(sym, FALSE, /*defer_inline=*/FALSE);
+            set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
           }  /* if */
         }  /* if */
       }  /* if */

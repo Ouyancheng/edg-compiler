@@ -82,6 +82,7 @@ static unsigned long
 		num_param_ids_allocated,
 		num_dependent_type_fixups_allocated,
 		num_template_instances_allocated,
+		num_master_instances_allocated,
 		num_symbol_list_entries_allocated,
 		num_type_list_entries_allocated,
 		num_substituted_type_list_entries_allocated,
@@ -9985,6 +9986,29 @@ and return a pointer to it.
 }  /* alloc_template_param */
 
 
+a_master_instance_ptr alloc_master_instance(void)
+/*
+Allocate a master instance entry, initialize its fields, and return a
+pointer to it.
+*/
+{
+  a_master_instance_ptr  mip;
+
+  mip = (a_master_instance_ptr)alloc_fe(sizeof(a_master_instance));
+#if DEBUG
+  num_master_instances_allocated++;
+#endif /* DEBUG */
+  mip->next                        = NULL;
+  mip->instance                    = NULL;
+  mip->name                        = NULL;
+  mip->instantiation_required      = FALSE;
+  mip->already_instantiated        = FALSE;
+  mip->automatically_instantiated  = FALSE;
+  mip->add_to_request_file	   = FALSE;
+  return mip;
+}  /* alloc_master_instance */
+
+
 a_template_instance_ptr alloc_template_instance(void)
 /*
 Allocate a new function instantiation entry and return a pointer to it.
@@ -9999,6 +10023,7 @@ Allocate a new function instantiation entry and return a pointer to it.
 #endif /* DEBUG */
   tip->next                        = NULL;
   tip->next_in_instantiation_list  = NULL;
+  tip->master_instance             = NULL;
   tip->instance_sym                = NULL;
   tip->template_sym                = NULL;
   tip->referencing_namespace       = NULL;
@@ -10006,16 +10031,13 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->prototype_scope_symbols     = NULL;
   tip->exported_template_file      = NULL;
   tip->instantiation_required      = FALSE;
+  tip->suppress_instantiation      = FALSE;
   tip->is_guiding_decl             = FALSE;
   tip->explicit_instantiation      = FALSE;
   tip->class_explicitly_instantiated
                                    = FALSE;
-  tip->already_instantiated        = FALSE;
   tip->explicit_do_not_instantiate = FALSE;
   tip->explicit_can_instantiate    = FALSE;
-  tip->automatically_instantiated  = FALSE;
-  tip->add_to_request_file	   = FALSE;
-  tip->suppress_instantiation      = FALSE;
   tip->can_be_instantiated	   = FALSE;
   tip->is_static_or_inline	   = FALSE;
   tip->explicit_instantiation_pos  = null_source_position;
@@ -10159,6 +10181,8 @@ for space tracking purposes.
                      a_vla_fixup);
   db_space_used("template instance", num_template_instances_allocated,
                 a_template_instance);
+  db_space_used("master instance", num_master_instances_allocated,
+                a_master_instance);
   db_space_used("symbol list entry", num_symbol_list_entries_allocated,
                 a_symbol_list_entry);
   db_space_used("type list entry", num_type_list_entries_allocated,
@@ -10416,6 +10440,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_substituted_type_list_entries_allocated),
       pch_saved_var_array_elem(num_symbols_allocated),
       pch_saved_var_array_elem(num_template_instances_allocated),
+      pch_saved_var_array_elem(num_master_instances_allocated),
       pch_saved_var_array_elem(num_template_params_allocated),
       pch_saved_var_array_elem(num_template_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_namespace_symbol_supplements_allocated),
@@ -10541,6 +10566,7 @@ of the front end.
   num_param_ids_allocated                      = 0;
   num_dependent_type_fixups_allocated          = 0;
   num_template_instances_allocated             = 0;
+  num_master_instances_allocated               = 0;
   num_symbol_list_entries_allocated            = 0;
   num_type_list_entries_allocated              = 0;
   num_substituted_type_list_entries_allocated  = 0;

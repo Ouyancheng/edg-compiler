@@ -2911,7 +2911,8 @@ body.  Only called in C++ mode.
           if (sym != NULL) {
             tip = sym->variant.routine.instance_ptr;
             if (tip != NULL &&
-                (tip->explicit_instantiation || tip->suppress_instantiation)) {
+                (tip->explicit_instantiation ||
+                 tip->suppress_instantiation)) {
               /* A template function that has either been explicitly
                  instantiated (in which case an error would have been issued
                  on the explicit instantiation attempt) or for which some
@@ -4335,7 +4336,7 @@ e.g., because it's externally defined.
       tip = rout_sym->variant.routine.instance_ptr;
       check_assertion(tip != NULL);
       if (tip->explicit_instantiation ||
-          tip->automatically_instantiated) {
+          master_instance_of(tip)->automatically_instantiated) {
         /* The instance exists as a result of an explicit instantiation
            directive, or as a result of being assigned to this file by
            the automatic instantiation mechanism. */

@@ -32,6 +32,7 @@ typedef struct a_template_param *a_template_param_ptr;
 typedef struct an_access_error_descr *an_access_error_descr_ptr;
 typedef struct a_template_cache_segment *a_template_cache_segment_ptr;
 typedef struct a_template_decl_info *a_template_decl_info_ptr;
+typedef struct a_template_instance *a_template_instance_ptr;
 typedef struct a_nondependent_call_info *a_nondependent_call_info_ptr;
 typedef struct a_template_cache *a_template_cache_ptr;
 typedef struct a_control_flow_descr a_control_flow_descr_dummy_typedef;
@@ -1315,7 +1316,48 @@ typedef struct an_exported_template_file {
 } an_exported_template_file;
 
 
-typedef struct a_template_instance *a_template_instance_ptr;
+/*
+Entry that describes the use of a template instance across the entire
+set of translation units that are being processed.  A template instance
+for an external entity may be referenced by any number of translation
+units, but only one instantiation of the instance is required.  This
+entry is used to track the instance-related information that is shared
+among translation units.
+*/
+typedef struct a_master_instance *a_master_instance_ptr;
+typedef struct a_master_instance {
+  a_master_instance_ptr
+		next;	/* Pointer to the next entry in the list of master
+			   instance entries, or NULL for the last entry. */
+  a_template_instance_ptr
+		instance;
+			/* Pointer to one of the instance entries associated
+			   with one of the translation units.  This points to
+			   an arbitrary instance, and not necessarily the
+			   canonical one. */
+  char		*name;
+			/* The mangled name of the entity. */
+  a_bit_field	instantiation_required:1;
+			/* TRUE if the instantiation_required flag has been
+			   set for this entity in any translation unit. */
+  a_bit_field	already_instantiated:1;
+			/* TRUE if instantiation has already been performed
+			   (for instance, for inline functions, which are
+			   instantiated at the point of first reference). */
+  a_bit_field	automatically_instantiated:1;
+			/* TRUE if the instance was listed in the instantiation
+			   request file as an instantiation assigned to
+			   this compilation.  This field is only used when
+			   automatic template instantiation is configured. */
+  a_bit_field	add_to_request_file:1;
+			/* TRUE if the instance was "adopted" by this
+			   translation unit because it was known not to be
+			   defined elsewhere.  A list of these entities is
+			   returned to the prelinker to be appended to
+			   the instantiation request file. */
+} a_master_instance;
+
+
 typedef struct a_template_instance {
   /* Information describing an instance of a function template or an
      instance of a member function or static data member of a template class.
@@ -1327,6 +1369,11 @@ typedef struct a_template_instance {
                 next_in_instantiation_list;
                         /* Pointer to the next instance in a list of
 			   entries for which full instantiation is required. */
+  a_master_instance_ptr
+		master_instance;
+			/* Pointer to the master instance that contains
+			   information about this instance that is shared
+			   among translation units. */
   a_symbol_ptr  instance_sym;
                         /* Pointer to the sk_routine, sk_member_function, or
 			   sk_static_data_member symbol entry that describes
@@ -1378,6 +1425,10 @@ typedef struct a_template_instance {
 			   This flag is FALSE if an explicit definition has
 			   been provided by the user (i.e., if specific_def
 			   is set). */
+  a_bit_field	suppress_instantiation:1;
+			/* TRUE if the instantiation of this entity should be
+			   suppressed because of previous errors that occurred
+			   during the partial instantiation of the entity. */
   a_bit_field	is_guiding_decl:1;
 			/* For instances of nonmember function templates,
 			   TRUE if this instance is a guiding declaration
@@ -1396,31 +1447,12 @@ typedef struct a_template_instance {
 			   instantiation, no error is issued if template
 			   definitions are not available for some of the
 			   members. */
-  a_bit_field	already_instantiated:1;
-			/* TRUE if instantiation has already been performed
-			   (for instance, for inline functions, which are
-			   instantiated at the point of first reference). */
   a_bit_field	explicit_do_not_instantiate:1;
 			/* TRUE if instantiation has been explicitly 
 			   suppressed by a do_not_instantiate pragma. */
   a_bit_field	explicit_can_instantiate:1;
 			/* TRUE if instantiation has been explicitly declared
                            as being possible by a can_instantiate pragma. */
-  a_bit_field	automatically_instantiated:1;
-			/* TRUE if the instance was listed in the instantiation
-			   request file as an instantiation assigned to
-			   this compilation.  This field is only used when
-			   automatic template instantiation is configured. */
-  a_bit_field	add_to_request_file:1;
-			/* TRUE if the instance was "adopted" by this
-			   translation unit because it was known not to be
-			   defined elsewhere.  A list of these entities is
-			   returned to the prelinker to be appended to
-			   the instantiation request file. */
-  a_bit_field	suppress_instantiation:1;
-			/* TRUE if the instantiation of this entity should be
-			   suppressed because of previous errors that occurred
-			   during the partial instantiation of the entity. */
   a_bit_field	can_be_instantiated:1;
 			/* TRUE if this entity can be instantiated.  This
 			   means that a template definition is available
@@ -3270,6 +3302,7 @@ void free_list_of_namespace_list_entries(a_namespace_list_entry_ptr nlep);
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
 
 extern a_template_instance_ptr alloc_template_instance(void);
+extern a_master_instance_ptr alloc_master_instance(void);
 extern void free_param_id_list(a_param_id_ptr *pidlist);
 extern void clear_func_info(a_func_info_block *func_info);
 
@@ -3323,6 +3356,12 @@ extern a_symbol_ptr find_macro_symbol_by_name(char             *identifier,
 extern a_symbol_header_ptr find_symbol_header(char             *identifier,
 					      sizeof_t         length,
 					      a_symbol_locator	*locator);
+
+/*
+Return the master instance pointer of a template instance.
+*/
+#define master_instance_of(tip)						\
+  ((check_assertion((tip)->master_instance != NULL), (tip)->master_instance))
 
 /* Return TRUE if a symbol is a class symbol.   A class symbol is
    one defined as a class, struct, or union, or a typedef of one of
