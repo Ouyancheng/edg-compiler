@@ -198,7 +198,7 @@ variable, and return a pointer to that null-terminated string.
   double      temp;
 
   temp = fetch_double(kind, float_value);
-  (void)sprintf(str, "%.15e", temp);
+  (void)sprintf(str, "%.18e", temp);
   return (str);
 }  /* fp_to_string */
 
