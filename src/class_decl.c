@@ -7665,9 +7665,8 @@ skip_tag_scan:
          current scope that effectively hides it, record that information in
          the IL. */
       if (!tag_sym->is_error && !is_unnamed_class_symbol(tag_sym)) {
-        if (tag_sym->header->symbol != tag_sym) {
-          check_assertion(tag_sym->header->symbol->decl_scope ==
-                                                      tag_sym->decl_scope);
+        if (tag_sym->header->symbol != tag_sym &&
+            tag_sym->header->symbol->decl_scope == tag_sym->decl_scope) {
           record_defeatable_name_hiding(tag_sym,
                                         /*tag_hidden_by_nontag=*/TRUE);
         }  /* if */
@@ -8289,6 +8288,8 @@ Initializations for class declaration processing.
   curr_routine_fixup = NULL;
   /* Initialize the list of freed derivation-step entries. */
   avail_derivation_steps = NULL;
+  /* Initialize the list of freed override-registry entries. */
+  avail_override_registry_entries = NULL;
 #if DEBUG
   num_routine_fixups_allocated = 0;
 #endif /* DEBUG */
