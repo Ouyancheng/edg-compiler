@@ -10788,7 +10788,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       }  /* if */
     }  /* if */
     result_type = operand_2.type;  /* Assume. */
-    if (!C_mode() && types_are_the_same) {
+    if ((!C_mode() || gcc_mode) && types_are_the_same) {
       /* If the types are the same in C++ mode, no further checking of types
          is needed. */
       /* If either operand has an error type, make sure the result type is
