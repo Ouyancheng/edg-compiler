@@ -1,5 +1,14 @@
 Version 2.41
 
+1/18/99   String types > 80 characters now recorded on orphan lists
+
+String and wide string types with length greater than 80 (actually,
+MAX_TRACKED_STRING_TYPE_LENGTH) are now recorded as potential orphaned
+types.  The failure to record them did not cause any problems in
+versions that either write IL files or do IL lowering (since those
+processes will cause such orphans to be recorded), but it can affect
+versions that do neither.
+
 1/18/99   is_far_type and arrays, in C mode
 
 The function is_far_type has been changed so that it works correctly

@@ -4688,13 +4688,13 @@ and return a pointer to it.
     set_type_size(pst);
     if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {
       string_types[num_chars] = pst;
-#if ORPHAN_PROCESSING_NEEDED
-      /* Record the type entry as an orphan in case it is discarded now
-         and then found again in a later phase (e.g., IL lowering). */
-      add_orphaned_file_scope_il_entry((char *)pst,
-                                       (an_il_entry_kind)iek_type);
-#endif /* ORPHAN_PROCESSING_NEEDED */
     }  /* if */
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)pst,
+                                     (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
   return pst;
 }  /* string_type */
@@ -4726,13 +4726,13 @@ elements, and return a pointer to it.
     set_type_size(pst);
     if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {
       wide_string_types[num_chars] = pst;
-#if ORPHAN_PROCESSING_NEEDED
-      /* Record the type entry as an orphan in case it is discarded now
-         and then found again in a later phase (e.g., IL lowering). */
-      add_orphaned_file_scope_il_entry((char *)pst,
-                                       (an_il_entry_kind)iek_type);
-#endif /* ORPHAN_PROCESSING_NEEDED */
     }  /* if */
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)pst,
+                                     (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
   return pst;
 }  /* wide_string_type */
