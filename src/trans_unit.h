@@ -104,6 +104,11 @@ typedef struct a_translation_unit {
 			/* TRUE if the translation unit was specified on the
 			   command-line (FALSE if it was loaded to define an
 			   exported template). */
+#if MODULE_ID_NEEDED
+  char		**module_id_ptr;
+			/* Pointer to the module-id value for this translation
+			   unit. */
+#endif /* MODULE_ID_NEEDED */
 } a_translation_unit;
 
 
@@ -261,16 +266,11 @@ trans_unit_field.  That field points to the active version of "var".
 That is, while the translation unit is active, the field points to
 the "var" and while the translation unit is inactive, it points to
 memory in the variables_block of the translation unit entry.
-
-Fields managed by this mechanism must also be explicitly initialized
-in alloc_translation_unit.
 */
-#if 0
 #define register_trans_unit_variable_with_field(var, trans_unit_field)	\
   (f_register_trans_unit_variable(				\
                             (a_void_ptr)&var, sizeof(var),		\
     /*lint --e(413)*/       offsetof(a_trans_unit, trans_unit_field)))
-#endif /* 0 */
 
 /*
 Array version of register_trans_unit_variable_with_field.
