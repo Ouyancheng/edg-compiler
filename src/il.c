@@ -4283,13 +4283,14 @@ nonidentical.
     switch (cp1->kind) {
       case ck_error:
 #if UPC_EXTENSIONS_ALLOWED
-      /* UPC pseudo-constants have only one value. */
-      case ck_upc_threads:
       case ck_upc_mythread:
 #endif /* UPC_EXTENSIONS_ALLOWED */
         /* No further field to check. */
         eq = TRUE;
         break;
+#if UPC_EXTENSIONS_ALLOWED
+      case ck_upc_threads:
+#endif /* UPC_EXTENSIONS_ALLOWED */
       case ck_integer:
         eq = (cmp_integer_constants(cp1, cp2) == 0);
         break;

@@ -1672,6 +1672,11 @@ the way described by octl.
     form_unsigned_num((a_host_large_unsigned)type->
                                      variant.array.variant.number_of_elements,
                       octl);
+#if UPC_EXTENSIONS_ALLOWED
+    if (upc_mode && type->variant.array.is_threads_dimension) {
+      octl->output_str("*THREADS");
+    }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
   octl->output_str("]");
 }  /* form_array_declarator */

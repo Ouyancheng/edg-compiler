@@ -1395,7 +1395,7 @@ enum a_constant_repr_kind_tag {
   ck_designator,        /* Used to change the "current object" in an
                            aggregate initializer (C99). */
 #if UPC_EXTENSIONS_ALLOWED
-  ck_upc_threads,       /* The UPC pseudo-constant THREADS. */
+  ck_upc_threads,       /* A multiple of the UPC pseudo-constant THREADS. */
   ck_upc_mythread,      /* The UPC pseudo-constant MYTHREAD. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
   ck_last		/*lint -esym(769,a_constant_repr_kind_tag::ck_last)*/

@@ -207,7 +207,8 @@ integral constant in *new_constant, with type as indicated therein.  Return
 or *err_code == ec_no_error if everything went fine.  If is_implicit_cast
 is FALSE, suppress any warnings.  The old_constant must have kind ==
 ck_integer, and generally it must have integral type, but it may be
-an integer cast to a pointer type.
+an integer cast to a pointer type.  This routine is also used for UPC
+THREADS-based constants.
 */
 {
   an_integer_value mask, old_value_copy;
@@ -220,8 +221,17 @@ an integer cast to a pointer type.
   *err_severity = es_warning;
 
   /* Copy the old value to the new value. */
-  set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
-  check_assertion(old_constant->kind == (a_constant_repr_kind)ck_integer);
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode && old_constant->kind == (a_constant_repr_kind)ck_upc_threads) {
+    /* A UPC THREADS-based constant. */
+    set_constant_kind(new_constant, (a_constant_repr_kind)ck_upc_threads);
+  } else
+#endif /* UPC_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    check_assertion(old_constant->kind == (a_constant_repr_kind)ck_integer);
+    set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
+  }  /* if */
   new_constant->variant.integer_value = old_constant->variant.integer_value;
   /* Determine attributes (size, signedness) of the new integer kind. */
   get_integer_attributes(new_constant, &new_ikind, &new_signed, &new_bit_size);
@@ -1499,8 +1509,10 @@ to the constant is maintained, by adding a cast if necessary.
     goto exit;
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
-  if (upc_mode && (constant->kind == (a_constant_repr_kind)ck_upc_threads ||
-                   constant->kind == (a_constant_repr_kind)ck_upc_mythread)) {
+  if (upc_mode &&
+      ((constant->kind == (a_constant_repr_kind)ck_upc_threads &&
+        new_type->kind != (a_type_kind)tk_integer) ||
+       constant->kind == (a_constant_repr_kind)ck_upc_mythread)) {
     /* THREADS and MYTHREAD are not compile-time constants and should
        therefore not be folded. */
     *did_not_fold = TRUE;
@@ -3700,6 +3712,133 @@ and *result is set to an integer 0 or 1 for the result.
 #endif /* DEBUG */
 }  /* do_pmcompare */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+static void set_integer_constant_to_upc_threads(a_constant  *ic)
+/*
+Change the given integer constant N to N*THREADS (unless N is zero).
+*/
+{
+  if (!is_zero_constant(ic)) {
+    ic->kind = (a_constant_repr_kind)ck_upc_threads;
+  }  /* if */
+}  /* set_integer_constant_to_upc_threads */
+
+
+static void convert_upc_threads_constant_to_integer(a_constant  *tc,
+                                                    a_constant  *ic)
+/*
+tc is a constant representing N*THREADS.  Set ic to N.
+*/
+{
+  copy_constant(tc, ic);
+  ic->kind = (a_constant_repr_kind)ck_integer;
+} /* convert_upc_threads_constant_to_integer */
+
+
+static void binary_upc_threads_operation(
+                                  an_expr_operator_kind op,
+                                  a_constant            *constant_1,
+                                  a_constant            *constant_2,
+                                  a_type_ptr            result_type,
+                                  a_constant            *result,
+                                  a_boolean             constant_context,
+                                  a_boolean             evaluated_context,
+                                  a_boolean             *did_not_fold,
+                                  a_boolean             *template_constant,
+                                  a_source_position     *err_pos)
+/*
+Attempt to fold an operation (op) on two constants (constant_1, constant_2),
+at least one of which is a UPC THREADS-based constant.  See binary_operation
+(below) for the meaning of the other parameters.  Operations on UPC THREADS-
+based constants are handled by converting them to integer constants, and
+then converting the result back to being THREADS-based if appropriate.
+*/
+{
+  if (constant_1->kind == (a_constant_repr_kind)ck_upc_threads &&
+      constant_2->kind == (a_constant_repr_kind)ck_upc_threads) {
+    /* E.g., THREADS/THREADS. */
+      a_constant  tmp_1, tmp_2;
+      a_boolean   set_result_to_threads = FALSE;
+      convert_upc_threads_constant_to_integer(constant_1, &tmp_1);
+      convert_upc_threads_constant_to_integer(constant_2, &tmp_2);
+      switch (op) {
+        case eok_iadd:
+        case eok_isubtract:
+          /* Only adding or substracting two THREADS-based constants results
+             in another threads-based constant.  Other operations that can
+             be folded result in a nonthreads-based constant. */
+          set_result_to_threads = TRUE;
+          /*FALLTHROUGH*/
+        case eok_idivide:
+        case eok_ieq:
+        case eok_ine:
+        case eok_igt:
+        case eok_ilt:
+        case eok_ige:
+        case eok_ile:
+          binary_operation(op, &tmp_1, &tmp_2, result_type, result,
+                           constant_context, evaluated_context, did_not_fold,
+                           template_constant, err_pos);
+          if (!*did_not_fold && set_result_to_threads) {
+            set_integer_constant_to_upc_threads(result);
+          }  /* if */
+          break;
+        default:
+          /* Cannot fold other operations */
+          *did_not_fold = TRUE;
+          break;
+      }  /* switch */
+  } else {
+    a_constant      tmp;
+    a_constant_ptr  nonthread_constant;
+    if (constant_2->kind == (a_constant_repr_kind)ck_upc_threads) {
+      /* E.g., 3*THREADS. */
+      convert_upc_threads_constant_to_integer(constant_2, &tmp);
+      constant_2 = &tmp;
+      nonthread_constant = constant_1;
+    } else {
+      /* E.g., THREADS*3. */
+      check_assertion(constant_1->kind ==
+                                        (a_constant_repr_kind)ck_upc_threads);
+      convert_upc_threads_constant_to_integer(constant_1, &tmp);
+      constant_1 = &tmp;
+      nonthread_constant = constant_2;
+    }  /* if */
+    switch (op) { 
+      case eok_imultiply: 
+        binary_operation(op, constant_1, constant_2, result_type, result, 
+          	             constant_context, evaluated_context, did_not_fold, 
+                         template_constant, err_pos); 
+        if (!*did_not_fold && !is_zero_constant(result)) { 
+          /* If the folded result is zero, there is no need for it to be
+             converted to 0*THREADS. */
+          set_integer_constant_to_upc_threads(result); 
+        }  /* if */ 
+        break; 
+      case eok_iadd: 
+      case eok_isubtract: 
+        /* Check for adding or subtracting zero */ 
+        if (is_zero_constant(nonthread_constant)) { 
+          binary_operation(op, constant_1, constant_2, result_type, result, 
+                           constant_context, evaluated_context, did_not_fold, 
+                           template_constant, err_pos); 
+          if (!*did_not_fold) { 
+            set_integer_constant_to_upc_threads(result); 
+          }  /* if */ 
+        } else { 
+          *did_not_fold = TRUE; 
+        }  /* if */ 
+        break; 
+      default: 
+        /* Cannot fold other operations */ 
+        *did_not_fold = TRUE; 
+        break; 
+    }  /* switch */ 
+  }  /* if */
+}  /* binary_upc_threads_operation */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 void binary_operation(an_expr_operator_kind op,
 		      a_constant            *constant_1,
@@ -3751,6 +3890,23 @@ as the position for any diagnostics issued.
     /* An operation on a template parameter constant cannot be folded. */
     *did_not_fold = TRUE;
     *template_constant = TRUE;
+#if UPC_EXTENSIONS_ALLOWED
+  } else if (upc_mode &&
+             (constant_1->kind == (a_constant_repr_kind)ck_upc_mythread || 
+              constant_2->kind == (a_constant_repr_kind)ck_upc_mythread ||
+              is_ptr_to_shared_type(constant_1->type) ||
+              is_ptr_to_shared_type(constant_2->type))) {
+    /* Operations involving MYTHREAD-based constants cannot be folded.
+       Operations on addresses of shared data should not be folded in the
+       front end either (though a back end might do so. */
+    *did_not_fold = TRUE;
+  } else if (upc_mode &&
+             (constant_1->kind == (a_constant_repr_kind)ck_upc_threads ||
+              constant_2->kind == (a_constant_repr_kind)ck_upc_threads)) {
+    binary_upc_threads_operation(op, constant_1, constant_2, result_type,
+                                 result, constant_context, evaluated_context,
+                                 did_not_fold, template_constant, err_pos);
+#endif /* UPC_EXTENSIONS_ALLOWED */
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;

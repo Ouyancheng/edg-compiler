@@ -5290,19 +5290,6 @@ operand.
   return takes_lvalue;
 }  /* operator_takes_lvalue_operand */
 
-#if UPC_EXTENSIONS_ALLOWED
-
-static a_boolean is_upc_threads_operand(an_operand  *op)
-/*
-Return TRUE if the given operand corresponds to THREADS or MYTHREAD.
-*/
-{
-  return is_constant_operand(op) &&
-         (op->variant.constant.kind == (a_constant_repr_kind)ck_upc_threads ||
-          op->variant.constant.kind == (a_constant_repr_kind)ck_upc_mythread);
-}  /* is_upc_threads_operand */
-
-#endif /* UPC_EXTENSIONS_ALLOWED */
 
 void do_binary_operation(an_expr_operator_kind op,
 			 an_operand            *operand_1,
@@ -5335,12 +5322,6 @@ if possible.  operator_position indicates the operator position.
       /* Try folding only if the current expression is a constant
          expression. */
       try_folding = expr_stack->fold_constant_addr_exprs;
-#if UPC_EXTENSIONS_ALLOWED
-    } else if (upc_mode && (is_upc_threads_operand(operand_1) ||
-                            is_upc_threads_operand(operand_2))) {
-      /* THREADS and MYTHREAD are not compile-time constant. */
-      try_folding = FALSE;
-#endif /* UPC_EXTENSIONS_ALLOWED */
     } else {
       /* Not an addressing operation (normal case). */
       try_folding = TRUE;
