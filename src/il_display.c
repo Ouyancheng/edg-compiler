@@ -1262,6 +1262,7 @@ do_float_complex:
         disp_unsigned_long("number_of_elements",
                            (unsigned long)ptr->
                                     variant.array.variant.number_of_elements);
+      }  /* if */
       break;
     case tk_class:
       (void)printf("tk_class\n");
