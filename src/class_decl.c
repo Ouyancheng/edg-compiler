@@ -1759,6 +1759,7 @@ or struct definition.  The syntax is
   }  /* if */
   /* Advance past the colon. */
   (void)get_token();
+  cssp = symbol_supplement_for_class(type_ptr);
   do {
     add_stop_token(tok_comma);
     /* Set the defaults. */
@@ -1884,13 +1885,18 @@ or struct definition.  The syntax is
          classes is virtual or itself has a constructor; it requires a
          destructor if any of its base classes has a destructor.  Record such
          requirements, if any, at this time. */
-      cssp = symbol_supplement_for_class(type_ptr);
       bcp_cssp = symbol_supplement_for_class(base_class_type);
       if (is_virtual || bcp_cssp->constructor != NULL) {
         cssp->constructor_required = TRUE;
       }  /* if */
       if (bcp_cssp->destructor != NULL) {
         cssp->destructor_required = TRUE;
+      }  /* if */
+      /* The current derived class cannot be copy-constructed by bitwise
+         copying if the base class does not allow it or is a virtual base
+         class. */
+      if (is_virtual || !bcp_cssp->construction_by_bitwise_copy_allowed) {
+        cssp->construction_by_bitwise_copy_allowed = FALSE;
       }  /* if */
       /* Update the flag indicating whether there are any virtual base
          classes. */
@@ -2693,6 +2699,9 @@ special function kind (e.g., constructor, destructor), if any.
                                    &locator->source_position)) {
       /* Classes with virtual functions require constructors. */
       cssp->constructor_required = TRUE;
+      /* Classes with virtual functions cannot be constructed by bitwise
+         copying. */
+      cssp->construction_by_bitwise_copy_allowed = FALSE;
     }  /* if */
     /* Do processing for special member functions, including assignment
        operators, constructors and destructors. */
@@ -3632,6 +3641,11 @@ class, struct, or union.
           if (member_cssp->destructor != NULL) {
             cssp->destructor_required = TRUE;
           }  /* if */
+        }  /* if */
+        /* The parent class cannot be copy-constructed by bitwise copying
+           if the member class does not allow it. */
+        if (!member_cssp->construction_by_bitwise_copy_allowed) {
+          cssp->construction_by_bitwise_copy_allowed = FALSE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5042,13 +5056,18 @@ The routine body is not generated until it is known to be needed.
                                            &const_okay)) {
     default_assignment_operator_check(class_type, &const_okay,
                                       &bitwise_copy_okay);
-    ptp = alloc_param_type(make_reference_type(
-                             make_qualified_type(class_type,
-                                                 /*is_const=*/const_okay,
-                                                 /*is_volatile=*/FALSE)));
-    generate_special_function(class_type, ptp,
-                              (a_special_function_kind)sfk_operator);
-    cssp->assignment_by_bitwise_copy_allowed = bitwise_copy_okay;
+    if (bitwise_copy_okay) {
+      /* Don't bother generating a default assignment operator if bitwise
+         copying is allowed. */
+      cssp->assignment_by_bitwise_copy_allowed = bitwise_copy_okay;
+    } else {
+      ptp = alloc_param_type(make_reference_type(
+                               make_qualified_type(class_type,
+                                                   /*is_const=*/const_okay,
+                                                   /*is_volatile=*/FALSE)));
+      generate_special_function(class_type, ptp,
+                                (a_special_function_kind)sfk_operator);
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* check_special_member_functions */
@@ -5501,6 +5520,15 @@ to indicate whether the class/struct/union is actually defined.
     } else {
       mark_referenced(tag_sym, &locator.source_position);
     }  /* if */
+  }  /* if */
+  cssp = tag_sym->variant.class_struct_union.extra_info;
+  if (curr_token == tok_lbrace ||
+      C_dialect == C_dialect_cplusplus && curr_token == tok_colon) {
+    /* A copy constructor need not be generated if construction by bitwise
+       copy is equivalent.  When a class is being defined, set the flag to
+       to TRUE initially, and change it if a base class or member is
+       declared that precludes construction by bitwise copy. */
+    cssp->construction_by_bitwise_copy_allowed = TRUE;
   }  /* if */
   if (C_dialect == C_dialect_cplusplus && curr_token == tok_colon) {
     /* Scan the list of base specifiers. */
@@ -6071,7 +6099,6 @@ next_declaration:
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
        that there may be symbols even if there there were no declarations,
        since symbols may be inherited. */
-    cssp = tag_sym->variant.class_struct_union.extra_info;
     cssp->symbols = scope_stack[depth_scope_stack].symbols;
     if (C_dialect == C_dialect_cplusplus) {
       /* Create compiler-generated default constructor, copy constructor,
