@@ -1,5 +1,12 @@
 Version 2.21
 
+11/15/93 Variable definitions not tentative in C++
+
+IL lowering now changes all variables that have sc_unspecified storage
+class and no initialization to have initk_zero initialization.  That
+implies that the variable is a "real" definition instead of a
+"tentative" definition.
+
 11/15/94 Unreferenced const variables and inline functions in header file
 
 A diagnostic is no longer issued on unreferenced const variables and
@@ -39,6 +46,14 @@ A bug has been fixed that caused an abort in IL lowering or in
 the C-generating back end for source files that require a file-scope
 termination routine but no file-scope initialization routine.
 This occurs only with exceptions enabled.
+
+  struct A { ~A(); };
+  main()
+  {
+    A a0;
+    static A a1;
+    return 0;
+  }
 
 11/14/93 Transformations on arguments of user-defined conversions
 
