@@ -1,5 +1,32 @@
 Version 2.23
 
+3/16/94 Disambiguation regression
+
+Release 2.22 incorrectly tried to interpret the indicated line as a
+declaration instead of an expression.
+
+  struct A {
+    int a;
+  };
+  typedef A* P;
+  int t[23] = {0};
+  void f()
+  {
+    P(t[0])->a = t[1];  // Spurious error
+  }
+
+3/16/94 Fixed C mode name lookup bug
+
+In C mode, the indicated line was incorrectly finding the field name T
+instead of the global typedef.
+
+  typedef int T;
+
+  struct S {
+    int T;
+    T mbr;	/* OK, was a spurious error */
+  };
+
 3/15/94 C-generating back end output of integer cast to pointer type
 
 When generating ANSI C, the C-generating back end now outputs integral
