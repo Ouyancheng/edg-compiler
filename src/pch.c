@@ -116,13 +116,13 @@ static a_mem_alloc_history_number
 Macro to write a value to the PCH output file.
 */
 #define pch_write_value(value)						\
-  (void)fwrite((a_void_ptr)&(value), sizeof(value), 1, f_pch_output)
+  (void)fwrite((a_stdio_arg)&(value), sizeof(value), 1, f_pch_output)
 
 /*
 Macro to read a value from the PCH input file.
 */
 #define pch_read_value(value)						\
-  if (fread((a_void_ptr)&(value), sizeof((value)), 1, f_pch_input) != 1) { \
+  if (fread((a_stdio_arg)&(value), sizeof((value)), 1, f_pch_input) != 1) { \
     unexpected_condition_str("PCH read error");				\
   }  /* if */
 
@@ -131,7 +131,7 @@ Macro to read a value from the PCH input file.
 Macro to perform an fread with an error check.
 */
 #define fread_with_check(value, length, file)				\
-  if (fread((a_void_ptr)(value), size_t_arg((length)), 1, (file)) != 1) { \
+  if (fread((a_stdio_arg)(value), size_t_arg((length)), 1, (file)) != 1) { \
     unexpected_condition_str("PCH read error");				\
   }  /* if */
 
@@ -140,13 +140,13 @@ Macro to perform an fread and return an error status.  Return TRUE if the
 read succeeded.
 */
 #define fread_with_status(value, length, file)				\
-  (fread((a_void_ptr)(value), size_t_arg((length)), 1, (file)) == 1)
+  (fread((a_stdio_arg)(value), size_t_arg((length)), 1, (file)) == 1)
 
 /*
 Macro to perform an fwrite with an error check.
 */
 #define fwrite_with_check(value, length, file)				\
-  if (fwrite((a_void_ptr)(value), size_t_arg((length)), 1, (file)) != 1) { \
+  if (fwrite((a_stdio_arg)(value), size_t_arg((length)), 1, (file)) != 1) { \
     unexpected_condition_str("PCH write error");			\
   }  /* if */
 
@@ -1257,7 +1257,7 @@ file.  See write_a_memory_region for more information.
               mbhp);
     }  /* if */
 #endif /* DEBUG */
-    fread_with_check((char *)mbhp, size, f_pch_input);
+    fread_with_check((a_stdio_arg)mbhp, size, f_pch_input);
     /* See if this is the last block in the memory region. */
     if (mbhp->next == NULL) break;
   }  /* for */

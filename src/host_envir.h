@@ -1110,6 +1110,17 @@ extern void open_mapped_il_temp_file(void);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 /*
+The type of the buffer argument in fread/fwrite calls.  This is usually
+void* on ANSI compilers and char* on pcc compilers.  Sun C++ uses
+char* for some reason though.
+*/
+#if __cplusplus && defined(__SUNPRO_CC)
+typedef char *a_stdio_arg;
+#else /* !(__cplusplus && __defined(__SUNPRO_CC)) */
+typedef a_void_ptr a_stdio_arg;
+#endif /* (__cplusplus && __defined(__SUNPRO_CC)) */
+
+/*
 Determine whether the module ID routines are needed.  They are needed
 if IL lowering is used or when the C generating back end is not
 generating ANSI C.  We only test for IL lowering because IL lowering
