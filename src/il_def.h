@@ -669,8 +669,13 @@ typedef struct a_param_type {
                            they come from a typedef'd function type used
                            as the type of an extern function). */
 #ifdef CIL
-  a_byte_boolean
-		has_default_arg;
+  unsigned int	passed_via_copy_constructor:1;
+			/* If TRUE, the parameter has a type that requires
+			   a copy constructor to be called.  For a parameter
+			   of type T, the actual argument will be the address
+			   of a temporary of type T, into which the argument
+			   value has been copied. */
+  unsigned int	has_default_arg:1;
              		/* TRUE if a default argument has been declared for
 			   this parameter.  Because of delayed token scanning
 			   of default arguments for member functions, this
@@ -683,13 +688,6 @@ typedef struct a_param_type {
 			   to be used as the actual argument on a function
 			   call when the actual argument corresponding to
 			   this parameter is omitted (C++ only). */
-  a_dynamic_init_ptr
-		dynamic_init;
-			/* If the parameter has a type that requires a copy
-			   constructor or destructor to be called, this points
-			   to a dynamic initialization entry that describes
-			   the actions required.  NULL otherwise.  Only
-			   non-NULL in C++ mode. */
 #endif /* ifdef CIL */
 } a_param_type;
 
@@ -743,15 +741,14 @@ typedef struct a_routine_type_supplement {
 			/* Pointer to the type of the implicit "this"
 			   parameter of C++ member functions; NULL for all
 			   other functions. */
-  a_dynamic_init_ptr
-		return_dynamic_init;
-			/* If the return type requires a copy constructor or
-			   destructor to be called, this points to a dynamic
-			   initialization entry that describes the actions
-			   required.  NULL otherwise.  Only non-NULL in C++
-			   mode.  When non-NULL, calls of the routine will
-			   include an argument specifying a temporary to be
-			   used for the return value. */
+  a_byte_boolean
+		caller_provides_place_to_put_return_value;
+			/* If TRUE, the caller provides a place for the return
+			   value (by passing its address as a parameter), and
+			   the called routine must place its result in that
+			   location.  This is used only for functions that
+			   return C++ class types, e.g., for cases where the
+			   class type returned requires a copy constructor. */
 #endif /* ifdef CIL */
 #ifndef CIL
 #ifdef FIL  /* Note double definition of has_ellipsis. */
@@ -2950,6 +2947,17 @@ typedef struct a_scope {
 			/* If the scope is for a C++ nonstatic member
 			   function, this field points to the implicit "this"
 			   parameter.  It is NULL in all other cases. */
+      a_routine_ptr
+		return_copy_constructor;
+			/* If non-NULL, the value returned by the routine
+			   must be copied back to the space provided by the
+			   caller by calling the indicated copy constructor.
+			   This will only be non-NULL when the routine type
+			   has caller_provides_place_to_put_return_value
+			   TRUE.  If caller_provides_place_to_put_return_value
+			   is TRUE and return_copy_constructor is NULL,
+			   the routine returns its value by C-style structure
+			   assignment. */
 #endif /* ifdef CIL */
 #ifdef FIL
       a_variable_ptr

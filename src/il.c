@@ -2075,7 +2075,17 @@ the file scope if at_file_scope == TRUE.
   ptp->il_walk_flag = curr_initial_il_walk_flag_setting;
   ptp->has_default_arg = FALSE;
   ptp->default_arg_expr = NULL;
-  ptp->dynamic_init = NULL;
+  ptp->passed_via_copy_constructor = FALSE;
+  /* A parameter of a class type that requires a copy constructor is
+     passed in a special way. */
+  if (is_class_struct_union_type(type)) {
+    a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+    if (cssp != NULL) {
+      if (cssp->has_copy_constructor) {
+        ptp->passed_via_copy_constructor = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   db_exit();
   return ptp;
 }  /* alloc_param_type */
@@ -2298,7 +2308,8 @@ to default values.
 #endif /* DEBUG */
       rtsp->param_type_list          = NULL;
       rtsp->implicit_this_param_type = NULL;
-      rtsp->return_dynamic_init      = NULL;
+      rtsp->caller_provides_place_to_put_return_value
+                                     = NULL;
       rtsp->prototype_scope          = NULL;
       rtsp->assoc_routine            = NULL;
       rtsp->prototyped               = FALSE;
@@ -3738,12 +3749,13 @@ points to the associated routine if the kind is sck_function.
       sp->variant.assoc_type = NULL;
       break;
     case sck_function:
-      sp->variant.routine.ptr                 = assoc_routine;
-      sp->variant.routine.parameters          = NULL;
-      sp->variant.routine.constructor_inits   = NULL;
-      sp->variant.routine.this_param_variable = NULL;
+      sp->variant.routine.ptr                     = assoc_routine;
+      sp->variant.routine.parameters              = NULL;
+      sp->variant.routine.constructor_inits       = NULL;
+      sp->variant.routine.this_param_variable     = NULL;
+      sp->variant.routine.return_copy_constructor = NULL;
 #ifdef FIL
-      sp->variant.routine.function_result_var = NULL;
+      sp->variant.routine.function_result_var     = NULL;
 #endif /* ifdef FIL */
       break;
 #if CHECKING
