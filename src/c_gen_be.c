@@ -513,7 +513,7 @@ etc.
       }  /* while */
     }  /* if */
   }  /* if */
-  if (started_new_line) {
+  if (started_new_line || curr_output_column <= 1) {
     if (annotate) {
       /* Starting a new line of output; do the current indentation. */
       do_indentation();
@@ -1532,7 +1532,7 @@ Return TRUE if the indicated type is a typedef that is local to a
 function and is invisible now because we're processing the file scope.
 */
 #define is_invisible_local_typedef(type)                              \
-  ((type)->kind == tk_typeref && is_invisible_local_type(type))
+  ((type)->kind == (a_type_kind)tk_typeref && is_invisible_local_type(type))
 
 
 static void dump_type_specifier(a_type_ptr type)
