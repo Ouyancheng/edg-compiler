@@ -1913,7 +1913,8 @@ come out on the closing "}".
       statement();
     } else {
       /* In C mode the declarations are expected to appear first. */
-      if (is_decl_start(/*expr_context=*/TRUE)) {
+      if (is_decl_start(/*expr_context=*/TRUE,
+                        /*real_declarator_allowed=*/TRUE)) {
         /* Scan any declarations.  In C, these must all be at the beginning
            of the block. */
         if (any_statements) {

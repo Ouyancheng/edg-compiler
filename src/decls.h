@@ -138,7 +138,8 @@ EXTERN an_extern_linkage
 extern a_boolean is_type_start(void);
 
 /* Test whether or not the current token is the start of a declaration. */
-extern a_boolean is_decl_start(a_boolean  expr_context);
+extern a_boolean is_decl_start(a_boolean  expr_context,
+                               a_boolean  real_declarator_allowed);
 
 extern a_boolean is_overload_specifier(void);
 
@@ -155,10 +156,10 @@ routine to do lookahead, etc.
 */
 #define is_decl_not_expr(abstract_decl_allowed, real_decl_allowed)    \
   ((C_dialect == C_dialect_cplusplus) ?                               \
-    (is_decl_start(/*expr_context=*/TRUE) ?                           \
+    (is_decl_start(/*expr_context=*/TRUE, real_decl_allowed) ?        \
       f_is_decl_not_expr(abstract_decl_allowed, real_decl_allowed) :  \
       is_overload_specifier()) :                                      \
-    is_decl_start(/*expr_context=*/TRUE))
+    is_decl_start(/*expr_context=*/TRUE, real_decl_allowed))
 
 extern void type_name(a_type_ptr *type_ptr);
 
