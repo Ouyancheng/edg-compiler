@@ -1,5 +1,28 @@
 Version 2.32
 
+6/13/96 Conflict between using-declaration and member function declaration
+
+We no longer issue an error when a base-class member function brought in
+to a derived class by a using-declaration has the same type as a member
+function declared directly in the derived class.  (We used to consider WP
+7.3.3 para 13 as applying only to virtual functions, but we now believe it
+is intended to apply to member functions in general.)  Here's an example:
+
+  struct B {
+    void f();
+    void g();
+  };
+  struct D {
+    void f();
+    using B::f;            // Error is no longer issued
+    using B::g;
+    void g();              // Error is no longer issued
+  };
+
+IL CHANGE: When the using-declaration appears first and is then hidden, as
+with the declarations of D::g, the associated IL entry is flagged -- see
+the new field "hidden" in a_class_member_using_decl.
+
 6/12/96 Diagnostic on member redeclaration with different access
 
 Reflecting a recent Working Paper change, we now issue a discretionary
