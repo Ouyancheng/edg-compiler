@@ -9041,7 +9041,12 @@ prep_elision_initializer_operand.
       /* The initialization cannot be done directly; a temporary must be
          used. */
       conversion_to_temp_done = FALSE;
-      if (type_is_correct_or_derived) {          
+      if (is_const_expr_kind(expression_kind)) {
+        /* In a constant context (e.g., a nontype template argument),
+           a temporary is not allowed. */
+        error_in_operand(ec_init_needing_temp_not_allowed, source_operand);
+        err = TRUE;
+      } else if (type_is_correct_or_derived) {          
         /* The source is an rvalue but otherwise has the right type.
            Get the address of the rvalue, then cast the pointer to the right
            type to handle the derived-class case. */
