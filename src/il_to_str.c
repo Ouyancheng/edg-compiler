@@ -1420,6 +1420,24 @@ output in the way described by octl.
 }  /* form_char */
 
 
+void form_wide_char(unsigned long                         wc,
+                    an_il_to_str_output_control_block_ptr octl)
+/*
+Output the indicated wide character as part of a string literal or character
+constant.  Handle unprintable characters and necessary escapes.  Do the
+output in the way described by octl.
+*/
+{
+  char buffer[10];
+
+  /* Use hex escapes always to avoid having to convert the wide character
+     back to a multibyte character string. */
+  (void)sprintf(buffer, "\\x%lx", wc);
+  /* Output the character. */
+  output_partial_token_str(buffer, octl);
+}  /* form_wide_char */
+
+
 static void form_pm_base_casts(a_derivation_step_ptr                path,
                               a_type_ptr                            pm_type,
                               an_il_to_str_output_control_block_ptr octl)
@@ -2317,6 +2335,7 @@ confusion.  Do the output in the way described by octl.
       /* String constant. */
       { a_targ_size_t a;
         char          ch;
+        unsigned long wc;
         char          *str = constant->variant.string.value;
         a_targ_size_t len = constant->variant.string.length;
 
@@ -2347,14 +2366,10 @@ confusion.  Do the output in the way described by octl.
               output_partial_token_str("...", octl);
               break;
             }  /* if */
-            if (targ_little_endian) {
-              ch = str[a];
-            } else {
-              ch = str[a + targ_sizeof_wchar_t - 1];
-            }  /* if */
+            wc = extract_wide_char_from_string(str+a);
             /* Suppress the last character if it is a null. */
-            if (a != (len - targ_sizeof_wchar_t) || ch != '\0') {
-              form_char(ch, octl);
+            if (a != (len - targ_sizeof_wchar_t) || wc != '\0') {
+              form_wide_char(wc, octl);
             }  /* if */
           }  /* for */
           output_partial_token_str("\"", octl);
