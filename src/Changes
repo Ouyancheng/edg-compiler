@@ -1,5 +1,18 @@
 Version 2.44
 
+3/9/00   Accessibility of using-declarations for privately inherited member
+
+The front end used to incorrectly deny access to a public member using-
+declaration that is referring to a privately inherited member when that
+access uses an elaborated name.
+
+  struct B { struct S {}; };
+  struct D: private B { using B::S; };
+  struct X: D { struct S s; };  // Used to result in an error.
+  void f() { struct D::S s; }   // Ditto.
+
+This is now fixed.
+
 3/9/00   Generation of __int64 rather than long long in output for MSVC++
 
 The front end has heretofore put out "__int64" instead of "long long"

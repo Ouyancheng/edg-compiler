@@ -2697,17 +2697,17 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
    does not points to the class in which the lookup is being done;
    otherwise, that symbol is rejected and (typically) the constructor
    symbol will be returned later. */
-#define is_acceptable_symbol(sym)                                     \
+#define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->is_class_member &&					      \
    (!is_injected_class_symbol(sym) ||				      \
     /* direct_class_members_only ||*/				      \
-    class_type != (sym)->variant.type.ptr) &&			      \
+    class_type != (fund_sym)->variant.type.ptr) &&		      \
    (sym)->parent.class_type == class_type &&                          \
    (!must_be_class_or_namespace ||				      \
-    symbol_may_precede_qualifier(sym)) &&	     		      \
+    symbol_may_precede_qualifier(fund_sym)) &&	     		      \
    (!must_be_class ||						      \
-    is_class_or_class_proxy_symbol(sym)) &&	     		      \
-   (!must_be_tag || is_tag_or_tag_proxy_symbol(sym)))
+    is_class_or_class_proxy_symbol(fund_sym)) &&     		      \
+   (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym)))
 
   db_enter(4, "class_qualified_id_lookup");
   /* Remove any typedef on the class type. */
@@ -2749,8 +2749,11 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
        criteria.  This check is suppressed if the do_not_clear_specific_symbol
        flag is set, which usually indicates that the symbol is a coalesced
        template reference. */
-    check_assertion(is_acceptable_symbol(sym) ||
+#if CHECKING
+    a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
+    check_assertion(is_acceptable_symbol(sym, fund_sym) ||
                     locator->do_not_clear_specific_symbol);
+#endif /* CHECKING */
   } else {
     /* Search for a symbol in the right scope. */
     /* First, search the list of inactive symbols.  These are class
@@ -2760,8 +2763,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     for (sym = inactive_symbol_list_from_locator(*locator);
          sym != NULL;
          sym = sym->next) {
-      if (is_acceptable_symbol(sym)) {
-        a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+      a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
+      if (is_acceptable_symbol(sym, fund_sym)) {
         /* Found an acceptable symbol. */
         if (is_proxy_or_nonreal_class_lookup &&
             sym->kind != nonreal_member_symbol_kind(locator, options)) {
@@ -2816,8 +2819,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
       for (sym = symbol_list_from_locator(*locator);
            sym != NULL;
            sym = sym->next) {
-        if (is_acceptable_symbol(sym)) {
-          a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+        a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
+        if (is_acceptable_symbol(sym, fund_sym)) {
           if (any_nonreal_base_classes &&
               !implicit_typename_enabled &&
               sym->kind == (a_symbol_kind)sk_projection &&
