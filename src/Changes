@@ -1,5 +1,17 @@
 Version 2.32
 
+6/26/96 Non-alternate IL file format address remapping
+
+In the so-called "non-alternate" IL file format, a walk through a
+memory region is done after reading it in unless the memory region
+is at the same address it had when written out.  However, when
+reading a function scope memory region, this optimization should be
+done only if the file scope memory region likewise did not move,
+and that part of the test was missing.  As a consequence, in some
+cases all the pointers to the file scope memory region from a
+function scope were not remapped, which would have disastrous
+consequences.
+
 6/25/95 Internal error in pcc mode fixed
 
 A bug introduced in version 2.31 produced an assertion failure in pcc mode
