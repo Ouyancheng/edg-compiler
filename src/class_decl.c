@@ -4610,6 +4610,7 @@ matching function, set *ambiguous to TRUE.
       case sfk_destructor:
         /* Destructor. */
         sym = (symbol_supplement_for_class(class_type))->destructor;
+        *ambiguous = FALSE;
         break;
       case sfk_operator:
         /* Assignment operator. */
