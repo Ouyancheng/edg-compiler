@@ -10523,11 +10523,11 @@ a set of options for the copy.
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
-      /* Comes up only in C mode, and doesn't have to be copied because
-         functions containing statement expressions are considered not
-         to be inlinable.  Copying these would involve copying the
-         statement subtree, the associated scopes, the variables in
-         those scopes, the initializers on those variables... */
+      /* Doesn't have to be copied because forbidden in default argument
+         expressions and because functions containing statement expressions
+         are considered not to be inlinable.  Copying these would involve
+         copying the statement subtree, the associated scopes, the variables
+         in those scopes, the initializers on those variables... */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("copy_expr_tree: bad expr kind");
