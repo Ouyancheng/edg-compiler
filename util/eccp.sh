@@ -524,7 +524,8 @@ do
          --diag_suppress | \
          --diag_remark | \
          --diag_warning | \
-         --diag_error)
+         --diag_error | \
+         --pack_alignment)
       feoptions=$feoptions" $1 $2"
       shift
       used_two_params=1
@@ -562,7 +563,8 @@ do
           --diag_suppress=* | \
           --diag_remark=* | \
           --diag_warning=* | \
-          --diag_error=*)
+          --diag_error=* | \
+          --pack_alignment=*)
       feoptions=$feoptions" $1"
 #     See if an instantiation mode was specified
       case $curr_param in
