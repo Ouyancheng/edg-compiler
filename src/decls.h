@@ -193,6 +193,8 @@ extern a_boolean reconcile_external_symbol_types(
 
 extern a_symbol_ptr curr_tag_symbol(a_symbol_kind tag_kind);
 
+extern a_symbol_ptr curr_scope_tag_symbol(a_symbol_kind tag_kind);
+
 extern a_variable_ptr make_variable(a_type_ptr      type_ptr,
                                     a_storage_class storage_class,
                                     a_boolean       at_file_scope);
