@@ -395,6 +395,27 @@ hiding.
                                         (a_scope_ptr)NULL);
         }  /* if */
       }  /* if */
+      if (scope_stack[depth_scope_stack].kind ==
+                              (a_scope_kind)sck_class_struct_union &&
+          !sym_ptr->is_class_member &&
+          scope_depth_of_symbol(sym_ptr, &is_local_to_function) ==
+                                                      DEPTH_OF_FILE_SCOPE) {
+         /* A friend declaration of a file-scope entity.  Determine whether
+            a global qualifier is needed.  It is needed if there is an
+            intervening namespace scope.  It is also needed if there is an
+            intervening declaration (say, in an enclosing block scope) that
+            hides the file-scope declaration. */
+        if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE ||
+            ((old_sym_ptr =
+                normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP)) != NULL &&
+             old_sym_ptr != sym_ptr)) {
+          tag_hidden_by_nontag = FALSE;
+          global_hidden_by_nonglobal = TRUE;
+          record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
+                                        global_hidden_by_nonglobal,
+                                        (a_scope_ptr)NULL);
+        }  /* if */
+      }  /* if */
     } else {
       /* This is a tag declaration, which is hidden by any non-tag
          already declared within the current scope.  For instance:
