@@ -146,7 +146,8 @@ extern a_boolean is_overload_specifier(void);
 
 extern a_boolean check_for_overload_anachronism(void);
 
-extern a_boolean f_is_decl_not_expr(a_boolean  abstract_declarator_allowed);
+extern a_boolean f_is_decl_not_expr(a_boolean  abstract_declarator_allowed,
+                                    a_boolean  real_declarator_allowed);
 
 /*
 Macro called in various contexts to distinguish expressions from declarations. 
@@ -154,12 +155,12 @@ In C this is straightforward -- is_decl_start() provides all the information
 needed.  But added complexity of disambiguation in C++ requires calling a
 routine to do lookahead, etc.
 */
-#define is_decl_not_expr(abstract_declarator_allowed)                 \
+#define is_decl_not_expr(abstract_decl_allowed, real_decl_allowed)    \
   ((C_dialect == C_dialect_cplusplus) ?                               \
-         (is_decl_start() ?                                           \
-                   f_is_decl_not_expr(abstract_declarator_allowed) :  \
-                   is_overload_specifier()) :                         \
-         is_decl_start())
+    (is_decl_start() ?                                                \
+      f_is_decl_not_expr(abstract_decl_allowed, real_decl_allowed) :  \
+      is_overload_specifier()) :                                      \
+    is_decl_start())
 
 extern void type_name(a_type_ptr *type_ptr);
 
