@@ -808,16 +808,12 @@ The syntax is:
     }  /* if */
   }  /* if */
   if (put_init_in_variable) {
-    if (C_dialect == C_dialect_cplusplus) {
-      dynamic_init_required = (decl_scope_level != DEPTH_OF_FILE_SCOPE);
-    } else {
-      dynamic_init_required = !has_static_storage_duration(vp->storage_class);
-    }  /* if */
     if (err) {
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
       set_error_constant(&constant);
       local_di.variant.constant = alloc_unshared_constant(&constant);
     }  /* if */
+    dynamic_init_required = !has_static_storage_duration(vp->storage_class);
     if (initialization_is_dynamic || dynamic_init_required) {
       if (dynamic_init_required && !err) {
         /* Issue a warning for a dynamic initialization in an unreachable
