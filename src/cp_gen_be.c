@@ -2826,19 +2826,30 @@ on the list, or NULL if the list is empty.
 
   *last_statement = NULL;
   /* Go through the statement list. */
-  for (statement = stmt_list; statement != NULL; statement = statement->next) {
+  statement = stmt_list;
+  /* An extra half iteration is done; the first part of the loop is executed
+     both before the first statement and after the last, or once even if
+     there are no statements. */
+  for (;; statement = statement->next) {
     statement_processed = FALSE;
-    while (func_scope_source_sequence_entry !=
+    /* Look for surprises in the source sequence list. */
+    while (statement == NULL ||
+           func_scope_source_sequence_entry !=
                                             statement->source_sequence_entry) {
       /* The next thing on the source sequence list isn't the statement we
          are expecting, so see what else might come first. */
-      if (curr_func_scope_source_seq_entry_is_decl()) {
+#if 0
+      /* Change when stmk_decl is added. */
+#endif /* 0 */
+      if ((statement != NULL || statement == stmt_list) &&
+          curr_func_scope_source_seq_entry_is_decl()) {
         /* There's a declaration here. */
         /* See if the declaration is paired with a stmk_init statement that
            is the current statement.  If so, break out of the loop and let
            the declaration and the stmk_init be processed together in
            gen_statement. */
-        if (statement->kind == (a_statement_kind)stmk_init &&
+        if (statement != NULL &&
+            statement->kind == (a_statement_kind)stmk_init &&
             ss_entry_kind(func_scope_source_sequence_entry) == iek_variable) {
           a_variable_ptr var = ss_entry_ptr(func_scope_source_sequence_entry,
                                             a_variable_ptr);
@@ -2856,7 +2867,8 @@ on the list, or NULL if the list is empty.
            an implicit fall-through).   This goto could be at the end of
            a switch clause or in top-level body-statement code immediately
            preceding a switch clause. */
-        if (statement->kind == (a_statement_kind)stmk_goto) {
+        if (statement != NULL &&
+            statement->kind == (a_statement_kind)stmk_goto) {
           a_label_ptr label = statement->variant.label;
           if (!has_name(label)) {
             a_statement_ptr clause_stmt = scp->statements;
@@ -2881,31 +2893,19 @@ on the list, or NULL if the list is empty.
           break;
         }  /* if */
       } else {
-        /* We don't know what this next thing is.  It might be an internal
-           error, but it might be something weird that gen_statement
-           can deal with. */
+        /* We don't know what this next thing is.  Leave it alone and
+           go on. */
         break;
       }  /* if */
     }  /* while */
+    /* Exit the loop after the extra half-iteration following the last
+       statement. */
+    if (statement == NULL) break;
     /* Generate the statement. */
     if (!statement_processed) gen_statement(statement);
     /* Remember the last statement in the statement list. */
     if (statement->next == NULL) *last_statement = statement;
   }  /* for */
-  if (top_statement_of_switch) {
-    /* Generate any remaining switch clauses. */
-    while (curr_source_seq_entry_is_for_switch_clause(&scp)) {
-      /* The next thing on the source sequence list is a top-level
-         switch clause.  Generate code for it. */
-      gen_switch_clause(scp);
-    }  /* while */
-  }  /* if */
-#if 0
-  /* We also need to dump out declarations at the end of the block, but
-     we don't have any way to know what scope they're in:
-       { int i; i = 1; int j; int k; }
-  */
-#endif /* 0 */
 }  /* gen_statement_list */
 
 
@@ -3171,7 +3171,9 @@ Output the indicated dynamic initialization.
       break;
     case dik_expression:
       write_tok_str(" = ");
-      gen_expression(dip->variant.expression);
+      /* Parentheses are required because of the possibility that the top-level
+         operator is a ",". */
+      gen_expr_with_parens(dip->variant.expression);
       break;
     default:
       unexpected_condition_str("gen_dynamic_init: bad kind");
