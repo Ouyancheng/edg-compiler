@@ -456,9 +456,9 @@ set to TRUE if the body of a routine is eliminated.
          on the order of types promoted out of classes and namespaces.
          Keep the placeholder only if the type pointed to has no
          correspondence. */
-      a_type_ptr underlying_type = type->variant.typeref.type;
+      a_type_ptr ref_type = type->variant.typeref.type;
       keep_on_list = TRUE;
-      if (has_corresp(underlying_type)) {
+      if (has_corresp(ref_type)) {
         keep_on_list = FALSE;
       }  /* if */
     }  /* if */
