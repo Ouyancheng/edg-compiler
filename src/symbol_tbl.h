@@ -1259,6 +1259,11 @@ typedef struct a_scope_pointers_block {
 			/* For sck_file and sck_namespace scopes only, pointer
 			   to the symbol representing the unnamed namespace
 			   for the current scope; NULL if there is none. */
+  unsigned int	add_symbols_to_inactive_list:1;
+			/* TRUE for sck_namespace_reactivation scopes if
+			   symbols added to the scope should be added
+			   directly to the inactive list, instead of being
+			   added to the active list as is usually done. */
 } a_scope_pointers_block;
 
 
