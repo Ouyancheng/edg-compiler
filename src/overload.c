@@ -5697,8 +5697,8 @@ the initialization being done is for the value returned from a function.
     is_usable_temp_init = TRUE;
     temp_init_node = source_operand->variant.expression;
     dip = temp_init_node->variant.init.dynamic_init;
-    /* Take the dynamic init of whatever destruction list it is on,
-       because it will be given to the caller who will put it on a
+    /* Take the dynamic init off whatever destruction list it is on,
+       because it will be given to the caller, who will put it on a
        list at that level. */
     remove_from_destruction_list(dip);
     if (initializing_return_value && dip->destructor != NULL) {
