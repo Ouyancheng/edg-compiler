@@ -4800,6 +4800,7 @@ this one is such a continuation.
     }  /* if */
   }  /* if */
   check_assertion(!(type->size != 0 && type->incomplete));
+  check_assertion(!type->first_placeholder_invalid);
   kind = type->kind;
   if (!is_autonomous_decl(type, sec_decl)) {
     /* This type declaration is embedded in another declaration.

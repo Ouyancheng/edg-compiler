@@ -3235,6 +3235,7 @@ the scope must be the file scope.
      program. */
   for (pass = 1; pass <= 2; pass++) {
     for (type = scope->types; type != NULL; type = type->next) {
+      check_assertion(!type->first_placeholder_invalid);
       check_membership_info(type, scope);
 #if GNU_EXTENSIONS_ALLOWED
       if (type->copy_with_additional_attributes) {

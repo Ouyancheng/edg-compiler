@@ -502,7 +502,7 @@ extern void add_to_types_list_full(a_type_ptr     type_ptr,
 extern void add_to_types_list(a_type_ptr     type_ptr,
                               a_scope_depth  scope_level);
 
-extern void eliminate_invalid_placeholder_in_file_scope(
+extern void eliminate_invalid_placeholders_in_file_scope(
                                                      a_scope_ptr  file_scope);
 
 extern void move_to_end_of_types_list(a_type_ptr     type_ptr,

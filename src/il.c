@@ -85,6 +85,10 @@ static unsigned long
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
 
+/*
+Number of namespace type placeholders on the file scope types list that have
+been marked as invalid.  This is a per-translation-unit variable.
+*/
 static unsigned long
 		num_invalid_placeholders_in_file_scope;
 
@@ -6438,19 +6442,21 @@ rather than determined directly.
   add_to_types_list_full(type_ptr, scope_level, /*do_placeholder=*/TRUE);
 }  /* add_to_types_list */
 
-
-void eliminate_invalid_placeholder_in_file_scope(a_scope_ptr  file_scope)
+static a_type_ptr find_and_eliminate_invalid_placeholder_in_file_scope(
+                                                      a_scope_ptr  file_scope,
+                                                      a_type_ptr   type)
 /*
-Calls to move_to_end_of_types_list may have invalidated placeholder typerefs
-in the given file scope.  Traverse the scope's type list and remove such
-placeholder typerefs.  (Doing it in a separate pass can improve performance
-by amortizing the traversal over multiple deletions.)
+Find the placeholder typeref (which must be marked as invalid) for the given
+type on the types list of the given file scope.  All invalid placeholders
+encountered during the traversal (including the one found for the given type)
+are removed.  If type is NULL, this routine eliminates all the invalid
+placeholders typerefs in the given file scope and NULL is returned.  Otherwise,
+the invalid placeholder corresponding to type is returned.
 */
 {
   a_type_ptr  tp = file_scope->types, prev_tp = NULL;
 
-  while (num_invalid_placeholders_in_file_scope > 0) {
-    check_assertion(tp != NULL);
+  while (num_invalid_placeholders_in_file_scope > 0 && tp != NULL) {
     if (tp->kind == (a_type_kind)tk_typeref &&
         tp->variant.typeref.is_placeholder_for_namespace_type) {
       /* A placeholder typeref. */
@@ -6467,6 +6473,11 @@ by amortizing the traversal over multiple deletions.)
            keeping information as appropriate. */ 
         --num_invalid_placeholders_in_file_scope;
         ref_tp->first_placeholder_invalid = FALSE;
+        if (ref_tp == type) {
+          /* We found the requested type: End the traversal.  (This test
+             will always fail if type is NULL. */
+          break;
+        }  /* if */
       } else {
         prev_tp = tp;
       }  /* if */
@@ -6475,7 +6486,22 @@ by amortizing the traversal over multiple deletions.)
     }  /* if */
     tp = tp->next;
   }  /* while */
-}  /* eliminate_invalid_placeholder_in_file_scope */
+  check_assertion(num_invalid_placeholders_in_file_scope == 0 || type != NULL);
+  return tp;
+}  /* find_and_eliminate_invalid_placeholder_in_file_scope */
+
+
+void eliminate_invalid_placeholders_in_file_scope(a_scope_ptr  file_scope)
+/*
+Calls to move_to_end_of_types_list may have invalidated placeholder typerefs
+in the given file scope.  Traverse the scope's type list and remove such
+placeholder typerefs.  (Doing it in a separate pass can improve performance
+by amortizing the traversal over multiple deletions.)
+*/
+{
+  (void)find_and_eliminate_invalid_placeholder_in_file_scope(file_scope,
+                                                             (a_type_ptr)NULL);
+}  /* eliminate_invalid_placeholders_in_file_scope */
 
 
 void move_to_end_of_types_list(a_type_ptr     type_ptr,
@@ -6569,47 +6595,32 @@ removed from the list.
           /* The placeholder entry is already the last entry. */
         } else {
           if (!type_ptr->first_placeholder_invalid) {
+            /* type_ptr does not yet have an invalid placeholder associated
+               with it.  We can therefore now mark it as having an invalid
+               placeholder and delay the actual removal of the placeholder
+               until later (to amortize the needed traversal over multiple
+               deletions).  This should be by far the most common case,
+               since a type is rarely moved to the end of the types list
+               more than once. */
             type_ptr->first_placeholder_invalid = TRUE;
             ++num_invalid_placeholders_in_file_scope;
             if (!delete_placeholder) {
+              /* "Moving" the placeholder really amounts to a "copy" in
+                 this case. */
               add_placeholder_for_namespace_type(type_ptr);
             }  /* if */
           } else {
-            /* Scan the list until a match is found. */
-            prev_tp = NULL;
-            for (tp = file_scope->types;; tp = tp->next) {
-              check_assertion(tp != NULL);
-              if (tp->kind == (a_type_kind)tk_typeref &&
-                  tp->variant.typeref.is_placeholder_for_namespace_type) {
-                /* A placeholder typeref. */
-                a_type_ptr  ref_tp = tp->variant.typeref.type;
-                if (ref_tp->first_placeholder_invalid) {
-                  /* The placeholder was no longer valid: Delete it (by linking
-                     around the type entry). */
-                  if (prev_tp == NULL) {
-                    file_scope->types = tp->next;
-                  } else {
-                    prev_tp->next = tp->next;
-                  }  /* if */
-                  if (ref_tp == type_ptr) {
-                    /* There is another placeholder for type_ptr, but we don't
-                       need to find it at this time.  Instead, we treat it as
-                       "invalid" by leaving the first_placeholder_invalid flag
-                       to TRUE. */
-                    break;
-                  } else {
-                    /* We deleted the invalid placeholder: Adjust the book-
-                       keeping information as appropriate. */ 
-                    --num_invalid_placeholders_in_file_scope;
-                    ref_tp->first_placeholder_invalid = FALSE;
-                  }  /* if */
-                }  /* if */
-              }  /* if */
-              prev_tp = tp;
-            }  /* for */
-            /* Link around the entry that was found. */
+            /* There are already two placeholders for the given type: An
+               invalid one followed by a valid one.  Remove the invalid one
+               and invalidate the valid one. */
+            tp = find_and_eliminate_invalid_placeholder_in_file_scope(
+                                                        file_scope, type_ptr);
+            check_assertion(tp != NULL &&
+                            is_assoc_namespace_type_placeholder(tp, type_ptr));
+            type_ptr->first_placeholder_invalid = TRUE;
+            ++num_invalid_placeholders_in_file_scope;
             if (!delete_placeholder) {
-              /* Reenter it onto the end of the list. */
+              /* Reenter the entry that was found onto the end of the list. */
               pointers_block->last_type->next = tp;
               pointers_block->last_type = tp;
             }  /* if */

@@ -1709,6 +1709,8 @@ the secondary translation unit IL).
 */
 {
   a_boolean                   is_class = is_immediate_class_type(type);
+  a_boolean                   first_placeholder_invalid =
+                                      primary_type->first_placeholder_invalid;
   a_class_list_entry_ptr      saved_befriending_classes;
 #if MAINTAIN_NEEDED_FLAGS
   a_boolean                   saved_definition_needed;
@@ -1731,6 +1733,7 @@ the secondary translation unit IL).
   transfer_type_details(primary_type, type);
   *primary_type = *type;
   do_restores_for_overwrite(primary_type, type);
+  primary_type->first_placeholder_invalid = first_placeholder_invalid;
   if (is_class) {
     primary_ctsp = primary_type->variant.class_struct_union.extra_info;
     if (primary_ctsp != NULL) {

@@ -478,10 +478,13 @@ translation units.
 #endif /* MAINTAIN_NEEDED_FLAGS */
   for (tup = translation_units->next; tup != NULL; tup = tup->next) {
     switch_translation_unit(tup);
+    /* Note that invalid placeholders must be eliminated before unneeded IL,
+       because the elimination of unneeded IL may eliminate a type entry to
+       which an invalid placeholder is pointing. */
+    eliminate_invalid_placeholders_in_file_scope(tup->primary_scope);
 #if MAINTAIN_NEEDED_FLAGS
     file_scope_il_wrapup_remove_unneeded_il();
 #endif /* MAINTAIN_NEEDED_FLAGS */
-    eliminate_invalid_placeholder_in_file_scope(tup->primary_scope);
   }  /* for */
 }  /* file_scope_il_wrapup_part_2 */
 
@@ -501,10 +504,10 @@ already been copied over.
   if (is_primary_translation_unit) {
     /* Eliminate invalid placeholders in the primary file scope.  This was
        done in part 2 for secondary translation units, but for the primary
-       translation unit it must be delayed until part 2 because the process of
+       translation unit it must be delayed until part 3 because the process of
        copying type entries from secondary translation units to the primary
        translation unit can invalidate some placeholders in the latter. */
-    eliminate_invalid_placeholder_in_file_scope(
+    eliminate_invalid_placeholders_in_file_scope(
                                             translation_units->primary_scope);
 #if DO_IL_LOWERING
     /* Lower the file scope. */
