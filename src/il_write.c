@@ -270,7 +270,9 @@ end_of_routine:
   /* Stop if the entry being examined is the one we're looking for. */
   if (entry_kind == centerline_entry_kind &&
       entry_number == centerline_entry_number &&
-      centerline_region_being_written == centerline_memory_region_number) {
+      ((centerline_memory_region_number == FILE_SCOPE_REGION_NUMBER) ?
+        is_file_scope_entry :
+        (centerline_region_being_written == centerline_memory_region_number))){
     centerline_stop();
   }  /* if */
 #endif /* CHECKING && DEBUG */
