@@ -1,5 +1,19 @@
 Version 3.6
 
+1/8/05   Multiple translation unit merge of complete/incomplete versions of
+         enum in C mode
+
+The multiple-translation-unit copy/merge process generated an internal
+error in class_type_has_body in types.c while processing, in C mode,
+an incomplete enum in the primary translation unit and a complete
+version of the enum in a secondary translation unit.  Now fixed.
+
+Primary file:
+  enum Fwd;
+
+Secondary file:
+  enum Fwd { A, B };
+
 1/7/05   Microsoft compatibility: Concatenation of __LPREFIX(...) followed
          by string literal
 

@@ -1966,7 +1966,9 @@ unit set to the primary translation unit.
              definition is not needed anywhere and is removed by
              the unneeded-entity removal processing). */
           move_to_end = (!is_class_scope &&
-                         class_type_has_body(corresp_type));
+                         is_immediate_class_type(corresp_type) ?
+                                            class_type_has_body(corresp_type) :
+                                            !is_incomplete_type(corresp_type));
           if (move_to_end) {
             /* Also remove any associated namespace placeholder, but do
                not move it to the end of the list.  There will be a
