@@ -926,6 +926,8 @@ declaration position to eliminate redundant file names in a diagnostic.
     case sk_class_template:
       if (sym->is_template_param) {
         entity_kind = "template template parameter ";
+      } else if (sym->variant.template_info->is_nonreal_member) {
+        entity_kind = "template ";
       } else {
         entity_kind = "class template ";
       }  /* if */
