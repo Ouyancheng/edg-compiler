@@ -2660,6 +2660,9 @@ or struct definition.  The syntax is
           cssp->assignment_by_bitwise_copy_allowed = FALSE;
         }  /* if */
       }  /* if */
+      if (bcp_cssp->any_nonstatic_data_members) {
+        cssp->any_nonstatic_data_members = TRUE;
+      }  /* if */
       /* Update the flag indicating whether there are any virtual base
          classes. */
       if (is_virtual || base_class_type->
@@ -4074,6 +4077,8 @@ class, struct, or union.
          type members. */
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
     }  /* if */
+    /* Record that there is at least one nonstatic data member in the class. */
+    cssp->any_nonstatic_data_members = TRUE;
   }  /* if */
   /* Remember if any member of the class, struct, or union is const-
      qualified, including recursively the members of any contained
