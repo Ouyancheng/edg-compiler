@@ -4520,7 +4520,12 @@ detected, issue a diagnostic at the given position.
     }  /* if */
   } else {
     /* Otherwise, the assembly name is just a name. */
-    if (gnu_version >= 30000 && anr != (a_named_register)anr_invalid) {
+#if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+    a_named_register  reg_not_found = (a_named_register)anr_unrecognized;
+#else /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
+    a_named_register  reg_not_found = (a_named_register)anr_invalid;
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
+    if (gnu_version >= 30000 && anr != reg_not_found) {
       pos_error(ec_register_name_on_nonregister, diag_pos);
     } else if (variable->asm_name_or_reg.name == NULL) {
       /* This is the first declaration of this variable with an "asm name"

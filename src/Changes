@@ -1,5 +1,16 @@
 Version 3.6
 
+2/17/05  GNU compatibility: Spurious error on asm names
+
+In GNU modes, with configurations with ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+set to TRUE, the front end issued a spurious error on variable declarations
+annotated with an asm name.  For example:
+
+  extern int i __asm__("counter");  // Sometimes triggered a spurious error
+                                    // in GNU modes.
+
+This is now fixed.  (See also Changes entry of 10/8/04.)
+
 2/17/05  GNU C++ compatibility: In-class pointer initializers
 
 In GNU C++ mode with gnu_version < 30300 the front end now accepts in-class
