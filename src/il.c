@@ -2164,12 +2164,22 @@ bucket of the shareable_constants_table to use for the constant.
   a_boolean             ovflo;
 
   /* Compute a hash value from the constant.  The hash doesn't have to
-     be perfect, but it should spread the expected constants fairly widely. */
+     be perfect, but it should spread the expected constants fairly widely.
+     The hash should *not* involve the address of the constant or its type;
+     such an approach was tried, and works well from a hashing point of
+     view, but has the undesirable property that it makes the order of
+     the shared constants in the IL highly dependent on the host machine,
+     which means the same version of the front end compiled on two different
+     hosts will generate different IL and perhaps different object code
+     on those two machines. */
   switch (cp->kind) {
     case ck_integer:
+      /* Integer.  Use the constant itself as the hash value. */
       hash_value = (a_constant_hash_value)value_of_integer_constant(cp,&ovflo);
       break;
     case ck_string:
+      /* String.  Use the first and last characters and the length to make
+         a hash value. */
       length = cp->variant.string.length;
       hash_value = (a_constant_hash_value)(
                             100 + length + (*(cp->variant.string.value) << 6) +
@@ -2186,24 +2196,37 @@ bucket of the shareable_constants_table to use for the constant.
       }  /* for */
       break;
     case ck_address:
+      /* Address constant.  If the thing pointed to is named, hash the name;
+         otherwise (for the address of a constant), hash the constant pointed
+         to. */
       switch (cp->variant.address.kind) {
         case abk_routine:
-          hash_value =
-                    (a_constant_hash_value)cp->variant.address.variant.routine;
-          break;
+          cptr = cp->variant.address.variant.routine->source_corresp.name;
+          goto hash_name;
         case abk_variable:
-          hash_value =
-                   (a_constant_hash_value)cp->variant.address.variant.variable;
+          cptr = cp->variant.address.variant.variable->source_corresp.name;
+hash_name:
+          /* Hash the name string. */
+          hash_value = 0;
+          if (cptr != NULL) {
+            for (; *cptr != '\0'; cptr++) {
+              hash_value = (hash_value << 6) + *cptr;
+            }  /* for */
+          }  /* if */
           break;
         case abk_constant:
-          hash_value =
-                   (a_constant_hash_value)cp->variant.address.variant.constant;
+          /* Hash the name if the constant has a name; otherwise, hash the
+             constant pointed to. */
+          cptr = cp->variant.address.variant.constant->source_corresp.name;
+          if (cptr != NULL) goto hash_name;
+          hash_value = hash_constant(cp->variant.address.variant.constant);
           break;
 #if CHECKING
         default:
           internal_error("hash_constant: bad address constant kind");
 #endif /* CHECKING */
       }  /* switch */
+      /* Add the offset in the address constant into the hash value. */
       hash_value += (a_constant_hash_value)(cp->variant.address.offset + 1000);
       break;
     case ck_ptr_to_member:
