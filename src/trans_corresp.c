@@ -879,7 +879,10 @@ is in fact valid.
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
-      process_bad_trans_unit_corresp(constant);
+      if (!C_mode()) {
+        /* In C mode, constants have no linkage. */
+        process_bad_trans_unit_corresp(constant);
+      }  /* if */
     }  /* if */
   }  /* if */
   return match;
@@ -889,11 +892,11 @@ is in fact valid.
 static void check_for_enumerator_conflicts(a_type_ptr  type)
 /*
 Check whether the enumerators attached to the given enum type conflict with
-other entities.
+other entities.  (Not significant in C mode: C enumerators have no linkage.)
 */
 {
   check_assertion(is_immediate_enum_type(type));
-  if (!type->source_corresp.is_class_member) {
+  if (!type->source_corresp.is_class_member && !C_mode()) {
     a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list;
     for (; enumerator != NULL; enumerator = enumerator->next) {
       a_symbol_ptr  enum_sym = (a_symbol_ptr)enumerator
@@ -910,7 +913,7 @@ other entities.
         }  /* if */
       }  /* for */
     }  /* for */
-  }
+  }  /* if */
 }  /* check_for_enumerator_conflicts */
 
 
@@ -921,13 +924,14 @@ type is in fact valid.
 */
 {
   a_boolean       match = verify_name_correspondence(type);
+  a_boolean       report_error = FALSE;
   a_type_ptr      corresp_type = (a_type_ptr)canonical_il_entry_of(type);
 
   if (!match) {
     /* An error was already issued. */
   } else if (!is_immediate_enum_type(corresp_type)) {
     match = FALSE;
-    report_bad_trans_unit_corresp(type);
+    report_error = TRUE;
   } else {
     a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list,
                     corresp_enumerator =
@@ -947,8 +951,8 @@ type is in fact valid.
     }  /* for */
     if ((enumerator != NULL && corresp_enumerator == NULL) ||
         (corresp_enumerator != NULL && enumerator == NULL)) {
-      report_bad_trans_unit_corresp(type);
       match = FALSE;
+      report_error = TRUE;
     }  /* if */
     if (match && 
         (enumerator != NULL ||
@@ -958,11 +962,16 @@ type is in fact valid.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          type->variant.integer.int_kind !=
                                      corresp_type->variant.integer.int_kind)) {
-      report_bad_trans_unit_corresp(type);
       match = FALSE;
+      report_error = TRUE;
     }  /* if */
   }  /* if */
   if (!match) {
+    if (report_error && !C_mode()) {
+      /* In C mode, a correspondence mismatch is not an error.  (It just means
+         the types are unrelated.) */
+      report_bad_trans_unit_corresp(type);
+    }  /* if */
     set_no_enum_type_correspondence(type);
   }  /* if */
   return match;
