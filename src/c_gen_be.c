@@ -2273,7 +2273,7 @@ checked that there are some pragmas associated with the entity.
     }  /* if */
   }  /* for */
 #if CHECKING
-  if (!found_any) {
+  if (entity_ptr != NULL && !found_any) {
     internal_error("dump_scope_pragmas: no pragmas found for entity");
   }  /* if */
 #endif /* CHECKING */
