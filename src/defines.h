@@ -20,6 +20,26 @@ the release should contain no defines.
 */
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
+
+#ifdef CP_GEN_BE_VERSION
+/*
+Flags to be set for any version that uses the C++ generating back end.
+*/
+#define BACK_END_IS_C_GEN_BE 0
+#define BACK_END_IS_CP_GEN_BE 1
+#define DO_IL_LOWERING 0
+#define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 0
+#define AUTOMATIC_TEMPLATE_INSTANTIATION 0
+#define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL 0
+#ifdef _WIN32
+/* On NT, don't generate an IL file. */
+#define IL_SHOULD_BE_WRITTEN_TO_FILE 0
+#define NEW_CAN_BE_FOLDED_INTO_CTOR 0
+#define DELETE_CAN_BE_FOLDED_INTO_DTOR 0
+#define ASSIGNMENT_TO_THIS_ALLOWED 0
+#endif /* ifdef _WIN32 */
+#endif /* ifdef CP_GEN_BE_VERSION */
+
 #ifndef ABI_COMPATIBILITY_VERSION
 #define ABI_COMPATIBILITY_VERSION 99999 /* Use latest version. */
 /* We want enough cfront compatibility to be able to use I/O streams compiled
@@ -37,24 +57,6 @@ the release should contain no defines.
 #define REMOVE_QUALIFIERS_FROM_PARAM_TYPES 1
 #endif /* ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
 #endif /* ifndef ABI_COMPATIBILITY_VERSION */
-
-#ifdef CP_GEN_BE_VERSION
-/*
-Flags to be set for any version that uses the C++ generating back end.
-*/
-#define BACK_END_IS_C_GEN_BE 0
-#define BACK_END_IS_CP_GEN_BE 1
-#define DO_IL_LOWERING 0
-#define AUTOMATIC_TEMPLATE_INSTANTIATION 0
-#define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL 0
-#ifdef _WIN32
-/* On NT, don't generate an IL file. */
-#define IL_SHOULD_BE_WRITTEN_TO_FILE 0
-#define NEW_CAN_BE_FOLDED_INTO_CTOR 0
-#define DELETE_CAN_BE_FOLDED_INTO_DTOR 0
-#define ASSIGNMENT_TO_THIS_ALLOWED 0
-#endif /* ifdef _WIN32 */
-#endif /* ifdef CP_GEN_BE_VERSION */
 
 /*
 Flags to be set when using the KAI inliner.
