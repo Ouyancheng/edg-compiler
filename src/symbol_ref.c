@@ -35,9 +35,7 @@ should only be called if cross-reference information is being generated
   a_line_number line_number;
   a_boolean     at_end_of_source;
 
-  if (sym_ptr->is_error) {
-    /* Ignore errors. */
-  } else if (sym_ptr->kind == (a_symbol_kind)sk_extern_variable ||
+  if (sym_ptr->kind == (a_symbol_kind)sk_extern_variable ||
              sym_ptr->kind == (a_symbol_kind)sk_extern_routine) {
     /* Ignore extern variable and routine symbols.  They are really just
        shadow symbols for the the real ones. */
@@ -595,6 +593,26 @@ check_label_decl_seq:
 }  /* record_symbol_reference */
 
 
+void reference_to_invalid_name(a_symbol_locator *locator)
+/*
+A name was referred to in a declaration but was invalid -- either it was
+undefined or it was not being used correctly.  Put out cross reference
+information on the reference, if required.
+*/
+{
+  a_symbol_locator  loc;
+
+  if (f_xref_info != NULL) {
+    loc = *locator;
+    if (loc.specific_symbol == NULL && !is_error_locator(loc)) {
+      make_specific_symbol_error_locator(&loc);
+    }  /* if */
+    write_xref_entry(SRK_ERROR | SRK_REFERENCE, loc.specific_symbol,
+                     &loc.source_position);
+  }  /* if */
+}  /* reference_to_invalid_name */
+
+
 void record_access_adjustment(an_access_adjustment_ptr  aap,
                               a_symbol_ptr              sym,
                               a_source_position         *pos)
@@ -712,6 +730,7 @@ control checking is done.
                             /*update_il_entry=*/FALSE);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
