@@ -1,5 +1,11 @@
 Version 2.32
 
+6/18/96 Bug in make_integer_value_mask macro
+
+When INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is FALSE and the host long long
+is used to represent target integers, the make_integer_value_mask macro
+did not produce the right bit masks.  Now fixed.
+
 6/15/96 Duplicate class-member using-declarations
 
 The restriction on duplicate class-member using-declarations has been
