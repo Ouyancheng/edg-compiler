@@ -28,12 +28,14 @@ folding.c -- Folding routines.
 Determine the severity (error or warning) to be used for integer
 operation overflows.
 */
+#ifndef ES_INT_OVERFLOW
 #if TARG_NO_ERROR_ON_INTEGER_OVERFLOW
 #define ES_INT_OVERFLOW                                               \
   (strict_ansi_mode ? strict_ansi_error_severity : es_warning)
 #else /* !TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
 #define ES_INT_OVERFLOW es_error
 #endif /* TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
+#endif /* ifndef ES_INT_OVERFLOW */
 
 
 a_boolean constant_bool_value_known_at_compile_time(a_constant_ptr con)
@@ -1952,7 +1954,7 @@ static void db_unary_operation(char          *operation,
 Do a debug print giving the result of folding a one-operand constant operation.
 */
 {
-  if (debug_level >= 5) {
+  if (db_flag_is_set("folding") || debug_level >= 5) {
     fprintf(f_debug, "%s ", operation);
     db_constant(operand);
     fprintf(f_debug, ", result = ");
@@ -2310,7 +2312,7 @@ static void db_binary_operation(char           *operation,
 Do a debug print giving the result of folding a two-operand constant operation.
 */
 {
-  if (debug_level >= 5) {
+  if (db_flag_is_set("folding") || debug_level >= 5) {
     db_constant(constant_1);
     fprintf(f_debug, " %s ", operation);
     db_constant(constant_2);

@@ -469,6 +469,7 @@ the value is already known to be too large.  Set *err on overflow.  Set
   int		value_bits;
   int		shift_count;
   int		mantissa_bits = 0;
+  int		sign_bits = 0;
 
   *err = FALSE;
   *inexact = FALSE;
@@ -479,15 +480,16 @@ the value is already known to be too large.  Set *err on overflow.  Set
     value_bits = value_bits_for_fixed_point(fxp_descr);
     shift_count = nonfract_bits - exponent;
     mantissa_bits = number_of_bits_in_mantissa(mp);
+    sign_bits = fxp_descr->is_unsigned ? 0 : 1;
     /* A shift count of zero represents an overflow for a signed value because
        the sign bit would be needed for the representation. */
-    if (shift_count >= (fxp_descr->is_unsigned ? 0 : 1)) {
+    if (shift_count >= sign_bits) {
       if (shift_count > 0) shift_right_mantissa(mp, shift_count);
       /* See if the result value has more bits of precision than fit int
          the destination type. */
       if (mantissa_bits > value_bits) *inexact = TRUE;
       /* Round the value to the nearest representable value. */
-      round_hex_fp_value(mp, &exponent, value_bits, inexact);
+      round_hex_fp_value(mp, &exponent, value_bits + sign_bits, inexact);
     } else {
       /* We would be shifting bits out of the high end of this mantissa. */
       overflow = TRUE;
