@@ -3193,6 +3193,12 @@ typedef struct a_variable {
 			   that is referenced from outside of its function
 			   (e.g., from a member function of a local class).
 			   TRUE only in C++. */
+  unsigned int	modified_within_try_block:1;
+			/* TRUE if the variable is a local variable that is
+			   modified within a try block and declared in a scope
+			   containing that try block.  This flag enables a
+			   back end to treat such variables as requiring
+			   immediate store after a modification.  C++ only. */
   unsigned int	is_template_static_data_member:1;
 			/* TRUE if this is a static data member that is a
 			   member of a class generated from a template,

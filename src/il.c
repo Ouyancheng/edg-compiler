@@ -5529,6 +5529,7 @@ to it.
   vp->initializer.constant        = NULL;
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
+  vp->modified_within_try_block   = FALSE;
   vp->is_template_static_data_member
                                   = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION

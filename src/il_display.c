@@ -1154,6 +1154,11 @@ Display the indicated variable.
   if (ptr->is_parameter) {
     disp_boolean("is_parameter", TRUE);
   }  /* if */
+  disp_initializer(ptr->init_kind, &ptr->initializer);
+#ifdef FFE
+  disp_boolean("by_address", (a_boolean)ptr->by_address);
+#endif /*ifdef FFE */
+#ifdef CFE
   if (ptr->is_handler_param) {
     disp_boolean("is_handler_param", TRUE);
   }  /* if */
@@ -1165,14 +1170,12 @@ Display the indicated variable.
     disp_boolean("initialization_rewritten_as_assignment", TRUE);
   }  /* if */
 #endif /* DO_IL_LOWERING */
-#ifdef FFE
-  disp_boolean("by_address", (a_boolean)ptr->by_address);
-#endif /*ifdef FFE */
-#ifdef CFE
   if (ptr->referenced_non_locally) {
     disp_boolean("referenced_non_locally", TRUE);
   }  /* if */
-#endif /*ifdef CFE */
+  if (ptr->modified_within_try_block) {
+    disp_boolean("modified_within_try_block", TRUE);
+  }  /* if */
   if (ptr->is_template_static_data_member) {
     disp_boolean("is_template_static_data_member", TRUE);
   }  /* if */
@@ -1212,7 +1215,7 @@ Display the indicated variable.
     disp_boolean("thread", TRUE);
   }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
-  disp_initializer(ptr->init_kind, &ptr->initializer);
+#endif /*ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
