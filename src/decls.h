@@ -299,6 +299,7 @@ void update_routine_decl_modifiers(a_routine_ptr	routine,
                                    a_boolean		is_redecl,
                                    a_boolean	        is_definition);
 
+extern
 void update_variable_decl_modifiers(a_variable_ptr	variable,
 		  		    a_decl_modifier	new_modifiers,
 				    a_source_position	*position,
