@@ -722,6 +722,8 @@ ec_cl_alternate_token_option_only_in_cplusplus;;"alternate token option can be u
 ec_const_volatile_ref_init_anachronism;;"temporary used for initial value of reference to const volatile (anachronism)"
 ec_bad_const_volatile_ref_init;;"initial value of reference to const volatile has incorrect type"
 ec_const_volatile_ref_init_from_rvalue;;"initial value of reference to const volatile must be an lvalue"
+ec_cl_SVR4_C_option_only_in_ansi_C;;"SVR4 C compatibility option can be used only when compiling ANSI C"
+ec_using_out_of_scope_declaration;;"using out of scope declaration of %nfd"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
