@@ -3476,8 +3476,7 @@ at the next level down.
     if (curr_ise->assoc_actual_il_file != il_header.primary_source_file) {
       record_end_of_source_file(il_header.primary_source_file,
                                 seq_number_last_read);
-    } else {
-      is_end_of_primary_source_file = TRUE;
+      is_end_of_primary_source_file = FALSE;
     }  /* if */
   }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
