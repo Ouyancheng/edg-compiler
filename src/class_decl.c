@@ -670,6 +670,9 @@ for the class to which they belong.
 static a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
                                  a_derivation_step_ptr  dsp2);
 
+#define base_classes_of(tp) \
+  ((tp)->variant.class_struct_union.extra_info->base_classes)
+
 
 static a_base_class_ptr corresponding_base_class(a_base_class_ptr base_class,
                                                  a_type_ptr       old_class,
@@ -693,19 +696,46 @@ old_class under new_class.
         goto done;
       }  /* if */
     } else if (bcp->type == base_class->type) {
-      /* The types match.  See if the derivations match except that bcp
-         has one more step.  If there are some virtual steps involved,
-         the derivations can be different and still be equivalent (i.e.,
-         indicate the same base class). */
-      if ((bcp->derivation->base_class->type == old_class &&
-           congruent_paths(bcp->derivation->next, base_class->derivation)) ||
-          equivalent_paths(bcp->derivation, base_class->derivation)) {
+      /* The types match. */
+      if (!bcp->ambiguous && !base_class->ambiguous) {
         new_base_class = bcp;
         goto done;
+      } else {
+        /* One or both of the base classes is ambiguous.  That means there
+           is more than one instance of the base class in the base classes
+           list.  Check the derivations to resolve the ambiguity. */
+        if (equivalent_paths(bcp->derivation, base_class->derivation)) {
+          new_base_class = bcp;
+          goto done;
+        } else {
+          a_derivation_step_ptr  step;
+          for (step = bcp->derivation; step != NULL; step = step->next) {
+            if (step->base_class->type == old_class &&
+                congruent_paths(step->next, base_class->derivation)) {
+              new_base_class = bcp;
+              goto done;
+            }  /* if */
+          }  /* for */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
 #if CHECKING
+  if (debug_level > 0) {
+    if (base_class != NULL) {
+      fputs("cannot find base class", f_debug);
+      db_base_class(base_class, FALSE);
+    }  /* if */
+    fputs("old_class = ", f_debug);
+    db_name(&old_class->source_corresp);
+    fputs("; new_class = ", f_debug);
+    db_name(&new_class->source_corresp);
+    fputs(" with base classes:\n", f_debug);
+    for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
+      fputs("  ", f_debug);
+      db_base_class(bcp, FALSE);
+    }  /* for */
+  }  /* if */
   internal_error("corresponding_base_class: base class not found");
 #else
   new_base_class = NULL;
@@ -1435,10 +1465,6 @@ NULL, a pointer to step is returned.
 }  /* copy_and_extend_path */
 
 
-#define base_classes_of(tp) \
-  ((tp)->variant.class_struct_union.extra_info->base_classes)
-
-
 static void fixup_virtual_base_class(a_base_class_ptr               base_class,
                                      an_overriding_virtual_function *ovf_list,
                                      a_derivation_step_ptr          path,
@@ -1567,29 +1593,23 @@ is a base class.
 #endif /* DEBUG */
   }  /* if */
   /* Go through all the base classes for the class to which base_class
-     corresponds.  They should map precisely to the list of base classes
-     linked to base_class via the next field.  Each of the base class entries
-     in the modify list should have its virtual function override list updated
+     corresponds (they are represented by "other_bcp"), and find the
+     corresponding base class in the list that is now being built ("bcp").
+     The "bcp" items may need to be modified to incorporate information from
+     "other_bcp" -- each should have its virtual function override list updated
      and its path modified (if required).  The access field should not be
      changed. */
-  other_bcp = base_classes_of(base_class->type);
-  for (bcp = base_class->next; bcp != NULL; bcp = bcp->next) {
-    /* When we reach the end of the base class tree, we should also be at the
-       end of the flattened list. */
-    if (other_bcp == NULL) break;
-#if CHECKING
-    if (bcp->type != other_bcp->type) {
-      internal_error("fixup_virtual_base_class: base classes out of sync");
-    }  /* if */
-#endif /* CHECKING */
+  for (other_bcp = base_classes_of(base_class->type);
+       other_bcp != NULL;
+       other_bcp = other_bcp->next) {
+    bcp = corresponding_base_class(other_bcp, base_class->type, new_class);
     copy_virtual_function_override_list(
                      other_bcp->overriding_virtual_functions, bcp,
                      old_class, new_class);
-    other_bcp = other_bcp->next;
     if (recompute_path_and_access) {
 #if DEBUG
       if (debug_level >= 3) {
-        fputs("also needing fixup ", f_debug);
+        fputs("may need fixup: ", f_debug);
         db_base_class(bcp, /*show_offset=*/FALSE);
       }  /* if */
 #endif /* DEBUG */
@@ -1610,30 +1630,20 @@ is a base class.
           }  /* if */
           prev_dsp = dsp;
         }  /* for */
-#if CHECKING
-        if (dsp == NULL) {
-          internal_error("fixup_virtual_base_class: no base class match");
-        }  /* if */
-#endif /* CHECKING */
       }  /* if */
-      /* Replace what was just thrown away (if anything) with the steps
-         represented by "path". */
-      bcp->derivation = copy_and_extend_path(path, dsp, bcp);
+      if (dsp != NULL) {
+        /* Replace what was just thrown away (if anything) with the steps
+           represented by "path". */
+        bcp->derivation = copy_and_extend_path(path, dsp, bcp);
 #if DEBUG
-      if (debug_level >= 3) {
-        fputs("  modified ", f_debug);
-        db_base_class(bcp, /*show_offset=*/FALSE);
-      }  /* if */
+        if (debug_level >= 3) {
+          fputs("  modified ", f_debug);
+          db_base_class(bcp, /*show_offset=*/FALSE);
+        }  /* if */
 #endif /* DEBUG */
+      }  /* if */
     }  /* for */
   }  /* if */
-#if CHECKING
-  if (other_bcp != NULL) {
-    /* Modify list terminated before the copy list did. */
-    internal_error(
-               "fixup_virtual_base_class: not all base classes accounted for");
-  }  /* if */
-#endif /* CHECKING */
   db_exit();
 }  /* fixup_virtual_base_class */
 
