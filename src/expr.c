@@ -29,7 +29,12 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "decl_spec.h"
 #include "func_def.h"
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
+   mangled name of the current function.  Hence, we may need access to the
+   mangling routines. */
 #include "lower_name.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
@@ -12037,8 +12042,8 @@ static void make_function_name_operand(an_operand *result,
                                        a_boolean  decorated_name)
 /*
 Create an operand referring to a constant local static string variable
-containing the null-terminated name of the function.  If the variable has
-not yet been created for the current function, create it now.  The result
+containing the null-terminated name of the current function.  If the variable
+has not yet been created for the current function, create it now.  The result
 is stored in *result.  If decorated_name is TRUE, the mangled name is
 returned instead of the unqualified function name.
 */
@@ -12046,8 +12051,8 @@ returned instead of the unqualified function name.
   a_variable_ptr           name_var = NULL;
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_innermost_function_scope];
 
-  check_assertion(microsoft_mode ||
-                  (c99_mode && !decorated_name));
+  check_assertion(microsoft_mode || (c99_mode && !decorated_name));
+  check_assertion(depth_innermost_function_scope != 0);
   /* Check if this scope already has an associated generated entity block. */
   if (ssep->generated_entities == NULL) {
     ssep->generated_entities = (a_generated_entity_block_ptr)
@@ -12082,10 +12087,8 @@ returned instead of the unqualified function name.
     switch_to_file_scope_region(&region_to_switch_back_to);
     name_string = alloc_constant((a_constant_repr_kind)ck_string);
     switch_back_to_original_region(region_to_switch_back_to);
-    name_string->source_corresp.name =
-                                locator_for_curr_id.symbol_header->identifier;
     name_string->source_corresp.is_local_to_function = TRUE;
-    name_string->type = str_type;
+    name_string->type = string_type(length);
     name_string->variant.string.length = length;
     name_string->variant.string.value =
                                alloc_text_of_string_literal((sizeof_t)length);
@@ -12094,14 +12097,14 @@ returned instead of the unqualified function name.
     /* Create the local static const array and initialize it with the
        string constant. */
     name_var = make_variable(name_string->type, (a_storage_class)sc_static,
-                             depth_scope_stack);
+                             depth_innermost_function_scope);
     name_var->source_corresp.name =
                                 locator_for_curr_id.symbol_header->identifier;
     name_var->source_corresp.is_local_to_function = TRUE;
     name_var->init_kind = (an_init_kind)initk_static;
     name_var->initializer.constant = name_string;
     /* Remember the above construct for potential reuse. */
-    if (decorated_name && !C_mode()) {
+    if (decorated_name) {
       ssep->generated_entities->decorated_function_name = name_var;
     } else {
       ssep->generated_entities->function_name = name_var;
@@ -12109,8 +12112,6 @@ returned instead of the unqualified function name.
   }  /* if */
   /* Create an operand that refers to the implicit static variable. */
   make_lvalue_variable_operand(name_var, result, (a_ref_entry_ptr)NULL);
-  result->state = (an_operand_state)os_lvalue;
-  result->type = name_var->type;
 }  /* make_function_name_operand */
 
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -12235,7 +12236,7 @@ see expr.h).
       /* A magic identifier that expands to a string literal containing the
          name of the current function in C99 and Microsoft modes.
          (The "decorated" variant is recognized in Microsoft mode only and
-         expands to the mangled name). */
+         expands to the mangled name.) */
       check_assertion(microsoft_mode ||
                       (c99_mode && curr_token == tok_function_name));
       if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
@@ -12244,8 +12245,8 @@ see expr.h).
                   locator_for_curr_id.symbol_header->identifier);
         make_error_operand(&local_result);
       } else {
-        make_function_name_operand(&local_result,
-                                   curr_token != tok_function_name);
+        make_function_name_operand(
+                 &local_result, !C_mode() && curr_token != tok_function_name);
       }  /* if */
       (void)get_token();
       break;

@@ -259,7 +259,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__uuidof", "__assume", "#@",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
-   "__FUNCTION__",
+   "__func__",
    "__FUNCDNAME__",
 #if NEAR_AND_FAR_ALLOWED
     "__near", "__far",
