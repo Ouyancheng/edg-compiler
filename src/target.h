@@ -193,11 +193,13 @@ typedef struct an_internal_float_value {
 
 /*
 C++ pointer-to-member type.
+(The formulas here are for a typical implementation, but are not required.)
 */
 #define TARG_SIZEOF_PTR_TO_DATA_MEMBER TARG_SIZEOF_SHORT
 #define TARG_ALIGNOF_PTR_TO_DATA_MEMBER TARG_ALIGNOF_SHORT
-#define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION 4
-#define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION 2
+#define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION                            \
+  (2*TARG_SIZEOF_SHORT+TARG_SIZEOF_POINTER)
+#define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION TARG_ALIGNOF_POINTER
 
 /* 
 In C++ classes with virtual functions provide a special mechanism for
