@@ -2957,11 +2957,23 @@ If trailing_space is TRUE, add a space at the end if any qualifiers were
 put out.
 */
 {
+  a_boolean any_previous = FALSE;
 
-  if (cv_quals & CVQ_CONST   ) write_id_str("const", dctl);
-  if (cv_quals & CVQ_VOLATILE) write_id_str("volatile", dctl);
-  if (cv_quals & CVQ_RESTRICT) write_id_str("restrict", dctl);
-  if (cv_quals != 0 && trailing_space) write_id_ch(' ', dctl);
+  if (cv_quals & CVQ_CONST   ) {
+    write_id_str("const", dctl);
+    any_previous = TRUE;
+  }  /* if */
+  if (cv_quals & CVQ_VOLATILE) {
+    if (any_previous) write_id_ch(' ', dctl);
+    write_id_str("volatile", dctl);
+    any_previous = TRUE;
+  }  /* if */
+  if (cv_quals & CVQ_RESTRICT) {
+    if (any_previous) write_id_ch(' ', dctl);
+    write_id_str("restrict", dctl);
+    any_previous = TRUE;
+  }  /* if */
+  if (any_previous && trailing_space) write_id_ch(' ', dctl);
 }  /* output_cv_qualifiers */
 
 
