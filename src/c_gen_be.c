@@ -2404,7 +2404,7 @@ given alignment value is nonzero.
 {
   if (microsoft_dialect_is_generated_code_target && alignment != 0) {
     write_tok_str("__declspec(align(");
-    write_unsigned_num((a_bost_large_unsigned)alignment);
+    write_unsigned_num((a_host_large_unsigned)alignment);
     write_tok_str(")) ");
   }  /* if */
 }  /* dump_microsoft_align_declspec */
