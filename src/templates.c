@@ -6997,6 +6997,7 @@ instantiated.
     /* Update the default argument expression entry to point to the
        current param type entry. */
     daefp->param_type = ptp;
+    begin_deferral_of_access_checks();
     /* Rescan the default argument tokens from the cache. */
     rescan_reusable_cache(&daefp->cache.tokens);
     delayed_scan_of_default_arg_expr(daefp->param_type,
@@ -7017,6 +7018,8 @@ instantiated.
       }  /* if */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    perform_deferred_access_checks_for_function(rout_ptr);
+    end_deferral_of_access_checks();
     /* Pop the reactivated function prototype scope off the stack. */
     pop_scope();
     /* Pop the template instantiation scope. */

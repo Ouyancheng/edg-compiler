@@ -1,5 +1,20 @@
 Version 3.0
 
+4/25/02  Spurious access error using template default arguments
+
+Access checks were not done properly on default arguments of template
+functions.  This could result in spurious access errors.  Now fixed.
+
+  template<class T> void f(int = T::i);
+  class A {
+    static const int i = 0;
+    template<class U> friend void f(int); 
+  };
+  template<class T> void f(int) {}
+  int main() {
+    f<A>();
+  }
+
 4/16/02  Size of available memory blocks displayed wrong in debug output
 
 The computation of the amount of available space in available memory
