@@ -229,35 +229,6 @@ looking up the destructor.
 }  /* add_destructor_to_dynamic_init */
 
 
-static void remove_unneeded_destructor_from_dynamic_init(
-                                                    a_dynamic_init_ptr  dip)
-/*
-Assuming that destructors may have been added to dynamic init entries to
-deal with exceptions during partial construction of the aggregate with which
-dip is associated, remove the destructor from the very last member of the
-aggregate.  This is a minor optimization -- once that last element has been
-completed, the aggregate is no longer in a state of partial construction.
-*/
-{
-  a_constant_ptr  cp;
-
-  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-    cp = dip->variant.constant;
-    while (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-      cp = cp->variant.aggregate.last_constant;
-    }  /* while */
-    if (cp->kind == (a_constant_repr_kind)ck_dynamic_init) {
-      dip = cp->variant.dynamic_init;
-      if (dip->destruction_is_for_partially_constructed_aggregate) {
-        remove_from_destruction_list(dip);
-        dip->destructor = NULL;
-        dip->destruction_is_for_partially_constructed_aggregate = FALSE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* remove_unneeded_destructor_from_dynamic_init */
-
-
 static a_boolean init_remaining_array_elements(a_type_ptr     array_type,
                                                a_targ_size_t  curr_element,
                                                a_constant_ptr *con_list,
@@ -1211,16 +1182,6 @@ detection of uninitialized fields).
       (*init_dip)->variant.constant = *init_con;
       (*init_dip)->destructor = dtor_rp;
       *init_con = NULL;
-      if (exceptions_enabled) {
-        /* If appropriate, remove destructor from the dynamic init entry
-           associated with the last member of the aggregate. */
-        if (dtor_rp != NULL) {
-          /* If the aggregate is an array, then the element type will have a
-             destructor; if the aggregate is a class, any member may have
-             a destructor. */
-          remove_unneeded_destructor_from_dynamic_init(*init_dip);
-        }  /* if */
-      }  /* if */
 #if CHECKING
     } else {
       check_assertion((*init_con)->kind == (a_constant_repr_kind)ck_string ||
