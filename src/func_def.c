@@ -1852,6 +1852,12 @@ empty statement block.
     pop_class_reactivation_scope();
     /* Mark the symbol for this routine "defined". */
     ((a_symbol_ptr)rout_ptr->source_corresp.assoc_info)->defined = TRUE;
+    /* If this is a trivial default constructor free the memory region
+       immediately. */
+    if (rout_ptr->is_trivial_default_constructor) {
+      free_memory_region(rout_ptr->assoc_scope);
+      rout_ptr->assoc_scope = NULL_region_number;
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* define_special_member_function */
@@ -1869,14 +1875,20 @@ whose definition has not yet been generated, force the definition now.
     /* Check the assoc_scope pointer instead of the routine's "defined" flag
        in case there is some sort of recursive reference. */
     if (rp->assoc_scope == NULL_region_number) {
-      /* Only force a definition for constructors, destructors, and
-         operator= functions.  In particular, do not try to define operator
-         new and delete functions. */
-      if (skind == (a_special_function_kind)sfk_constructor ||
-          skind == (a_special_function_kind)sfk_destructor  ||
-          (skind == (a_special_function_kind)sfk_operator &&
-           rp->opname_kind == (an_opname_kind)onk_assign)) {
-        define_special_member_function(rp);
+      if (rp->is_trivial_default_constructor && rp->defined) {
+        /* Already defined even though there in no associated memory region --
+           this can happen with a trivial default constructor, whose memory
+           region is freed immediately after it's created. */
+      } else {
+        /* Only force a definition for constructors, destructors, and
+           operator= functions.  In particular, do not try to define operator
+           new and delete functions. */
+        if (skind == (a_special_function_kind)sfk_constructor ||
+            skind == (a_special_function_kind)sfk_destructor  ||
+            (skind == (a_special_function_kind)sfk_operator &&
+             rp->opname_kind == (an_opname_kind)onk_assign)) {
+          define_special_member_function(rp);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
