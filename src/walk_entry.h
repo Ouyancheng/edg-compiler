@@ -23,6 +23,7 @@ Placed in a separate file so they can be expanded several ways:
     create an executable program):
       -- Access control (including friendship)
       -- "using" declarations and directives
+      -- The hidden name table
       -- Source sequence entries
       -- Object lifetimes
       -- The based types list
@@ -336,7 +337,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                         a_routine_ptr, iek_routine);
             } else {
               remap_ptr(ptr->variant.ptr_to_member.variant.field, a_field_ptr,
-                          iek_field);
+                        iek_field);
             }  /* if */
             break;
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
@@ -396,7 +397,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->exception_specification, an_exception_specification_ptr,
                  iek_exception_specification);
 #endif /* ifdef CFE */
+#if !NEEDED_FLAG_WALK
         remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
+#endif /* !NEEDED_FLAG_WALK */
       }
       break;
 #if !NEEDED_FLAG_WALK
@@ -428,10 +431,10 @@ the file scope, do not process it (but record an orphan in the latter case).
 #else /* !NEEDED_FLAG_WALK */
         walk_list(ptr->based_types, a_based_type_list_member_ptr,
                   iek_based_type_list_member);
-#endif /* NEEDED_FLAG_WALK */
 #if DO_IL_LOWERING
         remap_ptr(ptr->typeinfo_var, a_variable_ptr, iek_variable);
 #endif /* DO_IL_LOWERING */
+#endif /* NEEDED_FLAG_WALK */
         switch (ptr->kind) {
           case tk_error:
           case tk_unknown:
@@ -569,7 +572,9 @@ the file scope, do not process it (but record an orphan in the latter case).
           walk_source_corresp(ptr->source_corresp);
           remap_next_ptr(ptr->next, a_variable_ptr, iek_variable);
           walk_ptr(ptr->type, a_type_ptr, iek_type);
+#if !NEEDED_FLAG_WALK
           remap_ptr(ptr->assoc_param_type, a_param_type_ptr, iek_param_type);
+#endif /* !NEEDED_FLAG_WALK */
           walk_initializer(ptr->init_kind, ptr->initializer);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
@@ -656,7 +661,9 @@ the file scope, do not process it (but record an orphan in the latter case).
           case lk_executable:
           case lk_else_or_elseif:
 #endif /* ifdef FFE */
+#if !NEEDED_FLAG_WALK
             remap_ptr(ptr->variant.exec_stmt, a_statement_ptr, iek_statement);
+#endif /* !NEEDED_FLAG_WALK */
 #ifdef FFE
             break;
           case lk_format:
@@ -752,8 +759,10 @@ the file scope, do not process it (but record an orphan in the latter case).
                 break;
               case leck_cleanup_state:
 #if !GENERATE_EH_TABLES
+#if !NEEDED_FLAG_WALK
                 remap_ptr(ptr->variant.lowered_eh.variant.cleanup_ptr,
                           a_dynamic_init_ptr, iek_dynamic_init);
+#endif /* !NEEDED_FLAG_WALK */
 #endif /* !GENERATE_EH_TABLES */
                 break;
               case leck_function_prologue:
@@ -1018,6 +1027,7 @@ the file scope, do not process it (but record an orphan in the latter case).
       }
       break;
 #if RECORD_HIDDEN_NAMES_IN_IL
+#if !NEEDED_FLAG_WALK
     case iek_hidden_name:
       {
         a_hidden_name_ptr ptr = (a_hidden_name_ptr)entry_ptr;
@@ -1026,6 +1036,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                   (an_il_entry_kind)ptr->entity.kind);
       }
       break;
+#endif /* !NEEDED_FLAG_WALK */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if RECORD_TEMPLATES_IN_IL
     case iek_template:
@@ -1090,15 +1101,21 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
           case sck_func_prototype:
           case sck_class_struct_union:
+#if !NEEDED_FLAG_WALK
             remap_ptr(ptr->variant.assoc_type, a_type_ptr, iek_type);
+#endif /* !NEEDED_FLAG_WALK */
             break;
           case sck_condition:
+#if !NEEDED_FLAG_WALK
             remap_ptr(ptr->variant.assoc_statement, a_statement_ptr,
                       iek_statement);
+#endif /* !NEEDED_FLAG_WALK */
             break;
           case sck_namespace:
+#if !NEEDED_FLAG_WALK
             remap_ptr(ptr->variant.assoc_namespace, a_namespace_ptr,
                       iek_namespace);
+#endif /* !NEEDED_FLAG_WALK */
             break;
 #endif  /* ifdef CFE */
           case sck_function:
@@ -1112,11 +1129,11 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if !NEEDED_FLAG_WALK
             walk_ptr(ptr->variant.routine.lifetime_of_local_static_vars,
                      an_object_lifetime_ptr, iek_object_lifetime);
+            remap_ptr(ptr->variant.routine.return_value_variable,
+                      a_variable_ptr, iek_variable);
 #endif /* !NEEDED_FLAG_WALK */
             walk_ptr(ptr->variant.routine.this_param_variable, a_variable_ptr,
                      iek_variable);
-            remap_ptr(ptr->variant.routine.return_value_variable,
-                      a_variable_ptr, iek_variable);
 #endif  /* ifdef CFE */
 #ifdef FFE
             walk_ptr (ptr->variant.routine.function_result_var, a_variable_ptr,
@@ -1223,7 +1240,9 @@ the file scope, do not process it (but record an orphan in the latter case).
                   iek_src_seq_sublist);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
 #if RECORD_HIDDEN_NAMES_IN_IL
+#if !NEEDED_FLAG_WALK
         walk_list(ptr->hidden_names, a_hidden_name_ptr, iek_hidden_name);
+#endif /* !NEEDED_FLAG_WALK */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
       }
       break;
@@ -1405,10 +1424,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_using_directive_ptr ptr = (a_using_directive_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_using_directive_ptr, iek_using_directive);
         remap_ptr(ptr->assoc_namespace, a_namespace_ptr, iek_namespace);
-#if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
+#if GENERATE_SOURCE_SEQUENCE_LISTS
         remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
 #endif /* !NEEDED_FLAG_WALK */
@@ -1462,6 +1481,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_initializer(ptr->init_kind, ptr->initializer);
       }
       break;
+#if !NEEDED_FLAG_WALK
     case iek_class_member_using_decl:
       {
         a_class_member_using_decl_ptr ptr =
@@ -1483,7 +1503,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
       }
       break;
-#if !NEEDED_FLAG_WALK
     case iek_derivation_step:
       {
         a_derivation_step_ptr ptr = (a_derivation_step_ptr)entry_ptr;
@@ -1508,24 +1527,21 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_base_class_ptr, iek_base_class);
         remap_ptr(ptr->type, a_type_ptr, iek_type);
         remap_ptr(ptr->derived_class, a_type_ptr, iek_type);
+#if !NEEDED_FLAG_WALK
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
         remap_ptr(ptr->data_section_base_class, a_base_class_ptr,
                   iek_base_class);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
         remap_ptr(ptr->pointer_base_class, a_base_class_ptr, iek_base_class);
-        /* Don't walk the derivation when setting the "needed" flag because
-           that data structure includes loops without a "needed" entry in
-           them. */
-#if !NEEDED_FLAG_WALK
         walk_list(ptr->derivation, a_base_class_derivation_ptr,
                   iek_base_class_derivation);
-#endif /* !NEEDED_FLAG_WALK */
         walk_list(ptr->overriding_virtual_functions,
                   an_overriding_virtual_function_ptr,
                   iek_overriding_virtual_function);
 #if DO_IL_LOWERING
         /* ptr->virtual_function_table_var not processed. */
 #endif /* DO_IL_LOWERING */
+#endif /* !NEEDED_FLAG_WALK */
       }
       break;
     case iek_class_list_entry:
@@ -1560,6 +1576,7 @@ the file scope, do not process it (but record an orphan in the latter case).
             unexpected_condition_str(
                            "walk_entry_and_subtree: bad anonymous union kind");
         } /* switch */
+        walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
 #if !NEEDED_FLAG_WALK
         remap_ptr(ptr->virtual_function_info_base_class, a_base_class_ptr,
                   iek_base_class);
@@ -1571,12 +1588,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                   iek_routine_list_entry);
         walk_list(ptr->friend_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
-#endif /* !NEEDED_FLAG_WALK */
-        walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
-#if !NEEDED_FLAG_WALK
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
-#if !NEEDED_FLAG_WALK
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
         remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr, iek_routine);
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
@@ -1584,7 +1597,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->assoc_operator_delete_routine, a_routine_ptr,
                   iek_routine);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
-#endif /* !NEEDED_FLAG_WALK */
 #if DO_IL_LOWERING
         /* ptr->virtual_function_table_var not processed. */
         /* ptr->type_as_subobject not processed. */
