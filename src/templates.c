@@ -7708,7 +7708,7 @@ describing any incompatibilities.
       if (err && microsoft_bugs) {
         /* In Microsoft bugs mode, a member of a class template can be
            declared using a template parameter with a type that is different
-           that that of associated class template. */
+           than that of the associated class template. */
         err = !equiv_nontype_template_param_names(
                  old_tpp->variant.constant.ptr, new_tpp->variant.constant.ptr);
       }  /* if */
