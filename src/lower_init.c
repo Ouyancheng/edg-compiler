@@ -2149,6 +2149,8 @@ Make the code that will ensure that the file-scope initialization routine
 (if any) is invoked at program startup.
 */
 {
+/* If a .init section will be used for initialization, skip this stuff. */
+#if !USE_INIT_SECTION_IN_GENERATED_C
   a_type_ptr       func_type, struct_type, ptr_struct_type;
   a_type_ptr       ptr_func_type;
   a_targ_size_t    byte_offset;
@@ -2232,6 +2234,7 @@ Make the code that will ensure that the file-scope initialization routine
     aggr_con->variant.aggregate.last_constant  = init_con3;
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
 }  /* make_code_to_invoke_file_scope_init_routine */
 
 
