@@ -3641,6 +3641,8 @@ It might be changed later to add a definition.
 
   /* Make an array of virtual table entries.  The size is [] until the virtual
      function table is defined, if it ever is in this compilation. */
+  /* Note that the array type must not be shared, because it is modified
+     later. */
   array_type = alloc_type((a_type_kind)tk_array);
   array_type->variant.array.number_of_elements = 0;  /* i.e., [] */
   array_type->variant.array.element_type = make_mptr_type();
@@ -3678,29 +3680,53 @@ It might be changed later to add a definition.
 
 static a_boolean base_class_needs_virtual_function_table(
                                                    a_base_class_ptr bcp,
-                                                   a_type_ptr       class_type)
+                                                   a_type_ptr       class_type,
+                                                   a_boolean        *shared)
 /*
-Return TRUE if a virtual function table is needed for base class bcp of
-class class_type.
+Return TRUE if a virtual function table instance is needed for base class
+bcp when it occurs as part of a complete object of class class_type.
+FALSE means either the base class does not need a virtual function table
+(at all) or that it can share another one.  If it can share the one
+for class_type, return *shared TRUE.
 */
 {
-  a_boolean needed = FALSE;
+  a_boolean        needed = FALSE;
+  a_base_class_ptr class_type_vptr_bcp, bcp_vptr_bcp;
 
+  *shared = FALSE;
   if (bcp->type->variant.class_struct_union.any_virtual_functions) {
-    /* The base class has virtual functions, so it has a virtual function
-       table.  Do we need a version of that virtual function table for
-       the case where the base class appears in a complete object of
-       type class_type? */
-    if (class_type->variant.class_struct_union.any_virtual_functions) {
-      /* The derived class has virtual functions, which might override those
-         in the base class. */
+    /* The base class declares virtual functions, so it needs a pointer
+       to a virtual function table.  However, we may not need an
+       instance of the function table specifically for bcp-in-class_type;
+       some other instance may do. */
+    /* See if the class type shares its virtual function pointer with
+       the base class. */
+    class_type_vptr_bcp = class_type->variant.class_struct_union.extra_info->
+                                              virtual_function_info_base_class;
+    bcp_vptr_bcp = bcp->type->variant.class_struct_union.extra_info->
+                                              virtual_function_info_base_class;
+    /* The class type has a virtual function table pointer and it is shared
+       with a base class, ... */
+    if (class_type_vptr_bcp != NULL &&
+        /* ... and the base class it shares with is the one we're
+           considering, ... */
+        (class_type_vptr_bcp == bcp ||
+         /* ... or the base class we're considering also shares with that
+            base class. */
+         class_type_vptr_bcp == bcp_vptr_bcp)) {
+      /* The virtual function pointer for the base class we're considering
+         is shared with the one for class_type.  The virtual function
+         tables are therefore also shared. */
+      *shared = TRUE;
+      needed = FALSE;
+    } else if (bcp->overriding_virtual_functions != NULL) {
+      /* Some of the virtual functions in the base class are overridden
+         in class_type, so a separate virtual function table instance is
+         needed. */
       needed = TRUE;
-    } else if (bcp->any_virtual_steps_in_derivation) {
-      /* There is at least one virtual step in the base class derivation,
-         so merging of virtual function table information could mean a
-         different virtual function table for the base in the derived class
-         even though the derived class has no virtual functions. */
-      needed = TRUE;
+    } else {
+      /* In other cases, no separate instance is needed. */
+      needed = FALSE;
     }  /* if */
   }  /* if */
   return needed;
@@ -3715,6 +3741,7 @@ class_type if any are needed and if they have not already been generated.
 {
   a_class_type_supplement_ptr ctsp;
   a_base_class_ptr            bcp;
+  a_boolean                   shared;
 
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp != NULL) {
@@ -3734,10 +3761,13 @@ class_type if any are needed and if they have not already been generated.
       /* Only generate virtual function tables for base classes that
          need them and only if the virtual function table has not yet
          been generated. */
-      if (base_class_needs_virtual_function_table(bcp, class_type)) {
+      if (base_class_needs_virtual_function_table(bcp, class_type, &shared)) {
         if (bcp->virtual_function_table_var == NULL) {
           make_var_for_virtual_function_table(class_type, bcp);
         }  /* if */
+      } else if (shared) {
+        /* The base class shares class_type's virtual function table. */
+        bcp->virtual_function_table_var = ctsp->virtual_function_table_var;
       }  /* if */
     }  /* for */
   }  /* if */
@@ -3807,6 +3837,9 @@ is returned TRUE.
          table.  Define the virtual function table here unless suppressed
          by user command line option. */
       defined_here = !suppress_virtual_function_table_definition;
+      /* A definition put out by default when we cannot tell whether or not
+         it is needed is made static, because each compilation with this
+         same class will contain an instance of the definition. */
       if (defined_here) *force_static = TRUE;
     }  /* if */
   }  /* if */
@@ -3882,6 +3915,42 @@ in that case, a NULL pointer is put out for the function.
 }  /* add_vtbl_entry_init */
 
 
+static a_routine_ptr find_virtual_function(
+                                  a_virtual_function_number   entry_number,
+                                  a_class_type_supplement_ptr ctsp,
+                                  a_routine_ptr               primary_function)
+/*
+Find the virtual function with the number entry_number in the class whose
+class type supplement is pointed to by ctsp, and return a  pointer to it.
+The function must be found.  Start searching at the point in the member
+functions list given by primary_function (and wrap the search around
+to the beginning of the list if necessary), or start at the beginning if
+primary_function is NULL.
+*/
+{
+#if CHECKING
+  int times_started_over = 0;
+#endif /* CHECKING */
+
+  for (;; primary_function = primary_function->next) {
+    if (primary_function == NULL) {
+#if CHECKING
+      /* Make sure we don't loop if no routine with this number exists. */
+      if (++times_started_over > 1) {
+        internal_error("find_virtual_function: cannot find routine");
+      }  /* if */
+#endif /* CHECKING */
+      /* Start at the beginning of the list. */
+      primary_function = ctsp->assoc_scope->routines;
+    }  /* if */
+    /* Exit the loop when we find the routine we want. */
+    if (primary_function->is_virtual &&
+        primary_function->virtual_function_number == entry_number) break;
+  }  /* for */
+  return primary_function;
+}  /* find_virtual_function */
+
+
 static void define_one_virtual_function_table(a_type_ptr       class_type,
                                               a_base_class_ptr bcp,
                                               a_boolean        force_static)
@@ -3890,26 +3959,51 @@ Make the definition for the virtual function table for the base class
 indicated by bcp when it appears within a complete object of the class type
 class_type.  If bcp == NULL, make the virtual function table for the class
 itself.  If force_static is TRUE, the virtual function table is forced to
-be local the the current compilation even if the class is externally linked.
+be local to the current compilation even if the class is externally linked.
 */
 {
   an_overriding_virtual_function_ptr override_list;
   a_type_ptr                         class_whose_vtbl_is_being_made;
-  a_class_type_supplement_ptr        ctsp;
+  a_class_type_supplement_ptr        class_type_ctsp, ctsp;
   a_variable_ptr                     vtbl_var;
   a_constant_ptr                     aggr_con;
   a_routine_ptr                      primary_function;
-  a_virtual_function_number          entry_number, entry_count;
+  a_virtual_function_number          entry_number, highest_entry_number;
   a_targ_ptrdiff_t                   delta;
   a_routine_ptr                      func_to_call;
   a_memory_region_number             region_to_switch_back_to;
+  a_boolean                          sharing = FALSE;
+  a_base_class_ptr                   sharing_bcp;
 
   switch_to_file_scope_region(&region_to_switch_back_to);
+  /* See if we are generating a virtual function table for a complete object
+     in a case where the virtual function table is shared with a base class. */
+  class_type_ctsp = class_type->variant.class_struct_union.extra_info;
+  if (bcp == NULL) {
+    sharing_bcp = class_type_ctsp->virtual_function_info_base_class;
+    if (sharing_bcp != NULL) {
+      /* class_type shares a virtual function pointer and (part of) a
+         virtual function table with a base class.  Do the generation
+         of the virtual function table for the shared part by generating
+         the table for the direct base class that is the first step on the
+         way to the base class that contains the shared pointer.  At the end
+         of this routine, any additional routines that appear in class_type
+         will be added at the end of the table. */
+#if CHECKING
+      if (sharing_bcp->offset != 0 ||
+          sharing_bcp->any_virtual_steps_in_derivation) {
+        internal_error("define_one_virtual_function_table: bad vtbl sharing");
+      }  /* if */
+#endif /* CHECKING */
+      sharing = TRUE;
+      bcp = sharing_bcp->derivation->base_class;
+    }  /* if */
+  }  /* if */
   if (bcp == NULL) {
     /* No overrides; we're doing the primary list. */
     override_list = NULL;
     class_whose_vtbl_is_being_made = class_type;
-    ctsp = class_type->variant.class_struct_union.extra_info;
+    ctsp = class_type_ctsp;
     vtbl_var = ctsp->virtual_function_table_var;
   } else {
     /* Get the list of overriding functions, i.e., functions in the base
@@ -3922,9 +4016,12 @@ be local the the current compilation even if the class is externally linked.
   }  /* if */
   /* Change the array size from [] to the proper size.  Note that the type
      was created for this variable and is known not to be shared. */
+  /* When generating a shared virtual function table, use the size from
+     class_type and not the size from the direct base class whose vtbl we
+     generate first as the shared part of the table. */
   /* The "+1" is to skip the [0] entry, for cfront compatibility. */
   vtbl_var->type->variant.array.number_of_elements =
-                                    ctsp->highest_virtual_function_number + 1;
+       (sharing ? class_type_ctsp : ctsp)->highest_virtual_function_number + 1;
   set_type_size(vtbl_var->type);
   if (class_type->source_corresp.name_linkage ==
                                  (a_name_linkage_kind)nlk_cplusplus_external &&
@@ -3933,8 +4030,9 @@ be local the the current compilation even if the class is externally linked.
        definition. */
     vtbl_var->storage_class = (a_storage_class)sc_unspecified;
   } else {
-    /* For an internally-linked class or one with no linkage, change the
-       storage class to static and the linkage to internal. */
+    /* For an internally-linked class or one with no linkage, or when
+       forced to by the flag force_static, change the storage class to
+       static and the linkage to internal. */
     vtbl_var->storage_class = (a_storage_class)sc_static;
     vtbl_var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
   }  /* if */
@@ -3947,31 +4045,14 @@ be local the the current compilation even if the class is externally linked.
   add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL, aggr_con);
   /* Merge the list of virtual functions under class_whose_vtbl_is_being_made
      and the overrides to create each entry of the table. */
-  entry_count = ctsp->highest_virtual_function_number;
+  highest_entry_number = ctsp->highest_virtual_function_number;
   primary_function = NULL;
-  for (entry_number = 1; entry_number <= entry_count; entry_number++) {
+  for (entry_number = 1;
+       entry_number <= highest_entry_number;
+       entry_number++) {
     /* Find the virtual function with the number "entry_number". */
-    /* Usually, the routines are in order.  If the one we want is not next,
-       Go back to the beginning of the list and look for it. */
-#if CHECKING
-    int times_started_over = 0;
-#endif /* CHECKING */
-    for (;; primary_function = primary_function->next) {
-      if (primary_function == NULL) {
-#if CHECKING
-        /* Make sure we don't loop if no routine with this number exists. */
-        if (++times_started_over > 1) {
-          internal_error(
-                     "define_one_virtual_function_table: cannot find routine");
-        }  /* if */
-#endif /* CHECKING */
-        /* Start at the beginning of the list. */
-        primary_function = ctsp->assoc_scope->routines;
-      }  /* if */
-      /* Exit the loop when we find the routine we want. */
-      if (primary_function->is_virtual &&
-          primary_function->virtual_function_number == entry_number) break;
-    }  /* for */
+    primary_function = find_virtual_function(entry_number,
+                                             ctsp, primary_function);
     /* We have the routine entry.  See if there is an override entry on
        the override list.  The entries on the override list are in sorted
        order by number, so if the entry exists it will be first. */
@@ -4006,6 +4087,26 @@ be local the the current compilation even if the class is externally linked.
        next iteration in the common case. */
     primary_function = primary_function->next;
   }  /* for */
+  if (sharing) {
+    /* If we're generating a shared virtual function table, we've now
+       finished with the shared part.  Do any remaining functions at
+       the end of the table (the ones in the derived class that are not
+       shared with or present in the base class). */
+    highest_entry_number = class_type_ctsp->highest_virtual_function_number;
+    for (; entry_number <= highest_entry_number; entry_number++) {
+      /* Find the virtual function with the number "entry_number". */
+      primary_function = find_virtual_function(entry_number,
+                                               class_type_ctsp,
+                                               primary_function);
+      delta = 0;
+      func_to_call = primary_function;
+      /* Create the initializing constants for this entry of the table. */
+      add_vtbl_entry_init(delta, func_to_call, aggr_con);
+      /* The functions are usually in order by number so set up for the
+         next iteration in the common case. */
+      primary_function = primary_function->next;
+    }  /* for */
+  }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
 }  /* define_one_virtual_function_table */
 
@@ -4052,7 +4153,12 @@ class_type if any are needed.
           need_determined = TRUE;
         }  /* if */
         if (definition_needed) {
-          define_one_virtual_function_table(class_type, bcp, force_static);
+          /* If the base class and class_type share a virtual function table,
+             it was already defined above; do not define it again. */
+          if (bcp->virtual_function_table_var !=
+                                            ctsp->virtual_function_table_var) {
+            define_one_virtual_function_table(class_type, bcp, force_static);
+          }  /* if */
         }  /* if */
         /* The vtbl variable is referenced if the class is referenced. */
         bcp->virtual_function_table_var->source_corresp.referenced =
