@@ -1181,6 +1181,22 @@ error code.
     case ec_anon_union_storage_class:
       m = "invalid storage class for anonymous union";
       break;
+    case ec_missing_initializer_on_field:
+      m = "no initializer provided for \"%s\"";
+      break;
+    case ec_cannot_initialize_field:
+      m = "compiler-generated constructor cannot initialize \"%s\"";
+      break;
+    case ec_uninitialized_const_member:
+      if (C_dialect == C_dialect_cplusplus) {
+        m = "variable contains uninitialized const member";
+      } else {
+        m = "variable contains uninitialized const field";
+      }  /* if */
+      break;
+    case ec_uninitialized_ref_member:
+      m = "variable contains uninitialized reference member";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
