@@ -17,7 +17,7 @@ fi
 #
 # Predefined preprocessing variables.
 #
-defines=${EDG_DEFAULT_DEFINES-"-Dsparc -Dunix -Dsun"}
+defines=${EDG_DEFAULT_DEFINES-""}
 EDG_CBASE=${EDG_CBASE-/edg/cpfe}
 #
 # The driver name to be used in diagnostics
