@@ -41,3 +41,12 @@ if defined (non-NULL pointer).
 }  /* operator new */
 
 
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1992 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/

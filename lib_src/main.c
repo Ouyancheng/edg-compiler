@@ -108,3 +108,14 @@ the order of the linked list.
      is called or when main() returns normally. */
   on_exit(__dtors, (char *)NULL);
 }  /* _main */
+
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1992 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/

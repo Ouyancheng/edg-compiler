@@ -33,3 +33,14 @@ previous value of _new_handler.
   _new_handler = handler;
   return rr;
 }  /* set_new_handler */
+
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++  Runtime                           - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1992 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/
