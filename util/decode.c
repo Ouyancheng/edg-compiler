@@ -4006,18 +4006,18 @@ The syntax is:
     /* An expression beginning with an operator name. */
     if (*ptr == 'v') {
       /* Vendor extended operator, used for alignof. */
-      if (start_of_id_is("v112__alignof__e", ptr)) {
+      if (start_of_id_is("v18alignofe", ptr)) {
         /* __alignof__(expr) */
         op_str = "__alignof__(";
         close_str = ")";
         num_operands = 1;
-        ptr += 16;
-      } else if (start_of_id_is("v111__alignof__", ptr)) {
+        ptr += 11;
+      } else if (start_of_id_is("v17alignof", ptr)) {
         /* __alignof__(type) */
         op_str = "__alignof__(";
         close_str = ")";
         num_operands = 0;
-        ptr += 15;
+        ptr += 10;
       } else if (start_of_id_is("v19__uuidofe", ptr)) {
         /* __uuidof(expr) */
         op_str = "__uuidof(";

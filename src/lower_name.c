@@ -1532,9 +1532,9 @@ ignored if expr != NULL.
 #else /* IA64_ABI */
       /* Use a "vendor extended operator". */
       if (expr != NULL) {
-        add_str_to_mangled_name("v112__alignof__e", mctl);
+        add_str_to_mangled_name("v18alignofe", mctl);
       } else {
-        add_str_to_mangled_name("v111__alignof__", mctl);
+        add_str_to_mangled_name("v17alignof", mctl);
       }  /* if */
 #endif /* IA64_ABI */
       break;

@@ -1,5 +1,11 @@
 Version 3.2
 
+5/6/03   Demangling for __alignof__ operator, IA-64 ABI
+
+The mangling code for the __alignof__ operator has been changed
+to make it match the one used by g++.  The demangler has been
+changed accordingly.
+
 4/15/03  Prelinker: memory allocation error
 
 When using one-instantiation-per-object mode, the prelinker allocated

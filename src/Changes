@@ -1,5 +1,16 @@
 Version 3.2
 
+5/6/03   IA-64 ABI: mangled name for __alignof__
+
+The mangling code for the __alignof__ operator in the IA-64 ABI
+has been changed to match the mangling used by g++.  This is
+a "vendor extended operator", for which the ABI spec does not
+dictate an encoding, and the one we chose was slightly different
+than the one chosen by g++.  We've changed ours to avoid a
+gratuitous difference.  This is an ABI CHANGE, but highly
+unlikely to appear in any code other than ABI test suites.
+The fix is not controlled by ABI_COMPATIBILITY_VERSION.
+
 5/6/03   IA-64 ABI: constructors return void
 
 The spec for the IA-64 ABI says (in 3.1.5) that constructors return
