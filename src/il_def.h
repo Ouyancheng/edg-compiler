@@ -674,6 +674,9 @@ typedef struct an_access_adjustment {
 
 typedef struct a_virtual_base_class *a_virtual_base_class_ptr;
 typedef struct a_virtual_base_class {
+  /* An entry representing a virtual base class from which the current class
+     is directly or indirectly derived.  These entries are linked to summarize
+     all the virtual classes in the current class's derivation. */
   a_virtual_base_class_ptr
 		next;
 			/* Next in linked list of base class entries. */
@@ -745,6 +748,11 @@ typedef struct a_class_type_supplement {
   a_targ_size_t size_without_virtual_base_classes;
                         /* The size in bytes of the class, excluding the
                            virtual base classes from which it derives. */
+  a_targ_alignment
+		alignment_without_virtual_base_classes;
+                        /* The alignment required for this class, when the
+                           virtual base classes from which it derives are
+                           omitted. */
   an_access_adjustment_ptr
                 access_adjustments;
                         /* A list of entries adjusting access control on
