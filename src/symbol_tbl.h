@@ -2773,6 +2773,8 @@ extern void db_symbol(a_symbol_ptr	sym,
                       char		*string,
                       int		indentation);
 
+/* Short-hand version of db_symbol. */
+#define db_sym(sym) db_symbol(sym, "", 2)
 
 /*
 Information used to gather performance statistics related to symbol
