@@ -731,18 +731,22 @@ match the needed flags(s).
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
   /* For each "needed" bit set in the model, set the corresponding bit in the
      entry. */
-  needed_flag_bit_number = max_set_instantiation_needed_bit_number(model_scp);
-  for (; needed_flag_bit_number > 0; needed_flag_bit_number--) {
-    if (needed_flag_is_set(model_scp)) {
-      /* Clear the bit if set, then set it. */
-      set_instantiation_needed_flag(scp, 0, 0);
-      mark_as_needed(entry_ptr, entry_kind);
-      if (set_class_defn_needed) {
-        set_class_definition_needed((a_type_ptr)entry_ptr);
+  { an_instantiation_needed_flags_scan_state state;
+
+    clear_instantiation_needed_flags_scan_state(&state, model_scp);
+    while ((needed_flag_bit_number =
+                            next_set_instantiation_needed_flag(&state)) != 0) {
+      /* Ignore class definition needed bits. */
+      if (needed_flag_bit_number % 2 != 0) {
+        /* Clear the bit if set, then set it. */
+        set_instantiation_needed_flag(scp, 0, 0);
+        mark_as_needed(entry_ptr, entry_kind);
+        if (set_class_defn_needed) {
+          set_class_definition_needed((a_type_ptr)entry_ptr);
+        }  /* if */
       }  /* if */
-    }  /* if */
-  }  /* for */
-  needed_flag_bit_number = 0;
+    }  /* while */
+  }
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   if (model_scp->needed) {
     ((a_source_correspondence *)entry_ptr)->needed = FALSE;

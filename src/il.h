@@ -117,8 +117,29 @@ EXTERN unsigned long
 			   be tested and set by the "needed" flag
 			   processing. */
 
-extern unsigned long max_set_instantiation_needed_bit_number(
-                                                 a_source_correspondence *scp);
+/* Structure used to hold state between calls of
+next_set_instantiation_needed_flag. */
+typedef struct an_instantiation_needed_flags_scan_state
+                                 *an_instantiation_needed_flags_scan_state_ptr;
+typedef struct an_instantiation_needed_flags_scan_state {
+  a_per_instantiation_needed_flags_entry_ptr
+		curr_segment;
+			/* Current segment of the bit vector.  NULL after
+			   falling off the end. */
+  unsigned long	first_bit_this_segment;
+			/* Number of the first bit in the current segment. */
+  int		byte_number;
+			/* Current byte number in the current segment. */
+  int		bit_number;
+			/* Current bit number in the current byte.  -1 if we
+			   haven't started the current byte yet. */
+} an_instantiation_needed_flags_scan_state;
+
+extern void clear_instantiation_needed_flags_scan_state(
+                          an_instantiation_needed_flags_scan_state_ptr infssp,
+                          a_source_correspondence                      *scp);
+extern unsigned long next_set_instantiation_needed_flag(
+                          an_instantiation_needed_flags_scan_state_ptr infssp);
 
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 

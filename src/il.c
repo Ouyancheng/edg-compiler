@@ -12142,69 +12142,92 @@ eliminated, if appropriate.
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 
-static unsigned long r_max_set_instantiation_needed_bit_number(
-                             a_per_instantiation_needed_flags_entry_ptr pinfep)
+void clear_instantiation_needed_flags_scan_state(
+                           an_instantiation_needed_flags_scan_state_ptr infssp,
+                           a_source_correspondence                      *scp)
 /*
-Return the number of the maximum instantiation "needed" bit number that is
-set in the list of instantiation needed flags entries pointed to by pinfep.
-The first bit of the first entry is numbered 1.  If no bit is set, or if the
-list is empty, return 0.
+Initialize an_instantiation_needed_flags_scan_state to begin scanning for
+per-instantiation "needed" flags in the set associated with scp.
 */
 {
-  unsigned long highest_set_bit;
-  int           byte_number;
-  int           bit_number;
+  infssp->curr_segment = scp->per_instantiation_needed_flags;
+  infssp->first_bit_this_segment = 1;
+  infssp->byte_number = 0;
+  infssp->bit_number = -1;
+}  /* clear_instantiation_needed_flags_scan_state */
 
-  if (pinfep == NULL) {
-    /* Empty list. */
-    highest_set_bit = 0;
-  } else {
-    if (pinfep->next != NULL) {
-      /* There is an entry following this one.  See if it (or any entry
-         following it on the list) has a bit set. */
-      highest_set_bit= r_max_set_instantiation_needed_bit_number(pinfep->next);
-      if (highest_set_bit != 0) {
-        /* There is a bit set, so we've found the last bit set.  Adjust
-           the bit number for the bits in the current entry and return. */
-        highest_set_bit += BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT;
+
+unsigned long next_set_instantiation_needed_flag(
+                           an_instantiation_needed_flags_scan_state_ptr infssp)
+
+/*
+Return the bit number of the next set per-instantiation "needed" flag in
+a bit vector.  infssp indicates the current state of the scan, and is updated
+on return.  Return 0 if there is no next set bit.  Note that class
+definition needed bits are returned; the caller must ignore them
+if appropriate.
+*/
+{
+  unsigned long next_set_bit;
+  a_per_instantiation_needed_flags_entry_ptr
+                curr_segment = infssp->curr_segment;
+  unsigned long first_bit_this_segment = infssp->first_bit_this_segment;
+  int           byte_number = infssp->byte_number;
+  int           bit_number = infssp->bit_number;
+
+  for (;
+       curr_segment != NULL;
+       curr_segment = curr_segment->next,
+         first_bit_this_segment +=
+                          BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT) {
+    a_byte byte = curr_segment->bytes[byte_number];
+    /* Clear the bits that have already been looked at, in a copy of the
+       current byte. */
+    if (bit_number >= 0) {
+      /* Current byte has been started.  bit_number indicates the
+         bit last examined. */
+      if (bit_number == CHAR_BIT-1) {
+        /* Nothing left in this byte. */
+        byte = 0;
+      } else {
+        /* Mask off the bits that have been looked at already. */
+        byte &= (~(a_byte)0) << (bit_number+1);
+      }  /* if */
+    }  /* if */
+    /* Advance over bytes with no bits set.  The first time around, this
+       tests the byte produced above, which has the bits that have already
+       been examined turned off. */
+    while (byte == 0) {
+      bit_number = -1;
+      if (byte_number == BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY-1) {
+        byte_number = 0;
+        goto next_segment;
+      }  /* if */
+      byte_number++;
+      byte = curr_segment->bytes[byte_number];
+    }  /* while */
+    /* Here, we have a byte with some bits set.  Find the first of
+       those. */
+    for (;;) {
+      bit_number++;
+      if (byte & (((a_byte)1) << bit_number)) {
+        /* Found the first set bit. */
+        next_set_bit = first_bit_this_segment + byte_number*CHAR_BIT +
+                       bit_number;
         goto end_of_routine;
       }  /* if */
     }  /* if */
-    /* There's no entry after this one with a bit set. */
-    /* Find the highest bit set in the current entry. */
-    highest_set_bit = BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT;
-    byte_number = BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY-1;
-    for (;;) {
-      a_byte curr_byte = pinfep->bytes[byte_number];
-      bit_number = CHAR_BIT-1;
-      for (;;) {
-        /* On finding a set bit, exit both loops. */
-        if (((a_byte)1 << bit_number) & curr_byte) goto end_of_routine;
-        highest_set_bit--;
-        if (bit_number == 0) break;
-        bit_number--;
-      }  /* for */
-      if (byte_number == 0) break;
-      byte_number--;
-    }  /* for */
-  }  /* if */
+next_segment:;
+  }  /* for */
+  /* Fell off end of list. */
+  next_set_bit = 0;
 end_of_routine:
-  return highest_set_bit;
-}  /* r_max_set_instantiation_needed_bit_number */
-
-
-unsigned long max_set_instantiation_needed_bit_number(
-                                                  a_source_correspondence *scp)
-/*
-Return the number of the maximum instantiation "needed" bit number that is
-set in the given source correspondence.
-*/
-{
-  unsigned long bit_number =
-             r_max_set_instantiation_needed_bit_number(
-                                          scp->per_instantiation_needed_flags);
-  return bit_number;
-}  /* max_set_instantiation_needed_bit_number */
+  infssp->curr_segment = curr_segment;
+  infssp->first_bit_this_segment = first_bit_this_segment;
+  infssp->byte_number = byte_number;
+  infssp->bit_number = bit_number;
+  return next_set_bit;
+}  /* next_set_instantiation_needed_flag */
 
 
 a_boolean instantiation_needed_flag_is_set(a_source_correspondence *scp,
