@@ -2261,6 +2261,28 @@ and do the same processing.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if !STANDALONE_UTILITY_PROGRAM
 
+void add_to_namespaces_list(a_namespace_ptr  nsp)
+/*
+Add the given namespace entry to the namespaces list for the current scope,
+which must be either the file scope or a namespace scope.
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+
+  ssep = &scope_stack[depth_scope_stack];
+  check_assertion_str(ssep->kind == (a_scope_kind)sck_file ||
+                      ssep->kind == (a_scope_kind)sck_namespace,
+                      "add_to_namespaces_list: bad scope kind");
+  sp = ensure_il_scope_exists(ssep);
+  if (sp->namespaces == NULL) {
+    sp->namespaces = nsp;
+  } else {
+    ssep->last_namespace->next = nsp;
+  }  /* if */
+  ssep->last_namespace = nsp;
+}  /* add_to_namespaces_list */
+
 
 void add_to_scopes_list(a_scope_ptr             scope_ptr,
                         a_scope_stack_entry_ptr ssep)
