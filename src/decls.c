@@ -5785,6 +5785,16 @@ process_class_specifier:
           }  /* if */
           break;
         }  /* if */
+        if (input_flags & DSI_IS_NEW_TYPE_NAME) {
+          /* This is a an identifier in a "new" expression so it was
+             probably intended to be a type name.  Issue an error and
+             pretend that's what it is. */
+          error(ec_exp_type_specifier);
+          err = TRUE;
+          basic_type = bt_typedef;
+          *type_ptr = error_type();
+          break;
+        }  /* if */
         if (locator_for_curr_id.is_operator_name ||
             locator_for_curr_id.is_conversion_name) {
           /* This identifier represents something like "A::operator+" or
