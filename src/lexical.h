@@ -467,6 +467,9 @@ typedef int an_identifier_options_set;
 #define GID_IN_IF_EXISTS 0x80000
 			/* TRUE when scanning the identifier of a Microsoft
 			   __if_exists or __if_not_exists directive. */
+#define GID_IS_FRIEND_DECL 0x100000
+			/* TRUE when scanning the declarator of a friend
+			   function declaration. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)

@@ -3430,6 +3430,9 @@ to FALSE if the entity being declared is not initializable.
     if (input_flags & DI_IS_SPECIALIZATION) {
       options |= GID_IS_TEMPLATE_SPECIALIZATION;
     }  /* if */
+    if (input_flags & DI_IS_FRIEND_DECL) {
+      options |= GID_IS_FRIEND_DECL;
+    }  /* if */
   }  /* if */
   if (is_specialization_or_instantiation ||
       ((input_flags & DI_IS_FRIEND_DECL) &&

@@ -14653,6 +14653,9 @@ instantiation, then you don't know what X is.
   check_assertion(scope_stack[depth_scope_stack].kind ==
                                        (a_scope_kind)sck_template_declaration);
   tp = prescan_and_find_declarator(&decl_state->decl_token_cache, &is_friend);
+  /* A friend declaration in a prototype instantiation context should always
+     reference the nonreal instance. */
+  if (is_friend && decl_state->in_prototype_instantiation) tp = NULL;
   /* Flush and remaining tokens from the reusable cache. */
   while (curr_token != tok_end_of_source) {
     if (curr_token == tok_friend && total_errors == 0) {

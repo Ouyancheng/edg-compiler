@@ -10627,6 +10627,8 @@ in a declarator of a template declaration.
          No diagnostic is issued here.  That will be left to the caller.
          Special treatment is given to class members to better diagnose
          invalid declarations of members of class templates. */
+    } else if ((options & GID_IS_FRIEND_DECL) != 0) {
+      /* Friend declarations can refer to members of nonreal classes. */
     } else {
       /* The qualifier class type must point to a prototype instantiation. */
       a_type_ptr	tp;

@@ -1,5 +1,18 @@
 Version 3.5
 
+10/15/04 Spurious error on template friend declaration
+
+A spurious error could occur when a template friend declaration in a
+class template refers to a non-existent member of another class
+template.  Such declarations should be accepted because the member
+referred to in the friend declaration might exist in a specialization
+of the other class template.  Now fixed.
+
+  template <class T> struct A {};
+  template <class T, class U> struct B {
+    template <class TT> friend int A<T>::f();
+  };
+
 10/14/04 GNU and Microsoft compatibility: Extraneous qualification on
          namespace member declarations
 
