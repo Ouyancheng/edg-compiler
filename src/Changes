@@ -1,5 +1,17 @@
 Version 2.29
 
+4/11/95  Use of incomplete enum type in Microsoft mode
+
+In Microsoft mode an enum type for which no definition has yet been seen
+may be used as though it were a complete type -- for example:
+
+  enum E x;                    // Okay in Microsoft mode.
+  void f(E e) { return e; }    // Okay in Microsoft mode.
+
+In a related change, targ_enum_types_can_be_smaller_than_int is always set
+to FALSE in Microsoft mode; this enables assigning a size -- namely,
+sizeof(int) -- to an incompletely defined enum type.
+
 4/11/95  Initialization of incomplete-array fields in Microsoft C mode
 
 If a struct is declared with a final field that is of incomplete array type,
