@@ -1,5 +1,9 @@
 Version 2.26
 
+8/30/94  (void *)0 == (void *)0 in C mode
+
+A case like the above was not recognized as valid in C mode.  Now fixed.
+
 8/22/94  Fix bug in #unassert
 
 A bug has been fixed that would cause an #unassert directive to

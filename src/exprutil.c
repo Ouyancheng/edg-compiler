@@ -2138,6 +2138,8 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
   a_boolean        operand_1_is_pointer = is_pointer_type(operand_1_type);
   a_boolean        operand_2_is_pointer = is_pointer_type(operand_2_type);
   a_boolean        suppress_extensions;
+  a_boolean        operand_1_is_void_star_0 = FALSE;
+  a_boolean        operand_2_is_void_star_0 = FALSE;
   a_std_conv_descr std_conv;
 
   /* The loop here tries the conversions once without extensions
@@ -2150,12 +2152,13 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
       /* See if the second operand can be converted to the type of the
          first operand.  In C mode, suppress the attempt to find an
          implicit conversion to the type of a null pointer constant
-         (if the constant is 0, the conversion won't be possible anyway,
-         and if it's (void *)0, we want to favor the conversion in the
-         other direction). */
-      if ((!C_mode() ||
-           !is_constant_operand(operand_1) ||
-           !is_null_pointer_constant(&operand_1->variant.constant)) &&
+         of (void *)0, because we want to favor the conversion in the
+         other direction. */
+      operand_1_is_void_star_0 =
+                      (C_mode() &&
+                       is_constant_operand(operand_1) &&
+                       is_null_pointer_constant(&operand_1->variant.constant));
+      if (!operand_1_is_void_star_0 &&
           impl_pointer_conversion(operand_2_type,
                                   is_constant_operand(operand_2),
                                   &operand_2->variant.constant,
@@ -2172,10 +2175,14 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
     if (operand_2_is_pointer) {
       /* See if the first operand can be converted to the type of the
          second operand.  In C mode, suppress conversion toward a null
-         pointer constant (see comment above). */
-      if ((!C_mode() ||
-           !is_constant_operand(operand_2) ||
-           !is_null_pointer_constant(&operand_2->variant.constant)) &&
+         pointer constant (see comment above), but try the conversion if
+         we suppressed it in the other direction in order to get
+         cases like "(void *)0 == (void *)0". */
+      operand_2_is_void_star_0 =
+                      (C_mode() &&
+                       is_constant_operand(operand_2) &&
+                       is_null_pointer_constant(&operand_2->variant.constant));
+      if ((!operand_2_is_void_star_0 || operand_1_is_void_star_0) &&
           impl_pointer_conversion(operand_1_type,
                                   is_constant_operand(operand_1),
                                   &operand_1->variant.constant,
