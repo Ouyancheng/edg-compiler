@@ -3880,7 +3880,7 @@ nothing else needs to be done in regard to placeholder management.
     } else {
       /* Full instantiation. */
       check_assertion_str2(ssep->assoc_type == type_ptr,
-                           "create_placeholder_for_class_instantiation:",
+                           "add_placeholders_for_class_instantiation:",
                            "invalid current scope");
       is_partial_instantiation = FALSE;
       /* If a placeholder was allocated for the partial instantiation, either
@@ -3913,8 +3913,8 @@ nothing else needs to be done in regard to placeholder management.
     } else {
       /* If no class-instantiation placeholder is needed, then a namespace
          placeholder is needed if the class that is instantiated is a direct
-         namespace member.  (It is not sufficient to be class nested within a
-         namespace member.) */
+         namespace member.  (It is not sufficient for the class to be nested
+         within a class that is a direct namespace member.) */
       ns_placeholder_needed = 
                    (!type_ptr->source_corresp.is_class_member &&
                     type_ptr->source_corresp.parent.namespace_ptr != NULL);
