@@ -283,7 +283,7 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
           case ck_stack_offset:
-            remap_ptr(ptr->variant.stack_offset_variable, a_variable_ptr,
+            remap_ptr(ptr->variant.stack_offset.variable, a_variable_ptr,
                       iek_variable);
             break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */

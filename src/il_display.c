@@ -587,9 +587,11 @@ display_constant_value:
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
       (void)printf("ck_stack_offset\n");
-      disp_ptr("stack_offset_variable",
-               (char *)ptr->variant.stack_offset_variable,
+      disp_ptr("variable",
+               (char *)ptr->variant.stack_offset.variable,
                iek_variable);
+      disp_unsigned_long("offset",
+                         (unsigned long)ptr->variant.stack_offset.offset);
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
     case ck_dynamic_init:

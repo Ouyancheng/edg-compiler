@@ -2464,7 +2464,8 @@ fields to default values.
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
-      cp->variant.stack_offset_variable = NULL;
+      cp->variant.stack_offset.variable = NULL;
+      cp->variant.stack_offset.offset   = 0;
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
     case ck_dynamic_init:
@@ -2856,7 +2857,8 @@ bucket of the shareable_constants_table to use for the constant.
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
       hash_value =
-           hash_name(&cp->variant.stack_offset_variable->source_corresp) + 350;
+                hash_name(&cp->variant.stack_offset.variable->source_corresp) +
+                cp->variant.stack_offset.offset + 350;
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
     default:
@@ -3021,8 +3023,10 @@ nonidentical.
         break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
       case ck_stack_offset:
-        eq = (cp1->variant.stack_offset_variable ==
-              cp2->variant.stack_offset_variable);
+        eq = (cp1->variant.stack_offset.variable ==
+              cp2->variant.stack_offset.variable &&
+              cp1->variant.stack_offset.offset ==
+              cp2->variant.stack_offset.offset);
         break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
       case ck_template_param:

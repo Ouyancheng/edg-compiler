@@ -1186,12 +1186,17 @@ typedef struct a_constant {
     } ptr_to_member;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     /* When kind == ck_stack_offset: */
-    a_variable_ptr
-		stack_offset_variable;
-			/* A constant for the stack offset of the indicated
-			   local variable.  Used in exception handling cleanup
-			   tables when IL lowering does partial lowering
-			   of exception handling. */
+    struct {
+      /* A constant for the stack offset of a local variable.
+         Used in exception handling cleanup tables when IL lowering does
+         partial lowering of exception handling. */
+      a_variable_ptr
+		variable;
+			/* The variable. */
+      a_targ_size_t
+		offset;
+			/* Offset relative to the variable. */
+    } stack_offset;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
     /* When kind == ck_dynamic_init: */
     a_dynamic_init_ptr
