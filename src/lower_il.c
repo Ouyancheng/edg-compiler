@@ -2295,7 +2295,8 @@ pointer to the new node.
         if (base_field->is_bit_field) {
           /* A bit field doesn't have an address; use some pointer arithmetic
              instead. */
-          a_type_ptr  char_ptr_type = make_pointer_type(integer_type(ik_char));
+          a_type_ptr  char_ptr_type =
+                    make_pointer_type(integer_type((an_integer_kind)ik_char));
           node = add_cast_if_necessary(node, char_ptr_type);
           node->next = node_for_integer_constant((long)step_bcp->offset,
                                                  targ_size_t_int_kind);
