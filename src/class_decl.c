@@ -5620,6 +5620,7 @@ to indicate whether the class/struct/union is actually defined.
   a_scope_depth           effective_decl_level = decl_scope_level;
   a_boolean               is_anonymous_union;
   an_expr_node_ptr        dim_expr_ptr;
+  a_boolean               class_aggregate_ruled_out = FALSE;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -5759,6 +5760,8 @@ to indicate whether the class/struct/union is actually defined.
     add_stop_token(tok_lbrace);
     scan_base_specifier_list(class_type);
     remove_stop_token(tok_lbrace);
+    /* A class with base classes is not an "aggregate" (ARM 8.4.1). */
+    class_aggregate_ruled_out = TRUE;
     /* If there is a base specifier list and this is a class or struct
        declaration, it has to be definition, which means the next token
        should be a brace. */
@@ -6269,6 +6272,27 @@ to indicate whether the class/struct/union is actually defined.
                                          is_anonymous_union, &byte_offset,
                                          &bit_offset, &alignment,
                                          &end_of_field_list, &any_overflow);
+              if (!class_aggregate_ruled_out) {
+                /* The ARM says that classes with private or protected members
+                   are not treated as "aggregates" (8.4.1).  We interpret this
+                   to refer to nonstatic data members only (given the context).
+                   Furthermore, we suppose that a class with a field whose type
+                   is a nonaggregate class (or an array thereof) cannot be
+                   treated as an aggregate either; this seems in accord with
+                   the intent of 8.4.1 if not the letter. */
+                if (access != (an_access_specifier)as_public) {
+                  class_aggregate_ruled_out = TRUE;
+                } else {
+                  a_type_ptr  tp = local_type;
+                  if (is_array_type(tp)) {
+                    tp = underlying_array_element_type(tp);
+                  }  /* if */
+                  if (is_class_struct_union_type(tp) &&
+                     !symbol_supplement_for_class(tp)->is_class_aggregate) {
+                    class_aggregate_ruled_out = TRUE;
+                  }  /* if */
+                }  /* if */
+              }  /* if */
               is_first_field = FALSE;
             }  /* if */
             if (C_dialect == C_dialect_cplusplus) {
@@ -6352,9 +6376,7 @@ next_declaration:
       /* Classes with no constructors, no private or protected members, no
          base classes, and no virtual functions are used to declare
          "aggregate" objects (ARM 8.4.1). */
-      if (cssp->constructor == NULL && !cssp->any_nonpublic_members &&
-          class_type->
-              variant.class_struct_union.extra_info->base_classes == NULL) {
+      if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
         cssp->is_class_aggregate = TRUE;
       }  /* if */
     }  /* if */
