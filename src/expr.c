@@ -6484,7 +6484,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     do_operand_transformations(&operand_3,
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
     expr_stack->evaluated = saved_evaluated;
-    result_type = operand_2.type;  /* Assume. */
     if (!C_mode()) {
       /* See if the operand types are the same in C++ mode. */
       types_are_the_same = types_are_compatible(operand_2.type,
@@ -6513,6 +6512,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         }  /* if */
       }  /* if */
     }  /* if */
+    result_type = operand_2.type;  /* Assume. */
     /* Note that here types_are_the_same is TRUE if the mode is C++ and
        the operand types are the same after any transformations. */
     if (types_are_the_same) {
