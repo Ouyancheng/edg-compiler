@@ -1656,7 +1656,7 @@ template defined in a namespace.
 static void microsoft_using_directive_bug_processing(a_namespace_ptr	nsp)
 /*
 The Microsoft compiler (as of Visual C++ 6.0) has a bug that causes a
-namespace nominated by a using-directive to visible in the file scope.
+namespace nominated by a using-directive to be visible in the file scope.
 
   namespace M  { 
     class C{};

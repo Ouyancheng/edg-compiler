@@ -4,7 +4,7 @@ Version 2.43
          the file scope
 
 The Microsoft compiler (as of Visual C++ 6.0) has a bug that causes a
-namespace nominated by a using-directive to visible in the file scope.
+namespace nominated by a using-directive to be visible in the file scope.
 We now emulate this bug in Microsoft bugs mode.
 
   namespace N  { }
