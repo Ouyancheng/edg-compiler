@@ -1,5 +1,22 @@
 Version 2.24
 
+6/29/94  Template abort fixed
+
+Use of a nested class within a nonreal instantiation as a template argument
+could result in a compiler abort.  This has been fixed.
+
+  template <class T> struct T1 {
+    struct T1A {};
+  };
+
+  template <class T> struct T3 { };
+
+  template <class T> struct T2 {
+    struct T2A {};
+    typedef T1<T2A>::T1A xxx;
+    T3<xxx> t3;  // Abort on this line
+  };
+
 6/29/94  Overridding the severity of diagnostic messages
 
 Command line options have been added that allow a user to
