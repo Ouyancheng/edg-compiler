@@ -3477,24 +3477,34 @@ entry is pushed on the scope stack.
     if (tag_resolution) {
       /* This is the resolution of a previously incomplete template
          declaration; it there were any incomplete instantiations that were
-         involved in array or function declarations, they may need to be
-         fixed up at this time. */
-      a_dependent_type_fixup_ptr  dtfp;
-      a_type_ptr                  class_type;
-
+         involved in array declarations, the instantiations need to be done
+         and the arrays need to be fixed up at this time.  Here's an example:
+           template <class T> class X;
+           X<int> arr;                // non-standard -- allowed by extension
+           template <class T> class X { ... };
+         Now that template X has been defined, X<int> can be instantiated and
+         the size of arr can be computed. */
+      /* Loop though all the instantiations of the current class template. */
       tssp = sym->variant.template_info;
       for (instance_sym = tssp->variant.class_template.instantiations;
            instance_sym != NULL;
            instance_sym = instance_sym->next) {
         if (instance_sym !=
                   tssp->variant.class_template.prototype_instantiation) {
+          /* Found one.  See if it has any fixup entries that resulted from
+             uses in array declarations. */
+          a_dependent_type_fixup_ptr  dtfp;
+
           dtfp = instance_sym->variant.class_struct_union.extra_info->
                                                dependent_type_fixup_list;
           for (; dtfp != NULL; dtfp = dtfp->next) {
             if (!dtfp->is_param_type && is_array_type(dtfp->variant.type)) {
-              class_type = instance_sym->variant.class_struct_union.type;
-              instantiate_template_class(class_type);
-              check_dependent_type_fixup_list(class_type);
+              /* This one was used in at least one array declaration; there
+                 may be others on the list but one is enough to justify
+                 instantiating the template class.  The call to do the array
+                 fixup is made from scan_class_defintion. */
+              instantiate_template_class(instance_sym->
+                                             variant.class_struct_union.type);
               break;
             }  /* if */
           }  /* for */
