@@ -1272,6 +1272,7 @@ larger than targ_minimum_struct_alignment).  Otherwise, FALSE is returned.
                      in that case. */
 #endif /* !IA64_ABI */
 static a_boolean empty_base_conflict(a_type_ptr       etype, 
+                                     a_boolean        virtual_base_placement,
                                      a_type_ptr       atype,
                                      a_base_class_ptr atype_bcp,
                                      a_targ_size_t    offset,
@@ -1290,7 +1291,8 @@ complete object containing atype_bcp, rather than from atype_bcp
 itself.  If consider_virtual_bases is TRUE, virtual bases of atype are
 considered; otherwise, they are ignored.  Similarly, field subobjects are
 ignored when consider_fields is FALSE (used to emulate some GNU IA-64 ABI
-bugs).
+bugs).  If etype is the type of a virtual base that we are attempting to
+place in the overall layout, virtual_base_placement is TRUE.
 */
 {
   a_boolean     result = FALSE;
@@ -1330,7 +1332,7 @@ bugs).
   }  /* if */
   /* Apply these tests recursively to any base and field of atype. */
   if (!result) {
-    a_base_class_ptr bcp = base_classes_of(atype);
+    a_base_class_ptr  bcp = base_classes_of(atype);
     for (; bcp != NULL; bcp = bcp->next) {
       a_base_class_ptr  eff_bcp;
       a_boolean         consider_fields_in_bcp = consider_fields;
@@ -1358,14 +1360,16 @@ bugs).
 #if IA64_ABI
           eff_bcp->offset_is_set && eff_bcp->offset <= offset &&
           /* Early GNU implementations of the IA-64 ABI do not consider
-             empty base conflicts with virtual primary bases (and bases
-             thereof). */
+             empty base conflicts with indirect virtual primary bases when
+             when placing empty virtual bases. */
           !(emulate_gnu_abi_bugs && eff_bcp->offset == 0 &&
+            virtual_base_placement && !eff_bcp->direct &&
             eff_bcp->is_virtual && eff_bcp->shares_virtual_function_info) &&
 #else /* !IA64_ABI */
           eff_bcp->offset == atype_offset && 
 #endif /* !IA64_ABI */
-          empty_base_conflict(etype, eff_bcp->type, eff_bcp, offset,
+          empty_base_conflict(etype, virtual_base_placement, eff_bcp->type,
+                              eff_bcp, offset,
                               /*consider_virtual_bases=*/FALSE,
                               consider_fields_in_bcp)) {
         result = TRUE;
@@ -1419,7 +1423,8 @@ bugs).
 #else /* !IA64_ABI */
           if (field_offset != 0) break;
 #endif /* !IA64_ABI */
-          if (empty_base_conflict(etype, field_type, (a_base_class_ptr)NULL,
+          if (empty_base_conflict(etype, virtual_base_placement, field_type,
+                                  (a_base_class_ptr)NULL,
                                   offset - field_offset,
                                   /*consider_virtual_bases=*/TRUE,
                                   consider_fields)) {
@@ -1546,6 +1551,7 @@ derivation path.
 static a_boolean subobject_conflict(a_type_ptr     class_type,
                                     a_type_ptr     subobject_type,
                                     a_targ_size_t  offset,
+                                    a_boolean      virtual_base_placement,
                                     a_boolean      consider_bases,
                                     a_boolean      consider_virtual_bases,
                                     a_boolean      consider_fields)
@@ -1595,8 +1601,8 @@ is FALSE, field subobjects are ignored while searching for a conflict.
     for (elt = 0; !result && elt < num_array_elts; ++elt, offset += size) {
       /* Try the subobject type itself. */
       if (is_empty_class_type(subobject_type) && 
-          empty_base_conflict(subobject_type, class_type, 
-                              (a_base_class_ptr)NULL, offset,
+          empty_base_conflict(subobject_type, virtual_base_placement,
+                              class_type, (a_base_class_ptr)NULL, offset,
                               /*consider_virtual_bases=*/TRUE,
                               /*consider_fields=*/TRUE)) {
         result = TRUE;
@@ -1609,6 +1615,7 @@ is FALSE, field subobjects are ignored while searching for a conflict.
           if ((bcp->direct || (bcp->is_virtual && consider_virtual_bases)) &&
               subobject_conflict(class_type, bcp->type, 
                                  offset + bcp->offset,
+                                 virtual_base_placement,
                                  /*consider_bases=*/TRUE,
                                  /*consider_virtual_bases=*/FALSE,
                                  /*consider_fields=*/TRUE) &&
@@ -1655,6 +1662,7 @@ is FALSE, field subobjects are ignored while searching for a conflict.
               if (subobject_conflict(class_type, field_type,
                                      offset + field->offset + field_elt *
                                                               field_type->size,
+                                     virtual_base_placement,
                                      /*consider_bases=*/TRUE,
                                      /*consider_virtual_bases=*/TRUE,
                                      /*consider_fields=*/TRUE)) {
@@ -1711,7 +1719,7 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
   base_type = bcp->type;
   /* See if there is a conflict with base_type itself.  Some GNU compilers
      ignore the fields of virtual base subobjects. */
-  if (subobject_conflict(class_type, base_type, offset,
+  if (subobject_conflict(class_type, base_type, offset, bcp->is_virtual,
                          /*consider_bases=*/FALSE,
                          /*consider_virtual_bases=*/FALSE,
                          !(emulate_gnu_abi_bugs && bcp->is_virtual))) {
@@ -2318,6 +2326,7 @@ there's no overflow TRUE is returned.
             save_byte_offset <= lob->curr_base_extent) {
           while (subobject_conflict(lob->class_type, field_type,
                                     save_byte_offset,
+                                    /*virtual_base_placement=*/FALSE,
                                     /*consider_bases=*/TRUE,
                                     /*consider_virtual_bases=*/TRUE,
                                     /*consider_fields=*/TRUE) ||
@@ -2905,7 +2914,8 @@ necessary.
     }
     /* Next, verify if this offset causes a conflict with another empty
        subobject that has a common empty type at that location. */
-    if (nbcp != NULL && empty_base_conflict(ebcp->type, nbcp->type, 
+    if (nbcp != NULL && empty_base_conflict(ebcp->type, ebcp->is_virtual,
+                                            nbcp->type, 
                                             (a_base_class_ptr)NULL,
                                             (a_targ_size_t)0,
                                             /*consider_virtual_bases=*/TRUE,
@@ -2917,9 +2927,8 @@ necessary.
       a_base_class_ptr prior_ebcp = first_empty_base;
       while (prior_ebcp && prior_ebcp != ebcp) {
         if (prior_ebcp->offset == ebcp->offset &&
-            empty_base_conflict(ebcp->type, prior_ebcp->type,
-                                (a_base_class_ptr)NULL,
-                                (a_targ_size_t)0,
+            empty_base_conflict(ebcp->type, ebcp->is_virtual, prior_ebcp->type,
+                                (a_base_class_ptr)NULL, (a_targ_size_t)0,
                                 /*consider_virtual_bases=*/TRUE,
                                 /*consider_fields=*/TRUE)) {
           conflict = TRUE;
@@ -2969,7 +2978,7 @@ necessary.
         ebcp = next_empty_nonvirtual_direct_base(base_classes_of(class_type));
         while (ebcp) {
           if (ebcp->offset == lob->byte_offset &&
-              empty_base_conflict(ebcp->type, field_type, 
+              empty_base_conflict(ebcp->type, ebcp->is_virtual, field_type, 
                                   (a_base_class_ptr)NULL,
                                   (a_targ_size_t)0,
                                   /*consider_virtual_bases=*/TRUE,
