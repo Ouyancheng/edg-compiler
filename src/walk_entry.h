@@ -882,7 +882,11 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_typeref:
             walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);
 #if DO_IL_LOWERING
+#if KEEP_IN_IL_WALK
+            walk_ptr(ptr->variant.typeref.orig_type, a_type_ptr, iek_type);
+#else /* !KEEP_IN_IL_WALK */
             conditionally_clear_fe_pointer(ptr->variant.typeref.orig_type);
+#endif /* KEEP_IN_IL_WALK */
 #endif /* DO_IL_LOWERING */
             break;
           case tk_ptr_to_member:

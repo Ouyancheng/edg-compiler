@@ -1463,6 +1463,8 @@ should be put out.
 
   check_assertion(is_immediate_class_type(type));
   ctsp = type->variant.class_struct_union.extra_info;
+  check_assertion_str(ctsp != NULL,
+                      "mangled_full_class_name: no class type supplement");
   if (type->source_corresp.name_has_been_mangled) {
     /* The name is already mangled, including any template parameters.
        We can use the mangled form unless we need to add specialization
@@ -1903,6 +1905,14 @@ Add to the mangled name the encoding for the type "type".
     /* Remember the bottommost named typedef encountered. */
     if (has_name(type)) named_typedef = type;
 #endif /* ABI_COMPATIBILITY_VERSION < 230 */
+#if DO_IL_LOWERING
+    if (type->variant.typeref.orig_type != NULL) {
+      /* A type like a pointer-to-member, which has been lowered.
+         Switch to the original type. */
+      type = type->variant.typeref.orig_type;
+      break;
+    }  /* if */
+#endif /* DO_IL_LOWERING */
   }  /* for */
   /* Put out type qualifiers, if any. */
   if (qualifiers != 0) {

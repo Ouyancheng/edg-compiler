@@ -1,5 +1,12 @@
 Version 3.0
 
+3/8/02   Name mangling problem: apparent unnamed structs as template arguments
+
+Due to a name mangling problem, pointer-to-member types that appear as
+template arguments on classes with partial specializations were
+sometimes incorrectly mangled.  The generated names referred to
+unnamed structs instead of the pointer-to-member types.
+
 3/8/02   GNU C compatibility: "auto" ignored in file scope
 
 In GNU C mode, the front end ignores the "auto" specifier with a warning
