@@ -1,5 +1,11 @@
 Version 2.32
 
+1/24/96   EH region number type and null region value passed to runtime
+
+The type of the EH region number field and the value of the null region
+number are now passed to the runtime using predefined macros when
+the --building_runtime option is used.
+
 1/24/96   Do not recognize stringize operator in string literals in pcc mode
 
 In version 2.31 the front end was changed to permit ANSI preprocessing

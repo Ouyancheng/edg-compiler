@@ -31,6 +31,9 @@ macro.c -- Macro definition and expansion routines.
 #include "preproc.h"
 #include "symbol_ref.h"
 #include "sys_predef.h"
+#if DO_IL_LOWERING && GENERATE_EH_TABLES
+#include "lower_eh.h"
+#endif /* DO_IL_LOWERING && GENERATE_EH_TABLES */
 
 /*
 Buffer used to contain the characters of a macro being defined, and the
@@ -3586,7 +3589,7 @@ header file, so some of the predefined macros need to be altered.
 }  /* fixup_predefined_macros */
 
 
-static char *conv_int_to_str(int val)
+static char *conv_unsigned_long_to_str(unsigned long val)
 /*
 Convert an integer to a character string.  Return a pointer to the
 buffer containing the string.  The buffer is static storage that will
@@ -3594,9 +3597,9 @@ be overwritten by subsequent calls.
 */
 {
   static char buffer[50];
-  sprintf(buffer, "%d", val);
+  sprintf(buffer, "%lu", val);
   return buffer;
-}  /* conv_int_to_str */
+}  /* conv_unsigned_long_to_str */
 
 
 static void init_runtime_macros(void)
@@ -3618,7 +3621,8 @@ from the front end to the runtime.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Define the number of elements in the setjmp buffer. */
-  (void)enter_predef_macro(conv_int_to_str((int)targ_jmp_buf_num_elements),
+  (void)enter_predef_macro(conv_unsigned_long_to_str
+                                   ((unsigned long)targ_jmp_buf_num_elements),
 			   "__EDG_JMP_BUF_NUM_ELEMENTS",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
@@ -3635,9 +3639,23 @@ from the front end to the runtime.
 			   "__EDG_VIRTUAL_FUNCTION_INDEX_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+#if GENERATE_EH_TABLES
+  /* Define the size of a region number field in the EH tables. */
+  (void)enter_predef_macro(int_kind_name(TARG_REGION_NUMBER_INT_KIND),
+			   "__EDG_REGION_NUMBER_TYPE",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  /* Define the value used as the null region number value in the EH tables. */
+  (void)enter_predef_macro(conv_unsigned_long_to_str
+                                        ((unsigned long)null_eh_region_number),
+			   "__EDG_NULL_EH_REGION_NUMBER",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
   /* Define the ABI compatibility version being used. */
-  (void)enter_predef_macro(conv_int_to_str((int)ABI_COMPATIBILITY_VERSION),
+  (void)enter_predef_macro(conv_unsigned_long_to_str
+                                   ((unsigned long)ABI_COMPATIBILITY_VERSION),
 			   "__EDG_ABI_COMPATIBILITY_VERSION",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
@@ -3773,7 +3791,8 @@ command line -D options.
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Enter a predefined macro that can be used to determine the version of
      the EDG front end being used. */
-  (void)enter_predef_macro(conv_int_to_str(VERSION_NUMBER_FOR_MACRO),
+  (void)enter_predef_macro(conv_unsigned_long_to_str
+                                     ((unsigned long)VERSION_NUMBER_FOR_MACRO),
                            "__EDG_VERSION__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);

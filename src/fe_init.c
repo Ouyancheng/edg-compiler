@@ -602,9 +602,10 @@ after the command-line processing has been done.
   scope_stk_one_time_init();
   templates_one_time_init();
 #if DO_IL_LOWERING
-  if (!suppress_il_lowering) {
-    il_lower_one_time_init();
-  }  /* if */
+  /* IL lowering is initialized even when IL lowering is suppressed.  This
+     is done because some of the variables that are initialized in IL
+     lowering are used elsewhere even when IL lowering is not being done. */
+  il_lower_one_time_init();
 #endif /* DO_IL_LOWERING */
 #if NEED_NAME_MANGLING
   name_lower_one_time_init();
@@ -675,6 +676,19 @@ source file's compilation.
   /* const_ints_init must be called after target_init so that
      int_kind_is_signed is properly initialized. */
   const_ints_init();
+#if DO_IL_LOWERING
+  /* IL lowering is initialized even when IL lowering is suppressed.  This
+     is done because some of the variables that are initialized in
+     IL lowering are used elsewhere even when IL lowering is not being done.
+     (for example, null_eh_region_number when the --building_runtime
+     option is used). */
+  il_lower_init();
+#endif /* DO_IL_LOWERING */
+#if NEED_NAME_MANGLING
+  /* Do lower_name.c initialization.  Name mangling can be included
+     independently of the rest of IL lowering. */
+  name_lower_init();
+#endif /* NEED_NAME_MANGLING */
   /* Initialize the symbol table (keywords and predefined macros).  Note that
      keyword_init is called first, so that predefined macros will have
      priority over keywords.  Also, macro_init must have been called, so
@@ -708,16 +722,6 @@ source file's compilation.
      there's a command-line request to change the debug level in fe_init). */
   debug_level = save_debug_level;
 #endif /* DEBUG */
-#if DO_IL_LOWERING
-  if (!suppress_il_lowering) {
-    il_lower_init();
-  }  /* if */
-#endif /* DO_IL_LOWERING */
-#if NEED_NAME_MANGLING
-  /* Do lower_name.c initialization.  Name mangling can be included
-     independently of the rest of IL lowering. */
-  name_lower_init();
-#endif /* NEED_NAME_MANGLING */
 
   /* Push an entry for the file scope onto the scope stack, saving the
      pointer to the scope in the IL header.  This is done after the entry
