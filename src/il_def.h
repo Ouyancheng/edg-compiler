@@ -3547,6 +3547,7 @@ ARM 13.4.
 enum an_opname_kind_tag {
   onk_none,
   onk_new,               /* "new" */    onk_delete,            /* "delete" */
+  onk_array_new,         /* "new[]" */	onk_array_delete,      /* "delete[]" */
   onk_plus,              /* "+" */      onk_minus,             /* "-" */
   onk_star,              /* "*" */      onk_divide,            /* "/" */
   onk_remainder,         /* "%" */      onk_excl_or,           /* "^" */
