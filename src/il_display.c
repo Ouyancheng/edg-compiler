@@ -544,8 +544,8 @@ Display the indicated source correspondence entry.
   }  /* if */
 #if NEED_NAME_MANGLING
   /* Do not print out name_has_been_mangled and
-     mangled_name_cannot_be_included_in_other_name, which are used only during
-     IL lowering. */
+     mangled_name_cannot_be_included_in_other_name, which are used only in
+     the front end. */
 #endif /* NEED_NAME_MANGLING */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (scp->static_used_by_instantiation) {
@@ -658,6 +658,10 @@ Display the indicated constant entry.
   if (ptr->null_pointer_constant_ruled_out) {
     disp_boolean("null_pointer_constant_ruled_out", TRUE);
   }  /* if */
+#if NEED_NAME_MANGLING
+  /* Do not print out name_is_template_arg_mangled_name, which is used only in
+     the front end. */
+#endif /* NEED_NAME_MANGLING */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:

@@ -844,6 +844,15 @@ specification in the mangling for lengths of literals.
   sizeof_t str_length;
   char     *str;
 
+  if (con->name_is_template_arg_mangled_name) {
+    /* The mangled form for this constant value was saved previously
+       (because the constant was being changed in a significant way by IL
+       lowering, and it would not be possible to generate the mangled form
+       after the lowering is done).  Use the saved name. */
+    check_assertion(con->source_corresp.name != NULL);
+    add_str_to_mangled_name(con->source_corresp.name, mctl);
+    goto end_of_routine;
+  }  /* if */
   switch (con->kind) {
     case ck_error:
       /* This might come up in mangling names for template instantiations. */
@@ -933,6 +942,7 @@ specification in the mangling for lengths of literals.
       internal_error("literal_representation: bad constant kind");
 #endif /* CHECKING */
   }  /* switch */
+end_of_routine:;
 }  /* literal_representation */
 
 
@@ -2556,6 +2566,32 @@ name in the variable entry.
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
+void preserve_mangled_name_as_template_arg(a_constant *con)
+/*
+Record a mangled name in the indicated constant, to be used in the future
+when the constant appears as a nontype template argument.  This is done
+for constants (like pointer-to-member constants) that are significantly
+altered by IL lowering, to the point where it's not possible to develop
+a mangled name for them after the transformation.  This routine is
+called right before the lowering is done, to generate and preserve the
+mangled name that might be needed later.
+*/
+{
+  a_mangling_control_block mctl;
+
+  check_assertion(!con->source_corresp.name_has_been_mangled &&
+                  !con->name_is_template_arg_mangled_name &&
+                  /* Make sure there is no conflict between the two cases
+                     that use a mangled name for a constant. */
+                  !con->source_corresp.is_class_member &&
+                  con->source_corresp.parent.namespace_ptr == NULL);
+  start_mangling(&mctl);
+  literal_representation(con, /*old_form=*/FALSE, &mctl);
+  (void)end_mangling(&con->source_corresp, /*final=*/FALSE, &mctl);
+  con->name_is_template_arg_mangled_name = TRUE;
+}  /* preserve_mangled_name_as_template_arg */
+
+
 /* Declaration required because of forward reference: */
 static void do_scope_other_name_mangling(a_scope_ptr scope);
 
@@ -2667,6 +2703,9 @@ extension) a declared class member constant.
 
   error_position = con->source_corresp.decl_position;
   if (!con->source_corresp.name_has_been_mangled) {
+    /* Make sure the two cases where a mangled name are needed don't
+       conflict. */
+    check_assertion(!con->name_is_template_arg_mangled_name);
     start_mangling(&mctl);
     /* Determine how long the mangled name is. */
     mangled_member_name(&con->source_corresp,

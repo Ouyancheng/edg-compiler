@@ -1,5 +1,15 @@
 Version 2.44
 
+3/5/00   Abort on name mangling for Microsoft __uuidof(T)
+
+An abort in name mangling, with the message
+
+  mangled_encoding_for_address_constant: addr of unnamed
+
+has been corrected.  It involves use of the address of a __uuidof
+as a nontype template argument of a template class for which IL
+lowering needs to generate a typeinfo variable.
+
 3/3/00   Fix in insert_if_statement in lower_init.c
 
 The logic in insert_if_statement was wrong when the caller passes
