@@ -6831,6 +6831,7 @@ Do IL lowering of the indicated statement and everything under it.
         /* Generate any cleanup actions required on exit from any blocks
            that the goto is inside of but the label is not. */
         gen_goto_cleanup_actions(statement);
+        statement->variant.label.lifetime = NULL;
         break;
       case stmk_label:
         curr_context->latest_label_statement_processed = statement;
@@ -6856,6 +6857,7 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         lifetime = statement->variant.label.ptr->lifetime_following_label;
         if (lifetime != NULL) curr_object_lifetime = lifetime;
+        statement->variant.label.lifetime = NULL;
         break;
       case stmk_return:
         return_expr = statement->expr;
