@@ -7889,8 +7889,12 @@ moreover, several fields of *decl_info may be updated by this routine.
         pos_error(ec_bad_friend_decl, err_pos);
       }  /* if */
     } else if (decl_info->is_member_template) {
-      /* Function declarator is missing on a member template declaration. */
-      pos_error(ec_bad_member_template_decl, err_pos);
+      if (decl_info->member_sym != NULL) {
+        /* Diagnostic will be issued later. */
+      } else {
+        /* Function declarator is missing on a member template declaration. */
+        pos_error(ec_bad_member_template_decl, err_pos);
+      }  /* if */
     } else if (dso_flags & DSO_DECLARES_SOMETHING) {
       /* This is a free standing declaration of a class, struct, union, or
          enum type entry.  It will already have been recorded on the types
@@ -8257,19 +8261,26 @@ following the member declaration.
   decl_info.dso_flags = dso_flags;
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
-#if CHECKING
-    /* Should be a nested class, struct, union, or enum definition.  Be
-       sure the parent class was marked correctly. */
+    /* Should be a class, struct, union, or enum definition. */
     a_type_ptr    tp = skip_typerefs(member_type);
     a_symbol_ptr  sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
 
-    if (!sym->is_error) {
+    if (is_member_template) {
+      if (curr_token == tok_semicolon &&
+          decl_info.storage_class != (a_storage_class)sc_typedef) {
+        /* Issue an error later, based on the symbol. */
+        decl_info.member_sym = sym;
+      }  /* if */
+#if CHECKING
+    } else if (!sym->is_error) {
+      /* A nested class, struct, union, or enum definition.  Be sure the
+         parent class was marked correctly. */
       check_assertion_str2(sym->is_class_member &&
                            sym->parent.class_type == class_type,
                            "class_member_declaration:",
                            "bad parent type on nested type");
-    }  /* if */
 #endif /* CHECKING */
+    }  /* if */
     if (class_state->access != (an_access_specifier)as_public) {
       /* Strictly speaking, any nonpublic member prevents a class from being
          an aggregate -- keep track. */
