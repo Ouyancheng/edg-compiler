@@ -64,6 +64,7 @@ static unsigned long
 		num_switch_clauses_allocated,
 		num_blocks_allocated,
 		num_statements_allocated,
+                num_constructor_inits_allocated,
 		num_scopes_allocated,
 		string_literal_text_space_allocated;
 #if ALTERNATE_IL_FILE_FORMAT
@@ -3178,6 +3179,39 @@ to it.  The statement kind is set as indicated.
 }  /* alloc_statement */
 
 
+a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind)
+/*
+Allocate a constructor initializer entry, initialize it, and return a
+pointer to it.
+*/
+{
+  a_constructor_init_ptr  cip;
+
+  cip = (a_constructor_init_ptr)alloc_cil(sizeof(a_constructor_init));
+#if DEBUG
+  num_constructor_inits_allocated++;
+#endif /* DEBUG */
+  cip->next = NULL;
+  cip->kind = kind;
+  switch (kind) {
+    case cik_virtual_base_class:
+    case cik_direct_base_class:
+      cip->variant.base_class = NULL;
+      break;
+    case cik_field:
+      cip->variant.field = NULL;
+      break;
+#if CHECKING
+    default:
+      internal_error("alloc_ctor_init: bad kind");
+#endif /* CHECKING */
+  }  /* switch */
+  cip->initializer = NULL;
+
+  return cip;
+}  /* alloc_ctor_init */
+
+
 a_scope_ptr alloc_scope(a_scope_number number,
                         a_scope_kind   kind)
 /*
@@ -3209,6 +3243,7 @@ kind indicates the scope kind (e.g., function, block).
     case sck_function:
       sp->variant.routine.ptr                 = NULL;
       sp->variant.routine.parameters          = NULL;
+      sp->variant.routine.constructor_inits   = NULL;
       sp->variant.routine.this_param_variable = NULL;
 #ifdef FIL
       sp->variant.routine.function_result_var = NULL;
@@ -3278,6 +3313,8 @@ Display and return the amount of space used for various IL tables.
   write_one("switch clause", num_switch_clauses_allocated, a_switch_clause);
   write_one("block", num_blocks_allocated, a_block);
   write_one("statement", num_statements_allocated, a_statement);
+  write_one("constructor init", num_constructor_inits_allocated,
+                                a_constructor_init);
   write_one("scope", num_scopes_allocated, a_scope);
 #if ALTERNATE_IL_FILE_FORMAT
   write_one("IL entry numbers", num_il_entry_numbers_allocated,
@@ -3370,6 +3407,7 @@ of the front end.
   num_switch_clauses_allocated           = 0;
   num_blocks_allocated                   = 0;
   num_statements_allocated               = 0;
+  num_constructor_inits_allocated        - 0;
   num_scopes_allocated                   = 0;
   string_literal_text_space_allocated    = 0;
   num_shareable_constants                = 0;

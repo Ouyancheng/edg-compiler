@@ -2507,6 +2507,52 @@ typedef struct an_entry_description {
 } an_entry_description;
 
 #endif /* ifdef FIL */
+#ifdef CIL
+
+/* Data structure a_constructor_init, used for C++ only, describes the
+   explicit and default initialization to be applied when a constructor is
+   called.  This information will reflect constructor initializers that the
+   user has supplied with constructor definitions (see ARM 12.6.2), as
+   well as all default constructors that are to be invoked. */
+enum a_constructor_init_kind_tag {
+  cik_virtual_base_class,
+			/* Object to be initialized is a virtual base class. */
+  cik_direct_base_class,
+			/* Object to be initialized is a nonvirtual direct
+			   base class. */
+  cik_field		/* Object to be initialized is a field. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_constructor_init_kind;
+
+
+typedef struct a_constructor_init *a_constructor_init_ptr;
+typedef struct a_constructor_init {
+  a_constructor_init_ptr
+		next;	/* Pointer to the next constructor initialization
+			   entry in the same scope. */
+  a_constructor_init_kind
+		kind;	/* Kind of constructor initialization, based on the
+			   object being initialized (virtual base class,
+			   nonvirtual direct base class, or nonstatic data
+			   member). */
+  union {
+    /* When kind is cik_virtual_base_class or cik_direct_base_class: */
+    a_base_class_ptr
+		base_class;
+			/* The base class to be initialized. */
+    /* When kind is cik_field: */
+    a_field_ptr field;	/* The field (nonstatic data member) to be
+			   initialized. */
+  } variant;
+  a_dynamic_init_ptr
+		initializer;
+			/* The initial value to be assigned to the object
+			   being initialized, represented by a dynamic
+			   initialization entry. */
+} a_constructor_init;
+#endif /* ifdef CIL */
+
 
 enum a_scope_kind_tag {
   /* Kinds of scopes. */
@@ -2609,6 +2655,14 @@ typedef struct a_scope {
                         /* List of parameters of the associated routine,
                            in declaration order.  NULL if no parameters. */
 #ifdef CIL
+      a_constructor_init_ptr
+		constructor_inits;
+			/* List of constructor initializer entries; non-NULL
+			   for scopes associated with C++ constructors only.
+			   The list identifies all subobjects and nonstatic
+			   data members of the object being initialized by the
+			   constructor, arranged in the order in which the
+			   initialization should be performed (ARM 12.6.2). */
       a_variable_ptr
                 this_param_variable;
 			/* If the scope is for a C++ nonstatic member
