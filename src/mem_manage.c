@@ -1057,7 +1057,7 @@ any unused space.
 void check_for_done_with_memory_region(a_memory_region_number region_number)
 /*
 We're done creating the indicated memory region in the front end.  Determine
-whether the front end has any further use for it and/or whether is has to be
+whether the front end has any further use for it and/or whether it has to be
 kept around in order possibly to be written to a PCH file.  If either is
 TRUE, the memory region can be trimmed (since it in any case is not going to
 grow any larger), but it must be kept around.  If not, it may be possible to

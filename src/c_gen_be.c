@@ -4729,7 +4729,7 @@ being initialized is "variable"; the initial value is given by "constant".
 "constant" is NULL to indicate initialization to zero.
 
 Ordinarily, this routine outputs "= constant" as an initializer, and
-therefore assumes is has been called immediately after the declaration
+therefore assumes it has been called immediately after the declaration
 of the variable (and before the closing semicolon).
 
 If is_dynamic_init is TRUE, this routine is being called for a dynamic
