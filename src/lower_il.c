@@ -6020,11 +6020,12 @@ statement in its block if follows_an_exec_statement is TRUE.
     }  /* if */
   }  /* for */
   /* Visit all children of this lifetime.  Don't go into block or
-     block-after-label lifetimes, since they will be handled by another
+     block-after-label or try lifetimes, since they will be handled by another
      call of this routine at some later time. */
   for (olp = lifetime->child_lifetime; olp != NULL; olp = olp->next) {
     if (olp->kind != (an_object_lifetime_kind)olk_block &&
-        olp->kind != (an_object_lifetime_kind)olk_block_after_label) {
+        olp->kind != (an_object_lifetime_kind)olk_block_after_label &&
+        olp->kind != (an_object_lifetime_kind)olk_try_block) {
       begin_object_lifetime(olp, follows_an_exec_statement, insert_location);
     }  /* if */
   }  /* for */
@@ -6559,8 +6560,6 @@ code.
        of the lifetime, and there may be cleanup actions associated with the
        lifetime itself. */
     for (;;) {
-      an_il_entry_kind lifetime_entity_kind =
-                                       (an_il_entry_kind)lifetime->entity.kind;
       /* Generate destructions in this context. */
       for (; dip != NULL; dip = dip->next_in_destruction_list) {
         if (dip->is_expr_temp_init && skip_temporaries) {
@@ -6576,13 +6575,13 @@ code.
         }  /* if */
       }  /* for */
       /* In some cases, the context itself requires cleanup. */
-      if (lifetime_entity_kind == iek_try_supplement) {
+      if (lifetime->kind == (an_object_lifetime_kind)olk_try_block) {
         /* Exit from a "try" block. */
         any_cleanup_needed = TRUE;
         if (check_only) goto done;
         cleanup_on_exit_from_try_block(context_for_try(lifetime),
                                        insert_location);
-      } else if (lifetime_entity_kind == iek_scope &&
+      } else if ((an_il_entry_kind)lifetime->entity.kind == iek_scope &&
                  (scope = (a_scope_ptr)lifetime->entity.ptr,
                   (scope->kind == (a_scope_kind)sck_block &&
                    scope->variant.assoc_handler != NULL))) {
