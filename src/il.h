@@ -113,6 +113,8 @@ extern an_integer_kind char_int_kind_from_string_type(a_type_ptr str_type);
 
 extern a_type_ptr error_type(void);
 
+extern a_type_ptr unknown_type(void);
+
 extern a_type_ptr void_type(void);
 
 extern a_type_ptr ptr_to_member_type(a_type_ptr  member_type,

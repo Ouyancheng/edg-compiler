@@ -42,6 +42,7 @@ static a_type_ptr string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
 static a_type_ptr wide_string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
 static a_type_ptr il_signed_int_type;
 static a_type_ptr il_error_type;
+static a_type_ptr il_unknown_type;
 static a_type_ptr il_void_type;
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -205,20 +206,19 @@ objects of their own type.
 */
 {
   if (tp == NULL) {
-    fputs("null type pointer", f_debug);
+    fputs("<null type pointer>", f_debug);
   } else {
     switch (tp->kind) {
       case tk_class:
-        fputs("class \"", f_debug);
+        fputs("class ", f_debug);
         goto print_name;
       case tk_struct:
-        fputs("struct \"", f_debug);
+        fputs("struct ", f_debug);
         goto print_name;
       case tk_union:
-        fputs("union \"", f_debug);
+        fputs("union ", f_debug);
 print_name:
         db_name(&tp->source_corresp);
-        fputs("\"", f_debug);
         break;
       default:
         db_type(tp);
@@ -514,19 +514,16 @@ Dump the contents of the indicated type entry, for debug purposes.
       break;
     case tk_pointer:
       if (tp->variant.pointer.is_reference) {
-        fputs("ref(", f_debug);
+        fputs("ref to ", f_debug);
       } else {
-        fputs("ptr(", f_debug);
+        fputs("ptr to ", f_debug);
       }  /* if */
-      /* Dump classes/structs/unions specially to avoid recursive loops
-         when then contain pointers to themselves. */
       db_abbreviated_type(tp->variant.pointer.type);
-      (void)fputc(')', f_debug);
       break;
     case tk_array:
-      (void)fputc('(', f_debug);
+      fprintf(f_debug, "array [%lu] of ",
+                       tp->variant.array.number_of_elements);
       db_abbreviated_type(tp->variant.array.element_type);
-      fprintf(f_debug, ")[%lu]", tp->variant.array.number_of_elements);
       break;
     case tk_struct:
       fputs("struct", f_debug);
@@ -603,7 +600,7 @@ class_struct_union:
       }
       break;
     case tk_routine:
-      fputs("routine ", f_debug);
+      fputs("function ", f_debug);
       if (tp->variant.routine.extra_info->assoc_routine != NULL) {
 	db_name(&tp->variant.routine.extra_info->
 			    	assoc_routine->source_corresp);
@@ -655,25 +652,22 @@ class_struct_union:
       db_abbreviated_type(tp->variant.routine.return_type);
       break;
     case tk_typeref:
-      if (!tp->variant.typeref.is_const && !tp->variant.typeref.is_volatile) {
+      if (tp->variant.typeref.is_function_scope_tag) {
+        fputs("local tag for ", f_debug);
+      } else if (!tp->variant.typeref.is_const &&
+                 !tp->variant.typeref.is_volatile) {
         fputs("typeref ", f_debug);
       } else {
         if (tp->variant.typeref.is_const) fputs("const ", f_debug);
         if (tp->variant.typeref.is_volatile) fputs("volatile ", f_debug);
       }  /* if */
-      if (!tp->variant.typeref.is_function_scope_tag) {
-        db_abbreviated_type(tp->variant.typeref.type);
-      } else {
-        fputs("tag: ", f_debug);
-        db_type(tp->variant.typeref.type);
-      }  /* if */
+      db_abbreviated_type(tp->variant.typeref.type);
       break;
     case tk_ptr_to_member:
       fputs("ptr-to-member of ", f_debug);
       db_abbreviated_type(tp->variant.ptr_to_member.class_of_which_a_member);
-      fputs(" (type = ", f_debug);
+      fputs(" of type ", f_debug);
       db_abbreviated_type(tp->variant.ptr_to_member.type);
-      fputs(")", f_debug);
       break;
     default:
       fputs("<bad type>", f_debug);
@@ -2779,7 +2773,7 @@ indicated string type.
   int_kind = elem_type->variant.integer.int_kind;
   return int_kind;
 }  /* char_int_kind_from_string_type */
-  
+
 
 a_type_ptr error_type(void)
 /*
@@ -2790,8 +2784,24 @@ Make or find a type entry for an error type, and return a pointer to it.
     il_error_type = fs_type((a_type_kind)tk_error);
     set_type_size(il_error_type);
   }  /* if */
-  return (il_error_type);
+  return il_error_type;
 }  /* error_type */
+
+
+a_type_ptr unknown_type(void)
+/*
+Make or find a type entry for an unknown type, and return a pointer to it.
+Such a type is only used in the front end; it does not survive into the back
+end.
+*/
+{
+  if (il_unknown_type == NULL) {
+    il_unknown_type = (a_type_ptr)alloc_fe(sizeof(a_type));
+    clear_type(il_unknown_type, (a_type_kind)tk_unknown);
+    /* set_type_size is not called on purpose. */
+  }  /* if */
+  return il_unknown_type;
+}  /* unknown_type */
 
 
 a_type_ptr void_type(void)
@@ -4330,7 +4340,7 @@ of the front end.
   memzero((char *)float_types, sizeof(float_types));
   memzero((char *)string_types, sizeof(string_types));
   memzero((char *)wide_string_types, sizeof(wide_string_types));
-  il_signed_int_type = il_error_type = il_void_type = NULL;
+  il_signed_int_type = il_error_type = il_unknown_type = il_void_type = NULL;
   memzero((char *)shareable_constants_table,
           sizeof(shareable_constants_table));
 #if DEBUG
