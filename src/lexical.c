@@ -4027,7 +4027,7 @@ id_scan:
       ctoken = tok_identifier;
 
       {
-        /* While looking for the end of the identifer, check to see if
+        /* While looking for the end of the identifier, check to see if
            it contains a dollar sign.  This is an extension and should
            be flagged the first time it is seen if we are in strict
            ANSI mode. */ 
@@ -4699,10 +4699,11 @@ Check whether the a symbol represents a class template and if so,
 call the routine to scan the argument list.  Otherwise just return the
 original symbol.
 */
-#define check_for_class_template(sym, err)				\
-    (((sym) != NULL && 						\
-      (sym)->kind == (a_symbol_kind)sk_class_template) ?	\
-           coalesce_template_class_reference(sym, GID_NO_OPTIONS, err) : sym)
+#define check_for_class_template(sym, err)				      \
+    (((sym) != NULL && 							      \
+      (sym)->kind == (a_symbol_kind)sk_class_template) ?		      \
+           coalesce_template_class_reference(sym, GID_TEMPLATE_ARGS_OPTIONAL, \
+                                             err) : sym)
                             
 
 
