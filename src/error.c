@@ -1723,11 +1723,14 @@ error code.
     case ec_return_type_on_conversion_function:
       m = "return type may not be specified on a conversion function";
       break;
-    case ec_template_detected_while_header:
-      m = "detected while:";
+    case ec_template_detected_during_header:
+      m = "detected during:";
       break;
     case ec_template_instantiation_context:
-      m = "%sinstantiating %nf %p";
+      m = "%sinstantiation of %nf %p";
+      break;
+    case ec_compiler_generated_function_context:
+      m = "%simplicit generation of %nf %p";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
@@ -4132,6 +4135,54 @@ restore the previously saved settings.
 }  /* check_severity */
 
 
+static a_boolean include_in_context_output
+			(a_scope_stack_entry_ptr ssep,
+			 a_symbol_ptr	         *context_sym,
+			 an_error_code		 *context_error_code)
+/*
+Return TRUE if this scope stack entry has context information that should
+be processed, otherwise return FALSE.  When TRUE is returned *context_sym
+is set to point to a symbol that provides the context information and
+*context_error_code is set to the approriate error code.
+*/
+{
+  a_boolean	result = FALSE;
+  a_symbol_ptr	sym;
+  an_error_code error_code;
+
+  if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+    /* Template instantiations (except for prototype instantiations)
+       need additional context information. */
+    if (ssep->assoc_instantiation == NULL) {
+      sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
+      result = sym->variant.class_struct_union.extra_info->
+							is_real_instantiation;
+    } else {
+      sym = ssep->assoc_instantiation->routine_sym;
+      result = TRUE;
+    }  /* if */
+    error_code = ec_template_instantiation_context;
+  } else if (ssep->kind == (a_scope_kind)sck_function) {
+    /* Compiler generated functions need additional information. */
+    if (ssep->assoc_routine->compiler_generated) {
+      sym = (a_symbol_ptr)ssep->assoc_routine->source_corresp.assoc_info;
+      result = TRUE;
+      error_code = ec_compiler_generated_function_context;
+    }  /* if */
+  }  /* if */
+  if (result) {
+    *context_sym = sym;
+    *context_error_code = error_code;
+  }  /* if */
+#if CHECKING
+  if (result && sym == NULL) {
+    internal_error("include_in_context_output: no symbol for context information");
+  }  /* if */
+#endif /* CHECKING */
+  return result;
+} /* include_in_context_output */
+
+
 static void diag_message (an_error_code              error_code,
                           a_source_position          *error_pos,
                           an_error_severity          severity,
@@ -4246,53 +4297,44 @@ template associated with error_code.  After constructing the segment list
          end-list messages. */
       write_diagnostic(error_pos, severity, diag_kind);
     } else {
-      int	num_of_instantiations = 0;
-      /* Check whether we are inside of a template instantiation and need
-         to supply additional context information. */
+      int		num_of_contexts = 0;
+      a_symbol_ptr	sym;
+      an_error_code	context_error_code;
+      /* Check whether we need to supply additional context information. */
       a_scope_depth	sd;
       for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
-        if (scope_stack[sd].kind == (a_scope_kind)sck_template_instantiation) {
-          num_of_instantiations++;
+        if (include_in_context_output(&scope_stack[sd], &sym,
+                                      &context_error_code)) {
+          num_of_contexts++;
         }  /* if */
       }  /* for */
       /* Issue the original message. */
-      context_required = num_of_instantiations > 0;
+      context_required = num_of_contexts > 0;
       write_diagnostic(error_pos, severity, diag_kind);
       context_required = FALSE;
       /* Loop through the scope stack and output context information. */
-      if (num_of_instantiations > 0) {
+      if (num_of_contexts > 0) {
         a_diagnostic_category_kind	context_diag_kind;
         char				*prefix_string;
-        if (num_of_instantiations != 1) {
+        if (num_of_contexts != 1) {
           /* If there is more than one line of context we output an
 	     initial header line. */
-          diag_message(ec_template_detected_while_header, &error_position,
+          init_error_params();
+          diag_message(ec_template_detected_during_header, &error_position,
                        severity, dck_context_primary);
         }  /* if */
         for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
           a_scope_stack_entry_ptr ssep = &scope_stack[sd];
-          a_symbol_ptr		sym;
-          if (ssep->kind != (a_scope_kind)sck_template_instantiation) continue;
-          /* If an instantiation pointer exists, use the symbol from it,
-	     otherwise there must be an assoc_type entry that we can get
-	     a symbol from. */
-          if (ssep->assoc_instantiation == NULL) {
-            sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
-          } else {
-	    sym = ssep->assoc_instantiation->routine_sym;
-          }  /* if */
-#if CHECKING
-          if (sym == NULL) {
-            internal_error("diag_message: no symbol for template information");
-          }  /* if */
-#endif /* CHECKING */
+          a_symbol_ptr		  sym;
+          if (!include_in_context_output(ssep, &sym,
+                                         &context_error_code)) continue;
           /* If only one line of context is being issued, then it is
 	     considered the "primary" context line and is prefixed with
-	     the string "detected while".  Otherwise a header was issued
+	     the string "detected during".  Otherwise a header was issued
 	     above and the context lines are handled as list elements. */
-          if (num_of_instantiations == 1) {
+          if (num_of_contexts == 1) {
  	    context_diag_kind = dck_context_primary;
-	    prefix_string = "detected while ";
+	    prefix_string = "detected during ";
           } else {
  	    context_diag_kind = dck_list;
 	    prefix_string = "";
@@ -4301,7 +4343,7 @@ template associated with error_code.  After constructing the segment list
           error_msg_syms[1] = sym;
 	  error_msg_strings[1] = prefix_string;
 	  error_msg_positions[1] = &ssep->source_position;
-          diag_message(ec_template_instantiation_context,
+          diag_message(context_error_code,
                        &error_position, severity, context_diag_kind);
         }  /* for */
        /* Issue an "end context" message to indicate that all of the

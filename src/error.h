@@ -493,8 +493,9 @@ typedef enum /*an_error_code*/ {
   ec_nonstd_long_long,
   ec_nonstd_friend_decl,
   ec_return_type_on_conversion_function,
-  ec_template_detected_while_header,
-  ec_template_instantiation_context
+  ec_template_detected_during_header,
+  ec_template_instantiation_context,
+  ec_compiler_generated_function_context
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
