@@ -802,12 +802,11 @@ Do the output in the way described by octl.
       output_qualifier(TQ_RESTRICT, "restrict");
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-    if (octl->gen_compilable_code) {
+    if (octl->gen_compilable_code &&
+        !microsoft_dialect_is_generated_code_target) {
       /* Suppress "__unaligned" in generated compilable code. */
       qualifiers &= ~TQ_UNALIGNED;
     }  /* if */
-#endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
     output_qualifier(TQ_UNALIGNED, "__unaligned");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
@@ -853,9 +852,6 @@ Do the output in the way described by octl.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-#if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-/*ARGSUSED*/ /* <-- Routine does nothing in some cases. */
-#endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 void form_calling_convention(
                      a_calling_convention                  calling_convention,
                      an_il_to_str_output_control_block_ptr octl)
@@ -864,19 +860,16 @@ Output a string for a Microsoft-specific calling convention.
 Put out a space after the calling convention (if one is put out).
 Do the output in the way described by octl.  If GNU C code is generated,
 nothing should be done here since the calling convention will be issued as
-an attribute (in that case SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-should be TRUE).
+an attribute (in that case microsoft_dialect_is_generated_code_target should
+be FALSE).
 */
 {
-#if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-  if (octl->gen_compilable_code) {
+  if (octl->gen_compilable_code &&
+      !microsoft_dialect_is_generated_code_target) {
     /* The Microsoft keywords should only be suppressed in compilable code.
        Not, for example, in diagnostics. */
-  } else
-#endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-  /* Do not insert code here. */
-  /* Put out nothing for the default calling convention. */
-  if (calling_convention != (a_calling_convention)cc_default) {
+  } else if (calling_convention != (a_calling_convention)cc_default) {
+    /* Put out nothing for the default calling convention. */
     octl->output_str(calling_convention_names[(int)calling_convention]);
     /* Put out a trailing space. */
     octl->output_str(" ");

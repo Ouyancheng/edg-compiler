@@ -1,5 +1,12 @@
 Version 3.5
 
+10/23/04 Macro SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE eliminated
+
+The macro SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE is no longer used to
+determine whether certain Microsoft-specific constructs should be emitted by
+the C- and C++-generating back ends.  Instead, such constructs are emitted
+when microsoft_dialect_is_generated_code_target is TRUE.
+
 10/21/04 GNU compatibility: interaction of --restrict and --gcc/--g++
 
 When the --restrict or --c99 option was used in conjunction with the --gcc

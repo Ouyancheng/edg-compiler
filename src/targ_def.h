@@ -2571,33 +2571,6 @@ array declarators (a C99 feature) should be suppressed in the output.
 #endif /* SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE */
 
 /*
-Flag that is TRUE if, when the C-generating back end (c_gen_be) or
-C++/C-generating back end (cp_gen_be) is run, the Microsoft qualifiers
-should be suppressed in the output.  This flag is only applicable if
-MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
-*/
-#ifndef SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-#if MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET
-#define SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE FALSE
-#else /* !MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET */
-#define SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE TRUE
-#endif /* MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET */
-#endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
-
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-/*
-If the C-generating or C++-generating back end is generating code for the
-GNU C compiler, Microsoft keywords should be suppressed.
-*/
-
-#if GCC_IS_GENERATED_CODE_TARGET && \
-    !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
- #error -- SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE must be TRUE when \
-           GCC_IS_GENERATED_CODE_TARGET is TRUE
-#endif /* GCC_IS_GENERATED_CODE_TARGET && !SUPPRESS_MICROSOFT_KEYWORDS... */
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-
-/*
 Flag that is TRUE if the C++-generating back end should generate code for a
 compiler that does not visibly inject friend function declarations in the
 surrounding namespace scope.  This flag is only applicable if

@@ -2955,7 +2955,6 @@ done:;
 }  /* gen_storage_class */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
 
 static void gen_microsoft_decl_modifiers(a_decl_modifier decl_modifiers);
 
@@ -3071,7 +3070,6 @@ These follow the tag kind, e.g., "struct __single_inheritance xxx".
   }  /* if */
 }  /* gen_microsoft_class_decl_modifiers */
 
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_tag_reference(a_type_ptr type)
@@ -3126,9 +3124,9 @@ or enum.
     write_tok_str(tag_kind_str);
     write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-    if (type->first_declaration_pending ||
-        type->emit_microsoft_class_decl_modifiers) {
+    if (microsoft_dialect_is_generated_code_target &&
+        (type->first_declaration_pending ||
+         type->emit_microsoft_class_decl_modifiers)) {
       if (il_header.source_language == sl_Cplusplus) {
         if (type->kind != (a_type_kind)tk_enum) {
           /* On the first declaration put out declaration modifiers that apply
@@ -3140,7 +3138,6 @@ or enum.
         }  /* if */
       }  /* if */
     }  /* if */
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (type->first_declaration_pending) {
       /* The initial declaration of a tag cannot use a qualified name. */
@@ -3883,13 +3880,12 @@ is the one associated with the definition of the enum.
   /* Generate "enum <name>". */
   write_tok_str("enum");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-  if (type->variant.integer.uuid_string != NULL) {
+  if (microsoft_dialect_is_generated_code_target &&
+      type->variant.integer.uuid_string != NULL) {
     /* enum types may carry uuid specifications. */
     write_space();
     gen_microsoft_uuid_declspec(type->variant.integer.uuid_string);
   }  /* if */
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Put out the name if the enum is named.  In C mode, invent a name for
      an unnamed enum because it may be needed for casts to enum types defined
@@ -4197,25 +4193,25 @@ declaration following this one is such a continuation.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-  if (field->get_property_name != NULL ||
-      field->put_property_name != NULL) {
-    /* This field is declared with __declspec(property(...)). */
-    write_tok_str("__declspec(property(");
-    if (field->get_property_name != NULL) {
-      write_tok_str("get=");
-      write_tok_str(field->get_property_name);
-      if (field->put_property_name != NULL) write_tok_ch(',');
+  if (microsoft_dialect_is_generated_code_target) {
+    if (field->get_property_name != NULL ||
+        field->put_property_name != NULL) {
+      /* This field is declared with __declspec(property(...)). */
+      write_tok_str("__declspec(property(");
+      if (field->get_property_name != NULL) {
+        write_tok_str("get=");
+        write_tok_str(field->get_property_name);
+        if (field->put_property_name != NULL) write_tok_ch(',');
+      }  /* if */
+      if (field->put_property_name != NULL) {
+        write_tok_str("put=");
+        write_tok_str(field->put_property_name);
+      }  /* if */
+      write_tok_str(")) ");
     }  /* if */
-    if (field->put_property_name != NULL) {
-      write_tok_str("put=");
-      write_tok_str(field->put_property_name);
-    }  /* if */
-    write_tok_str(")) ");
+    gen_microsoft_deprecated_spec(&field->source_corresp);
+    gen_microsoft_align_declspec(field->alignment);
   }  /* if */
-  gen_microsoft_deprecated_spec(&field->source_corresp);
-  gen_microsoft_align_declspec(field->alignment);
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (field->is_mutable) write_tok_str("mutable ");
   /* Generate the field type and name.  No name is displayed for unnamed
@@ -4256,7 +4252,6 @@ declaration following this one is such a continuation.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
 
 static void gen_microsoft_decl_modifiers(a_decl_modifier decl_modifiers)
 /*
@@ -4304,7 +4299,6 @@ Print a set of Microsoft declaration modifiers.
   }  /* if */
 }  /* gen_microsoft_decl_modifiers */
 
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_base_class_list(a_class_type_supplement_ptr  ctsp)
@@ -4424,11 +4418,11 @@ is the one associated with the definition of the class.
   write_tok_str(tag_keyword(type));
   write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-  /* Put out modifiers that apply to the class as a whole, e.g.,
-     "class __declspec(dllimport) A {...}". */
-  gen_microsoft_class_decl_modifiers(type, /*is_definition=*/TRUE);
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+  if (microsoft_dialect_is_generated_code_target) {
+    /* Put out modifiers that apply to the class as a whole, e.g.,
+       "class __declspec(dllimport) A {...}". */
+    gen_microsoft_class_decl_modifiers(type, /*is_definition=*/TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Write the name of the class. */
   if (ctsp != NULL &&
@@ -4570,11 +4564,10 @@ declaration following this one is such a continuation.
     a_type_ptr class_type;
     if (!suppress_specifiers) write_tok_str("typedef ");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-    if (type->alignment_set_explicitly) {
+    if (microsoft_dialect_is_generated_code_target &&
+        type->alignment_set_explicitly) {
       gen_microsoft_align_declspec(type->alignment);
     }  /* if */
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_function_type(under_type) &&
         (class_type = f_skip_typerefs(under_type)->variant.routine.extra_info->
@@ -8777,8 +8770,7 @@ static void gen_routine_specifiers_and_declaration(
                           a_source_sequence_scan_state *saved_state,
                           a_name_reference_ptr         name_ref);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED && \
-    !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void suppress_microsoft_decl_modifiers_put_out_on_class(
                                        a_decl_modifier         *decl_modifiers,
@@ -8817,9 +8809,9 @@ definition, is_definition is TRUE.
   gen_microsoft_deprecated_spec(&rout->source_corresp);
 }  /* gen_microsoft_routine_decl_modifiers */
 
-#else /* !(MICROSOFT_EXTENSIONS_ALLOWED && !SUPPRESS_MICROSOFT_KEYWORDS_...) */
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define gen_microsoft_routine_decl_modifiers(rout, is_definition) /* Nothing */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !SUPPRESS_MICROSOFT_KEYWORDS_... */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_instantiation_directive(void)
 /*
@@ -10149,8 +10141,8 @@ declaration following this one is such a continuation.
     }  /* if */
 #endif /* NAMED_REGISTERS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-    { a_decl_modifier decl_modifiers = var->decl_modifiers;
+    if (microsoft_dialect_is_generated_code_target) {
+      a_decl_modifier decl_modifiers = var->decl_modifiers;
       /* __declspec(selectany) applies only to definitions. */
       if (!is_definition) decl_modifiers &= ~DM_SELECTANY;
       suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
@@ -10159,8 +10151,7 @@ declaration following this one is such a continuation.
       gen_microsoft_allocate_declspec(var->allocate_segname);
       gen_microsoft_deprecated_spec(&var->source_corresp);
       gen_microsoft_align_declspec(var->alignment);
-    }
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* An unqualified name is used in the declarator if this is a declaration
@@ -10906,12 +10897,11 @@ TRUE if the declaration following this one is such a continuation.
         write_tok_str("__inline__ ");
       } else
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-      if (rout->decl_modifiers & (DM_MICROSOFT_INLINE | DM_FORCEINLINE)) {
+      if (microsoft_dialect_is_generated_code_target &&
+          rout->decl_modifiers & (DM_MICROSOFT_INLINE | DM_FORCEINLINE)) {
         /* Suppress inline if we will be putting out the Microsoft
            __inline or __forceinline later. */
       } else
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {

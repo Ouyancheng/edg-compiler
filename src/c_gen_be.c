@@ -2131,7 +2131,6 @@ information is given by scp.
 }  /* dump_decl_associated_pragmas */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
 
 static void dump_microsoft_decl_modifiers(a_decl_modifier decl_modifiers)
 /*
@@ -2207,7 +2206,6 @@ given alignment value is nonzero.
   }  /* if */
 }  /* dump_microsoft_align_declspec */
 
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void dump_typedef_decl(a_type_ptr type)
@@ -2245,11 +2243,10 @@ Print a typedef declaration.
       set_output_position(&type->source_corresp.decl_position);
       write_tok_str("typedef ");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-      if (type->alignment_set_explicitly) {
+      if (microsoft_dialect_is_generated_code_target &&
+          type->alignment_set_explicitly) {
         dump_microsoft_align_declspec(type->alignment);
       }  /* if */
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       dump_declaration_using_type(type->variant.typeref.type,
                                   &type->source_corresp);
@@ -2636,14 +2633,14 @@ final semicolon if output_final_semi is TRUE.
     write_tok_str(tag_kind(type->kind));
     write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-    if (type->alignment_set_explicitly) {
-      dump_microsoft_align_declspec(type->alignment);
+    if (microsoft_dialect_is_generated_code_target) {
+      if (type->alignment_set_explicitly) {
+        dump_microsoft_align_declspec(type->alignment);
+      }  /* if */
+      if (type->is_microsoft_intrinsic) {
+        write_tok_str("__declspec(intrin_type) ");
+      }  /* if */
     }  /* if */
-    if (type->is_microsoft_intrinsic) {
-      write_tok_str("__declspec(intrin_type) ");
-    }  /* if */
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     dump_type_name(type);
     write_tok_str(" {");
@@ -2671,9 +2668,9 @@ final semicolon if output_final_semi is TRUE.
       set_output_position(&field->source_corresp.decl_position);
       dump_decl_associated_pragmas(&field->source_corresp);
 #if USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-      dump_microsoft_align_declspec(field->alignment);
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+      if (microsoft_dialect_is_generated_code_target) {
+        dump_microsoft_align_declspec(field->alignment);
+      }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED */
       if (!field->is_bit_field) {
         a_type_ptr field_type = field->type;
@@ -6241,9 +6238,9 @@ parameters.
       } /* if */
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+      if (microsoft_dialect_is_generated_code_target) {
       /* Microsoft-specific keywords. */
-      { a_decl_modifier decl_modifiers = variable->decl_modifiers;
+        a_decl_modifier decl_modifiers = variable->decl_modifiers;
         /* __declspec(selectany) applies only to definitions. */
         if (!dump_initializers && init_con != NULL) {
           decl_modifiers &= ~DM_SELECTANY;
@@ -6251,8 +6248,7 @@ parameters.
         dump_microsoft_decl_modifiers(decl_modifiers);
         dump_microsoft_allocate_declspec(variable->allocate_segname);
         dump_microsoft_align_declspec(variable->alignment);
-      }
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if C_GEN_BE_GENERATES_ANSI_C
       underlying_var_type = var_type;
@@ -8166,9 +8162,9 @@ if this routine has a body (dump nothing if it has no body).
     } /* if */
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-    /* Microsoft-specific keywords. */
-    { a_decl_modifier decl_modifiers = rout->decl_modifiers;
+    if (microsoft_dialect_is_generated_code_target) {
+      /* Microsoft-specific keywords. */
+      a_decl_modifier decl_modifiers = rout->decl_modifiers;
       /* __declspec(naked) applies only to definitions. */
       if (!is_definition) decl_modifiers &= ~DM_NAKED;
       if (is_definition && rout->is_inline && msvc_is_generated_code_target) {
@@ -8176,8 +8172,7 @@ if this routine has a body (dump nothing if it has no body).
         decl_modifiers |= DM_MICROSOFT_INLINE;
       }  /* if */
       dump_microsoft_decl_modifiers(decl_modifiers);
-    }
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (gcc_is_generated_code_target && rout->is_inline) {
       /* gcc will be used to compile this generated code, so we know how to
