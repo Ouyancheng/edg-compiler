@@ -1768,6 +1768,15 @@ Dump the definition ({...}) if body is TRUE.
       /* No fill is needed if we're at the right place (or rather, if we will
          be after alignment). */
       if (exp_next_offset_after_alignment != field->bit_offset) {
+#if CHECKING
+        if (exp_next_offset_after_alignment > field->bit_offset) {
+          internal_error("dump_struct: field offsets out of order");
+          /* Note: one possible cause of this would be allocating C++ nonstatic
+             data members in a way such that declaration order does not match
+             storage order, like all public members first, then all protected,
+             then all private. */
+        }  /* if */
+#endif /* CHECKING */
         if (field->bit_size == 0 ||
             field->bit_offset+field->bit_size - exp_next_offset >
                                             TARG_BITS_IN_BIT_FIELD_CONTAINER) {
