@@ -4814,58 +4814,6 @@ from the same class as the one with which vbcp is associated.
 }  /* virtual_base_class_is_indirect */
 
 
-#if 0
-static void check_access_on_assignment_operator(a_type_ptr  class_type,
-                                                a_boolean   const_required)
-/*
-Issue an error if we have no access to the assignment operator for the
-class.
-*/
-{
-  a_symbol_ptr  sym, opass_sym = NULL;
-  a_boolean     is_overloaded_function;
-  a_type_ptr    tp;
-
-  db_enter(4, "check_access_on_assignment_operator");
-  sym = symbol_supplement_for_class(class_type)->assignment_operator;
-  /* If sym is an overloaded function symbol we need to go through the whole
-     list. */
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    is_overloaded_function = TRUE;
-    sym = sym->variant.overloaded_function.symbols;
-  } else {
-    is_overloaded_function = FALSE;
-  }  /* if */
-  /* Find an assignment operator. */
-  for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    tp = routine_symbol_type(sym)->
-                          variant.routine.extra_info->param_type_list->type;
-    if (is_reference_type(tp)) tp = type_pointed_to(tp);
-    if (skip_typerefs(tp) != class_type) {
-      /* Not an assignment operator that can be used for copying.  Keep
-         looking. */
-    } else {
-      /* We have a match. */
-      opass_sym = sym;
-      if (is_const_qualified_type(tp) == const_required) {
-        /* We have an exact match. */
-        break;
-      }  /* if */
-    }  /* if */
-  }  /* for */
-#if CHECKING
-  if (opass_sym == NULL) {
-    internal_error("check_access_on_assignment_operator: not found");
-  }  /* if */
-#endif /* CHECKING */
-  if (!have_access_to_symbol(opass_sym)) {
-    sym_error(ec_inaccessible_assignment_operator, opass_sym);
-  }  /* if */
-  db_exit();
-}  /* check_access_on_assignment_operator */
-#endif /* if 0 */
-
-
 static a_routine_ptr select_assignment_operator(
                                     a_type_ptr        class_type,
                                     a_boolean         const_object_required,
@@ -6860,12 +6808,6 @@ by recursive calls.
             if (rp->is_inline) {
               /* An inline member function remains internally linked even
                  when it is a member of an externally linked class. */
-#if 0
-            } else if (rp->pure_virtual &&
-                       rp->assoc_scope == NULL_region_number) {
-              /* Undefined pure virtual functions do not get external
-                 linkage either. */
-#endif /* if 0 */
             } else {
               /* All other functions must be externally linked.  The storage
                  class (extern or unspecified) depends on whether the function
@@ -7005,17 +6947,6 @@ because they were used in declaring an external function or variable.
           for (rp = class_scope->routines; rp != NULL; rp = rp->next) {
             if (rp->is_inline) {
               /* Inline functions do not have external linkage. */
-#if 0
-            } else if (rp->pure_virtual &&
-                       rp->assoc_scope == NULL_region_number) {
-              /* Pure virtual functions that were not specified "inline" do
-                 not have external linkage unless they were defined.  (In
-                 ARM 3.3 there is a reference to "noninline" functions.  Are
-                 undefined pure virtual functions "noninline"?  No more than
-                 they are "inline".  Otherwise all abstract classes would be
-                 externally linked by default unless "inline" were specified
-                 for each pure virtual function.) */
-#endif /* if 0 */
             } else {
               /* At least one noninline member function: external linkage is
                  required. */
