@@ -300,6 +300,37 @@ Complete the file scope of each of the translation units.
 }  /* wrap_up_file_scopes */
 
 
+static void template_and_inline_function_wrapup(void)
+/*
+For each translation unit, call instantiation_wrapup to generate any
+instantiations needed by that translation unit; generate any virtual
+destructors that may be required; and determine which extern inline
+functions require definitions in this translation unit.
+*/
+{
+  a_translation_unit_ptr	tup;
+
+  for (tup = translation_units; tup != NULL; tup = tup->next) {
+    switch_translation_unit(tup);
+    /* Do any template instantiation that may be required.  This is called
+       first because it may generate additional function bodies and class
+       definitions that need to be processed by the operations that follow. */
+    instantiation_wrapup();
+
+    if (C_dialect == C_dialect_cplusplus) {
+      /* Go through the classes in the file scope and each namespace scope
+         and generate bodies for virtual destructors, as required. */
+      generate_required_virtual_destructor_bodies(il_header.primary_scope);
+      /* Determine which extern inline functions should have bodies emitted
+         as part of this translation unit. */
+      inline_function_wrapup();
+    }  /* if */
+  }  /* for */
+  /* Switch back to the primary translation unit. */
+  switch_translation_unit(translation_units);
+}  /* template_and_inline_function_wrapup */
+
+
 void fe_wrapup(void)
 /*
 Do any processing required at the end of execution of the front end,
@@ -316,19 +347,9 @@ and before the back end (if any) is executed.
   check_assertion_str2(is_primary_translation_unit,
                        "fe_wrapup:", "bad translation unit in fe_wrapup");
 
-  /* Do any template instantiation that may be required.  This is called
-     first because it may generate additional function bodies and class
-     definitions that need to be processed by the operations that follow. */
-  instantiation_wrapup();
-
-  if (C_dialect == C_dialect_cplusplus) {
-    /* Go through the classes in the file scope and each namespace scope
-       and generate bodies for virtual destructors, as required. */
-    generate_required_virtual_destructor_bodies(il_header.primary_scope);
-    /* Determine which extern inline functions should have bodies emitted
-       as part of this translation unit. */
-    inline_function_wrapup();
-  }  /* if */
+  /* For each translation unit, generate any instantiations that are
+     needed, and determine which inline functions require definitions. */
+  template_and_inline_function_wrapup();
 
   /* Lower the file scope, remove unneeded entities, etc. */
   wrap_up_file_scopes();
