@@ -332,7 +332,41 @@ Dump a direct base class entry, for debug purposes.
     }  /* while */
   }  /* if */
   fputs(" ]]", f_debug);
-}  /* db_base_class */
+}  /* db_direct_base_class */
+
+
+static void db_indirect_base_class(a_base_class *bcp)
+/*
+Dump an indirect base class entry, for debug purposes.
+*/
+{
+  a_derivation_step_ptr  dsp;
+
+  fprintf(f_debug, "    %s", bcp->type->source_corresp.name);
+  if (bcp->is_virtual) fputs(", is_virtual", f_debug);
+  if (bcp->ambiguous) fputs(", ambiguous", f_debug);
+  if (bcp->inaccessible) fputs (", inaccessible", f_debug);
+  fputs(", path = ", f_debug);
+  dsp = bcp->derivation;
+  if (dsp == NULL) {
+    fputs("<null>", f_debug);
+  } else {
+    for (;;) {
+      if (dsp->base_class == NULL || dsp->base_class->type == NULL) {
+        fputs("<???>", f_debug);
+      } else {
+        fputs(dsp->base_class->type->source_corresp.name, f_debug);
+      }  /* if */
+      dsp = dsp->next;
+      if (dsp != NULL) {
+        fputs("==>", f_debug);
+      } else {
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  fputc('\n', f_debug);
+}  /* db_indirect_base_class */
 
 
 static void db_virtual_base_class(a_base_class *bcp)
@@ -460,11 +494,16 @@ class_struct_union:
       {
         a_base_class_ptr  bcp = NULL;
         a_boolean         any_virtual_base_classes = FALSE;
+        a_boolean         any_indirect_base_classes = FALSE;
 
         ctsp = tp->variant.class_struct_union.extra_info;
         if (ctsp != NULL) bcp = ctsp->base_classes;
         for (; bcp != NULL; bcp = bcp->next) {
-          if (bcp->direct) db_direct_base_class(bcp, 0);
+          if (bcp->direct) {
+            db_direct_base_class(bcp, 0);
+          } else {
+            any_indirect_base_classes = TRUE;
+          }  /* if */
           if (bcp->is_virtual) any_virtual_base_classes = TRUE;
         } /* for */
         fputc('\n', f_debug);
@@ -479,6 +518,12 @@ class_struct_union:
             fputs("  collected virtual base classes:\n", f_debug);
             for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
               if (bcp->is_virtual) db_virtual_base_class(bcp);
+            }  /* for */
+          }  /* if */
+          if (any_indirect_base_classes) {
+            fputs("  indirect base classes:\n", f_debug);
+            for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+              if (!bcp->direct) db_indirect_base_class(bcp);
             }  /* for */
           }  /* if */
           if (vp != NULL) {
@@ -1684,7 +1729,7 @@ to it.
   bcp->is_virtual     = FALSE;
   bcp->direct	      = FALSE;
   bcp->ambiguous      = FALSE;
-  bcp->is_accessible  = FALSE;
+  bcp->inaccessible   = FALSE;
   bcp->access         = (an_access_specifier)as_public;
   bcp->offset         = 0;
   bcp->pointer_offset = 0;
