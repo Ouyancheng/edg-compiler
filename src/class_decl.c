@@ -35,118 +35,177 @@ class_decl.c -- Scanning of class declarations.
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
 
+/*
+Structure for keeping track of token cache representing a default argument
+expression, prescanned during a member function declaration within a class
+definition and actually processed once the class definition is complete.
+*/
+typedef struct a_def_arg_expr_fixup *a_def_arg_expr_fixup_ptr;
+typedef struct a_def_arg_expr_fixup {
+  a_def_arg_expr_fixup_ptr
+		next;
+			/* Next in a linked list of entries representing
+			   default argument expressions for the parameters
+			   of a given function. */
+  a_token_cache token_cache;
+			/* A pointer to the token cache that describes the
+			   default argument expression. */
+  a_param_type_ptr
+		param_type;
+			/* A pointer to the param type entry in which the
+			   expression node is to be stored once its tokens
+			   have been scanned. */
+} a_def_arg_expr_fixup;
 
 /*
-Structure for keeping track of token caches and associated IL entities
-when scanning must be delayed till the end of a class definition.
+Structure for keeping track of fixup information for a particular member
+function, including both the cached tokens comprising default argument
+expressions of its parameters and the cached tokens comprising the function
+body, if it is defined inline.
 */
-typedef struct a_delayed_scan_fixup {
-  a_delayed_scan_fixup_ptr
-		next;	/* Next in a linked list of entries representing
-			   token sequences to be rescanned and IL entities
-			   to be updated. */
-  a_byte_boolean
-		is_arg_default_value;
-			/* TRUE when the IL entity is a default value in an
-			   argument declaration;  FALSE when the it is a
-			   routine body, optionally including constructor
-			   initializers. */
-  a_token_cache token_cache;
-			/* The structure containing a linked list of cached
-			   tokens, representing the tokens to be rescanned. */
-  union {
-    /* When is_arg_default_value is TRUE: */
-    a_param_type_ptr
-		param_type;
-			/* Pointer to the parameter type entry whose default
-			   value is specified by the tokens in token_cache. */
-    /* When is_arg_default_value is FALSE: */
-    struct {
-      a_routine_ptr
-		routine;
-			/* Pointer to the routine entry whose body is
-			   specified by the tokens in token_cache. */
-      a_func_info_block
-		extra_info;
+/* a_routine_fixup_ptr is already defined in class_decl.h. */
+typedef struct a_routine_fixup {
+  a_routine_fixup_ptr
+		next;
+			/* Next in a linked list of routine fixup blocks,
+			   each of which is associated with a particular
+			   member function of a given class. */
+  a_routine_ptr routine;
+			/* Pointer to the routine entry to which the fixup
+			   applies. */
+  a_func_info_block
+		func_info;
 			/* Information saved by declarator processing for
 			   use in function definition processing. */
-    } inline_func;
-  } variant;
-} a_delayed_scan_fixup;
+  a_def_arg_expr_fixup_ptr
+		def_arg_expr_fixup_list;
+			/* List of entries describing default argument
+			   expression associated with parameters for the
+			   current routine. */
+  a_token_cache function_body_token_cache;
+			/* A pointer to the token cache that describes the
+			   function body. */
+} a_routine_fixup;
 
 
-/* Previously allocated delayed-scan-fixup entries available for reuse. */
-static a_delayed_scan_fixup_ptr avail_delayed_scan_fixup;
+/* The routine fixup entry for the current class member declaration. */
+static a_routine_fixup_ptr curr_routine_fixup;
+/* Previously allocated fixup entries available for reuse. */
+static a_routine_fixup_ptr avail_routine_fixup;
+static a_def_arg_expr_fixup_ptr avail_def_arg_expr_fixup;
 
 
-static a_delayed_scan_fixup_ptr alloc_delayed_scan_fixup(a_boolean is_arg_def)
+static a_routine_fixup_ptr alloc_routine_fixup(void)
 /*
-Allocate and initialize a delayed-scan-fixup entry.
+Allocate (or take from the available-list) a routine fixup entry and
+initialize it.
 */
 {
-  a_delayed_scan_fixup_ptr  dsfp;
-
-  if (avail_delayed_scan_fixup != NULL) {
+  a_routine_fixup_ptr  rfp;
+  
+  if (avail_routine_fixup != NULL) {
     /* Reuse a previously allocated entity. */
-    dsfp = avail_delayed_scan_fixup;
-    avail_delayed_scan_fixup = dsfp->next;
+    rfp = avail_routine_fixup;
+    avail_routine_fixup = rfp->next;
   } else {
     /* Allocate memory for a new entity. */
-    dsfp = (a_delayed_scan_fixup_ptr)alloc_fe(sizeof(a_delayed_scan_fixup));
+    rfp = (a_routine_fixup_ptr)alloc_fe(sizeof(a_routine_fixup));
 #if 0
 #if DEBUG
-    num_delayed_scan_fixups_allocated++;
+    num_routine_fixups_allocated++;
 #endif /* DEBUG */
 #endif /* if 0 */
   }  /* if */
   /* Clear the entity. */
-  dsfp->next = NULL;
-  dsfp->is_arg_default_value = is_arg_def;
-  clear_token_cache(&dsfp->token_cache);
-  if (is_arg_def) {
-    dsfp->variant.param_type = NULL;
+  rfp->next = NULL;
+  rfp->routine = NULL;
+  rfp->def_arg_expr_fixup_list = NULL;
+  clear_func_info(&rfp->func_info);
+  clear_token_cache(&rfp->function_body_token_cache);
+
+  return rfp;
+}  /* alloc_routine_fixup */
+
+
+static a_def_arg_expr_fixup_ptr alloc_def_arg_expr_fixup(void)
+/*
+Allocate (or take from the available-list) a default arg expression fixup
+entry and initialize it.
+*/
+{
+  a_def_arg_expr_fixup_ptr  daefp;
+  
+  if (avail_def_arg_expr_fixup != NULL) {
+    /* Reuse a previously allocated entity. */
+    daefp = avail_def_arg_expr_fixup;
+    avail_def_arg_expr_fixup = daefp->next;
   } else {
-    dsfp->variant.inline_func.routine = NULL;
-    clear_func_info(&dsfp->variant.inline_func.extra_info);
+    /* Allocate memory for a new entity. */
+    daefp = (a_def_arg_expr_fixup_ptr)alloc_fe(sizeof(a_def_arg_expr_fixup));
+#if 0
+#if DEBUG
+    num_def_arg_expr_fixups_allocated++;
+#endif /* DEBUG */
+#endif /* if 0 */
   }  /* if */
-  return dsfp;
-}  /* alloc_delayed_scan_fixup */
+  /* Clear the entity. */
+  daefp->next = NULL;
+  daefp->param_type = NULL;
+  clear_token_cache(&daefp->token_cache);
+
+  return daefp;
+}  /* alloc_def_arg_expr_fixup */
 
 
-static void free_delayed_scan_fixup(a_delayed_scan_fixup_ptr  dsfp)
+static void free_def_arg_expr_fixup(a_def_arg_expr_fixup_ptr  daefp)
 /*
-Return a delayed-scan-fixup entry to the available list.
+Return a default arg expr fixup entry, and any others chained to it, to the
+available-list.
 */
 {
-  dsfp->next = avail_delayed_scan_fixup;
-  avail_delayed_scan_fixup = dsfp;
-}  /* free_delayed_scan_fixup */
+  if (daefp != NULL) {
+    free_def_arg_expr_fixup(daefp->next);
+    daefp->next = avail_def_arg_expr_fixup;
+    avail_def_arg_expr_fixup = daefp;
+  }  /* if */
+}  /* free_def_arg_expr_fixup */
 
 
-static void add_to_delayed_scan_fixup_list(a_delayed_scan_fixup_ptr dsfp,
-                                           a_scope_stack_entry_ptr  ssep)
+static void free_routine_fixup(a_routine_fixup_ptr  rfp)
 /*
-Add a delayed-scan-fixup entry to the end of the list for the class
-associated with the indicated scope stack entry.
+Return a routine fixup entry, along with any default arg expr fixup entries
+associated with it, to their respective available-lists.
 */
 {
+  free_def_arg_expr_fixup(rfp->def_arg_expr_fixup_list);
+  rfp->def_arg_expr_fixup_list = NULL;
+  rfp->next = avail_routine_fixup;
+  avail_routine_fixup = rfp;
+}  /* free_routine_fixup */
+
+
+static void add_to_routine_fixup_list(a_routine_fixup_ptr      rfp)
+/*
+Add a routine fixup entry to the end of the list for the class associated
+with the indicated scope stack entry.
+*/
+{
+  a_scope_stack_entry  *ssep = &scope_stack[depth_scope_stack];
 #if CHECKING
   if (ssep->il_scope->kind != (a_scope_kind)sck_class_struct_union) {
-    internal_error("add_to_delayed_scan_fixup_list: bad scope kind");
+    internal_error("add_to_routine_fixup_list: bad scope kind");
   }  /* if */
 #endif /* CHECKING */
-  if (ssep->last_delayed_scan_fixup == NULL) {
-    (symbol_supplement_for_class(ssep->assoc_type))->
-                                    delayed_scan_fixup_list = dsfp;
+  if (ssep->last_routine_fixup == NULL) {
+    (symbol_supplement_for_class(ssep->assoc_type))->routine_fixup_list = rfp;
   } else {
-    ssep->last_delayed_scan_fixup->next = dsfp;
+    ssep->last_routine_fixup->next = rfp;
   }  /* if */
-  ssep->last_delayed_scan_fixup = dsfp;
-}  /* add_to_delayed_scan_fixup_list */
+  ssep->last_routine_fixup = rfp;
+}  /* add_to_routine_fixup_list */
 
 
-static a_boolean prescan_function_definition(a_routine_ptr     rout_ptr,
-                                             a_func_info_block *extra_info_ptr)
+static a_boolean prescan_function_definition(void)
 /*
 Place the tokens for a function definition (including, perhaps, the
 constructor initializer) into a token cache, to await actual processing
@@ -154,20 +213,16 @@ at a later point.  The current token is either a left brace or, when a
 constructor initializer is present, a colon.
 */
 {
-  a_delayed_scan_fixup_ptr  dsfp;
+  a_token_cache_ptr         token_cache;
   a_stop_token_array        save_stop_token_array;
   a_boolean                 success = FALSE;
   a_token_kind              save_curr_token;
 
   db_enter(3, "prescan_function_definition");
-  /* Allocate a delayed scan fixup entry.  The subroutine performs a clear
-     cache operation on the token_cache field, so there's no need to do it
-     again. */
-  dsfp = alloc_delayed_scan_fixup(/*is_arg_def=*/FALSE);
-  /* Associate the routine with the entry just created. */
-  dsfp->variant.inline_func.routine = rout_ptr;
-  memcpy((char *)&dsfp->variant.inline_func.extra_info,
-         (char *)extra_info_ptr, sizeof(a_func_info_block));
+
+  /* Use the token cache in curr_routine_fixup.  It has already been
+     cleared. */
+  token_cache = &curr_routine_fixup->function_body_token_cache;
   /* Save the current stop token state, and reinitialize it. */
   copy_stop_tokens(stop_token_array, save_stop_token_array);
   clear_stop_tokens();
@@ -179,32 +234,30 @@ constructor initializer is present, a colon.
        semicolon is seen. */
     add_stop_token(tok_semicolon);
     add_stop_token(tok_lbrace);
-    cache_token_stream(&dsfp->token_cache);
+    cache_token_stream(token_cache);
     remove_stop_token(tok_lbrace);
     remove_stop_token(tok_semicolon);
   }  /* if */
   if (curr_token == tok_lbrace) {
     /* The left brace marks the start of the function body.  Cache all the
        tokens up to the right brace. */
-    cache_curr_token(&dsfp->token_cache);
+    cache_curr_token(token_cache);
     (void)get_token();
-    cache_token_stream(&dsfp->token_cache);
+    cache_token_stream(token_cache);
   }  /* if */
   remove_stop_token(tok_rbrace);
   if (curr_token == tok_rbrace) {
-    cache_curr_token(&dsfp->token_cache);
+    cache_curr_token(token_cache);
     success = TRUE;
   }  /* if */
   /* Add an end-of-source token to the end of the token cache.  This assures
      that we won't scan past the end of the cache in the actual scan. */
   save_curr_token = curr_token;
   curr_token = tok_end_of_source;
-  cache_curr_token(&dsfp->token_cache);
+  cache_curr_token(token_cache);
   curr_token = save_curr_token;
   /* Restore the original stop token state. */
   copy_stop_tokens(save_stop_token_array, stop_token_array);
-  /* Add the delayed scan fixup entry to the list for the class. */
-  add_to_delayed_scan_fixup_list(dsfp, &scope_stack[depth_scope_stack]);
   db_exit();
   return success;
 }  /* prescan_function_definition */
@@ -216,16 +269,16 @@ Place the tokens for a default argument expression into a token cache, to
 await actual processing at a later point.
 */
 {
-  a_delayed_scan_fixup_ptr  dsfp;
+  a_def_arg_expr_fixup_ptr  new_daefp, daefp;
   a_stop_token_array        save_stop_token_array;
   a_token_kind              save_curr_token;
 
   db_enter(3, "prescan_default_arg_expr");
-  /* Allocate a delayed scan fixup entry.  The subroutine performs a clear
+  /* Allocate a default arg expr fixup entry.  The subroutine performs a clear
      cache operation on the token_cache field, so there's no need to do it
      again. */
-  dsfp = alloc_delayed_scan_fixup(/*is_arg_def=*/TRUE);
-  dsfp->variant.param_type = ptp;
+  new_daefp = alloc_def_arg_expr_fixup();
+  new_daefp->param_type = ptp;
   /* Save the current stop token state, and reinitialize it. */
   copy_stop_tokens(stop_token_array, save_stop_token_array);
   clear_stop_tokens();
@@ -237,19 +290,27 @@ await actual processing at a later point.
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
   add_stop_token(tok_rbrace);
-  cache_token_stream(&dsfp->token_cache);
+  cache_token_stream(&new_daefp->token_cache);
   /* Note that the terminating token (comma, rparen, etc.) is not added to
      the cache. */
   /* Add an end-of-source token to the end of the token cache.  This assures
      that we won't scan past the end of the cache in the actual scan. */
   save_curr_token = curr_token;
   curr_token = tok_end_of_source;
-  cache_curr_token(&dsfp->token_cache);
+  cache_curr_token(&new_daefp->token_cache);
   curr_token = save_curr_token;
   /* Restore the original stop token state. */
   copy_stop_tokens(save_stop_token_array, stop_token_array);
-  /* Add the delayed scan fixup entry to the list for the class. */
-  add_to_delayed_scan_fixup_list(dsfp, &scope_stack[depth_scope_stack-1]);
+  /* Add the entry to the end of the list of default arg expr fixup entries
+     for the current routine fixup. */
+  if (curr_routine_fixup->def_arg_expr_fixup_list == NULL) {
+    curr_routine_fixup->def_arg_expr_fixup_list = new_daefp;
+  } else {
+    daefp = curr_routine_fixup->def_arg_expr_fixup_list;
+    while (daefp->next != NULL) daefp = daefp->next;
+    daefp->next = new_daefp;
+  }  /* if */
+
   db_exit();
 }  /* prescan_default_arg_expr */
 
@@ -297,7 +358,8 @@ for the indicated class.  If the class contains nested classes, call this
 routine recursively for each nested class.
 */
 {
-  a_delayed_scan_fixup_ptr       dsfp, next_dsfp;
+  a_routine_fixup_ptr            rfp, next_rfp;
+  a_def_arg_expr_fixup_ptr       daefp;
   a_type_ptr                     class_type;
   a_class_symbol_supplement_ptr  cssp;
   a_symbol_ptr                   sym;
@@ -315,8 +377,9 @@ routine recursively for each nested class.
   }  /* if */
   /* Do processing for the current class only if there are tokens cached for
      delayed scanning ("rewriting"). */
-  dsfp = cssp->delayed_scan_fixup_list;
-  if (dsfp != NULL) {
+  rfp = cssp->routine_fixup_list;
+  if (rfp != NULL) {
+    /* There is at least one fixup entry. */
     class_type = skip_typerefs(class_sym->variant.class_struct_union.type);
 #if DEBUG
     if (debug_level >= 3) {
@@ -325,41 +388,71 @@ routine recursively for each nested class.
       fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
+    /* Reactivate the class. */ 
     push_class_reactivation_scope(class_type);
-    /* Each delayed-scan-fixup entry contains the cache for a token stream,
-       either for a default arg expression or for an inline function
-       definition. */
-    for (; dsfp != NULL; dsfp = next_dsfp) {
-      /* Let get_token know about the cache. */
-      rescan_cached_tokens(&dsfp->token_cache);
-      if (dsfp->is_arg_default_value) {
-        /* It's a default arg expression that needs to be rescanned. */
-        delayed_scan_of_default_arg_expr(dsfp->variant.param_type);
-        /* In the normal case the current token should be end_of_source,
-           which was inserted to mark the end of the cached token stream. */
-        if (curr_token != tok_end_of_source) {
-          pos_error(ec_exp_comma, &pos_curr_token);
-          /* If necessary, keep flushing until end-of-source is found. */
-          while (curr_token != tok_end_of_source) (void)get_token();
+    /* Go through all the routine fixup entries created for the class. */
+    for (; rfp != NULL; rfp = next_rfp) {
+      /* First scan the default arg expressions, if there are any. */
+      daefp = rfp->def_arg_expr_fixup_list;
+      if (daefp != NULL) {
+        /* The function prototype scope should be reactivated and its symbols
+           reentered because parameter names hide names from enclosing scopes
+           and, moreover, may not be used in default argument expressions
+           (ARM 8.2.6). */
+        push_scope((a_scope_kind)sck_func_prototype,
+                   rfp->func_info.scope_number, (a_type_ptr)NULL,
+                   (a_routine_ptr)NULL);
+        if (rfp->func_info.prototype_scope_symbols != NULL) {
+          reactivate_prototype_scope_symbols(
+                                      rfp->func_info.prototype_scope_symbols);
         }  /* if */
-      } else {
-        /* An inline function definition. */
-        inline_function_definition(dsfp->variant.inline_func.routine,
-                                   &dsfp->variant.inline_func.extra_info);
+        /* Loop through the list of default arg expression fixup entries. */
+        for (; daefp != NULL; daefp = daefp->next) {
+          /* It's a default arg expression that needs to be rescanned. */
+          /* Let get_token know about the cache. */
+          rescan_cached_tokens(&daefp->token_cache);
+          delayed_scan_of_default_arg_expr(daefp->param_type);
+          /* In the normal case the current token should be end_of_source,
+             which was inserted to mark the end of the cached token stream. */
+          if (curr_token != tok_end_of_source) {
+            pos_error(ec_exp_comma, &pos_curr_token);
+            /* If necessary, keep flushing until end-of-source is found. */
+            while (curr_token != tok_end_of_source) (void)get_token();
+          }  /* if */
+          /* Advance past the end-of-source token, which was added in
+             the prescan routine. */
+          (void)get_token();
+        }  /* for */
+        /* Restore the prototype scope symbols pointer in the func info block.
+           It shouldn't have changed, but we do it to be safe. */
+        rfp->func_info.prototype_scope_symbols =
+                                       scope_stack[depth_scope_stack].symbols;
+        /* Pop the reactivated function prototype scope off the stack. */
+        pop_scope();
+      }  /* if */
+      /* Now scan the inline function body, if there is one. */
+      if (rfp->function_body_token_cache.first_token != NULL) {
+        /* Let get_token know about the cache. */
+        rescan_cached_tokens(&rfp->function_body_token_cache);
+        inline_function_definition(rfp->routine, &rfp->func_info);
         /* In the normal case the current token should be end_of_source,
            which was inserted to mark the end of the cached token stream.
            If necessary, keep flushing until end-of-source is found. */
         while (curr_token != tok_end_of_source) (void)get_token();
+        /* Advance past the end-of-source token, which was added in
+           the prescan routine. */
+        (void)get_token();
       }  /* if */
-      next_dsfp = dsfp->next;
-      free_delayed_scan_fixup(dsfp);
-      /* Advance past the end-of-source token, which was added in
-         the prescan routine. */
-      (void)get_token();
+      /* Advance to the next routine fixup entry before freeing the current
+         one (returning it and any expr fixup entries attached to it to their
+         respective available-lists). */
+      next_rfp = rfp->next;
+      free_routine_fixup(rfp);
     }  /* for */
     /* The delayed scan fixup entries have been freed, so clear the
        pointer in the class symbol supplement. */
-    cssp->delayed_scan_fixup_list = NULL;
+    cssp->routine_fixup_list = NULL;
+    /* Pop the reactivated class scope from the scope stack. */
     pop_class_reactivation_scope();
   }  /* if */
   db_exit();
@@ -2805,7 +2898,6 @@ function symbols.
 
 
 static void redecl_member_function(a_symbol_ptr         sym,
-                                   a_type_ptr           class_type,
                                    a_type_ptr           member_type,
                                    an_access_specifier  access,
                                    a_boolean            is_inline,
@@ -2814,16 +2906,16 @@ static void redecl_member_function(a_symbol_ptr         sym,
 /*
 The current member function redeclares the function to which sym refers.
 Parameters member_type, access, is_inline, and is_virtual indicate
-specifications of the current declaration.  Although the ARM (9.2)
-disallows the redeclaration of members, we allow it (as an extension for
-Cfront compatibility), but only if access, static-ness, and virtual-ness
-are unchanged.
+specifications of the current declaration.  Although the ARM (9.2) disallows
+the redeclaration of member functions, we allow it (as an extension), but only
+if access, static-ness, and virtual-ness are unchanged.  A warning is issued.
 */
 {
   a_routine_ptr             rp = sym->variant.routine;
   a_param_type_ptr          ptp1, ptp2;
-  a_delayed_scan_fixup_ptr  dsfp = NULL;
+  a_def_arg_expr_fixup_ptr  daefp;
 
+  db_enter(3, "redecl_member_function");
   /* Let the current access override the original access specification, but
      if there's a difference, issue an error. */
   if (access != rp->source_corresp.access ||
@@ -2850,36 +2942,35 @@ are unchanged.
       if (ptp2->has_default_arg) {
         /* A default arg appears in the current declaration.  Find the
            delayed scan fixup entry that points to this param type entry. */
-        dsfp = (symbol_supplement_for_class(class_type))->
-                                                   delayed_scan_fixup_list;
-        for (;;) {
-#if CHECKING
-          if (dsfp == NULL) {
-            internal_error("redecl_member_function: bad default arg list");
-          }  /* if */
-#endif /* CHECKING */
+        daefp = curr_routine_fixup->def_arg_expr_fixup_list;
+        for (; daefp != NULL; daefp = daefp->next) {
           /* Stop when we find the entry that refers to the current
              param type entry. */
-          if (dsfp->is_arg_default_value &&
-              dsfp->variant.param_type == ptp2) {
+          if (daefp->param_type == ptp2) {
+            daefp->param_type = ptp1;
+            /* We intentionally do not set the has_default_arg flag to TRUE
+               in ptp1.  This enables us to detect errors in the default arg
+               list of the first declaration that would otherwise be missed.
+               For instance,
+                   class A { void f(int=1,int); void f(int,int=0); };
+               According to ARM 8.2.6 (commentary on p. 141) an error should
+               be issued on the first declaration of f(). has_default_arg is
+               FALSE on the second param type entry when the cached default arg
+               expression is scanned (see delayed_scan_of_default_arg_expr),
+               and so the error can be detected. */
+            /* Leave the inner loop but continue the outer loop. */
             break;
+#if CHECKING
+          } else if (daefp->next == NULL) {
+            /* No match was found. */
+            internal_error("redecl_member_function: bad default arg list");
+#endif /* CHECKING */
           }  /* if */
-          dsfp = dsfp->next;
         }  /* for */
-        dsfp->variant.param_type = ptp1;
-        /* We intentionally do not set the has_default_arg flag to TRUE in
-           ptp1.  This enables us to detect errors in the default arg list
-           of the first declaration that would otherwise be missed.  For
-           instance,
-             class A { void f(int=1,int); void f(int,int=0); };
-           According to ARM 8.2.6 (commentary on p. 141) an error should be
-           issued on the first declaration of f().  Since has_default_arg is
-           FALSE on the second param type entry when the cached default arg
-           expression is scanned (see delayed_scan_of_default_arg_expr),
-           the error can be detected. */
       }  /* if */
     }  /* for */
   }  /* if */
+  db_exit();
 }  /* redecl_member_function */
 
 
@@ -2926,8 +3017,8 @@ special function kind (e.g., constructor, destructor), if any.
     /* symbol_for_member_function has returned a symbol that has already
        been declared.  ARM 9.2 prohibits redeclaration of member functions.
        We allow it as an extension, with certain restrictions. */
-    redecl_member_function(sym, class_type, member_type, access, is_inline,
-                           is_virtual, &locator->source_position);
+    redecl_member_function(sym, member_type, access, is_inline, is_virtual,
+                           &locator->source_position);
   } else {
     sym->class_of_which_a_member = class_type;
     /* Create the routine entry for the member function. */
@@ -5778,6 +5869,7 @@ to indicate whether the class/struct/union is actually defined.
   a_boolean               class_aggregate_ruled_out = FALSE;
   a_boolean               any_friend_decls = FALSE;
   a_boolean               is_class_definition;
+  a_routine_fixup_ptr     saved_routine_fixup;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -5985,6 +6077,8 @@ to indicate whether the class/struct/union is actually defined.
          which are located at the start of the object.  (Virtual base classes
          appear at the end.) */
       set_offsets_for_nonvirtual_base_classes(class_type, &any_overflow);
+      saved_routine_fixup = curr_routine_fixup;
+      curr_routine_fixup = NULL;
     }  /* if */
     byte_offset = class_type->size;
     bit_offset = 0;
@@ -6189,6 +6283,9 @@ to indicate whether the class/struct/union is actually defined.
             /* Named member. */
             a_decl_flag_set  declarator_input_flags, declarator_output_flags;
 
+            if (C_dialect == C_dialect_cplusplus) {
+              curr_routine_fixup = alloc_routine_fixup();
+            }  /* if */
             /* Set the various flags for declarator processing. */
             declarator_input_flags = DI_REAL_DECLARATOR_ALLOWED;
             if (dso_flags & DSO_DESTRUCTOR) {
@@ -6308,6 +6405,8 @@ to indicate whether the class/struct/union is actually defined.
                                                 virtual_specified,
                                                 spec_kind);
               }  /* if */
+              curr_routine_fixup->routine = rout_sym->variant.routine;
+              curr_routine_fixup->func_info = func_info;
               if (curr_token == tok_lbrace ||
                   (spec_kind == (a_special_function_kind)sfk_constructor &&
                    curr_token == tok_colon)) {
@@ -6315,6 +6414,10 @@ to indicate whether the class/struct/union is actually defined.
                 if (rout_sym->defined) {
                   pos_error(ec_function_redefinition,
                             &locator.source_position);
+                  /* A routine that's already defined may have been defined
+                     inline.  Clear the token cache. */
+                  clear_token_cache(&curr_routine_fixup->
+                                                function_body_token_cache);
                 }  /* if */
                 rout_sym->defined = TRUE;
                 if (!friend_specified) {
@@ -6328,8 +6431,7 @@ to indicate whether the class/struct/union is actually defined.
                 /* Cache the tokens comprising the function definition
                    so that they can be rescanned once the entire class
                    definition has been processed. */
-                if (prescan_function_definition(rout_sym->variant.routine,
-                                                &func_info)) {
+                if (prescan_function_definition()) {
                   /* Advance past the terminating right brace. */
                   (void)get_token();
                 }  /* if */
@@ -6512,6 +6614,20 @@ to indicate whether the class/struct/union is actually defined.
           (void)required_token(tok_semicolon, ec_exp_semicolon);
         }  /* if */
 next_declaration:
+        if (curr_routine_fixup != NULL) {
+          /* If the currently active routine fixup entry has been modified
+             such that a fixup pass over its tokens is required, add it to
+             the routine fixup list for the current class.  Otherwise free
+             it for later use. */
+          if (curr_routine_fixup->
+                        function_body_token_cache.first_token != NULL  ||
+              curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+            add_to_routine_fixup_list(curr_routine_fixup);
+          } else {
+            free_routine_fixup(curr_routine_fixup);
+          }  /* if */
+          curr_routine_fixup = NULL;
+        }  /* if */
         remove_stop_token(tok_semicolon);
         /* Keep processing member declarations until the closing brace. */
       } while (curr_token != tok_rbrace && curr_token != tok_end_of_source);
@@ -6656,6 +6772,7 @@ next_declaration:
           define_special_member_function(rp, class_type, &error_position);
         }  /* if */
       }  /* if */
+      curr_routine_fixup = saved_routine_fixup;
     }  /* if */
     /* If this is the resolution of a previously incomplete tag, and there
        is a list of array types to be resolved, look to see if any of them
@@ -6983,7 +7100,9 @@ Initializations for class declaration processing.
 */
 {
   /* Initialize the list of freed delayed-scan-fixup entries. */
-  avail_delayed_scan_fixup = NULL;
+  avail_routine_fixup = NULL;
+  avail_def_arg_expr_fixup = NULL;
+  curr_routine_fixup = NULL;
   /* Initialize the list of freed derivation-step entries. */
   avail_derivation_steps = NULL;
   return;
