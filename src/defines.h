@@ -283,6 +283,15 @@ Flags to be set when using the KAI inliner.
 #ifndef IA64_ABI
 #define IA64_ABI 0
 #endif /* IA64_ABI */
+
+#if IA64_ABI
+/* The IA-64 test version includes embedded C support. */
+#define EMBEDDED_C_ALLOWED 1
+#define DEFAULT_EMBEDDED_C_ENABLED 0
+#define INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES 1
+#define INCLUDE_EDG_TEST_NAMED_REGISTERS 1
+#endif /* IA64_ABI */
+
 #endif /* LINUX_TEST_VERSION */
 
 #include "defines_linux.h"
