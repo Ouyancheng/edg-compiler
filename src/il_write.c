@@ -693,11 +693,6 @@ Write the indicated memory region to the file f_il_output.
         /* The memory region is the file scope region. */
         walk_file_scope_il(write_nonstring_entry, write_entry,
                            (a_remap_function_ptr)NULL);
-        /* Walk through the orphaned IL entries referenced from 
-           function scopes, but in the file scope memory region. */
-        walk_orphaned_file_scope_il_entries (write_nonstring_entry,
-                                             write_entry,
-                                             (a_remap_function_ptr)NULL);
       } else {
         /* The memory region is a function scope. */
         walk_routine_scope_il(region_number,
