@@ -1,5 +1,22 @@
 Version 2.42
 
+6/9/99   Obsolete nonstandard destructor diagnostic eliminated
+
+Because of a Working Paper error, the following usage was not permitted by
+an earlier version of the Working Paper (the issue being the scope in which
+a qualified destructor reference is looked up).  This usage was accepted in
+default mode, but a diagnostic was issued in strict mode.  This usage is now
+permitted by the standard and is accepted in all modes.
+
+  namespace N {
+    struct B { };
+    typedef B X;
+  }
+  int main() {
+    N::X* ab = new N::X;
+    ab->N::X::~X();
+  }
+
 6/9/99   Including header files without specifying a suffix
 
 While the front end has always permitted a file name without a suffix

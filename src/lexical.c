@@ -7247,7 +7247,6 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
       a_symbol_ptr	base_sym = NULL;
       a_symbol_ptr	ambiguous_sym = NULL;
       a_boolean		destructor_okay = FALSE;
-      a_boolean		is_nonstd = FALSE;
       a_type_ptr	normal_tp = NULL;
       a_type_ptr	other_tp = NULL;
       a_type_ptr	tp;
@@ -7325,9 +7324,6 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
             if (identical_types(field_sel_type, other_tp)) {
               type_sym = other_sym;
               destructor_okay = TRUE;
-              /* Set the nonstandard flag because this lookup is not
-                 currently (09/96) specified by the Working Paper. */
-              is_nonstd = TRUE;
               locator_for_curr_id = other_locator;
             } else {
               if (find_base_class_of(field_sel_type, other_tp) == NULL) {
@@ -7407,13 +7403,6 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
           sym_diagnostic(anachronism_error_severity,
                          ec_nested_class_anachronism,
                          locator_for_curr_id.specific_symbol);
-        }  /* if */
-        if (is_nonstd && strict_ansi_mode) {
-          /* Issue a diagnostic if this destructor would not be found using
-             the standard lookup rules. */
-          pos_sy_diagnostic(strict_ansi_discretionary_severity,
-                            ec_nonstandard_destructor_reference,
-                            &locator_for_curr_id.source_position, type_sym);
         }  /* if */
         /* Create a locator that points to the type described by the symbol
            that was found. */
