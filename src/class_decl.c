@@ -6652,15 +6652,6 @@ next_declaration:
            declarations and inline member function definitions. */
         delayed_scan_fixup_for_class(tag_sym, is_template_instantiation);
       }  /* if */
-      /* For compiler generated virtual destructors, generate the body at this
-         time, since the routine may be called indirectly through the virtual
-         function table. */
-      if (cssp->destructor != NULL) {
-        a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;
-        if (rp->is_virtual && rp->compiler_generated) {
-          define_special_member_function(rp, class_type, &error_position);
-        }  /* if */
-      }  /* if */
       curr_routine_fixup = saved_routine_fixup;
     }  /* if */
     /* Switch back from the file scope memory region to whatever region
@@ -7413,6 +7404,28 @@ because they were used in declaring an external function or variable.
       }  /* for */
     }  /* if */
   }  /* if */
+  /* Go through the classes again, now that linkage decisions have been
+     made, and generate bodies for virtual destructors, as required. */
+  for (tp = scope->types; tp != NULL; tp = tp->next) {
+    if (is_immediate_class_type(tp) && tp->source_corresp.assoc_info != NULL) {
+      a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
+      if (cssp->destructor != NULL) {
+        rp = cssp->destructor->variant.routine.ptr;
+        if (rp->is_virtual && rp->compiler_generated &&
+            rp->assoc_scope == NULL_region_number) {
+          /* The destructor for the current class is virtual and was generated
+             automatically but does not yet have a body. */
+          if (virtual_dtor_should_be_generated_for_class(tp)) {
+            /* But the body for it should be generated, e.g., because the
+               virtual function table in which its address will appear is
+               being generated.  (Since no errors are issued on the definitions
+               of destructors, the error position used has no effect.) */
+            define_special_member_function(rp, tp, &error_position);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
   db_exit();
 }  /* check_class_linkage */
 
