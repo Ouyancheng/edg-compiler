@@ -1817,10 +1817,12 @@ unit.
 #if !IA64_ABI
       force_static = TRUE;
 #else /* IA64_ABI */
-      /* Use static linkage only for classes with internal linkage, or that
-         are incomplete. */
+      /* Use static linkage only for classes with internal or no linkage,
+         or that are incomplete. */
       force_static = ((type->source_corresp.name_linkage ==
                        (a_name_linkage_kind)nlk_internal) ||
+                      (type->source_corresp.name_linkage ==
+                       (a_name_linkage_kind)nlk_none) ||
                       is_incomplete_type(type));
       use_comdat = !force_static;
 #endif /* IA64_ABI */
