@@ -4546,8 +4546,6 @@ otherwise it is NULL.  The syntax is:
   a_boolean       real_declarator_allowed;
   a_boolean       abstract_declarator_allowed;
   a_boolean       is_name_start;
-  a_symbol_header_ptr
-                  class_symbol_header;
   a_boolean       is_constructor = FALSE, is_destructor = FALSE;
   a_boolean       is_nonstatic_member_function = FALSE;
   a_boolean       nonconstant_dimension_allowed;
@@ -4646,7 +4644,19 @@ otherwise it is NULL.  The syntax is:
            its equivalent in A's scope). */
         (void)simplify_curr_class_qualified_name();
       }  /* if */
-      if (is_qualified_name_start()) {  /* Identifier or "::". */
+      /* Process the identifier.  This is done if we are at the beginning of
+         a qualified name.  A special test is done to exclude a destructor
+         name that is not part of a qualified name -- this case is handled
+         separately below.  A destructor that is not part of a qualified name
+         (according to the locator) can appear to be an identifier under
+         some circumstances.  For example, inside the definition of
+         class A, the destructor "A::~A" will be coalesced by
+         is_generalized_identifier_start.  The qualifier will then be
+         discarded by simplify_curr_class_qualified_name resulting in an
+         unqualified destructor that has already been coalesced. */
+      if (is_qualified_name_start() &&
+          (!locator_for_curr_id.is_destructor_name ||
+           locator_for_curr_id.is_qualified_name)) {
         a_boolean        	  err;
         an_identifier_options_set options;
         /* Access checking is suppressed for declarators.  When the
@@ -4710,11 +4720,12 @@ otherwise it is NULL.  The syntax is:
         /* Save information on the identifier to be declared. */
         *locator = locator_for_curr_id;
         (void)get_token();
-      } else if (get_destructor_name(&class_symbol_header)) {
+      } else if (locator_for_curr_id.is_destructor_name ||
+                 get_destructor_name()) {
         /* A destructor name, like "~A".  It must have the same name as
            the class currently being defined, it must be followed by a
            left paren, and the specifiers must include no type. */
-        if (class_symbol_header == NULL) {
+        if (is_error_locator(locator_for_curr_id)) {
           /* There is some error in the destructor name. */
         } else {
           a_scope_stack_entry_ptr ssep = &scope_stack[decl_scope_level];
@@ -4726,7 +4737,7 @@ otherwise it is NULL.  The syntax is:
           } else {
             class_sym = (a_symbol_ptr)ssep->assoc_type->
                                                      source_corresp.assoc_info;
-            if (class_symbol_header != class_sym->header) {
+            if (!destructor_name_matches_class_name(class_sym)) {
               /* The name on the destructor is not the name of the class. */
               error(ec_bad_destructor_decl);
             } else if (!is_unknown_type(specifiers_type) ||
@@ -6301,6 +6312,20 @@ process_class_specifier:
              "A::operator int"." */
           goto operator_or_conversion_name;
         }  /* if */
+        if (locator_for_curr_id.is_destructor_name &&
+            !locator_for_curr_id.is_qualified_name) {
+          /* This identifier represents something like "A::~A".  This
+             case is handled one way if we are currently processing the
+             definition of class A and another way if we are not.  If we
+	     are processing the definition of class A, "A::~A" will have
+	     already been coalesced.  However, the qualifier information
+             will have been discarded by simplify_curr_class_qualified_name.
+             This test identifies this case and transfers control to the code
+             that would have been executed if the program simply said "~A"
+             instead of "A::~A".  If we are not processing the definition of
+             class A, we simply fall through this test. */
+          goto destructor_name;
+        }  /* if */
         if (num_specifiers == 0 &&
             !(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
           /* If this is the first specifier, and this identifier is undefined,
@@ -6474,6 +6499,7 @@ operator_or_conversion_name:
         }
         goto no_get_token;
       case tok_compl:
+destructor_name:
         if (is_member_decl) {
           if (num_specifiers == 0) {
             *output_flags |= DSO_NO_DECL_SPECIFIERS;
