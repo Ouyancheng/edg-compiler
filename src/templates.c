@@ -238,6 +238,13 @@ typedef struct a_decl_state {
 		pragmas_bound_to_template;
 			/* A list of next-construct pragmas that appeared
 			   before this template declaration. */
+#if RECORD_TEMPLATES_IN_IL
+  a_template_ptr
+		il_template_entry;
+			/* Pointer to the IL template entry created for this
+			   template declaration, or NULL if no entry has been
+			   created. */
+#endif /* RECORD_TEMPLATES_IN_IL */
 } a_decl_state;
 
 
@@ -265,6 +272,9 @@ Initialize a template declaration state block.
   clear_token_cache(&tdsp->param_list_cache, /*reusable=*/TRUE);
   clear_token_cache(&tdsp->decl_token_cache, /*reusable=*/TRUE);
   tdsp->decl_token_cache_used = FALSE;
+#if RECORD_TEMPLATES_IN_IL
+  tdsp->il_template_entry = NULL;
+#endif /* RECORD_TEMPLATES_IN_IL */
 }  /* init_templ_decl_state */
 
 
@@ -4550,7 +4560,13 @@ instantiation.
     (void)get_token();
   }  /* if */
   if (curr_token == tok_friend) {
-    check_assertion(decl_state->is_template_friend);
+    /* The is_template_friend flag should already be set.  The exception
+       is an error case in which "friend" appears outside of a class. */
+    check_assertion(!decl_state->is_member_decl ||
+                    decl_state->is_template_friend);
+    /* Set it, just in case is wasn't already set because of use outside
+       of a class.  This permits the error to be diagnosed below. */
+    decl_state->is_template_friend = TRUE;
     friend_pos = pos_curr_token;
     (void)get_token();
   }  /* if */
@@ -6489,19 +6505,12 @@ any non-empty template parameter lists that were scanned.
   a_boolean                         tag_resolution = FALSE;
   a_type_ptr                        prototype_type = NULL;
 #if RECORD_TEMPLATES_IN_IL
-  a_template_ptr                    il_template_entry = NULL;
   a_token_cache                     *p_template_body_cache = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
   a_boolean                         is_class_template = FALSE;
   a_template_cache_segment_ptr	    cache_segments;
 
   db_enter(3, "template_declaration");
-#if RECORD_TEMPLATES_IN_IL
-  if (!decl_state->in_prototype_instantiation) {
-    /* Create an IL template entry for this declaration. */
-    il_template_entry = make_il_template_entry(&decl_state->start_pos);
-  }  /* if */
-#endif /* RECORD_TEMPLATES_IN_IL */
   /* See if it is a class template declaration.  If it is, scan the tokens
      of the definition (if any) and cache them away of later reference. */
   if (is_class_template_decl(&decl_state->decl_token_cache)) {
@@ -6699,7 +6708,7 @@ any non-empty template parameter lists that were scanned.
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if RECORD_TEMPLATES_IN_IL
     if (!decl_state->in_prototype_instantiation) {
-      complete_il_template_entry(il_template_entry, sym,
+      complete_il_template_entry(decl_state->il_template_entry, sym,
                                  &decl_state->decl_token_cache,
                                  &decl_state->param_list_cache,
                                  p_template_body_cache);
@@ -6834,6 +6843,18 @@ are either the specialization of a template or a template declaration.
     pos_error(ec_bad_template_declaration_scope, &decl_state.start_pos);
     decl_state.decl_scope_err = TRUE;
   }  /* if */
+#if RECORD_TEMPLATES_IN_IL
+  if (!decl_state.is_full_specialization &&
+      !decl_state.in_prototype_instantiation) {
+    /* Create an IL template entry for this declaration.  This is only done
+       for template declarations and specializations that are still templates.
+       IL entries are not created for templates found during the prototype
+       instantiation of other templates because they will be included in
+       the template string of the enclosing template. */
+    decl_state.il_template_entry =
+                               make_il_template_entry(&decl_state.start_pos);
+  }  /* if */
+#endif /* RECORD_TEMPLATES_IN_IL */
   /* Scan one or more template parameter lists.  Each template parameter
      list looks like "template < param-list >".  The param-list is
      optional (but once a parameter list has been specified, all subsequent
