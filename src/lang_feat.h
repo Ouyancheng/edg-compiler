@@ -333,7 +333,7 @@ by a command line option.
 
 /*
 Flag that is TRUE to permit "near" and "far" memory attributes.  This should
-always be TRUE when 16-bit Microsoft mode is supported.
+always be TRUE when Microsoft 16-bit mode is supported.
 */
 #ifndef NEAR_AND_FAR_ALLOWED
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -348,7 +348,19 @@ Flag that is TRUE to enable use of "near" and "far" memory attributes in
 default mode.
 */
 #ifndef DEFAULT_NEAR_AND_FAR_ENABLED
+#if NEAR_AND_FAR_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* If Microsoft extensions are supported, near/far support is turned on
+   in Microsoft 16-bit mode. */
 #define DEFAULT_NEAR_AND_FAR_ENABLED FALSE
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+/* If NEAR_AND_ALLOWED is set without support for other Microsoft extensions,
+   the feature is enabled by default. */
+#define DEFAULT_NEAR_AND_FAR_ENABLED TRUE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#else /* !NEAR_AND_FAR_ALLOWED */
+#define DEFAULT_NEAR_AND_FAR_ENABLED FALSE    /* Do not change this. */
+#endif /* NEAR_AND_FAR_ALLOWED */
 #endif /* ifndef DEFAULT_NEAR_AND_FAR_ENABLED */
 #if DEFAULT_NEAR_AND_FAR_ENABLED && !NEAR_AND_FAR_ALLOWED
  #error -- DEFAULT_NEAR_AND_FAR_ENABLED cannot be true unless \
@@ -356,8 +368,8 @@ default mode.
 #endif /* DEFAULT_NEAR_AND_FAR_ENABLED && !NEAR_AND_FAR_ALLOWED */
 
 /*
-Default implicit size for pointers in when "near" and "far" memory
-attributes are supported (e.g., in 16-bit Microsoft mode).
+Default implicit size for pointers when "near" and "far" memory attributes
+are supported (e.g., in Microsoft 16-bit mode).
 */
 #if NEAR_AND_FAR_ALLOWED
 #ifndef DEFAULT_FAR_DATA_POINTERS
