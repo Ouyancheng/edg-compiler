@@ -1,5 +1,12 @@
 Version 2.08
 
+8/4/92  Bug with class operands to "?" fixed
+
+The change in version 2.07 that enabled use of conversion functions
+on the second and third operands of a "?" operator inadvertently
+broke the case where those two operands have the same class type with
+different qualifiers.  That's now fixed.
+
 8/3/82  Copy construction by bitwise copy
 
 The existence of a compiler generated copy constructor is no longer
