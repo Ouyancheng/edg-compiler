@@ -3822,6 +3822,11 @@ high-order bytes first, using lower-case letters.
   }  /* if */
   /* Convert the length to a byte count. */
   length /= 2;
+  if (length > sizeof(x)) {
+    /* Too many bytes is an error. */
+    bad_mangled_name(dctl);
+    length = sizeof(x);
+  }  /* if */
   /* p points to the first hex byte to be converted in the loop.
      For a little-endian host, that's at the end of the hex string. */
   if (host_little_endian) {
@@ -3835,10 +3840,8 @@ high-order bytes first, using lower-case letters.
     if (dctl->err_in_id) break;
     byte = byte<<4 | get_hex_digit(p+1, dctl);
     if (dctl->err_in_id) break;
-    /* Don't store more bytes than there are in x. */
-    if (i >= sizeof(x)) break;
     if (host_little_endian) {
-      ((unsigned char *)&x)[sizeof(x)-1-i] = byte;
+      ((unsigned char *)&x)[length-1-i] = byte;
       p -= 2;
     } else {
       ((unsigned char *)&x)[i] = byte;
