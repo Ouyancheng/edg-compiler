@@ -960,7 +960,8 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 /* Return TRUE if a symbol is a function symbol. */
 #define is_function_symbol(sym)                                       \
   ((sym)->kind == (a_symbol_kind)sk_routine ||                        \
-   (sym)->kind == (a_symbol_kind)sk_member_function)
+   (sym)->kind == (a_symbol_kind)sk_member_function ||                \
+   (sym)->kind == (a_symbol_kind)sk_overloaded_function)
 
 /* Return TRUE if a symbol is a constructor symbol. */
 #define is_constructor_symbol(sym)                                    \
