@@ -4610,25 +4610,24 @@ this will show what restrictions are placed on the object being copied.
 
 void add_to_dynamic_inits_list(a_dynamic_init_ptr dip)
 /*
-Add the given dynamic initialization entry to the dynamic_inits list of the
-file scope or innermost namespace scope.
+Add the given dynamic initialization entry to the file-scope dynamic_inits
+list.
 */
 {
-  a_scope_stack_entry_ptr     ssep;
-  a_scope_ptr                 sp;
-  a_scope_pointers_block_ptr  pointers_block;
+  a_scope_stack_entry_ptr ssep;
+  a_scope_ptr             sp;
 
-  /* Only file and namespace scopes have a dynamic-inits list -- in function
+  /* Only the file scope has a dynamic-inits list -- dynamic init entries
+     generated for namespace scopes go on the file scope list, and in funcion
      and block scopes dynamic initialization is handled by statements. */
-  ssep = &scope_stack[depth_innermost_namespace_scope];
+  ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
   sp = ssep->il_scope;
-  pointers_block = assoc_pointers_block_of(ssep);
   if (sp->dynamic_inits == NULL) {
     sp->dynamic_inits = dip;
   } else {
-    pointers_block->last_dynamic_init->next = dip;
+    ssep->last_dynamic_init->next = dip;
   }  /* if */
-  pointers_block->last_dynamic_init = dip;
+  ssep->last_dynamic_init = dip;
   dip->next = NULL;
 }  /* add_to_dynamic_inits_list */
 
