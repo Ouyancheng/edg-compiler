@@ -7713,10 +7713,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
        throw + 1;
   */
 #endif /* 0 */
-  if (curr_token == tok_semicolon || curr_token == tok_rparen   ||
-      curr_token == tok_rbrace    || curr_token == tok_rbracket ||
-      curr_token == tok_comma     || curr_token == tok_colon    ||
-      curr_token == tok_quest_mark) {
+  if (!is_expr_start_token(curr_token)) {
     /* No. */
     expr_present = FALSE;
   } else {

@@ -1378,6 +1378,16 @@ valid only with certain configurations.
   ((tok) == tok_const || (tok) == tok_volatile                         \
    or_is_restrict_token(tok) or_is_unaligned_token(tok))
 
+/*
+Return TRUE if the indicated token is one that could start an expression.
+Actually, we return FALSE if the token is one that cannot start an
+expression.
+*/
+#define is_expr_start_token(tok)					\
+  (!((tok) == tok_semicolon || (tok) == tok_rparen   ||			\
+     (tok) == tok_rbrace    || (tok) == tok_rbracket ||			\
+     (tok) == tok_comma     || (tok) == tok_colon    ||			\
+     (tok) == tok_quest_mark))
 
 /* Push a file onto the input stack. */
 extern void open_file_and_push_input_stack
