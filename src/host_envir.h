@@ -1649,7 +1649,7 @@ the macro need not be defined at all.
 #define mbc_length(ptr, err) \
   (char_may_begin_multibyte_sequence(*(ptr)) ? \
      f_mbc_length((ptr), (err)) : \
-     (/*lint --e(506) --e(820)*/(((err) != NULL) && (*(err) = FALSE)), 1))
+     (/*lint --e(506) --e(505)*/(((err) != NULL)&&((*(err) = FALSE), 0)), 1))
 #else /* !defined(char_may_begin_multibyte_sequence) */
 /* The char_may_begin_multibyte_sequence macro is not defined, so just
    call f_mbc_length. */
