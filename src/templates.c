@@ -11843,20 +11843,34 @@ static a_boolean is_static_or_inline_template_function
 					(a_template_instance_ptr tip)
 /*
 Determines whether a template instance pointer refers to a function that
-is static or inline (i.e., is not an external function).
+is static or inline (i.e., is not an external function).  Functions
+within unnamed namespaces are treated as having internal linkage for
+purposes of this test.
 */
 {
   a_boolean     result = FALSE;
+  a_symbol_ptr	sym = tip->instance_sym;
 
-  if (!is_function_symbol(tip->instance_sym)) {
+  if (!is_function_symbol(sym)) {
     /* Must be a static data member. */
   } else if (is_inline_template_function(tip)) {
     result = TRUE;
+  } else if (sym->variant.routine.ptr->storage_class ==
+                                                 (a_storage_class)sc_static) {
+    /* Return TRUE if the function is marked as static. */
+    result = TRUE;
   } else {
-    /* Return TRUE if the function is marked as static.  This will be
-       the case for static functions. */
-    a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
-    result = (rout->storage_class == (a_storage_class)sc_static);
+    a_namespace_ptr			parent_nsp;
+    a_namespace_symbol_supplement_ptr	parent_nssp;
+    parent_nsp = parent_namespace_for_symbol(sym);
+    if (parent_nsp != NULL) {
+      parent_nssp = symbol_supplement_for_namespace(parent_nsp);
+      if (parent_nssp->within_unnamed_namespace) {
+        /* A member of an unnamed namespace (or a class or namespace within
+           an unnamed namespace).  Treat this as if it had internal linkage. */
+        result = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_static_or_inline_template_function */
