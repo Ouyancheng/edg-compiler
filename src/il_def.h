@@ -932,9 +932,9 @@ typedef struct a_source_correspondence {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_decl_position_supplement_ptr
 		decl_pos_info;
-			/* When decl_position is specified, pointer to a
-			   block containing addition source position
-			   information about the declaration.  May be NULL. */
+			/* Points to a block containing additional source
+			   position information about the declaration.
+			   May be NULL. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #ifdef CIL
   a_bit_field /* an_access_specifier */
