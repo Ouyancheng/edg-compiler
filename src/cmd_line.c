@@ -2608,6 +2608,13 @@ options conflict with them.  (The processing of some modes, like ANSI,
 exclude the GNU modes already.  Hence those are not checked again here.)
 */
 {
+#if TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION
+  /* This is a configuration that emulates recent GNU C/C++ ABIs and the
+     specific ABI version should match the version of the GNU dialect being
+     emulated. */
+  gnu_abi_version = gnu_version;
+  check_assertion(gnu_abi_version >= 30200);
+#endif /* TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION */
 #if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
   if (!(option_kind_used[(int)optk_extended_designators])) {
     /* If extended designators were not enabled or disabled on the command
