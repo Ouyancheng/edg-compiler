@@ -6104,9 +6104,12 @@ no_get_token:
          Note that this logic works for both C++ and standard C. */
       if (is_qualified_name_start()) determine_curr_token_type_symbol();
       if (is_type_specifier() ||
-          (determined_curr_token_type_symbol &&
-              curr_token_type_symbol != NULL &&
-              *storage_class != (a_storage_class)sc_typedef)) {
+          (C_dialect == C_dialect_cplusplus &&
+           *storage_class != (a_storage_class)sc_typedef &&
+           determined_curr_token_type_symbol &&
+           curr_token_type_symbol != NULL &&
+           curr_token_type_symbol->decl_scope ==
+                                     scope_stack[decl_scope_level].number)) {
         /* The current token is either a type keyword or a type name; treat
            it as the start of a new declaration.  Missing punctuation and
            the error will be handled by the caller. */
