@@ -1,5 +1,17 @@
 Version 2.46
 
+3/22/01  Treatment of using-declaration duplicating a built-in declaration
+
+Using declarations are not added to the IL when they duplicate an equivalent
+declaration already visible in that scope.  However, when the using
+declaration was previously only visible as a built-in type, it need not be
+inhibited from appearing in the IL.  Specifically, in Microsoft mode:
+
+  namespace std { typedef unsigned int size_t; }
+  using std::size_t;  // Used to not appear in the IL because the size_t type
+                      // is already implicitly visible in the file scope (in
+                      // Microsoft mode).  Now it is added to the IL.
+
 3/22/01  Abort on class or enum declaration in template argument when
          source sequence are enabled
 

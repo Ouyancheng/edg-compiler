@@ -9094,12 +9094,14 @@ current scope.
         }  /* if */
         fund_sym = fundamental_symbol_of(sym);
         if (other_decl != NULL && overload_sym == NULL &&
+            other_decl->decl_position.seq != 0 &&
             is_file_or_namespace_scope(ssep) &&
             symbols_are_lookup_equivalent(fund_sym, fund_other_decl)) {
           /* This is a duplicate using declaration of something other than a
              function or function template.  7.3.3 [namespace.udecl] para 7
              says duplicates are allowed in file or namespace scope, so ignore
-             the declaration. */
+             the declaration.  (However, do not ignore the using declaration
+             if it duplicates a built-in declaration, i.e. seq == 0). */
         } else {
           a_using_decl_ptr  prev_udp = NULL;
           a_boolean         suppress_redecl_error = FALSE;
