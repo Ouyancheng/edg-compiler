@@ -4664,7 +4664,7 @@ be used (e.g., eok_negate, not eok_inegate).
   if (curr_expr_kind_is_const()) {
     check_assertion_str(is_constant_operand(operand) ||
                         is_error_operand(operand),
-                        "tempate_unary_operation: non-const operand");
+                        "template_unary_operation: non-const operand");
     /* In a constant expression, only operations on integral types are
        allowed on operands involving template parameter types, so
        switch to the integral version of the generic operator if
