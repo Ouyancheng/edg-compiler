@@ -233,20 +233,6 @@ file-scope and normal allocation methods as necessary).
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 
-void *trace_alloc_ptr = NULL;
-
-void alloc_intercept()
-/*
-Also called from mem_manage.c.
-*/
-{
-  fprintf(f_debug, "Created node at %x.\n", (unsigned)trace_alloc_ptr);
-}  /* alloc_intercept */
-
-
-#define trace_alloc_check(ptr)    \
-   { if (ptr == trace_alloc_ptr) alloc_intercept(); }
-
 char *alloc_il(sizeof_t size)
 /*
 Allocate and return "size" bytes of storage in the file scope memory region.
@@ -254,7 +240,6 @@ Allocate and return "size" bytes of storage in the file scope memory region.
 {
   char *ptr;
   do_fs_alloc(ptr, size);
-  trace_alloc_check(ptr);
   return ptr;
 }  /* alloc_il */
 
@@ -267,7 +252,6 @@ Allocate and return "size" bytes of storage in the current IL memory region.
 {
   char *ptr;
   do_any_alloc(ptr, curr_il_region_number, size);
-  trace_alloc_check(ptr);
   return ptr;
 }  /* alloc_cil */
 
