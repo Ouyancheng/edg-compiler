@@ -43,10 +43,10 @@ and return TRUE if it's okay; otherwise issue a diagnostic and return FALSE.
 }  /* check_pm_member_type */
 
 
-static a_boolean is_cfront_member_function_typedef(a_type_ptr   type_ptr,
-                                                   a_type_ptr   *rout_type,
-                                                   a_type_ptr   *class_type,
-                                                   a_symbol_ptr *sym)
+a_boolean is_cfront_member_function_typedef(a_type_ptr   type_ptr,
+                                            a_type_ptr   *rout_type,
+                                            a_type_ptr   *class_type,
+                                            a_symbol_ptr *sym)
 /*
 We are checking for a type entry produced by a typedef declaration like
 this:
@@ -92,25 +92,6 @@ type symbol for the typedef, for use in diagnostics.
   }  /* if */
   return is_member_function_typedef;
 }  /* is_cfront_member_function_typedef */
-
-
-a_boolean check_member_function_typedef(a_type_ptr         tp,
-                                        a_source_position  *pos)
-/*
-If tp is a "member function typedef" (cfront compatibility mode only) issue
-an error diagnostic and return TRUE.
-*/
-{
-  a_boolean     is_member_function_typedef = FALSE;
-  a_type_ptr    rout_type, class_type;
-  a_symbol_ptr  sym;
-
-  if (is_cfront_member_function_typedef(tp, &rout_type, &class_type, &sym)) {
-    pos_sy_error(ec_bad_use_of_member_function_typedef, pos, sym);
-    is_member_function_typedef = TRUE;
-  }  /* if */
-  return is_member_function_typedef;
-}  /* check_member_function_typedef */
 
 
 static a_type_qualifier_set collect_type_qualifiers(void)

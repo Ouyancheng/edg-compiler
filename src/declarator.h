@@ -194,8 +194,10 @@ extern a_boolean restrict_qualifier_is_allowed(a_type_ptr         type,
                                                a_source_position  *error_pos);
 #endif /* RESTRICT_ALLOWED */
 
-extern a_boolean check_member_function_typedef(a_type_ptr         tp,
-                                               a_source_position  *pos);
+extern a_boolean is_cfront_member_function_typedef(a_type_ptr   type_ptr,
+                                                   a_type_ptr   *rout_type,
+                                                   a_type_ptr   *class_type,
+                                                   a_symbol_ptr *sym);
 
 extern void add_to_derived_type_list(a_type_ptr new_type_ptr,
                                      a_type_ptr *derived_type,
