@@ -2317,6 +2317,9 @@ being created to surround a dependent statement in C++.
     kind = struct_stmt_stack[depth_stmt_stack].kind;
     if (kind == ssk_while || kind == ssk_do || kind == ssk_for) {
       scope_stack[decl_scope_level].is_loop_scope = TRUE;
+    } else if (kind == ssk_try_block) {
+      scope_stack[decl_scope_level].is_try_block = TRUE;
+      scope_stack[decl_scope_level].within_try_block = TRUE;
     }  /* if */
   }  /* if */
   /* Push an entry on the structured statement stack. */
