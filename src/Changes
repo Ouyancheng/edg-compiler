@@ -1,5 +1,10 @@
 Version 2.27
 
+11/29/94 Branching into a try block
+
+An error is now issued on code that attempts to branch into a try block
+from outside it.
+
 11/29/94 result_is_not_used flag set for operands of "?" and ","
 
 The result_is_not_used flag in expression nodes is now (actually, once
