@@ -10019,7 +10019,7 @@ file.  Return TRUE if the file was successfully opened.
 }  /* open_instantiation_info_file */
 
 
-void create_or_remove_instantiation_information_file(void)
+static void create_or_remove_instantiation_information_file(void)
 /*
 If this compilation made use of any entities that could be instantiated,
 create an instantiation information file.  If this compilation did not
