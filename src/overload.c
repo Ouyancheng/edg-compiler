@@ -8513,6 +8513,12 @@ a reference type (the caller should have rewritten that case).
       err_code = ambiguous ? ec_ambiguous_conversion_function :
                              ec_no_conversion_function;
     }  /* if */
+  } else if (is_template_param_type(source_type) ||
+             is_template_param_type(dest_type)) {
+    /* A template parameter type might be a class type.  Assume the conversion
+       is possible. */
+    okay = TRUE;
+    conversion->unknown_dependent_conversion = TRUE;
   }  /* if */
   if (*failed) {
     /* The conversion failed. */
