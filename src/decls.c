@@ -5011,7 +5011,8 @@ return a pointer to it in *symbol_ptr.
      the target configuration. */
   if (!is_error_type(type_ptr) &&
       (decl_scope_level == DEPTH_OF_FILE_SCOPE ||
-       nsp == symbol_for_namespace_std->variant.namespace_info.ptr) &&
+       (nsp != NULL &&
+        nsp == symbol_for_namespace_std->variant.namespace_info.ptr)) &&
       strcmp(sym->header->identifier, "size_t") == 0) {
     /* "size_t" declared at file scope or in namespace "std". */
     if (!is_integral_type(type_ptr) ||
