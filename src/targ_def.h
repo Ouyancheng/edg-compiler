@@ -135,13 +135,18 @@ Char types:
 /*
 Special characters:
 */
-#define TARG_ALERT_CHAR       '\007'
 #define TARG_BACKSPACE_CHAR   '\b'
 #define TARG_FORM_FEED_CHAR   '\f'
 #define TARG_NEWLINE_CHAR     '\n'
 #define TARG_CARR_RETURN_CHAR '\r'
 #define TARG_HORIZ_TAB_CHAR   '\t'
+
+#ifndef TARG_ALERT_CHAR
+#define TARG_ALERT_CHAR       '\007'
+#endif /* ifndef TARG_ALERT_CHAR */
+#ifndef TARG_VERT_TAB_CHAR
 #define TARG_VERT_TAB_CHAR    '\013'
+#endif /* ifndef TARG_VERT_TAB_CHAR */
 
 /*
 Ordering of bytes in char constants:
