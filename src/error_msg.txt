@@ -1380,6 +1380,7 @@ ec_named_register_not_allowed;;"a named-register storage class is not allowed he
 ec_register_storage_class_conflict;;"named-register storage class conflicts with previous declaration"
 ec_aliased_variable_cannot_have_register_storage_class;;"named-register storage class cannot be specified for aliased variable"
 ec_register_in_use;;"named-register storage specifier is already in use"
+ec_embedded_c_option_incompatible_with_individual_feature_options;;"option \"embedded_c\" cannot be combined with options to control individual Embedded C features"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

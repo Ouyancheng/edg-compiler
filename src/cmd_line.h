@@ -228,6 +228,10 @@ typedef enum /*an_option_kind*/ {
 #if NAMED_REGISTERS_ALLOWED
   optk_named_registers,
 #endif /* NAMED_REGISTERS_ALLOWED */
+#if FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
+    NAMED_REGISTERS_ALLOWED
+  optk_embedded_c,
+#endif /* FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && NAMED_... */
   optk_last		/* Must be last. */
 } an_option_kind;
 

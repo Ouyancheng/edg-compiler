@@ -993,35 +993,38 @@ Initialize the option information table.
                          pchek_command_line);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED
-  add_option_description(optk_fixed_point,
-                         "fixed_point",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+  add_option_description(optk_fixed_point, "fixed_point", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_fixed_point,
-                         "no_fixed_point",
-                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+  add_option_description(optk_fixed_point, "no_fixed_point", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* FIXED_POINT_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
-  add_option_description(optk_named_address_spaces,
-                         "named_address_spaces",
+  add_option_description(optk_named_address_spaces, "named_address_spaces",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_named_address_spaces,
-                         "no_named_address_spaces",
+  add_option_description(optk_named_address_spaces, "no_named_address_spaces",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if NAMED_REGISTERS_ALLOWED
-  add_option_description(optk_named_registers,
-                         "named_registers",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+  add_option_description(optk_named_registers, "named_registers", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_named_registers,
-                         "no_named_registers",
-                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+  add_option_description(optk_named_registers, "no_named_registers", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* NAMED_REGISTERS_ALLOWED */
+#if FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
+    NAMED_REGISTERS_ALLOWED
+  add_option_description(optk_embedded_c, "embedded_c", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_embedded_c, "no_embedded_c", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && NAMED_... */
 }  /* initialize_option_descriptions */
 
 
@@ -2606,6 +2609,56 @@ was selected either.
 }  /* exclude_gnu_specific_options */
 
 
+static void check_embedded_c_options(void)
+/*
+An ANSI C dialect has been selected.  If any options were selected to enable
+Embedded C (TR 18037) extensions, check them for consistency and select
+between C89 and C99 dialects as appropriate.
+*/
+{
+#if FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
+    NAMED_REGISTERS_ALLOWED
+  if (option_kind_used[(int)optk_embedded_c]) {
+    /* The options "--embedded_c" and "--no_embedded_c" should not be combined
+       with the options to select individual Embedded C extensions. */
+    if (option_kind_used[(int)optk_fixed_point] ||
+        option_kind_used[(int)optk_named_address_spaces] ||
+        option_kind_used[(int)optk_named_registers]) {
+      command_line_error(
+           ec_embedded_c_option_incompatible_with_individual_feature_options);
+    }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    /* If C99 extensions were not explicitly disabled, they should be enabled
+       (since the Embedded C TR really builds on the C99 standard). */
+    if (!option_kind_used[(int)optk_c99_mode]) {
+      c99_mode = TRUE;
+    }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  } else
+#endif /* FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && NAMED_... */
+  /* Do not insert code here. */
+  if (strict_ansi_mode) {
+    /* Disable any Embedded C features not explicitly requested on the
+       command line. */
+#if FIXED_POINT_ALLOWED
+    if (!option_kind_used[(int)optk_fixed_point]) {
+      fixed_point_enabled = FALSE;
+    }  /* if */
+#endif /* FIXED_POINT_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+    if (!option_kind_used[(int)optk_named_address_spaces]) {
+      named_address_spaces_enabled = FALSE;
+    }  /* if */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+    if (!option_kind_used[(int)optk_named_registers]) {
+      named_named_registers = FALSE;
+    }  /* if */
+#endif /* NAMED_REGISTERS_ALLOWED */
+  }  /* if */
+}  /* check_embedded_c_options */
+
+
 static void check_dialect_and_language_modes(void)
 /*
 Check for consistent specification of dialects and language modes.  Dialect
@@ -2683,6 +2736,8 @@ order of development of this front end, and is inconsistent and strange.
     exclude_SVR4_C_mode(ec_cl_SVR4_C_option_only_in_ansi_C);
     exclude_c99_mode(ec_cl_incompatible_language_modes);
     exclude_gcc_mode(ec_cl_incompatible_language_modes);
+  } else {
+    check_embedded_c_options();
   }  /* if */
   if (C_dialect != C_dialect_cplusplus) {
     /* Issue an error for specifying a language mode that is valid only
@@ -3762,6 +3817,19 @@ enable_microsoft_mode:
         named_registers_enabled = opt_value;
         break;
 #endif /* NAMED_REGISTERS_ALLOWED */
+#if FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
+    NAMED_REGISTERS_ALLOWED
+      case optk_embedded_c:
+        /* Enable (or disable) all the Embedded C (TR 18037) extensions.
+           This option implies ANSI C mode, even in the "--no_embedded_c"
+           form.  The form "--embedded_c" form also implies the other C99
+           dialects, unless "--no_c99" was explicitly specified. */
+        fixed_point_enabled = opt_value;
+        named_address_spaces_enabled = opt_value;
+        named_registers_enabled = opt_value;
+        C_dialect = C_dialect_ANSI;
+        break;
+#endif /* FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && NAMED_... */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
