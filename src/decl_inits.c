@@ -1057,6 +1057,9 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
 
        initializer:
                 ( expression-list )
+
+*incomplete_type_error_reported is set to TRUE if the caller should suppress
+issuing an error on an incomplete type.
 */
 {
   a_boolean                      err = FALSE;
