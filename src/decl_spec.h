@@ -81,7 +81,7 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 #define DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER (a_decl_flag_set)(0x1000)
 			/* If this bit is set decl_specifiers will do special
 			   checking for a "dangling type specifier" -- an
-			   identifier that what may belong to a type specifier
+			   identifier that may belong to a type specifier
 			   of a subsequent declaration because a ";" is
 			   missing. */
 #define DSI_IS_OLD_STYLE_PARAM_DECL (a_decl_flag_set)(0x2000)
