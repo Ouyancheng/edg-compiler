@@ -68,9 +68,15 @@ do nothing.
     memzero((char *)float_value, sizeof(an_internal_float_value));
     if (kind == (a_float_kind)fk_float) {
       /* Convert to float and store a float in float_value. */
-      /* Note that there is no check that the value fits in a float.  That
-         is only acceptable because this is a "prototype" version. */
       float_temp = temp;
+      /* Do a non-production-quality, slow, but portable test to see whether
+         or not the double fits in the float by writing both as strings
+         and comparing the strings. */
+      { char float_string[15], double_string[15];
+        (void)sprintf(float_string, "%.2e", float_temp);
+        (void)sprintf(double_string, "%.2e", temp);
+        if (strcmp(float_string, double_string) != 0) *err = TRUE;
+      }
       memcpy((char *)float_value, (char *)&float_temp, sizeof(float));
     } else {
       /* Store a double in float_value. */
