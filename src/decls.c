@@ -5505,6 +5505,27 @@ Return a pointer to the variable that is declared.
 }  /* condition_declaration */
 
 
+static make_using_directive(a_namespace_ptr    nsp,
+                            a_source_position  *pos)
+/*
+Create a using-directive entry for the specified namespace, add it to the
+current scope's list using directives, and "activate" it to assure that
+inactive-list symbols belonging to the namespace will be found during
+name lookup.
+*/
+{
+  a_using_directive_ptr          udp;
+
+  /* Create the using-directive entry. */
+  udp = alloc_using_directive();
+  udp->position = *pos;
+  udp->assoc_namespace = nsp;
+  add_to_using_directives_list(udp);
+  /* Activate it. */
+  add_active_using_directive(udp);
+}  /* make_using_directive */
+
+
 void namespace_declaration(a_boolean  extern_implied)
 /*
 Scan a namespace declaration, which may be an original namespace definition,
@@ -5527,12 +5548,13 @@ extern_implied is TRUE when this declaration is inside a linkage specification
 block.
 */
 {
-  a_source_position           namespace_pos;
+  a_source_position           namespace_pos, pos;
   a_namespace_ptr             nsp;
   a_symbol_ptr                ns_sym = NULL, sym;
   a_symbol_locator            locator;
   a_boolean                   is_unnamed_namespace = FALSE;
   a_boolean                   is_namespace_alias = FALSE;
+  a_boolean                   original_def = FALSE;
   a_scope_pointers_block_ptr  pointers_block;
   a_boolean                   err = FALSE;
 
@@ -5654,6 +5676,7 @@ block.
     if (required_token(tok_lbrace, ec_exp_lbrace)) {
       if (ns_sym->variant.namespace_info.ptr == NULL) {
         /* Original definition. */
+        original_def = TRUE;
         nsp = alloc_namespace(/*is_alias=*/FALSE);
         set_source_corresp(&nsp->source_corresp, ns_sym);
         if (is_unnamed_namespace) nsp->source_corresp.name = NULL;
@@ -5680,9 +5703,15 @@ block.
                     /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
       }  /* while */
       remove_stop_token(tok_rbrace);
+      /* Save the source position of the right brace, in case it's needed. */
+      pos = pos_curr_token;
       (void)required_token(tok_rbrace, ec_exp_rbrace);
       /* Pop the namespace or namespace-extension scope. */
       pop_scope();
+      if (original_def && is_unnamed_namespace) {
+        /* Do an implicit "using" directive of the unnamed namespace. */
+        make_using_directive(nsp, &pos);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* namespace_declaration */
@@ -5690,12 +5719,16 @@ block.
 
 static void using_directive()
 /*
+Scan a using directive.  Its syntax is:
+
+  using namespace namespace-name
+
+A using-directive entry is created and activated for the current scope.
 */
 {
   a_source_position              decl_start_pos;
   a_symbol_ptr                   sym;
   a_boolean                      err = FALSE;
-  a_using_directive_ptr          udp;
 
   decl_start_pos = pos_curr_token;
   /* Bypass "using" and "namespace". */
@@ -5705,6 +5738,7 @@ static void using_directive()
   if (!is_qualified_name_start()) {
     syntax_error(ec_exp_identifier);
   } else {
+    /* Scan the namespace name. */
     sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
                                                      ilm_normal, &err);
     if (err) {
@@ -5712,11 +5746,9 @@ static void using_directive()
     } else if (sym == NULL || sym->kind != (a_symbol_kind)sk_namespace) {
       error(ec_missing_namespace_name);
     } else {
-      udp = alloc_using_directive();
-      udp->position = decl_start_pos;
-      udp->assoc_namespace = sym->variant.namespace_info.ptr;
-      add_to_using_directives_list(udp);
-      add_active_using_directive(udp);
+      /* Allocate a using-directive entry specifying this namespace and
+         acticate it. */
+      make_using_directive(sym->variant.namespace_info.ptr, &decl_start_pos);
     }  /* if */
     (void)get_token();
   }  /* if */
