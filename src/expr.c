@@ -927,6 +927,7 @@ is after the closing parenthesis of the argument list.
                                                  ec_ambiguous_constructor,
                                                  &start_position,
                                                  (a_boolean *)NULL,
+                                                 (a_symbol_ptr *)NULL,
                                                  &arg_match_list);
     /* Build an expression-form argument list.  Convert the arguments on
        the argument list to the right types.  The call is done even
@@ -935,6 +936,7 @@ is after the closing parenthesis of the argument list.
     /* Again, note that a special case allows passing have_selector == TRUE and
        NULL for the selector operand when dealing with constructors. */
     adjust_overloaded_function_call_arguments(constructor_sym,
+                                              (a_type_ptr)NULL,
                                               /*have_selector=*/TRUE,
                                               (an_operand *)NULL,
                                               arg_operand_list,
@@ -1009,7 +1011,6 @@ Syntax:
   an_expr_node_ptr  argument_list;
   a_type_ptr        routine_type = NULL;
   a_symbol_ptr      overloaded_function_symbol = NULL;
-  a_symbol_ptr      function_symbol, member_function_symbol;
   a_boolean         overloaded_function_case = FALSE;
   a_boolean         vacuous_destructor_case = FALSE;
   a_source_position call_position, function_position, first_arg_position;
@@ -1025,6 +1026,7 @@ Syntax:
   a_boolean         already_after_left_paren = FALSE;
   an_expr_operator_kind
                     op;
+  a_boolean         try_surrogate_functions = FALSE;
 
   db_enter(4, "scan_function_call");
 
@@ -1055,37 +1057,42 @@ Syntax:
     (void)get_token();
     first_arg_position = pos_curr_token;
     already_after_left_paren = TRUE;
-  } else {
-    member_function_symbol = NULL;
-    if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(operand->type)) {
-      /* If the class is a template class make sure it is instantiated so its
-         operator() functions are visible. */
-      a_type_ptr class_type = operand->type;
-      class_type = skip_typerefs(class_type);
-      instantiate_template_class(class_type);
-      /* See if the class has an operator(). */
-      member_function_symbol = opname_member_function_symbol(
+  } else if (!C_mode() &&
+             is_class_struct_union_type(operand->type)) {
+    /* The "called function" is a class object.  Look for operator() and
+       surrogate functions. */
+    a_symbol_ptr member_function_symbol;
+    a_type_ptr   class_type = operand->type;
+    class_type = skip_typerefs(class_type);
+    /* If the class is a template class make sure it is instantiated so its
+       operator() functions are visible. */
+    instantiate_template_class(class_type);
+    try_surrogate_functions = TRUE;
+    overloaded_function_case = TRUE;
+    /* routine_type = NULL;  -- already set. */
+    /* The operand becomes the selector object. */
+    copy_operand(operand, bound_function_selector);
+    conv_class_operand_to_object_pointer(bound_function_selector);
+    /* See if the class has an operator(). */
+    member_function_symbol = opname_member_function_symbol(
                                       (an_opname_kind)onk_function_call,
                                       class_type);
-    }  /* if */
     if (member_function_symbol != NULL) {
-      /* There is a C++ function call operator function that overloads function
-         calls for the class of the left operand.  The operand becomes
+      /* There is an operator() function.  The operand has become
          the selector object, and the function call operator routine
          becomes the operand. */
-      copy_operand(operand, bound_function_selector);
-      conv_class_operand_to_object_pointer(bound_function_selector);
       /* We can use an indefinite function operand whether the operator()
          function is overloaded or not. */
       make_indefinite_function_operand(member_function_symbol,
                                        /*curr_id=*/FALSE,
                                        operand);
+      overloaded_function_symbol = member_function_symbol;
       bind_member_function_operand_to_selector(operand,
                                                bound_function_selector);
       /* The function position is the position of the "(". */
       function_position = pos_curr_token;
     }  /* if */
+  } else {
     /* If the operand is the name of a nonstatic member function
        (e.g., "A::f") convert it to a bound member function
        (e.g., "this->A::f").  This is done late so that A::f can be
@@ -1206,20 +1213,25 @@ Syntax:
     a_source_position end_function_position;
     end_function_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    check_assertion(is_indefinite_function_operand(operand) ||
-                    is_undefined_symbol_operand(operand));
-    id_position = operand->id_position;
+    if (is_indefinite_function_operand(operand) ||
+        is_undefined_symbol_operand(operand)) {
+      id_position = operand->id_position;
+    } else {
+      id_position = function_position;
+    }  /* if */
     /* Choose the proper function out of a set of overloaded functions based
        on the argument types. */
-    function_symbol = select_and_prepare_to_call_overloaded_function(
+    routine_type = select_and_prepare_to_call_overloaded_function(
                                             overloaded_function_symbol,
                                             (a_boolean)operand->is_template_id,
                                             operand->template_arg_list,
-                                            (a_boolean)operand->bound_function,
+                                            operand->bound_function ||
+                                              try_surrogate_functions,
                                             bound_function_selector,
                                             arg_operand_list,
                                             arg_dependent_lookup_enabled &&
                                                    !operand->is_qualified_name,
+                                            try_surrogate_functions,
                                          (a_boolean)operand->is_qualified_name,
                                             ec_no_matching_function,
                                             ec_ambiguous_overloaded_function,
@@ -1235,11 +1247,9 @@ Syntax:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     operand->end_position = end_function_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (function_symbol == NULL) {
+    if (routine_type == NULL) {
       /* None of the overloaded functions matches the argument list. */
       make_error_operand(operand);
-    } else {
-      routine_type = routine_symbol_type(function_symbol);
     }  /* if */
   } else if (vacuous_destructor_case) {
     /* A vacuous destructor call.  The argument list should have no
@@ -5051,6 +5061,7 @@ specification allow a variable-sized array as the top type.
                                               ec_ambiguous_overloaded_function,
                                               &new_position,
                                               (a_boolean *)NULL,
+                                              (a_symbol_ptr *)NULL,
                                               &arg_match_list);
     if (proj_function_symbol != NULL) {
       function_symbol = fundamental_symbol_of(proj_function_symbol);
@@ -5121,6 +5132,7 @@ specification allow a variable-sized array as the top type.
     /* Adjust the argument types, issue any warnings, and free
        arg_operand_list and arg_match_list. */
     adjust_overloaded_function_call_arguments(proj_function_symbol,
+                                              (a_type_ptr)NULL,
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
                                               arg_operand_list,

@@ -237,8 +237,9 @@ typedef struct a_candidate_function {
 			   if this is the last entry. */
   a_symbol_ptr	function_symbol;
 			/* Pointer to the symbol for the function.  NULL if
-			   the "function" is a built-in operator.  Can be a
-			   projection symbol. */
+			   the "function" is a built-in operator or for a
+			   surrogate function case.  Can be a projection
+			   symbol. */
   a_byte_boolean
 		is_function_template;
 			/* TRUE if function_symbol is a function template. */
@@ -258,6 +259,12 @@ typedef struct a_candidate_function {
 			   Specifically, the appropriate one- or two-character
 			   segment of the operand pattern string.  NULL
 			   if not a built-in operator. */
+  a_symbol_ptr	surrogate_function_conv_sym;
+			/* Non-NULL for a surrogate function case
+			   (function_symbol will be NULL).  Points to the
+			   symbol for the conversion function that will
+			   yield a pointer to the surrogate function to be
+			   called. */
   a_byte_boolean
 		is_user_conversion;
 			/* TRUE if this function is a user-defined conversion
@@ -422,18 +429,19 @@ extern void selector_match_with_this_param(
                                an_arg_match_summary *arg_summary);
 
 extern a_symbol_ptr select_overloaded_function(
-                           a_symbol_ptr             overloaded_function_symbol,
-                           a_boolean                is_template_id,
-                           a_template_arg_ptr       template_arg_list,
-                           a_boolean                have_selector,
-                           an_operand               *bound_function_selector,
-                           an_arg_operand_ptr       arg_operand_list,
-                           a_boolean                do_arg_dep_lookup,
-                           an_error_code            err_none_applies,
-                           an_error_code            err_ambiguous,
-                           a_source_position        *call_position,
-                           a_boolean                *single_function,
-                           an_arg_match_summary_ptr *arg_match_list);
+                         a_symbol_ptr             overloaded_function_symbol,
+                         a_boolean                is_template_id,
+                         a_template_arg_ptr       template_arg_list,
+                         a_boolean                have_selector,
+                         an_operand               *bound_function_selector,
+                         an_arg_operand_ptr       arg_operand_list,
+                         a_boolean                do_arg_dep_lookup,
+                         an_error_code            err_none_applies,
+                         an_error_code            err_ambiguous,
+                         a_source_position        *call_position,
+                         a_boolean                *single_function,
+                         a_symbol_ptr             *surrogate_function_conv_sym,
+                         an_arg_match_summary_ptr *arg_match_list);
 
 extern void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                           an_expr_node_ptr  arg_expr_list,
@@ -493,13 +501,14 @@ extern void change_refs_on_selector_if_const_function(
 
 extern void adjust_overloaded_function_call_arguments(
                              a_symbol_ptr             function_symbol,
+                             a_type_ptr               routine_type,
                              a_boolean                have_selector,
                              an_operand               *bound_function_selector,
                              an_arg_operand_ptr       arg_operand_list,
                              an_arg_match_summary_ptr arg_match_list,
                              an_expr_node_ptr         *arg_expr_list);
 
-extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
+extern a_type_ptr select_and_prepare_to_call_overloaded_function(
                                  a_symbol_ptr       overloaded_function_symbol,
                                  a_boolean          is_template_id,
                                  a_template_arg_ptr template_arg_list,
@@ -507,6 +516,7 @@ extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                                  an_operand         *bound_function_selector,
                                  an_arg_operand_ptr arg_operand_list,
                                  a_boolean          do_arg_dep_lookup,
+                                 a_boolean          try_surrogate_functions,
                                  a_boolean          is_qualified_name,
                                  an_error_code      err_none_applies,
                                  an_error_code      err_ambiguous,

@@ -6248,7 +6248,7 @@ is a "get" if put_operand is NULL.
           } /* if */
         }  /* if */
         /* Do overload resolution to determine the function to call. */
-        getput_sym = select_and_prepare_to_call_overloaded_function(
+        if (select_and_prepare_to_call_overloaded_function(
                                             getput_sym,
                                             /*is_template_id=*/FALSE,
                                             (a_template_arg_ptr)NULL,
@@ -6256,6 +6256,7 @@ is a "get" if put_operand is NULL.
                                             &bound_function_selector,
                                             arg_operand_list,
                                             /*do_arg_dep_lookup=*/FALSE,
+                                            /*try_surrogate_functions=*/FALSE,
                                             /*is_qualified_name=*/FALSE,
                                             ec_no_matching_function,
                                             ec_ambiguous_overloaded_function,
@@ -6264,8 +6265,7 @@ is a "get" if put_operand is NULL.
                                             &locator.source_position,
                                             (a_source_position *)NULL,
                                             &function_operand,
-                                            &argument_list);
-        if (getput_sym == NULL) {
+                                            &argument_list) == NULL) {
           /* Some error. */
           conv_to_error_operand(operand);
         } else {

@@ -1027,6 +1027,7 @@ ec_bad_integral_compound_literal;;"a compound literal is not allowed in an integ
 ec_bad_compound_literal_type;;"a compound literal of type %t is not allowed"
 ec_friend_template_in_local_class;;"a template friend declaration cannot be declared in a local class"
 ec_ambiguous_question_operator;;"ambiguous \"?\" operation: second operand of type %t1 can be converted to third operand type %t2, and vice versa"
+ec_bad_call_of_class_object;;"call of an object of a class type without appropriate operator() or conversion functions to pointer-to-function type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1,5 +1,27 @@
 Version 2.42
 
+8/10/99  Support for surrogate functions
+
+When the expression preceding the opening parenthesis of a call has
+class type, overload resolution now looks for conversion functions
+that can convert the class object to a pointer to function.  Each
+such pointed-to function is called a "surrogate function", and each
+is evaluated alongside other possibilities (e.g., overloading using
+an operator() function).  If a surrogate function is chosen by overload
+resolution, the class object is converted to a function pointer and
+the indicated function is called with the call arguments.  See
+[over.call.object] in the C++ standard.
+
+  typedef void (*PF)(int);
+  typedef void (*PF2)(float);
+  struct A {
+    operator PF();
+    operator PF2();
+  } a;
+  int main () {
+    a(1);  // Interpreted as (a.operator PF())(1);
+  }
+
 8/10/99  Friend class declarations and using declarations
 
 When a friend declaration names a class type, it can find that class type
