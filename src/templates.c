@@ -555,20 +555,12 @@ static void write_to_template_info_file(
 				char				*flags_string);
 
 
-static void open_template_info_file(void)
+static void generate_template_info_file_name(void)
 /*
-Open the template information file.
+ Generate a name for the template information file if one was not
+ specified.
 */
 {
-  a_boolean	cannot_open;
-  a_boolean	bad_name;
-
-  check_assertion_str2(use_template_info_file, "open_template_info_file:",
-                      "use_template_info_file is FALSE");
-  check_assertion_str2(generate_template_files(), "open_template_info_file:",
-                      "generate_template_files() is FALSE");
-  /* Generate a name for the template information file if one was not
-     specified. */
   if (template_info_file_name == NULL) {
     if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
       /* A file name was specified on the command line, but no template
@@ -584,6 +576,21 @@ Open the template information file.
       template_info_file_name = "default.ti";
     }  /* if */
   }  /* if */
+}  /* generate_template_info_file_name */
+
+
+static void open_template_info_file(void)
+/*
+Open the template information file.
+*/
+{
+  a_boolean	cannot_open;
+  a_boolean	bad_name;
+
+  check_assertion_str2(use_template_info_file, "open_template_info_file:",
+                      "use_template_info_file is FALSE");
+  check_assertion_str2(generate_template_files(), "open_template_info_file:",
+                      "generate_template_files() is FALSE");
   /* Open a file in which the list of generated file names will be
      returned. */
   f_template_info = open_output_file(template_info_file_name,
@@ -11964,6 +11971,10 @@ specific definition that made it unnecessary.
        tip = tip->next_in_instantiation_list) {
     check_if_entity_should_be_automatically_instantiated(tip);
   }  /* for */
+  /* Create the file name of the template information file.  This may
+     be used to create the file or to remove it if no template entities
+     exist. */
+  generate_template_info_file_name();
   if (any_instantiations_required && use_template_info_file &&
       generate_template_files()) {
     /* Make sure the template information file has been created. */
