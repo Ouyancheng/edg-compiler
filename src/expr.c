@@ -3474,23 +3474,47 @@ See section 3.3.3.2 of the standard.
 }  /* scan_indirection_operator */
 
 
-static a_boolean is_nonintegral_and_nonenum_type(a_type_ptr type)
+static a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type)
 /*
-Return TRUE if type is not an integral or enum type.  This differs from
-!is_integral_or_enum_type(type) in that it returns FALSE for an error type.
+Return TRUE if type is a bad type for an operand of an expression in
+a template argument.  Usually, this means a type that is not integral or
+enum.
 */
 {
-  a_boolean is_nonintegral;
+  a_boolean is_bad_type;
 
   if (is_integral_or_enum_type(type)) {
-    is_nonintegral = FALSE;
+    is_bad_type = FALSE;
+#if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
+  } else if (!strict_ansi_mode && is_floating_type(type)) {
+    /* Floating point operations are allowed as an extension, but not in
+       strict mode. */
+    is_bad_type = FALSE;
+#endif /* ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
   } else if (is_error_type(type)) {
-    is_nonintegral = FALSE;
+    is_bad_type = FALSE;
   } else {
-    is_nonintegral = TRUE;
+    is_bad_type = TRUE;
   }  /* if */
-  return is_nonintegral;
-}  /* is_nonintegral_and_nonenum_type */
+  return is_bad_type;
+}  /* is_bad_type_for_template_arg_operand */
+
+
+static void diagnose_bad_template_arg_operation(a_source_position *err_pos)
+/*
+Issue a diagnostic about an operation at the indicated source position
+that is invalid within a template argument expression.
+*/
+{
+  an_error_code err_code = ec_non_integral_operation_in_templ_arg;
+
+#if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
+  /* Floating point operations are allowed as an extension, but not in
+     strict mode. */
+  if (!strict_ansi_mode) err_code = ec_non_arith_operation_in_templ_arg;
+#endif /* ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
+  pos_error(err_code, err_pos);
+}  /* diagnose_bad_template_arg_operation */
 
 
 static void scan_arith_prefix_operator(an_operand *result)
@@ -3521,9 +3545,9 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      is_nonintegral_and_nonenum_type(operand.type)) {
+      is_bad_type_for_template_arg_operand(operand.type)) {
     /* Non-integral operations are not allowed in a template argument. */
-    pos_error(ec_non_integral_operation_in_templ_arg, &start_position);
+    diagnose_bad_template_arg_operation(&start_position);
     make_error_operand(result);
     change_operand_refs_to_error(&operand);
     processed = TRUE;
@@ -5615,16 +5639,20 @@ this routine is called.
   } else if (curr_expr_kind_is(ek_template_arg)) {
     /* Only casts between integral or enum types are allowed in nontype
        template arguments. */
-    if (is_integral_or_enum_type(dest_type)) {
-      /* Destination is integral or enum.  Source should be also. */
-      if (is_integral_or_enum_type(source_type)) {
+    if (is_integral_or_enum_type(dest_type)
+#if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
+        || (!strict_ansi_mode && is_floating_type(dest_type))
+#endif /* ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
+                                                             ) {
+      /* Destination is integral (or arithmetic) or enum.  Source should be
+         arithmetic or enum (cast from float to integral is allowed). */
+      if (is_arithmetic_or_enum_type(source_type)) {
         /* Okay. */
       } else {
-        /* Cast from non-integral to integral in a nontype template
-           argument. */
+        /* Cast from non-arithmetic to integral (or arithmetic) in a nontype
+           template argument. */
         if (!is_error_type(source_type)) {
-          pos_error(ec_non_integral_operation_in_templ_arg,
-                    &operand->position);
+          pos_error(ec_non_arith_operation_in_templ_arg, &operand->position);
         }  /* if */
         err = TRUE;
       }  /* if */
@@ -5637,7 +5665,7 @@ this routine is called.
     } else {
       /* Cast to a non-integral type in a nontype template argument. */
       if (!is_error_type(dest_type)) {
-        pos_error(ec_non_integral_operation_in_templ_arg, type_position);
+        diagnose_bad_template_arg_operation(type_position);
       }  /* if */
       err = TRUE;
     }  /* if */
@@ -6777,10 +6805,10 @@ be of integral type.  See section 3.3.5 of the standard.
   scan_expr(&operand_2, PREC_MULT_DIV, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonintegral_and_nonenum_type(operand_1->type) ||
-       is_nonintegral_and_nonenum_type(operand_2.type))) {
+      (is_bad_type_for_template_arg_operand(operand_1->type) ||
+       is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
-    pos_error(ec_non_integral_operation_in_templ_arg, &operator_position);
+    diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
     change_operand_refs_to_error(operand_1);
     change_operand_refs_to_error(&operand_2);
@@ -6872,10 +6900,10 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   scan_expr(&operand_2, PREC_PLUS_MINUS, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonintegral_and_nonenum_type(operand_1->type) ||
-       is_nonintegral_and_nonenum_type(operand_2.type))) {
+      (is_bad_type_for_template_arg_operand(operand_1->type) ||
+       is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
-    pos_error(ec_non_integral_operation_in_templ_arg, &operator_position);
+    diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
     change_operand_refs_to_error(operand_1);
     change_operand_refs_to_error(&operand_2);
@@ -7061,10 +7089,10 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   scan_expr(&operand_2, PREC_SHIFT, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonintegral_and_nonenum_type(operand_1->type) ||
-       is_nonintegral_and_nonenum_type(operand_2.type))) {
+      (is_bad_type_for_template_arg_operand(operand_1->type) ||
+       is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
-    pos_error(ec_non_integral_operation_in_templ_arg, &operator_position);
+    diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
     change_operand_refs_to_error(operand_1);
     change_operand_refs_to_error(&operand_2);
@@ -7235,10 +7263,10 @@ standard.
   scan_expr(&operand_2, PREC_RELATIONAL, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonintegral_and_nonenum_type(operand_1->type) ||
-       is_nonintegral_and_nonenum_type(operand_2.type))) {
+      (is_bad_type_for_template_arg_operand(operand_1->type) ||
+       is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
-    pos_error(ec_non_integral_operation_in_templ_arg, &operator_position);
+    diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
     change_operand_refs_to_error(operand_1);
     change_operand_refs_to_error(&operand_2);
@@ -7382,10 +7410,10 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   scan_expr(&operand_2, PREC_EQ_NE, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonintegral_and_nonenum_type(operand_1->type) ||
-       is_nonintegral_and_nonenum_type(operand_2.type))) {
+      (is_bad_type_for_template_arg_operand(operand_1->type) ||
+       is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
-    pos_error(ec_non_integral_operation_in_templ_arg, &operator_position);
+    diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
     change_operand_refs_to_error(operand_1);
     change_operand_refs_to_error(&operand_2);
@@ -7529,10 +7557,10 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonintegral_and_nonenum_type(operand_1->type) ||
-       is_nonintegral_and_nonenum_type(operand_2.type))) {
+      (is_bad_type_for_template_arg_operand(operand_1->type) ||
+       is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
-    pos_error(ec_non_integral_operation_in_templ_arg, &operator_position);
+    diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
     change_operand_refs_to_error(operand_1);
     change_operand_refs_to_error(&operand_2);
@@ -7693,10 +7721,10 @@ standard.
   expr_stack->evaluated = saved_evaluated;
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonintegral_and_nonenum_type(operand_1->type) ||
-       is_nonintegral_and_nonenum_type(operand_2.type))) {
+      (is_bad_type_for_template_arg_operand(operand_1->type) ||
+       is_bad_type_for_template_arg_operand(operand_2.type))) {
     /* Non-integral operations are not allowed in a template argument. */
-    pos_error(ec_non_integral_operation_in_templ_arg, &operator_position);
+    diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
     change_operand_refs_to_error(operand_1);
     change_operand_refs_to_error(&operand_2);
@@ -8038,11 +8066,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   /* Check the operands for compatibility.  Both must be arithmetic,
      both compatible struct/union types, both void, or both pointers. */
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonintegral_and_nonenum_type(operand_1->type) ||
-       is_nonintegral_and_nonenum_type(operand_2.type) ||
-       is_nonintegral_and_nonenum_type(operand_3.type))) {
+      (is_bad_type_for_template_arg_operand(operand_1->type) ||
+       is_bad_type_for_template_arg_operand(operand_2.type) ||
+       is_bad_type_for_template_arg_operand(operand_3.type))) {
     /* Non-integral operations are not allowed in a template argument. */
-    pos_error(ec_non_integral_operation_in_templ_arg, &operator_position);
+    diagnose_bad_template_arg_operation(&operator_position);
     make_error_operand(result);
     change_operand_refs_to_error(operand_1);
     change_operand_refs_to_error(&operand_2);

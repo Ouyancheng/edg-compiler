@@ -590,7 +590,7 @@ ec_included_in_previous_exception_specification;INTERNAL;"previously specified b
 ec_no_exception_support;;"support for exception handling is disabled"
 ec_omitted_exception_specification;;"omission of exception specification is incompatible with previous %nd"
 ec_cannot_create_instantiation_information_file;;"could not create instantiation information file %sq"
-ec_non_integral_operation_in_templ_arg;;"non-integral operation not allowed in nontype template argument"
+ec_non_arith_operation_in_templ_arg;;"non-arithmetic operation not allowed in nontype template argument"
 ec_local_type_in_nonlocal_var;;"use of a local type to declare a nonlocal variable"
 ec_local_type_in_function;;"use of a local type to declare a function"
 ec_branch_past_initialization;;"transfer of control bypasses initialization of:"
@@ -920,6 +920,7 @@ ec_bad_multibyte_char_locale;;"could not set locale %sq to allow processing of m
 ec_bad_multibyte_char;;"invalid multibyte character sequence"
 ec_bad_type_from_instantiation;;"template instantiation resulted in unexpected function type of %t1 (the meaning of a name may have changed since the template declaration -- the type of the template is %t2)"
 ec_ambiguous_guiding_decl;;"ambiguous guiding declaration -- more than one function template %no matches type %t"
+ec_non_integral_operation_in_templ_arg;;"non-integral operation not allowed in nontype template argument"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
