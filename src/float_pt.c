@@ -29,6 +29,8 @@ for a production version.
 #if __ANSIC__
 /* For strtod: */
 #include <stdlib.h>
+/* For FLT_MAX: */
+#include <float.h>
 #else
 EXTERN_C double strtod(char *, char **);
 #endif /* __ANSIC__ */
@@ -111,7 +113,14 @@ do nothing.
     memzero((char *)float_value, sizeof(an_internal_float_value));
     if (kind == (a_float_kind)fk_float) {
       /* Converting to float. */
+#define CAN_DO_FLT_MAX_TEST FALSE
+#if USING_ISO_C
 #ifdef FLT_MAX
+#undef CAN_DO_FLT_MAX_TEST
+#define CAN_DO_FLT_MAX_TEST TRUE
+#endif /* ifdef FLT_MAX */
+#endif /* USING_ISO_C */
+#if CAN_DO_FLT_MAX_TEST
       /* FLT_MAX is available, so we can use it to test for overflow.  We do
          this before converting to float in case an overflow on such a
          conversion would cause a float exception. */
@@ -124,7 +133,12 @@ do nothing.
          comparison. */
       if (!init_done) {
         init_done = TRUE;
-        double_flt_max = strtod_interface(FLT_MAX);
+        /* Macros to turn FLT_MAX into a string: */
+#define str2_flt_max(x) #x
+#define str1_flt_max(x) str2_flt_max(x)
+        double_flt_max = strtod_interface(str1_flt_max(FLT_MAX));
+#undef str2_flt_max
+#undef str1_flt_max
         check_assertion_str(errno == 0,
                             "store_double: error on conversion of FLT_MAX");
       }  /* if */
@@ -132,14 +146,14 @@ do nothing.
         /* Overflow. */
         *err = TRUE;
       }  /* if */
-#endif /* ifdef FLT_MAX */
+#endif /* CAN_DO_FLT_MAX_TEST */
       if (!*err) {
         /* Convert to float and store a float in float_value. */
         float float_temp = (float)temp;
         if (float_temp == 0.0 && temp != 0.0) {
           /* Underflow. */
           *err = TRUE;
-#ifndef FLT_MAX
+#if !CAN_DO_FLT_MAX_TEST
         } else {
           /* FLT_MAX is not available.  Check for overflow.  This is crude,
              but it's hard to do much here that is portable. */
@@ -168,7 +182,7 @@ do nothing.
               *err = TRUE;
             }  /* if */
           }  /* if */
-#endif /* ifndef FLT_MAX */
+#endif /* !CAN_DO_FLT_MAX_TEST */
         }  /* if */
         (void)memcpy((char *)float_value, (char *)&float_temp, sizeof(float));
       }  /* if */
@@ -179,6 +193,7 @@ do nothing.
       (void)memcpy((char *)float_value, (char *)&temp, sizeof(double));
     }  /* if */
   }  /* if */
+#undef CAN_DO_FLT_MAX_TEST
 }  /* store_double */
 
 
