@@ -1558,12 +1558,11 @@ the scope being pushed.
          entries would be involved. */
       source_sequence_entries_disallowed = TRUE;
     } else if (ssep->in_prototype_instantiation) {
-      if (!prototype_instantiations_in_il) {
-        /* Source sequence entries are normally not generated during a
-           prototype instantiation.  (When they are, they are placed on a list
-           that is not part of the IL proper.) */
-        source_sequence_entries_disallowed = TRUE;
-      }  /* if */
+      /* If prototype instantiations are not recorded in the IL, source
+         sequence entries are normally not generated during a prototype
+         instantiation.  (When they are, they are placed on a list that
+         is not part of the IL proper.) */
+      source_sequence_entries_disallowed = !prototype_instantiations_in_il;
     } else if (scope_stack[DEPTH_OF_FILE_SCOPE].
                                     source_sequence_entries_disallowed) {
       check_assertion(source_sequence_entries_disallowed == TRUE);
