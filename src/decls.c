@@ -878,6 +878,11 @@ consistent with that of the previous declaration.
       unexpected_condition_str(
                             "check_exception_specification: bad symbol kind");
   }  /* switch */
+  if (is_or_contains_error_type(prev_type)) {
+    /* Something went wrong earlier on; do not attempt to issue more
+       diagnostics. */
+    goto done;
+  }  /* if */
   if (rp == NULL) {
     /* Not a routine type, but a pointer-to, reference-to or pointer-to-member
        function. */
@@ -976,6 +981,7 @@ consistent with that of the previous declaration.
       if (any_difference_seen) end_error();
     }  /* if */
   }  /* if */
+done:
   db_exit();
 }  /* check_exception_specification */
 
