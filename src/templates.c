@@ -336,8 +336,8 @@ If it involves no template-parameter type, simply return "type".
 #endif /* DEBUG */
   switch (type->kind) {
     case tk_template_param:
-      /* If this template parameter type entry corresponds to the i-th
-         parameter, the real type to substitute for it is given in the i-th
+      /* If this template parameter type entry corresponds to the n-th
+         parameter, the real type to substitute for it is given in the n-th
          template argument.  Find the template argument that matches this
          template parameter and return it to the caller. */
       tap = templ_arg_list;
@@ -406,8 +406,8 @@ If it involves no template-parameter type, simply return "type".
         prev_ptp = new_ptp;
       }  /* if */
       set_routine_calling_method_flag(tp);
-      /* If a new type is created, add it to the types list at file scope.
-         Otherwise, just reuse the same type. */
+      /* If a brand new type is created, add it to the types list at file
+         scope.  Otherwise, just reuse the same type. */
       if (identical_types(type, tp)) {
         /* Throw the new type (tp) away. */
       } else {
@@ -465,13 +465,25 @@ template argument list to include n entries.
 
   db_enter(5, "matches_template_type");
   if (templ_type->kind == (a_type_kind)tk_template_param) {
+    /* A real type "matches" a template parameter type if it is idential to
+       the real type, if any, that was previously associated with that
+       template type. */
+    /* For the n-th template parameter find the n-th template argument.  If
+       the n-th template argument hasn't been created yet, create it along
+       with all missing template args that should precede it in the linked
+       list. */
     prev_tap = NULL;
     for (i = templ_type->variant.list_position; i > 0; --i) {
+      /* The first time through the loop we look at the first entry in
+         in the template arg list, the second time at the second, etc. */
       if (prev_tap == NULL) {
         tap = *templ_arg_list;
       } else {
         tap = prev_tap->next;
       }  /* if */
+      /* If the template arg doesn't exist yet, create it and add it to the
+         list.  Note that some of the template args on the list will have
+         NULL type pointers. */
       if (tap == NULL) {
         tap = alloc_template_arg(/*is_arg_type=*/TRUE);
         if (prev_tap == NULL) {
@@ -480,52 +492,75 @@ template argument list to include n entries.
           prev_tap->next = tap;
         }  /* if */
       }  /* if */
+      /* Remember the current entry so that next time though (if there is a
+         next time) we can find its successor or, if necessary, append a
+         new entry to it. */
       prev_tap = tap;
     }  /* for */
+    /* Now we have the n-th template argument, which should correspond to
+       the n-th template parameter, whose type is templ_type. */
     if (tap->variant.type == NULL) {
+      /* No type has been assigned to the template argument yet, so just use
+         "type".  This counts as a match. */
       tap->variant.type = type;
       match = TRUE;
-    } else if (identical_types(type, tap->variant.type)) {
-      /* Okay. */
-      match = TRUE;
     } else {
-      /* Not a match.  Return FALSE. */
+      /* A type was already bound to this template argument.  We have a match
+         if and only if the new type is the same as the one already there. */
+      if (identical_types(type, tap->variant.type)) {
+        /* Okay. */
+        match = TRUE;
+      } else {
+        /* Not a match.  Return FALSE. */
+      }  /* if */
     }  /* if */
   } else {
-    if (type->kind == (a_type_kind)tk_typeref) {
-      if (!is_const_qualified_type(type) &&
-          !is_volatile_qualified_type(type)) {
-        type = type->variant.typeref.type;
-      }  /* if */
-    }  /* if */
-    if (templ_type->kind == (a_type_kind)tk_typeref) {
-      if (!is_const_qualified_type(templ_type) &&
-          !is_volatile_qualified_type(templ_type)) {
-        templ_type = templ_type->variant.typeref.type;
-      }  /* if */
-    }  /* if */
+    /* The type from the template is not a template parameter type.  Before
+       checking further, remove typedefs -- but keep the type qualifiers
+       in place. */
+    type = skip_typedefs(type);
+    templ_type = skip_typedefs(templ_type);
     if (templ_type->kind != type->kind) {
       /* No match. */
     } else {
       switch (type->kind) {
         case tk_typeref:
           if (!type_qualifiers_match(type, templ_type)) {
+            /* Not a match. */
+          } else {
+            /* Qualifiers match.  See if the underlying types do, too. */
             tp = type->variant.typeref.type;
             ttp = templ_type->variant.typeref.type;
             match = matches_template_type(tp, ttp, templ_arg_list);
           }  /* if */
           break;
         case tk_array:
-          tp = type->variant.array.element_type;
-          ttp = templ_type->variant.array.element_type;
-          match = matches_template_type(tp, ttp, templ_arg_list);
+          /* Array types match if their element types match and the number of
+             elements is the same. */
+          if (type->variant.array.number_of_elements !=
+                        templ_type->variant.array.number_of_elements) {
+            /* Not a match. */
+          } else {
+            tp = type->variant.array.element_type;
+            ttp = templ_type->variant.array.element_type;
+            match = matches_template_type(tp, ttp, templ_arg_list);
+          }  /* if */
           break;
         case tk_pointer:
-          tp = type->variant.pointer.type;
-          ttp = templ_type->variant.pointer.type;
-          match = matches_template_type(tp, ttp, templ_arg_list);
+          /* Pointer matches pointer and reference matches reference, but they
+             can't be mixed. */
+          if (type->variant.pointer.is_reference !=
+                         templ_type->variant.pointer.is_reference) {
+            /* Not a match. */
+          } else {
+            tp = type->variant.pointer.type;
+            ttp = templ_type->variant.pointer.type;
+            match = matches_template_type(tp, ttp, templ_arg_list);
+          }  /* if */
           break;
         case tk_ptr_to_member:
+          /* For ptr-to-member types, there needs to be a match on both the
+             member types and the class-of-which-a-member. */
           tp = type->variant.ptr_to_member.type;
           ttp = templ_type->variant.ptr_to_member.type;
           if (matches_template_type(tp, ttp, templ_arg_list)) {
@@ -535,20 +570,30 @@ template argument list to include n entries.
           }  /* if */
           break;
         case tk_routine:
+          /* For routine types there has to be a match both on the return types
+             and on all the parameter types.  In addition, the has-ellipsis
+             flags should be set the same. */
           tp = type->variant.routine.return_type;
           ttp = templ_type->variant.routine.return_type;
-          if (matches_template_type(tp, ttp, templ_arg_list)) {
+          if (matches_template_type(tp, ttp, templ_arg_list) &&
+              (type->variant.routine.extra_info->has_ellipsis ==
+                  templ_type->variant.routine.extra_info->has_ellipsis)) {
+            /* Return type and ellipsis are okay.  Check the param types. */
             ptp = type->variant.routine.extra_info->param_type_list;
             tptp = templ_type->variant.routine.extra_info->param_type_list;
             for (;;) {
               tp = ptp->type;
               ttp = tptp->type;
               if (!matches_template_type(tp, ttp, templ_arg_list)) {
+                /* The first param type for which there is a mismatch causes
+                   a mismatch for the entire type.  No need to keep looping. */
                 break;
               }  /* if */
               ptp = ptp->next;
               tptp = tptp->next;
               if (ptp == NULL || tptp == NULL) {
+                /* One or both of the param type lists is exhausted.  It's a
+                   match only if they're both done. */
                 match = (ptp == tptp);
                 break;
               }  /* if */
@@ -556,7 +601,9 @@ template argument list to include n entries.
           }  /* if */
           break;
         default:
-          match = TRUE;
+          /* They are simple types -- these are leaf nodes in a type tree.
+             Check for identity. */
+          match = identical_types(templ_type, type);
       }  /* switch */
     }  /* if */
   }  /* if */
