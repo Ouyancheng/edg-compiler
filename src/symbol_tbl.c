@@ -4149,41 +4149,32 @@ this routine above this one.
       access = proj_sym->variant.projection.access;
       need_to_compute_access = FALSE;
     } else if (proj_sym->variant.projection.intervening_access_adjustment) {
-      /* There is an access adjustment somewhere on the derivation path, so
-         we must find the projection symbol that applies at this step of
+      /* There is an access adjustment somewhere on some derivation path, so
+         we must look for a projection symbol that applies at this step of
          the path in case it is an access adjustment. */
-      for (step_proj_sym = proj_sym->header->inactive_symbols;
-           step_proj_sym != NULL;
-           step_proj_sym = step_proj_sym->next) {
-        if (step_proj_sym->class_of_which_a_member == viewpoint_class &&
-            step_proj_sym->kind == (a_symbol_kind)sk_projection &&
-            step_proj_sym->variant.projection.extra_info->fundamental_symbol ==
-                                                                    fund_sym) {
-          goto have_proj_sym;
-        }  /* if */
+      /* Run two loops -- first over the inactive list and then (if needed)
+         over the active list. */
+      int iter;
+      for (iter = 1; iter <= 2; ++iter) {
+        step_proj_sym = (iter == 1) ? proj_sym->header->inactive_symbols :
+                                      proj_sym->header->symbol;
+        for (; step_proj_sym != NULL; step_proj_sym = step_proj_sym->next) {
+          if (step_proj_sym->class_of_which_a_member == viewpoint_class &&
+              step_proj_sym->kind == (a_symbol_kind)sk_projection &&
+              step_proj_sym->variant.projection.extra_info->
+                                          fundamental_symbol == fund_sym) {
+            /* Replace the projection symbol we have by the new one.  Note
+               that it will get passed down in the recursive call below,
+               which is good, because once we get past the access adjustments
+               we can use the faster technique. */
+            proj_sym = step_proj_sym;
+            access = proj_sym->variant.projection.access;
+            need_to_compute_access = FALSE;
+            break;
+          }  /* if */
+        }  /* for */
+        if (!need_to_compute_access) break;
       }  /* for */
-      /* Not found on the inactive list, so check the active list. */
-      for (step_proj_sym = proj_sym->header->symbol;
-           step_proj_sym != NULL;
-           step_proj_sym = step_proj_sym->next) {
-        if (step_proj_sym->class_of_which_a_member == viewpoint_class &&
-            step_proj_sym->kind == (a_symbol_kind)sk_projection &&
-            step_proj_sym->variant.projection.extra_info->fundamental_symbol ==
-                                                                    fund_sym) {
-          goto have_proj_sym;
-        }  /* if */
-      }  /* for */
-#if CHECKING
-      internal_error("have_access_across_path: proj sym not found");
-#endif /* CHECKING */
-have_proj_sym:
-      /* Replace the projection symbol we have by the new one.  Note that
-         it will get passed down in the recursive call below, which is
-         good, because once we get past the access adjustments we can use
-         the faster technique. */
-      proj_sym = step_proj_sym;
-      access = proj_sym->variant.projection.access;
-      need_to_compute_access = FALSE;
     }  /* if */
     if (!need_to_compute_access) {
       /* If the symbol is for an overloaded function, we can use the access
