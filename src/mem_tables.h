@@ -112,12 +112,18 @@ typedef struct an_il_entry_prefix {
 			   is declared but never referenced inside a "needed"
 			   function). */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+  a_bit_field	entry_written:1;
+			/* When ALTERNATE_IL_FILE_FORMAT is TRUE, TRUE once
+			   the entry has been written to the IL file.
+			   Needed for string entries, for which multiple
+			   copies may be written. */
+			/* This is not conditional because it is also used
+			   by trans_copy.c as a flag that means "the
+			   trans-unit correspondence pointer for the entry
+			   has been set to point to allocated space into
+			   which this entry has been or will be copied". */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #if ALTERNATE_IL_FILE_FORMAT
-  a_bit_field	entry_written:1;
-			/* TRUE once the entry has been written to the IL
-			   file.  Needed for string entries, for which
-			   multiple copies may be written. */
   /* In the alternate file format, each entry has an entry number.  This
      is where it is stored.   Pick a size that makes the whole prefix
      struct the same size as a long.  (This is just for efficiency;
@@ -167,17 +173,6 @@ an IL entry prefix only if it exists.
 
 
 /*
-Macro used by clear_il_entry_prefix to clear the entry_written flag in an
-IL entry prefix only if it exists.
-*/
-#if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
-#define clear_entry_written_flag(epp) (epp->entry_written = FALSE)
-#else/* !(IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT) */
-#define clear_entry_written_flag(epp) /* Nothing */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
-
-
-/*
 Macro used by clear_il_entry_prefix to clear the entry number in an
 IL entry prefix only if it exists.
 */
@@ -202,7 +197,7 @@ region of a secondary translation unit, FALSE otherwise.
   epp->il_walk_flag = 0;                                              \
   clear_il_lowering_flag(epp);                                        \
   clear_keep_in_il_flag(epp);                                         \
-  clear_entry_written_flag(epp);                                      \
+  epp->entry_written = FALSE;                                         \
   clear_il_entry_number(epp);                                         \
 }  /* clear_il_entry_prefix */
 

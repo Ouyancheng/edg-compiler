@@ -37,26 +37,6 @@ trans_copy.c -- Copy IL from secondary translation units to the
 #endif /* DO_IL_LOWERING */
 
 
-static a_boolean f_has_corresp(char *ptr)
-/*
-Return TRUE if the indicated entry has a correspondence in the primary
-file IL.
-*/
-{
-  char      *corresp = canonical_il_entry_of(ptr);
-  a_boolean has_corr = !in_secondary_trans_unit(corresp);
-
-  return has_corr;
-}  /* f_has_corresp */
-
-
-/*
-Macro interface to f_has_corresp, which allows it to be called for
-entries of various kinds.
-*/
-#define has_corresp(entry) f_has_corresp((char *)(entry))
-
-
 static void f_mark_to_merge(char *ptr)
 /*
 Mark the given entry as one that must be merged with its counterpart
@@ -90,6 +70,95 @@ in the primary IL.
   (il_entry_prefix_of(ptr).il_lowering_flag)
 
 
+/*
+Provide access to the flag of an entry that indicates that
+the entry's correspondence pointer has been set to point to space into
+which the entry will be or has been copied.  This macro can be used to
+fetch or set the flag.  The entry_written flag can be reused for
+this purpose because secondary translation units are never written
+to an IL file.
+*/
+#define entry_copy_address_assigned(ptr) \
+  (il_entry_prefix_of(ptr).entry_written)
+
+
+static a_boolean f_has_corresp(char *ptr)
+/*
+Return TRUE if the indicated entry has a correspondence in the primary
+file IL.  That means one assigned by the trans_corresp.c code, not
+simply a copy address assigned to the entry.
+*/
+{
+  a_boolean has_corr;
+
+  /* If the correspondence pointer points to a copy address, then
+     the entry doesn't have a correspondence. */
+  if (entry_copy_address_assigned(ptr)) {
+    /* If the entry is marked to be merged, however, the copy address is
+       the address of the intermediate copy, and there really is a
+       pre-assigned correspondence. */
+    has_corr = entry_to_be_merged(ptr);
+  } else {
+    char *corresp = canonical_il_entry_of(ptr);
+    has_corr = !in_secondary_trans_unit(corresp);
+  }  /* if */
+  return has_corr;
+}  /* f_has_corresp */
+
+/*
+Macro interface to f_has_corresp, which allows it to be called for
+entries of various kinds.
+*/
+#define has_corresp(entry) f_has_corresp((char *)(entry))
+
+
+/*
+Return TRUE if the given entry has the flag set that indicates that
+it needs to be copied.  The il_walk_flag is used for this purpose.
+*/
+#define entry_needs_copy_flag_is_set(ptr) \
+  (il_entry_prefix_of(ptr).il_walk_flag == flag_value_meaning_visited)
+
+/*
+Set the flag that indicates that an entry needs to be copied.
+*/
+#define set_entry_needs_copy_flag(ptr) \
+  (il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited)
+
+/*
+Reset the flag that indicates that an entry needs to be copied.
+*/
+#define reset_entry_needs_copy_flag(ptr) \
+  (il_entry_prefix_of(ptr).il_walk_flag = !flag_value_meaning_visited)
+
+
+static a_boolean in_other_secondary_trans_unit(char             *ptr,
+                                               an_il_entry_kind kind)
+/*
+Return TRUE if the indicated IL entry is in a different secondary translation
+unit.  This is accurately determined only for declarative entries with
+associated symbols.  For other cases, FALSE is returned.
+*/
+{
+  a_boolean in_other_trans_unit = FALSE;
+
+  if (in_secondary_trans_unit(ptr)) {
+    a_source_correspondence *scp = source_corresp_for_il_entry(ptr, kind);
+    if (scp != NULL && !scp->is_local_to_function) {
+      a_symbol_ptr sym = (a_symbol_ptr)(scp->assoc_info);
+      if (sym != NULL) {
+        if (sym->decl_scope != NO_SCOPE_NUMBER &&
+            trans_unit_for_scope[sym->decl_scope] != curr_translation_unit) {
+          /* This entity is from a different secondary translation unit. */
+          in_other_trans_unit = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return in_other_trans_unit;
+}  /* in_other_secondary_trans_unit */
+
+
 static void corresp_setup(char             *ptr,
                           an_il_entry_kind kind)
 /*
@@ -118,35 +187,33 @@ pointer of the entry pointed to by ptr, of kind "kind".
     /* This entry is in the primary file IL, so do nothing. */
   } else if (!in_file_scope(ptr)) {
     /* This entry is in a function scope memory region, so do nothing. */
-  } else if (il_entry_prefix_of(ptr).il_walk_flag ==
-                                                  flag_value_meaning_visited) {
+  } else if (entry_needs_copy_flag_is_set(ptr)) {
     /* This entry has already been encountered and the correspondence
        pointer has been set, and we're awaiting copying. */
+  } else if (entry_copy_address_assigned(ptr)) {
+    /* A copy address has already been assigned to this entry. */
   } else if (has_corresp(ptr)) {
     /* This entry has a correspondence in the primary IL. */
     if (entry_to_be_merged(ptr)) {
       /* This is an entry that gets merged into its corresponding entry. */
       char *corresp = checked_trans_unit_corresp_pointer_of(ptr);
-      /* The first time through, a copy is made, the subtree is walked,
-         and a two-step correspondence-pointer chain is set up.  If the
-         chain is already present, this is not the first time through,
-         so do nothing. */
-      if (!in_secondary_trans_unit(corresp)) {
-        /* Make a copy, so we will have a version with all the pointers
-           remapped appropriately.  The original entry points to the
-           copy, which points to the canonical entry.  This allows us to get
-           to the copy via trans_unit_corresp_pointer_of, while ensuring
-           that references to the original entry are remapped to the
-           canonical entry (because canonical_il_entry_of loops through to
-           the end of the list).  Note that the copy is in the
-           secondary translation unit file scope memory region. */
-        char *copy = alloc_il(sizeof_il_entry[(int)kind]);
-        checked_trans_unit_corresp_pointer_of(ptr) = copy;
-        checked_trans_unit_corresp_pointer_of(copy) = corresp;
-        check_assertion(!is_string_entry_kind(kind));
-        /* Set the il_walk_flag to request copying. */
-        il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
-      }  /* if */
+      /* Make a copy, so we will have a version with all the pointers
+         remapped appropriately.  The original entry points to the
+         copy, which points to the canonical entry.  This allows us to get
+         to the copy via trans_unit_corresp_pointer_of, while ensuring
+         that references to the original entry are remapped to the
+         canonical entry (because canonical_il_entry_of loops through to
+         the end of the list).  Note that the copy is in the
+         secondary translation unit file scope memory region. */
+      char *copy = alloc_il(sizeof_il_entry[(int)kind]);
+      checked_trans_unit_corresp_pointer_of(ptr) = copy;
+      checked_trans_unit_corresp_pointer_of(copy) = corresp;
+      check_assertion(!is_string_entry_kind(kind));
+      /* Set the flag to request copying. */
+      set_entry_needs_copy_flag(ptr);
+      /* Set the flag to indicate that a copy address has been assigned.
+         Note that that prevents us from getting to the code here again. */
+      entry_copy_address_assigned(ptr) = TRUE;
     }  /* if */
   } else {
     /* The entry has no correspondence.  Allocate space for it in the primary
@@ -161,9 +228,18 @@ pointer of the entry pointed to by ptr, of kind "kind".
          it's in a secondary translation unit. */
       if (canonical != ptr && in_secondary_trans_unit(canonical)) {
         checked_trans_unit_corresp_pointer_of(canonical) = copy;
+        /* Check for the weird case where the canonical entry is in the
+           current translation unit (presumably, ptr is from some
+           other secondary translation unit).  In that case, do the
+           copy from the canonical entry. */
+        if (!in_other_secondary_trans_unit(canonical, kind)) {
+          ptr = canonical;
+        }  /* if */
       }  /* if */
-      /* Set the il_walk_flag to request copying. */
-      il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
+      /* Set the flag to request copying. */
+      set_entry_needs_copy_flag(ptr);
+      /* Set the flag to indicate that a copy address has been assigned. */
+      entry_copy_address_assigned(ptr) = TRUE;
       if (!walking_file_scope) {
         /* A reference from a function scope to the file scope.  Make sure
            we come back to this entry if it's an orphan. */
@@ -208,15 +284,21 @@ pruned at the entry pointed to by ptr, of kind "kind".
     prune = FALSE;
   } else {
     /* This entry is in the file scope memory region of a secondary translation
-       unit.  The il_walk_flag is on to indicate that copying is needed, and
-       then turned off once the copying has been done. */
-    if (il_entry_prefix_of(ptr).il_walk_flag == !flag_value_meaning_visited) {
+       unit. */
+    if (!entry_needs_copy_flag_is_set(ptr)) {
       /* This entry does not need any (more) processing. */
       prune = TRUE;
     } else {
       /* This entry still needs to be processed (i.e., copied and remapped). */
-      il_entry_prefix_of(ptr).il_walk_flag = !flag_value_meaning_visited;
-      prune = FALSE;
+      if (in_other_secondary_trans_unit(ptr, kind)) {
+        /* This entity is from a different secondary translation unit.
+           Leave it to be processed when that translation unit is
+           copied. */
+        prune = TRUE;
+      } else {
+        reset_entry_needs_copy_flag(ptr);
+        prune = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return prune;
