@@ -9743,20 +9743,18 @@ names from base classes (i.e., it ignores nontypes):
 sym is the symbol found from a base class.  class_ptr is the class in which
 the lookup is being done.  Return TRUE if this is a symbol that should
 be ignored as a result of the Microsoft bug.
-
-This bug was fixed in version 7.1 of the Microsoft compiler.
 */
 {
   a_boolean	result = FALSE;
   a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
 
   if (!is_type_symbol(fund_sym)) {
-    /* Not a type.  See if the symbol has the same name as the current
-       class. */
+    /* Not a type.  For Microsoft 7.0 and above, see if the symbol has the
+       same name as the current class. */
     a_symbol_ptr	class_sym;
     class_sym = (a_symbol_ptr)class_ptr->source_corresp.assoc_info;
-    if (class_sym != NULL &&
-        class_sym->header == sym->header) {
+    if (microsoft_version < 1300 ||
+        (class_sym != NULL && class_sym->header == sym->header)) {
       result = TRUE;
     }  /* if */
   }  /* if */
