@@ -7264,6 +7264,11 @@ Copy a statement entry from "from" to "to".
   /* If the statement is a label, bind the a_label to the copy. */
   if (to->kind == (a_statement_kind)stmk_label) {
     to->variant.label.ptr->variant.exec_stmt = to;
+  } else if (to->kind == (a_statement_kind)stmk_block) {
+    /* If the statement is a block with an associated scope, change the
+       back-pointer from the scope to point to the copy. */
+    a_scope_ptr scope = to->variant.block.extra_info->assoc_scope;
+    if (scope != NULL) scope->assoc_block = to;
   }  /* if */
 }  /* copy_statement */
 

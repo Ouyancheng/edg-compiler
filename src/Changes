@@ -1,5 +1,18 @@
 Version 2.36
 
+6/11/97   IL lowering of loop conditions: block <--> scope wrong
+
+The lowering of a condition declaration in a loop, where the dependent
+statement of the loop has an associated scope, produced incorrect
+IL: a block statement pointed to a scope which did not point back to
+the block statement.  Now fixed.
+
+  void f() {
+    while (int x = 1) {
+      int i = 6; 
+    }
+  }
+
 6/11/97   Escape sequences recognized in #line directive file name strings
 
 Escape sequences are now recognized in the string literals that indicate
