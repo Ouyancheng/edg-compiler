@@ -1272,6 +1272,7 @@ initialized.  These are addressed in the course of the processing.
     /* Loop through the comma-separated list of initializers. */
     do {
       err = FALSE;
+      new_cip = NULL;
       add_stop_token(tok_comma);
       /* Unless this is an old style base class initializer, a base class
          name or a member name is expected. */
@@ -1413,6 +1414,12 @@ initialized.  These are addressed in the course of the processing.
              is to be done. */
           a_boolean  indirect_nonvirtual_base_class_found = FALSE;
           init_type = type_symbol_type(member_or_base_sym);
+           /* The symbol's type entry could be a "tag typeref".  If so, get
+              the type entry at file scope that it points to. */
+          if (init_type->kind == (a_type_kind)tk_typeref &&
+              init_type->variant.typeref.is_function_scope_tag) {
+            init_type = init_type->variant.typeref.type;
+          }  /* if */
           /* Locate it in the base classes list for the current class.  Note
              that only direct and virtual base classes can be specified. */
           bcp = class_type->
