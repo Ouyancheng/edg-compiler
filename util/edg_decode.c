@@ -166,7 +166,11 @@ edg_decode utility program -- demangles names for C++.
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
+#if IA64_ABI
+#define OPTION_LIST "ug"
+#else /* !IA64_ABI */
 #define OPTION_LIST "u"
+#endif /* IA64_ABI */
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'u':
