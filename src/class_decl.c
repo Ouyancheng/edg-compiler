@@ -306,6 +306,96 @@ Initialize fields of a class-definition-state block.
 }  /* initialize_class_def_state */
 
 
+/*
+A member-declaration-info block, for tracking information about a class member
+declaration as it appears.
+*/  
+typedef struct a_member_decl_info *a_member_decl_info_ptr;
+typedef struct a_member_decl_info {
+  a_source_position
+		decl_start_pos;
+			/* Source position of the first token of the
+			   declaration. */
+  a_decl_flag_set
+		dso_flags;
+			/* Bit vector comprising flags returned from
+			   decl_specifiers. */
+  a_decl_flag_set
+		do_flags;
+			/* Bit vector comprising flags returned from
+			   declarator. */
+  a_type_qualifier_set
+		qualifiers;
+			/* Type qualifiers returned from decl_specifiers. */
+  a_decl_modifier
+		decl_modifiers;
+			/* Decl-modifiers returned from decl_specifiers
+			   (Microsoft compatibility mode only). */
+  a_storage_class
+		storage_class;
+			/* Storage class returned from decl_specifiers. */
+  a_bit_field	is_first_in_declarator_list;
+			/* TRUE for the first declarator in a declarator list,
+			   FALSE thereafter. */
+  a_bit_field	is_constructor:1;
+			/* TRUE if the current declaration is a constructor.
+			   In unusual cases this value may be different from
+			   (dso_flags & DSO_CONSTRUCTOR). */
+  a_bit_field	is_destructor:1;
+			/* TRUE if the current declaration is a destructor.
+			   In unusual cases this value may be different from
+			   (dso_flags & DSO_DESTRUCTOR). */
+  a_bit_field	invalid_virtual_specifier:1;
+			/* TRUE when (dso_flags & DSO_VIRTUAL) is TRUE but
+			   it is not a valid use of the specifier. */
+  a_bit_field	is_unnamed_field:1;
+			/* TRUE if the declaration is an unnamed field. */
+  a_bit_field	is_anonymous_union:1;
+			/* TRUE if the declaration is an anonymous union. */
+  a_bit_field	is_nonstd_anonymous_union:1;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+			/* TRUE if is_anonymous_union is TRUE but it is not
+			   a standard-conforming construct. */
+#else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+			/* Always FALSE. */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  a_source_sequence_entry_ptr
+		declarator_ssep;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+			/* Pointer to the source-sequence entry for the
+			   declarator. */
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+			/* Always NULL. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_symbol_ptr	member_sym;
+			/* Pointer to the symbol entry created to represent
+			   the current member; may be NULL. */
+} a_member_decl_info;
+
+
+static void initialize_member_decl_info(a_member_decl_info_ptr mdip,
+                                        a_source_position      *pos)
+/*
+*/
+{
+  mdip->decl_start_pos = *pos;
+  mdip->dso_flags = DSO_NO_OUTPUT_FLAGS;
+  mdip->do_flags = DO_NO_OUTPUT_FLAGS;
+  mdip->qualifiers = TQ_NONE;
+  mdip->decl_modifiers = DM_NONE;
+  mdip->storage_class = (a_storage_class)sc_unspecified;
+  mdip->is_first_in_declarator_list = TRUE;
+  mdip->is_constructor = FALSE;
+  mdip->is_destructor = FALSE;
+  mdip->invalid_virtual_specifier = FALSE;
+  mdip->is_unnamed_field = FALSE;
+  mdip->is_anonymous_union = FALSE;
+  mdip->is_nonstd_anonymous_union = FALSE;
+  mdip->declarator_ssep = NULL;
+  mdip->member_sym = NULL;
+}  /* initialize_member_decl_info */
+
+
 static
 a_boolean prescan_function_definition(a_token_sequence_number *first_tsn,
                                       a_token_sequence_number *last_tsn)
@@ -5496,26 +5586,22 @@ specified by decl_scope_level.
 #if !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 /* ARGSUSED */ /* error_pos is only used with the anonymous union extension. */
 #endif /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS*/
-static a_boolean is_anonymous_union_decl(a_type_ptr        member_type,
-                                         a_decl_flag_set   dso_flags,
-                                         a_boolean         *is_nonstd,
-                                         a_source_position *error_pos)
+static a_boolean is_anonymous_union_decl(a_type_ptr              member_type,
+                                         a_member_decl_info_ptr  decl_info,
+                                         a_source_position       *error_pos)
 /*
 A declaration has appeared in which there is no declarator.  Return TRUE if
 it is an anonymous union declaration.  If ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 is TRUE and this is not a standard C++ anonymous union, return TRUE and
-also set *is_nonstd to TRUE.
+also set the is_nonstd_anonymous_union flag in the member-decl-info block.
 */
 {
-  a_boolean  is_anonymous_union = FALSE;
-
-  *is_nonstd = FALSE;
   if (!C_mode() &&
       member_type->kind == (a_type_kind)tk_union) {
-    if (dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) {
+    if (decl_info->dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) {
       /* This cannot be a standard or a nonstandard anonymous union in C++. */
     } else {
-      is_anonymous_union = TRUE;
+      decl_info->is_anonymous_union = TRUE;
     }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   } else if (!allow_nonstandard_anonymous_unions) {
@@ -5525,7 +5611,7 @@ also set *is_nonstd to TRUE.
     /* Not a pseudo-anonymous-union -- it's not a class, struct,
        or union type. */
   } else if (!C_mode() &&
-             ((dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) ||
+             ((decl_info->dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) ||
               !(skip_typerefs(member_type))->
                             variant.class_struct_union.originally_unnamed)) {
     /* Not a pseudo-anonymous-union -- either a tag appeared on the current
@@ -5543,7 +5629,7 @@ also set *is_nonstd to TRUE.
     } else {
       if (C_mode()) {
         /* In C mode that's all we need to know. */
-        is_anonymous_union = TRUE;
+        decl_info->is_anonymous_union = TRUE;
       } else {
         /* In C++ it's required that the class have only C features -- i.e.,
            no member functions, no static data members, and no nested types
@@ -5555,21 +5641,21 @@ also set *is_nonstd to TRUE.
         if (cssp->is_class_aggregate) {
           if ((sym = cssp->symbols) != NULL) {
             /* Assume. */
-            is_anonymous_union = TRUE;
+            decl_info->is_anonymous_union = TRUE;
             for (; sym != NULL; sym = sym->next_in_scope) {
               if (sym->kind == (a_symbol_kind)sk_field) {
                 /* Okay. */
               } else {
-                is_anonymous_union = FALSE;
+                decl_info->is_anonymous_union = FALSE;
                 break;
               }  /* if */
             }  /* for */
           }  /* if */
         }  /* if */
       }  /* if */
-      if (is_anonymous_union) {
+      if (decl_info->is_anonymous_union) {
         /* Set the nonstandard flag. */
-        *is_nonstd = TRUE;
+        decl_info->is_nonstd_anonymous_union = TRUE;
         if (strict_ansi_mode) {
           /* Issue a diagnostic that this is an extension. */
           pos_diagnostic(strict_ansi_error_severity, 
@@ -5581,7 +5667,7 @@ also set *is_nonstd to TRUE.
     }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   }  /* if */
-  return is_anonymous_union;
+  return decl_info->is_anonymous_union;
 }  /* is_anonymous_union_decl */
 
 
@@ -7391,38 +7477,34 @@ and update *access accordingly.
 
 
 static void check_missing_declarator_in_member_declaration(
-                               a_type_ptr         class_type,
-                               a_type_ptr         member_type,
-                               a_storage_class    storage_class,
-                               a_decl_flag_set    dso_flags,
-                               a_source_position  *decl_start_pos,
-                               a_boolean          *is_anonymous_union,
-                               a_boolean          *is_nonstd_anonymous_union)
+                               a_type_ptr              class_type,
+                               a_type_ptr              member_type,
+                               a_member_decl_info_ptr  decl_info)
 /*
 This routine is called while a member declaration is being scanned when a
 semicolon is encountered immediately after the declaration-specifiers.  In
 other words, there is no declarator in the member declaration.  Issue an error
 if appropriate.  class_type is the class whose definition is being scanned.
-member_type, storage_class, and dso_flags specify information returned from
-decl_specifiers.  decl_start_pos points to the source position at which the
-member declaration begins.  *is_anonymous_union is returned TRUE if this
-member is an anonymous union declaration; *is_nonstandard_anonymous_union is
-returned TRUE if this is a microsoft-style anonymous union.
+member_type is the type returned from decl_specifiers. *decl_info contains
+other information about the declaration as it has been scanned thus far;
+moreover, several fields of *decl_info may be updated by this routine.
 */
 {
+  a_source_position  *err_pos = &decl_info->decl_start_pos;
+  a_decl_flag_set    dso_flags = decl_info->dso_flags;
+  a_storage_class    storage_class = decl_info->storage_class;
+
   /* Check first whether this is an anonymous union declaration. */
   if (storage_class == (a_storage_class)sc_unspecified &&
       !is_incomplete_type(member_type) &&
-      is_anonymous_union_decl(member_type, dso_flags,
-                              is_nonstd_anonymous_union,
-                              &pos_curr_token)) {
+      is_anonymous_union_decl(member_type, decl_info, &pos_curr_token)) {
     /* A C++ anonymous union -- "union { int i, j; };" */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
     /* It might also be an anonymous-union-like construct in C or C++, namely
        an unnamed class/struct/union type, possibly represented by a typedef
        name, whose subfields are to be visible as though they were fields of
        the current class. */
-    if (*is_nonstd_anonymous_union &&
+    if (decl_info->is_nonstd_anonymous_union &&
         member_type->kind == (a_type_kind)tk_typeref) {
       a_symbol_ptr  sym;
 
@@ -7436,13 +7518,12 @@ returned TRUE if this is a microsoft-style anonymous union.
       check_assertion(C_mode() && has_name(member_type));
       sym = (a_symbol_ptr)(member_type)->source_corresp.assoc_info;
       if (sym != NULL) {
-        record_symbol_declaration(SRK_DECLARATION, sym,
-                                  decl_start_pos,
+        record_symbol_declaration(SRK_DECLARATION, sym, err_pos,
                                   (a_source_sequence_entry_ptr)NULL);
       }  /* if */
     }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-    *is_anonymous_union = TRUE;
+    decl_info->is_anonymous_union = TRUE;
     /* Set the IL referenced flag for the anonymous union type. */
 #if 0
     /* It would probably be better to set it when an anonymous union member
@@ -7453,7 +7534,7 @@ returned TRUE if this is a microsoft-style anonymous union.
     /* C++ mode. */
     if (dso_flags & DSO_MUTABLE) {
       /* "mutable" is only allowed on nonstatic data member decls. */
-      pos_error(ec_mutable_not_allowed, decl_start_pos);
+      pos_error(ec_mutable_not_allowed, err_pos);
     }  /* if */
     if (dso_flags & DSO_FRIEND) {
       if ((dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) &&
@@ -7464,33 +7545,30 @@ returned TRUE if this is a microsoft-style anonymous union.
         decl_friend_class(class_type, member_type);
       } else if (!is_error_type(member_type)) {
         /* Invalid friend declaration. */
-        pos_error(ec_bad_friend_decl, decl_start_pos);
+        pos_error(ec_bad_friend_decl, err_pos);
       }  /* if */
     } else if (dso_flags & DSO_DECLARES_SOMETHING) {
       /* This is a free standing declaration of a class, struct, union, or
          enum type entry.  It will already have been recorded on the types
          list for the current class.  No need to complain about a missing
          identifier.  Just check for some errors. */
-      if (storage_class != (a_storage_class)sc_unspecified) {
-        if (storage_class == (a_storage_class)sc_typedef) {
-          /* A case like "typedef struct S { int i; };" */
-          pos_diagnostic(strict_ansi_mode ?
+      if (storage_class == (a_storage_class)sc_typedef) {
+        /* A case like "typedef struct S { int i; };" */
+        pos_diagnostic(strict_ansi_mode ?
                            strict_ansi_error_severity : es_warning,
-                         ec_missing_typedef_name, &pos_curr_token);
-        } else {
-          pos_diagnostic(any_cfront_mode() ? es_warning : es_error,
-                         ec_storage_class_not_allowed,
-                         decl_start_pos);
-        }  /* if */
+                       ec_missing_typedef_name, &pos_curr_token);
+      } else if (storage_class != (a_storage_class)sc_unspecified) {
+        pos_diagnostic(any_cfront_mode() ? es_warning : es_error,
+                       ec_storage_class_not_allowed, err_pos);
       }  /* if */
       if (dso_flags & DSO_INLINE) {
-        pos_error(ec_inline_not_allowed, decl_start_pos);
+        pos_error(ec_inline_not_allowed, err_pos);
       }  /* if */
       if (dso_flags & DSO_EXPLICIT) {
-        pos_error(ec_explicit_not_allowed, decl_start_pos);
+        pos_error(ec_explicit_not_allowed, err_pos);
       }  /* if */
       if (is_qualified_type(member_type)) {
-        pos_error(ec_useless_type_qualifiers, decl_start_pos);
+        pos_error(ec_useless_type_qualifiers, err_pos);
       }  /* if */
     } else if (storage_class == (a_storage_class)sc_typedef) {
       /* A case like "typedef int;" or "typedef struct { int i; };" */
@@ -7510,10 +7588,10 @@ returned TRUE if this is a microsoft-style anonymous union.
          least declare *something*. */
       pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
                                         es_warning,
-                     ec_useless_decl, decl_start_pos);
+                     ec_useless_decl, err_pos);
     } else {
       /* A case like "int;" is explicitly disallowed by language in ARM 9.2. */
-      pos_error(ec_useless_decl, decl_start_pos);
+      pos_error(ec_useless_decl, err_pos);
     }  /* if */
   } else {
     /* C mode. */
@@ -7530,12 +7608,14 @@ returned TRUE if this is a microsoft-style anonymous union.
       /* Issue a warning (or error in -A mode) on the useless declaration. */
       pos_diagnostic(strict_ansi_mode ?
                        strict_ansi_error_severity : es_warning,
-                     ec_useless_decl, decl_start_pos);
+                     ec_useless_decl, err_pos);
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if ((dso_flags & (DSO_DECLARES_SOMETHING | DSO_DEFINES_SOMETHING)) ||
-      (*is_anonymous_union && member_type->kind != (a_type_kind)tk_typeref)) {
+  if ((dso_flags & (DSO_DECLARES_SOMETHING |
+                               DSO_DEFINES_SOMETHING)) ||
+      (decl_info->is_anonymous_union &&
+       member_type->kind != (a_type_kind)tk_typeref)) {
     /* This is a free-standing declaration of a class, struct, union, or
        enum. */
     set_autonomous_tag_decl_flag(member_type,
@@ -7900,19 +7980,20 @@ following the member declaration.
   a_storage_class      member_storage_class;
   a_type_ptr           member_type;
   a_decl_modifier      decl_modifiers;
-  a_boolean            first_declarator = TRUE;
   a_boolean            no_decl_specifiers;
   a_boolean            friend_specified, virtual_specified;
   a_boolean            type_explicitly_specified, inline_specified;
   a_boolean            is_destructor, is_constructor;
-  a_boolean            is_anonymous_union = FALSE;
-  a_boolean            is_nonstd_anonymous_union = FALSE;
-  a_boolean            mutable_specified, explicit_specified;
+  a_boolean            mutable_specified;
   a_boolean            return_type_def_err = FALSE;
   a_symbol_ptr         rout_sym;
+  a_member_decl_info   decl_info;
+  a_boolean            first_declarator_diagnostics;
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
+  decl_start_pos = pos_curr_token;
+  initialize_member_decl_info(&decl_info, &decl_start_pos);
   /* Set the flags to control the calls to decl_specifiers. */
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
               DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
@@ -7922,13 +8003,13 @@ following the member declaration.
                   DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                   DSI_VACUOUS_TAG_DECL_ALLOWED);
   }  /* if */
-
-  copy_source_position(pos_curr_token, decl_start_pos);
   /* First scan the declaration specifiers.  In C++ the specifiers may be
      omitted, e.g., for a function member with implicit type. */
   add_stop_token(tok_colon);
-  (void)decl_specifiers(dsi_flags, &dso_flags, &member_storage_class,
-                        &member_type, &qualifiers, &decl_modifiers);
+  (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
+                        &member_type, &qualifiers,
+                        &decl_modifiers);
+  decl_info.dso_flags = dso_flags;
   if ((dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
 #if CHECKING
     if (C_dialect == C_dialect_cplusplus) {
@@ -7950,14 +8031,13 @@ following the member declaration.
   } /* if */
   no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
   type_explicitly_specified =
-                         dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
+                       (dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0;
   friend_specified = dso_flags & DSO_FRIEND;
   if (friend_specified) class_state->any_friend_decls = TRUE;
   virtual_specified = (dso_flags & DSO_VIRTUAL) != 0;
   inline_specified = (dso_flags & DSO_INLINE) != 0;
-  explicit_specified = (dso_flags & DSO_EXPLICIT) != 0;
-  is_constructor = dso_flags & DSO_CONSTRUCTOR;
-  is_destructor = dso_flags & DSO_DESTRUCTOR;
+  is_constructor = (dso_flags & DSO_CONSTRUCTOR) != 0;
+  is_destructor = (dso_flags & DSO_DESTRUCTOR) != 0;
   mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
   remove_stop_token(tok_colon);
   if (dso_flags & DSO_DANGLING_TYPE_SPECIFIER) {
@@ -7971,19 +8051,16 @@ following the member declaration.
     *skip_semicolon_check = TRUE;
     goto next_declaration;
   }  /* if */
-  if (explicit_specified && !is_constructor) {
+  if ((dso_flags & DSO_EXPLICIT) && !(dso_flags & DSO_CONSTRUCTOR)) {
     pos_error(ec_explicit_not_allowed, &decl_start_pos);
-    explicit_specified = FALSE;
   }  /* if */
   if (curr_token == tok_semicolon) {
     /* There's no declarator following the declaration specifier.  This may
        be okay, but sometimes a diagnostic should be issued. Unless this is
        an anonymous union declaration, skip to the next declaration. */
-    check_missing_declarator_in_member_declaration(
-                         class_type, member_type, member_storage_class,
-                         dso_flags, &decl_start_pos, &is_anonymous_union,
-                         &is_nonstd_anonymous_union);
-    if (is_anonymous_union) {
+    check_missing_declarator_in_member_declaration(class_type, member_type,
+                                                   &decl_info);
+    if (decl_info.is_anonymous_union) {
       /* decl_nonstatic_data_member needs to be called. */
     } else {
       cannot_bind_to_curr_construct();
@@ -7997,18 +8074,16 @@ following the member declaration.
   do {
     a_symbol_locator   locator;
     a_type_ptr         local_type;
-    a_boolean          unnamed_field = FALSE;
     a_func_info_block  func_info;
     a_source_sequence_entry_ptr
                        declarator_ssep = NULL;
     a_boolean          cfront_member_function_typedef = FALSE;
-    a_boolean          first_declarator_diagnostics = first_declarator;
 
+    first_declarator_diagnostics = decl_info.is_first_in_declarator_list;
     add_stop_token(tok_comma);
     add_stop_token(tok_colon);
-    unnamed_field = FALSE;
     clear_func_info(&func_info);
-    if (!first_declarator &&
+    if (!decl_info.is_first_in_declarator_list &&
         (dso_flags & DSO_CONSTRUCTOR || dso_flags & DSO_DESTRUCTOR)) {
       /* This section of code is entered when there is a comma-list of
          constructors and/or destructors. */
@@ -8032,10 +8107,10 @@ following the member declaration.
     set_err_pos_to_curr_token();
     if (curr_token == tok_colon && !no_decl_specifiers) {
       /* Unnamed bit-field. */
-      unnamed_field = TRUE;
+      decl_info.is_unnamed_field = TRUE;
       local_type = member_type;
       set_to_error_locator(locator);
-    } else if (is_anonymous_union) {
+    } else if (decl_info.is_anonymous_union) {
       /* There is no declarator. */
       local_type = member_type;
       set_to_error_locator(locator);
@@ -8053,8 +8128,8 @@ following the member declaration.
       goto next_declaration;
     } else {
       /* Named member -- we need to call declarator. */
-      a_decl_flag_set    		declarator_input_flags;
-      a_decl_flag_set    		declarator_output_flags;
+      a_decl_flag_set  declarator_input_flags;
+      a_decl_flag_set  declarator_output_flags;
 
       if (!C_mode()) {
         /* C++ mode */
@@ -8086,9 +8161,9 @@ following the member declaration.
         declarator_input_flags |= DI_DESTRUCTOR_SPECIFIERS;
       }  /* if */
       if (is_constructor) declarator_input_flags |= DI_IS_CONSTRUCTOR;
-      if (member_storage_class == (a_storage_class)sc_typedef) {
+      if (decl_info.storage_class == (a_storage_class)sc_typedef) {
         declarator_input_flags |= DI_IS_TYPEDEF_DECLARATION;
-      } else if (member_storage_class != (a_storage_class)sc_static) {
+      } else if (decl_info.storage_class != (a_storage_class)sc_static) {
         /* The storage class "static" was not specified and it is not a
            typedef declaration.   Therefore, if this turns out to be a member
            function declaration, it will be a nonstatic member function.
@@ -8116,13 +8191,13 @@ following the member declaration.
         cfront_member_function_typedef =
             declarator_output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
         check_complete_member_type(&local_type, &locator, class_state,
-                                   member_storage_class, &decl_start_pos,
+                                   decl_info.storage_class, &decl_start_pos,
                                    &return_type_def_err, dso_flags);
       }  /* if */
     }  /* if */
     remove_stop_token(tok_colon);
     if (!C_mode() && is_function_type(local_type) &&
-        member_storage_class != (a_storage_class)sc_typedef) {
+        decl_info.storage_class != (a_storage_class)sc_typedef) {
       /* Member or friend function. */
       a_boolean                suppress_pure_specifier_error = FALSE;
       a_boolean                function_def_present;
@@ -8134,7 +8209,7 @@ following the member declaration.
       }  /* if */
       function_def_present = ((curr_token == tok_lbrace) ||
                               (is_constructor && (curr_token == tok_colon)));
-      if (function_def_present && !first_declarator) {
+      if (function_def_present && !decl_info.is_first_in_declarator_list) {
         pos_error(ec_exp_semicolon, &pos_curr_token);
       }  /* if */
       func_info.is_definition = function_def_present;
@@ -8177,34 +8252,34 @@ following the member declaration.
         check_typedef_function_type(&local_type, &locator.source_position,
                                     function_def_present, class_type,
                                     (!friend_specified &&
-                                     member_storage_class !=
+                                     decl_info.storage_class !=
                                           (a_storage_class)sc_static));
       }  /* if */
       if (virtual_specified &&
           is_invalid_use_of_virtual(&locator, class_type, friend_specified,
-                                    is_constructor, member_storage_class,
+                                    is_constructor, decl_info.storage_class,
                                     &decl_start_pos)) {
         virtual_specified = FALSE;
         suppress_pure_specifier_error = TRUE;
       }  /* if */
       if (friend_specified) {
         /* Process a friend function declaration. */
-        if (member_storage_class != (a_storage_class)sc_unspecified) {
+        if (decl_info.storage_class != (a_storage_class)sc_unspecified) {
           /* A storage class declaration along with "friend" is not
              allowed. */
           pos_error(ec_bad_friend_decl, &decl_start_pos);
-          member_storage_class = (a_storage_class)sc_unspecified;
+          decl_info.storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         rout_sym = decl_friend_function(&locator, class_type, local_type,
                                         &func_info, decl_modifiers);
       } else {
         /* Must be a member function declaration. */
         if ((is_constructor || is_destructor) &&
-            member_storage_class == (a_storage_class)sc_static) {
+            decl_info.storage_class == (a_storage_class)sc_static) {
           /* Constructors and destructors may not be declared "static"
              (ARM 12.1, 12.4). */
           pos_error(ec_static_not_allowed, &decl_start_pos);
-          member_storage_class = (a_storage_class)sc_unspecified;
+          decl_info.storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         if (is_constructor || virtual_specified) {
           /* A class with a user-defined constructor or a virtual function
@@ -8265,8 +8340,7 @@ following the member declaration.
             find_member_function_template(rout_sym, prototype_sym);
           }  /* if */
         }  /* if */
-        if (explicit_specified) {
-          check_assertion(is_constructor);
+        if (is_constructor && (dso_flags & DSO_EXPLICIT)) {
           rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
         }  /* if */
       }  /* if */
@@ -8389,7 +8463,7 @@ following the member declaration.
       remove_stop_token(tok_comma);
       discard_curr_construct_pragmas();
       break;
-    } else if (member_storage_class == (a_storage_class)sc_typedef) {
+    } else if (decl_info.storage_class == (a_storage_class)sc_typedef) {
       a_symbol_ptr        typedef_sym_ptr;
 
       check_assertion(C_dialect == C_dialect_cplusplus);
@@ -8433,7 +8507,7 @@ following the member declaration.
                ((is_scalar_type(local_type) &&
                  (get_type_qualifiers(local_type) == TQ_CONST)) ||
                 is_or_contains_template_param(local_type)) &&
-               member_storage_class == (a_storage_class)sc_unspecified) {
+               decl_info.storage_class == (a_storage_class)sc_unspecified) {
       /* Provide support for the nonstandard declaration of a member constant
          of scalar type -- e.g., "const int I = 2;". */
       decl_nonstd_member_constant(&locator, class_type, local_type,
@@ -8449,7 +8523,7 @@ following the member declaration.
           warning(ec_missing_type_specifier);
         }  /* if */
       }  /* if */
-      if (member_storage_class == (a_storage_class)sc_static) {
+      if (decl_info.storage_class == (a_storage_class)sc_static) {
         /* Static data member. */
         if (is_void_type(local_type)) {
           error(ec_incomplete_type_not_allowed);
@@ -8486,24 +8560,24 @@ following the member declaration.
         /* The type specified must be complete. */
         complete_type_is_needed(local_type);
         if (C_mode() && is_function_type(local_type) &&
-          member_storage_class != (a_storage_class)sc_typedef) {
+          decl_info.storage_class != (a_storage_class)sc_typedef) {
           pos_error(ec_function_type_not_allowed, &locator.source_position);
           local_type = error_type();
         } else {
-          check_field_type(&locator, &local_type, class_state, unnamed_field,
-                           &decl_start_pos);
+          check_field_type(&locator, &local_type, class_state,
+                           decl_info.is_unnamed_field, &decl_start_pos);
         }  /* if */
         /* Set the flag to record that at least one named field was
            encountered. */
-        if (!unnamed_field) class_state->any_named_fields = TRUE;
+        if (!decl_info.is_unnamed_field) class_state->any_named_fields = TRUE;
         decl_nonstatic_data_member(&locator, class_type, &local_type,
-                                   class_state, unnamed_field,
-                                   is_anonymous_union,
-                                   is_nonstd_anonymous_union,
+                                   class_state, decl_info.is_unnamed_field,
+                                   decl_info.is_anonymous_union,
+                                   decl_info.is_nonstd_anonymous_union,
                                    mutable_specified, declarator_ssep);
         if (!class_state->class_aggregate_ruled_out) {
           if (class_state->access != (an_access_specifier)as_public) {
-            if (unnamed_field) {
+            if (decl_info.is_unnamed_field) {
               /* Unnamed bit fields are not subject to initialization (and
                  are not even members, according to WP 9.6) so a nonpublic
                  one (whatever that means) has no effect on aggregate
@@ -8515,9 +8589,10 @@ following the member declaration.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (!class_state->any_const_or_ref_fields && !unnamed_field &&
-            !is_anonymous_union && (is_reference_type(local_type) ||
-                                    is_const_qualified_type(local_type))) {
+        if (!class_state->any_const_or_ref_fields &&
+            !decl_info.is_anonymous_union && !decl_info.is_unnamed_field &&
+            (is_reference_type(local_type) ||
+             is_const_qualified_type(local_type))) {
           class_state->any_const_or_ref_fields = TRUE;
         }  /* if */
         class_state->is_first_field = FALSE;
@@ -8533,7 +8608,7 @@ following the member declaration.
       }  /* if */
     }  /* if */
     remove_stop_token(tok_comma);
-    first_declarator = FALSE;
+    decl_info.is_first_in_declarator_list = FALSE;
     /* Loop for additional declarators. */
   } while (loop_token(tok_comma));
 next_declaration:;
