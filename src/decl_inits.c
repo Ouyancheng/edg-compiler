@@ -2085,7 +2085,9 @@ initialized.  These are addressed in the course of the processing.
           init_type = error_type();
           goto scan_paren;
         }  /* if */
-        mark_referenced(member_or_base_sym, &error_position);
+        record_symbol_reference(SRK_REFERENCE | SRK_INITIALIZATION,
+                                member_or_base_sym, &error_position,
+                                /*update_il_entry=*/FALSE);
         if (member_or_base_sym->kind == (a_symbol_kind)sk_field &&
             member_or_base_sym->class_of_which_a_member == class_type) {
           /* This is a field of the current class and may be mentioned in the
