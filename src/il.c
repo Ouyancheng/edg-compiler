@@ -4021,10 +4021,6 @@ bucket of the shareable_constants_table to use for the constant.
 }  /* hash_constant */
 
 
-static a_boolean compare_template_param_constant_expressions(
-                                                     an_expr_node_ptr  node1,
-                                                     an_expr_node_ptr  node2);
-
 static a_boolean compare_template_param_constant_expression_lists(
                                                      an_expr_node_ptr  list1,
                                                      an_expr_node_ptr  list2)
@@ -4096,9 +4092,8 @@ Return TRUE if dip1 and dip2 are equivalent dynamic initializations.
 }  /* compare_template_param_dynamic_inits */
 
 
-static a_boolean compare_template_param_constant_expressions(
-                                                     an_expr_node_ptr  node1,
-                                                     an_expr_node_ptr  node2)
+a_boolean compare_template_param_constant_expressions(an_expr_node_ptr  node1,
+                                                      an_expr_node_ptr  node2)
 /*
 Return TRUE if node1 and node2 are equivalent expression trees.  Note
 that while this is used to compare expressions in template arguments,

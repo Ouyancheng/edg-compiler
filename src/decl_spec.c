@@ -1690,7 +1690,7 @@ new expression and should therefore not be treated as a declaration.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-    if (gcc_mode) {
+    if (gnu_mode) {
       /* Look for any attributes that apply to this type. */
       attributes = scan_attributes();
     }  /* if */
@@ -2437,7 +2437,7 @@ new expression and should therefore not be treated as a declaration.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   /* Now that we have a type, we can apply any attributes attached to it. */
-  if (gcc_mode && attributes != NULL) {
+  if (gnu_mode && attributes != NULL) {
     apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
     free_attribute_list(attributes);
   }  /* if */
@@ -3233,10 +3233,12 @@ to indicate whether an enumeration is actually defined.
     /* Check for and pass over the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
 #if GNU_EXTENSIONS_ALLOWED
-    /* Look for any attributes that apply to this type. */
-    attributes = scan_attributes();
-    apply_attributes_to_type(attributes, enum_type, /*is_typedef=*/FALSE);
-    free_attribute_list(attributes);
+    if (gnu_mode) {
+      /* Look for any attributes that apply to this type. */
+      attributes = scan_attributes();
+      apply_attributes_to_type(attributes, enum_type, /*is_typedef=*/FALSE);
+      free_attribute_list(attributes);
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the enum definition. */
@@ -3792,10 +3794,10 @@ decl_specifiers.
   a_float_kind     fkind;
   a_boolean        bad_combination = FALSE;
 
-  if ((C_dialect == C_dialect_pcc || gcc_mode) &&
+  if ((C_dialect == C_dialect_pcc || gnu_mode) &&
       basic_type == bt_typedef && (sign != sign_none || size != size_none)) {
-    /* GNU C and pcc allow unsigned, long, and short as adjectives modifying
-       a typedef type.  Turn the typedef into a matching basic type,
+    /* GNU C/C++ and pcc allow unsigned, long, and short as adjectives
+       modifying a typedef type.  Turn the typedef into a matching basic type,
        for the cases for which it makes sense.  For the others, an error
        will be detected below. */
     a_type_ptr  temp_type = skip_typerefs(*type_ptr);
@@ -4841,9 +4843,9 @@ Returns TRUE if there is an error in the specifiers.
                    (curr_token == tok_auto ||
                     (
 #if GNU_EXTENSIONS_ALLOWED
-                     /* In GNU mode, "register" can appear at file
+                     /* In GNU C mode, "register" can appear at file
                         scope, as long as an explicit register name is
-                        provided. */
+                        provided. (Not in GNU C++ mode, however.) */
                      !gcc_mode &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
                      curr_token == tok_register))) {
@@ -5039,22 +5041,22 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
       case tok_attribute:
-	if (attributes != NULL) {
-	  /* Scan the attributes. */
-	  *attributes = scan_attributes();
-	  /* Advance the pointer to the end of the list so that if we
-	     encounter more attributes later they will be added to the
-	     end of the list. */
-	  while (*attributes != NULL) {
-	    attributes = &(*attributes)->next;
-	  }  /* while */
-	} else {
-	  /* Attributes are not allowed here.  Scan them anyhow, and
-	     then throw them away. */
-	  error(ec_attribute_not_allowed);
-	  free_attribute_list (scan_attributes());
-	}  /* if */
-	goto no_get_token;
+        if (attributes != NULL) {
+          /* Scan the attributes. */
+          *attributes = scan_attributes();
+          /* Advance the pointer to the end of the list so that if we
+             encounter more attributes later they will be added to the
+             end of the list. */
+          while (*attributes != NULL) {
+            attributes = &(*attributes)->next;
+          }  /* while */
+        } else {
+          /* Attributes are not allowed here.  Scan them anyhow, and
+             then throw them away. */
+          error(ec_attribute_not_allowed);
+          free_attribute_list(scan_attributes());
+        }  /* if */
+        goto no_get_token;
 #endif /* GNU_EXTENSIONS_ALLOWED */ 
       case tok_const:
         /* const type qualifier (3.5.3). */
@@ -5416,8 +5418,8 @@ Returns TRUE if there is an error in the specifiers.
                     !extern_inline_allowed &&
                     *storage_class == (a_storage_class)sc_extern)) {
           /* "inline" allowed on certain function declarations only. */
-          diagnostic(gcc_mode ? es_warning : es_error, ec_inline_not_allowed);
-          err = !gcc_mode;
+          diagnostic(gnu_mode ? es_warning : es_error, ec_inline_not_allowed);
+          err = !gnu_mode;
         } else if (decl_specifiers_seen & DS_INLINE) {
           /* Only one "inline" specifier at a time.  C99 and Microsoft C++
              allow multiple "inline" specifiers, but that is unlikely the
@@ -5481,7 +5483,7 @@ Returns TRUE if there is an error in the specifiers.
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
           err = TRUE;
-        } else if (basic_type != bt_none && !gcc_mode) {
+        } else if (basic_type != bt_none && !gnu_mode) {
           /* Basic type has already been specified in some way. */
           bad_combination_of_type_specifiers = TRUE;
           error(ec_bad_combination_of_type_specifiers);
@@ -5501,7 +5503,7 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* CHECKING */
           }  /* switch */
 #if GNU_EXTENSIONS_ALLOWED
-          if (gcc_mode && prev_basic_type != bt_none) {
+          if (gnu_mode && prev_basic_type != bt_none) {
             /* GNU C allows duplicate basic type specifiers, but they must be
                identical. */
             if (basic_type == prev_basic_type) {
@@ -5582,7 +5584,8 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* LONG_LONG_ALLOWED */
           } else if (size == size_short && curr_token == tok_short) {
             /* "short short".  Issue an error, except in cfront mode,
-               which is silent about "short short". */
+               which is silent about "short short".  GNU C issues a
+               warning, but in GNU C++ it is an error. */
             diagnostic((any_cfront_mode() || gcc_mode) ? es_warning : es_error,
                        ec_dupl_decl_specifier);
           } else {
@@ -5643,7 +5646,7 @@ Returns TRUE if there is an error in the specifiers.
           /* Sign has already been specified in some way. */
           if ((sign == sign_signed) == (curr_token == tok_signed)) {
             /* Either "signed signed" or "unsigned unsigned".  Issue an error,
-               except in cfront mode. */
+               except in cfront and GNU C modes (GNU C++ issues an error). */
             diagnostic((any_cfront_mode() || gcc_mode) ? es_warning : es_error,
                        ec_dupl_decl_specifier);
           } else {

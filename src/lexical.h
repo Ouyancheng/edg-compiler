@@ -227,7 +227,7 @@ typedef enum /*a_token_kind*/ {
   tok_false,
   tok_true,
   tok_typename,
-  /* Recognized in GNU C mode only. */
+  /* Recognized in GNU C and C++ modes only. */
   tok_typeof,
   tok_extension,
   /* Recognized in cfront compatibility mode only. */

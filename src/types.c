@@ -2943,16 +2943,15 @@ for more information.
         case tk_template_param:
           if (type_1->variant.template_param.kind ==
                                     type_2->variant.template_param.kind) {
-            a_template_param_type_supplement_ptr	tptsp_1;
-            a_template_param_type_supplement_ptr	tptsp_2;
+            a_template_param_type_supplement_ptr	tptsp_1, tptsp_2;
+            tptsp_1 = type_1->variant.template_param.extra_info;
+            tptsp_2 = type_2->variant.template_param.extra_info;
             switch (type_1->variant.template_param.kind) {
               case tptk_param:
                  /* Template parameter types are considered to be identical
                     if their positions in the template parameter list are
                     the same, and they are associated with template
                     declarations of the same nesting level. */
-                tptsp_1 = type_1->variant.template_param.extra_info;
-                tptsp_2 = type_2->variant.template_param.extra_info;
                 identical = (tptsp_1->coordinates.position ==
                              tptsp_2->coordinates.position) &&
                           (equiv_nesting_depths(tptsp_1->coordinates.depth,
@@ -2980,6 +2979,15 @@ for more information.
                    Consider them to be the same. */
                 identical = TRUE;
                 break;
+#if GNU_EXTENSIONS_ALLOWED
+              case tptk_typeof:
+                /* Two types obtained with the __typeof__(<expr>) construct,
+                   where the expression has a template-dependent type.
+                   Compare the expression trees. */
+                identical = compare_template_param_constant_expressions(
+                                                tptsp_1->expr, tptsp_2->expr);
+                break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
               default:
                 unexpected_condition_str
                              ("f_identical_types: bad templ param type kind");

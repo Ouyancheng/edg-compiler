@@ -1262,6 +1262,9 @@ Display the indicated template parameter type supplement.
 {
   disp_ptr("class_type", (char *)ptr->class_type, iek_type);
   disp_template_param_coordinate(&ptr->coordinates);
+#if GNU_EXTENSIONS_ALLOWED
+  disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* disp_template_param_type_supplement */
 
 
@@ -1609,6 +1612,9 @@ do_struct_union:
         case tptk_param:   (void)printf("tptk_param\n");    break;
         case tptk_member:  (void)printf("tptk_member\n");   break;
         case tptk_unknown: (void)printf("tptk_unknown\n");  break;
+#if GNU_EXTENSIONS_ALLOWED
+        case tptk_typeof:  (void)printf("tptk_typeof\n");   break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
         default:           (void)printf("**BAD TEMPLATE PARAM TYPE KIND**\n");
       }  /* switch */
       disp_template_param_type_supplement(
@@ -5325,6 +5331,7 @@ Display the IL for the file scope in human-readable form.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   disp_boolean("gcc_mode", (a_boolean)il_header.gcc_mode);
+  disp_boolean("gpp_mode", (a_boolean)il_header.gpp_mode);
   disp_boolean("short_enums", (a_boolean)il_header.short_enums);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED

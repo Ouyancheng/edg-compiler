@@ -1126,27 +1126,41 @@ by octl.
       break;
     case tk_template_param:
       {
-        a_source_correspondence_ptr scp = &type->source_corresp;
-        an_il_entry_kind            scp_kind = iek_type;
-        /* See whether the template parameter name is remapped in the current
-           context. */
+#if GNU_EXTENSIONS_ALLOWED
         if (type->variant.template_param.kind ==
+                                    (a_template_param_type_kind)tptk_typeof) {
+          an_expr_node_ptr  expr = type->variant.template_param.extra_info
+                                        ->expr;
+          check_assertion(expr != NULL);
+          octl->output_str("__typeof__(");
+          form_expression(expr, octl);
+          octl->output_str(")");
+        } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          a_source_correspondence_ptr scp = &type->source_corresp;
+          an_il_entry_kind            scp_kind = iek_type;
+          /* See whether the template parameter name is remapped in the
+             current context. */
+          if (type->variant.template_param.kind ==
                                      (a_template_param_type_kind)tptk_param) {
-          a_source_correspondence_ptr new_scp;
-          new_scp = source_corresp_for_template_param(
+            a_source_correspondence_ptr new_scp;
+            new_scp = source_corresp_for_template_param(
                        &type->variant.template_param.extra_info->coordinates);
-          if (new_scp != NULL) {
-            scp = new_scp;
-            scp_kind = iek_template_parameter;
+            if (new_scp != NULL) {
+              scp = new_scp;
+              scp_kind = iek_template_parameter;
+            }  /* if */
           }  /* if */
-        }  /* if */
-        if (scp->member_of_unknown_base) {
-          /* We're pretending that we found the member in a dependent
-             base class.  That means the original form of reference
-             was unqualified. */
-          form_unqualified_name(scp, scp_kind, octl);
-        } else {
-          form_name(scp, (an_il_entry_kind)scp_kind, octl);
+          if (scp->member_of_unknown_base) {
+            /* We're pretending that we found the member in a dependent
+               base class.  That means the original form of reference
+               was unqualified. */
+            form_unqualified_name(scp, scp_kind, octl);
+          } else {
+            form_name(scp, (an_il_entry_kind)scp_kind, octl);
+          }  /* if */
         }  /* if */
       }
       break;

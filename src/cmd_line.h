@@ -202,6 +202,7 @@ typedef enum /*an_option_kind*/ {
 #endif /* ENABLE_TRANS_UNIT_TEST_MODE */
 #if GNU_EXTENSIONS_ALLOWED
   optk_gcc_mode,
+  optk_gpp_mode,
   optk_short_enums,
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DEBUG

@@ -4678,8 +4678,8 @@ this one is such a continuation.
         /* This is the declaration of the builtin va_list, from <stdarg.h>. */
 #if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
     GCC_BUILTIN_VARARGS
-        if (il_header.gcc_mode) {
-          /* This is the intrinsic GNU C type __builtin_va_list.  No
+        if (il_header.gcc_mode || il_header.gpp_mode) {
+          /* This is the intrinsic GNU C/C++ type __builtin_va_list.  No
              declaration should be generated for it. */
         } else
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
@@ -6770,8 +6770,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           disable_line_wrapping();
 #if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
     GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode) {
-            /* This is the intrinsic GNU C "__builtin_varargs_start". */
+          if (il_header.gcc_mode || il_header.gpp_mode) {
+            /* This is the intrinsic GNU C/C++ "__builtin_varargs_start". */
             write_tok_str("__builtin_stdarg_start(");
           } else
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
@@ -6790,8 +6790,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           disable_line_wrapping();
 #if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
     GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode) {
-            /* This is the intrinsic GNU C "__builtin_varargs_start". */
+          if (il_header.gcc_mode || il_header.gpp_mode) {
+            /* This is the intrinsic GNU C/C++ "__builtin_varargs_start". */
             write_tok_str("__builtin_varargs_start(");
           } else
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
@@ -6808,8 +6808,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           disable_line_wrapping();
 #if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
     GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode) {
-            /* This is the intrinsic GNU C "__builtin_va_arg". */
+          if (il_header.gcc_mode || il_header.gpp_mode) {
+            /* This is the intrinsic GNU C/C++ "__builtin_va_arg". */
             write_tok_str("__builtin_va_arg(");
           } else
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
@@ -6828,8 +6828,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           disable_line_wrapping();
 #if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
     GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode) {
-            /* This is the intrinsic GNU C "__builtin_va_end". */
+          if (il_header.gcc_mode || il_header.gpp_mode) {
+            /* This is the intrinsic GNU C/C++ "__builtin_va_end". */
             write_tok_str("__builtin_va_end(");
           } else
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */
@@ -6846,8 +6846,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           disable_line_wrapping();
 #if GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && \
     GCC_BUILTIN_VARARGS
-          if (il_header.gcc_mode) {
-            /* This is the intrinsic GNU C "__builtin_va_copy". */
+          if (il_header.gcc_mode || il_header.gpp_mode) {
+            /* This is the intrinsic GNU C/C++ "__builtin_va_copy". */
             write_tok_str("__builtin_va_copy((");
           } else
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_IS_GENERATED_CODE_TARGET && ... */

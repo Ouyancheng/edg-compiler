@@ -585,6 +585,30 @@ done:
 }  /* scan_attribute_arguments */
 
 
+static void clear_disabled_attributes(an_attribute_kind  *kind)
+/*
+Some attributes are only applicable in either GNU C or GNU C++ mode, but
+not both.  Others are only recognized in some configurations.  If we are
+in a mode or configuration for which *kind is not a recognized kind of
+attribute, set *kind to ak_last.
+*/
+{
+  switch (*kind) {
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    case ak_visibility:
+      if (gnu_visibility_attribute_enabled) break;
+      /*FALLTHROUGH*/
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    case ak_unused:
+      if (C_mode()) break;
+      *kind = (an_attribute_kind)ak_last;
+      break;
+    default:
+      break;
+  }  /* switch */
+}  /* clear_disabled_attributes */
+
+
 static an_attribute_ptr *scan_attribute_list(an_attribute_ptr *next)
 /*
 Scan an (optional) list of attributes.  The syntax varies with the
@@ -655,12 +679,7 @@ function returns the address of the last attribute.
         }  /* if */
       }  /* for */
       attribute_kind = (an_attribute_kind)i;
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-      if (attribute_kind == (an_attribute_kind)ak_visibility &&
-          !gnu_visibility_attribute_enabled) {
-        attribute_kind = (an_attribute_kind)ak_last;
-      }  /* if */
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+      clear_disabled_attributes(&attribute_kind);
       if (attribute_kind == (an_attribute_kind)ak_last) {
         /* If the attribute name was not recognized issue a warning. */
         str_warning(ec_unrecognized_attribute, attribute_name);

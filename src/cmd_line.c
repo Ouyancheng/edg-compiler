@@ -940,6 +940,14 @@ Initialize the option information table.
                          "no_gcc",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_gpp_mode,
+                         "g++",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_gpp_mode,
+                         "no_g++",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_short_enums,
                          "short_enums",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -2056,6 +2064,31 @@ an otherwise implicitly enabled GNU C mode.
 }  /* exclude_gcc_mode */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/
+#endif /* !GNU_EXTENSIONS_ALLOWED */
+static void exclude_gpp_mode(an_error_code  error_code)
+/*
+GNU C++ mode is incompatible with other settings.  Either issue the given
+diagnostic (error_code) if the conflict is explicit, or silently turn off
+an otherwise implicitly enabled GNU C++ mode.
+*/
+{
+#if GNU_EXTENSIONS_ALLOWED
+  if (gpp_mode) {
+    if (option_kind_used[(int)optk_gpp_mode]) {
+      /* GNU C++ mode was enabled by a command line option. */
+      command_line_error(error_code);
+    } else {
+      /* GNU C++ mode was enabled by default.  Silently disable it since an
+         explicit mode setting on the command line overrides it. */
+      gpp_mode = FALSE;
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+}  /* exclude_gpp_mode */
+
+
 static void check_and_set_ansi_mode_options(void)
 /*
 Both for strict ANSI C and C++ modes, check that no command-line setting
@@ -2399,9 +2432,46 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
 }  /* check_and_set_gcc_mode_options */
 
 
-static void exclude_gcc_specific_options(void)
+static void check_and_set_gpp_mode_options(void)
 /*
-GNU C mode was not selected: make sure no option specific to GNU C mode
+Set the options needed to emulate GNU C++ compilers, and check that no other
+modes conflict with this one.  (The processing of some modes, like ANSI,
+exclude the GNU C++ mode already.  Hence those are not checked again here.)
+*/
+{
+  if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
+    /* If extended variadic macros were not enabled or disabled on the command
+       line, enable them now. */
+    variadic_macros_allowed = TRUE;
+    extended_variadic_macros_allowed = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_allow_dollar_in_id_chars])) {
+    /* If identifiers with dollar signs were not enabled or disabled on the
+       command line, enable them now. */
+    allow_dollar_in_id_chars = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_stdarg_builtin])) {
+    /* <stdarg.h> should be included as a normal header file.  Various
+       __builtin_... entities may be predefined to accommodate it (if
+       GCC_BUILTIN_VARARGS is TRUE). */
+    pass_stdarg_references_to_generated_code = FALSE;
+  }  /* if */
+  /* Enable // comments. */
+  end_of_line_comments_allowed = TRUE;
+  /* Enable recognition of digraphs. */
+  alternative_tokens_allowed = TRUE;
+  /* Treat "long long" as a standard feature. */
+  long_long_is_standard = TRUE;
+  long_long_promotion_allowed = FALSE;
+  /* Hexadecimal floating point constants are permitted. */
+  hex_floating_point_constants_allowed = TRUE;
+  null_chars_allowed_in_source = TRUE;
+}  /* check_and_set_gpp_mode_options */
+
+
+static void exclude_gnu_specific_options(void)
+/*
+No GNU mode was selected: Make sure no option specific to GNU mode
 was selected either.
 */
 {
@@ -2410,7 +2480,7 @@ was selected either.
     command_line_error(ec_cl_short_enums_requires_gcc_mode);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-}  /* exclude_gcc_specific_options */
+}  /* exclude_gnu_specific_options */
 
 
 static void check_dialect_and_language_modes(void)
@@ -2446,6 +2516,7 @@ command line switches.
       bugs mode         microsoft_bugs                   --microsoft_bugs
       16-bit mode       il_header.near_and_far_allowed   --microsoft_16
     sun mode            sun_mode                         --sun
+    GNU C++             gpp_mode                         --g++
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
 
@@ -2482,6 +2553,7 @@ order of development of this front end, and is inconsistent and strange.
        when the dialect is C++. */
     exclude_cfront_mode(ec_cl_incompatible_language_modes);
     exclude_sun_mode(ec_cl_sun_mode_only_in_cplusplus);
+    exclude_gpp_mode(ec_cl_incompatible_language_modes);
   }  /* if */
   if (C_dialect == C_dialect_pcc) {
     /* Issue an error for specifying a language mode that is valid only
@@ -2499,6 +2571,7 @@ order of development of this front end, and is inconsistent and strange.
     exclude_sun_mode(ec_cl_strict_ansi_incompatible_with_sun);
     exclude_SVR4_C_mode(ec_cl_strict_ansi_incompatible_with_SVR4);
     exclude_gcc_mode(ec_cl_incompatible_language_modes);
+    exclude_gpp_mode(ec_cl_incompatible_language_modes);
   }  /* if */
   if (any_cfront_mode()) {
     /* Issue an error for specifying any other language mode.  Strict mode
@@ -2512,12 +2585,14 @@ order of development of this front end, and is inconsistent and strange.
        has already been checked for. */
     exclude_microsoft_mode(ec_cl_cfront_incompatible_with_microsoft);
     exclude_gcc_mode(ec_cl_incompatible_language_modes);
+    exclude_gpp_mode(ec_cl_incompatible_language_modes);
   }  /* if */
   if (microsoft_mode) {
     /* Issue an error for specifying any other language mode.  Strict mode,
        K&R mode, Sun mode, and cfront mode have already been checked for. */
     exclude_SVR4_C_mode(ec_cl_incompatible_language_modes);
     exclude_gcc_mode(ec_cl_incompatible_language_modes);
+    exclude_gpp_mode(ec_cl_incompatible_language_modes);
   }  /* if */
 }  /* check_dialect_and_language_modes */
 
@@ -3460,6 +3535,14 @@ enable_microsoft_mode:
         gcc_mode = opt_value;
         C_dialect = C_dialect_ANSI;
         break;
+      case optk_gpp_mode:
+        /* GNU C++ mode should or should not be used.  This option implies
+           C++ mode, even in the "--no_g++" form. In other words,
+           --[no_]g++ is short for --c++ --[no_]g++.  See --sun, --c99 and
+           --svr4 for similar behavior. */
+        gpp_mode = opt_value;
+        C_dialect = C_dialect_cplusplus;
+        break;
       case optk_short_enums:
         /* An options to specify that all enumeration types should be
            treated as if they were declared with the "packed" attribute. */
@@ -3628,8 +3711,10 @@ enable_microsoft_mode:
   }  /* if */
   if (gcc_mode) {
     check_and_set_gcc_mode_options();
+  } else if (gpp_mode) {
+    check_and_set_gpp_mode_options();
   } else {
-    exclude_gcc_specific_options();
+    exclude_gnu_specific_options();
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {

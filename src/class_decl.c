@@ -8444,8 +8444,8 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
         sprintf(buffer, "%ld", max_size_allowed);
         pos_st_warning(ec_extra_bits_ignored, &error_position, buffer);
         if (gcc_mode) {
-          /* In GNU C mode, oversized bitfields are turned into
-             ordinary fields. */
+          /* In GNU C mode (but not in GNU C++ mode), oversized bitfields are
+             turned into ordinary fields. */
           field->is_bit_field = FALSE;
           goto done;
         }  /* if */
@@ -8582,11 +8582,11 @@ respectively.
     prev_field->type = error_type();
     class_state->last_field_is_incomplete_array = FALSE;
   } else if (microsoft_mode || gcc_mode || (c99_mode && !strict_ansi_mode)) {
-    /* In Microsoft and GNU C modes a class or struct may include a member
-       whose type contains a final field that is an unknown-size array, but
-       only if the member with such a type is the last field.  If the previous
-       field was of such a type, no error was issued, in case it was the last
-       field; issue the error now. */
+    /* In Microsoft and GNU C modes (but not in GNU C++ mode) a class or
+       struct may include a member whose type contains a final field that is
+       an unknown-size array, but only if the member with such a type is the
+       last field.  If the previous field was of such a type, no error was
+       issued, in case it was the last field; issue the error now. */
     if (!is_union_type(class_type) &&
         class_type->variant.class_struct_union.
                               contains_flexible_array_member) {
@@ -8705,7 +8705,7 @@ respectively.
       /* In Microsoft and GNU C modes the error is issued only if the struct
          containing a flexible array member is not the last member.  Just
          set the flag for now and do the check later.  (This is also supported
-         as an extension in default C99 mode.) */
+         as an extension in default C99 mode.  It is not a GNU C++ feature.) */
       class_type->variant.class_struct_union.
                                   contains_flexible_array_member = TRUE;
     } else {
@@ -8828,7 +8828,7 @@ specific information about the member declaration, respectively.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode) {
+  if (gnu_mode) {
     /* Find the last attribute. */
     last_attribute = &attributes;
     while (*last_attribute != NULL) {
@@ -10922,7 +10922,7 @@ the IL, the template header is passed via template_decl.
   /* First scan the declaration specifiers.  In C++ the specifiers may be
      omitted, e.g., for a function member with implicit type. */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode && curr_token == tok_extension) {
+  if (gnu_mode && curr_token == tok_extension) {
     dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
     (void)get_token();
   }  /* if */
@@ -11159,7 +11159,7 @@ the IL, the template header is passed via template_decl.
          says that in the future, these attributes may apply only to
          the next declarator, but that they presently apply to all
          declarators. */
-      if (gcc_mode) {
+      if (gnu_mode) {
         /* Scan the attributes. */
         attributes = scan_attributes();
         /* Add these to the prefix_attributes. */
@@ -12554,9 +12554,11 @@ next_declaration:
     token_number_of_closing_brace = curr_token_sequence_number;  
     (void)required_token(tok_rbrace, ec_exp_rbrace);
 #if GNU_EXTENSIONS_ALLOWED
-    /* Process attributes that apply to this class. */
-    attributes = scan_attributes();
-    apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
+    if (gnu_mode) {
+      /* Process attributes that apply to this class. */
+      attributes = scan_attributes();
+      apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
       /* Something went wrong if we are in a template declaration scope;

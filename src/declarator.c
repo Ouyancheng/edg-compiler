@@ -442,7 +442,6 @@ property fields).
                    (has_unknown_specified_bound(temp_type) ||
                     temp_type->
                            variant.array.variant.number_of_elements != 0 ||
-                    gcc_mode ||
                     temp_type->variant.array.bound_is_zero)) {
           /* Okay. */
           tp = underlying_array_element_type(temp_type);
@@ -1320,7 +1319,7 @@ declaration.
                                          DSI_TYPE_SPECIFIER_ALLOWED |
                                          DSI_IS_PARAMETER |
                                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
-        if (gcc_mode && curr_token == tok_extension) {
+        if (gnu_mode && curr_token == tok_extension) {
           /* Ignore the GNU C __extension__ annotation. */
           (void)get_token();
           dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
@@ -1420,9 +1419,11 @@ declaration.
           set_to_error_locator(param_locator);
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-        /* Scan any attributes that apply to the function
-           parameter. */
-        *last_attribute = scan_attributes();
+        if (gnu_mode) {
+          /* Scan any attributes that apply to the function
+             parameter. */
+          *last_attribute = scan_attributes();
+        }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         /* Save a pointer to the type as it was declared (i.e., before the
            array-to-pointer adjustment, if any). */
@@ -2189,7 +2190,7 @@ declaration.
             num_of_elements =
                         unsigned_value_of_integer_constant(&constant, &err);
             if (err) error(ec_array_size_too_large);
-          } else if (((microsoft_mode && top_level_field_decl) || gcc_mode) &&
+          } else if (((microsoft_mode && top_level_field_decl) || gnu_mode) &&
                      sign_of_integer_constant(&constant) == 0) {
             /* In Microsoft C mode a field may be a zero-sized array type if
                it is the last field of the struct.  Thus
@@ -2198,9 +2199,10 @@ declaration.
                allowed in Microsoft C++ mode, as long as the class is an
                "aggregate".  Note: last-field restriction and the aggregate
                restriction in C++ are enforced in scan_class_definition.
-               GNU C also allows zero-sized array types: they are considered
-               complete types of zero size.  The can be used to achieve the
-               same effect as flexible array members, but are more general. */
+               GNU C and C++ also allow zero-sized array types: they are
+               considered complete types of zero size.  The can be used to
+               achieve the same effect as flexible array members, but are
+               more general. */
             num_of_elements = 0;
           } else {
             error(ec_array_size_must_be_positive);
@@ -2298,7 +2300,7 @@ declaration.
         /* Normal constant bound. */
         (*new_type_ptr)->variant.array.variant.number_of_elements =
                                                               num_of_elements;
-        if (gcc_mode && is_constant_bound && num_of_elements == 0) {
+        if (gnu_mode && is_constant_bound && num_of_elements == 0) {
           /* Record the fact that we saw a GNU C zero-length array. */
           (*new_type_ptr)->variant.array.bound_is_zero = TRUE;
         }  /* if */
@@ -3089,7 +3091,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     /* Attributes may appear after the pointer declarator in some cases. */
-    if (attributes != NULL && gcc_mode) {
+    if (attributes != NULL && gnu_mode) {
       *attributes = scan_attributes();
       /* Advance to the end of the list. */
       attributes = last_attribute_link(attributes);

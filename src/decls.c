@@ -4163,8 +4163,9 @@ declaration.
             a_type_ptr  orig_type = skip_typerefs(*old_type);
             a_type_ptr  redecl_type = skip_typerefs(type_ptr);
             if (types_are_redecl_compatible(redecl_type, orig_type)) {
-              /* GNU C accepts (with a warning) redeclarations of variables
-                 that only differ in cv-qualification. */
+              /* Earlier versions of GNU C (but not GNU C++) accept
+                 redeclarations of variables that only differ in
+                 cv-qualification (with a warning). */
               severity = es_warning;
               type_ptr = make_qualified_type(redecl_type,
                                              get_type_qualifiers(type_ptr) |
@@ -4855,10 +4856,11 @@ declaration.
     } else if (gcc_mode && 
                storage_class == (a_storage_class)sc_extern &&
                func_info->is_inline && func_info->is_definition) {
-      /* In GCC mode, if a function definition uses both the "extern"
+      /* In GNU C mode, if a function definition uses both the "extern"
          and "inline" keywords then no definition of the function
          should be emitted, even though it has external linkage.  This
-         treatment is analogous to the C99 "inline definition" concept. */
+         treatment is analogous to the C99 "inline definition" concept.
+         (GNU C++ follows the ordinary C++ rules.) */
       suppress_inline_body = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
@@ -5727,7 +5729,7 @@ skip_overloading:;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (gcc_mode && suppress_inline_body) {
-    /* In GNU mode only the keywords present at the point of
+    /* In GNU C mode only the keywords present at the point of
        definition matter. */
     routine_ptr->suppress_inline_body = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7427,6 +7429,7 @@ is being scanned as part of a GNU C local label declaration.
   } else {
     /* See if the label identifier is already in the symbol table. */
     a_scope_number  scope_number;
+    /* In GNU C mode, labels may be block-scoped. */
     scope_number = gcc_mode ? NO_SCOPE_NUMBER
                             : scope_stack[depth_innermost_function_scope].
                                                              il_scope->number;
@@ -8720,7 +8723,7 @@ Microsoft asm blocks are converted into a string when the __asm token
 is encountered.  The string is pointed to by curr_token_asm_string and
 is saved and restored as needed by the token caching mechanism.
 
-In GNU mode support is provided for additional syntax:
+In GNU C and C++ modes support is provided for additional syntax:
 
   asm volatile    ( string-literal : operand-spec )
               opt
@@ -8768,7 +8771,7 @@ instruction's operands.
     (void)get_token();
 #if GNU_EXTENSIONS_ALLOWED
     /* Skip a potential "volatile". */
-    if (gcc_mode && curr_token == tok_volatile) {
+    if (gnu_mode && curr_token == tok_volatile) {
       is_volatile = TRUE;
       (void)get_token();
     }  /* if */
@@ -8786,7 +8789,7 @@ instruction's operands.
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     /* Check for operands spec. */
-    if (gcc_mode && is_asm_statement) {
+    if (gnu_mode && is_asm_statement) {
       if (curr_token == tok_colon || curr_token == tok_colon_colon) {
         operands = asm_operands_spec();
         clobbers = asm_clobbers_spec();
@@ -9969,6 +9972,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
         }  /* if */
         /* Inline can only be specified for a function (ARM 7.1.2). */
         if (inline_specified) {
+          /* GNU C (but not GNU C++) allows this. */
           pos_diagnostic(gcc_mode ? es_warning : es_error,
                          ec_inline_and_nonfunction, decl_start_pos);
         }  /* if */
@@ -10243,7 +10247,7 @@ of local variables (and types, etc.) of functions and in blocks.
 
   db_enter(3, "declaration");
 
-  if (gcc_mode && !marked_as_gnu_extension && curr_token == tok_extension) {
+  if (gnu_mode && !marked_as_gnu_extension && curr_token == tok_extension) {
     /* Ignore the GNU C __extension__ annotation. */
     (void)get_token();
     marked_as_gnu_extension = TRUE;
@@ -10579,7 +10583,7 @@ continue_with_declaration:
          says that in the future, these attributes may apply only to
          the next declarator, but that they presently apply to all
          declarators. */
-      if (gcc_mode) {
+      if (gnu_mode) {
         /* Scan the attributes. */
         attributes = scan_attributes();
         /* Add these to the prefix_attributes. */
@@ -10605,7 +10609,7 @@ continue_with_declaration:
 #if GNU_EXTENSIONS_ALLOWED
       last_prefix_attribute = last_attribute_link(last_prefix_attribute);
       asm_name = NULL;
-      if (gcc_mode) {
+      if (gnu_mode) {
         /* Look for an asm() symbol name tag.  It is ignored on
            typedefs (with a warning). */
         asm_start_pos = pos_curr_token;
@@ -10876,7 +10880,8 @@ continue_with_declaration:
       /* Check for restrictions on use of the "inline" specifier. */
       if (inline_specified) {
         if (!is_function) {
-          /* Not a function declaration. */
+          /* Not a function declaration.  GNU C (but not GNU C++) allows
+             this. */
           pos_diagnostic(gcc_mode ? es_warning : es_error,
                          ec_inline_and_nonfunction, &decl_start_pos);
         } else {
@@ -11009,8 +11014,9 @@ continue_with_declaration:
       /* Issue diagnostics on missing type specifiers, etc. */
       if (!has_explicit_type_specifier && !is_constructor_or_destructor &&
 #if GNU_EXTENSIONS_ALLOWED
-          /* "typedef foo = 3;" is a GNU extension, not a use of
-             implicit int. */
+          /* "typedef foo = 3;" is a GNU C extension, not a use of
+             implicit int (this extension is not present in the GNU C++
+             compiler). */
           !(gcc_mode && curr_token == tok_assign && 
             local_storage_class == (a_storage_class)sc_typedef) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -11393,6 +11399,10 @@ continue_with_declaration:
 #if GNU_EXTENSIONS_ALLOWED
         if (gcc_mode && !has_explicit_type_specifier &&
             local_storage_class == (a_storage_class)sc_typedef) {
+          /* In GNU C (but not in GNU C++) a typedef can be defined with
+                 typedef <type_name> = <expr> ;
+             where the type of the given expression becomes the type of
+             the give type name. */
           typedef_initializer(symbol_ptr);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           decl_pos_block.var_init_range.end = curr_construct_end_position;

@@ -370,13 +370,17 @@ Install the keywords in the symbol table.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (gcc_mode) {
-    enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");
-    enter_keyword((a_token_kind)tok_function_name, "__func__");
+    enter_keyword((a_token_kind)tok_inline, "inline");
     enter_keyword((a_token_kind)tok_decorated_function_name,
                   "__PRETTY_FUNCTION__");
-    enter_gnu_keyword((a_token_kind)tok_inline, "inline");
-    enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");
+    enter_gnu_keyword((a_token_kind)tok_restrict, "__restrict");
+  }  /* if */
+  if (gnu_mode) {
+    enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");
+    enter_keyword((a_token_kind)tok_function_name, "__func__");
     enter_keyword((a_token_kind)tok_extension, "__extension__");
+    enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");
+    enter_gnu_keyword((a_token_kind)tok_attribute, "__attribute");
 #if GCC_BUILTIN_VARARGS
     /* Enable built-in support for <stdarg.h> and <varargs.h>. */
     enter_keyword((a_token_kind)tok_va_start, "__builtin_stdarg_start");
@@ -389,12 +393,11 @@ Install the keywords in the symbol table.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* GCC_BUILTIN_VARARGS */
     /* Enable alternative token spellings. */
+    enter_gnu_keyword((a_token_kind)tok_inline, "__inline");
     enter_gnu_keyword((a_token_kind)tok_asm, "__asm");
     enter_gnu_keyword((a_token_kind)tok_const, "__const");
-    enter_gnu_keyword((a_token_kind)tok_restrict, "__restrict");
     enter_gnu_keyword((a_token_kind)tok_signed, "__signed");
     enter_gnu_keyword((a_token_kind)tok_volatile, "__volatile");
-    enter_keyword((a_token_kind)tok_volatile, "__volatile__");
     enter_keyword((a_token_kind)tok_alignof, "__alignof");
   }  /* if */
 #if NEAR_AND_FAR_ALLOWED
@@ -410,14 +413,6 @@ Install the keywords in the symbol table.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode) {
-    /* Enter "attribute" keyword.  */
-    enter_gnu_keyword((a_token_kind)tok_attribute, "__attribute");
-    /* Enter "inline" keyword.  */
-    enter_gnu_keyword((a_token_kind)tok_inline, "inline");
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   /* "asm" is a C++ keyword that is treated as a keyword in C mode, too,
      because, even though not part of the ANSI C language, it is used widely
      in C programs. */
@@ -924,6 +919,7 @@ source file's compilation.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   il_header.gcc_mode = gcc_mode;
+  il_header.gpp_mode = gpp_mode;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   /* near_and_far_enabled, far_data_pointers, and far_code_pointers are

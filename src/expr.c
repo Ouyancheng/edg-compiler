@@ -812,7 +812,7 @@ Syntax:
       }  /* if */
 
       /* The first operand must be a pointer to object. */
-      if (gcc_mode && is_pointer_type(operand_1->type) &&
+      if (gnu_mode && is_pointer_type(operand_1->type) &&
                       is_void_type(type_pointed_to(operand_1->type))) {
         /* In some versions of GNU C a pointer to "void" can be subscripted. */
         pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
@@ -3229,7 +3229,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
         err = TRUE;
       } else {
         if (is_pointer_type(operand->type)) {
-          if (gcc_mode && (is_void_type(type_pointed_to(operand->type)) ||
+          if (gnu_mode && (is_void_type(type_pointed_to(operand->type)) ||
                            is_function_type(type_pointed_to(operand->type)))) {
             /* In some versions of GNU C void and function pointers can be
                incremented and decremented. */
@@ -3458,7 +3458,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         err = TRUE;
       } else {
         if (is_pointer_type(operand.type)) {
-          if (gcc_mode && (is_void_type(type_pointed_to(operand.type)) ||
+          if (gnu_mode && (is_void_type(type_pointed_to(operand.type)) ||
                            is_function_type(type_pointed_to(operand.type)))) {
             /* In some versions of GNU C void and function pointers can be
                incremented and decremented. */
@@ -3758,8 +3758,8 @@ current token on entry.
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
 
-  if (!gcc_mode) {
-    /* Address-of-label only recognized in GCC mode. */
+  if (!gnu_mode) {
+    /* Address-of-label only recognized in GNU modes. */
     pos_error(ec_nonstd_address_of_label, &start_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_pp)) {
@@ -3943,9 +3943,9 @@ See section 3.3.3.2 of the standard.
                discussion in Defect Report 106.  While those interpretations
                make it clear that this applies for void *, they seem to
                leave out cv-qualified void *; those apparently still convert
-               to an lvalue.  (In GNU C mode, the result is always an
+               to an lvalue.  (In GNU modes, the result is always an
                lvalue). */
-            if (!is_qualified_type(operand.type) && !gcc_mode) {
+            if (!is_qualified_type(operand.type) && !gnu_mode) {
               an_expr_node_ptr node = make_node_from_operand(&operand);
               node = make_operator_node((an_expr_operator_kind)eok_indirect,
                                         operand.type, node);
@@ -4364,17 +4364,23 @@ Syntax:
        declaration instead of a functional-notation type conversion. */
     template_case = TRUE;
   } else if (is_function_type(sizeof_type)) {
-    if (gcc_mode) {
-      /* GCC evaluates sizeof(function-type) as 1. */
+    if (gnu_mode) {
+      /* GNU C/C++ evaluates sizeof(function-type) as 1. */
       sizeof_type = integer_type((an_integer_kind)ik_char);
+      if (gpp_mode) {
+        pos_warning(ec_sizeof_function, &type_position);
+      }  /* if */
     } else {
       pos_error(ec_sizeof_function, &type_position);
       sizeof_type = error_type();
     }  /* if */
   } else if (is_incomplete_type(sizeof_type)) {
-    if (gcc_mode && is_void_type(sizeof_type)) {
-      /* GCC evaluates sizeof(void) as 1. */
+    if (gnu_mode && is_void_type(sizeof_type)) {
+      /* GNU C/C++ evaluates sizeof(void) as 1. */
       sizeof_type = integer_type((an_integer_kind)ik_char);
+      if (gpp_mode) {
+        pos_warning(ec_incomplete_type_not_allowed, &type_position);
+      }  /* if */
     } else {
       pos_error(ec_incomplete_type_not_allowed, &type_position);
       sizeof_type = error_type();
@@ -4630,9 +4636,11 @@ implement <stdarg.h>, a standard feature.
     }  /* if */
     alignof_type = operand.type;
 #if GNU_EXTENSIONS_ALLOWED
-    if (gcc_mode) {
+    if (gnu_mode) {
       /* If the expression is an lvalue for a variable with an
-         explicit alignment, use it. */
+         explicit alignment, use it.  (GNU C++ versions prior to 3.1
+         ignore the explicit alignment; we emulate the more recent
+         versions.) */
       if (is_an_lvalue(&operand)) {
         if (is_expression_operand(&operand) &&
             is_variable_address_node(operand.variant.expression) &&
@@ -4698,7 +4706,7 @@ implement <stdarg.h>, a standard feature.
 
 a_type_ptr scan_typeof_operator(void)
 /*
-Scan the typeof operator.  This is a GNU C extension that is similar
+Scan the typeof operator.  This is a GNU C/C++ extension that is similar
 to sizeof, but returns the type rather than the size.  It is used
 in type contexts, not expression contexts.
 
@@ -4712,9 +4720,10 @@ The parentheses are required, unlike for sizeof.
   a_type_ptr           result;
   an_expr_stack_entry  expr_stack_entry;
   an_operand           operand;
+  a_boolean            is_type;
 
   /* Skip the typeof or __typeof__ token. */
-  check_assertion(gcc_mode && curr_token == tok_typeof);
+  check_assertion(gnu_mode && curr_token == tok_typeof);
   (void)get_token();
   /* Prepare for the possibility of having to scan an expression. */
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
@@ -4730,17 +4739,43 @@ The parentheses are required, unlike for sizeof.
                        DFS_SINGLE_TYPE_REQUIRED)) {
     /* Scan a type name. */
     type_name(&result);
+    is_type = TRUE;
   } else {
     /* Scan an expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     result = operand.type;
+    is_type = FALSE;
   }  /* if */
-  if (!is_error_type(result)) {
-    a_type_ptr  typeof_type = alloc_type((a_type_kind)tk_typeref);
-    typeof_type->variant.typeref.type = result;
-    typeof_type->variant.typeref.is_typeof = TRUE;
-    add_to_types_list(typeof_type, decl_scope_level);
-    result = typeof_type;
+  if (is_error_type(result)) {
+    /* We'll just return the error type. */
+  } else {
+    a_boolean  dependent_arg = !C_mode() && is_template_dependent_context() &&
+                               is_template_dependent_type(result);
+      /* A dependent type or expression.  Encode it in a tk_template_param
+         if we are recording prototype instantiations in the IL. */
+    if (dependent_arg && prototype_instantiations_in_il && !is_type) {
+      a_type_ptr  typeof_type = alloc_type((a_type_kind)tk_template_param);
+      a_template_param_type_supplement_ptr  tptsp;
+      set_type_size(typeof_type);
+      tptsp = typeof_type->variant.template_param.extra_info;
+      typeof_type->variant.template_param.kind = 
+                                      (a_template_param_type_kind)tptk_typeof;
+      prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+      tptsp->expr = make_node_from_operand(&operand);
+      result = typeof_type;
+      add_to_types_list(typeof_type, DEPTH_OF_FILE_SCOPE);
+    } else if (!dependent_arg || (prototype_instantiations_in_il && is_type)) {
+      /* If this is a plain nondependent type, create a special typeref.
+         Also create such a typeref if we are recording prototype
+         instantiations in the IL and the argument of the operator was
+         a dependent type (as opposed to a dependent expression).  */
+      a_type_ptr  typeof_type = alloc_type((a_type_kind)tk_typeref);
+      typeof_type->variant.typeref.type = result;
+      typeof_type->variant.typeref.is_typeof = TRUE;
+      add_to_types_list(typeof_type, dependent_arg ? DEPTH_OF_FILE_SCOPE
+                                                   : decl_scope_level);
+      result = typeof_type;
+    }  /* if */
   }  /* if */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
@@ -5291,13 +5326,13 @@ When single_operand is TRUE, the <varargs.h> form is expected:
                      scope_stack[depth_innermost_function_scope].assoc_routine;
       a_type_ptr     routine_type = skip_typerefs(routine->type);
       if (routine_type->variant.routine.extra_info->has_ellipsis ||
-          (!gcc_mode &&
+          (!gnu_mode &&
            !routine_type->variant.routine.extra_info->prototyped)) {
         bad_scope = FALSE;
       }  /* if */
     }  /* if */
     if (bad_scope) {
-      diagnostic(gcc_mode ? es_error : es_warning,
+      diagnostic(gnu_mode ? es_error : es_warning,
                  ec_va_start_requires_ellipsis_function);
     }  /* if */
   }  /* if */
@@ -5424,7 +5459,7 @@ and type is the type of the argument to be extracted.
     a_type_ptr  promoted_type = default_argument_promotion(type);
     if (!identical_types(type, promoted_type)) {
       an_error_severity severity = (an_error_severity)es_warning;
-      if (gcc_mode) {
+      if (gnu_mode) {
         severity = (an_error_severity)es_error;
         err = TRUE;
       }  /* if */
@@ -7531,6 +7566,7 @@ be set to the source position of the type.
         err = TRUE;
       }  /* if */
     } else {
+      /* C mode. */
 #if GNU_EXTENSIONS_ALLOWED
       /* GNU C permits casting from a scalar to a union if the scalar's type
          is the type of a member of the union.  The detailed check happens
@@ -13435,8 +13471,8 @@ see expr.h).
 #endif /* DEBUG */
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode && !marked_as_gnu_extension && curr_token == tok_extension) {
-    /* Ignore the GNU C __extension__ annotation. */
+  if (curr_token == tok_extension && !marked_as_gnu_extension) {
+    /* Ignore the GNU __extension__ annotation. */
     (void)get_token();
     marked_as_gnu_extension = TRUE;
   }  /* if */

@@ -973,6 +973,9 @@ and return a pointer to it.
   num_template_param_type_supplements_allocated++;
 #endif /* DEBUG */
   tptsp->class_type = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  tptsp->expr = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   return tptsp;
 }  /* alloc_template_param_type_supplement */
 

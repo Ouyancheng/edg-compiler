@@ -407,6 +407,15 @@ gcc_mode and can be overridden by the command-line options --gcc and --no_gcc.
 #endif /* DEFAULT_GCC_COMPATIBILITY */
 
 /*
+Flag that is TRUE if GNU C++ compatibility features should be allowed by
+default.  It is the default initial value of the associated global variable
+gpp_mode and can be overridden by the command-line options --g++ and --no_g++.
+*/
+#ifndef DEFAULT_GPP_COMPATIBILITY
+#define DEFAULT_GPP_COMPATIBILITY FALSE
+#endif /* DEFAULT_GPP_COMPATIBILITY */
+
+/*
 The value of the __GNUC__ macro in gcc mode.
 */
 #ifndef GCC_VERSION
@@ -637,6 +646,32 @@ EXTERN a_boolean
    by lint. */
 #define gcc_mode FALSE
 #endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
+
+/*
+The global variable gpp_mode is defined here (rather than in cmd_line.h) so
+that it can be available to standalone utilities.
+*/
+#if GNU_EXTENSIONS_ALLOWED || defined(_lint)
+EXTERN a_boolean
+                gpp_mode
+#if VAR_INITIALIZERS
+                         = DEFAULT_GPP_COMPATIBILITY
+#endif /* VAR_INITIALIZERS */
+                                                    ;
+                        /* Accept C++ language features supported by GNU C++
+                           compilers. */
+#else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
+/* Make gpp_mode a constant-expression so some code can be optimized away.
+   Since lint would warn about such code, we do not do this when processed
+   by lint. */
+#define gpp_mode FALSE
+#endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
+
+/*
+Convenience macro that evaluates to TRUE when either GNU C or GNU C++ mode
+is enabled.
+*/
+#define gnu_mode (gcc_mode || gpp_mode)
 
 /*
 Global variables related to Microsoft compatibility mode are defined here
@@ -1404,6 +1439,14 @@ enabled.
 #define MULTIPLE_DEFAULT_DIALECTS_SET TRUE
 #endif /* ifndef DEFAULT_DIALECT_SET */
 #endif /* DEFAULT_GCC_COMPATIBILITY */
+
+#if DEFAULT_GPP_COMPATIBILITY
+#ifndef DEFAULT_DIALECT_SET
+#define DEFAULT_DIALECT_SET TRUE
+#else /* !defined(DEFAULT_DIALECT_SET) */
+#define MULTIPLE_DEFAULT_DIALECTS_SET TRUE
+#endif /* ifndef DEFAULT_DIALECT_SET */
+#endif /* DEFAULT_GPP_COMPATIBILITY */
 
 #ifdef MULTIPLE_DEFAULT_DIALECTS_SET
  #error -- Cannot set multiple exclusive dialects as defaults

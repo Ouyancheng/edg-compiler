@@ -218,6 +218,8 @@ a copy is made and modified.
   copy_type(incomplete_type, array_type);
   array_type->variant.array.variant.number_of_elements = size;
   if (gcc_mode && size == 0) {
+    /* In GNU C mode (but not in GNU C++ mode), an empty pair of braces can
+       be a valid initializer for a zero-length array. */
     array_type->variant.array.bound_is_zero = TRUE;
   }  /* if */
   set_type_size(array_type);
@@ -1031,8 +1033,9 @@ In C99 mode, the processing is similar to that in C++.
        not required.  Indeed, if the initializing expression can initialize
        the first initializable member of an aggregate, then that should be
        done instead of whole aggregate initialization.
-       scan_aggregate_initializer_expression will determine this. */
-
+       scan_aggregate_initializer_expression will determine this.
+       In GNU C mode, compound literals could have array type and can be
+       valid whole-object initializers. */
     is_whole_object_init = TRUE;
     if (!is_array_type(context->type)) {
       cssp = symbol_supplement_for_class(context->type);
@@ -1841,7 +1844,7 @@ this function points to a tree that includes a dynamic-init entry.
           if (!any_more_members) {
             /* There are more undesignated initializers, but we've run out of
                members into which to put them. */
-            if (gcc_mode) {
+            if (gnu_mode) {
               /* In GNU C mode, excess initializers are ignored (with
                  a warning). */
               if (!discard_initializers) {
@@ -1857,7 +1860,7 @@ this function points to a tree that includes a dynamic-init entry.
         }  /* if */
         /* Determine the type of the member being initialized. */
         if (is_error_type(context.type) ||
-            (gcc_mode && !any_more_members && any_more_initializers &&
+            (gnu_mode && !any_more_members && any_more_initializers &&
              discard_initializers)) {
           /* Either some error was detected, or we are in GNU mode (where
              excess initializers are ignored with a warning).  We don't know

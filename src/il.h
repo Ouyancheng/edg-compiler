@@ -1282,6 +1282,10 @@ typedef unsigned int a_constant_hash_value;
 
 extern a_constant_hash_value hash_constant(a_constant *cp);
 
+extern a_boolean compare_template_param_constant_expressions(
+                                                     an_expr_node_ptr  node1,
+                                                     an_expr_node_ptr  node2);
+
 extern void il_reset(void);
 
 extern void il_one_time_init(void);

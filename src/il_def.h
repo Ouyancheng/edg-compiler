@@ -4324,7 +4324,7 @@ enum a_template_param_type_kind_tag {
                                T x;
                              };
 			   This is the most common and obvious case. */
-  tptk_member,          /* The template param type represents a member of
+  tptk_member,		/* The template param type represents a member of
 			   a tk_template_param class, e.g., for T::X in the
 			   following:
 			     template <class T> class A {
@@ -4332,8 +4332,7 @@ enum a_template_param_type_kind_tag {
 			     };
 			   (where, during prototype instantiation, X is
 			   assumed to be a member of T and a type). */
-  tptk_unknown
-			/* The template param type represents the unknown
+  tptk_unknown,		/* The template param type represents the unknown
 			   type of a non-type member of a template parameter
 			   class, e.g., the type of T::k, and the type of
                            the constant "1" in the following:
@@ -4348,6 +4347,10 @@ enum a_template_param_type_kind_tag {
 			   prototype instantiation context that involves
 			   template parameter values, and whose real type
 			   cannot be known. */
+#if GNU_EXTENSIONS_ALLOWED
+  tptk_typeof		/* The template param type represents a type
+			   expressed through a dependent typeof construct. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 };
 typedef a_byte a_template_param_type_kind;
 
@@ -4381,6 +4384,13 @@ typedef struct a_template_param_type_supplement {
 		coordinates;
 			/* The parameter list position and template nesting
 			   depth of the parameter. */
+#if GNU_EXTENSIONS_ALLOWED
+  an_expr_node_ptr
+		expr;
+			/* The dependent expression used in a typeof
+			   specifier.  NULL if the typeof construct enclosed
+			   a type specification rather than an expression. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 } a_template_param_type_supplement;
 
 
@@ -9738,6 +9748,10 @@ typedef struct an_il_header {
 		gcc_mode;
 			/* TRUE if the source program was compiled in
 			   GNU C mode. */
+  a_byte_boolean
+		gpp_mode;
+			/* TRUE if the source program was compiled in
+			   GNU C++ mode. */
   a_byte_boolean
 		short_enums;
 			/* TRUE if all enumeration types should be considered
