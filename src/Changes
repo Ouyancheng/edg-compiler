@@ -16,7 +16,7 @@ directive.  This has been fixed.
   x is 0x1234.
   #endif
 
-8/21/02   Missing syntax error on extraneous right parenthesis in ctor-initializer
+8/21/02   Missing error on extraneous right parenthesis in ctor-initializer
 
 In some cases, the front end silently ignored an extraneous right parenthesis
 following a ctor-initializer.  For example:
