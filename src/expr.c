@@ -10079,6 +10079,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
         prep_elision_initializer_operand(&operand, operand_type,
                                          /*fill_in_dtor=*/FALSE,
                                          ec_bad_initializer_type, &dip);
+        if (dip == NULL) err = TRUE;
         /* Determine the destructor to be called.  This is done as
            a separate step because we don't want it indicated in the
            dynamic initialization.  Note that this also forces instantiation
@@ -10116,7 +10117,11 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
       throw_node->variant.throw_info = NULL;
     }  /* if */
     /* Make an operand for the result. */
-    make_expression_operand(throw_node, throw_node->type, result);
+    if (err) {
+      make_error_operand(result);
+    } else {
+      make_expression_operand(throw_node, throw_node->type, result);
+    }  /* if */
   }  /* if */
 
   if (expr_present) {
