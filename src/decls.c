@@ -6346,9 +6346,9 @@ process_class_specifier:
 
 	      /* Change "A::A" into "A" if we are processing inside the
 		 definition of class "A".  This is necessary for
-		 deterine_curr_type_symbol to handle this case
+		 determine_curr_type_symbol to handle this case
 		 correctly. */
-	      simplify_curr_class_qualified_name();
+	      (void)simplify_curr_class_qualified_name();
               clear_token_cache(&cache);
               /* Put the current token in the cache. */
               cache_curr_token(&cache);
