@@ -1336,7 +1336,8 @@ Dump a base class entry, for debug purposes.
     comma_needed = TRUE;
   }  /* if */
   bcdp = bcp->derivation;
-  if (comma_needed) fputs(",\n", f_debug);
+  if (bcdp != NULL && comma_needed) fputc(',', f_debug);
+  fputc('\n', f_debug);
   for (; bcdp != NULL; bcdp = bcdp->next) {
     fprintf(f_debug, "    %sderiv%s: ", (bcdp->direct ? "direct " : ""),
             ((bcp->is_virtual && bcdp->preferred) ? " (pref'd)" : ""));
@@ -1915,34 +1916,29 @@ the base class.
     if (bcp != NULL) {
       /* A base class has been designated with which to share the virtual
          function info. */
-      if (base_class != NULL) {
-        /* Since this is a base class of the base class type, find the
+      if (base_class == NULL) {
+        /* bcp is already a base class of class_type. */
+      } else {
+        /* bcp is a base class of base_class.  We want to find to find the
            corresponding base class of class_type. */
-        if (!bcp->ambiguous) {
-          /* bcp is not an ambiguous base class of tp, so base_class will
-             serve as a disambiguator. */
-          disambiguator = base_class;
+        disambiguator = base_class;
+        if (bcp->derivation->direct) {
+          /* bcp is a direct base class of base_class, so that latter may be
+             used as a disambiguator in finding the corresponding base class
+             of class_type. */
         } else {
-          /* bcp is an ambiguous base class of tp, so examine its list for
-             an unambiguous intermediate step that will provide a
-             disambiguator; choose the one furthest along the path (closest
-             to bcp itself). */
-          if (bcp->derivation->direct) {
-            disambiguator = base_class;
-          } else {
-            step = bcp->derivation->path;
-            check_assertion(!step->base_class->ambiguous);
-            while (!step->next->base_class->ambiguous) step = step->next;
-            if (step->base_class->type == base_class->type) {
-              disambiguator = base_class;
-            } else {
-              disambiguator = corresponding_base_class(step->base_class,
-                                                       class_type, base_class);
-            }  /* if */
-          }  /* if */
+          /* bcp is an indirect base class of base_class.  The disambiguator
+             needs to be immediately derived from the sought-for corresponding
+             base class, so it must be computed. */
+          step = bcp->derivation->path;
+          for (; step->base_class != bcp; step = step->next) {
+            disambiguator = corresponding_base_class(step->base_class,
+                                                     class_type,
+                                                     disambiguator);
+          }  /* for */
         }  /* if */
-        /* bcp now points to a base class of tp; change it to point to the
-           corresponding base class of class_type. */
+        /* bcp now points to a base class of base_class; change it to point
+           to the corresponding base class of class_type. */
         bcp = corresponding_base_class(bcp, class_type, disambiguator);
       }  /* if */
       /* Set the flag. */

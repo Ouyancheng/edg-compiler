@@ -814,6 +814,10 @@ step on the derivation list serves to confirm the match.
     db_type_name(new_class);
     fputs("\" for a base class corresponding to:\n  ", f_debug);
     db_base_class(base_class, FALSE);
+    if (disambiguator != NULL) {
+      fputs("  disambiguator is ", f_debug);
+      db_base_class(disambiguator, FALSE);
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   /* Look for a match among the base classes of new_class. */
@@ -857,11 +861,11 @@ step on the derivation list serves to confirm the match.
              that bcp is nonvirtual, so we don't need to worry about multiple
              paths in looking for its immediate predecessor. */
           step = bcp->derivation->path;
-          for (; step->next->next != NULL; step = step->next);
+          for (; step->next->base_class != bcp; step = step->next);
           if (step->base_class->type == base_class->derived_class) {
-            /* If bcp is ambiguous use the disambiguator to determine
-               whether we have a match.  It that will be the immediate
-               predecessor of bcp on bcp's derivation path. */
+            /* If bcp is ambiguous use the disambiguator to determine whether
+               we have a match.  It that will be the immediate predecessor of
+               bcp on bcp's derivation path. */
             if (bcp->ambiguous && disambiguator != NULL &&
                 step->base_class != disambiguator) {
               /* Fails the disambiguation test. */
@@ -872,6 +876,7 @@ step on the derivation list serves to confirm the match.
           }  /* if */
         }  /* if */
       } else if (!bcp->ambiguous && !base_class->ambiguous) {
+        /* Neither base class is ambiguous. */
         new_base_class = bcp;
         goto done;
       } else {
@@ -879,23 +884,18 @@ step on the derivation list serves to confirm the match.
            is more than one instance of the base class in the base classes
            list.  Check the derivations to resolve the ambiguity. */
         if (disambiguator != NULL) {
-          if (!bcp->direct) {
-            if (is_on_any_derivation_of(bcp, disambiguator)) {
+          if (bcp->direct) {
+            /* A direct base class cannot have a disambiguator, since only
+               the most derived class will be derived from it.  Move on to
+               the next one. */
+          } else {
+            /* Find the immediate predecessor in bcp's derivation path.  Note
+               that bcp is nonvirtual, so we don't need to worry about multiple
+               paths in looking for its immediate predecessor. */
+            step = bcp->derivation->path;
+            for (; step->next->base_class != bcp; step = step->next);
+            if (step->base_class == disambiguator) {
               new_base_class = bcp;
-#if CHECKING
-              /* Be sure the disambiguator actually worked by looking on
-                 through the base classes for another match. */
-              if (bcp->ambiguous) {
-                for (bcp = bcp->next; bcp != NULL; bcp = bcp->next) {
-                  if (bcp->type == base_class->type && bcp->ambiguous) {
-                    if (is_on_any_derivation_of(bcp, disambiguator)) {
-                      internal_error(
-                                "corresponding_base_class: bad disambiguator");
-                    }  /* if */
-                  }  /* if */
-                }  /* for */
-              }  /* if */
-#endif /* CHECKING */
               goto done;
             }  /* if */
           }  /* if */
@@ -922,15 +922,19 @@ step on the derivation list serves to confirm the match.
   if (debug_level > 0) {
     if (base_class != NULL) {
       fputs("cannot find base class", f_debug);
-      db_base_class(base_class, FALSE);
+      db_base_class(base_class, /*show_offset=*/FALSE);
     }  /* if */
     fputs("new_class = ", f_debug);
     db_type_name(new_class);
     fputs(" with base classes:\n", f_debug);
     for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
       fputs("  ", f_debug);
-      db_base_class(bcp, FALSE);
+      db_base_class(bcp, /*show_offset=*/FALSE);
     }  /* for */
+    if (disambiguator != NULL) {
+      fputs("disambiguator = ", f_debug);
+      db_base_class(disambiguator, /*show_offset=*/FALSE);
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   internal_error("corresponding_base_class: base class not found");
@@ -941,7 +945,7 @@ done:
 #if DEBUG
   if (debug_level >= 4 && base_class->derived_class != new_class) {
     fputs("found base class: ", f_debug);
-    db_base_class(new_base_class, FALSE);
+    db_base_class(new_base_class, /*show_offset=*/FALSE);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
