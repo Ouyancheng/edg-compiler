@@ -973,11 +973,9 @@ Dump the contents of the indicated constant, for debug purposes.
       (void)fputc('}', f_debug);
       break;
     case ck_template_param:
-      (void)fputc('(', f_debug);
-      db_abbreviated_type(cp->type);
-      (void)fputc(')', f_debug);
+      fprintf(f_debug, "<template-param#%d ", cp->variant.list_position);
       db_name(&cp->source_corresp);
-      fprintf(f_debug, "(=template-param#%d)", cp->variant.list_position);
+      (void)fputc('>', f_debug);
       break;
     default:
       fputs("<bad constant>", f_debug);
