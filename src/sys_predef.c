@@ -262,9 +262,9 @@ Enter the standard predeclared functions for GCC.
 			     /*is_varargs=*/FALSE);
   enter_gnu_builtin_function((a_builtin_function_kind)bfk_memcpy,
 			     void_star_type,
+			     void_star_type,
 			     const_void_star_type,
 			     size_t_type,
-			     (a_type_ptr)NULL,
 			     (a_type_ptr)NULL,
 			     /*is_varargs=*/FALSE);
   enter_gnu_builtin_function((a_builtin_function_kind)bfk_memcmp,
