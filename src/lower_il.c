@@ -10670,9 +10670,13 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       newop->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       /* newop->result_is_not_used is cleared by copy_type, as it should be. */
       /* For assignments, see if the source expression can have side
-         effects on the variables used in the destination expression. */
-      vars_can_change = FALSE;
-      if (child2 != NULL) {
+         effects on the variables used in the destination expression.
+         Since the operation itself is an assignment, it's possible that
+         the assignment could change something used in the determination
+         of the address of child1, though that seems to require something
+         very strange like ((i <? j) = 2) = 3. */
+      vars_can_change = !is_invariant_expr(child1, /*vars_can_change=*/TRUE);
+      if (child2 != NULL && !vars_can_change) {
         vars_can_change = node_has_side_effects(child2, (a_boolean *)NULL);
       }  /* if */
       /* Attach a copy of the lvalue address to the assignment node, as the
