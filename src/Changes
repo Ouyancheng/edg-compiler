@@ -1,5 +1,25 @@
 Version 3.6
 
+2/13/05  Microsoft property references: object evaluated only once
+
+The code generated for references to Microsoft properties (declared
+with __declspec(property)) are now expanded in such a way that
+the expression that specifies the class object is not evaluated
+twice for increments, decrements, and compound assignments.
+
+  struct A {
+    long x;
+    A() { x = 0; };
+    long Get() { return x; }
+    void Set(long p) { x = p; }
+    __declspec(property(get=Get, put=Set)) long v;
+  };
+  int main() {
+    A arr[2];
+    int i = 0;
+    arr[i++].v += 1;  // i no longer incremented twice.
+  }
+
 2/13/05  GNU two-operand "?" operator supported in GNU C++ mode
 
 The two-operand form of the "?" operator, formerly supported only
