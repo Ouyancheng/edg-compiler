@@ -491,6 +491,26 @@ FALSE is returned).  In C mode, FALSE is always returned.
 }  /* is_base_class_of */
 
 
+a_boolean is_same_class_or_base_class_thereof(a_type_ptr class_1,
+                                              a_type_ptr class_2)
+/*
+Return TRUE if the two classes given are the same class or if class_2 is
+a base class of class_1.  Only called in C++ mode.
+*/
+{
+  a_boolean        is_same_or_base = FALSE;
+  a_base_class_ptr bcp;
+
+  /* Drop typedefs. */
+  class_1 = skip_typerefs(class_1);
+  class_2 = skip_typerefs(class_2);
+  if (class_1 == class_2 || is_base_class_of(class_1, class_2, &bcp)) {
+    is_same_or_base = TRUE;
+  }  /* if */
+  return is_same_or_base;
+}  /* is_same_class_or_base_class_thereof */
+
+
 void check_fixup_list_for_array_types(void)
 /*
 Check the list of array types to be fixed up, to see if any of their element

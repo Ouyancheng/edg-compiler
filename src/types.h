@@ -72,6 +72,8 @@ extern a_boolean int_kind_is_signed(an_integer_kind kind);
 extern a_boolean is_base_class_of(a_type_ptr       derived_class,
                                   a_type_ptr       base_class,
                                   a_base_class_ptr *p_base_class);
+extern a_boolean is_same_class_or_base_class_thereof(a_type_ptr class_1,
+                                                     a_type_ptr class_2);
 
 extern void check_fixup_list_for_array_types(void);
 extern void add_if_necessary_to_array_fixup_list(a_type_ptr array_type);
