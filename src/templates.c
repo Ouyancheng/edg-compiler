@@ -5292,28 +5292,43 @@ decl_pos is the position of the function declarator.
 }  /* cache_function_template_body */
 
 
-static void prescan_template_declaration(a_tmpl_decl_state_ptr decl_state)
+static void prescan_template_declaration(a_tmpl_decl_state_ptr decl_state,
+					 a_boolean	       skip_params)
 /*
 Scan the tokens of a template declaration and determine whether
 it is full specialization, and whether the token "friend" is used in
 the declaration.
+
+skip_params is TRUE if this routine is being called a second time to
+when recaching the template declaration, but not the template parameter list.
+This is done in certain error cases when the initial caching did not
+cache the expected tokens.
 */
 {
-  a_boolean	is_template_friend = FALSE;
-  a_boolean	is_full_specialization = TRUE;
- 
-  rescan_reusable_cache(&decl_state->param_list_cache);
-  /* See if the beginning of the declaration consists of template
-     parameter clauses that are all of the form "template <>". */
-  while (is_full_specialization && curr_token == tok_template) {
-    (void)get_token();
-     /* Exit the loop if a template parameter list is missing.  The
-        error recovery is better this way. */
-     if (curr_token != tok_lt) break;
-    (void)get_token();
-     if (curr_token != tok_gt) is_full_specialization = FALSE;
-    (void)get_token();
-  }  /* while */
+  a_boolean		is_template_friend = FALSE;
+  a_boolean		is_full_specialization = TRUE;
+  a_token_cache_ptr	p_cache;
+
+  if (skip_params) {
+    p_cache = &decl_state->decl_token_cache;
+  } else {
+    p_cache = &decl_state->param_list_cache;
+  }  /* if */
+  rescan_reusable_cache(p_cache);
+  if (!skip_params) {
+    /* See if the beginning of the declaration consists of template
+       parameter clauses that are all of the form "template <>". */
+   while (is_full_specialization && curr_token == tok_template) {
+      (void)get_token();
+       /* Exit the loop if a template parameter list is missing.  The
+          error recovery is better this way. */
+      if (curr_token != tok_lt) break;
+      (void)get_token();
+       if (curr_token != tok_gt) is_full_specialization = FALSE;
+      (void)get_token();
+    }  /* while */
+    decl_state->is_full_specialization = is_full_specialization;
+  }  /* if */
   /* Go through the remaining tokens of the cache.  We have to scan all
      the way to the end even if the friend token is found so that the
      token stream will be at the right place when we return. */
@@ -5324,7 +5339,6 @@ the declaration.
   /* Skip past the tok_end_of_source. */
   (void)get_token();
   decl_state->is_template_friend = is_template_friend;
-  decl_state->is_full_specialization = is_full_specialization;
 }  /* prescan_template_declaration */
 
 
@@ -5380,11 +5394,9 @@ cache the expected tokens.
      assure that we don't scan past the end of the cache in the actual
      scan. */
   terminate_token_cache(p_cache);
-  if (!skip_params) {
-    /* Do an initial scan of the template declaration to determine whether
-       it is a full specialization and/or a friend declaration. */
-    prescan_template_declaration(decl_state);
-  }  /* if */
+  /* Do an initial scan of the template declaration to determine whether
+     it is a full specialization and/or a friend declaration. */
+  prescan_template_declaration(decl_state, skip_params);
   /* Rescan a copy of the cached tokens from this cache.  This is done so that
      when the original template declaration is scanned the last token of
      the cache is followed by the token that followed it in the original
