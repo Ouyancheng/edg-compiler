@@ -6521,6 +6521,7 @@ types to get a boolean expression (see process_boolean_controlling_expression).
                                                       is_simple_string_literal,
                                    &operand->variant.constant,
                                    bool_type(),
+                                   /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                    /*suppress_extensions=*/FALSE,
                                    ec_expr_not_bool,
                                    &std_conv)) {

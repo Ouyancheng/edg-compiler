@@ -3418,7 +3418,7 @@ a_boolean impl_pointer_conversion(
                          a_boolean            source_is_string_literal,
                          a_constant           *source_constant,
                          a_type_ptr           dest_type,
-                         a_boolean            check_as_operands_not_conversion,
+                         a_boolean            allow_qualifier_or_eh_mismatch,
                          a_boolean            suppress_extensions,
                          an_error_code        default_warning_code,
                          a_std_conv_descr_ptr std_conv)
@@ -3431,7 +3431,7 @@ null pointer constant to a pointer type.)  If source_is_string_literal
 is TRUE, the source is a simple string literal (that's needed for the
 deprecated conversion from string literal to "char *"); the flag can
 be TRUE even when source_is_constant is FALSE, for an extension.  If
-check_as_operands_not_conversion is TRUE, the two types are the types
+allow_qualifier_or_eh_mismatch is TRUE, the two types are the types
 of the operands of an operation; only do the checks required in that
 case, which are fewer than the checks required for a conversion.
 suppress_extensions is TRUE if conversions that are extensions should
@@ -3514,7 +3514,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     if (types_are_compatible_for_impl_conversion(
                                             unqual_source_type_pointed_to,
                                             unqual_dest_type_pointed_to)) {
-      if (exceptions_enabled && !check_as_operands_not_conversion &&
+      if (exceptions_enabled && !allow_qualifier_or_eh_mismatch &&
           is_function(unqual_dest_type_pointed_to) &&
           exception_spec_is_less_restrictive(unqual_source_type_pointed_to,
                                              unqual_dest_type_pointed_to)) {
@@ -3581,7 +3581,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       } else {
         conversion_from_void_star_in_C =
                        (C_dialect != C_dialect_cplusplus &&
-                        !check_as_operands_not_conversion &&
+                        !allow_qualifier_or_eh_mismatch &&
                         is_void(unqual_source_type_pointed_to));
         if (conversion_from_void_star_in_C &&
             (is_object(unqual_dest_type_pointed_to) ||
@@ -3635,7 +3635,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                            source_type_pointed_to,
                            dest_type_pointed_to,
                            /*ignore_qualifiers=*/
-                               check_as_operands_not_conversion,
+                               allow_qualifier_or_eh_mismatch,
                            &qualifiers_added)) {
           /* Allow conversion between pointers where type qualifiers are
              being added at levels other than the first, e.g.,
@@ -3675,7 +3675,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         }  /* if */
       }  /* if */
     }  /* if */
-    if (okay && !qualifiers_checked && !check_as_operands_not_conversion) {
+    if (okay && !qualifiers_checked && !allow_qualifier_or_eh_mismatch) {
       /* The types pointed to must be such that the type pointed to by the
          left has all the qualifiers of the type pointed to by the right.
          It might have additional qualifiers.  ANSI C 3.3.16.1 (assignment);
@@ -4005,14 +4005,15 @@ pointers to members).
 
 
 a_boolean impl_conversion_possible(
-                                 a_type_ptr           source_type,
-                                 a_boolean            source_is_constant,
-                                 a_boolean            source_is_string_literal,
-                                 a_constant           *source_constant,
-                                 a_type_ptr           dest_type,
-                                 a_boolean            suppress_extensions,
-                                 an_error_code        default_warning_code,
-                                 a_std_conv_descr_ptr std_conv)
+                          a_type_ptr           source_type,
+                          a_boolean            source_is_constant,
+                          a_boolean            source_is_string_literal,
+                          a_constant           *source_constant,
+                          a_type_ptr           dest_type,
+                          a_boolean            allow_qualifier_or_eh_mismatch,
+                          a_boolean            suppress_extensions,
+                          an_error_code        default_warning_code,
+                          a_std_conv_descr_ptr std_conv)
 /*
 Return TRUE if it is okay to implicitly convert something of type source_type
 to something of type dest_type.  If source_is_constant is TRUE, the source
@@ -4177,7 +4178,7 @@ See conversion_possible.
     okay = impl_pointer_conversion(source_type, source_is_constant,
                                    source_is_string_literal,
                                    source_constant, dest_type,
-                                   /*check_as_operands_not_conversion=*/FALSE,
+                                   allow_qualifier_or_eh_mismatch,
                                    suppress_extensions,
                                    default_warning_code,
                                    std_conv);
@@ -4186,7 +4187,7 @@ See conversion_possible.
     okay = impl_ptr_to_member_conversion(source_type,
                                          source_is_constant, source_constant,
                                          dest_type,
-                                    /*check_as_operands_not_conversion=*/FALSE,
+                                         allow_qualifier_or_eh_mismatch,
                                          std_conv);
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
@@ -4215,10 +4216,11 @@ See conversion_possible.
 
 
 static a_boolean inverse_impl_conversion_possible(
-                                      a_type_ptr           source_type,
-                                      a_type_ptr           dest_type,
-                                      a_boolean            suppress_extensions,
-                                      a_std_conv_descr_ptr std_conv)
+                          a_type_ptr           source_type,
+                          a_type_ptr           dest_type,
+                          a_boolean            suppress_extensions,
+                          a_boolean            allow_qualifier_or_eh_mismatch,
+                          a_std_conv_descr_ptr std_conv)
 /*
 Return TRUE if the conversion source_type --> dest_type can be done as
 a static_cast because the inverse dest_type --> source_type can be done as
@@ -4230,7 +4232,8 @@ on C_dialect, of course).  If the conversion is possible, *std_conv is
 filled out to describe the conversion.  In particular, if the conversion
 is suspect and should be flagged with a warning, the warning_suggested
 field is set to an appropriate error code; normally, it is set to
-ec_no_error.
+ec_no_error.  When allow_qualifier_or_eh_mismatch is TRUE, cv-qualifiers and
+exception specifications are not checked.
 */
 {
   a_boolean        okay = FALSE, baseward_cast, related_class_case = FALSE;
@@ -4281,6 +4284,7 @@ ec_no_error.
                                       /*source_is_string_literal=*/FALSE,
                                       (a_constant *)NULL,
                                       source_type,
+                                      allow_qualifier_or_eh_mismatch,
                                       suppress_extensions,
                                       ec_bad_cast,
                                       std_conv) ||
@@ -4296,8 +4300,9 @@ ec_no_error.
     okay = TRUE;
     /* If the conversion is a pointer or pointer to member conversion, make
        sure qualifiers are not being removed. */
-    if ((is_pointer(source_type) && is_pointer(dest_type)) ||
-        (is_ptr_to_member(source_type) && is_ptr_to_member(dest_type))) {
+    if (!allow_qualifier_or_eh_mismatch &&
+        ((is_pointer(source_type) && is_pointer(dest_type)) ||
+        (is_ptr_to_member(source_type) && is_ptr_to_member(dest_type)))) {
       if (cast_removes_qualifiers(source_type, dest_type)) {
         okay = FALSE;
       }  /* if */
@@ -4308,13 +4313,14 @@ ec_no_error.
 
 
 a_boolean static_cast_conversion_possible(
-                                        a_type_ptr    source_type,
-                                        a_boolean     source_is_constant,
-                                        a_boolean     source_is_string_literal,
-                                        a_constant    *source_constant,
-                                        a_type_ptr    dest_type,
-                                        an_error_code default_warning_code,
-                                        an_error_code *warning_suggested)
+                                 a_type_ptr    source_type,
+                                 a_boolean     source_is_constant,
+                                 a_boolean     source_is_string_literal,
+                                 a_constant    *source_constant,
+                                 a_type_ptr    dest_type,
+                                 a_boolean     allow_qualifier_or_eh_mismatch,
+                                 an_error_code default_warning_code,
+                                 an_error_code *warning_suggested)
 /*
 Return TRUE if it is okay to explicitly convert something of type source_type
 to something of type dest_type in a static_cast.  If source_is_constant is
@@ -4328,11 +4334,11 @@ suspect and should be flagged with a warning, *warning_suggested is
 set to an appropriate error code; normally, it is set to ec_no_error.
 default_warning_code will be copied into *warning_suggested when no
 specific message applies.  Any type qualifiers on the types themselves
-are ignored.  Note that this routine does not handle casts to
-reference types, it doesn't reject conversions that cast away
-constness, and it doesn't handle user-defined conversions.  This
-routine is called in C mode as well as C++ mode.  See
-[expr.static.cast].
+are ignored, and when allow_qualifier_or_eh_mismatch is TRUE exception
+specifications and lower level cv-qualifiers are also ignored.
+Note that this routine does not handle casts to reference types and it doesn't
+handle user-defined conversions.  This routine is called in C mode as well as
+C++ mode.  See [expr.static.cast].
 */
 {
   a_boolean        okay = FALSE, suppress_extensions = FALSE;
@@ -4371,6 +4377,7 @@ routine is called in C mode as well as C++ mode.  See
     impl_okay = impl_conversion_possible(source_type, source_is_constant,
                                          source_is_string_literal,
                                          source_constant, dest_type,
+                                         allow_qualifier_or_eh_mismatch,
                                          suppress_extensions,
                                          default_warning_code,
                                          &impl_std_conv) != FALSE;
@@ -4379,9 +4386,11 @@ routine is called in C mode as well as C++ mode.  See
       /* There is an implicit conversion, and it's not questionable. */
       okay = TRUE;
     } else if (!C_mode()) {
-      inv_impl_okay = inverse_impl_conversion_possible(source_type, dest_type,
-                                                       suppress_extensions,
-                                                       &inv_impl_std_conv);
+      inv_impl_okay = inverse_impl_conversion_possible(
+                                               source_type, dest_type,
+                                               allow_qualifier_or_eh_mismatch,
+                                               suppress_extensions,
+                                               &inv_impl_std_conv);
       if (inv_impl_okay &&
           inv_impl_std_conv.warning_suggested == ec_no_error) {
         /* The inverse of any standard conversion is allowed in C++. */
@@ -4602,6 +4611,7 @@ set to TRUE (otherwise it is set to FALSE).
       static_cast_conversion_possible(source_type, source_is_constant,
                                       source_is_string_literal,
                                       source_constant, dest_type,
+                                      /*allow_qualifier_or_eh_mismatch=*/TRUE,
                                       default_warning_code,
                                       &static_cast_warning_suggested) != FALSE;
     if (static_cast_okay &&

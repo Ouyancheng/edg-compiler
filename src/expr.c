@@ -6795,6 +6795,7 @@ Syntax:
                                                       is_simple_string_literal,
                                                    operand_con,
                                                    type_cast_to,
+                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                                    ec_bad_cast,
                                                    &warning_suggested)) {
           /* Valid static_cast conversion. */

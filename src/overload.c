@@ -267,19 +267,21 @@ cast.
           if (ptr_routine_type != NULL &&
               (is_cast ?
                 (clear_std_conv_descr(&std_conversion),
-                 static_cast_conversion_possible(ptr_routine_type,
-                                                 /*source_is_constant=*/FALSE,
-                                           /*source_is_string_literal=*/FALSE,
-                                                 (a_constant_ptr)NULL,
-                                                 dest_type,
-                                                 ec_no_error,
-                                                 &std_conversion.
-                                                          warning_suggested)) :
+                 static_cast_conversion_possible(
+                                     ptr_routine_type,
+                                     /*source_is_constant=*/FALSE,
+                                     /*source_is_string_literal=*/FALSE,
+                                     (a_constant_ptr)NULL,
+                                     dest_type,
+                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                     ec_no_error,
+                                     &std_conversion.warning_suggested)) :
                 impl_conversion_possible(ptr_routine_type,
                                          /*source_is_constant=*/FALSE,
                                          /*source_is_string_literal=*/FALSE,
                                          (a_constant_ptr)NULL,
                                          dest_type,
+                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                          /*suppress_extensions=*/TRUE,
                                          ec_no_error,
                                          &std_conversion))) {
@@ -1485,7 +1487,9 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
                                  arg_operand_is_constant,
                                  arg_operand_is_simple_string_literal,
                                  arg_operand_constant,
-                                 param_type, /*suppress_extensions=*/TRUE,
+                                 param_type,
+                                 /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                 /*suppress_extensions=*/TRUE,
                                  ec_incompatible_param, &std_conversion) &&
         /* cfront requires that a null pointer constant be spelled "0"
            for it to be convertible to a pointer in overload resolution. */
@@ -5860,6 +5864,7 @@ This routine is only used in C++ mode.
                                             /*source_is_constant=*/FALSE,
                                             /*source_is_string_literal=*/FALSE,
                                             (a_constant_ptr)NULL, dest_type,
+                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                             /*suppress_extensions=*/TRUE,
                                             ec_no_error, &std_conversion)) {
           /* This conversion function returns a type that can be converted
@@ -6685,6 +6690,7 @@ the target type to be used).
                                                       is_simple_string_literal,
                                             source_constant,
                                             eff_specific_type,
+                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                             /*suppress_extensions=*/TRUE,
                                             ec_no_error, &std_conv)) {
           /* The conversion can be done. */
@@ -8305,6 +8311,7 @@ rewritten) for use in error messages.
                                                       is_simple_string_literal,
                                         source_constant,
                                         dest_type,
+                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                         /*suppress_extensions=*/FALSE,
                                         incompatible_err,
                                         &std_conv)) {
