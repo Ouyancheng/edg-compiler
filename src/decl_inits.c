@@ -3904,7 +3904,7 @@ scan_paren:
             cssp = NULL;
           }  /* if */
           if ((cssp != NULL && cssp->constructor != NULL) ||
-              template_param_init) {
+              (template_param_init && !m_is_error_type(init_type))) {
             /* This is either a base class or a field of class type.  In
                either case, it will be initialized by a constructor call if
                a constructor exists.  Otherwise, it will be initialized
