@@ -5483,11 +5483,12 @@ check_start_of_pp_directive:
 	  goto end_of_token_scan;
 	} /* if */
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
-	if (!pcc_preprocessing_mode && in_preprocessing_directive &&
-	    !caching_pragma_tokens) {
+	if (in_preprocessing_directive && !caching_pragma_tokens) {
 	  /* We recognize and return these preprocessing tokens even if
 	     we do not know that we are in the body of a #define; this
-	     helps produce reasonable error messages. */
+	     helps produce reasonable error messages.  Note that this is
+             done even in PCC preprocessing mode even though PCC
+             preprocessors don't generally support these operators. */
 	  if (*curr_char_loc == '#' && !first_char_is_digraph) {
 	    ctoken = tok_paste;
 	    curr_char_loc++;
