@@ -898,7 +898,6 @@ Initialize the fields in a scope-pointers-block substructure.
   spbp->last_pragma                  = NULL;
 #if RECORD_HIDDEN_NAMES_IN_IL
   spbp->last_hidden_name             = NULL;
-  spbp->hidden_name_fixup_list       = NULL;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if RECORD_TEMPLATES_IN_IL
   spbp->last_template                = NULL;

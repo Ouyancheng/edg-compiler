@@ -1925,9 +1925,6 @@ and return a pointer to it.
 #if RECORD_TEMPLATES_IN_IL
   tssp->il_template_entry = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  tssp->hidden_name_fixup_list = NULL;
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   tssp->is_specific_definition = FALSE;
   tssp->is_nonreal_member = FALSE;
 #if CHECKING 

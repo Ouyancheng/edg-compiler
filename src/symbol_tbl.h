@@ -508,35 +508,6 @@ typedef struct a_dependent_type_fixup {
 			   is completed. */
 } a_dependent_type_fixup;
 
-#if RECORD_HIDDEN_NAMES_IN_IL
-
-typedef struct a_hidden_template_name_fixup *a_hidden_template_name_fixup_ptr;
-typedef struct a_hidden_template_name_fixup {
-  /* Entry to produce a list of scopes in which a template (and therefore
-     its instances) are hidden by a declaration of the same name in that
-     scope -- and where the hiding can be "defeated" in generated C++ by
-     using a qualified name or an elaborated type specifier. */
-  a_hidden_template_name_fixup_ptr
-		next;
-			/* Next in a linked list of fixup entries associated
-			   with a given template. */
-  a_byte_boolean
-		tag_hidden_by_nontag;
-			/* TRUE if the hiding can be defeated by using an
-			   elaborated type specifier. */
-  a_byte_boolean
-		hidden_class_or_namespace_member;
-			/* TRUE if the hiding can be defeated by using a
-			   qualified name. */
-  a_scope_ptr	scope;
-			/* The scope in which the hiding occurs. */
-  a_scope_ptr	assoc_function_scope;
-			/* When the hiding occurs inside a function
-			   definition, the sck_function scope for that
-			   function. */
-} a_hidden_template_name_fixup;
-
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 typedef struct a_symbol_list_entry *a_symbol_list_entry_ptr;
 typedef struct a_symbol_list_entry {
@@ -1461,15 +1432,6 @@ typedef struct a_template_symbol_supplement {
 			   is one; otherwise, points to the entry associated
 			   with the first declaration. */
 #endif /* RECORD_TEMPLATES_IN_IL */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  a_hidden_template_name_fixup_ptr
-		hidden_name_fixup_list;
-			/* Pointer to a linked list of fixup entries that
-			   specify where a template name was hidden by
-			   another declaration and how that hiding can be
-			   defeated in references to instances of the
-			   template. */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   a_bit_field
 		is_specific_definition:1;
 			/* TRUE if the template is a specific definition of
@@ -3001,11 +2963,6 @@ extern void free_list_of_type_list_entries(a_type_list_entry_ptr slep);
 extern a_namespace_list_entry_ptr alloc_namespace_list_entry(void);
 extern
 void free_list_of_namespace_list_entries(a_namespace_list_entry_ptr nlep);
-
-#if RECORD_HIDDEN_NAMES_IN_IL
-extern a_hidden_template_name_fixup_ptr alloc_hidden_template_name_fixup(void);
-extern void free_selected_hidden_template_name_fixups(void);
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 extern
 a_template_param_ptr alloc_template_param

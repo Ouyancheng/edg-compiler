@@ -375,14 +375,15 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
 }  /* record_defeatable_name_hiding */
 
 
-void check_hiding_by_inherited_names(a_type_ptr  class_type,
-                                     a_scope_ptr sp,
-                                     a_boolean   top_level)
+static void check_hiding_by_inherited_names(a_type_ptr  class_type,
+                                            a_scope_ptr sp,
+                                            a_boolean   top_level)
 /*
 Perform hidden name checking on the members of each of the base classes of
-class_type.  If class_type is not the most derived type (i.e., if its
-IL scope is not the indicated IL scope), do hidden name checking on its
-own members, too.  This routine is called recursively.
+class_type.  This routine is called recursively, in which case top_level
+is FALSE.  When top_level is FALSE, i.e., if class_type is not the most
+derived type (i.e., if its IL scope is not the indicated IL scope), do
+hidden name checking on its own members, too.
 */
 {
   a_base_class_ptr  bcp = base_classes_of(class_type);
