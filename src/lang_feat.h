@@ -205,6 +205,15 @@ which can be modified by the "-x" command line option.
 #endif /* ifndef DEFAULT_EXCEPTIONS_ENABLED */
 
 /*
+Flag that is TRUE if, in C++, support for runtime type information (RTTI)
+is enabled by default.  This is the default value of the variable rtti_enabled,
+which can be modified by the "--rtti" or "--no_rtti" command-line options.
+*/
+#ifndef DEFAULT_RTTI_ENABLED
+#define DEFAULT_RTTI_ENABLED TRUE
+#endif /* ifndef DEFAULT_RTTI_ENABLED */
+
+/*
 Flag that is TRUE to enable automatic instantiation support for templates.
 This flag determines whether the code for automatic instantiation is
 to be compiled.
