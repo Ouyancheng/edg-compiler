@@ -8585,7 +8585,8 @@ specifier is restored.
 }  /* linkage_specification */
 
 
-void handler_declaration(a_statement_ptr  sp)
+void handler_declaration(a_statement_ptr     sp,
+                         a_source_position*  catch_pos)
 /*
 Process a handler declaration:
 
@@ -8614,6 +8615,7 @@ Process a handler declaration:
                    (a_template_arg_ptr)NULL);
   /* Allocate the handler. */
   handler = alloc_handler();
+  set_stmt_source_position(handler->catch_position, *catch_pos);
   if (required_token(tok_lparen, ec_exp_lparen)) {
     decl_pos = pos_curr_token;
     if (curr_token == tok_ellipsis) {

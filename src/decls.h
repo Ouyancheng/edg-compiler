@@ -202,7 +202,8 @@ extern void decl_function_template(a_symbol_locator    *locator,
                                    a_symbol_ptr        *symbol_ptr,
                                    a_storage_class     storage_class);
 
-extern void handler_declaration(a_statement_ptr  sp);
+extern void handler_declaration(a_statement_ptr     sp,
+                                a_source_position*  catch_pos);
 
 extern an_asm_entry_ptr asm_declaration(a_boolean asm_decl_allowed);
 

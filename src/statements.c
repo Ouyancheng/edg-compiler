@@ -1867,7 +1867,8 @@ where handler-seq is a sequence of one or more handlers of the form
 
 */
 {
-  a_statement_ptr sp;
+  a_statement_ptr    sp;
+  a_source_position  catch_pos;
 
   db_enter(3, "try_block_statement");
   check_for_unreachable_code();
@@ -1894,13 +1895,20 @@ where handler-seq is a sequence of one or more handlers of the form
                                                /*explicit_return_type=*/FALSE,
                                                /*is_catch_clause=*/FALSE);
   /* The next token should be a "catch" introducing the first handler. */
+  /* Save the current token position as catch_pos before checking whether
+     it is in fact tok_catch, since the function that checks also advances
+     past it. */
+  catch_pos = pos_curr_token;
   if (required_token(tok_catch, ec_missing_handler)) {
     /* Loop through the (1 or more) handler declarations, adding each to
        the linked list of handlers pointed to by sp. */
     do {
       term_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
       start_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
-      handler_declaration(sp);
+      handler_declaration(sp, &catch_pos);
+      /* Again, save the current token position as catch_pos before
+         checking. */
+      catch_pos = pos_curr_token;
     } while (loop_token(tok_catch));
   }  /* if */
   /* Pop the structured statement stack. */
