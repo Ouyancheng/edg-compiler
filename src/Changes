@@ -1,5 +1,24 @@
 Version 2.31
 
+1/16/96   Default initialization using constructor with default argument
+          that requires destruction
+
+Two bugs have been fixed (one in the front end proper, one in IL lowering)
+in the handling of default initialization for a variable or array using
+a constructor that has a default argument whose evaluation involves
+creation of a temporary that must be destroyed.
+
+  struct T {
+    T();
+    ~T();
+  };
+  struct S {
+    S( const T& = T() );
+    ~S();
+  };
+  S x;
+  S y[2];
+
 1/16/96   Address of register variable allowed in C mode
 
 The address of a register variable may now be taken in C mode (except
