@@ -1,5 +1,16 @@
 Version 2.35
 
+2/13/97 Error on base-specifier that depends on a template parameter
+
+An error is now issued if a base-specifier depends on a template parameter
+in a context other than a prototype instantiation of a class template.
+This can only occur in otherwise ill-formed programs.  Note in the
+following example (which used to provoke an internal error) that X is not
+a class template but the return type of function template f:
+
+  template <class T> struct A;
+  template <class T> const struct X : A<T> { int i; } f(T);
+
 2/12/97 &(A::x) is not a pointer to member
 
 The form "&(A::x)" is no longer accepted as a pointer to member.  This
