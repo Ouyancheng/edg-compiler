@@ -110,9 +110,6 @@ extern void mark_as_needed_like(char                    *entry_ptr,
                                 a_source_correspondence *model_scp,
                                 a_boolean               set_class_defn_needed);
 
-extern void remark_to_keep_in_il(char             *entry_ptr,
-                                 an_il_entry_kind entry_kind);
-
 extern void remark_as_needed(char             *entry_ptr,
                              an_il_entry_kind entry_kind);
 

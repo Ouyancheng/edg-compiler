@@ -923,8 +923,8 @@ the subtree is walked again if it has changed.
 }  /* clear_keep_in_il_to_allow_subtree_walk */
 
 
-void remark_to_keep_in_il(char             *entry_ptr,
-                          an_il_entry_kind entry_kind)
+static void remark_to_keep_in_il(char             *entry_ptr,
+                                 an_il_entry_kind entry_kind)
 /*
 If the keep_in_il flag in the indicated entry is already set, clear it
 and set it again.  This is used when the subtree of the entity may have
