@@ -48,7 +48,7 @@ extern void mangle_promoted_entity_name(a_source_correspondence *scp,
                                         a_routine_ptr           routine,
                                         a_scope_ptr             scope);
 
-extern void do_memory_region_name_mangling(a_scope_ptr scope);
+extern void do_all_name_mangling(void);
 
 extern void name_lower_init(void);
 
