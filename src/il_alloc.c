@@ -2364,6 +2364,9 @@ fields to default values.
       node->variant.operation.is_reference_cast = FALSE;
       node->variant.operation.is_conversion_call = FALSE;
       node->variant.operation.arg_dependent_lookup_suppressed_on_call = FALSE;
+#if BACK_END_IS_CP_GEN_BE
+      node->variant.operation.keep_cast_for_cp_gen_be = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if CENTERLINE_CHECKING
       node->variant.operation.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

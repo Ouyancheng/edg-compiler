@@ -6534,6 +6534,17 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
         result->variant.constant.expr = result_expr.variant.expression;
       }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#if BACK_END_IS_CP_GEN_BE
+    } else if (is_expression_operand(result)) {
+      /* Force the C++-generating back end to keep a promotion cast
+         at the top of this expression. */
+      an_expr_node_ptr expr = result->variant.expression;
+      if (is_operation_node(expr) &&
+          expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+          expr->variant.operation.compiler_generated) {
+        expr->variant.operation.keep_cast_for_cp_gen_be = TRUE;
+      }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
     }  /* if */
   } else if (is_error_operand(operand_1) ||
              (operand_2 != NULL && is_error_operand(operand_2)) ||

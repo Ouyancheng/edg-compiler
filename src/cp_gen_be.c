@@ -5711,7 +5711,8 @@ precedence confusion and need_parens is TRUE.
         case eok_base_class_cast:
         case eok_derived_class_cast:
           /* Cast. */
-          if (node->variant.operation.compiler_generated) {
+          if (node->variant.operation.compiler_generated &&
+              !node->variant.operation.keep_cast_for_cp_gen_be) {
             /* Implicit cast.  Remove to avoid problems with casting address
                of enk_temp_init to some related type. */
             if (is_array_decay_cast(node)) {
@@ -6633,6 +6634,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
              to "char *" explicit in case the underlying compiler does
              not allow that in this context. */
           if (expr->variant.operation.compiler_generated &&
+              !expr->variant.operation.keep_cast_for_cp_gen_be &&
               !is_const_string_literal_cast(expr)) {
             if (is_array_decay_cast(expr)) {
               /* A cast that does array-to-pointer decay.  The cast can be

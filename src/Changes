@@ -13,6 +13,16 @@ TRUE:
 The "?" operation was rewritten as simply "a" and the front end
 then failed to consider that as an lvalue in gcc mode.  Now fixed.
 
+Also, there was a similar problem with the C++-generating back
+end, which did not put out promotion casts at the top of
+expressions produced by the dead-code elimination, which sometimes
+produced wrong results, as in the following C-mode test:
+
+  int main() {
+    char c;
+    sizeof(1?c:c);  // Formerly put out as sizeof(c); now sizeof((int)c)
+  }
+
 7/28/04  C++-generating back end: Microsoft calling conventions not emitted
 
 The C++-generating back end failed to emit calling convention specifiers on
