@@ -1435,6 +1435,23 @@ is called only in C++ mode.
 }  /* variable_this_exists */
 
 
+void make_this_variable_operand(a_variable_ptr this_var,
+                                an_operand     *result)
+/*
+Make an operand for the value of the "this" variable this_var.  The source
+position of the operand is set to "pos_curr_token".  The operand is an
+rvalue.
+*/
+{
+  an_expr_node_ptr node;
+
+  /* Make a variable value node for the variable. */
+  node = var_rvalue_expr(this_var);
+  /* Make an operand for the node. */
+  make_expression_operand(node, node->type, result);
+}  /* make_this_variable_operand */
+
+
 static void make_this_pointer_operand(a_symbol_locator   *member_locator,
                                       an_expression_kind expression_kind,
                                       an_operand         *result)
@@ -1464,7 +1481,7 @@ current expression kind.  This routine is called only in C++ mode.
     error_and_make_error_operand(ec_member_ref_requires_object, result);
   } else {
     /* Make an operand for the value of the "this" pointer. */
-    make_rvalue_variable_operand(this_var, result);
+    make_this_variable_operand(this_var, result);
     class_struct_union_type = type_pointed_to(this_var->type);
     /* Adjust the "this" pointer to point to the right class if it's
        pointing to a derived class of the class of which the symbol
@@ -6735,13 +6752,20 @@ bound_function_selector to the associated "this" pointer.
                like "int *p = &a.i" -- the address of "a" is not taken,
                but the lvalue never gets turned into an rvalue, so it's
                okay. */
-            /* In C++, integral const identifiers can be used in constant
-               expressions.  Note that we need not keep the variable as an
-               lvalue to guard against discovering later that the variable's
-               address is being taken, because in C++ expressions that allow
-               the "&" operator are nonconstant. */
-            if (C_dialect == C_dialect_cplusplus &&
-                is_const_variable(var_ptr)) {
+            /* Note that in C++ initializer expressions are used only for
+               non-type template arguments and for the argument of
+               __INTADDR__. */
+            if (expression_kind == (an_expression_kind)ek_init_constant &&
+                has_static_storage_duration(var_ptr->storage_class) &&
+                /* Disallow C++ reference variables in constant
+                   expressions, because of the extra indirection. */
+                !is_reference_type(var_ptr->type)) {
+              /* Make an lvalue operand for the variable. */
+              make_lvalue_variable_operand(var_ptr, result, xep);
+            } else if (C_dialect == C_dialect_cplusplus &&
+                       is_const_variable(var_ptr)) {
+              /* In C++, integral const identifiers can be used in constant
+                 expressions.  */
               a_constant_ptr con_val = var_constant_value(var_ptr);
               if (con_val == NULL) {
                 /* The variable is const, but its value is not known at
@@ -6752,15 +6776,6 @@ bound_function_selector to the associated "this" pointer.
                 /* The identifier is const and has a known constant value. */
                 make_constant_operand(con_val, result);
               }  /* if */
-            } else if (expression_kind ==
-                                        (an_expression_kind)ek_init_constant &&
-                       has_static_storage_duration(var_ptr->storage_class) &&
-                       /* Disallow C++ reference variables in constant
-                          expressions.  Could only matter if __INTADDR__
-                          is used on a reference variable. */
-                       !is_reference_type(var_ptr->type)) {
-              /* Make an lvalue operand for the variable. */
-              make_lvalue_variable_operand(var_ptr, result, xep);
             } else {
               /* All other cases are not allowed. */
               error_and_make_error_operand(ec_expr_not_constant, result);
@@ -7148,11 +7163,8 @@ and/or functions to pointers, etc. -- see expr.h).
           error_and_make_error_operand(ec_this_used_incorrectly,
                                        &local_result);
         } else {
-          /* Make an lvalue for the "this" variable. */
-          make_lvalue_variable_operand(this_var, &local_result,
-                                       (an_xref_entry_ptr)NULL);
-          /* Turn the lvalue into an rvalue. */
-          conv_lvalue_to_rvalue(&local_result, expression_kind);
+          /* Make an rvalue for the "this" variable. */
+          make_this_variable_operand(this_var, &local_result);
         }  /* if */
       }  /* if */
       (void)get_token();
