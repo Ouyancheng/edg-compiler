@@ -1,3 +1,12 @@
+Version 2.46
+
+1/15/01  eccp: Temporary file not removed in some cases
+
+When using one instantiation per object mode, a temporary file used by
+eccp (named "il<process-id>") did not get removed when using the -k or
+--keep_gen_c option.  This has been fixed.
+
+-------------------------------------------------------------------------------
 Version 2.45, December 26, 2000
 
 12/13/00 Demangling of "?" operator in template names
