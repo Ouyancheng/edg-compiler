@@ -6142,7 +6142,8 @@ a_symbol_ptr matching_template_function(
                                 a_type_ptr          curr_type,
 				a_template_arg_ptr  explicit_arg_list,
 				a_boolean	    explicit_arg_list_present,
-				a_boolean	    is_decl_context)
+				a_boolean	    is_decl_context,
+				a_boolean	    *is_new_template_instance)
 /*
 Search for a template function based on the function template represented
 by templ_sym and the type pointed to by curr_type.  If no such template
@@ -6154,7 +6155,8 @@ a template instance.  In such cases it is not known whether or not the
 function has an implicit this parameter type, so the implicit this
 type should not be used in the matching process.  explicit_arg_list is
 non-NULL if an explicitly specified template argument list was provided.
-
+*is_new_template_instance is returned TRUE if a new template instance is
+created with this call.
 */
 {
   a_symbol_ptr          		sym;
@@ -6171,6 +6173,7 @@ non-NULL if an explicitly specified template argument list was provided.
   curr_type = skip_typerefs(curr_type);
   tssp = template_supplement_for_symbol(templ_sym);
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+  *is_new_template_instance = FALSE;
   if (is_match_for_function_template(templ_sym, curr_type,
                                      &templ_arg_list, &sym,
                                      templ_param_list,
@@ -6181,6 +6184,7 @@ non-NULL if an explicitly specified template argument list was provided.
     } else {
       /* Use the template arg list to create a new symbol. */
       sym = make_template_function(templ_sym, templ_arg_list);
+      *is_new_template_instance = TRUE;
     }  /* if */
   }  /* if */
   /* Update the flags that indicate whether any explicitly specified template
@@ -10607,9 +10611,11 @@ found.
         sym_error(ec_ambiguous_overloaded_function, orig_sym);
         new_sym = NULL;
       } else {
+        a_boolean  is_new_template_instance;
         new_sym = matching_template_function(sym, type, explicit_arg_list,
 					     explicit_arg_list_present,
-                                             /*is_decl_context=*/TRUE);
+                                             /*is_decl_context=*/TRUE,
+                                             &is_new_template_instance);
       }  /* if */
     }  /* for */
   }  /* if */

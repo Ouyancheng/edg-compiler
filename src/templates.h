@@ -208,7 +208,8 @@ extern a_symbol_ptr matching_template_function(
                                 a_type_ptr          curr_type,
 				a_template_arg_ptr  explicit_arg_list,
 				a_boolean	    explicit_arg_list_present,
-				a_boolean	    is_decl_context);
+				a_boolean	    is_decl_context,
+				a_boolean	    *is_new_template_instance);
 
 extern
 a_boolean has_matching_template_function(a_symbol_ptr       templ_sym,

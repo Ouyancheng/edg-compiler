@@ -5228,11 +5228,13 @@ next_delete_symbol:;
               } else {
                 /* Do a partial instantiation if a match is found so that the
                    template instance can be returned. */
+                a_boolean  is_new_template_instance;
                 corresp_op_delete_sym = matching_template_function(
  					   template_sym, tp,
                                            (a_template_arg_ptr)NULL,
 				           /*explicit_arg_list_present=*/FALSE,
-                                           /*is_decl_context=*/TRUE);
+                                           /*is_decl_context=*/TRUE,
+                                           &is_new_template_instance);
               }  /* if */
             }  /* if */
           }  /* if */

@@ -1190,6 +1190,11 @@ typedef struct an_id_linkage_block {
 			/* TRUE when the declaration is a function template
 			   declaration. */
   a_byte_boolean
+		is_new_template_instance;
+			/* TRUE when the declaration matches a function
+			   template instance that is newly created by the
+			   declaration. */
+  a_byte_boolean
 		is_definition;
 			/* TRUE when the declaration is a definition. */
   a_byte_boolean
@@ -1247,6 +1252,7 @@ static void clear_id_linkage_block(an_id_linkage_block *idlbp)
   idlbp->type = NULL;
   idlbp->is_friend_decl = FALSE;
   idlbp->is_function_template = FALSE;
+  idlbp->is_new_template_instance = FALSE;
   idlbp->is_definition = FALSE;
   idlbp->is_block_extern_decl = FALSE;
   idlbp->is_local_class_friend_decl = FALSE;
@@ -1761,6 +1767,7 @@ called by id_linkage.
           a_boolean		ambiguous;
           a_template_arg_ptr	templ_arg_list;
           a_symbol_ptr		best_sym;
+          a_boolean             is_new_template_instance;
           select_best_partial_order_candidate(
                            candidates_list, (a_symbol_ptr)NULL, &best_sym,
                            &templ_arg_list, &ambiguous);
@@ -1768,9 +1775,11 @@ called by id_linkage.
           sym = matching_template_function(best_sym, idlbp->type,
                                            locator->template_arg_list,
 					   (a_boolean)locator->is_template_id,
-                                           /*is_decl_context=*/TRUE);
+                                           /*is_decl_context=*/TRUE,
+                                           &is_new_template_instance);
           other_decl = best_sym;
           match = sym;
+          idlbp->is_new_template_instance = is_new_template_instance;
           if (ambiguous) {
             /* This declaration cannot be a guiding declaration for more
                than one template function.  Issue an ambiguity error. */
@@ -4772,11 +4781,13 @@ skip_overloading:;
       /* Replace the routine pointed to from the extern-routine symbol with
          the new one. */
       (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr = NULL;
-#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
-    } else {
-      first_decl = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
+    if (idlb.is_new_template_instance) {
+      /* This declaration triggered the creation of a new template instance. */
+      first_decl = TRUE;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
     sym->variant.routine.instance_ptr =
                                 linked_symbol->variant.routine.instance_ptr;
     routine_ptr = linked_symbol->variant.routine.ptr;
