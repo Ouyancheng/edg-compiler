@@ -22,6 +22,8 @@ Prelink utility for template instantiation.
 
 #define DEBUG 1
 
+
+/* Forward declarations of pointer types required before their definitions. */
 typedef struct a_pl_input_file *a_pl_input_file_ptr;
 typedef struct a_pl_object_file *a_pl_object_file_ptr;
 
@@ -31,6 +33,7 @@ typedef struct a_pl_instantiation_site *a_pl_instantiation_site_ptr;
 typedef struct a_pl_instantiation_site {
   a_pl_instantiation_site_ptr
 		next;
+			/* Next instantiation site for the symbol. */
   a_pl_input_file_ptr
 		input_file;
 			/* Pointer to an input file that can generate
@@ -38,7 +41,10 @@ typedef struct a_pl_instantiation_site {
 } a_pl_instantiation_site;
 
 
-/* Description of a symbol from an object file. */
+/* Description of a symbol from an object file.  This structure is
+   used for both the representation of the symbol from the object file
+   and a description of the symbol in the global symbol table.  Most of
+   the fields are only used by global symbol table symbols. */
 typedef struct a_pl_symbol *a_pl_symbol_ptr;
 typedef struct a_pl_symbol {
   a_pl_symbol_ptr
@@ -61,33 +67,73 @@ typedef struct a_pl_symbol {
   a_pl_symbol_ptr
 		global_sym;
 			/* Pointer to the global symbol table entry for this
-			   name. */
+			   name.  This is present for symbols associated
+			   with object files.  This allows you to revisit
+			   a symbol without having to look it up again. 
+			   For special symbols (such as __CBI__ names) this
+			   points to the global symbol for the symbol to which
+			   the special symbol refers (e.g., __CBI__xxx points
+			   to the global symbol for xxx). */
   long		number_of_references;
+			/* The number of object files that have been linked
+			   into the executable that reference the symbol.
+			   A reference can be either an undefined entry
+			   from the object file or a TIR entry. */
   a_pl_input_file_ptr
 		last_referenced_from;
+			/* Pointer to the last input file that referenced the
+			   symbol.  This is used to prevent the referenced flag
+			   from being updated more than once in cases where
+			   the input file has both an undefined symbol
+			   entry and a TIR flag. */
   char		*name;
 			/* Name of the symbol. */
   a_byte_boolean
 		referenced;
+			/* The symbol has been referenced by an object file
+			   that has been linked into the executable.
+			   A reference can be either an undefined entry
+			   from the object file or a TIR entry. */
   a_byte_boolean
 		defined;
+			/* The symbol is defined.  This is set when an
+			   object file that is included in the link defines
+		           the symbol.  Not set for tentative definitions. */
   a_byte_boolean
 		tentative_definition;
+			/* The symbol has a tentative definition.  This is
+			   set when an object file that is included in the link
+			   provides a "common" or tentative definition of
+			   the symbol. */
   a_byte_boolean
 		multiple_definition;
+			/* Set if multiple object files included in the link
+			   define the symbol. */
   a_byte_boolean
 		is_template;
+			/* Set if an object file that is included in the link
+			   contains a CBI or TIR flag for the symbol. */
   a_byte_boolean
 		can_be_instantiated;
+			/* Set if an object file that is included in the link
+			   contains a CBI flag for the symbol. */
   a_byte_boolean
 		do_not_instantiate;
+			/* Set if an object file that is included in the link
+			   contains a DNI flag for the symbol.  This flag
+			   will prevent the prelinker from assigning the
+			   symbol to any file, not just the file that contains
+			   the DNI flag. */
   a_byte_boolean
 		instantiated;
+			/* Indicates that the symbol has been instantiated.
+			   This is set when it has been determined that
+			   an object file has provided the necessary
+			   instantiation and is also set when a symbol
+			   is assigned to an object file for instantiation. */
   a_pl_input_file_ptr
 		defined_in;
 			/* The input file in which the symbol was defined. */
-  a_pl_object_file_ptr
-		object_file;
 } a_pl_symbol;
 
 
@@ -180,6 +226,8 @@ static a_boolean		suppress_compilation = FALSE;
    the assumption that we've run into an instantiation loop. */
 static a_boolean		limit_recursion = TRUE;
 
+static char message_prefix[] = "C++ prelink";
+
 
 #if DEBUG
 static int pl_debug_level = 0;
@@ -213,7 +261,7 @@ static void pl_error(char*   error_string)
 Prints an error message and exits with an error exit status.
 */
 {
-  fprintf(stderr, "edg_prelink error: %s\n", error_string);
+  fprintf(stderr, "%s: error: %s\n", message_prefix, error_string);
   exit (RC_ERROR);
 }
 
@@ -224,7 +272,7 @@ Prints an internal error message and exits with a catastrophic error
 exit status.
 */
 {
-  fprintf(stderr, "edg_prelink: %s\n", error_string);
+  fprintf(stderr, "%s: %s\n", message_prefix, error_string);
   exit (RC_CATASTROPHE);
 }
 
@@ -341,7 +389,6 @@ Allocate a symbol, initialize it, and return a pointer to it.
   psp->do_not_instantiate = FALSE;
   psp->instantiated = FALSE;
   psp->defined_in = NULL;
-  psp->object_file = NULL;
   return psp;
 }  /* alloc_pl_symbol */
 
@@ -567,7 +614,6 @@ xxx.a:x2.o:01230124 T _name4
       name = pos;
       psp = alloc_pl_symbol();
       psp->name = pl_copy_string(name);
-      psp->object_file = pofp;
       /* Set symbol flags. */
       switch (type) {
         case 'B':  /* BSS symbol */
@@ -709,6 +755,12 @@ symbol_found:
 
 
 static void pl_add_predefined_names(void)
+/*
+This routine is used to introduce names that the linker predefines.
+This is not strictly needed because the prelinker doesn't issue
+undefined errors.  This can be used if you want the prelinker
+to detect such conditions.
+*/
 {
   char			*name;
   int			pos = 0;
@@ -1029,8 +1081,8 @@ static a_boolean pl_determine_actions(void)
           pifp->recompile = recompile_file;
           done = FALSE;
           if (verbose) {
-            fprintf(stdout, "edg_prelink: %s no longer needed in %s\n",
-                    psp->name, pifp->filename);
+            fprintf(stdout, "%s: %s no longer needed in %s\n",
+                    message_prefix, psp->name, pifp->filename);
           }  /* if */
         }  /* if */
         /* Don't update the previous pointer if the current item was
@@ -1066,8 +1118,8 @@ static a_boolean pl_determine_actions(void)
           pifp->recompile = TRUE;
           done = FALSE;
           if (verbose) {
-            fprintf(stdout, "edg_prelink: %s assigned to file %s\n", sym->name,
-                    pifp->filename);
+            fprintf(stdout, "%s: %s assigned to file %s\n", message_prefix,
+                    sym->name, pifp->filename);
           }  /* if */
         }  /* if */
         psp = psp->next;
@@ -1091,7 +1143,7 @@ Execute the command to recompile a file.
   length = strlen(shell_format_string) + strlen(command_line);
   command = (char *)pl_malloc_with_check(length);
   sprintf(command, shell_format_string, command_line);
-  fprintf(stdout, "edg_prelink: executing: %s\n", command);
+  fprintf(stdout, "%s: executing: %s\n", message_prefix, command);
   fflush(stdout);
   return system(command_line);
 }  /* pl_recompile_file */
