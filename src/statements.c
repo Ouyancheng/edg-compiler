@@ -1164,22 +1164,24 @@ entry.
   a_struct_stmt_stack_entry_ptr  sssep;
   a_statement_ptr                sp = NULL;
 
-  if (depth_stmt_stack != -1) {
-    sssep = &struct_stmt_stack[depth_stmt_stack];
-    sp = sssep->curr_decl_statement;
-    if (sp != NULL) {
-      /* There is a currently active stmk_decl statement. */
-      if (sp->source_sequence_entry == NULL) {
-        /* However, there was no initial declaration recorded.  Avoid
-           recording a final declaration as well. */
-      } else {
-        /* Set the last-declaration pointer. */
-        sp->variant.last_declaration =
-                        scope_stack[depth_innermost_function_scope].
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+    if (depth_stmt_stack != -1) {
+      sssep = &struct_stmt_stack[depth_stmt_stack];
+      sp = sssep->curr_decl_statement;
+      if (sp != NULL) {
+        /* There is a currently active stmk_decl statement. */
+        if (sp->source_sequence_entry == NULL) {
+          /* However, there was no initial declaration recorded.  Avoid
+             recording a final declaration as well. */
+        } else {
+          /* Set the last-declaration pointer. */
+          sp->variant.last_declaration =
+                          scope_stack[depth_innermost_function_scope].
                                                  last_source_sequence_entry;
+        }  /* if */
+        /* Deactivate the decl-statement. */
+        sssep->curr_decl_statement = NULL;
       }  /* if */
-      /* Deactivate the decl-statement. */
-      sssep->curr_decl_statement = NULL;
     }  /* if */
   }  /* if */
 }  /* wrapup_decl_statement */
@@ -1191,10 +1193,12 @@ Allocate a source sequence entry for statement sp and add it to the list for
 the current function scope.
 */
 {
-  if (C_dialect == C_dialect_cplusplus) wrapup_decl_statement();
-  update_source_sequence_list((char *)sp, iek_statement,
-                              (a_source_position *)NULL,
-                              (a_decl_seq_info_ptr)NULL);
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+    if (C_dialect == C_dialect_cplusplus) wrapup_decl_statement();
+    update_source_sequence_list((char *)sp, iek_statement,
+                                (a_source_position *)NULL,
+                                (a_source_sequence_entry_ptr)NULL);
+  }  /* if */
 }  /* stmt_update_source_sequence_list */
 
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2981,7 +2985,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
     /* Add a source sequence entry for the switch clause. */
     update_source_sequence_list((char *)scp, iek_switch_clause,
                                 (a_source_position *)NULL,
-                                (a_decl_seq_info_ptr)NULL);
+                                (a_source_sequence_entry_ptr)NULL);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Represent this case label by adding an entry to the
        control_flow_descr_list. */
