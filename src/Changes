@@ -1,5 +1,21 @@
 Version 2.21
 
+11/15/93 Prelinker problem with eliminated instantiation sites
+
+Under some conditions the prelinker failed to reassign an instantiation
+after the current instantiation site has been changed in such a way
+that the instantiation can no longer be generated.  This has been fixed.
+
+11/15/93 Aborting compilations that are executed by the prelinker
+
+If a compilation is aborted while the prelinker is recompiling a file
+(but before the new object file has been created) an application may
+be left in a state in which simply typing "make" will not result
+in a the application being successfully built.  The user would need to
+either remove the .o file or touch the .c file and rerun make.
+This problem has been solved by having the prelinker remove the .o
+file before recompiling a file.
+
 11/15/93 Variable definitions not tentative in C++
 
 IL lowering now changes all variables that have sc_unspecified storage
