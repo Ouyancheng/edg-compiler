@@ -63,6 +63,12 @@ typedef struct a_throw_stack_entry {
 			/* TRUE when the object has been passed to a
 			   handler.  It is at this point that the
 			   object can be rethrown. */
+  a_byte_boolean
+		object_copy_complete;
+			/* Set to FALSE when __throw_alloc is called and
+			   set to TRUE when __throw is called.  This
+			   flag indicates that the thrown object has been
+			   copied and must be destroyed at some point. */
 } a_throw_stack_entry;
 
 
@@ -780,9 +786,9 @@ a try block with a catch that matches the type of the object thrown.
   an_exception_type_specification_ptr
 				etsp_found;
 
-  /* Reset the discard flag so that we know that this throw stack entry
-     is in use. */
-  curr_throw_stack_entry->discard_entry = FALSE;
+  /* When __throw is called we know that the object has been copied and
+     must be destroyed when the throw stack entry is popped. */
+  curr_throw_stack_entry->object_copy_complete = FALSE;
   /* Get the information about the current thrown object from the
      throw stack. */
   thrown_typeinfo = curr_throw_stack_entry->typeinfo;
@@ -986,6 +992,7 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->is_rethrow = is_rethrow;
   tsep->discard_entry = FALSE;
   tsep->in_handler = FALSE;
+  tsep->object_copy_complete = FALSE;
   /* Record a pointer to the nearest enclosing try block in the throw
      stack entry.  If this throw has the same nearest enclosing try block
      as the previous throw then the previous throw should be discarded.
@@ -1072,7 +1079,7 @@ the completion of a catch clause.
     is_rethrow = tsep->is_rethrow;
     object_address = tsep->object_address;
     /* Call the destructor for the object if needed. */
-    if (!is_rethrow) {
+    if (!is_rethrow && tsep->object_copy_complete) {
       a_destructor_ptr	dtor_ptr;
       dtor_ptr = (a_destructor_ptr)tsep->typeinfo->destructor;
       if (dtor_ptr != NULL) {
