@@ -1368,6 +1368,9 @@ The attributes must apply to the entity kind specified by "target".
         new_tail->next = msap;
       }  /* if */
       new_tail = msap;
+      /* Update the entity pointer in the attribute. */
+      msap->entity.kind = kind;
+      msap->entity.ptr = entity;
     }  /* if */
   }  /* for */
   /* All entities except for param_type entries are expected to have
