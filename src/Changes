@@ -1,5 +1,19 @@
 Version 3.1
 
+9/13/02  Missing error on invalid template default argument
+
+The front end failed to issue a diagnostic when a template default argument
+was supplied in the out-of-class definition of a member class template.
+This resulted in a surprising "too few template arguments" diagnostic when
+the template was referenced in a way that would require use of the
+default argument.  This has been fixed.
+
+  template <class T> struct A {
+    template <class T2> struct B;
+  };
+  template <class T> template <class T2 = int> struct A<T>::B { };  // invalid
+  A<int>::B<> ab;
+
 9/12/02  Sun compatibility: template parameters visible in specializations
 
 The Sun compiler incorrectly makes template parameters visible within

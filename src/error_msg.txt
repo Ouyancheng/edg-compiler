@@ -1000,7 +1000,7 @@ ec_nonstd_default_arg;;"specifying a default argument on this declaration is non
 ec_cl_nonstd_using_decl_option_only_in_cplusplus;;"option \"nonstd_using_decl\" can be used only when compiling C++"
 ec_bad_return_type_on_main;;"return type of function \"main\" must be \"int\""
 ec_template_parameter_has_class_type;;"a nontype template parameter may not have class type"
-ec_default_arg_on_member_decl;;"a default template argument cannot be specified on the declaration of a member of a class template"
+ec_default_arg_on_member_decl;;"a default template argument cannot be specified on the declaration of a member of a class template outside of its class"
 ec_return_from_ctor_function_try_block_handler;;"a return statement is not allowed in a handler of a function try block of a constructor"
 ec_no_ordinary_and_extended_designators;;"ordinary and extended designators cannot be combined in an initializer designation"
 ec_no_negative_designator_range;;"the second subscript must not be smaller than the first"

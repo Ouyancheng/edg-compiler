@@ -10721,13 +10721,18 @@ declaration of a partial specialization declared outside of its class.
           /* If this is a class template, make sure the template parameters
              match a previous declaration of the class.  This test is not
              done if the template found is a nonreal template (that has no
-             template parameter list). */
+             template parameter list).  For member templates, default
+             arguments are only allowed on the initial declaration (in the
+             class). */
+          a_boolean	default_allowed;
+          default_allowed = !sym->is_class_member ||
+                            decl_state->class_declared_in != NULL;
           if (microsoft_bugs && sym->defined) {
             /* The Microsoft compiler does not check the parameter list
                of a template that is redeclared after it has been defined. */
           } else if (!reconcile_template_param_lists(
                                 templ_params, sym, &locator.source_position,
-                                /*default_allowed=*/TRUE)) {
+                                default_allowed)) {
             err = TRUE;
           }  /* if */
         } /* if */
