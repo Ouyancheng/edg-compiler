@@ -348,12 +348,12 @@ file are mapped into the address space of subsequent compilation.
   /* The number of entries actually used is always the same as the
      number of entries that exist in mmap mode. */
   mem_alloc_history_entries_used = num_of_mem_alloc_history_entries;
+  mmap_size_allocated += size;
 #if DEBUG
   /* Record the total amount of allocated memory that was allocated via
      memory mapped files. */
   num_mapped_bytes_allocated += size;
   num_mapped_bytes_from_pch += size;
-  mmap_size_allocated += size;
   adjust_record_of_total_allocation((long)size);
 #endif /* DEBUG */
 }  /* record_mapped_mem_block */

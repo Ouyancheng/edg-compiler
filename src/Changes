@@ -1,5 +1,10 @@
 Version 3.0
 
+2/22/02  Precompiled header processing problem when DEBUG == 0
+
+Compilations that make use of a precompiled header file may fail when
+the compiler was built without DEBUG code.  This has been fixed.
+
 2/19/02  Problem setting DEFAULT_DEPENDENT_NAME_PROCESSING to TRUE
 
 Setting DEFAULT_DEPENDENT_NAME_PROCESSING did not have the intended
