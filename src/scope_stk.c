@@ -3039,8 +3039,7 @@ NULL.
       if (storage_class == (a_storage_class)sc_unspecified &&
           (!is_member_of_unnamed_namespace(&rout_ptr->source_corresp) ||
            rout_ptr->source_corresp.name_linkage ==
-                                         (a_name_linkage_kind)nlk_external) &&
-          !rout_ptr->is_inline) {
+                                         (a_name_linkage_kind)nlk_external)) {
         /* Regard functions with "unspecified" storage class to be referenced
            somewhere, even if not in the current translation unit; extern
            inline functions are an exception, since their callability is
