@@ -34,6 +34,7 @@ class_decl.c -- Scanning of class declarations.
 #include "templates.h"
 #include "decl_inits.h"
 #include "preproc.h"
+#include "const_ints.h"
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -3430,7 +3431,7 @@ and it is legal for virtual member functions only.
   /* Advance past the "=". */
   (void)get_token();
   if (curr_token == tok_int_constant &&
-      const_for_curr_token.variant.integer_value == 0) {
+      eqlit_integer_constant(&const_for_curr_token, 0L)) {
     /* Token following "=" is "0". */
     if (pure_specifier_allowed) {
       /* Update the routine and class type enties. */
