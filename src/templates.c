@@ -3617,9 +3617,10 @@ entry is pushed on the scope stack.
     instantiate_class_template(sym, prototype_type);
     if (tag_resolution) {
       /* This is the resolution of a previously incomplete template
-         declaration; it there were any incomplete instantiations that were
-         involved in array type declarations, the instantiations need to be
-         done and the arrays fixed up at this time.  For example:
+         declaration; check for incomplete instantiations.  And if there are
+         any incomplete instantiations that were involved in array type
+         declarations, the instantiations need to be done and the arrays
+         fixed up at this time.  For example:
            template <class T> class X;
            typedef X<int> arr[10];
            template <class T> class X { ... };
@@ -3630,12 +3631,29 @@ entry is pushed on the scope stack.
       for (instance_sym = tssp->variant.class_template.instantiations;
            instance_sym != NULL;
            instance_sym = instance_sym->next) {
-        if (instance_sym !=
+        if (instance_sym ==
                   tssp->variant.class_template.prototype_instantiation) {
-          /* Found one.  See if it has any fixup entries that resulted from
-             uses in array declarations. */
+          /* Ignore the prototype instantiation. */
+        } else if (instance_sym->variant.class_struct_union.extra_info->
+                                                   is_specific_template_def) {
+          /* Ignore specific definitions. */
+        } else {
+          /* Found an incomplete instantiation.  Be sure the type kind matches
+             that of the current template definition. */
+          a_type_ptr                  class_type;
           a_dependent_type_fixup_ptr  dtfp;
 
+          class_type = instance_sym->variant.class_struct_union.type;
+          if (class_type->kind == prototype_type->kind) {
+            /* Okay. */
+          } else if (class_type->kind == (a_type_kind)tk_union ||
+                     prototype_type->kind == (a_type_kind)tk_union) {
+            /* Error, detected elsewhere. */
+          } else {
+            class_type->kind = prototype_type->kind;
+          }  /* if */
+          /* See if it has any fixup entries that resulted from uses in array
+             declarations. */
           dtfp = instance_sym->variant.class_struct_union.extra_info->
                                                dependent_type_fixup_list;
           for (; dtfp != NULL; dtfp = dtfp->next) {
