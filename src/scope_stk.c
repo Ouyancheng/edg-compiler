@@ -1124,6 +1124,7 @@ to the declaration information for the template declaration scope being pushed.
   ssep->namespace_pushed         = FALSE;
   ssep->exclude_from_context_output = FALSE;
   ssep->instantiation_scope_pushed = FALSE;
+  ssep->microsoft_specialization_scope_pushed = FALSE;
   ssep->stop_token_stack_pushed  = FALSE;
   ssep->reactivated_class_being_defined = FALSE;
   ssep->is_for_init_block        = FALSE;
@@ -4436,6 +4437,21 @@ inside of the instantiation scope pushed for the specialization.
 }  /* set_template_decl_lookup_sequence */
 
 
+static void reset_template_decl_lookup_sequence(void)
+/*
+Undo the lookup sequence updates done by set_template_decl_lookup_sequence.
+This is called when the template declaration scope is at the top of
+the stack.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+
+  ssep = &scope_stack[depth_scope_stack];
+  ssep->previous_scope = depth_scope_stack-1;
+  depth_of_initial_lookup_scope = depth_scope_stack;
+}  /* reset_template_decl_lookup_sequence */
+
+
 void push_namespace_reactivation_scope(a_namespace_ptr nsp)
 /*
 Push one or more scopes that will reactivate the indicated namespace.
@@ -4532,8 +4548,7 @@ This routine is called only in C++.
     /* When a namespace reactivation is placed on top of a template
        declaration scope, the template declaration scope will have had
        its previous pointer updated.  Restore it to the original value. */
-    ssep->previous_scope = depth_scope_stack-1;
-    depth_of_initial_lookup_scope = depth_scope_stack;
+    reset_template_decl_lookup_sequence();
   }  /* if */
 }  /* pop_namespace_reactivation_scope */
 
@@ -4676,6 +4691,7 @@ extend_namespace).
     /* The push of the template instantiation scope will not reactivate the
        class type (that it thinks is being instantiated).  Reactivate it
        now. */
+    a_scope_stack_entry_ptr	ssep;
     push_instantiation_scope_for_class(class_type);
     if (initial_scope_is_template_decl) {
       /* In Microsoft mode, if a specialization instantiation scope is
@@ -4688,7 +4704,9 @@ extend_namespace).
     /* Indicate that a template instantiation scope was pushed so that,
        when popping the class and template reactivation, we know how the
        scopes should be popped. */
-    scope_stack[depth_scope_stack].instantiation_scope_pushed = TRUE;
+    ssep = scope_stack_entry_for(depth_scope_stack);
+    ssep->instantiation_scope_pushed = TRUE;
+    ssep->microsoft_specialization_scope_pushed = TRUE;
   } else {
     /* A nontemplate class.  Just do a normal class reactivation.  The
        original depth returned is used instead of the one saved above
@@ -4731,10 +4749,21 @@ is called only in C++.
 
   ssep = &scope_stack[depth_scope_stack];
   if (ssep->instantiation_scope_pushed) {
+    a_boolean	microsoft_specialization_scope_pushed;
+    microsoft_specialization_scope_pushed =
+                                   ssep->microsoft_specialization_scope_pushed;
     /* Pop the single class reactivation scope that was pushed. */
     pop_scope();
     /* Pop the template instantiation and instantiation context scopes. */
     pop_template_instantiation_scope();
+    if (microsoft_specialization_scope_pushed &&
+        scope_stack[depth_scope_stack].kind ==
+                                     (a_scope_kind)sck_template_declaration) {
+      /* When a Microsoft specialization scope is placed on top of a template
+         declaration scope, the template declaration scope will have had
+         its previous pointer updated.  Restore it to the original value. */
+      reset_template_decl_lookup_sequence();
+    }  /* if */
   } else {
     /* Pop the class and namespace reactivation scopes. */
     namespace_pushed = ssep->namespace_pushed;

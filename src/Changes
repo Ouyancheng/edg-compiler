@@ -1,5 +1,18 @@
 Version 2.42
 
+3/9/99   Microsoft compatibility: loop in Microsoft mode in version 2.41
+
+A Microsoft compatibility bug fix in 2.40 introduced a new bug that could
+cause an infinite loop in certain cases.  This has been fixed.
+
+  template <class T> struct A;
+  template<> struct A<int> {
+    template <class T2> A<int>& operator+(const A<T2>&);
+  };
+  template <class T2> A<int>& A<int>::operator+(const A<T2>&) {
+    return *this;
+  }
+
 3/8/99   Overloaded operator problem with function templates
 
 In version 2.41, if the normal lookup component of an overloaded operator

@@ -258,6 +258,11 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if, when pushing a class and template
 			   reactivation scope, a template instantiation
 			   scope was pushed. */
+  a_bit_field	microsoft_specialization_scope_pushed:1;
+			/* TRUE if, when pushing a class and template
+			   reactivation scope, a template instantiation
+			   scope was pushed for a Microsoft specialization
+			   scope. */
   a_bit_field	stop_token_stack_pushed:1;
 			/* TRUE if, when pushing a template instantiation
 			   scope, a new stop token stack entry was pushed.
