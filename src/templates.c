@@ -880,11 +880,8 @@ itself recursively to process classes nested within this class.
     while (var != NULL) {
       sym = (a_symbol_ptr)var->source_corresp.assoc_info;
       tip = sym->variant.static_data_member.instance_ptr;
-#if 0
-      /* Are there error cases when tip can be NULL?  It is probably safer
-         to skip setting the instantiation required flag rather than
-         generate a possibly spurious internal error. */
-#endif /* 0 */
+      /* We makes sure tip is non-NULL to guard against potential error
+         cases. */
       if (tip != NULL && !tip->instantiation_required) {
         set_instance_required(sym, /*value=*/FALSE, /*defer_inline=*/TRUE);
       }  /* if */
@@ -3329,10 +3326,8 @@ and the class instantiation will detect the runaway case.
      the back-end will be sure to generate the function. */ 
   var_ptr->source_corresp.referenced = TRUE;
   var_ptr->is_template_static_data_member = TRUE;
-#if 0
   /* Note that Microsoft decl_modifiers are not processed on static
      data member definitions.  Microsoft does not allow this either. */
-#endif /* 0 */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   var_ptr->assoc_template = tssp->il_template_entry;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -7389,10 +7384,6 @@ the function instantiation entry and set all the pointers.
 				       /*is_decl_context=*/TRUE)) {
       /* A match has been found. */
 #if CHECKING
-#if 0
-      /* This situation might come up in an error case.  We'll figure out what
-         to do about it if it ever happens. */
-#endif /* if 0 */
       if (sym != NULL) {
         internal_error("record_predeclared_template_function: sym found");
       }  /* if */
