@@ -314,7 +314,7 @@ i.e., it is the start of a type-specifier, a type-qualifier, or a
 storage-class-specifier.  Note that this does not cover the start of
 function-definitions, since they can start with the declarator.  If
 expr_context is TRUE this test is done in a context in which an expression
-is allowed.  If real_declartor_allowed is FALSE the error recovery
+is allowed.  If real_declarator_allowed is FALSE the error recovery
 optimization is suppressed.
 */
 {
@@ -2088,13 +2088,11 @@ is set to NULL and the constant value is used for the size.
 #if CHECKING
         if (constant.kind != (a_constant_repr_kind)ck_integer) {
           internal_error("nonconstant_array_declarator: array size not int");
+        } else if (constant.variant.integer_value <= 0) {
+          internal_error("nonconstant_array_declarator: element count < 1");
         }  /* if */
 #endif /* CHECKING */
         num_of_elements = constant.variant.integer_value;
-        if (num_of_elements <= 0) {
-          error(ec_array_size_must_be_positive);
-          err = TRUE;
-        }  /* if */
       }  /* if */
     } else {
       /* An expression was returned.  Create an array whose element count
