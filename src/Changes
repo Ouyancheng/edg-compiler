@@ -1,5 +1,10 @@
 Version 2.39
 
+2/18/97   Microsoft compatibility: L#param to produce wide string literal
+
+In Microsoft mode, the idiom L#param is now accepted as requesting
+a wide string literal for the value of the indicated macro parameter.
+
 2/17/98   Microsoft compatibility: invalid explicit instantiation and
           "extern template" directives
 

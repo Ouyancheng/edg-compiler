@@ -2891,6 +2891,13 @@ Scan and process a #define directive.
              put out later unless the next thing is "##" or the end of the
              replacement text. */
           need_end_of_token_marker = TRUE;
+          if (microsoft_mode &&
+              len_of_curr_token == 1 && *start_of_curr_token == 'L' &&
+              start_of_curr_token[1] == '#') {
+            /* In Microsoft mode, L#param can be used to create a wide
+               string literal. */
+            need_end_of_token_marker = FALSE;
+          }  /* if */
           /* Generate a remark on an invalid token.  Suppress this remark if
              inside a string because of looking for parameter names; the
              things inside the string aren't expected to be legal tokens. */
