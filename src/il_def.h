@@ -3024,7 +3024,7 @@ Macros to set and retrieve the named address space id in a type qualifier
 bit set.
 */
 #define named_address_space_from_qualifier_set(tqs)                          \
-  (((tqs) >> (int)tqt_lsb_named_address_space) &                             \
+  (/*lint -e(572)*/((tqs) >> (int)tqt_lsb_named_address_space) &             \
    (((a_type_qualifier_set)1 << NUM_BITS_FOR_NAMED_ADDRESS_SPACE) - 1))
 
 #define set_named_address_space_in_qualifier_set(tqs, nas_id)                \
