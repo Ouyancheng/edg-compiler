@@ -8295,7 +8295,7 @@ Insert the code at the location given by insert_location.
   {
     ctsp = class_type->variant.class_struct_union.extra_info;
     primary_vtbl_var = ctsp->virtual_function_table_var;
-    if (primary_vtbl_var) {
+    if (primary_vtbl_var != NULL) {
       vtbl_addr_node = make_vtbl_address_node(primary_vtbl_var, class_type,
                                               (a_base_class_ptr)NULL);
       set_lowering_variable_address_taken(primary_vtbl_var);
