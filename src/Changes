@@ -1,5 +1,10 @@
 Version 2.08
 
+7/20/92  Properly close intermediate language file.
+
+Fixed a bug where when the version contains a C generating back end, the
+generated IL file (by -N or -o option) was not closed.
+
 7/20/92  Dynamic initialization of local static variables
 
 Fixed a bug where the dynamic init entry for a local static variable was
