@@ -407,7 +407,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
                temp_expr->kind == (an_expr_operator_kind)eok_cast) {
           temp_expr = temp_expr->variant.operation.operands;
         }  /* while */
-        if (temp_expr->kind == (an_expr_node_kind)enk_variable) {
+        if (is_variable_node(temp_expr)) {
           var = temp_expr->variant.variable;
           if (!has_static_storage_duration(var->storage_class) &&
               !var->address_taken) {
@@ -417,6 +417,14 @@ The code is inserted at *insert_location, and *insert_location is updated.
           } else if (!call_has_side_effects) {
             /* If the call has no side effects, the value of a variable
                will not change, so it is invariant. */
+            arg_is_constant = TRUE;
+          }  /* if */
+        } else if (is_operation_node(temp_expr) &&
+                   !call_has_side_effects) {
+          if (temp_expr->variant.operation.kind ==
+                                            (an_expr_operator_kind)eok_field) {
+            /* A field selection can be reused in a call that has no side
+               effects. */
             arg_is_constant = TRUE;
           }  /* if */
         }  /* if */
