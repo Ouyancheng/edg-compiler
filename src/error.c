@@ -3279,7 +3279,7 @@ and doing any required expansions, the diagnostic is written.
       int		num_of_contexts = 0;
       a_symbol_ptr	sym;
       an_error_code	context_error_code;
-      a_boolean		in_secondary_trans_unit;
+      a_boolean		pos_is_in_secondary_trans_unit;
       /* Check whether we need to supply additional context information. */
       a_scope_depth	sd;
       for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
@@ -3291,8 +3291,9 @@ and doing any required expansions, the diagnostic is written.
       }  /* for */
       /* If we are in a secondary translation unit, we need a context line
          to specify the translation unit name. */
-      in_secondary_trans_unit = in_secondary_translation_unit(error_pos);
-      if (in_secondary_trans_unit) num_of_contexts++;
+      pos_is_in_secondary_trans_unit =
+                                      in_secondary_translation_unit(error_pos);
+      if (pos_is_in_secondary_trans_unit) num_of_contexts++;
       /* Issue the original message. */
       context_required = num_of_contexts > 0;
       write_diagnostic(error_code, error_pos, severity, diag_kind);
@@ -3329,7 +3330,7 @@ and doing any required expansions, the diagnostic is written.
           diag_message(context_error_code,
                        error_pos, severity, context_diag_kind);
         }  /* for */
-        if (in_secondary_trans_unit) {
+        if (pos_is_in_secondary_trans_unit) {
           display_trans_unit_context(error_pos, severity,
                                      /*add_detected_prefix=*/
                                                          num_of_contexts == 1);
