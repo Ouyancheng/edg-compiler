@@ -1794,6 +1794,11 @@ or struct definition.  The syntax is
         error(ec_not_a_class_or_struct_name);
         goto skip_base_class;
       }  /* if */
+      if (type_ptr->kind == (a_type_kind)tk_union) {
+        /* We just ignore the base classes declared for a union.  The error
+           has already been issued. */
+        goto skip_base_class;
+      }  /* if */
       /* Record the symbol as referenced. */
       mark_referenced(sym, &pos_curr_token);
       /* Do ambiguity and access control checking for the symbol. */
@@ -1917,10 +1922,12 @@ skip_base_class:
     remove_stop_token(tok_comma);
   } while (loop_token(tok_comma));
 #if CHECKING
-  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-    verify_path_consistency(type_ptr, bcp);
-    verify_virt_func_override_list(type_ptr, bcp, /*null_allowed=*/FALSE);
-  }  /* for */
+  if (type_ptr->kind != (a_type_kind)tk_union) {
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      verify_path_consistency(type_ptr, bcp);
+      verify_virt_func_override_list(type_ptr, bcp, /*null_allowed=*/FALSE);
+    }  /* for */
+  }  /* if */
 #endif /* CHECKING */
   db_exit();
 }  /* scan_base_specifier_list */
