@@ -883,12 +883,12 @@ scope is that of a class definition.
       /* In C++ f(...) is legal, though it is not recommended since is not
          portable (ARM 8.3). */
       extra_info->prototyped = TRUE;
+      extra_info->has_ellipsis = TRUE;
 #if ASM_FUNCTION_ALLOWED
       if (func_info->is_asm_function) {
         pos_error(ec_bad_asm_func_ellipsis, &pos_curr_token);
-      } else
+      }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
-      extra_info->has_ellipsis = TRUE;
     }  /* if */
     /* Advance past the ellipsis. */
     (void)get_token();
@@ -1226,12 +1226,12 @@ scope is that of a class definition.
         if (curr_token == tok_ellipsis) {
           /* The parameter list ends with an ellipsis.  Set the ellipsis
              flag on the parameter type list, and exit the loop. */
+          extra_info->has_ellipsis = TRUE;
 #if ASM_FUNCTION_ALLOWED
           if (func_info->is_asm_function) {
             pos_error(ec_bad_asm_func_ellipsis, &pos_curr_token);
-          } else
+          }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
-          extra_info->has_ellipsis = TRUE;
           (void)get_token();
           done = TRUE;
         }  /* if */
