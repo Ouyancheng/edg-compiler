@@ -429,7 +429,8 @@ typedef enum /*an_error_code*/ {
   ec_static_member_in_union,
   ec_bound_function_cast_anachronism,
   ec_expr_not_ptr_to_member,
-  ec_extra_semicolon
+  ec_extra_semicolon,
+  ec_nonstd_const_member
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

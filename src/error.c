@@ -1231,6 +1231,9 @@ error code.
     case ec_extra_semicolon:
       m = "extra \";\" ignored";
       break;
+    case ec_nonstd_const_member:
+      m = "declaring a member constant is nonstandard";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
