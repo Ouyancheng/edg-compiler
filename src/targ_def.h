@@ -1541,6 +1541,31 @@ this switch.
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE && ... */
 
 /*
+This switch controls whether or not ABI changes are made to support
+covariant return types on overriding virtual functions.  If the switch is
+off, compatibility with versions up to 2.33 is preserved, but support for
+covariant return types on overriding virtual functions is disabled (meaning
+errors will be issued when compiling programs using the feature).
+*/
+#ifndef ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
+#if ABI_COMPATIBILITY_VERSION <= 233 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN FALSE
+                                                    /* Versions up to 2.33. */
+#else /* ABI_COMPATIBILITY_VERSION > 233 && !CFRONT_... */
+#define ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN TRUE
+                                                    /* Versions after 2.33. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 233 || CFRONT_... */
+#endif /* ifndef ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+#if ABI_COMPATIBILITY_VERSION <= 233
+ #error -- ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN TRUE is incompatible \
+           with ABI_COMPATIBILITY_VERSION <= 233
+#endif /* ABI_COMPATIBILITY_VERSION <= 233 */
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+
+/*
 This switch controls whether or not operations with
 returns_lvalue_instead_of_usual_rvalue TRUE are rewritten by IL lowering.
 These are operations (specifically, assignments, prefix ++/--, and
