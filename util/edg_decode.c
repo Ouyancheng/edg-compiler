@@ -37,7 +37,7 @@ static a_boolean
 
 static int	ch;	/* Current input character. */
 
-#define MAX_ID_LENGTH 3000
+#define MAX_ID_LENGTH 15000
 			/* Maximum size of an identifier. */
 static char   orig_id[MAX_ID_LENGTH];
 			/* Identifier being processed currently, as read. */

@@ -1,5 +1,9 @@
 Version 2.41
 
+2/17/99  Compression in mangled names
+
+The name demangler now uncompresses mangled names, which begin with "__CPR".
+
 2/16/99  "uu" for __uuidof operator in mangled encoding of expression
 
 The encoding "uu" is now used for the Microsoft __uuidof operator

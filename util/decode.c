@@ -2089,6 +2089,100 @@ end_of_routine:
 }  /* demangle_local_name */
 
 
+static char *uncompress_mangled_name(char                       *id,
+                                     a_decode_control_block_ptr dctl)
+/*
+Uncompress the compressed mangled name beginning at id.  Return the
+address of the uncompressed name.
+*/
+{
+  char          *orig_id = id;
+  char          *uncompressed_name = id;
+  unsigned long length;
+
+  /* Advance past "__CPR". */
+  id += 5;
+  /* Acumulate the length of the uncompressed name.  Cannot use get_number
+     here because the number's value can be bigger than the input id
+     length. */
+  length = 0;
+  if (!isdigit((unsigned char)*id)) {
+    bad_mangled_name(dctl);
+    goto end_of_routine;
+  }  /* if */
+  do {
+    length = length*10 + (*id - '0');
+    id++;
+  } while (isdigit((unsigned char)*id));
+  /* Check for the two underscores following the length. */
+  if (id[0] != '_' || id[1] != '_') {
+    bad_mangled_name(dctl);
+    goto end_of_routine;
+  }  /* if */
+  id += 2;
+  if (length+1 >= dctl->output_id_size) {
+    /* The buffer supplied by the caller is too small to contain the
+       uncompressed name. */
+    dctl->output_overflow_err = TRUE;
+    goto end_of_routine;
+  } else {
+    char *src, *dst;
+    /* Uncompress to the end of the buffer supplied by the caller, then
+       do the demangling in the space remaining at the beginning. */
+    uncompressed_name = dctl->output_id+dctl->output_id_size-(length+1);
+    dctl->output_id_size -= length+1;
+    /* Recompute the id length after the compression prefix and length.
+       This is used for error checking in get_number. */
+    dctl->input_id_len -= (id - orig_id);
+    dst = uncompressed_name;
+    for (src = id; *src != '\0';) {
+      char ch = *src++;
+      if (ch != 'J') {
+        /* Just copy this character. */
+        *dst++ = ch;
+      } else {
+        if (*src == 'J') {
+          /* "JJ" indicates a simple "J". */
+          /* Simple "J". */
+          *dst++ = 'J';
+        } else {
+          /* "JnnnJ" indicates a repetition of a string that appeared
+             earlier, at position "nnn". */
+          unsigned long pos, prev_len;
+          char          *prev_str, *prev_str2;
+          src = get_number(src, &pos, dctl);
+          if (*src != 'J') {
+            bad_mangled_name(dctl);
+            goto end_of_routine;
+          }  /* if */
+          prev_str = uncompressed_name+pos;
+          if (!isdigit(*prev_str)) {
+            bad_mangled_name(dctl);
+            goto end_of_routine;
+          }  /* if */
+          /* Get the length of the repeated string. */
+          prev_str2 = get_number(prev_str, &prev_len, dctl);
+          /* Copy the repeated string to the uncompressed output. */
+          prev_str2 += prev_len;
+          while (prev_str < prev_str2) *dst++ = *prev_str++;
+        }  /* if */
+        /* Advance past the final "J". */
+        src++;
+      }  /* if */
+    }  /* for */
+    if (dst - uncompressed_name != length) {
+      /* The length didn't come out right. */
+      bad_mangled_name(dctl);
+    }  /* if */
+    /* Add the final null. */
+    *dst++ = '\0';
+    dctl->input_id_len = length;
+  }  /* if */
+end_of_routine:;
+  return uncompressed_name;
+}  /* uncompress_mangled_name */
+
+
 void decode_identifier(char      *id,
                        char      *output_buffer,
                        sizeof_t  output_buffer_size,
@@ -2118,8 +2212,14 @@ is set to the size of buffer required to do the demangling.
   dctl->output_overflow_err = FALSE;
   dctl->suppress_id_output = 0;
   dctl->end_of_constant = NULL;
+  if (start_of_id_is("__CPR", id)) {
+    /* Uncompress a compressed name. */
+    id = uncompress_mangled_name(id, dctl);
+  }  /* if */
   /* Check for special cases. */
-  if (start_of_id_is("__vtbl__", id)) {
+  if (dctl->output_overflow_err) {
+    /* Previous error (not enough room in the buffer to uncompress). */
+  } else if (start_of_id_is("__vtbl__", id)) {
     write_id_str("virtual function table for ", dctl);
     /* Note that if the first name is a base class name and it's not simple,
        this will produce output containing partially-mangled information.
@@ -2190,10 +2290,14 @@ is set to the size of buffer required to do the demangling.
        name of type or variable promoted out of function. */
     end_ptr = demangle_identifier(id, dctl);
   }  /* if */
+  if (dctl->output_overflow_err) {
+    dctl->err_in_id = TRUE;
+  } else {
+    /* Add a terminating null. */
+    dctl->output_id[dctl->output_id_len] = 0;
+  }  /* if */
   /* Make sure the whole identifier was taken. */
   if (!dctl->err_in_id && *end_ptr != '\0') bad_mangled_name(dctl);
-  /* Add a terminating null. */
-  if (!dctl->output_overflow_err) dctl->output_id[dctl->output_id_len] = 0;
   *err = dctl->err_in_id;
   *buffer_overflow_err = dctl->output_overflow_err;
   *required_buffer_size = dctl->output_id_len + 1; /* +1 for final null. */
