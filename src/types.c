@@ -5352,6 +5352,20 @@ its parameters?).
               }  /* if */
             }  /* if */
           }  /* for */
+          if (!status && type_ptr->source_corresp.is_class_member) {
+            /* If this class is a member of a proxy class, traverse the type
+               of the template parameter with which the proxy class is
+               associated. */
+            tp = type_ptr->source_corresp.parent.class_type;
+            tp = symbol_supplement_for_class(tp)->
+                                               template_param_for_proxy_class;
+            if (tp != NULL) {
+              if (traverse_type_tree(tp, func, flags)) {
+                status = TRUE;
+              }  /* if */
+              break;
+            }  /* if */
+          }  /* if */
 check_enclosing_classes:
           if (!status && type_ptr->source_corresp.is_class_member) {
             tp = type_ptr->source_corresp.parent.class_type;

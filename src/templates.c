@@ -2856,21 +2856,26 @@ list of a template function.  Returns TRUE if a match is found.
         if (matches_template_type(constant->type, templ_constant->type,
                                   templ_arg_list, templ_param_list,
                                   MTT_NO_FLAGS, (a_base_class_ptr*)NULL)) {
-          a_constant	new_templ_constant;
-          a_boolean	did_not_fold;
-          copy_constant(templ_constant->
-                               variant.template_param.variant.constant,
-                        &new_templ_constant);
-          type_change_constant(&new_templ_constant, constant->type,
-                               /*is_implicit_cast=*/FALSE,
-                               /*constant_context=*/TRUE,
-                               /*evaluated_context=*/TRUE,
-                               /*fold_constant_addr_exprs=*/FALSE,
-                               /*is_reinterpret_cast=*/FALSE,
-                               &did_not_fold, &error_position);
-          match = !did_not_fold &&
-                   matches_template_constant(constant, &new_templ_constant,
-                                             templ_arg_list, templ_param_list);
+          a_constant_ptr	tcp; 
+          tcp = templ_constant->variant.template_param.variant.constant;
+          /* Make sure the constant under the cast is not a ck_template_param
+             constant.  Such constants cannot be converted. */
+          if (tcp->kind != (a_constant_repr_kind)ck_template_param) {
+            a_constant	new_templ_constant;
+            a_boolean	did_not_fold;
+            copy_constant(tcp, &new_templ_constant);
+            type_change_constant(&new_templ_constant, constant->type,
+                                 /*is_implicit_cast=*/FALSE,
+                                 /*constant_context=*/TRUE,
+                                 /*evaluated_context=*/TRUE,
+                                 /*fold_constant_addr_exprs=*/FALSE,
+                                 /*is_reinterpret_cast=*/FALSE,
+                                 &did_not_fold, &error_position);
+            match = !did_not_fold &&
+                     matches_template_constant(constant, &new_templ_constant,
+                                               templ_arg_list,
+                                               templ_param_list);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -3202,8 +3207,16 @@ template parameter list.
           if (sym->header != templ_sym->header) {
             /* Members have different names -- no match. */
           } else {
+            a_class_symbol_supplement_ptr ttp_cssp;
             tp = type->source_corresp.parent.class_type;
             ttp = templ_type->source_corresp.parent.class_type;
+            ttp_cssp = symbol_supplement_for_class(ttp);
+            if (ttp_cssp->template_param_for_proxy_class != NULL) {
+              /* The type being matches is a member of a proxy class.
+                 Substitute the original template parameter for the proxy
+                 class in the matching process. */
+              ttp = ttp_cssp->template_param_for_proxy_class;
+            }  /* if */
             if (matches_template_type(tp, ttp, templ_arg_list,
                                       templ_param_list,
                                       new_flags,
@@ -3781,10 +3794,65 @@ has been affected by declarations that appeared after the template was
 declared and before the partial instantiation of the function was done.
 */
 {
-  a_type_ptr	type = rout->type;
+  a_type_ptr				type = rout->type;
+  a_type_ptr				templ_type = templ_rout->type;
+  a_boolean				match = FALSE;
+  a_template_arg_ptr			templ_arg_list = NULL;
+  a_template_param_ptr			templ_param_list = NULL;
+  a_template_symbol_supplement_ptr	tssp;
+  a_param_type_ptr			ptp;
+  a_param_type_ptr			tptp;
+  a_type_ptr				tp;
+  a_type_ptr				ttp;
+  a_boolean		 		is_conversion_operator;
 
-  if (!has_matching_template_function(templ_sym, type,
-                                      /*is_decl_context=*/FALSE)) {
+  is_conversion_operator = is_conversion_function_symbol(templ_sym);
+  tssp = template_supplement_for_symbol(templ_sym);
+  templ_param_list = tssp->cache.decl_info->parameters;
+  if (is_conversion_operator) {
+    /* For conversion operators, do the matching on the return type only. */
+    tp = type->variant.routine.return_type;
+    ttp = templ_type->variant.routine.return_type;
+    match = matches_template_type(tp, ttp, &templ_arg_list,
+                                  templ_param_list,
+                                  MTT_NO_FLAGS,
+                                  (a_base_class_ptr*)NULL);
+  } else {
+    /* Attempt to do template argument matching on the parameter list of the
+       function that was generated.  The return type is not checked because the
+       return type is not a deducible context. */
+    ptp = type->variant.routine.extra_info->param_type_list;
+    tptp = templ_type->variant.routine.extra_info->param_type_list;
+    for (;;) {
+      if (ptp == NULL || tptp == NULL) {
+        /* One or both of the param type lists is exhausted.  It's a
+           match only if they're both done. */
+        match = (ptp == tptp);
+        break;
+      }  /* if */
+      tp = ptp->type;
+      ttp = tptp->type;
+      if (!matches_template_type(tp, ttp, &templ_arg_list,
+                                 templ_param_list,
+                                 MTT_NO_FLAGS,
+                                 (a_base_class_ptr*)NULL)) {
+        /* The first param type for which there is a mismatch causes
+           a mismatch for the entire type.  No need to keep
+           looping. */
+        break;
+      }  /* if */
+      ptp = ptp->next;
+      tptp = tptp->next;
+    }  /* for */
+  }  /* if */
+  /* Make sure that the types of nontype template parameters that depend
+     on other template parameters agree with the types of the deduced
+     values. */
+  if (match) {
+    match = verify_template_nontype_args(templ_arg_list, templ_sym,
+                                         templ_param_list);
+  }  /* if */
+  if (!match) {
     if (!is_or_contains_error_type(type) &&
         !is_or_contains_error_type(templ_rout->type)) {
       /* If the type contains an error type it is likely that the current
