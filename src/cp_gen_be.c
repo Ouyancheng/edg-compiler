@@ -2460,12 +2460,27 @@ the field.  If the designator is for a repeated initialization, return
 *repeated set to TRUE.
 */
 {
+  a_boolean use_old_form = FALSE;
+
+#if GNU_EXTENSIONS_ALLOWED
+  if (gpp_mode) {
+    /* g++, at least up to version 3.3, still accepts only an older
+       form of designators.  gcc accepts the newer form as well. */
+    use_old_form = TRUE;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   *repeated = FALSE;
   *field = con->variant.designator.field;
   if (*field != NULL) {
     /* Field designator. */
-    write_tok_ch('.');
-    gen_field_name(*field);
+    if (use_old_form) {
+      gen_field_name(*field);
+      write_tok_str(": ");
+    } else {
+      write_tok_ch('.');
+      gen_field_name(*field);
+      write_tok_str(" = ");
+    }  /* if */
   } else {
     /* Array element designator. */
     write_tok_ch('[');
@@ -2479,8 +2494,8 @@ the field.  If the designator is for a repeated initialization, return
       write_unsigned_num((unsigned long)last_elem);
     }  /* if */
     write_tok_ch(']');
+    if (!use_old_form) write_tok_str(" = ");
   }  /* if */
-  write_tok_str(" = ");
 }  /* gen_designator */
 
 
@@ -5199,8 +5214,12 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
   if (expr->variant.init.result_is_addr) {
     temp_type = type_pointed_to(temp_type);
   }  /* if */
-  if (C_mode()) {
-    /* In C mode, a temp-init node represents a compound literal. */
+  if (C_mode() ||
+      ((dip->kind == (a_dynamic_init_kind)dik_constant ||
+        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
+       dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate)) {
+    /* In C mode and sometimes in C++ mode, a temp-init node represents
+       a compound literal. */
     gen_compound_literal((a_constant_ptr)NULL, dip, temp_type);
   } else {
     /* C++ mode; use gen_dynamic_init. */

@@ -1,5 +1,11 @@
 Version 3.3
 
+6/12/03  C++-generating back end: compound literals in C++ mode
+
+The C++-generating back end did not handle compound literals in
+C++ mode, even though g++ mode now accepts compound literals.
+Now, it does.
+
 6/11/03  Microsoft compatibility: dllimport variable address not constant
 
 A variable declared with the dllimport attribute in Microsoft mode
