@@ -3989,7 +3989,18 @@ Otherwise, return FALSE.
     a_boolean  visited = (trans_unit_corresp_of(type_1) != NULL);
     if (!visited || !C_mode()) {
       clear_type_correspondence(type_1, /*visited=*/FALSE);
+      /* First set the correspondence of the type entry itself. */
       set_trans_unit_corresp(iek_type, type_1, type_2);
+      /* Then set the correspondence of the type's substructure. */
+      if (!has_correspondence(type_1)) {
+        /* type_1 may have become the canonical entry, in which case we must
+           use type_2 to establish the correspondence of type_1's substructure.
+           This cannot be undone. */
+        a_type_ptr  tmp = type_1;
+        type_1 = type_2;
+        type_2 = tmp;
+        visited = TRUE;
+      }  /* if */
       if (is_immediate_class_type(type_1)) {
         establish_trans_unit_correspondences_for_class(type_1);
       } else if (is_immediate_enum_type(type_1)) {

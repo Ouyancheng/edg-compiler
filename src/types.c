@@ -2954,7 +2954,11 @@ through the symbol table:  Establish that correspondence now if appropriate.
            new_type_1->variant.integer.originally_unnamed) &&
           (!has_name(new_type_2) ||
            new_type_2->variant.integer.originally_unnamed)))))) {
-    (void)seek_type_corresp(new_type_1, new_type_2);
+    /* seek_type_corresp attempts to make the first type correspond to the
+       second type: It does not attempt to converse.  So we may need to call
+       it twice. */
+    (void)(seek_type_corresp(new_type_1, new_type_2) ||
+           seek_type_corresp(new_type_2, new_type_1));
   }  /* if */
   /* Convert each type to its canonical entry if applicable. */
   if (is_immediate_class_type(new_type_1) ||
