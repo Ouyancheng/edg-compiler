@@ -1,5 +1,10 @@
 Version 2.45
 
+12/7/00  Microsoft mode: errors in #pragma pack parentheses
+
+In Microsoft mode, missing opening or closing parentheses in a
+#pragma pack are now diagnosed with warnings.
+
 12/6/00  Internal error on default arguments of member functions
 
 When DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST is TRUE and

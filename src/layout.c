@@ -418,7 +418,12 @@ if n is supplied or to the value associated with the last entry popped.
   begin_rescan_of_pragma_tokens(ppp);
   add_stop_token(tok_rparen);
   /* Check for a left parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
+  if (microsoft_mode && curr_token != tok_lparen) {
+    /* Microsoft mode issues a warning. */
+    warning(ec_exp_lparen);
+  } else {
+    (void)required_token(tok_lparen, ec_exp_lparen);
+  }  /* if */
   if (curr_token == tok_identifier) {
     /* Issue warnings in Microsoft mode for incorrect "push" and "pop"
        uses, errors otherwise. */
@@ -545,7 +550,12 @@ if n is supplied or to the value associated with the last entry popped.
   }  /* if */
   remove_stop_token(tok_rparen);
   /* Check for the closing parenthesis. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
+  if (microsoft_mode && curr_token != tok_rparen) {
+    /* Microsoft mode issues a warning. */
+    warning(ec_exp_rparen);
+  } else {
+    (void)required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
   /* Restore the stop token array, pop the pragma scope, etc. */
   wrapup_rescan_of_pragma_tokens(/*pragma_err=*/FALSE);
   if (updated) {
