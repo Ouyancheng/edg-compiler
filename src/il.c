@@ -1490,6 +1490,51 @@ allocated immediately preceding the entry.
 }  /* add_orphaned_file_scope_il_entry */
 
 #endif /* ORPHAN_PROCESSING_NEEDED */
+#if ORPHAN_PROCESSING_NEEDED
+
+void add_orphaned_file_scope_il_list (char             *entry_ptr,
+                                      an_il_entry_kind entry_kind)
+/*
+Link the specified file scope IL entry list onto the 
+orphaned_file_scope_il_lists linked list for the designated IL entry
+kind.  At present the only entry kinds expected are iek_type and
+iek_variable.  Only IL entries in the file scope memory region have
+the necessary additional pointer space allocated immediately preceding
+the entry.
+*/
+{
+  char **last_entry_ptr;
+
+  if (entry_ptr != NULL) {
+#if CHECKING
+    if (!in_file_scope(entry_ptr)) {
+      internal_error(
+ "add_orphaned_file_scope_il_list: IL entry not in file scope memory region");
+    }  /* if */
+    if (entry_kind != iek_type && entry_kind != iek_variable) {
+      internal_error("add_orphaned_file_scope_il_list: IL entry kind not iek_type or iek_variable as expected.");
+    }  /* if */
+#endif /* CHECKING */
+    /* Check if this IL entry is already on the orphaned entry list. */
+    last_entry_ptr = &orphaned_file_scope_il_lists[(int)entry_kind].last_entry;
+    if (*(char **)(entry_ptr - sizeof(char *)) == NULL &&
+        entry_ptr != *last_entry_ptr) {
+      /* This entry is not in the existing list; add it to the end of the
+         list. */
+      if (*last_entry_ptr == NULL) {
+        /* This is the first entry on this list */
+        orphaned_file_scope_il_lists[(int)entry_kind].first_entry = 
+                                                               entry_ptr;
+      } else {
+        /* Add to the tail of the existing list. */
+        *(char **)(*last_entry_ptr - sizeof (char *)) = entry_ptr;
+      }  /* if */
+      *last_entry_ptr = entry_ptr;
+    }  /* if */
+  }  /* if */
+}  /* add_orphaned_file_scope_il_list */
+
+#endif /* ORPHAN_PROCESSING_NEEDED */
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean seq_is_in_include_file(a_seq_number seq_number)
