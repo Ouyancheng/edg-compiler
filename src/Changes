@@ -1,6 +1,21 @@
 Version 3.1
 
-6/26/02   PODs can have pointer-to-member fields
+6/26/02  Microsoft compatibility: Using-declarations of masked members
+
+MSVC++ 7 (but not MSVC++ 6) accepts using-declarations of members that are not
+visible in a direct base class of the class in which the using-declaration
+appears.  For example:
+
+  struct B { void f(); };
+  struct D: B { void f(); };
+  struct X: D {
+    using B::f;  // Accepted by MSVC++ 7
+  };
+
+The EDG front end now emulates this behavior when microsoft_version is larger
+than 1200.
+
+6/26/02  PODs can have pointer-to-member fields
 
 A field of pointer-to-member type no longer makes a class type a non-POD
 (in all C++ modes).
