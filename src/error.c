@@ -1919,6 +1919,9 @@ error code.
     case ec_calling_function_with_incomplete_return_type:
       m = "a function with an incomplete return type may not be called";
       break;
+    case ec_converting_to_incomplete_class:
+      m = "cannot convert to incomplete class %t";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

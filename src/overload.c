@@ -4845,10 +4845,12 @@ equivalent pointer case).
     /* The conversion failed. */
     if (!ambiguous) {
       /* No conversion applies. */
-      if (is_incomplete_type(dest_type) || is_incomplete_type(source_type)) {
-        /* Conversion to or from an incomplete type is not possible (in this
+      if (is_incomplete_type(dest_type)) {
+        /* Conversion to an incomplete type is not possible (in this
            case, anyway).  Use a different message for clarity. */
-        error_in_operand(ec_incomplete_type_not_allowed, source_operand);
+        pos_ty_error(ec_converting_to_incomplete_class,
+                     &source_operand->position, dest_type);
+        conv_to_error_operand(source_operand);
       } else {
         /* Put out the usual message (which has already been chosen to
            describe the problem). */
