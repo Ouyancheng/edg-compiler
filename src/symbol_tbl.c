@@ -3967,9 +3967,9 @@ a_symbol_ptr find_default_operator_new_sym(a_symbol_ptr sym,
 /*
 Given the symbol for an operator new() (which may be overloaded), find the
 default (i.e., single-argument) version and return a pointer to its symbol,
-or NULL if it is not found or there is an ambiguity resulting from default
-arguments.  The symbol might be for a class-specific operator new(), and
-therefore might be a projection symbol.  If there is an ambiguity return
+or NULL if it is not found or there is an ambiguity (e.g., resulting from
+default arguments.  The symbol might be for a class-specific operator new(),
+and therefore might be a projection symbol.  If there is an ambiguity return
 *ambiguous set to TRUE.
 */
 {
@@ -3977,6 +3977,7 @@ therefore might be a projection symbol.  If there is an ambiguity return
   a_param_type_ptr ptp;
   a_symbol_ptr     default_sym = NULL;
 
+  *ambiguous = FALSE;
   reduce_projection_symbol_to_fundamental_symbol(sym);
   is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
   if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
@@ -3986,6 +3987,7 @@ therefore might be a projection symbol.  If there is an ambiguity return
          using declaration. */
       if (sym->ambiguous) {
         /* All bets are off if the symbol is ambiguous. */
+        *ambiguous = TRUE;
         default_sym = NULL;
         break;
       }  /* if */
@@ -4007,6 +4009,7 @@ therefore might be a projection symbol.  If there is an ambiguity return
           /* It's ambiguous, so just return NULL.  No error is issued at
              this point. */
           default_sym = NULL;
+          *ambiguous = TRUE;
           break;
         }  /* if */
       }  /* if */
@@ -4021,15 +4024,17 @@ a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym,
 /*
 Given the symbol for an operator delete() (which may be overloaded), find the
 default version (usually the single-argument version) and return a pointer to
-its symbol, or NULL if it is not found.  The symbol might be for a
-class-specific operator delete(), and therefore might be a projection symbol.
-If there is an ambiguity return *ambiguous set to TRUE.
+its symbol, or NULL if it is not found or there is an ambiguity.  The symbol
+might be for a class-specific operator delete(), and therefore might be a
+projection symbol. If there is an ambiguity return *ambiguous set to TRUE.
 */
 {
-  a_boolean        is_overloaded;
+  a_boolean        is_overloaded, ambiguous_alternate = FALSE, is_class_member;
   a_param_type_ptr ptp;
-  a_symbol_ptr     default_sym = NULL;
+  a_symbol_ptr     default_sym = NULL, alternate_default_sym = NULL;
 
+  *ambiguous = FALSE;
+  is_class_member = sym->is_class_member;
   reduce_projection_symbol_to_fundamental_symbol(sym);
   is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
   if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
@@ -4039,7 +4044,7 @@ If there is an ambiguity return *ambiguous set to TRUE.
          using declaration. */
       if (sym->ambiguous) {
         /* All bets are off if the symbol is ambiguous. */
-        default_sym = NULL;
+        *ambiguous = TRUE;
         break;
       }  /* if */
       reduce_projection_symbol_to_fundamental_symbol(sym);
@@ -4054,35 +4059,62 @@ If there is an ambiguity return *ambiguous set to TRUE.
       check_assertion(ptp != NULL);
       if (ptp->next == NULL) {
         /* A match: "operator delete(void *)" is always the default version. */
-        default_sym = sym;
-        break;
-      } else if (sym->is_class_member) {
+        if (default_sym == NULL) {
+          default_sym = sym;
+          /* Keep looping in case there's an ambiguity. */
+        } else {
+          /* Ambiguities can be introduced into the overload set by using-
+             declarations. */
+          *ambiguous = TRUE;
+          break;
+        }  /* if */
+      } else if (is_class_member) {
         if (ptp->next->next == NULL &&
             skip_typerefs(ptp->next->type)->variant.integer.int_kind ==
                                                       targ_size_t_int_kind) {
           /* A possible match: "operator delete(void *, size_t)" is the
              default version unless "operator delete(void *)" also appears
              in the overload set (WP 3.7.3.2).  Keep looking. */
-          default_sym = sym;
+          if (alternate_default_sym == NULL) {
+            alternate_default_sym = sym;
+          } else {
+            /* Ambiguities can be introduced into the overload set by using-
+               declarations. */
+            ambiguous_alternate = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
+  if (*ambiguous) {
+    default_sym = NULL;
+  } else if (is_class_member && default_sym == NULL) {
+    /* No ordinary default operator delete has been found, but maybe an
+       alternative version was declared.  If so, return it. */
+    if (ambiguous_alternate) {
+      *ambiguous = TRUE;
+    } else {
+      default_sym = alternate_default_sym;
+    }  /* if */
+  }  /* if */
   return default_sym;
 }  /* find_default_operator_delete_sym */
 
 
 a_symbol_ptr find_corresponding_operator_delete_sym(a_symbol_ptr op_new_sym,
+                                                    a_type_ptr   class_type,
                                                     a_boolean    *ambiguous)
 /*
-op_new_sym is a symbol for an operator new function.  Find and return the
-corresponding operator delete function (i.e., the operator delete function
-with identical parameter types as the operator new function, excluding the
-first parameter in each).  Return NULL if no match is found.  If there is an
-ambiguity return *ambiguous set to TRUE.
+op_new_sym is a symbol for an operator new function; it cannot be a projection
+symbol or an overload set.  Looking in the scope of class_type, or in the
+global scope if class_type is NULL, find and return the corresponding
+operator delete function (i.e., the operator delete function with identical
+parameter types as the operator new function, excluding the first parameter
+in each).  Return NULL if no match is found.  If there is an ambiguity return
+*ambiguous set to TRUE.
 */
 {
-  a_symbol_ptr      sym;
+  a_symbol_ptr      sym = NULL, corresp_op_delete_sym = NULL;
   a_routine_ptr     rp;
   an_opname_kind    delete_opname_kind;
   a_param_type_ptr  op_new_param_type_list, op_new_ptp, ptp;
@@ -4091,14 +4123,21 @@ ambiguity return *ambiguous set to TRUE.
   db_enter(4, "find_corresponding_operator_delete_sym");
   check_assertion(op_new_sym->kind == (a_symbol_kind)sk_routine ||
                   op_new_sym->kind == (a_symbol_kind)sk_member_function);
+  *ambiguous = FALSE;
   rp = op_new_sym->variant.routine.ptr;
   delete_opname_kind = (rp->opname_kind == (an_opname_kind)onk_new) ?
                          (an_opname_kind)onk_delete :
                          (an_opname_kind)onk_array_delete;
-  if (op_new_sym->is_class_member) {
+  if (class_type != NULL)  {
     /* Class member. */
-    sym = opname_member_function_symbol(delete_opname_kind,
-                                        op_new_sym->parent.class_type);
+    sym = opname_member_function_symbol(delete_opname_kind, class_type);
+    if (sym == NULL) {
+      /* There is no delete/array-delete operator declared in the given
+         class, so we need to find a corresponding operator in the global
+         scope instead (as required by WP 5.3.4 [expr.new] and 12.5
+         [class.free]). */
+      sym = opname_function_symbol(delete_opname_kind);
+    }  /* if */
   } else {
     /* Global operator new. */
     sym = opname_function_symbol(delete_opname_kind);
@@ -4108,7 +4147,7 @@ ambiguity return *ambiguous set to TRUE.
   if (op_new_param_type_list->next == NULL) {
     /* This is default (single-argument) operator new, so find the default
        operator delete. */
-    sym = find_default_operator_delete_sym(sym, ambiguous);
+    corresp_op_delete_sym = find_default_operator_delete_sym(sym, ambiguous);
   } else {
     /* Placement new.  We need to examine all the delete operators and look
        for a type match. */
@@ -4120,13 +4159,22 @@ ambiguity return *ambiguous set to TRUE.
       is_overloaded = FALSE;
     }  /* if */
     for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+      if (sym->kind == (a_symbol_kind)sk_projection) {
+        /* An overload set can contain a projection symbol as the result of a
+           using declaration. */
+        if (sym->ambiguous) {
+          /* All bets are off if the symbol is ambiguous. */
+          sym = NULL;
+          *ambiguous = TRUE;
+          break;
+        }  /* if */
+        reduce_projection_symbol_to_fundamental_symbol(sym);
+      }  /* if */
       /* Ignore function templates. */
       if (is_function_symbol(sym)) {
         ptp = skip_typerefs(sym->variant.routine.ptr->type)->
                                   variant.routine.extra_info->param_type_list;
         check_assertion(ptp != NULL);
-        ptp = ptp->next;
-        op_new_ptp = op_new_param_type_list->next;
         for (ptp = ptp->next, op_new_ptp = op_new_param_type_list->next;
              ptp != NULL && op_new_ptp != NULL;
              ptp = ptp->next, op_new_ptp = op_new_ptp->next) {
@@ -4138,9 +4186,17 @@ ambiguity return *ambiguous set to TRUE.
              there are still entries to compare on both lists. */
         }  /* for */
         if (ptp == NULL && op_new_ptp == NULL) {
-          /* Both lists were the same length: a match was found, so exit the
-             loop. */
-          break;
+          /* Both lists were the same length: a match was found. */
+          if (corresp_op_delete_sym == NULL) {
+            corresp_op_delete_sym = sym;
+            /* Keep looping, in case there is an ambiguity. */
+          } else {
+            /* An ambiguity, presumably introduced into the overload set by
+               a using-declaration, has been encountered. */
+            *ambiguous = TRUE;
+            corresp_op_delete_sym = NULL;
+            break;
+          }  /* if */
         }  /* if */
       }  /* if */
 next_delete_symbol:;
@@ -4149,15 +4205,20 @@ next_delete_symbol:;
 #if DEBUG
   if (debug_level >= 4) {
     db_symbol(op_new_sym, "", 2);
-    if (sym == NULL) {
+    if (class_type != NULL) {
+      fputs("lookup class is ", f_debug);
+      db_type_name(class_type);
+      fputc('\n', f_debug);
+    }  /* if */
+    if (corresp_op_delete_sym == NULL) {
       fputs("no corresponding operator delete was found\n", f_debug);
     } else {
-      db_symbol(sym, "found: ", 2);
+      db_symbol(corresp_op_delete_sym, "found: ", 2);
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  return sym;
+  return corresp_op_delete_sym;
 }  /* find_corresponding_operator_delete_sym */
 
 
