@@ -2561,11 +2561,11 @@ incremental_size must be a multiple of the page size.
 */
 {
   int	page_size;
-#if __BSD__ || defined(__linux__) || defined(__FreeBSD__)
+#if __BSD__ || defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
   page_size = getpagesize();
-#else /* !(__BSD__  || __linux__ || __FreeBSD__) */
+#else /* !(__BSD__  || __linux__ || __FreeBSD__ || __APPLE__) */
   page_size = sysconf(_SC_PAGESIZE);
-#endif /* __BSD__  || __linux__ || __FreeBSD \__ */
+#endif /* __BSD__  || __linux__ || __FreeBSD__ || __APPLE__ */
   check_assertion_str2(page_size > 0, "get_page_size:", "invalid page size");
   return page_size;
 }  /* get_page_size */
