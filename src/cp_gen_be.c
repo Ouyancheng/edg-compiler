@@ -2193,14 +2193,14 @@ is the one associated with the definition of the enum.
     gen_decl_name(&type->source_corresp, iek_type);
   }  /* if */
   write_tok_str(" { ");
+  /* Process macros, etc. */
+  (void)process_preprocessing_directives();
   enum_con = type->variant.integer.enum_info.constant_list;
   if (enum_con != NULL) {
     /* Output the enumeration constants. */
     /* Start with an expected value of 0 next. */
     next_enum_value = *enum_con;
     set_integer_value(&next_enum_value.variant.integer_value, 0L);
-    /* Process macros, etc. */
-    (void)process_preprocessing_directives();
     for (;;) {
       /* The source sequence entry for the enum constant should be next. */
       check_for_and_take_source_seq_entry(
