@@ -623,7 +623,7 @@ requires cleanup.
       /* The following line needs to be modified when stack offsets are
 	 being used instead of an object address array. */
 #endif /* 0 */
-      vtbl_ptr = (void*)(obj_addr_array + vtbl_ehrdp->handle);
+      vtbl_ptr = *(void**)(obj_addr_array + vtbl_ehrdp->handle);
       if (vtbl_ehrdp->flags & RDF_INDIRECT) {
         /* If the indirect flag is set on the vtable region entry, get the
            actual vtable pointer from the address referred to by the region
