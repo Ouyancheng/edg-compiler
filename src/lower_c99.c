@@ -919,6 +919,11 @@ statement statement.
     case enk_field:
       /* Nothing to be done. */
       break;
+    case enk_runtime_sizeof:
+      if (!expr->variant.runtime_sizeof.is_type) {
+        lower_c99_expr(expr->variant.runtime_sizeof.variant.expr);
+      }  /* if */
+      break;
     default:
       unexpected_condition_str("Invalid C99 IL expression kind");
       break;
