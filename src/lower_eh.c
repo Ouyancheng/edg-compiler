@@ -887,6 +887,16 @@ static a_field_ptr
 		ehse_function_saved_region_number_field,
 		ehse_throw_spec_field;
 
+/*
+Values for the "kind" field of eh_stack_entry.  This must match the runtime's
+definition of these values.
+*/
+typedef enum {
+  ehsek_try_block,
+  ehsek_function,
+  ehsek_throw_spec
+} an_eh_stack_entry_kind;
+
 
 static a_type_ptr make_eh_stack_entry_type(void)
 /*
@@ -1655,9 +1665,9 @@ the caller to do insertion after the code inserted.
 }  /* push_eh_stack_frame */
 
 
-void pop_eh_stack_frame(an_eh_stack_entry_kind kind,
-                        a_variable_ptr         stack_frame,
-                        an_insert_location     *insert_location)
+static void pop_eh_stack_frame(an_eh_stack_entry_kind kind,
+                               a_variable_ptr         stack_frame,
+                               an_insert_location     *insert_location)
 /*
 Generate code to pop an exception handling stack frame off the stack.
 kind indicates the kind of stack frame.  *stack_frame points to a
@@ -1938,17 +1948,21 @@ catch clauses on the indicated list.  Return a pointer to the variable.
 }  /* make_catch_array_var */
 
 
-void initialize_catch_parameter(a_handler_ptr handler)
+void begin_catch_clause(a_handler_ptr handler)
 /*
-Generate code to initialize the parameter of the indicated catch handler,
-if there is one.
+Generate code for the start of a catch clause.  The current context is
+for the scope of the handler.
 */
 {
   an_init_pos_descr  ipd;
   a_boolean          keep_dynamic_init;
   an_insert_location insert_location;
 
-  /* If there is no parameter, do nothing. */
+  /* Add a cleanup action that will clean up on exit from the catch. */
+  (void)add_cleanup_action(cak_catch,
+                           /*applies_on_block_exit=*/TRUE,
+                           /*applies_on_exception_cleanup=*/FALSE,
+                           (an_insert_location *)NULL);
   if (handler->parameter != NULL) {
     /* Insert code to initialize the catch clause parameter from the
        runtime variable __caught_object_address. */
@@ -1964,7 +1978,47 @@ if there is one.
     /* Mark the parameter as referenced. */
     handler->parameter->source_corresp.referenced = TRUE;
   }  /* if */
-}  /* initialize_catch_parameter */
+}  /* begin_catch_clause */
+
+
+void cleanup_on_exit_from_try_block(a_cleanup_action_ptr cap,
+                                    an_insert_location   *insert_location)
+/*
+Generate any cleanup required on exit from a try block.  cap points to
+the cleanup action entry.  Any code generated is inserted at insert_location.
+*/
+{
+  pop_eh_stack_frame(ehsek_function, cap->variant.try_frame, insert_location);
+}  /* cleanup_on_exit_from_try_block */
+
+
+/*
+Pointer to the routine entry for the runtime routine __free_caught_object.
+NULL until created.
+*/
+static a_routine_ptr
+		free_caught_object_routine;
+
+
+void cleanup_on_exit_from_catch(an_insert_location *insert_location)
+/*
+Generate any cleanup required on exit from a catch clause.  Any code
+generated is inserted at insert_location.
+*/
+{
+  a_statement_ptr call_stmt;
+
+  /* Make a call of the runtime routine __free_caught_object.  This tells
+     the runtime it can now destroy the caught object and free the space
+     for it. */
+  call_stmt = make_call_statement(
+                              make_runtime_routine("__free_caught_object",
+                                                   &free_caught_object_routine,
+                                                   void_type()),
+                              (an_expr_node_ptr)NULL);
+  /* Insert the statement at the right place. */
+  insert_statement(call_stmt, insert_location);
+}  /* cleanup_on_exit_from_catch */
 
 
 /*
@@ -2004,11 +2058,11 @@ Do IL lowering for an stmk_try_block statement.
   /* Push a context around the try and catch.  This is needed to ensure that
      the "try" stack frame is popped on a goto out of the try or catch. */
   push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
-  /* Add a cleanup action that will pop the stack frame. */
+  /* Add a cleanup action that will clean up on exit from the try block. */
   cap = add_cleanup_action(cak_try_block,
                            /*applies_on_block_exit=*/TRUE,
                            /*applies_on_exception_cleanup=*/FALSE,
-                           &insert_location);
+                           (an_insert_location *)NULL);
   cap->variant.try_frame = try_frame;
   stmt_to_try = copy_of_orig_stmt->variant.try_block.statement;
   handlers = copy_of_orig_stmt->variant.try_block.handlers;
@@ -2085,6 +2139,8 @@ Do IL lowering for an stmk_try_block statement.
     catch_clause_number++;
     prev_if_stmt = if_stmt;
     /* Lower the dependent statement of the catch clause. */
+    /* Note that the code to initialize the parameter (if there is one)
+       is generated during the lowering of the dependent statement. */
     lower_statement(dep_statement);
     if (handler->parameter == NULL) {
       /* This is an ellipsis entry.  No "if" is required, since it accepts
@@ -2098,8 +2154,6 @@ Do IL lowering for an stmk_try_block statement.
          returned by the runtime if an "if" statement:
            if (__catch_clause_number == n) ...
       */
-      /* Note that the code to initialize the parameter is generated during
-         the lowering of the dependent statement. */
       catch_clause_number_node =
                                var_rvalue_expr(make_catch_clause_number_var());
       catch_clause_number_node->next = 
@@ -2166,6 +2220,7 @@ invocation of the front end.
   catch_clause_number_var = NULL;
   caught_object_address_var = NULL;
   setjmp_routine = NULL;
+  free_caught_object_routine = NULL;
   /* Make a constant for the maximum region number, also used for the
      null region number.  */
   { a_targ_size_t    size;
