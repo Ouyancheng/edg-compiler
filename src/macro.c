@@ -2714,7 +2714,7 @@ Scan and process a #define directive.
          and the replacement text and parameter list have to have
          the same spelling after white space is standardized. */
       mdp = assoc_symbol->variant.macro_def;
-      if (mdp->object_like == object_like &&
+      if ((a_boolean)mdp->object_like == object_like &&
           memcmp(mdp->repl_text, macro_buffer,
                  (int)(next_avail_in_macro_buffer - macro_buffer)) == 0) {
         /* Check parameter lists to make sure they match. */

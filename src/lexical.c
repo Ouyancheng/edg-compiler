@@ -485,10 +485,10 @@ assumed at the end of the cache list.
 #define if_necessary_add_lint_and_pragma_entry(cache)                 \
 { if (cache->lint_and_pragma_state.arg_pragma != arg_pragma ||        \
       cache->lint_and_pragma_state.lint_varargs_count != lint_varargs_count ||\
-      cache->lint_and_pragma_state.lint_argsused_flag !=	      \
-                                         (a_boolean)lint_argsused_flag ||\
-      cache->lint_and_pragma_state.lint_notreached_flag !=            \
-                                    (a_boolean)lint_notreached_flag) {\
+      (a_boolean)cache->lint_and_pragma_state.lint_argsused_flag !=	      \
+                                                   lint_argsused_flag ||\
+      (a_boolean)cache->lint_and_pragma_state.lint_notreached_flag !=  \
+                                                   lint_notreached_flag) {\
     add_lint_and_pragma_entry(cache);                                 \
   }  /* if */                                                         \
 }  /* if_necessary_add_lint_and_pragma_entry */

@@ -216,6 +216,7 @@ EXTERN_C int bzero(char *, int);
 
 #if __ANSIC__
 #include <limits.h>
+#include <stddef.h>
 /* Use sizeof_t for size_t because size_t appears in <sys/types.h> on
    some UNIX systems. */
 typedef size_t	sizeof_t;

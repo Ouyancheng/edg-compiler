@@ -419,7 +419,7 @@ past the number on return.
 #define NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER 3
 #define get_macro_repl_text_number(num, rtp)                          \
 { unsigned long temp = 0;                                             \
-  temp  = *(a_byte *)rtp++;                                           \
+  temp  = (unsigned long)*(a_byte *)rtp++;                            \
   temp |= (unsigned long)(*(a_byte *)rtp++) << CHAR_BIT;              \
   temp |= (unsigned long)(*(a_byte *)rtp++) << CHAR_BIT*2;            \
   num = temp;                                                         \

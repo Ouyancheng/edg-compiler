@@ -725,7 +725,7 @@ Put the wide character ch into the string pointed to by *pstr, and increment
      we must allow for the target endian-ness. */
   for (i = 0; i < TARG_SIZEOF_WCHAR_T; i++) {
 #if TARG_LITTLE_ENDIAN
-    *p++ = ch & UCHAR_MAX;
+    *p++ = (char) (ch & UCHAR_MAX);
     ch >>= TARG_CHAR_BIT;
 #else /* !TARG_LITTLE_ENDIAN */
     *p++ = (char) ((ch >> ((TARG_SIZEOF_WCHAR_T - i - 1) *
