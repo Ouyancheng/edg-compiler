@@ -1,5 +1,13 @@
 Version 2.42
 
+7/21/99  Allow template overloading when only return types differ
+
+The front end now accepts the declaration of two function templates that only
+differ in their return types.
+
+  template<class T> void f();
+  template<class T> bool f();  // Used to be an error.
+
 7/21/99  Assertion failure with invalid friend template declaration syntax
 
 The following invalid declaration no longer triggers an internal error in the

@@ -5189,27 +5189,12 @@ the old list.  Only callable in C++ mode.  See ARM 13.
     /* See if old_sym_ptr and new_type are distinguishable. */
     old_is_template = (old_sym_ptr->kind ==
                                           (a_symbol_kind)sk_function_template);
-    if (old_is_template != new_is_template) {
-      /* Function templates are always distinguishable from non-template
-         functions. */
-      distinguishable = TRUE;
-      goto distinguishable_determined;
-    }  /* if */
-    if (new_is_template) {
-      /* Both are templates.  The remaining tests are only needed if the
-         template parameter lists are equivalent.  Declarations with
-         different template parameter lists may always be overloaded. */
-      a_template_param_ptr		old_templ_param_list;
-      a_template_symbol_supplement_ptr	tssp;
-      tssp = template_supplement_for_symbol(old_sym_ptr);
-      old_templ_param_list =
-                       tssp->variant.function.decl_cache.decl_info->parameters;
-      if (!equiv_template_param_lists(old_templ_param_list, templ_param_list,
-                                      /*issue_errors=*/FALSE,
-                                      (a_source_position*)NULL)) {
+    if (new_is_template || old_is_template) {
+      /* Template and nontemplate functions can always be distinguished.
+         Furthermore, template arguments can presumably always be chosen
+         to distinguish two template functions. */
         distinguishable = TRUE;
         goto distinguishable_determined;
-      }  /* if */
     }  /* if */
     distinguishable = FALSE;
     /* Get the old routine type. */
