@@ -5265,7 +5265,7 @@ typedef struct an_object_lifetime {
 		     constructor-call dynamic initializations that initialize
 		     variables).
 		<==> iek_block (as a result rewriting done for dynamic init
-		      entries during IL lowering)
+		     entries during IL lowering)
 	olk_try_block
 		<==> iek_try_supplement
 		<==> iek_block (as a result of rewriting rewriting a try block
