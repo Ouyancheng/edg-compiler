@@ -1441,7 +1441,6 @@ multiple designators are handled by the recursion in get_initializer.
     /* Look up the field associated with the identifier: */
     if (!okay) {
       /* Can't look up the identifier; we don't know where we are. */
-      okay = FALSE;
     } else {
       a_symbol_ptr member_sym = class_qualified_id_lookup(&locator_for_curr_id,
                                                           context->type,
@@ -1696,7 +1695,8 @@ this function points to a tree that includes a dynamic-init entry.
   } else if (is_aggregate_or_union_type(context.type) ||
              (is_error_type(context.type) &&
               (curr_token == tok_lbrace ||
-               designator_coming((a_boolean *)NULL)))) {
+               (init_info->designation_state != ds_complete_designation &&
+                designator_coming((a_boolean *)NULL))))) {
     /* Initialization of an array (complete or incomplete), struct, or
        union.  The result will be an aggregate constant except when an
        array of char is initialized by a string.  The initial
