@@ -1600,7 +1600,7 @@ static a_routine_ptr
 		vec_delete3_routine,
 		vec_dtor_routine
 #endif /* IA64_ABI */
-                ;
+		;
 
 
 static an_expr_node_ptr num_elem_node_from_count(
@@ -1779,7 +1779,7 @@ zeroed before the constructor is called, for value-initialization.
 The runtime routine __array_new is called for cases that require a
 special new or delete routine.  This routine is not used for
 placement new cases.  The routines called are different for the
-Ia-64 ABI; see comments below.
+IA-64 ABI; see comments below.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
