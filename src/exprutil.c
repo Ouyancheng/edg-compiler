@@ -879,7 +879,7 @@ if there are any temp inits (unordered or not) in the expression.
       break;
     case enk_condition:
       any_temp_inits = examine_dynamic_init_for_unordered_temp_inits(
-                                        expr->variant.condition.dynamic_init,
+                                        expr->variant.condition->dynamic_init,
                                         mark_all_unordered);
       break;
     case enk_typeid:

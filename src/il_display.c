@@ -1870,6 +1870,18 @@ Display the indicated throw supplement to an expression node.
   }  /* if */
 }  /* disp_throw_supplement */
 
+
+static void disp_condition_supplement(a_condition_supplement_ptr csp)
+/*
+Display the indicated condition supplement to an expression node.
+*/
+{
+  disp_ptr("scope", (char *)csp->scope, iek_scope);
+  disp_ptr("dynamic_init", (char *)ptr->dynamic_init, iek_dynamic_init);
+  disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+}  /* disp_condition_supplement */
+
+
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 
 static void disp_eh_prologue_supplement(an_eh_prologue_supplement_ptr psp)
@@ -1975,9 +1987,8 @@ do_variable:
       break;
     case enk_condition:
       (void)printf("enk_condition\n");
-      disp_ptr("scope", (char *)ptr->variant.condition.scope, iek_scope);
-      disp_ptr("dynamic_init", (char *)ptr->variant.condition.dynamic_init,
-               iek_dynamic_init);
+      disp_ptr("condition_supplement", (char *)ptr->variant.condition,
+               iek_condition_supplement);
       break;
     case enk_object_lifetime:
       (void)printf("enk_object_lifetime\n");

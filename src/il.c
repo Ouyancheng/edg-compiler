@@ -92,6 +92,7 @@ static unsigned long
 		num_expr_nodes_allocated,
 		num_new_delete_supplements_allocated,
 		num_throw_supplements_allocated,
+		num_condition_supplements_allocated,
 		num_accessible_base_classes_allocated,
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 		num_eh_prologue_supplements_allocated,
@@ -1107,19 +1108,19 @@ Dump the contents of the indicated expression node for debug purposes.
       break;
     case enk_condition:
       fputs("condition: ", f_debug);
-      db_scope(node->variant.condition.scope);
+      db_scope(node->variant.condition->scope);
       fputs(", ", f_debug);
-      if (node->variant.condition.dynamic_init == NULL) {
+      if (node->variant.condition->dynamic_init == NULL) {
         fputs("<null dynamic init>", f_debug);
       } else {
-        a_variable_ptr  vp = node->variant.condition.dynamic_init->variable;
+        a_variable_ptr  vp = node->variant.condition->dynamic_init->variable;
         if (vp == NULL) {
           fputs("<null variable>", f_debug);
         } else {
           db_name(&vp->source_corresp);
         }  /* if */
         fputs(" = ", f_debug);
-        db_dynamic_initializer(node->variant.condition.dynamic_init, level+2);
+        db_dynamic_initializer(node->variant.condition->dynamic_init, level+2);
       }  /* if */
       fputs("\n", f_debug);
       break;
@@ -6262,6 +6263,7 @@ fields to default values.
 {
   a_new_delete_supplement_ptr ndsp;
   a_throw_supplement_ptr      tsp;
+  a_condition_supplement_ptr  csp;
 
   node->kind = kind;
   switch (kind) {
@@ -6331,8 +6333,15 @@ fields to default values.
       tsp->accessible_base_classes = NULL;
       break;
     case enk_condition:
-      node->variant.condition.scope        = NULL;
-      node->variant.condition.dynamic_init = NULL;
+      csp = (a_condition_supplement_ptr)
+                                 alloc_cil(sizeof(a_condition_supplement));
+      node->variant.condition = csp;
+#if DEBUG
+      num_condition_supplements_allocated++;
+#endif /* DEBUG */
+      csp->scope        = NULL;
+      csp->dynamic_init = NULL;
+      csp->expr         = NULL;
       break;
     case enk_object_lifetime:
       node->variant.object_lifetime.expr = NULL;
@@ -6666,6 +6675,7 @@ Allocate a copy of an expression node and return a pointer to it.
   an_expr_node_kind             kind = expr->kind;
   a_new_delete_supplement_ptr   copy_new_delete;
   a_throw_supplement_ptr        copy_throw_info;
+  a_condition_supplement_ptr    copy_condition;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   an_eh_prologue_supplement_ptr copy_prologue_info = NULL;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
@@ -6676,6 +6686,8 @@ Allocate a copy of an expression node and return a pointer to it.
     copy_new_delete = expr_copy->variant.new_delete;
   } else if (kind == (an_expr_node_kind)enk_throw) {
     copy_throw_info = expr_copy->variant.throw_info;
+  } else if (kind == (an_expr_node_kind)enk_condition) {
+    copy_condition = expr_copy->variant.condition;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   } else if (kind == (an_expr_node_kind)enk_lowered_eh_construct &&
              expr->variant.lowered_eh.kind ==
@@ -6695,6 +6707,10 @@ Allocate a copy of an expression node and return a pointer to it.
     /* Copy the throw supplement. */
     *copy_throw_info = *expr->variant.throw_info;
     expr_copy->variant.throw_info = copy_throw_info;
+  } else if (kind == (an_expr_node_kind)enk_condition) {
+    /* Copy the condition supplement. */
+    *copy_condition = *expr->variant.condition;
+    expr_copy->variant.condition = copy_condition;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   } else if (copy_prologue_info != NULL) {
     /* Copy the EH prologue supplement. */
@@ -6789,9 +6805,11 @@ Make a copy of an expression tree and return a pointer to it.
                      copy_dynamic_init(expr->variant.throw_info->dynamic_init);
       break;
     case enk_condition:
-      /* Copy the dynamic init. */
-      expr_copy->variant.condition.dynamic_init =
-                     copy_dynamic_init(expr->variant.condition.dynamic_init);
+      /* Copy the dynamic init and the expression. */
+      expr_copy->variant.condition->dynamic_init =
+                     copy_dynamic_init(expr->variant.condition->dynamic_init);
+      expr_copy->variant.condition->expr =
+                     copy_expr_tree(expr->variant.condition->expr);
       break;
     case enk_object_lifetime:
       /* For an object lifetime, create a new object lifetime for the copy. */
@@ -10314,6 +10332,8 @@ Display and return the amount of space used for various IL tables.
                 a_new_delete_supplement);
   db_space_used("throw supplement", num_throw_supplements_allocated,
                 a_throw_supplement);
+  db_space_used("condition supplement", num_condition_supplements_allocated,
+                a_condition_supplement);
   db_space_used("accessible base class", num_accessible_base_classes_allocated,
                 an_accessible_base_class);
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -10596,6 +10616,7 @@ in il_init.)
       pch_saved_var_array_elem(num_template_args_allocated),
       pch_saved_var_array_elem(num_template_param_type_descrs_allocated),
       pch_saved_var_array_elem(num_throw_supplements_allocated),
+      pch_saved_var_array_elem(num_condition_supplements_allocated),
       pch_saved_var_array_elem(num_types_allocated),
       pch_saved_var_array_elem(num_used_shareable_constant_buckets),
       pch_saved_var_array_elem(num_variables_allocated),
@@ -10700,6 +10721,7 @@ of the front end.
   num_expr_nodes_allocated               = 0;
   num_new_delete_supplements_allocated   = 0;
   num_throw_supplements_allocated        = 0;
+  num_condition_supplements_allocated    = 0;
   num_accessible_base_classes_allocated  = 0;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   num_eh_prologue_supplements_allocated  = 0;

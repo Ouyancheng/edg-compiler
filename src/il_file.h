@@ -118,6 +118,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_template_arg),
   sizeof(a_new_delete_supplement),
   sizeof(a_throw_supplement),
+  sizeof(a_condition_supplement),
   sizeof(an_accessible_base_class),
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   sizeof(an_eh_prologue_supplement),

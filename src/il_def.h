@@ -315,6 +315,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_new_delete_supplement,
 			/* a_new_delete_supplement */
   iek_throw_supplement,	/* a_throw_supplement */
+  iek_condition_supplement,
+			/* a_condition_supplement */
   iek_accessible_base_class,
 			/* an_accessible_base_class */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -427,6 +429,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_template_arg */			"template-arg",
 /* iek_new_delete_supplement */		"new-delete-supplement",
 /* iek_throw_supplement */		"throw-supplement",
+/* iek_condition_supplement */		"condition-supplement",
 /* iek_accessible_base_class */		"accessible-base-class",
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 /* iek_eh_prologue_supplement */	"eh-prologue-supplement",
@@ -4346,6 +4349,32 @@ typedef struct a_throw_supplement {
 } a_throw_supplement;
 
 
+/* Description of a C++ condition in a selection or iteration statement. */
+typedef struct a_condition_supplement *a_condition_supplement_ptr;
+typedef struct a_condition_supplement {
+  a_scope_ptr	scope;
+			/* The scope established for the declaration of the
+			   variable that is initialized in the condition.
+			   The scope for the dependent statement of the
+			   then- or else- clause of an if-statement or for
+			   the dependent statement of the switch-, while-,
+			   or for-statement is nested inside it.  With loop
+			   statements the scope is terminated and reentered
+			   with each iteration. */
+  a_dynamic_init_ptr
+		dynamic_init;
+			/* The dynamic init entry representing the
+			   initialization of the variable declared in the
+			   condition.  With loop statements the dynamic
+			   initialization takes place with each iteration. */
+  an_expr_node_ptr
+		expr;
+			/* The value to be tested in the selection or
+			   iteration statement, i.e., the (possibly converted)
+			   variable declared in the condition. */
+} a_condition_supplement;
+
+
 /* Description of a C++ "new" or "delete" operation. */
 typedef struct a_new_delete_supplement *a_new_delete_supplement_ptr;
 typedef struct a_new_delete_supplement {
@@ -4549,23 +4578,10 @@ typedef struct an_expr_node {
 			   specified (i.e., a "rethrow" of the current
 			   throw object). */
     /* When kind == enk_condition (C++ only): */
-    struct {
-      a_scope_ptr
-		scope;	/* The scope established for the declaration of the
-			   variable that is initialized in the condition.
-			   The scope for the dependent statement of the
-			   then- or else- clause of an if-statement or for
-			   the dependent statement of the switch-, while-,
-			   or for-statement is nested inside it.  With loop
-			   statements the scope is terminated and reentered
-			   with each iteration. */
-      a_dynamic_init_ptr
-		dynamic_init;
-			/* The dynamic init entry representing the
-			   initialization of the variable declared in the
-			   condition.  With loop statements the dynamic
-			   initialization takes place with each iteration. */
-    } condition;
+    a_condition_supplement_ptr
+		condition;
+			/* Information describing a C++ condition in a
+			   selection or iteration statement. */
     /* When kind == enk_object_lifetime: */
     struct {
       an_expr_node_ptr

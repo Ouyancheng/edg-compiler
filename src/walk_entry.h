@@ -598,9 +598,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                      iek_throw_supplement);
             break;
           case enk_condition:
-            walk_ptr(ptr->variant.condition.scope, a_scope_ptr, iek_scope);
-            walk_ptr(ptr->variant.condition.dynamic_init, a_dynamic_init_ptr,
-                     iek_dynamic_init);
+            walk_ptr(ptr->variant.condition, a_condition_supplement_ptr,
+                     iek_condition_supplement);
             break;
           case enk_object_lifetime:
             walk_ptr(ptr->variant.object_lifetime.expr, an_expr_node_ptr,
@@ -1433,6 +1432,15 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
         walk_list(ptr->accessible_base_classes, an_accessible_base_class_ptr,
                   iek_accessible_base_class);
+      }
+      break;
+    case iek_condition_supplement:
+      {
+        a_condition_supplement_ptr ptr = (a_condition_supplement_ptr)entry_ptr;
+
+        walk_ptr(ptr->scope, a_scope_ptr, iek_scope);
+        walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
+        walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
       }
       break;
     case iek_accessible_base_class:
