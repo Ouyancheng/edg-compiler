@@ -13764,6 +13764,8 @@ and < end_tsn are included in the string.
     }  /* if */
     if (teik_kind == (a_token_extra_info_kind)teik_asm_string) {
       /* A Microsoft asm string.  Add the asm string to the buffer. */
+      /* Insert a space between the asm token and the asm string. */
+      add_whitespace_to_string(0, 1);
       put_str_to_temp_text_buffer(ctp->variant.asm_string);
     }  /* if */
   }  /* for */

@@ -1,5 +1,23 @@
 Version 3.6
 
+2/4/04  Microsoft compatibility: __asm directives in template strings
+
+When the front end is configured to create string representations of
+templates, the string for a template containing a Microsoft __asm directive
+was missing a space between the __asm token and the tokens that followed.
+When using the C++-generating back end, this could result in errors
+compiling the generated C++ code.  Now fixed.
+
+  template <int I> struct A {
+    void f() {
+      __asm int 1
+    }
+  };
+  int main() {
+    A<1> a;
+    a.f();
+  }
+
 2/3/04  GNU compatibility: infinity used for float values out of range
 
 In GNU mode, the front end accepts floating-point constants that are out
