@@ -29,7 +29,7 @@ typedef int	a_scope_depth;
 
 #define NO_SCOPE_DEPTH          (-1)
 #ifndef DEPTH_OF_FILE_SCOPE
-/* il.h also defines this.  Make sure only one definition is done. */
+/* il_def.h also defines this.  Make sure only one definition is done. */
 #define DEPTH_OF_FILE_SCOPE 0
 #else /* defined(DEPTH_OF_FILE_SCOPE) */
 #if DEPTH_OF_FILE_SCOPE != 0
@@ -595,14 +595,14 @@ EXTERN a_scope_stack_entry_ptr
 			   Allocation is not per-file. */
 EXTERN a_scope_depth
 		depth_scope_stack;
-			/* Current depth of the scope stack.  -1 indicates
-			   that the stack is empty. */
+			/* Current depth of the scope stack.  NO_SCOPE_DEPTH
+			   (i.e., -1) indicates that the stack is empty. */
 EXTERN a_scope_depth
 		decl_scope_level;
 			/* Level in the scope stack that contains the
 			   current declaration level.  Differs from
 			   depth_scope_stack when the innermost "scopes"
-			   are for struct/union fields; decl_scope_level
+			   are for C struct/union fields; decl_scope_level
 			   would then contain the real scope level rather than
 			   the struct/union pseudo-scope level. */
 EXTERN a_scope_depth
@@ -613,8 +613,10 @@ EXTERN a_scope_depth
 EXTERN a_scope_depth
 		num_current_class_reactivations;
 			/* Current count of sck_class_reactivation entries
-			   in scope_stack.  When non-zero, name lookup is
-			   more complicated. */
+			   in scope_stack.  When it is non-zero we are inside
+			   a member function or a similar reactivation of
+			   the scope of a class, and name lookup is more
+			   complicated. */
 EXTERN a_scope_number
 		next_scope_number;
 			/* Next scope number to be assigned.  These are
