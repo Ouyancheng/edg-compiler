@@ -274,6 +274,10 @@ extern void traverse_expr(an_expr_node_ptr                    expr,
 extern void traverse_statement(a_statement_ptr                     statement,
                                an_expr_or_stmt_traversal_block_ptr tblock);
 
+extern void traverse_statement_list(
+                            a_statement_ptr                     statement_list,
+                            an_expr_or_stmt_traversal_block_ptr tblock);
+
 #endif /* ifndef IL_WALK_H */
 
 /******************************************************************************

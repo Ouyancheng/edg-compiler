@@ -2691,7 +2691,7 @@ end_of_routine:;
 }  /* traverse_expr */
 
 
-static void traverse_statement_list(
+void traverse_statement_list(
                             a_statement_ptr                     statement_list,
                             an_expr_or_stmt_traversal_block_ptr tblock)
 /*

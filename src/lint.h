@@ -326,6 +326,11 @@ extern int fileno(FILE *);
 #if !REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*lint -esym(769,ec_bad_linkage_for_redefine_extname)*/
 #endif /* !REDEFINE_EXTNAME_PRAGMA_ENABLED */
+/*lint -esym(759,traverse_statement)*/
+/*lint -esym(765,traverse_statement)*/
+/*lint -esym(759,traverse_statement_list)*/
+/*lint -esym(765,traverse_statement_list)*/
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
