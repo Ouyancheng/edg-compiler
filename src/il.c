@@ -180,8 +180,6 @@ static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
                                             an_expr_copy_options_set options);
 
 
-a_constant_hash_value hash_constant(a_constant *cp);
-
 #if DEBUG
 
 void db_template_arg_list(a_template_arg_ptr tap)

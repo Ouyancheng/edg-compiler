@@ -12470,7 +12470,7 @@ set, and its source sequence entry, if any, has been put out.)
 }  /* complete_il_template_entry */
 
 
-unsigned long hash_string(char *str)
+static unsigned long hash_string(char *str)
 /*
 Compute a hash value for the string "str".
 */
