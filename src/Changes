@@ -1,5 +1,15 @@
 Version 2.38
 
+1/12/98   Internal error on pragma in template declaration
+
+An internal error could occur if a pragma appeared between the template
+parameter clauses (e.g., "template <...>") and the declaration in a
+template declaration.  This has been fixed.
+
+  template <class T>
+  #pragma test_immediate
+  struct A  { };
+
 1/12/98   One-instantiation-per-object mode: local statics
 
 In one-instantiation-per-object mode, a local static entity which
