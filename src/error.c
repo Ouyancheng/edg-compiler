@@ -1299,6 +1299,9 @@ error code.
     case ec_no_access_to_constructors:
       m = "there is no access to the constructors for class \"%s\"";
       break;
+    case ec_nonstd_member_function_redeclaration:
+      m = "redeclaring a member function is nonstandard";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
