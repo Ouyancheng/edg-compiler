@@ -1835,6 +1835,7 @@ has an explicit template argument list, given by template_arg_list.
   a_special_function_kind special_kind = (a_special_function_kind)sfk_none;
   a_boolean               is_member;
 
+  /* This routine is a simplified version of mangled_function_name. */
   is_member = (con->source_corresp.is_class_member ||
                con->source_corresp.parent.namespace_ptr != NULL);
 #if IA64_ABI
@@ -1852,7 +1853,6 @@ has an explicit template argument list, given by template_arg_list.
     mangled_parent_qualifier(&con->source_corresp, mctl);
   }  /* if */
 #endif /* IA64_ABI */
-  /* This routine is a simplified version of mangled_function_name. */
   if (conversion_type != NULL) {
     special_kind = (a_special_function_kind)sfk_conversion;
   }  /* if */
