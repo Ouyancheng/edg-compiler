@@ -639,6 +639,11 @@ Display the indicated constant entry.
   disp_source_corresp(&ptr->source_corresp, is_enumerator);
   disp_ptr("next", (char *)ptr->next, iek_constant);
   disp_ptr("type", (char *)ptr->type, iek_type);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  if (ptr->expr != NULL) {
+    disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+  }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   if (ptr->implicit_cast) {
     disp_boolean("implicit_cast", TRUE);
   }  /* if */
