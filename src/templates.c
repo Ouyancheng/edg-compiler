@@ -5421,6 +5421,8 @@ been instantiated, update the befriending information for the instances.
 
 static a_symbol_ptr function_template_declaration
                     (a_symbol_locator                 *locator,
+                     an_access_specifier              access,
+                     a_scope_depth                    effective_decl_level,
 		     a_func_info_block                *func_info,
 		     a_storage_class                  storage_class,
 		     a_decl_modifier                  decl_modifiers,
@@ -5428,7 +5430,7 @@ static a_symbol_ptr function_template_declaration
 		     a_template_decl_info_ptr	      template_decl_info,
 		     a_token_cache                    *decl_token_cache,
 		     a_boolean                        *decl_token_cache_used,
-		     a_boolean                        is_template_friend,
+                     a_decl_flag_set                  dso_flags,
 		     a_type_ptr                       class_declared_in,
 		     a_template_symbol_supplement_ptr *p_tssp,
 		     a_boolean                        *defines_something)
@@ -5453,14 +5455,22 @@ declaration.
   a_template_symbol_supplement_ptr tssp = NULL;
   a_template_param_ptr		   template_param_list =
                                                template_decl_info->parameters;
+  a_boolean                        is_template_friend = (dso_flags & DSO_FRIEND);
 
   db_enter(4, "function_template_declaration");  
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
   set_type_involves_template_param_flags(type);
+  is_template_friend = ((dso_flags & DSO_FRIEND) != 0);
   /* Process a function template declaration. */
-  decl_function_template(locator, type, func_info, &sym, storage_class,
-			 decl_modifiers, template_param_list);
+  if (class_declared_in == NULL || (dso_flags & DSO_FRIEND)) {
+    decl_function_template(locator, type, func_info, &sym, storage_class,
+                           decl_modifiers, template_param_list);
+  } else {
+    decl_member_function_template(locator, class_declared_in, type, func_info,
+                                  effective_decl_level, access, dso_flags,
+                                  &sym, decl_modifiers, template_param_list);
+  }  /* if */
   if (is_error_locator(*locator)) {
     err = TRUE;
   } else if (curr_token == tok_lbrace ||
@@ -5488,7 +5498,7 @@ declaration.
   /* Make sure that the template parameter list is compatible with
      any previous declaration (i.e., the declaration of the class
      if this is a member function. */
-  if (sym->is_class_member) {
+  if (sym->is_class_member && class_declared_in == NULL) {
     if (!member_template_param_list_matches_class(template_param_list,
 						  sym, &error_position)) {
       err = TRUE;
@@ -5722,7 +5732,6 @@ as the current token; otherwise, it is consumed.
   a_token_cache                     *p_template_body_cache = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
   a_source_position                 start_pos;
-  a_boolean                         is_template_friend = FALSE;
   a_boolean                         is_member_decl;
   a_type_ptr                        class_declared_in = NULL;
   a_boolean                         invalid_decl_scope_err = FALSE;
@@ -5867,9 +5876,6 @@ as the current token; otherwise, it is consumed.
                                 invalid_decl_scope_err,
                                 &dso_flags, &do_flags, &locator, &type,
                                 &func_info, &storage_class, &decl_modifiers);
-      if (is_member_decl && (dso_flags & DSO_FRIEND) != 0) {
-        is_template_friend = TRUE;
-      }  /* if */
       if (invalid_decl_scope_err) {
         pos_error(ec_bad_template_declaration_scope, &start_pos);
         set_to_named_error_locator(locator);
@@ -5887,15 +5893,14 @@ as the current token; otherwise, it is consumed.
         if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
 #endif /* RECORD_TEMPLATES_IN_IL */
       } else if (is_function_type(type)) {
-        sym = function_template_declaration(&locator, &func_info,
-                                            storage_class,
-  					    decl_modifiers, type,
-					    template_decl_info,
+        sym = function_template_declaration(&locator, access,
+                                            effective_decl_level, &func_info,
+                                            storage_class, decl_modifiers,
+                                            type, template_decl_info,
 					    &decl_token_cache,
-					    &decl_token_cache_used,
-					    is_template_friend,
-					    class_declared_in,
-					    &tssp, defines_something);
+					    &decl_token_cache_used, dso_flags,
+					    class_declared_in, &tssp,
+					    defines_something);
 
 #if RECORD_TEMPLATES_IN_IL
         if (*defines_something) {
