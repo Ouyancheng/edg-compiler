@@ -339,7 +339,7 @@ entry are saved for restoration at the end of the current name context.
   hnfp->entity = entity;
   /* Save the flag values from the entity, for later restoration. */
   hnfp->qualification_needed =
-       ((a_source_correspondence *)entity.ptr)->qualification_needed;
+                 ((a_source_correspondence *)entity.ptr)->qualification_needed;
   if ((an_il_entry_kind)entity.kind == iek_type) {
     hnfp->elaborated_type_specifier_needed =
                     ((a_type_ptr)entity.ptr)->elaborated_type_specifier_needed;
@@ -383,7 +383,8 @@ hidden names in C, so there's no point in maintaining this information).
   for (hnp = scope->hidden_names; hnp != NULL; hnp = hnp->next) {
     a_boolean fixup_created = FALSE;
     if (hnp->qualification_needed) {
-      /* The entity needs a leading "::" in the inner scopes. */
+      /* The entity must be referred to with a qualified name (e.g., "A::x"
+         or "::y") in the inner scopes. */
       a_source_correspondence *scp =
                                   (a_source_correspondence *)(hnp->entity.ptr);
       if (!scp->qualification_needed) {
@@ -469,7 +470,7 @@ Pop the top entry off the name context stack.
     /* Restore the flag values to their state at the start of the current
        name context. */
     ((a_source_correspondence *)(hnfp->entity.ptr))->
-               qualification_needed = hnfp->qualification_needed;
+                             qualification_needed = hnfp->qualification_needed;
     if ((an_il_entry_kind)(hnfp->entity.kind) == iek_type) {
       ((a_type_ptr)(hnfp->entity.ptr))->elaborated_type_specifier_needed =
                                         hnfp->elaborated_type_specifier_needed;
