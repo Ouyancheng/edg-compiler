@@ -8045,7 +8045,9 @@ whether the nontype parameter is unnamed.
     warning(ec_missing_type_specifier);
   }  /* if */
   /* Scan the declarator. */
-  declarator(DI_REAL_DECLARATOR_ALLOWED | DI_ABSTRACT_DECLARATOR_ALLOWED,
+  declarator((DI_REAL_DECLARATOR_ALLOWED |
+              DI_ABSTRACT_DECLARATOR_ALLOWED |
+              DI_IS_TEMPLATE_PARAM_DECL),
              &do_flags, *param_type_ptr,
              /*member_parent_type=*/(a_type_ptr)NULL, param_locator,
              param_type_ptr, &declarator_ssep,

@@ -1,5 +1,16 @@
 Version 2.37
 
+10/8/97   Function parameter default argument in template parameter
+          declaration
+
+An error is now issued when a function parameter default argument
+appears in a template parameter declaration:
+
+  template <void (*pf)(int=0)> void g() { }       // Error
+
+(Before this change, scanning the construct resulted in spurious syntax
+errors and occasional internal errors.)
+
 10/8/97   Abbreviated command line options
 
 The front end now accepts abbreviated keyword command line options.

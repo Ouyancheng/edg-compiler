@@ -3392,8 +3392,10 @@ function_lparen:
            template <class T> void f(T) { ... }
            template<> void f(int=0);
            template void f(char=0);
-      */
+         In addition, default arguments are disallowed in template parameter
+         declarations. */
       disallow_default_args = C_mode() ||
+                              (input_flags & DI_IS_TEMPLATE_PARAM_DECL) ||
                               (func_info != NULL &&
                                (input_flags & (DI_IS_SPECIALIZATION |
                                                DI_IS_EXPLICIT_INSTANTIATION)));

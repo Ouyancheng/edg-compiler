@@ -175,7 +175,10 @@ abstract or real declarator.
 #define DI_NO_TYPE_SPECIFIERS ((a_decl_flag_set)0x20000)
 			/* If this bit is set no type specifiers appeared
 			   among the declaration specifiers. */
-#define DI_LAST DI_NO_TYPE_SPECIFIERS
+#define DI_IS_TEMPLATE_PARAM_DECL ((a_decl_flag_set)0x40000)
+			/* If this bit is set the declaration is that of a
+			   template parameter. */
+#define DI_LAST DI_IS_TEMPLATE_PARAM_DECL
 			/* Last bit in the bit vector that is in use. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
