@@ -973,7 +973,8 @@ in which the current file was found).
     if (pass_stdarg_references_to_generated_code &&
         (strcmp(name_start_pos, "stdarg.h") == 0 ||
          (!C_mode() &&
-          (is_cstdarg = (strcmp(name_start_pos, "cstdarg") == 0))))) {
+          ((is_cstdarg = (strcmp(name_start_pos, "cstdarg") == 0),
+	   is_cstdarg))))) {
       /* Instead or reading the <stdarg.h> or <cstdarg> header file, create
          builtin definitions for the things it's known to define. */
       proc_stdarg_include(is_cstdarg);
