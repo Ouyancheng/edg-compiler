@@ -313,7 +313,7 @@ in *new_constant, with type as indicated therein.  Return *err_code and
                                       &err);
     }  /* if */
   }  /* if */
-#if AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
   if (err) {
     /* Try again with larger precision by converting the integer to a
        character string then converting the string to a float value. */
@@ -321,7 +321,7 @@ in *new_constant, with type as indicated therein.  Return *err_code and
     fp_string_to_float(float_kind, str, &new_constant->variant.float_value,
                        &err);
   }  /* if */
-#endif /* AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG */
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   if (err) {
     /* Some error. */
     *err_code = ec_integer_to_float_conversion;
@@ -367,14 +367,14 @@ depending on the rounding mode.
                               depends_on_rounding_mode);
     if (!err) set_unsigned_integer_value(&result_value, unsigned_int_value);
   }  /* if */
-#if AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
   if (err) {
     /* Try again with larger precision by converting the float to a
        character string then converting the string to an integer value. */
     char *str = fp_to_string(float_kind, &old_constant->variant.float_value);
     conv_float_string_to_integer_value(str, &result_value, is_signed, &err);
   }  /* if */
-#endif /* AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG */
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   if (!err) {
     trunc_and_set_integer(&result_value, new_constant, /*check_overflow=*/TRUE,
                           err_code, err_severity);

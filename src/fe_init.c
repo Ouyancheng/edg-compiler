@@ -115,7 +115,6 @@ Do required initialization for host-dependent things.
 #if CHECKING
   /* Check that CHAR_MIN is set right for the host char signedness. */
   { char c;
-    a_boolean b;
 #if CHAR_MIN == 0
     /* Host should have unsigned characters. */
     c = (1 << CHAR_BIT) - 1;
@@ -125,15 +124,6 @@ Do required initialization for host-dependent things.
     c = -1;
     if (c > 0) internal_error("host_init: CHAR_MIN in basics.h is set wrong");
 #endif /* CHAR_MIN == 0 */
-    /* Make sure that AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG is
-      set correctly. */
-    b = (AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG !=
-     ((BITS_IN_AN_INTEGER_VALUE) > (sizeof(a_host_large_integer) * CHAR_BIT)));
-    if (b) {
-      unexpected_condition_str2
-                       ("host_init: AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG",
-                        "in targ_def.h is set wrong");
-    }  /* if */
   }
 #endif /* CHECKING */
 

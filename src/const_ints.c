@@ -1580,7 +1580,7 @@ preceded by a "-".
 }  /* str_for_integer_constant */
 
 
-#if AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 void conv_float_string_to_integer_value(char			*float_str,
 					an_integer_value	*intval,
 					a_boolean		is_signed,
@@ -1694,7 +1694,7 @@ so no checking is done.
   }  /* if */
   *err = overflow || (!is_signed && is_negative);
 }  /* conv_float_string_to_integer_value */
-#endif /* AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG */
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 
 #if DEBUG

@@ -304,10 +304,9 @@ so the integer representation is just some host integral type.
 This type must be unsigned; a_signed_integer_value is the signed version.
 Note that the types are allowed to be the unsigned and signed versions
 of "long long" if the host allows them.  If "long long" is used, check the
-setting of AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG, MAX_INTEGER_VALUE,
-MIN_INTEGER_VALUE, MAX_UNSIGNED_INTEGER_VALUE, and the three
-PRINTF_FORMAT_FOR_... macros.  Also make sure that HOST_ALIGNMENT_REQUIRED
-is appropriate for long longs.
+setting of MAX_INTEGER_VALUE, MIN_INTEGER_VALUE, MAX_UNSIGNED_INTEGER_VALUE,
+and the three PRINTF_FORMAT_FOR_... macros.  Also make sure that
+HOST_ALIGNMENT_REQUIRED is appropriate for long longs.
 */
 #ifndef TYPE_FOR_AN_INTEGER_VALUE
 #define TYPE_FOR_AN_INTEGER_VALUE unsigned long
@@ -317,16 +316,6 @@ typedef TYPE_FOR_AN_INTEGER_VALUE an_integer_value;
 #define TYPE_FOR_A_SIGNED_INTEGER_VALUE long
 #endif /* ifndef TYPE_FOR_A_SIGNED_INTEGER_VALUE */
 typedef TYPE_FOR_A_SIGNED_INTEGER_VALUE a_signed_integer_value;
-
-/*
-If this flag is TRUE an_integer_value is larger than a host long.
-This is usually FALSE when an integer value is represented as a host
-integer, but would be TRUE if an_integer_value is represented using a
-host long long.
-*/
-#ifndef AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
-#define AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG FALSE
-#endif /* !defined(AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG) */
 
 /* Minimum and maximum values that can be represented in an_integer_value. */
 #ifndef MAX_INTEGER_VALUE
@@ -353,9 +342,7 @@ host long long.
 #endif /* ifndef PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE */
 
 /*
-Host types used to manipulate integer values.  When
-AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG is FALSE, these types
-are the same as an_integer_value and a_signed_integer_value.
+Host types used to manipulate integer values.
 */
 typedef a_signed_integer_value a_host_large_integer;
 typedef an_integer_value a_host_large_unsigned;
@@ -441,14 +428,6 @@ typedef struct an_integer_value {
 } an_integer_value;
 #define BITS_IN_AN_INTEGER_VALUE (BITS_IN_INT_VALUE_PART *	      \
 				  INT_VALUE_PARTS_PER_INTEGER_VALUE)
-
-/*
-If this flag is TRUE an_integer_value is larger than a host long.
-This is true when simulated integers are being used.
-*/
-#ifndef AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
-#define AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG	TRUE
-#endif /* !defined(AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG) */
 
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
