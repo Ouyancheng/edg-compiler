@@ -1,5 +1,11 @@
 Version 3.6
 
+11/12/04 Displaying column numbers when using brief diagnostics
+
+The configuration macro COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS has been added
+to request that column numbers be displayed in diagnostic messages in brief
+diagnostics mode.  The default value for the macro is TRUE.
+
 11/11/04 Sun compatibility: Arrays of abstract classes as parameter types
 
 In Sun mode, the front end now accepts function parameter types that are

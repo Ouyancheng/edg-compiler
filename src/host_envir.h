@@ -257,6 +257,14 @@ command-line option.
 #endif /* ifndef DEFAULT_BRIEF_DIAGNOSTICS */
 
 /*
+TRUE if the column number should be included as part of the diagnostic
+output in brief diagnostics mode.
+*/
+#ifndef COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS
+#define COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS FALSE
+#endif /* ifndef COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS */
+
+/*
 The maximum number of instantiation contexts that should be displayed as
 part of a diagnostic.  If this limit is exceeded, the first N and last N
 contexts are displayed, where N is half of the limit value.  If the limit
