@@ -1352,6 +1352,72 @@ case return TRUE).
 }  /* namespace_scope_should_be_pushed */
 
 
+static void check_nested_class_redeclaration(
+                                 a_symbol_ptr            tag_sym,
+                                 a_source_position       *tag_position,
+                                 a_boolean               is_class_definition,
+                                 a_boolean               is_friend_decl,
+                                 a_boolean               is_qualified_name,
+                                 a_boolean               *declares_something)
+/*
+Helper for class_specifier (below) that verifies whether the use of an 
+elaborated type-specifier is really a redeclaration, and if so performs
+various checks related to access and the use of a qualified name.
+This function is called if a class-specifier is seen in the scope of another
+class type, and the tag of that specifier was already declared in that scope.
+In: tag_sym is a pointer to the symbol associated with the elaborated name;
+tag_position is the position of the elaborated name (tag) that was just
+scanned; is_class_definition and is_friend_decl are set when the tag is used
+to define the nested type or introduce a friend declaration. If the tag-name
+was qualified, is_qualified_name is set as well.
+Out: *declares_something is set to false if the elaborated type specifier
+does not introduce a definition and is not followed by a semicolon; otherwise
+it is left unchanged.
+*/
+{
+  if (is_class_definition && is_qualified_name) {
+    /* Issue a warning on a case like this:
+         class A {
+           class N;
+           class A::N { ... };    // Qualified name is not allowed
+         };
+       -- a warning rather than an error for consistency with other
+       member declarations (see simplify_curr_class_qualified_name). */
+    pos_diagnostic(strict_ansi_mode ?
+                       strict_ansi_error_severity : es_warning,
+                   ec_qualifier_in_member_declaration, tag_position);
+  }  /* if */
+  if (!is_class_definition && curr_token != tok_semicolon) {
+    /* For example:
+          struct S { struct N {}; private: struct N* f(); };
+       is fine---there is no redeclaration of struct N here. */
+    *declares_something = FALSE;
+  } else if (!is_friend_decl) {
+    /* Be sure the access is consistent on the redeclaration. */
+    a_type_ptr              type = tag_sym->variant.class_struct_union.type;
+    a_scope_stack_entry_ptr ssep = &scope_stack[depth_scope_stack];
+    if (ssep->current_access != type->source_corresp.access) {
+      /* The access specified for the previous declaration does not
+         correspond to the access for current declaration. */
+      an_error_code      error_code;
+      an_error_severity  severity;
+
+      /* If this is a definition, use the current access instead of
+         that specified on the original declaration. */
+      if (is_class_definition) {
+        type->source_corresp.access = ssep->current_access;
+        error_code = ec_redecl_changes_access;
+      } else {
+        error_code = ec_cannot_change_access;
+      }  /* if */
+      severity = strict_ansi_mode ?
+                   strict_ansi_discretionary_severity : es_warning;
+      pos_sy_diagnostic(severity, error_code, tag_position, tag_sym);
+    }  /* if */
+  }  /* if */
+} /* check_nested_class_redeclaration */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -1866,41 +1932,13 @@ the template.
         /* Nested class. */
         if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
             tag_sym->parent.class_type == ssep->assoc_type) {
-          /* Redeclaration of nested class name inside the body of the class
-             of which it is a member. */
-          if (is_class_definition && locator.is_qualified_name) {
-            /* Issue a warning on a case like this:
-                 class A {
-                   class N;
-                   class A::N { ... };    // Qualified name is not allowed
-                 };
-               -- a warning rather than an error for consistency with other
-               member declarations (see simplify_curr_class_qualified_name). */
-            pos_diagnostic(strict_ansi_mode ?
-                               strict_ansi_error_severity : es_warning,
-                           ec_qualifier_in_member_declaration, &tag_position);
-          }  /* if */
-          if (!is_friend_decl) {
-            /* Be sure the access is consistent on the redeclaration. */
-            if (ssep->current_access != class_type->source_corresp.access) {
-              /* The access specified for the previous declaration does not
-                 correspond to the access for current declaration. */
-              an_error_code      error_code;
-              an_error_severity  severity;
-
-              /* If this is a definition, use the current access instead of
-                 that specified on the original declaration. */
-              if (is_class_definition) {
-                class_type->source_corresp.access = ssep->current_access;
-                error_code = ec_redecl_changes_access;
-              } else {
-                error_code = ec_cannot_change_access;
-              }  /* if */
-              severity = strict_ansi_mode ?
-                           strict_ansi_discretionary_severity : es_warning;
-              pos_sy_diagnostic(severity, error_code, &tag_position, tag_sym);
-            }  /* if */
-          }  /* if */
+          /* Possible redeclaration of nested class name inside the body of
+             the class of which it is a member. Note that if the elaborated
+             type-specifier does not introduce a definition and is not
+             followed by a semicolon, then it is not a redeclaration. */
+          check_nested_class_redeclaration(
+             tag_sym, &tag_position, is_class_definition, is_friend_decl,
+             locator.is_qualified_name, declares_something);
         } else if (is_class_definition) {
           /* A definition of a nested class that appears in the scope other
              than that of its parent class. */
