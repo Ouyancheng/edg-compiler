@@ -172,6 +172,7 @@ C mode.
 
 static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_symbol_locator  *locator,
+                                  a_boolean         is_friend_decl,
                                   a_boolean         check_for_vacuous_decl,
                                   a_boolean         is_ref_within_new_expr,
                                   a_scope_depth     *effective_decl_level,
@@ -183,6 +184,7 @@ If a tag symbol already exists for the identifier, return a pointer to
 that symbol; otherwise return NULL.  If there is no identifier or if there
 is an error, return NULL.
 
+is_friend_decl is TRUE when the declaration is of the form "friend class X;".
 check_for_vacuous_decl is TRUE when the context permits a declaration like
 "struct x;".  is_ref_within_new_expr is TRUE when the declaration appears
 inside a new expression.  *effective_decl_level will have been initialized
@@ -491,7 +493,7 @@ caution when modifying this routine.
       } else {
         /* This may be a reference to an existing tag, either from the
            current scope or from a containing scope or a base class. */
-        tag_sym = curr_tag_symbol(locator, tag_kind);
+        tag_sym = curr_tag_symbol(locator, tag_kind, is_friend_decl);
         if (tag_sym == NULL) {
           /* We will need to enter an incomplete tag that may be resolved
              later.  Just leave tag_sym NULL.  In C it will be entered at
@@ -825,9 +827,9 @@ the template.
        is okay, but "struct A::x;" is not. */
     if (locator_for_curr_id.is_qualified_name) vacuous_decl_allowed = FALSE;
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
-    tag_sym = scan_tag_name(tag_kind, &locator, vacuous_decl_allowed,
-                            is_ref_within_new_expr, &effective_decl_level,
-                            &tag_resolution);
+    tag_sym = scan_tag_name(tag_kind, &locator, is_friend_decl,
+                            vacuous_decl_allowed, is_ref_within_new_expr,
+                            &effective_decl_level, &tag_resolution);
   }  /* if */
   if (tag_id_present) {
     if (tag_sym != NULL) {
@@ -1449,7 +1451,7 @@ to indicate whether an enumeration is actually defined.
     *declares_something = TRUE;
     tag_position = pos_curr_token;
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
-                            vacuous_decl_allowed,
+                            /*is_friend_decl=*/FALSE, vacuous_decl_allowed,
                             /*is_ref_within_new_expr=*/FALSE,
                             &effective_decl_level, &tag_resolution);
     if (tag_resolution) {                            
