@@ -225,9 +225,10 @@ typedef struct a_candidate_function {
 			/* TRUE if function_symbol is a function template. */
   a_template_arg_ptr
 		template_arg_list;
-			/* If is_function_template is TRUE, and if the
-			   proper set of template arguments has been worked
-			   out, this is it.  Otherwise, NULL. */
+			/* If is_function_template is TRUE, this points to
+			   the list of template arguments.  The list is
+			   complete, through some combination of explicit
+			   specification and deduction. */
   char		*operand_type_pattern;
 			/* For a built-in operator, the operand type pattern
 			   string (see operand_type_pattern_for_operator).
@@ -255,19 +256,6 @@ typedef struct a_candidate_function {
 			   argument matches this function's corresponding
 			   formal parameter.  If there was a selector object
 			   (for the "this" parameter), it appears first. */
-  an_arg_operand_ptr
-		arg_operand_list;
-			/* If is_function_template is TRUE, the list of
-			   argument operands for the call.  NULL otherwise.
-			   Note that when present this list is shared with
-			   all the other (template) candidate function
-			   entries.  If there was a selector object (for
-			   member templates), it does not appear on this
-			   list. */
-  a_type_ptr	dest_type;
-			/* If is_function_template is TRUE, and the function
-			   is a member template conversion function, this
-			   points to the desired type.  NULL otherwise. */
   /* Fields used by select_best_candidate_functions: */
   an_arg_match_summary_ptr
 		current_arg_match;
@@ -339,6 +327,7 @@ extern void selector_match_with_this_param(
 
 extern a_symbol_ptr select_overloaded_function(
                            a_symbol_ptr             overloaded_function_symbol,
+                           a_template_arg_ptr       template_arg_list,
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
                            an_arg_operand_ptr       arg_operand_list,
@@ -389,6 +378,7 @@ extern void adjust_overloaded_function_call_arguments(
 
 extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                                  a_symbol_ptr       overloaded_function_symbol,
+                                 a_template_arg_ptr template_arg_list,
                                  a_boolean          have_selector,
                                  an_operand         *bound_function_selector,
                                  an_arg_operand_ptr arg_operand_list,

@@ -5798,6 +5798,7 @@ is a "get" if put_operand is NULL.
         /* Do overload resolution to determine the function to call. */
         getput_sym = select_and_prepare_to_call_overloaded_function(
                                             getput_sym,
+                                            (a_template_arg_ptr)NULL,
                                             /*have_selector=*/TRUE,
                                             &bound_function_selector,
                                             arg_operand_list,

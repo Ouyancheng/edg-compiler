@@ -183,7 +183,7 @@ is TRUE, this disambiguation is being done via an explicit cast.
     }  /* for */
     if (number_of_matches == 0 && any_function_templates &&
         is_function_type(dest_underlying_type)) {
-      a_partial_order_candidate_ptr	candidate_list = NULL;
+      a_partial_order_candidate_ptr candidate_list = NULL;
       /* Try matching function templates.  Do not try if the underlying type
          is not a function type. */
       for (proj_sym = ovl_sym;
@@ -518,8 +518,6 @@ are used in resolving calls to overloaded functions.
   clear_conv_descr(&cfp->conversion);
   cfp->specific_type = NULL;
   cfp->arg_matches = NULL;
-  cfp->arg_operand_list = NULL;
-  cfp->dest_type = NULL;
   cfp->current_arg_match = NULL;
   cfp->prev_func_arg_match_with_same_match_level = NULL;
   cfp->in_best_match_set = FALSE;
@@ -666,17 +664,15 @@ the operands we have match the operator's required operand types.
 
 static void add_function_template_to_candidate_functions_list(
                              a_symbol_ptr             function_symbol,
+                             a_template_arg_ptr       template_arg_list,
                              an_arg_match_summary_ptr arg_matches,
-                             an_arg_operand_ptr       arg_operand_list,
-                             a_type_ptr               dest_type,
                              a_candidate_function_ptr *candidate_functions)
 /*
 Add the function template identified by function_symbol to the front of the
-candidate_functions list.  arg_matches gives information about how well
-the actual arguments we have match the function's formal parameters (but
-the entries are sometimes just place-holders).  arg_operand_list gives the
-operand list.  dest_type, if non-NULL, gives the destination type for
-a member template conversion function.
+candidate_functions list.  If template_arg_list is non-NULL, it gives a
+list of explicit template arguments.  arg_matches gives information about
+how well the actual arguments we have match the function's formal
+parameters.
 */
 {
   a_candidate_function_ptr candidate;
@@ -684,9 +680,8 @@ a member template conversion function.
   candidate = alloc_candidate_function();
   candidate->function_symbol = function_symbol;
   candidate->is_function_template = TRUE;
+  candidate->template_arg_list = template_arg_list;
   candidate->arg_matches = arg_matches;
-  candidate->arg_operand_list = arg_operand_list;
-  candidate->dest_type = dest_type;
   candidate->next = *candidate_functions;
   *candidate_functions = candidate;
 #if DEBUG
@@ -1764,8 +1759,268 @@ projection symbol.
 }  /* this_param_type_for_overload_res */
 
 
+static void check_template_arg_type_qualifiers(a_type_ptr *arg_type,
+                                               a_type_ptr *param_type)
+/*
+Check and process the type qualifiers on an argument type *arg_type and a
+parameter type *param_type as part of trying to match a function template
+to an argument list.  Adjust the types to remove qualifiers that need
+not be considered further.
+*/
+{
+  /* All combinations of type qualifiers are allowed in one way or
+     another.  For each qualifier (e.g., const, volatile,...):
+       (a)  If both the argument and the parameter are so-qualified
+            or not so-qualified, that's okay.
+       (b)  If the parameter is so-qualified but the argument is not,
+            that's okay.  For example:
+              template <class T> void f(const T &p) {}
+              void m() {int i; f(i);}
+            The "const" need not be considered further in matching
+            the template.
+       (c)  If the argument is so-qualified but the parameter is not,
+            that can possibly be accommodated by choosing a template 
+            parameter type that is so-qualified, so we call it okay
+            here and let matches_template_type figure it out.  For
+            example:
+              template <class T> void f(T &p) {}
+              void m() {const int i = 1; f(i);}
+            "T" can be chosen to be "const int".
+     Only the qualifiers of case (c) are preserved for the call to
+     matches_template_type. */
+  /* The first step is to drop any qualifiers that the argument and
+     parameter have in common -- case (a). */
+  skip_common_type_qualifiers(arg_type, param_type);
+  if (any_qualifier_missing(*arg_type, *param_type)) {
+    /* Some type qualifiers are being added -- case (b). */
+    /* All the qualifiers on the parameter type are case (b) and can be
+       removed from further consideration. */
+    *param_type = skip_typerefs(*param_type);
+  }  /* if */
+}  /* check_template_arg_type_qualifiers */
+
+
+static a_boolean array_transformation_needed_on_template_reference_init(
+                                         a_type_ptr           arg_type,
+                                         a_type_ptr           param_type,
+                                         a_template_param_ptr templ_param_list)
+                                              
+/*
+A parameter of a function template, with type param_type (a reference type),
+is being matched against an argument with type arg_type (an array type).
+Return TRUE if the array --> pointer transformation should be done.
+templ_param_list is the template parameter list.
+*/
+{
+  a_boolean  transform_needed = TRUE;
+  a_type_ptr base_param_type = f_skip_typerefs(type_pointed_to(param_type));
+
+  /* The array --> pointer transformation is done except if the template
+     parameter is explicitly a reference to an array and if it can be
+     made to match. */
+  if (is_array_type(base_param_type) &&
+      tentatively_matches_template_type(arg_type, base_param_type,
+                                        templ_param_list)) {
+    transform_needed = FALSE;
+  }  /* if */
+  return transform_needed;
+}  /* array_transformation_needed_on_template_reference_init */
+
+
+static a_boolean function_transformation_needed_on_template_reference_init(
+                                         a_type_ptr           arg_type,
+                                         a_type_ptr           param_type,
+                                         a_template_param_ptr templ_param_list)
+                                              
+/*
+A parameter of a function template, with type param_type (a reference type),
+is being matched against an argument with type arg_type (a function type).
+Return TRUE if the function --> pointer transformation should be done.
+templ_param_list is the template parameter list.
+*/
+{
+  a_boolean  transform_needed = TRUE;
+  a_type_ptr base_param_type = f_skip_typerefs(type_pointed_to(param_type));
+
+  /* The function --> pointer transformation is done except if the template
+     parameter is explicitly a reference to a function and if it can be
+     made to match. */
+  if (is_function_type(base_param_type) &&
+      tentatively_matches_template_type(arg_type, base_param_type,
+                                        templ_param_list)) {
+    transform_needed = FALSE;
+  }  /* if */
+  return transform_needed;
+}  /* function_transformation_needed_on_template_reference_init */
+
+
+static a_type_ptr function_template_call_argument_deduction(
+                                         a_symbol_ptr       template_sym,
+                                         a_type_ptr         routine_type,
+                                         an_arg_operand_ptr arg_operand_list,
+                                         a_template_arg_ptr *template_arg_list)
+/*
+Do template type deduction on a call of the function template specified by
+template_sym (not a projection symbol).  routine_type is the type of the
+function, with explicitly-specified template arguments (if any) already
+substituted in.  arg_operand_list is the list of arguments to the call.
+*template_arg_list points to the template argument list so far; anything
+deduced is added to that.  This routine returns a pointer to a routine
+type for the function as it appears after substitution with the deduced
+template arguments, or NULL if deduction failed.
+*/
+{
+  a_type_ptr         updated_routine_type = NULL;
+  a_template_symbol_supplement_ptr
+                     tssp;
+  a_routine_type_supplement_ptr
+                     rtsp;
+  a_param_type_ptr   ptp;
+  an_arg_operand_ptr arg_operand;
+  a_type_ptr         param_type, arg_type;
+  a_boolean          param_is_reference;
+  a_base_class_ptr   base_class_conv_needed;
+
+  db_enter(4, "function_template_call_argument_deduction");
+  check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
+  tssp = template_sym->variant.template_info;
+  check_assertion(routine_type->kind == (a_type_kind)tk_routine);
+  rtsp = routine_type->variant.routine.extra_info;
+  /* Look through the arguments/parameters to do template argument
+     deduction. */
+  for (ptp = rtsp->param_type_list, arg_operand = arg_operand_list;
+       ptp != NULL && arg_operand != NULL;
+       ptp = ptp->next, arg_operand = arg_operand->next) {
+    if (ptp->type_involves_deduced_template_param) {
+      /* A parameter that requires type deduction. */
+      /* Certain top-level parts of the parameter type (e.g., references)
+         are processed here before going to the type deduction routine.
+         The code here must match determine_arg_match_level and
+         overload_distinguishable. */
+      param_type = ptp->type;
+      param_is_reference = is_reference_type(param_type);
+      arg_type = arg_operand->operand.type;
+      if (is_indefinite_function_operand(&arg_operand->operand)) {
+        /* For an overloaded function, each possibility must be tried.
+           Only one is allowed to match. */
+        if (!indefinite_function_can_be_template_arg(&arg_operand->operand,
+                                                     param_type,
+                                                     &arg_type,
+                                                     template_sym)) goto done;
+      }  /* if */
+      /* See if any implicit transformations (e.g., array --> pointer) should
+         be done. */
+      if (is_array_type(arg_type) &&
+          (!param_is_reference ||
+           array_transformation_needed_on_template_reference_init(
+                   arg_type, param_type,
+                   tssp->variant.function.decl_cache.decl_info->parameters))) {
+        /* Simulate the array --> pointer transformation.  */
+        arg_type = type_after_array_to_pointer_transformation(arg_type);
+      } else if (is_a_function_designator(&arg_operand->operand) &&
+                 (!param_is_reference ||
+                  function_transformation_needed_on_template_reference_init(
+                                       arg_type, param_type,
+                                       tssp->variant.function.decl_cache.
+                                                     decl_info->parameters))) {
+        /* Simulate the function --> pointer transformation. */
+        arg_type = type_after_function_to_pointer_transformation(arg_type,
+                                                        &arg_operand->operand);
+      }  /* if */
+      if (param_is_reference) {
+        /* The parameter has a reference type. */
+        /* Drop the reference type. */
+        param_type = type_pointed_to(param_type);
+        /* Check and adjust the top-level type qualifiers. */
+        check_template_arg_type_qualifiers(&arg_type, &param_type);
+      } else {
+        /* Not a reference. */
+        /* The argument will be passed by copying it, so its cv-qualifiers
+           are not significant. */
+        arg_type = skip_typerefs(arg_type);
+        /* Top-level type qualifiers on the parameter type are also not
+           significant. */
+        param_type = skip_typerefs(param_type);
+        /* An incomplete type operand cannot be made to match anything.
+           This comes up for something like
+             struct A *p;
+             template<class T> void f(T);
+             void m() { f(*p); }
+        */
+        complete_type_is_needed(arg_type);
+        if (is_incomplete_type(arg_type)) goto done;
+      }  /* if */
+      if (is_pointer_type(arg_type) && is_pointer_type(param_type)
+#ifdef pointer_types_have_same_repr
+          && pointer_types_have_same_repr(arg_type, param_type)
+#endif /* ifdef pointer_types_have_same_repr */
+                                                               ) {
+        /* Check for cases where type qualifiers are being added down one
+           level (or deeper) in a pointer case, e.g., int * --> const int *.
+           This is another trivial conversion.
+           In general, remove one level of matching pointer types. */
+        arg_type = type_pointed_to(arg_type);
+        param_type = type_pointed_to(param_type);
+        /* Function types are not allowed to have type qualifiers, so
+           do not allow deduction that puts type qualifiers over them. */
+        if (!is_function_type(arg_type)) {
+          /* Check and adjust the top-level type qualifiers. */
+          check_template_arg_type_qualifiers(&arg_type, &param_type);
+        }  /* if */
+      }  /* if */
+      /* Note that we haven't checked that the underlying types are compatible.
+         That happens later. */
+      /* Do template argument deduction, trying to develop a list of
+         template arguments that will produce an instance that matches
+         the argument list. */
+      /* As the matching is attempted, template_arg_list is filled in with
+         the bindings for the template arguments.  This is needed during the
+         matching process to ensure that each argument is used consistently
+         and also later in this routine to build the instantiation.  The
+         MTT_ALLOW_CONVERSION option is used to allow an argument requiring
+         a conversion from Derived<T> to Base<T>.  This conversion was not
+         allowed by the ARM but has been blessed by the standards committee. */
+      if (!matches_template_type(arg_type, param_type, template_arg_list,
+                                 tssp->variant.function.decl_cache.
+                                                         decl_info->parameters,
+                                 MTT_ALLOW_CONVERSION,
+                                 &base_class_conv_needed)) {
+        /* Mismatch. */
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+#if CHECKING
+  if (arg_operand != NULL) {
+    /* We ran out of parameters, but we still have arguments.  There should
+       be an ellipsis. */
+    check_assertion_str(rtsp->has_ellipsis,
+                "function_template_call_argument_deduction: missing ellipsis");
+  } else if (ptp != NULL) {
+    /* We ran out of arguments, but we still have parameters.  The parameter
+       should have a default argument expression. */
+    check_assertion_str(ptp->has_default_arg,
+        "function_template_call_argument_deduction: missing default arg expr");
+  }  /* if */
+#endif /* CHECKING */
+  /* Make sure that the types of nontype template parameters that depend
+     on other template parameters agree with the types of the deduced
+     values.  Also check for the case where not all template parameters
+     have been deduced.  Create a routine type with all the substitution
+     done. */
+  updated_routine_type = wrapup_function_template_argument_deduction(
+                                                   *template_arg_list,
+                                                   template_sym,
+                                                   (a_template_param_ptr)NULL);
+done:;
+  db_exit();
+  return updated_routine_type;
+}  /* function_template_call_argument_deduction */
+
+
 static void try_overloaded_function_match(
                  a_symbol_ptr             overloaded_function_symbol,
+                 a_template_arg_ptr       template_arg_list,
                  an_arg_operand_ptr       arg_operand_list,
                  a_boolean                have_selector,
                  an_operand               *bound_function_selector,
@@ -1780,8 +2035,10 @@ match the argument list given by arg_operand_list and the selector given
 (if have_selector is TRUE) by bound_function_selector.  have_selector
 can be TRUE and bound_function_selector NULL when calling constructors.
 overloaded_function_symbol may be an overloaded function, a simple
-function, or a projection symbol for one of those.  bound_function_selector
-is an object pointer if selector_is_object_pointer is TRUE, an object
+function, or a projection symbol for one of those.  template_arg_list
+gives a template argument list for explicit specification of function
+templates, or is NULL otherwise.  bound_function_selector is an
+object pointer if selector_is_object_pointer is TRUE, an object
 otherwise.  Any viable functions are added to the candidate_functions
 list along with information on the level of argument matches.  If a
 match would have been found except for the absence of a selector, set
@@ -1809,6 +2066,7 @@ that are marked "explicit" are ignored.
   an_arg_operand_ptr       arg_operand;
   a_boolean                function_is_nonstatic_member_function;
   a_boolean                function_template_case;
+  a_template_arg_ptr       local_template_arg_list;
   a_type_ptr               implicit_selector_type = NULL;
 #if DEBUG
   unsigned long            narg;
@@ -1880,21 +2138,43 @@ that are marked "explicit" are ignored.
     }  /* if */
     narg = 0;
 #endif /* DEBUG */
+    local_template_arg_list = template_arg_list;
+    /* arg_match_list and end_arg_match_list are set early so we know,
+       upon goto to reject_function, what has to be freed. */
+    arg_match_list = end_arg_match_list = NULL;
     /* Remove namespace projections, if any. */
     function_symbol = fundamental_symbol_of(proj_function_symbol);
     function_template_case = (function_symbol->kind ==
                                           (a_symbol_kind)sk_function_template);
-    if (function_template_case) {
-      /* The symbol is a function template. */
-      rout = function_symbol->variant.template_info->variant.function.routine;
-    } else {
+    if (!function_template_case) {
       /* The symbol is not a function template (i.e., it's a normal
          function). */
       rout = function_symbol->variant.routine.ptr;
+      routine_type = rout->type;
+      if (template_arg_list != NULL) {
+        /* An explicit list of template arguments (e.g., f<int>) rules out
+           non-templates. */
+        goto reject_function;
+      }  /* if */
+    } else {
+      /* The symbol is a function template. */
+      rout = function_symbol->variant.template_info->variant.function.routine;
+      routine_type = rout->type;
+      if (template_arg_list != NULL) {
+        /* Substitute the explicitly-specified template arguments into the
+           template and get the updated routine type.  This also creates
+           an updated template argument list (template arguments are cast to
+           the types of the template parameters), which may be different for
+           each template considered. */
+        routine_type = substitute_template_arguments(function_symbol,
+                                                     template_arg_list,
+                                                     &local_template_arg_list);
+        /* Bail out if there is a mismatch. */
+        if (routine_type == NULL) goto reject_function;
+      }  /* if */
     }  /* if */
-    routine_type = skip_typerefs(rout->type);
+    routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
-    arg_match_list = end_arg_match_list = NULL;
     if (effects_copy_initialization && rout->is_explicit_constructor) {
       /* Constructors marked "explicit" are to be ignored. */
       goto reject_function;
@@ -1934,6 +2214,20 @@ that are marked "explicit" are ignored.
 #endif /* DEBUG */
     }  /* if */
     /* The function looks okay from the standpoint of argument count. */
+    if (function_template_case) {
+      /* Do template argument deduction on the parameter types. */
+      routine_type = function_template_call_argument_deduction(
+                                                   function_symbol,
+                                                   routine_type,
+                                                   arg_operand_list,
+                                                   &local_template_arg_list);
+      if (routine_type == NULL) {
+        /* Deduction failed. */
+        goto reject_function;
+      }  /* if */
+      routine_type = skip_typerefs(routine_type);
+      rtsp = routine_type->variant.routine.extra_info;
+    }  /* if */
     /* Look at each argument and see whether or not it can match the formal
        parameter, and if so, how well. */
     reached_ellipsis = FALSE;
@@ -1973,19 +2267,14 @@ that are marked "explicit" are ignored.
 #endif /* DEBUG */
       } else {
         /* Both the actual argument and formal parameter are available.
-           See how well they match.  Don't do this for arguments of
-           function templates that involve template types (that's handled
-           later by function_template_matches_operand_list). */
-        if (!function_template_case || !param->type_involves_template_param) {
-          /* Compare their types. */
-          determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
-                                    param->type,
-                                    /*try_user_conversions=*/
+           See how well they match. */
+        determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
+                                  param->type,
+                                  /*try_user_conversions=*/
                                                   !effects_copy_initialization,
-                                    arg_match);
-          /* If no match is possible, go on to the next function. */
-          if (arg_match->match_level == aml_none) goto reject_function;
-        }  /* if */
+                                  arg_match);
+        /* If no match is possible, go on to the next function. */
+        if (arg_match->match_level == aml_none) goto reject_function;
       }  /* if */
       /* Go on to the next parameter. */
       if (!reached_ellipsis) param = param->next;
@@ -1996,8 +2285,6 @@ that are marked "explicit" are ignored.
                     "try_overloaded_function_match: no param, no default arg");
     /* All the arguments can be made to match the parameters. */
     /* See if the "this" parameter, if any, matches. */
-    /* Template functions do not have "this" parameters usually, but member
-       templates do. */
     /* Do not process the "this" parameter for constructors in a conversion
        case. */
     if (!ctor_conversion_case) {
@@ -2072,11 +2359,10 @@ that are marked "explicit" are ignored.
     if (function_template_case) {
       /* The symbol is a function template. */
       add_function_template_to_candidate_functions_list(
-                                                       proj_function_symbol,
-                                                       arg_match_list,
-                                                       arg_operand_list,
-                                                       (a_type_ptr)NULL,
-                                                       candidate_functions);
+                                               proj_function_symbol,
+                                               local_template_arg_list,
+                                               arg_match_list,
+                                               candidate_functions);
     } else {
       /* The symbol is a normal function. */
       add_function_to_candidate_functions_list(proj_function_symbol,
@@ -2087,10 +2373,13 @@ that are marked "explicit" are ignored.
       /* If we are analyzing a constructor to resolve an implicit or
          explicit conversion, set "conversion" appropriately.
          Note that this can happen for the template case also, with a
-         member template. */
+         member template, but "rout" in that case is still the
+         prototype instantiation version of the routine.  The true
+         routine is not know until later, when the template is chosen
+         and instantiated. */
       a_candidate_function_ptr candidate = *candidate_functions;
       candidate->is_user_conversion = TRUE;
-      candidate->conversion.routine = rout;
+      if (!function_template_case) candidate->conversion.routine = rout;
     }  /* if */
     goto next_function;
 reject_function:
@@ -2321,397 +2610,6 @@ entry to the next argument match.
 */
 #define advance_arg_match(cfp)                                        \
   ((cfp)->current_arg_match = (cfp)->current_arg_match->next)
-
-
-static void check_template_arg_type_qualifiers(
-                                             a_type_ptr *arg_type,
-                                             a_type_ptr *param_type,
-                                             a_boolean  *type_qualifiers_added)
-/*
-Check and process the type qualifiers on an argument type *arg_type and a
-parameter type *param_type as part of trying to match a function template
-to an argument list.  Adjust the types to remove qualifiers that need
-not be considered further.  Set *type_qualifiers_added to TRUE if any
-type qualifiers are added in the conversion from *arg_type to *param_type
-(that serves as a tie-breaker in overload resolution).
-*/
-{
-  /* All combinations of type qualifiers are allowed in one way or
-     another.  For each qualifier (e.g., const, volatile,...):
-       (a)  If both the argument and the parameter are so-qualified
-            or not so-qualified, that's okay.
-       (b)  If the parameter is so-qualified but the argument is not,
-            that's okay, but it's remembered as a less desirable
-            tie-breaker case.  For example:
-              template <class T> void f(const T &p) {}
-              void m() {int i; f(i);}
-            The "const" need not be considered further in matching
-            the template.
-       (c)  If the argument is so-qualified but the parameter is not,
-            that can possibly be accommodated by choosing a template 
-            parameter type that is so-qualified, so we call it okay
-            here and let matches_template_type figure it out.  For
-            example:
-              template <class T> void f(T &p) {}
-              void m() {const int i = 1; f(i);}
-            "T" can be chosen to be "const int".
-     Only the qualifiers of case (c) are preserved for the call to
-     matches_template_type. */
-  /* The first step is to drop any qualifiers that the argument and
-     parameter have in common -- case (a). */
-  skip_common_type_qualifiers(arg_type, param_type);
-  if (any_qualifier_missing(*arg_type, *param_type)) {
-    /* Some type qualifiers are being added -- case (b). */
-    *type_qualifiers_added = TRUE;
-    /* All the qualifiers on the parameter type are case (b) and can be
-       removed from further consideration. */
-    *param_type = skip_typerefs(*param_type);
-  }  /* if */
-}  /* check_template_arg_type_qualifiers */
-
-
-static a_boolean array_transformation_needed_on_template_reference_init(
-                                         a_type_ptr           arg_type,
-                                         a_type_ptr           param_type,
-                                         a_template_param_ptr templ_param_list)
-                                              
-/*
-A parameter of a function template, with type param_type (a reference type),
-is being matched against an argument with type arg_type (an array type).
-Return TRUE if the array --> pointer transformation should be done.
-templ_param_list is the template parameter list.
-*/
-{
-  a_boolean  transform_needed = TRUE;
-  a_type_ptr base_param_type = f_skip_typerefs(type_pointed_to(param_type));
-
-  /* The array --> pointer transformation is done except if the template
-     parameter is explicitly a reference to an array and if it can be
-     made to match. */
-  if (is_array_type(base_param_type) &&
-      tentatively_matches_template_type(arg_type, base_param_type,
-                                        templ_param_list)) {
-    transform_needed = FALSE;
-  }  /* if */
-  return transform_needed;
-}  /* array_transformation_needed_on_template_reference_init */
-
-
-static a_boolean function_transformation_needed_on_template_reference_init(
-                                         a_type_ptr           arg_type,
-                                         a_type_ptr           param_type,
-                                         a_template_param_ptr templ_param_list)
-                                              
-/*
-A parameter of a function template, with type param_type (a reference type),
-is being matched against an argument with type arg_type (a function type).
-Return TRUE if the function --> pointer transformation should be done.
-templ_param_list is the template parameter list.
-*/
-{
-  a_boolean  transform_needed = TRUE;
-  a_type_ptr base_param_type = f_skip_typerefs(type_pointed_to(param_type));
-
-  /* The function --> pointer transformation is done except if the template
-     parameter is explicitly a reference to a function and if it can be
-     made to match. */
-  if (is_function_type(base_param_type) &&
-      tentatively_matches_template_type(arg_type, base_param_type,
-                                        templ_param_list)) {
-    transform_needed = FALSE;
-  }  /* if */
-  return transform_needed;
-}  /* function_transformation_needed_on_template_reference_init */
-
-
-static a_boolean function_template_matches_operand_list(
-                                                  a_candidate_function_ptr cfp)
-/*
-Find out whether or not an instantiation of the function template
-indicated in the candidate function entry *cfp can be made to match the
-argument list recorded therein.  If so, return TRUE and set template_arg_list
-in the candidate function entry to the template argument
-list for the specific instance of the template.  Note that it has
-already been determined that the function template has the right
-number of parameters, and the non-template parameter matches have been
-evaluated (but not checked to see if the match is good enough).
-*/
-{
-  a_symbol_ptr       templ_sym;
-  a_param_type_ptr   ptp;
-  a_template_arg_ptr templ_arg_list = NULL;
-  a_boolean          matches = FALSE;
-  a_routine_ptr      routine;
-  an_arg_operand_ptr arg_operand;
-  a_routine_type_supplement_ptr
-                     rtsp;
-  a_type_ptr         param_type, arg_type, eff_param_type, routine_type;
-  a_base_class_ptr   base_class_conv_needed;
-  an_arg_match_summary_ptr
-                     arg_match;
-  a_boolean          param_is_reference, type_qualifiers_added;
-  a_boolean          class_copy_case, pointer_case;
-  a_template_symbol_supplement_ptr
-		     tssp;
-
-  db_enter(4, "function_template_matches_operand_list");
-  templ_sym = cfp->function_symbol;
-  /* Remove projections for namespace/member templates. */
-  templ_sym = fundamental_symbol_of(templ_sym);
-  tssp = template_supplement_for_symbol(templ_sym);
-#if CHECKING
-  if (templ_sym->kind != (a_symbol_kind)sk_function_template) {
-    internal_error("function_template_matches_operand_list: bad symbol");
-  }  /* if */
-#endif /* CHECKING */
-  if (templ_sym->variant.template_info->variant.function.cannot_be_called) {
-    /* The function parameters do not use all of the template parameters,
-       so this function cannot be made to match.  An error was issued
-       at the point of declaration. */
-    goto done;
-  }  /* if */
-  routine = templ_sym->variant.template_info->variant.function.routine;
-  routine_type = skip_typerefs(routine->type);
-  rtsp = routine_type->variant.routine.extra_info;
-  ptp = rtsp->param_type_list;
-  arg_operand = cfp->arg_operand_list;
-  arg_match = cfp->arg_matches;
-  if (arg_match->is_match_for_this_param) {
-    /* A member template.  It has a "this" parameter, which never involves
-       a template parameter type (because by the time the member template is
-       used, it's a member of an instantiated class).  The "this" parameter
-       is represented in the arg_match list, but not in the ptp and
-       arg_operand lists, so advance arg_match. */
-    arg_match = arg_match->next;
-  }  /* if */
-  /* Compare the types of the arguments to the parameter types. */
-  for (; ptp != NULL && arg_operand != NULL;
-       ptp = ptp->next, arg_operand = arg_operand->next,
-                                                 arg_match = arg_match->next) {
-    /* Try to match up the parameter type and the argument type. */
-    if (!ptp->type_involves_template_param) {
-      /* A parameter not involving a template parameter type.  The argument
-         is already known to match the parameter.  The ARM requires
-         an exact match without even trivial conversions, but later the
-         language was changed to eliminate that restriction. */
-    } else {
-      /* A parameter involving a template parameter type. */
-      /* The ARM says the match must be exact, without even trivial
-         conversions, but the rules have since been broadened to allow
-         some trivial conversions (involving references, array and
-         function type decay, and type qualifiers). */
-      /* The code here must match determine_arg_match_level and
-         overload_distinguishable. */
-      /* arg_match->param_type should be set, but we don't have the
-         information (yet). */
-      param_type = ptp->type;
-      param_is_reference = is_reference_type(param_type);
-      arg_type = arg_operand->operand.type;
-      type_qualifiers_added = FALSE;
-      pointer_case = FALSE;
-      if (is_indefinite_function_operand(&arg_operand->operand)) {
-        /* For an overloaded function, each possibility must be tried.
-           Only one is allowed to match. */
-        if (!indefinite_function_can_be_template_arg(&arg_operand->operand,
-                                                     param_type,
-                                                     &arg_type,
-                                                     templ_sym)) goto done;
-      }  /* if */
-      /* See if any implicit transformations (e.g., array --> pointer) should
-         be done. */
-      if (is_array_type(arg_type) &&
-          (!param_is_reference ||
-           array_transformation_needed_on_template_reference_init(
-                   arg_type, param_type,
-                   tssp->variant.function.decl_cache.decl_info->parameters))) {
-        /* Simulate the array --> pointer transformation.  */
-        arg_type = type_after_array_to_pointer_transformation(arg_type);
-      } else if (is_a_function_designator(&arg_operand->operand) &&
-                 (!param_is_reference ||
-                  function_transformation_needed_on_template_reference_init(
-                                       arg_type, param_type,
-                                       tssp->variant.function.decl_cache.
-                                                     decl_info->parameters))) {
-        /* Simulate the function --> pointer transformation. */
-        arg_type = type_after_function_to_pointer_transformation(arg_type,
-                                                        &arg_operand->operand);
-      }  /* if */
-      if (param_is_reference) {
-        /* The parameter has a reference type. */
-        /* Drop the reference type. */
-        param_type = type_pointed_to(param_type);
-        /* Check and adjust the top-level type qualifiers. */
-        check_template_arg_type_qualifiers(&arg_type, &param_type,
-                                           &type_qualifiers_added);
-      } else {
-        /* Not a reference. */
-        /* The argument will be passed by copying it, so its cv-qualifiers
-           are not significant. */
-        arg_type = skip_typerefs(arg_type);
-        /* Top-level type qualifiers on the parameter type are also not
-           significant. */
-        param_type = skip_typerefs(param_type);
-        /* An incomplete type operand cannot be made to match anything.
-           This comes up for something like
-             struct A *p;
-             template<class T> void f(T);
-             void m() { f(*p); }
-        */
-        complete_type_is_needed(arg_type);
-        if (is_incomplete_type(arg_type)) goto done;
-      }  /* if */
-      if (is_pointer_type(arg_type) && is_pointer_type(param_type)
-#ifdef pointer_types_have_same_repr
-          && pointer_types_have_same_repr(arg_type, param_type)
-#endif /* ifdef pointer_types_have_same_repr */
-                                                               ) {
-        /* Check for cases where type qualifiers are being added down one
-           level in a pointer case, e.g., int * --> const int *.
-           This is another trivial conversion.
-           In general, remove one level of matching pointer types. */
-        pointer_case = TRUE;
-        arg_type = type_pointed_to(arg_type);
-        param_type = type_pointed_to(param_type);
-        /* Function types are not allowed to have type qualifiers, so
-           do not allow deduction that puts type qualifiers over them. */
-        if (!is_function_type(arg_type)) {
-          /* Check and adjust the top-level type qualifiers. */
-          check_template_arg_type_qualifiers(&arg_type, &param_type,
-                                             &type_qualifiers_added);
-        }  /* if */
-      }  /* if */
-      /* Note that we haven't checked that the underlying types are compatible.
-         That happens later. */
-      /* Try to develop a template argument list that will allow this
-         function template to match the argument list. */
-      /* As the matching is attempted, templ_arg_list is filled in with
-         the bindings for the template arguments.  This is needed during the
-         matching process to ensure that each argument is used consistently
-         and also later in this routine to build the instantiation.  The
-         allow_conversion argument is used to allow an
-         argument requiring a conversion from Derived<T> to Base<T>.
-         This conversion was not allowed by the ARM but has been blessed
-         by the standards committee. */
-      if (!matches_template_type(arg_type, param_type, &templ_arg_list,
-                                 tssp->variant.function.decl_cache.
-                                                         decl_info->parameters,
-                                 MTT_ALLOW_CONVERSION,
-                                 &base_class_conv_needed)) {
-        /* Mismatch. */
-        goto done;
-      }  /* if */
-      /* The argument can be made to match. */
-      if (type_qualifiers_added) {
-        /* The match is one that involves adding type qualifiers, which can be
-           a tie-breaker later.  For example:
-             template <class T> void f(T) {}
-             template <class T> void f(const T&) {}
-             void m() { int i; f(i); }
-        */
-        arg_match->conversion.std.type_qualifiers_added = TRUE;
-      }  /* if */
-      class_copy_case = FALSE;
-      if (base_class_conv_needed != NULL) {
-        /* The extension allowing a standard conversion of a derived class to
-           a base class was used. */
-        arg_match->match_level = aml_std_conversion;
-        arg_match->conversion.std.cast_base_class = base_class_conv_needed;
-        arg_match->conversion.std.nontrivial_conversion = TRUE;
-        /* Save information needed to check whether or not a copy
-           constructor is needed. */
-        class_copy_case = TRUE;
-        eff_param_type = base_class_conv_needed->type;
-      } else {
-        /* Normal case: exact match. */
-        arg_match->match_level = aml_exact;
-        if (is_class_struct_union_type(arg_type)) {
-          /* Save information needed to check whether or not a copy
-             constructor is needed. */
-          class_copy_case = TRUE;
-          eff_param_type = skip_typerefs(arg_type);
-        }  /* if */
-      }  /* if */
-      if (class_copy_case && !param_is_reference && !pointer_case) {
-        /* See if a copy constructor is needed for a class copy. */
-        if (routine->special_kind == (a_special_function_kind)sfk_constructor&&
-            eff_param_type == routine->source_corresp.parent.class_type) {
-          /* The routine is a member template constructor, and it's
-             threatening to become a copy constructor that copies its
-             own type by value, which is not allowed.  Avoid looking for
-             a copy constructor here, since that would cause a recursion
-             loop.  If this routine is selected, an error will be issued
-             on the attempt to instantiate the function. */
-          arg_match->conversion.class_identity_or_bitwise_copy = TRUE;
-        } else {
-          set_user_conversion_for_class_copy(&arg_operand->operand,
-                                             arg_match,
-                                             eff_param_type);
-          if (arg_match->match_level == aml_none) {
-            /* This can come up for a parameter that is a class, when the
-               class only has a copy constructor that copies nonconsts, and
-               the actual argument is a const object of that class.
-               The template deduction succeeds, but the function cannot be
-               called. */
-            arg_match->conversion.unusable = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
-    /* For a conversion function (a member template), also do deduction on
-       the return type. */
-    a_type_ptr return_type = return_type_of(routine_type);
-    a_type_ptr eff_dest_type = rvalue_type(cfp->dest_type);
-    if (!matches_template_type(eff_dest_type, return_type, &templ_arg_list,
-                               tssp->variant.function.decl_cache.
-                                                         decl_info->parameters,
-                               MTT_NO_FLAGS,
-                               (a_base_class_ptr *)NULL)) {
-      /* Mismatch. */
-      goto done;
-    }  /* if */
-  }  /* if */
-  /* Make sure that the types of nontype template parameters that depend
-     on other template parameters agree with the types of the deduced
-     values.  Also check for the case where not all template parameters
-     have been deduced. */
-  if (wrapup_function_template_argument_deduction(
-              templ_arg_list, templ_sym, (a_template_param_ptr)NULL) == NULL) {
-    goto done;
-  }  /* if */
-  if (arg_operand != NULL) {
-    /* We ran out of parameters, but we still have arguments.  There should
-       be an ellipsis. */
-#if CHECKING
-    if (!rtsp->has_ellipsis) {
-      internal_error(
-                   "function_template_matches_operand_list: missing ellipsis");
-    }  /* if */
-#endif /* CHECKING */
-    /* An ellipsis match.  This wasn't allowed in the ARM, but it's okay
-       now. */
-#if CHECKING
-  } else if (ptp != NULL) {
-    /* We ran out of arguments, but we still have parameters.  The parameter
-       should have a default argument expression. */
-    if (!ptp->has_default_arg) {
-      internal_error(
-           "function_template_matches_operand_list: missing default arg expr");
-    }  /* if */
-#endif /* CHECKING */
-  }  /* if */
-  /* The function template matches the operand list. */
-  matches = TRUE;
-  cfp->template_arg_list = templ_arg_list;
-done:
-  if (!matches) {
-    /* Free the template argument list if we will not use it. */
-    free_template_arg_list(templ_arg_list);
-  }  /* if */
-  db_exit();
-  return matches;
-}  /* function_template_matches_operand_list */
 
 
 static a_type_ptr drop_tiebreaker_ref_ptr_types(
@@ -3040,8 +2938,8 @@ static void select_best_candidate_functions(
 overloaded function call.  From that set, select the best functions
 and set *candidate_functions to that set.  Other candidate functions
 that do not make the "best" set are freed.  On return from this function,
-the *candidate_functions list has no elements if there are no viable
-functions, has more than one element if the call is ambiguous, and
+the *candidate_functions list has no members if there are no viable
+functions, has more than one member if the call is ambiguous, and
 has exactly one member if the call is valid.  *source_pos is the source
 position of the reference.  If the best functions could not be selected
 because there were error arguments in the matches,
@@ -3064,31 +2962,6 @@ is set to NULL.
   }  /* if */
 #endif /* DEBUG */
   *undecidable_because_of_error = FALSE;
-  /* See if there are any function templates.  Try matching them to the
-     arguments.  Remove those that cannot be made to match from the candidate
-     functions list (by rebuilding the list as we go through it).  The rest
-     go on to participate in the general algorithm below. */
-  *candidate_functions = end_candidate_functions = NULL;
-  for (cfp = candidates; cfp != NULL; cfp = cfp_next) {
-    cfp_next = cfp->next;
-    cfp->next = NULL;
-    if (cfp->is_function_template &&
-        !function_template_matches_operand_list(cfp)) {
-      /* A function template that cannot be made to match.  Free it instead
-         of keeping it on the list.  Note that this call only frees one
-         entry because the "next" pointer has been cleared. */
-      free_candidate_function_list(cfp);
-    } else {
-      /* A non-template function, or a template function that can be made
-         to match the operands we have.  Keep it on the list. */
-      if (end_candidate_functions == NULL) {
-        *candidate_functions = cfp;
-      } else {
-        end_candidate_functions->next = cfp;
-      }  /* if */
-      end_candidate_functions = cfp;
-    }  /* if */
-  }  /* for */
   candidates = *candidate_functions;
   /* If there are no functions or there is exactly one function, the
      list is already correct. */
@@ -3101,9 +2974,6 @@ is set to NULL.
        match for at least one argument than every other possible function
        (but not necessarily the same argument for each function).  Otherwise,
        the call is illegal." */
-    /* Note that templates that could be made to match above now participate
-       in the general overload resolution.  There's a tie-breaker that makes
-       them worse than an otherwise-equivalent non-template case. */
     /* We form the intersection of best-match sets by putting all functions
        in the best-match set and then doing an intersection after each argument
        best-match set is determined. */
@@ -3326,6 +3196,7 @@ create_final_list:
 
 a_symbol_ptr select_overloaded_function(
                            a_symbol_ptr             overloaded_function_symbol,
+                           a_template_arg_ptr       template_arg_list,
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
                            an_arg_operand_ptr       arg_operand_list,
@@ -3337,19 +3208,21 @@ a_symbol_ptr select_overloaded_function(
 Determine which of the functions under overloaded_function_symbol should
 be called given an argument list arg_operand_list.  The symbol may be an
 overloaded function, a simple member or nonmember function, or a projection
-symbol for one of those.  If have_selector is TRUE, *bound_function_selector
-is a selector object.  Note that, for constructor calls,
-bound_function_selector can be NULL when have_selector is TRUE; we have a
-selector, but it's not available.  That's okay for constructors, because
-they cannot be const- or volatile-qualified, and the selector expression
-is only needed for that discrimination.  call_position is the source
-position of the call.  If an error of some sort is detected, issue an
-error at that position and return NULL.  err_none_applies is the error
-code to use when no function applies, and err_ambiguous is the error code
-to use when more than one function applies.  If there is no error,
-an argument match list is returned in *arg_match_list (the caller must
-free this) and the symbol selected is returned.  This routine is called
-only in C++ mode.
+symbol for one of those.  If template_arg_list is non-NULL, it is a
+set of explicit arguments for a function template.  If have_selector
+is TRUE, *bound_function_selector is a selector object.  Note that,
+for constructor calls, bound_function_selector can be NULL when
+have_selector is TRUE; we have a selector, but it's not available.
+That's okay for constructors, because they cannot be const- or
+volatile-qualified, and the selector expression is only needed for
+that discrimination.  call_position is the source position of the
+call.  If an error of some sort is detected, issue an error at that
+position and return NULL.  err_none_applies is the error code to use
+when no function applies, and err_ambiguous is the error code to use
+when more than one function applies.  If there is no error, an
+argument match list is returned in *arg_match_list (the caller must
+free this) and the symbol selected is returned.  This routine is
+called only in C++ mode.
 */
 {
   a_candidate_function_ptr candidate_functions;
@@ -3362,6 +3235,7 @@ only in C++ mode.
   candidate_functions = NULL;
   /* Evaluate all matches in the function set. */
   try_overloaded_function_match(overloaded_function_symbol,
+                                template_arg_list,
                                 arg_operand_list,
                                 have_selector,
                                 bound_function_selector,
@@ -4236,6 +4110,7 @@ overloaded operator cases.
 
 a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                            a_symbol_ptr             overloaded_function_symbol,
+                           a_template_arg_ptr       template_arg_list,
                            a_boolean                have_selector,
                            an_operand               *bound_function_selector,
                            an_arg_operand_ptr       arg_operand_list,
@@ -4250,27 +4125,30 @@ a_symbol_ptr select_and_prepare_to_call_overloaded_function(
 Determine which of the functions under overloaded_function_symbol should
 be called given an argument list arg_operand_list.  The symbol may be an
 overloaded function, a simple member or nonmember function, or a projection
-symbol for one of those.  If have_selector is TRUE, *bound_function_selector
-is a selector object.  Note that, for constructor calls,
-bound_function_selector can be NULL when have_selector is TRUE; we have a
-selector, but it's not available.  That's okay for constructors, because
-they cannot be const- or volatile-qualified, and the selector expression
-is only needed for that discrimination.  If have_selector is FALSE,
-bound_function_selector must still point at an operand that can be filled
-in if an implicit selector is generated is_qualified_name is TRUE if a
-qualified name was used to name the function (that suppresses the
-virtual-ness of the function).  arg_operand_list is freed by this
-routine.  call_position is the source position of the call.  If an
-error of some sort is detected, issue an error at that position and
-return NULL.  err_none_applies is the error code to use when no
-function applies, and err_ambiguous is the error code to use when more
-than one function applies.  If there is no error, an operand for the
-function is built in *function_operand, an expression-form argument
-list is built and returned in *arg_expr_list (with the arguments cast
-to the proper types), and the symbol selected is returned.  (The
-symbol returned is never a projection symbol.)  function_position is
-the position of the function name or equivalent in the call, usually
-the same as call_position.  This routine is called only in C++ mode.
+symbol for one of those.  If template_arg_list is non-NULL, it is a list
+of explicitly-specified arguments for a function template.  If
+have_selector is TRUE, *bound_function_selector is a selector object.
+Note that, for constructor calls, bound_function_selector can be NULL
+when have_selector is TRUE; we have a selector, but it's not
+available.  That's okay for constructors, because they cannot be
+const- or volatile-qualified, and the selector expression is only
+needed for that discrimination.  If have_selector is FALSE,
+bound_function_selector must still point at an operand that can be
+filled in if an implicit selector is generated is_qualified_name is
+TRUE if a qualified name was used to name the function (that
+suppresses the virtual-ness of the function).  arg_operand_list is
+freed by this routine.  call_position is the source position of the
+call.  If an error of some sort is detected, issue an error at that
+position and return NULL.  err_none_applies is the error code to use
+when no function applies, and err_ambiguous is the error code to use
+when more than one function applies.  If there is no error, an operand
+for the function is built in *function_operand, an expression-form
+argument list is built and returned in *arg_expr_list (with the
+arguments cast to the proper types), and the symbol selected is
+returned.  (The symbol returned is never a projection symbol.)
+function_position is the position of the function name or equivalent
+in the call, usually the same as call_position.  This routine is
+called only in C++ mode.
 */
 {
   an_arg_match_summary_ptr arg_match_list;
@@ -4279,6 +4157,7 @@ the same as call_position.  This routine is called only in C++ mode.
   db_enter(4, "select_and_prepare_to_call_overloaded_function");
   /* Select the best function out of the overload set. */
   function_symbol = select_overloaded_function(overloaded_function_symbol,
+                                               template_arg_list,
                                                have_selector,
                                                bound_function_selector,
                                                arg_operand_list,
@@ -4359,6 +4238,11 @@ This routine is only used in C++ mode.
   a_candidate_function_ptr  candidate;
   a_base_class_ptr          bcp;
   a_boolean                 class_object_adjustment_required = FALSE;
+  a_boolean                 template_conversions_started;
+  a_boolean                 function_template_case;
+  a_template_arg_ptr        template_arg_list;
+  a_template_symbol_supplement_ptr
+                            tssp;
 
   db_enter(4, "try_conversion_function_match");
   /* This routine is similar to try_overloaded_function_match. */
@@ -4368,10 +4252,23 @@ This routine is only used in C++ mode.
   /* If the source type is a template class, instantiate it to make its
      conversion functions visible. */
   instantiate_template_class(source_type);
-  /* Look at all the conversion functions for the source class. */
+  /* Look at all the conversion functions for the source class.  After the
+     end of the normal list, if we have a specific dest_type go through the
+     list of template conversion functions. */
+  template_conversions_started = FALSE;
   for (slep = symbol_supplement_for_class(source_type)->conversion_list;
-       slep != NULL;
+       ;
        slep = slep->next) {
+    if (slep == NULL) {
+      /* Either exit the loop or, if the list of template conversion functions
+         is yet to be processed, process that. */
+      if (!template_conversions_started && dest_type != NULL) {
+        template_conversions_started = TRUE;
+        slep = symbol_supplement_for_class(source_type)->
+                                                    conversion_template_list;
+      }  /* if */
+      if (slep == NULL) break;
+    }  /* if */
     conversion_symbol = slep->symbol;
 #if DEBUG
     if (debug_level >= 4) {
@@ -4380,10 +4277,42 @@ This routine is only used in C++ mode.
     }  /* if */
 #endif /* DEBUG */
     base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
-    conv_routine_type = routine_symbol_type(base_conversion_symbol);
+    function_template_case = (base_conversion_symbol->kind ==
+                                          (a_symbol_kind)sk_function_template);
+    if (!function_template_case) {
+      /* The symbol is not a template. */
+      conversion_routine = base_conversion_symbol->variant.routine.ptr;
+      conv_routine_type = conversion_routine->type;
+    } else {
+      /* The symbol is a function template. */
+      /* Do type deduction on the return type. */
+      tssp = base_conversion_symbol->variant.template_info;
+      conversion_routine = tssp->variant.function.routine;
+      conv_routine_type = conversion_routine->type;
+      return_type = return_type_of(conv_routine_type);
+      template_arg_list = NULL;
+      if (!matches_template_type(rvalue_type(dest_type),
+                                 return_type,
+                                 &template_arg_list,
+                                 tssp->variant.function.decl_cache.
+                                                         decl_info->parameters,
+                                 MTT_NO_FLAGS,
+                                 (a_base_class_ptr *)NULL)) {
+        /* Type deduction failed, so the conversion function is not viable. */
+        goto next_function;
+      }  /* if */
+      /* Make a version of the routine type with the proper types/values
+         substituted for the template parameters. */
+      conv_routine_type = wrapup_function_template_argument_deduction(
+                                                   template_arg_list, 
+                                                   base_conversion_symbol,
+                                                   (a_template_param_ptr)NULL);
+      if (conv_routine_type == NULL) goto next_function;
+    }  /* if */
     /* Is the type returned by this routine a type we want? */
     compatible = FALSE;
     clear_std_conv_descr(&std_conversion);
+    conv_routine_type = skip_typerefs(conv_routine_type);
     return_type = return_type_of(conv_routine_type);
     result_is_an_lvalue = is_reference_type(conv_routine_type->
                                                   variant.routine.return_type);
@@ -4552,7 +4481,6 @@ This routine is only used in C++ mode.
       a_type_ptr eff_this_param_type =
                            this_param_type_for_overload_res(conv_routine_type,
                                                             conversion_symbol);
-      conversion_routine = base_conversion_symbol->variant.routine.ptr;
       selector_match_with_this_param(source_operand,
                                      /*selector_is_object_pointer=*/FALSE,
                                      conversion_routine,
@@ -4564,82 +4492,34 @@ This routine is only used in C++ mode.
         /* Add the conversion function to the candidate functions list. */
         this_match_ptr = alloc_arg_match_summary();
         *this_match_ptr = this_match;
-        add_function_to_candidate_functions_list(conversion_symbol,
-                                                 this_match_ptr,
-                                                 candidate_functions);
+        if (function_template_case) {
+          add_function_template_to_candidate_functions_list(
+                                                   conversion_symbol,
+                                                   template_arg_list,
+                                                   this_match_ptr,
+                                                   candidate_functions);
+          /* candidate->conversion.routine and
+             candidate->conversion.routine_symbol are not set now.
+             They are set later if the function is instantiated. */
+        } else {
+          /* The routine is not a template. */
+          add_function_to_candidate_functions_list(conversion_symbol,
+                                                   this_match_ptr,
+                                                   candidate_functions);
+          candidate = *candidate_functions;
+          candidate->conversion.routine = conversion_routine;
+          candidate->conversion.routine_symbol = conversion_symbol;
+        }  /* if */
         candidate = *candidate_functions;
         candidate->is_user_conversion = TRUE;
-        candidate->conversion.routine = conversion_routine;
-        candidate->conversion.routine_symbol = conversion_symbol;
         candidate->conversion.class_object_adjustment_required =
                                               class_object_adjustment_required;
         candidate->conversion.std = std_conversion;
         candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
       }  /* if */
     }  /* if */
+next_function:;
   }  /* for */
-  /* Look at template conversion functions only if we have a specific type. */
-  if (dest_type != NULL) {
-    /* Look at all the template conversion functions for the source class. */
-    for (slep = symbol_supplement_for_class(source_type)->
-                                                      conversion_template_list;
-         slep != NULL;
-         slep = slep->next) {
-      conversion_symbol = slep->symbol;
-#if DEBUG
-      if (debug_level >= 4) {
-        db_symbol(conversion_symbol,
-                  "try_conversion_function_match: considering ", 2); 
-      }  /* if */
-#endif /* DEBUG */
-      base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
-      conversion_routine = base_conversion_symbol->variant.template_info->
-                                                      variant.function.routine;
-      conv_routine_type = skip_typerefs(conversion_routine->type);
-      /* We don't do any checking that the return type of the conversion
-         can be made to match.  That's done as part of type deduction
-         in function_template_matches_operand_list.  However, we do
-         check that the conversion function returns a reference if an
-         lvalue is required. */
-      result_is_an_lvalue = is_reference_type(conv_routine_type->
-                                                  variant.routine.return_type);
-      if (need_lvalue_result && !result_is_an_lvalue) {
-        /* We need an lvalue result but the conversion function does
-           not return one. */
-      } else {
-        /* See whether or not this conversion function can be called for this
-           argument (i.e., are the type qualifiers okay), and how good the
-           match is. */
-        a_type_ptr eff_this_param_type =
-                           this_param_type_for_overload_res(conv_routine_type,
-                                                            conversion_symbol);
-        selector_match_with_this_param(source_operand,
-                                       /*selector_is_object_pointer=*/FALSE,
-                                       conversion_routine,
-                                       eff_this_param_type,
-                                       &this_match);
-        /* Ignore this function if it cannot be called for this argument. */
-        if (this_match.match_level != aml_none) {
-          /* The routine is viable. */
-          /* Add the conversion function to the candidate functions list. */
-          this_match_ptr = alloc_arg_match_summary();
-          *this_match_ptr = this_match;
-          add_function_template_to_candidate_functions_list(
-                                                      conversion_symbol,
-                                                      this_match_ptr,
-                                                      (an_arg_operand_ptr)NULL,
-                                                      dest_type,
-                                                      candidate_functions);
-          candidate = *candidate_functions;
-          candidate->is_user_conversion = TRUE;
-          /* candidate->conversion.routine and
-             candidate->conversion.routine_symbol are not set now.
-             They are set later if the function is instantiated. */
-          candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
   db_exit();
 }  /* try_conversion_function_match */
 
@@ -5408,7 +5288,7 @@ considered.
                                  specific_type) != NULL) {
       /* This specific type was tried when the first operand was
          processed, so do not try it again (if we did, it would
-        look like an ambiguity). */
+         look like an ambiguity). */
       previously_handled = TRUE;
     }  /* if */
   }  /* if */
@@ -6008,6 +5888,7 @@ functions could still apply).
                  the second operand as the first actual argument . */
               try_overloaded_function_match(
                                          member_functions_symbol,
+                                         (a_template_arg_ptr)NULL,
                                          arg_operand_list2,
                                          /*have_selector=*/TRUE,
                                          operand_1,
@@ -6051,6 +5932,7 @@ functions could still apply).
             } else {
               try_overloaded_function_match(
                                          nonmember_functions_symbol,
+                                         (a_template_arg_ptr)NULL,
                                          arg_operand_list,
                                          /*have_selector=*/FALSE,
                                          (an_operand *)NULL,
@@ -6381,6 +6263,7 @@ because of an error.  This routine is used only in C++ mode.
       /* The class has constructors. */
       /* Try all the constructors with that argument list. */
       try_overloaded_function_match(constructor_symbol,
+                                    (a_template_arg_ptr)NULL,
                                     arg_operand_list,
                                     /*have_selector=*/FALSE, /* sic */
                                     (an_operand *)NULL,

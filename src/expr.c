@@ -1414,6 +1414,7 @@ is after the closing parenthesis of the argument list.
     /* Note that a special case allows passing have_selector == TRUE and
        NULL for the selector operand when dealing with constructors. */
     constructor_sym = select_overloaded_function(constructor_sym,
+                                                 (a_template_arg_ptr)NULL,
                                                  /*have_selector=*/TRUE,
                                                  (an_operand *)NULL,
                                                  arg_operand_list,
@@ -1733,6 +1734,7 @@ Syntax:
        on the argument types. */
     function_symbol = select_and_prepare_to_call_overloaded_function(
                                             overloaded_function_symbol,
+                                            operand->template_arg_list,
                                             (a_boolean)operand->bound_function,
                                             bound_function_selector,
                                             arg_operand_list,
@@ -5006,6 +5008,7 @@ specification allow a variable-sized array as the top type.
        call, since we may yet fold the call into a constructor call. */
     proj_function_symbol = select_overloaded_function(
                                               operator_new_symbol,
+                                              (a_template_arg_ptr)NULL,
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
                                               arg_operand_list,
