@@ -1493,7 +1493,7 @@ Display the name of an expression operator.
     case eok_ple:               s = "eok_ple";                    break;
     case eok_passign:           s = "eok_passign";                break;
     case eok_sassign:           s = "eok_sassign";                break;
-    case eok_aassign:           s = "eok_aassign";                break;
+    case eok_bassign:           s = "eok_bassign";                break;
     case eok_iadd_assign:       s = "eok_iadd_assign";            break;
     case eok_isubtract_assign:  s = "eok_isubtract_assign";       break;
     case eok_imultiply_assign:  s = "eok_imultiply_assign";       break;

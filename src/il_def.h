@@ -1923,8 +1923,10 @@ enum an_expr_operator_kind_tag {
   eok_pge,              /* Pointer greater than or equal. */
   eok_ple,              /* Pointer less than or equal. */
   eok_sassign,          /* Structure assignment. */
-  eok_aassign,		/* Array assignment.  Only used in C++ after IL
-			   lowering, for copy constructors etc. */
+  eok_bassign,		/* Block assignment.  Only used in C++ after IL
+			   lowering, for copy constructors etc.  Both the
+			   source and destination are lvalues; does a memcpy
+			   equivalent. */
   eok_iadd_assign,      /* Integer add assign operator. */
   eok_isubtract_assign, /* Integer subtract assign operator. */
   eok_imultiply_assign, /* Integer multiply assign operator. */
@@ -3029,7 +3031,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef CIL
    "%",
    "ps", "pd", "p==", "p!=", "p>", "p<", "p>=", "p<=",
-   "s=", "a=",
+   "s=", "b=",
    "i+=", "i-=", "i*=", "i/=", "%=",
    "f+=", "f-=", "f*=", "f/=",
    "p+=", "p-=",
