@@ -907,29 +907,6 @@ Return TRUE if the two given integer types have the same representation
 #endif /* SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */
 
 
-static a_boolean are_copies_of_same_type(a_type_ptr type_1,
-                                         a_type_ptr type_2)
-/*
-Return TRUE if one of the two types is a file-scope copy of the other one.
-File-scope copies of types are made by make_file_scope_type when a
-function-level type is needed as the type of something that is visible
-at file scope.
-*/
-{
-  a_boolean are_copies = FALSE;
-
-  /* If there are existing file-scope copies, they are pointed to by
-     the based_types list in the type. */
-  if (get_based_type(type_1, (a_based_type_kind)btk_file_scope_copy) ==
-                                                                      type_2 ||
-      get_based_type(type_2, (a_based_type_kind)btk_file_scope_copy) ==
-                                                                      type_1) {
-    are_copies = TRUE;
-  }  /* if */
-  return are_copies;
-}  /* are_copies_of_same_type */
-
-
 a_boolean f_identical_types(a_type_ptr type_1,
                             a_type_ptr type_2,
                             a_boolean  il_identical)
@@ -967,10 +944,6 @@ which do the initial test for exact pointer equality.
     type_2 = skip_typerefs(type_2);
     if (type_1 == type_2) {
       /* If the types are now the same, they are identical. */
-      identical = TRUE;
-    } else if (are_copies_of_same_type(type_1, type_2)) {
-      /* One type is a file-scope copy of the other.  The types are
-         identical. */
       identical = TRUE;
     } else if (type_1->kind == type_2->kind) {
       /* The top level kinds are the same, check further. */
@@ -1110,10 +1083,6 @@ types_are_compatible, which does the initial test for exact pointer equality.
     type_2 = skip_typerefs(type_2);
     if (type_1 == type_2) {
       /* If the types are now the same, they are compatible. */
-      compat = TRUE;
-    } else if (are_copies_of_same_type(type_1, type_2)) {
-      /* One type is a file-scope copy of the other.  The types are
-         compatible. */
       compat = TRUE;
     } else if (type_1->kind == type_2->kind) {
       /* The top level kinds are the same, check further. */
@@ -2205,9 +2174,6 @@ is returned.
 */
 {
   a_type_ptr              new_type;
-  a_constant_ptr          old_ec, new_ec, new_ec_list, end_new_ec_list;
-  a_field_ptr             old_field, new_field, new_field_list,
-                          end_new_field_list;
   a_routine_type_supplement_ptr
 			  extra_info;
   a_type_kind             kind;
@@ -2250,7 +2216,7 @@ is returned.
          scope, if it refers to anything at all). */
       set_default_source_corresp(&new_type->source_corresp);
       /* Copy the substructure of the type, if any. */
-      switch(kind) {
+      switch (kind) {
         case tk_error:
         case tk_unknown:
         case tk_none:
@@ -2259,31 +2225,14 @@ is returned.
           /* No extra fields to copy. */
           break;
         case tk_integer:
-          /* Copy an enumerated constant list if there is one. */
-          new_ec_list = end_new_ec_list = NULL;
+          new_type->variant.integer.enum_constant_list = 
+                                  old_type->variant.integer.enum_constant_list;
+#if CHECKING
           if (old_type->variant.integer.enum_type) {
-            /* Enum tag. */
-            for (old_ec = old_type->variant.integer.enum_constant_list;
-                 old_ec != NULL;
-                 old_ec = old_ec->next) {
-              switch_to_file_scope_region(&region_to_switch_back_to);
-              new_ec = alloc_unshared_constant(old_ec);
-              switch_back_to_original_region(region_to_switch_back_to);
-              new_ec->type = make_file_scope_type(old_ec->type);
-              if (new_ec_list == NULL) {
-                new_ec_list = new_ec;
-                /* Link the type of the constants (int tagged with the enum
-                   type) to the first constant. */
-                new_ec->type->variant.integer.enum_constant_list = new_ec;
-              } else {
-                end_new_ec_list->next = new_ec;
-              }  /* if */
-              end_new_ec_list = new_ec;
-            }  /* for */
-            add_to_types_list(new_type, /*at_file_scope=*/TRUE,
-                              /*in_old_style_param_decl_list=*/FALSE);
+            internal_error(
+                          "make_file_scope_copy: enum type not at file scope");
           }  /* if */
-          new_type->variant.integer.enum_constant_list = new_ec_list;
+#endif /* if */
           break;
         case tk_pointer:
           new_type->variant.pointer_type_pointed_to =
@@ -2303,44 +2252,6 @@ is returned.
         case tk_array:
           new_type->variant.array.element_type =
                     make_file_scope_type(old_type->variant.array.element_type);
-          break;
-        case tk_class:
-        case tk_struct:
-        case tk_union:
-          /* Copy the field list. */
-          new_field_list = end_new_field_list = NULL;
-          for (old_field = old_type->variant.class_struct_union.field_list;
-               old_field != NULL;
-               old_field = old_field->next) {
-            switch_to_file_scope_region(&region_to_switch_back_to);
-            new_field = alloc_field();
-            switch_back_to_original_region(region_to_switch_back_to);
-            *new_field = *old_field;
-            /* The source correspondence is NOT cleared.  The name is needed
-               for IL output.  The copy still corresponds to the source
-               construct. */
-            new_field->type = make_file_scope_type(old_field->type);
-            new_field->next = NULL;
-            if (new_field_list == NULL) {
-              new_field_list = new_field;
-            } else {
-              end_new_field_list->next = new_field;
-            }  /* if */
-            end_new_field_list = new_field;
-          }  /* for */
-          new_type->variant.class_struct_union.field_list = new_field_list;
-          if (old_type->variant.class_struct_union.extra_info != NULL) {
-#if 0
-            /* Copy the supplement. */
-#else
-            internal_error("make_file_scope_type: cannot copy class");
-#endif
-          }  /* if */
-          /* Add the type to the file scope types list.  This is done after
-             the fields are processed to get the file-scope types in the
-             right order. */
-          add_to_types_list(new_type, /*at_file_scope=*/TRUE,
-                            /*in_old_style_param_decl_list=*/FALSE);
           break;
         case tk_routine:
           new_type->variant.routine.return_type =
@@ -2378,6 +2289,11 @@ is returned.
           }  /* if */
           break;
 #if CHECKING
+        case tk_class:
+        case tk_struct:
+        case tk_union:
+          /* Class/struct/union types should be allocated at the file scope
+             and therefore should not need to be copied. */
         default:
           internal_error("make_file_scope_type: bad type kind");
 #endif /* CHECKING */
