@@ -1065,7 +1065,8 @@ in the file scope).
      region. */
   vp = alloc_variable(storage_class);
   vp->type = type_ptr;
-  add_to_variables_list(vp, at_file_scope);
+  add_to_variables_list(vp, at_file_scope ? depth_innermost_namespace_scope :
+                                            decl_scope_level);
   return vp;
 }  /* make_variable */
 
@@ -3143,8 +3144,7 @@ cross-reference output describing this declaration.
            defining a variable that has already been declared. */
         check_assertion(in_file_scope(variable_ptr));
         remove_from_variables_list(variable_ptr);
-        add_to_variables_list(variable_ptr,
-                              /*at_file_or_namespace_scope=*/TRUE);
+        add_to_variables_list(variable_ptr, depth_innermost_namespace_scope);
       }  /* if */
     }  /* if */
   }  /* if */

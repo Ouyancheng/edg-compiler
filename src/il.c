@@ -4847,7 +4847,7 @@ the variables in order of appearance of their definitions.
 
 
 void add_to_variables_list(a_variable_ptr var_ptr,
-                           a_boolean      at_file_or_namespace_scope)
+                           a_scope_depth  scope_depth)
 /*
 Add the given variable to the variables list for the scope at the indicated
 scope depth.
@@ -4856,10 +4856,13 @@ scope depth.
   a_scope_stack_entry_ptr     ssep;
   a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
+  a_boolean                   at_file_or_namespace_scope;
 
+  ssep = &scope_stack[scope_depth];
+  at_file_or_namespace_scope = (scope_depth == DEPTH_OF_FILE_SCOPE ||
+                               scope_depth == depth_innermost_namespace_scope);
   /* Get pointer to current or file scope entry. */
   if (at_file_or_namespace_scope) {
-    ssep = &scope_stack[depth_innermost_namespace_scope];
     sp = ssep->il_scope;
 #if CHECKING
     if (sp == NULL) internal_error("add_to_variables_list: NULL IL scope");
@@ -4870,19 +4873,16 @@ scope depth.
               "add_to_variables_list: bad storage class for file scope list");
     }  /* if */
 #endif /* CHECKING */
+  } else if (ssep->kind == (a_scope_kind)sck_func_prototype) {
+    /* This is an error case in which a variable is created in an old-style
+       param declaration for which there was no corresponding param-id
+       declaration.  Such variables should not be added to the variables
+       list anyway. */
+    sp = NULL;
   } else {
-    ssep = &scope_stack[decl_scope_level];
-    if (ssep->kind == (a_scope_kind)sck_func_prototype) {
-      /* This is an error case in which a variable is created in an old-style
-         param declaration for which there was no corresponding param-id
-         declaration.  Such variables should not be added to the variables
-         list anyway. */
-      sp = NULL;
-    } else {
-      /* Create the IL scope if necessary (for block scopes). */
-      sp = ensure_il_scope_exists(ssep);
-      check_assertion_str(sp != NULL, "add_to_variables_list: NULL IL scope");
-    }  /* if */
+    /* Create the IL scope if necessary (for block scopes). */
+    sp = ensure_il_scope_exists(ssep);
+    check_assertion_str(sp != NULL, "add_to_variables_list: NULL IL scope");
   }  /* if */
   if (sp != NULL) {
     /* Variables requiring static allocation go on one list, those for stack
@@ -4966,7 +4966,7 @@ parameter field of the current block scope, and return a pointer to it.
   vp->type = type_ptr;
   vp->is_handler_param = TRUE;
   /* Add it to the scope entry. */
-  add_to_variables_list(vp, /*at_file_or_namespace_scope=*/FALSE);
+  add_to_variables_list(vp, decl_scope_level);
 
   db_exit();
   return vp;
@@ -4999,7 +4999,7 @@ Make a temporary variable whose type is temp_type.  Return a pointer to it.
   temp_var = alloc_variable(storage_class);
   temp_var->type = temp_type;
   /* Name linkage stays nlk_none. */
-  add_to_variables_list(temp_var, at_file_scope);
+  add_to_variables_list(temp_var, depth_innermost_namespace_scope);
   return temp_var;
 }  /* alloc_temporary_variable */
 

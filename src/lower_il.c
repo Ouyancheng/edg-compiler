@@ -1281,7 +1281,7 @@ already_il_name is TRUE.
   }  /* if */
 #endif /* CHECKING */
   /* Add the variable to the file scope list. */
-  add_to_variables_list(var, /*at_file_scope=*/TRUE);
+  add_to_variables_list(var, DEPTH_OF_FILE_SCOPE);
   return var;
 }  /* make_lowered_variable */
 
@@ -8269,7 +8269,7 @@ Promote the static variables on the variables list of the indicated scope
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    add_to_variables_list(variable, /*at_file_scope=*/TRUE);
+    add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
   }  /* for */
   /* Clear the list of promoted variables.  Since the scope is for a class
      or namespace, we know it cannot be on the scope stack now, and therefore
@@ -8853,7 +8853,7 @@ scope) along with the class members.
          function). */
       mangle_promoted_entity_name(&variable->source_corresp, routine, scope);
       variable->source_corresp.is_local_to_function = FALSE;
-      add_to_variables_list(variable, /*at_file_scope=*/TRUE);
+      add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
       /* If the variable has an associated local-static-variable-init
          entry, transfer any initialization to the variable itself. */
       if (variable->init_kind == (an_init_kind)initk_function_local) {

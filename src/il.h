@@ -308,7 +308,7 @@ extern void get_variable_initializer(a_variable_ptr     variable,
 extern void remove_from_variables_list(a_variable_ptr var_ptr);
 
 extern void add_to_variables_list(a_variable_ptr var_ptr,
-                                  a_boolean      at_file_or_namespace_scope);
+                                  a_scope_depth  scope_depth);
 
 extern void add_to_parameters_list(a_variable_ptr param_ptr);
 
