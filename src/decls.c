@@ -9997,9 +9997,22 @@ continue_with_declaration:
         /* Issue an error on a variable for which this is the defining
            declaration but whose type is incomplete.  Also, in C mode, issue
            an error on a variable with a tentative definition but an
-           uncompletable type (a case like "void i;" at file scope). */
+           uncompletable type (a case like "void i;" at file scope) or where
+           the type is an incomplete struct type or an array of incomplete
+           struct (note: such arrays are allowed only as an extension). */
+        a_type_ptr  tp = local_type_ptr;
+        if (is_tentative_definition && is_array_type(tp)) {
+          /* Note that if struct A is incomplete this is an error:
+               struct A x[2];
+             but is struct B has been defined this is okay:
+               struct B y[];
+             for now, since y might be redeclared later. */
+          tp = underlying_array_element_type(tp);
+          if (!is_incomplete_type(tp)) tp = local_type_ptr;
+        }  /* if */
         if (is_variable_def ||
-            (is_tentative_definition && is_void_type(local_type_ptr))) {
+            (is_tentative_definition &&
+             (is_void_type(tp) || is_class_struct_union_type(tp)))) {
           if (!incomplete_type_error_reported) {
             pos_error(ec_incomplete_type_not_allowed,
                       &locator.source_position);
