@@ -5587,8 +5587,8 @@ C++ mode.  See [expr.static.cast].
     } else if (!C_mode()) {
       inv_impl_okay = inverse_impl_conversion_possible(
                                                source_type, dest_type,
-                                               allow_qualifier_or_eh_mismatch,
                                                suppress_extensions,
+                                               allow_qualifier_or_eh_mismatch,
                                                &inv_impl_std_conv);
       if (inv_impl_okay &&
           (inv_impl_std_conv.warning_suggested == ec_no_error ||
