@@ -564,6 +564,7 @@ information.
     }  /* for */
     /* Discard any events that follow the new last one. */
     last_event_to_use->next = NULL;
+    pch_event_list_tail = last_event_to_use;
     header_stop_source_position = last_event_to_use->position;
   } else {
     header_stop_source_position = pos_curr_token;
@@ -1444,6 +1445,14 @@ pch file.  Return a pointer to the last matching event.
   while (read_pch_event(&event)) {
     a_boolean	is_define = FALSE;
     a_boolean	event_matches = FALSE;
+#if DEBUG
+    if (debug_level >= 4) {
+      db_pch_event(&event);
+      if (pos_in_event_list == NULL) {
+        fprintf(f_debug, "Candidate event list longer than current file\n");
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
     if (pos_in_event_list == NULL) {
       /* We've reached the end of the event list for this file but there
          are still more events in the candidate file.  Terminate the
@@ -1511,6 +1520,13 @@ pch file.  Return a pointer to the last matching event.
     last_matching_event = pep;
     pep = pep->next;
   }  /* while */
+  if (match && pragma_hdrstop_found) {
+    /* If the file contains a pragma hdrstop, don't accept an existing
+       file whose prefix falls short of the hdrstop. */
+    if (last_matching_event != pch_event_list_tail) {
+      match = FALSE;
+    }  /* if */
+  }  /* if */
   /* If the candidate file doesn't match, return a NULL to the caller. */
   if (!match) {
     last_matching_event = NULL;
@@ -1567,6 +1583,15 @@ directory.  Return TRUE if an applicable PCH was found.
   a_boolean		result = FALSE;
 
   db_enter(3, "find_applicable_pch");
+#if DEBUG
+  if (debug_level >= 4) {
+    a_pch_event_ptr	pep;
+    fprintf(f_debug, "Event list of this file:\n");
+    for (pep = pch_event_list_head; pep != NULL; pep = pep->next) {
+      db_pch_event(pep);
+   }  /* for */
+  }  /* if */
+#endif /* DEBUG */
   best_result_so_far = null_source_position;
   for (first = TRUE;
        (file_name = get_file_name_from_curr_dir(first)) != NULL;
@@ -1581,6 +1606,11 @@ directory.  Return TRUE if an applicable PCH was found.
     if (!is_regular_file(file_name)) continue;
     f_pch_input = fopen(file_name, "rb");
     if (f_pch_input == NULL) continue;
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Checking %s for applicability\n", file_name);
+  }  /* if */
+#endif /* DEBUG */
     /* See if this PCH file can be used. */
     last_matching_event = pch_is_applicable();
     is_applicable = last_matching_event != NULL;
