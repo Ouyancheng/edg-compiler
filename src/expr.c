@@ -29,6 +29,9 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "decl_spec.h"
 #include "func_def.h"
+#if DO_C99_IL_LOWERING
+#include "lower_c99.h"
+#endif /* DO_C99_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the
@@ -3779,6 +3782,11 @@ arithmetic type.  The operand of "~" must have integral type.  See section
       op = (an_expr_operator_kind)eok_not;
       break;
     case tok_minus:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      if (is_complex_type(operand.type)) {
+        op = (an_expr_operator_kind)eok_xnegate;
+      } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       if (is_floating_type(operand.type)) {
         op = (an_expr_operator_kind)eok_fnegate;
       } else {
@@ -8288,6 +8296,9 @@ Also scans C9X compound literals:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else {
       /* Normal cast (not a compound literal). */
+#if DO_C99_IL_LOWERING
+      a_type_ptr  src_type;
+#endif /* DO_C99_IL_LOWERING */
       /* Check the type to see if it is valid in general terms. */
       error_position = type_position;
       err = cast_type_pre_check(&type_cast_to, explicit_cv_qualifiers);
@@ -8295,6 +8306,9 @@ Also scans C9X compound literals:
       /* Scan the expression to be cast. */
       scan_cast_expression(type_cast_to, /*allow_comma=*/TRUE, PREC_CAST,
                            result, &local_bound_function_selector);
+#if DO_C99_IL_LOWERING
+      src_type = result->type;
+#endif /* DO_C99_IL_LOWERING */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = result->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -8712,6 +8726,11 @@ be of integral type.  See section 3.3.5 of the standard.
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2,
                         result_type, result, &operator_position);
+#if DO_C99_IL_LOWERING
+    if (c99_il_lowering_needed() && is_complex_type(result_type)) {
+      lower_c99_operator(result->variant.expression);
+    }  /* if */
+#endif /* DO_C99_IL_LOWERING */
   }  /* if */
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
@@ -8948,6 +8967,11 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
           op == (an_expr_operator_kind)eok_psubtract) {
         result->ref_entries_list = operand_1->ref_entries_list;
       }  /* if */
+#if DO_C99_IL_LOWERING
+      if (is_complex_type(result_type)) {
+        lower_c99_operator(result->variant.expression);
+      }  /* if */
+#endif /* DO_C99_IL_LOWERING */
     }  /* if */
   }  /* if */
 
@@ -9440,6 +9464,11 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &operator_position);
+#if DO_C99_IL_LOWERING
+    if (c99_il_lowering_needed() && is_complex_type(result_type)) {
+      lower_c99_operator(result->variant.expression);
+    }  /* if */
+#endif /* DO_C99_IL_LOWERING */
   }  /* if */
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
@@ -10607,6 +10636,11 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
         change_assignment_result_to_lvalue(result, operand_1,
                                            orig_result_type);
       }  /* if */
+#if DO_C99_IL_LOWERING
+      if (c99_il_lowering_needed() && is_complex_type(result_type)) {
+        lower_c99_operator(result->variant.expression);
+      }  /* if */
+#endif /* DO_C99_IL_LOWERING */
     }  /* if */
   }  /* if */
 
@@ -10871,7 +10905,12 @@ See section 3.3.16 of the standard.
             change_assignment_result_to_lvalue(result, operand_1,
                                                orig_result_type);
           }  /* if */
-        }  /* if */
+#if DO_C99_IL_LOWERING
+          if (c99_il_lowering_needed() && is_complex_type(result_type)) {
+            lower_c99_operator(result->variant.expression);
+          }  /* if */
+#endif /* DO_C99_IL_LOWERING */
+       }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

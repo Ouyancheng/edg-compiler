@@ -5735,8 +5735,10 @@ enum an_expr_operator_kind_tag {
 			   sense of the word. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
-#ifdef FIL
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   eok_xnegate,          /* Complex negation. */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FIL
   eok_char_length,      /* Fortran LEN function (length of character
                            expression). */
   eok_address_of_value, /* Operand is a value; result is the address of that
@@ -8457,8 +8459,11 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "__assume",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+   "x-",
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FIL
-   "x-", "len ", "&", "loc ", "test",
+   "len ", "&", "loc ", "test",
 #endif /* ifdef FIL */
    "i+", "i-", "i*", "i/", "i==", "i!=", "i>", "i<", "i>=", "i<=", "i=",
    "f+", "f-", "f*", "f/", "f==", "f!=", "f>", "f<", "f>=", "f<=", "f=",
