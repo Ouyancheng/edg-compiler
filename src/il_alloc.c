@@ -520,6 +520,7 @@ routine and scope number, and return a pointer to it.
   solhp->scope_number =  scope_number,
   solhp->orphaned_types = NULL;
   solhp->orphaned_variables = NULL;
+  solhp->orphaned_namespaces = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   solhp->orphaned_src_seq_sublists = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3134,15 +3135,14 @@ to it.
 a_namespace_ptr alloc_namespace(a_boolean  is_alias)
 /*
 Allocate a namespace entry, initialize its fields, and return a pointer to
-it.  The entry is allocated in the current memory region.  This is
-usually the file scope memory region, but may be a function scope memory
-region when creating an entry for a namespace alias.
+it.  The entry is allocated in the file scope memory region (even when
+creating an entry for a local namespace alias).
 */
 {
   a_namespace_ptr nsp;
 
   db_enter(5, "alloc_namespace");
-  nsp = (a_namespace_ptr)alloc_cil(sizeof(a_namespace));
+  nsp = (a_namespace_ptr)alloc_il(sizeof(a_namespace));
 #if DEBUG
   num_namespaces_allocated++;
 #endif /* DEBUG */

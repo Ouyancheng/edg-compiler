@@ -2960,9 +2960,12 @@ after_entry_from_class:
            function scope if necessary. */
         remap_list_ptr(ptr->orphaned_types, a_type_ptr, iek_type);
         remap_list_ptr(ptr->orphaned_variables, a_variable_ptr, iek_variable);
+        remap_list_ptr(ptr->orphaned_namespaces, a_namespace_ptr,
+                       iek_namespace);
 #else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
         walk_list(ptr->orphaned_types, a_type_ptr, iek_type);
         walk_list(ptr->orphaned_variables, a_variable_ptr, iek_variable);
+        walk_list(ptr->orphaned_namespaces, a_namespace_ptr, iek_namespace);
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         walk_list(ptr->orphaned_src_seq_sublists,

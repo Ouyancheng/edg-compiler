@@ -5549,6 +5549,8 @@ Display the indicated a_scope_orphaned_list_header entry.
   disp_ptr("orphaned_types", (char *)ptr->orphaned_types, iek_type);
   disp_ptr("orphaned_variables", (char *)ptr->orphaned_variables,
            iek_variable);
+  disp_ptr("orphaned_namespaces", (char *)ptr->orphaned_namespaces,
+           iek_namespace);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("orphaned_src_seq_sublists", (char *)ptr->orphaned_src_seq_sublists,
            iek_src_seq_sublist);

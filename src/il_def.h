@@ -9990,6 +9990,11 @@ typedef struct a_scope_orphaned_list_header {
 			/* Pointer to the orphaned file scope IL variable
 			   entry list for a function scope.  These variables
 			   will be local static variables of the function. */
+  a_namespace_ptr
+		orphaned_namespaces;
+			/* Pointer to the orphaned namespace alias list for
+			   a function scope.  (Namespace entries are always
+			   allocated in the file scope memory region.) */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_src_seq_sublist_ptr
 		orphaned_src_seq_sublists;

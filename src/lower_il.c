@@ -16069,6 +16069,11 @@ not reachable from the normal file-scope IL tree.
        solhp = solhp->next) {
     lower_type_list(solhp->orphaned_types);
     lower_variable_list(solhp->orphaned_variables);
+    /* Since orphaned namespace entries are always namespace aliases, the
+       following call is not currently necessary (because lowering a namespace
+       alias is currently a no-op).  We leave the call to avoid future
+       surprises, however. */
+    lower_namespace_list(solhp->orphaned_namespaces);
     /* The source sequence sublist list need not be visited. */
   }  /* if */
   /* Now visit all the orphaned entries recorded by the more general scheme. */

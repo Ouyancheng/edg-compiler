@@ -3607,16 +3607,17 @@ processing for add_scope_orphaned_il_lists.
 {
   a_type_ptr            types = scope->types;
   a_variable_ptr        variables = scope->variables;
+  a_namespace_ptr       namespaces = scope->namespaces;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_src_seq_sublist_ptr sublists = scope->src_seq_sublist_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_ptr           block_scope;
 
-  if (types != NULL || variables != NULL
+  if (types != NULL || variables != NULL ||
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-                                         || sublists != NULL
+      sublists != NULL ||
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-                                                            ) {
+      namespaces != NULL) {
     /* At least one of the IL pointers is not NULL; create
        a_scope_orphaned_list_header in the file scope region and add it to
        the list headed by il_header.scope_orphaned_list_headers. */
@@ -3627,6 +3628,7 @@ processing for add_scope_orphaned_il_lists.
     solhp->scope_number = scope->number;
     solhp->orphaned_types = types;
     solhp->orphaned_variables = variables;
+    solhp->orphaned_namespaces = namespaces;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     solhp->orphaned_src_seq_sublists = sublists;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -15683,14 +15685,15 @@ void eliminate_unneeded_scope_orphaned_list_entries(void)
 Remove scope-orphaned-list headers that are associated with routines whose
 bodies have been eliminated.  It would seem that one could simply
 remove those headers, but sometimes they must be retained because
-types or variables on the lists have been marked as keep_in_il
-because, for example, they appear on orphan lists.
+types, namespace aliases, or variables on the lists have been marked as
+keep_in_il because, for example, they appear on orphan lists.
 */
 {
   a_scope_orphaned_list_header_ptr  solhp, prev_solhp, next_solhp;
   a_routine_ptr    rp;
   a_variable_ptr   vp, prev_vp, next_vp;
   a_type_ptr       tp, prev_tp, next_tp;
+  a_namespace_ptr  na, prev_na, next_na;
 
   prev_solhp = NULL;
   for (solhp = il_header.scope_orphaned_list_headers;
@@ -15755,6 +15758,30 @@ because, for example, they appear on orphan lists.
           prev_tp = tp;
         }  /* if */
       }  /* for */
+      /* Traverse the namespace aliases list. */
+      prev_na = NULL;
+      for (na = solhp->orphaned_namespaces; na != NULL; na = next_na) {
+        next_na = na->next;
+#if DEBUG
+        if (debug_level >= 3 || db_trace("dump_elim", na, iek_namespace)) {
+          fprintf(f_debug, "%semoving orphaned namespace ",
+                  il_entry_prefix_of(na).keep_in_il ? "Not r" : "R");
+          db_name_full(&vp->source_corresp, iek_namespace);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
+        if (!il_entry_prefix_of(na).keep_in_il) {
+          /* Remove it from the variables list by linking around it. */
+          if (prev_na == NULL) {
+            solhp->orphaned_namespaces = na->next;
+          } else {
+            prev_na->next = na->next;
+          }  /* if */
+          na->next = NULL;
+        } else {
+          prev_na = na;
+        }  /* if */
+      }  /* for */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (solhp->orphaned_src_seq_sublists != NULL) {
         /* Whether or not the header itself remains in the IL, the
@@ -15788,7 +15815,8 @@ because, for example, they appear on orphan lists.
       /* Only retain scope-orphaned-list headers for which non-NULL lists
          remain. */
       if (solhp->orphaned_variables != NULL ||
-          solhp->orphaned_types != NULL) {
+          solhp->orphaned_types != NULL ||
+          solhp->orphaned_namespaces != NULL) {
         prev_solhp = solhp;
         /* The scope-orphaned-list header is being retained in the IL, and
            it points to the routine, so be sure the routine entry is kept,

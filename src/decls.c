@@ -10227,7 +10227,14 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     fputs("namespace_declaration: adding empty ss entry\n", f_debug);
   }  /* if */
 #endif /* DEBUG */
-  namespace_ssep = add_empty_source_sequence_entry();
+  { /* Namespace entries are always allocated in file scope memory.  Any
+       source sequence entry pointing to it must therefore also be allocated
+       there. */
+    a_memory_region_number  region_to_switch_back_to;
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    namespace_ssep = add_empty_source_sequence_entry();
+    switch_back_to_original_region(region_to_switch_back_to);
+  }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (curr_token == tok_lbrace) {
     /* This must be an unnamed namespace definition. */

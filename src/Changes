@@ -1,5 +1,21 @@
 Version 3.6
 
+1/10/05  Abort on use of local namespace alias in some configurations
+
+In configurations with RECORD_FORM_OF_NAME_REFERENCE set to TRUE, using a
+local namespace alias in a qualified name could result in an internal error.
+For example:
+
+  namespace N { int x; }
+  int f() {
+    namespace A = N;  // Local namespace alias.
+    return A::x;      // Triggered an internal error in some configurations.
+  }
+
+This has been fixed by no longer allocating the IL entry for the alias in
+the memory region of the enclosing scope; instead it is allocated in the
+file scope memory region.
+
 1/10/05  Microsoft compatibility: injected class names and specializations
 
 While the Microsoft compiler does not, in general, create injected class
