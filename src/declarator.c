@@ -2864,7 +2864,8 @@ The syntax is:
   abstract_declarator_allowed = input_flags & DI_ABSTRACT_DECLARATOR_ALLOWED;
   is_constructor = (input_flags & DI_IS_CONSTRUCTOR) != 0;
   /* If DI_IS_CONSTRUCTOR is set, the parent class should be provided. */
-  check_assertion_str(!is_constructor || member_parent_type != NULL,
+  check_assertion_str(!is_constructor || member_parent_type != NULL ||
+                      (input_flags & DI_IS_FRIEND_DECL),
                       "r_declarator: parent class is NULL for ctor");
   parenthesized_initializer_allowed =
                        (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED);
