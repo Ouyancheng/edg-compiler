@@ -541,11 +541,22 @@ position.  Global variables error_position and curr_construct_end_position
 are set appropriately.
 */
 {
+  an_expr_node_ptr expr = NULL;
+
   set_base_operand_position(result, start_pos, end_pos);
   /* If the operand is an expression, record positions in the expression
      itself. */
   if (is_expression_operand(result)) {
-    an_expr_node_ptr expr = result->variant.expression;
+    expr = result->variant.expression;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  } else if (is_constant_operand(result)) {
+    /* Some constants have a record of the expression from which they were
+       generated. */
+    expr = result->variant.constant.expr;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  }  /* if */
+  if (expr != NULL) {
+    /* Set the position on the expression. */
     expr->expr_range.start = *start_pos;
     expr->expr_range.end = *end_pos;
     if (operator_pos != NULL && is_operation_node(expr)) {
