@@ -2111,18 +2111,10 @@ See conversion_possible.
         if (source_enum_list != dest_enum_list) {
           /* Conversion of one enum type to another, or conversion of an
              arithmetic non-enum type to an enum. */
-          if (C_dialect == C_dialect_cplusplus) {
-            /* In C++, the conversion is not allowed. */
-#if 0
-            okay = FALSE;
-#else
-            /* cfront allows this.  Allow it for now, with a warning. */
-            *warning_suggested = ec_mixed_enum_type;
-#endif
-          } else {
-            /* In C, give a warning. */
-            *warning_suggested = ec_mixed_enum_type;
-          }  /* if */
+          /* In C++, the conversion is not allowed, but we allow it as
+             an extension, with a warning.  In C, it's valid, but we
+             issue a warning anyway. */
+          *warning_suggested = ec_mixed_enum_type;
         }  /* if */
       }  /* if */
     } else if (C_dialect == C_dialect_pcc &&
@@ -2564,8 +2556,7 @@ is allocated, it is allocated in the file scope.
                      called yet for those parameters. */
                   param_type = composite_type(param1->type, param2->type);
                 }  /* if */
-                comp_param = alloc_param_type(param_type,
-                                              /*at_file_scope=*/TRUE);
+                comp_param = alloc_param_type(param_type);
                 /* Form the composite of the C++ default argument expressions;
                    it's guaranteed that at most one of the parameter lists
                    has a default argument expression. */
