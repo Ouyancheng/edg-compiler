@@ -3437,8 +3437,7 @@ template.
              primary translation unit.  The new instantiation should become
              the canonical correspondence. */
           a_type_ptr  sec = type_symbol_type(slep->symbol);
-          check_assertion(in_secondary_trans_unit(sec) &&
-                          !has_correspondence(sec));
+          check_assertion(in_secondary_trans_unit(sec));
           set_type_corresp(prim, sec);
           /* It is tempting to set slep->symbol = inst at this point, but we
              may need to have a record of sec to set correspondences for its
