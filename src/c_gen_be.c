@@ -78,6 +78,9 @@ instead of K&R C.
             SCOPE_ORPHANED_LIST_PROCESSING_NEEDED TRUE
 #endif /* !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
+#if !DO_FULL_PORTABLE_EH_LOWERING
+ #error -- DO_FULL_PORTABLE_EH_LOWERING required for the C-generating back end.
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 /*
 See if the target is the Sun cc compiler, which has some bugs we know
