@@ -48,16 +48,12 @@ static void lower_destructor_dynamic_init(
                                    an_insert_location_ptr insert_location);
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location);
-static void insert_call_to_zero_entity(an_expr_node_ptr   entity_node,
-                                       an_expr_node_ptr   entity_size_node,
+static void insert_call_to_zero_entity(a_type_ptr         entity_type,
+                                       a_boolean          have_complete_object,
+                                       an_expr_node_ptr   entity_node,
+                                       an_expr_node_ptr   num_elem_node,
+                                       a_targ_size_t      array_element_count,
                                        an_insert_location *insert_location);
-#if IA64_ABI
-static void insert_call_to_helper_routine_to_zero_entity(
-                                          a_type_ptr         entity_type,
-                                          an_expr_node_ptr   entity_node,
-                                          an_expr_node_ptr   num_elements,
-                                          an_insert_location *insert_location);
-#endif /* IA64_ABI */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 static a_variable_ptr make_construction_vtbls_array(
                                            a_type_ptr              class_type,
@@ -1117,6 +1113,31 @@ TRUE, the entity is the destination of an initialization operation.
 }  /* make_init_entity_node */
 
 
+static void make_lowered_zero_of_proper_type(a_type_ptr desired_type,
+                                             a_constant *zero_constant)
+/*
+Make a zero constant of type desired_type (a scalar type) and put it in
+*zero_constant.  No IL allocation is done.  This routine is also handy
+for making NULL pointer constants.  This wrapper over
+make_zero_of_proper_type handles returning a -1 constant for a
+NULL pointer-to-data member in the IA-64 ABI.
+*/
+{
+#if IA64_ABI
+  if (is_or_was_ptr_to_data_member_type(desired_type)) {
+    /* Make an integer -1 and convert it to the desired type. */
+    a_boolean did_not_fold;
+    set_integer_constant(zero_constant, (a_host_large_integer)-1,
+                         targ_ptr_to_data_member_int_kind);
+  } else
+#endif /* IA64_ABI */
+  /* Do not insert code here. */
+  {
+    make_zero_of_proper_type(desired_type, zero_constant);
+  }  /* if */
+}  /* make_lowered_zero_of_proper_type */
+
+
 static void add_init_assignment(a_dynamic_init_ptr     dip,
                                 a_constant_ptr         con,
                                 an_expr_node_ptr       entity_node,
@@ -1140,7 +1161,7 @@ pointed to by dip or con is already lowered.
       /* Set the entity to zero (default initialization). */
       { a_constant     zero_constant;
         a_type_ptr     entity_type = type_pointed_to(entity_node->type);
-        make_zero_of_proper_type(entity_type, &zero_constant);
+        make_lowered_zero_of_proper_type(entity_type, &zero_constant);
         con = alloc_shareable_constant(&zero_constant);
         /* Lower the zero constant so that (e.g.) pointer to data member
            constants become the right integral constants. */
@@ -1293,13 +1314,16 @@ address that escapes, not simply as an address because it's an lvalue).
 
 static void add_bitwise_copy(an_init_pos_descr_ptr  dest,
                              a_constructor_init_ptr ctor_init,
+                             a_boolean              have_complete_object,
                              an_insert_location_ptr insert_location)
 /*
 Generate code to implement an initialization by bitwise copy.  dest
 describes the destination of the move.  ctor_init is the constructor
 initialization entry, or is NULL if this is the initialization of
-a catch clause parameter.  Insert the statement at *insert_location
-and update *insert_location.
+a catch clause parameter.  have_complete_object is TRUE if we are
+copying a complete object, FALSE if we are copying a base class
+subobject.  Insert the statement at *insert_location and update
+*insert_location.
 */
 {
   an_expr_node_ptr      source_node, dest_node;
@@ -1315,17 +1339,19 @@ and update *insert_location.
   source_node = implied_source_of_copy(ctor_init, dest,
                                        /*using_as_address=*/FALSE);
   /* Make an assignment statement. */
-  /* Choose the operation.  For simple types use the built-in operator.
-     For other types use a block copy. */
   type = type_pointed_to(source_node->type);
-  if (is_class_struct_union_type(type) &&
-      skip_typerefs(type)->variant.class_struct_union.is_empty_class) {
+  if (!have_complete_object &&
+      is_class_struct_union_type(type) &&
+      skip_typerefs(type)->variant.class_struct_union.extra_info->
+                                      size_without_virtual_base_classes == 0) {
     /* Do not put out code to copy an empty base class. */
   } else {
     if (is_reference_type(type)) {
       /* Replace a reference type by a pointer type. */
       type = make_pointer_type(type_pointed_to(type));
     }  /* if */
+    /* Choose the operation.  For simple types use the built-in operator.
+       For other types use a block copy. */
     if (is_arithmetic_or_enum_type(type) ||
         is_pointer_type(type) ||
         is_class_struct_union_type(type)) {
@@ -1497,6 +1523,7 @@ of the storage before the constructor is called.
 static void add_constructor_call(a_dynamic_init_ptr     dip,
                                  an_expr_node_ptr       entity_node,
                                  an_expr_node_ptr       source_node,
+                                 a_boolean              have_complete_object,
                                  an_expr_node_ptr       implied_arg_list,
                                  an_expr_node_ptr       end_implied_arg_list,
                                  an_insert_location_ptr insert_location)
@@ -1507,12 +1534,13 @@ that gives the address of the entity to be initialized.  If source_node
 is non-NULL, it points to an expression that is the source for a copy
 constructor call.  Both entity_node and source_node have already been
 cast to the proper type for the corresponding parameter to eliminate
-qualifier and type-as-subobject differences.  implied_arg_list is a
-list of implied extra virtual base class pointer arguments for the
-constructor, or NULL if this routine should generate them if required.
-Insert the statement at *insert_location and update *insert_location.
-The additional-arguments list given by dip->variant.constructor.args has
-already been lowered.
+qualifier and type-as-subobject differences.  have_complete_object 
+is TRUE if we are constructing a complete object, FALSE for a base
+class subobject.  implied_arg_list is a list of implied extra virtual
+base class pointer arguments for the constructor, or NULL if this
+routine should generate them if required.  Insert the statement at
+*insert_location and update *insert_location.  The additional-arguments
+list given by dip->variant.constructor.args has already been lowered.
 */
 {
   a_routine_ptr    ctor_routine = dip->variant.constructor.ptr;
@@ -1531,37 +1559,12 @@ already been lowered.
                                                    /*vars_can_change=*/FALSE);
     a_type_ptr       class_type =
                                 ctor_routine->source_corresp.parent.class_type;
-#if IA64_ABI
-    if (contains_ptr_to_data_member(class_type)) {
-      /* Pointers to data members must be initialized to -1. */
-      insert_call_to_helper_routine_to_zero_entity(
-                  class_type,
-                  entity_node,
-                  node_for_integer_constant(1L, targ_size_t_int_kind),
-                  insert_location);
-    } else 
-#endif /* IA64_ABI */
-    /* Do not insert code here. */
-    {
-      a_targ_size_t    class_size;
-      an_expr_node_ptr entity_size_node;
-
-#if IA64_ABI
-      if (ctor_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject) {
-        class_size = class_type->variant.class_struct_union.extra_info->
-                                            size_without_virtual_base_classes;
-      } else
-#endif /* IA64_ABI */
-      /* Do not insert code here. */
-      {
-        class_size = class_type->size;
-      }  /* if */
-      entity_size_node = node_for_host_large_integer(
-                                              (a_host_large_integer)class_size,
-                                              targ_size_t_int_kind);
-      insert_call_to_zero_entity(entity_node, entity_size_node,
-                                 insert_location);
-    }  /* if */
+    insert_call_to_zero_entity(class_type,
+                               have_complete_object,
+                               entity_node,
+                               (an_expr_node_ptr)NULL,
+                               (a_targ_size_t)0,
+                               insert_location);
     entity_node = entity_node_copy;
   }  /* if */
 #if IA64_ABI
@@ -4758,11 +4761,22 @@ may have to be cloned.  If any are, *some_cloned is returned TRUE.
 
 #if IA64_ABI
 
-static a_routine_ptr helper_routine_to_zero_entity(a_type_ptr type)
+/*
+Pointer to the routine entry for the C library routine memcpy.  NULL until
+created.
+*/
+static a_routine_ptr
+		memcpy_routine;
+
+
+static a_routine_ptr helper_routine_to_zero_entity(
+                                               a_type_ptr type,
+                                               a_boolean  have_complete_object)
 /*
 Build a routine to zero-initialize an entity of the indicated type.
 This is needed in the IA-64 ABI because pointers to data members use
--1 as the NULL value.
+-1 as the NULL value.  If have_complete_object is TRUE we have a
+complete object; if it is FALSE, we have a base class subobject.
 */
 {
   a_routine_ptr                 rp;
@@ -4774,7 +4788,7 @@ This is needed in the IA-64 ABI because pointers to data members use
   a_generated_routine_context   context;
   a_variable_ptr                model_var, entity_var, count_var;
   a_statement_ptr               loop_stmt, assign_stmt;
-  an_expr_node_ptr              entity_expr, assign_expr;
+  an_expr_node_ptr              entity_expr, copy_expr;
   
   /* Build the routine entry.  It has two parameters: a pointer to an entity
      of the indicated type and a count of the number of entities to
@@ -4808,12 +4822,32 @@ This is needed in the IA-64 ABI because pointers to data members use
   entity_expr = make_operator_node((an_expr_operator_kind)eok_ipost_incr,
                                    pointer_type,
                                    var_lvalue_expr(entity_var));
-  assign_expr = make_assignment_expr(entity_expr, 
-                                     is_class_struct_union_type(type) ?
-                                     (an_expr_operator_kind)eok_sassign :
-                                     (an_expr_operator_kind)eok_iassign,
+  if (!have_complete_object) {
+    /* Base class subobject.  Generate a memcpy to avoid copying more space
+       than necessary. */
+    a_targ_size_t entity_size;
+    a_type_ptr    unqual_type = skip_typerefs(type);
+    check_assertion(is_immediate_class_type(unqual_type));
+    entity_size = unqual_type->variant.class_struct_union.extra_info->
+                                            size_without_virtual_base_classes;
+    /* Use the memcpy only if the class size as a subobject is different
+       that as a complete object. */
+    if (entity_size == unqual_type->size) goto normal_copy;
+    entity_expr->next = var_lvalue_expr(model_var);
+    set_lowering_variable_address_taken(model_var);
+    entity_expr->next->next = node_for_host_large_integer(
+                                             (a_host_large_integer)entity_size,
+                                             targ_size_t_int_kind);
+    copy_expr = make_runtime_rout_call("memcpy", &memcpy_routine,
+                                       void_star_type(), entity_expr);
+  } else {
+normal_copy:
+    /* Normal case -- generate an assignment. */
+    copy_expr = make_assignment_expr(entity_expr, 
+                                     lowered_assignment_operator(type),
                                      var_rvalue_expr(model_var));
-  assign_stmt = alloc_expr_statement(assign_expr);
+  }  /* if */
+  assign_stmt = alloc_expr_statement(copy_expr);
   loop_stmt->variant.loop_statement = assign_stmt;
   insert_statement(loop_stmt, &insert_location);
   /* Clean up. */
@@ -4821,37 +4855,19 @@ This is needed in the IA-64 ABI because pointers to data members use
   return rp;
 }  /* helper_routine_to_zero_entity */
 
-
-static void insert_call_to_helper_routine_to_zero_entity(
-                                          a_type_ptr         entity_type,
-                                          an_expr_node_ptr   entity_node,
-                                          an_expr_node_ptr   num_elements,
-                                          an_insert_location *insert_location)
-/*
-Insert, at insert_location, a call to the helper routine that zero-initializes
-entities of entity_type.  The entity_node is the first entity to initialize;
-there are num_elements at that location.
-*/
-{
-  entity_node->next = num_elements;
-  (void)make_call_node(helper_routine_to_zero_entity(entity_type),
-                       entity_node, /*honor_virtual=*/FALSE,
-                       insert_location);
-}  /* insert_call_to_helper_routine_to_zero_entity */
-
 #endif /* IA64_ABI */
 
 /*
 Pointer to the routine entry for the runtime routine __memzero.  NULL until
-created.
+created.  For the IA-64 ABI, points to memset or bzero instead.
 */
 static a_routine_ptr
 		memzero_routine;
 
 
-static void insert_call_to_zero_entity(an_expr_node_ptr   entity_node,
-                                       an_expr_node_ptr   entity_size_node,
-                                       an_insert_location *insert_location)
+static void insert_runtime_zeroing_call(an_expr_node_ptr   entity_node,
+                                        an_expr_node_ptr   entity_size_node,
+                                        an_insert_location *insert_location)
 /*
 Create a runtime routine call to zero the entity whose address is given
 by entity_node, with size given by entity_size_node.  Insert the code at
@@ -4883,6 +4899,107 @@ by entity_node, with size given by entity_size_node.  Insert the code at
                                         void_type(), entity_node);
 #endif /* !IA64_ABI */
   (void)insert_expr_statement(memzero_call, insert_location);
+}  /* insert_runtime_zeroing_call */
+
+
+static void insert_call_to_zero_entity(a_type_ptr         entity_type,
+                                       a_boolean          have_complete_object,
+                                       an_expr_node_ptr   entity_node,
+                                       an_expr_node_ptr   num_elem_node,
+                                       a_targ_size_t      array_element_count,
+                                       an_insert_location *insert_location)
+/*
+Create a runtime routine call to zero the entity whose type is
+entity_type and whose address is given by entity_node, and which is
+a complete object if have_complete_object is TRUE.  If num_elem_node
+is non-NULL, the entity is an array and the expression value gives
+the number of elements (the entity_type in that case is the array
+element type).  If array_element_count is non-zero, it gives the
+number of elements in an array sequence (and again, entity_type is
+the array element type).  If neither of those provides information,
+the entity can still be an array; the array attributes are fetched
+from entity_type itself.  Insert the code for the call at *insert_location.
+*/
+{
+  a_type_ptr element_type = entity_type;
+
+  if (array_element_count == 0) array_element_count = 1;
+  if (is_array_type(entity_type)) {
+    element_type = underlying_array_element_type(entity_type);
+    array_element_count *= num_array_elements(entity_type);
+  } /* if */
+  element_type = skip_typerefs(element_type);
+  if (!have_complete_object &&
+      is_immediate_class_type(element_type) &&
+      element_type->variant.class_struct_union.extra_info->
+                                      size_without_virtual_base_classes == 0) {
+    /* Put out no code at all to zero an empty base class. */
+#if IA64_ABI
+  } else if (contains_ptr_to_data_member(element_type)) {
+    /* If the entity type contains pointers to data members they must
+       be initialized to -1, not zero, for the IA-64 ABI. */
+    if (num_elem_node == NULL) {
+      num_elem_node = node_for_host_large_integer(
+                                     (a_host_large_integer)array_element_count,
+                                     targ_size_t_int_kind);
+    } else if (array_element_count != 1) {
+      /* num_elem_node gives a number of elements.  Multiply it by
+         the value of array_element_count to get the actual number of
+         elements. */
+      num_elem_node= add_cast_if_necessary(num_elem_node,
+                                           integer_type(targ_size_t_int_kind));
+      num_elem_node->next = node_for_host_large_integer(
+                                     (a_host_large_integer)array_element_count,
+                                     targ_size_t_int_kind);
+      num_elem_node = make_operator_node((an_expr_operator_kind)eok_imultiply,
+                                         num_elem_node->type,
+                                         num_elem_node);
+    }  /* if */
+    /* Call a helper routine to zero the entity.  Note that in this case
+       the routine gets the count of array elements (or 1 for a non-array)
+       rather than the size in bytes. */
+    entity_node = add_cast_if_necessary(entity_node,
+                                        make_pointer_type(element_type));
+    entity_node->next = num_elem_node;
+    (void)make_call_node(helper_routine_to_zero_entity(element_type,
+                                                       have_complete_object),
+                         entity_node, /*honor_virtual=*/FALSE,
+                         insert_location);
+#endif /* IA64_ABI */
+  } else {
+    /* The entity (not an empty base class) must be set to all zeroes. */
+    an_expr_node_ptr entity_size_node;
+    a_targ_size_t    entity_size = element_type->size;
+    if (!have_complete_object && is_immediate_class_type(element_type)) {
+      /* For a subobject of class type, use the size without virtual
+         base classes. */
+      entity_size = element_type->variant.class_struct_union.extra_info->
+                                            size_without_virtual_base_classes;
+    }  /* if */
+    if (array_element_count != 1) {
+      entity_size *= array_element_count;
+    }  /* if */
+    if (num_elem_node == NULL) {
+      entity_size_node = node_for_host_large_integer(
+                                             (a_host_large_integer)entity_size,
+                                             targ_size_t_int_kind);
+    } else {
+      /* num_elem_node gives the count of elements.  Multiply it by the
+         size of each element to get the total size. */
+      num_elem_node= add_cast_if_necessary(num_elem_node,
+                                           integer_type(targ_size_t_int_kind));
+      num_elem_node->next = node_for_host_large_integer(
+                                             (a_host_large_integer)entity_size,
+                                             targ_size_t_int_kind);
+     entity_size_node= make_operator_node((an_expr_operator_kind)eok_imultiply,
+                                          num_elem_node->type,
+                                          num_elem_node);
+    }  /* if */
+    /* Call a runtime routine to zero the entity.  In this case the
+       runtime routine gets the size in bytes of the whole entity. */
+    insert_runtime_zeroing_call(entity_node, entity_size_node,
+                                insert_location);
+  }  /* if */
 }  /* insert_call_to_zero_entity */
 
 
@@ -4970,6 +5087,7 @@ C99 mode for the same reason.
   a_boolean          do_simple_constant_init_opt = FALSE;
   a_boolean          local_static_that_requires_dynamic_init = FALSE;
   a_dynamic_init_ptr latest_initialization_on_entry;
+  a_boolean          have_complete_object = TRUE;
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -5042,6 +5160,14 @@ C99 mode for the same reason.
       insert_location2 = *insert_location;
       add_first_time_test(variable, &insert_location2, insert_location,
                           &block_stmt, &local_static_guard_var);
+    }  /* if */
+  } else {
+    /* Not whole variable initialization. */
+    if (ctor_init != NULL &&
+        (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
+         ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class)) {
+      /* Initializing a base class, so not a complete object. */
+      have_complete_object = FALSE;
     }  /* if */
   }  /* if */
   if (dip->lifetime != NULL) {
@@ -5176,55 +5302,22 @@ C99 mode for the same reason.
       } else {
         /* Not entire variable. */
         a_type_ptr entity_type = type_from_init_pos_descr(ipdp);
-#if IA64_ABI
-        if (contains_ptr_to_data_member(entity_type)) {
-          /* If the entity type contains pointers to data members they must
-             be initialized to -1, not zero, for the IA-64 ABI. */
-          a_type_ptr       element_type;
-          a_targ_size_t    num_elements;
-          if (is_array_type(entity_type)) {
-            element_type = underlying_array_element_type(entity_type);
-            num_elements = num_array_elements(entity_type);
-          } else {
-            element_type = entity_type;
-            num_elements = 1;
-          } /* if */
-          if (ipdp->array_element_sequence) {
-            num_elements *= ipdp->array_element_count;
-          }  /* if */
-          entity_node = make_init_entity_node(ipdp, 
-                                              /*using_as_address=*/TRUE,
-                                              /*using_as_dest=*/TRUE);
-          insert_call_to_helper_routine_to_zero_entity(
-                   element_type,
-                   entity_node,
-                   node_for_host_large_integer(
-                                            (a_host_large_integer)num_elements,
-                                            targ_size_t_int_kind),
-                   eff_insert_location);
-        } else
-#endif /* IA64_ABI */
-        /* Do not insert code here.  */
         if (is_aggregate_or_union_type(entity_type) ||
             is_or_was_ptr_to_member_function_type(entity_type) ||
             ipdp->array_element_sequence) {
           /* Aggregate.  Use a runtime routine call to zero it. */
-          a_targ_size_t    entity_size;
-          an_expr_node_ptr entity_size_node;
-          entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
-                                              /*using_as_dest=*/TRUE);
-          entity_size = f_skip_typerefs(entity_type)->size;
+          a_targ_size_t array_element_count = 0;
           if (ipdp->array_element_sequence) {
-            /* For a sequence of array elements, multiply by the number of
-               elements. */
-            check_assertion_str(ipdp->array_element_count > 0,
-                      "lower_dynamic_init: dik_zero array_element_count <= 0");
-            entity_size *= ipdp->array_element_count;
+            array_element_count = ipdp->array_element_count;
           }  /* if */
-          entity_size_node = node_for_host_large_integer(
-                                             (a_host_large_integer)entity_size,
-                                             targ_size_t_int_kind);
-          insert_call_to_zero_entity(entity_node, entity_size_node,
+          entity_node = make_init_entity_node(ipdp, 
+                                              /*using_as_address=*/TRUE,
+                                              /*using_as_dest=*/TRUE);
+          insert_call_to_zero_entity(entity_type,
+                                     have_complete_object,
+                                     entity_node,
+                                     (an_expr_node_ptr)NULL,
+                                     array_element_count,
                                      eff_insert_location);
         } else {
           /* Setting a scalar to zero; can be done by an assignment. */
@@ -5380,6 +5473,7 @@ do_assignment:;
 #endif /* ABI_COMPATIBILITY_VERSION >= 233 */
         /* Generate the constructor call. */
         add_constructor_call(dip, entity_node, source_node,
+                             have_complete_object,
                              implied_arg_list, end_implied_arg_list,
                              eff_insert_location);
       }  /* if */
@@ -5447,7 +5541,8 @@ do_assignment:;
          This is used for copying members of classes in ctor-initializers
          of copy constructors, and for the parameter of catch clauses.
          ctor_init is non-NULL for the first of those cases. */
-      add_bitwise_copy(ipdp, ctor_init, eff_insert_location);
+      add_bitwise_copy(ipdp, ctor_init, have_complete_object,
+                       eff_insert_location);
       break;
 #if CHECKING
     default:
@@ -6139,51 +6234,18 @@ arrays with class elements.
   }  /* if */
   insert_expr(vec_new_node, &insert_location);
   if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_zero) {
-#if IA64_ABI
-    if (contains_ptr_to_data_member(elem_type)) {
-      /* If the element type contains pointers to data members the storage
-         cannot simply be set to zero; the pointers to data members must be
-         initialized to -1. */
-      insert_call_to_helper_routine_to_zero_entity(
-                                elem_type,
-                                var_rvalue_expr(zero_temp_var),
-                                make_reusable_copy(num_elem_node,
-                                                   /*vars_can_change=*/TRUE),
-                                &insert_location);
-    } else
-#endif /* IA64_ABI */
-    /* Do not insert code here. */
-    {
-      /* Continue generating the code for zeroing. */
-      an_expr_node_ptr entity_size_node;
-      if (array_type->size != 0) {
-        /* The array size is a known constant. */
-        entity_size_node = node_for_host_large_integer(
-                                        (a_host_large_integer)array_type->size,
-                                        targ_size_t_int_kind);
-      } else {
-        /* The array size is computed. */
-        entity_size_node = make_reusable_copy(num_elem_node,
-                                              /*vars_can_change=*/TRUE);
-        /* Cast to size_t. */
-        entity_size_node = add_cast_if_necessary(
-                                           entity_size_node,
-                                           integer_type(targ_size_t_int_kind));
-        /* Multiply by the element size if it's not 1. */
-        if (elem_size != 1) {
-          entity_size_node->next = 
-                   node_for_host_large_integer((a_host_large_integer)elem_size,
-                                               targ_size_t_int_kind);
-          entity_size_node = make_operator_node(
-                                          (an_expr_operator_kind)eok_imultiply,
-                                          entity_size_node->type,
-                                          entity_size_node);
-        }  /* if */
-      }  /* if */
-      insert_call_to_zero_entity(var_rvalue_expr(zero_temp_var),
-                                 entity_size_node,
-                                 &insert_location);
+    /* Generate a runtime routine call to zero the entity. */
+    an_expr_node_ptr eff_num_elem_node = NULL;
+    if (array_type->size == 0) {
+      eff_num_elem_node = make_reusable_copy(num_elem_node,
+                                             /*vars_can_change=*/TRUE);
     }  /* if */
+    insert_call_to_zero_entity(elem_type,
+                               /*have_complete_object=*/TRUE,
+                               var_rvalue_expr(zero_temp_var),
+                               eff_num_elem_node,
+                               (a_targ_size_t)NULL,
+                               &insert_location);
     /* Insert the value of the temporary as the final value of the
        expression. */
     insert_expr(var_rvalue_expr(zero_temp_var), &insert_location);
@@ -7261,7 +7323,7 @@ the first member of the aggregate.
   if (!is_aggregate_or_union_type(type)) {
     /* Simple scalar case. */
     a_constant zero_constant;
-    make_zero_of_proper_type(rvalue_type(type), &zero_constant);
+    make_lowered_zero_of_proper_type(rvalue_type(type), &zero_constant);
     con = alloc_unshared_constant(&zero_constant);
   } else {
     /* Aggregate type. */
@@ -11313,6 +11375,7 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(vec_delete2_routine),
       pch_saved_var_array_elem(vec_delete3_routine),
       pch_saved_var_array_elem(vec_dtor_routine),
+      pch_saved_var_array_elem(memcpy_routine),
 #endif /* IA64_ABI */
       pch_saved_var_array_elem(memzero_routine),
       pch_saved_var_array_elem(record_needed_destruction_routine),
@@ -11365,6 +11428,7 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(vec_delete2_routine);
   register_trans_unit_variable(vec_delete3_routine);
   register_trans_unit_variable(vec_dtor_routine);
+  register_trans_unit_variable(memcpy_routine);
 #endif /* IA64_ABI */
   register_trans_unit_variable(memzero_routine);
   register_trans_unit_variable(record_needed_destruction_routine);
@@ -11420,6 +11484,7 @@ for each translation unit.
   vec_delete2_routine = NULL;
   vec_delete3_routine = NULL;
   vec_dtor_routine = NULL;
+  memcpy_routine = NULL;
 #endif /* IA64_ABI */
   memzero_routine = NULL;
   record_needed_destruction_routine = NULL;
