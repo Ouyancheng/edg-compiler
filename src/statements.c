@@ -31,6 +31,7 @@ statements.c -- Scanning of statements.
 #include "trans_lims.h"
 #include "symbol_tbl.h"
 #include "mem_manage.h"
+#include "pragma.h"
 
 
 static a_struct_stmt_stack_entry_ptr
@@ -124,17 +125,30 @@ Declarations needed because of mutual recursion:
 static a_boolean statement(void);
 
 
+static void check_lint_notreached_state(void)
 /*
-Macro to check the lint-style "notreached" flag and record information on
-it in the curr_reachability flag so as to suppress warnings that might
-otherwise be issued later.
+Check for a lint-notreached comment on the pending pragma list for the current
+statement, and if one is found update the curr_reachability state so as to
+suppress warnings that might otherwise be issued later.
 */
-#define check_lint_notreached_flag()                                  \
-{ if (lint_notreached_flag) {                                         \
-    curr_reachability.reachable_considering_hints = FALSE;            \
-    curr_reachability.suppress_unreachable_warning = TRUE;            \
-  }  /* if */                                                         \
-}  /* check_lint_notreached_flag */
+{
+  a_pending_pragma_ptr  ppp;
+
+  /* Determine whether a lint notreached comment immediately preceded this
+     statement.  (Note that we don't need to pass a statement pointer to
+     extract_specific_pragmas since no IL entry is generated for lint
+     notreached comments.) */
+  ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_not_reached,
+                                 (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
+  if (ppp != NULL) {
+    /* There is a currenly active notreached comment. */
+    curr_reachability.reachable_considering_hints = FALSE;
+    curr_reachability.suppress_unreachable_warning = TRUE;
+    /* The pending-pragma entry has been unlinked from the scope stack entry
+       list, but it still must be returned to the available list. */
+    free_pending_pragma_list(ppp);
+  }  /* if */
+}  /* check_lint_notreached_state */
 
 
 static void merge_reachability(a_reachability_summary *reachability,
@@ -3213,10 +3227,11 @@ rescan_statement:
   get_another_statement = FALSE;
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry so they can be examined and acted upon in subsequent processing. */
-  select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/FALSE);
-  /* If a lint-style "notreached" comment was detected, suppress the
-     warning on unreachable code. */
-  check_lint_notreached_flag();
+  if (select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/FALSE)) {
+    /* If a lint-style "notreached" comment was detected, suppress the
+       warning on unreachable code. */
+    check_lint_notreached_state();
+  }  /* if */
   switch(curr_token) {
     case tok_semicolon:
       /* Empty statement (part of expression-statement, 3.6.3). */
@@ -3481,22 +3496,27 @@ branching into it is disallowed).
   if (C_dialect == C_dialect_cplusplus || !any_statements) {
     wrapup_decl_statement();
   }  /* if */
-  /* If a lint-style "notreached" comment was detected, suppress the
-     warning on unreachable code. */
-  check_lint_notreached_flag();
   if (at_function_level) {
-    /* Function. */
-    /* If the code at the end of a function runs off the end, a default
-       return must be added.  See 3.6.6.4. */
-    /* Unless we're already in dead code, check that a void return
-       (one returning no value) is compatible with the current function
-       (i.e., the current function should also have type void), and add
-       a return with no expression. */
-    if (at_function_level && curr_reachability.reachable) {
+    /* We are at the right brace terminating a function definition.  If the
+       code at the end of a function runs off the end, a implicit return is
+       added (see 3.6.6.4) unless we are in dead code. */
+    if (curr_reachability.reachable) {
+      /* Falling off the end of a function in reachable code.  Check that a
+         void return (one returning no value) is compatible with the current
+         function (i.e., the current function should also have type void),
+         and add a return with no expression. */
       a_statement_ptr  sp;
       an_expr_node_ptr return_expr;
-      /* Falling off the end of a function in reachable code.  Make sure
-         that a void return is acceptable here.  If this is the main
+
+      /* Move cached #pragma declarations (if any) to the current scope stack
+         entry so they can be examined and acted upon in processing the
+         implicit return. */
+      if (select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/FALSE)) {
+        /* Check for a lint-style "notreached" comment -- it will affect
+           diagnostics in check_void_return_okay. */
+        check_lint_notreached_state();
+      }  /* if */
+      /* Make sure that a void return is acceptable here.  If this is the main
          routine, generate an implicit return value, if possible. */
       check_void_return_okay(/*is_implicit_return=*/TRUE, &return_expr);
       /* The statement is not allocated earlier because we don't want it to
