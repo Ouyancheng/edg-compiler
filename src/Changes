@@ -1,5 +1,24 @@
 Version 2.46
 
+11/5/01  Change in template conversion lookup
+
+A bug in the lookup of instances of conversion templates would cause the
+following program to call A::operator int instead of C::operator T (with
+T = int).  The standard is not really clear on how such cases should be
+handled, but in the absence of a clearer specification, calling the
+C conversion template seems like the desired behavior.
+
+  struct A {
+    operator int();
+  };
+  struct B { };
+  struct C : A, B {
+    template <class T> operator T() {return 0;}
+  };
+  int main() {
+    C().operator int();
+  }
+
 11/5/01  Diagnostic on invalid use of "template" keyword
 
 The "template" keyword when used for syntactic disambiguation can only be

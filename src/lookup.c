@@ -3270,6 +3270,18 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         sym = cssp->destructor;
         goto end_lookup;
       }  /* if */
+      if (sym == NULL && !direct_class_members_only &&
+          locator->is_conversion_name &&
+          (options & IDL_USING_DECLARATION) == 0) {
+        /* We still haven't found a symbol, we are looking for a conversion
+           function,  and this class has conversion function templates.
+           See if any of the templates match the type desired.  This
+           lookup is suppressed for member using-declarations because
+           it should not be possible for a derived class to name a template
+           instance in a using-declaration. */
+        sym = look_up_conversion_template_instance(locator, class_type);
+        if (sym != NULL) goto end_lookup;
+      }  /* if */
       if (!direct_class_members_only) {
         /* The name was not found.  Try looking for a member symbol that can
            be projected into the class.  When doing a "direct class members
@@ -3288,16 +3300,6 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                  (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0,
                                  add_to_active_list, insert_sym, &sym,
                                  !(options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS));
-        if (sym == NULL && locator->is_conversion_name &&
-            (options & IDL_USING_DECLARATION) == 0) {
-          /* We still haven't found a symbol, we are looking for a conversion
-             function,  and this class has conversion function templates.
-             See if any of the templates match the type desired.  This
-             lookup is suppressed for member using-declarations because
-             it should not be possible for a derived class to name a template
-	     instance in a using-declaration. */
-          sym = look_up_conversion_template_instance(locator, class_type);
-        }  /* if */
       }  /* if */
     }  /* if */
 end_lookup:
