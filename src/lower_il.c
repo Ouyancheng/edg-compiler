@@ -6059,20 +6059,7 @@ table.
      the first/only vtable in the variable (main_vtbl == TRUE) or
      a vtable to be added to the end of the existing contents of the
      variable (main_vtbl == FALSE). */
-  if (ctor_bcp != NULL || bcp == NULL) {
-    main_vtbl = TRUE;
-  } else if (!needs_virtual_function_table(class_type)) {
-    a_base_class_ptr primary;
-    for (primary = class_type->variant.class_struct_union.extra_info->
-                                                           primary_base_class;
-         primary != NULL;
-         primary = nominal_primary_base(primary)) {
-      if (primary == bcp) {
-        main_vtbl = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
-  }   /* if */
+  main_vtbl = (vtbl_var->type->variant.array.variant.number_of_elements == 0);
 #endif /* IA64_ABI */
   /* Find the appropriate virtual function table variable. */
   if (bcp == NULL) {
@@ -6121,11 +6108,8 @@ table.
       + num_negative_vtable_entries(class_type, bcp)
 #endif /* IA64_ABI */
                                                                             ;
-#if !IA64_ABI
-  /* In the IA64 ABI, wait until the entire vtable group is defined before
-     doing this. */
+  vtbl_var->type->size = 0;  /* Force recomputation of size. */
   set_type_size(vtbl_var->type);
-#endif /* !IA64_ABI */
   /* Set the linkage on the virtual function table variable. */
 #if IA64_ABI
   if (main_vtbl) {
@@ -6307,7 +6291,8 @@ virtual function tables to be used during construction of subobjects.
   ctsp = class_type->variant.class_struct_union.extra_info;
 #endif /* IA64_ABI */
   for (cvp = construction_vtbls; cvp != NULL; cvp = cvp->next) {
-    /* Do not define variables more than once. */
+    /* Do not define variables more than once (comes up with promoted
+       local classes). */
     if (cvp->virtual_function_table_var->type->
                                variant.array.variant.number_of_elements == 0) {
 #if IA64_ABI
@@ -6327,7 +6312,6 @@ virtual function tables to be used during construction of subobjects.
                                         definition_needed, force_static,
                                         first_virtual);
 #if IA64_ABI
-      set_type_size(cvp->virtual_function_table_var->type);
       /* If the variable is in a comdat group, move it to the same COMDAT
          group as the primary virtual table. */
       if (definition_needed && !force_static) {
@@ -6425,7 +6409,11 @@ class_type if any are needed.
   prelower_class_type(class_type);
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp != NULL) {
-    if (ctsp->virtual_function_table_var != NULL) {
+    if (ctsp->virtual_function_table_var != NULL &&
+        /* Do not define virtual function tables more than once (comes up
+           with promoted local classes). */
+        ctsp->virtual_function_table_var->type->
+                               variant.array.variant.number_of_elements == 0) {
       /* The class has a virtual function table.  Generate the definition
          if it is supposed to be generated in the present compilation. */
       definition_needed = 
@@ -6444,14 +6432,17 @@ class_type if any are needed.
       f_define_virtual_function_tables(class_type, (a_base_class_ptr)NULL,
                                        definition_needed, force_static,
                                        first_virtual);
-      set_type_size(ctsp->virtual_function_table_var->type);
 #endif /* IA64_ABI */      
     }  /* if */
 #if !IA64_ABI
     /* Generate the virtual function table for each base class when it
        is contained within a complete object of the primary class. */
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      if (base_class_has_vtbl(bcp)) {
+      if (base_class_has_vtbl(bcp) &&
+          /* Do not define virtual function tables more than once (comes up
+             with promoted local classes). */
+          bcp->virtual_function_table_var->type->
+                               variant.array.variant.number_of_elements == 0) {
         if (!need_determined) {
           definition_needed = 
                  virtual_function_table_should_be_defined_here(class_type,

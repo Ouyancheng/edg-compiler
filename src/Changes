@@ -1,5 +1,14 @@
 Version 3.3
 
+7/7/03   Incorrect size on virtual function table for local class
+
+The virtual function table generated for a local class in some
+cases had twice the elements it is supposed to have (the number
+of initialized members was correct).  In addition, in the
+Cfront-like ABI, the size recorded in the type of such an array
+was for the coprrect number of members, so it did not match
+the size of the array as dimensioned.  Now fixed.
+
 7/7/03   Microsoft mode: __declspec(noinline)
 
 In Microsoft mode, the front end now accepts the __declspec(noinline)
