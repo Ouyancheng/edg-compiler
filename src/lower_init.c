@@ -3651,9 +3651,7 @@ should be asked to deallocate the storage.  If the destructor is virtual,
 it is called as a virtual function, which involves some special tricks.
 */
 {
-  an_expr_node_ptr ptr_node_copy, call_node;
-  an_expr_node_ptr operand_node, compare_node;
-  a_constant       null_constant;
+  an_expr_node_ptr call_node;
   a_routine_ptr    dtor_routine = dip->destructor;
   long             bit_mask;
 
@@ -3667,34 +3665,8 @@ it is called as a virtual function, which involves some special tricks.
   /* Make a call of the destructor. */
   call_node = make_call_node(dtor_routine, ptr_node, /*honor_virtual=*/TRUE);
   if (dtor_routine->is_virtual) {
-    /* The destructor is virtual, so rewrite the call. */
-    /* Make a copy of the "this" argument so it can be used twice. */
-    ptr_node_copy = make_reusable_copy(ptr_node, /*vars_can_change=*/FALSE);
-    /* Put the copy under the original destructor call; the original gets
-       tested for NULL. */
-    operand_node = call_node->variant.operation.operands;
-    ptr_node_copy->next = ptr_node->next;
-    operand_node->next = ptr_node_copy;
-    /* Rewrite the virtual call as a normal call. */
+    /* The destructor is virtual, so rewrite the call as a normal call. */
     lower_virtual_function_call(call_node);
-    /* Also ... if the pointer to be deleted is NULL, one can't use it to
-       look up a virtual function, and therefore the destructor cannot
-       be the one to do the NULL pointer test.  We must add the test here
-       above the destructor call.  The test inside the destructor is still
-       needed for those cases where the routine is called non-virtually. */
-    /* Make "ptr_node != NULL". */
-    make_zero_of_proper_type(ptr_node->type, &null_constant);
-    ptr_node->next = alloc_node_for_constant(&null_constant);
-    compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
-                                      integer_type((an_integer_kind)ik_int),
-                                      ptr_node);
-    /* Make "(ptr_node != NULL) ? dtor(...) : (void)0". */
-    compare_node->next = call_node;
-    compare_node->next->next =
-               add_cast(node_for_integer_constant(0L, (an_integer_kind)ik_int),
-                        void_type());
-    call_node = make_operator_node((an_expr_operator_kind)eok_question,
-                                   call_node->type, compare_node);
   }  /* if */
   return call_node;
 }  /* make_dtor_call_for_delete */
@@ -3707,74 +3679,115 @@ The subtree of the node has not yet been lowered.
 */
 {
   a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
-  a_dynamic_init_ptr          dip = ndsp->dynamic_init;
   a_type_ptr                  base_type;
-  an_expr_node_ptr            ptr_node = ndsp->arg, call_node, dtor_call_node;
-  an_expr_node_ptr            second_arg_node;
 
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (ndsp->array_delete &&
       new_or_delete_type_requires_array_handling(base_type)) {
     /* An array "delete". */
     lower_array_delete(expr);
+  } else {
+    /* Non-array case, or array case that does not require special handling. */
+    a_dynamic_init_ptr dip = ndsp->dynamic_init;
+    an_expr_node_ptr   ptr_node = ndsp->arg, call_node;
+    an_expr_node_ptr   dtor_call_node, second_arg_node;
+    an_expr_node_ptr   non_null_test_expr = NULL;
+    a_routine_ptr      delete_routine = ndsp->routine;
+
 #if !DELETE_CAN_BE_FOLDED_INTO_DTOR
 /* IL lowering requires that it be possible to fold the delete call into
    a destructor.  Without that, it has no way of getting the right size
    on a delete of a pointer to a class with a virtual destructor. */
  #error -- DELETE_CAN_BE_FOLDED_INTO_DTOR set wrong.
 #endif /* !DELETE_CAN_BE_FOLDED_INTO_DTOR */
-  } else if (ndsp->routine == NULL) {
-    /* The "delete" call has been folded into the destructor call.
-       Generate the destructor call with an implicit parameter to indicate
-       deallocation. */
-    /* Lower "arg"; do it as a list in case the delete routine is the
-       two-argument version.  Drop the second argument if present. */
-    lower_expr_list(ptr_node, 0);
-    ptr_node->next = NULL;
-    dtor_call_node = make_dtor_call_for_delete(dip, ptr_node,
-                                               /*deallocate=*/TRUE);
-    /* Overwrite the enk_new_delete node with the call. */
-    overwrite_node(expr, dtor_call_node);
-  } else {
-    /* Non-array case, or array case that does not require special handling. */
-    /* Lower "arg"; do it as a list in case the delete routine is the
-       two-argument version. */
-    lower_arg_expr_list(ptr_node, ndsp->routine->type, (a_param_type_ptr)NULL);
-    /* Break off the second argument if there is one; it will be reattached
-       later after ptr_node has been messed with. */
-    second_arg_node = ptr_node->next;
-    ptr_node->next = NULL;
-    if (dip != NULL) {
-      /* Case like
-           struct A { ~A(); } *p;
-           ::delete p;
-         This cannot be folded into the destructor call because the delete
-         routine is not the standard one.  Make something like
-           (dtor(p), delete(p))
-      */
-      an_expr_node_ptr orig_ptr_node = ptr_node;
-      /* Make a reusable copy of the pointer node for use in the
-         delete call. */
-      ptr_node = make_reusable_copy(orig_ptr_node, /*vars_can_change=*/FALSE);
-      dtor_call_node = make_dtor_call_for_delete(dip, orig_ptr_node,
-                                                 /*deallocate=*/FALSE);
-      /* The comma node is built later in this routine. */
+
+    if (delete_routine == NULL) {
+      /* The "delete" call has been folded into the destructor call.
+         Generate the destructor call with an implicit parameter to indicate
+         deallocation. */
+      /* Lower "arg"; do it as a list in case the delete routine is the
+         two-argument version.  Drop the second argument if present. */
+      lower_expr_list(ptr_node, 0);
+      ptr_node->next = NULL;
+      if (dip->destructor->is_virtual) {
+        /* The destructor is virtual, so a "!= NULL" test is required over
+           the call because a null pointer cannot be used to call a virtual
+           function. */
+        non_null_test_expr = ptr_node;
+        ptr_node = make_reusable_copy(ptr_node, /*vars_can_change=*/TRUE);
+      }  /* if */
+      call_node = make_dtor_call_for_delete(dip, ptr_node,
+                                            /*deallocate=*/TRUE);
+    } else {
+      /* The delete is not folded into a destructor call. */
+      /* Lower "arg"; do it as a list in case the delete routine is the
+         two-argument version. */
+      lower_arg_expr_list(ptr_node, delete_routine->type,
+                          (a_param_type_ptr)NULL);
+      /* Break off the second argument if there is one; it will be reattached
+         later after ptr_node has been messed with. */
+      second_arg_node = ptr_node->next;
+      ptr_node->next = NULL;
+      if (!delete_routine->compiler_generated ||
+          (dip != NULL && dip->destructor->is_virtual)) {
+        /* The delete routine is not a compiler-generated one, so a "!= NULL"
+           test is required over the expression, since we aren't sure there
+           is one in the delete routine.  Or, the destructor is virtual,
+           so a "!= NULL" test is required over the call because a null
+           pointer cannot be used to call a virtual function. */
+        non_null_test_expr = ptr_node;
+        ptr_node = make_reusable_copy(ptr_node, /*vars_can_change=*/TRUE);
+      }  /* if */
+      if (dip != NULL) {
+        /* A destructor must be called before the delete routine, e.g.,
+             struct A { ~A(); void operator delete(void *); } *p;
+             ::delete p;
+           This cannot be folded into the destructor call because the delete
+           routine is not the default one.  Make something like
+             (dtor(p), delete(p))
+        */
+        an_expr_node_ptr orig_ptr_node = ptr_node;
+        /* Make a reusable copy of the pointer node for use in the
+           delete call. */
+        ptr_node = make_reusable_copy(orig_ptr_node, /*vars_can_change=*/TRUE);
+        dtor_call_node = make_dtor_call_for_delete(dip, orig_ptr_node,
+                                                   /*deallocate=*/FALSE);
+        /* The comma node is built later in this routine. */
+      }  /* if */
+      /* Make the "delete" call.  Cast the argument to "void *", which
+         is what the delete routine expects. */
+      ptr_node = add_cast_if_necessary(ptr_node, void_star_type());
+      /* Reattach the second operand to delete is there is one. */
+      ptr_node->next = second_arg_node;
+      call_node = make_call_node(delete_routine, ptr_node,
+                                 /*honor_virtual=*/FALSE);
+      if (dip != NULL) {
+        /* Finish the destructor case by building the comma node. */
+        dtor_call_node->next = call_node;
+        call_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                       call_node->type, dtor_call_node);
+      }  /* if */
     }  /* if */
-    /* Make the "delete" call.  It is not necessary to test for non-NULL;
-       the delete routine does that.  Cast the argument to "void *", which
-       is what the delete routine expects. */
-    ptr_node = add_cast_if_necessary(ptr_node, void_star_type());
-    /* Reattach the second operand to delete is there is one. */
-    ptr_node->next = second_arg_node;
-    call_node = make_call_node(ndsp->routine, ptr_node,
-                               /*honor_virtual=*/FALSE);
-    if (dip != NULL) {
-      /* Finish the destructor case by building the comma node. */
-      dtor_call_node->next = call_node;
-      call_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                     call_node->type, dtor_call_node);
+    if (non_null_test_expr != NULL) {
+      /* A test of the pointer for non-NULL must be added. */
+      an_expr_node_ptr compare_node;
+      a_constant       null_constant;
+
+      /* Make "non_null_test_expr != NULL". */
+      make_zero_of_proper_type(non_null_test_expr->type, &null_constant);
+      non_null_test_expr->next = alloc_node_for_constant(&null_constant);
+      compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+                                        integer_type((an_integer_kind)ik_int),
+                                        non_null_test_expr);
+      /* Make "(non_null_test_expr != NULL) ? dtor(...) : (void)0". */
+      compare_node->next = call_node;
+      compare_node->next->next =
+               add_cast(node_for_integer_constant(0L, (an_integer_kind)ik_int),
+                        void_type());
+      call_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                     call_node->type, compare_node);
     }  /* if */
-    /* Overwrite the enk_new_delete node with the call. */
+    /* Overwrite the enk_new_delete node with the final expression. */
     overwrite_node(expr, call_node);
   }  /* if */
 }  /* lower_delete */

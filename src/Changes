@@ -1,5 +1,20 @@
 Version 2.28
 
+1/25/95  Non-null test on pointer on call of user-written operator delete
+
+A user-written operator delete is not required to contain a test for
+non-NULL (whereas the compiler-supplied one does have to contain that test),
+so a "!= NULL" test is required around the delete call in something like
+the following:
+
+  struct A {
+    void operator delete(void *) { }
+  };
+  main() {
+    A *p = 0;
+    delete p;
+  }
+
 1/25/95  Ellipsis match allowed on function template
 
 An ellipsis match is now allowed on a function template.  The ARM
