@@ -10215,6 +10215,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           conv_3_to_2_possible = FALSE;
         }  /* if */
       }  /* if */
+      expr_stack->inside_conditional_expression = TRUE;
       if (conv_2_to_3_possible && conv_3_to_2_possible) {
         /* Each operand can be converted to the other, so the operation
            is ambiguous. */
@@ -10260,6 +10261,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                                                 &operand_3);
         }  /* if */
       }  /* if */
+      expr_stack->inside_conditional_expression =
+                                           saved_inside_conditional_expression;
     }  /* if */
   }  /* if */
   if (!processed && !err) {

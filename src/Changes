@@ -1,5 +1,23 @@
 Version 2.45
 
+12/13/00 Conditional destruction of temporary added by implicit conversion
+         for operand of "?"
+
+A temporary added for an implicit conversion on the second or third
+operand of a "?" operator was not marked as conditionally generated,
+and therefore IL lowering generated code to destroy it unconditionally,
+rather than only when it is created.  This bug was introduced by the
+changes associated with the Changes entry of 8/5/99.
+
+  struct A {
+    A(int);
+    ~A();
+  };
+  int main() {
+    int i = 1;
+    i ? A(1) : 2;  // Temporary for implicit A(2) destroyed unconditionally
+  }
+
 12/12/00 C- and C++-generating back ends: <stdarg.h> macros and line wrapping
 
 Line wrapping is now disabled in the C- and C++-generating back ends
