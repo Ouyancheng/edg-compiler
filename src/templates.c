@@ -11263,7 +11263,8 @@ specific definition that made it unnecessary.
 
 static a_boolean sym_can_be_instantiated(a_symbol_ptr	sym,
 				         a_boolean	issue_errors,
-                                         a_boolean	is_pragma)
+                                         a_boolean	is_pragma,
+					 a_pragma_kind	pragma_kind)
 /*
 Determine whether the template function specified by sym can be instantiated.
 Inline functions and compiler generated routines (which also happen to be
@@ -11292,7 +11293,8 @@ instantiated.
     if (issue_errors) {
       sym_error(ec_not_instantiatable_entity, sym);
     }  /* if */
-  } else if (sym->variant.routine.ptr->is_specialized) {
+  } else if (sym->variant.routine.ptr->is_specialized &&
+             pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
     /* A specialization declaration has been supplied. */
     result = FALSE;
     if (issue_errors) {
@@ -11349,7 +11351,8 @@ or the specific definition flag (if instantiate is FALSE).
   a_template_instance_ptr	tip = NULL;
   db_enter(3, "update_instantiation_flags");
   if (is_function_symbol(sym)) {
-    if (sym_can_be_instantiated(sym, /*issue_errors=*/TRUE, is_pragma)) {
+    if (sym_can_be_instantiated(sym, /*issue_errors=*/TRUE,
+                                is_pragma, pragma_kind)) {
       tip = sym->variant.routine.instance_ptr;
     }  /* if */
   } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -11484,7 +11487,7 @@ is a recursive call for a class nested within the template class.
                this processing. */
             if (is_function_symbol(list_sym) &&
                 sym_can_be_instantiated(list_sym, /*issue_errors=*/FALSE,
-                                        is_pragma)) {
+                                        is_pragma, pragma_kind)) {
               update_instantiation_flags(list_sym, pragma_kind, pos,
                                          /*is_class_instantiation=*/TRUE,
                                          is_pragma);

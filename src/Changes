@@ -1,5 +1,14 @@
 Version 2.37
 
+8/19/97   Spurious error on redundant do_not_instantiate pragma
+
+A spurious error was issued if a program contained more than one
+do_not_instantiate pragma for a given entity.  This has been fixed.
+
+  template <class T> void f(T);
+  #pragma do_not_instantiate void f(int)
+  #pragma do_not_instantiate void f(int)
+
 8/19/97   Missing diagnostic on storage class in explicit specialization
 
 A storage class is not allowed in an explicit specialization
