@@ -1982,7 +1982,7 @@ do
 #
 #   Compile the .int.c files for instantiation files that were generated
 #
-    if [ $instantiation_list_exists -ne 0 ] ; then
+    if [ $instantiation_list_exists -ne 0 -a $fe_only -eq 0 ] ; then
       for inst_base in `cat $instantiation_list`
       do
         inst_file=$inst_base$gen_c_suffix

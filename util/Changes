@@ -1,5 +1,11 @@
 Version 3.5
 
+10/13/04 eccp: one-instantiation-per-object and --cpfe_only option
+
+If the --cpfe_only option was specified when using one-instantiation-per-object
+mode, the .int.c files for the instantiation files were still being compiled
+by the underlying C compiler, but should not have been.  This has been fixed.
+
 7/9/04  Include guards added to getopt.h
 
 On some systems, the system header files include getopt.h.  This can
