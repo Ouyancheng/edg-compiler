@@ -834,17 +834,15 @@ Clear the correspondence of the given type and (if applicable) its
 substructure.
 */
 {
-  if (checked_trans_unit_corresp_pointer_of(type) == NULL) {
-    /* Mark this type as visited. */
-    clear_trans_unit_corresp(type, visited);
-    /* Also mark inner structure if applicable. */
-    if (is_immediate_class_type(type)) {
-      if (class_type_has_body(type)) {
-        clear_class_type_correspondence(type, visited);
-      }  /* if */
-    } else if (is_immediate_enum_type(type)) {
-      clear_enum_type_correspondence(type, visited);
+  /* Mark this type as visited. */
+  clear_trans_unit_corresp(type, visited);
+  /* Also mark inner structure if applicable. */
+  if (is_immediate_class_type(type)) {
+    if (class_type_has_body(type)) {
+      clear_class_type_correspondence(type, visited);
     }  /* if */
+  } else if (is_immediate_enum_type(type)) {
+    clear_enum_type_correspondence(type, visited);
   }  /* if */
 }  /* clear_type_correspondence */
 
@@ -1728,7 +1726,9 @@ is in fact valid.
     }  /* if */
     if (!match) {
       /* The templates don't seem to match, so don't try to verify the
-         instantiations. */
+         instantiations.  However, make sure no false correspondences
+         remain. */
+      clear_instantations_correspondence(templ, /*visited=*/TRUE);
     } else if (is_class_template_symbol(templ_sym)) {
       /* A class template. Verify the instantiations (if any). */
       a_type_ptr  proto = prototype_template_of(templ_sym)
