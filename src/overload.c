@@ -1122,10 +1122,9 @@ must free that list.
   a_type_ptr base_dest_type = type_pointed_to(dest_type);
 
   /* See WP [dcl.init.ref].  The source expression is required to be
-     an lvalue. */
+     an lvalue, but we check that only in strict mode. */
   *ambiguous = FALSE;
-  okay = (is_an_lvalue(source_operand) ||
-          any_cfront_mode() || microsoft_mode) &&
+  okay = (!strict_ansi_mode || is_an_lvalue(source_operand)) &&
          conversion_from_class_possible(source_operand,
                                         base_dest_type,
                                         (a_builtin_type_kind_set)BTK_NONE,
