@@ -58,7 +58,8 @@ wrong, as in this case.  We now allow the comparison, but we get it right
 
 A bug has been fixed that caused the same template class to be
 instantiated more than once when a declaration involved an temporarily
-incomplete array.  Here's a example:
+incomplete array.  An internal error resulted in some circumstances.
+Here's a example:
 
   template <class T> struct A { T t; A(T); };
   A<int> x = 0;
