@@ -1058,7 +1058,7 @@ return a pointer to it.
 #endif /* DEBUG */
   lsvip->next = NULL;
   lsvip->variable = NULL;
-  lsvip->init_kind = initk_none;
+  lsvip->init_kind = (an_init_kind)initk_none;
   db_exit();
   return lsvip;
 }  /* alloc_local_static_variable_init */

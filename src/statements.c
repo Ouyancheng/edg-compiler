@@ -2546,10 +2546,12 @@ statements since they are not allowed to have condition declarations even
 in C++.
 */
 {
-  if (!C_mode() &&
-      is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED | DFS_IS_CONDITION |
-                       (sp->kind == (a_statement_kind)stmk_for ?
-                                  DFS_CONDITION_IS_FOR_STMT : DFS_NO_FLAGS))) {
+  a_disambig_flag_set  flags = DFS_REAL_DECLARATOR_ALLOWED | DFS_IS_CONDITION;
+
+  if (sp->kind == (a_statement_kind)stmk_for) {
+    flags |= DFS_CONDITION_IS_FOR_STMT;
+  }  /* if */
+  if (!C_mode() && is_decl_not_expr(flags)) {
     /* A condition declaration.  Start a scope for the variable declared in
        the condition and scan the declaration. */
     *is_condition_decl = TRUE;

@@ -7875,8 +7875,8 @@ are handled in lexical_init.)
       }  /* if */
     }  /* for */
     /* new[] and delete[] do not map to a single token. */
-    opname_names[onk_array_new] = "new[]";
-    opname_names[onk_array_delete] = "delete[]";
+    opname_names[(int)onk_array_new] = "new[]";
+    opname_names[(int)onk_array_delete] = "delete[]";
 #if CHECKING
     /* Make sure all the slots were initialized. */
     for (opname_kind = (int)onk_none+1;
