@@ -2268,6 +2268,12 @@ Only callable in C++ mode.  See ARM 13.
       distinguishable = TRUE;
       goto distinguishable_determined;
     }  /* if */
+    /* If one type has an ellipsis and the other does not, the types are
+       distinguishable. */
+    if (old_extra_info->has_ellipsis != new_extra_info->has_ellipsis) {
+      distinguishable = TRUE;
+      goto distinguishable_determined;
+    }  /* if */
     /* Compare the parameter types. */
     for (old_param = old_extra_info->param_type_list,
          new_param = new_extra_info->param_type_list;
@@ -2331,7 +2337,6 @@ points to the constant value.
   an_error_code         warning_suggested;
   a_boolean             downward_cast;
   a_base_class_ptr      bcp;
-  a_derivation_step_ptr dsp;
 
   if (is_error_type(arg_type) || is_error_type(param_type)) {
     /* An error type matches anything, but not very well. */
@@ -2439,19 +2444,12 @@ points to the constant value.
     arg_match->match_level = aml_std_conversion;
     arg_match->warning_suggested = warning_suggested;
     /* If the cast is from a pointer to a class to a base class to something
-       else, set downward_cast_levels. */
+       else, set downward_cast_derivation. */
     if (is_pointer(arg_type) &&
         is_class_struct_union_type(type_pointed_to(arg_type))) {
       if (related_class_pointers(arg_type, param_type, &downward_cast, &bcp)) {
-        /* Cast to base class.  Count levels in the cast. */
-        for (arg_match->downward_cast_levels = 0, dsp = bcp->derivation;
-             dsp != NULL;
-             arg_match->downward_cast_levels++, dsp = dsp->next) {}
-      } else {
-        /* Some other cast, i.e., cast to "void *" or the like.
-           This is less desirable than any cast cast to a base class,
-           so put in a very large number. */
-        arg_match->downward_cast_levels = ULONG_MAX;
+        /* Cast to base class. */
+        arg_match->downward_cast_derivation = bcp->derivation;
       }  /* if */
     }  /* if */
     goto have_level;
@@ -2479,31 +2477,61 @@ Compare two argument match summary entries and return
 
 */
 {
-  int cmp;
+  int                   cmp;
+  a_derivation_step_ptr derivation_1, derivation_2;
 
   /* There are two parts to the key to be compared.  match_level is the
-     primary key; downward_cast_levels is the secondary key, but it does
+     primary key; downward_cast_derivation is the secondary key, but it does
      not always apply. */
   if (arg_match1->match_level < arg_match2->match_level) {
+    /* arg_match1 is better. */
     cmp = 1;
   } else if (arg_match1->match_level > arg_match2->match_level) {
+    /* arg_match2 is better. */
     cmp = -1;
   } else {
-    if (arg_match1->downward_cast_levels != 0 &&
-        arg_match2->downward_cast_levels != 0) {
-      /* Both entries have downward cast levels, so they can be compared. */
-      if (arg_match1->downward_cast_levels <
-          arg_match2->downward_cast_levels) {
+    derivation_1 = arg_match1->downward_cast_derivation;
+    derivation_2 = arg_match2->downward_cast_derivation;
+    if (derivation_1 != NULL && derivation_2 != NULL) {
+      /* Both entries have downward casts, so they can be compared.  If one
+         is a subsequence of the other, the shorter derivation is
+         preferable. */
+      do {
+        if (derivation_1->base_class != derivation_2->base_class) {
+          /* The derivations go different ways, so they cannot be compared
+             and are considered equal. */
+          cmp = 0;
+          goto have_cmp;
+        }  /* if */
+        derivation_1 = derivation_1->next;
+        derivation_2 = derivation_2->next;
+      } while (derivation_1 != NULL && derivation_2 != NULL);
+      /* See if the two lists (equal so far) ended together. */
+      if (derivation_2 != NULL) {
+        /* derivation_1 is shorter and thus preferable. */
         cmp = 1;
-        goto have_cmp;
-      } else if (arg_match1->downward_cast_levels >
-                 arg_match2->downward_cast_levels) {
+      } else if (derivation_1 != NULL) {
+        /* derivation_2 is shorter and thus preferable. */
         cmp = -1;
-        goto have_cmp;
+      } else {
+        /* The lists ended together and are equal. */
+        cmp = 0;
       }  /* if */
+    } else if (derivation_1 != NULL) {
+      /* derivation_1 != NULL, derivation_2 == NULL.  A base class cast is
+         preferable to another kind of cast (e.g., a cast to "void *"),
+         so arg_match1 is better. */
+      cmp = 1;
+    } else if (derivation_2 != NULL) {
+      /* derivation_1 == NULL, derivation_2 != NULL.  A base class cast is
+         preferable to another kind of cast (e.g., a cast to "void *),
+         so arg_match2 is better. */
+      cmp = -1;
+    } else {
+      /* derivation_1 == NULL, derivation_2 == NULL. */
+      /* The matches are equal. */
+      cmp = 0;
     }  /* if */
-    /* The matches are equal. */
-    cmp = 0;
   }  /* if */
 have_cmp:
   return cmp;
