@@ -2144,8 +2144,8 @@ if unnamed.
   }  /* if */
   /* Make a type and routine entry for the routine. */
   init_rout = make_rout_entry(name,
-                              name != NULL ? (a_storage_class)sc_unspecified :
-                                             (a_storage_class)sc_static,
+                              (a_storage_class)(name != NULL ? sc_unspecified :
+                                                               sc_static),
                               void_type(),
                               (a_type_ptr)NULL);
   /* Make a memory region, scope, and block for the routine definition. */
