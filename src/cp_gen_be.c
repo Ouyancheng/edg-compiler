@@ -3484,6 +3484,7 @@ or "]" following the attribute, as appropriate.  Update *first
 appropriately.
 */
 {
+  set_output_position(&msap->position);
   if (*first) {
     write_tok_ch('[');
     *first = FALSE;
