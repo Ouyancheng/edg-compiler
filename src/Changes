@@ -1,6 +1,15 @@
 Version 2.41
 
-1/13/98   "routine name linkage" set incorrectly in function redeclaration
+1/15/99   Backslashes in macro-expanded header names in #include
+
+The following example now works correctly on Microsoft systems:
+
+  #define _SYS_TIMB_H <sys\timeb.h>
+  #include _SYS_TIMB_H
+
+Formerly, the backslash in the macro expansion process caused an error.
+
+1/13/99   "routine name linkage" set incorrectly in function redeclaration
 
 When a function was declared with an explicit linkage specifier and then
 redeclared without it, the function's type entry was sometimes updated
@@ -15,7 +24,7 @@ routine_name_linkage field for f's type was wrong.  Now fixed.
 IL CHANGE: new flag routine_name_linkage_is_explicit was added to
 a_routine_type_supplement.
 
-1/12/98   Spurious error in name-linkage compatibility checking
+1/12/99   Spurious error in name-linkage compatibility checking
 
 Spurious errors are no longer issued on the following:
 
@@ -30,7 +39,7 @@ Spurious errors are no longer issued on the following:
   int g();                // error eliminated -- declaration is no longer
                           //   treated as a redeclaration of A::g()
 
-1/11/98   Microsoft compatibility: __declspec on class declaration
+1/11/99   Microsoft compatibility: __declspec on class declaration
 
 __declspec and similar declaration modifiers that can appear between
 the "class" keyword and the class name (e.g., "class __declspec(dllimport) A") 
@@ -38,7 +47,7 @@ are now recorded against the class, and output by the C++-generating back
 end, even when they appear in a declaration instead of a definition
 of the class.
 
-1/5/98    Scope of forward-declared enum types
+1/5/99    Scope of forward-declared enum types
 
 When forward declarations of enum types are permitted (e.g., in Microsoft
 compatibility mode), such a declaration appearing inside a class definition

@@ -5333,7 +5333,7 @@ The value of the function is ctoken usually, but tok_error if there was
 an error and fetch_pp_tokens is TRUE.  end_of_curr_token is set to point
 to the last character of the string.  This routine is used for character
 constants and string literals, in both the "wide" and normal forms, and
-for header names in #include directives.
+for header names in #include and #line directives.
 */
 {
   register char quoting_char, ch;
@@ -5358,7 +5358,7 @@ for header names in #include directives.
   /* Scan through the characters of the string looking for the closing quoting
      character. */
   while ((ch = *curr_char_loc) != quoting_char) {
-    if (ch == '\\') {
+    if (ch == '\\' && !is_header_name) {
       /* Backslash, escapes the next character.  If followed by "0" or
          "x", an octal or hexadecimal value must be scanned.  We recognize
          those digits so we can accurately count characters, but we do
