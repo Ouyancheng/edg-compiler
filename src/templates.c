@@ -5782,7 +5782,8 @@ instantiation.
   (void)get_token();
   /* Next should be the class name. */
   if (!is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
-                                       GID_USE_PROTOTYPE_NOT_NONREAL)) {
+                                       GID_USE_PROTOTYPE_NOT_NONREAL |
+				       GID_IS_CLASS_TEMPLATE_DECL)) {
 
     /* Not an identifier. */
     error(ec_exp_identifier);
@@ -7795,8 +7796,11 @@ the declaration token cache.
   if (curr_token == tok_class || curr_token == tok_struct ||
       curr_token == tok_union) {
     (void)get_token();
+    /* Use "is expr context" to suppress diagnostics on invalid template
+       references. */
     if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
-                                        GID_USE_PROTOTYPE_NOT_NONREAL)) {
+                                        GID_USE_PROTOTYPE_NOT_NONREAL |
+                                        GID_IS_TEMPLATE_PRESCAN)) {
       (void)get_token();
       if (curr_token == tok_colon || curr_token == tok_end_of_source) {
         result = TRUE;

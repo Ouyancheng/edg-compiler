@@ -7362,8 +7362,17 @@ a routine to lookup the appropriate instance (or generate one if needed).
       if (template_sym == NULL) {
         /* If the symbol is an error symbol or ambiguous, assume an error
            has already been issued. */
-        pos_st_error(ec_str_not_a_class_template, &start_position,
-                     locator_for_curr_id.symbol_header->identifier);
+        if ((options & GID_IS_CLASS_TEMPLATE_DECL) != 0) {
+          /* Use a special message in a class template declaration that
+             indicates that a template argument list is not permitted on
+             a primary template. */
+          pos_error(ec_partial_spec_is_primary_template, &start_position);
+        } else if ((options & GID_IS_TEMPLATE_PRESCAN) != 0) {
+          /* Suppress the diagnostic in this case. */
+        } else {
+          pos_st_error(ec_str_not_a_class_template, &start_position,
+                       locator_for_curr_id.symbol_header->identifier);
+        }  /* if */
       }  /* if */
       template_sym = NULL;
     } else {

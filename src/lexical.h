@@ -356,6 +356,13 @@ typedef int an_identifier_options_set;
 			   causes a "<" to be treated as a less than sign
 			   and not the start of a template argument list
 			   when it follows a nonreal class member. */
+#define GID_IS_CLASS_TEMPLATE_DECL 0x8000
+			/* TRUE if the name being coalesced is the class
+			   template name in a class template declaration. */
+#define GID_IS_TEMPLATE_PRESCAN 0x10000
+			/* TRUE if the name is being coalesced during the
+      			   prescan of a template declaration.  This suppresses
+			   certain diagnostics. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
