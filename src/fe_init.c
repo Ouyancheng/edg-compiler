@@ -548,7 +548,7 @@ Initialize target machine characteristics.
       size = sizeof(a_targ_size_t)*CHAR_BIT;
     }  /* if */
     /* Make a mask of "size" 1 bits for the maximum value. */
-    size_max_value = ((((a_targ_size_t)1 << size-1)-1) << 1);
+    size_max_value = ((((a_targ_size_t)1 << (size-1))-1) << 1);
     /* Final "or" done separately to avoid a bug in Borland C++ 3.0 with -O. */
     size_max_value |= 1;
     if (size_max_value < TARG_SIZE_T_MAX) {
@@ -563,7 +563,7 @@ Initialize target machine characteristics.
       size = sizeof(a_targ_ptrdiff_t)*CHAR_BIT;
     }  /* if */
     /* Make a mask of "size-1" 1 bits for the maximum value. */
-    diff_max_value = ((((a_targ_ptrdiff_t)1 << size-2)-1) << 1);
+    diff_max_value = ((((a_targ_ptrdiff_t)1 << (size-2))-1) << 1);
     /* Final "or" done separately to avoid a bug in Borland C++ 3.0 with -O. */
     diff_max_value |= 1;
     if (diff_max_value < TARG_PTRDIFF_T_MAX) {
