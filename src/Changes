@@ -1,12 +1,5 @@
 Version 2.44
 
-1/14/00  Internal error on pragma before template-id when using
-         source sequence lists
-
-An internal error could occur if a pragma appeared in a function body
-immediately before a template-id when using source sequence lists.
-This has been fixed.
-
 1/14/00  Preserve bool-correctness in IL lowering of bool increment
 
 IL lowering now uses a constant "1" of bool type in the code generated
