@@ -231,6 +231,10 @@ static a_boolean		verbose = TRUE;
 /* TRUE if info files should be updated but compilations not done. */
 static a_boolean		suppress_compilation = FALSE;
 
+/* TRUE if identifiers should remain in mangled form in messages that
+   are displayed. */
+static a_boolean		mangled_names_in_output = FALSE;
+
 /* TRUE if we should give up after a certain number of iterations under
    the assumption that we've run into an instantiation loop. */
 static a_boolean		limit_recursion = TRUE;
@@ -613,11 +617,16 @@ Return a pointer to a temporary buffer containing a decoded name.
   char		*result;
   static char	decode_buffer[NAME_DECODE_BUFFER_SIZE];
 
-  decode_identifier(encoded_name, decode_buffer, NAME_DECODE_BUFFER_SIZE,
-                    &error, &buffer_overflow);
-  result = decode_buffer;
-  if (error) {
-    pl_error(pl_ec_error_occurred_during_name_decoding, encoded_name);
+  if (mangled_names_in_output) {
+    /* Return the original name. */
+    result = encoded_name;
+  } else {
+    decode_identifier(encoded_name, decode_buffer, NAME_DECODE_BUFFER_SIZE,
+                      &error, &buffer_overflow);
+    result = decode_buffer;
+    if (error) {
+      pl_error(pl_ec_error_occurred_during_name_decoding, encoded_name);
+    }  /* if */
   }  /* if */
   return result;
 }  /* pl_decoded_name */
@@ -2019,7 +2028,7 @@ int main(int argc, char *argv[])
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
-#define OPTION_LIST "inrvuc:d:f:l:L:"
+#define OPTION_LIST "imnrvuc:d:f:l:L:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'c':
@@ -2056,6 +2065,10 @@ int main(int argc, char *argv[])
       case 'L':
         /* Library directory names (e.g., -L/edg/cpfe/lib). */
         L_directories[num_of_L_directories++] = optarg;
+        break;
+      case 'm':
+        /* Leave identifier names in mangled format for display. */
+        mangled_names_in_output = TRUE;
         break;
       case 'n':
         /* Update the instantiation list files but don't recompile the

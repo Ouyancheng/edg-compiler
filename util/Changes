@@ -3,7 +3,8 @@ Version 2.23
 4/11/94 edg_prelink displays identifiers in demangled form
 
 edg_demangle now calls decode_identifier and displays identifiers
-in decoded format.
+in decoded format.  The -m option can be used to display the
+names in the old mangled format.
 
 4/11/94 edg_prelink allows substitution in error strings
 
