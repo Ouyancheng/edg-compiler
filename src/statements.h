@@ -458,6 +458,8 @@ extern void restore_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 
 extern void statements_one_time_init(void);
 
+extern void statements_trans_unit_init(void);
+
 extern void statements_init(void);
 
 #if DEBUG

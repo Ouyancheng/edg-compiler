@@ -2786,7 +2786,7 @@ layout_init.)
 }  /* layout_one_time_init */
 
 
-void layout_translation_unit_init(void)
+void layout_trans_unit_init(void)
 /*
 Initialize static variables related to class layout.  This function is
 responsible for those variables that need to be initialized for the
@@ -2797,7 +2797,7 @@ processing of each (primary or secondary) translation unit.
   curr_max_member_alignment = 0;
   pack_alignment_stack = NULL;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-}  /* layout_translation_unit_init */
+}  /* layout_trans_unit_init */
 
 
 void layout_init(void)
@@ -2815,7 +2815,7 @@ of the front end.
                               (targ_bit_field_container_size < 0),
                        "layout_init: inconsistent configuration",
                        "for bit field allocation");
-  layout_translation_unit_init();
+  layout_trans_unit_init();
 }  /* layout_init */
 
 /******************************************************************************

@@ -1144,6 +1144,8 @@ extern void il_reset(void);
 
 extern void il_one_time_init(void);
 
+extern void il_trans_unit_init(void);
+
 extern void il_init(void);
 
 #endif /* ifndef IL_H */

@@ -64,6 +64,8 @@ extern void do_class_layout(a_type_ptr  class_type);
 
 extern void layout_one_time_init(void);
 
+extern void layout_trans_unit_init(void);
+
 extern void layout_init(void);
 
 #endif /* LAYOUT_H */

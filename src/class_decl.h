@@ -139,6 +139,8 @@ extern void check_class_linkage(void);
 
 extern void class_decl_one_time_init(void);
 
+extern void class_decl_trans_unit_init(void);
+
 extern void class_decl_init(void);
 
 extern void define_type_info_pragma(a_pending_pragma_ptr    ppp,
