@@ -1726,27 +1726,34 @@ Dump an enum.  Print the associated source name if there is one.
 */
 {
   a_constant_ptr constant;
-  long           enum_value;
+  a_constant     enum_value;
 
   start_unreferenced_bracket(&type->source_corresp);
   startline(type->source_corresp.decl_position.seq);
-  (void)fprintf(f_C_output, "enum %s ", get_name(&type->source_corresp));
+  (void)fprintf(f_C_output, "enum %s", get_name(&type->source_corresp));
   constant = type->variant.integer.enum_constant_list;
   if (constant != NULL) {
     fputc('{', f_C_output);
-    enum_value = 0;
+    /* Make an integer constant 0 of the same type as the first enumeration
+       constant. */
+    enum_value = *constant;
+    set_value_of_integer_constant(&enum_value, 0L, constant->type);
     indent += 2;
-    while (constant != NULL) {
+    for (;;) {
+      /* Put out each enumeration constant, with a value if it's not the
+         next value in sequence. */
       startline(constant->source_corresp.decl_position.seq);
       fputs(get_name(&constant->source_corresp), f_C_output);
-      if (constant->variant.integer_value != enum_value) {
-        enum_value = constant->variant.integer_value;
-        (void)fprintf(f_C_output, " = %ld", enum_value);
+      if (cmp_integer_constants(constant, &enum_value) != 0) {
+        (void)fprintf(f_C_output, " = ");
+        write_integer_constant(f_C_output, constant);
+        enum_value = *constant;
       }  /* if */
-      enum_value++;
+      incr_integer_constant(&enum_value);
       constant = constant->next;
-      if (constant != NULL) fputc(',', f_C_output);
-    }  /* while */
+      if (constant == NULL) break;
+      fputc(',', f_C_output);
+    }  /* for */
     indent -= 2;
     fputc('}', f_C_output);
   }  /* if */
@@ -3023,7 +3030,7 @@ Dump a boolean controlling expression.
     if (con_node->kind == (an_expr_node_kind)enk_constant) {
       con = con_node->variant.constant;
       if (con->kind == (a_constant_repr_kind)ck_integer &&
-          !con->implicit_cast && con->variant.integer_value == 0) {
+          !con->implicit_cast && eqlit_integer_constant(con, 0L)) {
         node = node->variant.operation.operands;
       }  /* if */
     }  /* if */
@@ -3498,7 +3505,7 @@ char_compare:
       if (operand_2->kind == (an_expr_node_kind)enk_constant &&
           operand_2->variant.constant->kind ==
                                         (a_constant_repr_kind)ck_integer &&
-          operand_2->variant.constant->variant.integer_value == 1) {
+          eqlit_integer_constant(operand_2->variant.constant, 1L)) {
         /* The SUN C compiler has a bug with "i %= 1" -- It generates no
            code.  Generate "i %= (0, 1)" instead, which works. */
         dump_lvalue(operand_1);
@@ -3915,27 +3922,14 @@ Print out the constant value contained in one constant record.
       break;
     case ck_integer:
       need_close_paren = FALSE;
-      ikind = con_type->variant.integer.int_kind;
-      if (ikind == (an_integer_kind)ik_unsigned_char  ||
-#ifdef CFE
-          (ikind == (an_integer_kind)ik_char &&
-                                          !il_header.plain_chars_are_signed) ||
-#endif /* ifdef CFE */
-          ikind == (an_integer_kind)ik_unsigned_short ||
-          ikind == (an_integer_kind)ik_unsigned_int   ||
-          ikind == (an_integer_kind)ik_unsigned_long) {
-        /* Unsigned constant. */
-        (void)fprintf(f_C_output, "%lu",
-			       (unsigned long)constant->variant.integer_value);
-      } else {
-        /* Signed constant. */
-        /* Put parentheses around the constant if it's negative. */
-        if (constant->variant.integer_value < 0) {
-          need_close_paren = TRUE;
-	  fputc('(', f_C_output);
-	}  /* if */
-        (void)fprintf(f_C_output, "%ld", constant->variant.integer_value);
+      if (sign_of_integer_constant(constant) < 0) {
+        /* Negative value.  Put in parentheses. */
+        need_close_paren = TRUE;
+        fputc('(', f_C_output);
       }  /* if */
+      /* Write the literal form of the constant. */
+      write_integer_constant(f_C_output, constant);
+      ikind = con_type->variant.integer.int_kind;
       /* Put out a suffix if needed. */
       if (ikind == (an_integer_kind)ik_long           ||
           ikind == (an_integer_kind)ik_unsigned_long) {
@@ -6846,8 +6840,9 @@ Generate C for a statement.
 	} else {
           do {
   	    startline((a_seq_number)0);
-	    (void)fprintf(f_C_output, "case %ld:",
-				      constant->variant.integer_value);
+	    (void)fprintf(f_C_output, "case ");
+	    write_integer_constant(f_C_output, constant);
+	    (void)fprintf(f_C_output, ":");
 	  } while ((constant = constant->next) != NULL);
 	}  /* while */
         need_break = TRUE;
