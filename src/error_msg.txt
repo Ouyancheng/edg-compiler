@@ -816,6 +816,7 @@ ec_nonstd_character_at_start_of_macro_def;;"nonstandard character at start of ob
 ec_exception_spec_override_incompat;;"exception specification for virtual %n1 must be at least as restrictive as for overridden %n2"
 ec_pointer_conversion_loses_bits;;"conversion from pointer to smaller integer"
 ec_generated_exception_spec_override_incompat;;"exception specification for implicitly declared virtual %n1 is less restrictive than for overridden %n2"
+ec_implicit_call_of_ambiguous_name;;"%no1, implicitly called from %np2, is ambiguous"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
