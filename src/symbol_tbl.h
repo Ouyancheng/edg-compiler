@@ -2843,6 +2843,8 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
 
 extern a_boolean is_member_enum_symbol(a_symbol_ptr sym);
 
+extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
+
 /* Return TRUE if a symbol is one that may be used as part of the
    qualifier in a qualified name.  This includes class symbols,
    typedefs to class symbols, type template parameters, class template
