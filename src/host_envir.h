@@ -438,6 +438,19 @@ of tim_all mode.
 #endif /* ifndef MAX_UNUSED_INSTANTIATIONS */
 
 /*
+Flag that is TRUE if "#pragma define_type_info" is required before a
+declaration of class "type_info" to identify it as an explicit declaration
+of the predeclared class "type_info".
+*/
+#ifndef PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED
+#if BACK_END_IS_CP_GEN_BE
+#define PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED FALSE  /* You can change this. */
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED TRUE   /* You can change this. */
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* ifndef PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */
+
+/*
 Flag that is TRUE if the source_corresp.needed flag in IL entries and the
 definition_needed flag in class/struct/union type entries should be
 maintained.

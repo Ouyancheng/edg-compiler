@@ -360,11 +360,11 @@ caution when modifying this routine.
           tag_sym = type_info_sym;
           free_pending_pragma_list(ppp);
         } else {
-#if BACK_END_IS_CP_GEN_BE
-          /* When the C++ generating back end is in use, the pragma is not
-             required. */
+#if !PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED
+          /* The pragma is not required (e.g., when the C++ generating back
+             end is in use). */
           tag_sym = type_info_sym;
-#else /* !BACK_END_IS_CP_GEN_BE */
+#else /* PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */
 #if ABI_CHANGES_FOR_RTTI
           /* Run-time support for RTTI declares type_info, so consider the
              name to be reserved. */
@@ -378,7 +378,7 @@ caution when modifying this routine.
                                   );
           tag_sym = type_info_sym;
 #endif /* ABI_CHANGES_FOR_RTTI */
-#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* !PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */
         }  /* if */
         if (tag_sym == type_info_sym &&
             tag_sym->decl_scope == NO_SCOPE_NUMBER) {
