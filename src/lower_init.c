@@ -1318,23 +1318,28 @@ and update *insert_location.
   /* Choose the operation.  For simple types use the built-in operator.
      For other types use a block copy. */
   type = type_pointed_to(source_node->type);
-  if (is_reference_type(type)) {
-    /* Replace a reference type by a pointer type. */
-    type = make_pointer_type(type_pointed_to(type));
-  }  /* if */
-  if (is_arithmetic_or_enum_type(type) ||
-      is_pointer_type(type) ||
-      is_class_struct_union_type(type)) {
-    op = lowered_assignment_operator(type);
-    /* The normal assignment operators take an rvalue as the source, so
-       change the node to an rvalue. */
-    source_node = add_indirection_to_node(source_node);
+  if (is_class_struct_union_type(type) &&
+      skip_typerefs(type)->variant.class_struct_union.is_empty_class) {
+    /* Do not put out code to copy an empty base class. */
   } else {
-    /* For other kinds, use a block move. */
-    op = (an_expr_operator_kind)eok_bassign;
+    if (is_reference_type(type)) {
+      /* Replace a reference type by a pointer type. */
+      type = make_pointer_type(type_pointed_to(type));
+    }  /* if */
+    if (is_arithmetic_or_enum_type(type) ||
+        is_pointer_type(type) ||
+        is_class_struct_union_type(type)) {
+      op = lowered_assignment_operator(type);
+      /* The normal assignment operators take an rvalue as the source, so
+         change the node to an rvalue. */
+      source_node = add_indirection_to_node(source_node);
+    } else {
+      /* For other kinds, use a block move. */
+      op = (an_expr_operator_kind)eok_bassign;
+    }  /* if */
+    (void)insert_assignment_statement(dest_node, op, source_node,
+                                      insert_location);
   }  /* if */
-  (void)insert_assignment_statement(dest_node, op, source_node,
-                                    insert_location);
 }  /* add_bitwise_copy */
 
 

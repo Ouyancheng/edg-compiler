@@ -1,5 +1,28 @@
 Version 3.2
 
+3/10/03  Incorrect code for copy of empty base class in generated copy
+         constructor
+
+When empty base class optimization is enabled (see
+TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT), the code added in a generated
+copy constructor to copy an empty base class for which construction by
+bitwise copy can be done was incorrect.  Specifically, nothing should
+be copied in that case, but the generated code copied a block of
+memory of length sizeof(empty_class).  That would clobber space
+following the point of allocation of the empty base class.  If that
+space contained other members or base classes, this was generally
+harmless, but if it contained a pointer to a virtual base class (in
+the Cfront-like ABI) the pointer would have been set already and the
+move clobbered it.  Now fixed.
+
+  struct E {};
+  struct A {
+    virtual ~A();
+  };
+  struct B : virtual A, public E {};
+  B b;
+  B bb = b;
+
 3/10/03  IL field not initialized and not displayed
 
 The field "range_end" in switch case entry fields was neither initialized
