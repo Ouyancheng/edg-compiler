@@ -6493,8 +6493,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
     prototype_allowed = class_is_being_instantiated ||
                         ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) ||
                         ssep->templ_member_class_sym == template_sym;
-    new_sym = find_template_class(template_sym, &arg_list, &start_position,
-                                  prototype_allowed);
+    new_sym = find_template_class(template_sym, &arg_list, prototype_allowed);
     arg_list_coalesced = TRUE;
   } else {
     /* Free any allocated template arguments. */
