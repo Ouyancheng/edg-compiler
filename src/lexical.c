@@ -5503,6 +5503,9 @@ in the location pointed to by seq.
        to scan tokens past the end.  Return a tok_newline without actually
        looking at the next token. */
     ntoken = tok_newline;
+    /* If seq is not NULL, return the sequence number the current token
+       (since we can't get the number of the next token. */
+    if (seq != NULL) *seq = curr_token_sequence_number;
     goto done;
   }  /* if */
   /* If we are currently rescanning tokens from a cache then we should
@@ -5530,6 +5533,8 @@ in the location pointed to by seq.
   if (ctp != NULL && ctp->token != (a_byte_token_kind)tok_end_of_source) {
     /* There is a cached token from which we can get then token kind. */
     ntoken = (a_token_kind)ctp->token;
+    /* If seq is not NULL, return the sequence number of the next token. */
+    if (seq != NULL) *seq = ctp->token_sequence_number;
   } else {
     /* Put the current token into a token cache so it can be rescanned. */
     clear_token_cache(&cache, /*reusable=*/FALSE);

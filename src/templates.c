@@ -5433,6 +5433,7 @@ assumed if the return type is omitted.
     unexpected_condition();
   }  /* if */
   begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
+  begin_deferral_of_access_checks();
   start_pos = pos_curr_token;
   if (is_generalized_identifier_start(GID_NO_OPTIONS) &&
       next_token() == tok_newline) {
@@ -5486,7 +5487,6 @@ assumed if the return type is omitted.
     a_source_sequence_entry_ptr  declarator_ssep;
 
     add_stop_token(tok_newline);
-    begin_deferral_of_access_checks();
     (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
 			   DSI_TYPE_SPECIFIER_ALLOWED),
                           &dso_flags, &storage_class, &type, &qualifiers,
@@ -5508,7 +5508,6 @@ assumed if the return type is omitted.
          empty source sequence entry.  How should this be handled? */
 #endif /* if 0 */
     }  /* if */
-    end_deferral_of_access_checks();
     remove_stop_token(tok_newline);
     /* Look up the identifier scanned in the declarator.  If the
        declarator contains a qualified name it will already have
@@ -5608,6 +5607,7 @@ assumed if the return type is omitted.
     error(ec_invalid_instantiation_pragma_argument);
     err = TRUE;
   }  /* if */
+  end_deferral_of_access_checks();
   /* Stop rescanning tokens from the pragma token cache. */
   wrapup_rescan_of_pragma_tokens(err, save_stop_tokens_array);
   instantiation_mode = saved_instantiation_mode;

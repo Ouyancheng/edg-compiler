@@ -4800,6 +4800,13 @@ of local variables (and types, etc.) of functions and in blocks.
        processing. */
     (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
   }  /* if */
+  if (function_definition_allowed) {
+    /* This is a file scope or namespace scope declaration.  Indicate
+       that access checking should be deferred until the declarator has
+       been scanned. */
+    begin_deferral_of_access_checks();
+    access_checks_deferred = TRUE;
+  }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"
@@ -4844,13 +4851,6 @@ of local variables (and types, etc.) of functions and in blocks.
 #endif /* ASM_FUNCTION_ALLOWED */
   }  /* if */
 
-  if (function_definition_allowed) {
-    /* This is a file scope or namespace scope declaration.  Indicate
-       that access checking should be deferred until the declarator has
-       been scanned. */
-    begin_deferral_of_access_checks();
-    access_checks_deferred = TRUE;
-  }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Check for and discard declarations of the form "overload f;". */
     if (check_for_overload_anachronism()) {
