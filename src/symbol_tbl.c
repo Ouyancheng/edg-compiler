@@ -4856,12 +4856,11 @@ declaration is scanned and are used as placeholders between instantiations.
     if (param_symbol->kind == (a_symbol_kind)sk_type) {
       param_symbol->variant.type = tpp->param_type;
     } else {
-      /* Get the type pointer from the constant so that it can be restored
-         to the new error constant. */
-      a_type_ptr type = param_symbol->variant.constant->type;
       param_symbol->variant.constant =
                                  fs_constant((a_constant_repr_kind)ck_error);
-      param_symbol->variant.constant->type = type;
+      /* Restore the correct type to the error constant from the value in
+	 the template parameter structure. */
+      param_symbol->variant.constant->type = tpp->param_type;
     }  /* if */
     tpp = tpp->next;
   }  /* while */

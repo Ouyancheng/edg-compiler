@@ -4777,9 +4777,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
       constant = fs_constant((a_constant_repr_kind)ck_error);
       scan_template_argument_constant_expression(constant_type, constant);
       arg_ptr->variant.constant = constant;
-      /* Check whether an error constant was returned and set the error
-         flag accordingly. */
-      any_errors |= is_error_constant(constant);
     }  /* if */
     /* Link this entry on to the argument list. */
     if (arg_list == NULL) arg_list = arg_ptr;
