@@ -1759,10 +1759,9 @@ is a base class.
 }  /* fixup_virtual_base_class */
 
 
-static a_base_class_ptr add_indirect_base_class(
-                                    a_base_class_ptr      base_class_to_copy,
+static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
                                     a_base_class_ptr      add_list,
-                                    a_base_class_ptr      *end_of_add_list,
+                                    a_base_class_ptr      *p_end_of_add_list,
                                     a_derivation_step_ptr path,
                                     a_type_ptr            new_class)
 /*
@@ -1776,60 +1775,64 @@ base class of new_class.
 {
   a_base_class_ptr       new_bcp = NULL, bcp;
   a_derivation_step_ptr  step;
-  a_boolean              is_virtual_duplicate = FALSE;
 
   db_enter(3, "add_indirect_base_class");
   if (base_class_to_copy->is_virtual) {
+    /* The base class to be copied is a virtual base class.  See if a
+       virtual base class referring to the same class type is already on
+       the base classes list for the new class.  If so, we don't want to
+       add it or its own base classes to the list again. */
     for (bcp = add_list; bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual && bcp->type == base_class_to_copy->type) {
-        is_virtual_duplicate = TRUE;
         fixup_virtual_base_class(bcp, path, base_class_to_copy->access,
                                  new_class);
-        new_bcp = bcp;
-        break;
+        goto done;
       }  /* if */
     }  /* for */
   }  /* if */
-  if (!is_virtual_duplicate) {
 #if DEBUG
-    if (debug_level >= 3) {
-      fputs("  creating indirect base class \"", f_debug);
-      db_name(&base_class_to_copy->type->source_corresp);
-      fputs("\"\n", f_debug);
-    }  /* if */
-#endif /* DEBUG */
-    /* Create a new base class entry. */
-    new_bcp = alloc_base_class();
-    new_bcp->type = base_class_to_copy->type;
-    new_bcp->direct = FALSE;
-    /* Retain the access of the original derivation from this base class. */
-    new_bcp->access = base_class_to_copy->access;
-    new_bcp->is_virtual = base_class_to_copy->is_virtual;
-    step = make_derivation_step(new_bcp, (a_derivation_step_ptr)NULL);
-    new_bcp->derivation = copy_and_extend_path(path, step, new_bcp);
-    /* Add this to the end of add_list, unless its derivation is equivalent to
-       that of some other base class entry on the same list. */
-    for (bcp = add_list; bcp != NULL; bcp = bcp->next) {
-      if (bcp->type == new_bcp->type) {
-        /* Ambiguous base class. */
-        bcp->ambiguous = TRUE;
-        new_bcp->ambiguous = TRUE;
-      }  /* if */
-    }  /* for */
-    *end_of_add_list = (*end_of_add_list)->next = new_bcp;
-    /* Add the base classes of the current nonvirtual indirect base class
-       to the base classes list of the most-derived-class. */
-    bcp = new_bcp->type->
-                    variant.class_struct_union.extra_info->base_classes;
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct) {
-        (void)add_indirect_base_class(bcp, add_list, end_of_add_list,
-                                      new_bcp->derivation, new_class);
-      }  /* if */
-    }  /* for */
+  if (debug_level >= 3) {
+    fputs("  creating indirect base class \"", f_debug);
+    db_name(&base_class_to_copy->type->source_corresp);
+    fputs("\"\n", f_debug);
   }  /* if */
+#endif /* DEBUG */
+  /* Create a new base class entry. */
+  new_bcp = alloc_base_class();
+  new_bcp->type = base_class_to_copy->type;
+  new_bcp->direct = FALSE;
+  /* Retain the access of the original derivation from this base class. */
+  new_bcp->access = base_class_to_copy->access;
+  new_bcp->is_virtual = base_class_to_copy->is_virtual;
+  step = make_derivation_step(new_bcp, (a_derivation_step_ptr)NULL);
+  new_bcp->derivation = copy_and_extend_path(path, step, new_bcp);
+  /* Check for ambiguity. */
+  for (bcp = add_list; bcp != NULL; bcp = bcp->next) {
+    if (bcp->type == new_bcp->type) {
+      /* Ambiguous base class. */
+      bcp->ambiguous = TRUE;
+      new_bcp->ambiguous = TRUE;
+    }  /* if */
+  }  /* for */
+  /* Add the base classes of the current indirect base class
+     to the base classes list of the most-derived-class. */
+  bcp = new_bcp->type->
+                  variant.class_struct_union.extra_info->base_classes;
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct) {
+      add_indirect_base_class(bcp, add_list, p_end_of_add_list,
+                              new_bcp->derivation, new_class);
+    }  /* if */
+  }  /* for */
+  /* Add this to the end of add_list. */
+  if (*p_end_of_add_list == NULL) {
+    new_class->variant.class_struct_union.extra_info->base_classes = new_bcp;
+  } else {
+    (*p_end_of_add_list)->next = new_bcp;
+  }  /* if */
+  *p_end_of_add_list = new_bcp;
+done:;
   db_exit();
-  return new_bcp;
 }  /* add_indirect_base_class */
 
 
@@ -1856,6 +1859,7 @@ or struct definition.  The syntax is
 {
   a_class_type_supplement_ptr   ctsp;
   a_base_class_ptr              bcp, new_bcp, end_of_base_classes_list = NULL;
+  a_base_class_ptr              new_direct_bcp;
   an_access_specifier           access;
   a_boolean                     is_virtual;
   a_boolean                     access_already_specified;
@@ -1864,8 +1868,7 @@ or struct definition.  The syntax is
   a_type_ptr                    base_class_type;
   a_boolean                     ambiguous;
   a_class_symbol_supplement_ptr cssp, bcp_cssp;
-  a_derivation_step_ptr         path;
-
+  a_boolean                     any_base_class_with_override_list;
   db_enter(3, "scan_base_specifier_list");
   if (type_ptr->kind == (a_type_kind)tk_union) {
     /* Unions cannot have base classes.  Issue an error, but go ahead and scan
@@ -2023,60 +2026,60 @@ or struct definition.  The syntax is
       }  /* if */
       /* Now create the new base class entry and add it to the end of the
          base classes list. */
-      new_bcp = alloc_base_class();
-      new_bcp->type = base_class_type;
-      new_bcp->access = access;
+      new_direct_bcp = alloc_base_class();
+      new_direct_bcp->type = base_class_type;
+      new_direct_bcp->access = access;
       if (is_virtual) {
-        new_bcp->is_virtual = TRUE;
-        new_bcp->any_virtual_steps_in_derivation = TRUE;
+        new_direct_bcp->is_virtual = TRUE;
+        new_direct_bcp->any_virtual_steps_in_derivation = TRUE;
       }  /* if */
-      new_bcp->direct = TRUE;
-      new_bcp->ambiguous = ambiguous;
-      new_bcp->derivation = make_derivation_step(new_bcp,
+      new_direct_bcp->direct = TRUE;
+      new_direct_bcp->ambiguous = ambiguous;
+      new_direct_bcp->derivation =
+                            make_derivation_step(new_direct_bcp,
                                                  (a_derivation_step_ptr)NULL);
       /* Offset is updated in merge_field_lists. */
-      new_bcp->offset = 0;
-      /* Enter the base name on the base class list in the derived class's
-         class-supplement entry. */
-      if (ctsp->base_classes == NULL) {
-        ctsp->base_classes = new_bcp;
-      } else {
-        end_of_base_classes_list->next = new_bcp;
-      }  /* if */
-      end_of_base_classes_list = new_bcp;
+      new_direct_bcp->offset = 0;
       /* Add base classes derived from this base class to the current class's
          base class list.  They are marked as indirect. */
-      bcp = new_bcp->type->variant.class_struct_union.extra_info->base_classes;
-      if (bcp != NULL) {
-#if CHECKING
-        if (!bcp->direct) {
-          internal_error("scan_base_specifiers_list: bcp not direct");
+      any_base_class_with_override_list = FALSE;
+      for (bcp = new_direct_bcp->type->
+                      variant.class_struct_union.extra_info->base_classes;
+           bcp != NULL;
+           bcp = bcp->next) {
+        if (bcp->direct) {
+          /* Add the direct base class and all *its* base classes to the
+             base class list for the derived class. */
+          add_indirect_base_class(bcp, ctsp->base_classes,
+                                  &end_of_base_classes_list,
+                                  new_direct_bcp->derivation, type_ptr);
+        } else if (bcp->overriding_virtual_functions != NULL) {
+          any_base_class_with_override_list = TRUE;
         }  /* if */
-#endif /* CHECKING */
-        path = new_bcp->derivation;
-        for (; bcp != NULL; bcp = bcp->next) {
+      }  /* for */
+      /* Enter the base name on the base class list in the derived class's
+         class-supplement entry. */
+      if (end_of_base_classes_list == NULL) {
+        ctsp->base_classes = new_direct_bcp;
+      } else {
+        end_of_base_classes_list->next = new_direct_bcp;
+      }  /* if */
+      end_of_base_classes_list = new_direct_bcp;
+      if (any_base_class_with_override_list) {
+        for (bcp = new_direct_bcp->type->
+                        variant.class_struct_union.extra_info->base_classes;
+             bcp != NULL;
+             bcp = bcp->next) {
+          if (bcp->overriding_virtual_functions != NULL) {
 #if DEBUG
-          if (debug_level >= 4) {
-            fputs("candidate for base classes list ", f_debug);
-            db_base_class(bcp, FALSE);
-            if (bcp->overriding_virtual_functions != NULL) {
+            if (debug_level >= 4) {
+              fputs("copying virtual function override list from ", f_debug);
+              db_base_class(bcp, FALSE);
               db_virtual_function_override_list(bcp);
             }  /* if */
-          }  /* if */
 #endif /* DEBUG */
-          if (bcp->direct) {
-            /* Add the direct base class and all *its* base classes to the
-               base class list for the derived class. */
-            new_bcp = add_indirect_base_class(bcp, ctsp->base_classes,
-                                              &end_of_base_classes_list, path,
-                                              type_ptr);
-          }  /* if */
-          if (bcp->overriding_virtual_functions != NULL) {
-            if (!bcp->direct) {
-              /* Indirect base classes must have their virtual function
-                 override lists copied, too. */
-              new_bcp = corresponding_base_class(bcp, bcp->type, type_ptr);
-            }  /* if */
+            new_bcp = corresponding_base_class(bcp, new_direct_bcp->type,
+                                               type_ptr);
             /* Copy the virtual function override entries from bcp (which is
                on the base classes list for base_class_type) to the
                corresponding copied base class new_bcp (which is on the base
@@ -2085,11 +2088,9 @@ or struct definition.  The syntax is
                                                 base_class_type, type_ptr);
 #if DEBUG
             if (debug_level >= 4) {
-              if (bcp->overriding_virtual_functions != NULL) {
-                fputs("new base class ", f_debug);
-                db_base_class(bcp, FALSE);
-                db_virtual_function_override_list(new_bcp);
-              }  /* if */
+              fputs("new base class ", f_debug);
+              db_base_class(bcp, FALSE);
+              db_virtual_function_override_list(new_bcp);
             }  /* if */
 #endif /* DEBUG */
           }  /* if */
@@ -6296,9 +6297,6 @@ next_declaration:
         /* Keep processing member declarations until the closing brace. */
       } while (curr_token != tok_rbrace && curr_token != tok_end_of_source);
     }  /* if */
-    /* Wrap up field allocation. */
-    finish_laying_out_class(class_type, byte_offset, bit_offset, alignment,
-                            any_overflow);
     /* Adding the type to the current scope's types list is done after
        reaching the closing brace to get the IL types list in the right
        order. */
@@ -6329,6 +6327,11 @@ next_declaration:
          modified the head of the old list, update the symbols list attached
          to the class. */
       cssp->symbols = scope_stack[depth_scope_stack].symbols;
+    }  /* if */
+    /* Wrap up field allocation. */
+    finish_laying_out_class(class_type, byte_offset, bit_offset, alignment,
+                            any_overflow);
+    if (C_dialect == C_dialect_cplusplus) {
       /* Check for inherited conversion functions.  This must be done before
          rescanning inline function definitions. */
       project_base_class_conversion_functions(class_type);
