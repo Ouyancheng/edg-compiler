@@ -3473,7 +3473,7 @@ to the base class become inaccessible to the derived class in every case.
 
 An "inaccessible" derivation is not a single derivation step; it is
 a combination of several steps whose net effect is complete loss of
-accessiblility.
+accessibility.
 */
 {
   if (deriv_access == (an_access_specifier)as_inaccessible ||
