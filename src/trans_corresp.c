@@ -52,6 +52,8 @@ static void clear_scope_correspondence(a_scope_ptr  scope,
                                        a_boolean    visited);
 static void clear_type_correspondence(a_type_ptr  type,
                                       a_boolean   visited);
+static void establish_trans_unit_correspondences_for_enum(a_type_ptr  type);
+static void establish_trans_unit_correspondences_for_class(a_type_ptr  type);
 static void find_type_correspondence(a_type_ptr  type,
                                      a_boolean   parent_found);
 static void find_template_correspondence(a_template_ptr  templ,
@@ -327,18 +329,35 @@ this routine will create such a correspondence entry.
     /* Presumably, no entity corresponding to entity1 has been processed yet.
        Allocate a correspondence entry to start a correspondence set with
        entity2. */
-    *tcp2 = alloc_trans_unit_corresp();
-    (*tcp2)->kind = kind;
-    change_canonical_entry(*tcp2, entity2);
+    if (*tcp1 != NULL) {
+      /* Reuse the correspondence node of tcp1: it may in some cases have
+         a correspondence set already (this happens only when entity2 is a
+         new canonical entity. */
+      *tcp2 = *tcp1;
+#if CHECKING
+      ++(*tcp2)->count;
+#endif /* CHECKING */
+    } else {
+      *tcp2 = alloc_trans_unit_corresp();
+      (*tcp2)->kind = kind;
+      change_canonical_entry(*tcp2, entity2);
+#if CHECKING
+      ++(*tcp2)->count;
+#endif /* CHECKING */
+    }  /* if */
+  } else if (*tcp1 != NULL && *tcp1 != *tcp2) {
+    /* Both entity1 and entity2 have correspondence sets already.  One of
+       them must be a singleton and can therefore be freed. */
+    check_assertion((*tcp1)->count == 1);
+    free_trans_unit_corresp(*tcp1);
+  }  /* if */
+  /* Add entity1 to the correspondence set of entity2. */
+  if (*tcp1 != *tcp2) {
+    *tcp1 = *tcp2;
 #if CHECKING
     ++(*tcp2)->count;
 #endif /* CHECKING */
   }  /* if */
-  /* Add entity1 to the correspondence set of entity2. */
-  *tcp1 = *tcp2;
-#if CHECKING
-  ++(*tcp2)->count;
-#endif /* CHECKING */
   update_canonical_entry(kind, entity1);
   /* Is either entity coming from a primary translation unit? */
   if (!in_secondary_trans_unit(entity2)) {
@@ -1168,6 +1187,48 @@ visited; otherwise, they may yet be set to correspond to another entry.
     }  /* for */
   }
 }  /* clear_scope_correspondence */
+
+
+static void set_type_corresp(a_type_ptr  type,
+                             a_type_ptr  corresp_type)
+/*
+Make type (and its inner structure) correspond to corresp_type.  This routine
+also deals with the consequences of type becoming the new canonical entry.
+*/
+{
+  a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(corresp_type);
+
+  set_trans_unit_corresp(iek_type, type, corresp_type);
+  if (canon != (a_type_ptr)canonical_il_entry_of(corresp_type)) {
+    /* The canonical IL entry changed to type. */
+    if (!type_has_definition(canon)) {
+      /* This is the first definition.  The members of type should therefore
+         be marked as having no correspondence. */
+      if (is_immediate_class_type(type)) {
+        if (class_type_has_body(type)) {
+          clear_class_type_correspondence(type, /*visited=*/TRUE);
+        }  /* if */
+      } else if (is_immediate_enum_type(type)) {
+        clear_enum_type_correspondence(type, /*visited=*/TRUE);
+      }  /* if */
+    } else {
+      /* Make the members of canon correspond to those of type. */
+      if (is_immediate_class_type(canon)) {
+        establish_trans_unit_correspondences_for_class(canon);
+      } else if (is_immediate_enum_type(canon)) {
+        establish_trans_unit_correspondences_for_enum(canon);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* The canonical IL entry didn't change.  Set the correspondences for
+       the members. */
+    if (is_immediate_class_type(type)) {
+      establish_trans_unit_correspondences_for_class(type);
+    } else if (is_immediate_enum_type(type)) {
+      establish_trans_unit_correspondences_for_enum(type);
+    }  /* if */
+  }  /* if */
+}  /* set_type_corresp */
 
 
 static a_boolean f_same_name(char  *entity1,
@@ -2410,26 +2471,8 @@ are not checked.
         for (; mem_type != NULL && corresp_mem_type != NULL;
              mem_type = skip_generated_type(mem_type->next),
              corresp_mem_type = skip_generated_type(corresp_mem_type->next)) {
-          if ((is_immediate_class_type(mem_type) ||
-               is_immediate_enum_type(mem_type)) &&
-              type_has_definition(mem_type) && has_name(mem_type)) {
-            /* If this is a defined class or enum type, its correspondence
-               should be the "canonical definition".  corresp_mem_type may
-               not be a definition at all or it may not be the definition
-               against which all others are compared (i.e., the canonical
-               one). */
-            find_type_correspondence(mem_type, /*parent_found=*/TRUE);
-          } else {
-            set_trans_unit_corresp(iek_type, mem_type, corresp_mem_type);
-          }  /* if */
-          if (!has_correspondence(mem_type)) {
-            /* Could only be due to an error.  Record the correspondence
-               so a diagnostic will be issued. */
-            f_report_bad_trans_unit_corresp(
-                             (char*)mem_type,
-                             &corresp_mem_type->source_corresp.decl_position);
-          } else if (is_immediate_class_type(mem_type)) {
-            establish_trans_unit_correspondences_for_class(mem_type);
+          set_type_corresp(mem_type, corresp_mem_type);
+          if (is_immediate_class_type(mem_type)) {
             /* This could be a member of a template class.  If we're dealing
                with a prototype instantiation, this is a good opportunity to
                get to any a_template entry associated with an out-of-class
@@ -2452,8 +2495,6 @@ are not checked.
                                        corresp_tssp->il_template_entry);
               }  /* if */
             }  /* if */
-          } else if (is_immediate_enum_type(mem_type)) {
-            establish_trans_unit_correspondences_for_enum(mem_type);
           }  /* if */
         }  /* for */
       }
@@ -2610,95 +2651,41 @@ given type.
   a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(type);
   a_boolean   new_canon = FALSE;
 
-  check_assertion(type_has_definition(type));
-  if (canon != type && (!type_has_definition(canon) ||
-                        !in_secondary_trans_unit(type))) {
-    /* The canonical entry is about to change. */
-    new_canon = TRUE;
-    /* Prefer definitions as canonical entries, and definitions in primary
-       translation units in particular. */
-    change_canonical_entry(trans_unit_corresp_of(type), (char*)type);
-    /* Work from the noncanonical entry to set the correspondences of
-       members. */
-    type = canon;
+  if (!type_has_definition(type)) {
+    /* This only happens in strange error situations. */
+    check_assertion(total_errors != 0);
+  } else {
+    if (canon != type && (!type_has_definition(canon) ||
+                          !in_secondary_trans_unit(type))) {
+      /* The canonical entry is about to change. */
+      new_canon = TRUE;
+      /* Prefer definitions as canonical entries, and definitions in primary
+         translation units in particular. */
+      change_canonical_entry(trans_unit_corresp_of(type), (char*)type);
+      /* Work from the noncanonical entry to set the correspondences of
+         members. */
+      type = canon;
 #if 0 /* FIXME */
-    /* Sometimes type is unvisited at this point.  That used to be the case
-       with the previous correspondence structure too and seems to work fine.
-       */
+      /* Sometimes type is unvisited at this point.  That used to be the case
+         with the previous correspondence structure too and seems to work fine.
+         */
 #endif
-  }  /* if */
-  establish_trans_unit_correspondences_for_class(type);
-  if (new_canon) {
-    /* Since the canonical entry has changed, extra actions may be needed. */
-    /* Force the verification of the previous canonical entry against the
-       new one. */
-    (void)verify_class_type_correspondence(type);
-    if (!in_secondary_trans_unit(type) &&
-        type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
-      /* The master instance is found using the canonical entry.  We are
-         creating a new canonical entry, so we must make sure its master
-         instance pointer is set for the class members. */
-      set_master_instance_for_new_canonical_class(canon, type);
-    }  /* if */
-  }  /* if */
-#if 0 /* FIXME */
-  if (in_secondary_trans_unit(type)) {
-    a_type_ptr  corresp_type = (a_type_ptr)trans_unit_corresp_pointer_of(type);
-
-    if (corresp_type != NULL && corresp_type != type &&
-        !type_has_definition(corresp_type)) {
-      /* Readjust the correspondence to point to the canonical definition.
-         If there is none, this becomes the canonical definition. */
-      a_type_ptr  canonical_type =
-                              (a_type_ptr)canonical_il_entry_of(corresp_type);
-      a_symbol_list_entry_ptr
-                  slep = instantiations_list_with_type(canonical_type);
-      for (; slep != NULL; slep = slep->next) {
-        corresp_type = type_symbol_type(slep->symbol);
-        if ((a_type_ptr)canonical_il_entry_of(corresp_type) ==
-                                                             canonical_type) {
-          if (corresp_type != type && type_has_definition(corresp_type)) {
-            /* corresp_type is the canonical definition. */
-            set_trans_unit_corresp(iek_type, type, corresp_type);
-          } else {
-            /* There was no canonical definition yet; type will be the one. */
-            slep->symbol = (a_symbol_ptr)type->source_corresp.assoc_info;
-            set_trans_unit_corresp(iek_type, type, canonical_type);
-          }  /* if */
-          break;
-        }  /* if */
-      }  /* for */
     }  /* if */
     establish_trans_unit_correspondences_for_class(type);
-  } else if (secondary_translation_unit_seen()) {
-    a_type_ptr    sec = NULL;
-    a_symbol_list_entry_ptr
-                  slep = instantiations_list_with_type(type);
-    /* Look for an entry in a secondary translation unit that matches the
-       given primary translation unit instantiation. */
-    for (; slep != NULL; slep = slep->next) {
-      sec = type_symbol_type(slep->symbol);
-      if (sec == type) {
-        /* The type was first instantiated in a primary translation unit.
-           There are no correspondences to be set. */
-        break;
-      } else if (!in_secondary_trans_unit(sec)) {
-        /* A primary translation unit correspondence: not what we are looking
-           for. */
-      } else if ((a_type_ptr)trans_unit_corresp_pointer_of(sec) == type) {
-        establish_trans_unit_correspondences_for_class(sec);
-        (void)verify_class_type_correspondence(sec);
-        if (sec->variant.class_struct_union.extra_info->assoc_scope != NULL) {
-          /* The master instance is found using the canonical entry.  We are
-             creating a new canonical entry, so we must make sure its master
-             instance pointer is set for the class members. */
-          set_master_instance_for_new_canonical_class(type, sec);
-        }  /* if */
-        break;
+    if (new_canon) {
+      /* Since the canonical entry has changed, extra actions may be needed. */
+      /* Force the verification of the previous canonical entry against the
+         new one. */
+      (void)verify_class_type_correspondence(type);
+      if (!in_secondary_trans_unit(type) &&
+          type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
+        /* The master instance is found using the canonical entry.  We are
+           creating a new canonical entry, so we must make sure its master
+           instance pointer is set for the class members. */
+        set_master_instance_for_new_canonical_class(canon, type);
       }  /* if */
-    }  /* for */
+    }  /* if */
   }  /* if */
-#endif /*FIXME*/
 }  /* establish_class_instantiation_corresp */
 
 
@@ -2865,14 +2852,7 @@ entities.
                     type_sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
                     sym->defined != type_sym->defined)) {
           a_type_ptr  corresp_type = type_symbol_type(sym);
-          set_trans_unit_corresp(iek_type, type, corresp_type);
-          if(type_has_definition(type)) {
-            if (is_immediate_class_type(type)) {
-              establish_trans_unit_correspondences_for_class(type);
-            } else if (is_immediate_enum_type(type)) {
-              establish_trans_unit_correspondences_for_enum(type);
-            }  /* if */
-          }  /* if */
+          set_type_corresp(type, corresp_type);
           corresp_found = TRUE;
         } else if (!type_sym->is_class_member &&
                    (!is_tag_symbol(type_sym) ||
@@ -3424,9 +3404,6 @@ entities.
        not get here.  Nor should template template parameters. */
     a_template_ptr  corresp_templ = NULL, candidate;
     a_boolean       class_template = is_class_template_symbol(templ_sym);
-#if 0 /* FIXME */
-    a_boolean       first_definition = templ_sym->defined;
-#endif /*FIXME*/
     a_translation_unit_ptr
                     trans_unit = trans_unit_for_symbol(templ_sym);
     sym = corresp_symbol_list(templ_sym);
@@ -3449,55 +3426,6 @@ entities.
           }  /* if */
           if (candidate == NULL) {
             /* Continue searching for a match. */
-#if 0 /* FIXME */
-          } else if (!class_template || !templ_sym->defined) {
-            /* No need to find a "canonical definition". */
-            corresp_templ = candidate;
-            break;
-          } else {
-            a_symbol_ptr  corresp_sym =
-                           (a_symbol_ptr)candidate->source_corresp.assoc_info;
-            if (corresp_sym->defined) {
-              /* Both templ and candidate are defined.  Check to see if the
-                 candidate is the "canonical definition": the definition at
-                 the end of the correspondence chain, or if that is a
-                 nondefining declaration of the primary translation unit, the
-                 definition whose correspondence pointer points to the end of
-                 the correspondence chain. */
-              first_definition = FALSE;
-              if (!has_correspondence(candidate)) {
-                /* A definition in a primary translation is always a canonical
-                   definition.  So is a definition in a secondary translation
-                   unit that doesn't have a correspondence (i.e., the first
-                   encountered definition with no declaration in the primary
-                   translation unit). */
-                corresp_templ = candidate;
-                break;
-              } else {
-                /* Check if the canonical definition candidate does indeed
-                   point to a nondefining declaration (which should be the
-                   root of the correspondence tree). */
-                a_template_ptr  cand_root = (a_template_ptr)
-                                             canonical_il_entry_of(candidate);
-                a_symbol_ptr    cand_root_sym = (a_symbol_ptr)
-                                         cand_root->source_corresp.assoc_info;
-                if (!cand_root_sym->defined) {
-                  /* candidate corresponds to the canonical definition since
-                     it has a correspondence pointer that points to a
-                     nondefining declaration. */
-                  corresp_templ = candidate;
-                  break;
-                }  /* if */
-              }  /* if */
-              /* sym did not correspond to a canonical definition: continue
-                 to look for one. */
-            } else if (corresp_templ == NULL) {
-              /* templ is defined, but the candidate correspondence is not.
-                 Remember the candidate in case there are no others, but
-                 continue searching for a canonical definition. */
-              corresp_templ = candidate;
-            }  /* if */
-#endif /* FIXME */
           } else {
             corresp_templ = candidate;
             break;
@@ -3516,13 +3444,6 @@ entities.
     if (conflict) {
       f_report_bad_trans_unit_corresp((char*)templ, &sym->decl_position);
     } else if (corresp_templ != NULL) {
-#if 0 /*FIXME*/
-      if (class_template && first_definition) {
-        /* This is the first definition of a class template.  Make it
-           point to the root. */
-        corresp_templ = (a_template_ptr)canonical_il_entry_of(corresp_templ);
-      }  /* if */
-#endif /* FIXME */
       /* Record the correspondence. */
       set_trans_unit_corresp(iek_template, templ, corresp_templ);
       establish_instantiation_correspondences(templ);
