@@ -715,11 +715,11 @@ if there's no overflow TRUE is returned.
       overflow = !do_alignment(p_byte_offset, p_bit_offset, field_alignment);
     }  /* if */
     if (!overflow) {
-      if (is_unnamed_field(field)) {
-        /* This is an unnamed bit field (or unnamed non-bit field in pcc mode).
-           The alignment it forces should not affect the alignment of the
-           struct as a whole. */
+      if (field->is_bit_field && is_unnamed_field(field)) {
+        /* This is an unnamed bit field.  The alignment it forces should not
+           affect the alignment of the struct as a whole. */
       } else {
+        check_assertion(!is_unnamed_field(field));
         /* Remember the most stringent alignment requirement as the alignment
            requirement for the overall struct. */
         if (field_alignment > *p_alignment) {
