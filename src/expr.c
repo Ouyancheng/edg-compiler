@@ -10635,7 +10635,7 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
       if (err_code != ec_no_error) pos_warning(err_code, &operand_2.position);
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                        &operator_position);
+                        &error_position);
   }  /* if */
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
