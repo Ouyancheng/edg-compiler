@@ -1,5 +1,20 @@
 Version 2.46
 
+1/25/01  Error recovery problem: call of member function on volatile
+         rvalue of class with bitwise copy constructor
+
+An abort in error recovery has been corrected.  The problem came
+up in a case that involves calling a member function of a class with
+a generated bitwise copy constructor, with an object that is volatile
+(which therefore cannot be copied by the generated copy constructor).
+
+  struct A {int i; void f();};
+  volatile A fv();
+  int main() {
+    volatile A tv;
+    fv().f();  // Formerly aborted after error
+  }
+
 1/24/01  Spurious error on dependent const variable definitions
 
 If the definition of a variable with a const type has no initializer

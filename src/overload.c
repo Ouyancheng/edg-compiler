@@ -4759,6 +4759,7 @@ member name reference.
   a_base_class_ptr bcp;
 
   /* This routine is similar to make_this_pointer_operand. */
+  if (is_error_operand(operand_1)) goto end_of_routine;
   class_struct_union_type = operand_1->type;
   if (*is_arrow_operator) {
     if (is_template_param_or_nonreal_class_type(class_struct_union_type)) {
@@ -4831,6 +4832,7 @@ member name reference.
                               /*is_object_pointer=*/TRUE);
     }  /* if */
   }  /* if */
+end_of_routine:;
 }  /* cast_pointer_for_field_selection */
 
 
