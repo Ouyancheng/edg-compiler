@@ -2707,8 +2707,11 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
       if (param_type1 != NULL && param_type2 != NULL) {
         if (any_cfront_mode()) {
           /* cfront has a very simple tiebreaker test for adding cv-qualifiers.
-             It applies only when the match is exact. */
-          if (arg1->match_level == (an_arg_match_level)aml_exact) {
+             It applies only when the match is exact, or it's a derived-to-base
+             conversion on matching a "this" parameter. */
+          if (arg1->match_level == (an_arg_match_level)aml_exact ||
+              (arg1->is_match_for_this_param &&
+               arg2->is_match_for_this_param)) {
             if (arg1->conversion.std.type_qualifiers_added &&
                 !arg2->conversion.std.type_qualifiers_added) {
               /* Qualifiers are added for param_type1 and not for param_type2,
