@@ -467,10 +467,10 @@ as needed.
 #if 0
 #else /* 0 */
       /* For now, set the definition_needed flag on a class whenever the needed
-         flag is set when the class has a definition. */
+         flag is set. */
       if (entry_kind == iek_type) {
         a_type_ptr type = (a_type_ptr)entry_ptr;
-        if (is_immediate_class_type(type) && !is_incomplete_type(type)) {
+        if (is_immediate_class_type(type)) {
           type->variant.class_struct_union.definition_needed = TRUE;
         }  /* if */
       }  /* if */
