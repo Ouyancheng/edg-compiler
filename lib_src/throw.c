@@ -329,6 +329,12 @@ empty then remove it from the stack.
   ((type1) == (type2) || ((type1)->unique_id == (type2)->unique_id) &&  \
                           (type1)->unique_id != 0)
 
+/* Determine whether two typeinfo entries refer to the same type and
+   whether the two types match in terms of whether or not they are pointers. */
+#define matching_types(etsp, type2, type2_is_pointer)			\
+  ((((etsp->flags & ETS_IS_POINTER) != 0) == type2_is_pointer) &&	\
+   matching_typeinfo(etsp->typeinfo, type2))
+
 #if DEBUG
 static void db_eh_region_descr(an_eh_region_descr_ptr  ehrdp)
 /*
@@ -548,8 +554,19 @@ The current region number within ehsep is designated by region.
 }  /* cleanup */
 
 
+/*
+Temporary variables that hold the information about the thrown type.
+This will be replaced with a stack of throw information.
+*/
+static a_typeinfo_ptr	thrown_typeinfo = NULL;
+static a_boolean	thrown_is_pointer;
+static int		throw_buffer[1024];
+static a_boolean	throw_in_process = FALSE;
+
+
 static int check_catches(an_eh_stack_entry_ptr	ehsep,
                          a_typeinfo_ptr		typeinfo,
+			 a_boolean		is_pointer,
 			 void**			object_ptr)
 /*
 Examine the catch information associated with a given try block and
@@ -569,17 +586,18 @@ plus 1).
     a_boolean	match = FALSE;
     index++;
 #if 0
-    /* Pointer and reference handling needs to be added. */
+    /* Anything special for references? */
 #endif /* 0 */
     if (etsp->flags & ETS_IS_ELLIPSIS) {
       match = TRUE;
-    } else if (matching_typeinfo(etsp->typeinfo, typeinfo)) {
+    } else if (matching_types(etsp, typeinfo, is_pointer)) {
       match = TRUE;
     } else if (etsp->typeinfo->unique_id == NULL) {
       /* No unique ID -- don't check any further.  No match. */
     } else if (*(etsp->typeinfo->unique_id) == BCS_AMBIGUOUS) {
       /* An ambiguous base class -- no match. */
-    } else if (*(etsp->typeinfo->unique_id) != BCS_NO_FLAGS) {
+    } else if (((etsp->flags & ETS_IS_POINTER) != 0) == is_pointer &&
+               *(etsp->typeinfo->unique_id) != BCS_NO_FLAGS) {
       /* A base class of the class that was thrown. */
       match = TRUE;
       /* Convert the pointer from a pointer to the derived class to a pointer
@@ -605,16 +623,6 @@ plus 1).
   } while (!done);
   return result;
 }  /* check_catches */
-
-
-/*
-Temporary variables that hold the information about the thrown type.
-This will be replaced with a stack of throw information.
-*/
-static a_typeinfo_ptr	thrown_typeinfo = NULL;
-static a_boolean	thrown_is_pointer;
-static int		throw_buffer[1024];
-static a_boolean	throw_in_process = FALSE;
 
 
 EXTERN_C int __throw(void)
@@ -648,7 +656,8 @@ a try block with a catch that matches the type of the object thrown.
     if (kind == (an_eh_stack_entry_kind)ehsek_function) {
       /* Do nothing with function blocks at this time. */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
-      int result = check_catches(ehsep, thrown_typeinfo, &object_ptr);
+      int result = check_catches(ehsep, thrown_typeinfo, thrown_is_pointer,
+                                 &object_ptr);
       if (result != 0) {
         destination_ehsep = ehsep;
         destination_catch_value = result;
