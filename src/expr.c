@@ -3035,7 +3035,8 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         }  /* if */
         break;
       case tok_not:
-        (void)check_boolean_controlling_expr(&operand);
+        (void)check_boolean_controlling_expr(&operand,
+                                             /*ptr_to_member_okay=*/FALSE);
         op = (an_expr_operator_kind)eok_not;
         do_promotion = FALSE;
         result_type = integer_type((an_integer_kind)ik_int);
@@ -5300,7 +5301,7 @@ standard.
   an_operand            operand_2;
   a_source_position     operator_position;
   an_expression_kind    expr2_kind;
-  a_boolean             operand_1_is_zero  = FALSE;
+  a_boolean             operand_1_is_false = FALSE;
   long                  local_result;
   a_boolean             known_result       = FALSE;
   a_token_kind          save_token;
@@ -5351,14 +5352,16 @@ standard.
       /* See if the first operand is a constant. */
       operand_1_rvalue_conversion_done = FALSE;
       conv_lvalue_to_rvalue(operand_1, expression_kind);
-      if (is_constant_operand(operand_1)) {
-        operand_1_is_zero = op_is_zero_constant(operand_1);
-        if (save_token == tok_and_and && operand_1_is_zero) {
+      /* Note that pointer to member constants are tested by
+         op_is_false_constant; that's why the is_scalar_type test is needed. */
+      if (is_constant_operand(operand_1) && is_scalar_type(operand_1->type)) {
+        operand_1_is_false = op_is_false_constant(operand_1);
+        if (save_token == tok_and_and && operand_1_is_false) {
           /* 0 && something -- this always evaluates to a zero value. */
           local_result = 0;
           known_result = TRUE;
           expr2_kind = (an_expression_kind)ek_not_evaluated;
-        } else if (save_token == tok_or_or && !operand_1_is_zero) {
+        } else if (save_token == tok_or_or && !operand_1_is_false) {
           /* non-zero || something -- this always evaluates to a value of 1. */
           local_result = 1;
           known_result = TRUE;
@@ -5396,9 +5399,11 @@ standard.
                                     TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION :
                                     TOPT_NO_OPTIONS,
                                expression_kind);
-    (void)check_boolean_controlling_expr(operand_1);
+    (void)check_boolean_controlling_expr(operand_1,
+                                         /*ptr_to_member_okay=*/FALSE);
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);
-    (void)check_boolean_controlling_expr(&operand_2);
+    (void)check_boolean_controlling_expr(&operand_2,
+                                         /*ptr_to_member_okay=*/FALSE);
     if (!known_result) {
       /* Normal case: the result is not known. */
       result_type = get_logical_result_type(expression_kind, operand_1,
@@ -5484,9 +5489,11 @@ expression.
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(result->type)) {
     try_to_convert_class_operand_to_builtin_type(result,
-                                                 /*integral_allowed=*/TRUE,
-                                                 /*floating_allowed=*/TRUE,
-                                                 /*pointer_allowed=*/TRUE,
+                                                 (a_builtin_type_kind_set)
+                                                           (BTK_INTEGRAL |
+                                                            BTK_FLOATING |
+                                                            BTK_POINTER |
+                                                            BTK_PTR_TO_MEMBER),
                                                 /*result_may_be_lvalue=*/FALSE,
                                                  expression_kind,
                                                  &processed);
@@ -5499,12 +5506,13 @@ expression.
   /* Remember whether or not the expression has pointer type.  This is
      needed later, and the check here standardizes the operation to
      an integer result. */
-  pointer_case = is_pointer_type(result->type);
-  /* Check that the operand is scalar.  Note that this is done even for the
-     cases where a class type has been converted to a scalar, because the
-     subroutine does some additional checking and some normalization of
-     the expression. */
-  if (check_boolean_controlling_expr(result)) {
+  pointer_case = is_pointer_type(result->type) ||
+                 is_ptr_to_member_type(result->type);
+  /* Check that the operand is scalar or a pointer to member.  Note that
+     this is done even for the cases where a class type has been converted
+     to such a type, because the subroutine does some additional checking
+     and some normalization of the expression. */
+  if (check_boolean_controlling_expr(result, /*ptr_to_member_okay=*/TRUE)) {
     /* Issue a remark if the expression is constant.  The check is here
        instead of check_boolean_controlling_expr because we don't want
        to issue diagnostics for things like "i = 1&&2;".  Do not issue
@@ -5534,7 +5542,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   an_operand            operand_3;
   a_source_position     operator_position;
   a_boolean             operand_1_is_const = FALSE;
-  a_boolean             operand_1_is_zero  = FALSE;
+  a_boolean             operand_1_is_false = FALSE;
   a_boolean             result_is_an_lvalue = FALSE;
   a_boolean             err = FALSE, processed = FALSE;
   a_type_ptr            result_type, ptr_result_type, operation_type;
@@ -5556,8 +5564,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
        constant zero, evaluate the second operand only. */
     operand_1_is_const = is_constant_operand(operand_1);
     if (operand_1_is_const) {
-      operand_1_is_zero = op_is_zero_constant(operand_1);
-      if (operand_1_is_zero) {
+      operand_1_is_false = op_is_false_constant(operand_1);
+      if (operand_1_is_false) {
 	/* The first operand is a constant zero, so do not evaluate the second
 	   operand. */
         expr2_kind = (an_expression_kind)ek_not_evaluated;
@@ -5786,7 +5794,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   if (err || is_error_operand(operand_1)) {
     make_error_operand(result);
   } else if (operand_1_is_const) {
-    if (operand_1_is_zero) {
+    if (operand_1_is_false) {
       /* The first operand is a zero constant; return the third operand as
 	 the result. */
       copy_operand(&operand_3, result);
@@ -7161,9 +7169,8 @@ a pointer to the expression tree.
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(result.type)) {
     try_to_convert_class_operand_to_builtin_type(&result,
-                                                 /*integral_allowed=*/TRUE,
-                                                 /*floating_allowed=*/FALSE,
-                                                 /*pointer_allowed=*/FALSE,
+                                                 (a_builtin_type_kind_set)
+                                                                  BTK_INTEGRAL,
                                                 /*result_may_be_lvalue=*/FALSE,
                                                  (an_expression_kind)ek_normal,
                                                  &processed);
@@ -7719,8 +7726,8 @@ an_expr_node_ptr scan_boolean_controlling_expression(void)
 /*
 Scan an expression that is used in controlling contexts that need a boolean
 result, such as if, while, do while, or for statements.  The type of the
-expression must be scalar, or must be of a class type that can be converted
-to such a type.
+expression must be scalar, a pointer-to-member type, or must be of a
+class type that can be converted to such a type.
 */
 {
   an_operand          result;

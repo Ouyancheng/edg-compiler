@@ -275,6 +275,21 @@ some of the transformations.
 #define TOPT_NO_OPTIONS 0
 typedef int a_transformation_options_set;
 
+/*
+Bit flags used to indicate the kinds of built-in types allowed
+for try_to_convert_class_operand_to_builtin_type and
+conversion_from_class_possible.
+*/
+#define BTK_INTEGRAL 0x1
+			/* Any integral type. */
+#define BTK_FLOATING 0x2
+			/* Any floating type. */
+#define BTK_POINTER 0x4	/* Any pointer. */
+#define BTK_PTR_TO_MEMBER 0x8
+			/* Any pointer to member. */
+#define BTK_NONE 0
+typedef int a_builtin_type_kind_set;
+
 
 /*
 Entry in a stack used during expression processing to record transitions
@@ -427,13 +442,11 @@ extern a_symbol_ptr select_overloaded_function(
                            an_expr_node_ptr         *arg_expr_list);
 
 extern void try_to_convert_class_operand_to_builtin_type(
-                                       an_operand         *operand,
-                                       a_boolean          integral_allowed,
-                                       a_boolean          floating_allowed,
-                                       a_boolean          pointer_allowed,
-                                       a_boolean          result_may_be_lvalue,
-                                       an_expression_kind expression_kind,
-                                       a_boolean          *processed);
+                                 an_operand              *operand,
+                                 a_builtin_type_kind_set builtin_types_allowed,
+                                 a_boolean               result_may_be_lvalue,
+                                 an_expression_kind      expression_kind,
+                                 a_boolean               *processed);
 
 extern void check_for_operator_overloading(
                                     an_opname_kind     kind,
@@ -510,6 +523,8 @@ extern a_type_ptr get_logical_result_type(an_expression_kind expression_kind,
 				          an_operand         *operand_2);
 
 extern a_boolean op_is_zero_constant(an_operand *operand);
+
+extern a_boolean op_is_false_constant(an_operand *operand);
 
 extern void add_reference_indirection(an_operand *result);
 
@@ -668,7 +683,8 @@ extern void do_binary_operation(an_expr_operator_kind op,
 			        a_source_position     *operator_position,
                                 an_expression_kind    expression_kind);
 
-extern a_boolean check_boolean_controlling_expr(an_operand *operand);
+extern a_boolean check_boolean_controlling_expr(an_operand *operand,
+                                                a_boolean  ptr_to_member_okay);
 
 extern a_boolean still_an_lvalue(a_type_ptr type_before_cast,
 			         a_type_ptr type_cast_to);

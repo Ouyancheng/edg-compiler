@@ -137,9 +137,7 @@ static a_boolean conversion_to_class_possible(
 static a_boolean conversion_from_class_possible(
                                an_operand               *source_operand,
                                a_type_ptr               dest_type,
-                               a_boolean                integral_allowed,
-                               a_boolean                floating_allowed,
-                               a_boolean                pointer_allowed,
+                               a_builtin_type_kind_set  builtin_types_allowed,
                                a_routine_ptr            *conversion_routine,
                                a_boolean                *std_conversion_needed,
                                a_boolean                *ambiguous,
@@ -2316,34 +2314,50 @@ See section 3.1.2.5 of the standard.
 }  /* check_scalar_operand */
 
 
-static a_boolean node_is_zero_constant(an_expr_node_ptr node)
-/*
-Return TRUE if the expression node contains a constant zero value.
-*/
-{
-  return (is_constant_node(node) && is_zero_constant(node->variant.constant));
-}  /* node_is_zero_constant */
-
-
 a_boolean op_is_zero_constant(an_operand *operand)
 /*
-Return TRUE if the operand contains a constant zero value.
+Return TRUE if the operand contains a constant zero value (of integral
+or floating type).
 */
 {
   register a_boolean is_constant_zero = FALSE;
+  an_expr_node_ptr   node;
 
   if (is_expression_operand(operand)) {
     /* Check if the expression is a constant zero. */
-    if (node_is_zero_constant(operand->variant.expression)) {
+    node = operand->variant.expression;
+    if (is_constant_node(node) && is_zero_constant(node->variant.constant)) {
       is_constant_zero = TRUE;
     }  /* if */
   } else if (is_constant_operand(operand)) {
     /* Check the constant in the operand itself. */
     is_constant_zero = is_zero_constant(&operand->variant.constant);
   }  /* if */
-
   return is_constant_zero;
 }  /* op_is_zero_constant */
+
+
+a_boolean op_is_false_constant(an_operand *operand)
+/*
+Return TRUE if the operand contains a false constant value (a zero of
+integral, floating, pointer, or pointer to member type).
+*/
+{
+  register a_boolean is_constant_false = FALSE;
+  an_expr_node_ptr   node;
+
+  if (is_expression_operand(operand)) {
+    /* Check if the expression is a false constant. */
+    node = operand->variant.expression;
+    if (is_constant_node(node) && is_false_constant(node->variant.constant)) {
+      is_constant_false = TRUE;
+    }  /* if */
+  } else if (is_constant_operand(operand)) {
+    /* Check the constant in the operand itself. */
+    is_constant_false = is_false_constant(&operand->variant.constant);
+  }  /* if */
+  return is_constant_false;
+}  /* op_is_false_constant */
 
 
 static a_boolean valid_node_if_subscript(an_expr_node_ptr node,
@@ -5141,9 +5155,8 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
       goto have_level;
     } else if (is_class_struct_union_type(arg_type) &&
                (conversion_from_class_possible(arg_operand, param_type,
-                                               /*integral_allowed=*/FALSE,
-                                               /*floating_allowed=*/FALSE,
-                                               /*pointer_allowed=*/FALSE,
+                                               (a_builtin_type_kind_set)
+                                                                      BTK_NONE,
                                                &conversion_routine,
                                                &std_conversion_needed,
                                                &ambiguous,
@@ -5349,7 +5362,7 @@ TRUE; that allows a different error message.
                                           (a_symbol_kind)sk_function_template);
     if (function_template_case) {
       /* The symbol is a function template. */
-      routine_type = function_symbol->variant.template.extra_info->
+      routine_type = function_symbol->variant.templ.extra_info->
                                                 variant.function.routine->type;
       routine_type = skip_typerefs(routine_type);      
     } else {
@@ -5801,7 +5814,7 @@ template has the right number of parameters.
     internal_error("function_template_matches_operand_list: bad symbol");
   }  /* if */
 #endif /* CHECKING */
-  routine = templ_sym->variant.template.extra_info->variant.function.routine;
+  routine = templ_sym->variant.templ.extra_info->variant.function.routine;
   rtsp = routine->type->variant.routine.extra_info;
   /* Compare the types of the arguments to the parameter types. */
   ptp = rtsp->param_type_list;
@@ -6814,9 +6827,7 @@ C++ mode.
 static void try_conversion_function_match(
                                 an_operand               *source_operand,
                                 a_type_ptr               dest_type,
-                                a_boolean                integral_allowed,
-                                a_boolean                floating_allowed,
-                                a_boolean                pointer_allowed,
+                                a_builtin_type_kind_set  builtin_types_allowed,
                                 a_candidate_function_ptr *candidate_functions)
 
 /*
@@ -6825,8 +6836,8 @@ to either
 
 (a) dest_type, if dest_type is non-NULL (a standard conversion can be
     done after the conversion function, if necessary), or
-(b) a built-in type, indicated by integral_allowed, floating_allowed, and
-    pointer_allowed, if dest_type is NULL.
+(b) a built-in type in the set given by builtin_types_allowed, if
+    dest_type is NULL.
 
 If a conversion function to do that conversion exists, evaluate how
 well it matches the arguments and add it to the candidate_functions list.
@@ -6900,9 +6911,14 @@ function entry.  This routine is only used in C++ mode.
 #if 0
       /* Different test for enum? */
 #endif
-      if ((integral_allowed && is_integral_type(return_type)) ||
-          (floating_allowed && is_floating_type(return_type)) ||
-          (pointer_allowed  && is_pointer_type(return_type))) {
+      if (((builtin_types_allowed & BTK_INTEGRAL) != 0 &&
+                                              is_integral_type(return_type)) ||
+          ((builtin_types_allowed & BTK_FLOATING) != 0 &&
+                                              is_floating_type(return_type)) ||
+          ((builtin_types_allowed & BTK_POINTER) != 0 &&
+                                              is_pointer_type(return_type)) ||
+          ((builtin_types_allowed & BTK_PTR_TO_MEMBER) != 0 &&
+                                         is_ptr_to_member_type(return_type))) {
         /* This conversion function returns an acceptable built-in type. */
         compatible = TRUE;
       }  /* if */
@@ -6989,20 +7005,17 @@ end_of_search:
 
 
 void try_to_convert_class_operand_to_builtin_type(
-                                       an_operand         *operand,
-                                       a_boolean          integral_allowed,
-                                       a_boolean          floating_allowed,
-                                       a_boolean          pointer_allowed,
-                                       a_boolean          result_may_be_lvalue,
-                                       an_expression_kind expression_kind,
-                                       a_boolean          *processed)
+                                 an_operand              *operand,
+                                 a_builtin_type_kind_set builtin_types_allowed,
+                                 a_boolean               result_may_be_lvalue,
+                                 an_expression_kind      expression_kind,
+                                 a_boolean               *processed)
 /*
 If *operand has a class type, see if it can be converted (via a conversion
-function) to a built-in type of the set allowed by integral_allowed,
-floating_allowed, and pointer_allowed.  If so, convert it.  Unless
-result_may_be_lvalue is TRUE, force the result to be an rvalue.  Issue an
-error and set *processed to TRUE if the conversion is ambiguous.
-expression_kind indicates the current expression kind.
+function) to a built-in type of the set allowed by builtin_types_allowed.
+If so, convert it.  Unless result_may_be_lvalue is TRUE, force the result
+to be an rvalue.  Issue an error and set *processed to TRUE if the conversion
+is ambiguous.  expression_kind indicates the current expression kind.
 */
 {
   a_routine_ptr            conversion_routine;
@@ -7014,9 +7027,7 @@ expression_kind indicates the current expression kind.
     /* See if the class type can be converted to an acceptable built-in
        type. */
     if (conversion_from_class_possible(operand, (a_type_ptr)NULL,
-                                       integral_allowed,
-                                       floating_allowed,
-                                       pointer_allowed,
+                                       builtin_types_allowed,
                                        &conversion_routine,
                                        &std_conversion_needed,
                                        &ambiguous, &ambiguity_list)) {
@@ -7187,6 +7198,33 @@ an lvalue as its first operand, e.g., "LAA;PI;IP".
 }  /* operand_type_pattern_for_operator */
 
 
+static a_builtin_type_kind_set builtin_type_set_for_type_code(char type_code)
+/*
+Build and return the built-in type kind set that corresponds to the indicated
+type_code.
+*/
+{
+  a_builtin_type_kind_set builtin_types_allowed = BTK_NONE;
+
+  if (type_code == INTEGRAL_TYPE_CODE ||
+      type_code == ARITH_TYPE_CODE ||
+      type_code == SCALAR_TYPE_CODE) {
+    builtin_types_allowed |= BTK_INTEGRAL;
+  }  /* if */
+  if (type_code == ARITH_TYPE_CODE ||
+      type_code == SCALAR_TYPE_CODE) {
+    builtin_types_allowed |= BTK_FLOATING;
+  }  /* if */
+  if (type_code == POINTER_TYPE_CODE ||
+      type_code == SCALAR_TYPE_CODE) {
+    builtin_types_allowed |= BTK_POINTER;
+  }  /* if */
+  /* There are no built-in operators that take pointers to members
+     at the moment, so BTK_PTR_TO_MEMBER is not tested. */
+  return builtin_types_allowed;
+}  /* builtin_type_set_for_type_code */
+
+
 static void try_builtin_operands_match(
                        char                     *operand_type_pattern,
                        an_arg_operand_ptr       arg_operand_list,
@@ -7278,16 +7316,11 @@ pointer type).
            an appropriate built-in type. */
         if (conversion_from_class_possible(&arg_operand->operand,
                                            (a_type_ptr)NULL,
-                      /*integral_allowed=*/(type_code == INTEGRAL_TYPE_CODE ||
-                                            type_code == ARITH_TYPE_CODE ||
-                                            type_code == SCALAR_TYPE_CODE),
-                      /*floating_allowed=*/(type_code == ARITH_TYPE_CODE ||
-                                            type_code == SCALAR_TYPE_CODE),
-                      /*pointer_allowed=*/ (type_code == POINTER_TYPE_CODE ||
-                                            type_code == SCALAR_TYPE_CODE),
-                      &conversion_routine,
-                      &std_conversion_needed,
-                      &ambiguous, (a_candidate_function_ptr *)NULL) ||
+                                     builtin_type_set_for_type_code(type_code),
+                                           &conversion_routine,
+                                           &std_conversion_needed,
+                                           &ambiguous,
+                                           (a_candidate_function_ptr *)NULL) ||
             ambiguous) {
           /* The conversion can be done. */
           arg_match->match_level = aml_user_conversion;
@@ -7327,9 +7360,7 @@ pointer type).
         std_conversion_needed = FALSE;
         if (pointer_type_pattern_position == type_pattern_position ||
             conversion_from_class_possible(&arg_operand->operand, pointer_type,
-                                           /*integral_allowed=*/FALSE,
-                                           /*floating_allowed=*/FALSE,
-                                           /*pointer_allowed=*/FALSE,
+                                           (a_builtin_type_kind_set)BTK_NONE,
                                            &conversion_routine,
                                            &std_conversion_needed,
                                            &ambiguous,
@@ -7630,15 +7661,10 @@ expression_kind indicates the current expression kind.
          one, or we would have detected an error and not gotten here. */
       processed = FALSE;
       try_to_convert_class_operand_to_builtin_type(operand,
-                       /*integral_allowed=*/(type_code == INTEGRAL_TYPE_CODE ||
-                                             type_code == ARITH_TYPE_CODE ||
-                                             type_code == SCALAR_TYPE_CODE),
-                       /*floating_allowed=*/(type_code == ARITH_TYPE_CODE ||
-                                             type_code == SCALAR_TYPE_CODE),
-                       /*pointer_allowed=*/ (type_code == POINTER_TYPE_CODE ||
-                                             type_code == SCALAR_TYPE_CODE),
-                       /*result_may_be_lvalue=*/TRUE,
-                       expression_kind, &processed);
+                                     builtin_type_set_for_type_code(type_code),
+                                     /*result_may_be_lvalue=*/TRUE,
+                                     expression_kind,
+                                     &processed);
 #if CHECKING
       if (!processed) {
         internal_error(
@@ -8035,9 +8061,7 @@ is undecidable because of an error.  This routine is only used in C++.
        class into the desired class, and the source type is a class.
        See if there is a conversion function that does the job. */
     try_conversion_function_match(source_operand, dest_type,
-                                  /*integral_allowed=*/FALSE,
-                                  /*floating_allowed=*/FALSE,
-                                  /*pointer_allowed=*/FALSE,
+                                  (a_builtin_type_kind_set)BTK_NONE,
                                   &candidate_functions);
   }  /* if */
   /* The candidate_functions list now contains all the viable functions.
@@ -8098,9 +8122,7 @@ is undecidable because of an error.  This routine is only used in C++.
 static a_boolean conversion_from_class_possible(
                                an_operand               *source_operand,
                                a_type_ptr               dest_type,
-                               a_boolean                integral_allowed,
-                               a_boolean                floating_allowed,
-                               a_boolean                pointer_allowed,
+                               a_builtin_type_kind_set  builtin_types_allowed,
                                a_routine_ptr            *conversion_routine,
                                a_boolean                *std_conversion_needed,
                                a_boolean                *ambiguous,
@@ -8111,8 +8133,8 @@ to either
 
 (a) dest_type, if dest_type is non-NULL (a standard conversion can be
     done after the conversion function, if necessary), or
-(b) a built-in type, indicated by integral_allowed, floating_allowed, and
-    pointer_allowed, if dest_type is NULL.
+(b) a built-in type in the set given by builtin_types_allowed, if
+    dest_type is NULL.
 
 then set *conversion_routine to point to the routine that can do the
 conversion, and return TRUE.  Otherwise return FALSE.  If more than one
@@ -8135,9 +8157,7 @@ If a standard conversion is required after the conversion function, return
   *std_conversion_needed = FALSE;
   /* Find any viable conversion functions. */
   try_conversion_function_match(source_operand, dest_type,
-                                integral_allowed,
-                                floating_allowed,
-                                pointer_allowed,
+                                builtin_types_allowed,
                                 &candidate_functions);
   /* Of the viable functions, select the best. */
   select_best_candidate_functions(&candidate_functions,
@@ -8299,9 +8319,7 @@ equivalent pointer case).
   } else if (is_class_struct_union_type(source_type)) {
     /* The source type is a class (and the destination type is not a class). */
     if (conversion_from_class_possible(source_operand, dest_type,
-                                       /*integral_allowed=*/FALSE,
-                                       /*floating_allowed=*/FALSE,
-                                       /*pointer_allowed=*/FALSE,
+                                       (a_builtin_type_kind_set)BTK_NONE,
                                        conversion_routine,
                                        &std_conversion_needed,
                                        &ambiguous, &ambiguity_list)) {
@@ -9047,7 +9065,8 @@ prep_elision_initializer_operand.
       /* Convert the lvalue to an rvalue pointer to the object. */
       take_address_of_lvalue(source_operand, expression_kind);
       if (is_constant_operand(source_operand) &&
-          is_zero_constant(&source_operand->variant.constant)) {
+          /* "false" means zero, i.e., a null pointer. */
+          is_false_constant(&source_operand->variant.constant)) {
         /* Initializing a reference to NULL, which is not allowed:
              int &p = *(int *)0;
         */
@@ -9359,12 +9378,13 @@ indicates the type of expression being scanned.
 }  /* get_logical_result_type */
 
 
-a_boolean check_boolean_controlling_expr(an_operand *operand)
+a_boolean check_boolean_controlling_expr(an_operand *operand,
+                                         a_boolean  ptr_to_member_okay)
 /*
 Do some checks on a boolean controlling expression (e.g., "i != 0" in 
-"(i != 0) ? j : k").  Check that it's a scalar (arithmetic or pointer);
-return FALSE if not.  Also normalize the expression to "!= 0" form
-if necessary.
+"(i != 0) ? j : k").  Check that it's a scalar (arithmetic or pointer),
+or, if ptr_to_member_okay is TRUE, a pointer to member; return FALSE if
+not.  Also normalize the expression to "!= 0" form if necessary.
 */
 {
   a_boolean             okay, add_ne_0;
@@ -9377,8 +9397,13 @@ if necessary.
 
   /* Save the operand's source position. */
   orig_operand = *operand;
-  /* Check that the operand is a scalar. */
-  okay = check_scalar_operand(operand);
+  if (ptr_to_member_okay && is_ptr_to_member_type(operand->type)) {
+    /* Pointer to member type is okay. */
+    okay = TRUE;
+  } else {
+    /* Check that the operand is a scalar. */
+    okay = check_scalar_operand(operand);
+  }  /* if */
   if (okay) {
     switch (operand->kind) {
       case ok_error:
@@ -9444,7 +9469,7 @@ if necessary.
         /* The expression is constant.  Make a standard integer 0 or 1
            constant. */
         make_integer_constant_operand(operand,
-                                      (long)(!op_is_zero_constant(operand)));
+                                      (long)(!op_is_false_constant(operand)));
         break;
 #if CHECKING
       default:
