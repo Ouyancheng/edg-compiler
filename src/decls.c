@@ -4022,7 +4022,8 @@ skip_overloading:;
   } else if (!redeclaration && !template_function_specific_decl) {
     /* Record a reference to the outer-scope symbol of the same name,
        but do not set the IL entity referenced flag. */
-    reference_to_symbol(srk_use, (a_symbol_ptr)source_corresp_ptr->assoc_info,
+    reference_to_symbol(srk_reference,
+                        (a_symbol_ptr)source_corresp_ptr->assoc_info,
                         &locator->source_position, /*update_il_entry=*/FALSE);
   }  /* if */
   if (!is_function && is_volatile_qualified_type(type_ptr)) {
@@ -9625,8 +9626,7 @@ continue_with_declaration:
             mark_variable_value_set(symbol_ptr);
           }  /* if */
         }  /* if */
-      } else if (C_dialect == C_dialect_cplusplus &&
-                 symbol_ptr->kind == (a_symbol_kind)sk_variable &&
+      } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
                  local_storage_class == (a_storage_class)sc_extern) {
         /* This is not a definition of a variable but rather an extern
            declaration.  Such variables may be assumed to be initialized
