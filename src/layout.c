@@ -1360,28 +1360,40 @@ done:
 
 #if IA64_ABI
 
+static a_type_ptr type_for_gnu_conflicts(a_type_ptr  type)
+/*
+Early GNU implementations of the IA-64 ABI treat arrays in a special way
+when determine conflicts.  If a subobject has type "X[N1]...[Nm]" then
+the underlying type X is used (as usual) unless one of the dimensions
+N1, ..., Nm equals one.  If the given type is of the form "X[N1]...[Nm]"
+with no dimension equal to one and X is a complete type, return type X.
+Otherwise, return the given type unmodified.
+*/
+{
+  a_type_ptr  result = skip_typerefs(type);
+
+  while (is_array_type(result)) {
+    if (has_unknown_specified_bound(result) ||
+        is_incomplete_type(result) ||
+        result->variant.array.variant.number_of_elements == 1) {
+      result = type;
+      break;
+    } else {
+      result = skip_typerefs(result->variant.array.element_type);
+    }  /* if */
+  }  /* while */
+  return result;
+}  /* type_for_gnu_conflicts */
+
+
 static a_boolean has_dimension_of_length_one(a_type_ptr  type)
 /*
 Return TRUE if and only if the given array type has a dimension of length one
 (e.g., "int [3][1][7]").
 */
 {
-  a_boolean   result = FALSE;
-  a_type_ptr  element_type = skip_typerefs(type);
-
-  check_assertion(is_array_type(element_type));
-  do {
-    if (has_unknown_specified_bound(element_type) ||
-        is_incomplete_type(element_type)) {
-      break;
-    } else if (element_type->variant.array.variant.number_of_elements == 1) {
-      result = TRUE;
-      break;
-    } else {
-      element_type = skip_typerefs(element_type->variant.array.element_type);
-    }  /* if */
-  } while (is_array_type(element_type));
-  return result;
+  check_assertion(is_array_type(type));
+  return is_array_type(type_for_gnu_conflicts(type));
 }  /* has_dimension_of_length_one */
 
 
@@ -1606,17 +1618,10 @@ base class of the complete object).
   field = subobject_type->variant.class_struct_union.field_list;
   for (; field != NULL; field = field->next) {
     a_type_ptr  field_type = skip_typerefs(field->type);
+    /* Get the underlying element type except in some special cases. */
+    field_type = type_for_gnu_conflicts(field_type);
     if (is_array_type(field_type)) {
-      if (!(has_unknown_specified_bound(field_type) ||
-            is_incomplete_type(field_type)) &&
-          field_type->variant.array.variant.number_of_elements <= 1) {
-        /* GNU compilers treat arrays of less than two elements specially
-           in some circumstances.  E.g., they are not considered for first
-           field conflicts. */
-        continue;
-      }  /* if */
-      field_type = underlying_array_element_type(field_type);
-      field_type = skip_typerefs(field_type);
+      continue;
     }  /* if */
     /* The "GNU first field conflict" only occurs with fields that start in
        the first N bytes of their enclosing class, where N depends on the
@@ -1705,8 +1710,9 @@ offset is zero.
          any conflict would also occur with the latter base subobject). */
       if (bcp->offset == offset &&
           bcp->type->variant.class_struct_union.is_empty_class &&
-          base_classes_of(bcp->type) == 0 &&
-          gnu_conflict_found(field->type, bcp->type, /*in_field=*/FALSE)) {
+          base_classes_of(bcp->type) == NULL &&
+          gnu_conflict_found(type_for_gnu_conflicts(field->type),
+                             bcp->type, /*in_field=*/FALSE)) {
         result = TRUE;
         break;
       }  /* if */
