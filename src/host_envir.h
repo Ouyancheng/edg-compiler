@@ -25,9 +25,14 @@ host_envir.h -- Declarations relating to host_envir.c (having to do with
 #endif /* ifndef lang_feat.h */
 
 /*
-Vertical tab character.  Defined in this way because \v is not in K&R.
+Vertical tab character.
 */
+#if USING_ISO_C
+#define VERTICAL_TAB_CHARACTER '\v'
+#else /* !USING_ISO_C */
+/* K&R C doesn't recognize \v. */
 #define VERTICAL_TAB_CHARACTER '\013'
+#endif /* USING_ISO_C */
 
 /*
 Return codes to be used when the highest error severity is as given:
