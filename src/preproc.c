@@ -1412,6 +1412,7 @@ based on the information specified in the pragma description entry.
   a_boolean	save_do_string_literal_concatenation;
   a_boolean	save_fetch_pp_tokens;
   a_boolean     save_recognize_keywords_in_pragma;
+  a_boolean	save_in_preprocessing_directive;
 
   /* Save the current value of the lexical scanning mode flags. */
   save_expand_macros = expand_macros;
@@ -1419,6 +1420,10 @@ based on the information specified in the pragma description entry.
   save_do_string_literal_concatenation = do_string_literal_concatenation;
   save_fetch_pp_tokens = fetch_pp_tokens;
   save_recognize_keywords_in_pragma = recognize_keywords_in_pragma;
+  save_in_preprocessing_directive = in_preprocessing_directive;
+  /* We need to set in_preprocessing_directive in case this is called to
+     process a _Pragma operator. */
+  in_preprocessing_directive = TRUE;
   /* Set the new values. */
   expand_macros = pkdp->expand_macros;
   caching_pragma_tokens = TRUE;
@@ -1441,6 +1446,7 @@ based on the information specified in the pragma description entry.
   do_string_literal_concatenation = save_do_string_literal_concatenation;
   fetch_pp_tokens = save_fetch_pp_tokens;
   recognize_keywords_in_pragma = save_recognize_keywords_in_pragma;
+  in_preprocessing_directive = save_in_preprocessing_directive;
 }  /* cache_pragma_tokens */
 
 

@@ -1,5 +1,11 @@
 Version 3.2
 
+4/15/03  C99: keywords may be handled improperly in _Pragma operators
+
+When scanning a pragma for which "processing_C_code" is FALSE, keywords
+recognition should have been disabled but was instead enabled when the
+pragma was specified using a C99 _Pragma operator.  Now fixed.
+
 4/15/03  IA-64 ABI: g++ bug emulation of mangling for reference to
          member of template-dependent class
 
