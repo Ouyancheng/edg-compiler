@@ -7534,20 +7534,26 @@ Generate the local label declarations (a GNU C extension) of the given scope
 (if any).
 */
 {
-  a_label_ptr  label;
+  a_src_seq_secondary_decl_ptr  sec_decl;
   a_boolean    local_label_found = FALSE;
 
-  for (label = scope->labels; label != NULL; label = label->next) {
-    if (label->locally_declared) {
-      if (local_label_found) {
-        write_tok_str(", ");
-      } else {
-        write_tok_str("__label__  ");
-      }  /* if */
-      gen_unqualified_name(&label->source_corresp, iek_label);
-      local_label_found = TRUE;
+  while (curr_src_seq_entry_is_secondary_decl(&sec_decl) &&
+         ss_entry_kind(sec_decl) == iek_label) {
+    a_label_ptr  label = ss_entry_ptr(sec_decl, a_label_ptr);
+    check_assertion(label->locally_declared);
+    /* Position the output file to the declaration position. */
+    set_decl_position(&label->source_corresp, sec_decl);
+    if (local_label_found) {
+      write_tok_str(", ");
+    } else {
+      write_tok_str("__label__  ");
     }  /* if */
-  }  /* for */
+    gen_unqualified_name(&label->source_corresp, iek_label);
+    local_label_found = TRUE;
+    /* Advance past the source sequence entry for the local label
+       declaration. */
+    adv_curr_source_sequence_entry();
+  }  /* while */
   if (local_label_found) {
     write_tok_str(";");
   }  /* if */
@@ -7578,10 +7584,11 @@ Generate code for a block statement ("{ ... }").
   if (scope != NULL) {
     push_name_context(scope);
     need_context_pop = TRUE;
-#if GNU_EXTENSIONS_ALLOWED
-    gen_local_label_declarations(scope);
-#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Generate local label declarations (if any). */
+  gen_local_label_declarations(scope);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Generate the statements inside the block. */
   gen_statement_list(statement->variant.block.statements,
                      top_statement_of_switch);

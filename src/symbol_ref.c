@@ -1203,7 +1203,7 @@ created for this entity; otherwise, it is NULL.
      sequence entry will be put out; putting out both would be redundant.)
      Also, sk_parameter symbols are not yet bound to a variable, so there's
      no way to put out a source sequence entry yet. */
-  if (sym_ptr->kind != (a_symbol_kind)sk_label &&
+  if ((sym_ptr->kind != (a_symbol_kind)sk_label || !is_definition) &&
       sym_ptr->kind != (a_symbol_kind)sk_parameter) {
     /* Determine whether the field definition_is_first_decl should be set
        for a class symbol.  Note that it may be changed later, if a source
