@@ -81,10 +81,11 @@ Scan an argument option as a decimal number, and return its value.
     if (result > LONG_MAX-digit) goto number_error;
     result += digit;
   }  /* for */
-  return(result);
+  goto return_point;
 number_error:
   str_command_line_error("invalid number: ", optstr);
-  /*NOTREACHED*/
+return_point:
+  return result;
 }  /* scan_optarg_number */
 
 
