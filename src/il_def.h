@@ -4080,7 +4080,14 @@ typedef struct a_variable {
   a_type_ptr	declared_type;
 			/* The type as it actually appears in the declaration
 			   of the variable at the point of its definition;
-			   NULL if there is no defining declaration. */
+			   NULL if there is no defining declaration.  When
+			   is_parameter is TRUE, the type is what actually
+			   appeared in the parameter declaration -- e.g.,
+			   before an array decays to a pointer.  (The only
+			   exception is a parameter variable of a function
+			   template instantiation, where the type declared
+			   in the template may involve a template
+			   parameter.) */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FIL
   a_variable_ptr

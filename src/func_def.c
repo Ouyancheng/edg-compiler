@@ -602,6 +602,16 @@ a new symbol is created and entered in the symbol table.
   }  /* if */
   /* Create the parameter variable. */
   vp = make_param_variable(tp, param_id->storage_class);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (!function_instantiation) {
+    /* Record the type exactly as it was declared (before array-to-pointer
+       decay, etc.).  This is done only for parameters of functions that
+       are declared explicitly; template functions are excluded because the
+       param_id entry is the one associated with the template declaration
+       and may involve template parameter types. */
+    vp->declared_type = param_id->declared_type;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   add_to_parameters_list(vp);
   sym = param_id->symbol;
   if (sym == NULL) {
