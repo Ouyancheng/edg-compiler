@@ -981,12 +981,12 @@ name table.
         !routine->source_corresp.is_local_to_function) {
       /* Note that member functions of local classes of prototype
          instantiations are also marked as prototype instantiations
-         (but they don't have template parameters to worry about). */
+         (but they don't have template parameters to worry about).
+         The same goes for ordinary friends in class templates. */
       a_symbol_ptr  sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
       a_template_instance_ptr
                     instance = sym->variant.routine.instance_ptr;
-      check_assertion(instance != NULL);
-      if (instance->template_info != NULL) {
+      if (instance != NULL && instance->template_info != NULL) {
         param = instance->template_info->cache.decl_info->parameters;
       }  /* if */
     }  /* if */
