@@ -383,6 +383,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
       }
       break;
+#if !MAINTAIN_NEEDED_FLAGS
     case iek_based_type_list_member:
       {
         a_based_type_list_member_ptr ptr =
@@ -392,13 +393,16 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->based_type, a_type_ptr, iek_type);
       }
       break;
+#endif /* !MAINTAIN_NEEDED_FLAGS */
     case iek_type:
       {
         a_type_ptr ptr = (a_type_ptr)entry_ptr;
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_type_ptr, iek_type);
+#if !MAINTAIN_NEEDED_FLAGS
         walk_list(ptr->based_types, a_based_type_list_member_ptr,
                   iek_based_type_list_member);
+#endif /* !MAINTAIN_NEEDED_FLAGS */
 #if DO_IL_LOWERING
         remap_ptr(ptr->typeinfo_var, a_variable_ptr, iek_variable);
 #endif /* DO_IL_LOWERING */
