@@ -13871,7 +13871,10 @@ needed_flag_bit_number plus bit_offset.
   }  /* if */
 #undef BITS_PER_ENTRY
   if (needed_flag_bit_number != 1 && new_value != 0 &&
-      scp->name_linkage == (a_name_linkage_kind)nlk_internal) {
+      (scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
+       /* When lowering extern inline, a function can be static, then
+          external, then static again.  Make sure it gets marked. */
+       scp->externalized)) {
     /* This is a static entity that is needed from an instantiation.
        Mark the entity so that it will be made external so it can be accessed
        from the instantiation file. */

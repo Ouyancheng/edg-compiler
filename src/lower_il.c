@@ -5670,6 +5670,16 @@ not include the function scope memory region, if any.
          Other transformations (e.g., promoting local static variables
          out as external variables) are done elsewhere. */
       routine->storage_class = (a_storage_class)sc_static;
+      routine->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+#if ONE_INSTANTIATION_PER_OBJECT
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+      if (one_instantiation_per_object) {
+        /* In one-instantiation-per-object mode, such lowered extern inline
+           routines can be duplicated in each slice. */
+        routine->source_corresp.duplicate_static_in_instantiation_slices= TRUE;
+      }  /* if */
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
     } /* if */
 #endif /* LOWER_EXTERN_INLINE */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
@@ -12758,16 +12768,6 @@ translation units (their statics are picked up after copying).
        rout != NULL;
        rout = rout->next) {
     if (rout->source_corresp.static_used_by_instantiation
-#if LOWER_EXTERN_INLINE
-        /* Lowered extern inline routines can be duplicated in each
-           slice and each compilation and need not be externalized.
-           Test the name linkage instead of the storage class because
-           the storage class has been changed to static by this point. */
-        && (!rout->is_inline ||
-            rout->source_corresp.name_linkage ==
-                                             (a_name_linkage_kind)nlk_internal)
-        && !treat_as_extern_inline(rout)
-#endif /* LOWER_EXTERN_INLINE */
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
         && !rout->source_corresp.duplicate_static_in_instantiation_slices
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */

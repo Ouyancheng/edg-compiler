@@ -1131,7 +1131,10 @@ typedef struct a_source_correspondence {
 			   that is referenced from an instantiation and
 			   therefore needs to be made external (unless the
 			   duplicate_static_in_instantiation_slices flag is
-			   set). */
+			   set).  Can be set (and should be ignored) on
+			   an entity that is not static, if it was static
+			   at some point and was made external (e.g., by
+			   lowering). */
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
   a_bit_field	duplicate_static_in_instantiation_slices:1;
 			/* TRUE if this is a special internal entity that
