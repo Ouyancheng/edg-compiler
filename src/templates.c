@@ -6025,6 +6025,11 @@ returned to the caller.
 		   &locator->source_position, sym);
     } /* if */
     err = TRUE;
+  } else if (!namespace_is_enclosed_by_scope(
+                         sym, &scope_stack[depth_innermost_namespace_scope])) {
+    /* Static data member template is being defined in a scope that does not
+       enclose the scope in which the parent class was defined. */
+    sym_error(ec_bad_scope_for_definition, sym);
   } else if (sym->defined) {
     /* Prior definition. */
     pos_sy_error(ec_already_defined, &locator->source_position, sym);
