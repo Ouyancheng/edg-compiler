@@ -555,6 +555,9 @@ and indentation is the indentation desired.
         if (cssp->is_specific_template_def) {
           put_string("specific template def");
         }  /* if */
+        if (cssp->member_decl_scope != NO_SCOPE_NUMBER) {
+          sprintf(buffer, "member_decl_scope %0d\n", cssp->member_decl_scope);
+        }  /* if */
       }
       break;
     case sk_field:
@@ -678,8 +681,19 @@ and indentation is the indentation desired.
           switch (tplep->param_symbol->kind) {
             case sk_type:
               fprintf(f_debug, "%*sparameter type: ", indentation + 4, "");
+              /* Display the proxy class type if one exists. */
               if (tplep->variant.param_type != NULL) {
-                db_type(tplep->variant.param_type);
+                a_type_ptr type = tplep->variant.param_type;
+                db_type(type);
+                if (type->variant.template_param.descr != NULL) {
+                  a_type_ptr  class_type;
+                  class_type = type->variant.template_param.descr->class_type;
+                  if (class_type != NULL) {
+                    fprintf(f_debug, "\n%*sproxy class: ",
+                            indentation + 6, "");
+                    db_type(class_type);
+                  }  /* if */
+                }  /* if */
               } else {
                 fprintf(f_debug, "NULL");
               }  /* if */
@@ -893,6 +907,109 @@ Dump the entire scope stack (for debugging).
   } while (!done);
 }  /* db_scope_stack */
 #endif /* DEBUG */
+
+
+void set_source_corresp(a_source_correspondence *sc,
+                        a_symbol_ptr            sp)
+/*
+Set the given source correspondence to point to the given symbol.  The
+scope for the symbol must still be active.
+*/
+{
+  sc->assoc_info = (char *)sp;
+  /* Note that the identifier name was allocated in the intermediate language
+     memory area (see find_symbol); it can therefore be used without
+     copying. */
+  sc->name = sp->header->identifier;
+  sc->decl_position = sp->decl_position;
+  /* Clear the referenced flag.  It was set to TRUE in
+     set_default_source_corresp, so that unassociated entities will
+     all have the referenced flag set.  Here it's cleared, now that we
+     know this is an entity with some corresponding entity in the
+     source program.  The flag will later be set to TRUE again if
+     there is an actual reference. */
+  sc->referenced = FALSE;
+  /* Set the is_local_to_function flag, which is may involve locating the
+      scope stack entry associated with the declaration scope. */
+#if RECORD_SCOPE_DEPTH_IN_IL
+  /* Record the scope depth of the declaration of this entity in the source
+     correspondence. */
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
+  if (sp->decl_scope == FILE_SCOPE_NUMBER) {
+    /* Leave the is_local_to_function flag FALSE. */
+#if RECORD_SCOPE_DEPTH_IN_IL
+    sc->scope_depth = DEPTH_OF_FILE_SCOPE;
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
+  } else if (sp->decl_scope == NO_SCOPE_NUMBER) {
+    /* Leave the is_local_to_function flag FALSE. */
+#if RECORD_SCOPE_DEPTH_IN_IL
+    /* Some entities (e.g., macros) have no decl_scope number. */
+    sc->scope_depth = NO_SCOPE_DEPTH;
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
+  } else if (sp->decl_scope == scope_stack[decl_scope_level].number) {
+    /* The normal case is when the current decl_scope_level corresponds to
+       what's in the symbol.  Use the global variables. */
+    if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
+        inside_local_class) {
+      sc->is_local_to_function = TRUE;
+    }  /* if */
+#if RECORD_SCOPE_DEPTH_IN_IL
+    sc->scope_depth = decl_scope_level;
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
+  } else {
+    /* In certain unusual cases (e.g., when an entity is first seen in a
+       friend declaration) it is necessary to compute the scope depth by
+       running through the scope stack. */
+    a_scope_depth  scope_depth = depth_scope_stack;
+    for (; scope_depth >= DEPTH_OF_FILE_SCOPE; --scope_depth) {
+      if (scope_stack[scope_depth].number == sp->decl_scope) {
+        /* This is the scope stack entry corresponding to the declaration
+           scope number, where relevant characteristics of the scope are
+           recorded. */
+        if (scope_stack[scope_depth].depth_of_innermost_function_scope !=
+                                                           NO_SCOPE_NUMBER ||
+            scope_stack[scope_depth].inside_local_class) {
+          sc->is_local_to_function = TRUE;
+        }  /* if */
+#if RECORD_SCOPE_DEPTH_IN_IL
+        sc->scope_depth = scope_depth;
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
+        break;
+      }  /* if */
+    }  /* for */
+#if CHECKING
+    if (scope_depth < DEPTH_OF_FILE_SCOPE) {
+      internal_error("set_source_corresp: bad decl_scope in symbol");
+    }  /* if */
+#endif /* CHECKING */
+  }  /* if */
+}  /* set_source_corresp */
+
+
+#if !RECORD_SCOPE_DEPTH_IN_IL
+/*ARGSUSED*/ /* <-- depth is only used when local entities are promoted. */
+#endif /* !RECORD_SCOPE_DEPTH_IN_IL */
+static void set_source_corresp_with_scope_depth(a_source_correspondence *sc,
+			                        a_symbol_ptr            sp,
+						a_scope_depth		depth)
+/*
+Set the source correspondence to point to a given symbol that for which
+the scope is not still active.  This routine works by temporarily
+changing the scope of the symbol to NO_SCOPE_NUMBER and calling
+set_source_corresp.  The scope number is the set to its original value
+and the scope depth is set to the value passed by the caller.
+*/
+{
+  a_scope_depth		saved_scope_number;
+
+  saved_scope_number = sp->decl_scope;
+  sp->decl_scope = NO_SCOPE_NUMBER;
+  set_source_corresp(sc, sp);
+  sp->decl_scope = saved_scope_number;
+#if RECORD_SCOPE_DEPTH_IN_IL
+  sc->scope_depth = depth;
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
+}  /* set_source_corresp_with_scope_depth */
 
 
 a_boolean is_special_function_symbol(a_symbol_ptr             sym,
@@ -1238,6 +1355,7 @@ state.
         cssp->conversion_list = NULL;
         cssp->routine_fixup_list = NULL;
         cssp->class_template = NULL;
+        cssp->member_decl_scope = NO_SCOPE_NUMBER;
         cssp->constructor_required = FALSE;
         cssp->destructor_required = FALSE;
         cssp->has_default_constructor = FALSE;
@@ -5185,6 +5303,116 @@ by find_projected_symbol to insert a projection symbol for the locator
 }  /* determine_projected_symbol_insert_location */
 
 
+static void create_template_param_class_type(a_type_ptr   templ_param_type)
+/*
+Creates the proxy class pointed to by a template parameter type description
+record.  This consists of allocating and initializing the class and assigning
+a scope number.  The class type is created the first time that a template
+parameter is used in a context in which a class qualified name lookup
+needs to be done using the template parameter as the class type.
+*/
+{
+  a_type_ptr				type;
+  a_template_param_type_descr_ptr	tptdp;
+  a_symbol_ptr				sym;
+  a_symbol_ptr				templ_param_sym;
+  a_class_symbol_supplement_ptr		cssp;
+  tptdp = templ_param_type->variant.template_param.descr;
+  if (tptdp == NULL) {
+    /* Allocate a template parameter type description entry. */
+    tptdp = alloc_template_param_type_descr();
+    templ_param_type->variant.template_param.descr = tptdp;
+  }  /* if */
+  /* Get the symbol pointer associated with the template parameter. */
+  templ_param_sym = (a_symbol_ptr)templ_param_type->source_corresp.assoc_info;
+  /* Create a symbol for the class.  The symbol will have the same name
+     as the template parameter symbol.  mark_declared is not called
+     because this symbol is not visible to the user. */
+  sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag,
+                     templ_param_sym->header, &templ_param_sym->decl_position);
+  /* The class will be considered to be at file scope.  If this is changed
+     to be some other scope then set_source_corres_with_scope_depth may
+     need to be called because set_source_corresp requires that the
+     decl_scope of the symbol still be an active scope. */
+  sym->decl_scope = FILE_SCOPE_NUMBER;
+  /* Create the type for the class. */
+  type = alloc_type(tk_class);
+  set_source_corresp(&(type->source_corresp), sym);
+  tptdp->class_type = type;
+  /* Set the scope number. */
+  cssp = symbol_supplement_for_class(type);
+  cssp->member_decl_scope = next_scope_number++;
+}  /* create_template_param_class_type */
+
+
+static a_symbol_ptr add_member_to_proxy_or_nonreal_class
+						(a_type_ptr	   class_type,
+						 a_boolean	   is_type,
+						 a_symbol_locator  *locator)
+/*
+This routine is called by class_qualified_id_lookup when the name
+being looked up is not found in the proxy class associated with a
+template parameter type or in a class that is a nonreal instantiation.
+We don't know anything about the name that is being looked up except
+whether or not it is a type (based on the is_type parameter).  If
+is_type is TRUE we create a member of class_type that is a
+tk_template_param.  If is_type is FALSE we create a member of
+class_type that is a ck_template_param.
+*/
+{
+  a_symbol_kind			kind;
+  a_class_symbol_supplement_ptr	cssp;
+  a_scope_depth			depth = NO_SCOPE_DEPTH;
+  a_symbol_ptr			sym;
+
+  db_enter(4, "add_member_to_proxy_or_nonreal_class");
+  /* Create a symbol for the member.  mark_declared is not called
+     because this symbol is not visible to the user. */
+  kind = is_type ? sk_type : sk_constant;
+  sym = alloc_symbol(kind, locator->symbol_header, &locator->source_position);
+  /* Get the scope number from the symbol supplement.  The scope depth
+     will be the scope depth of the class plus one. */
+  cssp = symbol_supplement_for_class(class_type);
+  sym->decl_scope = cssp->member_decl_scope;
+#if RECORD_SCOPE_DEPTH_IN_IL
+  depth = class_type->source_corresp.
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
+  /* Create the type or constant. */
+  if (is_type) {
+    a_type_ptr	type = alloc_type(tk_template_param);
+#if 0
+    type->variant.template_param.kind = tptk_member;
+#endif
+    sym->variant.type = type;
+    set_source_corresp_with_scope_depth(&type->source_corresp, sym, depth);
+    type->source_corresp.class_of_which_a_member = class_type;
+  } else {
+    /* Create a ck_template_param constant.  We don't know the type of the
+       constant so we allocate a tk_template_param to use as the type. */
+    a_constant_ptr  constant = fs_constant(ck_template_param);
+    sym->variant.constant = constant;
+    constant->type = alloc_type(tk_template_param);
+#if 0
+    constant->type->variant.template_param.kind = tptk_type_of_member;
+#endif
+    set_source_corresp_with_scope_depth(&constant->source_corresp, sym, depth);
+    constant->source_corresp.class_of_which_a_member = class_type;
+  }  /* if */
+  /* Add the symbol to the inactive list. */
+  sym->next = sym->header->inactive_symbols;
+  sym->header->inactive_symbols = sym;
+  sym->class_of_which_a_member = class_type;
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Adding: ");
+    db_symbol(sym, "", 0);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return sym;
+}  /* add_member_to_proxy_or_nonreal_class */
+
+
 a_symbol_ptr class_qualified_id_lookup(a_symbol_locator         *locator,
                                        a_type_ptr               class_type,
                                        an_id_lookup_options_set options)
@@ -5202,19 +5430,47 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   a_boolean    must_be_class = (options & IDL_MUST_BE_CLASS);
   a_boolean    must_be_tag = (options & IDL_MUST_BE_TAG);
   a_class_symbol_supplement_ptr
-               extra_info;
+               cssp;
   a_symbol_ptr insert_sym;
   a_boolean    add_to_active_list;
+  a_boolean    is_proxy_or_nonreal_class_lookup = FALSE;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym)                                     \
   ((sym)->class_of_which_a_member == class_type &&                    \
-   (!must_be_class || is_class_symbol(sym)) &&			      \
-   (!must_be_tag || is_tag_symbol(sym)))
+   (!must_be_class || is_class_or_class_proxy_symbol(sym)) &&	      \
+   (!must_be_tag || is_tag_or_tag_proxy_symbol(sym)))
 
   db_enter(4, "class_qualified_id_lookup");
   /* Remove any typedef on the class type. */
   class_type = skip_typerefs(class_type);
+  if (class_type->kind == (a_type_kind)tk_template_param) {
+    /* We are looking up a name in a template parameter that is being used
+       as a class (e.g., T::X, where T is a template parameter).  Each
+       template parameter that is used as a class has a "proxy class"
+       created for it that contains a list of member names that have
+       been looked up in the class.  Any name that is looked up in the
+       proxy class will be found -- if it doesn't already exist, a symbol
+       entry will be created for it. */
+    a_template_param_type_descr_ptr	tptdp;
+    tptdp = class_type->variant.template_param.descr;
+    if (tptdp == NULL || tptdp->class_type == NULL) {
+      create_template_param_class_type(class_type);
+      tptdp = class_type->variant.template_param.descr;
+    }  /* if */
+    /* Use the proxy class in place of the template parameter type. */
+    class_type = tptdp->class_type;
+    is_proxy_or_nonreal_class_lookup = TRUE;
+  } else {
+    /* Determine whether we are looking up a name in a nonreal class.
+       A nonreal class is a class template that is being instantiated
+       with a template parameter but does not refer to the prototype
+       instantiation.  Nonreal lookups are handled like proxy class
+       lookups; any name looked up is found.  If the symbol does not exist
+       one will be created. */
+    cssp = symbol_supplement_for_class(class_type);
+    is_proxy_or_nonreal_class_lookup = cssp->is_nonreal_class;
+  }  /* if */
   if ((sym = locator->specific_symbol) != NULL) {
     /* There is an existing specific symbol. */
   } else {
@@ -5243,6 +5499,19 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
       sym = tag_symbol;
       goto end_lookup;
     }  /* if */
+    if (is_proxy_or_nonreal_class_lookup) {
+      /* When looking up a name in a proxy or nonreal class, the name is
+         always found.  If we did not find the name in the search
+         above then we must create a symbol now.  If we are doing a
+         "must be class", "must be tag" or "tentative type" lookup
+         then we create the symbol as a type; otherwise we create it
+         as a constant. */
+      a_boolean		is_type;
+      is_type = (must_be_class || must_be_tag ||
+                 (options & IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME));
+      sym = add_member_to_proxy_or_nonreal_class(class_type, is_type, locator);
+      goto end_lookup;
+    }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
       /* The name was not found on the inactive symbols list.  Try the
          active symbols list.  This would come up when a qualified name
@@ -5261,11 +5530,11 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
          normal symbol table; they're pointed to from the class symbol
          supplement. */
       class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
-      extra_info = class_symbol->variant.class_struct_union.extra_info;
+      cssp = class_symbol->variant.class_struct_union.extra_info;
       if (locator->symbol_header == class_symbol->header) {
         /* Looking up the class name within itself.  Return the constructor if
            there is one. */
-        sym = extra_info->constructor;
+        sym = cssp->constructor;
         if (sym != NULL) {
           /* There is a constructor.  Change the locator symbol header to
              the header for the constructor rather than the header for the
@@ -5273,10 +5542,10 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
           locator->symbol_header = sym->header;
           goto end_lookup;
         }  /* if */
-      } else if (extra_info->destructor != NULL &&
-                 locator->symbol_header == extra_info->destructor->header) {
+      } else if (cssp->destructor != NULL &&
+                 locator->symbol_header == cssp->destructor->header) {
         /* This is the destructor. */
-        sym = extra_info->destructor;
+        sym = cssp->destructor;
         goto end_lookup;
       }  /* if */
       /* The name was not found.  Try looking for a member symbol that can
@@ -5580,7 +5849,11 @@ of the template.
         kind == (a_scope_kind)sck_class_struct_union) {
       /* In C++, a class/struct/union has an associated IL scope (but no new
          memory region). */
+      a_class_symbol_supplement_ptr	cssp;
       sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+      /* Save a copy of the scope number in the class symbol supplement. */
+      cssp = symbol_supplement_for_class(assoc_type);
+      cssp->member_decl_scope = ssep->number;
     } else {
       /* For function prototype and block scopes, the IL scope is not
          allocated until it is needed, because usually it will not be needed.
@@ -6764,83 +7037,6 @@ Indicate that the given symbol is referenced at the given position.
 {
   reference_to_symbol(srk_reference, sym_ptr, source_position);
 }  /* mark_referenced */
-
-
-void set_source_corresp(a_source_correspondence *sc,
-                        a_symbol_ptr            sp)
-/*
-Set the given source correspondence to point to the given symbol.  The
-scope for the symbol must still be active.
-*/
-{
-  sc->assoc_info = (char *)sp;
-  /* Note that the identifier name was allocated in the intermediate language
-     memory area (see find_symbol); it can therefore be used without
-     copying. */
-  sc->name = sp->header->identifier;
-  sc->decl_position = sp->decl_position;
-  /* Clear the referenced flag.  It was set to TRUE in
-     set_default_source_corresp, so that unassociated entities will
-     all have the referenced flag set.  Here it's cleared, now that we
-     know this is an entity with some corresponding entity in the
-     source program.  The flag will later be set to TRUE again if
-     there is an actual reference. */
-  sc->referenced = FALSE;
-  /* Set the is_local_to_function flag, which is may involve locating the
-      scope stack entry associated with the declaration scope. */
-#if RECORD_SCOPE_DEPTH_IN_IL
-  /* Record the scope depth of the declaration of this entity in the source
-     correspondence. */
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
-  if (sp->decl_scope == DEPTH_OF_FILE_SCOPE) {
-    /* Leave the is_local_to_function flag FALSE. */
-#if RECORD_SCOPE_DEPTH_IN_IL
-    sc->scope_depth = DEPTH_OF_FILE_SCOPE;
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
-  } else if (sp->decl_scope == NO_SCOPE_NUMBER) {
-    /* Leave the is_local_to_function flag FALSE. */
-#if RECORD_SCOPE_DEPTH_IN_IL
-    /* Some entities (e.g., macros) have no decl_scope number. */
-    sc->scope_depth = NO_SCOPE_DEPTH;
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
-  } else if (sp->decl_scope == scope_stack[decl_scope_level].number) {
-    /* The normal case is when the current decl_scope_level corresponds to
-       what's in the symbol.  Use the global variables. */
-    if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
-        inside_local_class) {
-      sc->is_local_to_function = TRUE;
-    }  /* if */
-#if RECORD_SCOPE_DEPTH_IN_IL
-    sc->scope_depth = decl_scope_level;
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
-  } else {
-    /* In certain unusual cases (e.g., when an entity is first seen in a
-       friend declaration) it is necessary to compute the scope depth by
-       running through the scope stack. */
-    a_scope_depth  scope_depth = depth_scope_stack;
-    for (; scope_depth >= DEPTH_OF_FILE_SCOPE; --scope_depth) {
-      if (scope_stack[scope_depth].number == sp->decl_scope) {
-        /* This is the scope stack entry corresponding to the declaration
-           scope number, where relevant characteristics of the scope are
-           recorded. */
-        if (scope_stack[scope_depth].depth_of_innermost_function_scope !=
-                                                           NO_SCOPE_NUMBER ||
-            scope_stack[scope_depth].inside_local_class) {
-          sc->is_local_to_function = TRUE;
-        }  /* if */
-#if RECORD_SCOPE_DEPTH_IN_IL
-        sc->scope_depth = scope_depth;
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
-        break;
-      }  /* if */
-    }  /* for */
-#if CHECKING
-    if (scope_depth < DEPTH_OF_FILE_SCOPE) {
-      internal_error("set_source_corresp: bad decl_scope in symbol");
-    }  /* if */
-#endif /* CHECKING */
-  }  /* if */
-}  /* set_source_corresp */
 
 
 an_extern_type_fixup_ptr alloc_etype_fixup(void)

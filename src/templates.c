@@ -2247,8 +2247,24 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
       err = TRUE;
     } else if (old_sym->kind == (a_symbol_kind)sk_type) {
       /* Both are types.  Make sure the types match. */
-      err = !identical_types(old_tpp->variant.param_type,
-                             new_tpp->variant.param_type);
+      a_template_param_type_descr_ptr tptdp;
+      a_type_ptr        old_type = old_tpp->variant.param_type;
+      a_type_ptr        new_type = new_tpp->variant.param_type;
+      err = !identical_types(old_type, new_type);
+      /* If one does not already exist, create a template parameter
+         type description record that is pointed to by both types.  A
+         existing description may be associated with either the old or new
+         type. */
+      tptdp = old_type->variant.template_param.descr;
+      if (tptdp == NULL) {
+        tptdp = new_type->variant.template_param.descr;
+        if (tptdp == NULL) {
+          tptdp = alloc_template_param_type_descr();
+        }  /* if */
+      }  /* if */
+      /* Update both type entries to point to the same description entry. */
+      old_type->variant.template_param.descr = tptdp;
+      new_type->variant.template_param.descr = tptdp;
     } else {
       /* Both are constants.  Make sure the values are the same. */
       check_assertion(old_sym->kind == (a_symbol_kind)sk_constant);
@@ -2585,19 +2601,8 @@ that make up the declaration and do a prototype instantiation.
           tap = alloc_template_arg(/*is_arg_type=*/TRUE);
           tap->variant.type = param_sym->variant.type;
         } else {
-          a_constant_ptr  cp;
-
           tap = alloc_template_arg(/*is_arg_type=*/FALSE);
-          /* The constant's type in template argument should be stripped of
-             any qualifier. */
-          if (!is_qualified_type(param_sym->variant.constant->type)) {
-            cp = param_sym->variant.constant;
-          } else {
-            cp = fs_constant((a_constant_repr_kind)ck_error);
-            copy_constant(param_sym->variant.constant, cp);
-            cp->type = skip_typerefs(cp->type);
-          }  /* if */
-          tap->variant.constant = cp;
+          tap->variant.constant = param_sym->variant.constant;
         }  /* if */
         *append_addr = tap;
         append_addr = &tap->next;
@@ -2798,7 +2803,6 @@ to represent the template parameters.
       a_storage_class      param_storage_class;
       a_symbol_locator     param_locator;
       a_type_ptr           bottom_derived_type;
-      an_expr_node_ptr     dim_expr_ptr;
 
       /* Scan the declaration specifiers. */
       (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
@@ -2817,7 +2821,7 @@ to represent the template parameters.
       declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags,
                  param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
                  &param_locator, &param_type_ptr, &bottom_derived_type,
-                 (a_func_info_block_ptr)NULL, &dim_expr_ptr);
+                 (a_func_info_block_ptr)NULL);
 #if 0
 /* Is a call to adjust_parameter_type required??? */
       /* Adjust the type if necessary (for example, "array of x"
@@ -2837,6 +2841,8 @@ to represent the template parameters.
       sym->variant.constant =
                          fs_constant((a_constant_repr_kind)ck_template_param);
       sym->variant.constant->type = param_type_ptr;
+      /* Note that the variant field template_param.kind was initialized to
+         tpck_param when the constant was allocated. */
       sym->variant.constant->variant.template_param.variant.list_position =
                                                       template_param_list_pos;
       set_source_corresp(&sym->variant.constant->source_corresp, sym);
@@ -3037,7 +3043,6 @@ entry is pushed on the scope stack.
     a_decl_flag_set    do_flags, dso_flags;
     a_func_info_block  func_info;
     a_type_ptr         bottom_derived_type = NULL;
-    an_expr_node_ptr   dim_expr_ptr;
     a_boolean          has_parenthesized_initializer = FALSE;
 
     add_stop_token(tok_semicolon);
@@ -3059,7 +3064,7 @@ entry is pushed on the scope stack.
                   DI_PARENTHESIZED_INITIALIZER_ALLOWED |
                   DI_OPERATOR_NAME_ALLOWED),
                  &do_flags, type, (a_type_ptr)NULL, &locator, &type,
-                 &bottom_derived_type, &func_info, &dim_expr_ptr);
+                 &bottom_derived_type, &func_info);
       has_parenthesized_initializer = 
                              (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
     }  /* if */

@@ -5655,11 +5655,6 @@ This routine may only be called in C++ mode.
         if (!err) {
 
           a_boolean	might_be_vacuous_dtor = next_tok_2 == tok_compl;
-#if CHECKING
-          if (is_template_param_type(class_type)) {
-            internal_error("not implemented: class qualifier using template parameter in template declaration");
-          }  /* if */
-#endif /* CHECKING */
           if (first_class) {
             /* Make sure that this class has been instantiated.  This is
                only needed for the first class name because template classes
@@ -6046,7 +6041,9 @@ is looked up.  Returns TRUE if identifier is a qualified name.
 			 locator_for_curr_id.is_nonclass_destructor;
           if (class_type == NULL) {
 	    okay = FALSE;
-          } else if (!is_nonclass_dtor && is_incomplete_type(class_type) &&
+          } else if (!is_nonclass_dtor && 
+                     is_incomplete_type(class_type) &&
+                     is_class_struct_union_type(class_type) &&
                      class_type->variant.class_struct_union.
                                          extra_info->assoc_scope == NULL) {
             /* An error must have occurred while scanning the class
@@ -6056,15 +6053,12 @@ is looked up.  Returns TRUE if identifier is a qualified name.
                considered complete if it is being defined.  We determine
                this by checking the assoc_scope field of the class type
                supplement.  If the type is incomplete an error will have
-               been issued earlier. */
+               been issued earlier.  The check for the type kind being
+               a class/struct/union type is needed because the type may
+               also be a template parameter type. */
             okay = FALSE;
             pos_error(ec_incomplete_type_not_allowed, &pos_curr_token);
           } else {
-#if CHECKING
-            if (is_template_param_type(class_type)) {
-             internal_error("not implemented: class qualifier using template parameter in template declaration");
-            }  /* if */
-#endif /* CHECKING */
             /* Don't try to look up a vacuous destructor name. */
             if (is_vacuous_dtor) {
               /* If class_type is NULL an error occurred while processing
