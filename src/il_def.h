@@ -3973,6 +3973,14 @@ typedef struct a_type {
         a_constant_ptr
 		element_count_constant;
       } variant;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      a_constant_ptr
+		bound_constant;
+			/* A constant representing the number of elements in
+			   the array.  For template-dependent dimensions, this
+			   holds the same value as the variant
+			   element_count_constant above. */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     } array;
     /* When kind == tk_class, tk_struct, or tk_union: */
     struct {

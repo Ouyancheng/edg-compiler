@@ -1228,6 +1228,12 @@ do_float_complex:
                                  (a_host_large_unsigned)ptr->
                                     variant.array.variant.number_of_elements);
       }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      if (ptr->variant.array.bound_constant != NULL) {
+        disp_ptr("bound_constant",
+                 (char *)ptr->variant.array.bound_constant, iek_constant);
+      }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       break;
     case tk_class:
       (void)printf("tk_class\n");

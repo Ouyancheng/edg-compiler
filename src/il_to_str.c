@@ -1467,6 +1467,11 @@ the way described by octl.
       an_expr_node_ptr  count = type->variant.array.variant.element_count_expr;
       octl->output_expression(count);
     }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  } else if (type->variant.array.bound_constant != NULL) {
+    form_constant(type->variant.array.bound_constant,
+                  /*need_parens=*/FALSE, octl);
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else if (type->variant.array.is_template_dependent_size_array) {
     form_constant(type->variant.array.variant.element_count_constant,
                   /*need_parens=*/FALSE, octl);
@@ -2774,6 +2779,11 @@ confusion.  Do the output in the way described by octl.
       }
     }  /* if */
 #endif /* CHECKING */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  } else if (constant->expr != NULL && octl->output_expression != NULL) {
+    octl->output_expression(constant->expr);
+    goto done;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else {
     con_type = skip_typerefs(orig_type);
     /* See if we need a cast to the constant result type. */
@@ -3171,6 +3181,7 @@ name_cases:
   }  /* switch */
   if (need_reinterpret_cast) octl->output_str(")");
   if (need_cast_close_paren) octl->output_str(")");
+done:
 }  /* form_constant */
 
 

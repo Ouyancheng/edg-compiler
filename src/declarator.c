@@ -2118,15 +2118,25 @@ nonstatic data member of a class.
       } else {
         (*new_type_ptr)->variant.array.variant.element_count_expr = dim_expr;
       }  /* if */
-    } else if (template_dependent_bound) {
-      /* Template-dependent bound (constant but not a known value). */
-      a_constant_ptr il_constant = alloc_shareable_constant(&constant);
-      (*new_type_ptr)->variant.array.variant.element_count_constant =
-                                                                  il_constant;
-      (*new_type_ptr)->variant.array.is_template_dependent_size_array = TRUE;
     } else {
-      (*new_type_ptr)->variant.array.variant.number_of_elements =
-                                                           num_of_elements;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      a_constant_ptr  il_constant = alloc_shareable_constant(&constant);
+      (*new_type_ptr)->variant.array.bound_constant = il_constant;
+#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+      a_constant_ptr  il_constant = NULL;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+      if (template_dependent_bound) {
+        /* Template-dependent bound (constant but not a known value). */
+        if (il_constant == NULL) {
+          il_constant = alloc_shareable_constant(&constant);
+        }  /* if */
+        (*new_type_ptr)->variant.array.variant.element_count_constant =
+                                                                  il_constant;
+        (*new_type_ptr)->variant.array.is_template_dependent_size_array = TRUE;
+      } else {
+        (*new_type_ptr)->variant.array.variant.number_of_elements =
+                                                              num_of_elements;
+      }  /* if */
     }  /* if */
     /* The size of the array (in bytes) is updated in 
        add_to_derived_type_list. */
