@@ -2648,8 +2648,7 @@ type based on the template argument list and the template parameter list
 }  /* make_template_function */
 
 
-static a_boolean is_match_for_function_template(
-                                         a_symbol_ptr         templ_sym,
+a_boolean is_match_for_function_template(a_symbol_ptr         templ_sym,
                                          a_type_ptr           curr_type,
                                          a_template_arg_ptr   *templ_arg_list,
                                          a_symbol_ptr         *instance_sym,
