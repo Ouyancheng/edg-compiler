@@ -702,7 +702,8 @@ property fields).
          can be determined, so do that even if the new type is incomplete. */
       if ((is_incomplete_type(temp_type) ||
            (tkind == (a_type_kind)tk_array &&
-            temp_type->variant.array.bound_is_zero)) &&
+            temp_type->variant.array.bound_is_zero &&
+            underlying_array_element_type(temp_type) != NULL)) &&
           tkind != (a_type_kind)tk_routine /* For speed. */ &&
           !microsoft_property &&
           (tkind == (a_type_kind)tk_pointer ||
