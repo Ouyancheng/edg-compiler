@@ -11982,6 +11982,10 @@ Do IL lowering of the indicated scope and everything under it.
   if (scope_kind != (a_scope_kind)sck_file) {
     push_context(&context, scope, (an_object_lifetime_ptr)NULL);
   }  /* if */
+  /* Mark the scope as lowered.  This is used by
+     check_for_done_with_memory_region to tell whether the code for a function
+     has been lowered yet. */
+  mark_as_visited(scope);
   if (scope_kind == (a_scope_kind)sck_function) {
     /* The scope is for a function. */
     innermost_function_scope = scope;

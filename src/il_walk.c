@@ -1018,7 +1018,11 @@ want that to happen before the "needed" flag is set.
   } else {
     /* If IL lowering is done, there will be no virtual functions, so there's
        no point in looking for them. */
-    if (!suppress_il_lowering) there_might_be_virtual_functions = FALSE;
+    if (!suppress_il_lowering &&
+        /* Lowering is not done in secondary translation units. */
+        is_primary_translation_unit) {
+      there_might_be_virtual_functions = FALSE;
+    }  /* if */
 #endif /* DO_IL_LOWERING */
   }  /* if */
   if (there_might_be_virtual_functions) {

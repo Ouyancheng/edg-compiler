@@ -1583,6 +1583,10 @@ Do C99 lowering for all entities in and under the given scope.
     }  /* for */
   }  /* if */
   push_context(&context, scope, (an_object_lifetime_ptr)NULL);
+  /* Mark the scope as lowered.  This is used by
+     check_for_done_with_memory_region to tell whether the code for a function
+     has been lowered yet. */
+  mark_as_visited(scope);
   switch (scope->kind) {
     case sck_file:
     case sck_block:

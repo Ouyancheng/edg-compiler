@@ -11500,14 +11500,15 @@ dependent on it.  The routine entry itself is dealt with later.
       /* This memory has already been freed. */
     } else {
       sp = il_header.region_scope_entry[n];
-      if (sp->part_of_secondary_trans_unit) {
-        /* Skip memory regions for secondary translation units. */
-        continue;
-      }  /* if */
-      check_assertion(sp->kind == (a_scope_kind)sck_function);
-      if (!sp->variant.routine.ptr->keep_definition_in_il) {
-        /* An unneeded routine definition.  Delete it. */
-        clear_function_body(sp);
+      /* Skip memory regions that aren't in the current translation unit,
+         and file scope memory regions for secondary translation units. */
+      if (sp->kind != (a_scope_kind)sck_file &&
+          trans_unit_for_scope[sp->number] == curr_translation_unit) {
+        check_assertion(sp->kind == (a_scope_kind)sck_function);
+        if (!sp->variant.routine.ptr->keep_definition_in_il) {
+          /* An unneeded routine definition.  Delete it. */
+          clear_function_body(sp);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */

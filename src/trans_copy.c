@@ -192,7 +192,7 @@ pruned at the entry pointed to by ptr, of kind "kind".
     prune = TRUE;
   } else if (!in_file_scope(ptr)) {
     /* This entry is in a function scope memory region of a secondary
-       translation unit.  Use the in_secondary_trans_unit flag as
+       translation unit.  Use the secondary_trans_unit flag as
        a "visited" flag; it needs to get cleared anyway.  Using
        il_walk_flag itself is a bad idea because flipping it would
        cause the entries in the function scope memory region to
@@ -300,14 +300,19 @@ unit to the primary translation unit, to copy the IL entry at ptr
 and remap the pointers in the copy.
 */
 {
+  a_source_correspondence *scp = NULL;
+  char                    *copy;
+
   if (!in_file_scope(ptr)) {
     /* Process an entry in a function scope memory region.  Remap
        the pointers but don't copy. */
     remap_pointers_in_entry(ptr, kind);
+#if MAINTAIN_NEEDED_FLAGS
+    copy = ptr;
+    scp = source_corresp_for_il_entry(copy, kind);
+#endif /* MAINTAIN_NEEDED_FLAGS */
   } else {
-    char                    *copy = checked_trans_unit_corresp_pointer_of(ptr);
-    a_source_correspondence *scp;
-
+    copy = checked_trans_unit_corresp_pointer_of(ptr);
     check_assertion_str(copy != NULL,
                         "copy_entry: NULL correspondence pointer");
     /* Copy the entry to its corresponding space and remap the pointers
@@ -322,18 +327,38 @@ and remap the pointers in the copy.
         /* For a routine with a body, the code in the function scope memory
            region needs to be processed too.  It doesn't need to be
            copied, but the pointers need to be remapped. */
-        a_scope_ptr rout_scope =
-                               il_header.region_scope_entry[rout->assoc_scope];
         walk_routine_scope_il(rout->assoc_scope,
                               copy_entry,
                               copy_string_entry,
                               (a_remap_function_ptr)NULL,
                               copy_termination_test,
                               /*clear_fe_pointers=*/FALSE);
-        rout_scope->part_of_secondary_trans_unit = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+  /* Clear the needed and keep_in_il flags in the copy (or original,
+     for an entry in a file scope memory region), so that they can be
+     recomputed in the context of the primary IL. */
+  il_entry_prefix_of(copy).keep_in_il = FALSE;
+  if (scp != NULL) {
+    scp->needed = FALSE;
+#if ONE_INSTANTIATION_PER_OBJECT
+    scp->per_instantiation_needed_flags = NULL;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+    if (kind == iek_type) {
+      a_type_ptr type = (a_type_ptr)copy;
+      if (is_immediate_class_type(type)) {
+        type->variant.class_struct_union.definition_needed = FALSE;
+        type->variant.class_struct_union.keep_definition_in_il = FALSE;
+      }  /* if */
+    } else if (kind == iek_routine) {
+      a_routine_ptr rout = (a_routine_ptr)copy;
+      rout->definition_needed = FALSE;
+      rout->keep_definition_in_il = FALSE;
+    }  /* if */
+  }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* copy_entry */
 
 
@@ -916,8 +941,11 @@ secondary scope to the primary file IL.
           a_type_ptr primary_type =
                (a_type_ptr)checked_trans_unit_corresp_pointer_of(corresp_type);
           move_to_end_of_primary_file_types_list(primary_type);
-          corresp_type->next = NULL;
-          *primary_type = *corresp_type;
+          { a_boolean saved_needed = primary_type->source_corresp.needed;
+            corresp_type->next = NULL;
+            *primary_type = *corresp_type;
+            primary_type->source_corresp.needed = saved_needed;
+          }
           last_type = primary_type;
         }  /* if */
         pointers_block->last_type = last_type;
@@ -1131,6 +1159,7 @@ which includes IL lowering if appropriate.
   check_assertion(!in_secondary_trans_unit(rout) &&
                   rout->assoc_scope != NULL_region_number);
   scope = il_header.region_scope_entry[rout->assoc_scope];
+  check_assertion_str(scope != NULL, "wrap_up_moved_function: body missing");
   finish_function_body_processing(scope, /*after_copy=*/TRUE,
                                   /*discard_function_body=*/FALSE);
 }  /* wrap_up_moved_function */
@@ -1147,13 +1176,9 @@ to the primary IL.  This includes lowering if necessary.
   a_type_ptr      type;
   a_namespace_ptr nsp;
 
-  for (routine = scope->routines; routine != NULL; routine = routine->next) {
-    a_routine_ptr primary_routine =
-                                 (a_routine_ptr)canonical_il_entry_of(routine);
-    if (primary_routine->assoc_scope != NULL_region_number &&
-        primary_routine->source_corresp.copied_from_secondary_trans_unit) {
-      /* This routine definition was moved. */
-      wrap_up_moved_function(primary_routine);
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      finish_moved_function_processing(nsp->variant.assoc_scope);
     }  /* if */
   }  /* for */
   if (!C_mode()) {
@@ -1168,9 +1193,13 @@ to the primary IL.  This includes lowering if necessary.
       }  /* if */
     }  /* for */
   }  /* if */
-  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
-    if (!nsp->is_namespace_alias) {
-      finish_moved_function_processing(nsp->variant.assoc_scope);
+  for (routine = scope->routines; routine != NULL; routine = routine->next) {
+    a_routine_ptr primary_routine =
+                                 (a_routine_ptr)canonical_il_entry_of(routine);
+    if (primary_routine->assoc_scope != NULL_region_number &&
+        primary_routine->source_corresp.copied_from_secondary_trans_unit) {
+      /* This routine definition was moved. */
+      wrap_up_moved_function(primary_routine);
     }  /* if */
   }  /* for */
 }  /* finish_moved_function_processing */

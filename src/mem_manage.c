@@ -39,6 +39,10 @@ extern char *realloc(char *ptr, unsigned size);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
+#if DO_IL_LOWERING
+#include "lower_il.h"
+#endif /* DO_IL_LOWERING */
+
 #if !STANDALONE_UTILITY_PROGRAM
 #include "pch.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -1117,6 +1121,16 @@ memory or with an IL file.
        compiled only for its exported templates) will have been thrown
        away before this routine is called. */
     keep_memory = TRUE;
+#if DO_IL_LOWERING
+  } else if (rout != NULL &&
+             any_lowering_needed() &&
+             !il_entry_prefix_of(scope).il_lowering_flag) {
+    /* If we are doing lowering, and the function body has not been
+       lowered yet, we cannot write it out.  This comes up for function
+       bodies copied from secondary translation units but not lowered
+       yet. */
+    keep_memory = TRUE;
+#endif /* DO_IL_LOWERING */
   } else if (rout != NULL &&
              keep_function_body_for_possible_inlining(rout)) {
     /* Keep the region for an inline function so it can be used to
@@ -1183,8 +1197,10 @@ part of secondary translation units (perhaps).
       /* This memory has already been freed. */
     } else {
       a_scope_ptr sp = il_header.region_scope_entry[n];
+      a_boolean   from_secondary_trans_unit =
+                       (trans_unit_for_scope[sp->number] != translation_units);
       /* Skip the file-scope memory regions of secondary translation units. */
-      if (!sp->part_of_secondary_trans_unit ||
+      if (!from_secondary_trans_unit ||
           sp->kind != (a_scope_kind)sck_file) {
         a_routine_ptr rout;
         check_assertion(sp->kind == (a_scope_kind)sck_function);
@@ -1197,13 +1213,13 @@ part of secondary translation units (perhaps).
           fprintf(f_debug,
                   "check_for_done_with_all_function_memory_regions: ");
           fprintf(f_debug, "%s memory region for ",
-                           !sp->part_of_secondary_trans_unit ?
+                           !from_secondary_trans_unit ?
                                                 "writing/freeing" : "freeing");
           db_name(&rout->source_corresp);
           fprintf(f_debug, "\n");
         }  /* if */
 #endif /* DEBUG */
-        if (!sp->part_of_secondary_trans_unit) write_memory_region(n);
+        if (!from_secondary_trans_unit) write_memory_region(n);
         free_memory_region(n);
       }  /* if */
     }  /* if */

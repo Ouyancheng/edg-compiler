@@ -8125,13 +8125,6 @@ typedef struct a_scope {
   a_scope_kind	kind;
 			/* Kind of scope (file, function, block, function
 			   prototype, etc.).  */
-  a_byte_boolean
-		part_of_secondary_trans_unit;
-			/* For top-level scopes in memory regions (sck_file
-			   and sck_function), TRUE if the scope is part of
-			   the IL for a secondary translation unit, which
-			   is used to instantiate exported templates.
-			   FALSE in IL seen outside of the front end. */
   union {
     /* When kind == sck_file, no variant fields. */
 #ifdef FIL

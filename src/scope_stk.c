@@ -4441,6 +4441,13 @@ thrown away by the caller.
          allows the subtrees to be swept in the future because they
          can no longer change.*/
       walk_subtrees_of_local_entities(scope);
+    } else {
+      /* For a function copied from a secondary translation unit,
+         the defined flag is already set.  Sweep the definition if
+         necessary.  This must be done before the call of mark_as_needed
+         below, because that can write out the body and free the
+         memory. */
+      remark_routine_definition_needed(routine);
     }  /* if */
     /* If the function is globally visible and presumably needed by code
        in another translation unit, set the "needed" flag on the function. */
@@ -4473,16 +4480,10 @@ thrown away by the caller.
        during the elimination of unneeded entities in the secondary
        translation unit, before copying of IL from the secondary
        to the primary.  The second sweep is required to get the needed
-       flags right in the final IL in the primary translation unit. */
+       flags right in the final IL in the primary translation unit.
+       It is done by the call of remark_definition_needed above. */
     if (!after_copy) {
       set_routine_defined(routine);
-    } else {
-#if MAINTAIN_NEEDED_FLAGS
-      /* For a function copied from a secondary translation unit,
-         the defined flag is already set.  Sweep the definition if
-         necessary. */
-      remark_routine_definition_needed(routine);
-#endif /* MAINTAIN_NEEDED_FLAGS */
     }  /* if */
   }  /* if */
 }  /* finish_function_body_processing */
