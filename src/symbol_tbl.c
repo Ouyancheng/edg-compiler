@@ -3868,7 +3868,7 @@ function case).
         }  /* if */
       }  /* for */
       /* Not found on the inactive list, so check the active list. */
-      for (step_proj_sym = proj_sym->header->inactive_symbols;
+      for (step_proj_sym = proj_sym->header->symbol;
            step_proj_sym != NULL;
            step_proj_sym = step_proj_sym->next) {
         if (step_proj_sym->class_of_which_a_member == viewpoint_class &&
