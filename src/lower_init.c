@@ -66,14 +66,14 @@ static void add_static_data_member_init_guard_test(
 
 
 /*
-If variable != NULL, transfer the position from it into stmt.
+Put the current code_pos_for_lowering into a statement, if the statement
+pointer is non-NULL.
 */
-#define transfer_pos_from_var_to_statement(variable, stmt)            \
-{ if ((variable) != NULL && (stmt) != NULL) {                         \
-    set_stmt_source_position((stmt)->position,                        \
-                             (variable)->source_corresp.decl_position); \
+#define set_stmt_pos_to_code_pos_for_lowering(stmt)                   \
+{ if ((stmt) != NULL) {                                               \
+    set_stmt_source_position((stmt)->position, code_pos_for_lowering);\
   }  /* if */                                                         \
-}  /* transfer_pos_from_var_to_statement */
+}  /* set_stmt_pos_to_code_pos_for_lowering */
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -986,9 +986,7 @@ pointed to by dip is lowered.
   op = lowered_assignment_operator(init_val_node->type);
   assign_stmt = insert_assignment_statement(entity_node, op, init_val_node,
                                             insert_location);
-  /* If the initialization is for a whole variable, the position is available
-     from the variable. */
-  transfer_pos_from_var_to_statement(dip->variable, assign_stmt);
+  set_stmt_pos_to_code_pos_for_lowering(assign_stmt);
 }  /* add_init_assignment */
 
 
@@ -1279,9 +1277,7 @@ list given by dip->variant.constructor.args has already been lowered.
   last_node->next = dip->variant.constructor.args;
   /* Make an expression statement containing the call expression. */
   call_stmt = make_call_statement(ctor_routine, entity_node);
-  /* If the initialization is for a whole variable, the position is available
-     from the variable. */
-  transfer_pos_from_var_to_statement(dip->variable, call_stmt);
+  set_stmt_pos_to_code_pos_for_lowering(call_stmt);
   /* Insert the statement at the right place. */
   insert_statement(call_stmt, insert_location);
 }  /* add_constructor_call */
@@ -1717,6 +1713,7 @@ dip->variant.constructor.args has already been lowered.
   }  /* if */
   /* Make a statement containing the call. */
   call_stmt = alloc_expr_statement(call_node);
+  set_stmt_pos_to_code_pos_for_lowering(call_stmt);
   /* Insert the statement at the right location. */
   insert_statement(call_stmt, insert_location);
 }  /* add_array_constructor_call */
@@ -1757,9 +1754,7 @@ not a virtual call even if the destructor is virtual.
   entity_node->next = implied_arg_node;
   /* Make an expression statement containing the call expression. */
   call_stmt = make_call_statement(dtor_routine, entity_node);
-  /* If the destruction is for a whole variable, the position is available
-     from the variable. */
-  transfer_pos_from_var_to_statement(dip->variable, call_stmt);
+  set_stmt_pos_to_code_pos_for_lowering(call_stmt);
   /* Insert the statement at the right place. */
   insert_statement(call_stmt, insert_location);
 }  /* add_destructor_call */
@@ -1796,6 +1791,7 @@ in the array.  Insert the statements at *insert_location and update
                                    dtor_routine, /*free_storage=*/FALSE);
   /* Make a statement containing the call. */
   call_stmt = alloc_expr_statement(call_node);
+  set_stmt_pos_to_code_pos_for_lowering(call_stmt);
   /* Insert the statement at the right location. */
   insert_statement(call_stmt, insert_location);
 }  /* add_array_destructor_call */
@@ -2636,7 +2632,7 @@ be kept, FALSE if it should be deleted.
   a_boolean         simple_constant_init = FALSE, keep_constant;
   a_boolean         partial_init = FALSE;
   a_constant_ptr    simple_constant;
-  a_source_position saved_error_position;
+  a_source_position saved_error_position, saved_code_pos;
   a_statement_ptr   expr_stmt;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
   a_boolean         is_template_static_data_member_init = FALSE;
@@ -2644,12 +2640,18 @@ be kept, FALSE if it should be deleted.
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 
   *keep_dynamic_init = FALSE;
+  saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
   variable = dip->variable;
   if (variable != NULL) {
     /* Whole-variable initialization. */
-    /* Track the source position for internal errors. */
-    error_position = variable->source_corresp.decl_position;
+    /* Track the source position. */
+    /* Don't change the position for enk_temp_init temporaries; keep the
+       position of the surrounding expression. */
+    if (!is_expr_temporary) {
+      code_pos_for_lowering = error_position =
+                                        variable->source_corresp.decl_position;
+    }  /* if */
 #if CHECKING
     if (variable != ipdp->variable) {
       internal_error("lower_dynamic_init: variable mismatch");
@@ -2741,7 +2743,7 @@ do_assignment:;
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       expr_stmt = insert_expr_statement(dip->variant.expression,
                                         insert_location);
-      transfer_pos_from_var_to_statement(variable, expr_stmt);
+      set_stmt_pos_to_code_pos_for_lowering(expr_stmt);
       break;
     case dik_constructor:
       /* Initialize the entity by calling a constructor. */
@@ -2982,6 +2984,7 @@ do_assignment:;
     }  /* if */
   }  /* if */
   error_position = saved_error_position;
+  code_pos_for_lowering = saved_code_pos;
 }  /* lower_dynamic_init */
 
 
@@ -4183,6 +4186,7 @@ constructor, but may instead be after an assignment to "this".
   an_expr_node_ptr       null_constant_node, vbase_param_node, compare_node;
   an_expr_node_ptr       vaddr_node, vbptr_node, vtbl_addr_node, vptr_node;
   a_variable_ptr         primary_vtbl_var, vtbl_var;
+  a_source_position      saved_error_position, saved_code_pos;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the constructor routine.  Lines enclosed in [...]
@@ -4231,6 +4235,10 @@ constructor, but may instead be after an assignment to "this".
            initialization).
      [endfor]
   */
+  saved_code_pos = code_pos_for_lowering;
+  saved_error_position = error_position;
+  code_pos_for_lowering = error_position = 
+                      scope->variant.routine.ptr->source_corresp.decl_position;
   /* The constructor_inits list contains a list of initializations.  Each
      initialization either appeared explicitly in the source or is a default
      initialization supplied by the front end.  Every base class and member
@@ -4403,6 +4411,8 @@ constructor, but may instead be after an assignment to "this".
     lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/FALSE,
                     class_type, insert_location);
   }  /* for */
+  error_position = saved_error_position;
+  code_pos_for_lowering = saved_code_pos;
 }  /* add_constructor_wrapper_code */
 
 
@@ -4416,12 +4426,13 @@ constructor scope, and also lower the user code.
                                   scope->assoc_block->variant.block.statements;
   a_statement_ptr    last_statement;
   an_insert_location insert_location;
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-  /* Note that NEW_CAN_BE_FOLDED_INTO_CTOR is always true if
-     ASSIGNMENT_TO_THIS_ALLOWED is true. */
+  a_source_position  saved_error_position, saved_code_pos;
   a_routine_ptr      ctor_routine = scope->variant.routine.ptr;
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 
+  saved_code_pos = code_pos_for_lowering;
+  saved_error_position = error_position;
+  code_pos_for_lowering = error_position = 
+                                    ctor_routine->source_corresp.decl_position;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   /* Assignment to "this" is allowed. */
   /* If there is an assignment to "this" in the body of the constructor,
@@ -4554,6 +4565,8 @@ constructor scope, and also lower the user code.
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
   /* Clear the list of constructor inits. */
   scope->variant.routine.constructor_inits = NULL;
+  error_position = saved_error_position;
+  code_pos_for_lowering = saved_code_pos;
 }  /* lower_constructor_code */
 
 
@@ -4629,6 +4642,7 @@ destructor scope, and also lower the user code.
   a_routine_ptr          dtor_routine = scope->variant.routine.ptr;
   a_return_memo_ptr      rmp, rmp_next;
   a_label_ptr            epilogue_label;
+  a_source_position      saved_error_position, saved_code_pos;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the destructor routine.  Lines enclosed in [...]
@@ -4672,6 +4686,10 @@ destructor scope, and also lower the user code.
      endif
      return;
   */
+  saved_code_pos = code_pos_for_lowering;
+  saved_error_position = error_position;
+  code_pos_for_lowering = error_position = 
+                                    dtor_routine->source_corresp.decl_position;
   int_type = integer_type((an_integer_kind)ik_int);
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = scope->variant.routine.parameters;
@@ -4996,6 +5014,8 @@ destructor scope, and also lower the user code.
     /* Make the "if" statement. */
     enclose_routine_in_if(scope, if_node, &block_stmt, (a_variable_ptr)NULL);
   }
+  error_position = saved_error_position;
+  code_pos_for_lowering = saved_code_pos;
 }  /* lower_destructor_code */
 
 
