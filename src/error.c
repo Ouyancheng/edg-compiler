@@ -1315,10 +1315,11 @@ error code.
       m = "using nested class \"%s\" (anachronism)";
       break;
     case ec_too_many_args_for_destructor:
-      m = "a destructor may have no parameters";
+      m = "a destructor may not have parameters";
       break;
     case ec_bad_constructor_arg:
-      m = "invalid parameter type for a constructor";
+      m =
+      "a constructor parameter may not have the type of the constructed class";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
