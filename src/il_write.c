@@ -251,7 +251,7 @@ encoded form.
     }  /* if */
     /* Check for overflow of the entry number field.  In practice, the
        field is probably close to a 32-bit field, and this should not happen
-       even for very large programns. */
+       even for very large programs. */
     if (*count_ptr > max_entry_number - num_entries) {
       catastrophe(ec_program_too_large);
     }  /* if */
