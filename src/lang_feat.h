@@ -201,6 +201,16 @@ array_new_and_delete_enabled, which can be modified by the
 #endif /* ifndef DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED */
 
 /*
+Flag that is TRUE if, in C++, support for the "explicit" specifier on
+constructor declarations is allowed.  This is the default value of variable
+explicit_keyword_enabled, which can be modified by the "--explicit" and
+"--no_explicit" command-line options.
+*/
+#ifndef DEFAULT_EXPLICIT_KEYWORD_ENABLED
+#define DEFAULT_EXPLICIT_KEYWORD_ENABLED TRUE
+#endif /* ifndef DEFAULT_EXPLICIT_KEYWORD_ENABLED */
+
+/*
 Flag that is TRUE if, in C++, support for namespaces is enabled by default.
 This is the default value of the variable namespaces_enabled, which can be
 modified by the "--namespaces" or "--no_namespaces" command-line options.
