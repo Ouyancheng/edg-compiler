@@ -2866,9 +2866,7 @@ routine entry and return TRUE; otherwise return FALSE.
             continue;
           }  /* if */
           /* Innermost loop is run only once for simple functions but more
-             for overloaded functions.  This is a do-while loop instead of a
-             for loop because we can be sure of the initial conditions on the
-             first iteration. */
+             for overloaded functions. */
           any_override_candidates = FALSE;
           for (; sym != NULL; sym = overloaded ? sym->next : NULL) {
             if (sym->kind != (a_symbol_kind)sk_member_function) {
