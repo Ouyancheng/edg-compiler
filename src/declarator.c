@@ -2125,6 +2125,22 @@ declaration.
       scan_nonconstant_dimension_expression(vla_allowed, &is_constant_bound,
                                             &dim_expr, &constant);
       check_assertion(is_constant_bound == (dim_expr == NULL));
+#if GNU_EXTENSIONS_ALLOWED
+      if (gcc_mode && dim_expr != NULL && top_level_field_decl &&
+          depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        /* GNU C allows variable-length array fields in local classes.
+           Supporting that requires operations like sizeof and field offset
+           to be computed at run time.  However, this extension is often
+           only used in situations where the size does not matter.
+           As a compatibility work-around, we therefore warn about the
+           construct and treat the resulting array as having bound zero. */
+        warning(ec_vla_size_ignored);
+        set_integer_constant(&constant, (a_host_large_integer)0,
+                             (an_integer_kind)ik_int);
+        dim_expr = NULL;
+        is_constant_bound = TRUE;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       scan_fs_integral_constant_expression(&constant);
       is_constant_bound = TRUE;

@@ -98,9 +98,6 @@ extern a_type_ptr underlying_type_of_derived_type(a_type_ptr type);
 #if BACK_END_IS_CP_GEN_BE
 extern a_type_ptr type_specifier_of_type(a_type_ptr type);
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if GNU_EXTENSIONS_ALLOWED
-extern void replace_vla_by_array_of_zero_length(a_type_ptr  tp);
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
 Return TRUE if a type is a direct class type (i.e., not a typeref on
