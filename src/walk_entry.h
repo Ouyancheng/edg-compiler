@@ -18,7 +18,18 @@ Placed in a separate file so they can be expanded several ways:
 
 2)  With DO_SUBTREE_WALK and NEEDED_FLAG_WALK TRUE, the routines walk
     the subtree and do so in the special way required for setting the
-    needed flag.
+    needed flag.  Entries related to the following are not walked
+    (because they do not affect whether the entities are needed to
+    create an executable program):
+      -- Access control (including friendship)
+      -- "using" declarations and directives
+      -- Source sequence entries
+      -- Object lifetimes
+      -- The based types list
+      -- Template arguments
+    Also, some back-pointers are not walked if they introduce cycles
+    if the data structure where no entry in the cycle has a "needed"
+    flag, since such cycles would cause recursion loops in this walk.
 
 3)  With DO_SUBTREE_WALK FALSE, the routines walk just the entry itself.
     This is used for remapping of pointers.
@@ -875,9 +886,17 @@ the file scope, do not process it (but record an orphan in the latter case).
                      iek_statement);
             break;
           case stmk_goto:
-          case stmk_label:
             remap_ptr(ptr->variant.label.ptr, a_label_ptr, iek_label);
 #if !NEEDED_FLAG_WALK
+            remap_ptr(ptr->variant.label.lifetime,
+                      an_object_lifetime_ptr, iek_object_lifetime);
+#endif /* !NEEDED_FLAG_WALK */
+            break;
+          case stmk_label:
+#if !NEEDED_FLAG_WALK
+            /* The reference to the label from the label statement does not
+               make the label "needed". */
+            remap_ptr(ptr->variant.label.ptr, a_label_ptr, iek_label);
             remap_ptr(ptr->variant.label.lifetime,
                       an_object_lifetime_ptr, iek_object_lifetime);
 #endif /* !NEEDED_FLAG_WALK */
@@ -1116,8 +1135,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         /* The lifetime pointer needs to be walked and not remapped in
            the file scope and function scopes. */
         walk_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
-#endif /* !NEEDED_FLAG_WALK */
-#if !NEEDED_FLAG_WALK
         walk_list(ptr->constants, a_constant_ptr, iek_constant);
 #endif /* !NEEDED_FLAG_WALK */
 #ifdef CFE
@@ -1126,7 +1143,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         /* Note that we don't walk the types or variables lists.  Types
            aren't needed unless they are referenced, and variables aren't
            needed unless they are referenced or they are external; the
-           external part is handled elsewhere. */
+           external part is handled elsewhere.  Note that dynamic inits
+           are walked, which will cause dynamically initialized static
+           variables to be retained. */
 #else /* !NEEDED_FLAG_WALK */
         if (walking_file_scope) {
           walk_list(ptr->types, a_type_ptr, iek_type);
@@ -1147,13 +1166,22 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->types, a_type_ptr, iek_type);
         remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
 #endif /* DO_SUBTREE_WALK */
+#if !NEEDED_FLAG_WALK
+        /* Nonstatic variables aren't needed unless they are referenced.
+           Note that dynamic inits are walked, which will cause initialized
+           variables to be retained. */
         walk_list(ptr->nonstatic_variables, a_variable_ptr, iek_variable);
+#endif /* !NEEDED_FLAG_WALK */
 #else /* ifndef CFE */
+        /* Not the C/C++ front end. */
         walk_list(ptr->types, a_type_ptr, iek_type);
         walk_list(ptr->variables, a_variable_ptr, iek_variable);
 #endif /* ifdef CFE */
+#if !NEEDED_FLAG_WALK
+        /* Labels and routines aren't needed unless they are referenced. */
         walk_list(ptr->labels, a_label_ptr, iek_label);
         walk_list(ptr->routines, a_routine_ptr, iek_routine);
+#endif /* !NEEDED_FLAG_WALK */
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
         walk_list(ptr->namespaces, a_namespace_ptr, iek_namespace);
