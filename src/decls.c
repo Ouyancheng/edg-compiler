@@ -5287,8 +5287,7 @@ is no parent.
     (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                           &storage_class, &specifiers_type, &qualifiers,
                           &decl_modifiers);
-    if (C_dialect == C_dialect_cplusplus &&
-        (dso_flags & DSO_DEFINES_SOMETHING)) {
+    if (dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
       pos_error(ec_type_definition_not_allowed, &type_pos);
     } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
