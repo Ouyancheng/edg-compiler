@@ -455,6 +455,8 @@ extern a_variable_ptr make_lowered_temporary(a_type_ptr temp_type);
 
 extern a_variable_ptr make_file_scope_temporary(a_type_ptr temp_type);
 
+extern a_variable_ptr make_function_scope_temporary(a_type_ptr temp_type);
+
 extern a_variable_ptr make_temporary_possibly_at_file_scope(
                                                      a_type_ptr temp_type,
                                                      a_boolean  at_file_scope);

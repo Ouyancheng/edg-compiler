@@ -1094,15 +1094,28 @@ Make an unnamed static variable of type temp_type in the file scope.
 Return a pointer to the variable.
 */
 {
-  a_variable_ptr         temp_var;
-  a_memory_region_number region_to_switch_back_to;
+  a_variable_ptr temp_var;
 
-  switch_to_file_scope_region(&region_to_switch_back_to);
+  /* Note that the allocation will be in the file scope memory region
+     regardless of the current IL region. */
   temp_var = make_temporary_in_scope(temp_type, il_header.primary_scope,
                                      /*force_static=*/TRUE);
-  switch_back_to_original_region(region_to_switch_back_to);
   return temp_var;
 }  /* make_file_scope_temporary */
+
+
+a_variable_ptr make_function_scope_temporary(a_type_ptr temp_type)
+/*
+Make an unnamed auto variable of type temp_type in the nearest function
+scope.  Return a pointer to the variable.
+*/
+{
+  a_variable_ptr temp_var;
+
+  temp_var = make_temporary_in_scope(temp_type, nearest_function_scope,
+                                     /*force_static=*/FALSE);
+  return temp_var;
+}  /* make_function_scope_temporary */
 
 
 a_variable_ptr make_temporary_possibly_at_file_scope(a_type_ptr temp_type,
