@@ -7206,6 +7206,7 @@ Generate C for a statement.
      line info. */
   if (statement->kind != (a_statement_kind)stmk_label
 #ifdef CFE
+      && statement->kind != (a_statement_kind)stmk_for
       && statement->kind != (a_statement_kind)stmk_init
       && statement->kind != (a_statement_kind)stmk_asm
 #endif /* ifdef CFE */
@@ -7242,6 +7243,7 @@ Generate C for a statement.
       dump_statement(statement->variant.loop_statement);
       indent -= 2;
       break;
+#ifdef CFE
     case stmk_for:
       /* Put the initializing statement outside the "for" if it's not
          a simple expression statement. */
@@ -7252,9 +7254,9 @@ Generate C for a statement.
         init_expr = init_stmt->expr;
       } else {
         dump_statement(init_stmt);
-        startline((a_seq_number)0);
         init_expr = NULL;
       }  /* if */
+      startline(seq_number_from_stmt_source_position(statement->position));
       fputs("for (", f_C_output);
       if (init_expr != NULL) {
         dump_expression(init_expr, /*need_parens=*/FALSE);
@@ -7273,6 +7275,7 @@ Generate C for a statement.
       dump_statement(statement->variant.for_loop.statement);
       indent -= 2;
       break;
+#endif /* ifdef CFE */
     case stmk_goto:
       /* Note that K&R/pcc compilers do not provide a separate name space
          for labels. */
@@ -7421,8 +7424,6 @@ Generate C for a statement.
       startline((a_seq_number)0);
       fputs("}  /* switch */", f_C_output);
       break;
-#endif /* ifdef CFE */
-#ifdef CFE
     case stmk_init:
       /* Dynamic initialization. */
       /* The executable code can be output directly to f_C_output instead
@@ -8071,6 +8072,7 @@ its subtree.
 #endif /* ifdef CFE */
         dump_prescan_temps(statement->variant.loop_statement);
         break;
+#ifdef CFE
       case stmk_for:
         dump_prescan_temps(
                        statement->variant.for_loop.extra_info->initialization);
@@ -8078,6 +8080,7 @@ its subtree.
         dump_expr_prescan_temps(
                             statement->variant.for_loop.extra_info->increment);
         break;
+#endif /* ifdef CFE */
       case stmk_block:
         /* If the block has its own scope, do not prescan now for temporaries;
            that should be done once the block itself is started. */
