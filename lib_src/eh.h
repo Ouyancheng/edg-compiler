@@ -50,7 +50,7 @@ typedef unsigned short an_object_handle;
 typedef void *an_object_ptr;
 			/* An address of an object. */
 
-typedef unsigned short a_region_number;
+typedef __EDG_REGION_NUMBER_TYPE a_region_number;
 			/* Type used to represent a region number.
 			   Must be an unsigned type. */
 
@@ -121,7 +121,7 @@ config.h file.
 
 
 
-#define NULL_REGION_NUMBER ((a_region_number)-1)
+#define NULL_REGION_NUMBER ((a_region_number)__EDG_NULL_EH_REGION_NUMBER)
 			/* The value used when there is no active EH
 			   region.  Also the value used as the next
 			   region number when there is no next region. */
