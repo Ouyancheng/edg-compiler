@@ -1,5 +1,21 @@
 Version 3.1
 
+5/30/02  Spurious remark ("controlling expression is constant") on
+         dependent expression
+
+A spurious remark was issued on a boolean controlling expression
+in a prototype instantiation of a template (e.g., in strict mode)
+when the expression is a member of a nonreal class.  Now fixed.
+
+  template<class T> struct B {
+    int a;
+  };
+  template <class T> struct X {
+    void f() {
+      if (B<T>::a) {}  // Formerly got spurious remark
+    }
+  };
+
 5/24/02  Microsoft compatibility: reference to const volatile can bind to
          rvalue
 
