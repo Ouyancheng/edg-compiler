@@ -1,5 +1,22 @@
 Version 2.46
 
+1/6/02   Removal of unneeded entities, default arguments in pointers to
+         functions
+
+It's possible though unusual to declare a pointer-to-function variable
+with a function type that has default arguments that involve destructible
+temporaries.  When such a declaration is removed because it is unneeded,
+in a version configured with source sequence entries, the removal was
+not done properly and the resulting IL was inconsistent, which could
+cause -- among other problems -- an IL write-read abort.
+
+  struct A {
+    A();
+    ~A();
+    operator int();
+  };
+  static int (*pf)(int = A());
+
 1/4/02   Missing instantiation of destructor referenced only in default
          argument
 

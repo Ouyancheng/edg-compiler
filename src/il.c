@@ -11778,19 +11778,24 @@ cleared.
 }  /* eliminate_references_from_befriended_entities */
 
 
-void eliminate_default_arg_object_lifetimes(a_type_ptr  rout_type)
+/*ARGSUSED*/ /* <-- force_end_of_traversal not used. */
+static a_boolean ttt_elim_def_arg_lifetimes(
+                                           a_type_ptr  type_ptr,
+                                           a_boolean   *force_end_of_traversal)
 /*
-A routine type is being eliminated from the IL.  Be sure that any object
-lifetimes created for its default arguments have been removed, too.
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It eliminates any object lifetimes associated
+with routine types encountered.  It always returns FALSE, because the
+point of the traversal is to remove the lifetimes, not to determine
+some attribute of the type tree.
 */
 {
-  a_param_type_ptr        ptp;
-  an_expr_node_ptr        def_arg_expr;
-  an_object_lifetime_ptr  olp;
+  if (type_ptr->kind == (a_type_kind)tk_routine) {
+    a_param_type_ptr        ptp;
+    an_expr_node_ptr        def_arg_expr;
+    an_object_lifetime_ptr  olp;
 
-  if (rout_type != NULL) {
-    rout_type = skip_typerefs(rout_type);
-    for (ptp = rout_type->variant.routine.extra_info->param_type_list;
+    for (ptp = type_ptr->variant.routine.extra_info->param_type_list;
          ptp != NULL;
          ptp = ptp->next) {
       def_arg_expr = ptp->default_arg_expr;
@@ -11804,10 +11809,26 @@ lifetimes created for its default arguments have been removed, too.
           fputs("Unlinking default arg object lifetime\n", f_debug);
         }  /* if */
 #endif /* DEBUG */
-        ptp->default_arg_expr = NULL;  /* Be neat. */
+        /* Avoid processing this default argument more than once. */
+        ptp->default_arg_expr = NULL;
       }  /* if */
     }  /* for */
   }  /* if */
+  return FALSE;
+}  /* ttt_elim_def_arg_lifetimes */
+
+
+void eliminate_default_arg_object_lifetimes(a_type_ptr type)
+/*
+A routine or variable is being eliminated from the IL.  "type" is its type.
+Be sure that any object lifetimes created for any default arguments have
+been removed, too.  Note that default arguments can come up at non-top-level
+parts of types in things like pointers to functions.
+*/
+{
+  (void)traverse_type_tree(type, ttt_elim_def_arg_lifetimes,
+                           (TTT_RETURN_TYPE | TTT_PARAM_TYPES |
+                            TTT_SKIP_TYPEREFS | TTT_STOP_AT_TYPEDEFS));
 }  /* eliminate_default_arg_object_lifetimes */
 
 
@@ -11820,11 +11841,30 @@ too.
 {
   eliminate_default_arg_object_lifetimes(rout->type);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (!same_entities(rout->declared_type, rout->type)) {
+  if (rout->declared_type != rout->type &&
+      rout->declared_type != NULL) {
     eliminate_default_arg_object_lifetimes(rout->declared_type);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* eliminate_routine_default_arg_object_lifetimes */
+
+
+void eliminate_variable_default_arg_object_lifetimes(a_variable_ptr var)
+/*
+The indicated variable is being eliminated from the IL.  Be sure that
+any object lifetimes created for its default arguments have been removed,
+too.  Default arguments can come up in variables that are, for example,
+pointers to functions.
+*/
+{
+  eliminate_default_arg_object_lifetimes(var->type);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (var->declared_type != var->type &&
+      var->declared_type != NULL) {
+    eliminate_default_arg_object_lifetimes(var->declared_type);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* eliminate_variable_default_arg_object_lifetimes */
 
 
 static void eliminate_member_function_default_arg_object_lifetimes(

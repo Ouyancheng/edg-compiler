@@ -198,6 +198,21 @@ are not dropped here.
 }  /* skip_typedefs */
 
 
+static a_type_ptr skip_typerefs_not_typedefs(a_type_ptr type_ptr)
+/*
+Strip any non-typedef typeref entries off the given type, and return a
+pointer to the underlying type.  This removes cv-qualifiers but not
+typedefs.
+*/
+{
+  while (type_ptr->kind == (a_type_kind)tk_typeref &&
+         !typeref_is_typedef(type_ptr)) {
+    type_ptr = type_ptr->variant.typeref.type;
+  }  /* while */
+  return type_ptr;
+}  /* skip_typerefs_not_typedefs */
+
+
 a_boolean is_error_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an error type.
@@ -6542,11 +6557,19 @@ its parameters?).
   }  /* if */
   if (type_ptr->kind == (a_type_kind)tk_typeref) {
     if (flags & TTT_SKIP_TYPEREFS) {
-      type_ptr = f_skip_typerefs(type_ptr);
+      if (flags & TTT_STOP_AT_TYPEDEFS) {
+        /* If we're asked to skip typerefs but stop at typedefs, skip over
+           only non-typedefs here. */
+        type_ptr = skip_typerefs_not_typedefs(type_ptr);
+      } else {
+        type_ptr = f_skip_typerefs(type_ptr);
+      }  /* if */
     } else if (flags & TTT_SKIP_TYPEDEFS) {
       type_ptr = skip_typedefs(type_ptr);
-    } else if ((flags & TTT_STOP_AT_TYPEDEFS) &&
-               typeref_is_typedef(type_ptr)) {
+    }  /* if */
+    if ((flags & TTT_STOP_AT_TYPEDEFS) &&
+        type_ptr->kind == (a_type_kind)tk_typeref &&
+        typeref_is_typedef(type_ptr)) {
       force_end_of_traversal = TRUE;
     }  /* if */
   }  /* if */
@@ -6674,13 +6697,14 @@ its parameters?).
             a_symbol_ptr			class_sym;
             a_class_symbol_supplement_ptr	cssp;
             class_sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
-            check_assertion(class_sym != NULL);
-            cssp = class_sym->variant.class_struct_union.extra_info;
-            tp = cssp->template_param_for_proxy_class;
-            if (tp != NULL) {
-              if (traverse_type_tree(tp, func, flags)) {
-                status = TRUE;
-                break;
+            if (class_sym != NULL) {
+              cssp = class_sym->variant.class_struct_union.extra_info;
+              tp = cssp->template_param_for_proxy_class;
+              if (tp != NULL) {
+                if (traverse_type_tree(tp, func, flags)) {
+                  status = TRUE;
+                  break;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */

@@ -2641,8 +2641,7 @@ scope that are not really needed in the IL.
         sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
         kind = sssdp->entity.kind;
         check_assertion(!il_entry_prefix_of(sssdp->entity.ptr).keep_in_il);
-        if (sssdp->declared_type != NULL &&
-            is_function_type(sssdp->declared_type)) {
+        if (sssdp->declared_type != NULL) {
           eliminate_default_arg_object_lifetimes(sssdp->declared_type);
         }  /* if */
       } else {

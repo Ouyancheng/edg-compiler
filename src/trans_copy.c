@@ -1249,6 +1249,12 @@ to the secondary translation unit.
         /* Delete the definition of this variable. */
         clear_variable_definition(variable);
       }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+      /* The variable will not be copied over, so eliminate any
+         default argument object lifetimes so they will not be copied
+         over. */
+      eliminate_variable_default_arg_object_lifetimes(variable);
+#endif /* MAINTAIN_NEEDED_FLAGS */
     }  /* if */
   }  /* for */
   if (pointers_block != NULL) pointers_block->last_variable = prev_variable;
@@ -2034,6 +2040,11 @@ end_of_type_list_add:;
             remove_from_variables_list(primary_variable, NO_SCOPE_DEPTH);
             last_variable = pointers_block->last_variable;
           }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+          /* Eliminate any default argument object lifetimes associated with
+             the entry that is about to be overwritten. */
+          eliminate_variable_default_arg_object_lifetimes(primary_variable);
+#endif /* MAINTAIN_NEEDED_FLAGS */
           overwrite_primary_variable(corresp_variable, primary_variable);
           corresp_variable = primary_variable;
           if (!move_to_end) goto end_of_variable_list_add;
