@@ -1,5 +1,20 @@
 Version 2.46
 
+6/14/01  C++-generating back end, prototype instantiations: elimination
+         of unnecessary qualifiers on name references
+
+The C++-generating back end now avoids putting out some unnecessary
+qualifiers on names of entities in field selections in prototype
+instantiations, where the class type of the left operand is
+template-dependent.
+
+  template <class T> struct A {
+    T *p;
+    void f() {
+      p->g();  // g formerly put out as T::g
+    }
+  };
+
 6/13/01  Combining Microsoft mode and C99 mode
 
 Microsoft mode and C99 mode may now be used together.  Previously, the

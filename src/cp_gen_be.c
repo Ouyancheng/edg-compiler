@@ -193,7 +193,12 @@ typedef struct a_name_context {
 		next;	/* The name context outside of this one, or NULL
 			   if there are no more. */
   a_scope_ptr	assoc_scope;
-			/* The scope that defines the name context. */
+			/* The scope that defines the name context.
+			   NULL when class_type is a nonreal class. */
+  a_type_ptr	class_type;
+			/* A class that defines the name context.  NULL
+			   if not applicable (assoc_scope is non-NULL in
+			   that case). */
   an_access_specifier
 		access;	/* When putting out a class, the current default
 			   access for a member declaration. */
@@ -219,15 +224,12 @@ static a_name_context_ptr
 Return TRUE if the current name context is a class.
 */
 #define curr_name_context_is_a_class()                                \
-  (curr_name_context->assoc_scope != NULL &&                          \
-   curr_name_context->assoc_scope->kind ==                            \
-                              (a_scope_kind)sck_class_struct_union)
+  (curr_name_context->class_type != NULL)
 
 /*
 Given that the current name context is a class, return the class type.
 */
-#define curr_name_context_class()                                     \
-  (curr_name_context->assoc_scope->variant.assoc_type)
+#define curr_name_context_class() (curr_name_context->class_type)
 
 
 /*
@@ -468,11 +470,13 @@ hidden names in C, so there's no point in maintaining this information).
 }  /* push_scope_hidden_names */
 
 
-static void push_name_context(a_scope_ptr scope)
+static void push_name_context_full(a_scope_ptr scope,
+                                   a_type_ptr  class_type)
 /*
 Push a new context entry onto the name context stack, and fill
-in that entry to indicate the given scope.  The name context stack is used
-to avoid class qualifiers on names when inside those classes.
+in that entry to indicate the given scope.  If class_type is non-NULL,
+it indicates a class type, and scope might be NULL.  The name context
+stack is used to avoid class qualifiers on names when inside those classes.
 This routine is called for both C and C++.
 */
 {
@@ -488,20 +492,60 @@ This routine is called for both C and C++.
     ncp = (a_name_context_ptr)alloc_general(sizeof(a_name_context));
   }  /* if */
   /* Initialize the entry. */
-  check_assertion_str(scope != NULL, "push_name_context: NULL scope");
+  check_assertion_str(scope != NULL || class_type != NULL,
+                      "push_name_context: NULL scope");
   ncp->assoc_scope = scope;
+  ncp->class_type = class_type;
   ncp->access = (an_access_specifier)as_public;
   ncp->fixups = NULL;
   ncp->invisible_to_cfront = FALSE;
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
-  if (il_header.source_language == sl_Cplusplus) {
+  if (il_header.source_language == sl_Cplusplus && scope != NULL) {
     /* Go through the hidden names list and mark the hidden entities so
        they will be accessed specially in this and inner scopes. */
     push_scope_hidden_names(scope);
   }  /* if */
+}  /* push_name_context_full */
+
+
+static void push_name_context(a_scope_ptr scope)
+/*
+Push a new context entry onto the name context stack, and fill
+in that entry to indicate the given scope.  The name context stack is used
+to avoid class qualifiers on names when inside those classes.
+This routine is called for both C and C++.
+*/
+{
+  a_type_ptr class_type = NULL;
+
+  if (scope->kind == (a_scope_kind)sck_class_struct_union) {
+    class_type = scope->variant.assoc_type;
+  }  /* if */
+  push_name_context_full(scope, class_type);
 }  /* push_name_context */
+
+
+static void push_class_name_context(a_type_ptr class_type)
+/*
+Push a new context entry onto the name context stack, and fill
+in that entry to indicate the given class.  The name context stack is used
+to avoid class qualifiers on names when inside those classes.
+This routine can be called for both C and C++.
+*/
+{
+  a_scope_ptr scope = NULL;
+
+  check_assertion(is_immediate_class_type(class_type));
+  /* Watch out for nonreal classes, which do not have an associated scope. */
+  if (!C_mode() &&
+      !class_type->variant.class_struct_union.is_nonreal_class) {
+    scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
+    check_assertion(scope != NULL);
+  }  /* if */
+  push_name_context_full(scope, class_type);
+}  /* push_class_name_context */
 
 
 static void pop_name_context(void)
@@ -608,6 +652,24 @@ Return TRUE if the indicated scope is currently on the name context stack.
   }  /* for */
   return scope_in_stack;
 }  /* scope_is_in_name_context_stack */
+
+
+static a_boolean class_is_in_name_context_stack(a_type_ptr class_type)
+/*
+Return TRUE if the indicated class is currently on the name context stack.
+*/
+{
+  a_boolean          class_in_stack = FALSE;
+  a_name_context_ptr ncp;
+
+  for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
+    if (ncp->class_type == class_type) {
+      class_in_stack = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return class_in_stack;
+}  /* class_is_in_name_context_stack */
 
 
 static a_scope_ptr parent_scope_of(a_source_correspondence *scp)
@@ -1819,8 +1881,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           (scp->visible_as_unqualified_name ||
            (class_type->variant.class_struct_union.is_nonreal_class &&
             !has_name(class_type)) ||
-           scope_is_in_name_context_stack(class_type->variant.
-                                class_struct_union.extra_info->assoc_scope))) {
+           class_is_in_name_context_stack(class_type))) {
         /* A qualified name is not needed, because we're inside a name context
            for the class and the name is not hidden.  Note a subtle case in
            Microsoft mode: if the hiding symbol was an injected class, the
@@ -1843,15 +1904,15 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         gen_class_qualifier(class_type,
                             options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                             need_closing_paren);
-        if (class_type->variant.class_struct_union.is_nonreal_class &&
-            (template_arguments_for_name(scp, entry_kind,
-                                         /*insert_space=*/NULL) != NULL ||
-             (options & GN_TEMPLATE))) {
-          /* Issue the "template" keyword in a "X<T>::template Y<int>" name
-             or in a "X<T>::template Y" default template argument for a
-             template template parameter. */
-          write_tok_str("template ");
-        }  /* if */
+      }  /* if */
+      if (class_type->variant.class_struct_union.is_nonreal_class &&
+          (template_arguments_for_name(scp, entry_kind,
+                                       /*insert_space=*/NULL) != NULL ||
+           (options & GN_TEMPLATE))) {
+        /* Issue the "template" keyword in a "X<T>::template Y<int>" name
+           or in a "X<T>::template Y" default template argument for a
+           template template parameter. */
+        write_tok_str("template ");
       }  /* if */
     } else if (scp->parent.namespace_ptr != NULL) {
       /* The entity is a member of a namespace. */
@@ -3760,8 +3821,9 @@ and *orig_scope to NULL.
 
   *common_scope = NULL;
   *orig_scope = NULL;
-  if (curr_name_context->assoc_scope->kind == (a_scope_kind)sck_namespace ||
-      curr_name_context->assoc_scope->kind == (a_scope_kind)sck_file) {
+  if (curr_name_context->assoc_scope != NULL &&
+      (curr_name_context->assoc_scope->kind == (a_scope_kind)sck_namespace ||
+       curr_name_context->assoc_scope->kind == (a_scope_kind)sck_file)) {
     /* See if it's necessary to adjust the current namespace before putting
        out this specialization. */
     /* Find the scope in which the specialization must be put out, which is
@@ -4292,9 +4354,7 @@ this selection.
     if (selection_class != naming_class) {
       /* Push a name context so that the qualifier will be properly
          qualified. */
-      a_scope_ptr class_scope = selection_class->variant.class_struct_union.
-                                                       extra_info->assoc_scope;
-      push_name_context(class_scope);
+      push_class_name_context(selection_class);
       need_context_pop = TRUE;
       gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
     }  /* if */
@@ -4487,18 +4547,21 @@ with the operator indicated by opstr.
       use_comma = TRUE;
     }  /* if */
   }  /* if */
-  if (operand_1_type != NULL && !is_template_param_type(operand_1_type)) {
+  if (operand_1_type != NULL && is_template_param_type(operand_1_type)) {
+    /* Replace a template parameter type by its proxy class, if it has
+       one, or by NULL it it doesn't have one. */
     operand_1_type = skip_typerefs(operand_1_type);
-    /* Push a name context for the class, unless the class is nonreal.  This
-       allows names in the second operand to be referred to without
-       qualification.  Don't push a context for a nonreal class or
-       a template parameter. */
-    check_assertion(is_immediate_class_type(operand_1_type));
-    if (!operand_1_type->variant.class_struct_union.is_nonreal_class &&
-        /* Don't push a scope when the operator has been changed to ",". */
-        !use_comma) {
-      push_name_context(operand_1_type->variant.class_struct_union.extra_info->
-                                                                  assoc_scope);
+    operand_1_type =
+                 operand_1_type->variant.template_param.extra_info->class_type;
+  }  /* if */
+  if (operand_1_type != NULL) {
+    operand_1_type = skip_typerefs(operand_1_type);
+    /* Push a name context for the class.  This allows names in the
+       second operand to be referred to without qualification.
+       The context is pushed even when the class is nonreal. */
+    /* Don't push a scope when the operator has been changed to ",". */
+    if (!use_comma) {
+      push_class_name_context(operand_1_type);
       need_context_pop = TRUE;
     }  /* if */
   }  /* if */
@@ -4617,9 +4680,8 @@ precedence confusion and need_parens is TRUE.
         case eok_points_to_static:
           /* Static member selection, p->m. */
           if (need_parens) write_tok_ch('(');
-          gen_expr_with_parens(operand_1);
-          write_tok_str("->");
-          gen_lvalue(operand_2);
+          gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE, "->",
+                         operand_2, /*is_lvalue_2=*/TRUE);
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
           break;
@@ -5293,9 +5355,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
          with the selector so that the qualifier is put out properly qualified
          for the context.  Don't do this if there is no selector. */
       if (!suppress_this) {
-        a_scope_ptr class_scope = selection_class->variant.class_struct_union.
-                                                       extra_info->assoc_scope;
-        push_name_context(class_scope);
+        push_class_name_context(selection_class);
       }  /* if */
       gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
       if (!suppress_this) pop_name_context();
