@@ -9407,7 +9407,9 @@ next_declaration:
         /* Restore the scope stack to its original state. */
         pop_class_reactivation_scope();
       }  /* if */
-      if (class_type->variant.class_struct_union.
+      if (class_state.is_nonreal_instantiation) {
+        /* Ignore prototype (and other non-real) instantiations. */
+      } else if (class_type->variant.class_struct_union.
                     referenced_by_class_instantiation_placeholder_typeref) {
         /* A class-instantiation placeholder may also be put out for
            nontemplate classes that are nested within template class
