@@ -1265,7 +1265,9 @@ should be put out.
        indicators, which are not present in the saved mangled form, or
        unless the name has been processed in some way that prevents its
        use as part of another mangled name. */
-    if (!show_template_specialization && !show_specialization &&
+    if (!show_partial_spec_args &&
+        !show_template_specialization &&
+        !show_specialization &&
         !type->source_corresp.mangled_name_cannot_be_included_in_other_name) {
       use_previously_mangled_name = TRUE;
     }  /* if */
