@@ -1933,7 +1933,9 @@ Expands to nothing when Microsoft extensions are not being used.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* var is used only for Microsoft extensions. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static a_type_ptr make_possibly_based_pointer_type(a_type_ptr     tp,
                                                    a_variable_ptr *var)
 /*
@@ -1944,13 +1946,15 @@ Clear the pointer stored in "var" if it is used.
 {
   a_type_ptr new_tp;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (*var != NULL) {
     check_assertion(microsoft_mode);
     new_tp = make_based_pointer_type(tp, *var);
     *var = NULL;
-  } else {
-    new_tp = make_pointer_type(tp);
-  }  /* if */
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  new_tp = make_pointer_type(tp);
+
   return new_tp;
 }  /* make_possibly_based_pointer_type */
 

@@ -4111,6 +4111,7 @@ skip_overloading:;
   update_routine_decl_modifiers(routine_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
                                 is_function_def);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && func_info->is_main_function) {
     /* main should use __cdecl calling convention.  If that's not the default
        for the compilation, set it now. */
@@ -4129,6 +4130,7 @@ skip_overloading:;
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Link the symbol to the IL routine entry. */
   sym->variant.routine.ptr = routine_ptr;
   if (*ext_sym != NULL &&
@@ -6231,6 +6233,9 @@ clause is to be attached.  catch_pos is the source position of "catch".
 }  /* handler_declaration */
 
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS && !MICROSOFT_EXTENSIONS_ALLOWED
+/* ARGSUSED */ /* is_asm_statement is not referenced.*/
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS && !MICROSOFT_EXTENSIONS_ALLOWED */
 an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
                                  a_boolean  is_asm_statement)
 /*
@@ -6273,13 +6278,16 @@ instructions (unquoted).
     cannot_bind_to_curr_construct();
   }  /* if */
   copy_source_position(pos_curr_token, asm_pos);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* In Microsoft mode the token after the asm must be fetched in pp-token
        mode. */
     fetch_pp_tokens = TRUE;
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Skip past the "asm". */
   (void)get_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* Restore the flag to do normal token fetching. */
     fetch_pp_tokens = FALSE;
@@ -6323,6 +6331,7 @@ instructions (unquoted).
       goto make_asm_entry;
     }  /* if */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
@@ -6339,7 +6348,9 @@ instructions (unquoted).
   remove_stop_token(tok_rparen);
   /* Check for and skip the semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
+#if MICROSOFT_EXTENSIONS_ALLOWED
 make_asm_entry:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Update the IL. */
   if (asm_decl_allowed) {
     /* Allocate and set the asm-entry. */
