@@ -2862,6 +2862,8 @@ operation is a pointer-to-member (see ARM 5.3).
         /* "&" of a function designator.  Change it to a pointer to the
            function.  This includes overloaded functions and 
            member functions specified by qualified name. */
+        /* Change the error position to the "&". */
+        operand.position = start_position;
         conv_function_designator_to_ptr_to_function(&operand);
         /* Note that the copy preserves xref_entries_list. */
         copy_operand(&operand, result);
