@@ -8409,7 +8409,9 @@ code is needed).
                   dedp->construction_vtbls_var,
                   dedp->construction_vtbls_var_is_array,
                   base_class->type,
-                  base_class->base_subarray_index_in_construction_vtbl_array,
+                  dedp->construction_vtbls_var_is_array ?
+                    (a_construction_vtbl_array_index)1 :
+                    base_class->base_subarray_index_in_construction_vtbl_array,
                   ipdp,
                   insert_location);
   }  /* if */
