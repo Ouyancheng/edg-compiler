@@ -1,5 +1,33 @@
 Version 2.41
 
+1/19/98   C++-generating back end: multiple nested class declarations
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured
+to TRUE (so that class template instantiations appear in the generated C++
+as explicit specializations), nested class definitions are delayed (i.e.,
+put out sometime after the class template definition), and a simple
+declaration is put out instead.  However, when the nested class definition
+was preceded by a forward declaration, code was put out that didn't
+conform to a strict reading of the standard.  This has been fixed -- only
+the first nested class declaration is put out.  For example:
+
+  template <class T> class A {
+    class N;
+    N *pn;
+    class N { };
+  };
+  A<int> a;
+
+The C++-generating back end now puts out the specialization of A<int>
+with only a single declaration of A<int>::N:
+
+  template<> class A<int> {
+    class N;
+    N *pn;
+    // extra declaration of N is suppressed here
+  };
+  class A<int>::N { };
+
 1/18/99   Name linkage for "main"
 
 The name linkage for "main" is now extern "C++" (instead of extern "C").
