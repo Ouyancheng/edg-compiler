@@ -1062,15 +1062,16 @@ scope is that of a class definition.
           param_ssep = add_empty_source_sequence_entry();
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        if (is_error_locator(param_locator)) {
+          /* There was no declarator. */
+          func_info->any_prototype_names_omitted = TRUE;
+        }  /* if */
         /* Add an entry to record the parameter name and other information
            associated with the parameter declaration.  These go on to the
            the param-id list. */
         add_to_param_id_list(&param_locator, param_type_ptr,
                              &param_type_pos, param_storage_class,
                              func_info, param_ssep, &last_param_id);
-        if (is_error_locator(param_locator)) {
-          func_info->any_prototype_names_omitted = TRUE;
-        }  /* if */
         /* Create a param-type entry and add it to the list of param-types
            associated with the routine type. */
         if (!C_mode() && !any_cfront_mode()) {
