@@ -571,6 +571,9 @@ extern void update_source_sequence_list(char                 *entity_ptr,
                                         a_source_position    *pos,
                                         struct a_decl_seq_info *decl_seq_info);
 
+extern void make_proxy_ptr_source_sequence_entry(
+                                             a_source_sequence_entry_ptr ssep);
+
 extern a_source_sequence_entry_ptr add_incomplete_source_sequence_entry(
                                                      an_il_entry_kind  kind);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

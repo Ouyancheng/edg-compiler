@@ -6683,6 +6683,22 @@ within a function scope.
 }  /* add_to_source_sequence_list */
 
 
+void make_proxy_ptr_source_sequence_entry(a_source_sequence_entry_ptr ssep)
+/*
+*/
+{
+  a_source_sequence_entry_ptr  function_scope_ssep;
+
+  check_assertion(curr_il_region_number != FILE_SCOPE_REGION_NUMBER);
+  check_assertion(in_file_scope(ssep));
+  function_scope_ssep = alloc_source_sequence_entry();
+  function_scope_ssep->entity.kind =
+                           (a_byte_il_entry_kind)iek_source_sequence_entry;
+  function_scope_ssep->entity.ptr  = (char *)ssep;
+  add_to_source_sequence_list(function_scope_ssep, /*force_to_fs=*/FALSE);
+}  /* make_proxy_ptr_source_sequence_entry */
+
+                                   
 void update_source_sequence_list(char                 *entity_ptr,
                                  an_il_entry_kind     kind,
                                  a_source_position    *pos,
