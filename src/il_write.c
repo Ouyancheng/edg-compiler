@@ -424,7 +424,7 @@ Write the initial information to the IL file, if there is one.
     /* Compute the maximum valid entry number. */
     if (num_bits == sizeof(an_il_entry_number)*CHAR_BIT) {
       /* The entry number field is the same size as an_il_entry_number. */
-      max_entry_number = ~0;  /* All "1" bits. */
+      max_entry_number = ~(an_il_entry_number)0;  /* All "1" bits. */
     } else {
       /* The entry number field is smaller than an_il_entry_number. */
       /* Make a bit mask of length BITS_IN_ENTRY_NUMBER. */
