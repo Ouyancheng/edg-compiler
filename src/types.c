@@ -4180,7 +4180,15 @@ ec_no_error.
                                       source_type,
                                       suppress_extensions,
                                       ec_bad_cast,
-                                      std_conv)) {
+                                      std_conv) ||
+             /* Test for conversion of "void *" to a pointer to object type.
+                This does not fall out of the impl_conversion_possible
+                test for cases like "void *" --> "const char *".  See
+                5.2.9/10 in the C++ standard. */
+             (is_pointer_type(source_type) &&
+              is_pointer_type(dest_type) &&
+              is_void_type(type_pointed_to(source_type)) &&
+              is_object_type(type_pointed_to(dest_type)))) {
     /* The inverse implicit conversion can be done. */
     okay = TRUE;
     /* If the conversion is a pointer or pointer to member conversion, make
