@@ -1,5 +1,21 @@
 Version 3.6
 
+2/2/05   Nonstandard anonymous unions in unions
+
+The fields of a nonstandard anonymous union appearing in a union are in most
+ways members of the enclosing union.  We now therefore impose the restrictions
+of union fields on such fields.  For example:
+
+  struct S { S(); };
+  union U {
+    struct {
+      S s;  // Error: Union fields cannot have a constructor.
+    };
+  };
+
+(Nonstandard anonymous union are an extension accepted in certain modes when
+ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE.)
+
 2/2/05   GNU C compatibility: Incompatible block-extern declarations
 
 In GNU C mode, the front end now issues a warning instead of an error on the

@@ -8502,6 +8502,129 @@ be the last in the anonymous-union-parent chain.
 
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
+static void promote_anonymous_union_field_symbol(
+                                         a_symbol_ptr         sym,
+                                         a_type_ptr           class_type,
+                                         a_symbol_ptr         *new_apo_syms,
+                                         a_symbol_ptr         assoc_object_sym,
+                                         an_access_specifier  new_access,
+                                         a_boolean            reuse_symbol,
+                                         a_boolean            is_nonstd)
+/*
+sym represents a field in an anonymous union.  This procedure promotes it to
+the surrounding (class or namespace) scope.  class_type is the class into which
+the field is being promoted (or NULL if the promotion is into a namespace
+scope).  *new_apo_syms is a list of newly created anonymous union parent
+symbols that may need to be fixed up later on.  assoc_object_sym represents the
+anonymous union object (field or variable) and new_access is the access that
+must be given to the promoted field symbol.  If reuse_symbol is TRUE, sym can
+just be moved; otherwise, it needs to be copied.  is_nonstd is TRUE if the
+promotion is for a nonstandard anonymous union.
+*/
+{
+  a_symbol_ptr  apo_sym = sym->variant.field.anonymous_parent_object;
+  a_field_ptr   field = sym->variant.field.ptr;
+  a_boolean     suppress_reenter_symbol_call = FALSE;
+ 
+  if (is_nonstd && class_type->kind == (a_type_kind)tk_union &&
+      !is_valid_union_field(field->type,
+                            &field->source_corresp.decl_position)) {
+    /* Diagnostic already issued by is_valid_union_field.  This test was
+       already done for standard anonymous (and named unions), but for
+       nonstandard unions it had to wait until the lack of a declarator
+       determined that this is in fact a nonstandard anonymous union and
+       even then only when the promotion is to a union type. */
+  }  /* if */
+  if (reuse_symbol) {
+    /* Unlink the symbol from the inactive list and link it back into
+       the symbol table in the current scope. */
+    remove_anonymous_union_member_from_inactive_symbols_list(sym);
+    if (microsoft_bugs && class_type != NULL) {
+      /* The Microsoft compiler does not diagnose promoting an
+         anonymous union member into a scope in which its name has
+         already been declared.  Emulate the behavior by suppressing
+         the reenter_symbol call. */
+      a_symbol_locator  locator;
+      a_symbol_ptr      other_sym;
+
+      clear_locator(&locator, &sym->decl_position);
+      locator.symbol_header = sym->header;
+      other_sym = class_qualified_id_lookup(&locator, class_type,
+                                         IDL_DIRECT_CLASS_MEMBERS_ONLY);
+      if (other_sym != NULL && !is_tag_symbol(other_sym)) {
+        pos_st_warning(ec_id_already_declared, &(sym->decl_position),
+                       sym->header->identifier);
+        suppress_reenter_symbol_call = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!suppress_reenter_symbol_call) {
+      /* Enter the symbol back into the current scope. */
+      reenter_symbol(sym, depth_scope_stack, /*suppress_error=*/FALSE);
+    }  /* if */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  } else {
+    /* The symbol has to be kept bound to the type, since the latter
+       may be used again.  Therefore, we have to clone the symbol,
+       making a copy of it in the new class scope.  Note that there may
+       turn out to be a many-to-one mapping between member symbols and
+       field-of-assoc-object-type.  Note that the new symbol should
+       normally not conflict with existing fields, but in GNU C mode
+       such conflicts are ignored and only the first declaration is
+       visible. */
+    a_symbol_locator loc;
+    make_locator_for_symbol(sym, &loc);
+    loc.source_position = field->source_corresp.decl_position;
+    sym = enter_local_symbol(sym->kind, &loc, depth_scope_stack,
+                             /*suppress_error=*/gcc_mode);
+    sym->variant.field.ptr = field;
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  }  /* if */
+  /* Set parent information in the symbol but not in the IL entry.  The
+     symbol is promoted, but the type remains nested. */
+  if (class_type != NULL) {
+    set_class_membership(sym, (a_source_correspondence *)NULL, class_type);
+  } else {
+    set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                             (a_namespace_ptr)NULL);
+  }  /* if */
+  /* The members of an anonymous union within a class take on the
+     access specifier of the anonymous union itself; the members
+     of a variable anonymous union should be (i.e., should remain)
+     public. */
+  field->source_corresp.access = new_access;
+  if (apo_sym == NULL) {
+    sym->variant.field.anonymous_parent_object = assoc_object_sym;
+  } else if (reuse_symbol) {
+    /* Only update the anonymous-parent-object pointer for a given
+       symbol on the first promotion. */
+    /* Walk up the chain of anonymous_parent_objects, which represent
+       nested anonymous unions.  Stop if the current assoc_object_sym
+       is found -- it will have been recorded, presumably, for a
+       previously promoted field). */
+    while (apo_sym != assoc_object_sym) {
+      if (apo_sym->variant.field.anonymous_parent_object == NULL) {
+        /* The end of the list: add assoc_object_sym and stop. */
+        apo_sym->variant.field.anonymous_parent_object = assoc_object_sym;
+        break;
+      }  /* if */
+      /* Advance up the chain. */
+      apo_sym = apo_sym->variant.field.anonymous_parent_object;
+    }  /* while */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  } else {
+    /* Just as the original anonymous union member symbol had to be
+       cloned, so too must its parent chain be cloned.  Go through the
+       list of anonymous-union-parent symbols that have already been
+       cloned and look for a match.  If none is found, make a new one. */
+    sym->variant.field.anonymous_parent_object =
+                 find_anonymous_parent_object_symbol_clone(apo_sym,
+                                                           new_apo_syms,
+                                                           assoc_object_sym);
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  }  /* if */
+}  /* promote_anonymous_union_field_symbol */
+
+
 void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
                                    a_type_ptr    class_type,
                                    a_boolean     is_nonstd)
@@ -8521,7 +8644,7 @@ ones are allocated in the scope specified by decl_scope_level.  For such
 nonstandard anonymous unions is_nonstd is TRUE.
 */
 {
-  a_symbol_ptr                   sym, next_sym, mf_sym, apo_sym;
+  a_symbol_ptr                   sym, next_sym, mf_sym;
   a_class_symbol_supplement_ptr  cssp;
   a_class_type_supplement_ptr    ctsp;
   an_access_specifier            access, assoc_object_access;
@@ -8530,7 +8653,6 @@ nonstandard anonymous unions is_nonstd is TRUE.
   a_boolean                      is_overloaded;
   a_type_ptr                     assoc_object_type, tp;
   a_boolean                      reuse_symbol = TRUE;
-  a_boolean                      suppress_reenter_symbol_call;
   a_field_ptr                    au_field;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   a_symbol_ptr                   new_apo_sym_list = NULL;
@@ -8668,99 +8790,9 @@ nonstandard anonymous unions is_nonstd is TRUE.
     }  /* if */
     switch (sym->kind) {
       case sk_field:
-        apo_sym = sym->variant.field.anonymous_parent_object;
-        suppress_reenter_symbol_call = FALSE;
-        if (reuse_symbol) {
-          /* Unlink the symbol from the inactive list and link it back into
-             the symbol table in the current scope. */
-          remove_anonymous_union_member_from_inactive_symbols_list(sym);
-          if (microsoft_bugs && class_type != NULL) {
-            /* The Microsoft compiler does not diagnose promoting an
-               anonymous union member into a scope in which its name has
-               already been declared.  Emulate the behavior by suppressing
-               the reenter_symbol call. */
-            a_symbol_locator  locator;
-            a_symbol_ptr      other_sym;
-
-            clear_locator(&locator, &sym->decl_position);
-            locator.symbol_header = sym->header;
-            other_sym = class_qualified_id_lookup(&locator, class_type,
-                                               IDL_DIRECT_CLASS_MEMBERS_ONLY);
-            if (other_sym != NULL && !is_tag_symbol(other_sym)) {
-              pos_st_warning(ec_id_already_declared, &(sym->decl_position),
-                             sym->header->identifier);
-              suppress_reenter_symbol_call = TRUE;
-            }  /* if */
-          }  /* if */
-          if (!suppress_reenter_symbol_call) {
-            /* Enter the symbol back into the current scope. */
-            reenter_symbol(sym, depth_scope_stack, /*suppress_error=*/FALSE);
-          }  /* if */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-        } else {
-          /* The symbol has to be kept bound to the type, since the latter
-             may be used again.  Therefore, we have to clone the symbol,
-             making a copy of it in the new class scope.  Note that there may
-             turn out to be a many-to-one mapping between member symbols and
-             field-of-assoc-object-type.  Note that the new symbol should
-             normally not conflict with existing fields, but in GNU C mode
-             such conflicts are ignored and only the first declaration is
-             visible. */
-          a_field_ptr      fp = sym->variant.field.ptr;
-          a_symbol_locator loc;
-
-          make_locator_for_symbol(sym, &loc);
-          loc.source_position = fp->source_corresp.decl_position;
-          sym = enter_local_symbol(sym->kind, &loc, depth_scope_stack,
-                                   /*suppress_error=*/gcc_mode);
-          sym->variant.field.ptr = fp;
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-        }  /* if */
-        /* Set parent information in the symbol but not in the IL entry.  The
-           symbol is promoted, but the type remains nested. */
-        if (class_type != NULL) {
-          set_class_membership(sym, (a_source_correspondence *)NULL,
-                               class_type);
-        } else {
-          set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                                   (a_namespace_ptr)NULL);
-        }  /* if */
-        /* The members of an anonymous union within a class take on the
-           access specifier of the anonymous union itself; the members
-           of a variable anonymous union should be (i.e., should remain)
-           public. */
-        sym->variant.field.ptr->source_corresp.access = assoc_object_access;
-        if (apo_sym == NULL) {
-          sym->variant.field.anonymous_parent_object = assoc_object_sym;
-        } else if (reuse_symbol) {
-          /* Only update the anonymous-parent-object pointer for a given
-             symbol on the first promotion. */
-          /* Walk up the chain of anonymous_parent_objects, which represent
-             nested anonymous unions.  Stop if the current assoc_object_sym
-             is found -- it will have been recorded, presumably, for a
-             previously promoted field). */
-          while (apo_sym != assoc_object_sym) {
-            if (apo_sym->variant.field.anonymous_parent_object == NULL) {
-              /* The end of the list: add assoc_object_sym and stop. */
-              apo_sym->variant.field.
-                         anonymous_parent_object = assoc_object_sym;
-              break;
-            }  /* if */
-            /* Advance up the chain. */
-            apo_sym = apo_sym->variant.field.anonymous_parent_object;
-          }  /* while */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-        } else {
-          /* Just as the original anonymous union member symbol had to be
-             cloned, so too must its parent chain be cloned.  Go through the
-             list of anonymous-union-parent symbols that have already been
-             cloned and look for a match.  If none is found, make a new one. */
-          sym->variant.field.anonymous_parent_object =
-                 find_anonymous_parent_object_symbol_clone(apo_sym,
-                                                           &new_apo_sym_list,
-                                                           assoc_object_sym);
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-        }  /* if */
+        promote_anonymous_union_field_symbol(
+                         sym, class_type, &new_apo_sym_list, assoc_object_sym,
+                         assoc_object_access, reuse_symbol, is_nonstd);
         break;
       case sk_member_function:
       case sk_overloaded_function:
