@@ -812,7 +812,10 @@ typedef struct a_template_instance {
 			   no implicit instantiation will be done). The
 			   specific_decl flag will always be TRUE when this
 			   flag is set.  For static data members its value is
-			   identical to the defined flag in instance_sym. */
+			   identical to the defined flag in instance_sym.
+                           specific_def is also set TRUE for entities
+			   whose instantiations have been suppressed using
+			   a do_not_instantiate pragma. */
   unsigned int	explicit_instantiation:1;
 			/* TRUE if an instantiation has been explicitly
 			   requested using a pragma directive. */
