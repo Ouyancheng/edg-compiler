@@ -3751,7 +3751,10 @@ using *pos as the error position.
       /* Check for a conflict between the type of the newly declared function
          symbol (decl_sym) and the type of the symbol previously introduced
          by a using declaration (using_sym). */
-      if (types_of_decl_and_using_decl_conflict(decl_sym, using_sym, &err)) {
+      if (using_sym->kind == (a_symbol_kind)sk_function_template) {
+        /* Ignore function template symbols in the overload set. */
+      } else if (types_of_decl_and_using_decl_conflict(decl_sym,
+                                                       using_sym, &err)) {
         /* Unless using_sym is a virtual function being overridden by
            decl_sym, an error is issued. */
         if (err) {
