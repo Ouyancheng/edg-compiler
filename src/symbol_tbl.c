@@ -2772,10 +2772,13 @@ static a_boolean member_name_conflicts_with_class_name(a_type_ptr   class_type,
                                                        a_symbol_ptr member_sym)
 /*
 If the member specified by member_sym has the same name as the class of
-which it is a member (class_type), issue an error -- except for nonstatic
-data members in a class with no constructors (ARM 9.2).  Constructors
-are another special case, but since they are not actually entered into
-the symbol table, this routine is not called for them.
+which it is a member (class_type), issue an error.  Except in strict mode,
+an exception is made for nonstatic data members in a class with no
+constructors (ARM 9.2).  Constructors of named classes are another special
+case, but since they are not actually entered into the symbol table, this
+routine is not called for them; however, implicitly declared constructors of
+unnamed classes are checked for and ignored. Finally, injected class names
+are also allowed.
 */
 {
   a_symbol_ptr class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
@@ -2784,9 +2787,10 @@ the symbol table, this routine is not called for them.
 
   if (class_sym->header == member_sym->header) {
     /* Member has the same name as the class to which it belongs. */
-    /* If no constructor already exists we permit a field with the same
-       name its class, as long as it's not an anonymous union field being
-       promoted to a containing class with the same name. */
+    /* Except in strict mode, if no constructor already exists, a field is
+       allowed to have the same name as its class, as long as it's not an
+       anonymous union field being promoted to a containing class with the
+       same name. */
     if (!strict_ansi_mode &&
         member_sym->kind == (a_symbol_kind)sk_field &&
         class_sym->variant.
@@ -2807,8 +2811,7 @@ the symbol table, this routine is not called for them.
       }  /* if */
     } else if (class_sym->header == unnamed_tag_symbol_header) {
       /* This must be a constructor for an unnamed class. */
-    } else if (member_sym->kind == (a_symbol_kind)sk_type &&
-               member_sym->variant.type.is_injected_class_name) {
+    } else if (is_injected_class_symbol(member_sym)) {
       /* Okay. */
     } else {
       /* Error: an identifier that is not a constructor and that has the
