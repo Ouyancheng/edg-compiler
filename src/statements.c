@@ -3260,14 +3260,15 @@ well.
 }  /* empty_statement */
 
 
-static a_statement_ptr add_goto_to_continue_label(
-                                       a_struct_stmt_stack_entry_ptr sssep,
-                                       a_boolean                     is_leave)
+static add_goto_to_continue_label(a_struct_stmt_stack_entry_ptr sssep,
+                                  a_boolean                     is_leave,
+                                  a_statement_ptr               *goto_stmt)
 /*
 Generate a goto to the "continue" label for the indicated structured
 statement.  Generate the label if it has not been generated yet.
 sssep == NULL to indicate an error.  is_leave is TRUE to indicate a
-__leave instead of a continue.
+__leave instead of a continue.  Return a pointer to the goto statement
+in *goto_stmt.
 */
 {
   a_label_ptr              dest_label;
@@ -3320,7 +3321,7 @@ __leave instead of a continue.
        statement. */
     process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   }  /* if */
-  return sp;
+  *goto_stmt = sp;
 }  /* add_goto_to_continue_label */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3355,7 +3356,7 @@ The syntax is:
   sssep = NULL;
 found:
   /* Add a "goto" to the continue label for the __try. */
-  goto_stmt = add_goto_to_continue_label(sssep, /*is_leave=*/TRUE);
+  add_goto_to_continue_label(sssep, /*is_leave=*/TRUE, &goto_stmt);
   /* Ignore the initial "__leave". */
 #if CHECKING
   if (curr_token != tok_leave) {
@@ -4063,7 +4064,7 @@ See also 3.6.6.2.
     error(ec_continue_must_be_in_loop);
   }  /* if */
   /* Add a "goto" to the continue label. */
-  goto_stmt = add_goto_to_continue_label(sssep, /*is_leave=*/FALSE);
+  add_goto_to_continue_label(sssep, /*is_leave=*/FALSE, &goto_stmt);
   /* Ignore the initial "continue". */
 #if CHECKING
   if (curr_token != tok_continue) {
