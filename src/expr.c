@@ -12661,8 +12661,19 @@ parameter type is not known.
   if (param_type != NULL) {
     prep_nontype_template_argument_initializer(&result, param_type, constant);
   } else {
-    /* No destination type.  Make a constant from the operand. */
-    prep_generic_template_argument(&result);
+    /* No destination type.  Make a constant from the operand.  This comes
+       up for errors and for nonreal templates in prototype instantiations. */
+    if (is_template_dependent_context()) {
+      prep_generic_template_argument(&result);
+    } else {
+      /* Error recovery. */
+      check_assertion(total_errors != 0);
+      error_if_indefinite_function(&result);
+      if (is_sym_for_member_operand(&result)) {
+        /* Replace a symbol-for-member operand by a pointer-to-member. */
+        conv_sym_for_member_operand_to_ptr_to_member(&result);
+      }  /* if */
+    }  /* if */
     extract_constant_from_operand(&result, constant);
   }  /* if */
   pop_expr_stack();

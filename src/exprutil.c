@@ -7444,7 +7444,7 @@ is a "get" if put_operand is NULL.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void error_if_indefinite_function(an_operand *operand)
+void error_if_indefinite_function(an_operand *operand)
 /*
 If the given operand is an indefinite function, issue an error and
 change the operand to an error operand.
