@@ -786,6 +786,9 @@ error code.
     case ec_redefinition_not_allowed:
       m = "redefinition of this object is not allowed";
       break;
+    case ec_static_member_in_local_class:
+      m = "static data member is not allowed in a local class";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
