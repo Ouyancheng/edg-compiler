@@ -154,82 +154,66 @@ EXTERN char	*token_names[(int)tok_last+1]
 /* Array of opname kinds indexed by token kind. */
 EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if VAR_INITIALIZERS
-= {onk_none,          /* tok_identifier */      
-   onk_none,          /* tok_float_constant */  
-   onk_none,          /* tok_int_constant */    
-   onk_none,          /* tok_char_constant */   
-   onk_none,          /* tok_string_literal */  
-   onk_none,          /* tok_end_of_source */   
-   onk_none,          /* tok_newline */         
-   onk_none,          /* tok_header_name */     
-   onk_none,          /* tok_pp_number */       
-   onk_none,          /* tok_digit_sequence */  
-   onk_none,          /* tok_cpp_quote */
-   onk_subscript,     /* operator[] starts with tok_lbrace */
-   onk_none,          /* tok_rbrace */
-   onk_function_call, /* operator() starts with tok_lparen */
-   onk_none,          /* tok_rparen */
-   onk_none,          /* tok_period */
-   onk_arrow, onk_plus_plus, onk_minus_minus, onk_ampersand, onk_star,
-   onk_plus, onk_minus, onk_compl, onk_not, onk_divide, onk_remainder,
-   onk_shift_left, onk_shift_right, onk_lt, onk_gt, onk_le, onk_ge,
-   onk_eq, onk_ne, onk_excl_or, onk_or, onk_and_and, onk_or_or,
-   onk_none,          /* tok_quest_mark */
-   onk_none,          /* tok_colon */
-   onk_assign, onk_times_assign, onk_divide_assign,
-   onk_remainder_assign, onk_plus_assign, onk_minus_assign,
-   onk_shift_left_assign, onk_shift_right_assign, onk_and_assign,
-   onk_excl_or_assign, onk_or_assign, onk_comma,
-   onk_none,          /* tok_auto */     
-   onk_none,	      /* tok_break */    
-   onk_none,	      /* tok_case */     
-   onk_none,	      /* tok_char */     
-   onk_none,	      /* tok_const */    
-   onk_none,	      /* tok_continue */ 
-   onk_none,	      /* tok_default */  
-   onk_none,	      /* tok_do */       
-   onk_none, 	      /* tok_double */   
-   onk_none, 	      /* tok_else */     
-   onk_none, 	      /* tok_enum */     
-   onk_none,	      /* tok_extern */   
-   onk_none, 	      /* tok_float */    
-   onk_none, 	      /* tok_for */      
-   onk_none, 	      /* tok_goto */     
-   onk_none, 	      /* tok_if */       
-   onk_none, 	      /* tok_int */      
-   onk_none,	      /* tok_long */     
-   onk_none, 	      /* tok_register */ 
-   onk_none, 	      /* tok_return */   
-   onk_none, 	      /* tok_short */    
-   onk_none, 	      /* tok_signed */   
-   onk_none, 	      /* tok_sizeof */   
-   onk_none,	      /* tok_static */   
-   onk_none,	      /* tok_struct */   
-   onk_none, 	      /* tok_switch */   
-   onk_none, 	      /* tok_typedef */  
-   onk_none, 	      /* tok_union */    
-   onk_none, 	      /* tok_unsigned */ 
-   onk_none,	      /* tok_void */     
-   onk_none, 	      /* tok_volatile */ 
-   onk_none, 	      /* tok_while */    
-   onk_none, 	      /* tok_alignof */  
-   onk_none, 	      /* tok_intaddr */  
-   onk_none,          /* tok_colon_colon */
-   onk_none,          /* tok_period_star */
+= {onk_none,  /* tok_identifier */     onk_none,  /* tok_float_constant */  
+   onk_none,  /* tok_int_constant */   onk_none,  /* tok_char_constant */   
+   onk_none,  /* tok_string_literal */ onk_none,  /* tok_end_of_source */   
+   onk_none,  /* tok_newline */        onk_none,  /* tok_header_name */     
+   onk_none,  /* tok_pp_number */      onk_none,  /* tok_digit_sequence */  
+   onk_none,  /* tok_cpp_quote */
+   onk_subscript,       /* operator[] starts with tok_lbrace */
+   onk_none,  /* tok_rbrace */
+   onk_function_call,   /* operator() starts with tok_lparen */
+   onk_none,  /* tok_rparen */         onk_none,  /* tok_period */
+   onk_arrow,                          onk_plus_plus, 
+   onk_minus_minus,                    onk_ampersand, 
+   onk_star,                           onk_plus, 
+   onk_minus,                          onk_compl, 
+   onk_not,                            onk_divide, 
+   onk_remainder,                      onk_shift_left, 
+   onk_shift_right,                    onk_lt, 
+   onk_gt,                             onk_le, 
+   onk_ge,                             onk_eq, 
+   onk_ne,                             onk_excl_or, 
+   onk_or,                             onk_and_and, 
+   onk_or_or,
+   onk_none,  /* tok_quest_mark */     onk_none,  /* tok_colon */
+   onk_assign,                         onk_times_assign, 
+   onk_divide_assign,                  onk_remainder_assign, 
+   onk_plus_assign,                    onk_minus_assign,
+   onk_shift_left_assign,              onk_shift_right_assign, 
+   onk_and_assign,                     onk_excl_or_assign, 
+   onk_or_assign,                      onk_comma,
+   onk_none,  /* tok_sharp */          onk_none,  /* tok_paste */
+   onk_none,  /* tok_lbrace */         onk_none,  /* tok_rbrace */
+   onk_none,  /* tok_semicolon */      onk_none,  /* tok_ellipsis */
+   onk_none,  /* tok_auto */           onk_none,  /* tok_break */    
+   onk_none,  /* tok_case */           onk_none,  /* tok_char */     
+   onk_none,  /* tok_const */          onk_none,  /* tok_continue */ 
+   onk_none,  /* tok_default */        onk_none,  /* tok_do */       
+   onk_none,  /* tok_double */         onk_none,  /* tok_else */     
+   onk_none,  /* tok_enum */           onk_none,  /* tok_extern */   
+   onk_none,  /* tok_float */          onk_none,  /* tok_for */      
+   onk_none,  /* tok_goto */           onk_none,  /* tok_if */       
+   onk_none,  /* tok_int */            onk_none,  /* tok_long */     
+   onk_none,  /* tok_register */       onk_none,  /* tok_return */   
+   onk_none,  /* tok_short */          onk_none,  /* tok_signed */   
+   onk_none,  /* tok_sizeof */         onk_none,  /* tok_static */   
+   onk_none,  /* tok_struct */         onk_none,  /* tok_switch */   
+   onk_none,  /* tok_typedef */        onk_none,  /* tok_union */    
+   onk_none,  /* tok_unsigned */       onk_none,  /* tok_void */     
+   onk_none,  /* tok_volatile */       onk_none,  /* tok_while */    
+   onk_none,  /* tok_alignof */        onk_none,  /* tok_intaddr */  
+   onk_none,  /* tok_colon_colon */    onk_none,  /* tok_period_star */
    onk_arrow_star,
-   onk_none,          /* tok_class */
+   onk_none,  /* tok_class */
    onk_delete,
-   onk_none,          /* tok_friend */
-   onk_none,          /* tok_inline */
+   onk_none,  /* tok_friend */         onk_none,  /* tok_inline */
    onk_new,
-   onk_none,          /* tok_operator */
-   onk_none,          /* tok_private */
-   onk_none,          /* tok_protected */
-   onk_none,          /* tok_public */
-   onk_none,          /* tok_this */
-   onk_none,          /* tok_virtual */
-   onk_none,          /* tok_error */
-   onk_last           /* tok_last */
+   onk_none,  /* tok_operator */       onk_none,  /* tok_private */
+   onk_none,  /* tok_protected */      onk_none,  /* tok_public */
+   onk_none,  /* tok_this */           onk_none,  /* tok_virtual */
+   onk_none,  /* tok_error */
+   onk_last   /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */
 ;
