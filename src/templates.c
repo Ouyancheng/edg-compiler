@@ -7464,6 +7464,15 @@ type based on the template argument list and the template parameter list
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if DEBUG
+  if (debug_level >= 3 || db_flag_is_set("instantiations")) {
+    fprintf(f_debug, "partial instantiation: ");
+    db_symbol_name(sym);
+    fprintf(f_debug, " based on ");
+    db_symbol_name(templ_sym);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   /* Pop the template instantiation scope. */
   pop_template_instantiation_scope();
   /* Decrement the count of pending instantiations of this template. */
@@ -16124,8 +16133,9 @@ incremented.
 {
   fprintf(f_debug, "Instance count of ");
   db_symbol_name(mip->instance->instance_sym);
-  fprintf(f_debug, " %s to %d\n", increment ? "incremented" : "decremented",
-          (int)mip->instance_required_count);
+  fprintf(f_debug, " %s to %d (mip=%p)\n",
+          increment ? "incremented" : "decremented",
+          (int)mip->instance_required_count, mip);
 }  /* db_instance_count */
 
 #endif /* DEBUG */
@@ -16160,7 +16170,8 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
 #if DEBUG
-  if (debug_level >= 5 || db_flag_is_set("uirf")) {
+  if (debug_level >= 5 || db_flag_is_set("uirf") ||
+      db_flag_is_set("instantiations")) {
     fprintf(f_debug,
             "Setting instantiation_required flag to %s for (options=%d)",
             value ? "TRUE" : "FALSE", (int)options);

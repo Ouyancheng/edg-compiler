@@ -9630,7 +9630,11 @@ forced only if instantiate is TRUE.
     microsoft_friend_function_fixup(routine->routine_fixup);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (instantiate && translation_unit_needed_only_for_exported_templates) {
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    /* Do not instantiate things referenced from prototype instantiations. */
+    instantiate = FALSE;
+  } else if (instantiate &&
+             translation_unit_needed_only_for_exported_templates) {
     /* In a secondary translation unit that is being used only for
        exported templates, the bodies of noninline external functions are
        discarded.  If this reference is from such a routine, do not

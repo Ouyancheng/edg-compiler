@@ -1,5 +1,24 @@
 Version 2.46
 
+8/21/01  Templates referenced from prototype instantiations
+
+The instantiation required was flag template functions and static data
+members was being set for references from prototype instantiations.  Such
+references should not result in the setting of the flag.  This has
+been fixed.
+
+This example fails as a result of this problem.  Because removal of
+unneeded entities will often mask this problem, the example fails only
+if compiled with --no_remove_unneeded_entities.
+
+  template <class T> int f(T t){
+    return t.x;  // will fail if instantiated on int
+  }
+  template <class T> void g(T){
+    f(1);
+  }
+  int main() {}
+
 8/17/01  Internal error in diagnostics in standalone program
 
 An internal error could result when a diagnostic was issued from a
