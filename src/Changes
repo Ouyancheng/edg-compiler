@@ -1,5 +1,26 @@
 Version 3.5
 
+6/9/04   IA-64 ABI: Two operator delete calls for one delete
+
+In certain cases involving a delete of a pointer to a class,
+where the class has a virtual destructor and an operator delete,
+and the delete uses the "::delete" form, the generated code in
+the IA-64 ABI mode was incorrect and resulted in both the
+class-specific and the global operator deletes being called,
+thus potentially freeing the storage twice.  Now fixed.
+
+  extern "C" int printf(const char *, ...);
+  void operator delete(void *p) { printf("operator delete\n"); }
+  struct B {
+    void operator delete(void *p) { printf("B::operator delete\n"); }
+    virtual ~B() { printf("B::~B\n"); }
+  };
+  int main() {
+    B *q = new B();
+    ::delete q;  // Called class-specific operator delete plus global,
+                 // only global should be called
+  }
+
 6/9/04   Space use improvement with using-directives
 
 In certain unusual examples, a large number of symbols were allocated when

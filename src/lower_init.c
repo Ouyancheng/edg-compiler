@@ -7278,7 +7278,7 @@ tricks.
      and then call the delete routine.  The IA-64 ABI spec requires this
      unless one is willing to put out a definition of the deleting
      destructor everywhere it is used. */
-  if (dtor_routine->is_virtual) {
+  if (dtor_routine->is_virtual && delete_routine == NULL) {
     dtor_routine = alternate_entry_point(dtor_routine,
                                          (a_ctor_or_dtor_kind)cdk_deleting,
                                          /*define_now=*/FALSE);
