@@ -1,5 +1,22 @@
 Version 2.41
 
+3/1/99   Abort in checking for ambiguous base class member
+
+A null-pointer abort could occur when checking for an ambiguous base
+class member when the member in question was an overload set that
+included a member function template.  Now fixed.  For example:
+
+  class A {
+  public:
+    void f();
+    template <class T> void f(T);
+  };
+  class B : virtual public A { };
+  class C : virtual public A { };
+  class D : public B, public C {
+    void g() { f(); }                  // No longer aborts looking up "f"
+  };
+
 3/1/99   Microsoft compatibility: bug introduced by change to make
          template parameters visible in class specializations
 
@@ -25,7 +42,7 @@ accepted only in pcc mode and cfront mode.
 2/26/99  Partial ordering rules changed to conform to standard
 
 The partial ordering rules implemented by the front end conformed to the
-original rules proposed, but not the the final rules specified in the
+original rules proposed, but not the final rules specified in the
 standard.  Specifically, the front end removed qualifiers under references
 while the standard does not remove such qualifiers.  The front end now
 implements the rules as described in the standard.  The following example
