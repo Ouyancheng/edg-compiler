@@ -2579,6 +2579,28 @@ new declaration are given by *linkage and *storage_class.  Issue a diagnostic
 }  /* check_for_linkage_conflict */
 
 
+void check_default_args_for_param_type(a_param_type_ptr  ptp,
+                                       a_source_position *pos)
+/*
+Given a param type pointer, make sure that any parameter with a default
+argument value is followed only by other parameters with defaults.
+Issue an error if a default argument that is followed by a parameter
+without a default is found.
+*/
+{
+  /* Loop through the single list. */
+  for (; ptp != NULL; ptp = ptp->next) {
+    if (ptp->has_default_arg && ptp->next != NULL &&
+        !ptp->next->has_default_arg) {
+      /* Current parameter has a default argument and its successor does
+         not.  Report the error and break out of the loop. */
+      pos_error(ec_default_arg_not_at_end, pos);
+      break;
+    }  /* if */
+  }  /* for */
+}  /* check_default_args_for_param_type */
+
+
 static void check_default_args(a_type_ptr  type)
 /*
 Given a routine type based on a current declaration, where there is no
@@ -2591,15 +2613,7 @@ one without a default argument, and report the error.
 
   /* Loop through the single list. */
   ptp = skip_typerefs(type)->variant.routine.extra_info->param_type_list;
-  for (; ptp != NULL; ptp = ptp->next) {
-    if (ptp->has_default_arg && ptp->next != NULL &&
-        !ptp->next->has_default_arg) {
-      /* Current parameter has a default argument and its successor does
-         not.  Report the error and break out of the loop. */
-      error(ec_default_arg_not_at_end);
-      break;
-    }  /* if */
-  }  /* for */
+  check_default_args_for_param_type(ptp, &error_position);
 }  /* check_default_args */
 
 

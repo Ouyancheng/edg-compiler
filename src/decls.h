@@ -319,6 +319,9 @@ void update_variable_decl_modifiers(a_variable_ptr	variable,
 #define update_variable_decl_modifiers(a,b,c,d) /* nothing */
 #endif /* !DECL_MODIFIERS_IN_USE */
 
+extern void check_default_args_for_param_type(a_param_type_ptr  ptp,
+                                              a_source_position *pos);
+
 #endif /* DECLS_H */
 
 /******************************************************************************

@@ -1,5 +1,25 @@
 Version 2.34
 
+11/26/96 Missing diagnostic on member function with invalid default argument
+
+No diagnostic was issued when a member function of a class template had
+default arguments that did not appear at the end of the parameter list.
+This has been fixed.
+
+  template <class T> struct A {
+    void f(int = 0, int);
+  };
+
+11/26/96 Duplicate diagnostic on invalid default argument in friend declaration
+
+A friend function declaration with default arguments that are not at
+the end of the parameter list would result in duplicate error messages.
+This has been fixed.
+
+  struct A {
+    friend void f(int = 0, int);
+  };
+
 11/26/96 Warning on return of local variable or temporary
 
 A warning is now issued in more cases when a function returns a reference

@@ -734,6 +734,14 @@ routine recursively for each nested class.
           if (sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
             a_def_arg_expr_fixup_ptr  daefp_end;
             a_def_arg_expr_fixup_ptr  daefp_tmp = daefp;
+            a_cached_token_ptr        first_token_ptr;
+            /* Make sure that all of the default arguments are at the end of
+               the parameter list. */
+            first_token_ptr = daefp->cache.tokens.first_token;
+            check_assertion(first_token_ptr != NULL);
+            check_default_args_for_param_type(
+                                           daefp->param_type,
+                                           &first_token_ptr->source_position);
             /* Update the template declaration information to refer to
                the declaration information of the enclosing class
                template. */
@@ -812,10 +820,12 @@ routine recursively for each nested class.
           /* Loop through the list of default arg expression fixup entries. */
           for (; daefp != NULL; daefp = daefp->next) {
             /* It's a default arg expression that needs to be rescanned. */
-            /* Let get_token know about the cache. */
+            /* Let get_token know about the cache.  Default argument errors
+               are not checked here because they will have been checked by
+               decl_routine. */
             rescan_cached_tokens(&daefp->cache.tokens);
             delayed_scan_of_default_arg_expr(daefp->param_type,
-                                            /*check_for_errors=*/TRUE);
+                                            /*check_for_errors=*/FALSE);
           }  /* for */
           /* Restore the prototype scope symbols pointer in the func info
              block. It shouldn't have changed, but we do it to be safe. */
