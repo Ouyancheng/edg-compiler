@@ -499,7 +499,6 @@ do
 # Options passed to the front end that take no arguments and must appear at
 # the beginning of the option list passed to the front end.
 ###############################################################################
-         --create_pch | \
          --pch | \
          --pch_messages | \
          --no_pch_messages)
@@ -547,6 +546,7 @@ do
 ###############################################################################
          --pch_mem | \
          --pch_dir | \
+         --create_pch | \
          --use_pch)
       feoptions=$1" $2 $feoptions"
       shift
@@ -584,6 +584,7 @@ do
 ###############################################################################
          --pch_mem=* | \
          --pch_dir=* | \
+         --create_pch=* | \
          --use_pch=*)
       feoptions=$1" $feoptions"
       ;;
