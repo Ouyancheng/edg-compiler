@@ -92,6 +92,13 @@ extern a_type_ptr canonical_type_entry_of(a_type_ptr type);
 
 extern a_template_ptr canonical_template_entry_of(a_template_ptr templ);
 
+#define same_template_entities(ptr1, ptr2)                                \
+  ((ptr1) == (ptr2) ||                                                    \
+   ((ptr1) != NULL && (ptr2) != NULL &&                                   \
+    (il_entry_prefix_of(ptr1).secondary_trans_unit ||                     \
+     il_entry_prefix_of(ptr2).secondary_trans_unit) &&                    \
+    canonical_template_entry_of(ptr1) == canonical_template_entry_of(ptr2)))
+
 extern a_symbol_ptr find_corresponding_symbol_in_trans_unit(
 					a_symbol_ptr		sym_to_find,
 					a_translation_unit_ptr	tup);

@@ -2024,32 +2024,43 @@ when looking up a correspondence: if none is found, return NULL.
            corresp_tssp->variant.class_template.primary_template_sym == NULL);
   if (tssp->variant.class_template.primary_template_sym != NULL) {
     /* The given template is a partial specialization: look for a partial
-       specialization with the same set of parameters and arguments. */
-    for (sym = corresp_tssp->variant.class_template.partial_specializations;
-         sym != NULL;
-         sym = sym->next) {
-      corresp_tssp = template_supplement_for_symbol(sym);
-      if (equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
-                                     tssp->cache.decl_info->parameters,
-                                     /*issue_errors=*/FALSE,
-                                     &templ_sym->decl_position)) {
-        /* The template parameters correspond; now check the arguments: they
-           are attached to the prototype instantiation. */
-        a_symbol_ptr  proto, corresp_proto;
-        proto = tssp->variant.class_template.prototype_instantiation;
-        corresp_proto =
+       specialization with the same set of parameters and arguments.
+       First, however, we must check that they come from corresponding
+       primary templates. */
+    a_symbol_ptr    prim_templ_sym =
+                            tssp->variant.class_template.primary_template_sym;
+    a_template_ptr  prim_templ =
+                           template_supplement_for_symbol(prim_templ_sym)
+                                                          ->il_template_entry;
+    a_template_ptr  corresp_prim_templ = corresp_tssp->il_template_entry;
+    if (same_template_entities(prim_templ, corresp_prim_templ)) {
+      for (sym = corresp_tssp->variant.class_template.partial_specializations;
+           sym != NULL;
+           sym = sym->next) {
+        corresp_tssp = template_supplement_for_symbol(sym);
+        if (equiv_template_param_lists(
+                                    corresp_tssp->cache.decl_info->parameters,
+                                    tssp->cache.decl_info->parameters,
+                                    /*issue_errors=*/FALSE,
+                                    &templ_sym->decl_position)) {
+          /* The template parameters correspond; now check the arguments: they
+             are attached to the prototype instantiation. */
+          a_symbol_ptr  proto, corresp_proto;
+          proto = tssp->variant.class_template.prototype_instantiation;
+          corresp_proto =
                  corresp_tssp->variant.class_template.prototype_instantiation;
-        if (equiv_template_arg_lists(
+          if (equiv_template_arg_lists(
                   type_symbol_type(proto)->
                      variant.class_struct_union.extra_info->template_arg_list,
                   type_symbol_type(corresp_proto)->
                      variant.class_struct_union.extra_info->template_arg_list,
                   ETA_NO_OPTIONS)) {
-          corresp_templ = corresp_tssp->il_template_entry;
-          break;
+            corresp_templ = corresp_tssp->il_template_entry;
+            break;
+          }  /* if */
         }  /* if */
-      }  /* if */
-    }  /* for */
+      }  /* for */
+    }  /* if */
   } else {
     /* This is a primary template: the template parameters must match. */
     if (equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
