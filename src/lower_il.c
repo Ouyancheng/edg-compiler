@@ -5775,11 +5775,9 @@ not include the function scope memory region, if any.
     lower_type(routine->type);
     lower_template_arg_list(routine->template_arg_list);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (!keep_object_lifetime_info_in_lowered_il) {
-      /* We're removing object lifetime information.  Go through the declared
-         type's parameters and look for default argument expressions with
-         associated object lifetimes, and eliminate the object lifetime and
-         the enk_object_lifetime node. */
+    {
+      /* The routine has a declared_type field.  Go through the parameter
+         types and remove default argument expressions. */
       a_type_ptr decl_type = routine->declared_type;
       /* Routines that are declared and not defined have a NULL
          declared_type. */
@@ -5791,14 +5789,16 @@ not include the function scope memory region, if any.
              ptp = ptp->next) {
           an_expr_node_ptr def_arg_expr = ptp->default_arg_expr;
           if (def_arg_expr != NULL) {
-            /* If the expression has an object lifetime node at top,
-               eliminate it. */
-            ptp->default_arg_expr =
-                                  eliminate_expr_object_lifetime(def_arg_expr);
+            if (!keep_object_lifetime_info_in_lowered_il) {
+              /* If the expression has an object lifetime node at top,
+                 eliminate it. */
+              (void)eliminate_expr_object_lifetime(def_arg_expr);
+            }  /* if */
+            ptp->default_arg_expr = NULL;
           }  /* if */
         }  /* for */
       }  /* if */
-    }  /* if */
+    }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if LOWER_EXTERN_INLINE
     if (routine->is_inline &&
