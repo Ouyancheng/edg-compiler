@@ -967,6 +967,10 @@ the file scope, do not process it (but record an orphan in the latter case).
             remap_ptr(ptr->variant.assoc_statement, a_statement_ptr,
                       iek_statement);
             break;
+          case sck_namespace:
+            remap_ptr(ptr->variant.assoc_namespace, a_namespace_ptr,
+                      iek_namespace);
+            break;
 #endif  /* ifdef CFE */
           case sck_function:
             /* "ptr", which points to the routine associated with this scope,
@@ -1028,6 +1032,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->routines, a_routine_ptr, iek_routine);
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
+        walk_list(ptr->namespaces, a_namespace_ptr, iek_namespace);
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
         walk_list(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
         walk_list(ptr->local_static_variable_inits,

@@ -2580,6 +2580,11 @@ do_assoc_type:
       disp_ptr("assoc_statement", (char *)ptr->variant.assoc_statement,
                iek_statement);
       break;
+    case sck_namespace:
+      (void)printf("sck_namespace\n");
+      disp_ptr("assoc_namespace", (char *)ptr->variant.assoc_namespace,
+               iek_namespace);
+      break;
 #endif /* ifdef CIL */
 #ifdef FIL
     case sck_stmt_function:
@@ -2635,6 +2640,10 @@ do_assoc_type:
 #ifdef CFE
   disp_ptr("asm_entries", (char *)ptr->asm_entries, iek_asm_entry);
   disp_ptr("scopes", (char *)ptr->scopes, iek_scope);
+  if (ptr->kind == (a_scope_kind)iek_file ||
+      ptr->kind == (a_scope_kind)iek_namespace) {
+    disp_ptr("namespaces", (char *)ptr->namespaces, iek_namespace);
+  }  /* if */
   disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
   if (ptr->kind == (a_scope_kind)sck_function ||
       ptr->kind == (a_scope_kind)sck_block) {
