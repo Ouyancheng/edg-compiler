@@ -906,8 +906,7 @@ error code.
       m = "invalid destructor declaration";
       break;
     case ec_id_has_same_name_as_class:
-      m =
-        "within a class, the class name may only be declared as a constructor";
+      m = "class name may not be used to name this member";
       break;
     case ec_unary_colon_colon_in_declarator:
       m = "unary \"::\" is not allowed on a name in a declarator";
