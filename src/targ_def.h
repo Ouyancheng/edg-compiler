@@ -1537,6 +1537,15 @@ errors will be issued when compiling programs using the feature).
 /* Switches that control aspects of IL lowering: */
 
 /*
+This switch controls whether zeroing is added to variable definitions
+to force them to be definitions in C.  This is generally a good thing,
+but it may be wasteful for embedded system cross-compilers.
+*/
+#ifndef FORCE_VARIABLE_DEFINITION_VIA_ZEROING
+#define FORCE_VARIABLE_DEFINITION_VIA_ZEROING TRUE
+#endif /* ifndef FORCE_VARIABLE_DEFINITION_VIA_ZEROING */
+
+/*
 This switch controls whether or not types and static variables that are local
 to function and block scopes are moved onto the file scope lists.  Such
 entities are allocated in the file scope memory region, but they are

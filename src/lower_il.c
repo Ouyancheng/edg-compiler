@@ -4886,7 +4886,8 @@ Do IL lowering of the indicated variable and everything under it.
       /* In C++, one can take the address of a register variable.  In C,
          one is not allowed to, so change "register" to "auto". */
       variable->storage_class = (a_storage_class)sc_auto;
-    } else if (variable->storage_class == (a_storage_class)sc_unspecified &&
+    } else if (force_variable_definition_via_zeroing &&
+               variable->storage_class == (a_storage_class)sc_unspecified &&
                variable->init_kind == (an_init_kind)initk_none &&
                !variable->promoted_local_static) {
       /* In C++, there are no tentative definitions.  Use initk_zero to

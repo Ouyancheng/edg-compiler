@@ -704,6 +704,15 @@ EXTERN a_boolean
 #if DO_IL_LOWERING
 
 EXTERN a_boolean
+		force_variable_definition_via_zeroing
+#if VAR_INITIALIZERS
+                                       = FORCE_VARIABLE_DEFINITION_VIA_ZEROING
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* If TRUE, add zeroing to variable definitions
+			   to make them definitions in C. */
+
+EXTERN a_boolean
 		make_all_functions_unprototyped
 #if VAR_INITIALIZERS
                                           = MAKE_ALL_FUNCTIONS_UNPROTOTYPED

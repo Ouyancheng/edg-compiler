@@ -1,5 +1,14 @@
 Version 2.37
 
+10/16/97  Option to suppress zeroing of variables
+
+IL lowering adds zero-initialization to defined C++ variables so that
+they will be considered definitions in C.  This is generally a good thing,
+but it may be wasteful for embedded system cross-compilers.
+Now there is a configuration option FORCE_VARIABLE_DEFINITION_VIA_ZEROING
+and an associated variable force_variable_definition_via_zeroing.
+Setting them to FALSE will suppress this zeroing.
+
 10/16/97  Incorrect offset in virtual function table in the presence of
           ambiguous base classes
 
