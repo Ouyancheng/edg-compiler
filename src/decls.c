@@ -1521,6 +1521,104 @@ need not be addressed here.
 }  /* is_prototyped_parameter_list_start */
 
 
+void merge_exception_specifications(an_exception_specification_ptr  new_list,
+                                    a_routine_ptr                   rp)
+/*
+Add the exception specifications list, if any, to the routine entry.  If
+there is already one there, check for consistency between the two lists.
+*/
+{
+  db_enter(4, "add_exception_specifications");
+  if (new_list == NULL) {
+    if (rp->exception_specifications == NULL) {
+      /* Okay. */
+    } else {
+      /* Error. */
+    }  /* if */
+  } else if (rp->exception_specifications == NULL) {
+    /* Error. */
+    rp->exception_specifications = new_list;
+  } else {
+#if 0
+      /* Not yet implemented. */
+#endif /* if */
+  }  /* if */
+  db_exit();
+}  /* merge_exception_specifications */
+
+
+static an_exception_specification_ptr scan_exception_specifications(void)
+/*
+*/
+{
+  an_exception_specification_ptr  esp;
+  an_exception_specification_ptr  list = NULL, end_of_list = NULL;
+  a_type_ptr                      tp = NULL;
+  a_source_position               decl_pos;
+
+  db_enter(4, "scan_exception_specifications");
+  /* Bypass "throw". */
+  check_assertion(curr_token == tok_throw);
+  (void)get_token();
+  /* Next token should be a left paren. */
+  if (curr_token == tok_lparen) {
+    (void)get_token();
+    if (curr_token == tok_rparen) {
+      /* Case is "throw ()" -- which means "no exception will be thrown by
+         this routine. */
+      list = alloc_exception_specification();
+      list->decl_position = pos_curr_token;
+      (void)get_token();
+      goto done;
+    }  /* if */
+  } else {
+    /* Syntax error -- right paren is missing.  We don't actually call
+       syntax_error or required_token for this, however, since writing
+       "throw int" instead of "throw (int)" might be a common mistake. */
+    error(ec_exp_lparen);
+  }  /* if */
+  /* Loop through the types. */
+  do {
+    decl_pos = pos_curr_token;
+    if (!is_decl_start(/*expr_context=*/FALSE,
+                       /*real_declarator_allowed=*/FALSE)) {
+      /* Error. */
+      error(ec_exp_type_specifier);
+      tp = error_type();
+    } else {
+      type_name(&tp);
+    }  /* if */
+    /* Allocate the exception specification entry, set its fields, and
+       add it to the end of the list. */
+    esp = alloc_exception_specification();
+    esp->decl_position = decl_pos;
+    esp->type = tp;
+    if (list == NULL) {
+      list = esp;
+    } else {
+      end_of_list->next = esp;
+    }  /* if */
+    end_of_list = esp;
+    /* If the next token is not a comma, it should be a right paren -- but
+       check for a few other tokens that (in error cases) should also force
+       the loop to terminate. */
+    if (curr_token == tok_rparen || curr_token == tok_end_of_source ||
+        curr_token == tok_semicolon || curr_token == tok_lbrace) {
+      break;
+    }  /* if */
+  } while (loop_token(tok_comma));
+  /* List should be terminated by a right paren. */
+  if (curr_token == tok_rparen) {
+    (void)get_token();
+  } else {
+    error(ec_exp_rparen);
+  }  /* if */
+done:
+  db_exit();
+  return list;
+}  /* scan_exception_specifications */
+
+
 static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_func_info_block *func_info,
                                 a_symbol_locator  *locator,
@@ -2044,13 +2142,19 @@ scope is that of a class definition.
   }
   remove_stop_token(tok_rparen);
   if (C_dialect == C_dialect_cplusplus) {
+    a_type_ptr  this_param_type = NULL;
+
+    if (curr_token == tok_throw) {
+      if (func_info == &local_func_info_block) {
+        /* Error. */
+      }  /* if */
+      func_info->exception_specifications = scan_exception_specifications();
+    }  /* if */
     /* Create a pointer to the implicit this parameter.  This can be done
        for nonstatic function declarations within a class definition or
        for member function declarations outside a class definition when
        a function qualifier is present.  If there is a function qualifier,
        it is applied to the type pointed to by the this param type. */
-    a_type_ptr  this_param_type = NULL;
-
     if (is_type_qualifier()) {
       /* In C++ the type of certain member functions may be qualified.  Scan
          for a const or volatile qualifier. */
@@ -2112,6 +2216,13 @@ scope is that of a class definition.
       this_param_type = make_qualified_type(this_param_type, /*is_const=*/TRUE,
                                             /*is_volatile=*/FALSE);
       extra_info->implicit_this_param_type = this_param_type;
+    }  /* if */
+    if (curr_token == tok_throw &&
+        func_info->exception_specifications == NULL) {
+      if (func_info == &local_func_info_block) {
+        /* Error. */
+      }  /* if */
+      func_info->exception_specifications = scan_exception_specifications();
     }  /* if */
   }  /* if */
   copy_source_position(start_pos, error_position);
@@ -3239,6 +3350,8 @@ not be TRUE.
 void decl_var_or_routine(a_symbol_locator      *locator,
                          a_storage_class       storage_class,
                          a_type_ptr            type_ptr,
+                         an_exception_specification_ptr
+                                               exception_specifications,
                          a_boolean             is_implicit_function,
                          a_boolean             is_function_def_with_body,
                          a_boolean             inline_specified,
@@ -3639,12 +3752,15 @@ skip_overloading:;
       reconcile_routine_types(routine_ptr, type_ptr,
                               /*preserve_rout_type=*/TRUE,
                               /*preserve_type_ptr=*/FALSE);
+      merge_exception_specifications(exception_specifications,
+                                     routine_ptr);
     } else if (routine_ptr == NULL) {
       /* There is no IL entry, so create one now, and add it to the routine
          list of the file scope. */
       routine_ptr = make_routine(type_ptr, storage_class,
                                  /*at_file_scope=*/TRUE, /*add_to_list=*/TRUE);
       if (C_dialect == C_dialect_cplusplus) {
+        routine_ptr->exception_specifications = exception_specifications;
         if (locator->is_operator_name) {
           routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
           routine_ptr->opname_kind = locator->variant.opname;
@@ -3665,6 +3781,10 @@ skip_overloading:;
         check_for_linkage_conflict(&routine_ptr->storage_class, &linkage,
                                    &storage_class, &locator->source_position,
                                   /*suppress_diagnostic=*/linked_redecl_error);
+        if (C_dialect == C_dialect_cplusplus) {
+          merge_exception_specifications(exception_specifications,
+                                         routine_ptr);
+        }  /* if */
 #if ASM_FUNCTION_ALLOWED
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -3820,6 +3940,8 @@ skip_overloading:;
 
 void decl_function_template(a_symbol_locator    *locator,
                             a_type_ptr          type_ptr,
+                            an_exception_specification_ptr
+                                                exception_specifications,
                             a_symbol_ptr        *symbol_ptr,
                             a_storage_class     storage_class,
                             a_boolean           is_inline)
@@ -3964,6 +4086,7 @@ class template.
     rout_ptr->type = type_ptr;
     rout_ptr->storage_class = storage_class;
     rout_ptr->is_inline = is_inline;
+    rout_ptr->exception_specifications = exception_specifications;
     if (locator->is_operator_name) {
       rout_ptr->special_kind = (a_special_function_kind)sfk_operator;
       rout_ptr->opname_kind = locator->variant.opname;
@@ -3977,6 +4100,8 @@ class template.
                           (storage_class == (a_storage_class)sc_extern) ?
                                 (a_name_linkage_kind)nlk_cplusplus_external :
                                 (a_name_linkage_kind)nlk_internal;
+  } else {
+    merge_exception_specifications(exception_specifications, rout_ptr);
   }  /* if */
   if (overload_symbol != NULL) {
     /* A new symbol was added to an overload list which may have included
@@ -4122,6 +4247,8 @@ the symbol and its linkage (which is always "none").
 
 static void define_member_function(a_symbol_locator   *locator,
 				   a_type_ptr         type_ptr,
+                                   an_exception_specification_ptr
+                                                      exception_specifications,
                                    a_boolean          inline_specified,
 				   a_symbol_ptr       *symbol_ptr,
                                    an_id_linkage_kind *linkage_ptr,
@@ -4218,6 +4345,7 @@ on a prior declaration.
       rp->special_kind = other_rp->special_kind;
       rp->opname_kind = other_rp->opname_kind;
     }  /* if */
+    rp->exception_specifications = exception_specifications;
     *old_type = type_ptr;
   } else {
     /* A member function symbol with a compatible type was found. */
@@ -4231,6 +4359,7 @@ on a prior declaration.
     reconcile_routine_types(sym->variant.routine.ptr, type_ptr,
                             /*preserve_rout_type=*/FALSE,
                             /*preserve_type_ptr=*/TRUE);
+    merge_exception_specifications(exception_specifications, rp);
     if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
       /* If the routine is a default constructor or a copy constructor, it may
          be that this has not yet been recorded in the symbol.  (This becomes
@@ -4519,6 +4648,7 @@ symbol has already been entered as an undefined symbol.
   make_locator_for_symbol(symbol_ptr, &locator);
   /* Declare the function identifier. */
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
+                      /*exception_specifications=*/NULL,
                       /*is_implicit_function=*/TRUE,
                       /*is_function_def_with_body=*/FALSE,
                       /*inline_specified=*/FALSE,
@@ -7897,8 +8027,10 @@ explicitly specified (rather than defaulted to "int").
     /* This is the definition of a member function. */
     check_assertion(prototyped);
     is_member_function_def = TRUE;
-    define_member_function(locator, rout_type, inline_specified,
-                           &symbol_ptr, &linkage, &old_type, &ext_sym);
+    define_member_function(locator, rout_type,
+                           func_info->exception_specifications,
+                           inline_specified, &symbol_ptr, &linkage,
+                           &old_type, &ext_sym);
   } else {
     if (!prototyped) {
       /* Old-style id list.  Before calling decl_var_or_routine scan the
@@ -7969,6 +8101,7 @@ explicitly specified (rather than defaulted to "int").
     }  /* if */
     /* Create the symbol entry and routine entry for the routine. */
     decl_var_or_routine(locator, storage_class, rout_type,
+                        func_info->exception_specifications,
                         /*is_implicit_function=*/FALSE,
                         /*is_function_def_with_body=*/TRUE, inline_specified,
                         is_main_function, &symbol_ptr, &linkage,
@@ -8189,7 +8322,7 @@ Process a handler declaration:
 */
 {
   a_handler_ptr      handler, prev_handler;
-  a_type_ptr         type_ptr, bottom_derived_type;
+  a_type_ptr         type_ptr = NULL, bottom_derived_type;
   a_storage_class    storage_class;
   a_decl_flag_set    dso_flags, do_flags;
   a_symbol_ptr       sym;
@@ -8293,15 +8426,17 @@ Process a handler declaration:
         if (masked) {
           /* One "masking" diagnostic has already been issued -- there's no
              point in putting out another. */
-        } else if (type_ptr == error_type() ||
-                   prev_handler->parameter->type == error_type()) {
+        } else if (type_ptr == error_type()) {
           /* No need to check for masking in this case. */
         } else if (prev_handler->parameter == NULL) {
           /* Anything following a default handler is masked by it. */
           pos_error(ec_masked_by_default_handler, &decl_pos);
           masked = TRUE;
         } else if (handler->parameter == NULL) {
-          /* Current handler is a default handler. */
+          /* Current handler is a default handler -- it can only be masked by
+             another default handler. */
+        } else if (prev_handler->parameter->type == error_type()) {
+          /* No need to check for masking in this case. */
         } else if (type_masks_handler_param_type(prev_handler->parameter->type,
                                                  type_ptr)) {
           /* The type of prev_handler assures that handler will never be
@@ -9097,6 +9232,7 @@ continue_with_declaration:
         local_type_ptr = symbol_ptr->variant.variable.ptr->type;
       } else {
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
+                            func_info.exception_specifications,
                             /*is_implicit_function=*/FALSE,
                             /*is_function_def_with_body=*/FALSE,
                             inline_specified, is_main_function, &symbol_ptr,
