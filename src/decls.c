@@ -705,6 +705,7 @@ supplement for routine rp.
 */
 {
   a_routine_type_supplement_ptr  rtsp;
+  a_type_ptr			 rout_type;
 
   db_enter(4, "add_exception_specification");
   if (exceptions_enabled) {
@@ -715,11 +716,17 @@ supplement for routine rp.
       pos_warning(ec_exception_specification_not_allowed,
                   &func_info->throw_position);
     }  /* if */
-    if (rp->type->kind != (a_type_kind)tk_routine) {
+    rout_type = rp->type;
+    while (rout_type->kind == (a_type_kind)tk_typeref &&
+           !typeref_is_typedef(rout_type)) {
+      rout_type = rout_type->variant.typeref.type;
+    }  /* while */
+    if (rp->type->kind == (a_type_kind)tk_typeref) {
       /* The routine was declared in terms of a typedef.  Don't add throw
          specifications. */
     } else {
-      rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
+      check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+      rtsp = rp->type->variant.routine.extra_info;
       check_assertion(rtsp->exception_specification == NULL);
       rtsp->exception_specification = func_info->exception_specification;
     }  /* if */
@@ -3833,8 +3840,7 @@ definition.
   a_pending_pragma_ptr           ppp;
   a_routine_type_supplement_ptr  rtsp = NULL;
   
-  rtsp = skip_typerefs(rout_sym->variant.routine.ptr->type)->
-                                                   variant.routine.extra_info;
+  rtsp = routine_symbol_type(rout_sym)->variant.routine.extra_info;
   /* Determine whether a lint argsused comment immediately preceded this
      function definition. */
   ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_argsused, rout_sym,
@@ -3878,8 +3884,8 @@ type, so that it can be referenced during argument processing.
 {
   if (sym->kind == (a_symbol_kind)sk_routine ||
       sym->kind == (a_symbol_kind)sk_member_function) {
-    skip_typerefs(sym->variant.routine.ptr->type)->
-           variant.routine.extra_info->arg_pragma = ppp->descr_ptr->kind;
+    routine_symbol_type(sym)->variant.routine.extra_info->arg_pragma =
+                                                        ppp->descr_ptr->kind;
   } else {
     /* Diagnostic? */
   }  /* if */
