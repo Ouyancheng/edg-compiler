@@ -1287,6 +1287,8 @@ EXTERN a_byte	pp_lexical_category[CHAR_MAX-CHAR_MIN+1];
 
 /* Read next logical source line. */
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file);
+/* Check character as nonstandard. */
+extern a_boolean is_nonstandard_character(char ch);
 /* Skip white space. */
 extern void skip_white_space(void);
 /* Get next token. */
