@@ -3966,6 +3966,7 @@ emulate the Microsoft behavior for that declaration.
 
   check_assertion(microsoft_mode);
   if (microsoft_mode && microsoft_version >= 1300 && !C_mode() &&
+      struct_stmt_stack != NULL && depth_stmt_stack >= 0 &&
       struct_stmt_stack[depth_stmt_stack].for_init &&
       use_nonstandard_for_init_scope) {
     a_symbol_ptr  prev_decl = curr_scope_id_lookup(loc, IDL_NO_OPTIONS);
