@@ -6949,9 +6949,12 @@ specification allow a variable-sized array as the top type.
         (void)get_token();
         if (microsoft_bugs &&
             emulate_msvc_value_initialization_bugs &&
-            microsoft_version < 1310) {
-          /* MSVC++ up to version 7.0 did not initialize the entity
-             in this case. */
+            (microsoft_version < 1310 ||
+             (is_class_struct_union_type(base_new_type) &&
+             !symbol_supplement_for_class(base_new_type)->is_POD))) {
+          /* MSVC++ up to version 7.1 does not initialize non-POD classes
+             without constructors. 6.0 and 7.0 did not initialize even
+             POD classes and non-class objects. */
         } else {
           needs_initialization = TRUE;
           zero_initialization = TRUE;
