@@ -75,9 +75,17 @@ typedef struct a_struct_stmt_stack_entry {
 			   current switch clause, or is NULL if there
 			   is no current switch clause. */
   a_statement_ptr
+		extra_block;
+			/* If non-NULL, points to an stmk_block statement
+			   added under the primary statement for this
+			   structured statement in order to allow attaching
+			   more than one statement under a statement that
+			   allows only one. */
+  a_statement_ptr
 		last_dep_statement;
 			/* Points to the last dependent statement under
-			   the structured statement.  NULL if there are
+			   the structured statement (or under extra_block,
+			   if that is non-NULL).  NULL if there are
 			   no dependent statements. */
   a_label_ptr	break_label,
 		continue_label;
