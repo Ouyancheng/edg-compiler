@@ -794,7 +794,7 @@ symbol_name:
                                     &octl);
       }  /* if */
       /* Put out the name, including the class qualifier if any. */
-      form_symbol_name(sym, &octl);
+      form_symbol_name(sym->is_class_member ? sym : fund_sym, &octl);
       /* Put out the second part of the type if needed.  Don't put it
          out in name-only mode.  Do put it out in full-type mode, or
          for an overloaded function. */
