@@ -365,16 +365,8 @@ Construct a string in buffer that represents a name linkage kind -- called
 from db_symbol.
 */
 {
-  char *str;
-
-  switch (source_corresp->name_linkage) {
-    case nlk_none:                str = "no"; break;
-    case nlk_internal:            str = "int'l"; break;
-    case nlk_external:            str = "ext'l"; break;
-    case nlk_cplusplus_external:  str = "C++"; break;
-    default:                      str = "<BAD KIND>"; break;
-  }  /* switch */
-  (void)sprintf(&buffer[0], "%s linkage", str);
+  char *str = name_linkage_kind_names[(int)source_corresp->name_linkage];
+  (void)sprintf(buffer, "%s linkage", str);
   return buffer;
 }  /* str_name_linkage */
 
@@ -401,6 +393,11 @@ and indentation is the indentation desired.
     col += strlen(string);
   }  /* if */
 
+  if (sym == NULL) {
+    /* The symbol passed by the caller is NULL. */
+    fprintf(f_debug, "<NULL>");
+    goto done;
+  }  /* if */
   str = symbol_kind_names[(int)sym->kind];
   if (col + strlen(str) + 2 > DEBUG_LINE_LENGTH) {
     fprintf(f_debug, "\n%*s", indentation, "");
@@ -869,6 +866,7 @@ do_variable:
     db_symbol(apo_sym, buffer, indentation + 2);
     suppress_newline = TRUE;
   }  /* if */
+done:
   /* Recursive calls to db_symbol can create unwanted newlines in the
      output.  Don't output a newline if the last thing we did was
      a call to db_symbol. */
@@ -908,70 +906,80 @@ Put out a scope kind name (for debugging).
 }  /* db_scope_kind */
 
 
+static void db_scope_stack_entry(a_scope_stack_entry_ptr ssep)
+/*
+Display one scope stack entry.
+*/
+{
+  int                      len;
+
+  fprintf(f_debug, "%s%3d %3d ",
+          (ssep == &scope_stack[decl_scope_level]) ? "**" : "  ",
+          ssep->number, scope_depth_of(ssep));
+  len = db_scope_kind(ssep->kind);
+  fprintf(f_debug, "%-*s", 25-len, "");
+  fprintf(f_debug, "prev=%3d ", ssep->previous_scope);
+  switch (ssep->kind) {
+    case sck_function:
+      if (ssep->il_scope == NULL) {
+        fprintf(f_debug, "null IL scope");
+      } else {
+        db_name(&ssep->il_scope->variant.routine.ptr->source_corresp);
+      }  /* if */
+      break;
+    case sck_file:
+      break;
+    case sck_block:
+      if (ssep->il_scope == NULL) {
+        fprintf(f_debug, "null IL scope");
+      }  /* if */
+      break;
+    case sck_namespace:
+    case sck_namespace_extension:
+    case sck_namespace_reactivation:
+      if (ssep->il_scope == NULL) {
+        fprintf(f_debug, "null IL scope");
+      } else {
+        a_namespace_ptr  nsp = ssep->il_scope->variant.assoc_namespace;
+        if (nsp == NULL) {
+          fprintf(f_debug, "null assoc_namespace");
+        } else {
+          db_name(&nsp->source_corresp);
+        }  /* if */
+      }  /* if */
+      break;
+    case sck_class_struct_union:
+    case sck_class_reactivation:
+      db_abbreviated_type(ssep->assoc_type);
+      break;
+    case sck_template_instantiation:
+      if (ssep->template_sym == NULL) {
+        fputs("<null template symbol>", f_debug);
+      } else {
+        char* s = symbol_kind_names[(int)ssep->template_sym->kind];
+        fprintf(f_debug, "<%s> %s", s,
+                ssep->template_sym->header->identifier);
+      }  /* if */
+      break;
+    case sck_template_declaration:
+    case sck_func_prototype:
+    default:;
+  }  /* switch */
+  fputs("\n", f_debug);
+}  /* db_scope_stack_entry */
+
+
 void db_scope_stack(void)
 /*
 Dump the entire scope stack (for debugging).
 */
 {
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-  a_boolean                done = FALSE;
-  int                      len;
 
-  do {
-    fprintf(f_debug, "%s%3d ",
-            (ssep == &scope_stack[decl_scope_level]) ? "**" : "  ",
-            ssep->number);
-    len = db_scope_kind(ssep->kind);
-    fprintf(f_debug, "%-*s", 25-len, "");
-    switch (ssep->kind) {
-      case sck_function:
-        if (ssep->il_scope == NULL) {
-          fprintf(f_debug, "null IL scope");
-        } else {
-          db_name(&ssep->il_scope->variant.routine.ptr->source_corresp);
-        }  /* if */
-        break;
-      case sck_file:
-        done = TRUE;
-      case sck_block:
-        if (ssep->il_scope == NULL) {
-          fprintf(f_debug, "null IL scope");
-        }  /* if */
-        break;
-      case sck_namespace:
-      case sck_namespace_extension:
-      case sck_namespace_reactivation:
-        if (ssep->il_scope == NULL) {
-          fprintf(f_debug, "null IL scope");
-        } else {
-          a_namespace_ptr  nsp = ssep->il_scope->variant.assoc_namespace;
-          if (nsp == NULL) {
-            fprintf(f_debug, "null assoc_namespace");
-          } else {
-            db_name(&nsp->source_corresp);
-          }  /* if */
-        }  /* if */
-        break;
-      case sck_class_struct_union:
-      case sck_class_reactivation:
-        db_abbreviated_type(ssep->assoc_type);
-        break;
-      case sck_template_instantiation:
-        if (ssep->template_sym == NULL) {
-          fputs("<null template symbol>", f_debug);
-        } else {
-          char* s = symbol_kind_names[(int)ssep->template_sym->kind];
-          fprintf(f_debug, "<%s> %s", s,
-                  ssep->template_sym->header->identifier);
-        }  /* if */
-        break;
-      case sck_template_declaration:
-      case sck_func_prototype:
-      default:;
-    }  /* switch */
-    fputs("\n", f_debug);
-    --ssep;
-  } while (!done);
+  for (; ssep != NULL;
+       ssep = ssep->kind == (a_scope_kind)sck_file ? NULL : ssep - 1) {
+    db_scope_stack_entry(ssep);
+  }  /* for */
 }  /* db_scope_stack */
 
 #endif /* DEBUG */
@@ -1588,12 +1596,11 @@ directive.  This is done by going back through the scope stack, starting
 with ssep, looking for namespace scopes.
 */
 {
-  a_scope_depth			depth;
-
+  a_scope_depth	depth;
   /* Compute the scope depth associated with the scope stack entry pointer
      passed by the caller. */
-  depth = ssep - &scope_stack[0];
-  for (;;) {
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+    depth = scope_depth_of(ssep);
     if (ssep->kind == (a_scope_kind)sck_file ||
         ssep->kind == (a_scope_kind)sck_namespace ||
         ssep->kind == (a_scope_kind)sck_namespace_extension ||
@@ -1602,20 +1609,6 @@ with ssep, looking for namespace scopes.
          namespace scope).  See if it encloses the namespace from
          the using directive. */
       if (namespace_is_enclosed_by_scope(sym, ssep)) break;
-    }  /* if */
-    if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
-      /* An instantiation scope -- skip out to the file scope. */
-      depth = DEPTH_OF_FILE_SCOPE;
-      ssep = &scope_stack[depth];
-    } else if (ssep->kind == (a_scope_kind)sck_file) {
-      /* We should not be able to get here.  The file scope encloses
-         all other namespaces. */
-      unexpected_condition_str2("determine_scope_at_which...:",
-                                "reached the file scope");
-    } else {
-      /* Skip out to the next enclosing scope. */
-      ssep--;
-      depth--;
     }  /* if */
   }  /* for */
   return depth;
@@ -1659,7 +1652,7 @@ on the list for the scope, a new entry is not added.
   a_symbol_ptr			 	ns_sym;
   a_scope_depth			 	new_depth;
   a_namespace_symbol_supplement_ptr	nssp;
-  a_scope_depth				curr_depth = ssep - &scope_stack[0];
+  a_scope_depth				curr_depth = scope_depth_of(ssep);
   a_boolean				add_to_list = FALSE;
 
   /* Get a pointer to the namespace to be used. */
@@ -1737,6 +1730,10 @@ the current scope.
        the enclosing namespace.  If so, the new using directive, and any
        new namespaces transitively referenced by the new using directive,
        must be added to the previous scope stack entries. */
+    /* Note: This code does not need to deal with scopes being skipped
+       as a consequence of instantiation scopes because there no way that
+       a using directive can be added to a namespace scope as a consequence
+       of a template instantiation. */
     namespace_added_to = ssep->il_scope->variant.assoc_namespace;
     namespace_added_to = skip_namespace_aliases(namespace_added_to);
     for (;; ssep--) {
@@ -6513,6 +6510,8 @@ locator.  In the case of an ambiguity, return NULL.
           while (tp->source_corresp.is_class_member) {
             tp = tp->source_corresp.parent.class_type;
           }  /* if */
+          /* Ignore classes that are namespace members. */
+          if (tp->source_corresp.parent.namespace_ptr != NULL) continue;
           /* The effective scope is the innermost file, function, or block
              scope in which parent class is declared. */
           effective_scope =
@@ -6602,6 +6601,8 @@ the options being used for the lookup.
                              = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
     a_boolean		must_be_tag   = (options & IDL_MUST_BE_TAG) != 0;
     a_scope_number	scope_number = scope_stack[depth_scope_stack].number;
+    a_boolean		instantiation_context_lookup =
+                                    (options & IDL_INSTANTIATION_CONTEXT) != 0;
     /* Loop through the list of other symbols.  Look for symbols marked
        as synthesized namespace projection symbols. */
     for (sym = sym_hdr->other_symbols; sym != NULL; sym = sym->next) {
@@ -6612,6 +6613,8 @@ the options being used for the lookup.
           sym->parent.namespace_ptr == qualifier_namespace &&
           sym->must_be_class_or_namespace_lookup ==
                                                  must_be_class_or_namespace &&
+          sym->instantiation_context_lookup ==
+                                              instantiation_context_lookup &&
           sym->must_be_tag_lookup == must_be_tag) {
         /* If this is not a qualified lookup, the decl_scope of the symbol
            must match the current scope. */
@@ -7358,14 +7361,132 @@ scope lookup.  options specifies the options being used for the lookup.
 }  /* add_symbol_to_lookup_set */
 
 
+/*
+Structure used to pass name lookup state information between routines
+used to implement name lookup.
+*/
+typedef struct a_lookup_state *a_lookup_state_ptr;
+typedef struct a_lookup_state {
+  a_boolean	must_be_class_or_namespace;
+			/* TRUE if the IDL_MUST_BE_CLASS_OR_NAMESPACE
+			   option was specified for this lookup. */
+  a_boolean	must_be_tag;
+			/* TRUE if the IDL_MUST_BE_TAG option
+			   was specified for this lookup. */
+  a_boolean	tentative_type_lookup;
+			/* TRUE if the IDL_TENTATIVE_TYPE_LOOKUP option
+			   was specified for this lookup. */
+  a_boolean	is_linkage_lookup;
+			/* TRUE if the IDL_LINKAGE_LOOKUP option
+			   was specified for this lookup. */
+  a_boolean	skip_curr_function_scope;
+			/* TRUE if the IDL_SKIP_CURR_FUNCTION_SCOPE
+			   was specified for this lookup. */
+  a_boolean	skip_class_scopes;
+			/* TRUE if the IDL_SKIP_CLASS_SCOPES
+			   was specified for this lookup. */
+  a_boolean	skip_first_class_reactivation;
+			/* TRUE in cfront mode if we have found a scope
+			   for a friend function definition and that
+			   we should skip the next class reactivation
+			   encountered to duplicate a cfront bug. */
+  a_boolean	check_for_nonreal_bases;
+			/* TRUE if we are within an instantiation scope
+			   and we should check whether any of the base
+			   classes involved in the lookup are nonreal. */
+  a_boolean	any_nonreal_bases;
+			/* TRUE when check_for_nonreal_bases is TRUE and
+			   a nonreal base class has been found. */
+  a_boolean	look_for_projected_symbol;
+			/* TRUE for class and class reactivation scopes if
+			   the lookup should attempt to find a projection
+			   symbol that meets the lookup criteria. */
+  a_boolean	add_to_active_list;
+			/* TRUE if look_for_projected_symbol is TRUE and
+			   the resulting projection symbol (if any) should be
+			   added to the active list. */
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+  a_boolean	projection_symbol_found;
+			/* TRUE if a projection symbol was found, but did
+                           not meet the requirements of the lookup. */
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+  a_symbol_ptr	curr_active_sym;
+			/* Points to the current location in the active
+			   list for the symbol header involved in the
+                           lookup. */
+  a_symbol_ptr	prev_active_sym;
+			/* Points to the previous location in the active
+			   list for the symbol header involved in the
+                           lookup. */
+  a_type_ptr	class_with_nonreal_base;
+			/* When any_nonreal_bases is TRUE, this points to
+			   the class type of the nonreal base class that
+			   was found. */
+  a_symbol_ptr	insert_sym;
+			/* If look_for_projection_symbol and add_to_active_list
+			   are TRUE, this symbol points to the location at
+			   which the projection symbol should be added to the
+			   active list. */
+  an_id_lookup_options_set
+		options;
+			/* The lookup options passed into the lookup
+			   routine. */
+  a_name_space_kind
+		required_name_space_kind;
+			/* Indicates whether we are looking in the tag
+			   name_space or the "other" namespace.  The tag
+			   name_space is used only in C. */  
+} a_lookup_state;
+
+
+/*
+A lookup state that has been cleared that can be used to initialize
+new lookup state variables.
+*/
+static a_lookup_state
+		cleared_lookup_state;
+
+
+static void init_cleared_lookup_state(void)
+/*
+Routine that initializes cleared_lookup_state to the correct initial
+value.
+*/
+{
+  cleared_lookup_state.must_be_class_or_namespace    = FALSE;
+  cleared_lookup_state.must_be_tag                   = FALSE;
+  cleared_lookup_state.tentative_type_lookup         = FALSE;
+  cleared_lookup_state.is_linkage_lookup             = FALSE;
+  cleared_lookup_state.skip_curr_function_scope      = FALSE;
+  cleared_lookup_state.skip_class_scopes             = FALSE;
+  cleared_lookup_state.skip_first_class_reactivation = FALSE;
+  cleared_lookup_state.check_for_nonreal_bases       = FALSE;
+  cleared_lookup_state.any_nonreal_bases             = FALSE;
+  cleared_lookup_state.look_for_projected_symbol     = FALSE;
+  cleared_lookup_state.add_to_active_list            = FALSE;
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+  cleared_lookup_state.projection_symbol_found       = FALSE;
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+  cleared_lookup_state.class_with_nonreal_base       = NULL;
+  cleared_lookup_state.insert_sym                    = NULL;
+  cleared_lookup_state.options                       = IDL_NO_OPTIONS;
+  cleared_lookup_state.required_name_space_kind      = nsk_other;
+}  /* init_cleared_lookup_state */
+
+/*
+Macro that initializes a lookup state variable.
+*/
+#define clear_lookup_state(state) (state) = cleared_lookup_state;
+
+
 /* Macro used by normal_id_lookup and do_using_directive_lookup that tests
    whether or not a symbol is acceptable. */
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
    class template, namespace, or template type parameter. */
-#define is_acceptable_symbol(sym, fund_sym)                             \
-  ((!must_be_class_or_namespace ||					\
+#define is_acceptable_symbol(sym, fund_sym, lookup_state)               \
+  ((!(lookup_state).must_be_class_or_namespace ||			\
     symbol_may_precede_qualifier(fund_sym)) &&                          \
-   (!must_be_tag   ||						        \
+   (!(lookup_state).must_be_tag   ||				        \
     is_tag_or_tag_proxy_symbol(fund_sym)))
 
 
@@ -7373,11 +7494,10 @@ static a_symbol_ptr do_using_directive_lookup
                               (a_scope_stack_entry_ptr	ssep,
                                a_symbol_ptr		sym_from_scope,
                                a_symbol_locator		*locator,
-                               an_id_lookup_options_set	options)
+                               a_lookup_state_ptr	lookup_state)
 /*
-Look for a symbol, as described by locator and inactive_symbol_list,
-that is in a namespace whose scope_depth_at_which_using_directive_applies
-matches the scope depth of ssep.
+Look for a symbol, as described by locator, that is in a namespace whose
+scope_depth_at_which_using_directive_applies matches the scope depth of ssep.
 
 sym_from_scope points to a symbol found in ssep by the normal_id_lookup,
 and may be NULL.  must_be_class_or_namespace and must_be_tag are flags
@@ -7392,9 +7512,6 @@ of the lookup is returned to the caller.
   a_symbol_ptr		synth_sym = NULL;
   a_symbol_ptr		new_sym;
   a_symbol_ptr		sym = sym_from_scope;
-  a_boolean		must_be_class_or_namespace
-                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
-  a_boolean		must_be_tag   = (options & IDL_MUST_BE_TAG);
 
   db_enter(4, "do_using_directive_lookup");
   /* Look through the inactive symbols for any symbols associated with
@@ -7411,7 +7528,7 @@ of the lookup is returned to the caller.
     if (nsp == NULL) continue;
     /* Ignore symbols that do not match the lookup requirements. */
     fund_sym = fundamental_symbol_of(new_sym);
-    if (!is_acceptable_symbol(new_sym, fund_sym)) continue;
+    if (!is_acceptable_symbol(new_sym, fund_sym, *lookup_state)) continue;
     /* The namespace symbol supplement contains the scope depth at which
        symbols from a given namespace should be visible.  See if the scope
        depth for this namespace matches the scope pointed to by ssep. */
@@ -7425,7 +7542,7 @@ of the lookup is returned to the caller.
         /* Look for a previous synthesized namespace projection symbol
            for this scope. */
         synth_sym = find_synthesized_projection_symbol
-                                            (locator, options,
+                                            (locator, lookup_state->options,
                                              /*qualified_lookup=*/FALSE,
                                              (a_namespace_ptr)NULL);
         if (sym != NULL) {
@@ -7434,7 +7551,8 @@ of the lookup is returned to the caller.
           synth_sym = add_symbol_to_lookup_set(synth_sym, sym,
                                                locator,
                                                /*qualified_lookup=*/FALSE,
-                                               (a_namespace_ptr)NULL, options,
+                                               (a_namespace_ptr)NULL,
+                                               lookup_state->options,
                                                &any_errors);
         }  /* if */
         sym = synth_sym;
@@ -7444,7 +7562,8 @@ of the lookup is returned to the caller.
       sym = add_symbol_to_lookup_set(sym, new_sym,
                                      locator,
                                      /*qualified_lookup=*/FALSE,
-                                     (a_namespace_ptr)NULL, options,
+                                     (a_namespace_ptr)NULL,
+                                     lookup_state->options,
                                      &any_errors);
       /* Set synth_sym in case it was not set earlier.  This
          suppresses subsequent attempts to look up synth_sym. */
@@ -7461,6 +7580,548 @@ of the lookup is returned to the caller.
 }  /* do_using_directive_lookup */
 
 
+static
+a_symbol_ptr inactive_scope_lookup(a_scope_kind			kind,
+                                   a_scope_stack_entry_ptr	ssep,
+				   a_symbol_locator		*locator,
+                                   a_lookup_state_ptr		lookup_state)
+/*
+This routine is called as part of normal_id_lookup processing to handle
+scopes for which the symbols are now on the inactive list.  This
+includes class reactivations, namespace reactivations (except when the
+original namespace is still on the scope stack), and template instantiation
+scopes.
+
+Note that for namespace extension and reactivation scopes, kind will have
+been changed to sck_namespace if the symbols for the namespace are
+still on the active list (this routine will not be called for such
+scopes).
+
+ssep points to the scope being for which symbols are being considered.
+locator is the symbol locator for the name being looked up.
+lookup_state is used to pass state information between the various routines
+that do normal id lookup processing.
+*/
+{
+  a_boolean	skip_scope = FALSE;
+  a_symbol_ptr	sym = NULL;
+
+  if (cfront_2_1_mode &&
+      kind == (a_scope_kind)sck_class_reactivation &&
+      lookup_state->skip_first_class_reactivation) {
+     /* This is used to skip class reactivation scopes when
+       processing friend declarations in cfront compatibility
+       mode.  Cfront ignores the innermost class reactivation
+       scope when processing friend functions. */
+    lookup_state->skip_first_class_reactivation = FALSE;
+    skip_scope = TRUE;
+  }  /* if */
+  if (kind == (a_scope_kind)sck_class_reactivation &&
+      lookup_state->skip_class_scopes) {
+    /* This is a class scope and we are skipping class scopes. */
+    skip_scope = TRUE;
+  }  /* if */
+  if (!skip_scope) {
+    /* Look on the inactive list for a symbol from this reactivated
+       scope. */
+    a_symbol_ptr	tag_symbol = NULL;
+    a_symbol_ptr	inactive_sym;
+    sym = NULL;
+    for (inactive_sym = inactive_symbol_list_from_locator(*locator);
+         inactive_sym != NULL;
+         inactive_sym = inactive_sym->next) {
+      if (inactive_sym->decl_scope == ssep->number) {
+        a_symbol_ptr	fund_sym = fundamental_symbol_of(inactive_sym);
+        if (is_acceptable_symbol(inactive_sym, fund_sym, *lookup_state)) {
+          /* Found a symbol. */
+          /* If this is a template parameter symbol that should not
+             be visible then continue looking for another symbol. */
+          if (inactive_sym->template_param_not_visible) continue;
+          /* If the symbol is a tag symbol and we're not required to find
+             a tag symbol, there's the possibility that there is a
+             non-type symbol in the same scope later in the list (because
+             the inactive list is not ordered in any way).  Save the
+             tag symbol and keep looking.  If nothing else turns up,
+                 use the tag symbol. */
+          if (is_tag_symbol(inactive_sym) && !lookup_state->must_be_tag) {
+            tag_symbol = inactive_sym;
+          } else {
+            /* Take the symbol. */
+            sym = inactive_sym;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* We reached the end of the list.  If there is a tag symbol saved
+       within the loop, use it. */
+    if (sym == NULL && tag_symbol != NULL) {
+      sym = tag_symbol;
+    }  /* if */
+    /* If this is a namespace scope, also look for any symbols that
+       are visible because of using directives. */
+    if ((kind == (a_scope_kind)sck_namespace_extension ||
+         kind == (a_scope_kind)sck_namespace_reactivation) &&
+      ssep->using_directives_apply) {
+      sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
+    }  /* if */
+    if (sym == NULL && kind == (a_scope_kind)sck_class_reactivation) {
+      /* There is no inactive symbol that is in this class. */
+      /* Look for a symbol projected (inherited) into this class. */
+      lookup_state->look_for_projected_symbol = TRUE;
+      lookup_state->add_to_active_list = FALSE;
+      lookup_state->insert_sym = NULL;
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* inactive_scope_lookup */
+
+
+static
+a_symbol_ptr active_scope_lookup(a_scope_kind			kind,
+                                 a_scope_stack_entry_ptr	ssep,
+				 a_symbol_locator		*locator,
+                                 a_lookup_state_ptr		lookup_state)
+/*
+This routine is called as part of normal_id_lookup processing to handle
+scopes for which the symbols are on the active list.
+
+Note that for namespace extension and reactivation scopes, kind will have
+been changed to sck_namespace if the symbols for the namespace are
+still on the active list.  As a result, this routine will also be called
+for namespace extension and reactivation scopes in such cases.
+ssep points to the scope being for which symbols are being considered.
+locator is the symbol locator for the name being looked up.
+lookup_state is used to pass state information between the various routines
+that do normal id lookup processing.
+*/
+{
+  a_symbol_ptr		sym = NULL;
+  a_symbol_ptr		active_sym = lookup_state->curr_active_sym;
+  a_symbol_ptr		prev_active_sym = lookup_state->prev_active_sym;
+  a_boolean		first_scope =
+                                    scope_depth_of(ssep) == depth_scope_stack;
+
+/* Local macro that tests whether or not a symbol on the active list
+   is acceptable.  See if the symbol is in the proper name space. */
+#define is_acceptable_active_symbol(sym, fund_sym)                           \
+  (name_space_for_symbol_kind[(int)sym->kind] ==			     \
+                                   lookup_state->required_name_space_kind && \
+   is_acceptable_symbol(sym, fund_sym, *lookup_state))
+
+  for (; active_sym != NULL && active_sym->decl_scope == ssep->number;
+       prev_active_sym = active_sym, active_sym = active_sym->next) {
+    a_symbol_ptr	fund_sym = fundamental_symbol_of(active_sym);
+    if (first_scope && lookup_state->skip_curr_function_scope) {
+      /* IDL_SKIP_CURR_FUNCTION_SCOPE is being used.  Don't accept
+         symbols from the first scope entry.  This is used when
+	 looking up names from the initializer list of a
+	 constructor declaration.  The constructor parameters
+	 must not be visible during this lookup. */
+    } else if (is_acceptable_active_symbol(active_sym, fund_sym)) {
+      /* Found a symbol.  Record whether this symbol was found
+         at file scope.  If it was, we will later need to also
+         check for symbols visible as a result of using
+         directives. */
+      sym = active_sym;
+      break;
+    }  /* if */
+  }  /* for */
+  /* If this is a namespace scope or the file scope, also look for
+     any symbols that are visible because of using directives. */
+  if ((kind == (a_scope_kind)sck_file ||
+      kind == (a_scope_kind)sck_namespace) &&
+      ssep->using_directives_apply) {
+    sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
+  }  /* if */
+  if (sym == NULL && kind == (a_scope_kind)sck_class_struct_union) {
+    /* For class scopes, look for a symbol projected (inherited)
+       into the class scope if a symbol was not found in the class
+       itself. */
+    lookup_state->look_for_projected_symbol = TRUE;
+    lookup_state->add_to_active_list = TRUE;
+    lookup_state->insert_sym = prev_active_sym;
+  }  /* if */
+  lookup_state->curr_active_sym = active_sym;
+  lookup_state->prev_active_sym = prev_active_sym;
+  return sym;
+#undef is_acceptable_active_symbol
+}  /* active_scope_lookup */
+
+
+static
+a_symbol_ptr look_for_projected_symbol(a_scope_stack_entry_ptr	ssep,
+				       a_symbol_locator		*locator,
+				       a_lookup_state_ptr	lookup_state,
+				       a_boolean		*end_lookup)
+/*
+This routine is called as part of the normal_id_lookup processing when
+a class or class reactivation scope is encountered that does not
+satisfy the lookup.  In such cases we need to see if a projection symbol
+to a base class symbol could satisfy the lookup.
+
+If a projection symbol is found that does not satisfy the lookup (e.g.,
+it is not a type and we are doing a tentative type lookup), a NULL
+symbol is returned and end_lookup is set to TRUE.  ssep points to
+the scope stack entry for the class or class reactivation scope
+being processed.  locator is the symbol locator for the name being looked up.
+lookup_state is used to pass state information between the various routines
+that do normal id lookup processing.
+*/
+{
+  a_symbol_ptr	sym = NULL;
+
+  if (find_projected_symbol(ssep->assoc_type, locator,
+                            lookup_state->must_be_tag,
+                            lookup_state->tentative_type_lookup,
+                            lookup_state->add_to_active_list,
+                            lookup_state->insert_sym, &sym)) {
+    if (sym == NULL) {
+      /* A symbol was found in a base class, but it was not returned
+         (presumably because must_be_type_name was not satisfied).
+         Don't continue looking. */
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+      lookup_state->projection_symbol_found = TRUE;
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+      *end_lookup = TRUE;
+    } else {
+      /* A projection symbol was created.  It must still satisfy the
+         constraints for this lookup. */
+      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+      if (!is_acceptable_symbol(sym, fund_sym, *lookup_state)) sym = NULL;
+    }  /* if */
+  } else {
+    if (lookup_state->check_for_nonreal_bases &&
+        !lookup_state->any_nonreal_bases) {
+      /* No projection symbol was found.  If the class has any
+         nonreal base classes record this information for possible
+         later use. */
+      lookup_state->class_with_nonreal_base = ssep->assoc_type;
+      lookup_state->any_nonreal_bases =
+                              symbol_supplement_for_class(ssep->assoc_type)->
+                                                      any_nonreal_base_classes;
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* look_for_projected_symbol */
+
+
+/* Forward declaration. */
+static
+a_symbol_ptr instantiation_context_lookup(
+				a_scope_stack_entry_ptr		ssep,
+	                        a_symbol_locator	    	*locator,
+                                a_lookup_state_ptr	    	lookup_state);
+
+
+static
+a_symbol_ptr scope_stack_lookup(a_symbol_locator	    *locator,
+                                a_lookup_state_ptr	    lookup_state,
+				a_scope_depth		    start_depth,
+				a_scope_depth               end_depth)
+/*
+This routine is used by normal_id_lookup to look though a specified
+set of scopes and return the result of a normal_id_lookup when only
+those scopes are considered.  start_depth is the depth of the innermost
+scope to be considered, end_depth is scope at which the lookup should
+terminate.  end_depth is not included in the lookup.
+
+locator is the symbol locator for the name being looked up.
+lookup_state is used to pass state information between the various routines
+that do normal id lookup processing.
+*/
+{
+  a_symbol_ptr		sym = NULL;
+  a_symbol_ptr		active_symbol_list;
+  a_scope_depth		curr_depth;
+
+/* Local macro that skips over any symbols on the active list that are
+   associated with the current scope. */
+#define skip_symbols_from_this_scope(depth)			\
+  {									\
+    a_symbol_ptr	active_sym = lookup_state->curr_active_sym;	\
+    a_symbol_ptr	prev_active_sym = lookup_state->prev_active_sym;\
+    a_scope_number	scope_number = scope_stack[(depth)].number;	\
+    while (active_sym != NULL &&					\
+           active_sym->decl_scope == scope_number) {			\
+      prev_active_sym = active_sym;					\
+      active_sym = active_sym->next;					\
+    }  /* while */							\
+    lookup_state->curr_active_sym = active_sym;				\
+    lookup_state->prev_active_sym = prev_active_sym;			\
+  }
+
+  active_symbol_list = symbol_list_from_locator(*locator);
+  /* Work out from the innermost scope on the stack, and look at each
+     scope.  If the scope is a class reactivation or a template
+     instantiation, look on the inactive list for a symbol from that
+     scope.  Otherwise, search part of the active list to look for an
+     active symbol.  We maintain a pointer to the point in the active
+     list up to which we've searched.  This works because the symbols
+     on the active list are in order according to the scope they're in,
+     from innermost scope to outermost. */
+  lookup_state->prev_active_sym = NULL;
+  lookup_state->curr_active_sym = active_symbol_list;
+  for (curr_depth = depth_scope_stack;
+       curr_depth > start_depth; --curr_depth) {
+    skip_symbols_from_this_scope(curr_depth);
+  }  /* for */
+  check_assertion(curr_depth == start_depth);
+  /* Loop through the scope stack until we reach the scope indicated by
+     end_depth. */
+  for (;curr_depth > end_depth;) {
+    a_scope_stack_entry_ptr	ssep = &scope_stack[curr_depth];
+    a_scope_kind		kind = ssep->kind;
+#if DEBUG
+    if (debug_level >= 5 || db_flag_is_set("scope_stack_lookup")) {
+      fprintf(f_debug, "Doing lookup in ");
+      db_scope_stack_entry(ssep);
+    }  /* if */
+#endif /* DEBUG */
+    /* Clear the flag that indicates whether a projected symbol should be
+       sought. */
+    lookup_state->look_for_projected_symbol = FALSE;
+    if (kind == (a_scope_kind)sck_namespace_extension ||
+        kind == (a_scope_kind)sck_namespace_reactivation) {
+      /* If a namespace extension or reactivation scope is pushed while the
+         original namespace is still on the scope stack, the symbols will
+         be on the active list and not on the inactive lists.  For
+         purposes of name lookup, set the scope kind to sck_namespace if
+         the symbols are still on the active list. */
+      a_scope_pointers_block_ptr	spbp;
+      spbp = assoc_pointers_block_of(ssep);
+      if (!spbp->add_symbols_to_inactive_list) {
+        kind = (a_scope_kind)sck_namespace;
+      }  /* if */
+    }  /* if */
+    if (kind == (a_scope_kind)sck_class_reactivation ||
+        kind == (a_scope_kind)sck_namespace_extension ||
+        kind == (a_scope_kind)sck_namespace_reactivation ||
+        kind == (a_scope_kind)sck_template_instantiation) {
+      sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
+    } else if (kind == (a_scope_kind)sck_pragma) {
+      /* We have found a pragma scope -- ignore symbols in this scope. */
+      skip_symbols_from_this_scope(curr_depth);
+    } else if (kind == (a_scope_kind)sck_class_struct_union &&
+               lookup_state->skip_class_scopes) {
+      /* This is a class scope and we are skipping class scopes. */
+      skip_symbols_from_this_scope(curr_depth);
+    } else {
+      /* Not a class reactivation or a template instantiation,
+         i.e., normal scope.  Search through any symbols on the front
+         of the active list that are from the associated scope, and see
+         if any one is the symbol desired. */
+      sym = active_scope_lookup(kind, ssep, locator, lookup_state);
+    }  /* if */
+    /* For class and class reactivation scopes, when the symbol is not
+       found, see if there is a projection of some symbol into the
+       scope. */
+    if (lookup_state->look_for_projected_symbol) {
+      a_boolean	end_lookup = FALSE;
+      sym = look_for_projected_symbol(ssep, locator, lookup_state,
+                                      &end_lookup);
+      if (end_lookup) break;
+    }  /* if */
+    if (sym != NULL) break;
+    if (lookup_state->is_linkage_lookup) {
+      /* When doing a linkage lookup, stop when we encounter the first
+         namespace scope. */
+      if (kind == (a_scope_kind)sck_namespace ||
+          kind == (a_scope_kind)sck_namespace_extension) break;
+    }  /* if */
+    if (cfront_2_1_mode && kind == (a_scope_kind)sck_function) {
+      /* In cfront compatibility mode friend functions defined within
+         a class ignore the innermost class reactivation scope.
+         If this is a friend function, set a flag that will cause
+         the innermost class reactivation scope to be ignored.  This
+         is a cfront 2.1 problem that appears to have been fixed in
+         cfront 3.0. */
+      if (!ssep->assoc_routine->source_corresp.is_class_member) {
+        /* Not a member function. */
+        lookup_state->skip_first_class_reactivation = TRUE;
+      }  /* if */
+    }  /* if */
+    if (kind == (a_scope_kind)sck_template_instantiation &&
+        !ssep->nested_instantiation) {
+      /* We have reached a template instantiation scope and have not
+         yet found the symbol we are looking for.  Do the special
+         template lookup that considers symbols from both the
+         defining and referencing context. */
+      if (ssep->instantiation_context_scope !=
+                                          ssep->instantiation_common_scope) {
+        /* Only do the special lookup if the context scope is different
+           from the current scope.  If they are the same, just keep
+           going back through the scopes. */
+        sym = instantiation_context_lookup(ssep, locator, lookup_state);
+        break;
+      }  /* if */
+    }  /* if */
+    if (ssep->previous_scope != curr_depth-1) {
+      /* Typically, the lookup starts in the innermost scope and proceeds
+         outward one scope at a time.  The sequence of processing is
+         different when there are template instantiation scopes on the
+         stack.  Skip over the scopes from the next scope to the one
+         just before the scope indicated to be the previous scope.
+         If the ending scope for this particular lookup is found
+         during this process, exit the loop. */
+      for (--curr_depth; curr_depth > ssep->previous_scope; --curr_depth) {
+        if (curr_depth == end_depth) break;
+        skip_symbols_from_this_scope(curr_depth);
+      }  /* for */
+      check_assertion(curr_depth == ssep->previous_scope);
+    } else {
+      /* The previous scope is the next on on the scope stack. */
+      curr_depth = ssep->previous_scope;
+    }  /* if */
+  }  /* for */
+  return sym;
+#undef skip_symbols_from_this_scope
+}  /* scope_stack_lookup */
+
+
+static
+a_symbol_ptr merge_instantiation_lookup_symbols(
+					a_symbol_ptr		ref_sym,
+					a_symbol_ptr		def_sym,
+					a_symbol_locator	*locator,
+					a_lookup_state_ptr	lookup_state)
+/*
+Given the symbols that resulted from the two instantiation context lookups,
+create a synthesized projection symbol that represents the merged
+information from the two symbols.  ref_sym and def_sym are the
+symbols from the referencing and defining contexts, respectively.
+But if the name is found in the context that is common between them,
+it is arbitrarily assigned to one of them.
+
+locator is the symbol locator for the name being looked up.
+lookup_state is used to pass state information between the various routines
+that do normal id lookup processing.
+*/
+{
+  a_symbol_ptr			sym = NULL;
+  an_id_lookup_options_set	options;
+  a_boolean			any_errors = FALSE;
+
+  /* Add a bit to the options set that indicates that the synthesized
+     namespace projection symbol being created is for a template
+     context lookup. */
+  options = lookup_state->options | IDL_INSTANTIATION_CONTEXT;
+  /* Look for an existing synthesized namespace projection symbol
+     from a previous lookup that can be reused. */
+  sym = find_synthesized_projection_symbol(locator, options,
+                                          /*qualified_lookup=*/FALSE,
+                                          (a_namespace_ptr)NULL);
+  /* Add the first symbol to an existing lookup set.  Note that
+     sym may be NULL at this point. */
+  sym = add_symbol_to_lookup_set(sym, ref_sym, locator,
+                                 /*qualified_lookup=*/FALSE,
+                                 (a_namespace_ptr)NULL, options,
+                                 &any_errors);
+  if (!any_errors) {
+    /* Add the second symbol to the set. */
+    sym = add_symbol_to_lookup_set(sym, def_sym, locator,
+                                   /*qualified_lookup=*/FALSE,
+                                   (a_namespace_ptr)NULL, options,
+                                   &any_errors);
+  }  /* if */
+  return sym;
+}  /* merge_instantiation_lookup_symbols */
+
+
+static
+a_symbol_ptr instantiation_context_lookup(
+				a_scope_stack_entry_ptr		ssep,
+	                        a_symbol_locator	    	*locator,
+                                a_lookup_state_ptr	    	lookup_state)
+/*
+When a normal lookup reaches passes reaches an instantiation scope and,
+after considering the template parameters, still has not found a symbol,
+the context of the instantiation must be considered.  The context
+has two components: the definition context (where the template was
+declared or defined) and the referencing context (the namespace containing
+the reference that caused the instantiation).
+
+The symbol may be found in one or both of the contexts.  If the symbol is
+found in both contexts, both instances must be functions.
+
+The two lookups are done by calling scope_stack_lookup with the
+appropriate set of starting and ending scopes.  The ending scopes
+specified will result in all scopes having been considered up to
+a "common" scope at which the two lookup paths come back together.
+The two lookups could result in zero, one, or two symbols being found.
+If no symbols are found, the search resumes from the common scope.
+If one symbols is found, the search also begins with the common
+scope but any symbol found from the common search is used as the
+"second" symbol (i.e., the one for which no symbol was found
+in the defining/referencing searches).  If two symbols are found,
+either from the defining/referencing search or as a result of
+finding one in the defining/referencing search and one in the
+common search, the to symbols are merged and result in either
+an overload set or an ambiguous symbol.
+
+ssep is a pointer to the scope stack entry for the template instantiation
+scope.  locator is the symbol locator for the name being looked up.
+lookup_state is used to pass state information between the various routines
+that do normal id lookup processing.
+*/
+{
+  a_scope_depth		common_depth = ssep->instantiation_common_scope;
+  a_scope_depth		def_start = ssep->previous_scope;
+  a_scope_depth		ref_start = ssep->instantiation_context_scope;
+  a_symbol_ptr		def_sym;
+  a_symbol_ptr		ref_sym;
+  a_symbol_ptr		sym = NULL;
+
+#if DEBUG
+  if (debug_level >= 5 || db_flag_is_set("instantiation_lookup")) {
+    fprintf(f_debug,
+            "doing instantiation lookup: def_start=%0d, ref_start=%0d, ",
+            def_start, ref_start);
+    fprintf(f_debug, "common=%0d\n", common_depth);
+  }  /* if */
+#endif /* DEBUG */
+  def_sym = scope_stack_lookup(locator, lookup_state, def_start, common_depth);
+  ref_sym = scope_stack_lookup(locator, lookup_state, ref_start, common_depth);
+  if (ref_sym == NULL || def_sym == NULL) {
+    /* One of the lookups did not find a symbol.  Do the lookup of
+       the common scopes. */
+    a_symbol_ptr	common_sym;
+    common_sym = scope_stack_lookup(locator, lookup_state, common_depth,
+                                    NO_SCOPE_DEPTH);
+    /* Assign the common symbol to whichever of the previous lookups that
+       did not produce a symbol.  If both were NULL, arbitrarily use the
+       common symbol as the defining context symbol. */
+    if (def_sym == NULL) {
+      def_sym = common_sym;
+    } else {
+      ref_sym = common_sym;
+    }  /* if */
+  }  /* if */
+  if (ref_sym != NULL && def_sym != NULL) {
+    /* Both symbols are present.  Merge the results. */
+    sym = merge_instantiation_lookup_symbols(ref_sym, def_sym, locator,
+                                             lookup_state);
+  } else if (ref_sym != NULL) {
+    /* Only ref_sym is non-NULL. Return that value. */
+    sym = ref_sym;
+  } else if (def_sym != NULL) {
+    /* Only def_sym is non-NULL. Return that value. */
+    sym = def_sym;
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 5 || db_flag_is_set("instantiation_lookup")) {
+    fprintf(f_debug, "instantiation lookup: ");
+    if (sym == NULL) {
+      fprintf(f_debug, "<NULL>\n");
+    } else {
+      db_symbol(sym, "", 4);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  return sym;
+}  /* instantiation_context_lookup */
+
+
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                               an_id_lookup_options_set options)
 /*
@@ -7474,48 +8135,17 @@ fundamental symbol pointer is returned.  This routine is used in both
 C and C++.
 */
 {
-  a_symbol_ptr            sym, inactive_sym, inactive_symbol_list;
-  a_symbol_ptr            active_symbol_list, active_sym, prev_active_sym;
-  a_symbol_ptr            insert_sym, tag_symbol;
+  a_symbol_ptr            sym, inactive_symbol_list;
+  a_symbol_ptr            active_symbol_list;
   a_scope_stack_entry_ptr ssep;
-  a_boolean               must_be_class_or_namespace
-                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
-  a_boolean               must_be_tag   = (options & IDL_MUST_BE_TAG);
-  a_boolean		  skip_curr_function_scope =
-                                      (options & IDL_SKIP_CURR_FUNCTION_SCOPE);
-  a_boolean		  skip_class_scopes = 
-                                      (options & IDL_SKIP_CLASS_SCOPES);
-  a_boolean		  is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP);
-  a_boolean		  first_scope;
-  a_boolean               must_be_type_name;
-  a_boolean               look_for_projected_symbol = FALSE;
-  a_boolean               add_to_active_list;
-  a_name_space_kind       required_name_space_kind =
-                            (C_dialect != C_dialect_cplusplus && must_be_tag) ?
-                                                           nsk_tag : nsk_other;
-#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
-  a_boolean		  projection_symbol_found = FALSE;
-#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
-  a_boolean		  skip_first_class_reactivation_scope = FALSE;
-  a_boolean		  any_nonreal_bases = FALSE;
-  a_type_ptr		  class_with_nonreal_base;
   a_boolean		  force_slow_lookup = FALSE;
 
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
 #define is_acceptable_active_symbol(sym, fund_sym)                           \
-  (name_space_for_symbol_kind[(int)sym->kind] == required_name_space_kind && \
-   is_acceptable_symbol(sym, fund_sym))
-
-/* Local macro that skips over any symbols on the active list that are
-   associated with the current scope. */
-#define skip_symbols_from_this_scope()					\
-  {									\
-    while (active_sym != NULL &&					\
-           active_sym->decl_scope == ssep->number) {			\
-      active_sym = active_sym->next;					\
-    }  /* while */							\
-  }
+  (name_space_for_symbol_kind[(int)sym->kind] ==			     \
+                                    lookup_state.required_name_space_kind && \
+   is_acceptable_symbol(sym, fund_sym, lookup_state))
 
   db_enter(4, "normal_id_lookup");
 
@@ -7527,6 +8157,28 @@ C and C++.
        found). */
     sym = NULL;
   } else {
+    /* Initialize the lookup state information used to pass information
+       about this lookup between the various routines used to do the
+       lookup. */
+    a_lookup_state	lookup_state;
+    clear_lookup_state(lookup_state);
+    lookup_state.must_be_class_or_namespace =
+                               (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
+    lookup_state.must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
+    lookup_state.tentative_type_lookup =
+                                    (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
+    lookup_state.is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
+    lookup_state.skip_curr_function_scope =
+                                 (options & IDL_SKIP_CURR_FUNCTION_SCOPE) != 0;
+    lookup_state.skip_class_scopes = (options & IDL_SKIP_CLASS_SCOPES) != 0;
+    /* If any instantiation scopes are active we will need to check for
+       the presence of nonreal base classes. */
+    lookup_state.check_for_nonreal_bases =
+                         depth_innermost_instantiation_scope != NO_SCOPE_DEPTH;
+    if (C_mode() && lookup_state.must_be_tag) {
+      lookup_state.required_name_space_kind = nsk_tag;
+    }  /* if */
+    lookup_state.options = options;
     /* We must search for the symbol. */
     /* We have two search algorithms: the first is the C algorithm, which
        is fast; it just searches the active list.  The second is the C++
@@ -7561,14 +8213,15 @@ C and C++.
 #if CHECKING
     /* IDL_SKIP_CURR_FUNCTION_SCOPE must only be used when the top scope
        entry is for a function. */
-    if (skip_curr_function_scope) {
+    if (lookup_state.skip_curr_function_scope) {
       if (ssep->kind != (a_scope_kind)sck_function) {
         internal_error("normal_id_lookup: skip_curr_function_scope error");
       }  /* if */
     }  /* if */
 #endif /* CHECKING */
-    force_slow_lookup = skip_curr_function_scope || skip_class_scopes ||
-                        is_linkage_lookup;
+    force_slow_lookup = lookup_state.skip_curr_function_scope ||
+                        lookup_state.skip_class_scopes ||
+                        lookup_state.is_linkage_lookup;
     if (C_dialect != C_dialect_cplusplus ||
         ((inactive_symbol_list == NULL ||
           !ssep->inactive_symbols_may_be_visible) &&
@@ -7586,251 +8239,15 @@ C and C++.
     } else {
       /* There are inactive symbols and they may be visible, so the more
          complicated search is required. */
-      a_boolean			check_for_nonreal_bases;
 #if DEBUG
       num_slow_id_lookups++;
 #endif /* DEBUG */
-      /* Work out from the innermost scope on the stack, and look at each
-         scope.  If the scope is a class reactivation or a template
-         instantiation, look on the inactive list for a symbol from that
-         scope.  Otherwise, search part of the active list to look for an
-         active symbol.  We maintain a pointer to the point in the active
-         list up to which we've searched.  This works because the symbols
-         on the active list are in order according to the scope they're in,
-         from innermost scope to outermost. */
-      prev_active_sym = NULL;
-      active_sym = active_symbol_list;
-      /* If any instantiation scopes are active we will need to check for
-         the presence of nonreal base classes. */
-      check_for_nonreal_bases =
-                       depth_innermost_instantiation_scope != NO_SCOPE_DEPTH;
-      /* Since there is a class or class reactivation on the stack, we know the
-         stack has at least two entries (the file scope and the class or
-         class reactivation). */
-      for (first_scope = TRUE;; first_scope = FALSE) {
-        a_scope_kind	kind = ssep->kind;
-        if (kind == (a_scope_kind)sck_namespace_extension ||
-            kind == (a_scope_kind)sck_namespace_reactivation) {
-          /* If a namespace extension or reactivation scope is pushed while the
-             original namespace is still on the scope stack, the symbols will
-             be on the active list and not on the inactive lists.  For
-             purposes of name lookup, set the scope kind to sck_namespace if
-             the symbols are still on the active list. */
-          a_scope_pointers_block_ptr	spbp;
-          spbp = assoc_pointers_block_of(ssep);
-          if (!spbp->add_symbols_to_inactive_list) {
-            kind = (a_scope_kind)sck_namespace;
-          }  /* if */
-        }  /* if */
-        if (kind == (a_scope_kind)sck_class_reactivation ||
-            kind == (a_scope_kind)sck_namespace_extension ||
-            kind == (a_scope_kind)sck_namespace_reactivation ||
-	    kind == (a_scope_kind)sck_template_instantiation) {
-          if (cfront_2_1_mode &&
-              kind == (a_scope_kind)sck_class_reactivation &&
-              skip_first_class_reactivation_scope) {
-            /* This is used to skip class reactivation scopes when
-               processing friend declarations in cfront compatibility
-               mode.  Cfront ignores the innermost class reactivation
-               scope when processing friend functions. */
-            skip_first_class_reactivation_scope = FALSE;
-            goto next_scope;
-          }  /* if */
-          if (kind == (a_scope_kind)sck_class_reactivation &&
-              skip_class_scopes) {
-            /* This is a class scope and we are skipping class scopes. */
-            goto next_scope;
-          }  /* if */
-          /* Look on the inactive list for a symbol from this reactivated
-             scope. */
-          tag_symbol = NULL;
-          sym = NULL;
-          for (inactive_sym = inactive_symbol_list;
-               inactive_sym != NULL;
-               inactive_sym = inactive_sym->next) {
-            if (inactive_sym->decl_scope == ssep->number) {
-              a_symbol_ptr	fund_sym = fundamental_symbol_of(inactive_sym);
-              if (is_acceptable_symbol(inactive_sym, fund_sym)) {
-                /* Found a symbol. */
-                /* If this is a template parameter symbol that should not
-		   be visible then continue looking for another symbol. */
-	        if (inactive_sym->template_param_not_visible) continue;
-                /* If the symbol is a tag symbol and we're not required to find
-                   a tag symbol, there's the possibility that there is a
-                   non-type symbol in the same scope later in the list (because
-                   the inactive list is not ordered in any way).  Save the
-                   tag symbol and keep looking.  If nothing else turns up,
-                   use the tag symbol. */
-                if (is_tag_symbol(inactive_sym) && !must_be_tag) {
-                  tag_symbol = inactive_sym;
-                } else {
-                  /* Take the symbol. */
-                  sym = inactive_sym;
-                  break;
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }  /* for */
-          /* We reached the end of the list.  If there is a tag symbol saved
-             within the loop, use it. */
-          if (sym == NULL && tag_symbol != NULL) {
-            sym = tag_symbol;
-          }  /* if */
-          /* If this is a namespace scope, also look for any symbols that
-             are visible because of using directives. */
-          if ((kind == (a_scope_kind)sck_namespace_extension ||
-               kind == (a_scope_kind)sck_namespace_reactivation) &&
-              ssep->using_directives_apply) {
-            sym = do_using_directive_lookup(ssep, sym, locator, options);
-          }  /* if */
-          if (sym != NULL) goto end_lookup;
-	  if (kind == (a_scope_kind)sck_class_reactivation) {
-            /* There is no inactive symbol that is in this class. */
-            /* Look for a symbol projected (inherited) into this class. */
-            look_for_projected_symbol = TRUE;
-            add_to_active_list = FALSE;
-            insert_sym = NULL;
-          } else {
-            /* Not a class scope, so do not look for projected symbol. */
-            look_for_projected_symbol = FALSE;
-          }  /* if */
-	} else if (kind == (a_scope_kind)sck_pragma) {
-	  /* We have found a pragma scope -- ignore symbols in this scope. */
-          skip_symbols_from_this_scope();
-	  goto next_scope;
-        } else if (kind == (a_scope_kind)sck_class_struct_union &&
-                   skip_class_scopes) {
-          /* This is a class scope and we are skipping class scopes. */
-          skip_symbols_from_this_scope();
-          goto next_scope;
-        } else {
-          /* Not a class reactivation or a template instantiation,
-             i.e., normal scope.  Search through any symbols on the front
-             of the active list that are from the associated scope, and see
-             if any one is the symbol desired. */
-          sym = NULL;
-          for (;active_sym != NULL && active_sym->decl_scope == ssep->number;
-               prev_active_sym = active_sym, active_sym = active_sym->next) {
-            a_symbol_ptr	fund_sym = fundamental_symbol_of(active_sym);
-            if (first_scope && skip_curr_function_scope) {
-              /* IDL_SKIP_CURR_FUNCTION_SCOPE is being used.  Don't accept
-                 symbols from the first scope entry.  This is used when
-		 looking up names from the initializer list of a
-		 constructor declaration.  The constructor parameters
-		 must not be visible during this lookup. */
-            } else if (is_acceptable_active_symbol(active_sym, fund_sym)) {
-              /* Found a symbol.  Record whether this symbol was found
-                 at file scope.  If it was, we will later need to also
-                 check for symbols visible as a result of using
-                 directives. */
-              sym = active_sym;
-              break;
-            }  /* if */
-          }  /* for */
-          /* If this is a namespace scope or the file scope, also look for
-             any symbols that are visible because of using directives. */
-          if ((kind == (a_scope_kind)sck_file ||
-              kind == (a_scope_kind)sck_namespace) &&
-              ssep->using_directives_apply) {
-            sym = do_using_directive_lookup(ssep, sym, locator, options);
-          }  /* if */
-          if (sym != NULL) goto end_lookup;
-          if (kind == (a_scope_kind)sck_class_struct_union) {
-            /* For class scopes, look for a symbol projected (inherited)
-               into the class scope. */
-            look_for_projected_symbol = TRUE;
-            add_to_active_list = TRUE;
-            insert_sym = prev_active_sym;
-          } else {
-            /* Not a class scope, so do not look for projected symbol. */
-            look_for_projected_symbol = FALSE;
-          }  /* if */
-        }  /* if */
-        /* For class and class reactivation scopes, when the symbol is not
-           found, see if there is a projection of some symbol into the
-           scope. */
-        if (look_for_projected_symbol) {
-          must_be_type_name = (options & IDL_TENTATIVE_TYPE_LOOKUP);
-          if (find_projected_symbol(ssep->assoc_type, locator, must_be_tag,
-                                    must_be_type_name, add_to_active_list,
-                                    insert_sym, &sym)) {
-            if (sym == NULL) {
-              /* A symbol was found in a base class, but it was not returned
-                 (presumably because must_be_type_name was not satisfied).
-                 Don't continue looking. */
-#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
-	      projection_symbol_found = TRUE;
-#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
-              goto end_lookup;
-            } else {
-              /* A projection symbol was created.  It must still satisfy the
-                 constraints for this lookup. */
-              a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-              if (is_acceptable_symbol(sym, fund_sym)) goto end_lookup;
-              sym = NULL;
-            }  /* if */
-          } else {
-            if (check_for_nonreal_bases && !any_nonreal_bases) {
-              /* No projection symbol was found.  If the class has any
-                 nonreal base classes record this information for possible
-                 later use. */
-              class_with_nonreal_base = ssep->assoc_type;
-              any_nonreal_bases = symbol_supplement_for_class(ssep->assoc_type)
-                                                    ->any_nonreal_base_classes;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-next_scope:
-        /* End the loop when we reach the bottom of the scope stack. */
-        if (ssep == &scope_stack[DEPTH_OF_FILE_SCOPE]) break;
-        if (is_linkage_lookup) {
-          /* When doing a linkage lookup, stop when we encounter the first
-             namespace scope. */
-          if (kind == (a_scope_kind)sck_namespace ||
-              kind == (a_scope_kind)sck_namespace_extension) break;
-        }  /* if */
-        if (cfront_2_1_mode && kind == (a_scope_kind)sck_function) {
-          /* In cfront compatibility mode friend functions defined within
-             a class ignore the innermost class reactivation scope.
-             If this is a friend function, set a flag that will cause
-             the innermost class reactivation scope to be ignored.  This
-             is a cfront 2.1 problem that appears to have been fixed in
-             cfront 3.0. */
-          if (!ssep->assoc_routine->source_corresp.is_class_member) {
-            /* Not a member function. */
-            skip_first_class_reactivation_scope = TRUE;
-          }  /* if */
-        }  /* if */
-        /* If this scope is for a template instantiation or a pragma, ignore
-           the scopes between the file scope and the current instantiation
-           scope.  The only processing done on these scopes is to remove their
-           symbols from the active list so that when we reach the file
-           scope we are at the right point in the active list.  Within
-           an instantiation scope only file scope symbols, template
-           parameters, and symbols defined within the instantiation
-           should be visible.  If this is a nested instantiation (i.e.,
-           an instantiation of something defined within another template)
-	   then continue looking for names until the first nonnested
-	   instantiation is encountered. */
-        if (kind == (a_scope_kind)sck_template_instantiation &&
-	    !ssep->nested_instantiation) {
-          ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
-          /* Scan the active list until we find a file scope symbol.  We don't
-             need to worry about prev_active_sym because it is not used
-             for the file scope and there can be no scopes beyond the file
-             scope. */
-          while (active_sym != NULL &&
-                 active_sym->decl_scope != FILE_SCOPE_NUMBER) {
-            active_sym = active_sym->next;
-          }  /* while */
-        } else {
-          ssep--;
-        }  /* if */
-      }  /* for */
+      sym = scope_stack_lookup(locator, &lookup_state, depth_scope_stack,
+                               NO_SCOPE_DEPTH);
     }  /* if */
     /* If this is a linkage lookup, don't do the nested class anachronism
        lookup, or SVR4 mode lookup. */
-    if (!is_linkage_lookup) {
+    if (!lookup_state.is_linkage_lookup) {
       if (!C_mode()) {
         if (sym == NULL) {
           /* See if the nested class anachronism (ARM 18.3.5) yields a symbol.
@@ -7845,14 +8262,14 @@ next_scope:
           if (allow_anachronisms) sym = find_nested_type_symbol(locator);
           if (sym != NULL) {
             a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-            if (is_acceptable_symbol(sym, fund_sym)) {
+            if (is_acceptable_symbol(sym, fund_sym, lookup_state)) {
               locator->is_semivisible_nested_type = TRUE;
             } else {
               sym = NULL;
             }  /* if */
           }  /* if */
         }  /* if */
-        if (sym == NULL && any_nonreal_bases) {
+        if (sym == NULL && lookup_state.any_nonreal_bases) {
           /* If no symbol was found and one of the classes searched has
              a nonreal base class then consider the symbol to be a member
              of the class with the nonreal base class.  This will occur when
@@ -7862,8 +8279,9 @@ next_scope:
              prototype instantiation is done, which names will be in the
              classes used in the real instantiations.  Any name is accepted
              as a member of the class. */
-          sym = add_member_to_proxy_or_nonreal_class(class_with_nonreal_base,
-                                                     options, locator);
+          sym = add_member_to_proxy_or_nonreal_class
+                                      (lookup_state.class_with_nonreal_base,
+                                       options, locator);
         }  /* if */
       }  /* if */
       if (sym == NULL && C_dialect == C_dialect_ANSI && !strict_ansi_mode &&
@@ -7877,10 +8295,9 @@ next_scope:
         sym = find_out_of_scope_declaration(locator);
       }  /* if */
     }  /* if */
-end_lookup:
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
     if (cfront_2_1_mode &&
-        (sym != NULL || projection_symbol_found)) {
+        (sym != NULL || lookup_state.projection_symbol_found)) {
       /* Special case to emulate a cfront 2.1 bug.  See the comments
          in check_for_cfront_name_lookup_bug for more information.  The
          special case code is only executed when the symbol found is from
@@ -7908,7 +8325,7 @@ end_lookup:
 	     class of the same name can be used. */
           if (sym != NULL) {
             a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-            if (!is_acceptable_symbol(sym, fund_sym)) {
+            if (!is_acceptable_symbol(sym, fund_sym, lookup_state)) {
               sym = NULL;
             }  /* if */
           }  /* if */
@@ -8657,9 +9074,10 @@ type, that type is ignored by this routine.
       nlep_2 = symbol_supplement_for_class(type_2)->operator_lookup_namespaces;
     }  /* if */
   }  /* if */
-  /* See if there are any functions for this operator. */
+  /* See if there are any functions for this operator.  Don't do the
+     namespace-based operator lookup if namespaces are not enabled. */
   sym_hdr = opname_symbol_table[kind];
-  if (sym_hdr != NULL) {
+  if (sym_hdr != NULL && namespaces_enabled) {
     if (nlep_1 != NULL || nlep_2 != NULL) {
       /* Only look for symbols in the namespaces associated with type_1 and
          type_2 if they are classes (with namespace lists). */
@@ -8888,8 +9306,8 @@ starting_depth is the innermost scope to be processed.
 */
 {
   a_scope_stack_entry_ptr	ssep = &scope_stack[starting_depth];
-  a_scope_depth			curr_depth = starting_depth;
-  for (;;) {
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+    a_scope_depth			curr_depth = scope_depth_of(ssep);
     an_active_using_directive_ptr	audp = ssep->active_using_directives;
     /* Set the flag for any active using directives for this scope. */
     for (; audp != NULL; audp = audp->next) {
@@ -8918,20 +9336,6 @@ starting_depth is the innermost scope to be processed.
        indicates that there are using directives that must be processed
        when this scope is reached. */
     if (!set_value) ssep->using_directives_apply = FALSE;
-    /* Determine the next scope to be processed.  If this is an
-       instantiation scope (but not a nested instantiation) skip
-       directly to the file scope. */
-    if (ssep->kind == (a_scope_kind)sck_file) {
-      /* There are no more scopes to be processed. */
-      break;
-    } else if (ssep->kind == (a_scope_kind)sck_template_instantiation &&
-        !ssep->nested_instantiation) {
-      ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
-      curr_depth = DEPTH_OF_FILE_SCOPE;
-    } else {
-      ssep--;
-      curr_depth--;
-    }  /* if */
   }  /* for */
 }  /* set_active_using_list_scope_depths */
 
@@ -9065,7 +9469,6 @@ specific version of the template.
       break;
     case sck_namespace:
     case sck_namespace_extension:
-    case sck_namespace_reactivation:
       if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
         /* In a legal program we should already be in the file-scope memory
            region -- there must have been an error. */
@@ -9122,6 +9525,11 @@ specific version of the template.
          C++, no scope is ever allocated. */
       sp = NULL;
   }  /* switch */
+  if (sp != NULL && sp->depth_in_scope_stack == NO_SCOPE_DEPTH) {
+    /* Update the depth at which this scope is on the stack.  Only do this
+       if the scope is not already on the stack somewhere else. */
+    sp->depth_in_scope_stack = depth_scope_stack;
+  }  /* if */
   /* Fill in the fields of the scope entry. */
   ssep->kind                     = kind;
   ssep->current_access           = (an_access_specifier)as_public;
@@ -9139,6 +9547,7 @@ specific version of the template.
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;
+  ssep->assoc_namespace          = assoc_namespace;
   ssep->extern_type_fixup_list   = NULL;
   ssep->shareable_constants_list = NULL;
   ssep->last_routine_fixup       = NULL;
@@ -9188,9 +9597,18 @@ specific version of the template.
   ssep->depth_innermost_namespace_scope = depth_innermost_namespace_scope;
   ssep->num_of_extra_times_pushed = 0;;
   ssep->active_using_directives   = NULL;
+  ssep->previous_scope            = NO_SCOPE_DEPTH;
+  ssep->instantiation_context_scope
+                                   = NO_SCOPE_DEPTH;
+  ssep->instantiation_common_scope = NO_SCOPE_DEPTH;
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
+  if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+    /* By default, the previous scope is the one that precedes this one
+       on the scope stack.  This may be adjusted for instantiation scopes. */
+    ssep->previous_scope = depth_scope_stack - 1;
+  }  /* if */
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -9236,7 +9654,7 @@ specific version of the template.
       ssep->slow_lookup_required = TRUE;
     } else if (kind != (a_scope_kind)sck_file) {
       ssep->slow_lookup_required = (ssep-1)->slow_lookup_required;
-    }
+    }  /* if */
     if (kind == (a_scope_kind)sck_class_struct_union ||
         kind == (a_scope_kind)sck_class_reactivation) {
       /* Keep track of the number of classes and class reactivations. */
@@ -9574,6 +9992,104 @@ entry (for "extension-namespace-definitions").
 }  /* push_namespace_scope */
 
 
+static a_scope_depth find_depth_of_common_scope(a_namespace_ptr nsp)
+/*
+Find the innermost scope on the scope stack that is also either the
+namespace pointed to by nsp or is a parent of nsp.  Return the
+depth of the scope stack entry associated with the common scope or
+DEPTH_FILE_SCOPE if there is none.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = NULL;
+  a_scope_depth			common_depth;
+
+  for (; nsp != NULL; nsp = nsp->source_corresp.parent.namespace_ptr) {
+    a_scope_ptr	ns_scope = nsp->variant.assoc_scope;
+    if (ns_scope->depth_in_scope_stack == NO_SCOPE_DEPTH) {
+      /* The scope associated with this namespace is not on the scope stack.
+         Keep looking. */
+      continue;
+    }  /* if */
+    /* Even if the scope is on the stack, it could be invisible because of
+       an intervening instantiation scope.  Look for the namespace in the
+       currently visible scopes. */
+    for (ssep = &scope_stack[depth_innermost_namespace_scope];
+         ssep != NULL;
+         ssep = previous_scope_of(ssep)) {
+      if (ssep->il_scope == ns_scope) break;
+    }  /* for */
+    /* If we found a match, exit the loop. */
+    if (ssep != NULL) break;
+  }  /* for */
+  /* Return DEPTH_FILE_SCOPE if there is no common namespace scope. */
+  common_depth = ssep != NULL ? scope_depth_of(ssep) : DEPTH_OF_FILE_SCOPE;
+  return common_depth;
+}  /* find_depth_of_common_scope */
+
+
+
+
+static
+void push_namespace_extension_for_instantiation(a_namespace_ptr nsp,
+                                                a_namespace_ptr common_nsp,
+                                                a_scope_depth   prev_scope)
+/*
+Push namespace extension scopes needed to instantiate an entity defined
+in the namespace pointed to by nsp.  The scopes to be pushed are nsp
+and its parent scopes up to, but not including, the scope pointed to
+by common_nsp.  Link the previous scope entries so that prev_scope is
+the previous scope of the first scope pushed by this routine.
+*/
+{
+  a_namespace_ptr		parent_nsp;
+
+  /* The entry isn't on the stack.  Push any parent namespaces, then push
+     the specified namespace. */
+  parent_nsp = nsp->source_corresp.parent.namespace_ptr;
+  if (parent_nsp != NULL && parent_nsp != common_nsp) {
+    /* A namespace nested in another namespace.  Push the parent
+       namespace. */
+    push_namespace_extension_for_instantiation(parent_nsp, common_nsp,
+                                               prev_scope);
+    prev_scope = NO_SCOPE_DEPTH;
+  }  /* if */
+  /* Push an entry for the scope. */
+  (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
+  if (prev_scope != NO_SCOPE_DEPTH) {
+    /* For the first scope pushed by this routine (the one whose parent is
+       common_nsp), set the previous scope to the one passed from the
+       caller.  For subsequent scopes, prev_scope will have been changed to
+       NO_SCOPE_DEPTH above, so this assignment won't be done. */
+    scope_stack[depth_scope_stack].previous_scope = prev_scope;
+  }  /* if */
+}  /* push_namespace_extension_for_instantiation */
+
+
+static
+void pop_namespace_extension_for_instantiation(a_namespace_ptr common_nsp)
+/*
+Pop the namespace extension scopes that were pushed to create the
+context for an instantiation.  Pop the scopes up to and including the
+namespace extension scope whose parent is common_nsp.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_namespace_ptr		parent_nsp;
+
+  ssep = &scope_stack[depth_scope_stack];
+  check_assertion_str2(ssep->kind == (a_scope_kind)sck_namespace_extension,
+                       "pop_namespace_extension_for_instantiation:",
+                       "entry not namespace extension");
+  /* Pop the reactivation scope. */
+  parent_nsp = ssep->assoc_namespace->source_corresp.parent.namespace_ptr;
+  pop_scope();
+  if (parent_nsp != common_nsp) {
+    /* A nested namespace.  Pop the enclosing namespaces too. */
+    pop_namespace_extension_for_instantiation(common_nsp);
+  }  /* if */
+}  /* pop_namespace_extension_for_instantiation */
+
+
 a_scope_ptr push_template_instantiation_scope
                            (a_scope_number       scope_number_to_reuse,
                             a_type_ptr           assoc_type,
@@ -9587,17 +10103,73 @@ Interface to push_scope_full that is used for template instantiation
 scopes.
 */
 {
-  a_scope_ptr scope;
-  /* If the template was defined in a namespace, reactivate the namespace
-     scope before pushing the instantiation scope. */
-  if (!template_sym->is_class_member &&
-       template_sym->parent.namespace_ptr != NULL) {
-    push_namespace_extension_scope(template_sym->parent.namespace_ptr);
+  a_scope_ptr			scope;
+  a_namespace_ptr		parent_nsp;
+  a_scope_depth			common_depth;
+  a_namespace_ptr		common_nsp;
+  a_scope_depth			instantiation_prev_scope;
+  a_scope_stack_entry_ptr	ssep;
+  a_scope_depth			context_scope =
+                                              depth_innermost_namespace_scope;
+
+  /* A nested instantiation is one that occurs within an other instantiation
+     scope.  For example, a template friend defined inside a template class.
+     Only do the special namespace processing for the outer instantiation
+     scope. */
+  if (!nested_instantiation) {
+    /* If the template was defined in a namespace, reactivate the namespace
+       scope before pushing the instantiation scope. */
+    if (!template_sym->is_class_member &&
+         template_sym->parent.namespace_ptr != NULL) {
+      parent_nsp = template_sym->parent.namespace_ptr;
+      common_depth = find_depth_of_common_scope(parent_nsp);
+      common_nsp = scope_stack[common_depth].assoc_namespace;
+      if (common_nsp == parent_nsp) {
+        if (common_depth != depth_scope_stack) {
+          instantiation_prev_scope = common_depth;
+        } else {
+          instantiation_prev_scope = depth_scope_stack;
+        }  /* if */
+     } else {
+        /* Reactivate the scope from the common namespace scope through the
+           parent namespace of the template. */
+        push_namespace_extension_for_instantiation(parent_nsp, common_nsp,
+                                                   common_depth);
+        instantiation_prev_scope = depth_scope_stack;
+      }  /* if */
+    } else {
+      parent_nsp = NULL;
+      common_depth = DEPTH_OF_FILE_SCOPE;
+      common_nsp = NULL;
+      instantiation_prev_scope = DEPTH_OF_FILE_SCOPE;
+    }  /* if */
   }  /* if */
   scope = push_scope_full((a_scope_kind)sck_template_instantiation,
                           scope_number_to_reuse, assoc_type, assoc_routine,
                           (a_namespace_ptr)NULL, instance_sym, template_sym,
                           template_arg_list, nested_instantiation);
+  if (!nested_instantiation) {
+    ssep = &scope_stack[depth_scope_stack];
+    ssep->previous_scope = instantiation_prev_scope;
+    ssep->instantiation_context_scope = context_scope;
+    ssep->instantiation_common_scope = common_depth;
+    /* Update the depth of the innermost instantiation scope so that it points
+       to the namespace that is the parent of the template being
+       instantiated. */
+    depth_innermost_namespace_scope = instantiation_prev_scope;
+    check_assertion(scope_stack[instantiation_prev_scope].assoc_namespace ==
+                                                                   parent_nsp);
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
+      fprintf(f_debug, "Pushed instantiation scope for: ");
+      db_symbol(instance_sym, "", 0);
+      fprintf(f_debug, "scope stack after instantiation scope:\n");
+      db_scope_stack();
+      fprintf(f_debug, "context_scope=%0d, common_scope=%0d\n", context_scope,
+              common_depth);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
   return scope;
 }  /* push_template_instantiation_scope */
 
@@ -9609,17 +10181,24 @@ Interface to pop_scope that is used for template instantiation scopes.
 {
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
   a_symbol_ptr			template_sym;
+  a_namespace_ptr		common_nsp;
+  a_namespace_ptr		parent_nsp;
+
   check_assertion_str2(ssep->kind == (a_scope_kind)sck_template_instantiation,
                        "pop_template_instantiation_scope:",
                        "current scope is not instantiation scope");
   template_sym = ssep->template_sym;
+  common_nsp = scope_stack[ssep->instantiation_common_scope].assoc_namespace;
   /* Pop the actual template instantiation scope. */
   pop_scope();
   /* If the template was defined in a namespace, reactivate the namespace
      scope before pushing the instantiation scope. */
   if (!template_sym->is_class_member &&
        template_sym->parent.namespace_ptr != NULL) {
-    pop_namespace_extension_scope();
+    parent_nsp = template_sym->parent.namespace_ptr;
+    if (common_nsp != parent_nsp) {
+      pop_namespace_extension_for_instantiation(common_nsp);
+    }  /* if */
   }  /* if */
 }  /* pop_template_instantiation_scope */
 
@@ -10518,7 +11097,8 @@ End a name scope by popping an entry off the scope stack.
   /* Determine whether types defined in this scope should be handled
      as semivisible types.  Template classes and classes nested within
      template classes do not have this processing done. */
-  if (allow_anachronisms) {
+  if (allow_anachronisms &&
+      depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
     a_boolean do_semivisible_type_processing = TRUE;
     /* Loop back through the scope stack until we find a scope that is
        not a class_struct_union scope or until we find a class_struct_union
@@ -10966,7 +11546,6 @@ This routine is called only in C++.
 }  /* pop_namespace_extension_scope */
 
 
-
 void push_namespace_reactivation_scope(a_namespace_ptr nsp)
 /*
 Push one or more scopes that will reactivate the indicated namespace.
@@ -11028,8 +11607,7 @@ This routine is called only in C++.
     ssep->num_of_extra_times_pushed--;
   } else {
     /* Pop the reactivation scope. */
-    parent_nsp = ssep->il_scope->variant.assoc_namespace->
-                                           source_corresp.parent.namespace_ptr;
+    parent_nsp = ssep->assoc_namespace->source_corresp.parent.namespace_ptr;
     pop_scope();
     if (parent_nsp != NULL) {
       /* A nested namespace.  Pop the enclosing namespaces too. */
@@ -11953,6 +12531,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.must_be_tag_lookup                = FALSE;
   cleared_symbol.do_not_reuse                      = FALSE;
   cleared_symbol.ambiguous                         = FALSE;
+  init_cleared_lookup_state();
   /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {

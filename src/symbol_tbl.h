@@ -99,6 +99,10 @@ typedef int an_id_lookup_options_set;
 #define IDL_SKIP_CLASS_SCOPES 0x100
 				/* Causes class and class reactivation scopes
 				   to be ignored. */
+#define IDL_INSTANTIATION_CONTEXT 0x200
+				/* Used within normal_id_lookup to create
+				   synthesized namespace projection symbols
+				   for instantiation context lookups. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
@@ -109,6 +113,7 @@ reused later.
 #define is_reusable_using_directive_lookup(option)			\
   ((options & ~(IDL_MUST_BE_TAG |					\
                 IDL_MUST_BE_CLASS_OR_NAMESPACE |			\
+		IDL_INSTANTIATION_CONTEXT |				\
                 IDL_TENTATIVE_TYPE_LOOKUP |				\
                 IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) == 0)
 
@@ -1553,6 +1558,10 @@ typedef struct a_symbol {
 			/* TRUE for synthesized namespace symbols generated
 			   as a result of a special lookup that cannot be
 			   reused by a subsequent lookup. */
+  a_bit_field	instantiation_context_lookup:1;
+			/* TRUE for synthesized namespace projection symbols
+			   that are generated as a result of an instantiation
+			   context lookup. */
   a_bit_field	ambiguous:1;
 			/* TRUE if the symbol name is ambiguous in
 			   the current scope, i.e., another symbol with the
@@ -2068,6 +2077,11 @@ typedef struct a_scope_stack_entry {
 			   sck_template_instantiation for a function
 			   instantiation, this points to the routine
 			   whose scope this is. */
+  a_namespace_ptr
+		assoc_namespace;
+			/* When kind == sck_namespace, sck_namespace_extension,
+			   or sck_namespace_reactivation, this points to the
+			   namespace. */
   an_extern_type_fixup_ptr
 		extern_type_fixup_list;
 			/* List of types of variables and routines to be
@@ -2292,6 +2306,22 @@ typedef struct a_scope_stack_entry {
 			/* Linked list of entries representing the
 			   using-directives currently active in the current
 			   scope; NULL if none. */
+  a_scope_depth	previous_scope;
+			/* Scope depth of the scope that logically precedes
+			   the current one.  This allows scopes on the stack
+			   to be skipped over for name lookup and other
+			   purposes.  This is primarily used to hide certain
+			   scopes during template instantiation. */
+  a_scope_depth	instantiation_context_scope;
+			/* Present only for template instantiation scopes.
+			   Contains the scope depth of the innermost
+			   namespace scope at the point that the instantiation
+			   was initiated. */
+  a_scope_depth	instantiation_common_scope;
+			/* Present only for template instantiation scopes.
+			   Contains the scope depth of the scope that is
+			   part of both the template definition context and
+			   the context at the point of instantiation. */
 } a_scope_stack_entry;
 
 
@@ -2304,6 +2334,24 @@ assoc_pointers_block field in the scope stack entry).
 #define assoc_pointers_block_of(ssep)                                    \
   ((ssep)->assoc_pointers_block == NULL ?                                \
      &((ssep)->pointers_block) : (ssep)->assoc_pointers_block)
+
+/*
+Given a pointer to a scope stack entry, return the address of the previous
+scope stack entry according to the previous_scope field.  Return NULL if there
+is no previous scope.
+*/
+#define previous_scope_of(ssep)						\
+  ((ssep)->previous_scope == NO_SCOPE_DEPTH				\
+                                ? NULL : &scope_stack[(ssep)->previous_scope])
+
+
+/*
+Given a pointer to a scope stack entry, return the scope depth.  If the
+pointer is NULL, return NO_SCOPE_DEPTH.
+*/
+#define scope_depth_of(ssep)						\
+  ((ssep) == NULL ? NO_SCOPE_DEPTH : (ssep - &scope_stack[0]))
+
 
 
 EXTERN a_scope_stack_entry_ptr
