@@ -2015,6 +2015,10 @@ function get_initializer does all the hard work.
       *dip = compound_constant->variant.dynamic_init;
     }  /* if */
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Record the position of the closing brace. */
+  curr_construct_end_position = info.init_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* scan_compound_literal_initializer */
 
 
