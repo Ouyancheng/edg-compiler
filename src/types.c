@@ -2147,43 +2147,36 @@ not compared.  flags is a set of bit flags that modify the comparison.
      /* Both parameter lists are old-style -- in C mode they are compatible. */
     compatible = TRUE;
   } else {
-    if (C_mode()) {
-      /* If either function has a new-style parameter list, the individual
-         parameter types must be compatible.  See the C standard, 3.5.4.3. */
-      if (!list2_prototyped) {
-        /* List2 is an old-style param list -- it must be that list1 is
-           prototyped. */
-        if (!rtsp2->old_style_params_scanned) {
-          /* We are comparing a prototyped parameter list (list1) with an
-             old-style list, but there is no parameter information as yet for
-             the second one.  The prototyped parameter list from the first
-             type is used, but each type will be compared with a promoted
-             version of itself. */
-          list2 = list1;
-        }  /* if */
-      } else if (!list1_prototyped) {
-        /* It is list1 that is the old-style param list and list2 is
-           prototyped. Reverse them, since the processing that follows
-           assumes that the old-style list, if there is one, is the second. */
-        list1 = list2;
-        list1_prototyped = TRUE;
-        if (!rtsp1->old_style_params_scanned) {
-          /* Leave list2 unchanged (i.e., the same as what list1 now is), since
-             the param type comparison will be of the unpromoted types on list1
-             and the promoted versions of the same types, from list2. */
-        } else {
-          /* Ordinary case -- the two lists are swapped. */
-          list2 = rtsp1->param_type_list;
-        }  /* if */
-        list2_prototyped = FALSE;
+    /* If either function has a new-style parameter list, the individual
+       parameter types must be compatible.  See the C standard, 3.5.4.3. */
+    /* This doesn't ordinarily come up in C++ mode, but it can come up when
+       comparing lowered types, e.g., in the il_to_str routines. */
+    if (!list2_prototyped) {
+      /* List2 is an old-style param list -- it must be that list1 is
+         prototyped. */
+      if (!rtsp2->old_style_params_scanned) {
+        /* We are comparing a prototyped parameter list (list1) with an
+           old-style list, but there is no parameter information as yet for
+           the second one.  The prototyped parameter list from the first
+           type is used, but each type will be compared with a promoted
+           version of itself. */
+        list2 = list1;
       }  /* if */
-#if CHECKING
-    } else {
-      /* C++ mode. */
-      check_assertion_str2(list1_prototyped && list2_prototyped,
-                           "param_types_are_compatible:",
-                           "unprototyped routine type");
-#endif /* CHECKING */
+    } else if (!list1_prototyped) {
+      /* It is list1 that is the old-style param list and list2 is
+         prototyped. Reverse them, since the processing that follows
+         assumes that the old-style list, if there is one, is the second. */
+      list1 = list2;
+      list1_prototyped = TRUE;
+      if (!rtsp1->old_style_params_scanned) {
+        /* Leave list2 unchanged (i.e., the same as what list1 now is), since
+           the param type comparison will be of the unpromoted types on list1
+           and the promoted versions of the same types, from list2. */
+      } else {
+        /* Ordinary case -- the two lists are swapped. */
+        list2 = rtsp1->param_type_list;
+      }  /* if */
+      list2_prototyped = FALSE;
     }  /* if */
     /* Compare the types of the parameters on the two lists. */
     for (; list1 != NULL && list2 != NULL;
