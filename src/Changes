@@ -1,23 +1,27 @@
 Version 2.31
 
+1/17/96   Diagnostic on unrecognized preprocessor keyword in skipped code
+
+The warning previously issued on an unrecognized preprocessor keyword
+within a section of the source that is being skipped (e.g., within a
+#if <FALSE> section) is now issued only in strict ANSI mode.
+
 1/17/96   Removing instantiation flags from object files
 
-Sometimes, such as when building a library, it is desirable to
-remove the instantiation flags (e.g., __TIR__ and __CBI__) from
-the object files being used.  If there are a large number of
-these flags, they can inflate the size of the library and of
-executables that are linked with the library.  One solution is
-to simply compile the object files that comprise the library
-with the --no_auto_instantiation option.  This doesn't work,
+Sometimes, such as when building a library, it is desirable to remove the
+instantiation flags (e.g., __TIR__ and __CBI__) from the object files being
+used.  If there are a large number of these flags, they can inflate the
+size of the library and of executables that are linked with the library.
+One solution is to simply compile the object files that comprise the
+library with the --no_auto_instantiation option.  This doesn't work,
 however, if the prelinker is to be used to generate the instantiations
-needed by the library.  To solve this problem a new option has been
-added to the eccp script (see the utility Changes file) that is used
-to prelink a collection of object files.  Another eccp option has been
-added to request that, after prelinking is complete, the
-object files be rebuilt to remove the instantiation flags.
-A new option (--suppress_instantiation_flags) has been added to
-the front end to support this driver feature.  This option causes
-the .ii file to be processed, but causes the generation of the
+needed by the library.  To solve this problem a new option has been added
+to the eccp script (see the utility Changes file) that is used to prelink a
+collection of object files.  Another eccp option has been added to request
+that, after prelinking is complete, the object files be rebuilt to remove
+the instantiation flags.  A new option (--suppress_instantiation_flags) has
+been added to the front end to support this driver feature.  This option
+causes the .ii file to be processed, but causes the generation of the
 instantiation flags to be suppressed.
 
 1/17/96   __vec_cctor_eh
@@ -50,9 +54,9 @@ creation of a temporary that must be destroyed.
 
 1/16/96   Address of register variable allowed in C mode
 
-The address of a register variable may now be taken in C mode (except
-in strict error mode).  A warning is issued.  Formerly, this was
-only permitted in SVR4 C mode.
+The address of a register variable may now be taken in C mode (except in
+strict error mode).  A warning is issued.  Formerly, this was only
+permitted in SVR4 C mode.
 
 1/16/96   ANSI preprocessing operators accepted in PCC preprocessing mode
 
