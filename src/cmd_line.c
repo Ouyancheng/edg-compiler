@@ -496,6 +496,18 @@ unknown_option:
         str_command_line_error("invalid option: ", optarg);
     }  /* switch */
   }  /* while */
+  /* Check for the use of C++ options when the dialect being compiled
+     is not C++. */
+  if (C_dialect != C_dialect_cplusplus) {
+    if (allow_anachronisms != DEFAULT_ALLOW_ANACHRONISMS) {
+      command_line_error
+        ("Anachronism option (-O) can only be used when compiling C++");
+    }  /* if */
+    if (suppress_virtual_function_table_definition) {
+      command_line_error
+        ("Suppress vtbl option (-V) can only be used when compiling C++");
+    }  /* if */
+  }  /* if */
   if (strict_ansi_mode) {
     /* Strict ANSI mode is incompatible with K&R/pcc mode. */
     if (C_dialect == C_dialect_pcc) {
@@ -520,18 +532,6 @@ unknown_option:
        error threshold was set at a higher level. */
     if ((int)error_threshold > (int)strict_ansi_error_severity) {
       error_threshold = strict_ansi_error_severity;
-    }  /* if */
-  }  /* if */
-  /* Check for the use of C++ options in when the dialect being compiled
-     is not C++. */
-  if (C_dialect != C_dialect_cplusplus) {
-    if (allow_anachronisms != DEFAULT_ALLOW_ANACHRONISMS) {
-      command_line_error
-        ("Anachronism option (-O) can only be used when compiling C++");
-    }  /* if */
-    if (suppress_virtual_function_table_definition) {
-      command_line_error
-        ("Suppress vtbl option (-V) can only be used when compiling C++");
     }  /* if */
   }  /* if */
   /* Determine the appropriate error level for anachronism messages based
