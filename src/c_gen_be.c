@@ -99,9 +99,11 @@ static a_boolean
 /* Seed for module-unique names, which is input file name and current
    date/time in identifier form. */
 static char	*module_id, *module_init_id;
+#ifdef FFE
 /* Current scope when processing a routine. */
 static a_scope_ptr
 		curr_scope;
+#endif /* ifdef FFE */
 #ifdef CFE
 static a_boolean
 		file_scope_init_routine_called;
@@ -8572,7 +8574,10 @@ routine has a body (dump nothing if it has no body).
        names. */
     read_memory_region(routine->assoc_scope);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-    curr_scope = scope = il_header.region_scope_entry[routine->assoc_scope];
+    scope = il_header.region_scope_entry[routine->assoc_scope];
+#ifdef FFE
+    curr_scope = scope;
+#endif /* ifdef FFE */
 #if CHECKING
     if (scope == NULL) internal_error("dump_routine: scope is NULL");
 #endif /* CHECKING */
@@ -8892,8 +8897,8 @@ Generate old-style (K&R/pcc) C from the intermediate language.
   in_comment = FALSE;
   annotate = db_active;
 #endif /* INCLUDE_ANNOTATIONS */
-  curr_scope = NULL;
 #ifdef FFE
+  curr_scope = NULL;
   curr_function_result_var = NULL;
   curr_statement_function = NULL;
   curr_stmt_func_call_node = NULL;
