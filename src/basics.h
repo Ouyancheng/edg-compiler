@@ -217,15 +217,23 @@ EXTERN_C int bzero(char *, int);
 #if __ANSIC__
 #include <limits.h>
 #include <stddef.h>
-/* Use sizeof_t for size_t because size_t appears in <sys/types.h> on
-   some UNIX systems. */
+/* sizeof_t is used instead of size_t within the front end.  It is the same
+   as size_t except on systems where that is too small, e.g., it's 16 bits.
+   size_t_arg is used to pass standard library arguments that used to be
+   int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
+#if !__MSC__
 typedef size_t	sizeof_t;
+#define size_t_arg(arg) ((size_t)(arg))
+#else /* __MSC__ */
+/* Microsoft C has a 16-bit size_t, so use unsigned long. */
+typedef unsigned long sizeof_t;
+/* size_t_arg uses a function so it can check for truncation. */
+#define size_t_arg(arg) (f_size_t_arg((sizeof_t)(arg)))
+#define NEED_F_SIZE_T_ARG 1
+#endif /* !__MSC__ */
 /* Use a_ptrdiff for ptrdiff_t because ptrdiff_t appears in <sys/types.h> on
    some UNIX systems. */
 typedef ptrdiff_t a_ptrdiff;
-/* Macro used to pass standard library arguments that used to be
-   int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
-#define size_t_arg(arg) ((size_t)(arg))
 #ifdef __TURBOC__
 /* Turbo C does not define CHAR_MIN correctly for signed characters.
    It defines it as 0x80, which is not a negative number in int context.
@@ -258,16 +266,16 @@ typedef ptrdiff_t a_ptrdiff;
 #define LONG_MAX ((long)0x7fffffffL)
 #define LONG_MIN ((long)0x80000000L)
 #define ULONG_MAX ((unsigned long)0xffffffffL)
-/* Can't define size_t, since it appears in <sys/types.h>, so define
-   sizeof_t instead. */
+/* sizeof_t is used instead of size_t within the front end.  It is the same
+   as size_t except on systems where that is too small, e.g., it's 16 bits.
+   size_t_arg is used to pass standard library arguments that used to be
+   int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
 typedef unsigned int
 		sizeof_t;
+#define size_t_arg(arg) ((int)(arg))
 /* Can't define ptrdiff_t, since it appears in <sys/types.h>, so define
    a_ptrdiff instead. */
 typedef int     a_ptrdiff;
-/* Macro used to pass standard library arguments that used to be
-   int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
-#define size_t_arg(arg) ((int)(arg))
 #endif /* __ANSIC__ */
 
 /*
