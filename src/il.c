@@ -7727,22 +7727,20 @@ with it.  Entries associated with scopes must also have no child entries.
         break;
       case olk_block:
         if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
-          if (((a_scope_ptr)olp->entity.ptr)->
-                                        variant.assoc_handler != NULL) {
+          a_scope_ptr  sp = (a_scope_ptr)olp->entity.ptr;
+          if (sp->kind == (a_scope_kind)sck_block &&
+              sp->variant.assoc_handler != NULL) {
             /* The lifetime associated with a catch clause is retained in
                the IL even if it has no destructions and no children. */
           } else if (olp->child_lifetime == NULL) {
             /* No children, no destructions. */
             is_useless = TRUE;
+          } else if (sp->kind == (a_scope_kind)sck_function) {
+            /* A function lifetime with children is retained in the IL even
+               if it has no destructions. */
           } else if (olp->has_block_after_label_child_lifetime) {
             /* A lifetime is kept in the IL even if it has no destructions of
                its own if it has a block-after-label child lifetime. */
-          } else if (olp->parent_lifetime ==
-                               scope_stack[DEPTH_OF_FILE_SCOPE].
-                                               curr_scope_object_lifetime) {
-            /* This must be the lifetime for a function scope.  If it has
-               any children, then even if it has no destructions it is
-               retained in the IL. */
           } else {
             is_useless = TRUE;
           }  /* if */
