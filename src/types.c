@@ -426,24 +426,6 @@ this includes incomplete class, struct, or union types.
 }  /* is_class_struct_union_type */
 
 
-a_boolean is_complete_class_struct_union_type(a_type_ptr tp)
-/*
-Return TRUE if the type is a complete class, struct, or union type.
-*/
-{
-  a_boolean is_complete_class = FALSE;
-
-  tp = skip_typerefs(tp);
-  if (is_class_struct_union(tp)) {
-#if !STANDALONE_UTILITY_PROGRAM
-    complete_class_type_is_needed(tp);
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-    if (!is_incomplete(tp)) is_complete_class = TRUE;
-  }  /* if */
-  return is_complete_class;
-}  /* is_complete_class_struct_union_type */
-
-
 a_boolean is_union_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a union type.
