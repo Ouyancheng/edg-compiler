@@ -5618,6 +5618,38 @@ gives the type of the routine being called.
 }  /* prep_special_selector_operand */
 
 
+static void adjust_class_object_type(an_operand       *operand,
+                                     a_type_ptr       dest_type,
+                                     a_base_class_ptr bcp)
+/*
+*operand is a class lvalue or rvalue.  Adjust its type to dest_type,
+which may differ from the current type in being a base class or having
+different cv-qualifiers.  bcp is non-NULL to indicate the base class
+case.  This adjustment does not make a new object; it merely adjusts
+the operand type to access the same class object with a new type.
+On return, the operand is an lvalue.
+*/
+{
+  /* Convert to a pointer to the object. */
+  conv_class_operand_to_object_pointer(operand);
+  if (bcp != NULL) {
+    /* Cast the pointer to the proper base class. */
+    base_class_cast_operand(operand, bcp,
+                            (a_boolean *)NULL,
+                            /*check_cast_access=*/TRUE,
+                            /*is_implicit_cast=*/TRUE,
+                            /*implicit_in_naming=*/FALSE);
+  }  /* if */
+  /* Adjust cv-qualifiers. */
+  cast_operand(make_pointer_type(dest_type), operand,
+               /*check_cast_access=*/TRUE,
+               /*is_implicit_cast=*/TRUE,
+               /*is_reinterpret_cast=*/FALSE);
+  /* Make an address (an lvalue) for the adjusted class object. */
+  conv_object_pointer_to_lvalue(operand);
+}  /* adjust_class_object_type */
+
+
 static void do_class_object_adjustment(an_operand       *operand,
                                        a_type_ptr       dest_type,
                                        a_conv_descr_ptr conversion)
@@ -5632,23 +5664,9 @@ is an rvalue or lvalue as required by conversion->result_is_an_lvalue.
 */
 {
   if (conversion->class_object_adjustment_required) {
-    /* Convert to a pointer to the object. */
-    conv_class_operand_to_object_pointer(operand);
-    if (conversion->std.cast_base_class != NULL) {
-      /* Cast the pointer to the proper base class. */
-      base_class_cast_operand(operand, conversion->std.cast_base_class,
-                              (a_boolean *)NULL,
-                              /*check_cast_access=*/TRUE,
-                              /*is_implicit_cast=*/TRUE,
-                              /*implicit_in_naming=*/FALSE);
-    }  /* if */
-    /* Adjust cv-qualifiers. */
-    cast_operand(make_pointer_type(dest_type), operand,
-                 /*check_cast_access=*/TRUE,
-                 /*is_implicit_cast=*/TRUE,
-                 /*is_reinterpret_cast=*/FALSE);
-    /* Make an address (an lvalue) for the adjusted class object. */
-    conv_object_pointer_to_lvalue(operand);
+    /* Cast to a base class if necessary, and adjust cv_qualifiers. */
+    adjust_class_object_type(operand, dest_type,
+                             conversion->std.cast_base_class);
   }  /* if */
   /* If an rvalue is wanted, convert to an rvalue. */
   if (!conversion->result_is_an_lvalue) {
@@ -5699,7 +5717,8 @@ Adjust the operand type to match the type requirement.
         /* The conversion is usable.  Do it. */
         prep_for_known_possible_conversion(operand, &arg_match->conversion);
         user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
-                             &arg_match->conversion, (a_conv_descr *)NULL);
+                             &arg_match->conversion, (a_conv_descr *)NULL,
+                             /*force_temp_for_class_bitwise_copy=*/FALSE);
       } else {
         /* The conversion is not usable, e.g., because the conversion
            is ambiguous.  Redo the analysis of the conversion to get
@@ -6518,7 +6537,8 @@ set *processed to TRUE if the conversion is ambiguous.
       /* Force the result to be an rvalue. */
       conversion.result_is_an_lvalue = FALSE;
       user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
-                           &conversion, (a_conv_descr *)NULL);
+                           &conversion, (a_conv_descr *)NULL,
+                           /*force_temp_for_class_bitwise_copy=*/FALSE);
       *processed = TRUE;
     } else if (ambiguous) {
       /* There is more than one possible conversion to a built-in type. */
@@ -6845,33 +6865,30 @@ This is used for initialization.  See ARM 8.4.1 (aggregate initialization).
 This routine does not do the bitwise copy; it just prepares the operand
 for it.  Note also that this routine is called for the identity case
 where the class type is already correct and nothing should be done to it.
+On return, source_operand is an rvalue.
 */
 {
   a_type_ptr       source_type;
   a_base_class_ptr bcp;
 
-  source_type = skip_typerefs(source_operand->type);
-  dest_type = skip_typerefs(dest_type);
-  if (types_are_compatible(source_type, dest_type)) {
+  source_type = source_operand->type;
+  if (identical_types(source_type, dest_type)) {
     /* The source and destination types are the same type, so no conversion
        is necessary. */
   } else {
-    /* An entity of a base class is being initialized from an object
-       of a derived class.  Get its address, cast it to the base class,
-       then indirect through that to get an object of the base class. */
-    conv_class_operand_to_object_pointer(source_operand);
-    bcp = find_base_class_of(source_type, dest_type);
+    /* Adjust the class object type. */
+    if (types_are_compatible_ignoring_qualifiers(source_type, dest_type)) {
+      bcp = NULL;
+    } else {
+      bcp = find_base_class_of(source_type, dest_type);
 #if CHECKING
-    if (bcp == NULL) {
-      internal_error("prep_class_bitwise_copy_operand: base class not found");
-    }  /* if */
+      if (bcp == NULL) {
+        internal_error(
+                      "prep_class_bitwise_copy_operand: base class not found");
+      }  /* if */
 #endif /* CHECKING */
-    base_class_cast_operand(source_operand, bcp, (a_boolean *)NULL,
-                            /*check_cast_access=*/TRUE,
-                            /*is_implicit_cast=*/TRUE,
-                            /*implicit_in_naming=*/FALSE);
-    /* Make an address (an lvalue) for the base class object. */
-    conv_object_pointer_to_lvalue(source_operand);
+    }  /* if */
+    adjust_class_object_type(source_operand, dest_type, bcp);
   }  /* if */
   /* Make the source an rvalue. */
   do_operand_transformations(source_operand, TOPT_NO_OPTIONS);
@@ -7017,17 +7034,49 @@ been adjusted, etc.).
 }  /* make_constructor_dynamic_init */
 
 
+static void temp_init_by_bitwise_copy_from_operand(an_operand *operand,
+                                                   a_boolean  result_is_addr)
+/*
+Create a temporary and initialize it by bitwise copy from the given operand.
+Create an enk_temp_init node for the initialization, and update *operand
+to refer to that node.  The result is the address of the temporary if
+result_is_addr is TRUE.
+*/
+{
+  a_dynamic_init_ptr dip;
+  an_expr_node_ptr   temp_init_node;
+
+  /* Allocate the dynamic initialization entry and the enk_temp_init node. */
+  temp_init_node = create_expr_temporary(operand->type,
+                                         result_is_addr,
+                                         &operand->position);
+  dip = temp_init_node->variant.init.dynamic_init;
+  conv_lvalue_to_rvalue(operand);
+  set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_expression);
+  dip->variant.expression = make_node_from_operand(operand);
+  /* Make an operand for the overall expression. */
+  make_expression_operand(temp_init_node, temp_init_node->type, operand);
+}  /* temp_init_by_bitwise_copy_from_operand */
+
+
 void user_convert_operand(an_operand   *operand,
                           a_type_ptr   dest_type,
                           a_conv_descr *conversion,
-                          a_conv_descr *ctor_arg_conversion)
+                          a_conv_descr *ctor_arg_conversion,
+                          a_boolean    force_temp_for_class_bitwise_copy)
 /*
 Do the user-defined conversion indicated by *conversion to convert
 *operand to dest_type.  dest_type may be NULL to indicate that
 no additional conversion is needed after the conversion function is called.
 If ctor_arg_conversion is non-NULL, it describes the conversion to be done
 on the argument of the user-defined conversion, which in that case will
-be a constructor call.
+be a constructor call.  Note that this routine converts the operand to
+a destination type, but does not copy it anywhere; that's up to the caller.
+That's particularly significant when the "conversion" is a class bitwise
+copy: the adjustment here changes the operand to access the same class
+object with the new type, but does not copy it to a temporary.  However,
+if force_temp_for_class_bitwise_copy is TRUE, a temporary will be created
+in that case.
 */
 {
   an_expr_node_ptr  rout_node, arg_expr_list;
@@ -7046,6 +7095,11 @@ be a constructor call.
   if (conversion->class_identity_or_bitwise_copy) {
     /* Bitwise copy of a class. */
     prep_class_bitwise_copy_operand(operand, dest_type);
+    if (force_temp_for_class_bitwise_copy) {
+      /* Make a copy of the class object in a temporary. */
+      temp_init_by_bitwise_copy_from_operand(operand,
+                                             /*result_is_addr=*/FALSE);
+    }  /* if */
   } else if (conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     /* Conversion function. */
@@ -7132,7 +7186,8 @@ conversion (which might involve a user-defined conversion).
   if (!is_null_user_conv_descr(conversion)) {
     /* Call a user-defined conversion routine. */
     user_convert_operand(source_operand, dest_type, conversion,
-                         (a_conv_descr *)NULL);
+                         (a_conv_descr *)NULL,
+                         /*force_temp_for_class_bitwise_copy=*/FALSE);
   } else {
     /* Cast the operand to the result type. */
     cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
@@ -7460,7 +7515,8 @@ happen only in C++ mode.
          try to find a copy constructor that can copy the result of the
          conversion for the caller. */
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
-                           conversion, (a_conv_descr *)NULL);
+                           conversion, (a_conv_descr *)NULL,
+                           /*force_temp_for_class_bitwise_copy=*/FALSE);
       /* See if the result of the conversion is already in a temporary. */
       if (is_temp_init_usable_in_optimization(source_operand,
                                               !fill_in_dtor,
@@ -7601,8 +7657,6 @@ lvalue.  On return, *operand will have been changed to an rvalue for
 the address of the temporary.  Used only in C++ mode.
 */
 {
-  a_dynamic_init_ptr dip;
-  an_expr_node_ptr   temp_init_node;
   a_boolean          cctor_case, class_bitwise_copy;
   a_type_ptr         temp_type, unqual_temp_type;
   a_routine_ptr      cctor_routine;
@@ -7653,15 +7707,7 @@ the address of the temporary.  Used only in C++ mode.
   if (!cctor_case) {
     /* Normal case -- use a dik_expression initialization to copy the
        operand into the temporary. */
-    /* Allocate the dynamic initialization entry and the enk_temp_init node. */
-    temp_init_node = create_expr_temporary(temp_type, /*result_is_addr=*/TRUE,
-                                           &operand->position);
-    dip = temp_init_node->variant.init.dynamic_init;
-    conv_lvalue_to_rvalue(operand);
-    set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_expression);
-    dip->variant.expression = make_node_from_operand(operand);
-    /* Make an operand for the overall expression. */
-    make_expression_operand(temp_init_node, temp_init_node->type, operand);
+    temp_init_by_bitwise_copy_from_operand(operand, /*result_is_addr=*/TRUE);
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(operand, &orig_operand);
@@ -7717,7 +7763,8 @@ copy-initialization.
          Do the conversion, but make the temporary have the type of the
          result of the conversion function rather than dest_type. */
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
-                           conversion, (a_conv_descr *)NULL);
+                           conversion, (a_conv_descr *)NULL,
+                           /*force_temp_for_class_bitwise_copy=*/FALSE);
     } else {
       /* Normal case. */
       convert_operand(source_operand, dest_type, conversion);

@@ -1,5 +1,27 @@
 Version 2.36
 
+6/7/97    Cast of class object to same type, plus or minus cv-qualifiers
+
+For a class type for which copy construction is done by bitwise copying,
+an expression of that class type cast to the same type, or the same type
+with more or fewer cv-qualifiers, is now copied to a temporary.  Formerly,
+no copy was made; the original class object was simply accessed with the
+new type.  This new behavior is mandated by the Working Paper.  The old
+behavior continues in cfront mode.
+
+A related bug was also fixed: when a class expression was cast to the
+same type with different cv-qualifiers, the cv-qualification of the result
+type was not adjusted.  As a consequence, if the result were used to call
+a member function, the wrong function might be called, or an error
+might be issued.
+
+  struct B {
+    void f() {}
+  };
+  void f(const B& b) {
+    B(b).f();  // No longer an error; B(b) has type "B" now, not "const B"
+  }
+
 6/6/97    Using-declarations: abort during error recovery
 
 An abort no longer occurs in the following case, were the name introduced by

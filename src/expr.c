@@ -5939,7 +5939,8 @@ error with that, set *err TRUE as well.
                                            (a_candidate_function_ptr *)NULL)) {
           /* A user-defined conversion can be done. */
           user_convert_operand(operand, eff_type_cast_to, &conversion,
-                               (a_conv_descr *)NULL);
+                               (a_conv_descr *)NULL,
+                               /*force_temp_for_class_bitwise_copy=*/FALSE);
           *processed = TRUE;
         } else if (ambiguous) {
           /* The conversion is ambiguous.  Do the analysis again to get
@@ -5971,8 +5972,12 @@ error with that, set *err TRUE as well.
                                              &ctor_arg_conversion,
                                              &failed)) {
           /* A user-defined conversion can be done. */
+          /* Except in cfront mode, force a temporary for a cast of a class
+             object to the same class type, ignoring cv-qualifiers. */
           user_convert_operand(operand, type_cast_to, &conversion,
-                               &ctor_arg_conversion);
+                               &ctor_arg_conversion,
+                               /*force_temp_for_class_bitwise_copy=*/
+                                                           !any_cfront_mode());
           *processed = TRUE;
         } else if (failed) {
           /* A user-defined conversion was our only hope, and it failed.
