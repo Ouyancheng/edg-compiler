@@ -2902,6 +2902,12 @@ and the class instantiation will detect the runaway case.
   /* If the type of the static data member is a template class, make sure
      it is instantiated. */
   complete_type_is_needed(var_ptr->type);
+  if (instantiation_mode == tim_local) {
+    /* In -tlocal mode, put out the static data member with internal
+       linkage. */
+    var_ptr->storage_class = (a_storage_class)sc_static;
+    var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+  }  /* if */
   /* If the storage class is sc_extern, reset it to sc_unspecified (since the
      variable is being defined).  If it is sc_static (e.g., for a static
      data member), leave it alone. */

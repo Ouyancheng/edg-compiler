@@ -1,5 +1,10 @@
 Version 2.44
 
+1/7/99   Template static data members given wrong linkage in -tlocal mode
+
+Version 2.42 introduced a bug that caused template static data members to
+be given external linkage even in -tlocal mode.  This has been fixed.
+
 1/5/00   result_is_not_used set incorrectly on argument of non-inlined
          function
 
