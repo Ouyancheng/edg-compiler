@@ -8588,6 +8588,7 @@ later.
         rp->defined = FALSE;
         rp->assoc_scope = NULL_region_number;
         rp->type->variant.routine.extra_info->assoc_routine = NULL;
+        il_header.region_scope_entry[n] = NULL;
         /* Free the memory region. */
         free_memory_region(n);
       }  /* if */
