@@ -21,9 +21,6 @@ the release should contain no defines.
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
 
-/* Temporary setting. */
-#define DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION 1
-
 #ifdef CP_GEN_BE_VERSION
 /*
 Flags to be set for any version that uses the C++ generating back end.
