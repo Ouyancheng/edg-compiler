@@ -9610,7 +9610,6 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean         dangling_type_specifier = FALSE;
   a_boolean         inline_specified;
   a_source_position decl_start_pos, declarator_pos;
-  a_token_kind      next_tok;
   a_boolean         need_semicolon_remove_stop_token = FALSE;
   a_boolean         need_comma_remove_stop_token     = FALSE;
   a_boolean         need_assign_remove_stop_token    = FALSE;
