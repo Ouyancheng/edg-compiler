@@ -237,6 +237,15 @@ EXTERN a_targ_size_t
 			   default value but may be reset in target_init. */
 
 EXTERN a_targ_size_t
+		targ_max_base_class_offset
+#if VAR_INITIALIZERS
+                                           = TARG_MAX_BASE_CLASS_OFFSET
+#endif /* VAR_INITIALIZERS */
+								       ;
+			/* Maximum offset of a base class.  Initialized to the
+			   default value but may be reset in target_init. */
+
+EXTERN a_targ_size_t
 		targ_max_bit_field_size
 #if VAR_INITIALIZERS
                                         = TARG_MAX_BIT_FIELD_SIZE
@@ -672,6 +681,7 @@ EXTERN an_integer_kind
 #undef TARG_ALIGNOF_LONG_LONG
 #endif /* LONG_LONG_ALLOWED */
 #undef TARG_MAX_CLASS_OBJECT_SIZE
+#undef TARG_MAX_BASE_CLASS_OFFSET
 #undef TARG_MAX_BIT_FIELD_SIZE
 #undef TARG_BIT_FIELD_CONTAINER_SIZE
 #undef TARG_MICROSOFT_BIT_FIELD_ALLOCATION
@@ -739,6 +749,7 @@ EXTERN an_integer_kind
 #define TARG_ALIGNOF_LONG_LONG targ_alignof_long_long
 #endif /* LONG_LONG_ALLOWED */
 #define TARG_MAX_CLASS_OBJECT_SIZE targ_max_class_object_size
+#define TARG_MAX_BASE_CLASS_OFFSET targ_max_base_class_offset
 #define TARG_MAX_BIT_FIELD_SIZE targ_max_bit_field_size
 #define TARG_BIT_FIELD_CONTAINER_SIZE targ_bit_field_container_size
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION targ_microsoft_bit_field_allocation

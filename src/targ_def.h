@@ -936,17 +936,26 @@ than its type type would normally require.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
-Value used to compute the maximum allowable size for a class object.  If
-TARG_MAX_CLASS_OBJECT_SIZE is nonzero, then it is the value to which global
-variable targ_max_class_object_size is set, except that in C++ mode a
-smaller value will be used, if necessary, to accommodate the maximum
-pointer-to-data-member offset (as implied by TARG_DELTA_INT_KIND).  If
-TARG_MAX_CLASS_OBJECT_SIZE is zero, then targ_max_class_object_size is set
-to targ_size_t_max.
+The maximum size a class object may have.  If TARG_MAX_CLASS_OBJECT_SIZE
+is nonzero, then it is the value to which targ_max_class_object_size is set.
+If it is zero, then targ_max_class_object_size is set to targ_size_t_max.
 */
 #ifndef TARG_MAX_CLASS_OBJECT_SIZE
 #define TARG_MAX_CLASS_OBJECT_SIZE 0
 #endif /* ifndef TARG_MAX_CLASS_OBJECT_SIZE */
+
+/*
+The maximum offset a base class may have.  If TARG_MAX_BASE_CLASS_OFFSET
+is nonzero, then it is the value to which targ_max_base_class_offset is
+set -- except that, when DO_IL_LOWERING is TRUE, a smaller value will be
+used, if necessary, to accommodate the maximum offset value (as implied by
+TARG_DELTA_INT_KIND) that may be stored in a virtual function table.  If
+TARG_MAX_BASE_CLASS_OFFSET is zero, then targ_max_base_class_offset is set
+to targ_size_t_max.
+*/
+#ifndef TARG_MAX_BASE_CLASS_OFFSET
+#define TARG_MAX_BASE_CLASS_OFFSET 0
+#endif /* ifndef TARG_MAX_BASE_CLASS_OFFSET */
 
 #if BACK_END_IS_C_GEN_BE
 /*
