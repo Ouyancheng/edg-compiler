@@ -70,6 +70,8 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
 
 #if CHECKING
 
+/*lint -esym(759,check_target_configuration)*/
+/*lint -esym(765,check_target_configuration)*/
 void check_target_configuration(void)
 /*
 Perform consistency check on target configuration variables.
