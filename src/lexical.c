@@ -9142,12 +9142,19 @@ this routine.  Its value is unchanged if no errors are detected.
     arg_kind = templ_arg_kind_for_symbol_kind(sym->kind);
     arg_ptr = alloc_template_arg(arg_kind);
     if (is_type_templ_arg(arg_ptr)) {
+      a_boolean		is_unnamed;
+      a_boolean		is_local;
       type_name(&argument_type);
-      if (is_or_contains_local_type(argument_type)) {
-        /* Be sure the type does not involve any local classes -- only
-           externally visible types are allowed, since template classes are
-           themselves externally linked. */
-        pos_error(ec_local_type_in_template_arg, &arg_pos);
+      /* Be sure the type does not involve any local or unnamed classes -- only
+         externally visible types are allowed, since template classes are
+         themselves externally linked. */
+      if (is_or_contains_unnamed_or_local_type(argument_type, &is_unnamed,
+                                               &is_local)) {
+        if (is_local) {
+          pos_error(ec_local_type_in_template_arg, &arg_pos);
+        } else if (is_unnamed) {
+          pos_error(ec_unnamed_type_in_template_arg, &arg_pos);
+        }  /* if */
         argument_type = error_type();
       }  /* if */
       arg_ptr->variant.type = argument_type;

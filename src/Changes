@@ -1,5 +1,14 @@
 Version 3.0
 
+3/8/02   Missing error on unnamed type as class template argument
+
+No diagnostic was issued when an unnamed type was used as a template
+argument of a class template.  This has been fixed.
+
+  template <class T> struct A {};
+  typedef struct {} *a;
+  A<a> x;
+
 3/8/02   Call of non-overloaded function with dependent selector
 
 In prototype instantiations of templates, a call of a non-overloaded
