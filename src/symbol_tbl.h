@@ -591,6 +591,27 @@ typedef struct a_class_symbol_supplement {
 } a_class_symbol_supplement;
 
 
+/* Unique sequence number identifying a declaration in a given scope. */
+typedef unsigned long a_decl_sequence_number;
+
+
+/*
+Data structure used to save decl-sequence and source-sequence information
+during declarator processing.
+*/
+typedef struct a_decl_seq_info *a_decl_seq_info_ptr;
+typedef struct a_decl_seq_info {
+  a_decl_sequence_number
+		decl_seq;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		source_sequence_entry;
+			/* Last in the linked list of source sequence entries
+			   that are pointed to by il_scope; NULL if none. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+} a_decl_seq_info;
+
+  
 /*
 Data structure used to pass information about function declarations back
 from the scanning of the function declarator.
@@ -629,7 +650,12 @@ typedef struct a_param_id {
 			/* For a new- or old-style style function parameter,
 			   this is the storage class to be associated with
 			   it when it is declared. */
+  a_decl_seq_info
+		decl_seq_info;
+			/* Decl-sequence and source-sequence information
+			   saved during declarator processing. */
 } a_param_id;
+
 
 typedef struct a_func_info_block *a_func_info_block_ptr;
 typedef struct a_func_info_block {
@@ -676,6 +702,10 @@ typedef struct a_func_info_block {
 			   an error will be issued on a function definition
 			   and param_id_list and prototype_scope_symbols will
 			   be NULL. */
+  a_decl_seq_info
+		decl_seq_info;
+			/* Decl-sequence and source-sequence information
+			   saved during declarator processing. */
 } a_func_info_block;
 
 
@@ -1005,9 +1035,6 @@ typedef struct a_projection_descr {
 			   and the member specified by fundamental_symbol. */
 } a_projection_descr;
 
-
-/* Unique sequence number identifying a declaration in a given scope. */
-typedef unsigned long a_decl_sequence_number;
 
 typedef struct a_symbol {
   /* A symbol as used by the front end. */
@@ -2024,10 +2051,12 @@ extern void pop_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr class_type);
 extern void pop_class_reactivation_scope(void);
 /* Record use information (for cross-reference, etc.). */
-extern void mark_defined(a_symbol_ptr      sym_ptr,
-                        a_source_position *source_position);
-extern void mark_declared(a_symbol_ptr      sym_ptr,
-                          a_source_position *source_position);
+extern void mark_defined(a_symbol_ptr         sym_ptr,
+                         a_source_position    *source_position,
+                         a_decl_seq_info_ptr  decl_seq_info);
+extern void mark_declared(a_symbol_ptr         sym_ptr,
+                          a_source_position    *source_position,
+                          a_decl_seq_info_ptr  decl_seq_info);
 extern void reference_to_symbol(a_symbol_reference_kind  kind,
                                 a_symbol_ptr             sym_ptr,
                                 a_source_position        *source_position,
@@ -2039,6 +2068,8 @@ extern void reference_to_symbol(a_symbol_reference_kind  kind,
 
 extern void mark_variable_value_set(a_symbol_ptr  sym);
 
+extern void set_decl_sequence_info(a_decl_seq_info_ptr  decl_seq_info,
+                                   an_il_entry_kind     kind);
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
