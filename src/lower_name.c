@@ -3543,7 +3543,14 @@ name if necessary.  If is_type is TRUE, the entity is a type.
     add_number_to_mangled_name((unsigned long)scope_number, &mctl);
     add_str_to_mangled_name("__", &mctl);
     if (routine->source_corresp.name != NULL) {
-      mangled_function_name(routine, /*suppress_param_encoding=*/FALSE, &mctl);
+      if (routine->source_corresp.name_has_been_mangled) {
+        /* Using the mangled name as written is important if the routine
+           is a static function that has been externalized. */
+        add_str_to_mangled_name(routine->source_corresp.name, &mctl);
+      } else {
+        mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
+                              &mctl);
+      }  /* if */
     }  /* if */
     (void)end_mangling(scp, /*final=*/!is_type, &mctl);
   }  /* if */
