@@ -262,7 +262,7 @@ array-to-pointer decay).
 {
   a_type_ptr        declared_type;
   a_param_id_ptr    param_id;
-  a_param_type_ptr  ptp;
+  a_param_type_ptr  ptp, param_type_list;
   a_boolean         fixup_needed;
 
   db_enter(4, "form_declared_type");
@@ -278,11 +278,12 @@ array-to-pointer decay).
                                                   /*copy_default_args=*/FALSE);
     fixup_needed = FALSE;
     param_id = func_info->param_id_list;
-    ptp = skip_typerefs(declared_type)->
+    param_type_list = skip_typerefs(declared_type)->
                             variant.routine.extra_info->param_type_list;
-    if (param_id != NULL && ptp != NULL) {
+    if (param_id != NULL && param_type_list != NULL) {
       /* There is no need to create a new routine type entry if none of the
          parameter types underwent adjustment. */
+      ptp = param_type_list;
       for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
         check_assertion(param_id->declared_type != NULL);
         if (!identical_types(ptp->type, param_id->declared_type)) {
@@ -294,7 +295,7 @@ array-to-pointer decay).
       }  /* for */
       if (fixup_needed) {
         /* It's necessary to create a new type. */
-        ptp = declared_type->variant.routine.extra_info->param_type_list;
+        ptp = param_type_list;
         param_id = func_info->param_id_list;
         for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
           a_type_ptr  tp = param_id->declared_type;
