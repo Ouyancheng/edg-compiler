@@ -6826,9 +6826,14 @@ in the implementation of offsetof.
   do_operand_transformations(operand, TOPT_NO_OPTIONS);
   /* Make a constant from the operand. */
   extract_constant_from_operand(operand, &con);
-  /* Check that the constant is represented as an integer or floating
-     constant. */
+  /* Check that the constant is represented as an integer or floating constant.
+     (In UPC mode, the THREADS and MYTHREAD pseudo-constants are also
+     accepted.) */
   if ((con.kind == (a_constant_repr_kind)ck_integer ||
+#if UPC_EXTENSIONS_ALLOWED
+       con.kind == (a_constant_repr_kind)ck_upc_threads ||
+       con.kind == (a_constant_repr_kind)ck_upc_mythread ||
+#endif /* UPC_EXTENSIONS_ALLOWED */
        con.kind == (a_constant_repr_kind)ck_template_param ||
        (will_cast && con.kind == (a_constant_repr_kind)ck_float)) &&
       (will_cast ||

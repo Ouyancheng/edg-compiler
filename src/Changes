@@ -1,5 +1,10 @@
 Version 3.6
 
+1/28/05  UPC and GNU C mode: Spurious error on THREADS-dimensioned arrays
+
+When UPC and GNU C modes were combined the front end incorrectly rejected
+attempts to declare THREADS-dimensioned arrays.  This is now fixed.
+
 1/27/05  Preprocessing performance
 
 Various extensible buffers used in preprocessing formerly grew by fixed
