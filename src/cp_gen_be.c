@@ -101,6 +101,11 @@ static a_source_sequence_entry_ptr
 			   scope, the current function scope, and the
 			   current class scope. */
 
+static a_boolean
+		inside_struct_in_C_mode;
+			/* TRUE if we are currently generating code inside
+			   a struct in C mode. */
+
 static a_scope_ptr
 		curr_function_scope,
 		curr_scope_within_function;
@@ -121,6 +126,7 @@ those containing source correspondence information.)
 /* Needed because of forward references: */
 static void gen_type(a_type_ptr              type,
                      a_source_correspondence *scp);
+static void gen_lvalue(an_expr_node_ptr node);
 static void gen_statement(a_statement_ptr statement);
 static void gen_file_scope_entity(a_source_sequence_entry_ptr ssep);
 static void gen_type_decl(a_type_ptr                   type,
@@ -275,7 +281,7 @@ entry is found.
         /* A proxy for a file-scope entity.  Usually significant, but not
            if the associated entity is not significant in the file scope,
            e.g., if it's an iek_field. */
-        { an_il_entry_kind kind =
+        { an_il_entry_kind kind = (an_il_entry_kind)
                   ((a_source_sequence_entry_ptr)ssep->entity.ptr)->entity.kind;
           if (kind == iek_field || kind == iek_constant) {
             /* Not significant. */
@@ -364,6 +370,23 @@ a declaration.
 }  /* curr_func_scope_source_seq_entry_is_decl */
 
 
+static a_boolean is_enum_constant(a_constant_ptr con)
+/*
+Return TRUE if the indicated constant is an enum constant.
+*/
+{
+  a_boolean is_enum = FALSE;
+
+  if (con->kind == (a_constant_repr_kind)ck_integer &&
+      con->type->kind == (a_type_kind)tk_integer &&
+      con->type->variant.integer.enum_type &&
+      has_name(con)) {
+    is_enum = TRUE;
+  }  /* if */
+  return is_enum;
+}  /* is _enum_constant */
+
+
 static void adv_to_signif_class_scope_source_sequence_entry(void)
 /*
 If the current entry on the class-scope source sequence list is not
@@ -397,9 +420,7 @@ entry is found.
         /* Ignore constants if they're enum constants, but otherwise they're
            significant. */
         con = (a_constant_ptr)ssep->entity.ptr;
-        if (con->kind == (a_constant_repr_kind)ck_integer &&
-            con->type->kind == (a_type_kind)tk_integer &&
-            con->type->variant.integer.enum_type != NULL) break;
+        if (is_enum_constant(con)) break;
         goto done;
       default:
         unexpected_condition_str(
@@ -422,8 +443,8 @@ entry, and return a pointer to it.  Return NULL if there are no more entries.
        entries.  This is necessary because the field entries are not
        segregated in their own scope. */
     a_field_ptr field;
-    check_assertion_str(class_scope_source_sequence_entry->entity.kind ==
-                                                                     iek_field,
+    check_assertion_str((an_il_entry_kind)class_scope_source_sequence_entry->
+                                                      entity.kind == iek_field,
                       "next_class_scope_source_sequence_entry: not iek_field");
     field = (a_field_ptr)class_scope_source_sequence_entry->entity.ptr;
     field = field->next;
@@ -719,30 +740,36 @@ Output the indicated constant.
   }  /* if */
   switch (constant->kind) {
     case ck_integer:
-      need_close_paren = FALSE;
-      if (sign_of_integer_constant(constant) < 0) {
-        /* Negative value.  Put in parentheses. */
-        need_close_paren = TRUE;
-        write_str("(");
-      }  /* if */
-      /* Write the literal form of the constant. */
-      write_str(str_for_integer_constant(constant));
-      ikind = con_type->variant.integer.int_kind;
-      /* Put out a suffix if needed. */
-      if (!int_kind_is_signed[(int)ikind]) {
-        /* Unsigned constant. */
-        write_str("U");
-      }  /* if */
-      if (ikind == (an_integer_kind)ik_long           ||
-          ikind == (an_integer_kind)ik_unsigned_long) {
-        write_str("L");
+      if (is_enum_constant(constant)) {
+        /* An enum constant. */
+        gen_constant_name(constant);
+      } else {
+        /* A normal integer constant. */
+        need_close_paren = FALSE;
+        if (sign_of_integer_constant(constant) < 0) {
+          /* Negative value.  Put in parentheses. */
+          need_close_paren = TRUE;
+          write_str("(");
+        }  /* if */
+        /* Write the literal form of the constant. */
+        write_str(str_for_integer_constant(constant));
+        ikind = con_type->variant.integer.int_kind;
+        /* Put out a suffix if needed. */
+        if (!int_kind_is_signed[(int)ikind]) {
+          /* Unsigned constant. */
+          write_str("U");
+        }  /* if */
+        if (ikind == (an_integer_kind)ik_long           ||
+            ikind == (an_integer_kind)ik_unsigned_long) {
+          write_str("L");
 #if LONG_LONG_ALLOWED
-      } else if (ikind == (an_integer_kind)ik_long_long ||
-                 ikind == (an_integer_kind)ik_unsigned_long_long) {
-        write_str("LL");
+       } else if (ikind == (an_integer_kind)ik_long_long ||
+                  ikind == (an_integer_kind)ik_unsigned_long_long) {
+          write_str("LL");
 #endif /* LONG_LONG_ALLOWED */
+        }  /* if */
+        if (need_close_paren) write_str(")");
       }  /* if */
-      if (need_close_paren) write_str(")");
       break;
     case ck_string:
       { a_targ_size_t a;
@@ -795,10 +822,31 @@ Output the indicated constant.
       }  /* if */
       offset = constant->variant.address.offset;
       if (offset != 0) {
+        a_type_ptr underlying_object_type;
+        a_boolean  can_use_scaling = FALSE;
         /* Non-zero offset.  Deal with scaling issues. */
         write_str("(");
+        /* See if the size of the underlying object is such that scaling
+           can be done implicitly instead of playing tricks with casting
+           to "char *" and back. */
+        switch (constant->variant.address.kind) {
+          case abk_variable:
+            underlying_object_type =
+                              constant->variant.address.variant.variable->type;
+            goto check_size;
+          case abk_constant:
+            underlying_object_type =
+                              constant->variant.address.variant.constant->type;
+check_size:
+            underlying_object_type = skip_typerefs(underlying_object_type);
+            if ((offset % underlying_object_type->size) == 0) {
+              can_use_scaling = TRUE;
+            }  /* if */
+            break;
+          default:;  /* Others (e.g., routines) can't use scaling. */
+        }  /* switch */
         scaled_offset_cast = FALSE;
-        if ((offset % con_type->size) == 0) {
+        if (can_use_scaling) {
           /* The offset is divisible by the size of the object, so adjust
              the offset to the proper units. */
           offset /= con_type->size;
@@ -1165,6 +1213,7 @@ Output the definition of the indicated class type.
     /* Save class_scope_source_sequence_entry for later restoration. */
     a_source_sequence_entry_ptr saved_class_scope_source_sequence_entry =
                                              class_scope_source_sequence_entry;
+    a_boolean saved_inside_struct_in_C_mode = inside_struct_in_C_mode;
     write_str(" { ");
     if (scope != NULL) {
       /* C++ -- the class has a scope. */
@@ -1184,6 +1233,7 @@ Output the definition of the indicated class type.
            unnamed bit fields.) */
         class_scope_source_sequence_entry = NULL;
       }  /* if */
+      inside_struct_in_C_mode = TRUE;
     }  /* if */
     /* Go through the source sequence list and generate the members of the
        class. */
@@ -1233,6 +1283,7 @@ Output the definition of the indicated class type.
     gen_unnamed_bit_fields((a_field_ptr)NULL, prev_field, field_list);
     /* Restore the previous value of class_scope_source_sequence_entry. */
     class_scope_source_sequence_entry= saved_class_scope_source_sequence_entry;
+    inside_struct_in_C_mode = saved_inside_struct_in_C_mode;
     end_output_line();
     write_str("}");
   }  /* if */
@@ -1245,10 +1296,13 @@ Generate a reference to the indicated type, which is a class, struct, union,
 or enum.
 */
 {
-  if (!type->source_corresp.definition_put_out) {
-    /* No definition has yet been put out, so we have to generate a full
-       definition.  This happens for unnamed types, for example.
-       This is presumably the only reference to the type, so that's fine. */
+  if (!has_name(type) ||
+      (inside_struct_in_C_mode &&
+       !type->source_corresp.definition_put_out)) {
+    /* For an unnamed type, put out a full definition (we cannot refer
+       to the type by name).  This is presumably the only reference to
+       the type, so that's fine.  Also put out the definition if the
+       definition appears inside a struct in C mode. */
     if (type->kind == (a_type_kind)tk_integer) {
       gen_enum_definition(type);
     } else {
@@ -1582,6 +1636,25 @@ Generate the name of the field from the indicated node (an enk_field node).
 }  /* gen_field_reference */
 
 
+static void gen_simple_field_selection(an_expr_node_ptr operand_1,
+                                       an_expr_node_ptr operand_2)
+/*
+Generate "operand_1 . operand_2".
+*/
+{
+  if (operand_1->kind == (an_expr_node_kind)enk_variable) {
+    /* Optimize "(*p).i" as "p->i". */
+    gen_expression(operand_1);
+    write_str("->");
+  } else {
+    /* Normal "." case. */
+    gen_lvalue(operand_1);
+    write_str(".");
+  }  /* if */
+  gen_field_reference(operand_2);
+}  /* gen_simple_field_selection */
+
+
 static void gen_lvalue(an_expr_node_ptr node)
 /*
 Generate an expression that the IL sees as an lvalue address, and C sees as
@@ -1619,9 +1692,7 @@ an expression.  In effect, add an indirection to the expression.
          in front of it (in C terms).  Adding the indirection removes 
          the "&". */
       write_str("(");
-      gen_lvalue(operand_1);
-      write_str(".");
-      gen_field_reference(operand_2);
+      gen_simple_field_selection(operand_1, operand_2);
       write_str(")");
       processed = TRUE;
     }  /* if */
@@ -1660,8 +1731,15 @@ Generate an expression operation.
   switch (expr->variant.operation.kind) {
     /* One-operand operators. */
     case eok_indirect:
+      if (operand_1->kind == (an_expr_node_kind)enk_operation &&
+          operand_1->variant.operation.kind ==
+                                            (an_expr_operator_kind)eok_field) {
+        an_expr_node_ptr sel_operand_1 = operand_1->variant.operation.operands;
+        /* Optimize "*" on top of an eok_field. */
+        gen_simple_field_selection(sel_operand_1, sel_operand_1->next);
+        goto done;
+      }  /* if */
       opstr = "*";
-      operand_1_is_lvalue = TRUE;
       break;
     case eok_inegate:
     case eok_fnegate:
@@ -1673,6 +1751,7 @@ Generate an expression operation.
       goto done;
     case eok_cast:
       gen_cast(expr->type);
+      gen_expr_with_parens(operand_1);
       goto done;
     case eok_lvalue_cast:
       unexpected_condition_str("gen_operation: eok_lvalue_cast as rvalue");
@@ -2102,8 +2181,8 @@ The current function source sequence entry is for that switch clause.
   /* Check for the presence of the source sequence entry for the switch
      clause. */
   check_assertion_str(func_scope_source_sequence_entry != NULL &&
-                      func_scope_source_sequence_entry->entity.kind ==
-                                                             iek_switch_clause,
+                      (an_il_entry_kind)func_scope_source_sequence_entry->
+                                              entity.kind == iek_switch_clause,
                       "gen_case_label: not iek_switch_clause");
   check_assertion_str(
       (a_switch_clause_ptr)func_scope_source_sequence_entry->entity.ptr == scp,
@@ -2188,7 +2267,8 @@ set *scp to point to the switch clause.
 
   *scp = NULL;
   if (func_scope_source_sequence_entry != NULL &&
-      func_scope_source_sequence_entry->entity.kind == iek_switch_clause) {
+      (an_il_entry_kind)func_scope_source_sequence_entry->entity.kind ==
+                                                           iek_switch_clause) {
     clause_found = TRUE;
     *scp = (a_switch_clause_ptr)func_scope_source_sequence_entry->entity.ptr;
   }  /* if */
@@ -2291,7 +2371,8 @@ on the list, or NULL if the list is empty.
            the declaration and the stmk_init be processed together in
            gen_statement. */
         if (statement->kind == (a_statement_kind)stmk_init &&
-            func_scope_source_sequence_entry->entity.kind == iek_variable) {
+            (an_il_entry_kind)func_scope_source_sequence_entry->entity.kind ==
+                                                                iek_variable) {
           a_variable_ptr var =
                   (a_variable_ptr)func_scope_source_sequence_entry->entity.ptr;
           if (statement->variant.dynamic_init->variable == var) {
@@ -2578,9 +2659,7 @@ information about the secondary declaration.
        struct A { int i; } x;     as
        struct A { int i; }; struct A x;
      but that's not legal in the cases listed above. */
-  if (!has_name(type) ||
-      (il_header.source_language == sl_C &&
-       class_scope_source_sequence_entry != NULL)) {
+  if (!has_name(type) || inside_struct_in_C_mode) {
     /* Do not process the declaration (yet). */
   } else if (type->source_corresp.definition_put_out) {
     /* The definition has already been put out, so don't do it again.
@@ -2699,7 +2778,7 @@ the parameters to be declared.
   for (ssep = func_scope_source_sequence_entry;
        ssep != NULL;
        ssep = next_func_scope_source_sequence_entry()) {
-    if (ssep->entity.kind == iek_variable) {
+    if ((an_il_entry_kind)ssep->entity.kind == iek_variable) {
       a_variable_ptr var = (a_variable_ptr)ssep->entity.ptr;
       if (var->is_parameter) {
         /* Output the parameter declaration. */
@@ -2997,6 +3076,7 @@ Initialize for the C++/C-generating back end.
   file_scope_source_sequence_entry = NULL;
   func_scope_source_sequence_entry = NULL;
   class_scope_source_sequence_entry = NULL;
+  inside_struct_in_C_mode = FALSE;
   curr_function_scope = NULL;
   curr_scope_within_function = NULL;
   curr_switch_statement = NULL;
