@@ -2980,6 +2980,99 @@ Return TRUE if the operand is a bit field.
 }  /* is_bit_field_operand */
 
 
+static void set_variable_address_taken(a_variable_ptr     variable,
+                                       a_source_position  *err_pos,
+                                       an_expression_kind expression_kind)
+/*
+Set the address_taken flag in the indicated variable.  Issue an error at
+*err_pos if the address of the variable cannot be taken.  expression_kind
+is the kind of the current expression.
+*/
+{
+  /* Check for taking the address of a register variable. */
+  /* In C++, taking the address of a register variable is allowed. */
+  if (variable->storage_class == (a_storage_class)sc_register &&
+      C_dialect != C_dialect_cplusplus) {
+    pos_error(ec_address_of_register_variable, err_pos);
+  } else {
+    /* The address is not "really" taken if it's not evaluated. */
+    if (expression_kind != (an_expression_kind)ek_not_evaluated) {
+      /* Set the address_taken flag in the variable. */
+      variable->address_taken = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* set_variable_address_taken */
+
+
+static void set_address_taken_on_variable_in_constant(
+                                            a_constant_ptr     con,
+                                            a_source_position  *err_pos,
+                                            an_expression_kind expression_kind)
+/*
+The constant con is being used as the address in an lvalue whose address
+is being taken.  Set the address_taken flag in any variable underlying
+the constant.  Issue an error at *err_pos if the address of the variable
+cannot be taken.  expression_kind is the kind of the current expression.
+*/
+{      
+  if (con->kind == (a_constant_repr_kind)ck_address &&
+      con->variant.address.kind == (an_address_base_kind)abk_variable) {
+    /* The constant is the address of a variable. */
+    set_variable_address_taken(con->variant.address.variant.variable,
+                               err_pos, expression_kind);
+  }  /* if */
+}  /* set_address_taken_on_variable_in_constant */
+
+
+static void set_address_taken_on_variables_in_expr(
+                                            an_expr_node_ptr   node,
+                                            a_source_position  *err_pos,
+                                            an_expression_kind expression_kind)
+/*
+node points to an expression whose address is being taken.  Set the
+address_taken flag on the variable(s) in the lvalue.  Issue an error at
+*err_pos if the address of the variable cannot be taken.  expression_kind
+is the kind of the current expression.
+*/
+{
+  an_expr_operator_kind op;
+  an_expr_node_ptr      op1;
+
+  if (is_constant_node(node)) {
+    /* A constant (address) node. */
+    set_address_taken_on_variable_in_constant(node->variant.constant,
+                                              err_pos, expression_kind);
+  } else if (is_variable_address_node(node)) {
+    /* A variable address node. */
+    set_variable_address_taken(node->variant.variable,
+                               err_pos, expression_kind);
+  } else if (is_operation_node(node)) {
+    /* An operation node. */
+    op = node->variant.operation.kind;
+    op1 = node->variant.operation.operands;
+    if (op == (an_expr_operator_kind)eok_field ||
+        node->variant.operation.assignment_returns_lvalue) {
+      /* Field selection, or assignment that returns an lvalue.  The first
+         operand gives the lvalue. */
+      set_address_taken_on_variables_in_expr(op1, err_pos, expression_kind);
+    } else if (op == (an_expr_operator_kind)eok_comma) {
+      /* Comma operator.  The second operand gives the lvalue. */
+      set_address_taken_on_variables_in_expr(op1->next,
+                                             err_pos, expression_kind);
+    } else if (op == (an_expr_operator_kind)eok_question) {
+      /* "?" operator.  The second and third operands give the lvalue.
+         Note that an expression like
+           &(i ? j : k)
+         (valid only in C++) takes the address of both j and k. */
+      set_address_taken_on_variables_in_expr(op1->next,
+                                             err_pos, expression_kind);
+      set_address_taken_on_variables_in_expr(op1->next->next,
+                                             err_pos, expression_kind);
+    }  /* if */
+  }  /* if */
+}  /* set_address_taken_on_variables_in_expr */
+
+
 void take_address_of_lvalue(an_operand         *operand,
                             an_expression_kind expression_kind)
 /*
@@ -2991,8 +3084,7 @@ kind expression_kind.
 */
 {
   an_expr_node_ptr node;
-  a_variable_ptr   variable = NULL;
-  a_constant_ptr   addr_con;
+  a_constant_ptr   con;
   an_operand       orig_operand;
 
   orig_operand = *operand;
@@ -3014,51 +3106,28 @@ kind expression_kind.
        to check that in places where an lvalue is used. */
     error_in_operand(ec_address_of_void, operand);
   } else {
-    /* Find the base variable, and change the type of the operand to
-       pointer-to-operand. */
+    /* Find the base variable and set its address_taken flag, and change the
+       type of the operand to pointer-to-operand. */
     switch (operand->kind) {
       case ok_error:
         break;
       case ok_expression:
         node = operand->variant.expression;
         operand->type = node->type;
-        /* For something like a.b.c, get to the underlying struct variable. */
-        while (is_operation_node(node) &&
-               node->variant.operation.kind ==
-                                            (an_expr_operator_kind)eok_field) {
-          node = node->variant.operation.operands;
-        }  /* while */
-        if (is_variable_address_node(node)) variable = node->variant.variable;
+        set_address_taken_on_variables_in_expr(node, &operand->position,
+                                               expression_kind);
         break;
       case ok_constant:
-        addr_con = &operand->variant.constant;
-        operand->type = addr_con->type;
-        if (addr_con->kind == (a_constant_repr_kind)ck_address &&
-            addr_con->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable) {
-          variable = addr_con->variant.address.variant.variable;
-        }  /* if */
+        con = &operand->variant.constant;
+        operand->type = con->type;
+        set_address_taken_on_variable_in_constant(con, &operand->position,
+                                                  expression_kind);
         break;
 #if CHECKING
       default:
         internal_error("take_address_of_lvalue: bad operand kind");
 #endif /* CHECKING */
     }  /* switch */
-    if (variable != NULL) {
-      /* There is a base variable. */
-      /* Check for taking the address of a register variable. */
-      /* In C++, taking the address of a register variable is allowed. */
-      if (variable->storage_class == (a_storage_class)sc_register &&
-          C_dialect != C_dialect_cplusplus) {
-        error_in_operand(ec_address_of_register_variable, operand);
-      } else {
-        /* The address is not "really" taken if it's not evaluated. */
-        if (expression_kind != (an_expression_kind)ek_not_evaluated) {
-          /* Set the address_taken flag in the variable. */
-          variable->address_taken = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
   }  /* if */
   /* The operand is now an rvalue. */
   operand->state = (an_operand_state)os_rvalue;
