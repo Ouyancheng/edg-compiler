@@ -337,6 +337,8 @@ error checking and type adjustments as required.
 {
   if (any_cfront_mode() &&
       check_member_function_typedef(*type_ptr, error_pos)) {
+    /* The type is a cfront-style member function typedef -- it is an error
+       to use it anywhere but in a pointer-to-member declaration. */
     *type_ptr = error_type();
   } else {
     /* Adjust the type if necessary (for example, "array of x" becomes
@@ -3856,6 +3858,12 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
                type_ptr, &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
                &declarator_ssep, (a_func_info_block_ptr)NULL);
   }  /* if */
+  if (any_cfront_mode() &&
+      check_member_function_typedef(*type_ptr, &start_pos)) {
+    /* The type is a cfront-style member function typedef -- it is an error
+       to use it anywhere but in a pointer-to-member declaration. */
+    *type_ptr = error_type();
+  }  /* if */
   copy_source_position(start_pos, error_position);
   db_exit();
 }  /* type_name */
@@ -3977,6 +3985,12 @@ syntax is:
     remove_stop_token(tok_lbracket);
     *type_ptr = complete_type;
   }  /* if */
+  if (any_cfront_mode() &&
+      check_member_function_typedef(*type_ptr, &start_pos)) {
+    /* The type is a cfront-style member function typedef -- it is an error
+       to use it anywhere but in a pointer-to-member declaration. */
+    *type_ptr = error_type();
+  }  /* if */
   db_exit();
 }  /* new_type_name */
 
@@ -4044,6 +4058,12 @@ scanning type name in a type conversion operator.
                                        /*call_conv_allowed=*/FALSE,
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL);
+    if (any_cfront_mode() &&
+        check_member_function_typedef(complete_type, &type_pos)) {
+      /* The type is a cfront-style member function typedef -- it is an error
+         to use it anywhere but in a pointer-to-member declaration. */
+      complete_type = error_type();
+    }  /* if */
     unget_token();
     curr_token = tok_identifier;
     pos_curr_token = error_position = *id_pos;
