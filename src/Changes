@@ -1,5 +1,20 @@
 Version 2.34
 
+10/11/96 Checking relaxed on overloaded function declarations
+
+An error complaining that the parameter types are too similar for
+overloading is no longer issued on declarations like the following:
+
+  void f(int);
+  void f(int&);    // No error -- overload set now contains both functions
+
+As a result, a new error error may now be issued at the point of call:
+
+  int main() {
+    int i = 0;
+    f(i);          // Error -- both functions match argument list
+  }
+
 10/11/96 Subscript checking on multi-dimensional arrays
 
 Subscript checking was not done on subscripts after the first in
@@ -486,12 +501,12 @@ In the presence or weak external symbols and similar linker magic,
 external symbols might have zero addresses.  That might mean that
 a test like the following could yield false:
 
-#pragma weak weak_symbol
-extern void weak_symbol();
-int main () {
-  if (weak_symbol) {  // Could be false
+  #pragma weak weak_symbol
+  extern void weak_symbol();
+  int main () {
+    if (weak_symbol) {  // Could be false
+    }
   }
-}
 
 Various calls of folding routines have been changed to first check for
 symbols that might have zero addresses, so that folding can be suppressed
@@ -673,7 +688,7 @@ but the internal error is gone.
     };
     static const int i2 = ((int)__INTADDR__(&(((dummy*)0)->field.key)));
   };
-  main( int argc, char * argv[] ) {
+  int main( int argc, char * argv[] ) {
     set<int> s;
   }
 
@@ -812,7 +827,7 @@ In Microsoft C mode, having too many arguments on a call of a prototyped
 function in C mode is now a warning instead of an error.
 
   void f(int);
-  main () {
+  int main () {
     f(1, 2);  /* Warning */
   }
 
