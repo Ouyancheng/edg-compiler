@@ -1,5 +1,15 @@
 Version 2.32
 
+5/10/96 IL CHANGE: no top-level qualifier on implicit_this_param_type
+
+In the unlowered IL for nonstatic member functions, a top-level const
+qualifier is no longer applied to the type entry pointed to by the
+implicit_this_param_type field of the routine type supplement (although it
+does still appear on the variable generated to represent the implicit this
+parameter in the function body).  This change will not be noticed by
+implementations using IL lowering, since qualifier is removed in the
+lowered IL.
+
 5/10/96 Bug in handling token caches for parenthesized template static data
         member initializations
 
@@ -19,7 +29,6 @@ f() instead of X<int>::f).  This has been fixed.
   };
   template <class T> int X<T>::i(X<T>::f());
   X<int> xi;
-
 
 5/10/96 New name mangling for templates
 
