@@ -2246,6 +2246,8 @@ enum a_decl_modifier_tag {
   dmt_thread,
   dmt_naked,
   dmt_microsoft_inline,
+  dmt_selectany,
+  dmt_nothrow,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   dmt_last
 };
@@ -2259,7 +2261,9 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
   /* dmt_dllexport */		"dllexport",
   /* dmt_thread */		"thread",
   /* dmt_naked */		"naked",
-  /* dmt_inline */		"__inline",
+  /* dmt_microsoft_inline */	"__inline",
+  /* dmt_selectany */		"selectany",
+  /* dmt_nothrow */		"nothrow",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* dmt_last */		"last"
 } /* decl_modifier_names */
@@ -2290,12 +2294,18 @@ about variables and routines.
 			(1 << (int)dmt_microsoft_inline)
 			/* TRUE if the declaration includes the
 			   Microsoft __inline specifier. */
+#define DM_SELECTANY	(1 << (int)dmt_selectany)
+			/* TRUE if the declaration includes the Microsoft
+			   __declspec(selectany) specifier. */
+#define DM_NOTHROW	(1 << (int)dmt_nothrow)
+			/* TRUE if the declaration includes the Microsoft
+			   __declspec(nothrow) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Type used to represent a set of decl modifiers.
 */
-typedef char	a_decl_modifier;
+typedef short	a_decl_modifier;
 typedef a_decl_modifier *a_decl_modifier_ptr;
 
 #endif /* ifdef CIL */

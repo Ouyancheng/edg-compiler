@@ -1132,6 +1132,12 @@ Display the indicated decl modifiers.
     if (dm & DM_MICROSOFT_INLINE) {
       disp_boolean("microsoft_inline", TRUE);
     }  /* if */
+    if (dm & DM_SELECTANY) {
+      disp_boolean("selectany", TRUE);
+    }  /* if */
+    if (dm & DM_NOTHROW) {
+      disp_boolean("nothrow", TRUE);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* disp_decl_modifiers */

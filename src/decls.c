@@ -2401,6 +2401,7 @@ diagnostics.
           if (!is_definition) invalid_modifier = TRUE;
           break;
         case dmt_microsoft_inline:
+        case dmt_nothrow:
           break;
         default:
           invalid_modifier = TRUE;
@@ -2431,14 +2432,16 @@ diagnostics.
 void update_variable_decl_modifiers(a_variable_ptr	variable,
 		  		    a_decl_modifier	new_modifiers,
 				    a_source_position	*position,
-                                    a_boolean		is_redecl)
+                                    a_boolean		is_redecl,
+                                    a_boolean           is_def)
 /*
 Update the decl_modifiers field of the variable entry to reflect the
-modifiers specified in new_modifiers.  If this is a redeclaration or
-definition of a previously defined variable, make sure that the new
+modifiers specified in new_modifiers.  If this is a redeclaration or a
+definition of a previously declared variable, make sure that the new
 modifiers are consistent with the previous declaration specified
 by variable.  position is used as the error position for any
-diagnostics.
+diagnostics.  is_redecl is TRUE if this is a redeclaration; is_def is TRUE
+if this is a definition.
 */
 {
   a_boolean		any_invalid_redecl = FALSE;
@@ -2451,10 +2454,11 @@ diagnostics.
      the modifiers associated with the bits that are set. */
   for (bit_number = 0; bit_number < (int)dmt_last;
        ++bit_number, modifier_value <<= 1) {
-    a_boolean		invalid_modifier = FALSE;
-    a_boolean		invalid_redecl = FALSE;
     if ((new_modifiers & modifier_value) != 0) {
       /* This bit is set. */
+      a_boolean		invalid_modifier = FALSE;
+      a_boolean		invalid_redecl = FALSE;
+
       switch (bit_number) {
         case dmt_dllimport:
         case dmt_dllexport:
@@ -2466,6 +2470,16 @@ diagnostics.
           }  /* if */
           break;
         case dmt_thread:
+          break;
+        case dmt_selectany:
+          /* "selectany" is allowed only on variables that are defined and
+             have external linkage. */
+          if (variable->source_corresp.is_local_to_function ||
+              (variable->storage_class != (a_storage_class)sc_unspecified &&
+               (variable->storage_class != (a_storage_class)sc_extern ||
+                !is_def))) {
+            invalid_modifier = TRUE;
+          }  /* if */
           break;
         default:
           invalid_modifier = TRUE;
@@ -3446,7 +3460,7 @@ cross-reference output describing this declaration.
   }  /* if */
   update_variable_decl_modifiers(variable_ptr, decl_modifiers,
                                  &locator->source_position,
-                                 redeclaration);
+                                 redeclaration, is_variable_def);
   /* Link the symbol to the IL variable entry. */
   sym->variant.variable.ptr = variable_ptr;
   if (*ext_sym != NULL &&
@@ -6501,7 +6515,7 @@ Return a pointer to the variable that is declared.
   vp = make_variable(type_ptr, storage_class, decl_scope_level);
   update_variable_decl_modifiers(vp, decl_modifiers,
                                  &locator.source_position,
-                                 /*is_redecl=*/FALSE);
+                                 /*is_redecl=*/FALSE, /*is_def=*/TRUE);
   sym->variant.variable.ptr = vp;
   set_source_corresp(&vp->source_corresp, sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -8237,7 +8251,7 @@ continue_with_declaration:
         is_variable_def = TRUE;
         update_variable_decl_modifiers(var_ptr, decl_modifiers,
                                        &locator.source_position,
-                                       /*is_redecl=*/TRUE);
+                                       /*is_redecl=*/TRUE, /*is_def=*/TRUE);
       } else if (is_function) {
         /* A function declaration with no body. */
         decl_routine(&locator, local_storage_class, local_type_ptr,

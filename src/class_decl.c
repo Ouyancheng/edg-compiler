@@ -5842,7 +5842,7 @@ member declaration, respectively.
   merge_decl_modifiers(class_type, decl_info, /*is_definition=*/FALSE);
   update_variable_decl_modifiers(var, decl_info->decl_modifiers,
                                  &locator->source_position,
-                                 /*is_redecl=*/FALSE);
+                                 /*is_redecl=*/FALSE, /*is_def=*/FALSE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Check for the case in which the type is or contains a routine type for
      which default arguments have been specified. */

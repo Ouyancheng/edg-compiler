@@ -119,12 +119,28 @@ keyword (or a memory attribute keyword).
                 modifiers |= DM_THREAD;
               }  /* if */
             } else if (strcmp(modifier, "naked") == 0) {
-              /* "naked" is not allowed on a class declaration. */
               if (is_class_decl) {
+                /* "naked" is not allowed on a class declaration. */
                 pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                                &pos_curr_token, modifier);
               } else {
                 modifiers |= DM_NAKED;
+              }  /* if */
+            } else if (strcmp(modifier, "selectany") == 0) {
+              if (is_class_decl) {
+                /* "selectany" is not allowed on a class declaration. */
+                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                               &pos_curr_token, modifier);
+              } else {
+                modifiers |= DM_SELECTANY;
+              }  /* if */
+            } else if (!C_mode() && strcmp(modifier, "nothrow") == 0) {
+              if (is_class_decl) {
+                /* "nothrow" is not allowed on a class declaration. */
+                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                               &pos_curr_token, modifier);
+              } else {
+                modifiers |= DM_NOTHROW;
               }  /* if */
             } else {
               str_error(ec_bad_declspec_modifier, modifier);

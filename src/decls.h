@@ -322,11 +322,12 @@ extern
 void update_variable_decl_modifiers(a_variable_ptr	variable,
 		  		    a_decl_modifier	new_modifiers,
 				    a_source_position	*position,
-                                    a_boolean		is_redecl);
+                                    a_boolean		is_redecl,
+                                    a_boolean           is_def);
 #else /* !DECL_MODIFIERS_IN_USE */
 /* Define these as macros that expand to nothing. */
 #define update_routine_decl_modifiers(a,b,c,d,e) /* nothing */
-#define update_variable_decl_modifiers(a,b,c,d) /* nothing */
+#define update_variable_decl_modifiers(a,b,c,d,e) /* nothing */
 #endif /* !DECL_MODIFIERS_IN_USE */
 
 extern void check_default_args_for_param_type(a_param_type_ptr  ptp,
