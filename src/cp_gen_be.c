@@ -1312,9 +1312,17 @@ Generate a namespace qualifier (e.g., "A::B::") that identifies the indicated
 namespace.
 */
 {
-  /* Use recursion to handle multiple levels of nesting. */
-  gen_name(&nsp->source_corresp, iek_namespace, /*force_qualified_name=*/TRUE);
-  write_tok_str("::");
+  /* If the namespace at this level is unnamed, skip it and move up one
+     level. */
+  while (nsp != NULL && !has_name(nsp)) {
+    nsp = nsp->source_corresp.parent.namespace_ptr;
+  }  /* while */
+  if (nsp != NULL) {
+    /* Use recursion to handle multiple levels of nesting. */
+    gen_name(&nsp->source_corresp, iek_namespace,
+             /*force_qualified_name=*/TRUE);
+    write_tok_str("::");
+  }  /* if */
 }  /* gen_namespace_qualifier */
   
 
