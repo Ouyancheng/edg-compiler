@@ -1,5 +1,12 @@
 Version 3.2
 
+3/17/03  Incorrect check for loop on operator->
+
+The check for a loop while resolving overloaded operator->
+references ignored cv-qualifiers, which could sometimes cause
+a spurious error in some cases where the "->" actually could
+be resolved.  Now fixed.
+
 3/13/03  Instantiation of virtual functions for types used by RTTI
 
 Changes made in version 3.1 caused virtual functions of types used in

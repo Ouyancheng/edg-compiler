@@ -2045,13 +2045,16 @@ is the "->".
   if (is_class_struct_union_type(operand->type)) {
     an_operand                  result;
     a_boolean                   processed = FALSE;
-    a_type_ptr                  class_type = skip_typerefs(operand->type);
+    a_type_ptr                  qual_class_type = operand->type;
+    a_type_ptr                  class_type = skip_typerefs(qual_class_type);
     an_operator_arrow_block_ptr aobp;
 
     /* See whether the class type has been encountered previously.
-       If so, we have a loop. */
+       If so, we have a loop.  Note that cv-qualifiers are not
+       ignored, because they can make a difference in which operator->
+       function is selected. */
     for (aobp = parent; aobp != NULL; aobp = aobp->parent) {
-      if (same_entities(class_type, aobp->class_type)) {
+      if (identical_types(qual_class_type, aobp->class_type)) {
         /* Loop in operator-> return types. */
         pos_ty_error(ec_op_arrow_loop, &operand->position, class_type);
         conv_to_error_operand(operand);
@@ -2090,7 +2093,7 @@ is the "->".
            loops. */
         an_operator_arrow_block block;
         block.parent = parent;
-        block.class_type = class_type;
+        block.class_type = qual_class_type;
         process_overloaded_operator_arrow(operand, tsn, &block);
       } /* if */
     }  /* if */
