@@ -2032,6 +2032,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr        attributes = NULL;
+  a_source_position       attr_pos;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr    name_ref = NULL;
@@ -2087,6 +2088,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode) {
       /* Look for any attributes that apply to this type. */
+      attr_pos = pos_curr_token;
       attributes = scan_attributes();
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2931,6 +2933,8 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
        is not followed by a class type definition. */
     if (is_class_definition) {
       apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
+    } else {
+      pos_warning(ec_attribute_ignored_on_incomplete_class_decl, &attr_pos);
     }  /* if */
     free_attribute_list(attributes);
   }  /* if */
