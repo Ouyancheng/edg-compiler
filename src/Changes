@@ -1,5 +1,13 @@
 Version 2.13
 
+11/25/92 IL lowering changes all functions to unprototyped (as as option)
+
+For full cfront compatibility, IL lowering now changes all functions
+to unprototyped (when CFRONT_OBJECT_CODE_COMPATIBILITY is TRUE).  This
+produces the same result that cfront does when cfront generates old-style
+functions in its C output.  Arguments in function calls are widened
+where necessary.
+
 11/24/92 Remark issued for unreferenced variable with constructor
 
 Formerly, variables with dynamic initialization side-effects (e.g.,
