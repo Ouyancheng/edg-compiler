@@ -348,6 +348,11 @@ pch_test_mode=0
 #
 trans_unit_test_mode=0
 #
+# Indicates that multiple files should be compiled as translation units
+# of a single compilation
+#
+multi_trans_unit=0
+#
 # Debug option that causes nm to be run on object files
 #
 nm_on_objects=0
@@ -524,6 +529,7 @@ check_abbreviation()
 --microsoft_version
 --module_init
 --multibyte_chars
+--multi_trans_unit
 --munch
 --namespaces
 --near_code_pointers
@@ -855,6 +861,11 @@ process_option()
       arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
       instantiation_dir=$arg_value
       use_default_instantiation_dir=0
+      ;;
+    --multi_trans_unit)
+#     When multiple files are specified, they should be treated as
+#     multiple translation units to a single compilation
+      multi_trans_unit=1
       ;;
     --no_definition_list_file)
 #     Tell the prelinker not to use a definition list file.
@@ -1496,6 +1507,14 @@ if [ $old_ii_format -ne 0 ] ; then
   prelink_options=$prelink_options" -R1"  
 fi
 #
+# If we are using --multi_trans_unit mode, change cfiles so that it only
+# contains the first file name.  Set all_files to the complete list.
+#
+if [ $multi_trans_unit -ne 0 ] ; then
+  allfiles=$cfiles
+  cfiles=`echo $cfiles | sed -e "s/ .*//"`
+fi
+#
 # Run through the list of .c files and compile.
 #
 any_errors=0
@@ -1592,7 +1611,14 @@ do
       fi
     fi
   fi
-  command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$ti_file_option" "$instantiation_dir_option" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
+  command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$ti_file_option" "$instantiation_dir_option" "$EDG_CPFE_DEFAULT_OPTIONS
+  # Normally we just append the file to be compiled, but in multi_trans_unit
+  # mode we append the list of files.
+  if [ $multi_trans_unit -eq 0 ] ; then
+    command=$command" "$cfile
+  else
+    command=$command" "$allfiles
+  fi
   if [ $trans_unit_test_mode -eq 1 ] ; then
     # In translation unit test mode, specify the source file to be compiled
     # twice on the front end invocation command.
