@@ -3879,7 +3879,7 @@ the base class.
     }  /* if */
   }  /* if */
   db_exit();
-}  /* set_shares_virtual_function_info_flags */
+}  /* set_shares_virtual_function_info_flag */
 
 
 static void set_target_of_conversion_function_flag(a_type_ptr  class_type)
