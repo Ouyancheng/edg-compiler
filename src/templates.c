@@ -103,11 +103,13 @@ static char	*line_type_names[(int)tilt_last+1] = {
 
 /*
 Macro that is TRUE if the instantiation request and/or template information
-files should be generated.  This is not done when doing preprocessing
-only or when the back end is suppressed.
+files should be generated.  This is done when automatic instantiation is
+enabled, but not when doing preprocessing only or when the back end is
+suppressed.
 */
 #define generate_template_files()					\
-  (!do_preprocessing_only && !suppress_back_end)
+  (automatic_instantiation_mode &&					\
+   !do_preprocessing_only && !suppress_back_end)
 
 
 #define INSTANCE_LOOKUP_TABLE_SIZE 10007
