@@ -386,19 +386,12 @@ use.
   an_eh_stack_entry		ehse;
   an_array_alloc_eh_info	aaehi;
   a_boolean			create_eh_stack_entry;
+  a_boolean			free_memory_on_cleanup = array_ptr == NULL;
+
   /* An entry is created on the EH stack if the class for which the
      array is being created has a destructor, or if the object is
      dynamically allocated. */
   create_eh_stack_entry = dtor != NULL || array_ptr == NULL;
-  if (create_eh_stack_entry) {
-    add_vec_new_or_delete_eh_stack_entry(&ehse, &aaehi, /*is_vec_new=*/TRUE);
-    aaehi.free_memory_on_cleanup = array_ptr == NULL;
-    aaehi.number_of_elements     = number_of_elements;
-    aaehi.element_size           = element_size;
-    aaehi.destructor		 = dtor;
-    aaehi.delete_routine	 = delete_routine;
-    aaehi.is_two_arg		 = is_two_arg;
-  }  /* if */
 #endif /* EXCEPTION_HANDLING */
   if (array_ptr == NULL) {
     a_boolean	err;
@@ -412,7 +405,14 @@ use.
   }  /* if */
 #if EXCEPTION_HANDLING
   if (create_eh_stack_entry) {
-    aaehi.array_ptr = array_ptr;
+    add_vec_new_or_delete_eh_stack_entry(&ehse, &aaehi, /*is_vec_new=*/TRUE);
+    aaehi.free_memory_on_cleanup = free_memory_on_cleanup;
+    aaehi.number_of_elements     = number_of_elements;
+    aaehi.element_size           = element_size;
+    aaehi.destructor		 = dtor;
+    aaehi.delete_routine	 = delete_routine;
+    aaehi.is_two_arg		 = is_two_arg;
+    aaehi.array_ptr              = array_ptr;
   }  /* if */
 #endif /* EXCEPTION_HANDLING */
   /* Call the constructor, if any, for each member of the array.  Note that

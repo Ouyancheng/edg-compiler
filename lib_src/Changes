@@ -1,4 +1,10 @@
-Version 2.30
+Version 2.32
+
+1/31/96  deallocation routine called with invalid value when array new fails
+
+If an array new operation fails, and EH is being used, the deallocation
+routine was incorrectly being called to free the memory.  This problem
+was introduced in version 2.31, and is now fixed.
 
 1/24/96  nothrow operator new defined incorrectly
 
