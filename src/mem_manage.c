@@ -789,6 +789,11 @@ void done_with_memory_region(a_memory_region_number region_number)
 We're done generating the indicated memory region in the front end.
 (The memory region may be used further in the back end, but we're
 done creating it.)  Save it if necessary, free the space if possible.
+If this compilation may result in PCH file being generated, we can't
+complete the IL processing until such time that we know whether the IL
+will need to be saved in the PCH file.   In this case, the write of the
+IL to a file, and the freeing of the memory, is deferred until the
+decision whether to generate a PCH is made.
 */
 {
   db_enter(5, "done_with_memory_region");
@@ -801,9 +806,11 @@ done creating it.)  Save it if necessary, free the space if possible.
 #endif /* DEBUG */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #if !STANDALONE_UTILITY_PROGRAM
-  /* Communication with the back end is via a file.  Write the region and
-     then free its storage. */
-  write_memory_region(region_number);
+  if (!header_stop_position_pending) {
+    /* Communication with the back end is via a file.  Write the region and
+       then free its storage. */
+    write_memory_region(region_number);
+  }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   if (!header_stop_position_pending) {
     /* Only free the memory region if we know that we won't need to save
