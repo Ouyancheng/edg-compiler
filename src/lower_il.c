@@ -7804,10 +7804,9 @@ context doesn't care what the type is).
 static void lower_runtime_sizeof(an_expr_node_ptr expr)
 /*
 Do lowering for an enk_runtime_sizeof, which can appear in C++
-when RECORD_CONSTANT_EXPRESSIONS_IN_IL is set or SIZEOF_TYPE_IS_UNKNOWN
-is defined.  Normally, it is generated only for VLAs.  The "lowering"
-is really just lowering the subtree and leaving the enk_runtime_sizeof
-itself in the IL.
+when SIZEOF_TYPE_IS_UNKNOWN is defined.  Normally, it is generated only
+for VLAs.  The "lowering" is really just lowering the subtree and
+leaving the enk_runtime_sizeof itself in the IL.
 */
 {
   /* expr->type was lowered by lower_expr. */
