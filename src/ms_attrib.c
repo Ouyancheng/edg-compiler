@@ -474,6 +474,12 @@ are accepted.
                           "class", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "maxinstnamelen", /*is_unnamed=*/FALSE, NULL);
+  /* [progid] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "progid", MSAT_CLASS);
+  set_initialization_style_arg_allowed();
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "name", /*is_unnamed=*/FALSE, NULL);
   /* [provider] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "provider", MSAT_STANDALONE);
@@ -481,12 +487,14 @@ are accepted.
                           "name", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "uuid", /*is_unnamed=*/FALSE, NULL);
-  /* [retval] */
-  make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "retval", MSAT_PARAMETER);
+  /* [registration_script] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "registration_script", MSAT_CLASS);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "script", /*is_unnamed=*/FALSE, NULL);
   /* [rdx] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "rdxl", MSAT_CLASS);
+			     "rdx", MSAT_CLASS);
   /* [request_handler] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "request_handler", MSAT_CLASS);
@@ -494,6 +502,15 @@ are accepted.
                           "name", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "sdl", /*is_unnamed=*/FALSE, NULL);
+  /* [requires_category] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "requires_category", MSAT_CLASS);
+  set_initialization_style_arg_allowed();
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "requires_category", /*is_unnamed=*/FALSE, NULL);
+  /* [retval] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "retval", MSAT_PARAMETER);
   /* [soap_handler] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "soap_handler", MSAT_CLASS);
@@ -523,9 +540,19 @@ are accepted.
 			     "soap_method", MSAT_METHOD);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, NULL);
+  /* [support_error_info] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "support_error_info", MSAT_CLASS);
+  /* The documentation describes this parameter as a UUID, but it appears
+     to actually be a string. */
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "error_interface", /*is_unnamed=*/FALSE, NULL);
+  /* [synchronize] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "synchronize", MSAT_METHOD | MSAT_ROUTINE);
   /* [uuid] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "uuid", MSAT_CLASS);
+			     "uuid", MSAT_CLASS | MSAT_INTERFACE);
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "uuid", /*is_unnamed=*/FALSE, NULL);
@@ -629,19 +656,25 @@ Look up the identifier that names the attribute to be processed.
 }  /* look_up_attribute */
 
 
-static char *get_string_for_token(a_boolean	*err)
+static char *get_string_value_for_token(a_boolean	*err)
 /*
 If the current token is an identifier or string literal, this routine
 copies the characters of the token static buffer and converts them to lower
-case.  A pointer to the static buffer is returned.  If the current token
-is something else, a NULL pointer is returned.  If the token is a string
-literal, but the constant is an error constant, "err" is set to TRUE.
-Note that "err" is not TRUE for an unexpected token kind.
+case (for a string literal, the quotes are not part of the string).  If the
+string contains a null character, any characters after the null are discarded.
+A pointer to the static buffer is returned.  If the current token is something
+other than an identifier or string literal, a NULL pointer is returned.  If
+the token is a string literal, but the constant is an error constant, "err"
+is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
 */
 {
   char		*src = NULL;
   a_boolean	valid_token = TRUE;
   char		*result = NULL;
+  a_boolean	src_is_wide = FALSE;
+  a_targ_size_t	len;
+  a_targ_size_t	pos;
+  int		size = 1;
 
   *err = FALSE;
   /* Copy the characters into a buffer, converting any upper case characters
@@ -652,6 +685,7 @@ Note that "err" is not TRUE for an unexpected token kind.
      provided. */
   if (curr_token == tok_identifier) {
     src = locator_for_curr_id.symbol_header->identifier;
+    len = strlen(src);
   } else if (curr_token == tok_string_literal) {
     if (is_error_constant(&const_for_curr_token)) {
       /* We encountered a misformed string literal.  An error should
@@ -660,6 +694,11 @@ Note that "err" is not TRUE for an unexpected token kind.
       *err = TRUE;
     } else {
       src = const_for_curr_token.variant.string.value;
+      /* Determine if the source constant is a wide string literal. */
+      src_is_wide = is_wide_string_constant(&const_for_curr_token);
+      size = src_is_wide ? targ_sizeof_wchar_t : 1;
+      /* Subtract one character to ignore the null terminator. */
+      len = const_for_curr_token.variant.string.length - size;
     }  /* if */
   } else {
     /* Some other token kind */
@@ -669,11 +708,19 @@ Note that "err" is not TRUE for an unexpected token kind.
   if (src != NULL) {
     /* Copy the characters to the text buffer, converting them to lower
        case. */
-    while (*src != '\0') {
-      char ch = *src++;
+    for (pos = 0; pos < len; src += size, pos += size) {
+      char	ch;
+      if (src_is_wide) {
+        /* A wide literal.  Extract the character value.  Values out of
+           range are truncated.  As this routine is used for strings with
+           expected values, this should result an an error later. */
+        ch = (char)extract_wide_char_from_string(src);
+      } else {
+        ch = *src;
+      }  /* if */
       if (isalpha((unsigned char)ch)) ch = tolower(ch);
       add_char_to_text_buffer(ms_attr_buffer, ch);
-    }  /* while */
+    }  /* for */
     /* Add a null terminator. */
     add_char_to_text_buffer(ms_attr_buffer, '\0');
     result = ms_attr_buffer->buffer;
@@ -681,7 +728,59 @@ Note that "err" is not TRUE for an unexpected token kind.
   /* For a valid token kind, bypass the token. */
   if (valid_token) (void)get_token();
   return result;
-}  /* get_string_for_token */
+}  /* get_string_value_for_token */
+
+
+static a_constant_ptr get_string_constant_for_token(a_boolean	*err)
+/*
+If the current token is an identifier or string literal, this routine
+returns a constant that represents the string literal or the identifier
+name converted to a string literal constant.  A string literal constant
+is returned as scanned by the lexical routines, and so may contain
+embedded null characters.  If the current token is something other than
+an identifier or string literal, a NULL pointer is returned.  If the token
+is a string literal, but the constant is an error constant, "err" is set to
+TRUE.  Note that "err" is not TRUE for an unexpected token kind.
+*/
+{
+  a_constant_ptr	result = NULL;
+  a_boolean		valid_token = TRUE;
+  a_constant		constant;
+
+  *err = FALSE;
+  if (curr_token == tok_identifier) {
+    /* Convert the identifier into a string constant. */
+    sizeof_t	length;
+    char	*str = locator_for_curr_id.symbol_header->identifier;
+    /* Add space for the null terminator. */
+    length = strlen(str) + 1;
+    clear_constant(&constant, ck_string);
+    constant.type = string_type(length);
+    constant.variant.string.length = length;
+    constant.variant.string.value =
+                          copy_string_to_region(file_scope_region_number, str);
+    result = &constant;
+  } else if (curr_token == tok_string_literal) {
+    if (is_error_constant(&const_for_curr_token)) {
+      /* We encountered a misformed string literal.  An error should
+         have been issued already. */
+      check_assertion(total_errors != 0);
+      *err = TRUE;
+      set_error_constant(&constant);
+      result = &constant;
+    } else {
+      result = &const_for_curr_token;
+    }  /* if */
+  } else {
+    /* Some other token kind */
+    valid_token = FALSE;
+  }  /* if */
+  /* For a valid token kind, bypass the token. */
+  if (valid_token) (void)get_token();
+  /* Get a shared version of the result constant. */
+  if (result != NULL) result = alloc_shareable_constant(result);
+  return result;
+}  /* get_string_consant_for_token */
 
 
 static long scan_ms_attribute_integer_arg(void)
@@ -708,24 +807,22 @@ scanned.
 }  /* scan_ms_attribute_integer_arg */
 
 
-static char *scan_ms_attribute_string_arg(void)
+static a_constant_ptr scan_ms_attribute_string_arg(void)
 /*
 Scan a string argument of a Microsoft attribute.  Return the value
 scanned.
 */
 {
-  char		*value = NULL;
-  a_boolean	err;
+  a_boolean		err;
+  a_constant_ptr	constant;
 
-  value = get_string_for_token(&err);
-  if (value == NULL && !err) {
+  constant = get_string_constant_for_token(&err);
+  if (constant == NULL && !err) {
     /* The current token was not of an expected kind. */
     syntax_error(ec_exp_string_literal);
-  } else {
-    /* Make a copy of the string in IL memory. */
-    value = copy_string_to_region(file_scope_region_number, value);
+    constant = alloc_error_constant();
   }  /* if */
-  return value;
+  return constant;
 }  /* scan_ms_attribute_string_arg */
 
 
@@ -770,7 +867,7 @@ scanned.
   a_boolean		err;
   char			*string_for_token;
 
-  string_for_token = get_string_for_token(&err);
+  string_for_token = get_string_value_for_token(&err);
   if (string_for_token == NULL && !err) {
     /* The current token was not of an expected kind. */
     str_error(ec_exp_ms_attr_bool_value, param->name);
@@ -807,7 +904,7 @@ significant.
   a_boolean		err;
   char			*string_for_token;
 
-  string_for_token = get_string_for_token(&err);
+  string_for_token = get_string_value_for_token(&err);
   if (string_for_token == NULL && !err) {
     /* The current token was not of an expected kind. */
     str_error(ec_exp_ms_attr_enum_value, param->name);
@@ -875,12 +972,12 @@ is the parameter description for the parameter associated with the argument.
       break;
     case msaak_string:
       /* A string. */
-      arg->variant.string = scan_ms_attribute_string_arg();
+      arg->variant.string_constant = scan_ms_attribute_string_arg();
       break;
     case msaak_other:
       /* An "other" argument.  Convert all the tokens until the terminating
          "," or ")" into a string. */
-      arg->variant.string = scan_ms_attribute_other_arg();
+      arg->variant.other_string = scan_ms_attribute_other_arg();
       break;
     default:
       unexpected_condition_str("scan_ms_attribute_arg: bad argument kind");
@@ -908,7 +1005,7 @@ arguments scanned so far, and is used to detect a duplicated argument.
   a_source_position		name_pos = pos_curr_token;
 
   /* Get the lower case string for the parameter name. */
-  param_name = get_string_for_token(&err);
+  param_name = get_string_value_for_token(&err);
   if (param_name != NULL) {
     /* Look for the parameter name in the parameter list. */
     for (msapp = attr_descr->parameters; msapp != NULL; msapp = msapp->next) {
@@ -1107,8 +1204,8 @@ declaration.
     if (db_flag_is_set("msattr")) {
       fprintf(f_debug, "Attribute string: %s\n", attr->string);
     }  /* if */
-  }  /* if */
 #endif /* DEBUG */
+  }  /* if */
   return attr;
 }  /* scan_ms_attribute */
 
@@ -1200,6 +1297,12 @@ The attributes must apply to the entity kind specified by "target".
        } else {
          pos_st_error(ec_invalid_use_of_ms_attr, &msap->position, msap->name);
        }  /* if */
+#if DEBUG
+       if (db_flag_is_set("msattr")) {
+         fprintf(f_debug, "Attribute target: allowed=%x, context=%x\n",
+                 (int)msap->kind_descr->target, (int)target);
+       }  /* if */
+#endif /* DEBUG */
     } else {
       /* A valid attribute.  Add it to the new list. */
       if (new_list == NULL) {
