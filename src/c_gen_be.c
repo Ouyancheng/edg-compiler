@@ -6700,7 +6700,7 @@ by IL lowering.
     /* SunPro C has a special way of indicating that a routine should be
        called at program startup. */
     if (!file_scope_init_routine_called) {
-        dump_sunpro_init_pragma((a_routine_ptr)NULL, name);
+      dump_sunpro_init_pragma((a_routine_ptr)NULL, name);
       file_scope_init_routine_called = TRUE;
     }  /* if */
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
