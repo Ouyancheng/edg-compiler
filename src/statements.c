@@ -190,8 +190,12 @@ purposes.
     case cfdk_block:
       fprintf(f_debug, "block #%lu (line %lu)", cfdp->id_number,
               cfdp->source_pos.seq);
-      if (cfdp->variant.block.is_handler_block) {
-        fprintf(f_debug, ", handler");
+      if (cfdp->variant.block.is_catch_block) {
+        fprintf(f_debug, ", catch");
+      } else if (cfdp->variant.block.is_try_block) {
+        fprintf(f_debug, ", try");
+      } else if (cfdp->variant.block.is_within_catch_or_try_block) {
+        fprintf(f_debug, ", inside catch or try");
       }  /* if */
       if (cfdp->variant.block.is_switch_block) {
         fprintf(f_debug, ", switch");
@@ -364,10 +368,9 @@ to it.
       cfdp->variant.block.is_switch_block = FALSE;
       cfdp->variant.block.is_switch_subblock = FALSE;
       cfdp->variant.block.exposed_init_in_switch = FALSE;
-      cfdp->variant.block.is_handler_block = FALSE;
-#if CHECKING
-      cfdp->variant.block.dummy = 0;
-#endif /* CHECKING */
+      cfdp->variant.block.is_catch_block = FALSE;
+      cfdp->variant.block.is_try_block = FALSE;
+      cfdp->variant.block.is_within_catch_or_try_block = FALSE;
       break;
     case cfdk_init:
       cfdp->variant.init_statement = NULL;
@@ -512,22 +515,25 @@ forth, are decremented.
                         parent_cfdp, parent_cfdp->variant.block.end_of_block);
       }  /* if */
     }  /* for */
-    if (cfdp->variant.goto_statement.ptr->variant.label.lifetime !=
+    if (!C_mode()) {
+      if (cfdp->variant.goto_statement.ptr->variant.label.lifetime !=
                                            function_scope_object_lifetime) {
-      /* The lifetime entry with which this goto is associated "survived"
-         (i.e., did not decay to the function scope object lifetime) and thus
-         will remain in the IL, so no fixup of the pointer is required. */
-    } else if (function_scope_object_lifetime->destructions == NULL) {
-      /* It is certain that the functions scope object lifetime will survive
-         in the IL.  Again, no pointer fixup is required. */
-    } else {
-      /* It may turn out that the lifetime created for the function scope will
-         be eliminated, in which case the lifetime pointer in the goto
-         statement will have to be cleared.  Put the entry on a fixup list. */
-      cfdp->next = goto_fixup_list;
-      goto_fixup_list = cfdp;
-      /* Don't return it to the available list. */
-      goto done;
+        /* The lifetime entry with which this goto is associated "survived"
+           (i.e., did not decay to the function scope object lifetime) and thus
+           will remain in the IL, so no fixup of the pointer is required. */
+      } else if (function_scope_object_lifetime->destructions == NULL) {
+        /* It is certain that the functions scope object lifetime will survive
+           in the IL.  Again, no pointer fixup is required. */
+      } else {
+        /* It may turn out that the lifetime created for the function scope
+           will be eliminated, in which case the lifetime pointer in the goto
+           statement will have to be cleared.  Put the entry on a fixup
+           list. */
+        cfdp->next = goto_fixup_list;
+        goto_fixup_list = cfdp;
+        /* Don't return it to the available list. */
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   free_control_flow_descr(cfdp);
@@ -555,6 +561,62 @@ cfdp2. */
 }  /* is_on_cfd_parent_list */
 
 
+static a_boolean check_for_branch_into_try_or_catch_block(
+                                      a_control_flow_descr_ptr  label_cfdp,
+                                      a_control_flow_descr_ptr  goto_cfdp)
+/*
+
+Check for an attempt to branch into a try block or a catch clause (an
+exception handler).  Either label_cfdp points to a label entry and goto_cfdp
+to a goto entry, or else label_cfdp points to a case label entry and
+goto_cfdp is NULL (in which case we need to find the switch with which the
+case label is associated).  If an error is found, issue the diagnostic and
+return TRUE.
+
+*/
+{
+  a_boolean                 err = FALSE;
+  a_control_flow_descr_ptr  cfdp;
+
+  db_enter(4, "check_for_branch_into_try_or_catch_block");
+  cfdp = label_cfdp->parent;
+  if (cfdp->variant.block.is_within_catch_or_try_block) {
+    /* The label is inside a catch clause or a try block. */
+    while (!cfdp->variant.block.is_catch_block &&
+           !cfdp->variant.block.is_try_block) {
+      cfdp = cfdp->parent;
+      check_assertion(cfdp != NULL);
+    }  /* while */
+    if (goto_cfdp == NULL) {
+      /* This must be a branch to a case label -- there's no explicit goto
+         statement. */
+      check_assertion(label_cfdp->kind ==
+                             (a_control_flow_descr_kind)cfdk_case_label);
+      /* Find the innermost enclosing switch block -- it's the block in which
+         the implicit goto occurs. */
+      goto_cfdp = label_cfdp->parent;
+      while (!goto_cfdp->variant.block.is_switch_block) {
+        goto_cfdp = goto_cfdp->parent;
+        check_assertion(goto_cfdp != NULL);
+      }  /* for */
+    }  /* if */
+    if (is_on_cfd_parent_list(cfdp, goto_cfdp)) {
+      /* The catch or try block is a parent (or grandparent, etc.) of the
+         block where the goto occurs.  A local branch within a single
+         catch clause or try block is allowed. */
+    } else {
+      /* It's a branch into the catch or try block from outside. */
+      pos_error(cfdp->variant.block.is_catch_block ?
+                  ec_branch_into_handler : ec_branch_into_try_block,
+                &goto_cfdp->source_pos);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  db_exit();
+  return err;
+}  /* check_for_branch_into_try_or_catch_block */
+
+#if 0
 static a_boolean check_for_branch_into_handler(
                                       a_control_flow_descr_ptr  label_cfdp,
                                       a_control_flow_descr_ptr  goto_cfdp)
@@ -570,7 +632,7 @@ If an error is found, issue the diagnostic and return TRUE.
   a_control_flow_descr_ptr  cfdp;
 
   for (cfdp = label_cfdp->parent; cfdp != NULL; cfdp = cfdp->parent) {
-    if (cfdp->variant.block.is_handler_block) break;
+    if (cfdp->variant.block.is_catch_block) break;
   }  /* for */
   if (cfdp == NULL) {
     /* Label is not inside a handler. */
@@ -593,7 +655,7 @@ If an error is found, issue the diagnostic and return TRUE.
   }  /* if */
   return err;
 }  /* check_for_branch_into_handler */
-
+#endif /* if 0 */
 
 static void report_switch_past_init(a_control_flow_descr_ptr  block,
                                     an_error_severity         *prev_severity)
@@ -924,10 +986,11 @@ initializing declarations.
           } while (cfdp != NULL);
           break;
         case cfdk_case_label:
-          if (check_for_branch_into_handler(new_cfdp,
-                                            (a_control_flow_descr_ptr)NULL)) {
-            /* Case label is within a hander and the switch statement with
-               which it is associated is outside the handler. */
+          if (check_for_branch_into_try_or_catch_block(
+                                  new_cfdp, (a_control_flow_descr_ptr)NULL)) {
+            /* Case label is within a hander or try block and the switch
+               statement with which it is associated is outside.  The error
+               has already been issued. */
             free_control_flow_descr(new_cfdp);
             goto done;
           }  /* if */
@@ -967,6 +1030,9 @@ initializing declarations.
               new_cfdp->variant.block.exposed_init_in_switch =
                           parent->variant.block.exposed_init_in_switch;
             }  /* if */
+          }  /* if */
+          if (parent->variant.block.is_within_catch_or_try_block) {
+            new_cfdp->variant.block.is_within_catch_or_try_block = TRUE;
           }  /* if */
       }  /* switch */
     }  /* if */
@@ -1662,10 +1728,25 @@ current structured statement.
        appears. */
     set_unreachable(curr_reachability);
   } else if (kind == ssk_compound) {
+    a_scope_ptr  scope = scope_stack[depth_scope_stack].il_scope;
+
     /* Represent this compound statement by adding a block entry to the
        control_flow_descr_list. */
     cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
     cfdp->variant.block.object_lifetime = olp;
+    if (scope != NULL && scope->kind == (a_scope_kind)sck_block &&
+        scope->variant.assoc_handler != NULL) {
+      /* This block represents the compound statement immediately within a
+         catch clause. */
+      cfdp->variant.block.is_catch_block = TRUE;
+      cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+      sssep->is_catch_clause = TRUE;
+    } else if (sssep[-1].kind == (a_struct_stmt_kind)ssk_try_block) {
+      /* This block represents the compound statement immediately within a
+         try block statement. */
+      cfdp->variant.block.is_try_block = TRUE;
+      cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+    }  /* if */
     add_to_control_flow_descr_list(cfdp);
   }  /* if */
   db_exit();
@@ -1868,15 +1949,19 @@ structured statement stack.
     for (depth = depth_stmt_stack-1; depth > -1; --depth) {
       sssep = &struct_stmt_stack[depth];
       if (sssep->kind == (a_struct_stmt_kind)ssk_compound) {
+        sssep->last_label_in_block = stmt;
+        sssep->last_label_object_lifetime = NULL;
+        sssep->last_label_block_insert_loc = NULL;
         if (sssep->is_catch_clause) {
           /* Don't propagate the last-label information out of a catch
              clause, since you can't branch back to the label from outside
              the handler. */
           break;
         }  /* if */
-        sssep->last_label_in_block = stmt;
-        sssep->last_label_object_lifetime = NULL;
-        sssep->last_label_block_insert_loc = NULL;
+      } else if (sssep->kind == (a_struct_stmt_kind)ssk_try_block) {
+        /* Don't propagate the last-label information out of a try block,
+           since you can't branch back to the label from outside it. */
+        break;
       }  /* if */
     }  /* for */
   }  /* if */
@@ -2700,9 +2785,10 @@ diagnose the condition.
     db_cfd_and_parents(label_cfdp);
   }  /* if */
 #endif /* DEBUG */
-  if (check_for_branch_into_handler(label_cfdp, goto_cfdp)) {
+  if (check_for_branch_into_try_or_catch_block(label_cfdp, goto_cfdp)) {
     /* Ignore the jump-over-initialization errors -- this is an illegal
-       branch. */
+       branch into a catch clause or try block.  (The diagnostic has
+       already been issued.) */
   } else if (label_cfdp->parent == goto_cfdp->parent) {
     /* Label and goto are in the same block:
 
@@ -3931,9 +4017,6 @@ branching into it is disallowed).
     /* Push an entry on the structured statement stack. */
     push_stmt_stack(ssk_compound, block,
                     innermost_local_object_lifetime(curr_object_lifetime));
-    /* Mark the block that was just pushed onto the stack as a handler. */
-    struct_stmt_stack[depth_stmt_stack].is_catch_clause = TRUE;
-    end_of_control_flow_descr_list->variant.block.is_handler_block = TRUE;
   } else {
     /* Block nested within a function.  Link it onto the current statement
        sequence. */

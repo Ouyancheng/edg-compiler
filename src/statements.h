@@ -311,16 +311,18 @@ typedef struct a_control_flow_descr {
 			   closed.  Once the block is closed or a case label
 			   appears, the flag is cleared. */
       unsigned int
-		is_handler_block:1;
-			/* TRUE if this is the top level block of a handler
-			   (i.e., the body of a catch clause). */
-#if CHECKING
+		is_catch_block:1;
+			/* TRUE if this is the top level block of a catch
+			   clause. */
       unsigned int
-		dummy:2;
-			/* Extra field that can be initialized to prevent
-			   spurious reference to uninitialized data warnings
-			   from CodeCenter. */
-#endif /* CHECKING */
+		is_try_block:1;
+			/* TRUE if this is the top level block of a try
+			   statement. */
+      unsigned int
+		is_within_catch_or_try_block:1;
+			/* TRUE if is_catch_block or is_try_block is TRUE for
+			   the current block or a block in which the current
+			   block is enclosed. */
     } block;
     /* When kind == cfdk_init: */
     a_statement_ptr
