@@ -3002,7 +3002,7 @@ the source file structure to do the conversion.
         fprintf(f_debug, "seq number = %lu\n", seq_number);
       }  /* if */
 #endif /* DEBUG */
-      internal_error("source_file_for_seq: bad seq number");
+      internal_error("find_seq_in_source_files: bad seq number");
     }  /* if */
 #endif /* CHECKING */
   }  /* while */
