@@ -3609,7 +3609,7 @@ on for use in generating cross-reference output describing this declaration.
       }  /* if */
     }  /* if */
     if (template_function_specific_decl &&
-        effective_decl_level == depth_innermost_namespace_scope) {
+        depth_innermost_function_scope == NO_SCOPE_DEPTH) {
       /* This is an explicit declaration of a template function.  Note that
          we are only interested in file- and namespace-scope declarations --
          declarations at local scope are handled separately. */
@@ -3667,12 +3667,15 @@ on for use in generating cross-reference output describing this declaration.
       if (!linked_redecl_error) {
         if (!sym->variant.routine.instance_ptr->specific_decl) {
           check_assertion(homonym_symbol != NULL);
+          check_assertion(sym->parent.namespace_ptr ==
+                             homonym_symbol->parent.namespace_ptr);
           /*  Its symbol is already on the template's function instantiation
               list, but it needs to be added to the overload list as well,
               to assure that it will be found by the ordinary overload
               resolution algorithm. */
-          overload_symbol = add_symbol_to_overload_list(sym, homonym_symbol,
-                                                        (a_namespace_ptr)NULL);
+          overload_symbol = 
+                    add_symbol_to_overload_list(sym, homonym_symbol,
+                                                sym->parent.namespace_ptr);
           sym->variant.routine.instance_ptr->specific_decl = TRUE;
         }  /* if */
         *old_type = routine_ptr->type;
