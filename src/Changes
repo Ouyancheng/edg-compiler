@@ -1,5 +1,12 @@
 Version 2.08
 
+8/6/92  Member function redeclarations are disallowed once again
+
+The extension to allow member function redeclarations has been removed.
+(It was added originally on the basis of a misreading of cfront behavior.)
+However, the code that effectively merges two member function declarations
+has been left in to avoid a degradation in error recovery.
+
 8/6/92  Bug with very long diagnostic messages fixed
 
 There was a bug in add_string_to_segment in error.c that showed up when
