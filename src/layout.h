@@ -42,16 +42,6 @@ extern void scan_bit_field_size(a_boolean         *unnamed_bit_field,
                                 a_boolean         *p_is_signed,
                                 a_symbol_locator  *locator);
 
-extern a_boolean do_alignment(a_targ_size_t               *byte_offset,
-                              an_unnormalized_bit_offset  *bit_offset,
-                              a_targ_alignment            alignment);
-
-extern a_boolean set_field_size_and_offset(
-                                    a_field_ptr                 field,
-                                    a_targ_size_t               *p_byte_offset,
-                                    an_unnormalized_bit_offset  *p_bit_offset,
-                                    a_targ_alignment            *p_alignment);
-
 extern void do_class_layout(a_type_ptr  class_type);
 
 extern void layout_one_time_init(void);
