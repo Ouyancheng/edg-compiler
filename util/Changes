@@ -8,7 +8,7 @@ routine for use on systems that do not provide a getopt.
 1/5/94   Temporary directory used by eccp
 
 The eccp script now uses the environment variable TMPDIR as the temporary
-directory.  If TMPDIR is not set, /usr/tmp is used.
+directory.  If TMPDIR is not set, /tmp is used.
 -------------------------------------------------------------------------------
 Version 2.21, December 21, 1993
 

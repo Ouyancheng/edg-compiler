@@ -54,7 +54,7 @@ automatic_instantiation=1
 # Directory to be used for temporary files.
 #
 export TMPDIR
-TMPDIR=${TMPDIR-/usr/tmp}
+TMPDIR=${TMPDIR-/tmp}
 #
 # Other variables used in automatic instantiation mode
 #
