@@ -8066,6 +8066,11 @@ in a declarator of a template declaration.
     /* No error tests are done on unqualified names. */
   } else if (symbol_is_or_contains_template(sym)) {
     /* Okay -- the symbol found refers to a template. */
+  } else if (sym->is_class_member &&
+             is_prototype_instantiation_symbol((a_symbol_ptr)sym->
+                              parent.class_type->source_corresp.assoc_info)) {
+    /* The symbol is a member of a prototype instantiation -- this is the
+       definition of a member of a class template. */
   } else if (options & GID_IS_TEMPLATE_SPECIALIZATION) {
     /* We are processing a template specialization (but not a full
        specialization), and the symbol found does not represent a
