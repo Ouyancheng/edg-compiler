@@ -465,6 +465,7 @@ to it.
 #endif /* DEBUG */
   mpp->name = NULL;
   mpp->next = NULL;
+  mpp->need_expanded_form = FALSE;
   return (mpp);
 }  /* alloc_macro_param */
 
@@ -2433,6 +2434,9 @@ do_argument_again:
           /* In pcc mode, this is not necessary, since all arguments
              are scanned only in raw form. */
           if (pcc_preprocessing_mode) goto end_arg_expansion;
+          /* It's also not necessary (and not allowed) if the expanded
+             form of the argument is never used. */
+          if (!pp->need_expanded_form) goto end_arg_expansion;
           slmp = add_source_line_modif(start_of_curr_token, 1,
                                        map->raw_text,
                                        map->raw_text+map->raw_len);
@@ -2858,18 +2862,21 @@ return_point:
 }  /* macro_invocation */
 
 
-static sizeof_t id_matches_macro_param_name(a_macro_param_ptr param_list)
+static sizeof_t id_matches_macro_param_name(a_macro_param_ptr param_list,
+                                            a_macro_param_ptr *param_ptr)
 /*
 Look to see if the current token (an identifier) matches any of the macro
-parameters on the given list.  If not, return 0.  If so, return the
-parameter number (the first parameter is numbered 1).
+parameters on the given list.  If not, return 0.  If so, set *param_ptr
+to point to the parameter entry and return the parameter number (the
+first parameter is numbered 1).
 */
 {
-  register a_macro_param_ptr pp;
-  register sizeof_t	     num;
-  register sizeof_t          pnum;
+  a_macro_param_ptr pp;
+  sizeof_t          num;
+  sizeof_t          pnum;
 
   pnum = num = 0;
+  *param_ptr = NULL;
   for (pp = param_list; pp != NULL; pp = pp->next) {
     num++;
     if (*start_of_curr_token == pp->name[0] &&    /* Test for speed. */
@@ -2878,29 +2885,34 @@ parameter number (the first parameter is numbered 1).
                 size_t_arg(len_of_curr_token)) == 0) {
       /* The identifier matches a macro parameter. */
       pnum = num;
+      *param_ptr = pp;
       break;
     }  /* if */
   }  /* for */
-  return (pnum);
+  return pnum;
 }  /* id_matches_macro_param_name */
 
 
 static a_token_kind mdefn_get_token(a_macro_param_ptr param_list,
                                     sizeof_t          *param_num,
+                                    a_macro_param_ptr *param_ptr,
                                     a_boolean         *any_white_space_skipped)
 /*
 A functional analogue of get_token, which checks identifiers to see if
 they are macro parameters on the given list.  If so, *param_num is set
-to the parameter number (the first parameter is numbered 1).  Otherwise,
-*param_num is set to 0 (including when the token is not an identifier).
-Return *any_white_space_skipped == TRUE if any white space was skipped 
-before the token.  This routine is used while fetching the replacement
-text of macro definitions.  This routine also implements the cpp practice
-of finding macro arguments within the text of string literals and character
-constants (see end_of_cpp_string, start_of_white_space_in_cpp_string).
+to the parameter number (the first parameter is numbered 1) and *param_ptr
+is set to point to the parameter entry.  Otherwise (including when the
+token is not an identifier), *param_num is set to 0 and *param_ptr is
+set to NULL.  Return *any_white_space_skipped == TRUE if any white
+space was skipped before the token.  This routine is used while
+fetching the replacement text of macro definitions.  This routine also
+implements the cpp practice of finding macro arguments within the text
+of string literals and character constants (see end_of_cpp_string,
+start_of_white_space_in_cpp_string).
 */
 {
   *param_num = 0;
+  *param_ptr = NULL;
   /* If we have already reached the tok_newline (probably because of
      an error), do not get another token. */
   if (curr_token != tok_newline) {
@@ -2998,7 +3010,7 @@ quote_process:
     }  /* if */
     /* If the token scanned is an identifier, see if it is a macro name. */
     if (curr_token == tok_identifier) {
-      *param_num = id_matches_macro_param_name(param_list);
+      *param_num = id_matches_macro_param_name(param_list, param_ptr);
       if (*param_num == 0) {
         /* This is not a macro parameter.  Hence if it is spelled __VA_ARGS__
            and variadic macros are recognized, this is an error. */
@@ -3249,7 +3261,8 @@ beginning of the encoding of the replacement list.
       fprintf(f_debug, "function-like, parameter list:\n");
       for (pp = param_list, param_num = 1; pp != NULL;
            pp = pp->next, param_num++) {
-        fprintf (f_debug, "  (%d) %s\n", (int)param_num, pp->name);
+        fprintf (f_debug, "  (%d) %s%s\n", (int)param_num, pp->name,
+                 pp->need_expanded_form ? " (need expanded form)" : "");
       }  /* for */
     }  /* if */
     fprintf(f_debug, "replacement text:\n");
@@ -3308,6 +3321,8 @@ Scan and process a #define directive.
   sizeof_t	  param_num;
   sizeof_t	  save_param_num;
   a_macro_param_ptr
+		  param_ptr,
+		  save_param_ptr,
 		  pp,
 		  pp2,
 		  last_param,
@@ -3433,7 +3448,7 @@ Scan and process a #define directive.
           if (!is_variadic_parameter && curr_token != tok_identifier) {
             (void)required_token(tok_identifier, ec_exp_identifier);
           } else if (!is_variadic_parameter &&
-                     id_matches_macro_param_name(param_list)) {
+                     id_matches_macro_param_name(param_list, &param_ptr)) {
             /* Duplicate parameter name. */
             error(ec_duplicate_macro_param_name);
             (void)get_token();
@@ -3529,7 +3544,8 @@ Scan and process a #define directive.
     /* Last section in replacement text is not raw text. */
     curr_text_section = NULL;
     /* Get first token of the replacement text. */
-    (void)mdefn_get_token(param_list, &param_num, &any_white_space_skipped);
+    (void)mdefn_get_token(param_list, &param_num, &param_ptr,
+                          &any_white_space_skipped);
     /* Ignore leading white space.  See standard, 3.8.3, semantics. */
     any_white_space_skipped = FALSE;
     need_end_of_token_marker = FALSE;
@@ -3545,7 +3561,7 @@ Scan and process a #define directive.
         if (next_avail_in_macro_buffer == buffer_start) {
           /* Output buffer is empty, so this is the first token.  Error. */
           error(ec_paste_cannot_be_first);
-          (void)mdefn_get_token(param_list, &param_num,
+          (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                 &any_white_space_skipped);
         } else {
           /* If the token following the "##" is a parameter, put it out
@@ -3553,7 +3569,7 @@ Scan and process a #define directive.
              token be processed on the next iteration of the loop.
              The "##" itself does not appear in the replacement text
              string. */
-          if (mdefn_get_token(param_list, &param_num,
+          if (mdefn_get_token(param_list, &param_num, &param_ptr,
                               &any_white_space_skipped) == tok_newline) {
             error(ec_paste_cannot_be_last);
           } else {
@@ -3564,7 +3580,7 @@ Scan and process a #define directive.
               /* The token following "##" is a parameter. */
               put_start_of_non_text_section(rt_raw_argument, param_num);
               need_end_of_token_marker = TRUE;
-              (void)mdefn_get_token(param_list, &param_num,
+              (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                     &any_white_space_skipped);
             } else {
               /* Anything other than a parameter.  Delete any white space
@@ -3630,7 +3646,7 @@ Scan and process a #define directive.
              stringizing "#" operator, but it produces a character literal
              instead of a string literal. */
           a_boolean  charize = curr_token != tok_sharp;
-          (void)mdefn_get_token(param_list, &param_num,
+          (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                 &any_white_space_skipped);
           if (param_num == 0) {
             error(ec_exp_macro_param);
@@ -3639,7 +3655,7 @@ Scan and process a #define directive.
                                                   : rt_stringized_raw_argument,
                                           param_num);
             need_end_of_token_marker = TRUE;
-            (void)mdefn_get_token(param_list, &param_num,
+            (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                   &any_white_space_skipped);
           }  /* if */
         } else if (param_num != 0) {
@@ -3651,13 +3667,15 @@ Scan and process a #define directive.
           /* Save information on current token because mdefn_get_token will
              change it. */
           save_param_num = param_num;
-          if (mdefn_get_token(param_list, &param_num,
+          save_param_ptr = param_ptr;
+          if (mdefn_get_token(param_list, &param_num, &param_ptr,
                               &any_white_space_skipped) == tok_paste ||
               pcc_preprocessing_mode) {
             put_start_of_non_text_section(rt_raw_argument, save_param_num);
           } else {
             /* Not "##", so put expanded version of argument into string. */
             put_start_of_non_text_section(rt_argument, save_param_num);
+            save_param_ptr->need_expanded_form = TRUE;
             need_end_of_token_marker = TRUE;
           }  /* if */
         } else {
@@ -3681,7 +3699,7 @@ Scan and process a #define directive.
           if (curr_token == tok_error && end_of_cpp_string == NULL) {
             remark(err_code_for_error_token);
           }  /* if */
-          (void)mdefn_get_token(param_list, &param_num,
+          (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                 &any_white_space_skipped);
         }  /* if */
       }  /* if */

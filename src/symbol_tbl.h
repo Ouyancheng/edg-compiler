@@ -440,6 +440,11 @@ typedef struct a_macro_param {
 		next;
 			/* Pointer to the next parameter for the same macro,
 			   or NULL if this is the last parameter. */
+  a_byte_boolean
+		need_expanded_form;
+			/* TRUE if the parameter is used somewhere in the
+			   body of the macro in a context that calls for the
+			   macro-expanded form of the argument. */
 } a_macro_param;
 
 typedef struct a_macro_def {

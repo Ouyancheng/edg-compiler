@@ -1,5 +1,21 @@
 Version 3.4
 
+4/23/04  Macro expansion with argument that does not require expanded form
+
+A bug in the preprocessor has been fixed.  It involved macros that
+have parameters than are never used in a context that requires
+the macro-expanded form of the argument (i.e., the parameter is
+either not used at all or it is used only adjacent to # or ##
+operators).  The argument for such a parameter should not be
+macro expanded, but formerly the preprocessor did that expansion
+anyway.  That caused a spurious error in cases where the expansion
+resulted in an error.
+
+  #define f(x) bye
+  #define gf(x,y) hello hello
+  #define m(x,y,z) x ## y ## z
+  m(g,f (1,1),end)  // Formerly got a spurious "too many arguments" error
+
 4/19/04  IA-64 ABI: Array field of __vmi_class_type_info objects
 
 In IA-64 ABI configurations, a typeinfo variable for a class involving
