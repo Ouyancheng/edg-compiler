@@ -208,18 +208,19 @@ extern a_boolean reconcile_external_symbol_types(
                             a_type_ptr            type_ptr,
                             a_boolean             suppress_incompatible_error);
 
-extern a_variable_ptr make_variable(a_type_ptr      type_ptr,
-                                    a_storage_class storage_class,
-                                    a_boolean       at_file_scope);
+extern a_variable_ptr make_variable(
+                                  a_type_ptr      type_ptr,
+                                  a_storage_class storage_class,
+                                  a_boolean       at_file_or_namespace_scope);
 
 extern a_routine_ptr make_routine(a_type_ptr      type_ptr,
                                   a_storage_class storage_class,
-                                  a_boolean       at_file_scope,
+                                  a_boolean       at_file_or_namespace_scope,
                                   a_boolean       add_to_list);
 
 extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                        a_symbol_locator *locator,
-                                       a_boolean        at_file_scope,
+                                       a_scope_depth    scope_level,
                                        a_boolean        suppress_redecl_error);
 
 extern void decl_typedef(a_symbol_locator             *locator,

@@ -1024,13 +1024,14 @@ function scope source sequence list -- see scan_function_body.
 
 a_routine_ptr make_routine(a_type_ptr      type_ptr,
                            a_storage_class storage_class,
-                           a_boolean       at_file_scope,
+                           a_boolean       at_file_or_namespace_scope,
                            a_boolean       add_to_list)
 /*
 Allocate an entry for a routine with function type type_ptr and storage class
 storage_class, and return a pointer to it.  The entry is allocated at the
 file scope.  type_ptr must be in the file scope.  If add_to_list is TRUE,
-add the new routine entry to the routines list.
+add the new routine entry to the routines list of the current scope or
+the innermost namespace scope, depending on at_file_or_namespace_scope.
 */
 {
   a_routine_ptr          rp;
@@ -1041,7 +1042,7 @@ add the new routine entry to the routines list.
   rp = alloc_routine();
   rp->type = type_ptr;
   rp->storage_class = storage_class;
-  if (add_to_list) add_to_routines_list(rp, at_file_scope);
+  if (add_to_list) add_to_routines_list(rp, at_file_or_namespace_scope);
   switch_back_to_original_region(region_to_switch_back_to);
   return rp;
 }  /* make_routine */
@@ -1049,12 +1050,12 @@ add the new routine entry to the routines list.
 
 a_variable_ptr make_variable(a_type_ptr      type_ptr,
                              a_storage_class storage_class,
-                             a_boolean       at_file_scope)
+                             a_boolean       at_file_or_namespace_scope)
 /*
 Allocate an entry for a variable with type type_ptr and storage class
 storage_class, and return a pointer to it.  Add the variable to the
-file scope if at_file_scope is TRUE (in that case, type_ptr must be
-in the file scope).
+innermost namespace scope if at_file_or_namespace_scope is TRUE (in that
+case, type_ptr must be in the file scope).
 */
 {
   a_variable_ptr          vp;
@@ -1065,8 +1066,9 @@ in the file scope).
      region. */
   vp = alloc_variable(storage_class);
   vp->type = type_ptr;
-  add_to_variables_list(vp, at_file_scope ? depth_innermost_namespace_scope :
-                                            decl_scope_level);
+  add_to_variables_list(vp, at_file_or_namespace_scope ?
+                              depth_innermost_namespace_scope :
+                              decl_scope_level);
   return vp;
 }  /* make_variable */
 
@@ -1080,12 +1082,13 @@ current scope.
 */
 {
   a_variable_ptr vp;
-  a_boolean      at_global_scope;
+  a_boolean      at_file_or_namespace_scope;
   a_symbol_ptr   assoc_object_sym;
 
-  at_global_scope = (depth_scope_stack == depth_innermost_namespace_scope);
+  at_file_or_namespace_scope =
+                     (depth_scope_stack == depth_innermost_namespace_scope);
   /* Check the storage class.  At file scope, only static is allowed. */
-  if (at_global_scope) {
+  if (at_file_or_namespace_scope) {
     switch (storage_class) {
       case sc_static:
         /* Okay. */
@@ -1122,7 +1125,8 @@ current scope.
     }  /* switch */
   }  /* if */
   /* Allocate a variable to represent the anonymous union. */
-  vp = make_variable(anon_union_type, storage_class, at_global_scope);
+  vp = make_variable(anon_union_type, storage_class,
+                     at_file_or_namespace_scope);
   vp->is_anonymous_parent_object = TRUE;
   /* Promote the fields of the anonymous union to the current scope, and do
      some error checking on the anonymous union's members. */
@@ -1131,7 +1135,7 @@ current scope.
                                          &pos_curr_token,
                                          scope_stack[decl_scope_level].number);
   assoc_object_sym->variant.variable.ptr = vp;
-  if (at_global_scope) {
+  if (at_file_or_namespace_scope) {
     set_namespace_membership(assoc_object_sym, &vp->source_corresp,
                              (a_namespace_ptr)NULL);
   }  /* if */
@@ -3899,7 +3903,8 @@ skip_overloading:;
     /* There is no IL entry, so create one now, and add it to the routine
        list of the file scope. */
     routine_ptr = make_routine(type_ptr, storage_class,
-                               /*at_file_scope=*/TRUE, /*add_to_list=*/TRUE);
+                               /*at_file_or_namespace_scope=*/TRUE,
+                               /*add_to_list=*/TRUE);
     if (C_dialect == C_dialect_cplusplus) {
       /* Bind the throw specification to the routine entry. */
       add_exception_specification(func_info, routine_ptr);
@@ -4621,7 +4626,7 @@ the symbol and its linkage (which is always "none").
                        /*suppress_redecl_error=*/TRUE);
     sym->header = hdr;
     vp = make_variable(error_type(), (a_storage_class)sc_static,
-                       /*at_file_scope=*/TRUE);
+                       /*at_file_or_namespace_scope=*/TRUE);
     sym->variant.static_data_member.variable = vp;
     /* Make the error symbol a class member -- it is expected of
        sk_static_data_member symbols downstream. */
@@ -6037,7 +6042,8 @@ Return a pointer to the variable that is declared.
   sym = enter_symbol((a_symbol_kind)sk_variable, &locator, decl_scope_level,
                      /*suppress_redecl_error=*/FALSE);
   /* Allocate the variable and bind the symbol to it. */
-  vp = make_variable(type_ptr, storage_class, /*at_file_scope=*/FALSE);
+  vp = make_variable(type_ptr, storage_class,
+                     /*at_file_or_namespace_scope=*/FALSE);
   update_variable_decl_modifiers(vp, decl_modifiers,
                                  &locator.source_position,
                                  /*is_redecl=*/FALSE);

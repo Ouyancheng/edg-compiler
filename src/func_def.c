@@ -924,7 +924,8 @@ on a prior declaration.
                              /*suppress_redecl_error=*/TRUE);
     sym->header = hdr;
     rp = make_routine(type_ptr, (a_storage_class)sc_static,
-                      /*at_file_scope=*/TRUE, /*add_to_list=*/TRUE);
+                      /*at_file_or_namespace_scope=*/TRUE,
+                      /*add_to_list=*/TRUE);
     sym->variant.routine.ptr = rp;
     set_source_corresp(&(rp->source_corresp), sym);
     set_class_membership(sym, &rp->source_corresp, class_type);

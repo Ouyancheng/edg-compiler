@@ -3414,10 +3414,10 @@ of the function, and again overloading is a possibility.
     sym = enter_symbol((a_symbol_kind)sk_routine, locator,
                        /*at_file_scope=*/FALSE,
                        /*suppress_redecl_error=*/FALSE);
-    sym->variant.routine.ptr = make_routine(function_type,
-                                            (a_storage_class)sc_static,
-                                            /*at_file_scope=*/TRUE,
-                                            /*add_to_list=*/FALSE);
+    sym->variant.routine.ptr =
+                       make_routine(function_type, (a_storage_class)sc_static,
+                                    /*at_file_or_namespace_scope=*/TRUE,
+                                    /*add_to_list=*/FALSE);
     /* Set the source correspondence. */
     set_source_corresp(&sym->variant.routine.ptr->source_corresp, sym);
   } else {
@@ -3897,7 +3897,8 @@ special function kind (e.g., constructor, destructor), if any.
      which its class is declared. */
   /* Member functions are static by default. */
   rtn = make_routine(member_type, (a_storage_class)sc_static,
-                     /*at_file_scope=*/FALSE, /*add_to_list=*/TRUE);
+                     /*at_file_or_namespace_scope=*/FALSE,
+                     /*add_to_list=*/TRUE);
   sym->variant.routine.ptr = rtn;
   /* Set the source correspondence, including the access specifier. */
   set_source_corresp(&rtn->source_corresp, sym);
@@ -4270,7 +4271,7 @@ table.
      in the file scope memory region and put on the variables list for the
      current class. */
   var = make_variable(member_type, (a_storage_class)sc_static,
-                      /*at_file_scope=*/FALSE);
+                      /*at_file_or_namespace_scope=*/FALSE);
   sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
                            decl_scope_level, /*suppress_redecl_error=*/FALSE);
   /* Set the source correspondence fields of the variable. */
