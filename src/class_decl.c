@@ -2099,7 +2099,7 @@ done:
       a_virtual_function_number  *number_ptr;
       number_ptr = &class_type->variant.class_struct_union.extra_info->
                                           highest_virtual_function_number;
-      update_virtual_function_number(rp, number_ptr);
+      update_virtual_function_number(rout, number_ptr);
 #endif /* ABI_COMPATIBILITY_VERSION >= 232 */
     }  /* if */
   }  /* if */
