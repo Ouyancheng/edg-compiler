@@ -1489,8 +1489,8 @@ Record this information in the input stack entry.
     /* No processing is needed for a #once pragma in a primary file. */
     set_ifg_state(IFG_STATE_ONCE);
     curr_ise->include_history->pragma_once = TRUE;
-    /* Bypass the "once" token. */
   }  /* if */
+  /* Bypass the "once" token. */
   (void)get_token();
 }  /* once_pragma */
 
