@@ -3374,7 +3374,7 @@ resulting expression.
                                               CE_UNLINK_SOURCE_DESTRUCTIONS);
   /* If the expression has an object lifetime node at the top, eliminate
      it, because the source expression will not remain in the IL tree. */
-  (void)eliminate_expr_object_lifetime(expr);
+  eliminate_expr_object_lifetime(expr);
   return expr_copy;
 }  /* copy_expr_to_function_memory_region */
 

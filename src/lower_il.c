@@ -5473,7 +5473,7 @@ Do IL lowering of the indicated type and everything under it.
                   /* If the expression has an object lifetime node at the
                      top, eliminate it, because the expression is not
                      staying in the IL tree. */
-                  (void)eliminate_expr_object_lifetime(expr);
+                  eliminate_expr_object_lifetime(expr);
                 }  /* if */
               }  /* if */
               ptp->default_arg_expr = NULL;
@@ -5791,7 +5791,7 @@ not include the function scope memory region, if any.
             /* If the expression has an object lifetime node at top,
                eliminate it, because the expression is not staying in the
                IL tree. */
-            (void)eliminate_expr_object_lifetime(def_arg_expr);
+            eliminate_expr_object_lifetime(def_arg_expr);
             ptp->default_arg_expr = NULL;
           }  /* if */
         }  /* for */
@@ -12695,21 +12695,17 @@ so they're not reachable.  Do nothing if olp is NULL.
 }  /* visit_object_lifetime_tree */
 
 
-an_expr_node_ptr eliminate_expr_object_lifetime(an_expr_node_ptr expr)
+void eliminate_expr_object_lifetime(an_expr_node_ptr expr)
 /*
 If the given expression has an enk_object_lifetime node at the top,
 eliminate the object lifetime and all its children.  "Eliminate"
 means to detach them from the IL tree so they're not reachable.
-Return the original expression if it has no object lifetime at the
-top; otherwise, return the expression under the object lifetime.
 */
 {
   if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
     visit_object_lifetime_tree(expr->variant.object_lifetime.ptr,
                                /*detach=*/TRUE);
-    expr = expr->variant.object_lifetime.expr;
   }  /* if */
-  return expr;
 }  /* eliminate_expr_object_lifetime */
 
 
