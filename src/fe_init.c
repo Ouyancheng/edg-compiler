@@ -851,7 +851,8 @@ source file's compilation.
 static void open_primary_source_file(void)
 /*
 Open the primary source file, push the input stack, and get the
-first line of the file.
+first line of the file.  Note that "primary" in this case means "the
+top one in a translation unit", including a secondary translation unit.
 */
 {
   if (is_primary_translation_unit) {
@@ -919,22 +920,24 @@ being used).
   /* Push the primary source input file onto the input stack.  Make
      a copy of the file name in IL storage. */
   open_primary_source_file();
-  /* This IL header initialization is not done earlier because the values
-     from a precompiled header file cannot be used (as is done with the
-     other allocated fields in the IL header). */
-  /* Put the compiler version number into the IL header. */
-  il_header.compiler_version = strcpy(
+  if (is_primary_translation_unit) {
+    /* This IL header initialization is not done earlier because the values
+       from a precompiled header file cannot be used (as is done with the
+       other allocated fields in the IL header). */
+    /* Put the compiler version number into the IL header. */
+    il_header.compiler_version = strcpy(
                                 alloc_il((sizeof_t)(strlen(VERSION_NUMBER)+1)),
                                 VERSION_NUMBER);
-  /* Put the compilation time into the IL header. */
-  il_header.time_of_compilation = strcpy(
+    /* Put the compilation time into the IL header. */
+    il_header.time_of_compilation = strcpy(
                                 alloc_il((sizeof_t)(strlen(curr_date_time)+1)),
                                 curr_date_time);
 #if ONE_INSTANTIATION_PER_OBJECT
-  il_header.instantiation_dir_name = instantiation_dir_name == NULL ? NULL :
-          strcpy(alloc_il((sizeof_t)(strlen(instantiation_dir_name)+1)),
-                 instantiation_dir_name);
+    il_header.instantiation_dir_name = instantiation_dir_name == NULL ? NULL :
+            strcpy(alloc_il((sizeof_t)(strlen(instantiation_dir_name)+1)),
+                   instantiation_dir_name);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  }  /* if */
   if (using_a_pch_file) {
     /* The symbol table has been restored from a precompiled header file, so
        the symbols for the __DATE__ and __TIME__ macros have to be updated. */
