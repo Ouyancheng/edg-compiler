@@ -6546,12 +6546,7 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
   a_variable_ptr   this_var, operand_var;
   an_expr_node_ptr operand_expr;
 
-  /* Assignment to "this" is not allowed if exceptions are enabled.
-     For one thing, the code in IL lowering does not know how to build the
-     right region table if there are several assignments to "this" in one
-     constructor. */
-  if (allow_anachronisms && !exceptions_enabled &&
-      is_an_rvalue(operand) && is_expression_operand(operand)) {
+  if (is_an_rvalue(operand) && is_expression_operand(operand)) {
     operand_expr = operand->variant.expression;
     if (is_variable_node(operand_expr)) {
       /* The operand is an rvalue that is the value of a simple variable. */
@@ -6563,8 +6558,13 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
           /* Yes.  Issue an anachronism diagnostic and change the operand
              to an lvalue for the "this" variable. */
           is_this = TRUE;
-          pos_diagnostic(anachronism_error_severity, ec_assignment_to_this,
-                         &operand->position);
+          /* Assignment to "this" is not allowed if exceptions are enabled.
+             For one thing, the code in IL lowering does not know how to
+             build the right region table if there are several assignments
+             to "this" in one constructor. */
+          pos_diagnostic(exceptions_enabled ? es_error :
+                                              anachronism_error_severity,
+                         ec_assignment_to_this, &operand->position);
           make_lvalue_variable_operand(this_var, operand,
                                        operand->ref_entries_list);
           current_routine_entry()->assignment_to_this_done = TRUE;
