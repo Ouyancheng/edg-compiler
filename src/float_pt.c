@@ -768,6 +768,129 @@ Shift the mantissa in "mp" right by "bits".
 }  /* shift_right_mantissa */
 
 
+static an_fp_value_part get_mask_for_bit(int		bit)
+/*
+Return a mask that can be used to test bit number "bit" of a mantissa.
+*/
+{
+  return 0x80000000 >> (bit % 32);
+}  /* get_mask_for_bit */
+
+
+static void round_hex_fp_value(a_mantissa_ptr	mp,
+			       long		*exponent,
+			       a_float_kind	kind,
+			       a_boolean	*inexact)
+/*
+Round the floating point value specified by "mp" and "exponent" to the
+nearest value that can be represented by "value_bits" bits.
+*/
+{
+  an_fp_value_part	part;
+  an_fp_value_part	part_mask;
+  an_fp_value_part	half_way_value;
+  int			half_way_part_number;
+  a_boolean		round_up = FALSE;
+  int			part_number;
+  int			mant_dig;
+
+  switch (kind) {
+    case fk_float:
+      mant_dig = targ_flt_mant_dig;
+      break;
+    case fk_double:
+      mant_dig = targ_dbl_mant_dig;
+      break;
+    case fk_long_double:
+      mant_dig = targ_ldbl_mant_dig;
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+  /* Determine whether to round up or down.  First, get the part that
+     contains the high order bit on which the rounding begins. */
+  half_way_part_number = mant_dig / 32;
+  part = mp->parts[half_way_part_number];
+  half_way_value = get_mask_for_bit(mant_dig);
+  /* Mask off the portion of "part" above the bit on which the rounding
+     starts. */
+  part_mask = 0xffffffff >> (mant_dig % 32);
+  part = part & part_mask;
+  if (part < half_way_value) {
+    /* No rounding neeed. */
+  } else if (part > half_way_value) {
+    /* Round up. */
+    round_up = TRUE;
+  } else {
+    /* This part is equal to the half-way value.  Check the remaining
+       parts to see which way to round. */
+    an_fp_value_part	lsb_mask;
+    for (part_number = half_way_part_number + 1; part_number < MANTISSA_PARTS;
+         ++part_number) {
+      if (mp->parts[part_number] > 0) {
+        round_up = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    /* If there were bits that were discarded, those would have caused us to
+       round up at this point.  */
+    if (!round_up && mp->underflow) round_up = TRUE;
+    if (!round_up) {
+      /* We reached the end of the number and still don't know which way to
+         round.  Round in the direction that will make the last significant
+         bit a zero. */
+      lsb_mask = get_mask_for_bit(mant_dig - 1);
+      if ((mp->parts[(mant_dig - 1) / 32] & lsb_mask) != 0) round_up = TRUE;
+    }  /* if */
+  }  /* if */
+  if (round_up) {
+    an_fp_value_part	orig_part;
+    an_fp_value_part	increment_value;
+    a_boolean		saved_underflow;
+    /* Save the current underflow status of the mantissa in case it is
+       modified by the shift that follows. */
+    saved_underflow = mp->underflow;
+    /* Shift the mantissa one bit to the right to guard against overflow
+       in the rounding process. */
+    shift_right_mantissa(mp, 1);
+    part_number = half_way_part_number;
+    part = mp->parts[part_number];
+    orig_part = part;
+    /* Get the value that should be added to round up the value.  Because we've
+       shifted the mantissa, this turns out to be the same as the half way
+       value determined above. */
+    increment_value = half_way_value;
+    /* Increment the value.  Mask of the lower order bits for neatness. */
+    part = (part + increment_value) & ~part_mask;
+    mp->parts[part_number] = part;
+    if (part < orig_part) {
+      /* The rounding needs to propagate to the next part.  Note that this
+         cannot occur when incrementing the first part because of the
+         shift done above. */
+      for (--part_number; part_number >= 0; --part_number) {
+        part = mp->parts[part_number];
+        ++part;
+        mp->parts[part_number] = part;
+        if (part != 0) break;
+      }  /* for */
+    }  /* if */
+    /* If we didn't overflow into the high order bit of the mantissa,
+       shift the mantissa back to its original position. */
+    if ((mp->parts[0] & 0x80000000) == 0) {
+      shift_left_mantissa(mp, 1);
+      /* Restore the previously saved underflow state. */
+      mp->underflow = saved_underflow;
+    } else {
+      /* We're keeping the shifted value -- adjust the exponent. */
+      (*exponent)++;
+    }  /* if */
+    /* Indicate that the rounding discarded some information. */
+    *inexact = TRUE;
+  }  /* if */
+}  /* round_hex_fp_value */
+
+
 static void check_and_denormalize_hex_fp_value(
 			  a_mantissa_ptr		mp,
 			  long				*exponent,
@@ -866,6 +989,17 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
       *exponent = min_exp - 1;
     }  /* if */
   }  /* if */
+  /* See if the number of mantissa bits provided exceeds the mantissa size.
+     mang_dig includes the implicit bit. */
+  {
+    /* Some long double kinds do not make use of an implicit mantissa bit. */
+    int	implicit_bits;
+    int	value_bits;
+    implicit_bits = kind == (a_float_kind)fk_long_double &&
+                    long_double_has_no_implicit_bit ? 0 : 1;
+    value_bits = bits + implicit_bits;
+    if (value_bits > mant_dig) *inexact = TRUE;
+  }
   /* Check for a value that cannot be represented.  The "min_exp - 1" is
      used to permit the special denormalized value. */
   if (*exponent < (min_exp - 1) || *exponent > max_exp) {
@@ -886,15 +1020,6 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
     *err = TRUE;
   }  /* if */
-  /* See if the number of mantissa bits provided exceeds the mantissa size.
-     mang_dig includes the implicit bit. */
-  {
-    /* Some long double kinds do not make use of an implicit mantissa bit. */
-    int	implicit_bits;
-    implicit_bits = kind == (a_float_kind)fk_long_double &&
-                    long_double_has_no_implicit_bit ? 0 : 1;
-    if ((bits + implicit_bits) > mant_dig) *inexact = TRUE;
-  }
 }  /* check_and_denormalize_hex_fp_value */
 
 
@@ -1131,6 +1256,8 @@ before setting it if there are unused bits.
       shift_left_mantissa(&mantissa, 1);
       exponent--;
     }  /* while */
+    /* Round the value to the nearest representable value. */
+    round_hex_fp_value(&mantissa, &exponent, kind, inexact);
     if (kind != (a_float_kind)fk_long_double ||
         !long_double_has_no_implicit_bit) {
       /* Shift one bit further to have an implied initial one bit.  This is

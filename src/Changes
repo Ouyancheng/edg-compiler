@@ -1,5 +1,12 @@
 Version 3.4
 
+10/0/03  C99: Rounding of hexadecimal floating-point constants
+
+When converting a hexadecimal floating point value, the front end always
+truncated the value to the number of bits available in the given
+representation instead of rounding to the nearest value.  The appropriate
+rounding is now done.
+
 10/8/03  String literal initializers for template-dependent arrays
 
 The front end used to issue spurious errors when processing string literal
