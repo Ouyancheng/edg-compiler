@@ -760,7 +760,8 @@ is in fact valid.
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
       if (!C_mode()) {
-        if (scp->assoc_info != (char*)unnamed_field_symbol()) {
+        if (scp->assoc_info != NULL &&
+            scp->assoc_info != (char*)unnamed_field_symbol()) {
           /* A named field: */
           process_bad_trans_unit_corresp(field);
         } else {
