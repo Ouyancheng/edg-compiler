@@ -418,7 +418,7 @@ position following what was demangled.
      A template parameter constant or a constant expression does not have
      the initial "C" and type.
   */
-  if (*p != 'Z'&& *p != 'O') {
+  if (*p == 'C') {
     /* Advance past the type. */
     type = p;
     dctl->suppress_id_output++;
@@ -638,7 +638,7 @@ position following what was demangled.
       write_id_ch(')', dctl);
     }  /* if */
     /* Get the count of operands. */
-    p = get_number(p, &num_operands, dctl);
+    p = get_single_digit_number(p, &num_operands, dctl);
     /* sizeof and __ALIGNOF__ take zero operands. */
     if (num_operands != 0) {
       if (num_operands == 1) {
@@ -1061,7 +1061,16 @@ simple case.
          can be demangled successfully. */
       if (ch == '_' && p != ptr &&
           char_from_name(p+1) == '_' &&
-          char_from_name(p+2) != '_') break;
+          char_from_name(p+2) != '_' &&
+          /* When the length is known, stop only on "__pt" or "__S".  Double
+             underscores can appear in the middle of some names, e.g.,
+             member names used as template arguments. */
+          (nchars == 0 ||
+           (char_from_name(p+2) == 'p' &&
+            char_from_name(p+3) == 't') ||
+           char_from_name(p+2) == 'S')) {
+        break;
+      }  /* if */
     }  /* for */
     end_ptr = p;
   }  /* if */
