@@ -1150,6 +1150,8 @@ Scan and process a #pragma directive.
         set_ifg_state(IFG_STATE_ONCE);
         curr_ise->include_history->pragma_once = TRUE;
         processed = TRUE;
+        /* Bypass the "once" token. */
+        (void)get_token();
       }  /* if */
     }  /* if */
     pass_directive_to_output();
@@ -1169,7 +1171,9 @@ Scan and process a #pragma directive.
            Record this information in the input stack entry. */
         set_ifg_state(IFG_STATE_ONCE);
         curr_ise->include_history->pragma_once = TRUE;
-	processed = TRUE;
+        processed = TRUE;
+        /* Bypass the "once" token. */
+        (void)get_token();
       } else if (curr_id_is("hdrstop") || curr_id_is("no_pch")) {
         /* A PCH control pragma.  The actual processing of these
            pragmas is handled in the special prefix processing code for

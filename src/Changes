@@ -1,5 +1,11 @@
 Version 2.28
 
+1/11/95 Bug in #pragma once handling
+
+The front end was issuing a spurious "extra text after end of
+preprocessing directive" error on all #pragma once directives.
+This has been fixed.
+
 1/11/95 Recognition of wchar_t as a keyword
 
 In C++, wchar_t is now recognized as a keyword.  This feature may
