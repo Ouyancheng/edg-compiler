@@ -3707,7 +3707,7 @@ void create_or_remove_instantiation_information_file(void)
     ii_file_name = derived_name(primary_source_file_name,
                                 INSTANTIATION_FILE_SUFFIX);
     f_ii_file = fopen(ii_file_name, "r");
-    (void)fclose(f_ii_file);
+    if (f_ii_file != NULL) (void)fclose(f_ii_file);
     if (any_instantiations_required) {
       /* If the file does not exist, create it. */
       if (f_ii_file == NULL) {
