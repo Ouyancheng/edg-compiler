@@ -5808,8 +5808,6 @@ they are in name mangling; it is the underlying type, not the typedef name
 }  /* ttt_is_unnamed_or_local_type */
 
 
-/* Static variables used to pass information back to the routine
-   is_or_contains_unnamed_or_local_type. */
 static a_boolean ttt_is_type_with_no_name_linkage(
                                            a_type_ptr  type_ptr,
                                            a_boolean   *force_end_of_traversal)
