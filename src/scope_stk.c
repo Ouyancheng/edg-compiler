@@ -5128,6 +5128,8 @@ e.g., because it's externally defined.
 	/* Trivial constructors have no bodies so are never needed. */
 	is_needed = FALSE;
       } else if (rout->is_inline &&
+                 !(rout->is_template_function &&
+                   !treat_as_static_inline(rout)) &&
 #if GNU_EXTENSIONS_ALLOWED
                  !(gcc_mode && !rout->suppress_inline_body) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -5140,7 +5142,9 @@ e.g., because it's externally defined.
 	   there was also a non-inline declaration of the function).
            In GCC mode, an inline function can be referenced from
            other compilation units unless it is explicitly declared
-           "extern inline". */
+           "extern inline".  In addition, in C++ inline template functions
+           should be emitted if they are explicitly instantiated except when
+           inline functions are implemented using static functions. */
 	is_needed = FALSE;
       } else if (!is_primary_translation_unit) {
         /* Assume that all external routines from secondary translation units

@@ -1,5 +1,17 @@
 Version 3.5
 
+9/14/04  Instantiation of inline function should cause body to be emitted
+
+When an inline function is explicitly instantiated in a configuration in
+which inline functions are emitted as external entities, the body of the
+inline function should be emitted even if it is not referenced.  Inline
+functions that are explicitly instantiated are now emitted when
+INSTANTIATE_EXTERN_INLINE is TRUE and also when using the IA-64 ABI.
+
+  template<class T> struct A { A(); };
+  template<class T> inline A<T>::A(){}
+  template class A<int>;
+
 9/10/04  Microsoft compatibility: Spurious error on friend declaration
 
 In Microsoft mode, a spurious error could be issued on a friend declaration

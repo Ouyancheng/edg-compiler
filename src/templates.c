@@ -19638,6 +19638,18 @@ emitted in this translation unit.
              !is_nontemplate_routine_from_exported_trans_unit(rout_ptr)) {
     result = TRUE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  } else if (rout_ptr->is_template_function) {
+    /* C++ inline template functions should be emitted if they are explicitly
+       instantiated except when inline functions are implemented using
+       static functions. */
+    a_symbol_ptr		rout_sym;
+    a_template_instance_ptr	tip;
+    rout_sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
+    check_assertion(rout_sym != NULL);
+    tip = rout_sym->variant.routine.instance_ptr;
+    if (tip->explicit_instantiation && !treat_as_static_inline(rout_ptr)) {
+      result = TRUE;
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (db_trace("instantiation", rout_ptr, iek_routine)) {
