@@ -939,7 +939,9 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->identifier        = NULL;
   ptr->identifier_length = 0;
   ptr->any_nested_types_on_inactive_list = FALSE;
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   ptr->has_cfront_transitional_nested_type_mangled_name = FALSE;
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
   db_exit();
 
