@@ -2027,6 +2027,63 @@ Return TRUE if a match is found.
 }  /* is_redeclared_template_param */
 
 
+static a_boolean is_redeclared_for_init_decl_name(a_symbol_header_ptr  hdr,
+                                                  a_scope_depth  scope_depth)
+/*
+Return TRUE if scope_depth specifies a scope that, for purposes of name
+lookup, is the same scope as an enclosing for-init scope and if hdr matches
+the symbol header of a symbol declared in the for-init scope.
+*/
+{
+  a_scope_stack_entry_ptr  curr_ssep, ssep;
+  a_boolean                match = FALSE;
+  a_symbol_ptr             sym;
+
+  if (use_nonstandard_for_init_scope) {
+    /* No need to check, since a for-init scope will not have been created. */
+  } else {
+    /* Three scopes are treated as "the same" for lookup purposes (based on
+       language in WP 6.5.3 [stmt.for] and in 6.4 [stmt.select] para 2-3). */
+    curr_ssep = &scope_stack[scope_depth];
+    ssep = NULL;
+    if (curr_ssep->kind == (a_scope_kind)sck_block) {
+      if (curr_ssep->is_loop_scope) {
+        /* The current scope is a block scope for a loop (possibly a
+           for-loop); check whether the immediately surrounding scope is a
+           for-init scope, a case like this:
+             for (int i = 0; ; ) { int i; }              // Error
+           or else a condition scope that is surrounded by a for-init scope,
+           a case like this:
+             for (int i = 0; int j = 1; ) { int i; }     // Error
+        */
+        ssep = curr_ssep - 1;
+        if ((ssep-1)->kind == (a_scope_kind)sck_condition) {
+          ssep = ssep - 1;
+        }  /* if */
+      }  /* if */
+    } else if (curr_ssep->kind == (a_scope_kind)sck_condition) {
+      /* The current scope is a condition scope; see if the immediately
+         surrounding scope is a for-init scope -- a case like this:
+           for (int i = 0; int i = 1; )                 // Error
+      */
+      ssep = curr_ssep - 1;
+    }  /* if */
+    if (ssep != NULL && ssep->is_for_init_block) {
+      /* ssep is a for-init scope -- check for a name mismatch. */
+      for (sym = (assoc_pointers_block_of(ssep))->symbols;
+           sym != NULL;
+           sym = sym->next_in_scope) {
+        if (sym->header == hdr) {
+          match = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* is_redeclared_for_init_decl_name */
+
+
 static a_boolean is_redeclared_condition_decl_name(a_symbol_header_ptr  hdr,
                                                    a_scope_depth  scope_depth)
 /*
@@ -2091,7 +2148,7 @@ symbol must be added to the inactive list.
   a_symbol_header_ptr          hdr_ptr = sym_ptr->header;
   a_symbol_ptr                 insert_after;
   a_scope_depth                curr_depth;
-  a_boolean		       redeclared_template_param;
+  a_boolean                    redecl_err = FALSE;
 
   if (sym_ptr->is_error) {
     /* Error symbols are never added to the symbol table. */
@@ -2147,44 +2204,65 @@ symbol must be added to the inactive list.
         }  /* for */
       }  /* if */
       sym_name_space_kind = name_space_for_symbol_kind[(int)sym_ptr->kind];
-      /* See if this name a redeclaration of a template parameter name. */
-      redeclared_template_param = (depth_innermost_instantiation_scope !=
-				   NO_SCOPE_DEPTH) &&
-				  sym_name_space_kind == nsk_other &&
-                                  sym_ptr->kind !=
-                                                (a_symbol_kind)sk_undefined &&
-				  is_redeclared_template_param(sym_ptr);
-      if (!suppress_error && redeclared_template_param &&
-          (scope_stack[scope_depth].template_param_decl_scope ||
-           strict_ansi_mode)) {
-        /* A template parameter name has been reused in the first scope
-	   associated with the instantiation that affects the declarative
-           level (or in a scope nested within that scope, in strict mode).
-           Note that we pass the identifier string to the error
-           routine rather than using the standard symbol name fill-in. 
-           This is done because the variable pointer may not have been
-           filled in at the time the symbol is entered. */
-        pos_st_error(ec_redeclaration_of_template_param_name,
-                     &(sym_ptr->decl_position), sym_ptr->header->identifier);
-      } else if (!C_mode() && scope_depth != DEPTH_OF_FILE_SCOPE &&
-                 is_redeclared_condition_decl_name(hdr_ptr, scope_depth)) {
-        /* The name of the variable declared in a condition may not be
-           redeclared in the topmost scope of if, switch, while, or for
-           statement. */
-        if (!suppress_error) {
-          pos_st_error(ec_redeclaration_of_condition_decl_name,
-                       &(sym_ptr->decl_position), sym_ptr->header->identifier);
+      if (!C_mode()) {
+        /* See if this is a redeclaration of a for-init or condition variable
+           name. */
+        if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+          if (is_redeclared_condition_decl_name(hdr_ptr, scope_depth)) {
+            /* The name of the variable declared in a condition may not be
+               redeclared in the topmost scope of if, switch, while, or for
+               statement. */
+            if (!suppress_error) {
+              pos_st_error(ec_redeclaration_of_condition_decl_name,
+                           &(sym_ptr->decl_position),
+                           sym_ptr->header->identifier);
+            }  /* if */
+            redecl_err = TRUE;
+          } else if (is_redeclared_for_init_decl_name(hdr_ptr, scope_depth)) {
+            /* The name of the variable declared in a for-init may not be
+               redeclared in the condition or the topmost scope of the for
+               statement. */
+            if (!suppress_error) {
+              pos_st_error(ec_redeclaration_of_for_init_decl_name,
+                           &(sym_ptr->decl_position),
+                           sym_ptr->header->identifier);
+            }  /* if */
+            redecl_err = TRUE;
+          }  /* if */
         }  /* if */
-      } else {
+        /* See if this name a redeclaration of a template parameter name. */
+        if (!redecl_err &&
+            depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+            sym_name_space_kind == nsk_other &&
+            sym_ptr->kind != (a_symbol_kind)sk_undefined) {
+          if (is_redeclared_template_param(sym_ptr)) {
+            if (!suppress_error &&
+                (scope_stack[scope_depth].template_param_decl_scope ||
+                 strict_ansi_mode)) {
+              /* A template parameter name has been reused in the first scope
+                 associated with the instantiation that affects the
+                 declarative level (or in a scope nested within that scope,
+                 in strict mode). Note that we pass the identifier string to
+                 the error routine rather than using the standard symbol name
+                 fill-in.  This is done because the variable pointer may not
+                 have been filled in at the time the symbol is entered. */
+              pos_st_error(ec_redeclaration_of_template_param_name,
+                           &(sym_ptr->decl_position),
+                           sym_ptr->header->identifier);
+              redecl_err = TRUE;
+            } else {
+              /* A template parameter name has been reused in an inner scope
+                 of a template class or function.  Issue a warning that the
+                 template parameter will be hidden. */
+              pos_st_warning(ec_decl_hides_template_parameter,
+                             &(sym_ptr->decl_position),
+                             sym_ptr->header->identifier);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (!redecl_err) {
         a_boolean	set_insert_after = TRUE;
-        if (redeclared_template_param) {
-          /* A template parameter name has been reused in an inner scope
-             of a template class or function.  Issue a warning that the
-             template parameter will be hidden. */
-          pos_st_warning(ec_decl_hides_template_parameter,
-                         &(sym_ptr->decl_position),
-                         sym_ptr->header->identifier);
-        }  /* if */
         /* See if there is already a definition of this identifier in the same
            scope and name space.  (For name spaces, see C standard, 3.1.2.3.)
            Because of the code above and because the active list is ordered,
@@ -2200,7 +2278,7 @@ symbol must be added to the inactive list.
            symbols from the appropriate scope. */
         for (; old_sym_ptr != NULL &&
                (old_sym_ptr->decl_scope == scope_number ||
-                                                     add_sym_to_inactive_list);
+                add_sym_to_inactive_list);
              old_sym_ptr = old_sym_ptr->next) {
           /* If this is a symbol from another scope (which can only occur
              when adding to a namespace extension scope) skip this symbol. */
