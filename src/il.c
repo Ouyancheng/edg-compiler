@@ -4275,7 +4275,11 @@ it's to be moved to another position in the list.
   a_boolean                may_be_added = TRUE;
   a_scope_stack_entry_ptr  ssep = NULL;
 
-  if (is_immediate_class_type(type_ptr) || is_immediate_enum_type(type_ptr)) {
+  if (is_or_contains_error_type(type_ptr) ||
+      ((a_symbol_ptr)type_ptr->source_corresp.assoc_info)->is_error) {
+    may_be_added = FALSE;
+  } else if (is_immediate_class_type(type_ptr) ||
+             is_immediate_enum_type(type_ptr)) {
     if (decl_level != NO_SCOPE_DEPTH) ssep = &scope_stack[decl_level];
     if (C_mode()) {
       check_assertion(ssep != NULL);
@@ -4288,11 +4292,6 @@ it's to be moved to another position in the list.
            list. */
         may_be_added = FALSE;
       }  /* if */
-    } else if (is_template_class_type(type_ptr) &&
-               ((a_symbol_ptr)type_ptr->source_corresp.assoc_info)->is_error) {
-      /* This type was created despite an error in its specialization.  Don't
-         add it to the types list. */
-      may_be_added = FALSE;
     } else if (ssep != NULL) {
       if (ssep->kind == (a_scope_kind)sck_template_declaration) {
         /* Must be an error case -- e.g., a class definition within a
