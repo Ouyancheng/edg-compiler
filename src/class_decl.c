@@ -1506,7 +1506,7 @@ nested class.
                                 (an_il_entry_kind)iek_src_seq_secondary_decl);
 #if RECORD_FORM_OF_NAME_REFERENCE
               /* Since the definition is being moved out of the class, the
-                 associated "name reference" is not longer "primary".
+                 associated "name reference" is no longer "primary".
                  Instead, it should be associated with the secondary source
                  sequence entry. */
               if (rp->source_corresp.name_references != NULL) {
