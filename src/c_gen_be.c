@@ -6593,7 +6593,8 @@ Set the output position to match the statement position given by *spos.
 static void dump_local_label_declarations(a_scope_ptr  scope)
 /*
 Dump out the local label declarations (a GNU C extension) of the given scope
-(if any).
+(if any).  Unused local labels shouldn't be dumped since GNU compilers will
+issue diagnostics for them (warnings or errors depending on the version).
 */
 {
   a_label_ptr  label;
@@ -6601,6 +6602,17 @@ Dump out the local label declarations (a GNU C extension) of the given scope
 
   for (label = scope->labels; label != NULL; label = label->next) {
     if (label->locally_declared) {
+      a_boolean  output_label;
+#if MAINTAIN_NEEDED_FLAGS
+      output_label = needed_flag_is_set(&label->source_corresp);
+#else /* !MAINTAIN_NEEDED_FLAGS */
+      output_label = label->source_corresp.referenced;
+#endif /* MAINTAIN_NEEDED_FLAGS */
+      if (!output_label) {
+        /* If the label was not referenced, do not declare it because a
+           GNU compiler may no accept the resulting code. */
+        continue;
+      }  /* if */
       if (local_label_found) {
         write_tok_str(", ");
       } else {
