@@ -7281,8 +7281,8 @@ statement expression, i.e., ({...}).
         dump_label_name(statement->variant.label.ptr);
         write_tok_ch(':');
 #if GNU_EXTENSIONS_ALLOWED
-      /* Emit attributes associated with the label. */
-      write_label_attributes(statement->variant.label.ptr);
+        /* Emit attributes associated with the label. */
+        write_label_attributes(statement->variant.label.ptr);
 #endif /* GNU_EXTENSIONS_ALLOWED */
         end_unreferenced_bracket(
                                 &statement->variant.label.ptr->source_corresp);
