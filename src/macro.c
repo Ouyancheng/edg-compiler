@@ -3068,7 +3068,7 @@ or
         fprintf(f_debug, "\n");
       }  /* if */
 #endif /* DEBUG */
-      if (token_str) {
+      if (token_str == NULL) {
         /* There was no token sequence, so remove the entire predicate, not
            just one value. */
         if (prev_app == NULL) {

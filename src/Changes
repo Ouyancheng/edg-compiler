@@ -1,5 +1,11 @@
 Version 2.26
 
+8/22/94  Fix bug in #unassert
+
+A bug has been fixed that would cause an #unassert directive to
+either fail to work properly, or on some systems to cause the compiler
+to abort.
+
 -------------------------------------------------------------------------------
 Version 2.25, August 19, 1994
 
