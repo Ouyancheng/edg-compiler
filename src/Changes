@@ -1,5 +1,24 @@
 Version 2.46
 
+1/8/01   Microsoft compatibility: lookup of nontype names in base classes
+
+When looking up a name used in a type specifier in a class member
+declaration the Microsoft compiler ignores names that do not name
+types when looking in base classes.  We now emulate this behavior
+in Microsoft bugs mode.
+
+  struct A {
+    int Y;
+  };
+  template <class T> struct Y : public T {
+    Y* p;  // ::Y not A::Y
+    void f() { Y = 1; }  // A::Y, not ::Y
+  };
+  int main() {
+    Y<A> y;
+    y.f();
+  }
+
 1/8/01   Wrong selection of conversion function in C++-generating back end
 
 The C++-generating back used to sometimes incorrectly put out an explicit

@@ -8616,6 +8616,43 @@ a symbol that should be ignored in favor of a template to be found later.
 }  /* check_for_microsoft_template_lookup_bug */
 
 
+static a_boolean check_for_microsoft_type_lookup_bug(a_symbol_ptr sym)
+/*
+The Microsoft compiler (as of version 6.0) includes a bug in the lookup
+of type names in class definitions.  The caller is responsible for verifying
+that the current scope is a class definition.  The bug does not occur
+in class reactivations.
+
+In Microsoft mode, the injected class name is not normally found, so
+a reference to "Y" from within struct Y normally finds the base class
+member and not the injected class name.
+
+The Microsoft compiler seems to do a special lookup of the type name
+in a declaration in a class definition.  This lookup considers only type
+names from base classes (i.e., it ignores nontypes):
+
+  struct A {
+    int Y;
+  };
+  template <class T> struct Y : public T {
+    Y* p;  // ::Y not A::Y
+  };
+
+sym is the symbol found from a base class.  Return TRUE if this is a
+symbol that should be ignored as a result of the Microsoft bug.
+*/
+{
+  a_boolean	result = FALSE;
+  a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+
+  if (!is_type_symbol(fund_sym)) {
+    /* Not a type -- should always be ignored. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* check_for_microsoft_type_lookup_bug */
+
+
 static a_boolean found_in_dependent_base(a_derivation_step_ptr	dsp)
 /*
 Return TRUE if any of the base classes on the derivation path specified
@@ -8720,13 +8757,24 @@ created if a projected symbol cannot be found in any of the real bases.
                                             &path, &access, &ambiguous,
                                             &any_using_decl,
                                             &unambiguous_injected_template);
-    /* In Microsoft bugs mode, if the progenitor symbol is for a nonstatic
-       member (data or function), and we are doing a tentative template
-       lookup, ignore this symbol. */
-    if (microsoft_bugs &&
-        progenitor_sym != NULL && tentative_template_lookup) {
-      if (check_for_microsoft_template_lookup_bug(progenitor_sym)) {
-        progenitor_sym = NULL;
+    if (microsoft_bugs && progenitor_sym != NULL) {
+      if (tentative_template_lookup) {
+        /* In Microsoft bugs mode, if the progenitor symbol is for a nonstatic
+           member (data or function), and we are doing a tentative template
+           lookup, ignore this symbol. */
+        if (check_for_microsoft_template_lookup_bug(progenitor_sym)) {
+          progenitor_sym = NULL;
+        }  /* if */
+      } else if (tentative_type_lookup &&
+                 scope_stack[depth_scope_stack].kind ==
+                                        (a_scope_kind)sck_class_struct_union) {
+        /* In Microsoft bugs mode, ignore non-types found by a tentative
+           type lookup and continue looking for the symbol in enclosing
+           scopes.  This bug only occurs in certain contexts in class
+           definitions. */
+        if (check_for_microsoft_type_lookup_bug(progenitor_sym)) {
+          progenitor_sym = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
