@@ -5777,6 +5777,9 @@ typedef struct a_routine {
 			   function is to be used only for inlining.  The
 			   effective declaration for other purposes is an
 			   extern declaration with no body." */
+  a_bit_field	on_inline_function_list:1;
+			/* TRUE if this routine has been added to the inline
+			   function list. */
   a_bit_field	fp_contract:2;
 			/* In C99 mode, the setting of the fp_contract mode
 			   at the point that this routine was defined. */

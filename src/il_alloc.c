@@ -1738,6 +1738,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->inline_instance_required    = FALSE;
 #endif /* INSTANTIATE_EXTERN_INLINE */
   rp->suppress_inline_body        = FALSE;
+  rp->on_inline_function_list     = FALSE;
   rp->fp_contract                 = (a_stdc_pragma_value)stdc_pv_none;
   rp->fenv_access                 = (a_stdc_pragma_value)stdc_pv_none;
   rp->cx_limited_range            = (a_stdc_pragma_value)stdc_pv_none;

@@ -18527,6 +18527,7 @@ Add the routine to an "instantiation list" of inline functions.
     rlep->routine = rout_ptr;
     rlep->next = inline_function_list;
     inline_function_list = rlep;
+    rout_ptr->on_inline_function_list = TRUE;
   }  /* if */
 }  /* add_to_inline_function_list */
 
