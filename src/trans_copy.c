@@ -458,6 +458,10 @@ entries in the primary IL.
                    a_pragma_ptr, iek_pragma);
   fix_last_pointer(pointers_block->last_template, scope->templates,
                    a_template_ptr, iek_template);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  fix_last_pointer(pointers_block->last_ms_attribute, scope->ms_attributes,
+                   an_ms_attribute_ptr, iek_ms_attribute);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* update_namespace_pointers_block */
 
 
@@ -1659,6 +1663,42 @@ to the secondary translation unit.
     }  /* if */
   }  /* for */
   if (pointers_block != NULL) pointers_block->last_pragma = prev_pragma;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  { an_ms_attribute_ptr ms_attr, prev_ms_attr;
+    /* Visit all Microsoft attributes. */
+    prev_ms_attr = NULL;
+    for (ms_attr = scope->ms_attributes;
+         ms_attr != NULL;
+         ms_attr = ms_attr->next) {
+      a_source_correspondence_ptr scp;
+      /* Keep the attribute if it has an associated entity that will
+         be kept. */
+      keep_on_list = FALSE;
+      if (ms_attr->entity.ptr != NULL &&
+          (scp = source_corresp_for_il_entry(
+                            ms_attr->entity.ptr,
+                            (an_il_entry_kind)ms_attr->entity.kind)) != NULL &&
+          /* "a_constant_ptr" here is arbitrary. */
+          entry_should_be_kept((a_constant_ptr)scp)) {
+        keep_on_list = TRUE;
+      }  /* if */
+      if (keep_on_list) {
+        prev_ms_attr = ms_attr;
+        any_members_to_process = TRUE;
+      } else {
+        /* Remove this entry from the list. */
+        if (prev_ms_attr == NULL) {
+          scope->ms_attributes = ms_attr->next;
+        } else {
+          prev_ms_attr->next = ms_attr->next;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (pointers_block != NULL) {
+      pointers_block->last_ms_attribute = prev_ms_attr;
+    }  /* if */
+  }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (scope->kind == (a_scope_kind)sck_file) {
     if (*any_removed_function_bodies) {
       /* Remove scope orphaned list entries for eliminated functions. */
@@ -2388,6 +2428,44 @@ unit set to the primary translation unit.
       if (pointers_block != NULL) pointers_block->last_pragma = last_pragma;
     }  /* for */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (scope->ms_attributes != NULL && scope_being_merged) {
+    an_ms_attribute_ptr ms_attr, last_ms_attr;
+    /* Merge the Microsoft attributes in the scope into the primary IL
+       scope. */
+    /* Get a pointer to the last attribute in the primary scope. */
+    if (pointers_block != NULL) {
+      last_ms_attr = pointers_block->last_ms_attribute;
+    } else {
+      /* Actual last attribute will be determined below if/when needed. */
+      last_ms_attr = NULL;
+    }  /* if */
+    for (ms_attr = scope->ms_attributes;
+         ms_attr != NULL;
+         ms_attr = ms_attr->next) {
+      an_ms_attribute_ptr corresp_ms_attr =
+              (an_ms_attribute_ptr)checked_trans_unit_copy_address_of(ms_attr);
+      if (is_class_scope && last_ms_attr == NULL) {
+        /* Determine the last attribute the first time it is needed. */
+        last_ms_attr = primary_scope->ms_attributes;
+        if (last_ms_attr != NULL) {
+          while (last_ms_attr->next != NULL) last_ms_attr = last_ms_attr->next;
+        }  /* if */
+      }  /* if */
+      /* Add the attribute to the end of the list. */
+      if (last_ms_attr == NULL) {
+        primary_scope->ms_attributes = corresp_ms_attr;
+      } else {
+        last_ms_attr->next = corresp_ms_attr;
+      }  /* if */
+      corresp_ms_attr->next = NULL;
+      last_ms_attr = corresp_ms_attr;
+      if (pointers_block != NULL) {
+        pointers_block->last_ms_attribute = last_ms_attr;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (scope->asm_entries != NULL && scope_being_merged) {
     an_asm_entry_ptr asm_entry, last_asm_entry;
     /* Merge the asm entries in the scope into the primary IL scope. */
