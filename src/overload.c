@@ -56,14 +56,15 @@ Clear a conversion description.
 
 
 a_symbol_ptr find_addr_of_overloaded_function_match(
-                                          a_symbol_ptr       ovl_sym,
-                                          a_boolean          is_template_id,
-                                          a_template_arg_ptr template_arg_list,
-                                          a_type_ptr         dest_type,
-                                          a_boolean          is_cast,
-                                          an_arg_match_level *match_level,
-                                          a_std_conv_descr   *std_conv,
-                                          a_boolean          *ambiguous)
+                                a_symbol_ptr       ovl_sym,
+                                a_boolean          is_template_id,
+                                a_template_arg_ptr template_arg_list,
+                                a_type_ptr         dest_type,
+                                a_boolean          is_cast,
+                                an_arg_match_level *match_level,
+                                a_std_conv_descr   *std_conv,
+                                a_boolean          *unknown_dependent_function,
+                                a_boolean          *ambiguous)
 /*
 ovl_sym is the symbol from an indefinite function operand representing
 the address of an overloaded function.  is_template_id is TRUE if ovl_sym
@@ -75,9 +76,11 @@ pointer/reference to one of the overloaded functions, return a pointer
 to that function's symbol (possibly a projection symbol); otherwise,
 return NULL.  Also set *match_level to indicate whether or not any
 conversion is needed after the coercion to a specific function pointer
-and set *std_conv to indicate any such conversion.  If more than one
-function matches, return NULL and *ambiguous TRUE.  See WP
-[over.over], and ARM 13.3, "Address of Overloaded Function".  If
+and set *std_conv to indicate any such conversion.  If the function
+cannot be determined because some template-dependent types are involved
+(in a prototype instantiation), return NULL and *unknown_dependent_function
+TRUE.  If more than one function matches, return NULL and *ambiguous TRUE.
+See WP [over.over], and ARM 13.3, "Address of Overloaded Function".  If
 is_cast is TRUE, this disambiguation is being done via an explicit
 cast.
 */
@@ -94,7 +97,13 @@ cast.
   db_enter(4, "find_addr_of_overloaded_function_match");
   clear_std_conv_descr(std_conv);
   *ambiguous = FALSE;
-  if (is_pointer_type(dest_type)) {
+  *unknown_dependent_function = FALSE;
+  if (is_template_dependent_context() &&
+      is_or_contains_template_param(dest_type)) {
+    /* The destination type is not fully known (in a prototype
+       instantiation). */
+    *unknown_dependent_function = TRUE;
+  } else if (is_pointer_type(dest_type)) {
     dest_class = NULL;
     is_ptr = TRUE;
     dest_underlying_type = type_pointed_to(dest_type);
@@ -1465,6 +1474,7 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
          pointer and pointer-to-member cases, the operand can be a function
          designator or pointer to function; for the reference case it
          must be a function designator. */
+      a_boolean unknown_dependent_function;
       if (find_addr_of_overloaded_function_match(arg_operand->variant.symbol,
                                                  (a_boolean)arg_operand->
                                                                 is_template_id,
@@ -1474,7 +1484,9 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
                                                  /*is_cast=*/FALSE,
                                                  &arg_summary->match_level,
                                                  &std_conversion,
+                                                 &unknown_dependent_function,
                                                  &ambiguous) != NULL ||
+          unknown_dependent_function ||
           ambiguous) {
         /* There is a suitable indefinite function, or more than one.
            arg_summary->match_level has been set appropriately. */
@@ -8612,6 +8624,7 @@ rewritten) for use in error messages.
          overloaded function.  It can be converted to an appropriate
          pointer or pointer-to-member type (WP [over.over], ARM 13.3). */
       a_std_conv_descr std_conversion;
+      a_boolean        unknown_dependent_function;
 
       if (find_addr_of_overloaded_function_match(
                                            source_operand->variant.symbol,
@@ -8622,7 +8635,9 @@ rewritten) for use in error messages.
                                            /*is_cast=*/FALSE,
                                            &match_level,
                                            &std_conversion,
-                                           &ambiguous) != NULL) {
+                                           &unknown_dependent_function,
+                                           &ambiguous) != NULL ||
+          unknown_dependent_function) {
         okay = TRUE;
       } else if (ambiguous) {
         /* More than one function matches. */
@@ -9893,7 +9908,7 @@ direct binding is "possible" and not whether it is "valid".
        can be bound to it. */
     an_arg_match_level match_level;
     a_std_conv_descr   std_conversion;
-    a_boolean          ambiguous;
+    a_boolean          ambiguous, unknown_dependent_function;
 
     *function_symbol =
         find_addr_of_overloaded_function_match(source_operand->variant.symbol,
@@ -9905,6 +9920,7 @@ direct binding is "possible" and not whether it is "valid".
                                                /*is_cast=*/FALSE,
                                                &match_level,
                                                &std_conversion,
+                                               &unknown_dependent_function,
                                                &ambiguous);
     if (ambiguous) {
       /* More than one function matches. */
@@ -9912,7 +9928,7 @@ direct binding is "possible" and not whether it is "valid".
                    &source_operand->position,
                    source_operand->variant.symbol);
       conv_to_error_operand(source_operand);
-    } else if (*function_symbol != NULL) {
+    } else if (*function_symbol != NULL || unknown_dependent_function) {
       type_is_correct_or_derived = TRUE;
     }  /* if */
   }  /* if */

@@ -2320,6 +2320,22 @@ conversions.
 }  /* cast_node */
 
 
+void make_unknown_dependent_function_operand(a_symbol_ptr sym,
+                                             an_operand   *operand)
+/*
+Make an operand for the address of an unknown function from the set
+of overloaded functions indicated by sym.  This is used in prototype
+instantiations when the function to be selected is not known.
+*/
+{
+  a_symbol_ptr unk_sym = find_unknown_function_symbol(sym);
+
+  /* The symbol is a constant whose value is the "address" of the
+     unknown function. */
+  make_sym_constant_operand(unk_sym, operand);
+}  /* make_unknown_dependent_function_operand */
+
+
 void cast_operand(a_type_ptr new_type,
                   an_operand *operand,
                   a_boolean  check_cast_access,
@@ -2348,7 +2364,7 @@ user-defined conversions.
   an_arg_match_level
                     match_level;
   a_std_conv_descr  std_conversion;
-  a_boolean         ptr_to_member_case;
+  a_boolean         ptr_to_member_case, unknown_dependent_function;
 
 #if CHECKING
   if (!is_an_rvalue(operand) && !is_error_operand(operand)) {
@@ -2464,18 +2480,25 @@ user-defined conversions.
                                                              !is_implicit_cast,
                                                     &match_level,
                                                     &std_conversion,
+                                                   &unknown_dependent_function,
                                                     &ambiguous);
+          if (unknown_dependent_function) {
+            /* The cast is in a prototype instantiation, and we don't know
+               which function is selected. */
+            make_unknown_dependent_function_operand(overloaded_function_symbol,
+                                                    operand);
+          } else {
 #if CHECKING
-          if (function_symbol == NULL) {
-            internal_error("cast_operand: bad func symbol");
-          }  /* if */
+            if (function_symbol == NULL) {
+              internal_error("cast_operand: bad func symbol");
+            }  /* if */
 #endif /* CHECKING */
-          ptr_to_member_case = is_ptr_to_member_type(new_type);
-          /* Do whatever would have been done with the function if we had
-             known all along which function was intended.  Make an operand
-             for the specific function's address, except for the
-             pointer to member case. */
-          overloaded_function_catch_up(function_symbol,
+            ptr_to_member_case = is_ptr_to_member_type(new_type);
+            /* Do whatever would have been done with the function if we had
+               known all along which function was intended.  Make an operand
+               for the specific function's address, except for the
+               pointer to member case. */
+            overloaded_function_catch_up(function_symbol,
                                        overloaded_function_symbol,
                                        (a_boolean)operand->is_qualified_name,
                                        &orig_operand.position,
@@ -2485,18 +2508,19 @@ user-defined conversions.
                                        ptr_to_member_case ? (an_operand *)NULL:
                                                             operand,
                                        &access_error_reported);
-          if (ptr_to_member_case) {
-            /* Make an operand for the pointer-to-member case. */
-            make_ptr_to_member_constant_operand(fundamental_symbol_of(
+            if (ptr_to_member_case) {
+              /* Make an operand for the pointer-to-member case. */
+              make_ptr_to_member_constant_operand(fundamental_symbol_of(
                                                               function_symbol),
-                                                overloaded_function_symbol,
-                                                &orig_operand.position,
-                                                !access_error_reported,
-                                                (a_boolean)operand->
-                                                      is_qualified_name,
-                                                (a_boolean)operand->
+                                                  overloaded_function_symbol,
+                                                  &orig_operand.position,
+                                                  !access_error_reported,
+                                                  (a_boolean)operand->
+                                                        is_qualified_name,
+                                                  (a_boolean)operand->
                                                       is_operand_of_address_of,
-                                                operand);
+                                                  operand);
+            }  /* if */
           }  /* if */
           /* If the pointer to member is to a related class, or the pointer
              to function differs because of a conversion (e.g., a C++ vs.

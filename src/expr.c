@@ -1349,11 +1349,8 @@ Syntax:
       /* The routine to be called cannot be determined because one or more
          of the arguments has a template-dependent type.  Use a generic
          function of the right name. */
-      a_symbol_ptr unk_sym =
-                      find_unknown_function_symbol(overloaded_function_symbol);
-      /* The symbol is a constant whose value is the "address" of the
-         unknown function. */
-      make_sym_constant_operand(unk_sym, operand);
+      make_unknown_dependent_function_operand(overloaded_function_symbol,
+                                              operand);
     } else if (routine_type == NULL) {
       /* None of the overloaded functions matches the argument list. */
       make_error_operand(operand);
@@ -6741,7 +6738,7 @@ to select one of the functions in the overload set.  See [over.over].
 {
   an_arg_match_level match_level;
   a_std_conv_descr   std_conversion;
-  a_boolean          ambiguous;
+  a_boolean          ambiguous, unknown_dependent_function;
 
   if (find_addr_of_overloaded_function_match(operand->variant.symbol,
                                              (a_boolean)operand->
@@ -6751,11 +6748,16 @@ to select one of the functions in the overload set.  See [over.over].
                                              /*is_cast=*/TRUE,
                                              &match_level,
                                              &std_conversion,
+                                             &unknown_dependent_function,
                                              &ambiguous) != NULL) {
     /* The cast selects one of the overloaded functions and is valid. */
     cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
                  /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
                  /*reinterpret_semantics=*/FALSE);
+  } else if (unknown_dependent_function) {
+    /* The cast occurs in a prototype instantiation and it is not possible
+       to determine which function to use. */
+    make_unknown_dependent_function_operand(operand->variant.symbol, operand);
   } else {
     /* The cast doesn't select one of the overloaded functions, so it's
        an error. */
