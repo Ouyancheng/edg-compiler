@@ -218,8 +218,11 @@ Dump a field entry, for debug purposes.
   db_name(&fp->source_corresp);
   fputs("\", type = ", f_debug);
   db_abbreviated_type(fp->type);
-  fprintf(f_debug, " -- bit offset %lu, bit size %d\n",
-                   fp->bit_offset, fp->bit_size);
+  fprintf(f_debug, ", bit offset %lu", fp->bit_offset);
+  if (fp->bit_size > 0) {
+    fprintf(f_debug, ", bit size %d", fp->bit_size);
+  }  /* if */
+  fputc('\n', f_debug);
 }  /* db_field */
 
 
@@ -248,8 +251,10 @@ Dump field *fp derived from base class *tp, for debug purposes.
   db_name(&fp->source_corresp);
   fputs(", type = ", f_debug);
   db_abbreviated_type(fp->type);
-  fprintf(f_debug, " -- bit offset %lu, bit size %d",
-                   fp->bit_offset, fp->bit_size);
+  fprintf(f_debug, ", bit offset %lu", fp->bit_offset);
+  if (fp->bit_size > 0) {
+    fprintf(f_debug, ", bit size %d", fp->bit_size);
+  }  /* if */
 }  /* db_base_class_field */
 
 
