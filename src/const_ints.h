@@ -82,10 +82,10 @@ extern void const_ints_init(void);
 extern void set_integer_value(an_integer_value *intval,
                               long             value);
 
-extern int compare_integer_values(an_integer_value *op_1,
-				  a_boolean	    op_1_unsigned,
-				  an_integer_value *op_2,
-				  a_boolean	    op_2_unsigned);
+extern int cmp_integer_values(an_integer_value *op_1,
+		  	      a_boolean	        op_1_unsigned,
+			      an_integer_value *op_2,
+			      a_boolean	        op_2_unsigned);
 
 extern void add_integer_values(an_integer_value *op_1,
 			       an_integer_value *op_2,
