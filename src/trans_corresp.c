@@ -473,7 +473,8 @@ the primary translation unit is preferred.
           {
             a_routine_ptr  routine = (a_routine_ptr)entity;
             if (routine->is_template_function &&
-                !routine->is_prototype_instantiation) {
+                !routine->is_prototype_instantiation &&
+                !routine->is_specialized) {
               set_master_instance_for_new_canonical_routine(
                                       routine, (a_routine_ptr)tcp->canonical);
             }  /* if */
