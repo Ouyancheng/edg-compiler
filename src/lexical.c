@@ -11892,7 +11892,7 @@ selection operator, in which case it points to the type of the left operand.
       (void)get_token();  /* The "::" that follows the type name. */
       is_qualified_name = TRUE;
     } else if (((next_tok = next_token()) == qualifier_separator ||
-                (is_qualified_name &&
+                (is_qualified_name && !is_global_qualified_name &&
                  microsoft_bugs && next_tok == tok_period)) &&
                ((!microsoft_bugs || microsoft_version >= 1300) ||
                 is_vacuous_dtor ||
