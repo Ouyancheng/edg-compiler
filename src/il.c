@@ -7267,16 +7267,6 @@ Display and return the amount of space used for various IL tables.
 #endif /* DEBUG */
 
 
-void il_reset(void)
-/*
-Reset any variables that contain state information that becomes invalid
-when the IL has been read back into memory.
-*/
-{
-  reset_seq_cache();
-}  /* il_reset */
-
-
 void il_init(void)
 /*
 Initialize static variables related to the IL.  This is done as a
@@ -7431,6 +7421,17 @@ of the front end.
 }  /* il_init */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+
+void il_reset(void)
+/*
+Reset any variables that contain state information that becomes invalid
+when the IL has been read back into memory.
+*/
+{
+  reset_seq_cache();
+}  /* il_reset */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
