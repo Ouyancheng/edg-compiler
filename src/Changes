@@ -1,5 +1,20 @@
 Version 2.13
 
+12/18/92 Template definition of a static data member of a template class
+
+Template support has been enhanced to support template definitions of
+static data members of template classes.  For example:
+
+  template <class T> class X { static int i; };
+  template <class T> int X<T>::i = 0;
+
+The effect is a compiler-generated definition of an actual static data
+member corresponding to X<T>::i whenever X<T> is instantiated.  As with
+function templates, a specific definition is also permitted and takes
+precedence over a template-based definition.  Defining static members of
+template classes, though not discussed in the ARM, is described in the
+X3J16/WG21 working paper (section 14.6 para 2).
+
 12/18/92 Change in hashing for shared constants
 
 The hashing algorithm used to search the shared constants table has been
@@ -88,7 +103,7 @@ no matter what the order of declaration.  For example:
 Note that the ARM does not address this sort of order dependency;
 however, the new behavior is consistent with that of cfront for this
 program.  On the other hand, dependencies within default argument
-expressions remains problematic.  For example, this still produces an
+expressions remain problematic.  For example, this still produces an
 error:
 
   class A {
@@ -111,13 +126,13 @@ declarations:
 
 (1)  void f(x)
        struct S { int i; };  // Error now issued in C++ mode, and warning
-                             //     no longer issued in pcc mode.
+                             //    no longer issued in pcc mode.
        struct S x;
      { /* ... */ }
 
 (2)  void f()
        int i;                // In C mode: now reported as an invalid
-     { /* ... */ }           //      param declrather than a syntax error
+     { /* ... */ }           //    param decl rather than a syntax error
 
 12/11/92 Bug in overflow checking in constant folding
 
