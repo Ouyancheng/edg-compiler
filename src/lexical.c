@@ -4557,7 +4557,7 @@ source text (end of token, start of expansion, end of expansion).
 /* If asm functions are allowed, also delete comments if inside an asm
    function body.  The comments are copied to the asm string before they
    are deleted. */
-#if ASM_BUFFER_NEEDED
+#if ASM_SUPPORT_NEEDED
 #define or_in_asm_function_body() || in_asm_function_body
 #else /* !ASM_SUPPORT_NEEDED */
 #define or_in_asm_function_body() /* Nothing */
