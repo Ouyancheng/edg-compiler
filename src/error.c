@@ -1641,7 +1641,7 @@ instead of the caret line.
     putcb(' ');
     putcb(' ');
     /* Perform any additional indentation needed (based on the category
-       kind) */
+       kind). */
     for (i = 0; i < diagnostic_indent; i++) {
       putcb(' ');
     }  /* for */
