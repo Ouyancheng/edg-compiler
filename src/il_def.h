@@ -15,8 +15,11 @@ il_def.h -- Definition of the intermediate language.
 
 /*
 NOTE:  If you modify definitions here, be sure to modify walk_entry.h,
-lower_il, and il_display accordingly.  This is crucial in cases where
-a pointer is added, and important in other cases.
+il.c, lower_il.c, and il_display.c accordingly.  This is crucial in cases
+where a pointer is added, and important in other cases.  If you add a
+new entry kind, changes may be required in il_file.h and il_walk.c also.
+See the documentation on adding an IL entry, at the end of the IL chapter
+of the internal documentation, for details.
 */
 
 /*
@@ -3960,7 +3963,8 @@ enum an_expr_node_kind_tag {
   enk_throw,		/* C++ throw expression. */
   enk_condition,	/* C++ condition -- a variable declaration with
 			   initializer that appears as the condition of an
-			   if-, switch-, while- or for-statement. */
+			   if-, switch-, while- or for-statement.  Appears
+			   only at the top of an expression. */
   enk_object_lifetime,	/* Used to introduce an object lifetime that surrounds
 			   a single expression, to restrict the lifetime
 			   of temporaries created in the expression.  The
@@ -5800,7 +5804,7 @@ enum a_scope_kind_tag {
   sck_condition,
 			/* Used to represent the scope of a C++ condition
 			   that is an initialized declaration for an if,
-			   switch, for, or while statement). */
+			   switch, for, or while statement. */
 #endif /* ifdef CIL */
 #ifdef FIL
   sck_stmt_function,	/* Statement function scope. */
@@ -5985,7 +5989,7 @@ typedef struct a_scope {
 			   file scope).  Note that block scopes inside
 			   block scopes will appear on the scopes list
 			   for those block scopes, not at the function scope
-			   level. */
+			   level.  Condition scopes can also appear. */
   a_dynamic_init_ptr
 		dynamic_inits;
 			/* List of dynamic initializations to be done in the
