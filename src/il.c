@@ -6809,7 +6809,7 @@ in doing substitution on a type), set *copy_error to TRUE.
   if (con->kind == (a_constant_repr_kind)ck_template_param &&
       con->source_corresp.is_class_member) {
     /* The constant is a member constant.  Do substitution on the parent
-       type.  This occurs for members constants specified in forms such
+       type.  This occurs for member constants specified in forms such
        as A<T>::x. */
     a_symbol_ptr	orig_sym;
     a_symbol_ptr	sym;
