@@ -9852,7 +9852,7 @@ eliminated, if appropriate.
           next_ssep = drop_from_fs_src_seq_list(ssep);
         } else {
           /* Not removed even though the keep_in_il flag is FALSE. */
-          next_ssep = next_ssep->next;
+          next_ssep = ssep->next;
         }  /* if */
       } else if (ss_entry_kind(ssep) ==
                            (an_il_entry_kind)iek_src_seq_end_of_construct) {
