@@ -1,5 +1,10 @@
 Version 2.20
 
+8/29/93 Jumping past initializing declarations
+
+We now issue an error on jumping past an initializing declaration, as
+required by ARM 6.7.
+
 8/27/93 Large unsigned values for enumerations
 
 In non-strict mode, values that the C standard defines as large unsigned
