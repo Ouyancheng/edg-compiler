@@ -66,21 +66,12 @@ entry in another translation unit.
 }  /* f_canonical_il_entry_of */
 
 
-static a_symbol_ptr corresp_symbol_list(a_symbol_ptr  sym)
 /*
 Return the symbol list on which an entry corresponding to the given sym may
-be expected.  This is the associated inactive list for all scopes, except for
-the file scope because the latter is active while looking for correspondences.
+be expected.
 */
-{
-  a_symbol_ptr  result;
-  if (!sym->is_class_member && sym->parent.namespace_ptr == NULL) {
-    result = sym->header->symbol;
-  } else {
-    result = sym->header->inactive_symbols;
-  }  /* if */
-  return result;
-}  /* corresp_symbol_list */
+#define corresp_symbol_list(sym)					\
+  ((sym)->header->inactive_symbols)
 
 
 #if DEBUG

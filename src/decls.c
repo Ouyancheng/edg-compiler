@@ -6936,23 +6936,9 @@ is_definition is TRUE if the label is being scanned as part of a label.
     label_sym = NULL;
   } else {
     /* See if the label identifier is already in the symbol table. */
-    label_sym = symbol_list_from_locator(locator_for_curr_id);
-    get_symbol_of_kind((a_symbol_kind)sk_label, label_sym);
-    /* If the label is not from the current function, pretend it was
-       not found.  This comes up in functions within local classes:
-         void f() {
-           label1:;
-           class A {
-             void g() { goto label1; }
-           };
-         }
-    */
-    if (label_sym != NULL &&
-        label_sym->decl_scope !=
-            scope_stack[depth_innermost_function_scope].il_scope->number) {
-      /* This label is from an outer routine.  Pretend it's not found. */
-      label_sym = NULL;
-    }  /* if */  
+    label_sym = find_label_symbol(locator_for_curr_id.symbol_header,
+                                  scope_stack[depth_innermost_function_scope].
+                                                             il_scope->number);
   }  /* if */
   if (label_sym == NULL) {
     /* Enter the label identifier into the symbol table.  This is done

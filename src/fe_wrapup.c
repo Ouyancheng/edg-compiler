@@ -94,6 +94,11 @@ Do any processing that is required at the end of a translation unit
     check_class_linkage();
   }  /* if */
 
+  /* Pop and repush the file scope.  This is done to move the symbols from
+     the active list to the inactive list. */
+  pop_scope();
+  push_file_scope(/*is_reactivation=*/TRUE);
+
   /* If this is a secondary translation unit, establish any IL
      correspondences.  (If there were errors, the IL may be too
      damaged for reasonable results.) */

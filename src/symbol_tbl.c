@@ -26,11 +26,6 @@ symbol_tbl.c - Symbol table management routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if DO_IL_LOWERING
-#include "lower_il.h"
-#endif /* DO_IL_LOWERING */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef GUARD_MACRO_FOR_VA_LIST
 /* macro.h is needed for enter_predef_macro. */
 #include "macro.h"
@@ -3098,12 +3093,15 @@ symbol must be added to the inactive list.
                            "link_symbol_into_symbol_table:",
                            "attemping to add symbol to pragma scope");
       if (scope_stack[scope_depth].kind ==
-                                      (a_scope_kind)sck_namespace_extension) {
+                                      (a_scope_kind)sck_namespace_extension ||
+          scope_stack[scope_depth].kind == (a_scope_kind)sck_file) {
         /* Once the initial namespace definition has been closed, additional
            symbols for the namespace are added to the inactive list.  The
            flag in the assoc_pointers_block needs to be tested because it
            is possible for namespace extension scopes to be pushed while the
-           initial namespace definition is still in progress. */
+           initial namespace definition is still in progress.  This is also
+           true of the file scope.  File scope symbols are on the inactive list
+           once the file scope has been popped for the first time. */
         a_scope_pointers_block_ptr	spbp;
         spbp = assoc_pointers_block_of(&scope_stack[scope_depth]);
         add_sym_to_inactive_list = spbp->add_symbols_to_inactive_list;
@@ -5185,6 +5183,39 @@ the latter will be NULL for variables.
   db_exit();
   return sym;
 }  /* find_external_symbol */
+
+
+a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr,
+			       a_scope_number		scope_number)
+/*
+Look through the active list of sym_hdr for a label symbol declared in
+scope_number.
+*/
+{
+  a_symbol_ptr	sym;
+
+  for (sym = sym_hdr->symbol; sym != NULL; sym = sym->next) {
+    if (sym->kind == (a_symbol_kind)sk_label &&
+        sym->decl_scope == scope_number) break;
+  }  /* for */
+  return sym;
+}  /* find_label_symbol */
+
+
+a_symbol_ptr find_macro_symbol(a_symbol_header_ptr	sym_hdr)
+/*
+Look for a macro symbol on the symbol list of sym_hdr.  Macros are already
+entered as file scope symbols.
+*/
+{
+  a_symbol_ptr	sym;
+
+  for (sym = symbol_list_for_file_scope_symbols(sym_hdr);
+       sym != NULL; sym = sym->next) {
+    if (sym->kind == (a_symbol_kind)sk_macro) break;
+  }  /* for */
+  return sym;
+}  /* find_macro_symbol */
 
 
 void tildize_locator(a_symbol_locator *locator)

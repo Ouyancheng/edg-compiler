@@ -685,7 +685,9 @@ Scan and process an #undef directive.
                                &locator_for_curr_id);
     /* find_defined_macro cannot be used because if we have "#undef defined"
        we want to give an error, not ignore it. */
-    get_symbol_of_kind((a_symbol_kind)sk_macro, assoc_symbol);
+    if (assoc_symbol != NULL) {
+      assoc_symbol = find_macro_symbol(assoc_symbol->header);
+    }  /*  if */
     if (assoc_symbol == NULL) {
       /* No such macro, so #undef is ignored. */
     } else if (assoc_symbol->variant.macro_def->cannot_be_redefined &&

@@ -277,6 +277,14 @@ Clear a symbol locator.
 #define inactive_symbol_list_from_locator(loc)                        \
   ((loc).symbol_header->inactive_symbols)
 
+/* Retrieve a pointer to the symbol list on which file scope symbols are
+   located.  This is usually the active list, but after the file scope
+   has been popped, it is the inactive list. */
+#define symbol_list_for_file_scope_symbols(symhdr)			\
+  ((depth_scope_stack < DEPTH_OF_FILE_SCOPE ||				\
+    scope_stack[DEPTH_OF_FILE_SCOPE].inactive_symbols_may_be_visible) ?	\
+                          (symhdr)->inactive_symbols : (symhdr)->symbol)
+
 /* Clear the specific symbol field of the locator unless instructed not
    to by the do_not_clear_specific_symbol field of the locator. */
 #define clear_specific_symbol(loc)					\
@@ -3250,11 +3258,10 @@ extern a_boolean is_block_extern_symbol(a_symbol_ptr sym);
 
 extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
 
+extern a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr,
+				      a_scope_number		scope_number);
 
-/* Examine the list of symbols with a given name, looking for an instance
-   with a particular kind. */
-#define get_symbol_of_kind(des_kind, ptr)			      \
-  while (((ptr) != NULL) && ((ptr)->kind != (des_kind))) (ptr) = (ptr)->next;
+extern a_symbol_ptr find_macro_symbol(a_symbol_header_ptr	sym_hdr);
 
 /* Return TRUE if a symbol is a class symbol.   A class symbol is
    one defined as a class, struct, or union, or a typedef of one of

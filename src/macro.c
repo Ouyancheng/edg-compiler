@@ -795,7 +795,9 @@ If so, return a pointer to it.  If not, return NULL.  This routine exists
 so that "defined" will not be found as a defined macro.
 */
 {
-  get_symbol_of_kind((a_symbol_kind)sk_macro, assoc_symbol);
+  if (assoc_symbol != NULL) {
+    assoc_symbol = find_macro_symbol(assoc_symbol->header);
+  }  /* if */
   /* If the macro found is the pseudo-macro "defined" (which is used as
      an operator in #if statements), or "_Pragma" (which is used for the
      C99 _Pragma operator) pretend it was not found. */
@@ -3176,7 +3178,9 @@ Scan and process a #define directive.
                                &locator_for_curr_id);
     /* find_defined_macro cannot be used because if we have "#define defined"
        we want to give an error, not ignore it. */
-    get_symbol_of_kind((a_symbol_kind)sk_macro, assoc_symbol);
+    if (assoc_symbol != NULL) {
+      assoc_symbol = find_macro_symbol(assoc_symbol->header);
+    }  /* if */
     if (assoc_symbol == NULL) {
       /* No such macro, so #define can be done. */
     } else if (assoc_symbol->variant.macro_def->cannot_be_redefined &&
@@ -4204,11 +4208,7 @@ a symbol locator in *locator.
       if (!is_id_char[id_start[i]-CHAR_MIN]) goto return_point;
     }  /* for */
     /* The identifier is syntactically valid.  Look it up. */
-    if (((*assoc_symbol) = find_symbol(id_start, id_len, locator)) != NULL) {
-      /* Symbol is already in the symbol table.  Find any instance as a
-         macro. */
-      get_symbol_of_kind((a_symbol_kind)sk_macro, (*assoc_symbol));
-    }  /* if */
+    *assoc_symbol = find_macro_symbol(locator->symbol_header);
     return_value = TRUE;
   }  /* if */
 return_point:

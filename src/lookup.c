@@ -258,11 +258,13 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
          break;
       }  /* if */
     }  /* for */
-    if (sym == NULL && ssep->kind == (a_scope_kind)sck_namespace_extension) {
+    if (sym == NULL &&
+        (ssep->kind == (a_scope_kind)sck_namespace_extension ||
+        (ssep->kind == (a_scope_kind)sck_file))) {
       /* If no symbol was found on the active list, and this is a namespace
-         extension, then look on the inactive list too.  This doesn't
-         have to be done for original namespace scopes because their symbols
-         will still be on the active list. */
+         extension or a file scope, then look on the inactive list too.  This
+         doesn't have to be done for original namespace scopes because their
+         symbols will still be on the active list. */
       a_symbol_ptr	tag_symbol = NULL;
       for (sym = inactive_symbol_list_from_locator(*locator);
            sym != NULL;
@@ -3790,11 +3792,21 @@ be found.
   a_symbol_ptr        sym = NULL;
   a_symbol_header_ptr symhdr;
 
+  check_assertion(kind == (an_opname_kind)onk_new ||
+                  kind == (an_opname_kind)onk_array_new ||
+                  kind == (an_opname_kind)onk_delete ||
+                  kind == (an_opname_kind)onk_array_delete);
   /* See if there are any functions for this operator. */
   symhdr = opname_symbol_table[kind];
   if (symhdr != NULL) {
-    /* Yes.  Look for one that's visible and a non-member function. */
-    for (sym = symhdr->symbol; sym != NULL; sym = sym->next) {
+    /* Look for one that's visible and a non-member function.  New and
+       delete operators cannot be declared in namespaces, so there can only
+       be one nonmember symbol that must be from the file scope.  The file
+       scope symbols start on the active list, but will be on the inactive
+       list when the file scope is reactivated for the purpose of generating
+       instantiations. */
+    sym = symhdr->symbol == NULL ? symhdr->inactive_symbols : symhdr->symbol;
+    for (; sym != NULL; sym = sym->next) {
       if (!sym->is_class_member &&
           (is_function_symbol(sym) ||
            sym->kind == (a_symbol_kind)sk_function_template)) {

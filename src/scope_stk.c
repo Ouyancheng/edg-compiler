@@ -2769,10 +2769,13 @@ typedef, or enum) with the same name.  Returns TRUE if one is found, FALSE
 otherwise.
 */
 {
-  a_symbol_ptr   sym;
-  a_boolean      found = FALSE;
+  a_symbol_ptr		sym;
+  a_boolean		found = FALSE;
+  a_symbol_header_ptr	sym_header;
 
-  sym = sym_to_find->header->symbol;
+  sym_header = sym_to_find->header;
+  /* Get the symbol list on which file scope symbols can be found. */
+  sym = symbol_list_for_file_scope_symbols(sym_header);
   while (sym != NULL) {
     if (sym->decl_scope == file_scope_number) {
       /* Look for class, struct, union, enum, or typedef. */
@@ -4665,8 +4668,10 @@ End a name scope by popping an entry off the scope stack.
      initial definition of the namespace is complete), set the flag
      in the namespace's scope_pointers_block to indicate that any
      symbols that are subsequently added to the scope should be added
-     directly to the inactive list. */
-  if (kind == (a_scope_kind)sck_namespace) {
+     directly to the inactive list.  This is also done with then file
+     scope is popped, so that if the file scope is re-pushed, symbols
+     will be added directly to the inactive list. */
+  if (kind == (a_scope_kind)sck_namespace || kind == (a_scope_kind)sck_file) {
     ssep->assoc_pointers_block->add_symbols_to_inactive_list = TRUE;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
