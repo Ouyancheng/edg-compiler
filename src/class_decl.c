@@ -4384,7 +4384,7 @@ void decl_member_function_template(a_symbol_locator     *locator,
 {
   a_template_symbol_supplement_ptr   tssp;
   a_routine_ptr                      rtn;
-  a_symbol_ptr                       sym, overload_sym;
+  a_symbol_ptr                       sym, overload_sym = NULL;
   a_class_symbol_supplement_ptr      cssp;
 
   db_enter(3, "decl_member_function_template");
