@@ -269,6 +269,7 @@ typedef struct an_internal_complex_value {
 
 #endif /* ifdef FIL */
 
+#ifdef CIL
 /*
 Data structure a_dynamic_init describes a dynamic initialization of a simple
 (non-aggregate) variable, an aggregate variable (class or array), or a
@@ -387,6 +388,7 @@ typedef struct a_dynamic_init {
   } variant;
 } a_dynamic_init;
 
+#endif /* ifdef CIL */
 
 typedef struct a_constant {
   /* Description of a constant.  Also used as an element on an initializer
