@@ -960,6 +960,18 @@ cannot be done.
     new_constant.type = new_type;
     goto exit;
   }  /* if */
+  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+    /* A template parameter constant is cast to a new type by setting the
+       implicit_cast flag. */
+    implicit_cast(constant, new_type);
+    goto exit;
+  }  /* if */
+  if (is_template_param_type(new_type)) {
+    /* Casting to a template parameter type (i.e., an unknown type).
+       Change the constant to an error constant. */
+    set_error_constant(&new_constant);
+    goto exit;
+  }  /* if */
   if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* Any case where the constant is represented as an address should be
        converted by setting the implicit_cast flag.  This test has to be
@@ -969,11 +981,6 @@ cannot be done.
     conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
                              constant_context,
                              did_not_fold, err_pos, &err_code, &err_severity);
-    goto exit;
-  } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-    /* A template parameter constant is cast to a new type by setting the
-       implicit_cast flag. */
-    implicit_cast(constant, new_type);
     goto exit;
   }  /* if */
 

@@ -4277,6 +4277,10 @@ for both C-style casts and C++ functional-notation type conversions.
   /* Check the type to see if it's permissible. */
   if (is_error_type(type_cast_to)) {
     err = TRUE;
+  } else if (is_template_param_type(type_cast_to)) {
+    /* We are in a prototype instantiation of a template.  The type is
+       a template parameter type, i.e., we don't know what it is.  Assume
+       it's okay and go on. */
   } else if (is_incomplete_type(type_cast_to) && !is_void_type(type_cast_to)) {
     /* This check catches incomplete enum types.  Except for being
        incomplete, they look like integral types. */
@@ -4349,10 +4353,10 @@ for both C-style casts and C++ functional-notation type conversions.
       warning(ec_cast_to_qualified_type);
       *p_type_cast_to = type_cast_to = make_unqualified_type(type_cast_to);
     }  /* if */
-    /* Determine whether of not the cast is to a pointer-to-function type
+    /* Determine whether or not the cast is to a pointer-to-function type
        (this is needed in C++ to allow the anachronism of casting a bound
        function pointer to a normal function pointer). */
-    if (C_dialect == C_dialect_cplusplus &&
+    if (C_dialect == C_dialect_cplusplus && allow_anachronisms &&
         is_pointer_type(type_cast_to) &&
         is_function_type(type_pointed_to(type_cast_to))) {
       *cast_to_func_ptr = TRUE;
@@ -4415,10 +4419,12 @@ conversions.
       }  /* if */
     }  /* if */
     /* Check for user-defined conversions, but not in constant expressions
-       or in C, and not when casting to void. */
+       or in C, and not when casting to void or a template parameter (unknown)
+       type. */
     if (C_dialect == C_dialect_cplusplus &&
         !is_const_expr_kind(expression_kind) &&
         !is_void_type(type_cast_to) &&
+        !is_template_param_type(type_cast_to) &&
         user_defined_conversion_possible(operand, type_cast_to,
                                          /*is_initialization=*/TRUE,
                                          &user_conversion,
@@ -4449,6 +4455,10 @@ conversions.
          general but disallowed in specific modes. */
       if (is_error_operand(operand)) {
         /* There was a previous error.  Do no further checking. */
+        err = TRUE;
+      } else if (is_template_param_type(type_cast_to)) {
+        /* Casting to a template parameter (unknown) type.  Assume okay,
+           but produce an error operand. */
         err = TRUE;
       } else if (expression_kind == (an_expression_kind)ek_integral_constant) {
         /* Integral constant expression: only arithmetic --> integral

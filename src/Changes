@@ -1,5 +1,14 @@
 Version 2.15
 
+2/22/93  Casting to a template parameter type
+
+Casting to a template parameter type within a template is now allowed:
+
+  template<class T, T X> struct S {
+    int a[(T)X];  // Now allowed
+  };
+  S<int, 10> ss;
+
 2/19/93  Fixed bug with subscript as operand of "?" lvalue
 
 The following provoked an internal error:
