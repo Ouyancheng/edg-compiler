@@ -183,7 +183,7 @@ Return TRUE if tp1 does not have some type qualifiers that tp2 has.  Note
 that this macro does not check that the underlying types are compatible.
 */
 #define any_qualifier_missing(tp1, tp2)                               \
-  (((tp2)->kind == (a_type_kind)tk_typeref |                          \
+  (((tp2)->kind == (a_type_kind)tk_typeref ||                         \
     (tp2)->kind == (a_type_kind)tk_array) ?                           \
           f_any_qualifier_missing(tp1, tp2) : FALSE)
 
