@@ -10718,6 +10718,12 @@ variable:
           break;
         case sk_routine:
 normal_function:
+          if (!C_mode() && next_token() == tok_lparen) {
+            /* In C++, the name in a function call is subject to
+               argument-dependent lookup, so treat this function as
+               if it is an overloaded function. */
+            goto overloaded_function;
+          }  /* if */
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* Function identifiers are not allowed in integral constant
                expressions. */
@@ -10848,6 +10854,7 @@ normal_function:
           }  /* if */
           break;
         case sk_overloaded_function:
+overloaded_function:
           /* Overloaded function. */
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* Not allowed in integral constant expressions. */
