@@ -1,5 +1,10 @@
 Version 2.31
 
+10/26/95  // comments not recognized in pcc mode
+
+// comments are now not recognized in pcc mode even if
+END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE is defined as TRUE.
+
 10/25/95  IL lowering: class/namespace membership information now cleared
 
 IL lowering now clears the class/namespace membership information in
