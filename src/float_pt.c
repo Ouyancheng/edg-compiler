@@ -1342,8 +1342,8 @@ Initialize static variables related to float_pt.c.
   /* Make sure that an_fp_value_part is 32 bits. */
   size = sizeof(an_fp_value_part);
   check_assertion_str(size == 4,
-         "const_ints_init: bad size for an_fp_value_part");  /*lint !e774*/
-}  /* const_ints_init */
+         "float_pt_init: bad size for an_fp_value_part");  /*lint !e774*/
+}  /* float_pt_init */
 
 /******************************************************************************
 *                                                             \  ___  /       *
