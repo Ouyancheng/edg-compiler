@@ -4484,15 +4484,16 @@ what will be done with the operand.
 }  /* do_generic_operand_transformations */
 
 
-void prep_generic_operand(an_operand *operand,
-                          a_boolean  lvalue_expected)
+static void prep_generic_operand_full(an_operand *operand,
+                                      a_boolean  lvalue_expected,
+                                      a_boolean  rvalue_expected)
 /*
 The indicated operand is about to be used as the operand of an expression
 involving template parameter types.  Adjust it as needed: add an eok_lvalue
 or eok_rvalue node to the operand to mark it as an lvalue or rvalue.
-lvalue_expected is TRUE to indicate that an lvalue is expected, or FALSE
-to indicate that an rvalue is expected.  The eok_lvalue/eok_rvalue node
-is inserted only for the unexpected case.
+lvalue_expected is TRUE to indicate that an lvalue is expected, and
+rvalue_expected is TRUE to indicate that an rvalue is expected.  The
+eok_lvalue/eok_rvalue node is inserted only for the unexpected cases.
 */
 {
   an_expr_node_ptr expr;
@@ -4510,7 +4511,7 @@ is inserted only for the unexpected case.
       make_expression_operand(expr, rvalue_type(operand->type), operand);
     }  /* if */
   } else if (is_an_rvalue(operand)) {
-    if (lvalue_expected) {
+    if (!rvalue_expected) {
       /* The operand is an rvalue, and the operation expects an lvalue.
          Add an eok_rvalue node. */
       expr = make_node_from_operand(operand);
@@ -4523,6 +4524,21 @@ is inserted only for the unexpected case.
   /* We don't know how this operand is used, so set a special kind
      of reference. */
   change_ref_kinds(operand->ref_entries_list, SRK_PROTO_INST_REF);
+}  /* prep_generic_operand_full */
+
+
+void prep_generic_operand(an_operand *operand,
+                          a_boolean  lvalue_expected)
+/*
+The indicated operand is about to be used as the operand of an expression
+involving template parameter types.  Adjust it as needed: add an eok_lvalue
+or eok_rvalue node to the operand to mark it as an lvalue or rvalue.
+lvalue_expected is TRUE to indicate that an lvalue is expected, or FALSE
+to indicate that an rvalue is expected.  The eok_lvalue/eok_rvalue node
+is inserted only for the unexpected case.
+*/
+{
+  prep_generic_operand_full(operand, lvalue_expected, !lvalue_expected);
 }  /* prep_generic_operand */
 
 
@@ -4616,7 +4632,11 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
     }  /* if */
   } else {
     /* Non-constant expression.  Generate a cast expression. */
-    prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+    /* We don't know whether to expect an rvalue or an lvalue, so
+       make both explicit. */
+    prep_generic_operand_full(operand,
+                              /*lvalue_expected=*/FALSE,
+                              /*rvalue_expected=*/FALSE);
     if (!il_identical_types(operand->type, dest_type)) {
       an_expr_node_ptr expr, opexpr = make_node_from_operand(operand);
       if (!is_class_struct_union_type(dest_type) ||

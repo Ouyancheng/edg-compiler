@@ -616,7 +616,6 @@ Syntax:
     template_binary_operation((an_expr_operator_kind)eok_padd_subsc,
                               operand_1, &operand_2,
                               result, &operator_position);
-    result->state = (an_operand_state)os_lvalue;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
              is_property_ref_operand(operand_1)) {
@@ -2562,7 +2561,6 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
                              (an_expr_operator_kind)eok_pm_dot_field;
     template_binary_operation(op, operand_1, &operand_2,
                               result, &operator_position);
-    result->state = (an_operand_state)os_lvalue;
     processed = TRUE;
   } else {
     if (is_arrow_operator &&
@@ -3142,7 +3140,6 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
     op = is_increment ? (an_expr_operator_kind)eok_pre_incr :
                         (an_expr_operator_kind)eok_pre_decr;
     template_unary_operation(op, &operand, result, &start_position);
-    result->state = (an_operand_state)os_lvalue;
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(&operand);
@@ -3519,7 +3516,6 @@ See section 3.3.3.2 of the standard.
        operator. */
     template_unary_operation((an_expr_operator_kind)eok_indirect,
                              &operand, result, &start_position);
-    result->state = (an_operand_state)os_lvalue;
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_overloadable_type_operand(&operand)) {
@@ -10264,7 +10260,6 @@ See section 3.3.16 of the standard.
     }  /* switch */
     template_binary_operation(op, operand_1, &operand_2,
                               result, &operator_position);
-    result->state = (an_operand_state)os_lvalue;
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         (is_overloadable_type_operand(operand_1) ||
