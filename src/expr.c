@@ -4752,7 +4752,9 @@ specification allow a variable-sized array as the top type.
         do_const_test = TRUE;
         is_generated_ctor = TRUE;
       } else {
-        unexpected_condition_str(
+        /* Note that this case comes up if the class type is incomplete.
+           An error was issued previously. */
+        check_assertion_str(err,
        "scan_new_operator: non-POD class has neither actual not assumed ctor");
       }  /* if */
       if (do_const_test) {
