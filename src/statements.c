@@ -263,7 +263,7 @@ purposes.
           fputc('"', f_debug);
         }  /* if */
       } else {
-        printf(f_debug, "***BAD STMT KIND***");
+        fprintf(f_debug, "***BAD STMT KIND***");
       }  /* if */
       fprintf(f_debug, " (#%lu, line %lu)", cfdp->id_number,
               cfdp->source_pos.seq);
