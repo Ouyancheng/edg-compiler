@@ -105,15 +105,6 @@ compiler it is.  Borland, Zortech, and Microsoft are supported.
 #define __MSC__ 0
 #endif /* ifndef __MSC__ */
 
-/*
-For MS-DOS set STAT_FIRST_PARAM_IS_CONST by default.
-*/
-#if __MSDOS__
-#ifndef STAT_FIRST_PARAM_IS_CONST
-#define STAT_FIRST_PARAM_IS_CONST 1
-#endif /* ifndef STAT_FIRST_PARAM_IS_CONST */
-#endif /* __MSDOS__ */
-
 /* VAX/VMS is not UNIX, but for purposes of this compilation is considered
    to be System V, with needed differences controlled by the __VMS__ flag. */
 #ifdef __VMS__

@@ -73,13 +73,18 @@ Argument strings for fopen.
 #include <sys/stat.h>
 #endif /* __VMS__ */
 /* "stat" isn't in ANSI C, but we assume it is available.  If not, this
-   file must be changed.  One problem: sometimes it's declared with
-   a "const" qualifier on the first argument, which conflicts with the
-   declaration here.  The conditional compilation flag
-   STAT_FIRST_PARAM_IS_CONST can be set in that case.   This function
-   must be declared in a header file when compiling using C++. */
+   file must be changed.  By default, the first argument is assumed to
+   be const.  If this is not the case, the preprocessor macro
+   STAT_FIRST_PARAM_IS_CONST must be set to the value 0 (FALSE).
+   This function must be declared in a header file when compiling
+   using C++. */
 #ifndef __cplusplus
-#ifdef STAT_FIRST_PARAM_IS_CONST
+#ifndef STAT_FIRST_PARAM_IS_CONST
+/* If not set otherwise, the first parameter of stat is assumed to be
+   const. */
+#define STAT_FIRST_PARAM_IS_CONST TRUE
+#endif /* !defined(STAT_FIRST_PARAM_IS_CONST) */
+#if STAT_FIRST_PARAM_IS_CONST
 EXTERN_C int stat(const char *path, struct stat *buf);
 #else /* !defined(STAT_FIRST_PARAM_IS_CONST) */
 EXTERN_C int stat(char *path, struct stat *buf);

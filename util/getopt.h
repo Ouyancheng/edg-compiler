@@ -13,6 +13,14 @@ getopt.h -- command line option processing.
 
 */
 
+/*
+Flag that is TRUE if the parameters of getopt are not declared as
+const.
+*/
+#ifndef GETOPT_PARAMS_ARE_NOT_CONST
+#define GETOPT_PARAMS_ARE_NOT_CONST FALSE
+#endif /* !defined(GETOPT_PARAMS_ARE_NOT_CONST) */
+
 #if __SYSV__ && !__VMS__
 
 /* External declarations for getopt.  On some systems the last two
@@ -20,11 +28,11 @@ getopt.h -- command line option processing.
    assume that they are const.  On systems for which this is
    not correct, the configuration flag GETOPT_PARAMS_ARE_NOT_CONST
    must be defined. */
-#ifndef GETOPT_PARAMS_ARE_NOT_CONST
-int getopt(int argc, char * const * argv, const char *optstring);
-#else /* defined(GETOPT_PARAMS_ARE_NOT_CONST) */
+#if GETOPT_PARAMS_ARE_NOT_CONST
 int getopt(int argc, char ** argv, char *optstring);
-#endif /* defined(GETOPT_PARAMS_ARE_NOT_CONST) */
+#else /* !GETOPT_PARAMS_ARE_NOT_CONST */
+int getopt(int argc, char * const * argv, const char *optstring);
+#endif /* GETOPT_PARAMS_ARE_NOT_CONST */
 extern char *optarg;
 extern int optind, opterr;
 
@@ -42,11 +50,11 @@ int		opterr = 1;
 			/* If non-zero, produce an error message on
 			   a bad option. */
 
-#ifndef GETOPT_PARAMS_ARE_NOT_CONST
-int getopt(int argc, char * const * argv, const char *optstring)
-#else /* !defined(GETOPT_PARAMS_ARE_NOT_CONST) */
+#if GETOPT_PARAMS_ARE_NOT_CONST
 int getopt(int argc, char ** argv, char *optstring)
-#endif /* defined(GETOPT_PARAMS_ARE_NOT_CONST) */
+#else /* !GETOPT_PARAMS_ARE_NOT_CONST */
+int getopt(int argc, char * const * argv, const char *optstring)
+#endif /* GETOPT_PARAMS_ARE_NOT_CONST */
 /*
 Fetch a command-line option.  This routine is a functional analogue of
 the System V getopt routine (see the SVID, getopt(BA_LIB)).  argc and

@@ -1,5 +1,15 @@
 Version 2.24
 
+6/11/94 Change in STAT_FIRST_PARAM_IS_CONST and GETOPT_PARAMS_ARE_NOT_CONST
+
+Formerly these flags were tested using #ifdef tests, so the value to
+which they were set was not significant.  These flags are now tested
+using #if tests, so they must be set to a TRUE value in order to have
+the desired effect.
+
+The default for STAT_FIRST_PARAM_IS_CONST has been changed.  The first
+parameter of the stat function is now const by default.
+
 6/11/94 Typedefs preserved on constant types
 
 When a constant is cast to a new type, the typedefs on the type are now

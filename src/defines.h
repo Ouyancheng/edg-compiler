@@ -56,7 +56,6 @@ the release should contain no defines.
 #define __ANSIC__ 1
 #define TARG_LITTLE_ENDIAN TRUE
 #define TARG_JMP_BUF_NUM_ELEMENTS 8
-#define STAT_FIRST_PARAM_IS_CONST 1
 #define DEBUG 1
 #define CHECKING 1
 
@@ -77,7 +76,6 @@ the release should contain no defines.
 #define __SYSV__
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define INCLUDE_EDG_TEST_PRAGMAS 1
-#define STAT_FIRST_PARAM_IS_CONST 1
 #define TARG_ALIGNOF_DOUBLE 4
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_SIZEOF_LONG_DOUBLE 12
