@@ -2858,7 +2858,10 @@ in this routine must be FALSE in that case.
          rendered in C IL without generating an assignment.  It's probably
          here as a dynamic initialization because it has a destructor call
          too. */
-      if (variable != NULL) {
+      /* Don't allow this optimization if the caller doesn't permit the
+         option of keeping the dynamic init entry, e.g., in a condition
+         declaration. */
+      if (variable != NULL && keep_dynamic_init != NULL) {
         simple_constant_init = TRUE;
         simple_constant = dip->variant.constant;
         break;
