@@ -18744,7 +18744,7 @@ write an instantiation file name entry to the template information file.
                                 rout_ptr->instantiation_needed_bit_number != 0;
 #if MAINTAIN_NEEDED_FLAGS
     /* Don't generate an instantiation file for the entity unless the
-       needed flag is also set. */
+       definition needed flag is also set. */
     instantiation_file_generated = instantiation_file_generated &&
                                                    rout_ptr->definition_needed;
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -19740,13 +19740,15 @@ brace) is returned in *final_token.  options is a bit set of option flags.
 
 void add_to_inline_function_list(a_routine_ptr	rout_ptr)
 /*
-rout_ptr points to an inline function that is about to be defined.
-Add the routine to an "instantiation list" of inline functions.
+rout_ptr points to an inline function, generally one that is about to
+be defined.  Add the routine to an "instantiation list" of inline functions.
+The routine must not already be on that list.
 */
 {
   a_routine_list_entry_ptr	rlep;
 
-  check_assertion(instantiate_extern_inline && rout_ptr->is_inline);
+  check_assertion(instantiate_extern_inline && rout_ptr->is_inline &&
+                  !rout_ptr->on_inline_function_list);
   /* All functions are put on the list, even static ones.  Static functions
      will usually be ignored, but may need to be treated as external
      functions when using exported templates. */
