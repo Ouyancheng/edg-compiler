@@ -2500,7 +2500,7 @@ arguments of the call (given by arg_operand_list).
   a_symbol_list_entry_ptr slep;
   a_symbol_ptr            surrogate_function_conv_sym;
   a_symbol_ptr            base_surrogate_function_conv_sym;
-  a_type_ptr              class_type, conversion_type;
+  a_type_ptr              class_type, conversion_type, routine_type;
   a_boolean               matched_except_for_missing_selector;
 
   class_type = type_pointed_to(ptr_class_object->type);
@@ -2520,10 +2520,12 @@ arguments of the call (given by arg_operand_list).
 #endif /* DEBUG */
     base_surrogate_function_conv_sym =
                             fundamental_symbol_of(surrogate_function_conv_sym);
-    /* Consider only conversion functions to pointer to function type. */
-    conversion_type = return_type_of(
-                  base_surrogate_function_conv_sym->variant.routine.ptr->type);
-    if (is_pointer_type(conversion_type)) {
+    /* Consider only conversion functions to pointer to function type or
+       reference to function type. */
+    routine_type = base_surrogate_function_conv_sym->variant.routine.ptr->type;
+    routine_type = skip_typerefs(routine_type);
+    conversion_type = routine_type->variant.routine.return_type;
+    if (is_ptr_or_ref_type(conversion_type)) {
       a_type_ptr underlying_type = type_pointed_to(conversion_type);
       underlying_type = skip_typerefs(underlying_type);
       if (is_function_type(underlying_type)) {
@@ -5472,6 +5474,7 @@ routine is called only in C++ mode.
        a pointer to function using the conversion function, then call
        the function pointed to. */
     a_symbol_ptr base_conv_sym;
+    a_boolean    ref_type_conv;
     a_type_ptr   conversion_type;
     a_conv_descr conversion;
     clear_conv_descr(&conversion);
@@ -5481,13 +5484,20 @@ routine is called only in C++ mode.
     conversion.routine_symbol = surrogate_function_conv_sym;
     copy_operand(bound_function_selector, function_operand);
     conv_object_pointer_to_lvalue(function_operand);
+    /* See whether the conversion function returns a reference type. */
+    ref_type_conv = !is_pointer_type(conversion_type);
+    if (ref_type_conv) conversion.result_is_an_lvalue = TRUE;
     user_convert_operand(function_operand,
                          conversion_type,
                          &conversion,
                          (a_conv_descr *)NULL,
                          /*force_temp_for_class_bitwise_copy=*/FALSE);
-    routine_type = type_pointed_to(conversion_type);
-    routine_type = skip_typerefs(routine_type);
+    if (ref_type_conv) {
+      routine_type = conversion_type;
+    } else {
+      routine_type = type_pointed_to(conversion_type);
+      routine_type = skip_typerefs(routine_type);
+    }  /* if */
     have_selector = FALSE;
   }  /* if */
   if (!single_function) {
