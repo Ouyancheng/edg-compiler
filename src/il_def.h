@@ -3140,6 +3140,10 @@ typedef struct a_variable {
 		assoc_param_type;
 			/* If is_parameter is TRUE, this points to the
 			   associated a_param_type entry.  NULL otherwise. */
+#if DO_IL_LOWERING
+			/* Left NULL for implicit parameters added by IL
+			   lowering. */
+#endif /* DO_IL_LOWERING */
   a_storage_class
                 storage_class;
                         /* Storage class. */
