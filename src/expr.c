@@ -1219,9 +1219,16 @@ __builtin_constant_p and __builtin_classify_type are processed here.
   check_assertion(is_integral_type(result_type));
   switch (rp->variant.builtin_function_kind) {
     case bfk_constant_p:
-      conv_lvalue_to_rvalue(&arg);
+      /* Lvalue-to-rvalue transformation is needed to ensure that a global
+         variable lvalue (which is represented as an address constant) is
+         not treated as a constant by is_constant_operand.  Address constants
+         are not considered constants in this context by GNU compilers. */
+      do_operand_transformations(&arg, TOPT_NO_OPTIONS);
       set_integer_constant(&result,
-                           (a_host_large_integer)is_constant_operand(&arg),
+                           (a_host_large_integer)(
+                             is_constant_operand(&arg) &&
+                             arg.variant.constant.kind !=
+                                            (a_constant_repr_kind)ck_address),
                            result_type->variant.integer.int_kind);
       break;
     case bfk_classify_type:
