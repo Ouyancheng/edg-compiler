@@ -4529,18 +4529,19 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
        the operand will be used as an lvalue or an rvalue.  Or, the
        destination type is a template parameter type that might turn out
        to be a reference type, which has the same consequence. */
-    a_constant_ptr con = &operand->variant.constant;
-    if (is_an_lvalue(operand) &&
-        con->kind == (a_constant_repr_kind)ck_template_param &&
-        con->variant.template_param.kind ==
+    if (is_an_lvalue(operand) && is_constant_operand(operand)) {
+      a_constant_ptr con = &operand->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_template_param &&
+          con->variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_address) {
-      /* The constant is the address of a member of a nonreal class.
-         It won't matter whether this is considered an lvalue or an
-         rvalue as an operand to the generic cast, so convert it to
-         an rvalue because that allows folding of the cast and
-         preservation of the possibility that this expression can be
-         used as a constant expression. */
-      conv_lvalue_to_rvalue(operand);
+        /* The constant is the address of a member of a nonreal class.
+           It won't matter whether this is considered an lvalue or an
+           rvalue as an operand to the generic cast, so convert it to
+           an rvalue because that allows folding of the cast and
+           preservation of the possibility that this expression can be
+           used as a constant expression. */
+        conv_lvalue_to_rvalue(operand);
+      }  /* if */
     }  /* if */
   } else {
     /* The operand will definitely be used as an rvalue. Convert it if
