@@ -228,20 +228,6 @@ an <encoding>:
 So, for example, a member D::f that explicitly overrides B::f is
 encoded as _ZN1D1fEON1B1fEv.
 
-7/18/03  Microsoft mode: Exception specifications and virtual overriders
-
-In Microsoft mode (with exceptions enabled and microsoft_version >= 1300),
-the front end now only issues a warning on a virtual overrider whose
-exception specification is less restrictive than that of the member it
-overrides.  Previously, a (discretionary) error was issued.  For example:
-
-  struct B {
-    virtual void f() throw() {}
-  };
-  struct D: B {
-    virtual void f() {}  // Now a warning in Microsoft mode.
-  };                     // (Previously an error.)
-
 7/18/03  Missing stmk_init for lowered compound literal in C++ mode
 
 IL lowering failed to add an stmk_init statement to cause the
@@ -785,7 +771,15 @@ do not have extern "C" linkage.  For example:
   void f() throw(...);  // throw (...) parsed but no longer recorded
   void f();             // No longer an error
 
-Previously such a mismatch triggered an error.
+Previously such a mismatch triggered an error.  Furthermore, various
+mismatches that were previously ignored are now warned about.  For example:
+
+  struct B {
+    virtual void f() throw() {}
+  };
+  struct D: B {
+    virtual void f() {}  // Now a warning when microsoft_version >= 1300.
+  };                     // (Previously silently ignored.) 
 
 6/20/03  Microsoft mode: #pragma pack(show)
 
