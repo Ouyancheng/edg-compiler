@@ -39,11 +39,13 @@ operation overflows.
 
 /*
 Determine the severity (error or warning) to be used for fixed-point
-operation overflows.
+operation overflows.  This really has to be a warning even in strict
+mode (unless we were to add a check for the current pragma state),
+because some pragmas mandate saturating behavior (in which overflow
+is by definition not an error).
 */
 #ifndef ES_FIXED_POINT_OVERFLOW
-#define ES_FIXED_POINT_OVERFLOW                                       \
-  (strict_ansi_mode ? strict_ansi_error_severity : es_warning)
+#define ES_FIXED_POINT_OVERFLOW es_warning
 #endif /* ifndef ES_FIXED_POINT_OVERFLOW */
 
 
