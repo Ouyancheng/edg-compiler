@@ -9138,7 +9138,7 @@ void check_main_function(a_func_info_block_ptr  func_info,
                          a_type_ptr             type,
                          a_storage_class        *declared_storage_class,
                          a_boolean              *is_inline,
-                         a_decl_pos_block_ptr   pos)
+                         a_source_position_ptr  pos)
 /*
 Check some C++ constraints on the main() function declared with type "type"
 and storage class "*declared_storage_class".  If "*is_inline" is TRUE, the
@@ -9159,12 +9159,11 @@ diagnostics.
     /* main must return "int" (3.6.1). */
     pos_diagnostic(strict_ansi_mode ?
                      strict_ansi_discretionary_severity : es_warning,
-                   ec_bad_return_type_on_main, &pos->declarator_range.start);
+                   ec_bad_return_type_on_main, pos);
   }  /* if */
   rtsp = skip_typerefs(type)->variant.routine.extra_info;
   if (rtsp->routine_name_linkage_is_explicit) {
-    pos_warning(ec_linkage_specifier_not_allowed,
-                &pos->declarator_range.start);
+    pos_warning(ec_linkage_specifier_not_allowed, pos);
     rtsp->routine_name_linkage_is_explicit = FALSE;
   }  /* if */
   rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
@@ -9177,11 +9176,11 @@ diagnostics.
   }  /* if */
   /* "inline" and "static" are not allowed (ARM 3.4). */
   if (*declared_storage_class == (a_storage_class)sc_static) {
-    pos_error(ec_static_not_allowed, &pos->storage_class_pos);
+    pos_error(ec_static_not_allowed, pos);
     *declared_storage_class = (a_storage_class)sc_unspecified;
   }  /* if */
   if (*is_inline) {
-    pos_error(ec_inline_main, &pos->declarator_range.start);
+    pos_error(ec_inline_main, pos);
     *is_inline = FALSE;
   }  /* if */
 }  /* check_main_function */
@@ -9654,7 +9653,7 @@ continue_with_declaration:
                                           parent.namespace_ptr == NULL));
             check_main_function(&func_info, local_type_ptr,
                                 &declared_storage_class, &inline_specified,
-                                &decl_pos_block);
+                                &locator.source_position);
           }  /* if */
         } else {
           /* C mode. */

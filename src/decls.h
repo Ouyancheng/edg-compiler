@@ -243,7 +243,7 @@ extern void check_main_function(a_func_info_block_ptr  func_info,
                                 a_type_ptr             type,
                                 a_storage_class        *declared_storage_class,
                                 a_boolean              *is_inline,
-                                a_decl_pos_block_ptr   pos);
+                                a_source_position_ptr  pos);
 
 extern void declaration(a_boolean       function_definition_allowed,
                         a_boolean       is_old_style_param_decl,
