@@ -1,5 +1,15 @@
 Version 3.6
 
+3/17/05  Microsoft compatibility: redeclared template member function
+         default arguments
+
+In Microsoft mode (when microsoft_version is >= 1300) a default argument of
+a member function of a class template may be redeclared.  A warning is
+issued and the default from the initial declaration is used.
+
+  template <class T> struct A { void f(int i = 0); };
+  template <class T> void A<T>::f(int i = 0) { }
+
 3/16/05  Microsoft compatibility: Incomplete property fields
 
 In Microsoft mode, the front end no longer issues an error when a property

@@ -3756,12 +3756,15 @@ default arguments.  Issue an error if any are found.
 
 
 static void check_default_arg_compatibility(a_type_ptr  orig_type,
-                                            a_type_ptr  new_type)
+                                            a_type_ptr  new_type,
+					    a_boolean	is_function_template)
 /*
 Given an existing routine type (orig_type) and the type based on a new
 declaration (new_type), compare the default argument expressions on a
 parameter-by-parameter basis and report any errors (see ARM 8.2.6).  The
 merging of the default arguments occurs in composite_type.
+is_function_template is TRUE if the associated routine is a function
+template (but not a member function of a class template).
 */
 {
   a_boolean         not_at_end_of_list_error = FALSE;
@@ -3789,11 +3792,14 @@ merging of the default arguments occurs in composite_type.
   }  /* for */
   if (redecl_error) {
     an_error_severity	severity = es_error;
-    if (gpp_mode &&
+    if (((gpp_mode && is_function_template) ||
+         (microsoft_mode && microsoft_version >= 1300 &&
+          !is_function_template))  &&
         scope_stack[depth_scope_stack].kind ==
 				      (a_scope_kind)sck_template_declaration) {
       /* g++ ignores redeclared default arguments in function template
-         declarations. */
+         declarations.  Microsoft (versions 1300 and above) ignore redeclared
+         default arguments in member functions of class templates. */
       severity = es_warning;
     }  /* if */
     diagnostic(severity, ec_default_arg_already_defined);
@@ -3872,7 +3878,8 @@ not be TRUE.
     if (C_dialect == C_dialect_cplusplus) {
       /* If there are default arguments associated with the parameters, check
          them at this time.  They will be merged in composite_type. */
-      check_default_arg_compatibility(type_ptr, rout_type);
+      check_default_arg_compatibility(type_ptr, rout_type,
+                                      routine_ptr->template_arg_list != NULL);
     }  /* if */
     /* The type of the routine should be the composite of the two types. */
     if (!preserve_rout_type && !preserve_type_ptr) {
