@@ -1,5 +1,10 @@
 Version 2.42
 
+3/16/99  Demangling of compressed names
+
+In some cases, the demangler failed to demangle compressed mangled names.
+Now fixed.
+
 3/12/99  Prelinker problem in copy-if-nonlocal mode
 
 When the processing for template information files was added a bug was
