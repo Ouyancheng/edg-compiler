@@ -7157,8 +7157,8 @@ a member.  If it is NULL, the class type is used.
   if (temp_type == NULL) {
     temp_type = class_type;
   } else {
-    check_assertion_str(identical_types(class_type,
-                                        skip_typerefs(temp_type)),
+    check_assertion_str(types_are_compatible_ignoring_qualifiers(class_type,
+                                                                 temp_type),
                         "make_constructor_dynamic_init: bad temp_type");
   }  /* if */
   /* Create the dynamic initialization entry and the enk_temp_init node. */
