@@ -6012,25 +6012,34 @@ because of an error.  This routine is used only in C++ mode.
                                     &candidate_functions,
                                     &matched_except_for_missing_selector);
     }  /* if */
-    if (is_class_struct_union_type(source_type) &&
-        cssp->target_of_conversion_function) {
-      /* There is at least one conversion function that converts some other
-         class into the desired class, and the source type is a class.
-         See if there is a conversion function that does the job. */
-      bcp = NULL;
-      if (is_copy_initialization && 
-          (identical_types(source_type, class_type) ||
-           find_base_class_of(source_type, class_type) != NULL)) {
-        /* In copy-initialization, if the source type is the same as the
-           destination type, or a derived class thereof, only constructors
-           are supposed to be used.  WP [dcl.init]. */
-      } else {
-        try_conversion_function_match(source_operand, dest_type,
-                                      (a_builtin_type_kind_set)BTK_NONE,
-                                      /*need_lvalue_result=*/FALSE,
-                                      is_copy_initialization,
-                                      is_reference_binding,
-                                      &candidate_functions);
+    if (is_class_struct_union_type(source_type)) {
+      /* The source type is a class, so conversion functions might be
+         applicable. */
+      /* If the source type is a template class, instantiate it to make its
+         conversion functions visible. */
+      instantiate_template_class(source_type);
+      if (cssp->target_of_conversion_function ||
+          symbol_supplement_for_class(source_type)->conversion_template_list !=
+                                                                        NULL) {
+        /* There is at least one conversion function that converts some other
+           class into the destination class, or the source class has template
+           conversion functions.  See if there is a conversion function that
+           does the job. */
+        bcp = NULL;
+        if (is_copy_initialization && 
+            (identical_types(source_type, class_type) ||
+             find_base_class_of(source_type, class_type) != NULL)) {
+          /* In copy-initialization, if the source type is the same as the
+             destination type, or a derived class thereof, only constructors
+             are supposed to be used.  WP [dcl.init]. */
+        } else {
+          try_conversion_function_match(source_operand, dest_type,
+                                        (a_builtin_type_kind_set)BTK_NONE,
+                                        /*need_lvalue_result=*/FALSE,
+                                        is_copy_initialization,
+                                        is_reference_binding,
+                                        &candidate_functions);
+        }  /* if */
       }  /* if */
     }  /* if */
     /* If no functions are viable, check for the possibility of a bitwise
