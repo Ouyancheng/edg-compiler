@@ -3812,10 +3812,6 @@ cross-reference output describing this declaration.
      declaration, and report inconsistencies, if appropriate. */
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
-  if (source_corresp_ptr->name_linkage == (a_name_linkage_kind)nlk_external) {
-    /* An extern "C" declaration.  Clear the namespace parent pointer. */
-      source_corresp_ptr->parent.namespace_ptr = NULL;
-  }  /* if */
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the declarator_ssep
      entry. */
@@ -4840,10 +4836,6 @@ skip_overloading:;
      declaration, and report inconsistencies, if appropriate. */
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
-  if (source_corresp_ptr->name_linkage == (a_name_linkage_kind)nlk_external) {
-    /* An extern "C" declaration.  Clear the namespace parent pointer. */
-      source_corresp_ptr->parent.namespace_ptr = NULL;
-  }  /* if */
   if (overload_symbol != NULL) {
     /* If a using-declaration has introduced a function name into this
        scope that has the same type as the current function, it is an error.
