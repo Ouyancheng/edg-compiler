@@ -1428,6 +1428,7 @@ state.
         cssp->template_param_for_proxy_class = NULL;
         cssp->corresp_prototype_sym = NULL;
         cssp->prototype_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+        cssp->referencing_namespace = NULL;
         cssp->dependent_type_fixup_list = NULL;
         cssp->operator_lookup_namespaces = NULL;
         cssp->constructor_required = FALSE;
@@ -6611,7 +6612,8 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->next_in_instantiation_list  = NULL;
   tip->instance_sym                = NULL;
   tip->template_sym                = NULL;
-  tip->arg_list                    = NULL;	
+  tip->arg_list                    = NULL;
+  tip->referencing_namespace       = NULL;
   tip->template_info               = NULL;
   tip->instantiation_required      = FALSE;
   tip->specific_decl               = FALSE;

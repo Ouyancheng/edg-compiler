@@ -578,6 +578,10 @@ might not be able to if the template itself has not yet been defined.
   class_type = skip_typerefs(class_type);
   instance_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   cssp = instance_sym->variant.class_struct_union.extra_info;
+  /* Record the namespace that is the "referencing context" namespace for
+     this instantiation. */
+  cssp->referencing_namespace =
+                 scope_stack[depth_innermost_namespace_scope].assoc_namespace;
   template_sym = cssp->class_template;
   if (template_sym == NULL) {
     /* Not a class based on a class template. */
@@ -5872,6 +5876,11 @@ defer_inline is TRUE.
   } else if (value) {
     a_boolean	flag_already_set = tip->instantiation_required;
     tip->instantiation_required = TRUE;
+    if (!flag_already_set) {
+      /* Record the namespace from which this instantiation is first used. */
+      tip->referencing_namespace =
+                  scope_stack[depth_innermost_namespace_scope].assoc_namespace;
+    }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (automatic_instantiation_mode) {
       /* Set the instantiation required flag in the routine or variable
@@ -5928,9 +5937,8 @@ defer_inline is TRUE.
       }  /* if */
     }  /* if */
   } else {
-    /* Once set, the flag cannot be reset.  When value is FALSE we add
-       the entry to the instantiations required list but do not alter
-       the value of instantiation_required. */
+    /* When value is FALSE we still add the entry to the instantiations
+       required list. */
     tip->instantiation_required = FALSE;
   }  /* if */
   if (add_to_list) {

@@ -603,6 +603,15 @@ typedef struct a_class_symbol_supplement {
 			   instantiation of a class template and the
 			   prototype instantiation of any nested classes
 			   within the class template. */
+  a_namespace_ptr
+		referencing_namespace;
+			/* For template classes this contains a pointer
+			   to the namespace in which the use that
+			   first required the instantiation of the template
+			   was encountered.  NULL if the first reference
+			   was in the global namespace.  This field is
+			   set when the instantiation_required flag is
+			   set. */
   a_dependent_type_fixup_ptr
 		dependent_type_fixup_list;
 			/* If the current class is not yet defined, a pointer
@@ -946,6 +955,14 @@ typedef struct a_template_instance {
                         /* Pointer to the template argument list -- the
                            arguments that correspond to the template
                            parameter list (e.g., template <class T>). */
+  a_namespace_ptr
+		referencing_namespace;
+			/* Pointer to the namespace in which the use that
+			   first required the instantiation of the template
+			   was encountered.  NULL if the first reference
+			   was in the global namespace.  This field is
+			   set when the instantiation_required flag is
+			   set. */
   a_template_symbol_supplement_ptr
 		template_info;
 			/* Pointer to associated template information when
