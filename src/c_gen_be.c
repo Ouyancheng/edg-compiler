@@ -4798,6 +4798,24 @@ Generate C for a statement.
       indent -= 2;
       break;
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case stmk_microsoft_try:
+      write_tok_str("__try");
+      indent += 2;
+      dump_statement(statement->variant.microsoft_try->guarded_statement);
+      indent -= 2;
+      if (statement->variant.microsoft_try->except_expr != NULL) {
+        write_tok_str("__except (");
+        dump_expression(statement->variant.microsoft_try->except_expr);
+        write_tok_str(")");
+      } else {
+        write_tok_str(" __finally");
+      }  /* if */
+      indent += 2;
+      dump_statement(statement->variant.microsoft_try->cleanup_statement);
+      indent -= 2;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
       /* Statement that marks the location of declarations.  Ignored here. */
@@ -4991,6 +5009,15 @@ its subtree.
         }
         break;
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case stmk_microsoft_try:
+        dump_prescan_temps(
+                          statement->variant.microsoft_try->guarded_statement);
+        dump_expr_prescan_temps(statement->variant.microsoft_try->except_expr);
+        dump_prescan_temps(
+                          statement->variant.microsoft_try->cleanup_statement);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition_str("dump_prescan_temps: bad statement kind");
     }  /* switch */
