@@ -4845,9 +4845,17 @@ that entry is excluded from the new list.  Return the new list.
       new_nsp = NULL;
     } else {
       a_symbol_ptr		orig_sym;
-      a_symbol_ptr		new_sym;
+      a_symbol_ptr		new_sym = NULL;
       orig_sym = (a_symbol_ptr)nlep->ptr->source_corresp.assoc_info;
-      new_sym = find_corresponding_symbol_in_trans_unit(orig_sym, tup);
+      if (is_unnamed_namespace_symbol(orig_sym)) {
+        /* find_corresponding_symbol_in_trans_unit does not work for
+           unnamed namespace symbols.  If this is an unnamed namespace
+           symbol for the desired translation unit, add it to the new
+           list. */
+        if (trans_unit_for_symbol(orig_sym) == tup) new_sym = orig_sym;
+      } else {
+        new_sym = find_corresponding_symbol_in_trans_unit(orig_sym, tup);
+      }  /* if */
       /* The new symbol will be NULL if there is no corresponding namespace
          in the other translation unit. */
       if (new_sym == NULL) {

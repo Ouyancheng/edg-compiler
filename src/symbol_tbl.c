@@ -4891,6 +4891,15 @@ Return TRUE if sym represents an unnamed class type.
 }  /* if */
 
 
+a_boolean is_unnamed_namespace_symbol(a_symbol_ptr  sym)
+/*
+Return TRUE if sym represents an unnamed namespace.
+*/
+{
+  return (sym->header == unnamed_namespace_symbol_header);
+}  /* is_unnamed_namespace_symbol */
+
+
 a_symbol_ptr unnamed_field_symbol(void)
 /*
 Return a pointer to "the" unnamed field symbol, which exists only for the
