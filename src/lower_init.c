@@ -2821,7 +2821,7 @@ destructors in the IA-64 ABI.
       /* A constructor or destructor for an unnamed class may not have a
          name.  For example, if a local class is used to declare a variable
          ("struct { C c; } x;"), the constructor will have no name.  In this
-         case, the alternate entry point does not need a name.  */
+         case, the alternate entry point does not need a name either. */
       name = NULL;
     } else {
       /* Compute the mangled name for this new entry point.  It's the same as
