@@ -1,5 +1,18 @@
 Version 2.41
 
+1/26/99   Class name injection
+
+In C++ mode the name of a class is now optionally entered as a member of
+itself, as required by clause 9 (para 2) of the standard; this is
+implemented more or less as an implicitly declared member typedef.  The
+functionality is governed by global variable class_name_injection_enabled,
+with a default value of DEFAULT_CLASS_NAME_INJECTION (in lang_feat.h) and
+controlled by command line option --[no_]class_name_injection.  In strict
+mode declaring a nonstatic data member with the same name as its class is
+now an error; otherwise it is still permitted -- the explicitly declared
+name hides the implicit class name declaration.  (See also Changes entry
+for 9/29/98.)
+
 1/26/99   Partial specialization problem when mixing "class" and "struct"
 
 The partial specialization processing did not work properly in certain
