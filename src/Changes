@@ -1,5 +1,21 @@
 Version 2.19
 
+8/14/93 Copy constructors on template function calls
+
+An internal error is no longer issued for cases like the following
+(where a copy constructor is needed in calling a template function):
+
+  struct String {
+    String();
+    String(const String&);
+  };
+  template <class T> T* f(T);
+  void m() {
+    String s;
+    f(s);  // No internal error now
+  }
+
+
 8/14/93 IL CHANGE: initk_zero initialization kind for variables
 
 The IL for dynamically-initialized static variables is changed by IL

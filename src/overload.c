@@ -696,8 +696,9 @@ static void set_user_conversion_for_class_copy(
                                             a_user_conv_descr *user_conversion)
 /*
 arg_operand (of class type) is being passed as an argument to a parameter
-of type param_type.  Set *user_conversion to indicate the conversion that
-is required to do that (a bitwise copy or a copy constructor call).
+of type param_type (also a class type).  Set *user_conversion to indicate
+the conversion that is required to do that (a bitwise copy or a copy
+constructor call).
 */
 {
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(param_type);
@@ -1788,11 +1789,12 @@ evaluated (but not checked to see if the match is good enough).
   an_arg_operand_ptr arg_operand;
   a_routine_type_supplement_ptr
                      rtsp;
-  a_type_ptr         param_type, arg_type;
+  a_type_ptr         param_type, arg_type, eff_param_type;
   a_base_class_ptr   base_class_conv_needed;
   an_arg_match_summary_ptr
                      arg_match;
-  a_boolean          type_qualifiers_added;
+  a_boolean          param_is_reference, type_qualifiers_added;
+  a_boolean          class_copy_case;
 
   db_enter(4, "function_template_matches_operand_list");
   templ_sym = cfp->function_symbol;
@@ -1851,7 +1853,8 @@ evaluated (but not checked to see if the match is good enough).
       param_type = ptp->type;
       arg_type = arg_operand->operand.type;
       type_qualifiers_added = FALSE;
-      if (is_reference_type(param_type)) {
+      param_is_reference = is_reference_type(param_type);
+      if (param_is_reference) {
         /* The parameter has a reference type. */
         /* Drop the reference type. */
         param_type = type_pointed_to(param_type);
@@ -1922,12 +1925,19 @@ evaluated (but not checked to see if the match is good enough).
         goto done;
       }  /* if */
       /* The argument can be made to match. */
+      class_copy_case = FALSE;
       if (base_class_conv_needed != NULL) {
         /* The extension allowing a standard conversion of a derived class to
            a base class was used. */
         arg_match->match_level = aml_std_conversion;
         arg_match->downward_cast_derivation =
                                             base_class_conv_needed->derivation;
+        if (!param_is_reference) {
+          /* Save information needed to check whether or not a copy
+             constructor is needed. */
+          class_copy_case = TRUE;
+          eff_param_type = base_class_conv_needed->type;
+        }  /* if */
       } else {
         /* Normal case: exact match. */
         arg_match->match_level = aml_exact;
@@ -1944,6 +1954,18 @@ evaluated (but not checked to see if the match is good enough).
           arg_match->less_desirable_exact_match = TRUE;
 #endif /* 0 */
         }  /* if */
+        if (!param_is_reference && is_class_struct_union_type(arg_type)) {
+          /* Save information needed to check whether or not a copy
+             constructor is needed. */
+          class_copy_case = TRUE;
+          eff_param_type = skip_typerefs(arg_type);
+        }  /* if */
+      }  /* if */
+      if (class_copy_case) {
+        /* See if a copy constructor is needed for a class copy. */
+        set_user_conversion_for_class_copy(&arg_operand->operand,
+                                           eff_param_type,
+                                           &arg_match->user_conversion);
       }  /* if */
     }  /* if */
   }  /* for */
