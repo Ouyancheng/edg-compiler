@@ -3401,7 +3401,8 @@ corresponding instance, or NULL if no corresponding instance is found.
     tssp = template_supplement_for_symbol(template_sym);
     candidate_sym = tssp->variant.class_template.prototype_instantiation;
     /* First check whether the prototype instantiation is a match. */
-    if (is_corresponding_sym_in_trans_unit(canonical_entry,
+    if (candidate_sym != NULL &&
+        is_corresponding_sym_in_trans_unit(canonical_entry,
                                            candidate_sym, tup)) {
       result_sym = candidate_sym;
     } else {
