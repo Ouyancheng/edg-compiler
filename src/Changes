@@ -1,6 +1,16 @@
 Version 3.5
 
-9/23/04 Embedded C: incorrect comparison folding of mixed operations
+9/23/04  Microsoft compatibility: friend virtual
+
+In Microsoft modes, the front end now accepts "friend virtual" with a warning.
+The specifier is otherwise ignored.  For example:
+
+  struct F { void f(); };
+  struct S {
+    friend virtual void F::f();  // Accepted with a warning in Microsoft mode.
+  };
+
+9/23/04  Embedded C: incorrect comparison folding of mixed operations
 
 Compile-time folding of fixed-point comparison operations in which the
 operands have different fixed-point types could produce incorrect results.
@@ -11,7 +21,7 @@ Now fixed.
     i = 1.0k > .5lr;
   }
 
-9/21/04 C++-generating back end: injected class names in Microsoft mode
+9/21/04  C++-generating back end: injected class names in Microsoft mode
 
 In Microsoft compilers prior to version 7.0, an injected class name was
 visible only when used as a qualifier (see Changes entries of 11/17/99 and

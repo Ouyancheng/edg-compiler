@@ -6360,7 +6360,7 @@ Returns TRUE if there is an error in the specifiers.
           /* "virtual" may not appear in a function parameter specification. */
           error(ec_bad_param_specifier);
           err = TRUE;
-        } else if (decl_specifiers_seen & DS_FRIEND) {
+        } else if ((decl_specifiers_seen & DS_FRIEND) && !microsoft_mode) {
           error(ec_virtual_not_allowed);
           err = TRUE;
         } else if (!is_member_decl) {

@@ -11768,13 +11768,17 @@ tracks information about the current declaration and is updated if an error
 is found.
 */
 {
-  an_error_code  error_code = ec_no_error;
+  an_error_code      error_code = ec_no_error;
+  an_error_severity  severity = es_error;
 
   if (decl_info->invalid_virtual_specifier) {
     /* An error has already been issued on a previous declarator. */
   } else if (decl_info->dso_flags & DSO_FRIEND) {
     /* A friend function may not be declared virtual. */
-    error_code = ec_bad_friend_decl;
+    error_code = ec_virtual_not_allowed;
+    if (microsoft_mode) {
+      severity = es_warning;
+    }  /* if */
   } else if (decl_info->is_constructor || is_union_type(class_type)) {
     /* Constructors may not be virtual functions (WP 12.1 [class.ctor]) and
        unions may not have them (WP 9.5 [class.union]). */
@@ -11788,9 +11792,10 @@ is found.
     error_code = ec_virtual_static_not_allowed;
   }  /* if */
   if (error_code != ec_no_error) {
-    pos_error(error_code, decl_info->is_first_in_declarator_list ?
-                            &decl_info->decl_start_pos :
-                            &locator->source_position);
+    pos_diagnostic(severity, error_code,
+                   decl_info->is_first_in_declarator_list ?
+                                                  &decl_info->decl_start_pos :
+                                                  &locator->source_position);
     decl_info->invalid_virtual_specifier = TRUE;
   }  /* if */
 }  /* check_for_invalid_use_of_virtual */
