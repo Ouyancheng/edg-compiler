@@ -9049,6 +9049,11 @@ C mode.
     /* The source or destination types are floating types, so there's
        actual conversion involved. */
     /* is_still_an_lvalue = FALSE; -- already set. */
+  } else if (is_bool_type(type_before_cast) ||
+             is_bool_type(type_cast_to)) {
+    /* Conversion between other types and bool maps zero/non-zero to
+       false/true, so it's a real conversion. */
+    /* is_still_an_lvalue = FALSE; -- already set. */
   } else if (type_cast_to->size == type_before_cast->size &&
              type_cast_to->alignment == type_before_cast->alignment) {
     /* The types are not floating types, and they have the same size

@@ -2386,7 +2386,9 @@ Return TRUE if the two given integer types have the same representation
   same_repr = (type_1->size == type_2->size &&
                type_1->alignment == type_2->alignment &&
                int_kind_is_signed[(int)type_1->variant.integer.int_kind] ==
-                    int_kind_is_signed[(int)type_2->variant.integer.int_kind]);
+                   int_kind_is_signed[(int)type_2->variant.integer.int_kind] &&
+               type_1->variant.integer.bool_type ==
+                                            type_2->variant.integer.bool_type);
   return same_repr;
 }  /* same_repr_int_types */
 #endif /* SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */

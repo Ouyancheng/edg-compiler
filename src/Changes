@@ -1,5 +1,17 @@
 Version 3.1
 
+8/5/02   bool type and SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
+
+When SAME_REPR_INTS_INTERCHANGEABLE_IN_IL is TRUE (not the default),
+an integral type should not be considered equivalent to a bool type
+because there's a zero/non-zero to 0/1 transformation on a conversion
+between them.  Now done correctly.
+
+  int main() {
+    char c = 15;
+    bool b = c;  // Formerly was missing normalization to 0/1
+  }
+
 8/5/02   C++-generating back end: Nested class declarations not rendered
 
 When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the IL
