@@ -7481,15 +7481,18 @@ if this routine has a body (dump nothing if it has no body).
       dump_decl_associated_pragmas(&rout->source_corresp);
       if (is_definition) {
         /* Generate any needed standard C99 pragma. */
-        if (rout->fp_contract != curr_default_fp_contract) {
+        if (rout->fp_contract != (a_stdc_pragma_value)stdc_pv_none &&
+            rout->fp_contract != curr_default_fp_contract) {
           dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fp_contract,
                            rout->fp_contract);
         }  /* if */
-        if (rout->fenv_access != curr_default_fenv_access) {
+        if (rout->fenv_access != (a_stdc_pragma_value)stdc_pv_none &&
+            rout->fenv_access != curr_default_fenv_access) {
           dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fenv_access,
                            rout->fenv_access);
         }  /* if */
-        if (rout->cx_limited_range != curr_default_cx_limited_range) {
+        if (rout->cx_limited_range != (a_stdc_pragma_value)stdc_pv_none &&
+            rout->cx_limited_range != curr_default_cx_limited_range) {
           dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_cx_limited_range,
                            rout->cx_limited_range);
         }  /* if */
