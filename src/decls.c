@@ -7770,17 +7770,18 @@ continue_with_declaration:
           /* This is the definition of a static member function.  No storage
              class specifier (not even "static") is permitted. */
           if (local_storage_class != (a_storage_class)sc_unspecified) {
-            if (any_cfront_mode() && inline_specified &&
+            an_error_severity  severity = es_error;
+            if (!extern_inline_allowed && inline_specified &&
                 local_storage_class == (a_storage_class)sc_static) {
               /* Just give a warning on this.  The storage class designation
                  is taken to be redundant, since all "inline" member functions
                  (both static and nonstatic, in the sense applied to member
                  functions) are "static" (in the sense of having internal
                  linkage). */
-              pos_warning(ec_storage_class_not_allowed, &decl_start_pos);
-            } else {
-              pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+              severity = es_warning;
             }  /* if */
+            pos_diagnostic(severity, ec_storage_class_not_allowed,
+                           &decl_start_pos);
           }  /* if */
           /* Set the storage class to sc_unspecified for now.  It will be
              checked and reset if necessary in define_member_function. */
