@@ -2951,6 +2951,24 @@ Returns TRUE if there is an error in the specifiers.
 	  *output_flags |= DSO_INLINE;
 	}  /* if */
 	break;
+      case tok_explicit:
+        if (is_parameter) {
+          /* "explicit" may not appear in a function parameter
+              specification. */
+          error(ec_bad_param_specifier);
+          err = TRUE;
+        } else if (!is_member_decl) {
+          /* It's only allowed inside a class definition. */
+          error(ec_explicit_not_allowed);
+          err = TRUE;
+        } else if (*output_flags & DSO_EXPLICIT) {
+          /* Disallow duplicates. */
+          error(ec_dupl_decl_specifier);
+          err = TRUE;
+        } else {
+          *output_flags |= DSO_EXPLICIT;
+        }  /* if */
+        break;
       case tok_void:
         if (C_dialect == C_dialect_pcc) {
           /* To allow "typedef <something> void;" to be ignored in pcc mode,
@@ -3190,14 +3208,16 @@ process_class_specifier:
              must be satisfied:  (1) we are inside a class definition;
              (2) the current token is the name of the class being defined
              (note that typedef names are not allowed); (3) the declaration
-             has no other specifiers besides "inline" (which is legal) and
-             "virtual" or "static" (which are not); (4) the next token is a
-             left parenthesis; (5) the token following the left paren is a
-             right paren or the start of a formal parameter declaration. */
+             has no other specifiers besides "inline" and "explicit" (which
+             are legal) and "virtual" or "static" (which are not); (4) the
+             next token is a left parenthesis; (5) the token following the
+             left paren is a right paren or the start of a formal parameter
+             declaration. */
           if (is_member_decl &&
               num_specifiers == (((*output_flags & DSO_VIRTUAL) ? 1 : 0) +
                                  ((*storage_class ==
                                      (a_storage_class)sc_static) ? 1 : 0) +
+                                 ((*output_flags & DSO_EXPLICIT) ? 1 : 0) +
                                  (is_inline ? 1 : 0))) {
             if (scope_stack[decl_scope_level].kind !=
                                      (a_scope_kind)sck_class_struct_union) {
