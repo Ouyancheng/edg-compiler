@@ -307,17 +307,24 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_excl_or,        "xor");
       enter_keyword((a_token_kind)tok_excl_or_assign, "xor_eq");
     }  /* if */
+    /* Enter keywords connected with RTTI only if RTTI support is enabled.
+       Otherwise treat them as "unimplemented keywords". */
+    if (rtti_enabled) {
+      enter_keyword((a_token_kind)tok_dynamic_cast, "dynamic_cast");
+      enter_keyword((a_token_kind)tok_typeid,       "typeid");
+    } else {
+      enter_unimplemented_keyword("dynamic_cast", ec_unimplemented_keyword);
+      enter_unimplemented_keyword("typeid",       ec_unimplemented_keyword);
+    }  /* if */
     /* Enter keywords for things that are not yet implemented.  Note that
        "bool", "true", and "false" are not entered because it is anticipated
        that most current usage will be compatible with the new language
        feature when it is implemented so a diagnostic would not, in general,
        be helpful. */
     enter_unimplemented_keyword("const_cast",       ec_unimplemented_keyword);
-    enter_unimplemented_keyword("dynamic_cast",     ec_unimplemented_keyword);
     enter_unimplemented_keyword("mutable",          ec_unimplemented_keyword);
     enter_unimplemented_keyword("namespace",        ec_unimplemented_keyword);
     enter_unimplemented_keyword("reinterpret_cast", ec_unimplemented_keyword);
-    enter_unimplemented_keyword("typeid",           ec_unimplemented_keyword);
     enter_unimplemented_keyword("static_cast",      ec_unimplemented_keyword);
     enter_unimplemented_keyword("using",            ec_unimplemented_keyword);
   }  /* if */
