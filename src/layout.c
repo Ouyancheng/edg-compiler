@@ -375,8 +375,10 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       /* The integral type is "plain" (i.e., plain "int", "char", "short",
          "long", or "long long") -- it's not explicitly signed or unsigned and
          it's not an enum type. */
-      if (bit_field_size > 1 && !TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED) {
-        /* Keep the default signedness of the plain integral type. */
+      if (bit_field_size > 1 && !TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED &&
+          !cfront_compatibility_mode) {
+        /* Keep the default signedness of the plain integral type.  Note that
+           cfront treats all bit fields as unsigned. */
         is_signed = TRUE;
       } else {
         /* The default for plain integral types in bit fields is unsigned -- or
