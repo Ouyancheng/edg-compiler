@@ -7880,7 +7880,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
          by a template argument list it may be used to refer to the
          current instance (which it already does). */
       new_sym = template_sym;
-      goto normal_exit;
+      goto skip_processing;
     } else {
       /* There is no template argument list.  If we are in an instantiation of
           this class template, use the symbol associated with the innermost
