@@ -6262,7 +6262,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
                in error cases.  Use an error type. */
             arg_ptr->variant.type = error_type();
           }  /* if */
-	} else if (!param_ptr->has_default_arg) {
+	} else if (param_ptr->has_default_arg) {
           /* A constant parameter.  The default value can be either a
 	     constant value or a token cache that needs to be scanned.
              Call a routine that will rescan the type declaration and/or
