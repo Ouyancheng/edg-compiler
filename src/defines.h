@@ -43,7 +43,9 @@ Flags to be set for any version that uses the C++ generating back end.
 /* Options Common to Sun hosted versions. */
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define USING_QUANTIFY 1
+#ifndef __ANSIC__
 #define __BSD__ 1
+#endif /* ifndef __ANSIC__ */
 
 
 #ifdef OPTIMIZED_VERSION
