@@ -133,7 +133,7 @@ but cannot be referenced by name in a pragma directive.
      FALSE and make_text_not_tokens must be TRUE. */
   check_assertion_str2(!p_fetch_pp_tokens ||
                        (!processing_C_code && !p_expand_macros &&
-                         make_text_not_tokens),
+                        make_text_not_tokens),
                        "add_pragma_kind_description:",
 		       "flags not valid when fetching pp-tokens");
   /* Allocate a new entry. */
@@ -290,10 +290,11 @@ used for creating pbk_other pragmas.
 
 
 static
-a_pragma_kind_description_ptr add_preproc_immediate_pragma_kind_description
-                      (a_pragma_kind 	     kind,
-		       a_preproc_immediate_pragma_function_ptr
-					     processing_function)
+a_pragma_kind_description_ptr add_preproc_immediate_pragma_kind_description(
+                       a_pragma_kind 	          kind,
+                       a_preproc_immediate_pragma_function_ptr
+                                                  processing_function,
+                       a_boolean                  automatically_include_in_il)
 /*
 This is an interface to the general add_pragma_kind_description that is
 used for creating pbk_preproc_immediate pragmas.
@@ -302,14 +303,12 @@ used for creating pbk_preproc_immediate pragmas.
   return add_pragma_kind_description
            (kind, pbk_preproc_immediate,
             (a_generic_pragma_function_ptr)processing_function,
-	    /*is_pseudo_pragma=*/FALSE, /*may_bind_to_decl=*/FALSE,
+            /*is_pseudo_pragma=*/FALSE, /*may_bind_to_decl=*/FALSE,
             /*may_bind_to_expr=*/FALSE, /*global=*/FALSE,
-	    /*automatically_include_in_il=*/FALSE,
-            /*make_text_not_tokens=*/FALSE, /*expand_macros=*/FALSE,
-	    /*processing_C_code=*/FALSE,
-            /*fetch_pp_tokens=*/FALSE,
-            /*ignore_in_back_end=*/FALSE, /*il_info_is_complete=*/FALSE,
-            /*error_severity=*/es_none);
+            automatically_include_in_il, automatically_include_in_il,
+            /*expand_macros=*/FALSE, /*processing_C_code=*/FALSE,
+            /*fetch_pp_tokens=*/FALSE, /*ignore_in_back_end=*/FALSE,
+            /*il_info_is_complete=*/FALSE, /*error_severity=*/es_none);
 }  /* add_preproc_immediate_pragma_kind_description */
 
 
@@ -714,10 +713,10 @@ otherwise return FALSE.
 }  /* select_curr_construct_pragmas */
 
 
-static void add_pragma_to_il(a_pending_pragma_ptr  ppp,
-                             an_il_entry_kind      entity_kind,
-                             char                  *entity_ptr,
-                             a_boolean             is_global)
+void add_pragma_to_il(a_pending_pragma_ptr  ppp,
+                      an_il_entry_kind      entity_kind,
+                      char                  *entity_ptr,
+                      a_boolean             is_global)
 /*
 ppp points to the front-end representation of a pragma.  When the pragma
 binding kind is pbk_next, entity_ptr is a pointer to the IL entry of the
@@ -1625,11 +1624,14 @@ Initialize the pragma description table.
                  es_error);
 #endif /* PRAGMA_WEAK_ALLOWED */
   (void)add_preproc_immediate_pragma_kind_description
-                ((a_pragma_kind)pk_once, once_pragma);
+                ((a_pragma_kind)pk_once, once_pragma,
+                 /*automatically_include_in_il=*/FALSE);
   (void)add_preproc_immediate_pragma_kind_description
-                ((a_pragma_kind)pk_hdrstop, hdrstop_or_no_pch_pragma);
+                ((a_pragma_kind)pk_hdrstop, hdrstop_or_no_pch_pragma,
+                 /*automatically_include_in_il=*/FALSE);
   (void)add_preproc_immediate_pragma_kind_description
-                ((a_pragma_kind)pk_no_pch, hdrstop_or_no_pch_pragma);
+                ((a_pragma_kind)pk_no_pch, hdrstop_or_no_pch_pragma,
+                 /*automatically_include_in_il=*/FALSE);
   if (!C_mode()) {
     (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_define_type_info,
@@ -1696,11 +1698,13 @@ Initialize the pragma description table.
 #if SUN_EXTENSIONS_ALLOWED
   if (sun_linker_scope_allowed) {
     (void)add_preproc_immediate_pragma_kind_description(
-                                             (a_pragma_kind)pk_enable_ldscope,
-                                             ldscope_pragma);
+                                        (a_pragma_kind)pk_enable_ldscope,
+                                        ldscope_pragma,
+                                        /*automatically_include_in_il=*/TRUE);
     (void)add_preproc_immediate_pragma_kind_description(
-                                             (a_pragma_kind)pk_disable_ldscope,
-                                             ldscope_pragma);
+                                        (a_pragma_kind)pk_disable_ldscope,
+                                        ldscope_pragma,
+                                        /*automatically_include_in_il=*/TRUE);
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
   (void)add_immediate_pragma_kind_description

@@ -344,6 +344,11 @@ extern void add_to_curr_token_pragma_list(a_pending_pragma_ptr ppp);
 
 extern a_boolean select_curr_construct_pragmas(a_boolean  add_to_list);
 
+extern void add_pragma_to_il(a_pending_pragma_ptr  ppp,
+                             an_il_entry_kind      entity_kind,
+                             char                  *entity_ptr,
+                             a_boolean             is_global);
+
 extern
 a_pending_pragma_ptr add_curr_token_pseudo_pragma(a_pragma_kind      kind,
 						  a_source_position *pos);

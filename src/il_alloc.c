@@ -3006,6 +3006,10 @@ in the current IL memory region.
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
     case pk_redefine_extname:
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if SUN_EXTENSIONS_ALLOWED
+    case pk_enable_ldscope:
+    case pk_disable_ldscope:
+#endif /* SUN_EXTENSIONS_ALLOWED */
     case pk_diag_suppress:
     case pk_diag_remark:
     case pk_diag_warning:

@@ -11128,7 +11128,9 @@ This routine is called when a Sun CC pragma with one of the following forms
 	#pragma enable_ldscope
 	#pragma disable_ldscope
 is called.  kind indicates which particular form was encountered.  It controls
-whether __global, __symbolic, and __hidden are treated as keywords.
+whether __global, __symbolic, and __hidden are treated as keywords.  Note that
+since these pragmas are automatically recorded in the IL, the tokens
+"enable_ldscope" or "disable_ldscope" will already have been consumed.
 */
 {
   a_boolean  keywords_visible;
@@ -11141,8 +11143,6 @@ whether __global, __symbolic, and __hidden are treated as keywords.
   set_keyword_visibility("__global", keywords_visible);
   set_keyword_visibility("__symbolic", keywords_visible);
   set_keyword_visibility("__hidden", keywords_visible);
-  /* Skip the "enable_ldscope" or "disable_ldscope" token. */
-  (void)get_token();
 }  /* ldscope_pragma */
 
 #endif /* SUN_EXTENSIONS_ALLOWED */
