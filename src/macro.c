@@ -3798,7 +3798,7 @@ command line -D options.
                    *equal_pos;
   char             *id_start, *value_start, *old_repl_text, *new_repl_text;
   sizeof_t         id_len;
-  a_boolean        err;
+  a_boolean        err, suppress_error;
   a_symbol_ptr	   assoc_symbol;
   a_symbol_locator locator;
   a_macro_def_ptr  mdp;
@@ -3993,6 +3993,7 @@ command line -D options.
   du_ptr = defs_from_cmd_line;
   while (du_ptr != NULL) {
     err = FALSE;
+    suppress_error = FALSE;
     du_str = du_ptr->text;
 #if DEBUG
     if (debug_level >= 4) {
@@ -4012,6 +4013,8 @@ command line -D options.
     /* Check the identifier to make sure it is valid. */
     if (!is_valid_identifier(id_start, id_len, &assoc_symbol, &locator)) {
       err = TRUE;
+      /* The Microsoft compiler ignores invalid definitions. */
+      if (microsoft_mode) suppress_error = TRUE;
     } else if (strchr(du_str, ATTENTION_MARKER) != NULL) {
       /* Definition contains a newline character, which cannot be allowed
          (it would be confused with a lexical escape character). */
@@ -4049,7 +4052,7 @@ command line -D options.
       mdp->object_like = TRUE;
       mdp->repl_text = new_repl_text;
     }  /* if */
-    if (err) {
+    if (err && !suppress_error) {
       str_command_line_error(ec_cl_invalid_macro_definition, du_str);
     }  /* if */
     du_ptr = du_ptr->next;
@@ -4059,6 +4062,7 @@ command line -D options.
   du_ptr = undefs_from_cmd_line;
   while (du_ptr != NULL) {
     err = FALSE;
+    suppress_error = FALSE;
     du_str = du_ptr->text;
 #if DEBUG
     if (debug_level >= 4) {
@@ -4070,6 +4074,8 @@ command line -D options.
     /* Check the identifier to make sure it is valid. */
     if (!is_valid_identifier(id_start, id_len, &assoc_symbol, &locator)) {
       err = TRUE;
+      /* The Microsoft compiler ignores invalid definitions. */
+      if (microsoft_mode) suppress_error = TRUE;
     } else {
       if (assoc_symbol != NULL) {
         if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
@@ -4082,7 +4088,7 @@ command line -D options.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (err) {
+    if (err && !suppress_error) {
       str_command_line_error(ec_cl_invalid_macro_undefinition, du_str);
     }  /* if */
     du_ptr = du_ptr->next;

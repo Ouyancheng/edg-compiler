@@ -1,6 +1,12 @@
 Version 2.41
 
-2/18/98   Namespace member function declared static within an extern "C"
+2/18/99   Microsoft compatibility: no error on invalid command-line -D
+
+In Microsoft mode, an error is no longer issued for a command-line -D or
+-U of an invalid identifier, e.g., "-D_._".  The definition/undefinition
+is simply ignored.
+
+2/18/99   Namespace member function declared static within an extern "C"
           block
 
 When a namespace member function was declared "static" within an extern "C"
