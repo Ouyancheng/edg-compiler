@@ -1,5 +1,20 @@
 Version 2.26
 
+9/8/94   A() when A is a class without a constructor
+
+A functional-notation type conversion of the form A(), where A is a class
+without a constructor, is now accepted (this was invalid in the ARM,
+but it's valid in the current WP).
+
+9/8/94   IL CHANGE: dik_zero
+
+A dynamic initialization can now have kind dik_zero, which means
+"initialize to zero."  It's defined to work the same way as the default
+initialization of a static object.  It is used for initializations for
+expressions of the form A(), where A is a class without a constructor.
+IL lowering eliminates dik_zero, so back ends that run after IL lowering
+will see no difference.
+
 9/8/94   Abort when a function type is used as a template static data member
 
 In this example, "a" may be a static data member or a member function
