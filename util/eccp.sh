@@ -1264,7 +1264,7 @@ do
 # Remove the instantiation generated C directory, if needed.
 #
   if [ $remove_instantiation_gen_c_dir -ne 0 ] ; then
-    rm -f $instantiation_gen_c_dir
+    rm -rf $instantiation_gen_c_dir
   fi
 done
 if [ $any_errors -eq 0 ]
