@@ -3296,8 +3296,9 @@ special function kind (e.g., constructor, destructor), if any.
     /* symbol_for_member_function has returned a symbol that has already been
        declared.  It is an error to redeclare a member function, but we try
        merge the declarations anyway. */
-    redecl_member_function(sym, member_type, access, func_info->is_inline,
-                           is_virtual, &locator->source_position);
+    redecl_member_function(sym, member_type, access,
+                           (a_boolean)func_info->is_inline, is_virtual,
+                           &locator->source_position);
   } else {
     sym->class_of_which_a_member = class_type;
     /* Create the routine entry for the member function. */
