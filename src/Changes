@@ -1,5 +1,15 @@
 Version 3.6
 
+11/10/04 GNU C++ compatibility: "friend" specifier on nested classes
+
+In GNU C++ mode, with gnu_version < 30400, the front end now ignores (with a
+warning) a "friend" specifier appearing on an in-class definition of a nested
+class or nested class template.  For example:
+
+  struct S {
+    friend class N {};  // "friend" specifier ignored with a warning in
+  };                    // GNU C++ mode (when gnu_version < 30400).
+
 11/10/04 Sun compatibility: Link scope specifiers
 
 Version 3.5 of the front end introduced three new keywords in Sun mode:

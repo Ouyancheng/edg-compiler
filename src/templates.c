@@ -11202,10 +11202,25 @@ declaration of a partial specialization declared outside of its class.
       /* A friend declaration in a class scope -- okay (provided it is not
          a definition). */
       if (decl_state->is_template_friend && is_definition) {
-        /* Classes cannot be defined in friend declarations. */
-        pos_error(ec_template_friend_definition_not_allowed,
-                  &locator.source_position);
-        decl_state->decl_scope_err = TRUE;
+        /* Classes cannot be defined in friend declarations.   (Except in GNU
+           C++ mode, where the friend keyword is ignored in that case.) */
+        if (gpp_mode && gnu_version < 30400 && !locator.is_qualified_name &&
+            !locator.is_template_id) {
+          /* GNU C++ accepts (and seems to ignore) friend specifiers on nested
+             class template definitions.  Reset effective_decl_level to the
+             innermost class scope, which is right under the top of the scope
+             stack (the top is the template declaration scope). */
+          pos_warning(ec_friend_specifier_ignored, &locator.source_position);
+          decl_state->is_template_friend = FALSE;
+          decl_state->effective_decl_level = depth_scope_stack - 1;
+          sym = NULL;
+          goto friend_template_checks_done;
+        } else {
+
+          pos_error(ec_template_friend_definition_not_allowed,
+                    &locator.source_position);
+          decl_state->decl_scope_err = TRUE;
+        }  /* if */
       }  /* if */
       /* If the lookup found a class template that is actually a template
          template parameter, ignore it.  This will result in a redeclaration
@@ -11231,6 +11246,7 @@ declaration of a partial specialization declared outside of its class.
     /* Make sure the friend is not in a local class. */
     check_local_class_template_friend(decl_state, &locator);
   }  /* if */
+friend_template_checks_done:
   if (is_partial_specialization) {
     a_boolean	err = FALSE;
     /* If this is a partial specialization, the symbol that was returned

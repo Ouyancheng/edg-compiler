@@ -2352,8 +2352,16 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
     /* This is an error.  Defer the diagnostic until we have a tag_sym
        to use for the fill-in.  If tag_sym is already non-NULL, we'll create
        another one. */
-    set_to_named_error_locator(locator);
-    tag_sym = NULL;
+    if (gpp_mode && gnu_version < 30400 &&
+        !locator.is_qualified_name && !locator.is_template_id) {
+      /* GNU C++ accepts (and seems to ignore) friend specifiers on nested
+         class definitions. */
+      pos_warning(ec_friend_specifier_ignored, &decl_start_pos);
+      is_friend_decl = FALSE;
+    } else {
+      set_to_named_error_locator(locator);
+      tag_sym = NULL;
+    }  /* if */
   }  /* if */
   if (tag_sym != NULL && C_dialect == C_dialect_cplusplus) {
     a_class_symbol_supplement_ptr	cssp;
