@@ -5874,9 +5874,9 @@ Scan the body of a class definition, including the base classes list.
           a_token_kind  next_tok;
           if (curr_token == tok_identifier &&
               ((next_tok = next_token()) == tok_semicolon ||
-               next_tok == tok_comma)) {
+               next_tok == tok_comma || next_tok == tok_assign)) {
             /* Even though the current token is a type name, it looks more
-               like a declarator with a following ";" or ",". */
+               like a declarator with a following ";" or "," or "=". */
           } else {
             set_err_pos_to_curr_token();
             if (!local_declares_something) error(ec_exp_identifier);
