@@ -3157,11 +3157,11 @@ NULL.
                  !var_ptr->unused &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
                  !(is_class_struct_union_type(var_ptr->type) &&
-                   (var_ptr->type->
+                   (skip_typerefs(var_ptr->type)->
                                 variant.class_struct_union.is_nonreal_class ||
-                    symbol_supplement_for_class(var_ptr->type)->
+                    symbol_supplement_for_class(skip_typerefs(var_ptr->type))->
                                               any_template_dependent_fields ||
-                    symbol_supplement_for_class(var_ptr->type)->
+                    symbol_supplement_for_class(skip_typerefs(var_ptr->type))->
                                                  any_nonreal_base_classes))) {
         /* An unreferenced or unused variable or an unused parameter.
            If a class is nonreal or if it has a template-dependent field or
