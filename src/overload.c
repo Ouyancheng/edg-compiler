@@ -3852,7 +3852,7 @@ and return NULL.  This routine is called only in C++ mode.
     } else {
       /* Use a special diagnostic for a call that includes surrogate
          functions. */
-      a_boolean                use_class_call_message = TRUE;
+      a_boolean                use_class_call_message = FALSE;
       a_candidate_function_ptr cfp;
       for (cfp = candidate_functions; cfp != NULL; cfp = cfp->next) {
         if (cfp->surrogate_function_conv_sym != NULL) {
