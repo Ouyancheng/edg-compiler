@@ -499,6 +499,7 @@ has a template parameter (type or constant) in its type tree.
         found = TRUE;
       } else {
         a_param_type_ptr ptp = tp->variant.routine.extra_info->param_type_list;
+        found = FALSE;
         for (; ptp != NULL; ptp = ptp->next) {
           if (type_involves_template_param(ptp->type)) {
             found = TRUE;
