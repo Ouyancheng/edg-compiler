@@ -4120,6 +4120,12 @@ typedef struct a_type {
 		has_variably_modified_type:1;
 			/* The type referred to is a variably modified type,
 			   i.e., is or contains a VLA type. */
+#if BACK_END_IS_CP_GEN_BE
+      a_bit_field
+		surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
+			/* Name linkage in effect when this typedef
+			   appeared. */
+#endif /* BACK_END_IS_CP_GEN_BE */
       bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */

@@ -6410,6 +6410,12 @@ return a pointer to it in *symbol_ptr.
   }  /* if */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position, declarator_ssep);
+#if BACK_END_IS_CP_GEN_BE
+  /* Set the "name linkage environment" for this type.  This is used by the
+     C++-generating back end to decide when to emit extern "C". */
+  tp->variant.typeref.surrounding_name_linkage_state =
+                          scope_stack[depth_scope_stack].default_name_linkage;
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   update_decl_pos_info(&tp->source_corresp, decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

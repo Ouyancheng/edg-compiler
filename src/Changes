@@ -1,5 +1,14 @@
 Version 2.44
 
+5/2/00   C++-generating back end: extern "C" around typedef declarations
+
+The C++-generating back end now puts out an extern "C" block around typedef
+declarations that appeared in such a block in the original source.
+
+  extern "C" {            // This is now retained
+    typedef void (*f)();
+  }
+
 5/2/00   Abort when declaring a template with a qualified declarator
 
 The front end used to abort when encountering the declaration of a qualified

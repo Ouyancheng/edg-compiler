@@ -3824,6 +3824,16 @@ this one is such a continuation.
         end_pp_directive();
       } else {
         /* A typedef definition. */
+        if (!C_mode() &&
+            type->variant.typeref.surrounding_name_linkage_state == 
+                                           (a_name_linkage_kind)nlk_external &&
+          !(type->source_corresp.is_class_member ||
+            type->source_corresp.is_local_to_function)) {
+          /* The class definition is surrounded by an extern "C" block. */
+          write_tok_str("extern \"C\" { ");
+          /* Force matching "}" to be output later */
+          need_extern_C_closing_brace = TRUE;
+        }  /* if */
         gen_typedef_definition(type, sec_decl, suppress_specifiers,
                                another_decl_in_comma_list);
       }  /* if */
