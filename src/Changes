@@ -1,5 +1,17 @@
 Version 3.2
 
+5/7/03   K&R/pcc mode: Visibility of block-extern declarations
+
+In K&R/pcc mode, block extern declarations are treated as if they appeared in
+file scope.  This used to be case in version 2.40 and earlier of the front
+end, but version 2.41 accidentally removed that aspect of K&R/pcc emulation.
+For example:
+
+  void f() {
+    int foo();       /* Declared in file scope in K&R/pcc mode. */
+  }
+  int (*p)() = foo;  /* Accepted in K&R/pcc mode. */
+
 5/7/03   Internal error on overloaded template with explicit argument list
 
 An internal error (in equiv_template_arg_lists) could occur when using

@@ -1412,7 +1412,8 @@ the same as depth_scope_stack).
   if (C_mode()) {
     if (idlbp->is_block_extern_decl) {
       if (C_dialect == C_dialect_pcc &&
-          idlbp->storage_class == (a_storage_class)sc_extern) {
+          (idlbp->storage_class == (a_storage_class)sc_extern ||
+           idlbp->func_info != NULL)) {
         /* In pcc mode, functions and extern variables are always effectively
            declared at the file scope level. */
         depth = DEPTH_OF_FILE_SCOPE;
@@ -1490,7 +1491,6 @@ declaration scope will have been pushed).
   }  /* if */
   /* The effective declaration level is usually the current scope -- but not
      always (e.g., friend declarations). */
-  compute_effective_decl_level(idlbp, orig_decl_level);
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     /* A declaration inside a function. */
     if (idlbp->func_info != NULL ||
@@ -1500,6 +1500,7 @@ declaration scope will have been pushed).
       idlbp->is_block_extern_decl = TRUE;
     }  /* if */
   }  /* if */
+  compute_effective_decl_level(idlbp, orig_decl_level);
   if (!C_mode()) {
     a_scope_depth  depth;
 
