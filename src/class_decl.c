@@ -573,6 +573,11 @@ not specifically allow this syntax, but it is supported by cfront.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Accepting qualified member names is an extension so issue a
+     diagnostic in strict ANSI mode. */
+  if (is_member_id && strict_ansi_mode) {
+    diagnostic(strict_ansi_error_severity, ec_qualifier_in_member_declaration);
+  }  /* if */
   db_exit();
   return is_member_id;
 }  /* simplify_curr_class_qualified_name */
@@ -857,7 +862,7 @@ old_class under new_class.  If old_class is NULL it means we don't know
     }  /* for */
   }  /* if */
   internal_error("corresponding_base_class: base class not found");
-#else
+#else /* CHECKING */
   new_base_class = NULL;
 #endif /* CHECKING */
 done:

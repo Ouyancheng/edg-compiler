@@ -1619,12 +1619,15 @@ error code.
     case ec_nonconst_ref_init_anachronism:
       m = "incorrect initial value type for non-const reference (anachronism)";
       break;
+    case ec_qualifier_in_member_declaration:
+      m = "qualified name is not allowed in member declaration";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
 #if CHECKING
       internal_error("error_text: unknown error code");
-#else
+#else /* CHECKING */
       m = "unknown error";
 #endif /* CHECKING */
   }  /* switch */
@@ -3566,7 +3569,7 @@ reestablish_arguments:
     if (total_errors + total_catastrophes >= error_limit) {
 #if !USING_DRIVER
       fprintf(stderr, "Error limit reached.\n");
-#else
+#else /* !USING_DRIVER */
       if (f_raw_listing != NULL) {
         fprintf(f_raw_listing, "C \"\" 0 0 error limit reached\n");
       }  /* if */

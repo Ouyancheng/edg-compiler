@@ -466,7 +466,8 @@ typedef enum /*an_error_code*/ {
   ec_ambiguous_by_inheritance_add_on,
   ec_addr_of_constructor_or_destructor,
   ec_dollar_used_in_identifier,
-  ec_nonconst_ref_init_anachronism
+  ec_nonconst_ref_init_anachronism,
+  ec_qualifier_in_member_declaration
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
@@ -523,7 +524,7 @@ EXTERN an_error_severity
 #if VAR_INITIALIZERS
 #if DEFAULT_ALLOW_ANACHRONISMS
                                            = es_warning
-#else
+#else /* DEFAULT_ALLOW_ANACHRONISMS */
 			                   = es_error
 #endif /* DEFAULT_ALLOW_ANACHRONISMS */
 #endif /* VAR_INITIALIZERS */
