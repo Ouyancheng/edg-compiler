@@ -13051,6 +13051,7 @@ bits of information that were acquired while parsing.
   /* Do subobject allocation and compute the size and alignment of the
      class. */
   do_class_layout(class_type);
+  class_type->is_incomplete = FALSE;
   if (C_dialect == C_dialect_cplusplus) {
     if (!class_state->is_nonreal_instantiation) {
       /* Check for inherited conversion functions.  This must be done before

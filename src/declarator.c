@@ -319,6 +319,7 @@ array-to-pointer decay).
                 a_type_ptr new_type = alloc_type((a_type_kind)tk_array);
                 new_type->variant.array.element_type =
                                              type_pointed_to(ptp->type);
+                new_type->is_incomplete = TRUE;
                 ptp->type = new_type;
               } else if (is_qualified_type(tp)) {
                 ptp->type = make_identically_qualified_type(ptp->type, tp);
@@ -2324,6 +2325,7 @@ expression can be a multiple of the special UPC THREADS constant.
     *new_type_ptr = error_type();
   } else {
     *new_type_ptr = alloc_type((a_type_kind)tk_array);
+    (*new_type_ptr)->is_incomplete = TRUE;
     (*new_type_ptr)->variant.array.is_static = static_seen;
     (*new_type_ptr)->variant.array.qualifiers = qualifiers;
     /* Store the array size. */
@@ -3120,8 +3122,10 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
            connected later.  Note that the size is not set (set_type_size is
            not called) at this point; that's done in add_to_derived_type_list,
            once the type pointed to is known, in case pointers to different
-           types have different sizes. */
+           types have different sizes.  At that time, the is_incomplete flag
+           will be cleared. */
         a_type_ptr new_type_ptr = alloc_type((a_type_kind)tk_pointer);
+        new_type_ptr->is_incomplete = TRUE;
         new_type_ptr->variant.pointer.type = complete_type;
         if (curr_token == tok_ampersand) {
           new_type_ptr->variant.pointer.is_reference = TRUE;

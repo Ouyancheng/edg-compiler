@@ -6930,6 +6930,8 @@ Make or find a type entry for a void type, and return a pointer to it.
 {
   if (il_void_type == NULL) {
     il_void_type = alloc_type((a_type_kind)tk_void);
+    /* The void type is considered "incomplete." */
+    il_void_type->is_incomplete = TRUE;
 #if ORPHAN_PROCESSING_NEEDED
     /* Record the type entry as an orphan in case it is discarded now
        and then found again in a later phase (e.g., IL lowering). */
@@ -7244,9 +7246,10 @@ existing type entry.
                         class_type, UPC_BLOCK_SIZE_NONE);
   }  /* if */
   if (member_type == NULL || tp == NULL) {
-    /* No member type (as of yet) or no previously allocated entry, need
-       to allocate one. */
+    /* No member type (as of yet) or no previously allocated entry, need to
+       allocate one.  (is_incomplete will be set to FALSE in set_type_size. */
     tp = alloc_type((a_type_kind)tk_ptr_to_member);
+    tp->is_incomplete = TRUE;
     tp->variant.ptr_to_member.type = member_type;
     tp->variant.ptr_to_member.class_of_which_a_member = class_type;
     /* If member_type is NULL we are creating an incomplete type; otherwise,

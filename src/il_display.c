@@ -1317,6 +1317,9 @@ Display the indicated type entry.
   disp_based_type_list(ptr->based_types);
   disp_host_large_unsigned("size", (a_host_large_unsigned)ptr->size);
   disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
+  if (ptr->is_incomplete) {
+    disp_boolean("is_incomplete", TRUE);
+  }  /* if */
   if (ptr->used_in_exception_or_rtti) {
     disp_boolean("used_in_exception_or_rtti", TRUE);
   }  /* if */

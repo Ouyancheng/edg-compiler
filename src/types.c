@@ -148,16 +148,9 @@ predicates.
 /* Template parameter type. */
 #define is_template_param(tp) ((tp)->kind == (a_type_kind)tk_template_param)
 
-/* Incomplete types are types that have no size and are not functions.
-   (In GNU C mode, there are zero-sized array and class types, and they
-   are considered complete.) */
-#if !GNU_EXTENSIONS_ALLOWED
-#define is_incomplete(tp) ((tp)->size == 0 && !is_function(tp))
-#else /* GNU_EXTENSIONS_ALLOWED */
-#define is_incomplete(tp)                                               \
-   ((tp)->size == 0 && !is_function(tp) &&                              \
-    !(gnu_mode && is_gnu_type_of_size_zero(tp)))
-#endif /* GNU_EXTENSIONS_ALLOWED */
+/* Incomplete types are types that have been declared but have not yet been
+   (completely) defined.  (void types are also considered "incomplete".) */
+#define is_incomplete(tp) ((tp)->is_incomplete)
 
 /* Macro that is TRUE if two type kinds are the same, or are the same except
    that one is tk_class and the other is tk_struct. */
@@ -257,38 +250,6 @@ Return TRUE if the given type is a function type (3.1.2.5).
   return(is_function(tp));
 }  /* is_function_type */
 
-#if GNU_EXTENSIONS_ALLOWED
-
-static a_boolean is_gnu_type_of_size_zero(a_type_ptr  tp)
-/*
-The given type has its size field set to zero.  In GNU C and C++, this may
-still be a complete type (whose size is really zero).  Return TRUE in that
-case.
-*/
-{
-  a_boolean  result = FALSE;
-
-  check_assertion(tp->size == 0 && tp->kind != (a_type_kind)tk_typeref);
-  while (is_array(tp)) {
-    if (tp->variant.array.bound_is_zero) {
-      result = TRUE;
-      break;
-    } else {
-      tp = tp->variant.array.element_type;
-      if (tp == NULL) break;
-      tp = skip_typerefs(tp);
-    }  /* if */
-  }  /* while */
-  if (gcc_mode && tp != NULL &&
-      (tp->kind == (a_type_kind)tk_struct ||
-       tp->kind == (a_type_kind)tk_union) &&
-      tp->variant.class_struct_union.is_empty_class) {
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* is_gnu_type_of_size_zero */
-
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_boolean is_incomplete_type(a_type_ptr tp)
 /*
@@ -1984,8 +1945,7 @@ and a diagnostic is issued (unless suppress_error is TRUE).
       temp = array_type->variant.array.variant.number_of_elements;
     } else {
       /* We don't know the element count because it is not a constant value.
-         Since a size of zero means "incomplete type", set the size as though
-         the element count were 1. */
+         Set the size as though the element count were 1. */
       temp = 1;
     }  /* if */
     /* Next get the size of an element.  If it is itself an array, its own
@@ -2003,6 +1963,10 @@ and a diagnostic is issued (unless suppress_error is TRUE).
       /* error_position should already be set correctly. */
       report_abstract_class_error(ec_array_of_abstract_class, elem_type,
                                   &error_position);
+    }  /* if */
+    if (!elem_type->is_incomplete &&
+        (temp != 0 || array_type->variant.array.bound_is_zero)) {
+      array_type->is_incomplete = FALSE;
     }  /* if */
     temp2 = elem_type->size;
     /* Normally, element types cannot have size zero.  In GNU modes, however,
@@ -2046,20 +2010,20 @@ set, leave it alone.  Also compute and set the alignment requirement.
 
   db_enter(5, "set_type_size");
   size = type_ptr->size;
-  /* If the size is set already (which means the type is considered complete),
-     leave it alone. */
-  if (is_incomplete_type(type_ptr) ||
-      (type_ptr->kind == (a_type_kind)tk_array &&
-       type_ptr->variant.array.bound_is_zero)) {
+  /* If the size is set already, leave it alone.  (Zero-length arrays still
+     need their alignment set even though their size is already set.) */
+  if (type_ptr->size == 0
+#if GNU_EXTENSIONS_ALLOWED
+      && !(gnu_mode && is_immediate_class_type(type_ptr))
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                         ) {
     alignment = 1;  /* Default */
     switch(type_ptr->kind) {
       case tk_error:
       case tk_unknown:
       case tk_template_param:
-        /* Use an arbitrary non-zero size for an error type.  This is
-           important so that error types do not appear to be incomplete
-           types.  The same holds for template parameter types (which are
-           really placeholders) and unknown types. */
+        /* Use an arbitrary non-zero size for an error type, a template
+           parameter type (which is a placeholder), or an unknown type. */
         size = 1;
         break;
       case tk_void:
@@ -2112,6 +2076,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
         break;
       case tk_pointer:
         size = size_of_pointer_to(type_pointed_to(type_ptr), &alignment);
+        type_ptr->is_incomplete = FALSE;
         break;
       case tk_array:
         (void)set_array_type_size(type_ptr, /*suppress_error=*/FALSE);
@@ -2126,6 +2091,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
           size = targ_sizeof_ptr_to_data_member;
           alignment = targ_alignof_ptr_to_data_member;
         }  /* if */
+        type_ptr->is_incomplete = FALSE;
         break;
 #if CHECKING
       case tk_class:
