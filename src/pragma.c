@@ -541,7 +541,8 @@ allocated in the file-scope memory region and added to the file-scope
 pragmas list; it is FALSE when the current IL scope should be used.
 The at_file_scope flag passed by the caller is only used when no entity
 has been provided.  When an entity is supplied, the at_file_scope
-flag is set based on whether the entity is at file scope.
+flag is set to FALSE causing the IL pragma entry to be allocated in
+the current memory region.
 
 This routine (1) allocates the IL pragma entry and initializes it, (2)
 binds it to the entity it's associated with, if any, and sets the
@@ -554,9 +555,10 @@ there is additional processing to be done.
   a_pragma_ptr            pp;
   a_memory_region_number  region_to_switch_back_to;
 
-  /* If we are binding to an entity, set the at_file_scope flag based on
-     the memory region of the entity. */
-  if (entity_ptr != NULL) at_file_scope = in_file_scope(entity_ptr);
+  /* If we are binding to an entity, the IL pragma entry should be allocated
+     in the current memory region and is added to the scope list for the
+     current scope. */
+  if (entity_ptr != NULL) at_file_scope = FALSE;
   if (at_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
   pp = alloc_pragma(ppp->descr_ptr->kind);
   pp->decl_position = ppp->id_position;
