@@ -284,14 +284,20 @@ demangled.
            (type)constant
          That is, the literal constant preceded by a cast to the right type.
       */
-      p++;
-      write_id_ch('(');
-      /* Start at type+1 to avoid the "C" for const. */
-      (void)demangle_type(type+1);
-      write_id_ch(')');
+      /* See if the type is bool. */
+      a_boolean is_bool = (type+2 == p && *(type+1) == 'b'), is_nonzero;
+      /* If the type is bool, don't put out the cast. */
+      if (!is_bool) {
+        write_id_ch('(');
+        /* Start at type+1 to avoid the "C" for const. */
+        (void)demangle_type(type+1);
+        write_id_ch(')');
+      }  /* if */
+      p++;  /* Advance past the "L". */
       /* Get the length of the constant. */
       p = get_number_with_optional_underscore(p, &nchars);
       /* Process the characters of the literal constant. */
+      is_nonzero = FALSE;
       for (; nchars > 0; nchars--, p++) {
         /* Remap characters where necessary. */
         char ch = *p;
@@ -311,8 +317,19 @@ demangled.
             ch = '.';
             break;
         }  /* switch */
-        write_id_ch(ch);
+        if (is_bool) {
+          /* For the bool case, just keep track of whether the constant is
+             non-zero; true or false will be output later. */
+          if (ch != '0') is_nonzero = TRUE;
+        } else {
+          /* Normal (non-bool) case.  Output the character of the constant. */
+          write_id_ch(ch);
+        }  /* if */
       }  /* for */
+      if (is_bool) {
+        /* For bool, output true or false. */
+        write_id_str(is_nonzero ? "true" : "false");
+      }  /* if */
     } else {
       /* Pointer-to-member-function.  The form of the constant is
            LM0_L2n1_1j  Non-virtual function

@@ -1,5 +1,10 @@
 Version 2.30
 
+8/21/95  Display of false and true in name demangling
+
+Name demangling now puts out false and true in template arguments of
+bool type (formerly, (bool)0 and (bool)1 were put out).
+
 7/26/95  Checking return value of popen in edg_prelink
 
 edg_prelink did not check the return value of popen to determine
