@@ -9048,6 +9048,12 @@ following the member declaration.
           }  /* if */
         }  /* if */
       }  /* if */
+    } else if (is_member_template) {
+      /* Invalid declaration of a member template. */
+      pos_error(ec_bad_member_template_decl, &decl_start_pos);
+      remove_stop_token(tok_comma);
+      discard_curr_construct_pragmas();
+      break;
     } else if (decl_info.dso_flags & (DSO_FRIEND | DSO_VIRTUAL | DSO_INLINE)) {
       if (decl_info.dso_flags & DSO_FRIEND) {
         pos_error(ec_bad_friend_decl, &decl_start_pos);
