@@ -52,15 +52,27 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
     } else if (qualifiers & TQ_FAR) {
       /* Far specified explicitly. */
       is_far = TRUE;
-    } else if (far_code_pointers == far_data_pointers) {
-      /* Speed optimization: code and data pointers are the same size so
-         there's no need to determine which we have. */
-      is_far = far_data_pointers;
     } else {
-      /* Determine if this is a pointer to code or to data and from that
-         whether this should be a near or far pointer. */
-      is_far = (is_function_type(tp)) ? far_code_pointers :
-                                        far_data_pointers;
+      /* The size of the pointer is not specified explicitly. */
+      a_class_type_supplement_ptr ctsp;
+      tp = skip_typerefs(tp);
+      if (is_immediate_class_type(tp) &&
+          (ctsp = tp->variant.class_struct_union.extra_info) != NULL &&
+          (qualifiers = ctsp->qualifiers) != TQ_NONE) {
+        /* A C++ class with a memory attribute specified for all instances of
+           the class. */
+        is_far = (qualifiers & TQ_FAR) != TQ_NONE;
+      } else if (far_code_pointers == far_data_pointers) {
+        /* Speed optimization: code and data pointers are the same size so
+           there's no need to determine which we have. */
+        is_far = far_data_pointers;
+      } else if (is_function_type(tp)) {
+        /* Pointer to code with default size. */
+        is_far = far_code_pointers;
+      } else {
+        /* Pointer to data with default size. */
+        is_far = far_data_pointers;
+      }  /* if */
     }  /* if */
     if (is_far) {
       size = targ_sizeof_far_pointer;
