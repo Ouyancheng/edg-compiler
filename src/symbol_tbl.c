@@ -5549,21 +5549,23 @@ C and C++.
        more complicated (and slower) algorithm must be used to look up
        the name in the symbol (1) if there are symbols on the inactive
        list for the name in question -- i.e., symbols that will not be
-       found with the fast algorithm; and (2) if the present scope
-       stack is such that currently visible symbols might be on an
-       inactive list.  Only symbols for members of classes that go out
-       of scope appear on the inactive list.  Such symbols become
-       visible in only two ways -- they belong to a base class of a
-       class that is currently in scope or they belong to a class that
-       has been reactivated (e.g., for the definition of a member or
-       friend function or the initialization of a static data member).
-       Note that the slow algorithm is not required for member symbols
-       on the active list because they are found properly on the
-       search of the active list in the fast algorithm.  We don't need
-       to check skip_curr_function_scope when deciding whether to use
-       the fast or slow algorithm because there will always be a class
-       reactivation scope on the stack which will force the slow
-       lookup. */
+       found with the fast algorithm; (2) if the present scope stack
+       is such that currently visible symbols might be on an inactive
+       list; and (3) if there are scopes on the scope stack for which
+       active symbols must be excluded from the lookup (such as pragma
+       and template instantiation scopes).  Only symbols for members
+       of classes that go out of scope appear on the inactive list.
+       Such symbols become visible in only two ways -- they belong to
+       a base class of a class that is currently in scope or they
+       belong to a class that has been reactivated (e.g., for the
+       definition of a member or friend function or the initialization
+       of a static data member).  Note that the slow algorithm is not
+       required for member symbols on the active list because they are
+       found properly on the search of the active list in the fast
+       algorithm.  We don't need to check skip_curr_function_scope
+       when deciding whether to use the fast or slow algorithm because
+       there will always be a class reactivation scope on the stack
+       which will force the slow lookup.  */
     ssep = &scope_stack[depth_scope_stack];
 #if CHECKING
     /* IDL_SKIP_CURR_FUNCTION_SCOPE must only be used when the top scope
@@ -5575,9 +5577,9 @@ C and C++.
     }  /* if */
 #endif /* CHECKING */
     if (C_dialect != C_dialect_cplusplus ||
-        ((inactive_symbol_list == NULL &&
-         !ssep->inactive_symbols_may_be_visible) &&
-        depth_innermost_instantiation_scope == NO_SCOPE_DEPTH)) {
+        ((inactive_symbol_list == NULL ||
+          !ssep->inactive_symbols_may_be_visible) &&
+         !ssep->slow_lookup_required)) {
       /* Fast algorithm: just search the active symbol list. */
 #if DEBUG
       num_fast_id_lookups++;
@@ -6462,6 +6464,7 @@ of the template.
   ssep->inside_local_class       = inside_local_class;
   ssep->template_param_decl_scope= FALSE;
   ssep->is_loop_scope            = FALSE;
+  ssep->slow_lookup_required     = FALSE;
   ssep->symbols                  = NULL;
   ssep->last_symbol              = NULL;
   ssep->il_scope                 = sp;
@@ -6522,7 +6525,6 @@ of the template.
        from the previous scope. */
     if (kind == (a_scope_kind)sck_class_reactivation ||
         kind == (a_scope_kind)sck_template_instantiation ||
-        kind == (a_scope_kind)sck_pragma ||
         (kind == (a_scope_kind)sck_class_struct_union &&
          base_classes_of(assoc_type) != NULL)) {
       ssep->inactive_symbols_may_be_visible = TRUE;
@@ -6530,6 +6532,16 @@ of the template.
       ssep->inactive_symbols_may_be_visible =
               scope_stack[depth_scope_stack-1].inactive_symbols_may_be_visible;
     }  /* if */
+    /* Pragma and instantiation scopes require that the slow lookup
+       algorithm be used because they require that certain symbols on the
+       active list not be considered. */
+    if (kind == (a_scope_kind)sck_pragma ||
+        kind == (a_scope_kind)sck_template_instantiation) {
+      ssep->slow_lookup_required = TRUE;
+    } else if (kind != (a_scope_kind)sck_file) {
+      ssep->slow_lookup_required =
+                        scope_stack[depth_scope_stack-1].slow_lookup_required;
+    }
     if (kind == (a_scope_kind)sck_class_struct_union ||
         kind == (a_scope_kind)sck_class_reactivation) {
       /* Keep track of the number of classes and class reactivations. */
@@ -7814,12 +7826,13 @@ void reference_to_symbol(a_symbol_reference_kind kind,
                          a_boolean               update_il_entry)
 /*
 Record a reference of the indicated kind to the indicated symbol.  Set the
-reference flag in the symbol entry.  If update_il_entry is TRUE, also
-set the referenced flag in the associated IL entry, if any, and mark the
+referenced flag in the symbol entry.  If update_il_entry is TRUE, also
+set the referenced flag in the associated IL entry, if any.  Mark the
 symbol "used" or "set", if appropriate.
 */
 {
   a_source_correspondence *scptr;
+  a_symbol_kind           sym_kind = sym_ptr->kind;
  
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
     if (f_xref_info != NULL) {
@@ -7840,14 +7853,25 @@ symbol "used" or "set", if appropriate.
        flag; a reference to the symbol is not necessarily a reference to the
        corresponding IL entry.  When it is, the flag is set explicitly
        elsewhere. */
-    if (sym_ptr->kind == (a_symbol_kind)sk_member_function &&
+    if (sym_kind == (a_symbol_kind)sk_member_function &&
         sym_ptr->variant.routine.ptr->is_virtual) {
       /* Do not set IL referenced flag. */
     } else {
       scptr->referenced = TRUE;
     }  /* if */
   }  /* if */
-  if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
+  if (update_il_entry && (kind & SRK_ADDRESS_TAKEN)) {
+    /* Set the address_taken flag in variables and routines. */
+    if (sym_kind == (a_symbol_kind)sk_variable) {
+      sym_ptr->variant.variable.ptr->address_taken = TRUE;
+    } else if (sym_kind == (a_symbol_kind)sk_static_data_member) {
+      sym_ptr->variant.static_data_member.variable->address_taken = TRUE;
+    } else if (sym_kind == (a_symbol_kind)sk_routine ||
+               sym_kind == (a_symbol_kind)sk_member_function) {
+      sym_ptr->variant.routine.ptr->address_taken = TRUE;
+    }  /* if */
+  }  /* if */
+  if (sym_kind == (a_symbol_kind)sk_variable) {
     /* If this reference is a use or, by taking the variable's address, a
        potential use, mark the variable has having been used.  Note that for
        an error reference, the variable is marked as being both set
