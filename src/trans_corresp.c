@@ -1209,9 +1209,9 @@ type is in fact valid.
           (sup != NULL &&
            (sup->virtual_function_info_offset !=
                                    corresp_sup->virtual_function_info_offset ||
-            sup->anonymous_union_kind != corresp_sup->anonymous_union_kind ||
+            sup->anonymous_union_kind != corresp_sup->anonymous_union_kind
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            sup->inheritance_kind != corresp_sup->inheritance_kind
+            || sup->inheritance_kind != corresp_sup->inheritance_kind
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                   )))) ||
         class_info.is_template_class != corresp_info.is_template_class ||
