@@ -116,10 +116,12 @@ cache containing the tokens that will be copied to token_cache.
   if (is_template_param) {
     incr_token_set_array_element(stop_tokens, tok_gt);
   }  /* if */
+  clear_token_cache(token_cache, /*reusable=*/TRUE);
   cache_token_stream_coalesce_identifiers(token_cache, stop_tokens,
                                           src_cache);
   /* Note that the terminating token (comma, rparen, etc.) is not added to
      the cache. */
+  terminate_token_cache(token_cache);
   db_exit();
 }  /* prescan_default_arg_expr */
 

@@ -603,23 +603,7 @@ entry onto a list in the current routine fixup entry.
        remainder of the declaration is in a token cache.  If the declaration
        has not been cached yet, cache it now.  This cache will be discarded
        at the end of processing this function declarator. */
-    /* Initialize a local stop token set. */
-    a_token_set_array  stop_tokens;
-    clear_token_set_array(stop_tokens);
-    /* Cache all tokens up to the ";" that follows a declaration, the "{" that
-       begins a definition, or a ":" that begins a ctor initializer list.
-       For static data members, some or all of the initializer will be
-       in the cache. */
-    incr_token_set_array_element(stop_tokens, tok_lbrace);
-    incr_token_set_array_element(stop_tokens, tok_colon);
-    incr_token_set_array_element(stop_tokens, tok_semicolon);
-    cache_token_stream(decl_cache, stop_tokens);
-    /* Add an end-of-source token to the end of the token cache to
-       assure that we don't scan past the end of the cache in the actual
-       scan. */
-    terminate_token_cache(decl_cache);
-    /* Rescan the cached tokens from a copy of this token cache. */
-    rescan_copy_of_cache(decl_cache);
+    cache_rest_of_declaration(decl_cache, /*stop_on_colon=*/FALSE);
   }  /* if */
   prescan_default_function_arg_expr(ptp, list, decl_cache);
 }  /* prescan_member_function_default_arg_expr */

@@ -5436,10 +5436,12 @@ Place the tokens for a template parameter into a token cache.
   incr_token_set_array_element(stop_tokens, tok_comma);
   incr_token_set_array_element(stop_tokens, tok_gt);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
+  clear_token_cache(token_cache, /*reusable=*/TRUE);
   cache_token_stream_coalesce_identifiers(token_cache, stop_tokens,
                                           &decl_state->param_list_cache);
   /* Note that the terminating token (comma, etc.) is not added to
      the cache. */
+  terminate_token_cache(token_cache);
   /* Rescan a copy of the tokens that were just cached.  Rescanning a copy
      ensures that processing of the remainder of the original line will
      not be affected by the tok_end_of_source that terminates the cache. */

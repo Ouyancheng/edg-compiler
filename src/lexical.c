@@ -654,10 +654,6 @@ is actually the first token to not be included in the cache.
   a_cached_token_ptr		first_ctp_to_copy;
   a_cached_token_ptr		last_ctp_to_copy;
 
-  clear_token_cache(dest_cache, /*reusable=*/TRUE);
-  check_assertion_str2(src_cache->is_reusable,
-                       "copy_tokens_from_cache:",
-                       "cache not reusable");
   /* first_ctp_to_copy is set for each non-pragma token in the cache, and
      points to the cache entry that follows it (which may be a pragma entry
      the precedes the next token). */
@@ -678,7 +674,10 @@ is actually the first token to not be included in the cache.
                       "copy_tokens_from_cache: first_tsn missing");
   last_ctp_to_copy = ctp;
   for (; ctp != NULL; ctp = ctp->next) {
-    if (ctp->token_sequence_number == last_tsn) break;
+    /* Stop when we find the specified token, or if we reach an end of
+       source token marking the end of the cache. */
+    if (ctp->token_sequence_number == last_tsn ||
+        ctp->token == tok_end_of_source) break;
     if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
       /* The token sequence looks something like:
 		 pragma-n0 token-n1 pragma-n2 token-n3 token-n4
@@ -689,10 +688,7 @@ is actually the first token to not be included in the cache.
       last_ctp_to_copy = ctp->next;
     }  /* if */
   }  /* for */
-#if 0
-  /* This test doesn't work for certain error cases. */
   check_assertion_str(ctp != NULL, "copy_tokens_from_cache: last_tsn missing");
-#endif
   /* Copy the specified range of tokens to the destination cache. */
   for (ctp = first_ctp_to_copy; ctp != last_ctp_to_copy; ctp = ctp->next) {
     a_cached_token_ptr	copy_ctp;
@@ -701,8 +697,6 @@ is actually the first token to not be included in the cache.
     copy_cached_token(ctp, copy_ctp);
     add_cached_token_to_cache(copy_ctp, dest_cache);
   }  /* for */
-  /* Terminate the new destination cache. */
-  terminate_token_cache(dest_cache);
 }  /* copy_tokens_from_cache */
 
 
@@ -844,12 +838,9 @@ be copies to the new cache.
     if (curr_token != tok_end_of_source) {
       /* Make a copy of the specified range of tokens from the source cache. */
       last_tsn = curr_token_sequence_number;
-     copy_tokens_from_cache(src_cache, first_tsn, last_tsn, cache);
+      copy_tokens_from_cache(src_cache, first_tsn, last_tsn, cache);
     } else {
-      /* An error case -- we ran into the end of the source file.  Create
-         an empty cache. */
-      clear_token_cache(cache, /*reusable=*/TRUE);
-      terminate_token_cache(cache);
+      /* An error case -- we ran into the end of the source file. */
     }  /* if */
   }  /* if */
   db_exit();
@@ -887,6 +878,34 @@ identifiers to be coalesced.
 
   end_suppression_of_diagnostics();
 }  /* cache_token_stream_coalesce_identifiers */
+
+
+void cache_rest_of_declaration(a_token_cache_ptr	cache,
+                               a_boolean		stop_on_colon)
+/*
+Enter the remaining tokens of the current declaration into a reusable
+token cache, and scan those tokens from a copy of the cache.  This is
+used to create a cache that can be used while caching a token stream and
+coalescing identifiers.  stop_on_colon is TRUE if a colon should
+be in the set of stop tokens.
+*/
+{
+  /* Initialize a local stop token set. */
+  a_token_set_array  stop_tokens;
+  clear_token_set_array(stop_tokens);
+  /* Cache all tokens up to the ";" that follows a declaration, the "{" that
+     begins a definition, or a ":" that begins a ctor initializer list. */
+  incr_token_set_array_element(stop_tokens, tok_lbrace);
+  if (stop_on_colon) incr_token_set_array_element(stop_tokens, tok_colon);
+  incr_token_set_array_element(stop_tokens, tok_semicolon);
+  cache_token_stream(cache, stop_tokens);
+  /* Add an end-of-source token to the end of the token cache to
+     assure that we don't scan past the end of the cache in the actual
+     scan. */
+  terminate_token_cache(cache);
+  /* Rescan the cached tokens from a copy of this token cache. */
+  rescan_copy_of_cache(cache);
+}  /* cache_rest_of_declaration */
 
 
 void rescan_cached_tokens(a_token_cache *cache)
