@@ -8962,6 +8962,14 @@ continue_with_declaration:
                                           parent.namespace_ptr == NULL));
             func_info.is_main_function = is_main_function = TRUE;
             /* Perform some error checking that is specific to C++. */
+            if (!identical_types(skip_typerefs(local_type_ptr)->
+                                                 variant.routine.return_type,
+                                 integer_type((an_integer_kind)ik_int))) {
+              /* main must return "int" (3.6.1). */
+              pos_diagnostic(strict_ansi_mode ?
+                               strict_ansi_discretionary_severity : es_warning,
+                             ec_bad_return_type_on_main, &decl_start_pos);
+            }  /* if */
             rtsp = skip_typerefs(local_type_ptr)->variant.routine.extra_info;
             if (rtsp->routine_name_linkage_is_explicit) {
               pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);

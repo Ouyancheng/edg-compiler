@@ -1,5 +1,11 @@
 Version 2.42
 
+4/27/99  Return type of "main"
+
+In C++ mode a diagnostic is now issued if the return type of function main
+is anything but "int".  A discretionary error is issued in strict ANSI
+mode, a warning otherwise.
+
 4/26/99  C++-generating back end: using-directive and namespace qualifier
 
 When a using-directive resulted in name overloading, the namespace
