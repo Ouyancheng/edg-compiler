@@ -424,10 +424,22 @@ flags cleared.  Note that this happens even if no hiding had occurred.
   if (is_injected_class_symbol(sym_ptr)) {
     /* An injected class name is accessible without qualification.  Creating
        a hidden name entry will ensure that any qualification forced by prior
-       entries is canceled. */
-    hnp = make_new_hidden_name(sp);
-    hnp->entity.ptr = il_entry_for_symbol(sym_ptr, &entity_kind);
-    hnp->entity.kind = (a_byte_il_entry_kind)entity_kind;
+       entries is canceled.  Make sure that the injected class name is not
+       hidden by another member. */
+    a_symbol_locator  locator;
+    clear_locator(&locator, &sym_ptr->decl_position);
+    locator.symbol_header = sym_ptr->header;
+    check_assertion(sp->kind == (a_scope_kind)sck_class_struct_union);
+    class_qualified_id_lookup(&locator, sp->variant.assoc_type,
+                              IDL_HIDDEN_NAME_LOOKUP);
+    /* If the lookup produced the injected symbol, it is not hidden by
+       another member. */
+    if (locator.specific_symbol != NULL &&
+        fundamental_symbol_of(locator.specific_symbol) == sym_ptr) {
+      hnp = make_new_hidden_name(sp);
+      hnp->entity.ptr = il_entry_for_symbol(sym_ptr, &entity_kind);
+      hnp->entity.kind = (a_byte_il_entry_kind)entity_kind;
+    }  /* if */
   } else if (sp->kind == (a_scope_kind)sck_function ||
              sp->kind == (a_scope_kind)sck_block) {
     /* A block extern declaration makes the associated entity accessible
@@ -585,13 +597,8 @@ hidden name checking on its own members, too.
       }  /* if */
 #endif /* DEBUG */
       /* Unhide the injected class names since they can now be accessed
-         using an unqualified name even if that was not so in the base.
-         However, do not do so if the derived class has the same (unqualified)
-         name as the base class. */
-      if (((a_symbol*)class_type->source_corresp.assoc_info)->header
-                                                         != sym_ptr->header) {
-        check_name_unhiding(sym_ptr, sp);
-      }  /* if */
+         using an unqualified name even if that was not so in the base. */
+      check_name_unhiding(sym_ptr, sp);
       /* Perform a lookup. */
       clear_locator(&locator, &sym_ptr->decl_position);
       locator.symbol_header = sym_ptr->header;
