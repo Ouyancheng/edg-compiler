@@ -3819,16 +3819,17 @@ class of which it is a member.  Create and enter a symbol entry, and
 return a pointer to it in *symbol_ptr.
 */
 {
-  a_type_ptr    tp;
-  a_symbol_ptr  sym = NULL;
-  a_boolean     suppress_redecl_error = FALSE;
-  a_boolean     saved_referenced_flag;
+  a_type_ptr               tp;
+  a_symbol_ptr             sym = NULL;
+  a_boolean                suppress_redecl_error = FALSE;
+  a_boolean                saved_referenced_flag;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
 
   db_enter(3, "decl_typedef");
   if ((sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS)) != NULL) {
     if (sym->kind == (a_symbol_kind)sk_type ||
         (C_dialect == C_dialect_cplusplus && is_type_symbol(sym))) {
-      /* Sym is a type name symbol from the current scope.  Issue an error
+      /* sym is a type name symbol from the current scope.  Issue an error
          if this is an illegal redefinition of the name; otherwise, reuse
          the existing symbol. */
       if (sym->kind == (a_symbol_kind)sk_type) {
@@ -3845,10 +3846,21 @@ return a pointer to it in *symbol_ptr.
       if (identical_types(tp, type_ptr) || is_error_type(tp)) {
         /* The current declaration simply redefines the name to the same
            type, which is permitted in C++ (ARM 7.1.3) and warned about for
-           ordinary C.  However, in C++ we may still need an sk_type symbol,
+           ordinary C. */
+        /* If this a member type check to be sure the access isn't being
+           changed. */
+        if (!C_mode() && class_type != NULL) {
+          check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
+          if (type_symbol_type(sym)->source_corresp.access !=
+                                               ssep->current_access) {
+            pos_sy_warning(ec_cannot_change_access, &locator->source_position,
+                           sym);
+          }  /* if */
+        }  /* if */
+        /* However, in C++ we may still need an sk_type symbol,
            since tags and typedefs do not occupy the same name space. */
         if (sym->kind == (a_symbol_kind)sk_type) {
-          if (C_dialect != C_dialect_cplusplus) {
+          if (C_mode()) {
             /* Allowing a benign redeclaration is an extension in C, so issue
                a warning. */
             pos_diagnostic(strict_ansi_error_severity,
@@ -3928,6 +3940,7 @@ return a pointer to it in *symbol_ptr.
   if (class_type != NULL) {
     sym->class_of_which_a_member = class_type;
     tp->source_corresp.class_of_which_a_member = class_type;
+    tp->source_corresp.access = ssep->current_access;
   }  /* if */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position, declarator_ssep);

@@ -679,27 +679,35 @@ skip_tag_scan:
           }  /* if */
         }  /* if */
       }  /* if */
-      if (is_class_definition &&
-          tag_sym->class_of_which_a_member != NULL &&
-          (ssep->kind != (a_scope_kind)sck_class_struct_union ||
-           tag_sym->class_of_which_a_member != ssep->assoc_type)) {
-        /* A definition of a nested class that appears in the scope other
-           than that of its parent class. */
-        parent = (a_symbol_ptr)tag_sym->class_of_which_a_member->
-                                               source_corresp.assoc_info;
-        /* Find the outermost enclosing class. */
-        while (parent->class_of_which_a_member != NULL) {
-          parent = (a_symbol_ptr)parent->class_of_which_a_member->
-                                                source_corresp.assoc_info;
-        }  /* while */
-        if (parent->decl_scope == ssep->number) {
-          /* Okay to define the nested class in this scope -- it is the
-             scope in which the parent was defined. */
-          delayed_nested_class_def = TRUE;
-        } else {
-          pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
-          tag_sym = NULL;
-          set_to_error_locator(locator);
+      if (tag_sym != NULL && tag_sym->class_of_which_a_member != NULL) {
+        /* Nested class. */
+        if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+            tag_sym->class_of_which_a_member == ssep->assoc_type) {
+          /* Redeclaration of nested class name inside the body of the class
+             of which it is a member.  Be sure the access is consistent. */
+          if (ssep->current_access !=
+                          type_symbol_type(tag_sym)->source_corresp.access) {
+            pos_sy_warning(ec_cannot_change_access, &tag_position, tag_sym);
+          }  /* if */
+        } else if (is_class_definition) {
+          /* A definition of a nested class that appears in the scope other
+             than that of its parent class. */
+          parent = (a_symbol_ptr)tag_sym->class_of_which_a_member->
+                                                 source_corresp.assoc_info;
+          /* Find the outermost enclosing class. */
+          while (parent->class_of_which_a_member != NULL) {
+            parent = (a_symbol_ptr)parent->class_of_which_a_member->
+                                                  source_corresp.assoc_info;
+          }  /* while */
+          if (parent->decl_scope == ssep->number) {
+            /* Okay to define the nested class in this scope -- it is the
+               scope in which the parent was defined. */
+            delayed_nested_class_def = TRUE;
+          } else {
+            pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
+            tag_sym = NULL;
+            set_to_error_locator(locator);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -774,6 +782,7 @@ skip_tag_scan:
           class_type->source_corresp.class_of_which_a_member =
             tag_sym->class_of_which_a_member =
                               scope_stack[decl_scope_level].assoc_type;
+          class_type->source_corresp.access = ssep->current_access;
         }  /* if */
       }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
@@ -1058,6 +1067,15 @@ to indicate whether an enumeration is actually defined.
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace) {
       mark_defined(tag_sym, &locator.source_position);
+      if (!C_mode() && tag_sym->class_of_which_a_member != NULL) {
+        /* enum_type is a class member and is being defined having been
+           forward-declared. */
+        if (enum_type->source_corresp.access != access) {
+          pos_sy_warning(ec_cannot_change_access, &locator.source_position,
+                         tag_sym);
+          access = enum_type->source_corresp.access;
+        }  /* if */
+      }  /* if */
     } else if (curr_token == tok_semicolon && !strict_ansi_mode) {
       /* A useless redeclaration of an enum tag. */
       mark_declared(tag_sym, &locator.source_position);
