@@ -1030,10 +1030,9 @@ typedef struct a_source_correspondence {
 			   this entity.  Used within the C++-generating back
 			   end. */
   a_bit_field	partially_hidden_by_microsoft_injected_class_name:1;
-			/* Used in Microsoft mode only.  Microsoft only sees
-			   injected class names when doing qualified lookup.
-			   However, they do not allow qualification with a
-			   class whose closing brace has not yet been seen. */
+			/* Used in Microsoft mode only, for injected class
+			   names.  They require qualification unless used
+			   to the left of "::". */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if ONE_INSTANTIATION_PER_OBJECT
   a_bit_field	static_used_by_instantiation:1;
@@ -7130,10 +7129,9 @@ typedef struct a_hidden_name {
 			   current scope, so that the hiding can be defeated
 			   by using an elaborated type specifier. */
   a_bit_field	partially_hidden_by_microsoft_injected_class_name:1;
-			/* Used in Microsoft mode only.  Microsoft only sees
-			   injected class names when doing qualified lookup.
-			   However, they do not allow qualification with a
-			   class whose closing brace has not yet been seen. */
+			/* Used in Microsoft mode only, for injected class
+			   names.  They require qualification unless used
+			   to the left of "::". */
   bitfield_to_avoid_codecenter_warnings()
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
