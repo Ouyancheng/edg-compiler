@@ -1600,7 +1600,7 @@ scan_paren:
       /* Attach the new dynamic init entry to the constructor initializer. */
       cip->initializer = dip;
     }  /* if */
-  }  /* if */
+  }  /* for */
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol((a_symbol_ptr)ctor_rout->source_corresp.assoc_info,
@@ -1626,6 +1626,162 @@ scan_paren:
   db_exit();
   return cip_list;
 }  /* ctor_initializer */
+
+
+a_constructor_init_ptr dtor_initializer(a_routine_ptr  dtor_rout)
+/*
+Return a list of constructor-init entries describing implicit destructor
+calls required when the destructor dtor_rout is invoked.  (Constructor-init
+entries are used because of the similarity to constructor processing, even
+though neither constructors nor initialization is involved here.)
+*/
+{
+  a_type_ptr                    class_type, tp, array_type;
+  a_symbol_ptr                  sym, class_sym;
+  a_constructor_init_ptr        cip;
+  a_constructor_init_ptr        cip_list, end_of_cip_list;
+  a_constructor_init_ptr        virtual_list;
+  a_base_class_ptr              bcp;
+  a_routine_ptr                 rp;
+  a_class_symbol_supplement_ptr cssp;
+  a_dynamic_init_ptr            dip;
+
+  db_enter(3, "dtor_initializer");
+  class_type = ((a_symbol_ptr)dtor_rout->source_corresp.assoc_info)->
+                                                   class_of_which_a_member;
+#if CHECKING
+  if (class_type == NULL) internal_error("dtor_initializer: NULL class type");
+#endif /* if CHECKING */
+  /* The order of destructor calls is exactly the reverse of the order of
+     constructor calls.  In other words, destructors for virtual base classes
+     are last, preceded by destructors for nonvirtual direct base classes,
+     with destructors for members coming first (ARM 12.4).  Thus we follow the
+     logic in ctor_initializer, except that the lists are built backwards and
+     merged backwards.   First construct the lists for virtual base classes
+     and nonvirtual direct base classes. */
+  virtual_list = NULL;
+  cip_list = end_of_cip_list = NULL;
+  for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    if (bcp->is_virtual || bcp->direct) {
+      cssp = symbol_supplement_for_class(bcp->type);
+      /* If the virtual base class or direct base class has a destructor, a
+         dynamic init entry will be required.  Create the constructor init
+         entry now; the dynamic init will be added later. */
+      if (cssp->destructor != NULL) {
+        cip = alloc_ctor_init(bcp->is_virtual ?
+                              (a_constructor_init_kind)cik_virtual_base_class :
+                              (a_constructor_init_kind)cik_direct_base_class);
+        cip->variant.base_class = bcp;
+        /* Create a dynamic init entry. */
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+        dip->destructor = rp = cssp->destructor->variant.routine;
+        /* Mark the destructor referenced. */
+        reference_to_special_member_function(rp);
+        /* Attach the new dynamic init entry to the constructor initializer. */
+        cip->initializer = dip;
+        /* Add the constructor init to the end of the appropriate list. */
+        if (bcp->is_virtual) {
+          /* Add to the start of the virtual list. */
+          cip->next = virtual_list;
+          virtual_list = cip;
+        } else {
+          /* Add to the start of the direct list.  If this is the first
+             entry, keep track of it, since it will be the tail of the list
+             to which the virtual list will be attached later. */
+          if (end_of_cip_list == NULL) end_of_cip_list = cip;
+          cip->next = cip_list;
+          cip_list = cip;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (cip_list != NULL) {
+    /* Attach the virtual list, if any, to the end of the direct list. */
+    end_of_cip_list->next = virtual_list;
+  } else {
+    /* No direct list.  Just use the virtual list. */
+    cip_list = virtual_list;
+  }  /* if */
+  /* Now add entries for destructors required by nonstatic data members.
+     Loop through the symbol list for the class, not the field list, since
+     the symbol list is always in declaration order, but the field list is in
+     allocation order.  These need not be the same. */
+  class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  for (sym = class_sym->variant.class_struct_union.extra_info->symbols;
+       sym != NULL;
+       sym = sym->next_in_scope) {
+    if (sym->kind == (a_symbol_kind)sk_field) {
+      /* sym represents a field.  Determine whether a destructor exists. */
+      array_type = NULL;
+      tp = skip_typerefs(sym->variant.field->type);
+      /* For arrays get the element type, allowing for multidimensional
+         arrays.  Keep track of the array type for later. */
+      if (is_array_type(tp)) {
+        array_type = tp;
+        do {
+          tp = array_element_type(tp);
+        } while(is_array_type(tp));
+        tp = skip_typerefs(tp);
+      }  /* if */
+      if (is_class_struct_union_type(tp)) {
+        cssp = symbol_supplement_for_class(tp);
+        if (cssp->destructor != NULL) {
+          /* Create the constructor init entry for a field. */
+          cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
+          cip->variant.field = sym->variant.field;
+          /* Create a dynamic init entry. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+          dip->destructor = rp = cssp->destructor->variant.routine;
+          /* Mark the destructor referenced. */
+          reference_to_special_member_function(rp);
+          if (array_type != NULL) {
+            /* We have an array of objects with destructors.  Create a dynamic
+               init entry to handle the aggregate. */
+            a_dynamic_init_ptr  dtor_dip = dip;
+            dip = alloc_dynamic_init(
+                             (a_dynamic_init_kind)dik_nonconstant_aggregate);
+            /* Build the looping constant entry. */
+            repeat_constructor_init(dtor_dip, dip,
+                                    array_type->size == 0 ? 1 :
+                                                array_type->size / tp->size);
+          }  /* if */
+          /* Attach the new dynamic init entry to the constructor
+             initializer. */
+          cip->initializer = dip;
+          /* Add the entry to the start of the list. */
+          cip->next = cip_list;
+          cip_list = cip;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+#if DEBUG
+  if (debug_level >= 3) {
+    db_symbol((a_symbol_ptr)dtor_rout->source_corresp.assoc_info,
+              "destructor: ", 2);
+    for (cip = cip_list; cip != NULL; cip = cip->next) {
+      if (cip->kind == (a_constructor_init_kind)cik_field) {
+        sym = (a_symbol_ptr)cip->variant.field->source_corresp.assoc_info;
+      } else {
+        sym = (a_symbol_ptr)cip->variant.base_class->type->
+                                                source_corresp.assoc_info;
+      }  /* if */
+      fprintf(f_debug, "    destructor for %s %s: %s",
+                       (cip->kind == (a_constructor_init_kind)cik_field) ?
+                          "field" : "base class",
+                       sym->header->identifier,
+                       (cip->initializer == NULL) ? " <none>\n" : "\n      ");
+      if (cip->initializer != NULL) {
+        db_dynamic_initializer(cip->initializer, 6);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return cip_list;
+}  /* dtor_initializer */
 
 
 /******************************************************************************

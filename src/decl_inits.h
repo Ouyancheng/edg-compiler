@@ -35,6 +35,8 @@ extern a_boolean def_initializer(a_symbol_ptr       sym,
 
 extern a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout);
 
+extern a_constructor_init_ptr dtor_initializer(a_routine_ptr  dtor_rout);
+
 #endif /* ifndef DECL_INITS_H */
 
 /******************************************************************************
