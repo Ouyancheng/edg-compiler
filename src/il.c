@@ -7834,10 +7834,12 @@ are not already present.
   }  /* if */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   qualifiers_to_add = qualifiers & ~base_type_qualifiers;
+#if NAMED_ADDRESS_SPACES_ALLOWED
   if (nas_change_needed) {
     set_named_address_space_in_qualifier_set(qualifiers_to_add,
                                              nas_to_add);
   }  /* if */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   /* Always add shared if requested, so we can preserve the specified
      block size. */
