@@ -88,14 +88,12 @@ extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 			/* If this bit is set decl_specifiers is being called
 			   for an old-style parameter declaration.  Some error
 			   checking is affected. */
-#define DSI_MICROSOFT_QUALIFIERS_ALLOWED (a_decl_flag_set)(0x4000)
-#if MICROSOFT_KEYWORDS_ALLOWED
-#define DSI_LAST DSI_MICROSOFT_QUALIFIERS_ALLOWED
+#define DSI_ASM_ALLOWED (a_decl_flag_set)(0x4000)
+			/* If this bit is set "asm" is recognized as a decl-
+			   specifier.  Used only when ASM_FUNCTION_ALLOWED is
+			   TRUE. */
+#define DSI_LAST DSI_ASM_ALLOWED
 			/* Last bit in the bit vector that is in use. */
-#else /* MICROSOFT_KEYWORDS_ALLOWED */
-#define DSI_LAST DSI_IS_OLD_STYLE_PARAM_DECL
-			/* Last bit in the bit vector that is in use. */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
