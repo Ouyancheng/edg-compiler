@@ -1031,12 +1031,21 @@ sizeof_t mangled_class_name(a_type_ptr type,
 /*
 Determine the mangled form of the name of the class "type".  This is
 the encoding used for the name of the class as opposed to the encoding
-for the class as a type (if there is a difference).  Place the mangled
-name at *store_at if store_at != NULL, and (always) return the length
-of the name.
+for the class as a type (for example, it has no length preceding a
+simple class name).  Place the mangled name at *store_at if
+store_at != NULL, and (always) return the length of the name.
 */
 {
-  sizeof_t mangled_name_length = mangled_type_name(type, store_at);
+  sizeof_t mangled_name_length;
+
+  if (type_needs_parent_qualifier(type)) {
+    /* For a nested class, use the nested type encoding for the class. */
+    mangled_name_length = mangled_type_name(type, store_at);
+  } else {
+    /* For a non-nested class, use the simple form of the name (with
+       no preceding length). */
+    mangled_name_length = mangled_basic_class_name(type, store_at);
+  }  /* if */
   return mangled_name_length;
 }  /* mangled_class_name */
 
@@ -2289,10 +2298,8 @@ sizeof_t mangled_vtbl_class_name(a_type_ptr type,
                                  char       *store_at)
 /*
 Determine the mangled form of the name of the class "type" for use in
-a virtual function table name.  This is similar to what mangled_class_name
-does, but in cfront mode it has a length in front of even nested class
-names (e.g., "7Q2_1A1B" instead of "Q2_1A1B").  Place the mangled name at
-*store_at if store_at != NULL, and (always) return the length of the name.
+a virtual function table name.  Place the mangled name at *store_at if
+store_at != NULL, and (always) return the length of the name.
 */
 {
   sizeof_t mangled_name_length, name_length, digits;
@@ -2301,24 +2308,24 @@ names (e.g., "7Q2_1A1B" instead of "Q2_1A1B").  Place the mangled name at
   /* cfront mode. */
   if (type_needs_parent_qualifier(type)) {
     /* The type is a nested type.  Add a length in front of the mangled
-       form. */
-    name_length = mangled_class_name(type, (char *)NULL);
+       form (e.g., "7Q2_1A1B" instead of "Q2_1A1B"). */
+    name_length = mangled_type_name(type, (char *)NULL);
     digits = digits_to_represent((unsigned long)name_length);
     mangled_name_length = name_length + digits;
     if (store_at != NULL) {
       /* Actually store the name. */
       (void)sprintf(store_at, "%lu", (unsigned long)name_length);
       store_at += digits;
-      store_at += mangled_class_name(type, store_at);
+      store_at += mangled_type_name(type, store_at);
     }  /* if */
   } else {
-    /* Not a nested type name; just put out. */
-    mangled_name_length = mangled_class_name(type, store_at);
+    /* Not a nested type name; just put out the type encoding. */
+    mangled_name_length = mangled_type_name(type, store_at);
   }  /* if */
 #else /* ABI_COMPATIBILITY_VERSION < 230 || ... */
   /* In non-cfront mode, or in old ABI versions, just pass through to
-     mangled_class_name. */
-  mangled_name_length = mangled_class_name(type, store_at);
+     mangled_type_name. */
+  mangled_name_length = mangled_type_name(type, store_at);
 #endif /* ABI_COMPATIBILITY_VERSION >= 230 && ... */
   return mangled_name_length;
 }  /* mangled_vtbl_class_name */
