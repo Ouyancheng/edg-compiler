@@ -1958,7 +1958,6 @@ check occurs in connection with an implicit type conversion.
       impl_conv_between_c_and_cpp_function_ptrs_allowed) {
     /* Implicit conversion -- extern "C" and extern "C++" function types
        are treated as compatible. */
-    check_assertion(!strict_ansi_mode);
     compat = TRUE;
   } else {
     /* If c_and_cpp_function_types_are_distinct is TRUE, nlk_external and
