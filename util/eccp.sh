@@ -270,6 +270,10 @@ driver_debug=0
 #
 pch_test_mode=0
 #
+# Debug option that causes nm to be run on object files
+#
+nm_on_objects=0_
+#
 # The name of the instantiation information file was explicitly specified
 #
 ii_file_specified=0
@@ -389,6 +393,10 @@ do
     -munch | --munch)
 #     Use "munch" for handling static constructors and destructors
       patch_mode=0
+      ;;
+    --nm)
+#     Run nm on the generated object files (used for debugging)
+      nm_on_objects=1
       ;;
     -patch | --patch)
 #     Use "patch" for handling static constructors and destructors
@@ -958,6 +966,10 @@ do
 #       Add the file to the list of .o files to be removed later.
 #
 	rofiles=$rofiles" "$output_file
+        if [ $nm_on_objects -eq 1 ] ; then
+          # Debug option that runs nm on generated object files
+	  nm $output_file | edg_decode
+        fi
       fi
     fi
   fi
