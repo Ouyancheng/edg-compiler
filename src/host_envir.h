@@ -312,10 +312,11 @@ the generated C output file.
 
 /*
 Flag that is TRUE to cause the declaration scope depth to appear in the
-IL entry.
+IL entry.  When it is set to FALSE the intermediate language representation
+is more compact since there is one fewer field in IL entries.
 */
 #ifndef RECORD_SCOPE_DEPTH_IN_IL
-#define RECORD_SCOPE_DEPTH_IN_IL TRUE
+#define RECORD_SCOPE_DEPTH_IN_IL FALSE
 #endif /* ifndef RECORD_SCOPE_DEPTH_IN_IL */
 
 /*
