@@ -1,5 +1,13 @@
 Version 3.6
 
+11/30/04 Microsoft compatibility: Out-of-class member enum definitions
+
+In Microsoft mode, the front end now accepts out-of-class definitions of
+class member enum types.  For example:
+
+  struct S { enum E; };
+  enum S::E { e1, e2 };  // Now accepted in Microsoft mode.
+
 11/29/04 C++-generating back end: Microsoft compatibility for qualified names
          in using-declarations
 

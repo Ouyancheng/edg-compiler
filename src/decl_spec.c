@@ -3224,6 +3224,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
   a_boolean                    inside_class_definition;
   a_boolean                    is_redeclaration;
   a_boolean                    namespace_extension_pushed = FALSE;
+  a_boolean                    class_reactivation_pushed = FALSE;
   a_source_position            tag_position;
   a_decl_pos_block             local_decl_pos_block;
   a_boolean                    is_predeclared_type_decl = FALSE;
@@ -3300,8 +3301,19 @@ describes Microsoft attributes preceding the enum specifier (if any).
       /* This is a definition of an enumeration that has previously been
          declared. */
       if (tag_sym->is_class_member) {
-        if (!same_entities(tag_sym->parent.class_type,
-                           class_of_which_a_member)) {
+        /* Class member enum types must normally be defined in the definition
+           of their enclosing class, but Microsoft compilers allow out-of-class
+           definitions. */
+        if (microsoft_mode && class_of_which_a_member == NULL) {
+          /* An out-of-class definition of a class member enum: Reactivate the
+             class scope. */
+          class_of_which_a_member = tag_sym->parent.class_type;
+          push_class_reactivation_scope(class_of_which_a_member,
+                                        /*extend_namespace=*/FALSE);
+          class_reactivation_pushed = TRUE;
+          effective_decl_level = depth_scope_stack;
+        } else if (!same_entities(tag_sym->parent.class_type,
+                                  class_of_which_a_member)) {
           /* This is an attempt to define a member enum outside the class of
              which it is a member. */
           pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
@@ -4041,8 +4053,13 @@ describes Microsoft attributes preceding the enum specifier (if any).
                                 /*delete_placeholder=*/FALSE);
     }  /* if */
   }  /* if */
-  /* If necessary, pop the namespace extension scope. */
-  if (namespace_extension_pushed) pop_namespace_extension_scope();
+  /* If necessary, pop the namespace extension scope or the class
+     reactivation scope. */
+  if (namespace_extension_pushed) {
+    pop_namespace_extension_scope();
+  } else if (class_reactivation_pushed) {
+    pop_class_reactivation_scope();
+  }  /* if */
   *type_ptr = enum_type;
 return_point:;
   db_exit();
