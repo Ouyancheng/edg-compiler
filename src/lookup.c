@@ -2132,8 +2132,9 @@ that do normal id lookup processing.
   a_scope_depth		def_start = ssep->previous_scope;
   a_scope_depth		ref_start = ssep->instantiation_context_depth;
   a_symbol_ptr		def_sym;
-  a_symbol_ptr		ref_sym;
+  a_symbol_ptr		ref_sym = NULL;
   a_symbol_ptr		sym = NULL;
+  a_boolean		do_not_look_in_common_scopes = FALSE;
 
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("instantiation_lookup")) {
@@ -2144,14 +2145,22 @@ that do normal id lookup processing.
   }  /* if */
 #endif /* DEBUG */
   def_sym = scope_stack_lookup(locator, lookup_state, def_start, common_depth);
-  ref_sym = scope_stack_lookup(locator, lookup_state, ref_start, common_depth);
+  if (def_sym != NULL && def_sym->is_class_member) {
+    /* Do not look for a name in the referencing context if the definition
+       context search found a class member. */
+    do_not_look_in_common_scopes = TRUE;
+  } else {
+    ref_sym = scope_stack_lookup(locator, lookup_state, ref_start,
+                                 common_depth);
+  }  /* if */
   /* If either of these lookups failed to find a symbol, continue the
      lookup starting from the common scope.  When doing a friend lookup,
      only do the common scope lookup if the innermost namespace scope
      is part of the common lookup. */
   if ((ref_sym == NULL || def_sym == NULL) &&
       (!lookup_state->is_friend_lookup ||
-       depth_innermost_namespace_scope <= common_depth)) {
+       depth_innermost_namespace_scope <= common_depth) &&
+       !do_not_look_in_common_scopes) {
     /* One of the lookups did not find a symbol.  Do the lookup of
        the common scopes. */
     a_symbol_ptr	common_sym;

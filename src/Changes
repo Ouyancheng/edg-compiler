@@ -1,5 +1,25 @@
 Version 2.43
 
+11/3/99  Lookup of names in member templates of nontemplate classes
+
+When looking up a function name in a member function template of a
+nontemplate class, names from the referencing context of the template
+instantiation were incorrectly being considered.  This could result in
+incorrect behavior (e.g., calling ::g instead of A::g in the example
+below) but could also result in an abort in compare_arg_match_levels.
+This has been fixed.
+
+  struct A {
+    A(int){}
+    A(){}
+    template <class T> void f(T) {
+    	g(1);  // should call A::g
+    }
+    void g(A);
+  };
+  void g(int);
+
+
 11/3/99  Folding of address constants
 
 In the past, certain cases of address constant folding were inhibited in order
