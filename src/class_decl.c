@@ -11336,16 +11336,6 @@ next_declaration:
        pop that scope now. */
     pop_template_instantiation_scope();
   }  /* if */
-  /* If there are no longer any classes in the process of being defined
-     do any class fixups and template instantiations that have been
-     deferred. */
-  process_deferred_class_fixups_and_instantiations();
-
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  check_for_and_remove_redundant_secondary_decl_ss_entry(class_type);
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_exit();
   return !err;

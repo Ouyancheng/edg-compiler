@@ -2018,6 +2018,17 @@ the template.
     }  /* if */
     /* If necessary, pop the namespace extension scope. */
     if (namespace_extension_pushed) pop_namespace_extension_scope();
+    /* If there are no longer any classes in the process of being defined
+       do any class fixups and template instantiations that have been
+       deferred.  (Note that this has to be done after the namespace
+       extension scope is popped to handle source-sequence insertion for
+       templates correctly.) */
+    process_deferred_class_fixups_and_instantiations();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    check_for_and_remove_redundant_secondary_decl_ss_entry(class_type);
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !C_mode() && tag_sym->kind != (a_symbol_kind)sk_type) {
