@@ -664,22 +664,26 @@ flag.
 {
 #if ONE_INSTANTIATION_PER_OBJECT
   unsigned long saved_needed_flag_bit_number = needed_flag_bit_number;
-  unsigned long bit_number;
-  an_instantiation_needed_flags_scan_state
-                state;
 
-  /* For each "definition needed" bit set in the model, set the
-     corresponding bit in the entry. */
-  clear_instantiation_needed_flags_scan_state(&state, &rout->source_corresp);
-  while ((bit_number = next_set_instantiation_needed_flag(&state)) != 0) {
-    /* Ignore bits other than the "definition needed" bits. */
-    if (bit_number % 2 == 0) {
-      needed_flag_bit_number = bit_number - 1;
-      /* Clear the bit if set, then set it. */
-      set_instantiation_needed_flag(&rout->source_corresp, 1, 0);
-      set_routine_definition_needed(rout);
-    }  /* if */
-  }  /* while */
+  if (one_instantiation_per_object &&
+      !in_secondary_trans_unit(rout)) {
+    unsigned long bit_number;
+    an_instantiation_needed_flags_scan_state
+                  state;
+
+    /* For each "definition needed" bit set in the model, set the
+       corresponding bit in the entry. */
+    clear_instantiation_needed_flags_scan_state(&state, &rout->source_corresp);
+    while ((bit_number = next_set_instantiation_needed_flag(&state)) != 0) {
+      /* Ignore bits other than the "definition needed" bits. */
+      if (bit_number % 2 == 0) {
+        needed_flag_bit_number = bit_number - 1;
+        /* Clear the bit if set, then set it. */
+        set_instantiation_needed_flag(&rout->source_corresp, 1, 0);
+        set_routine_definition_needed(rout);
+      }  /* if */
+    }  /* while */
+  }  /* if */
   needed_flag_bit_number = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   if (rout->definition_needed) {
@@ -1015,8 +1019,9 @@ references.
        this, but doing it here reduces the possibility of error.  (In C++
        mode, extern inline functions may be lowered to static inline
        functions, in which case the definition may not be needed.) */
-    if (rout->storage_class == (a_storage_class)sc_unspecified &&
-        (C_mode() || !treat_as_static_inline(rout))) {
+    if ((rout->storage_class == (a_storage_class)sc_unspecified &&
+         (C_mode() || !treat_as_static_inline(rout))) ||
+        rout->source_corresp.static_used_by_instantiation) {
       set_routine_definition_needed(rout);
 #if GNU_EXTENSIONS_ALLOWED
     } else if (rout->is_initialization_routine ||
@@ -1057,9 +1062,12 @@ match the needed flags(s).
     check_assertion(scp != NULL);
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
-  /* For each "needed" bit set in the model, set the corresponding bit in the
-     entry. */
-  { an_instantiation_needed_flags_scan_state state;
+  if (one_instantiation_per_object &&
+      !in_secondary_trans_unit(scp) &&
+      !in_secondary_trans_unit(model_scp)) {
+    /* For each "needed" bit set in the model, set the corresponding bit in the
+       entry. */
+    an_instantiation_needed_flags_scan_state state;
 
     clear_instantiation_needed_flags_scan_state(&state, model_scp);
     while ((needed_flag_bit_number =
@@ -1074,8 +1082,8 @@ match the needed flags(s).
         }  /* if */
       }  /* if */
     }  /* while */
-  }
-  /* needed_flag_bit_number is zero after loop above. */
+  }  /* if */
+  needed_flag_bit_number = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   if (model_scp->needed) {
     ((a_source_correspondence *)entry_ptr)->needed = FALSE;
