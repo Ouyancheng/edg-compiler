@@ -46,7 +46,9 @@ extern void find_member_function_template(
                                     a_symbol_ptr  rout_sym,
                                     a_symbol_ptr  corresp_prototype_tag_sym);
 
-extern void instantiate_template_class(a_type_ptr  type);
+extern void f_check_for_uninstantiated_template_class(a_type_ptr  type);
+
+extern void f_instantiate_template_class(a_type_ptr  type);
 
 extern void instantiate_template_function(
                                     a_function_instantiation_entry_ptr  fiep);
@@ -55,12 +57,17 @@ extern a_boolean equiv_template_arg_lists(a_template_arg_ptr list1,
                                           a_template_arg_ptr list2,
                                           a_boolean          is_func_template);
 
-/* Macro to call instantiate_template_class if tp is plausibly a class
-   in need of instantiation or an array whose underlying element type is such
-   a class.  Most of the checking is left to the function. */
+/* If tp is a class in need of instantiation or an array whose underlying
+   element type is such a class, instantiate it.  Otherwise, do nothing. */
 #define check_for_uninstantiated_template_class(tp)                    \
 { if (C_dialect == C_dialect_cplusplus &&                              \
-      is_incomplete_type(tp)) instantiate_template_class(tp); }
+      is_incomplete_type(tp))                                          \
+    f_check_for_uninstantiated_template_class(tp); }
+
+/* tp is a class type.  If it is incomplete, see if it is a template class in
+   need of instantiation and, if so, instantiate it. */
+#define instantiate_template_class(tp)                                \
+{ if (is_incomplete_type(tp)) f_instantiate_template_class(tp); }
 
 #endif /* TEMPLATES_H */
 
