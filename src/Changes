@@ -1,5 +1,10 @@
 Version 2.39
 
+4/10/98   Storage class on a condition declaration
+
+In strict mode a diagnostic is now issued if "auto" or "register" is
+specified in a condition declaration.
+
 4/10/98   Union with member of reference type
 
 An error is now issued if a union member is declared with a reference type.

@@ -3573,10 +3573,27 @@ Returns TRUE if there is an error in the specifiers.
                    (curr_token == tok_auto || curr_token == tok_register)) {
           error(ec_bad_file_scope_storage_class);
           err = TRUE;
-        } else if (input_flags & DSI_IS_CONDITION_DECL &&
-                   curr_token != tok_auto && curr_token != tok_register) {
-          error(ec_bad_storage_class_on_condition_decl);
-          err = TRUE;
+        } else if (input_flags & DSI_IS_CONDITION_DECL) {
+          /* Issue a diagnostic for the specification of a storage class on
+             a condition declaration.  Ignore auto and register except in
+             strict mode.  Only set err if an error is issued.  Do not
+             set *storage_class. */
+          if (curr_token == tok_auto || curr_token == tok_register) {
+            es = strict_ansi_mode ? strict_ansi_error_severity : es_none;
+          } else {
+            es = es_error;
+          }  /* if */
+          /* Put out the diagnostic. */
+          if (es > es_none) diagnostic(es, ec_storage_class_not_allowed);
+          /* If an error was issued, set the flag; otherwise, set the bit in
+             decl_specifiers_seen, so that the multiple-storage-class
+             diagnostic will be put out if another storage class is
+             specified. */
+          if (es > es_warning) {
+            err = TRUE;
+          } else {
+            decl_specifiers_seen |= DS_STORAGE_CLASS;
+          }  /* if */
         } else {
           if (C_dialect != C_dialect_pcc && !err) {
             if (decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND)) {
@@ -3679,8 +3696,7 @@ Returns TRUE if there is an error in the specifiers.
             pos_error(ec_storage_class_not_allowed, &specifier_start_pos);
             err = TRUE;
           } else if (input_flags & DSI_IS_CONDITION_DECL) {
-            pos_error(ec_bad_storage_class_on_condition_decl,
-                      &specifier_start_pos);
+            pos_error(ec_storage_class_not_allowed, &specifier_start_pos);
             err = TRUE;
           } else {
             /* There were no errors; update decl_modifiers to reflect
