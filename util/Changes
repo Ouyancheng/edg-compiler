@@ -1,5 +1,11 @@
 Version 3.2
 
+4/15/03  Prelinker: memory allocation error
+
+When using one-instantiation-per-object mode, the prelinker allocated
+one too few bytes of memory when constructing the instantiation file
+name.  This has been fixed.
+
 3/19/03  Compilation of mk_errinfo.c on MacOS X 10.2.x
 
 MacOS X 10.2.x places malloc.h in a "sys" subdirectory.  mk_errinfo.c was
