@@ -1,5 +1,19 @@
 Version 2.34
 
+10/10/96 Error on more than one union member in ctor-initializer list
+
+An error is now issued if a ctor-initializer list specifies more than one
+member of a union (including anonymous union members):
+
+  union U {
+    int i, j;
+    U() : i(0), j(0) { }                 // Error is now issued
+  };
+  struct S {
+    union { int i, j };
+    S() : i(0), j(0) { }                 // Error is now issued
+  };
+
 10/10/96 Failure to destroy temporary in default argument in long lifetime
          temporaries mode
 
