@@ -3788,7 +3788,7 @@ where file.cil specifies the IL file.  Output is to stdout.
   }  /* for */
   (void)fclose(f_il_input);
   normal_termination();
-  /*NOTREACHED*/
+  return 0;  /* Not reached; here to keep lint happy. */
 }  /* main */
 #endif /* STANDALONE_IL_DISPLAY */
 
