@@ -702,6 +702,7 @@ check_abbreviation()
 --undefine_macro
 --unsigned_chars
 --upc
+--upc_relaxed
 --upc_strict
 --upc_threads
 --use_pch
@@ -1172,6 +1173,7 @@ process_option()
 	 --long_long | \
 	 --upc | \
 	 --no_upc | \
+	 --upc_relaxed | \
 	 --upc_strict | \
 	 --short_enums | \
          --force_vtbl)
