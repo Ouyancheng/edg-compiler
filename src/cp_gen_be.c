@@ -4280,7 +4280,10 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
        is not the class indicated by the pointer. */
     selection_class = type_pointed_to(object_expr->type);
     selection_class = skip_typerefs(selection_class);
-    if (selection_class != naming_class) {
+    if (selection_class != naming_class ||
+        /* Use a qualified name for an explicit constructor call (a Microsoft
+           extension). */
+        rout->special_kind == (a_special_function_kind)sfk_constructor) {
       gen_class_qualifier(naming_class, /*bound_function=*/TRUE);
     }  /* if */
     gen_unqualified_name(&rout->source_corresp, iek_routine);

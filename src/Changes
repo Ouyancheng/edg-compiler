@@ -1,5 +1,12 @@
 Version 2.39
 
+7/9/98    C++-generating back end, Microsoft compatibility: qualified
+          name in explicit constructor call
+
+The C++-generating back end now uses a fully-qualified name when generating
+an explicit constructor call (a Microsoft extension), e.g., "p->A::A()"
+rather than "p->A()".
+
 7/7/98    Default for CFRONT_2_1_OBJECT_CODE_COMPATIBILITY now FALSE
 
 In targ_def.h, CFRONT_2_1_OBJECT_CODE_COMPATIBILITY is now FALSE by
