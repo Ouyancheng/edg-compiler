@@ -584,7 +584,7 @@ Fetch the value from float_value (of kind kind) and return it.
 
 static float float_zero = 0.0;
 			/* Value used to compute a NaN.  This used by
-			   make_fp_NaN.  This is a static variable in the
+			   make_fp_nan.  This is a static variable in the
 			   hope that optimizers will permit the division
 			   by zero without giving a warning. */
 
