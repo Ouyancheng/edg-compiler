@@ -1795,6 +1795,15 @@ common_cfront_mode_settings:
 	SVR4_C_mode = FALSE;
       }  /* if */
     }  /* if */
+    if (long_preserving_rules) {
+      if (option_kind_used[(int)optk_long_preserving_rules]) {
+        command_line_error(
+                          ec_cl_strict_ansi_incompatible_with_long_preserving);
+      } else {
+        /* Long preserving rules enabled by default.  Silently disable them. */
+	long_preserving_rules = FALSE;
+      }  /* if */
+    }  /* if */
     if (C_mode()) {
       /* Set optional features to standard settings for strict C mode. */
       /* Enable recognition of digraphs. */
