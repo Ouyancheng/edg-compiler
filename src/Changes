@@ -1,5 +1,10 @@
 Version 2.21
 
+11/30/93  Setting decl_position in IL entry
+
+A recently introduced bug that sometimes caused the decl_position field
+in an IL entry to be set incorrectly has been fixed.
+
 11/30/93 Spurious errors using elaborated types with template parameters
 
 In this example the elaborated type specifier "union U" was finding the
@@ -24,9 +29,9 @@ diagnostic.
 
 11/24/93 Access checking on overloaded function referenced by qualified name
 
-When an overloaded function was referenced by qualified name, and
-there are ambiguous base classes, an access error could be erroneously
-given.  This has been fixed.
+When an overloaded function was referenced by qualified name, and there
+are ambiguous base classes, an access error could be erroneously given.
+This has been fixed.
 
   struct A {struct B {int bmf() int bmf(int);};};
   struct D : virtual public A, public A::B { };
@@ -34,7 +39,6 @@ given.  This has been fixed.
   struct X : public D, public E {
     void mf() {D::bmf();} // Gave error
   };
-
 
 11/23/93 Fixed abort on vacuous destructor field selection error
 
@@ -46,18 +50,16 @@ left operand has an error:
     px->X::T::~T();  // "px" undefined; caused abort
   }
 
-
 11/23/93 Improved error diagnosis for invalid class template member function
 
 A more descriptive error message is now issued when an attempt is made to
 define a member function declared in a base class.
 
-template <class T> struct B {
-	void f();
-};
-template <class T> struct D : public B<int> {};
-template <class T> void D<T>::f(){}  // Error
-
+  template <class T> struct B {
+    void f();
+  };
+  template <class T> struct D : public B<int> {};
+  template <class T> void D<T>::f(){}  // Error
 
 11/23/93 Nondefining declaration of a member function of a class template
 
