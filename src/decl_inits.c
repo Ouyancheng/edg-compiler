@@ -3436,6 +3436,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
   a_base_class_ptr     bcp;
   a_boolean            is_empty_class = FALSE;
   an_error_severity    severity;
+  a_boolean            is_incomplete_array = FALSE;
 
   db_enter(4, "check_for_missing_initializer");
   if (sym != NULL) {
@@ -3453,7 +3454,10 @@ are created by a new expression (in which case sym is NULL).  In both cases
       sym_error(ec_missing_initializer_on_reference, sym);
     }  /* if */
   } else if (is_const_qualified_type(type)) {
-    if (is_array_type(type)) type = underlying_array_element_type(type);
+    if (is_array_type(type)) {
+      if (is_incomplete_type(type)) is_incomplete_array = TRUE;
+      type = underlying_array_element_type(type);
+    }  /* if */
     if (C_dialect == C_dialect_cplusplus &&
         is_class_struct_union_type(type) &&
         !symbol_supplement_for_class(type)->any_nonstatic_data_members) {
@@ -3475,25 +3479,29 @@ are created by a new expression (in which case sym is NULL).  In both cases
               decl_scope_level <= depth_innermost_namespace_scope)) {
            /* In C++ const qualified variables that are internally linked
               must be initialized (ARM 7.1.6). */
-           if (is_empty_class && !strict_ansi_mode) {
+           if (is_empty_class && !strict_ansi_mode && !is_incomplete_array) {
              /* Except in strict mode, don't bother issuing a diagnostic on
                 something like "const struct S { } s;". */
-           } else if (type_has_default_constructor(type)) {
-              /* The class has an implicitly declared default constructor,
-                 but a user-declared default constructor must be present
-                 (WP 7.1.5.1 [dcl.cv]). */
-             check_assertion(
-                       !type_has_user_declared_default_constructor(type));
-             pos_syty_diagnostic(is_empty_class ?
-                                   strict_ansi_error_severity : es_error,
-                                 ec_missing_default_constructor_on_const,
-                                 &error_position, sym, skip_typerefs(type));
            } else {
-             /* Issue an error (or, for an empty class in -a mode, a warning)
-                on omitting the initializer. */
-             sym_diagnostic(is_empty_class ?
-                              strict_ansi_error_severity : es_error,
-                            ec_missing_initializer_on_const, sym);
+             if (is_empty_class && !is_incomplete_array) {
+               severity = strict_ansi_error_severity;
+             } else {
+               severity = es_error;
+             }  /* if */
+             if (is_class_struct_union_type(type) && !is_incomplete_array) {
+                /* Even if the class has an implicitly declared default
+                   constructor, a user-declared default constructor must be
+                   present (WP 7.1.5.1 [dcl.cv]). */
+               check_assertion(
+                       !type_has_user_declared_default_constructor(type));
+               pos_syty_diagnostic(severity,
+                                   ec_missing_default_constructor_on_const,
+                                   &error_position, sym, skip_typerefs(type));
+             } else {
+               /* Issue an error (or, for an empty class in -a mode, a warning)
+                  on omitting the initializer. */
+               sym_diagnostic(severity, ec_missing_initializer_on_const, sym);
+             }  /* if */
            }  /* if */
          }  /* if */
        } else {
@@ -3515,9 +3523,9 @@ are created by a new expression (in which case sym is NULL).  In both cases
       } else {
         severity = es_discretionary_error;
       }  /* if */
-      if (type_has_default_constructor(type)) {
-        /* The class has an implicitly declared default constructor, but a
-           user-declared default constructor must be present (WP 5.3.4
+      if (is_class_struct_union_type(type)) {
+        /* Even if the class has an implicitly declared default constructor,
+           a user-declared default constructor must be present (WP 5.3.4
            [expr.new]). */
         check_assertion(!type_has_user_declared_default_constructor(type));
         pos_ty_diagnostic(severity,
