@@ -2403,6 +2403,24 @@ them up one level.
 }  /* remove_anonymous_union_member_from_inactive_symbols_list */
 
 
+static a_boolean overload_set_contains_function_template(a_symbol_ptr  sym)
+/*
+*/
+{
+  a_boolean  found = FALSE;
+
+  check_assertion(sym->kind == (a_symbol_kind)sk_overloaded_function);
+  sym = sym->variant.overloaded_function.symbols;
+  for (; sym != NULL; sym = sym->next) {
+    if (sym->kind == (a_symbol_kind)sk_function_template) {
+      found = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return found;
+}  /* overload_set_contains_function_template */
+
+
 static a_boolean is_using_decl_to_same_type(a_symbol_ptr	sym1,
 					    a_symbol_ptr	sym2)
 /*
@@ -2459,39 +2477,6 @@ this is not allowed, an error will be issued by the caller.
        was referenced.  A new symbol can always coexist with
        an undefined one. */
     err = FALSE;
-  } else if (is_injected_class_symbol(old_sym)) {
-    /* The old symbol is an injected class-name.  It is hidden by the current
-       declaration. */
-    err = FALSE;
-  } else if (scope_stack[scope_depth].in_prototype_instantiation &&
-             scope_stack[scope_depth].kind ==
-                                 (a_scope_kind)sck_template_instantiation) {
-    /* This must be a template friend declaration during prototype
-       instantiation.  The symbol is injected into the template instantiation
-       scope, and overloading is not performed at this point.  Let the two
-       symbols coexist. */
-    err = FALSE;
-  } else if (!C_mode() && is_tag_symbol(fundamental_symbol_of(new_sym))) {
-    /* New symbol is a tag symbol. */
-    a_symbol_ptr fund_old_sym = fundamental_symbol_of(old_sym);
-    if (!is_type_symbol(fund_old_sym) &&
-        !is_class_template_symbol(fund_old_sym) &&
-        !is_namespace_symbol(fund_old_sym)) {
-      /* The old symbol is a non-type name.  Be sure the new symbol
-         inserted into the list after the old one. */
-      err = FALSE;
-      if (insert_sym != NULL) *insert_sym = old_sym;
-    }  /* if */
-  } else if (!C_mode() && is_tag_symbol(fundamental_symbol_of(old_sym))) {
-    /* The old symbol is a tag symbol. */
-    a_symbol_ptr fund_new_sym = fundamental_symbol_of(new_sym);
-    if (!is_type_symbol(fund_new_sym) &&
-        !is_class_template_symbol(fund_new_sym) &&
-        !is_namespace_symbol(fund_new_sym)) {
-      /* The new one is not a type symbol or a class template name.  It
-         will be placed at the front of the list automatically. */
-      err = FALSE;
-    }  /* if */
   } else if ((cfront_2_1_mode || C_dialect == C_dialect_pcc) &&
              old_sym->kind == (a_symbol_kind)sk_variable &&
              old_sym->variant.variable.ptr->is_parameter &&
@@ -2510,49 +2495,91 @@ this is not allowed, an error will be issued by the caller.
       pos_st_warning(ec_decl_hides_function_parameter, &new_sym->decl_position,
 		     new_sym->header->identifier);
     }  /* if */
-  } else if (!C_mode() &&
-             scope_stack[scope_depth].in_prototype_instantiation &&
-             scope_stack[scope_depth].kind ==
-                                 (a_scope_kind)sck_class_struct_union) {
-    a_symbol_ptr  fund_old_sym, fund_new_sym;
-    if (is_class_member_using_decl_symbol(old_sym)) {
-      fund_old_sym = fundamental_symbol_of(old_sym);
-      if (is_nontype_template_param_symbol(fund_old_sym)) {
-        fund_new_sym = fundamental_symbol_of(new_sym);
-        if (is_function_or_template_symbol(fund_new_sym) ||
-            is_nontype_template_param_symbol(fund_new_sym)) {
-          /* During a prototype instantiation a nontype using-declaration
-             (which *could* represent a function) is followed by function
-             declaration or another nontype using-declaration.  Assume
-             these do not conflict.  No insert point needs to be set since
-             the default places the function declaration (new_sym) in front
-             of the using-decl (old_sym) in the active list. */
-          err = FALSE;
-        }  /* if */
-      }  /* if */
-    } else if (is_class_member_using_decl_symbol(new_sym)) {
-      fund_new_sym = fundamental_symbol_of(new_sym);
-      if (is_nontype_template_param_symbol(fund_new_sym)) {
-        if (is_function_or_template_symbol(old_sym)) {
-          /* The opposite case: during a prototype instantiation a function
-             declaration (or several -- old_sym could be an overload set)
-             is followed by a nontype using-declaration (which *could*
-             represent another function).  Assume these do not conflict.
-             Set the insert_sym so that the using-decl (new_sym) will not
-             hide the function declaration (old-sym); this is especially
-             important for building overload sets. */
+  } else if (!C_mode()) {
+    /* Some checks specific to C++ mode. */
+    if (is_namespace_symbol(new_sym) || is_namespace_symbol(old_sym)) {
+      /* A namespace name must be unique in its scope. */
+      /* err = TRUE; */
+    } else if (scope_stack[scope_depth].in_prototype_instantiation &&
+               scope_stack[scope_depth].kind ==
+                                 (a_scope_kind)sck_template_instantiation) {
+      /* This must be a template friend declaration during prototype
+         instantiation.  The symbol is injected into the template instantiation
+         scope, and overloading is not performed at this point.  Let the two
+         symbols coexist. */
+      err = FALSE;
+    } else if (is_injected_class_symbol(old_sym)) {
+      /* The old symbol is an injected class-name.  It is hidden by the
+         current declaration. */
+      err = FALSE;
+    } else if (!strict_ansi_mode &&
+               is_using_decl_to_same_type(new_sym, old_sym)) {
+      /* At least one of the symbols is a namespace projection that points
+         to the same type as the other symbol.  Enter the new symbol.  The
+         insert point is not changed, so the newly entered symbol will be
+         used. */
+      err = FALSE;
+    } else {
+      a_symbol_ptr fund_new_sym = fundamental_symbol_of(new_sym);
+      a_symbol_ptr fund_old_sym = fundamental_symbol_of(old_sym);
+
+      if (strict_ansi_mode &&
+          (is_template_symbol(fund_new_sym) ||
+           is_template_symbol(fund_old_sym) ||
+           (fund_old_sym->kind == (a_symbol_kind)sk_overloaded_function &&
+            overload_set_contains_function_template(fund_old_sym)))) {
+        /* In strict mode a template name must be unique in its scope.  It
+           can be part of an overload set, but otherwise there can be no
+           declaration of the same name. */
+        /* err = TRUE; */
+      } else if (is_tag_symbol(fund_new_sym)) {
+        /* New symbol is a tag symbol. */
+        if (!is_type_symbol(fund_old_sym) &&
+            !is_class_template_symbol(fund_old_sym)) {
+          /* The old symbol is a non-type name.  Be sure the new symbol
+             inserted into the list after the old one. */
           err = FALSE;
           if (insert_sym != NULL) *insert_sym = old_sym;
         }  /* if */
+      } else if (is_tag_symbol(fund_old_sym)) {
+        /* The old symbol is a tag symbol. */
+        if (!is_type_symbol(fund_new_sym) &&
+            !is_class_template_symbol(fund_new_sym)) {
+          /* The new one is not a type symbol or a class template name.  It
+             will be placed at the front of the list automatically. */
+          err = FALSE;
+        }  /* if */
+      } else if (scope_stack[scope_depth].in_prototype_instantiation &&
+                 scope_stack[scope_depth].kind ==
+                                 (a_scope_kind)sck_class_struct_union) {
+        if (is_class_member_using_decl_symbol(old_sym)) {
+          if (is_nontype_template_param_symbol(fund_old_sym) &&
+              (is_function_or_template_symbol(fund_new_sym) ||
+               is_nontype_template_param_symbol(fund_new_sym))) {
+            /* During a prototype instantiation a nontype using-declaration
+               (which *could* represent a function) is followed by function
+               declaration or another nontype using-declaration.  Assume
+               these do not conflict.  No insert point needs to be set since
+               the default places the function declaration (new_sym) in front
+               of the using-decl (old_sym) in the active list. */
+            err = FALSE;
+          }  /* if */
+        } else if (is_class_member_using_decl_symbol(new_sym)) {
+          if (is_nontype_template_param_symbol(fund_new_sym) &&
+              is_function_or_template_symbol(old_sym)) {
+            /* The opposite case: during a prototype instantiation a function
+               declaration (or several -- old_sym could be an overload set)
+               is followed by a nontype using-declaration (which *could*
+               represent another function).  Assume these do not conflict.
+               Set the insert_sym so that the using-decl (new_sym) will not
+               hide the function declaration (old-sym); this is especially
+               important for building overload sets. */
+            err = FALSE;
+            if (insert_sym != NULL) *insert_sym = old_sym;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
-  } else if (!C_mode() && !strict_ansi_mode &&
-             is_using_decl_to_same_type(new_sym, old_sym)) {
-    /* At least one of the symbols is a namespace projection that points
-       to the same type as the other symbol.  Enter the new symbol.  The
-       insert point is not changed, so the newly entered symbol will be
-       used. */
-    err = FALSE;
   }  /* if */
   return !err;
 }  /* symbols_may_coexist_in_curr_scope */

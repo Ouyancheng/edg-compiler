@@ -75,8 +75,13 @@ file is no longer included by host_envir.c when building on Linux.
 
 4/27/99  Missing error on redeclaration of template name
 
-No error was issued when a function template name clashed with the name
-of a class or enumeration declared in the same scope.  Now fixed.
+In strict ANSI mode, no error was issued when a function template name
+clashed with the name of a class or enumeration declared in the same
+scope.  Now fixed.  (In default mode the old behavior continues.)
+
+  template <class T> void X() { ... };
+  class X { ... };                      // Error now in strict mode; no
+                                        //   diagnostic in default mode
 
 4/27/99  Return type of "main"
 
