@@ -640,16 +640,14 @@ specification is handled later (see check_exception_specification).
     /* No explicit throw specification, meaning anything may be thrown. */
     goto done;
   }  /* if */
-  if (exceptions_enabled) {
-    if (exception_spec_allowed) {
-      esp = alloc_exception_specification();
+  if (!exception_spec_allowed) {
+    pos_diagnostic(es_discretionary_error,
+                   ec_exception_specification_not_allowed, &pos_curr_token);
+  } else if (exceptions_enabled) {
+    esp = alloc_exception_specification();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      esp->throw_position = pos_curr_token;
+    esp->throw_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    } else {
-      pos_diagnostic(es_discretionary_error,
-                     ec_exception_specification_not_allowed, &pos_curr_token);
-    }  /* if */
   }  /* if */
   /* Bypass "throw". */
   (void)get_token();
