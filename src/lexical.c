@@ -9029,6 +9029,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
            field selection class or a base class thereof. */
         a_type_ptr	qualifier_type;
         qualifier_type = type_symbol_type(qualifier_sym);
+        qualifier_type = skip_typerefs(qualifier_type);
         if (!acceptable_dtor_type(field_sel_type, qualifier_type) &&
             (is_template_param_type(qualifier_type) ||
              find_base_class_of(field_sel_type, qualifier_type) == NULL)) {

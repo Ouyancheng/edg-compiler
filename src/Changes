@@ -1,5 +1,20 @@
 Version 3.4
 
+12/9/03  Qualified class type in explicit destructor call
+
+A spurious error was issued if a cv-qualified type was used when naming the
+destructor in an explicit destructor call.  Now fixed.
+
+  template <class T> struct A { };
+  template <class T> void f( void ) {
+    T t;
+    typedef const T TT;
+    t.TT::~TT();
+  }
+  int main() {
+     f< A<int> >();
+  }
+
 12/9/03  Spurious warning on "if" of weak external symbol
 
 The front end gave a warning ("controlling expression is constant")
