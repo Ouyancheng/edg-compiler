@@ -1,5 +1,23 @@
 Version 2.39
 
+6/16/98   C++-generating back end: declared_type on parameters of function
+          definitions
+
+When putting out the parameters of a function definition, the C++-generating
+back end now uses the declared_type in the parameter variable.  This
+declared_type has also been modified slightly so that if the original
+specification of the parameter type is a function type (which is
+converted to pointer to function) or an array type (which is converted
+to a pointer to the element type), the original form is used.
+
+This matters when generating output for MSVC++ 5.0 -- that compiler
+gives errors if a parameter in a declaration has a function type and
+the parameter in the definition has the equivalent pointer to function
+type, or vice versa.  If the declaration is in a template, it is put
+out textually, so it matches the source form.  This change ensures that
+the definition in such a case (which is not put out textually) also
+matches the source form.
+
 6/16/98   Setting parent namespace on forward-declared enum type
 
 A (nonstandard) forward-declared enum type belonging to a namespace scope
