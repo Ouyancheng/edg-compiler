@@ -4293,10 +4293,13 @@ the latter will be NULL for variables.
                int f(int)   { return 0; }
                int f(undef) { return 0; }
           */
-          a_type_ptr           other_type = sym->variant.
-                                            extern_symbol_descr->type;
-          a_name_linkage_kind  other_linkage = other_type->variant.routine.
-                                            extra_info->routine_name_linkage;
+          a_type_ptr           other_type;
+          a_name_linkage_kind  other_linkage;
+
+          other_type = sym->variant.extern_symbol_descr->type;
+          other_type = skip_typerefs(other_type);
+          other_linkage =
+                 other_type->variant.routine.extra_info->routine_name_linkage;
           if (linkage != other_linkage &&
               (linkage == (a_name_linkage_kind)nlk_external ||
                other_linkage == (a_name_linkage_kind)nlk_external)) {

@@ -8548,10 +8548,12 @@ continue_with_declaration:
                                           parent.namespace_ptr == NULL));
             func_info.is_main_function = is_main_function = TRUE;
             /* Perform some error checking that is specific to C++. */
-            if (scope_stack[depth_scope_stack].name_linkage_is_explicit) {
-              pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);
-            }  /* if */
             rtsp = skip_typerefs(local_type_ptr)->variant.routine.extra_info;
+            if (rtsp->routine_name_linkage_is_explicit) {
+              pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);
+              rtsp->routine_name_linkage_is_explicit = FALSE;
+            }  /* if */
+            rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_external;
             if (rtsp->exception_specification != NULL) {
               /* main() cannot have a throw specification, since there's no
                  call stack to unwind from main. */
