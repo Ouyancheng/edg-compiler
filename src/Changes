@@ -1,5 +1,17 @@
 Version 2.30
 
+9/22/95  Recognition of constructor declaration
+
+The spurious error has been eliminated and this sort of case is now
+handled correctly:
+
+  template <class T> struct A {};
+  typedef int I;
+  struct A<short> {
+    A<long>(I);        // Previously interpreted as an ill-formed
+  };                   //   constructor declaration; now accepted as
+                       //   declaration of member A<short>::I
+
 9/22/95  Remainder operation bug when using simulated integers
 
 When INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is FALSE (e.g., when
