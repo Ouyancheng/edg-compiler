@@ -1956,6 +1956,12 @@ are NULL.
                   is_cfront_member_function_typedef(complete_type, &rout_type,
                                                     &class_type, &sym);
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (curr_token == tok_ampersand) {
+          /* Make sure this was not preceded by __based. */
+          based_not_allowed_here(based_var_sym);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (curr_token == tok_star) {
           if (is_member_function_typedef) {
             /* This is the proper use of a cfront member function typedef type
@@ -1969,20 +1975,8 @@ are NULL.
             }  /* if */
             complete_type = make_pointer_type(err ? error_type() :
                                                     complete_type);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            if (based_var_sym != NULL) {
-              /* If the pointer operator was preceded by a __based
-                 modifier, update the pointer type with the variable
-                 used in the __based modifier. */
-              complete_type->variant.pointer.base_variable =
-                                          based_var_sym->variant.variable.ptr;
-              based_var_sym = NULL;
-            }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           }  /* if */
         } else {
-          /* Make sure this was not preceded by __based. */
-          based_not_allowed_here(based_var_sym);
           if (is_reference_type(temp_type)) {
             /* Type "reference to reference" is illegal. */
             error(ec_reference_to_reference);
@@ -2014,6 +2008,18 @@ are NULL.
         }  /* if */
         complete_type = new_type_ptr;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (based_var_sym != NULL) {
+        /* If the pointer operator was preceded by a __based
+           modifier, update the pointer type with the variable
+           used in the __based modifier. */
+        check_assertion(complete_type != NULL &&
+                        complete_type->kind == (a_type_kind)tk_pointer);
+        complete_type->variant.pointer.base_variable =
+                                          based_var_sym->variant.variable.ptr;
+        based_var_sym = NULL;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check for C++ a pointer-to-member declarator. */
     } else if (C_dialect == C_dialect_cplusplus &&
                is_ptr_to_member_declarator_start()) {
