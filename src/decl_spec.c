@@ -328,6 +328,9 @@ caution when modifying this routine.
           reenter_symbol(tag_sym, decl_scope_level, /*suppress_error=*/FALSE);
           /* Call set_source_corresp again to get everything in sync. */
           set_source_corresp(&(type_of_type_info->source_corresp), tag_sym);
+          set_namespace_membership(tag_sym,
+                                   &(type_of_type_info->source_corresp),
+                                   (a_namespace_ptr)NULL);
           /* The referenced flag may have been reset by set_source_corresp). */
           type_of_type_info->source_corresp.referenced = tag_sym->referenced;
         }  /* if */
