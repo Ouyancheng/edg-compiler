@@ -13546,7 +13546,6 @@ returned to the caller.
     /* Skip over the tokens that are already part of the token cache. */
     clear_token_set_array(stop_tokens);
     incr_token_set_array_element(stop_tokens, tok_lbrace);
-    incr_token_set_array_element(stop_tokens, tok_colon);
     incr_token_set_array_element(stop_tokens, tok_semicolon);
     /* The normal flush_tokens_with_stop_tokens sometimes issues a warning
        based on the number of tokens skipped.  This should not be done
@@ -13558,7 +13557,6 @@ returned to the caller.
          was scanned.  This is usually because of a brace enclosed
          initializer.  Cache the rest of the initializer now. */
       decr_token_set_array_element(stop_tokens, tok_lbrace);
-      decr_token_set_array_element(stop_tokens, tok_colon);
       remove_cache_terminator(p_token_cache);
       /* Only semicolon should be left on the list. */
       cache_token_stream(p_token_cache, stop_tokens);
