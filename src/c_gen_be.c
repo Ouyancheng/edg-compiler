@@ -3986,14 +3986,14 @@ done_with_operation:
 }  /* dump_expr */
 
 
-static void dump_vla_expression(an_expr_node_ptr expr)
+static void dump_expression_for_il_to_str(an_expr_node_ptr expr)
 /*
-Interface routine called from the il_to_str routines to dump the dimension
-expression in a VLA (variable-length array) declarator.
+Interface routine called from the il_to_str routines to dump expressions
+(e.g., the dimension expression in a variable-length array declarator).
 */
 {
-  dump_expression(expr);
-}  /* dump_vla_expression */
+  dump_expr_with_parens(expr);
+}  /* dump_expression_for_il_to_str */
 
 
 static void dump_boolean_controlling_expression(an_expr_node_ptr node)
@@ -7180,7 +7180,7 @@ The IL is already available when this routine is called.
   octl.output_name = gen_name_reference;
   octl.output_temp_name = dump_temp_name;
   octl.output_func_declarator = dump_function_declarator;
-  octl.output_expression = dump_vla_expression;
+  octl.output_expression = dump_expression_for_il_to_str;
   octl.gen_compilable_code = TRUE;
 #if !C_GEN_BE_GENERATES_ANSI_C
   octl.gen_pcc_code = TRUE;
