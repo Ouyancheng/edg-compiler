@@ -2029,18 +2029,6 @@ may be used.
     saved_curr_seq_number = curr_seq_number;
     /* Update the IL header to reflect the information in the PCH file. */
     pch_fixup_part_1();
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-    {
-      a_memory_region_number	n;
-      /* We are building an IL file.  Any memory regions (other than the
-         front end and file scope) that were read from the PCH file must
-         be written to the IL file that is being created. */
-      for (n = FILE_SCOPE_REGION_NUMBER + 1;
-           n <= highest_used_region_number; ++n) {
-        done_with_memory_region(n);
-      }  /* for */
-    }
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     /* Clear the primary source file pointer, otherwise, push_input_stack
        will try to use the old source file as the parent. */
     il_header.primary_source_file = NULL;
@@ -2102,8 +2090,13 @@ be used as part of the applicability check in subsequent compilations.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!using_a_pch_file && !header_stop_position_pending) {
-      free_unused_pch_memory();
+    if (!header_stop_position_pending) {
+      /* We are not attempting to generate a precompiled header.
+         Call header_stop_no_longer_pending to process any memory regions
+         that may have been restored from a PCH (if one is being used).
+         If a PCH is not being used, this will free any specially allocated
+         PCH memory. */
+      header_stop_no_longer_pending();
     }  /* if */
   }  /* if */
   db_exit();

@@ -1,5 +1,11 @@
 Version 2.27
 
+10/24/94 Bug when both using and generating a PCH file
+
+A bug has been fixed that resulted in an internal error when both using
+and generating a PCH file in a given compilation.  The internal
+error would occur with a front end configured to generate an IL file.
+
 10/21/94 Using .init section for startup initialization (C-generating back end)
 
 If USE_INIT_SECTION_IN_GENERATED_C is set to TRUE, the C-generating back
