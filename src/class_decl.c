@@ -4055,8 +4055,6 @@ table.
      current class. */
   var = make_variable(member_type, (a_storage_class)sc_static,
                       /*at_file_scope=*/FALSE);
-  /* Correct the initialization of the defined flag in the variable. */
-  var->defined = FALSE;
   sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
                            decl_scope_level, /*suppress_redecl_error=*/FALSE);
   /* Set the source correspondence fields of the variable. */
@@ -4075,7 +4073,7 @@ table.
       is_integral_type(member_type)) {
     /* A const integral or const enumeration type may be initialized inside
        the class definition (9.5.2).  Note that the variable entry will have
-       an initializer but its "defined" flag will not be set. */
+       an initializer but will not yet be defined. */
     a_constant_ptr  cp = alloc_constant((a_constant_repr_kind)ck_error);
     /* Advance past the "=". */
     (void)get_token();
@@ -4083,6 +4081,10 @@ table.
     scan_constant_initializer_expression(member_type, cp);
     var->init_kind = (an_init_kind)initk_static;
     var->initializer.constant = cp;
+    /* Set the flag indicating to the back end that, even though there is
+       an initializer for this variable entry, it has not necessarily been
+       defined. */
+    var->is_member_constant = TRUE;
   }  /* if */
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
