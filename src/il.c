@@ -11483,6 +11483,11 @@ options is a set of name lookup options.
                           "copy_template_param_expr: bad expression kind");
       expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
       break;
+    case enk_reuse_value:
+      /* This might come up because of the GNU two-operand "?".  If it does,
+         just make sure we don't abort. */
+      *copy_error = TRUE;
+      break;
     default:
       /* Other kinds of expressions can come up when copying a non-constant
          expression under a sizeof. */
