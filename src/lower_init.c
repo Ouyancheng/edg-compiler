@@ -2936,6 +2936,7 @@ be kept, FALSE if it should be deleted.
          lifetime is in the file scope but we need it in the function scope,
          so make a copy. */
       push_object_lifetime(iek_none, (char *)NULL, lifetime->kind);
+      unbind_object_lifetime(lifetime);
       lifetime = curr_object_lifetime;
     } else {
       curr_object_lifetime = lifetime;
