@@ -1819,6 +1819,35 @@ continue_outer_loop:;
 }  /* exception_spec_is_less_restrictive */
 
 
+static void update_virtual_function_number(
+                                      a_routine_ptr             rp,
+                                      a_virtual_function_number *number_ptr)
+/*
+Update the virtual function number of the virtual member function pointed to
+by rp.  number_ptr is the address of the field in a_class_type_supplement
+that tracks the highest number assigned thus far.
+*/
+{
+  if (*number_ptr == MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
+    a_type_ptr  parent_class = rp->source_corresp.parent.class_type;
+    if (symbol_supplement_for_class(parent_class)->is_nonreal_class) {
+      /* Don't issue an error, since the number may not be maintained
+         accurately for nonreal class instantiations. */
+    } else {
+      pos_error(ec_too_many_virtual_functions,
+                &rp->source_corresp.decl_position);
+    }  /* if */
+    /* Reset to zero, to avoid more such messages. */
+    *number_ptr = 0;
+  }  /* if */
+  /* Increment the number for the virtual functions declared so far in the
+     current class and enter it in the routine entry.  It is used by the
+     front end in managing virtual function override entries and can be used
+     by the back end for indexing into a virtual function table. */
+  rp->virtual_function_number = ++(*number_ptr);
+}  /* update_virtual_function_number */
+
+
 static a_boolean check_for_virtual_function(
                                      a_boolean             virtual_specified,
                                      a_symbol_ptr          rout_sym,
@@ -1839,37 +1868,20 @@ from explicit specification or from "inheriting" its virtualness, mark the
 routine entry and return TRUE; otherwise return FALSE.
 */
 {
-  a_boolean                       is_virtual, overloaded;
-  a_boolean                       is_nonreal_instantiation;
+  a_boolean                       is_virtual = virtual_specified;
+  a_boolean                       overloaded;
   a_base_class_ptr                bcp;
   a_symbol_ptr                    symbol_list, sym, sym_next;
   a_symbol_ptr                    sym_for_override_registry;
   a_routine_ptr                   rout, rp;
   a_scope_ptr                     base_class_scope;
-  a_class_type_supplement_ptr     ctsp;
   a_virtual_function_number       virtual_function_number = 0;
   a_boolean                       any_override_candidates = FALSE;
   an_override_registry_entry_ptr  *registry_ptr;
 
   db_enter(4, "check_for_virtual_function");
-  is_virtual = virtual_specified;
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  if (rout_sym->kind == (a_symbol_kind)sk_function_template) {
-    rout = rout_sym->variant.template_info->variant.function.routine;
-    is_nonreal_instantiation = TRUE;
-    /* If a member function of a template class is marked "virtual" that's
-       all we need to know, since no virtual function override information
-       is maintained for template classes. */
-    if (is_virtual) goto done;
-  } else {
-    rout = rout_sym->variant.routine.ptr;
-    if (rout_sym->is_error) {
-      /* Some kind of error on the name. */
-      goto done;
-    } else{
-      is_nonreal_instantiation = class_state->is_nonreal_instantiation;
-    }  /* if */
-  }  /* if */
+  check_assertion(rout_sym->kind == (a_symbol_kind)sk_member_function);
+  rout = rout_sym->variant.routine.ptr;
   registry_ptr = &class_state->override_registry;
   /* We scan symbols on the inactive list, since we are only interested in
      functions declared in base classes. */
@@ -2057,31 +2069,115 @@ done:
       /* The virtual base class is being shared between the current class
          and one of its base classes.  We reuse the existing number instead
          of reserving a new slot in the table. */
+      rout->virtual_function_number = virtual_function_number;
     } else {
-      /* The number of virtual functions declared so far in this routine has
-         is recorded in the class type supplement.  Increment that number and
-         enter it in the routine entry.  It is used by the front end in
-         managing virtual function override entries and can be used by the
-         back end for indexing into a virtual function table. */
-      if (ctsp->highest_virtual_function_number >=
-                                         MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
-        if (is_nonreal_instantiation) {
-          /* Don't issue an error, since the number is not accurately
-             maintained for class templates. */
-        } else {
-          pos_error(ec_too_many_virtual_functions, source_pos);
-        }  /* if */
-        /* Reset to zero, to avoid more such messages. */
-        ctsp->highest_virtual_function_number = 0;
-      }  /* if */
-      virtual_function_number = ++(ctsp->highest_virtual_function_number);
+#if ABI_COMPATIBILITY_VERSION >= 232
+      /* For more current ABIs the virtual function numbers are updated after
+         all routine declarations for the current class have been processed.
+         This way all the functions in an overload set can be grouped
+         together, providing better cfront object layout compatibility. */
+#else /* ABI_COMPATIBILITY_VERSION <  232 */
+      /* Don't try to do overload-set grouping -- use the declaration order
+         instead.  Update the routine entry with the next available virtual
+         function number. */
+      a_virtual_function_number  *number_ptr;
+      number_ptr = &class_type->variant.class_struct_union.extra_info->
+                                          highest_virtual_function_number;
+      update_virtual_function_number(rp, number_ptr);
+#endif /* ABI_COMPATIBILITY_VERSION >= 232 */
     }  /* if */
-    rout->virtual_function_number = virtual_function_number;
   }  /* if */
   db_exit();
   return is_virtual;
 }  /* check_for_virtual_function */
 
+#if ABI_COMPATIBILITY_VERSION >= 232
+
+static void set_virtual_function_numbers_for_overload_set(
+                                        a_symbol_ptr              sym,
+                                        a_virtual_function_number *number_ptr)
+/*
+sym is a symbol in a member function overload set.  Process it and its
+successors in the set, setting the virtual function number for each virtual
+function for which it has not already been set.  number_ptr is the address
+of the field in parent class's class-type-supplement that tracks the highest
+number assigned thus far.
+*/
+{
+  a_routine_ptr  rp;
+
+  for (; sym != NULL; sym = sym->next) {
+    if (sym->kind == (a_symbol_kind)sk_member_function) {
+      rp = sym->variant.routine.ptr;
+      if (rp->is_virtual) {
+        if (rp->virtual_function_number != 0) {
+          /* The routine already has a virtual function number assigned.
+             This occurs when the virtual base class is being shared between
+             the current class and one of its base classes. */
+        } else {
+          /* If there are additional functions in the overload set, process
+             them first.  This is because the symbols on the list are in
+             the opposite order to that in which they were declared. */
+          set_virtual_function_numbers_for_overload_set(sym->next, number_ptr);
+          /* Update the routine entry with the next available virtual
+             function number. */
+          update_virtual_function_number(rp, number_ptr);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* set_virtual_function_numbers_for_overload_set */
+
+
+static void set_virtual_function_numbers(a_type_ptr  class_type)
+/*
+Traverse the scope-list of symbols for class_type, updating the virtual
+function numbers of the virtual functions.
+*/
+{
+  a_virtual_function_number  *number_ptr;
+  a_symbol_ptr               sym;
+  a_routine_ptr              rp;
+
+  if (class_type->variant.class_struct_union.any_virtual_functions) {
+    /* We will pass in the address of the field that tracks the highest
+       virtual function that has been assignment thus far.  (It may be nonzero
+       at this point if the virtual function info for this class is shared
+       with that of one of its base classes.) */
+    number_ptr = &class_type->variant.class_struct_union.extra_info->
+                                         highest_virtual_function_number;
+    /* Traverse the symbol list rather that the IL scope's function list.
+       Both should reflect declaration order except in the handling of
+       overloaded functions.  We do want to handle members of an overload set
+       as a group. */
+    for (sym = symbol_supplement_for_class(class_type)->symbols;
+         sym != NULL;
+         sym = sym->next_in_scope) {
+      if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        /* Examine each of the members of the overload set. */
+        set_virtual_function_numbers_for_overload_set(
+                                     sym->variant.overloaded_function.symbols, 
+                                     number_ptr);
+      } else if (sym->kind == (a_symbol_kind)sk_member_function) {
+        rp = sym->variant.routine.ptr;
+        if (rp->is_virtual) {
+          /* The member function is virtual. */
+          if (rp->virtual_function_number != 0) {
+            /* The routine already has a virtual-function number assigned.
+               This occurs when the virtual base class is being shared between
+               the current class and one of its base classes. */
+          } else {
+            /* Update the routine entry with the next available virtual
+               function number. */
+            update_virtual_function_number(rp, number_ptr);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* set_virtual_function_numbers */
+
+#endif /* ABI_COMPATIBILITY_VERSION >= 232 */
 
 /* Previously allocated derivation-step entries available for reuse. */
 static a_derivation_step_ptr avail_derivation_steps;
@@ -4734,7 +4830,6 @@ declared member functions.
   a_type_ptr                    tp;
   a_source_sequence_entry_ptr   declarator_ssep = NULL;
   a_name_linkage_kind           def_name_linkage;
-  a_boolean                     is_virtual;
 
   db_enter(3, "decl_member_function");
   /* If this is a user-defined conversion or an overloaded operator,
@@ -4948,20 +5043,22 @@ declared member functions.
          a base-class function it will call. */
       form_exception_specification_for_generated_function(rtn);
     }  /* if */
-    /* If "virtual" was specified in the declaration, mark the routine as
-       virtual.  Even if it wasn't, its virtualness can be inherited.  In
-       either case record the relationship between the current routine and
-       its appearance in the base classes of the current class. */
-    is_virtual = ((decl_info->dso_flags & DSO_VIRTUAL) &&
-                  !decl_info->invalid_virtual_specifier);
-    if (check_for_virtual_function(is_virtual, sym, class_type, class_state,
-                                   &locator->source_position)) {
-      /* Classes with virtual functions require constructors. */
-      cssp->constructor_required = TRUE;
-      /* Classes with virtual functions cannot be constructed or assigned
-         by bitwise copying. */
-      cssp->construction_by_bitwise_copy_allowed = FALSE;
-      cssp->assignment_by_bitwise_copy_allowed = FALSE;
+    if (!sym->is_error) {
+      /* If "virtual" was specified in the declaration, mark the routine as
+         virtual.  Even if it wasn't, its virtualness can be inherited.  In
+         either case record the relationship between the current routine and
+         its appearance in the base classes of the current class. */
+      a_boolean  is_virtual = ((decl_info->dso_flags & DSO_VIRTUAL) &&
+                               !decl_info->invalid_virtual_specifier);
+      if (check_for_virtual_function(is_virtual, sym, class_type, class_state,
+                                     &locator->source_position)) {
+        /* Classes with virtual functions require constructors. */
+        cssp->constructor_required = TRUE;
+        /* Classes with virtual functions cannot be constructed or assigned
+           by bitwise copying. */
+        cssp->construction_by_bitwise_copy_allowed = FALSE;
+        cssp->assignment_by_bitwise_copy_allowed = FALSE;
+      }  /* if */
     }  /* if */
     if (rtn->special_kind == (a_special_function_kind)sfk_constructor) {
       /* Set the pointer to the constructor symbol in the class symbol
@@ -9314,6 +9411,13 @@ next_declaration:
            destructor, and assignment operator, if any is needed. */
         check_special_member_functions(class_type, &class_state);
       }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 232
+      /* Go though all the functions declared for this class and set the
+         virtual function number of virtual functions.  (Note: with less
+         current ABIs the numbers are updated on the fly as the member
+         function declaration is processed. */
+      set_virtual_function_numbers(class_type);
+#endif /* ABI_COMPATIBILITY_VERSION >= 232 */
       /* Set shares_virtual_function_info for a base class of class_type, if
          appropriate. */
       set_shares_virtual_function_info_flag(class_type,
