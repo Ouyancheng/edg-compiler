@@ -9518,12 +9518,12 @@ partial instantiation of the entity specified by the indicated entity.
        position associated with the symbol. */
     sym = (a_symbol_ptr)source_corresp_for_il_entry(ptr, kind)->assoc_info;
     sssdp->decl_position = sym->decl_position;
-#if BACKEND_IS_CP_GEN_BE
+#if BACK_END_IS_CP_GEN_BE
     sssdp->specialized_with_new_syntax =
                             !old_specializations_for_generated_instances;
-#else /* !BACKEND_IS_CP_GEN_BE */
+#else /* !BACK_END_IS_CP_GEN_BE */
     sssdp->specialized_with_new_syntax = TRUE;
-#endif /* BACKEND_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_CP_GEN_BE */
     /* Add the entry to the source sequence list. */
     update_source_sequence_list((char *)sssdp,
                                 (an_il_entry_kind)iek_src_seq_secondary_decl,
