@@ -7117,11 +7117,73 @@ explicitly specified (rather than defaulted to "int").
     if (!prototyped) {
       internal_error("function_definition: member function not prototyped");
     }  /* if */
-#endif /* if */
+#endif /* CHECKING */
     is_member_function_def = TRUE;
     define_member_function(locator, rout_type, inline_specified,
                            &symbol_ptr, &linkage, &old_type, &ext_sym);
   } else {
+    if (!prototyped) {
+      /* Old-style id list.  Before calling decl_var_or_routine scan the
+         parameter declarations.  It is important for the routine type to
+         include all the parameter information in order to do overloading
+         involving both prototyped and old-style functions. */
+      old_style_param_types = end_old_style_param_types = NULL;
+      /* Push the name scope for the parameter declarations. */
+      scope_ptr = push_scope((a_scope_kind)sck_func_prototype,
+                             func_info->scope_number,
+                             (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                             (a_function_instantiation_entry_ptr)NULL);
+      if (func_info->param_id_list == NULL) {
+        /* No parameters to declare. */
+      } else {
+        in_old_style_param_decl_list = TRUE;
+#if CHECKING
+        if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+          internal_error("function_definition: bad region number");
+        }  /* if */
+#endif /* CHECKING */
+        while (curr_token == tok_identifier ||
+               is_decl_start(/*expr_context=*/FALSE,
+                             /*real_declarator_allowed=*/TRUE)) {
+          /* This declaration is checked to make sure the identifier is on the
+             param_id_list. */
+          declaration(/*function_definition_allowed=*/FALSE, 
+                      /*extern_implied=*/FALSE, func_info->param_id_list);
+        }  /* while */
+        in_old_style_param_decl_list = FALSE;
+        /* Scan the list of identifiers, assigning types to any that remain
+           undeclared, and create the param type entries. */
+        for (param_id = func_info->param_id_list;
+             param_id != NULL;
+             param_id = param_id->next) {
+          if (param_id->type == NULL) {
+            /* Enter any undeclared parameters with a type of int. */
+            param_id->type = integer_type((an_integer_kind)ik_int);
+            param_id->storage_class = (a_storage_class)sc_auto;
+            copy_source_position(param_id->symbol->decl_position,
+                                 param_id->type_pos);
+          }  /* if */
+          /* The param_type entry must be allocated in the file-scope
+             region. */
+          ptp = alloc_param_type(param_id->type);
+          /* Now build the list of parameter types that is attached to the 
+             routine type (needed for checking type compatibility -- see
+             types_are_compatible). */
+          if (old_style_param_types == NULL) {
+            old_style_param_types = ptp;
+          } else {
+            end_old_style_param_types->next = ptp;
+          }  /* if */
+          end_old_style_param_types = ptp;
+        }  /* for */
+        /* Set the type to the new type information from the old-style
+           parameters just scanned. */
+        extra_info->param_type_list = old_style_param_types;
+        extra_info->prototyped = FALSE;
+      }  /* if */
+      extra_info->old_style_params_scanned = TRUE;
+      pop_scope();
+    }  /* if */
     decl_var_or_routine(locator, storage_class, rout_type,
                         /*is_implicit_function=*/FALSE,
                         /*is_function_def_with_body=*/TRUE, inline_specified,
@@ -7185,8 +7247,6 @@ explicitly specified (rather than defaulted to "int").
      the function prototype. */
   if (!prototyped) {
     /* Old-style id list. */
-    old_style_param_types = end_old_style_param_types = NULL;
-    /* Scan an optional list of declarations of parameters. */
     if (func_info->param_id_list == NULL) {
       /* No parameters to declare. */
     } else {
@@ -7199,142 +7259,43 @@ explicitly specified (rather than defaulted to "int").
            param_id = param_id->next) {
 #if CHECKING
         if (param_id->symbol == NULL) {
-          internal_error(
-                      "function_definition: NULL old-style param_id symbol");
+          internal_error("function_definition: NULL old-style param_id sym");
         }  /* if */
 #endif /* CHECKING */
         reenter_symbol(param_id->symbol, decl_scope_level,
                        /*suppress_error=*/FALSE);
       }  /* for */
-      in_old_style_param_decl_list = TRUE;
-      /* Switch memory regions so that any types in the parameter declarations
-         will be allocated in the memory region in which the function appears.
-         This is necessary so that the parameter types are available for
-         type-compatibility checking (see types_are_compatible).  Note that
-         the variable entries for the parameters themselves are not allocated
-         here, but rather a little later in this routine (q.v.), so that
-         they will properly be in the sub-scope. */
-      switch_il_region(FILE_SCOPE_REGION_NUMBER);
-      while (curr_token == tok_identifier ||
-             is_decl_start(/*expr_context=*/FALSE,
-                           /*real_declarator_allowed=*/TRUE)) {
-        /* This declaration is checked to make sure the identifier is on the
-           param_id_list. */
-        declaration(/*function_definition_allowed=*/FALSE, 
-                    /*extern_implied=*/FALSE, func_info->param_id_list);
-      }  /* while */
-      /* Switch back to the memory region for the current routine body. */
-      switch_il_region(function_memory_region);
-      in_old_style_param_decl_list = FALSE;
-      /* Scan the list of identifiers, assign types to any that remain
-         undeclared, and create the variable entries. */
-      for (param_id = func_info->param_id_list;
-           param_id != NULL;
-           param_id = param_id->next) {
-        if (param_id->type == NULL) {
-          /* Enter any undeclared parameters with a type of int. */
-          param_id->type = integer_type((an_integer_kind)ik_int);
-          param_id->storage_class = (a_storage_class)sc_auto;
-          copy_source_position(param_id->symbol->decl_position,
-                               param_id->type_pos);
-        }  /* if */
-        /* The param_type entry must be allocated in the file-scope region. */
-        ptp = alloc_param_type(param_id->type);
-        /* Add the parameter variable to the list of parameters for this
-           routine.  This is done in this way so that the parameters
-           will be in the order they appear in the original identifier
-           list rather than the order in which they appear in the
-           declarations.  Note that the variable entry is allocated
-           in the current (function) scope, not at the file scope. */
-        decl_parameter(param_id, ptp, /*function_instantiation=*/FALSE);
-        /* Now build the list of parameter types that is attached to the 
-           routine type (needed for checking type compatibility -- see
-           types_are_compatible). */
-        if (old_style_param_types == NULL) {
-          old_style_param_types = ptp;
-        } else {
-          end_old_style_param_types->next = ptp;
-        }  /* if */
-        end_old_style_param_types = ptp;
-      }  /* for */
     }  /* if */
-    /* Save the composite type determined by decl_var_or_routine, if any.
-       It's restored below if the old and new types are compatible and
-       the old type is prototyped. */
-    comp_param_type_list = extra_info->param_type_list;
-    comp_prototyped      = extra_info->prototyped;
-    /* Set the type to the new type information from the old-style
-       parameters just scanned. */
-    extra_info->param_type_list = old_style_param_types;
-    extra_info->prototyped = FALSE;
-    /* If there was a linked routine (a previous declaration), check
-       type compatibility again now that the parameter types are known.
-       No composite is formed here (see 3.1.2.6). */
-    linked_redecl_error = FALSE;
-    if (old_type != NULL) {
-      if (types_are_compatible(rout_type, old_type)) {
-        /* The type of the previous declaration is compatible with the type
-           here.  If the old type was prototyped, restore the composite type
-           determined by decl_var_or_routine, which is also prototyped.
-           That composite type is still the right one, because old-style
-           parameter information does not enter into a composite type. */
-        if (comp_prototyped) {
-          extra_info->param_type_list = comp_param_type_list;
-          extra_info->prototyped      = comp_prototyped;
-        }  /* if */
-      } else {
-        /* Type of previous declaration is incompatible with the type here.
-           Note that there is a first test for compatibility in
-           decl_var_or_routine.  If that one fails, old_type will be NULL,
-           so we won't do this part of the test and won't give two errors. */
-        pos_sy_error(ec_not_compatible_with_previous_decl, 
-                     &locator->source_position,
-                     (a_symbol_ptr)routine_ptr->source_corresp.assoc_info);
-        linked_redecl_error = TRUE;
+  }  /* if */
+  if (prototyped && !top_declarator_type_is_function) {
+    /* New-style (function prototype) for which there will be no parameter
+       names to worry about -- skip over the declarations. */
+  } else {
+    a_param_type_ptr  ptp = extra_info->param_type_list;
+    if (prototyped && func_info->any_prototype_names_omitted) {
+      /* New-style (function prototype) for which at least one of the param
+         names was omitted in the prototype.  In C this is not valid on a
+         a function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
+      if (C_dialect != C_dialect_cplusplus) {
+        error(ec_all_proto_params_must_be_named);
       }  /* if */
     }  /* if */
-    /* Check that the type now that the parameters are known is compatible
-       with the external symbol type.  There must be an external symbol because
-       all routines have linkage. */
+    param_id = func_info->param_id_list;
 #if CHECKING
-    if (ext_sym == NULL) {
-      internal_error("function_definition: ext_sym is NULL");
+    if ((param_id == NULL) != (ptp == NULL)) {
+      internal_error("function_definition: param_id and ptp out of sync");
     }  /* if */
 #endif /* CHECKING */
-    (void)reconcile_external_symbol_types(ext_sym, &locator->source_position,
-                                          rout_type, linked_redecl_error);
-  } else {
-    /* New-style (function prototype). */
-    if (!top_declarator_type_is_function) {
-      /* There will be no parameter names to worry about, so skip over the
-         declarations. */
-    } else {
-      a_param_type_ptr  ptp = extra_info->param_type_list;
-      if (func_info->any_prototype_names_omitted) {
-        /* At least one of the parameter names was omitted in the prototype.
-           This is not valid when there is a function definition (except in
-           C++: ARM 8.2.5, 8.3). */
-        if (C_dialect != C_dialect_cplusplus) {
-          error(ec_all_proto_params_must_be_named);
-        }  /* if */
-      }  /* if */
-      param_id = func_info->param_id_list;
+    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+      /* Declare each parameter identifier to have the associated type
+         from the parameter type list. */
+      decl_parameter(param_id, ptp, /*function_instantiation=*/FALSE);
 #if CHECKING
-      if ((param_id == NULL) != (ptp == NULL)) {
+      if ((param_id->next == NULL) != (ptp->next == NULL)) {
         internal_error("function_definition: param_id and ptp out of sync");
       }  /* if */
 #endif /* CHECKING */
-      for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
-        /* Declare each parameter identifier to have the associated type
-           from the parameter type list. */
-        decl_parameter(param_id, ptp, /*function_instantiation=*/FALSE);
-#if CHECKING
-        if ((param_id->next == NULL) != (ptp->next == NULL)) {
-          internal_error("function_definition: param_id and ptp out of sync");
-        }  /* if */
-#endif /* CHECKING */
-      }  /* while */
-    }  /* if */
+    }  /* while */
   }  /* if */
   /* Free the list of parameter ids, now that it is no longer needed. */
   free_param_id_list(&(func_info->param_id_list));
