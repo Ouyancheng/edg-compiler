@@ -1,5 +1,13 @@
 Version 2.46
 
+1/23/02  va_start may take the address of a given parameter
+
+Many implementations of va_start take the address of the parameter passed to
+it.  The front end now sets the address_taken flag of such a parameter when
+the new configuration variable BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE
+is TRUE (which is its default value).  This is only applicable in
+configurations with builtin support for the va_start macro.
+
 1/22/02  va_arg type should not be promotable
 
 In configurations with builtin support for the va_arg macro (e.g., when

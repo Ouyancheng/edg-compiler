@@ -5161,6 +5161,11 @@ When single_operand is TRUE, the <varargs.h> form is expected:
         is_variable_address_node(node2 = operand.variant.expression) &&
         node2->variant.variable->is_parameter) {
       /* Okay. */
+#if BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE
+        /* Many implementations of va_start expose the address of the
+           parameter variable. */
+        node2->variant.variable->address_taken = TRUE;
+#endif /* BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE */
       if (!err) {
         node1->next = node2;
       }  /* if */

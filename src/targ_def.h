@@ -1987,6 +1987,14 @@ indicates the type to be used for the built-in va_list.
 #endif /* ifndef BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME */
 
 /*
+Flag that is TRUE if the built-in va_start operation maps on a target
+operation that takes the address of its second (variable) operand.
+*/
+#ifndef BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE
+#define BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE TRUE
+#endif /* ifndef BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE */
+
+/*
 If this flag is TRUE, integer types with the same representation
 (same size, alignment, and signedness) are considered to be
 identical in the IL.  This requires back end support, i.e., the back
