@@ -3495,7 +3495,7 @@ list pointer in type_list.  *type_list should be NULL on the first call.
 #endif /* DEBUG */
 }  /* add_to_arg_dependent_lookup_list */
 
-
+#if 0
 static void determine_assoc_namespaces_and_classes_for_type(
 			a_type_ptr			type,
 			a_namespace_list_entry_ptr	*namespace_list,
@@ -3551,6 +3551,7 @@ associated namespaces and classes to "namespace_list" and "class_list".
     }  /* if */
   }  /* if */
 }  /* determine_assoc_namespaces_and_classes_for_type */
+#endif
 
 
 a_symbol_list_entry_ptr argument_dependent_lookup(
