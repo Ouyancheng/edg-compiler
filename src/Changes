@@ -1,5 +1,20 @@
 Version 2.32
 
+2/19/96   C++-generating back end: "." vs. "->" on bound function
+
+The C++-generating back end now recognizes the use of a reference variable
+in a member function call, and puts out code that avoids bumping into
+an overloaded operator&:
+
+  struct A {
+    int operator&();
+  };
+  main () {
+    A a;
+    A &r = a;
+    &r;  // r.operator&(), not (&r)->operator&()
+  }
+
 2/19/96   Output of address constants in il_to_str
 
 The routine form_address_constant in il_to_str.c has been reworked to do
