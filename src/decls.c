@@ -1369,8 +1369,12 @@ will be involved in overloading.
               a_template_symbol_supplement_ptr  tssp;
               tssp = other_decl->variant.template_info;
               if (is_function_template_decl) {
-                tp = skip_typerefs(tssp->variant.function.routine->type);
-                if (types_are_compatible(tp, skip_typerefs(type))) {
+                /* Use special way of calling types_are_compatible to allow
+                   certain qualifier differences on the top-level types. */
+                tp = tssp->variant.function.routine->type;
+                if (entity_types_are_compatible(tp, type)) {
+                  /* The other_decl template function matches the current
+                     declaration. */
                   *linked_symbol = other_decl;
                   *overload_symbol = NULL;
                   goto determine_linkage;
@@ -1385,8 +1389,10 @@ will be involved in overloading.
               if (is_function_template_decl) {
                 /* No match. */
               } else {
-                tp = routine_symbol_type(other_decl);
-                if (types_are_compatible(tp, skip_typerefs(type))) {
+                /* Use special way of calling types_are_compatible to allow
+                   certain qualifier differences on the top-level types. */
+                tp = other_decl->variant.routine.ptr->type;
+                if (entity_types_are_compatible(tp, type)) {
                   /* Other_decl matches the current declaration.  Null out
                      *overload_symbol in case it was set. */
                   *overload_symbol = NULL;
@@ -1566,7 +1572,7 @@ issued a similar error).  Return FALSE if there is some error.
 */
 {
   an_extern_symbol_descr_ptr esdp;
-  a_type_ptr                 old_type;
+  a_type_ptr                 old_type, comp_type;
   a_boolean                  okay = TRUE;
 
   esdp = ext_sym->variant.extern_symbol_descr;
@@ -1574,7 +1580,7 @@ issued a similar error).  Return FALSE if there is some error.
   /* If the old and new types are the same, no checking or processing is
      required. */
   if (old_type != type_ptr) {
-    if (!types_are_compatible(old_type, type_ptr)) {
+    if (!entity_types_are_compatible(old_type, type_ptr)) {
       /* The old and new types are incompatible.  Error. */
       if (!suppress_incompatible_error) {
         pos_sy_error(ec_decl_incompatible_with_previous_use,
@@ -1587,7 +1593,20 @@ issued a similar error).  Return FALSE if there is some error.
     } else {
       /* The old and new types are compatible.  Form the composite of
          those types, and save that as the type of the external symbol. */
-      esdp->type = composite_type(old_type, type_ptr);
+      a_type_qualifier_set qualifiers_old_type = get_type_qualifiers(old_type);
+      a_type_qualifier_set qualifiers_type_ptr = get_type_qualifiers(type_ptr);
+      if (qualifiers_old_type == qualifiers_type_ptr) {
+        /* Normal case -- the qualifiers match. */
+        comp_type = composite_type(old_type, type_ptr);
+      } else {
+        /* The qualifiers do not match, e.g., for calling convention qualifiers
+           above a function type. */
+        comp_type = composite_type(skip_typerefs(old_type),
+                                   skip_typerefs(type_ptr));
+        comp_type = make_qualified_type(comp_type,
+                                    qualifiers_old_type | qualifiers_type_ptr);
+      }  /* if */
+      esdp->type = comp_type;
     }  /* if */
   }  /* if */
   return okay;
@@ -1914,26 +1933,41 @@ assoc_routine which should not be overridden.  Obviously, both flags may
 not be TRUE.
 */
 {
-  a_type_ptr        rout_type = routine_ptr->type;
+  a_type_ptr        rout_type = routine_ptr->type, qual_rout_type;
+  a_type_ptr        qual_type_ptr;
   a_type_ptr        comp_type;
   a_param_type_ptr  rout_type_ptp, comp_type_ptp, next_rout_type_ptp;
+  a_type_qualifier_set
+                    qualifiers = TQ_NONE;
 
   db_enter(4, "reconcile_routine_types");
   if (rout_type != type_ptr) {
     /* We only try to reconcile routine types that have already been
        determined to be compatible. */
+    /* There might be type qualifiers over the function types. */
+    qual_rout_type = rout_type;
+    rout_type = skip_typerefs(rout_type);
+    qualifiers |= get_type_qualifiers(qual_rout_type);
+    qual_type_ptr = type_ptr;
+    type_ptr = skip_typerefs(type_ptr);
+    qualifiers |= get_type_qualifiers(qual_type_ptr);
     check_assertion(types_are_compatible(type_ptr, rout_type));
     /* We cannot be required to preserve the types from both sources. */
     check_assertion(!preserve_rout_type || !preserve_type_ptr);
     if (C_dialect == C_dialect_cplusplus) {
       /* If there are default arguments associated with the parameters, check
-         them at this time.  They will be merged in composite types. */
+         them at this time.  They will be merged in composite_type. */
       check_default_arg_compatibility(type_ptr, rout_type);
     }  /* if */
     /* The type of the routine should be the composite of the two types. */
     if (!preserve_rout_type && !preserve_type_ptr) {
       /* Simple case -- no required result type location. */
-      routine_ptr->type = composite_type(type_ptr, rout_type);
+      comp_type = composite_type(type_ptr, rout_type);
+      if (qualifiers != TQ_NONE) {
+        /* Add back any qualifiers from over the function types. */
+        comp_type = make_qualified_type(comp_type, qualifiers);
+      }  /* if */
+      routine_ptr->type = comp_type;
     } else {
       /* Some requirement on where the result ends up.  Favor the type we'd
          like by passing it first to composite_type. */
@@ -1964,7 +1998,6 @@ not be TRUE.
          unshared). */
       if (comp_type != rout_type) {
         comp_type = skip_typerefs(comp_type);
-        rout_type = skip_typerefs(rout_type);
         /* Transfer the composite type to rout_type, which is unshared.
            We want to preserve fields like assoc_routine and arg_pragma in
            rout_type, so we can't just do a copy_type. */
@@ -2004,6 +2037,10 @@ not be TRUE.
            the types, since the original two types are compatible. */
         /* Likewise, the implicit_this_param_type pointers should be identical
            -- this will have been verified in types_are_compatible. */
+      }  /* if */
+      if (qualifiers != TQ_NONE) {
+        /* Add back any qualifiers from over the function types. */
+        routine_ptr->type = make_qualified_type(routine_ptr->type, qualifiers);
       }  /* if */
     }  /* if */
   }  /* if */
