@@ -1,5 +1,16 @@
 Version 2.35
 
+2/10/97 Restrictions on scope associated with a #pragma directive
+
+If in the course of processing a #pragma directive a variable or routine
+symbol is entered into the symbol table, it is now entered into the
+surrounding scope (rather than the sck_pragma scope associated with the
+pragma).  The issue came up in fixing an internal error (in C mode) on the
+following:
+
+  void f() { extern int i; }
+  #pragma test_immediate i;           // internal error no longer occurs
+
 2/10/97 Warning on unexpected declaration of size_t
 
 A warning is now issued if typedef name size_t or std::size_t is declared
