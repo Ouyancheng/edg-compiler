@@ -113,16 +113,52 @@ typedef struct an_init_pos_descr {
 Entry used to record a cleanup action that must be performed on exit from
 a scope or on a "throw".
 */
+typedef enum /*a_cleanup_action_kind*/ {
+  cak_label,		/* Marks the position of a label in the program. */
+  cak_destruction,	/* Required destruction. */
+  cak_try_block,	/* Exit from try block. */
+  cak_catch,		/* Exit from catch handler. */
+  cak_new_allocation	/* Allocation by "new" that must be freed if
+			   exception thrown. */
+} a_cleanup_action_kind;
+typedef unsigned long a_cleanup_region_number;
+			/* Number for a destructible region, used for
+			   exception handling cleanup. */
 typedef struct a_cleanup_action *a_cleanup_action_ptr;
 typedef struct a_cleanup_action {
   a_cleanup_action_ptr
 		next;	/* Next entry on a list of cleanup actions, NULL
-			   if last. */
-  a_label_ptr	label_marker;
-			/* If this is non-NULL, this entry does not describe
+			   if last.  The entries are in order from latest
+			   back to first, i.e., in the order in which the
+			   cleanup actions must be done, but in reverse
+			   order of addition to the list. */
+  a_byte_boolean
+		applies_on_block_exit;
+			/* TRUE if the indicated cleanup must be done on exit
+			   from the block. */
+  a_byte_boolean
+		applies_on_exception_cleanup;
+			/* TRUE if the indicated cleanup must be done on
+			   cleanup for a thrown exception. */
+  a_cleanup_action_kind
+		kind;	/* Kind of entry. */
+  /* When kind == cak_label: */
+  a_label_ptr	label;
+			/* If kind == cak_label, this entry does not describe
 			   a cleanup action; it is a marker that indicates
-			   where in the list a label was declared.  The
-			   other fields (below) are not meaningful. */
+			   where in the list a label was declared, and this
+			   points to the label.  The other fields (below)
+			   are not meaningful. */
+  /* When kind == anything except cak_label: */
+  an_init_pos_descr
+		init_pos_descr;
+			/* Description of the object to which cleanup
+			   applies. */
+  a_cleanup_region_number
+		region_number;
+			/* Destructible object region number for exception
+			   handling. */
+  /* When kind == cak_destruction: */
   a_dynamic_init
 		dynamic_init;
 			/* The dynamic initialization entry that describes the
@@ -144,22 +180,16 @@ typedef struct a_cleanup_action {
 			   code around the initialization and destruction of
 			   a static data member of a template. */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
-  an_init_pos_descr
-		init_pos_descr;
-			/* Description of the object to destroy. */
   a_byte_boolean
 		is_expr_temporary;
 			/* TRUE if the entity to be destroyed is a compiler-
 			   generated expression temporary. */
-  unsigned long	region_number;
-			/* Destructible object region number for exception
-			   handling. */
 } a_cleanup_action;
 
 /*
 Value used to indicate "no region number" for exception handling regions.
 */
-#define NULL_EH_REGION_NUMBER (~(unsigned long)0)
+#define NULL_EH_REGION_NUMBER (~(a_cleanup_region_number)0)
 
 
 /*
@@ -437,7 +467,10 @@ extern void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
 extern a_boolean virtual_dtor_should_be_generated_for_class(
                                                         a_type_ptr class_type);
 
-extern a_cleanup_action_ptr alloc_cleanup_action(void);
+extern a_cleanup_action_ptr alloc_cleanup_action(
+                           a_cleanup_action_kind kind,
+                           a_boolean             applies_on_block_exit,
+                           a_boolean             applies_on_exception_cleanup);
 
 extern void add_to_return_memo_list(a_statement_ptr return_stmt);
 

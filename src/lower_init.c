@@ -2412,7 +2412,9 @@ do_assignment:;
      list. */
   if (dip->destructor != NULL) {
     a_cleanup_action_ptr cap;
-    cap = alloc_cleanup_action();
+    cap = alloc_cleanup_action(cak_destruction,
+                               /*applies_on_block_exit=*/TRUE,
+                               /*applies_on_exception_cleanup=*/TRUE);
     /* Copy the entire dynamic init entry because it may be modified below
        to make it a valid C dynamic initialization. */
     cap->dynamic_init = *dip;

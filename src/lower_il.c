@@ -243,10 +243,15 @@ that an insertion will be made.
 }  /* set_after_expr_insert_location */
 
 
-a_cleanup_action_ptr alloc_cleanup_action(void)
+a_cleanup_action_ptr alloc_cleanup_action(
+                            a_cleanup_action_kind kind,
+                            a_boolean             applies_on_block_exit,
+                            a_boolean             applies_on_exception_cleanup)
 /*
-Allocate a cleanup action entry, set its fields to default values, and
-return a pointer to it.
+Allocate a cleanup action entry, set its kind to kind, set its fields
+to default values, and return a pointer to it.  applies_on_block_exit
+and applies_on_exception_cleanup are the values for the like-named flags
+in the cleanup entry.
 */
 {
   a_cleanup_action_ptr cap;
@@ -263,15 +268,18 @@ return a pointer to it.
 #endif /* DEBUG */
   }  /* if */
   cap->next = NULL;
-  cap->label_marker = NULL;
+  cap->applies_on_block_exit = applies_on_block_exit;
+  cap->applies_on_exception_cleanup = applies_on_exception_cleanup;
+  cap->kind = kind;
+  cap->label = NULL;
+  clear_init_pos_descr(&cap->init_pos_descr);
+  cap->region_number = NULL_EH_REGION_NUMBER;
   clear_dynamic_init(&cap->dynamic_init, (a_dynamic_init_kind)dik_none);
   cap->first_time_test_var = NULL;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
   cap->template_static_data_member_init_guard_var = NULL;
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
-  clear_init_pos_descr(&cap->init_pos_descr);
   cap->is_expr_temporary = FALSE;
-  cap->region_number = NULL_EH_REGION_NUMBER;
   return cap;
 }  /* alloc_cleanup_action */
 
@@ -6048,8 +6056,7 @@ inserted at *insert_location and *insert_location is updated.
   an_insert_location     insert_location2;
   an_insert_location_ptr effective_insert_loc;
 
-  /* Ignore label markers. */
-  if (cap->label_marker == NULL) {
+  if (cap->applies_on_block_exit) {
     effective_insert_loc = insert_location;
     /* If the entity is a local static variable or a conditionally-created
        temporary, generate an "if" statement to test whether or not the
@@ -6097,8 +6104,7 @@ the cleanup at *insert_location.
     for (cap = context_ptr->cleanup_actions;
          cap != NULL;
          cap = cap->next) {
-      /* Ignore label markers. */
-      if (cap->label_marker == NULL) {
+      if (cap->applies_on_block_exit) {
         gen_one_cleanup_action(cap, insert_location);
         any_calls_generated = TRUE;
       }  /* if */
@@ -6136,7 +6142,7 @@ indicated by curr_context through outer_context, inclusive.
     for (cap = context_ptr->cleanup_actions;
          cap != NULL;
          cap = cap->next) {
-      if (cap->label_marker == NULL) {
+      if (cap->applies_on_block_exit) {
         /* There are some cleanup actions. */
         any_required = TRUE;
         goto done;
@@ -6172,7 +6178,7 @@ conditional destruction of temporaries is required.
     for (cap = curr_context->cleanup_actions;
          cap != NULL;
          cap = cap->next) {
-      if (cap->label_marker == NULL) {
+      if (cap->applies_on_block_exit) {
         a_variable_ptr var = cap->first_time_test_var;
         if (var != NULL) {
           /* Make "flag_var = 0" and insert it. */
@@ -6252,7 +6258,9 @@ Generate any cleanup actions required preceding the indicated goto statement.
       for (cap = goto_context->cleanup_actions;
            cap != NULL;
            cap = cap->next) {
-        if (cap->label_marker == label) goto end_context_loop;
+        if (cap->kind == cak_label && cap->label == label) {
+          goto end_context_loop;
+        }  /* if */
       }  /* for */
     } else {
       /* The goto context is a normal context. */
@@ -6294,15 +6302,15 @@ end_context_loop:
     for (cap = goto_context->cleanup_actions;
          cap != NULL;
          cap = cap->next) {
-      if (cap->label_marker != NULL) {
-        if (cap->label_marker == label) {
+      if (cap->kind == cak_label) {
+        if (cap->label == label) {
           /* Found the label.  If there were any cleanup entries seen before
              this point, there are some cleanup actions to be put out. */
           any_label_block_cleanup_actions_needed = any_cleanup_entries;
           break;
         }  /* if */
-      } else {
-        /* Not a label marker. */
+      } else if (cap->applies_on_block_exit) {
+        /* Some cleanup needed. */
         any_cleanup_entries = TRUE;
       }  /* if */
     }  /* for */
@@ -6319,7 +6327,7 @@ end_context_loop:
       /* Generate cleanup actions corresponding to any initializations made
          after the label in the same block. */
       for (cap = goto_context->cleanup_actions;
-           cap->label_marker != label;
+           cap->kind != cak_label || cap->label != label;
            cap = cap->next) {
         gen_one_cleanup_action(cap, &insert_location);
       }  /* for */
@@ -6401,8 +6409,10 @@ Do IL lowering of the indicated statement and everything under it.
         /* Put a marker in the cleanup action list indicating where
            the label occurs.  This is needed when generating destructor
            calls on gotos backward in a block. */
-        cap = alloc_cleanup_action();
-        cap->label_marker = statement->variant.label;
+        cap = alloc_cleanup_action(cak_label,
+                                   /*applies_on_block_exit=*/FALSE,
+                                   /*applies_on_exception_cleanup=*/FALSE);
+        cap->label = statement->variant.label;
         cap->next = curr_context->cleanup_actions;
         curr_context->cleanup_actions = cap;
         if (exceptions_enabled) {

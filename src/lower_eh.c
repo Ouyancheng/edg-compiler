@@ -32,12 +32,12 @@ lower_eh.c -- IL lowering for exception handling constructs.
 #include "folding.h"
 
 
-static unsigned long
+static a_cleanup_region_number
 		next_region_number;
 			/* Next available destructible object region number
 			   within the current function. */
 
-static unsigned long
+static a_cleanup_region_number
 		max_region_number;
 			/* NULL_EH_REGION_NUMBER (all 1 bits) truncated to fit
 			   in a TARG_REGION_NUMBER_INT_KIND integer. */
@@ -1381,7 +1381,9 @@ pointer can be examined.
                    region_to_switch_back_to;
   a_constant_ptr   dtor_con, handle_con, prev_con, flags_con, aggr_con;
   a_type_ptr       ptr_func_type;
-  unsigned long    flags_value = 0, prev_region_number;
+  unsigned long    flags_value = 0;
+  a_cleanup_region_number
+                   prev_region_number;
   a_routine_ptr    dtor_routine;
   a_cleanup_action_ptr
                    next_cap;
@@ -1454,9 +1456,8 @@ pointer can be examined.
   /* Find the previous region by going backwards on the cleanup action
      list. */
   next_cap = cap->next;
-  while (next_cap != NULL &&
-         next_cap->region_number == NULL_EH_REGION_NUMBER) {
-    /* Ignore entries with no associated region number. */
+  while (next_cap != NULL && !next_cap->applies_on_exception_cleanup) {
+    /* Ignore entries that are not regions. */
     next_cap = next_cap->next;
   }  /* while */
   if (next_cap != NULL) {
@@ -1503,28 +1504,28 @@ on the list attached to the indicated context.  If there are no cleanup
 actions in that context, set eh_curr_region to NULL_EH_REGION_NUMBER.
 */
 {
-  a_cleanup_action_ptr cap;
-  long                 region_number;
+  a_cleanup_action_ptr    cap;
+  a_cleanup_region_number region_number;
 
   /* See if there is a cleanup action entry. */
   cap = context->cleanup_actions;
-  while (cap != NULL && cap->region_number == NULL_EH_REGION_NUMBER) {
+  while (cap != NULL && !cap->applies_on_exception_cleanup) {
     /* Ignore entries that are not regions. */
     cap = cap->next;
   }  /* while */
   /* Determine the region number to be used. */
   if (cap != NULL) {
-    region_number = (long)cap->region_number;
+    region_number = cap->region_number;
   } else {
     /* Use the maximum region number (all 1 bits) to indicate no region. */
-    region_number = (long)max_region_number;
+    region_number = max_region_number;
   }  /* if */
   /* Generate an assignment statement to set curr_eh_region. */
   (void)insert_var_assignment_statement(
                                   make_eh_curr_region_var(),
                                   (an_expr_operator_kind)eok_iassign,
                                   node_for_integer_constant(
-                                                  region_number,
+                                                  (long)region_number,
                                                   TARG_REGION_NUMBER_INT_KIND),
                                   insert_location);
 }  /* set_eh_curr_region */
