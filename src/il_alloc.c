@@ -3114,7 +3114,7 @@ in il_init.)
 #if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.static_used_by_instantiation = FALSE;
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-  def_source_corresp.should_not_be_externalized = FALSE;
+  def_source_corresp.duplicate_static_in_instantiation_slices = FALSE;
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if MAINTAIN_NEEDED_FLAGS

@@ -5071,9 +5071,9 @@ parameters.
 #if ONE_INSTANTIATION_PER_OBJECT
   if (needed_flag_bit_number != 0
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-      && !variable->source_corresp.should_not_be_externalized
+      && !variable->source_corresp.duplicate_static_in_instantiation_slices
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
-                                                             ) {
+                                                                           ) {
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
        primary-file variable definitions into the instantiation files.
@@ -6480,7 +6480,7 @@ if this routine has a body (dump nothing if it has no body).
 #if ONE_INSTANTIATION_PER_OBJECT
   if (has_defn && needed_flag_bit_number != 0 &&
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-      !rout->source_corresp.should_not_be_externalized &&
+      !rout->source_corresp.duplicate_static_in_instantiation_slices &&
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
       (!rout->is_inline ||
        (instantiate_extern_inline &&

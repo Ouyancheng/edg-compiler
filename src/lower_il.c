@@ -12500,7 +12500,7 @@ the needed-flag walk for the file scope.
          rout = rout->next) {
       if (rout->source_corresp.static_used_by_instantiation &&
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-          !rout->source_corresp.should_not_be_externalized &&
+          !rout->source_corresp.duplicate_static_in_instantiation_slices &&
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
           !rout->is_inline) {
         if (rout->storage_class != (a_storage_class)sc_static) {
@@ -12530,9 +12530,9 @@ the needed-flag walk for the file scope.
       /* Do not insert code here.  This is the "else" of an "if". */
       if (var->source_corresp.static_used_by_instantiation
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-          && !var->source_corresp.should_not_be_externalized
+          && !var->source_corresp.duplicate_static_in_instantiation_slices
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
-                                                            ) {
+                                                                          ) {
         if (var->storage_class != (a_storage_class)sc_static) {
           /* If the entity was changed to non-static after the flag was set,
              just ignore the flag. */

@@ -1068,10 +1068,10 @@ typedef struct a_source_correspondence {
 			   therefore needs to be made external (unless the
 			   should_not_be_externalized flag is set). */
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-  a_bit_field	should_not_be_externalized:1;
+  a_bit_field	duplicate_static_in_instantiation_slices:1;
 			/* TRUE if this is a special internal entity that
 			   should be duplicated in instantiation slices
-			   (rather than externalized) when reference from an
+			   (rather than externalized) when referenced from an
 			   instantiation. */
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
