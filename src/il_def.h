@@ -9893,7 +9893,9 @@ typedef struct a_scope_orphaned_list_header {
 /*
 An entry identifying an entity whose name is hidden by another declaration
 but where the hiding can be defeated either by using a qualified name and/or
-by using an elaborated type specifier.  This is used in C++ only.
+by using an elaborated type specifier.  This is used in C++ only.  The
+combination of !qualification_needed and !elaborated_type_specifier_needed
+is used for injected class names.
 */
 typedef struct a_hidden_name *a_hidden_name_ptr;
 typedef struct a_hidden_name {

@@ -520,7 +520,14 @@ hidden names in C, so there's no point in maintaining this information).
       if (injection_entry) {
         /* This entry is for an injected name.  Mark the entity as visible
            even if its parent is not in the name context stack. */
-        scp->visible_as_unqualified_name = TRUE;
+        if (type != NULL) {
+          /* Many compilers cannot handle an unqualified reference to an
+             injected class name that is a class template specialization */
+          scp->visible_as_unqualified_name =
+                           !type->variant.class_struct_union.is_template_class;
+        } else {
+          scp->visible_as_unqualified_name = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
