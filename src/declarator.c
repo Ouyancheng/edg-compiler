@@ -1377,7 +1377,7 @@ declaration.
         } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
           /* No type specifier (aside from const or volatile) appeared among
              the decl_specifiers.  Issue a diagnostic. */
-          report_implicit_int(&pos_curr_token);
+          report_implicit_int(&pos_curr_token, param_type_ptr);
         } else {
           /* Mark the type as referenced.  This is important for a
              parameter declaration like "struct s {int a;} p;" --

@@ -11718,26 +11718,11 @@ the IL, the template header is passed via template_decl.
           /* Type specifier is missing.  The type defaults to int, but issue
              a diagnostic. */
           report_missing_type_specifier(&declarator_start_pos,
+                                        local_type,
                                         /*is_function=*/TRUE,
                                         function_def_present,
                                         /*is_main_function=*/FALSE,
                                         !no_decl_specifiers);
-          /* Under most circumstances the implicit-int substitution will be
-             done in decl_specifiers.  An exception is a comma list that
-             includes a conversion operator declaration followed by another
-             declaration -- e.g.,
-               struct S { operator X(), i; };
-             for which the type returned by decl_specifiers an
-             unknown_type(). */
-          if (!decl_info.is_first_in_declarator_list) {
-            a_type_ptr  tp = integer_type((an_integer_kind)ik_int);
-
-            local_type->variant.routine.return_type = tp;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-            skip_typerefs(func_info.declared_type)->
-                                     variant.routine.return_type = tp;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          }  /* if */
         }  /* if */
       }  /* if */
       /* Issue diagnostic on an incomplete-type in an exception
@@ -12073,6 +12058,7 @@ the IL, the template header is passed via template_decl.
       if (!type_explicitly_specified) {
         /* Omitted type specifier. */
         report_missing_type_specifier(&declarator_start_pos,
+                                      local_type,
                                       /*is_function=*/FALSE,
                                       /*is_function_def=*/FALSE,
                                       /*is_main_function=*/FALSE,
@@ -12122,19 +12108,11 @@ the IL, the template header is passed via template_decl.
       }  /* if */
       if (!type_explicitly_specified) {
         report_missing_type_specifier(&declarator_start_pos,
+                                      local_type,
                                       /*is_function=*/FALSE,
                                       /*is_function_def=*/FALSE,
                                       /*is_main_function=*/FALSE,
                                       !no_decl_specifiers);
-        /* Under most circumstances the implicit-int substitution will be
-           done in decl_specifiers.  An exception is a comma list that
-           includes a conversion operator declaration followed by another
-           declaration -- e.g.,
-             struct S { operator X(), i; };
-           for which the type returned by decl_specifiers an unknown_type(). */
-        if (!decl_info.is_first_in_declarator_list) {
-          local_type = integer_type((an_integer_kind)ik_int);
-        }  /* if */
       }  /* if */
       if (decl_info.storage_class == (a_storage_class)sc_static) {
         /* Static data member. */

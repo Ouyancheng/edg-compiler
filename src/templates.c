@@ -7416,7 +7416,7 @@ declarator. pos is the position to be used if a diagnostic is issued.
         /* Error on omitted type specifier. */
         a_boolean  any_decl_specifiers =
                                  (dso_flags & DSO_NO_DECL_SPECIFIERS) == 0;
-        report_missing_type_specifier(pos, is_function,
+        report_missing_type_specifier(pos, type, is_function,
                                       /*is_function_def=*/FALSE,
                                       /*is_main_function=*/FALSE,
                                       any_decl_specifiers);
@@ -11539,6 +11539,7 @@ depends on a template parameter type, return TRUE in *template_dependent
     /* Missing type specifier. */
     a_boolean	no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
     report_missing_type_specifier(&error_position,
+                                  *param_type_ptr,
                                   /*is_function=*/FALSE,
                                   /*function_def_present=*/FALSE,
                                   /*is_main_function=*/FALSE,

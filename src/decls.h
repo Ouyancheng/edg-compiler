@@ -195,6 +195,7 @@ extern a_boolean simplify_curr_class_qualified_name(void);
 
 extern void report_missing_type_specifier(
                                      a_source_position  *err_pos,
+                                     a_type_ptr         type,
                                      a_boolean          is_function,
                                      a_boolean          is_function_def,
                                      a_boolean          is_main_function,
@@ -202,11 +203,12 @@ extern void report_missing_type_specifier(
 
 /*
 Report use of "implicit int" in a declaration.  This macro is not called for
-function declarations (call f_report_missing_type_specifiers directly) or
+function declarations (call report_missing_type_specifier directly) or
 when all decl-specifiers are missing.
 */
-#define report_implicit_int(pos)                                      \
-  report_missing_type_specifier(pos, /*is_function=*/FALSE,           \
+#define report_implicit_int(pos, type)                                \
+  report_missing_type_specifier((pos), (type),                        \
+                                /*is_function=*/FALSE,                \
                                 /*is_function_def=*/FALSE,            \
                                 /*is_main_function=*/FALSE,           \
                                 /*any_decl_specifiers=*/TRUE)

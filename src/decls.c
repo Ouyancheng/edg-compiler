@@ -7714,14 +7714,17 @@ nonstandard, but it is allowed by cfront.
 
 
 void report_missing_type_specifier(a_source_position  *err_pos,
+                                   a_type_ptr         type,
                                    a_boolean          is_function,
                                    a_boolean          is_function_def,
                                    a_boolean          is_main_function,
                                    a_boolean          any_decl_specifiers)
 /*
 No type was explicitly specified for the current declaration.  Issue the
-appropriate diagnostic at the source position given by *err_pos.  is_function
-is TRUE if this is a function declaration; is_function_def is TRUE if it is
+appropriate diagnostic at the source position given by *err_pos.
+type points to the type, which may have derived type levels on
+top of the underlying implicitly-generated type.  is_function is TRUE
+if this is a function declaration; is_function_def is TRUE if it is
 a function declaration that is also a definition; is_main_function is TRUE
 if it is a declaration of global scope "main".  any_decl_specifiers is
 TRUE if at least one decl-specifier was seen (e.g., a storage class or
@@ -7730,10 +7733,15 @@ cv-qualifier).
 {
   an_error_code      error_code = ec_no_error;
   an_error_severity  severity;
+  a_type_ptr         bottom_type;
   a_boolean          implicit_int_allowed =
                              !(C_dialect == C_dialect_cplusplus || c99_mode);
 
-  if (is_function) {
+  bottom_type = find_bottom_of_type(type);
+  if (is_error_type(bottom_type) || is_unknown_type(bottom_type)) {
+    /* An error was previously issued on the specifiers type, so do
+       not issue another error. */
+  } else if (is_function) {
     /* It must be a function declaration or else there is at least some type
        specifier (even if the type itself is implicit). */
     if (C_dialect == C_dialect_pcc) {
@@ -7858,7 +7866,7 @@ In C++ mode an error is issued if a type definition appears in a type-name
     pos_error(ec_type_definition_not_allowed, &start_pos);
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
-    report_implicit_int(&start_pos);
+    report_implicit_int(&start_pos, *type_ptr);
   }  /* if */
   if (explicit_cv_qualifiers != NULL) {
     *explicit_cv_qualifiers = (qualifiers != TQ_NONE);
@@ -7967,7 +7975,7 @@ within this routine if is_parenthesized comes in FALSE.
     pos_error(ec_type_definition_not_allowed, &start_pos);
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
-    report_implicit_int(&error_position);
+    report_implicit_int(&error_position, *type_ptr);
   }  /* if */
   if (*type_ptr != NULL) {
     (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
@@ -8178,7 +8186,7 @@ is no parent.
       pos_error(ec_type_definition_not_allowed, &type_pos);
     } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
       /* Missing type specifier. */
-      report_implicit_int(&error_position);
+      report_implicit_int(&error_position, specifiers_type);
     }  /* if */
     complete_type = pointer_declarator(specifiers_type,
                                        /*reference_allowed=*/TRUE,
@@ -8665,7 +8673,7 @@ a normal try.
           type_ptr = error_type();
         } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
           /* Implicit int. */
-          report_implicit_int(&pos_curr_token);
+          report_implicit_int(&pos_curr_token, type_ptr);
         }  /* if */
         sym = NULL;
         if (is_abstract_or_real_declarator_start()) {
@@ -9071,7 +9079,7 @@ Return a pointer to the variable that is declared.
     pos_error(ec_type_definition_not_allowed, &decl_pos);
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Implicit int. */
-    report_implicit_int(&pos_curr_token);
+    report_implicit_int(&pos_curr_token, type_ptr);
   }  /* if */
   if (storage_class == (a_storage_class)sc_unspecified) {
     storage_class = (a_storage_class)sc_auto;
@@ -11149,6 +11157,7 @@ continue_with_declaration:
                 !locator.is_conversion_name &&
                 !(locator.is_error && looks_like_ctor_or_dtor(&locator))) {
               report_missing_type_specifier(&declarator_start_pos,
+                                            local_type_ptr,
                                             /*is_function=*/TRUE,
                                             /*is_function_def=*/TRUE,
                                             is_main_function,
@@ -11249,9 +11258,11 @@ continue_with_declaration:
           !(gcc_mode && curr_token == tok_assign && 
             local_storage_class == (a_storage_class)sc_typedef) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
-          !locator.is_error && !is_error_type(local_type_ptr) &&
+          !locator.is_error &&
           !locator.is_conversion_name) {
-        report_missing_type_specifier(&declarator_start_pos, is_function,
+        report_missing_type_specifier(&declarator_start_pos,
+                                      local_type_ptr,
+                                      is_function,
                                       /*is_function_def=*/FALSE,
                                       is_main_function,
                                       !decl_specifiers_omitted);
