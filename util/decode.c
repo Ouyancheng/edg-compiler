@@ -951,6 +951,9 @@ encoding, return NULL.
   } else if (start_of_id_is("af", ptr)) {
     s = "__ALIGNOF__(";
     *takes_type = TRUE;
+  } else if (start_of_id_is("uu", ptr)) {
+    s = "__uuidof(";
+    *takes_type = TRUE;
   } else {
     s = NULL;
   }  /* if */

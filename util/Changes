@@ -1,3 +1,11 @@
+Version 2.41
+
+2/16/99  "uu" for __uuidof operator in mangled encoding of expression
+
+The encoding "uu" is now used for the Microsoft __uuidof operator
+in the mangled encoding for an expression.
+
+-------------------------------------------------------------------------------
 Version 2.40, December 8, 1998
 
 No changes.
