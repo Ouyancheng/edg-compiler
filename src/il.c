@@ -4448,10 +4448,6 @@ they are not already present.
   add_volatile = is_volatile && !base_type_volatile_qualified;
   if (add_const || add_volatile) {
     /* Some qualifiers need to be added. */
-#if CHECKING
-    /* Applying a type qualifier to a reference type should not occur. */
-    check_assertion(!is_reference_type(base_type));
-#endif /* if CHECKING */
     if (base_type_const_qualified || base_type_volatile_qualified) {
       /* The typeref(s) containing qualifiers, if any, are removed to get down
          to the real base type, to which the new qualifiers are added.  When
