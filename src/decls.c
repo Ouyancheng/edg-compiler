@@ -1638,8 +1638,11 @@ scope is that of a class definition.
           (!is_nonstatic_member_function &&
            scope_stack[decl_scope_level].kind ==
                                  (a_scope_kind)sck_class_struct_union) ||
-          is_constructor_or_destructor) {          
-        pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
+          is_constructor_or_destructor) {
+        /* It is illegal to specify "const" or "volatile" on any function
+           other than a nonstatic member function (ARM 8.2.5).  We just
+           issue a warning since it is harmless. */
+        pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
       } else {
         this_param_type =
                       make_qualified_type(member_function_parent_type,
