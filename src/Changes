@@ -1,5 +1,30 @@
 Version 2.11
 
+9/28/92  Initialization of arrays of C-style structs in C++ mode
+
+Spurious errors were issued for code of this sort:
+
+  struct x { char *a; int b; };
+  struct x xa[] = { "a", 1, "b", 2, "c", 3 };
+
+The bug has been fixed by checking whether the element type is an
+aggregate class (ARM 8.4.1) and not looking for a constructor if it is.
+
+However, there is an interesting side effect from this change.  Consider
+the following:
+
+  struct S { int a, b; } x { 1, 2};
+  S y = x;                            // Still allowed
+  S z[] = { x, y };                   // No longer allowed
+
+S is an aggregate class, and so the initialization of y is legal (ARM
+8.4.1 para 3).  But an error is now issued on the initialization of z,
+since the two initial values are applied to z[0].a and z[0].b rather than
+to z[0] and z[1].  The language definition is weak on initializing arrays
+of class objects (see also ARM 12.6.1, which, however, only deals with
+classes with constructors), but a check of several other C++ compilers
+shows that our new behavior is consistent with prevailing practice.
+
 9/28/92  Error on bad hex/octal character in strict ANSI mode
 
 A too-large hex or octal escape in a character constant or string
