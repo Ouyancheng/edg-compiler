@@ -497,7 +497,11 @@ to get the object file name.  That name is used only for generating object
 file dependencies for a makefile.
 */
 #ifndef OBJECT_FILE_SUFFIX
+#if __MSDOS__
 #define OBJECT_FILE_SUFFIX ".o"
+#else /* !__MSDOS__ */
+#define OBJECT_FILE_SUFFIX ".obj"
+#endif /* __MSDOS__ */
 #endif /* ifndef OBJECT_FILE_SUFFIX */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -523,7 +527,12 @@ and do not contain instantiation list entries.
 The suffixes to be used when searching for an instantiation source file
 that is associated with a given instantiation header file.
 */
+#if __MSDOS__
 #define DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST "c:C:cpp:CPP:cxx:CXX:cc"
+#else /* !__MSDOS__ */
+/* Case is not significant in MS-DOS file names. */
+#define DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST "C::CPP::CXX:CC"
+#endif /* __MSDOS__ */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 /*
