@@ -188,14 +188,6 @@ extern int bzero(char *, int);
 #endif /* __ANSIC__ */
 /* Character classification. */
 #include <ctype.h>
-#if __ANSIC__
-/* ANSI C does not have isascii.  Assume we don't need to check for
-   <= UCHAR_MAX. */
-/* Some ANSI C compilers may provide isascii as an extension. */
-#ifndef isascii
-#define isascii(c) ((c) >= 0)
-#endif /* ifndef isascii */
-#endif /* __ANSIC__ */
 
 #if __ANSIC__
 #include <limits.h>
