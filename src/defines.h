@@ -61,6 +61,7 @@ Flags to be set when using the KAI inliner.
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
 #define LONG_LONG_ALLOWED 1
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 #ifdef SELFCOMP_VERSION
 /* Self-compiled version. */
 #define ALTERNATE_IL_FILE_FORMAT 0
@@ -87,15 +88,21 @@ Flags to be set when using the KAI inliner.
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
-#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
-#ifdef sparc
-#define USE_INIT_SECTION_IN_GENERATED_C 1
-#endif /* sparc */
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
 #define TARG_JMP_BUF_NUM_ELEMENTS 12
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT 0
 #define USE_PRAGMA_IDENT_IN_GENERATED_CODE 1
 #define STDC_ZERO_IN_NONSTRICT_MODE 1
+#ifdef sparc
+/* SPARC Solaris version. */
+#define USE_INIT_SECTION_IN_GENERATED_C 1
+#else /* !defined(sparc) */
+/* Intel Solaris version. */
+#define TARG_LITTLE_ENDIAN TRUE
+#define TARG_HAS_SIGNED_CHARS TRUE
+#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
+#define TARG_JMP_BUF_NUM_ELEMENTS 10
+#endif /* ifndef sparc */
 #else /* !defined(SOLARIS) */
 /* SunOS version. */
 #ifndef __ANSIC__
@@ -104,13 +111,6 @@ Flags to be set when using the KAI inliner.
 #ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 0
 #endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
-#ifndef sparc
-/* Intel Solaris version. */
-#define TARG_LITTLE_ENDIAN TRUE
-#define TARG_HAS_SIGNED_CHARS TRUE
-#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
-#define TARG_JMP_BUF_NUM_ELEMENTS 10
-#endif /* ifndef sparc */
 #endif /* ifdef SOLARIS */
 
 #ifdef OPTIMIZED_VERSION
