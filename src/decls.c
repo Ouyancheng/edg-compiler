@@ -1420,7 +1420,7 @@ called by id_linkage.
         kind != (a_symbol_kind)sk_overloaded_function) {
       if (!C_mode() && kind == (a_symbol_kind)sk_namespace_projection) {
         /* Check for a case like:
-             namespace N ( void f(int); }
+             namespace N { void f(int); }
              using N::f;
              void f();
            for which we'll need to form an overload set with N::f and ::f. */
@@ -1465,7 +1465,15 @@ called by id_linkage.
       for (; other_decl != NULL;
              other_decl = is_list ? other_decl->next : NULL) {
         a_type_ptr  tp;
-        if (other_decl->kind == (a_symbol_kind)sk_function_template) {
+        if (other_decl->kind == (a_symbol_kind)sk_namespace_projection) {
+          /* Ignore namespace projection symbols that may have gotten into
+             this overload set by a using declaration -- e.g.,
+               namespace N { void f(int); }
+               using N::f;
+               void f();
+               int f(int);           // Does *not* match N::f(int)
+          */
+        } else if (other_decl->kind == (a_symbol_kind)sk_function_template) {
           a_template_symbol_supplement_ptr  tssp;
           tssp = other_decl->variant.template_info;
           if (is_function_template) {
