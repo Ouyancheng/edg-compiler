@@ -9955,7 +9955,10 @@ typedef struct a_hidden_name {
 			   to facilitate generating code for non-Microsoft
 			   dialects, we simulate an injected class name in
 			   such cases, and this flag is set for entities
-			   hidden by such simulated injected names. */
+			   hidden by such simulated injected names. The
+			   C++-generating back end can then choose whether
+			   to honor or ignore the hiding, depending on the
+			   target for which code is being generated. */
   bitfield_to_avoid_codecenter_warnings()
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
