@@ -218,7 +218,7 @@ simple walk_list.
       if ((scope_kind) == (a_scope_kind)sck_class_struct_union || \
           local_ptr->source_corresp.needed || \
           il_entry_prefix_of(local_ptr).keep_in_il) { \
-        il_entry_prefix_of(local_ptr).keep_in_il = FALSE; \
+        clear_keep_in_il_to_allow_subtree_walk((char *)local_ptr, entry_kind);\
         walk_ptr(local_ptr, ptr_type, (entry_kind)); \
       }  /* if */ \
     }  /* for */ \

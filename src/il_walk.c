@@ -438,6 +438,42 @@ references.
 }  /* mark_as_needed */
 
 
+static void clear_keep_in_il_to_allow_subtree_walk(char             *entry_ptr,
+                                                   an_il_entry_kind entry_kind)
+/*
+As part of the keep_in_il walk, clear the keep_in_il flag on the indicated
+entry in preparation for setting it again.  This is done to ensure that
+the subtree is walked again if it has changed.
+*/
+{
+  il_entry_prefix_of(entry_ptr).keep_in_il = FALSE;
+  if (entry_kind == iek_type) {
+    a_type_ptr type = (a_type_ptr)entry_ptr;
+    if (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.keep_definition_in_il) {
+      /* For a class, also clear the keep_in_il flag in the associated
+         scope. */
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+      if (ctsp != NULL) {
+        a_scope_ptr scope = ctsp->assoc_scope;
+        if (scope != NULL) {
+          il_entry_prefix_of(scope).keep_in_il = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else if (entry_kind == iek_namespace) {
+    /* For a namespace, also clear the keep_in_il flag on the associated
+       scope. */
+    a_namespace_ptr nsp = (a_namespace_ptr)entry_ptr;
+    if (!nsp->is_namespace_alias) {
+      a_scope_ptr scope = nsp->variant.assoc_scope;
+      il_entry_prefix_of(scope).keep_in_il = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* clear_keep_in_il_to_allow_subtree_walk */
+      
+
 /* Generate walk_tree_and_set_keep_in_il from the walk_entry.h source. */
 #undef DO_SUBTREE_WALK
 #define DO_SUBTREE_WALK TRUE
