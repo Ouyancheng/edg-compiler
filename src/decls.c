@@ -6756,13 +6756,13 @@ TRUE if an error was reported while the decl-specifiers were scanned.
            makes it ill-formed.  Is the implication strong enough to justify
            an error here? */
         if (is_qualified_type(type_ptr)) {
-          diagnostic(C_dialect == C_dialect_cplusplus && strict_ansi_mode ?
-                       strict_ansi_error_severity : es_warning,
-                     ec_type_qualifier_not_allowed);
+          pos_diagnostic(C_dialect == C_dialect_cplusplus && strict_ansi_mode ?
+                           strict_ansi_error_severity : es_warning,
+                         ec_type_qualifier_not_allowed, decl_start_pos);
         }  /* if */
         /* Inline can only be specified for a function (ARM 7.1.2). */
         if (inline_specified) {
-          error(ec_inline_and_nonfunction);
+          pos_error(ec_inline_and_nonfunction, decl_start_pos);
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (defines_something || declares_something) {
@@ -7317,7 +7317,7 @@ continue_with_declaration:
             local_storage_class != (a_storage_class)sc_extern &&
             local_storage_class != (a_storage_class)sc_static) {
           /* The storage class of a function must be extern or static. */
-          pos_error(ec_bad_function_storage_class, &declarator_pos);
+          pos_error(ec_bad_function_storage_class, &decl_start_pos);
           local_storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         if (locator.specific_symbol != NULL &&
@@ -7345,7 +7345,7 @@ continue_with_declaration:
       if (inline_specified) {
         if (!is_function) {
           /* Not a function declaration. */
-          pos_error(ec_inline_and_nonfunction, &declarator_pos);
+          pos_error(ec_inline_and_nonfunction, &decl_start_pos);
         } else {
           /* Set the storage class to sc_static. */
           local_storage_class = (a_storage_class)sc_static;
