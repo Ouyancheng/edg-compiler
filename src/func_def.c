@@ -1203,8 +1203,7 @@ on a prior declaration.
     rout_type->variant.routine.extra_info->routine_name_linkage =
            (*old_type)->variant.routine.extra_info->routine_name_linkage;
     /* Do compatibility checking on the throw specification. */
-    check_exception_specification(rout_type, rp,
-                                  &func_info->throw_position,
+    check_exception_specification(rout_type, sym, &func_info->throw_position,
                                   /*is_redecl=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Record the default arguments of the current declaration before
@@ -1229,7 +1228,8 @@ on a prior declaration.
       unexpected_condition();
     }  /* if */
 #endif /* CHECKING */
-    reconcile_routine_types(sym->variant.routine.ptr, type_ptr,
+    rp = sym->variant.routine.ptr;
+    reconcile_routine_types(rp, type_ptr,
                             /*preserve_rout_type=*/FALSE,
                             /*preserve_type_ptr=*/TRUE);
     if (rp->special_kind == (a_special_function_kind)sfk_constructor) {

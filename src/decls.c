@@ -775,8 +775,66 @@ If a true error is issued mark *locator as an error locator.
 }  /* report_bad_new_or_delete */
 
 
+static a_boolean compare_exception_specification_type_list(
+                              an_exception_specification_ptr  spec_1,
+                              an_exception_specification_ptr  spec_2,
+                              a_source_position_ptr           throw_pos,
+                              an_error_code                   diff_msg,
+                              an_error_code                   intro_msg,
+                              a_symbol_ptr                    prev_sym,
+                              a_boolean                       difference_seen)
+/*
+Helper function to report differences between two exception specifications
+spec_1 and spec_2.  Normally this routine is called twice with the arguments
+for spec_1 and spec_2 exchanged and diff_msg set to an error message that
+reports missing or extraneous types.  The position of the keyword "throw" that
+introduced the latest declaration is throw_pos.  The earlier declaration
+resulted in symbol prev_sym.
+If difference_seen is FALSE and a difference is seen in this comparison, an
+introductory message is issued, and difference_seen is set to TRUE.
+The routine returns difference_seen.
+*/
+{
+  an_exception_specification_type_ptr  etype_1, etype_2;
+
+  etype_1 = spec_1->exception_specification_type_list;
+  for (; etype_1 != NULL; etype_1 = etype_1->next) {
+    if (etype_1->redundant) {
+      /* Don't bother looking for a match on redundant types.  It will already
+         have been done. */
+    } else {
+      a_boolean  match = FALSE;
+
+      etype_2 = spec_2->exception_specification_type_list;
+      for (; etype_2 != NULL; etype_2 = etype_2->next) {
+        if (!etype_2->redundant && etype_2->type != NULL &&
+            identical_types(etype_1->type, etype_2->type)) {
+          /* An entry of the same type was found on the list of spec_2. */
+          match = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+      if (!match) {
+        /* No match was found, so the list of spec_2 does not have a type that
+           is on the list of spec_1. */
+        if (!difference_seen) {
+          /* The diagnostics will be combined with a header message followed
+             by additional messages identifying the specific discrepancy.
+             This is the first diagnostic, so put out the header message
+             first. */
+          pos_stsy_start_error(intro_msg, throw_pos, ":", prev_sym);
+          difference_seen = TRUE;
+        }  /* if */
+        ty_add_diag_info(diff_msg, etype_1->type);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return difference_seen;
+}  /* compare_exception_specification_type_list */
+
+
 void check_exception_specification(a_type_ptr         new_rout_type,
-                                   a_routine_ptr      rp,
+                                   a_symbol_ptr       prev_decl,
                                    a_source_position  *throw_pos,
                                    a_boolean          is_redecl)
 /*
@@ -784,35 +842,83 @@ Check that the throw specification on the current declaration, if any, is
 consistent with that of the previous declaration.
 */
 {
-  a_boolean                            match, any_difference_seen;
-  an_exception_specification_ptr       new_tsp, old_tsp;
-  an_exception_specification_type_ptr  new_est_list, old_est_list;
-  an_exception_specification_type_ptr  estp, other_estp;
-  a_symbol_ptr                         rout_sym;
-  an_error_code                        error_code;
+  a_boolean                       any_difference_seen;
+  an_exception_specification_ptr  new_tsp, old_tsp;
+  an_error_code                   error_code;
+  a_routine_ptr                   rp = NULL;
+  a_type_ptr                      prev_type;
 
   db_enter(4, "check_exception_specification");
-  if (exceptions_enabled && rp->type->kind != (a_type_kind)tk_typeref) {
-    old_tsp = skip_typerefs(rp->type)->
+  /* Retrieve the routine type of the previous declaration: */
+  switch (prev_decl->kind) {
+    case sk_routine:
+    case sk_member_function:
+      rp = prev_decl->variant.routine.ptr;
+      prev_type = rp->type;
+      break;
+    case sk_extern_routine:
+      rp = prev_decl->variant.extern_symbol_descr->variant.routine.ptr;
+      prev_type = rp->type;
+      break;
+    case sk_function_template:
+      rp = prev_decl->variant.template_info->variant.function.routine;
+      prev_type = rp->type;
+      break;
+    case sk_variable:
+      prev_type = prev_decl->variant.variable.ptr->type;
+      break;
+    case sk_static_data_member:
+      prev_type = prev_decl->variant.static_data_member.variable->type;
+      break;
+    case sk_extern_variable:
+      prev_type =
+               prev_decl->variant.extern_symbol_descr->variant.variable->type;
+      break;
+    default:
+      unexpected_condition_str(
+                            "check_exception_specification: bad symbol kind");
+  }  /* switch */
+  if (rp == NULL) {
+    /* Not a routine type, but a pointer-to, reference-to or pointer-to-member
+       function. */
+    if (is_ptr_to_member_type(prev_type)) {
+      prev_type = pm_member_type(skip_typerefs(prev_type));
+      new_rout_type = pm_member_type(skip_typerefs(new_rout_type));
+    } else {
+      check_assertion_str(is_ptr_or_ref_type(prev_type),
+                          "check_exception_specification: bad type");
+      prev_type = type_pointed_to(skip_typerefs(prev_type));
+      new_rout_type = type_pointed_to(skip_typerefs(new_rout_type));
+    }  /* if */
+  }  /* if */
+  if (exceptions_enabled && prev_type->kind != (a_type_kind)tk_typeref) {
+    old_tsp = skip_typerefs(prev_type)->
                          variant.routine.extra_info->exception_specification;
     new_tsp = skip_typerefs(new_rout_type)->
                     variant.routine.extra_info->exception_specification;
-    /* Set rout_sym and error_code for issuing diagnostics. */
-    rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+    /* Set error_code for issuing diagnostics. */
     if (is_redecl) {
       /* This a function redeclaration -- the exception specifications have to
          match. */
       error_code = ec_incompatible_exception_specification;
     } else {
-      /* Not a redeclaration -- probably a template specialization. */
+      /* Not a redeclaration -- probably a template specialization.
+         In diagnostics refer to template rather than a previous declaration
+         of this instance. */
       error_code = ec_bad_exception_specification_for_specialization;
-      if (rout_sym->variant.routine.instance_ptr != NULL) {
+      /* Distinguish between (member) function specializations and static
+         data member specializations: */
+      if (rp != NULL && prev_decl->variant.routine.instance_ptr != NULL) {
         /* In diagnostics refer to template rather than a previous declaration
            of this instance. */
-        rout_sym = rout_sym->variant.routine.instance_ptr->template_sym;
+        prev_decl = prev_decl->variant.routine.instance_ptr->template_sym;
+      } else if (rp == NULL &&
+                 prev_decl->variant.static_data_member.instance_ptr != NULL) {
+        prev_decl =
+             prev_decl->variant.static_data_member.instance_ptr->template_sym;
       }  /* if */
     }  /* if */
-    if (rp->compiler_generated) {
+    if (rp != NULL && rp->compiler_generated) {
       /* Ignore any differences between exception specifications on a
          compiler generated routine (e.g., predeclared operator new or delete)
          and the current declaration. */
@@ -823,7 +929,7 @@ consistent with that of the previous declaration.
       if (new_tsp != NULL) {
         /* Previously the exception specification was absent; now one is
            provided.  Issue an error. */
-        pos_stsy_error(error_code, throw_pos, "", rout_sym);
+        pos_stsy_error(error_code, throw_pos, "", prev_decl);
       }  /* if */
     } else if (new_tsp == NULL) {
       /* Issue a diagnostic on the omission of a throw specification on the
@@ -833,7 +939,7 @@ consistent with that of the previous declaration.
       /* Unless we are in strict mode, issue a warning instead of an error
          if this is a redeclaration of what may be a library new or delete
          routine: the relaxation is to ease the upgrading of old code. */
-      if (is_redecl && !rp->source_corresp.is_class_member &&
+      if (is_redecl && rp != NULL && !rp->source_corresp.is_class_member &&
           (is_new_operator(rp->opname_kind) ||
            is_delete_operator(rp->opname_kind))) {
         /* Set the severity, depending on the strict mode setting. */
@@ -843,86 +949,30 @@ consistent with that of the previous declaration.
                         is_redecl?
                           ec_omitted_exception_specification :
                           ec_omitted_exception_specification_on_specialization,
-                        throw_pos, rout_sym);
+                        throw_pos, prev_decl);
     } else if (old_tsp->exception_specification_type_list == NULL) {
       /* Previous specification asserted that no exceptions will be thrown.
          It is compatible only with an identical specification on the current
          declaration. */
       if (new_tsp->exception_specification_type_list != NULL) {
-        pos_stsy_start_error(error_code, throw_pos, ":", rout_sym);
+        pos_stsy_start_error(error_code, throw_pos, ":", prev_decl);
         add_diag_info(ec_previous_exception_specification_was_empty);
         end_error();
       }  /* if */
     } else {
       /* Previous specification was a list of the types that will be thrown.
          Check for a mismatch between the previous list and the current one. */
-      old_est_list = old_tsp->exception_specification_type_list;
-      new_est_list = new_tsp->exception_specification_type_list;
       any_difference_seen = FALSE;
-      /* First loop through the current list (if any) and issue a diagnostic
-         on any type present in the current list but absent from the
-         previous one. */
-      for (estp = new_est_list; estp != NULL; estp = estp->next) {
-        if (estp->redundant) {
-          /* Don't bother looking for a match on redundant types.  It will
-             already have been done. */
-        } else {
-          match = FALSE;
-          other_estp = old_est_list;
-          for (; other_estp != NULL; other_estp = other_estp->next) {
-            if (!other_estp->redundant && other_estp->type != NULL &&
-                identical_types(estp->type, other_estp->type)) {
-              /* An entry of the same type was found on the previous list. */
-              match = TRUE;
-              break;
-            }  /* if */
-          }  /* for */
-          if (!match) {
-            /* No match was found, so the previous list does not have a
-               type that is on the current list. */
-            if (!any_difference_seen) {
-              /* The diagnostics will be combined with a header message
-                 followed by additional messages identifying the specific
-                 discrepancy.  This is the first diagnostic, so put out
-                 the header message first. */
-              pos_stsy_start_error(error_code, throw_pos, ":", rout_sym);
-              any_difference_seen = TRUE;
-            }  /* if */
-            ty_add_diag_info(ec_omitted_in_previous_exception_specification,
-                             estp->type);
-          }  /* if */
-        }  /* if */
-      }  /* for */
-      /* Next loop through the previous list and issue a diagnostic on any
-         type present in the previous list but absent from the current one
-         (if any). */
-      other_estp = old_est_list;
-      for (; other_estp != NULL; other_estp = other_estp->next) {
-        if (other_estp->redundant) {
-          /* Don't bother looking for a match on redundant types.  It will
-             already have been done. */
-        } else {
-          match = FALSE;
-          for (estp = new_est_list; estp != NULL; estp = estp->next) {
-            if (!estp->redundant &&
-                other_estp->type != NULL && estp->type != NULL &&
-                identical_types(estp->type, other_estp->type)) {
-              match = TRUE;
-              break;
-            }  /* if */
-          }  /* for */
-          if (!match) {
-            if (!any_difference_seen) {
-              /* This is the first diagnostic, so put out the header
-                 message first. */
-              pos_stsy_start_error(error_code, throw_pos, ":", rout_sym);
-              any_difference_seen = TRUE;
-            }  /* if */
-            ty_add_diag_info(ec_included_in_previous_exception_specification,
-                             other_estp->type);
-          }  /* if */
-        }  /* if */
-      }  /* for */
+      /* Check extraneous types: */
+		any_difference_seen = compare_exception_specification_type_list(
+                              new_tsp, old_tsp, throw_pos,
+                              ec_omitted_in_previous_exception_specification,
+                              error_code, prev_decl, any_difference_seen);
+      /* Check missing types: */
+		any_difference_seen = compare_exception_specification_type_list(
+                              old_tsp, new_tsp, throw_pos,
+                              ec_included_in_previous_exception_specification,
+                              error_code, prev_decl, any_difference_seen);
       if (any_difference_seen) end_error();
     }  /* if */
   }  /* if */
@@ -2606,6 +2656,8 @@ created; the caller must set it.
         *routine_ptr =
                     ext_sym->variant.extern_symbol_descr->variant.routine.ptr;
         if (*routine_ptr != NULL && !C_mode()) {
+          a_symbol_ptr  rout_sym = (a_symbol_ptr)(*routine_ptr)->
+                                                    source_corresp.assoc_info;
           if (func_info->is_definition &&
               (*routine_ptr)->assoc_scope != NULL_region_number) {
             /* This error can come up when the same extern "C" function is
@@ -2614,19 +2666,17 @@ created; the caller must set it.
                  namespace M { extern "C" void f() { } }
             */
             pos_sy_error(ec_already_defined, &locator->source_position,
-                         (a_symbol_ptr)((*routine_ptr)->
-                                           source_corresp.assoc_info));
+                         rout_sym);
             *routine_ptr = NULL;
+          } else {
+            /* Do compatibility checking on the throw specification. */
+            check_exception_specification(type_ptr, rout_sym,
+                                          &func_info->throw_position,
+                                          /*is_redecl=*/TRUE);
           }  /* if */
         }  /* if */
         if (*routine_ptr != NULL) {
           /* There is a routine entry we can reuse. */
-          if (C_dialect == C_dialect_cplusplus) {
-            /* Do compatibility checking on the throw specification. */
-            check_exception_specification(type_ptr, *routine_ptr,
-                                          &func_info->throw_position,
-                                          /*is_redecl=*/TRUE);
-          }  /* if */
           use_existing_il_entry = TRUE;
           preexisting_type = (*routine_ptr)->type;
           (*routine_ptr)->type = type_ptr;
@@ -3743,6 +3793,16 @@ cross-reference output describing this declaration.
   }  /* if */
   if (redeclaration) {
     if (linked_symbol->kind == (a_symbol_kind)sk_variable) {
+      /* If necessary, check that throw-specifications match. */
+      if (!C_mode() &&
+          ((is_ptr_or_ref_type(type_ptr) &&
+            is_function_type(type_pointed_to(type_ptr))) ||
+           (is_ptr_to_member_type(type_ptr) &&
+            is_function_type(pm_member_type(type_ptr))))) {
+        check_exception_specification(type_ptr, linked_symbol,
+                                      &locator->source_position,
+                                      /*is_redecl=*/TRUE);
+      }  /* if */
       if (C_mode() || (microsoft_mode && (srk_flags & SRK_TENTATIVE_DEF))) {
         if (linked_symbol->defined &&
             linked_symbol->variant.variable.ptr->init_kind !=
@@ -4523,7 +4583,7 @@ on for use in generating cross-reference output describing this declaration.
               }  /* if */
             }  /* if */
             /* Do compatibility checking on the throw specification. */
-            check_exception_specification(type_ptr, routine_ptr,
+            check_exception_specification(type_ptr, linked_symbol,
                                           &func_info->throw_position,
                                           /*is_redecl=*/TRUE);
           }  /* if */
@@ -4698,7 +4758,7 @@ on for use in generating cross-reference output describing this declaration.
         *old_type = routine_ptr->type;
         if (C_dialect == C_dialect_cplusplus) {
           /* Do compatibility checking on the throw specification. */
-          check_exception_specification(type_ptr, routine_ptr,
+          check_exception_specification(type_ptr, linked_symbol,
                                         &func_info->throw_position,
                                         /*is_redecl=*/TRUE);
         }  /* if */
@@ -4742,7 +4802,7 @@ on for use in generating cross-reference output describing this declaration.
         check_for_any_default_args(type_ptr);
       }  /* if */
       /* Do compatibility checking on the throw specification. */
-      check_exception_specification(type_ptr, routine_ptr,
+      check_exception_specification(type_ptr, linked_symbol,
                                     &func_info->throw_position,
                                     /*is_redecl=*/TRUE);
     } else if (symbol_for_overloading != NULL) {
@@ -4850,7 +4910,7 @@ skip_overloading:;
                             /*preserve_rout_type=*/TRUE,
                             /*preserve_type_ptr=*/FALSE);
     /* Do compatibility checking for the throw specification. */
-    check_exception_specification(type_ptr, routine_ptr,
+    check_exception_specification(type_ptr, linked_symbol,
                                   &func_info->throw_position,
                                   /*is_redecl=*/TRUE);
   } else if (routine_ptr == NULL) {
@@ -5592,8 +5652,7 @@ is a template specialization declaration.
     }  /* if */
     /* Be sure the current throw specification is consistent with the one
        on the previous declaration. */
-    check_exception_specification(type_ptr, rout_ptr,
-                                  &func_info->throw_position,
+    check_exception_specification(type_ptr, sym, &func_info->throw_position,
                                   /*is_redecl=*/TRUE);
 #if DECL_MODIFIERS_IN_USE
     redeclaration = TRUE;
@@ -5793,6 +5852,13 @@ the symbol and its linkage (which is always "none").
                      &locator->source_position, sym);
         err = TRUE;
       }  /* if */
+    } else if ((is_ptr_or_ref_type(type_ptr) &&
+                is_function_type(type_pointed_to(type_ptr))) ||
+               (is_ptr_to_member_type(type_ptr) &&
+                is_function_type(pm_member_type(type_ptr)))) {
+      /* Check for mismatches in exception specifications. */
+      check_exception_specification(type_ptr, sym, &locator->source_position,
+                                    /*is_redecl=*/TRUE);
     }  /* if */
     if (!err) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS

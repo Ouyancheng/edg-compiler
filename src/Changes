@@ -1,5 +1,19 @@
 Version 2.43
 
+9/28/99  Matching of exception specifications on variables
+
+The front end now correctly diagnoses mismatches in exception specifications
+when (a) redeclaring variables or static data members with a pointer to
+function, reference or function, or pointer-to-member function type, and
+(b) when assigning or initializing entities of such types.  Assignment and
+initialization was already partially checked, but exception specification are
+now also checked on the return type and parameters types of the function
+types involved.
+
+  extern void (*pf1)(void ());
+  extern void (*pf1)(void ()) throw (int); // Redeclaration error
+  void (*pf2)(void () throw (char)) = pf1; // Initialization error
+
 9/27/99  Spurious error when a preprocessing directive appears in
          a qualified name
 

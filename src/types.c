@@ -3259,6 +3259,76 @@ continue_outer_loop:;
 }  /* exception_spec_is_less_restrictive */
 
 
+static a_boolean same_exception_spec(a_type_ptr type_1, a_type_ptr type_2)
+/*
+If the given types are function types, pointer or reference to function types,
+or pointer-to-member function types, return whether their exception
+specifications match.  For other types, just return TRUE.
+*/
+{
+  a_boolean  result = TRUE;
+
+  type_1 = skip_typerefs(type_1);
+  type_2 = skip_typerefs(type_2);
+  if (is_ptr_or_ref_type(type_1)) {
+    type_1 = type_pointed_to(type_1);
+    type_2 = type_pointed_to(type_2);
+    type_1 = skip_typerefs(type_1);
+    type_2 = skip_typerefs(type_2);
+    if (is_function_type(type_1)) {
+      result = !(exception_spec_is_less_restrictive(type_1, type_2) ||
+                 exception_spec_is_less_restrictive(type_2, type_1));
+    }  /* if */
+  } else if (is_ptr_to_member_type(type_1)) {
+    type_1 = pm_member_type(type_1);
+    type_2 = pm_member_type(type_2);
+    type_1 = skip_typerefs(type_1);
+    type_2 = skip_typerefs(type_2);
+    if (is_function_type(type_1)) {
+      result = !(exception_spec_is_less_restrictive(type_1, type_2) ||
+                 exception_spec_is_less_restrictive(type_2, type_1));
+    }  /* if */
+  } else if (is_function_type(type_1)) {
+    result = !(exception_spec_is_less_restrictive(type_1, type_2) ||
+               exception_spec_is_less_restrictive(type_2, type_1));
+  }  /* if */
+  return result;
+}  /* same_exception_spec */
+
+
+static a_boolean same_exception_spec_on_return_and_param_type(
+                                                           a_type_ptr  type_1,
+                                                           a_type_ptr  type_2)
+/*
+Return TRUE if two function types have identical exception specifications on
+their respective parameter types and on their return type.  (This is a
+requirement when pointers to such functions are initialized or assigned.)
+Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (!same_exception_spec(type_1->variant.routine.return_type,
+                           type_2->variant.routine.return_type)) {
+    result = FALSE;
+  } else {
+    a_routine_type_supplement_ptr  rtsp1 = type_1->variant.routine.extra_info;
+    a_routine_type_supplement_ptr  rtsp2 = type_2->variant.routine.extra_info;
+    a_param_type_ptr                pt_1 = rtsp1->param_type_list;
+    a_param_type_ptr                pt_2 = rtsp2->param_type_list;
+
+    for (; pt_1 != NULL && pt_2 != NULL;
+           pt_1 = pt_1->next, pt_2 = pt_2->next) {
+      if (!same_exception_spec(pt_1->type, pt_2->type)) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* same_exception_spec_on_return_and_param_type */
+
+
 a_boolean qualification_conversion_possible(a_type_ptr source_type,
 					    a_type_ptr dest_type,
 					    a_boolean  *p_qualifiers_added,
@@ -3504,8 +3574,10 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                                             unqual_dest_type_pointed_to)) {
       if (exceptions_enabled && !allow_qualifier_or_eh_mismatch &&
           is_function(unqual_dest_type_pointed_to) &&
-          exception_spec_is_less_restrictive(unqual_source_type_pointed_to,
-                                             unqual_dest_type_pointed_to)) {
+          (exception_spec_is_less_restrictive(unqual_source_type_pointed_to,
+                                             unqual_dest_type_pointed_to) ||
+           !same_exception_spec_on_return_and_param_type(
+               unqual_source_type_pointed_to, unqual_dest_type_pointed_to))) {
         /* In pointer-to-function assignment and initialization, any exception
            allowed by the source type must be allowed by the destination
            type; but that's not the case here, so return FALSE. */
@@ -3944,8 +4016,10 @@ pointers to members).
          are compatible. */
       if (okay && exceptions_enabled && !check_as_operands_not_conversion &&
           is_function_type(dest_type_pointed_to) &&
-          exception_spec_is_less_restrictive(source_type_pointed_to,
-                                             dest_type_pointed_to)) {
+          (exception_spec_is_less_restrictive(source_type_pointed_to,
+                                                      dest_type_pointed_to) ||
+           !same_exception_spec_on_return_and_param_type(
+                             source_type_pointed_to, dest_type_pointed_to))) {
         okay = FALSE;
         clear_std_conv_descr(std_conv);
         std_conv->conv_failed_because_of_exception_specifications = TRUE;

@@ -9706,6 +9706,12 @@ returned to the caller.
     pos_sy_error(ec_not_compatible_with_previous_decl,
 		 &locator->source_position, sym);
     err = TRUE;
+  } else if ((is_ptr_or_ref_type(type) &&
+              is_function_type(type_pointed_to(type))) ||
+             (is_ptr_to_member_type(type) &&
+              is_function_type(pm_member_type(type)))) {
+    check_exception_specification(type, sym, &locator->source_position,
+                                  /*is_redecl=*/TRUE);
   } else {
     /* This is a template definition of a static data member of a
        class template. */
@@ -11323,7 +11329,7 @@ that follows.
       } else {
         /* Issue an error if the exception specification on the instance does
            not match that of the template. */
-        check_exception_specification(type, rp, &func_info.throw_position,
+        check_exception_specification(type, sym, &func_info.throw_position,
                                       /*is_redecl=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
@@ -13800,7 +13806,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
            routine. */
         if (type->variant.routine.extra_info->exception_specification !=
                                                                        NULL) {
-          check_exception_specification(type, new_sym->variant.routine.ptr,
+          check_exception_specification(type, new_sym,
                                         &func_info.throw_position,
                                         /*is_redecl=*/TRUE);
         }  /* if */

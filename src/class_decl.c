@@ -4984,8 +4984,6 @@ of the function, and again overloading is a possibility.
                        &locator->source_position, sym);
           set_to_error_locator(*locator);
         } else {
-          a_routine_ptr  rp = sym->variant.routine.ptr;
-
           if (func_info->is_definition) {
             /* WP 11.4 para 5 prohibits defining a member function in a
                friend declaration. */
@@ -4995,11 +4993,13 @@ of the function, and again overloading is a possibility.
           record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                     declarator_ssep);
           /* Do exception specification compatibility checking. */
-          check_exception_specification(function_type, rp,
+          check_exception_specification(function_type, sym,
                                         &func_info->throw_position,
                                         /*is_redecl=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!func_info->is_definition) {
+            a_routine_ptr  rp = sym->variant.routine.ptr;
+
             /* Since this is a non-defining entry, it is represented by a
                secondary-decl entry in the source sequence list.  Enter the
                current function type. */
