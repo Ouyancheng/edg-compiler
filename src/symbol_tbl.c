@@ -409,10 +409,12 @@ and indentation is the indentation desired.
     col += strlen(str) + 6;
   } else if (sym->kind == (a_symbol_kind)sk_namespace_projection) {
     a_symbol_ptr fsym = sym->variant.namespace_projection.fundamental_symbol;
-    if (fsym != NULL) str = str_qualified_name(buffer, fsym);
-    put_separator("", strlen(str) + 6);
-    fprintf(f_debug, "(= \"%s\")", str);
-    col += strlen(str) + 6;
+    if (fsym != NULL) {
+      str = str_qualified_name(buffer, fsym);
+      put_separator("", strlen(str) + 6);
+      fprintf(f_debug, "(= \"%s\")", str);
+      col += strlen(str) + 6;
+    }  /* if */
   }  /* if */
 
   if (sym->decl_seq > 0) {
