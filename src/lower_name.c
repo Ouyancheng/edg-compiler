@@ -2726,6 +2726,7 @@ buffer, and must be copied elsewhere promptly.
   a_mangling_control_block mctl;
   char                     *name = scp->name;
   char                     buffer[50];
+  a_source_correspondence  *module_scp = scp;
 
 #if CHECKING
   /* If the name needs to be mangled, the mangling should have been done
@@ -2771,7 +2772,10 @@ buffer, and must be copied elsewhere promptly.
           if (field == NULL) break;
           /* Use the name of the first member. */
           name = field->source_corresp.name;
-          if (name != NULL) break;
+          if (name != NULL) {
+            module_scp = &field->source_corresp;
+            break;
+          }  /* if */
           /* Loop if the first member is itself an anonymous union. */
           if (!field->is_anonymous_parent_object) break;
           union_type = field->type;
@@ -2785,7 +2789,7 @@ buffer, and must be copied elsewhere promptly.
     }  /* if */
   }  /* if */
   add_str_to_mangled_name(name, &mctl);
-  end_externalized_name(scp, &mctl);
+  end_externalized_name(module_scp, &mctl);
   add_to_mangled_name('\0', &mctl);
   return mangling_text_buffer->buffer;
 }  /* externalized_mangled_name */
