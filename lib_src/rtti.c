@@ -56,7 +56,6 @@ FALSE.
 {
   a_boolean result = FALSE;
   a_boolean is_accessible;
-  void	    *ptr_sought = *p_new_ptr;
 
 #if DEBUG
   if (__debug_level >= 4) {
@@ -72,12 +71,8 @@ FALSE.
     abi::__si_class_type_info *si_obj_info = 
                                        (abi::__si_class_type_info *)class_info;
     is_accessible = *p_is_accessible;
-    if (matching_type_info(si_obj_info->__base_type, base_info)  || 
-        derived_to_base_conversion_r(ptr, p_new_ptr,
-                                     si_obj_info->__base_type,
-                                     base_info, p_is_ambiguous,
-                                     &is_accessible)) {
-      if ((ptr_sought != NULL && ptr_sought != *p_new_ptr) ||
+    if (matching_type_info(si_obj_info->__base_type, base_info)) {
+      if ((*p_new_ptr != NULL && *p_new_ptr != ptr) ||
           *p_is_ambiguous) {
         /* The base class is ambiguous. */
         *p_is_ambiguous = TRUE;
@@ -88,6 +83,19 @@ FALSE.
           *p_is_accessible = is_accessible;
         }  /* if */
         *p_new_ptr = ptr;
+        result = TRUE;
+      }  /* if */
+    } else if (derived_to_base_conversion_r(ptr, p_new_ptr,
+                                            si_obj_info->__base_type,
+                                            base_info, p_is_ambiguous,
+                                            &is_accessible) ||
+                                            *p_is_ambiguous) {
+      if (!is_accessible) {
+        *p_is_accessible = is_accessible;
+      }  /* if */
+      if ((*p_is_ambiguous)) {
+        result = FALSE;
+      } else {
         result = TRUE;
       }  /* if */
     }  /* if */
@@ -133,7 +141,11 @@ FALSE.
       } else if (derived_to_base_conversion_r(base_ptr, p_new_ptr,
                                               bcsp->__base_type,
                                               base_info, p_is_ambiguous,
-                                              &is_accessible)) {
+                                              &is_accessible) ||
+                 *p_is_ambiguous) {
+        if (!is_accessible) {
+          *p_is_accessible = is_accessible;
+        }  /* if */
         if ((*p_is_ambiguous)) {
           result = FALSE;
           break;
