@@ -3,7 +3,7 @@ Version 3.1
 9/25/02  Microsoft C++ compatibility: 0(x) treated as call, ignored
 
 In Microsoft C++ mode, a call expression where the "function" is a
-constant zero is accepted and ignored.  This is used in some
+constant zero is now accepted and ignored.  This is used in some
 Microsoft code for conditional compilation, e.g.,
 
   TRACE("abc");
