@@ -468,6 +468,19 @@ Return the element type of the given array type.
 }  /* array_element_type */
 
 
+a_type_ptr underlying_array_element_type(a_type_ptr array_type)
+/*
+Return the underlying element type of the given array type.
+*/
+{
+  a_type_ptr tp = array_type;
+  do {
+    tp = array_element_type(tp);
+  } while (is_array_type(tp));
+  return tp;
+}  /* underlying_array_element_type */
+
+
 a_type_ptr type_pointed_to(a_type_ptr pointer_type)
 /*
 Return the type pointed to by the given tk_pointer type entry.  This can be
@@ -707,9 +720,7 @@ cannot be determined until the struct or union is completed.
   tp = skip_typerefs(tp);
   if (is_array(tp)) {
     /* Drop any number of array types. */
-    do {
-      tp = skip_typerefs(tp->variant.array.element_type);
-    } while (is_array(tp));
+    tp = skip_typerefs(underlying_array_element_type(tp));
     /* Check for an incomplete struct or union type. */
     if (is_incomplete(tp) && is_class_struct_union(tp)) {
       is_arr_of_incomp = TRUE;
