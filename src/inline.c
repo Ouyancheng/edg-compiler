@@ -355,6 +355,25 @@ The code is inserted at *insert_location, and *insert_location is updated.
         param_is_constructor_this = TRUE;
         if (is_non_null) param_is_unmodified = TRUE;
       }  /* if */
+      if (!arg_is_constant) {
+        /* Some non-constant cases can be viewed as constant, in the sense
+           of "invariant over the lifetime of the call". */
+        an_expr_node_ptr temp_expr = arg;
+        /* Remove any casts. */
+        while (is_operation_node(temp_expr) &&
+               temp_expr->kind == (an_expr_operator_kind)eok_cast) {
+          temp_expr = temp_expr->variant.operation.operands;
+        }  /* while */
+        /* An auto variable whose address has not been taken is invariant
+           across the call. */
+        if (temp_expr->kind == (an_expr_node_kind)enk_variable) {
+          a_variable_ptr var = temp_expr->variant.variable;
+          if (!has_static_storage_duration(var->storage_class) &&
+              !var->address_taken) {
+            arg_is_constant = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       if (param_is_unmodified && arg_is_constant &&
           /* We don't have the mechanism to handle class-valued
              variables, because their addresses can get taken implicitly

@@ -1,5 +1,16 @@
 Version 2.41
 
+1/30/99   Minimal inlining: no temporary for parameter when argument
+          is unaliased automatic variable
+
+When minimal inlining expands a function call, it assigns the argument
+values to temporaries except in certain special cases where the argument
+expression can be used directly in place of the parameter, e.g., when
+the argument expression is a constant.  Now, no temporary is used
+when the argument is an auto variable whose address has not been
+taken, since such a variable cannot change its value across the
+function call.
+
 1/29/99   lower_name.c reworked
 
 The name-mangling code in lower_name.c has been reworked to make it
