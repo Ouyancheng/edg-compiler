@@ -139,7 +139,8 @@ this change, for example,
 
 would produce "T121A" as part of the mangled name, which could be
 read as "T1 21A" or "T12 1A".  This change also affects the second
-number in the "Nmn" construct.
+number in the "Nmn" construct.  The change is disabled when
+CFRONT_OBJECT_CODE_COMPATIBILITY is true.
 
 2/11/94  Pointer-to-member types preserved in result of lowered cast
 
