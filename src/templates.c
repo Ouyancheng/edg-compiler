@@ -3788,7 +3788,11 @@ prototype instantiation is considered as a potential match.
       if (prototype_sym != NULL) {
         ctsp->assoc_template = prototype_sym->variant.class_struct_union.type;
       } else {
-        check_assertion(total_errors != 0);
+        /* FIXME Re-examine nonerror cases with new template template parameter
+           representation. */
+        check_assertion(total_errors != 0 ||
+                        tssp->is_nonreal_member ||
+                        tssp->variant.class_template.template_template_param);
       }  /* if */
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
