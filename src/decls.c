@@ -2664,8 +2664,15 @@ describing this declaration.
             /* Issue an error on incompatible declarations. */
             pos_sy_error(ec_not_compatible_with_previous_decl,
                          &locator->source_position, linked_symbol);
-            /* Force creation of a new symbol and a new routine entry. */
-            linked_redecl_error = TRUE;
+            if (routine_ptr->storage_class == (a_storage_class)sc_static) {
+              /* Reuse the routine entry to avoid error recovery problems
+                 connected with constraints placed on static functions. */
+              *old_type = routine_ptr->type;
+              if (is_function_def) routine_ptr->type = type_ptr;
+            } else {
+              /* Force creation of a new symbol and a new routine entry. */
+              linked_redecl_error = TRUE;
+            }  /* if */
           }  /* if */
           redecl_error_already_issued = TRUE;
         } else {
