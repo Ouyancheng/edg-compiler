@@ -59,7 +59,7 @@ EXTERN a_boolean
 /*
 List of all IL entry kinds:
 */
-/* If you change this, also change sizeof_il_entry in il_walk.h. */
+/* If you change this, also change sizeof_il_entry in il_file.h. */
 typedef enum /*an_il_entry_kind*/ {
   iek_none,		/* Skip zero value; it's used as a marker. */
   iek_source_file,	/* a_source_file */
@@ -119,6 +119,11 @@ typedef enum /*an_il_entry_kind*/ {
   iek_orphaned_il_list, /* an_orphaned_il_list */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
+
+/* Macro to test whether or not an entry kind is a string kind. */
+#define is_string_entry_kind(entry_kind) \
+  ((entry_kind) == iek_id_name || (entry_kind) == iek_string_text || \
+   (entry_kind) == iek_other_text)
 
 /*
 It is necessary to maintain a list of IL entries that are allocated in
