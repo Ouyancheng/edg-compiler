@@ -8251,6 +8251,12 @@ nonstandard anonymous unions is_nonstd is TRUE.
           /* Some test suites commonly declare anonymous types in anonymous
              unions.  Since these tests must run in strict mode, a flag is
              provided to inhibit this particular diagnostic. */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+        } else if (allow_nonstandard_anonymous_unions &&
+                   !has_name(nested_type)) {
+          /* Similarly, nonstandard anonymous unions can contain nested
+             anonymous types. */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
         } else {
           pos_diagnostic(strict_ansi_mode ?
                          strict_ansi_discretionary_severity : es_warning,

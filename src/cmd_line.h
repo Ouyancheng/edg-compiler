@@ -994,7 +994,8 @@ EXTERN a_boolean
 			   (1) in C mode and (2) with structs (in both C
 			   and C++) and classes (in C++) as well.  This
 			   functionality emulates an extension provided by
-			   Microsoft C and C++ compilers. */
+			   Microsoft and GNU compilers (in both C and C++
+			   modes). */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 EXTERN a_boolean

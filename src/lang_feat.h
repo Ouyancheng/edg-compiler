@@ -724,10 +724,11 @@ EXTERN long	microsoft_version
 Flag that is TRUE if a set of extensions is supported that permits features
 similar to C++ anonymous unions (1) in C mode and (2) with structs (in both
 C and C++) and classes (in C++) as well.  This functionality emulates an
-extension provided by Microsoft C and C++ compilers.
+extension provided by Microsoft and GNU compilers.
 */
 #ifndef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-#define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS MICROSOFT_EXTENSIONS_ALLOWED
+#define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS (MICROSOFT_EXTENSIONS_ALLOWED || \
+                                            GNU_EXTENSIONS_ALLOWED)
 #endif /* ifndef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 /*

@@ -2434,6 +2434,9 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
   null_chars_allowed_in_source = TRUE;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  allow_nonstandard_anonymous_unions = TRUE;
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 }  /* check_and_set_gnu_mode_options */
 
 

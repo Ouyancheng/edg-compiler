@@ -1,5 +1,10 @@
 Version 3.1
 
+9/24/02  GNU compatibility: Nonstandard anonymous unions
+
+When ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE, the front end now allows
+nonstandard anonymous unions in GNU C and C++ modes.
+
 9/24/02  Cleaner output of floating-point values
 
 Floating-poing values in generated C code (and, in some configurations,
@@ -860,7 +865,7 @@ like a string literal).  A few non-standard constant-expressions are accepted
 which it appears.  [9/12/02] Emulation of the dependent base class lookup
 done by g++.  [9/16/02] Compound literals and designated initializers.
 [9/17/02] Predefined __GNUG__ macro.  [9/24/02] Attributes following
-parenthesized initializers.
+parenthesized initializers.  [9/24/02] Nonstandard anonymous unions.
 
 8/5/02   Final name mangling not done on some promoted local static
          variables
