@@ -1099,8 +1099,8 @@ initializing declarations.
       if (!C_mode()) {
         /* Fix up the object lifetime pointers for labels and gotos, if
            necessary.  Note: this function is called even when there are no
-           gotos and labels to worry about, since there may block-after-label
-           lifetimes to pop off the object lifetime stack. */
+           gotos and labels to worry about, since there may be
+           block-after-label lifetimes to pop off the object lifetime stack. */
         fixup_curr_block_labels_and_gotos(prev_parent);
       }  /* if */
       if (!prev_parent->variant.block.any_labels &&
@@ -3371,7 +3371,7 @@ The syntax is:
 
   db_enter(3, "leave_statement");
   check_for_unreachable_code();
-  /* Find an enclosing "try"> */
+  /* Find an enclosing "try". */
   sssep = &struct_stmt_stack[depth_stmt_stack];
   /* Note that the loop never looks at entry [0], since that is for
      the compound statement that defines the function. */
@@ -3933,7 +3933,7 @@ static void check_for_jump_over_initialization(a_statement_ptr    sp,
 sp is either a label statement or a goto statement.  If this is a goto
 statement and the label it references has not yet been seen (i.e., if it
 is a "forward goto"), record some information about it for later use in
-detecting jumps over initializing declarations. If this is a "backward goto"
+detecting jumps over initializing declarations.  If this is a "backward goto"
 statement, issue a diagnostic if it jumps over any initializing declarations.
 If this is a label statement, check the associated forward gotos to see if
 any of them jumped over initializing declarations.  Diagnostics are put out
@@ -5570,7 +5570,7 @@ Scan a function try block.  The "try" token will already have been consumed,
 ctor-initializers will have been scanned, and the current token should be
 the left brace.  Moreover, initialization for scanning the function body will
 have been done.  This routine (along with try_block_statement which it calls)
-is in effect a wrapper around compound statement.
+is in effect a wrapper around compound_statement.
 */
 {
   a_statement_ptr  sp;
