@@ -1,5 +1,12 @@
 Version 2.33
 
+7/1/96  Microsoft compatibility: incomplete arrays in unions
+
+In Microsoft mode, any member of a union can now be an incomplete array,
+and not just the last member.  In non-Microsoft mode, the extension that
+allows an incomplete array as the last member of a union has been
+removed (it was supposed to apply only to structs/classes).
+
 7/1/96  Microsoft compatibility: [0] in C mode
 
 In Microsoft mode, [0] is allowed as an alternative to the usual [] as

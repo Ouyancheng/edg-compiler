@@ -353,6 +353,8 @@ definition proceeds.
 */
 typedef struct a_class_def_state* a_class_def_state_ptr;
 typedef struct a_class_def_state {
+  a_type_ptr	class_type;
+			/* The class being defined. */
   a_bit_field	is_first_field:1;
 			/* TRUE until the first nonstatic data member of the
 			   class has been seen. */
@@ -392,11 +394,14 @@ typedef struct a_class_def_state {
 } a_class_def_state;
 
 
-static void initialize_class_def_state(a_class_def_state_ptr cdsp)
+static void initialize_class_def_state(a_type_ptr            class_type,
+                                       a_class_def_state_ptr cdsp)
 /*
-Initialize fields of a class-definition-state block.
+Initialize fields of a class-definition-state block.  class_type is the
+class being defined.
 */
 {
+  cdsp->class_type = class_type;
   cdsp->is_first_field = TRUE;
   cdsp->class_aggregate_ruled_out = FALSE;
   cdsp->any_named_fields = FALSE;
@@ -6671,26 +6676,54 @@ respectively.
     pos_error(ec_abstract_class_object_not_allowed,
               &locator->source_position);
   } else if (is_incomplete_type(field_type)) {
-    /* As a C extension (and in C++ in Microsoft mode), allow an array of
-       unknown size as the last member of a struct. It can't be the first
-       member, though. */
-    if (is_array_type(field_type) &&
-        (curr_token == tok_rbrace ||
-         (curr_token == tok_semicolon && next_token() == tok_rbrace)) &&
-        !is_incomplete_type(underlying_array_element_type(field_type)) &&
-        ((!class_state->is_first_field && C_mode())
+    /* The member type is incomplete.  This is usually an error, but as
+       an extension allow an array of unknown size as the last member. */
+    a_boolean incomplete_okay = FALSE;
+
+    /* This extension is allowed only in C mode, or in Microsoft C++ mode
+       if the class is an aggregate. */
+    if (C_mode()
 #if MICROSOFT_EXTENSIONS_ALLOWED
-         /* In Microsoft mode the incomplete-array-type field *can* be the
-            only field in the struct.  Moreover, a final field of incomplete-
-            array-type is also accepted in C++, as long as it's a public
-            member of an aggregate class. */
-         || (microsoft_mode &&
-             (C_mode() ||
-              (!class_state->class_aggregate_ruled_out &&
-               class_state->access == (an_access_specifier)as_public)))
+        || (microsoft_mode &&
+            !class_state->class_aggregate_ruled_out &&
+            class_state->access == (an_access_specifier)as_public)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                       )) {
-      /* Okay -- unless we're in ANSI-C mode. */
+                                                                  ) {
+      /* The member must be an incomplete array, but not one whose
+         underlying element type is incomplete. */
+      if (is_array_type(field_type) &&
+          !is_incomplete_type(underlying_array_element_type(field_type))) {
+        if (is_union_type(class_state->class_type)) {
+          /* Incomplete member in a union; not usually allowed. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (microsoft_mode) {
+            /* In Microsoft mode, any member of a union can have such an
+               array type.  The problem of a zero-sized union is dealt with
+               in the layout code. */
+            incomplete_okay = TRUE;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else {
+          /* struct/class: an incomplete array is allowed only as the last
+             member.  Test for "last" by looking for the right brace or
+             semicolon following the declaration. */
+          if (curr_token == tok_rbrace ||
+              (curr_token == tok_semicolon && next_token() == tok_rbrace)) {
+            /* This is the last member.  It can't be the first/only member,
+               except in Microsoft mode. */
+            if (!class_state->is_first_field
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                || microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                 ) {
+              incomplete_okay = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (incomplete_okay) {
+      /* Incomplete member is okay, except in strict mode. */
       if (strict_ansi_mode) {
         pos_diagnostic(strict_ansi_error_severity,
                        ec_incomplete_type_not_allowed,
@@ -9126,7 +9159,7 @@ decl_specifiers and declarator) is returned.
   db_enter(3, "rescan_member_template_declaration");
   /* Initialize class_state to default values.  It should have no decisive
      effect on the limited processing that is to be done. */
-  initialize_class_def_state(&class_state);
+  initialize_class_def_state(class_type, &class_state);
   (void)class_member_declaration(class_type, &class_state,
                                  /*is_member_template=*/FALSE,
                                  &skip_semicolon_check,
@@ -9171,7 +9204,7 @@ nested classes when their definition appears outside of the class template.
   a_type_ptr                       dummy_type;
 
   db_enter(3, "scan_class_definition");
-  initialize_class_def_state(&class_state);
+  initialize_class_def_state(class_type, &class_state);
   class_state.is_local_class = is_local_class;
   /* Increment the counter of class definitions currently in progress. */
   pending_class_definitions++;
