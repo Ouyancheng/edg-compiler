@@ -1,5 +1,22 @@
 Version 2.37
 
+7/2/97    Bug when template friend declarations refer to nested classes
+
+A template friend declaration that refers to a nested class of a class
+template did not correctly handle instances of the nested class that
+were created prior to encountering the template friend declaration.
+This has been fixed.  The following example resulted in an access error
+when compiled in strict mode:
+
+  template<class T> class A {
+    struct B { B(); };
+  public:
+    struct C{ C() { A<char>::B b; } };
+    template<class T2> friend class A<T2>::C;
+  };
+  A<char>::C c1;
+  A<int>::C c2;
+
 7/1/97    Predeclaration of structs to allow compilation with old C++ compilers
 
 A few structs in il_def.h, lexical.h, scope_stk.h, and symbol_tbl.h are
