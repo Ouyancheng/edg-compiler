@@ -310,9 +310,6 @@ created for this entity; otherwise, it is NULL.
     /* The generation of "hidden name" information is primarily for the C++
        generating back end, so that it will know to use elaborated type
        specifiers and/or :: qualification to defeat name hiding. */
-    a_scope_depth   scope_depth;
-    a_boolean       check_for_tag_sym;
-    a_scope_ptr     sp;
     a_boolean       is_local_to_function = FALSE;
     a_symbol_ptr    old_sym_ptr;
 
