@@ -1515,6 +1515,8 @@ Syntax:
                                        /*is_qualified_name=*/FALSE, operand);
       bind_member_function_operand_to_selector(operand,
                                                bound_function_selector);
+      /* The call position is the position of the "(". */
+      call_position = pos_curr_token;
     }  /* if */
     /* If the operand is the name of a nonstatic member function
        (e.g., "A::f") convert it to a bound member function
