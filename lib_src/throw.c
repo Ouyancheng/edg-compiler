@@ -692,7 +692,6 @@ a try block with a catch that matches the type of the object thrown.
 */
 {
   an_eh_stack_entry_ptr	ehsep;
-  a_region_number		region = __eh_curr_region;
   an_eh_stack_entry_ptr		destination_ehsep = NULL;
   int				destination_catch_value;
   void*				object_ptr;
@@ -774,8 +773,8 @@ a try block with a catch that matches the type of the object thrown.
      }  /* if */
 #endif /* DEBUG */
     if (kind == (an_eh_stack_entry_kind)ehsek_function) {
-      cleanup(ehsep, region, NULL_REGION_NUMBER);
-      region = ehsep->variant.function.saved_region_number;
+      cleanup(ehsep, __eh_curr_region, NULL_REGION_NUMBER);
+      __eh_curr_region = ehsep->variant.function.saved_region_number;
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
       /* A try block that is being skipped. */
       if (ehsep->variant.try_block.catch_info != NULL) {
@@ -812,13 +811,13 @@ a try block with a catch that matches the type of the object thrown.
        cleaned up.  Call the cleanup routine to cleanup objects until we
        reach the region number indicated by the value in the try block. */
     if (destination_ehsep->variant.try_block.region_number !=
-							 region) {
+							 __eh_curr_region) {
       /* Find the function entry that contains the cleanup information. */
       an_eh_stack_entry_ptr	function_ehsep = destination_ehsep->next;
       while (function_ehsep->kind != (an_eh_stack_entry_kind)ehsek_function) {
         function_ehsep = function_ehsep->next;
       }  /* while */
-      cleanup(function_ehsep, region,
+      cleanup(function_ehsep, __eh_curr_region,
               destination_ehsep->variant.try_block.region_number);
       
     }  /* if */
