@@ -1,5 +1,12 @@
 Version 2.36
 
+5/7/97    int(3.0/1) is nonstandard in integral constant expression
+
+A floating constant is allowed in an integeral constant expression
+only as the immediate operand of a cast to an integral type.  This was
+not correctly checked for a case like "int(3.0/1)".  An error is now
+issued in strict mode.
+
 5/7/97    Include of <sys/types.h> in host_envir.h restored
 
 An include of <sys/types.h> from host_envir.h, removed as part of

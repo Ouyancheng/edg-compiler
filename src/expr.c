@@ -9977,9 +9977,11 @@ see expr.h).
       /* Floating constants are not allowed in preprocessing expressions.
          In integral constant expressions, they are allowed only as the 
          immediate operand of a cast. */
+      /* The token_ends_expr guards against something like "int(3.0/1)". */
       if (curr_expr_kind_is(ek_pp) ||
 	  (curr_expr_kind_is(ek_integral_constant) &&
-           !(local_options & EOPT_OPERAND_OF_CAST))) {
+           (!(local_options & EOPT_OPERAND_OF_CAST) ||
+            !token_ends_expr(next_token(), prec_level, local_options)))) {
 	error_and_make_error_operand(enum_type_is_integral ?
                                        ec_expr_not_integral :
                                        ec_expr_not_integral_or_enum,
