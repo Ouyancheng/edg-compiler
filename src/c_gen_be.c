@@ -7720,9 +7720,9 @@ if this routine has a body (dump nothing if it has no body).
                                                         );
   a_boolean       is_definition;
   a_storage_class storage_class = rout->storage_class;
-#if ONE_INSTANTIATION_PER_OBJECT
+#if IA64_ABI && ONE_INSTANTIATION_PER_OBJECT
   a_boolean       part_of_current_output_file = TRUE;
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
+#endif /* IA64_ABI && ONE_INSTANTIATION_PER_OBJECT */
 
   if (rout->suppress_inline_body && has_defn) {
     /* The body is present only to be used for inlining.  This happens
@@ -7761,7 +7761,9 @@ if this routine has a body (dump nothing if it has no body).
       if (needed_flag_bit_number != 1) has_defn = FALSE;
     }  /* if */
     if (!has_defn) {
+#if IA64_ABI
       part_of_current_output_file = FALSE;
+#endif /* IA64_ABI */
       storage_class = (a_storage_class)sc_extern;
     }  /* if */
   }  /* if */
