@@ -11096,6 +11096,32 @@ eliminate_unneeded_scope_orphaned_list_entries).
   free_memory_region(n);
 }  /* clear_function_body */
 
+
+void unlink_from_child_lifetime_list(an_object_lifetime_ptr  olp)
+/*
+Unlink the object lifetime entry pointed to by olp from the child-lifetime
+list of its parent.
+*/
+{
+  an_object_lifetime_ptr  parent, child, prev_child;
+
+  parent = olp->parent_lifetime;
+  /* This doesn't support removing function object lifetimes. */
+  check_assertion(parent != NULL);
+  prev_child = NULL;
+  child = parent->child_lifetime;
+  while (child != olp) {
+    check_assertion(child != NULL);
+    prev_child = child;
+    child = child->next;
+  }  /* while */
+  if (prev_child == NULL) {
+    parent->child_lifetime = olp->next;
+  } else {
+    prev_child->next = olp->next;
+  }  /* if */
+}  /* unlink_from_child_lifetime_list */
+
 #if MAINTAIN_NEEDED_FLAGS
 
 static void eliminate_references_from_befriended_entities(
@@ -11232,32 +11258,6 @@ cleared.
   }  /* while */
   db_exit();
 }  /* eliminate_references_from_befriended_entities */
-
-
-void unlink_from_child_lifetime_list(an_object_lifetime_ptr  olp)
-/*
-Unlink the object lifetime entry pointed to by olp from the child-lifetime
-list of its parent.
-*/
-{
-  an_object_lifetime_ptr  parent, child, prev_child;
-
-  parent = olp->parent_lifetime;
-  /* This doesn't support removing function object lifetimes. */
-  check_assertion(parent != NULL);
-  prev_child = NULL;
-  child = parent->child_lifetime;
-  while (child != olp) {
-    check_assertion(child != NULL);
-    prev_child = child;
-    child = child->next;
-  }  /* while */
-  if (prev_child == NULL) {
-    parent->child_lifetime = olp->next;
-  } else {
-    prev_child->next = olp->next;
-  }  /* if */
-}  /* unlink_from_child_lifetime_list */
 
 
 void eliminate_default_arg_object_lifetimes(a_type_ptr  rout_type)

@@ -1137,14 +1137,14 @@ extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 
 extern void clear_function_body(a_scope_ptr sp);
 
+void unlink_from_child_lifetime_list(an_object_lifetime_ptr  olp);
+
 #if MAINTAIN_NEEDED_FLAGS
 extern void eliminate_bodies_of_unneeded_functions(void);
 
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 extern void eliminate_unneeded_scope_orphaned_list_entries(void);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-
-void unlink_from_child_lifetime_list(an_object_lifetime_ptr  olp);
 
 extern void eliminate_default_arg_object_lifetimes(a_type_ptr  rout_type);
 
