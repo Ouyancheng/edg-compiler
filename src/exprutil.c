@@ -3217,6 +3217,7 @@ on function_type.  *call_pos gives the source position of the call.
   return_type = skip_typerefs(function_type->variant.routine.return_type);
   if (is_reference_type(return_type)) {
     conv_object_pointer_to_lvalue(result);
+    result->came_from_reference = TRUE;
   }  /* if */
 }  /* make_function_call */
 
