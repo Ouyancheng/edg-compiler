@@ -1529,7 +1529,44 @@ typedef struct a_derivation_step {
 typedef struct a_base_class_derivation *a_base_class_derivation_ptr;
 typedef struct a_base_class_derivation {
   /* Entry identifying the unique derivation of a nonvirtual base class or
-     one of the alternative derivations of a virtual base class. */
+     one of the alternative derivations of a virtual base class.  A derivation
+     path is a sequence of steps *from* the most derived class (the first
+     entry is a direct base class) *to* the base class whose derivation is
+     being described; in other words, it represents the steps of a cast from
+     the derived class to the base class.  For instance:
+                                                                       A
+        class A { };                                                   |
+        class B : public A { };                                        B
+        class C : public B { };                                        |
+                                                                       C
+     In the context of C the derivation of direct base class B has one step
+     (==>B) and that of indirect base class A has two steps (==>B==>A).  A
+     virtual base class may have several paths.  For instance:
+                                                                       A
+        class A { };                                                 / |
+        class B : virtual public A { };                             B  |
+        class C : public B, virtual public A { };                    \ |
+                                                                       C
+     In the context of C virtual base class A has two derivations: as a
+     direct base class (==>A) and as an indirect base class (==>B==>A).  An
+     indirect base class that is itself a base class of a virtual base class
+     has multiple derivations as well, but only the segment of the derivation
+     from the intervening virtual base class is explicitly represented in the
+     IL.  For instance, modify the preceding example as follows:       X
+                                                                       |
+        class X { };                                                   A
+        class A : public X { };                                      / |
+        class B : virtual public A { };                             B  |
+        class C : public B, virtual public A { };                    \ |
+                                                                       C 
+     The derivation path for X is represented as ==>A==>X, but since A is a
+     virtual base class with two derivations, this is tantamount to ==>A==>X
+     (where A is a direct base class of C) and ==>B==>A==>X (where A is an
+     indirect base class of C).  The two paths for X are inferred by
+     supplementing the derivation entry for X, which points to the path
+     ==>A==>X, with the two derivation entries for A, the direct one and the
+     indirect one.  Since there may be several virtual base classes in a
+     derivation, the number of paths to be inferred may multiply. */
   a_base_class_derivation_ptr
 		next;
 			/* Next in a linked list of virtual derivation entries
@@ -1540,24 +1577,19 @@ typedef struct a_base_class_derivation {
   a_derivation_step_ptr
 		path;
 			/* Pointer to (all or part) of the path from the
-			   derived class to the associated virtual base class.
-			   If direct is TRUE, the derivation consists of a
-			   single step which points to the associated virtual
-			   base class.  If direct is FALSE, it consists of two
-			   or more steps, starting with a step entry pointing
-			   to a virtual or nonvirtual direct base class or a
-			   virtual indirect base class, followed by zero or
-			   more steps pointing to nonvirtual indirect base
-			   classes, and terminated by a step that points to
-			   the associated virtual base class.  Note that when
-			   the path starts with a virtual indirect base class,
-			   the part of the path from the derived class to that
-			   indirect base class has been elided.  Note also
-			   that the rules governing this derivation list and
-			   the one pointed to from a_base_class differ in
-			   that this may have two steps (the first and last)
-			   that point to virtual base classes, whereas the
-			   other may have no more than one (the first). */
+			   derived class to the associated base class.  If
+			   direct is TRUE, the derivation consists of a single
+			   step which points to the associated base class.  If
+			   direct is FALSE, it consists of two or more steps,
+			   starting with a step entry pointing to a virtual or
+			   nonvirtual direct base class or a virtual indirect
+			   base class, followed by zero or more steps pointing
+			   to nonvirtual indirect base classes, and terminated
+			   by a step that points to the associated virtual
+			   base class.  Note that when the path starts with a
+			   virtual indirect base class, the part of the path
+			   from the derived class to that indirect base class
+			   has been elided. */
   unsigned int	direct:1;
 			/* TRUE if the associated base class is a direct
 			   base class as a result of this derivation. */
@@ -1672,44 +1704,6 @@ typedef struct a_base_class {
 			   this base class; if is_virtual is TRUE, pointer to
 			   a linked list of entries describing one or more
 			   alternative derivations. */
-#if 0
-			/* Pointer to (part or all of) the "casting path"
-			   from derived_class (implicitly at the start of the
-			   derivation) to this base class.  The linked list
-			   always starts with a step entry that points to a
-			   direct base class or a virtual base class, and it
-			   always terminates with one that points to this
-			   base class entry.  If it starts with a step entry
-			   that points to a virtual base, the steps (if any)
-			   between derived_class and the virtual base class
-			   are elided and may be determined by looking at the
-			   virtual base class in question.  Only the initial
-			   step in a derivation list may be virtual.  When the
-			   current base class is itself a virtual base class,
-			   only a single step appears as the derivation; the
-			   rest may be determined from the list pointed to by
-			   paths_to_virtual_base_class. For example:
-				class A { };                              A
-				class B : public A { };                   |
-				class V : public B { };                   B
-				class C : virtual public V { };           |
-				class D : virtual public V { };           V
-				class E : public C, public D { };        / \
-				class F : public E { };                 C   D
-			   the paths of the base classes of F will be:   \ /
-				for base class A:  ==>V==>B==>A           E
-				for base class B:  ==>V==>B               |
-				for base class V:  ==>V                   F
-				for base class C:  ==>E==>C
-				for base class D:  ==>E==>D
-				for base class E:  ==>E
-			   Note that the paths of A, B, and V are abbreviated
-			   because a virtual base class is involved in their
-			   derivations.  The elided section of their paths
-			   is given by the paths_to_virtual_base_class list
-			   for F's virtual base class V, which has two
-			   derivations, ==>E==>C==>V and ==>E==>D==>V. */
-#endif /* if 0 */
   an_overriding_virtual_function_ptr
 		overriding_virtual_functions;
 			/* Pointer to a linked list of entries representing
