@@ -263,27 +263,31 @@ Dump the name from a source correspondence (if any).
 {
   char *name;
 
-#if NEED_NAME_MANGLING
-  if (sc->name_has_been_mangled) {
-    name = sc->name;
+  if (sc == NULL) {
+    fputs("<no source corresp>", f_debug);
   } else {
+#if NEED_NAME_MANGLING
+    if (sc->name_has_been_mangled) {
+      name = sc->name;
+    } else {
 #endif /* NEED_NAME_MANGLING */
-    if (sc->is_class_member) {
-      db_type_name(sc->parent.class_type);
-      fputs("::", f_debug);
-    } else if (sc->parent.namespace_ptr != NULL) {
-      db_name(&sc->parent.namespace_ptr->source_corresp);
-      fputs("::", f_debug);
+      if (sc->is_class_member) {
+        db_type_name(sc->parent.class_type);
+        fputs("::", f_debug);
+      } else if (sc->parent.namespace_ptr != NULL) {
+        db_name(&sc->parent.namespace_ptr->source_corresp);
+        fputs("::", f_debug);
+      }  /* if */
+      name = unmangled_name_of(sc);
+      if (name == NULL) name = sc->name;
+#if NEED_NAME_MANGLING
     }  /* if */
-    name = unmangled_name_of(sc);
-    if (name == NULL) name = sc->name;
-#if NEED_NAME_MANGLING
-  }  /* if */
 #endif /* NEED_NAME_MANGLING */
-  if (name != NULL) {
-    fputs(name, f_debug);
-  } else {
-    fprintf(f_debug, "<NULL>@%lx", (unsigned long)sc);
+    if (name != NULL) {
+      fputs(name, f_debug);
+    } else {
+      fprintf(f_debug, "<NULL>@%lx", (unsigned long)sc);
+    }  /* if */
   }  /* if */
 }  /* db_name */
 
