@@ -2114,6 +2114,7 @@ for exact pointer equality.
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
   a_boolean                     error_matches_anything = 
                         (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
+  a_boolean                     top_level_for_redeclaration = FALSE;
 
   db_enter(5, "f_types_are_compatible");
 
@@ -2123,6 +2124,12 @@ for exact pointer equality.
   if (flags & TCF_IGNORE_TYPE_QUALIFIERS) {
     ignore_type_qualifiers = TRUE;
     flags &= ~TCF_IGNORE_TYPE_QUALIFIERS;
+  }  /* if */
+  /* Ditto for TCF_REDECLARATION -- it's only set for the top-level types of
+     a redeclaration. */
+  if (flags & TCF_REDECLARATION) {
+    top_level_for_redeclaration = TRUE;
+    flags &= ~TCF_REDECLARATION;
   }  /* if */
 #if MICROSOFT_KEYWORDS_ALLOWED
   /* Ditto for TCF_IGNORE_CALLING_CONVENTIONS. */
@@ -2216,13 +2223,23 @@ for exact pointer equality.
             if (f_types_are_compatible(type_1->variant.array.element_type,
                                        type_2->variant.array.element_type,
                                        sub_flags)) {
-              if ((!type_1->variant.array.is_variable_size_array &&
-                   type_1->variant.array.variant.number_of_elements == 0) ||
-                  (!type_2->variant.array.is_variable_size_array &&
-                   type_2->variant.array.variant.number_of_elements == 0)) {
+              if (identical_array_type_level(type_1, type_2)) {
                 compat = TRUE;
-              } else {
-                compat = identical_array_type_level(type_1, type_2);
+              } else if (C_mode() || top_level_for_redeclaration) {
+                /* Check whether one of the arrays has unknown bounds.  Note
+                   that in C++ this produces "compatibility" only for top-level
+                   redeclarations: "extern int a[]" and "int a[3]" are
+                   "compatible" (WP 3.5), but not "extern int (*p)[]" and
+                   "int (*p)[3]" (WP 3.8). */
+                if ((!type_1->variant.array.is_variable_size_array &&
+                     type_1->variant.array.variant.number_of_elements == 0) ||
+                    (!type_2->variant.array.is_variable_size_array &&
+                     type_2->variant.array.variant.number_of_elements == 0)) {
+                  /* One or the other is an unknown-bound array type, which is
+                     compatible with any known-bound array of the same element
+                     type. */
+                  compat = TRUE;
+                }  /* if */
               }  /* if */
             }  /* if */
           }
