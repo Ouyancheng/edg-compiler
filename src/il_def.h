@@ -989,6 +989,16 @@ typedef struct a_base_class {
 			/* TRUE if any derivation step mentioned in the
 			   derivation list for this base class is a virtual
 			   base class. */
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+  unsigned int  complete_subobject:1;
+			/* TRUE if direct is TRUE and the subobject is
+			   "complete" (i.e., may contain data sections for
+			   virtual base classes).  By default subobjects for
+			   direct base classes do not include virtual base
+			   class data sections -- this flag is used only when
+			   strict class-layout compatibility with AT&T's
+			   cfront is required. */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   an_access_specifier
                 access; /* The kind of derivation (public, protected, or
                            private) from this base class to the class directly
@@ -999,11 +1009,35 @@ typedef struct a_base_class {
 			/* The byte offset from the start of the current
 			   derived class to the data section of this base
 			   class. */
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+  a_base_class_ptr
+		data_section_base_class;
+			/* If is_virtual is TRUE and the data section for this
+			   virtual base class is embedded in the data section
+			   reserved for another base class, a pointer to the
+			   latter; NULL when the data section for the virtual
+			   base class is reserved independently.  This field
+			   will be non-NULL only when strict class-layout
+			   compatibility with AT&T's cfront is required. */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   a_targ_size_t	pointer_offset;
 			/* If the base class is both directly inherited and
 			   virtual, the byte offset from the start of the
 			   current derived class to a pointer to the data
 			   section of the base class; otherwise undefined. */
+  a_base_class_ptr
+		pointer_base_class;
+			/* If is_virtual is TRUE and direct is TRUE, a pointer
+			   to a base class containing a pointer to the data
+			   section for this virtual base class; NULL if the
+			   derived class has its own pointer to the virtual
+			   base class data section.  (In either case
+			   pointer_offset specifies the pointer's location.)
+			   The virtual base class pointer will be shared
+			   between the derived class and one of its base
+			   classes only when the derived class is both
+			   directly and indirectly derived from this virtual
+			   base class. */
   a_derivation_step_ptr
 		derivation;
 			/* Pointer to the "casting path" from the current

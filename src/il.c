@@ -2518,10 +2518,15 @@ to it.
   bcp->access                          = (an_access_specifier)as_public;
   bcp->offset                          = 0;
   bcp->pointer_offset                  = 0;
+  bcp->pointer_base_class              = NULL;
   bcp->derivation                      = NULL;
   bcp->overriding_virtual_functions    = NULL;
   bcp->base_class_with_same_virtual_function_info
                                        = NULL;
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+  bcp->complete_subobject              = FALSE;
+  bcp->data_section_base_class         = NULL;
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
 #if DO_IL_LOWERING
   bcp->virtual_function_table_var      = NULL;
 #endif /* DO_IL_LOWERING */
