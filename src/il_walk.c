@@ -223,6 +223,8 @@ of each kind.
                                         iek_new_delete_supplement);
   walk_orphan_entry_list_for_entry_kind(a_throw_supplement_ptr,
                                         iek_throw_supplement);
+  walk_orphan_entry_list_for_entry_kind(an_accessible_base_class_ptr,
+                                        iek_accessible_base_class);
 #endif /* ifdef CFE */
   /* Note that no orphan list walking is needed for iek_source_sequence_entry
      nor for its subordinate entries like iek_src_seq_secondary_decl and
@@ -420,6 +422,7 @@ running them through walk_remap_func.
   remap_orphan_entry_first(iek_template_arg);
   remap_orphan_entry_first(iek_new_delete_supplement);
   remap_orphan_entry_first(iek_throw_supplement);
+  remap_orphan_entry_first(iek_accessible_base_class);
 #endif /* ifdef CFE */
   /* Note that nothing is needed for iek_source_sequence_entry nor for its
      subordinate entries like iek_src_seq_secondary_decl and iek_comment,
@@ -494,6 +497,7 @@ running them through walk_remap_func.
   remap_orphan_entry_last(iek_template_arg);
   remap_orphan_entry_last(iek_new_delete_supplement);
   remap_orphan_entry_last(iek_throw_supplement);
+  remap_orphan_entry_last(iek_accessible_base_class);
 #endif /* ifdef CFE */
   /* Note that nothing is needed for iek_source_sequence_entry nor for its
      subordinate entries like iek_src_seq_secondary_decl and iek_comment,

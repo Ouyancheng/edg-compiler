@@ -1209,6 +1209,18 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_throw_supplement_ptr ptr = (a_throw_supplement_ptr)entry_ptr;
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
+        walk_list(ptr->accessible_base_classes, an_accessible_base_class_ptr,
+                  iek_accessible_base_class);
+      }
+      break;
+    case iek_accessible_base_class:
+      {
+        an_accessible_base_class_ptr ptr =
+                                      (an_accessible_base_class_ptr)entry_ptr;
+        
+        remap_next_ptr(ptr->next, an_accessible_base_class_ptr,
+                       iek_accessible_base_class);
+        remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
       }
       break;
 #endif /* ifdef CFE */

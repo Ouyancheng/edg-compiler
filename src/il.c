@@ -86,6 +86,7 @@ static unsigned long
 		num_expr_nodes_allocated,
 		num_new_delete_supplements_allocated,
 		num_throw_supplements_allocated,
+		num_accessible_base_classes_allocated,
 		num_switch_clauses_allocated,
                 num_handlers_allocated,
 		num_blocks_allocated,
@@ -5124,6 +5125,7 @@ fields to default values.
 #endif /* DEBUG */
       tsp->type         = NULL;
       tsp->dynamic_init = NULL;
+      tsp->accessible_base_classes = NULL;
       break;
 #if CHECKING
     default:
@@ -6002,6 +6004,26 @@ to it.
 }  /* alloc_switch_clause */
 
 
+an_accessible_base_class_ptr alloc_accessible_base_class(void)
+/*
+Allocate an accessible_base_class, clear it to default values, and return a
+pointer to it.
+*/
+{
+  register an_accessible_base_class_ptr abcp;
+
+  abcp = (an_accessible_base_class_ptr)alloc_cil(
+                                            sizeof(an_accessible_base_class));
+#if DEBUG
+  num_accessible_base_classes_allocated++;
+#endif /* DEBUG */
+  abcp->next       = NULL;
+  abcp->base_class = NULL;
+
+  return abcp;
+}  /* alloc_accessible_base_class */
+
+
 a_handler_ptr alloc_handler(void)
 /*
 Allocate a handler, clear it to default values, and return a pointer to it.
@@ -6666,6 +6688,8 @@ Display and return the amount of space used for various IL tables.
                 a_new_delete_supplement);
   db_space_used("throw supplement", num_throw_supplements_allocated,
                 a_throw_supplement);
+  db_space_used("accessible base class", num_accessible_base_classes_allocated,
+                an_accessible_base_class);
   db_space_used("switch clause",
                 num_switch_clauses_allocated, a_switch_clause);
   db_space_used("handler", num_handlers_allocated, a_handler);
@@ -6843,6 +6867,7 @@ of the front end.
   num_expr_nodes_allocated               = 0;
   num_new_delete_supplements_allocated   = 0;
   num_throw_supplements_allocated        = 0;
+  num_accessible_base_classes_allocated  = 0;
   num_switch_clauses_allocated           = 0;
   num_blocks_allocated                   = 0;
   num_for_loops_allocated                = 0;

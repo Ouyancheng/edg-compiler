@@ -111,6 +111,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_template_arg),
   sizeof(a_new_delete_supplement),
   sizeof(a_throw_supplement),
+  sizeof(an_accessible_base_class),
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sizeof(a_source_sequence_entry),

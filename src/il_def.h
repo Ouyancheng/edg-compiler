@@ -285,6 +285,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_new_delete_supplement,
 			/* a_new_delete_supplement */
   iek_throw_supplement,	/* a_throw_supplement */
+  iek_accessible_base_class,
+			/* an_accessible_base_class */
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   iek_source_sequence_entry,
@@ -362,6 +364,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_template_arg */			"template-arg",
 /* iek_new_delete_supplement */		"new-delete-supplement",
 /* iek_throw_supplement */		"throw-supplement",
+/* iek_accessible_base_class */		"accessible-base-class",
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 /* iek_source_sequence_entry */		"source-sequence-entry",
@@ -3246,6 +3249,21 @@ enum an_expr_operator_kind_tag {
 typedef a_byte an_expr_operator_kind;
 
 
+/* Entry in a linked list identifying the accessible base classes of the
+   class of a thrown object; C++ only. */
+typedef struct an_accessible_base_class *an_accessible_base_class_ptr;
+typedef struct an_accessible_base_class {
+  an_accessible_base_class_ptr
+		next;
+			/* Next in the linked list; NULL for the last entry
+			   in the list. */
+  a_base_class_ptr
+		base_class;
+			/* Pointer to an accessible base class of the class
+			   of the thrown object. */
+} an_accessible_base_class;
+
+
 /* Description of a C++ "throw" operation. */
 typedef struct a_throw_supplement *a_throw_supplement_ptr;
 typedef struct a_throw_supplement {
@@ -3256,6 +3274,12 @@ typedef struct a_throw_supplement {
 			/* Pointer to the dynamic initialization entry that
 			   specifies what is done to pass the throw object
 			   to the handler. */
+  an_accessible_base_class_ptr
+		accessible_base_classes;
+			/* If type is a class with base classes, a pointer
+			   to a linked list of entries identifying those
+			   base classes that are accessible at the point of
+			   the throw; NULL otherwise. */
 } a_throw_supplement;
 
 
