@@ -6327,6 +6327,12 @@ One-time initialization for statements.c static variables.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  /* Initialize some global variables declared in statements.h. */
+  struct_stmt_stack = NULL;
+  depth_stmt_stack = -1;
+  /* Initialize static variables. */
+  struct_stmt_stack_container = NULL;
+  size_struct_stmt_stack_container = 0;
 }  /* statements_one_time_init */
 
 
