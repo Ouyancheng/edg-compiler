@@ -2771,6 +2771,7 @@ a pointer to it.
   ctsp->alignment_without_virtual_base_classes = 1;
   ctsp->virtual_function_count            = 0;
   ctsp->virtual_function_info_offset      = 0;
+  ctsp->virtual_function_info_base_class  = NULL;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->access_adjustments                = NULL;
