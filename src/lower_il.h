@@ -648,8 +648,10 @@ extern a_variable_ptr make_var_for_virtual_function_table(
 extern a_boolean inline_virtual_function_definitions_needed(
                                                         a_type_ptr class_type);
 
+#if ABI_COMPATIBILITY_VERSION < 238
 extern a_boolean external_typeinfo_will_be_defined_for_class(
                                                         a_type_ptr class_type);
+#endif /* ABI_COMPATIBILITY_VERSION < 238 */
 
 extern void add_to_return_memo_list(a_statement_ptr return_stmt);
 

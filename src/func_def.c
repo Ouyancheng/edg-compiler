@@ -2258,12 +2258,12 @@ indicated scope.
                  virtual function table in which its address will appear is
                  being generated. */
               define_special_member_function(rp);
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION < 238
             } else if (external_typeinfo_will_be_defined_for_class(tp)) {
               /* Generate the body of the destructor because its address
                  will be put into an external typeinfo variable. */
               define_special_member_function(rp);
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION < 238 */
             }  /* if */
           }  /* if */
         }  /* if */

@@ -5418,6 +5418,9 @@ typedef struct a_throw_supplement {
 			   base classes that are accessible at the point of
 			   the throw; NULL otherwise. */
 #endif /* !ABI_CHANGES_FOR_RTTI */
+  a_routine_ptr	destructor;
+			/* Destructor to be called by the runtime to destroy
+			   the thrown object.  NULL if not needed. */
 } a_throw_supplement;
 
 

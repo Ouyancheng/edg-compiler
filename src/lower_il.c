@@ -3404,13 +3404,16 @@ that are not defined in this translation unit.
   return needed;
 }  /* inline_virtual_function_definitions_needed */
 
+#if ABI_COMPATIBILITY_VERSION < 238
 
 a_boolean external_typeinfo_will_be_defined_for_class(a_type_ptr class_type)
 /*
 Return TRUE if an external typeinfo variable will be defined for the
 indicated class in this translation unit because of some requirement
 imposed by IL lowering.  Note that this routine should only be called
-very late in the compilation.
+very late in the compilation.  This processing is used to fix a problem
+with generation of destructor pointers in typeinfo variables that is fixed
+in a different and better way in version 2.38.
 */
 {
   a_boolean     needed = FALSE, force_static;
@@ -3442,6 +3445,7 @@ very late in the compilation.
   return needed;
 }  /* external_typeinfo_will_be_defined_for_class */
 
+#endif /* ABI_COMPATIBILITY_VERSION < 238 */
 
 /*
 Pointer to routine entry for the runtime routine __pure_virtual_called,

@@ -1643,6 +1643,7 @@ fields to default values.
 #if !ABI_CHANGES_FOR_RTTI
       tsp->accessible_base_classes = NULL;
 #endif /* !ABI_CHANGES_FOR_RTTI */
+      tsp->destructor   = NULL;
       break;
     case enk_condition:
       csp = (a_condition_supplement_ptr)

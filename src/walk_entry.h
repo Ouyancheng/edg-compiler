@@ -2184,6 +2184,7 @@ after_entry_from_class:
                              an_accessible_base_class_ptr,
                              iek_accessible_base_class);
 #endif /* !ABI_CHANGES_FOR_RTTI */
+        walk_ptr(ptr->destructor, a_routine_ptr, iek_routine);
       }
       break;
     case iek_condition_supplement:

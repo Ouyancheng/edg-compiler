@@ -1,5 +1,35 @@
 Version 2.38
 
+12/16/97  Destructor for thrown object
+
+When an object of a destructible class type is thrown, the runtime is
+responsible for calling the destructor once the object is no longer
+needed.  To date, this has been done by having a pointer to the
+destructor in the runtime typeinfo structure, and having the runtime
+use that to determine whether a destructor call is needed.  There was
+a bug in this area: when a class has a user-written destructor,
+and a given compilation has a throw of that class and has a declaration
+but not a definition of the destructor, a null pointer was put into the
+typeinfo structure, with the consequence that the destructor was never
+called for the thrown object.
+
+The bug was a consequence of trying to avoid generating a destructor
+merely to be able to put a pointer to it into the typeinfo structure.
+The full solution involves eliminating the destructor pointer in
+the typeinfo structure by passing a destructor pointer on the throw
+setup call (this necessitates a new runtime routine __throw_setup_dtor).
+
+However, for those who cannot accept an ABI change at this time, we
+have also fixed the old implementation so that it does not ever put
+in a null pointer for a user-written destructor, and so that it defines
+a compiler-generated destructor in cases where a typeinfo entry will
+be put out.  This is not a perfect solution with respect to standards
+conformance, but it's acceptable from a practical point of view.
+This partial fix is selected when ABI_COMPATIBILITY_VERSION is less
+than 238.
+
+IL CHANGE: a destructor pointer has been added to a_throw_supplement.
+
 12/12/97  Bug in lookup of "p->f<..."
 
 When the name in a class member access is both a member name and the name of

@@ -9900,11 +9900,12 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
         prep_elision_initializer_operand(&operand, operand_type,
                                          /*fill_in_dtor=*/FALSE,
                                          ec_bad_initializer_type, &dip);
-        /* Determine accessibility for the destructor.  This is done as
+        /* Determine the destructor to be called.  This is done as
            a separate step because we don't want it indicated in the
            dynamic initialization.  Note that this also forces instantiation
            of the destructor if it's a template, which is desirable. */
-        (void)select_destructor(operand_type, operand_type,
+        throw_node->variant.throw_info->destructor =
+              select_destructor(operand_type, operand_type,
                                 &operand.position,
                                 /*honor_virtual=*/FALSE,
                                 curr_expr_is_potentially_evaluated(),

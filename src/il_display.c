@@ -2087,6 +2087,7 @@ Display the indicated throw supplement to an expression node.
     disp_accessible_base_classes(tsp->accessible_base_classes);
   }  /* if */
 #endif /* !ABI_CHANGES_FOR_RTTI */
+  disp_ptr("destructor", (char *)tsp->destructor, iek_routine);
 }  /* disp_throw_supplement */
 
 

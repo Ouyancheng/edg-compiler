@@ -59,6 +59,22 @@ IL lowering itself is done).
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+
+/*
+This switch controls whether a destructor pointer is passed to the runtime
+on a throw setup call.  If the switch is FALSE, no destructor pointer
+is passed, and the typeinfo structure contains a pointer to the
+destructor for the type, which the runtime uses to determine whether
+a destructor should be called.  The TRUE setting selects the newer
+approach.
+*/
+#if ABI_CHANGES_FOR_RTTI && ABI_COMPATIBILITY_VERSION >= 238
+#define PASS_DTOR_POINTER_TO_THROW TRUE
+#else /* !(ABI_CHANGES_FOR_RTTI && ABI_COMPATIBILITY_VERSION >= 238) */
+#define PASS_DTOR_POINTER_TO_THROW FALSE
+#endif /* ABI_CHANGES_FOR_RTTI && ABI_COMPATIBILITY_VERSION >= 238 */
+
+
 /* Forward declaration needed because of mutual recursion: */
 static a_type_ptr make_base_class_spec_type(void);
 
@@ -277,7 +293,6 @@ if it is not made already, and return a pointer to it.  Its definition is
     type_info tinfo; // User type_info
     char      *name; // Name
     char      *id;   // Id object pointer
-    __vptp    dtor;  // Destructor
     base_class_spec
               **bc;  // Pointer to base class array
   };
@@ -286,6 +301,10 @@ Note that this is the typeinfo implementation type, and it contains the
 type_info that the user sees returned from typeid.
 
 The first two fields listed are present only if ABI_CHANGES_FOR_RTTI is TRUE.
+If PASS_DTOR_POINTER_TO_THROW is FALSE, there is also, following the id field:
+
+    __vptp    dtor;  // Destructor
+
 */
 {
   a_field_ptr last_field;
@@ -310,9 +329,11 @@ The first two fields listed are present only if ABI_CHANGES_FOR_RTTI is TRUE.
     make_lowered_field("id",
                      make_pointer_type(integer_type((an_integer_kind)ik_char)),
                        typeinfo_type, &last_field);
+#if !PASS_DTOR_POINTER_TO_THROW
     /* field: __vptp dtor */
     make_lowered_field("dtor", make_vptp_type(),
                        typeinfo_type, &last_field);
+#endif /* !PASS_DTOR_POINTER_TO_THROW */
     /* field: base_class_spec *bc */
     make_lowered_field("bc",
                        make_pointer_type(make_base_class_spec_type()),
@@ -649,11 +670,9 @@ have been called on it at some previous point.
 {
   a_boolean      is_class_type = is_immediate_class_type(type);
   a_variable_ptr typeinfo_var = type->typeinfo_var;
-  a_constant_ptr aggr_con, id_con, dtor_con, bc_con;
+  a_constant_ptr aggr_con, id_con, bc_con;
   a_field_ptr    curr_field;
   a_type_ptr     curr_field_type;
-  a_symbol_ptr   dtor_sym;
-  a_routine_ptr  dtor_routine;
   a_memory_region_number
                  region_to_switch_back_to;
   a_source_position
@@ -661,6 +680,10 @@ have been called on it at some previous point.
 #if ABI_CHANGES_FOR_RTTI
   a_constant_ptr type_info_con, vptr_con, name_con;
 #endif /* ABI_CHANGES_FOR_RTTI */
+#if !PASS_DTOR_POINTER_TO_THROW
+  a_constant_ptr dtor_con;
+  a_routine_ptr  dtor_routine;
+#endif /* !PASS_DTOR_POINTER_TO_THROW */
 
   saved_error_position = error_position;
   error_position = type->source_corresp.decl_position;
@@ -759,6 +782,14 @@ have been called on it at some previous point.
       set_variable_address_constant(make_id_object_var(type), id_con,
                                     /*set_address_taken_flag=*/TRUE);
     }  /* if */
+#if !PASS_DTOR_POINTER_TO_THROW
+    /* In versions preceding 2.38, there is a destructor pointer in the
+       typeinfo entry.  It was used by the runtime to find the destructor
+       to delete a thrown object.  That had some disadvantages, e.g.,
+       the destructor sometimes had to be generated so its pointer could
+       be put into the typeinfo variable, even though no object of that
+       type was ever thrown.  The newer approach is to pass the destructor
+       pointer on the throw setup call. */
     /* Destructor pointer. */
     curr_field = curr_field->next;
     curr_field_type = curr_field->type;
@@ -766,6 +797,7 @@ have been called on it at some previous point.
     /* See if the class has a destructor. */
     dtor_routine = NULL;
     if (is_class_type) {
+      a_symbol_ptr dtor_sym;
       check_assertion(type->source_corresp.assoc_info != NULL);
       dtor_sym = symbol_supplement_for_class(type)->destructor;
       if (dtor_sym != NULL) {
@@ -790,6 +822,7 @@ have been called on it at some previous point.
                                    /*set_address_taken_flag=*/TRUE);
       implicit_cast(dtor_con, curr_field_type);
     }  /* if */
+#endif /* !PASS_DTOR_POINTER_TO_THROW */
     /* Base class array pointer. */
     curr_field = curr_field->next;
     curr_field_type = curr_field->type;
@@ -820,8 +853,12 @@ have been called on it at some previous point.
 #else /* !ABI_CHANGES_FOR_RTTI */
     aggr_con->variant.aggregate.first_constant = id_con;
 #endif /* ABI_CHANGES_FOR_RTTI */
+#if !PASS_DTOR_POINTER_TO_THROW
     id_con->next = dtor_con;
     dtor_con->next = bc_con;
+#else /* PASS_DTOR_POINTER_TO_THROW */
+    id_con->next = bc_con;
+#endif /* !PASS_DTOR_POINTER_TO_THROW */
     aggr_con->variant.aggregate.last_constant = bc_con;
     typeinfo_var->init_kind = (an_init_kind)initk_static;
     typeinfo_var->initializer.constant = aggr_con;
@@ -3529,10 +3566,12 @@ Do IL lowering for an stmk_try_block statement.
 #if DO_FULL_PORTABLE_EH_LOWERING
 /*
 Pointers to routine entries for the runtime routines __throw_setup,
-__throw, and __rethrow, used in throwing exceptions.  NULL until allocated.
+__throw_setup_dtor, __throw, and __rethrow, used in throwing exceptions.
+NULL until allocated.
 */
 static a_routine_ptr
 		throw_setup_routine,
+		throw_setup_dtor_routine,
 		throw_routine,
 		rethrow_routine,
 		internal_rethrow_routine;
@@ -3824,7 +3863,11 @@ Lower an enk_throw expression node.
        sets temp to point to that space.  typeinfo is the typeinfo variable
        for the base type of the type thrown; size is the size in bytes of
        the type thrown; and flags has the ETS_IS_POINTER bit set to indicate
-       that a pointer to the typeinfo type is being thrown. */
+       that a pointer to the typeinfo type is being thrown.  If the
+       thrown type has a destructor, the call is instead
+         temp = __throw_setup_dtor(&typeinfo, size, flags, dtor)
+       (This latter form was added in version 2.38.)
+    */
 #if !ABI_CHANGES_FOR_RTTI
     /* The old form is
          temp = __throw_alloc(&typeinfo, size, flags, access)
@@ -3867,8 +3910,22 @@ Lower an enk_throw expression node.
     call_node = make_runtime_rout_call("__throw_alloc", &throw_setup_routine,
                                        void_star_type(), typeinfo_node);
 #else /* ABI_CHANGES_FOR_RTTI */
-    call_node = make_runtime_rout_call("__throw_setup", &throw_setup_routine,
-                                       void_star_type(), typeinfo_node);
+#if PASS_DTOR_POINTER_TO_THROW
+    if (tsp->destructor != NULL) {
+      /* A destructor must be called by the runtime to destroy the object,
+         so call __throw_setup_dtor and pass the destructor pointer. */
+      flags_node->next = function_addr_expr(tsp->destructor,
+                                            /*set_address_taken_flag=*/TRUE);
+      call_node = make_runtime_rout_call("__throw_setup_dtor",
+                                         &throw_setup_dtor_routine,
+                                         void_star_type(), typeinfo_node);
+    } else
+#endif /* PASS_DTOR_POINTER_TO_THROW */
+    /* Do not insert code here; this is the "else" of an "if". */
+    {
+      call_node = make_runtime_rout_call("__throw_setup", &throw_setup_routine,
+                                         void_star_type(), typeinfo_node);
+    }  /* if */
 #endif /* !ABI_CHANGES_FOR_RTTI */
     /* Cast the pointer to the right type. */
     call_node = add_cast_if_necessary(call_node, ptr_throw_type);
@@ -4101,6 +4158,7 @@ with each new translation unit are handled in eh_lower_init.)
 #endif /* GENERATE_EH_TABLES */
 #if DO_FULL_PORTABLE_EH_LOWERING
       pch_saved_var_array_elem(throw_setup_routine),
+      pch_saved_var_array_elem(throw_setup_dtor_routine),
       pch_saved_var_array_elem(throw_routine),
       pch_saved_var_array_elem(rethrow_routine),
       pch_saved_var_array_elem(internal_rethrow_routine),
@@ -4163,6 +4221,7 @@ invocation of the front end.
 #endif /* GENERATE_EH_TABLES */
 #if DO_FULL_PORTABLE_EH_LOWERING
   throw_setup_routine = NULL;
+  throw_setup_dtor_routine = NULL;
   throw_routine = NULL;
   rethrow_routine = NULL;
   internal_rethrow_routine = NULL;
