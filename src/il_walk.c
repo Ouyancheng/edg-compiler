@@ -332,6 +332,16 @@ definition of the class is needed, and not just the declaration.
 }  /* set_class_definition_needed */
 
 
+/*
+Macro that returns TRUE if a class is local to a function.  This is the same
+as saying it is not subject to the end-of-file-scope sweep to set "needed"
+flags.
+*/
+#define class_is_function_local(type) \
+  ((type)->source_corresp.is_local_to_function || \
+   (type)->declared_in_function_prototype)
+
+
 static a_boolean should_not_walk_subtree(char             *entry_ptr,
                                          an_il_entry_kind entry_kind,
                                          a_boolean        keep_in_il_case)
@@ -352,8 +362,7 @@ Entities local to functions are always fully walked immediately.
       is_immediate_class_type((a_type_ptr)entry_ptr)) {
     /* A class type. */
     a_type_ptr type = (a_type_ptr)entry_ptr;
-    if (type->source_corresp.is_local_to_function ||
-        type->declared_in_function_prototype) {
+    if (class_is_function_local(type)) {
       /* Function-local class -- not visited in the sweep at the end of
          the file scope, so handle now.  Since the definitions of local
          classes are never removed, visit the subtree even if the
@@ -561,6 +570,8 @@ references.
 static void clear_keep_in_il_to_allow_subtree_walk(
                                                   char             *entry_ptr,
                                                   an_il_entry_kind entry_kind);
+static void set_keep_in_il_on_befriending_classes(
+                                   a_class_list_entry_ptr befriending_classes);
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope);
@@ -650,6 +661,42 @@ declaration.
     }  /* if */
   }  /* if */
 }  /* set_class_keep_definition_in_il */
+
+
+static void set_keep_in_il_on_befriending_classes(
+                                    a_class_list_entry_ptr befriending_classes)
+/*
+Handle a befriending classes list (from a routine or class) during the
+keep_in_il walk.
+*/
+{
+  a_class_list_entry_ptr clep;
+  a_type_ptr             befriending_class;
+
+  for (clep = befriending_classes; clep != NULL; clep = clep->next) {
+    befriending_class = clep->class_type;
+    if (!befriending_class->variant.class_struct_union.definition_needed &&
+        !befriending_class->variant.class_struct_union.keep_definition_in_il &&
+        !class_is_function_local(befriending_class)) {
+      /* The class will be removed or its definition will be removed,
+         so the friendship will be eliminated. */
+    } else {
+      /* Record the friendship dependency.  Note that we do this for all
+         friendship, even the case where a function declaration in an
+         otherwise unneeded class grants friendship to a needed function.
+         The danger in removing such things, when using the C++-generating
+         back end, is that the friend declaration might be the one that
+         first injects the function name and makes it visible, so the
+         function declaration cannot be eliminated, and in the worst case
+         it's very hard to promote the function declaration out of the
+         enclosing class and get the injection scope the same, so we
+         force the keeping of the class as well. */
+      walk_ptr(befriending_class, a_type_ptr, iek_type);
+      /* A class has to be complete to befriend something else. */
+      set_class_keep_definition_in_il(befriending_class);
+    }  /* if */
+  }  /* for */
+}  /* set_keep_in_il_on_befriending_classes */
 
 
 static void r_set_keep_in_il_on_virtual_functions_in_scope(a_scope_ptr scope)

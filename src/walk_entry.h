@@ -771,24 +771,16 @@ the file scope, do not process it (but record an orphan in the latter case).
           definition_needed_if_class(rout_type->variant.routine.return_type);
         }  /* if */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
-#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-        /* When setting the "needed" flag, the befriending list is generally
-           not significant.  However, if the function is defined in a friend
-           declaration, the class in which it is defined gets marked as
-           needed. */
-        if (ptr->defined_in_friend_decl) {
-          /* The class in which the definition occurs is the first one on the
-             list. */
-          a_type_ptr containing_class = ptr->befriending_classes->class_type;
-#if NEEDED_FLAG_WALK
-          walk_ptr(containing_class, a_type_ptr, iek_type);
-#endif /* NEEDED_FLAG_WALK */
-          definition_needed_if_class(containing_class);
-        }  /* if */
-#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+        /* No processing of befriending_classes for the "needed" sweep. */
 #if !NEEDED_FLAG_WALK
+#if KEEP_IN_IL_WALK
+        /* Visit befriending classes for the "keep_in_il" sweep. */
+        set_keep_in_il_on_befriending_classes(ptr->befriending_classes);
+#else /* !KEEP_IN_IL_WALK */
+        /* All cases except NEEDED_FLAG_WALK and KEEP_IN_IL_WALK. */
         walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
+#endif /* KEEP_IN_IL_WALK */
 #endif /* !NEEDED_FLAG_WALK */
 #endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -1809,8 +1801,16 @@ do_set_proper_definition_needed_flag:
         walk_list_not_needed(ptr->class_member_using_decls,
                              a_class_member_using_decl_ptr,
                              iek_class_member_using_decl);
-        walk_list_not_needed(ptr->befriending_classes, a_class_list_entry_ptr,
-                             iek_class_list_entry);
+#if !NEEDED_FLAG_WALK
+#if KEEP_IN_IL_WALK
+        /* Visit befriending classes for the "keep_in_il" sweep. */
+        set_keep_in_il_on_befriending_classes(ptr->befriending_classes);
+#else /* !KEEP_IN_IL_WALK */
+        /* All cases except NEEDED_FLAG_WALK and KEEP_IN_IL_WALK. */
+        walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
+                  iek_class_list_entry);
+#endif /* KEEP_IN_IL_WALK */
+#endif /* !NEEDED_FLAG_WALK */
         walk_list_not_needed(ptr->friend_routines, a_routine_list_entry_ptr,
                              iek_routine_list_entry);
         walk_list_not_needed(ptr->friend_classes, a_class_list_entry_ptr,
