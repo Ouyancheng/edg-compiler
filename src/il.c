@@ -8390,39 +8390,37 @@ entry, if there is one.
 }  /* set_autonomous_tag_decl_flag */
 
 static void drop_from_file_scope_source_sequence_list(
-                                              a_source_correspondence  *scp)
+                                       a_source_sequence_entry_ptr  ssep,
+                                       a_source_sequence_entry_ptr  *next_ssep)
 /*
 */
 {
-  a_source_sequence_entry_ptr  ssep, last_ssep;
+  a_source_sequence_entry_ptr  last_ssep;
 
-  ssep = scp->source_sequence_entry;
-  if (ssep != NULL) {
-    last_ssep = ssep;
-    if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
-        is_immediate_class_type((a_type_ptr)ssep->entity.ptr)) {
-      for (;;) {
-        if (last_ssep->entity.kind ==
-                       (a_byte_il_entry_kind)iek_src_seq_end_of_construct &&
-            ((a_src_seq_end_of_construct_ptr)last_ssep->entity.ptr)->
-                                            entity.ptr == ssep->entity.ptr) {
-          break;
-        }  /* if */
-        last_ssep = last_ssep->next;
-      }  /* for */
-    }  /* if */
-    if (ssep->prev == NULL) {
-      scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->
-                                   source_sequence_list = last_ssep->next;
-    } else {
-      ssep->prev->next = last_ssep->next;
-    }  /* if */
-    if (last_ssep->next != NULL) {
-      last_ssep->next->prev = ssep->prev;
-    }  /* if */
-    ssep->prev = last_ssep->next = NULL;
-    scp->source_sequence_entry = NULL;
+  last_ssep = ssep;
+  if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
+      is_immediate_class_type((a_type_ptr)ssep->entity.ptr)) {
+    for (;;) {
+      if (last_ssep->entity.kind ==
+                     (a_byte_il_entry_kind)iek_src_seq_end_of_construct &&
+          ((a_src_seq_end_of_construct_ptr)last_ssep->entity.ptr)->
+                                          entity.ptr == ssep->entity.ptr) {
+        break;
+      }  /* if */
+      last_ssep = last_ssep->next;
+    }  /* for */
   }  /* if */
+  if (ssep->prev == NULL) {
+    scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->
+                                 source_sequence_list = last_ssep->next;
+  } else {
+    ssep->prev->next = last_ssep->next;
+  }  /* if */
+  if (last_ssep->next != NULL) {
+    last_ssep->next->prev = ssep->prev;
+  }  /* if */
+  *next_ssep = last_ssep->next;
+  ssep->prev = last_ssep->next = NULL;
 }  /* drop_from_file_scope_source_sequence_list */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -8490,7 +8488,7 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
   prev_vp = NULL;
   for (vp = scope->variables; vp != NULL; vp = next_vp) {
     next_vp = vp->next;
-    if (!vp->source_corresp.needed) {
+    if (!il_entry_prefix_of(vp).keep_in_il) {
 #if DEBUG
       if (debug_level >= 4) {
         fputs("Removing variable ", f_debug);
@@ -8504,9 +8502,6 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
         prev_vp->next = vp->next;
       }  /* if */
       vp->next = NULL;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      drop_from_file_scope_source_sequence_list(&vp->source_corresp);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       prev_vp = vp;
 #if DEBUG
@@ -8521,7 +8516,7 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
   prev_rp = NULL;
   for (rp = scope->routines; rp != NULL; rp = next_rp) {
     next_rp = rp->next;
-    if (!rp->source_corresp.needed) {
+    if (!il_entry_prefix_of(rp).keep_in_il) {
 #if DEBUG
       if (debug_level >= 4) {
         fputs("Removing routine ", f_debug);
@@ -8535,9 +8530,6 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
         prev_rp->next = rp->next;
       }  /* if */
       rp->next = NULL;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      drop_from_file_scope_source_sequence_list(&rp->source_corresp);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       prev_rp = rp;
 #if DEBUG
@@ -8552,7 +8544,7 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
   prev_tp = NULL;
   for (tp = scope->types; tp != NULL; tp = next_tp) {
     next_tp = tp->next;
-    if (!tp->source_corresp.needed) {
+    if (!il_entry_prefix_of(tp).keep_in_il) {
 #if DEBUG
       if (debug_level >= 4) {
         fputs("Removing ", f_debug);
@@ -8566,9 +8558,6 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
         prev_tp->next = tp->next;
       }  /* if */
       tp->next = NULL;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      drop_from_file_scope_source_sequence_list(&tp->source_corresp);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (is_immediate_class_type(tp)) {
         tp->variant.class_struct_union.field_list = NULL;
         tp->variant.class_struct_union.extra_info = NULL;
@@ -8607,19 +8596,18 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
 #if RECORD_HIDDEN_NAMES_IN_IL
   {
   a_hidden_name_ptr        hnp, prev_hnp = NULL, next_hnp;
-  a_source_correspondence  *scp;
 
   for (hnp = scope->hidden_names; hnp != NULL; hnp = next_hnp) {
     next_hnp = hnp->next;
-    scp = source_corresp_for_il_entry(hnp->entity.ptr, hnp->entity.kind);
-    if (scp != NULL && !scp->needed) {
+    if (!il_entry_prefix_of(hnp->entity.ptr).keep_in_il) {
 #if DEBUG
       if (debug_level >= 4) {
         fputs("Removing hidden name entry for ", f_debug);
         if (hnp->entity.kind == (a_byte_il_entry_kind)iek_type) {
           db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
         } else {
-          db_name(scp);
+          db_name(source_corresp_for_il_entry(hnp->entity.ptr,
+                                              hnp->entity.kind));
         }  /* if */
         fputc('\n', f_debug);
       }  /* if */
@@ -8638,7 +8626,8 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
         if (hnp->entity.kind == (a_byte_il_entry_kind)iek_type) {
           db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
         } else {
-          db_name(scp);
+          db_name(source_corresp_for_il_entry(hnp->entity.ptr,
+                                              hnp->entity.kind));
         }  /* if */
         fputc('\n', f_debug);
       }  /* if */
@@ -8648,36 +8637,26 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
   }
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (scope->kind == (a_scope_kind)sck_file) {
-    if (!source_sequence_entries_disallowed) {
-      /* Remove unneeded source-sequence entries. */
-      a_source_sequence_entry_ptr   ssep, next_ssep;
-      a_source_correspondence       *scp;
-      a_src_seq_secondary_decl_ptr  sssdp;
+  if (scope->kind == (a_scope_kind)sck_file &&
+      !source_sequence_entries_disallowed) {
+    /* Remove unneeded source-sequence entries. */
+    a_source_sequence_entry_ptr   ssep, next_ssep;
 
-      for (ssep = scope->source_sequence_list;
-           ssep != NULL;
-           ssep = next_ssep) {
+    for (ssep = scope->source_sequence_list; ssep != NULL; ssep = next_ssep) {
+      if (il_entry_prefix_of(ssep).keep_in_il) {
         next_ssep = ssep->next;
-        if (ssep->entity.kind ==
-                     (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
-          sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
-          scp = source_corresp_for_il_entry(sssdp->entity.ptr,
-                                            sssdp->entity.kind);
-          if (!scp->needed) {
-            drop_from_file_scope_source_sequence_list(scp);
-          }  /* if */
-        }  /* if */
+      } else {
+        drop_from_file_scope_source_sequence_list(ssep, &next_ssep);
       }  /* if */
-#if DEBUG
-      if (db_active) {
-        /* Display source sequence lists for debug purposes. */
-        if (scope->source_sequence_list != NULL) {
-          dump_ss(scope, "after elimination of unneeded entries, ");
-        }  /* if */
-      }  /* if */
-#endif /* DEBUG */
     }  /* if */
+#if DEBUG
+    if (db_active) {
+      /* Display source sequence lists for debug purposes. */
+      if (scope->source_sequence_list != NULL) {
+        dump_ss(scope, "after elimination of unneeded entries, ");
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
