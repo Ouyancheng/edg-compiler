@@ -4764,6 +4764,7 @@ defer_inline is TRUE.
   } else if (value) {
     a_boolean	flag_already_set = tip->instantiation_required;
     tip->instantiation_required = TRUE;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
     /* Set the instantiation required flag in the routine or variable
        entry. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -4775,6 +4776,7 @@ defer_inline is TRUE.
       routine = sym->variant.routine.ptr;
       routine->instance_required = TRUE;
     }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     if (!defer_inline && is_function_symbol(sym) &&
                tssp->token_cache.first_token != NULL &&
                is_inline_template_function(tip)) {
