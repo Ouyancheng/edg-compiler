@@ -2240,6 +2240,9 @@ Initialize variables used by the precompiled header routines.
 
 
 void pch_one_time_init(void)
+/*
+Do one-time initialization of variables related to PCH processing.
+*/
 {
   pch_buffer = (char *)alloc_general(PCH_BUFFER_INITIAL_ALLOCATION);
   size_pch_buffer = PCH_BUFFER_INITIAL_ALLOCATION;
