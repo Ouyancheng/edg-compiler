@@ -1231,7 +1231,12 @@ member declaration (allowed in Microsoft mode only).
     *old_type = routine_symbol_type(sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode &&
+        rout_type->variant.routine.extra_info->calling_convention != 
+                                            (a_calling_convention)cc_default &&
         !calling_conventions_are_compatible(*old_type, rout_type)) {
+      /* An out-of-class definition should not change the calling convention
+         declared in the class definition (not specifying a calling convention
+         never amounts to a change). */
       pos_error(ec_conflicting_calling_conventions, &locator->source_position);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
