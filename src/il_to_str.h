@@ -186,7 +186,7 @@ extern void form_constant(a_constant_ptr                        constant,
                           a_boolean                             need_parens,
                           an_il_to_str_output_control_block_ptr octl);
 
-extern void form_reference_init_constant(
+extern void form_lvalue_address_constant(
                           a_constant_ptr                        constant,
                           a_boolean                             need_parens,
                           an_il_to_str_output_control_block_ptr octl);

@@ -149,7 +149,7 @@ is put out.
         if (is_reference_type(con->type)) {
           /* A reference parameter.  Display specially -- one level of
              indirection must be removed. */
-          form_reference_init_constant(con, /*need_parens=*/FALSE, octl);
+          form_lvalue_address_constant(con, /*need_parens=*/FALSE, octl);
         } else {
           /* Normal (non-reference) case. */
           form_constant(con, /*need_parens=*/FALSE, octl);
@@ -2163,7 +2163,7 @@ confusion.  Do the output in the way described by octl.
 }  /* form_constant */
 
 
-void form_reference_init_constant(
+void form_lvalue_address_constant(
                           a_constant_ptr                        constant,
                           a_boolean                             need_parens,
                           an_il_to_str_output_control_block_ptr octl)
@@ -2187,7 +2187,7 @@ way described by octl.
     form_constant(constant, need_parens, octl);
     octl->output_str(")");
   }  /* if */
-}  /* form_reference_init_constant */
+}  /* form_lvalue_address_constant */
 
 
 /******************************************************************************
