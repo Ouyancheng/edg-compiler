@@ -7784,6 +7784,9 @@ are either the specialization of a template or a template declaration.
   } else if (decl_state.effective_decl_level == NO_SCOPE_DEPTH) {
     pos_error(ec_bad_template_declaration_scope, &decl_state.start_pos);
     decl_state.decl_scope_err = TRUE;
+    /* Set the effective declaration level to a valid value for the remainder
+       of the processing. */
+    decl_state.effective_decl_level = depth_scope_stack;
   }  /* if */
 #if RECORD_TEMPLATES_IN_IL
   if (!decl_state.is_full_specialization &&
