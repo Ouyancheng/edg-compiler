@@ -478,28 +478,50 @@ aligned according to container_alignment.
  (((*byte_offset % (container_alignment))*TARG_CHAR_BIT + *bit_offset) + \
                                     bit_size <= (container_size)*TARG_CHAR_BIT)
 
-  /* TARG_BIT_FIELD_CONTAINER_SIZE is
-       >  0 to indicate a particular size for the bit-field container.
-       == 0 to indicate "use the smallest integral type into which the
-            bit-field will fit".
-       < 0  to indicate "use the base type from the declaration as
-            the container type".
-  */
+  if (bit_size == 0) {
+    /* A zero-width bit field is declared for alignment only.  The container
+       size is not significant. */
+    container_size = 1;
+    /* TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT is
+         >  0 to indicate a particular alignment
+         == 0 to indicate minimal alignment
+         <  0 to indicate "use the alignment of the base type from the
+              declaration as the container alignment".
+    */
+#if TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT > 0
+    container_alignment = TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT;
+#else
+#if TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT == 0
+    container_alignment = 1;
+#else /* if TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT < 0 */
+    /* Use the base type alignment. */
+    base_type = skip_typerefs(base_type);
+    container_alignment = base_type->alignment;
+#endif /* TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT == 0 */
+#endif /* TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT > 0 */
+  } else {
+    /* TARG_BIT_FIELD_CONTAINER_SIZE is
+         >  0 to indicate a particular size for the bit-field container.
+         == 0 to indicate "use the smallest integral type into which the
+              bit-field will fit".
+         < 0  to indicate "use the base type from the declaration as
+              the container type".
+    */
 #if TARG_BIT_FIELD_CONTAINER_SIZE > 0
-  /* Use a fixed size container.  TARG_BIT_FIELD_CONTAINER_SIZE indicates the
-     size in bytes. */
-  container_size = TARG_BIT_FIELD_CONTAINER_SIZE;
+    /* Use a fixed size container.  TARG_BIT_FIELD_CONTAINER_SIZE indicates the
+       size in bytes. */
+    container_size = TARG_BIT_FIELD_CONTAINER_SIZE;
 #if TARG_BIT_FIELD_CONTAINER_SIZE == 1
-  container_alignment = 1;
+    container_alignment = 1;
 #else
 #if TARG_BIT_FIELD_CONTAINER_SIZE == TARG_SIZEOF_SHORT
-  container_alignment = TARG_ALIGNOF_SHORT;
+    container_alignment = TARG_ALIGNOF_SHORT;
 #else
 #if TARG_BIT_FIELD_CONTAINER_SIZE == TARG_SIZEOF_INT
-  container_alignment = TARG_ALIGNOF_INT;
+    container_alignment = TARG_ALIGNOF_INT;
 #else
 #if TARG_BIT_FIELD_CONTAINER_SIZE == TARG_SIZEOF_LONG
-  container_alignment = TARG_ALIGNOF_LONG;
+    container_alignment = TARG_ALIGNOF_LONG;
 #else
 error -- TARG_BIT_FIELD_CONTAINER_SIZE in target.h is set wrong.
 #endif
@@ -509,65 +531,66 @@ error -- TARG_BIT_FIELD_CONTAINER_SIZE in target.h is set wrong.
 
 #else
 #if TARG_BIT_FIELD_CONTAINER_SIZE == 0
-  /* Use the smallest integral type into which the field will fit as
-     the container.  Try first to find such a type for the current
-     position (where the field may start off a byte boundary, and
-     may therefore require a larger container than it would if optimally
-     aligned). */
-  container_size = 0;  /* Meaning not set yet. */
-  if (bit_size > 0) {
-    if (fits_in_container(1, 1)) {
-      /* Char. */
-      container_size      = 1;
-      container_alignment = 1;
-    } else if (fits_in_container(TARG_SIZEOF_SHORT, TARG_ALIGNOF_SHORT)) {
-      /* Short. */
-      container_size      = TARG_SIZEOF_SHORT;
-      container_alignment = TARG_ALIGNOF_SHORT;
-    } else if (fits_in_container(TARG_SIZEOF_INT, TARG_ALIGNOF_INT)) {
-      /* Int. */
-      container_size      = TARG_SIZEOF_INT;
-      container_alignment = TARG_ALIGNOF_INT;
-    } else if (fits_in_container(TARG_SIZEOF_LONG, TARG_ALIGNOF_LONG)) {
-      /* Long. */
-      container_size      = TARG_SIZEOF_LONG;
-      container_alignment = TARG_ALIGNOF_LONG;
+    /* Use the smallest integral type into which the field will fit as
+       the container.  Try first to find such a type for the current
+       position (where the field may start off a byte boundary, and
+       may therefore require a larger container than it would if optimally
+       aligned). */
+    container_size = 0;  /* Meaning not set yet. */
+    if (bit_size > 0) {
+      if (fits_in_container(1, 1)) {
+        /* Char. */
+        container_size      = 1;
+        container_alignment = 1;
+      } else if (fits_in_container(TARG_SIZEOF_SHORT, TARG_ALIGNOF_SHORT)) {
+        /* Short. */
+        container_size      = TARG_SIZEOF_SHORT;
+        container_alignment = TARG_ALIGNOF_SHORT;
+      } else if (fits_in_container(TARG_SIZEOF_INT, TARG_ALIGNOF_INT)) {
+        /* Int. */
+        container_size      = TARG_SIZEOF_INT;
+        container_alignment = TARG_ALIGNOF_INT;
+      } else if (fits_in_container(TARG_SIZEOF_LONG, TARG_ALIGNOF_LONG)) {
+        /* Long. */
+        container_size      = TARG_SIZEOF_LONG;
+        container_alignment = TARG_ALIGNOF_LONG;
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (container_size == 0) {
-    /* The field can't be made to fit at the current position, so alignment
-       will have to be done.  A smaller container size might now apply,
-       since the field will be optimally aligned. */
-    container_size = (bit_size + (TARG_CHAR_BIT-1)) / TARG_CHAR_BIT;
-    if (container_size <= 1) {
-      /* Char. */
-      container_size      = 1;
-      container_alignment = 1;
-    } else if (container_size <= TARG_SIZEOF_SHORT) {
-      /* Short. */
-      container_size      = TARG_SIZEOF_SHORT;
-      container_alignment = TARG_ALIGNOF_SHORT;
-    } else if (container_size <= TARG_SIZEOF_INT) {
-      /* Int. */
-      container_size      = TARG_SIZEOF_INT;
-      container_alignment = TARG_ALIGNOF_INT;
-    } else if (container_size <= TARG_SIZEOF_LONG) {
-      /* Long. */
-      container_size      = TARG_SIZEOF_LONG;
-      container_alignment = TARG_ALIGNOF_LONG;
+    if (container_size == 0) {
+      /* The field can't be made to fit at the current position, so alignment
+         will have to be done.  A smaller container size might now apply,
+         since the field will be optimally aligned. */
+      container_size = (bit_size + (TARG_CHAR_BIT-1)) / TARG_CHAR_BIT;
+      if (container_size <= 1) {
+        /* Char. */
+        container_size      = 1;
+        container_alignment = 1;
+      } else if (container_size <= TARG_SIZEOF_SHORT) {
+        /* Short. */
+        container_size      = TARG_SIZEOF_SHORT;
+        container_alignment = TARG_ALIGNOF_SHORT;
+      } else if (container_size <= TARG_SIZEOF_INT) {
+        /* Int. */
+        container_size      = TARG_SIZEOF_INT;
+        container_alignment = TARG_ALIGNOF_INT;
+      } else if (container_size <= TARG_SIZEOF_LONG) {
+        /* Long. */
+        container_size      = TARG_SIZEOF_LONG;
+        container_alignment = TARG_ALIGNOF_LONG;
 #if CHECKING
-    } else {
-      internal_error("align_offsets_for_bit_field: size is too big");
+      } else {
+        internal_error("align_offsets_for_bit_field: size is too big");
 #endif /* CHECKING */
+      }  /* if */
     }  /* if */
-  }  /* if */
 #else /* TARG_BIT_FIELD_CONTAINER_SIZE < 0 */
-  /* Always use the base type size and alignment. */
-  base_type = skip_typerefs(base_type);
-  container_size      = base_type->size;
-  container_alignment = base_type->alignment;
+    /* Always use the base type size and alignment. */
+    base_type = skip_typerefs(base_type);
+    container_size      = base_type->size;
+    container_alignment = base_type->alignment;
 #endif /* TARG_BIT_FIELD_CONTAINER == 0 */
 #endif /* TARG_BIT_FIELD_CONTAINER > 0 */
+  }  /* if */
 
   /* We want to make sure that the bit field can be grabbed using one
      load of the size of the container aligned the way the container

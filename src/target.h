@@ -19,6 +19,14 @@ target.h -- Definition of target machine characteristics.
 #define TARGET_H 1
 
 /*
+Flag that is TRUE if object code compatibility with AT&T's cfront is
+required.  The main issue is class layout and specifically how the data
+sections for virtual base classes are put out.  The default behavior
+(when this flag is FALSE) produces a more efficient use of space.
+*/
+#define CFRONT_OBJECT_CODE_COMPATIBILITY TRUE
+
+/*
 Target byte order.  Little-endian means the least-significant part of a
 multi-byte integer is at the lowest memory address.
 */
@@ -131,6 +139,16 @@ error -- TARG_MAX_BIT_FIELD_SIZE is too big.
 /* How plain "int" bit fields are to be treated (signed or unsigned).
    Note that 1-bit fields are made unsigned regardless of this switch. */
 #define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED (!DEFAULT_TARG_HAS_SIGNED_CHARS)
+
+/* Alignment adjustment to be made when an zero-width (unnamed) bit field
+   is declared.  If > 0, indicates the alignment of one of the integral
+   types.  0 means "use minimal alignment".  < 0 means "use the alignment
+   of the base type given in the declaration". */
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+#define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT TARG_ALIGNOF_INT
+#else
+#define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT 0
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 /*
 Pointer types:
@@ -262,14 +280,6 @@ both approaches described in the embedded annotation in section 11.1 are
 supported.)
 */
 #define TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE TRUE
-
-/*
-Flag that is TRUE if object code compatibility with AT&T's cfront is
-required.  The main issue is class layout and specifically how the data
-sections for virtual base classes are put out.  The default behavior
-(when this flag is FALSE) produces a more efficient use of space.
-*/
-#define CFRONT_OBJECT_CODE_COMPATIBILITY TRUE
 
 #endif /* ifndef TARGET_H */
 
