@@ -1,5 +1,25 @@
 Version 2.21
 
+12/14/93  Specific declaration of template function using a typedef name
+
+A bug has been fixed that resulted in an abort when instantiating a
+template function for which a typedef name was used as the routine type in
+the specific declaration.  For example:
+
+  template <class T> void f(T){}
+  typedef void F(int);
+  F f;                   // Specific declaration uses typedef name
+  int main()
+  {
+    f(1);                // Instantiation of f(int) now works
+  }
+
+12/13/93  In C mode, tentative definition with incomplete type
+
+In C mode we now issue an error when a tentative definition of a variable
+with internal linkage appears with an incomplete type, even if the type
+is later completed.
+
 12/10/93  Ordering of types with types-as-subobjects promoted out of classes 
 
 A bug in IL lowering's promotion of types out of classes has been fixed.
