@@ -193,8 +193,10 @@ Dump the specified range.
 */
 {
   fprintf(f_debug, "%4lu/%-3lu -- %4lu/%-3lu",
-          range->start.seq, range->start.column,
-          range->end.seq, range->end.column);
+          (unsigned long)range->start.seq,
+          (unsigned long)range->start.column,
+          (unsigned long)range->end.seq,
+          (unsigned long)range->end.column);
 }  /* db_source_range */
 
 
@@ -217,7 +219,8 @@ Dump decl-pos information for the specified symbol (for debugging).
       db_symbol_name(sym);
       fprintf(f_debug, " <%s>, decl_position: %lu/%lu",
                        symbol_kind_names[(int)sym->kind],
-                       scp->decl_position.seq, scp->decl_position.column);
+                       (unsigned long)scp->decl_position.seq,
+                       (unsigned long)scp->decl_position.column);
       dpsp = scp->decl_pos_info;
       if (dpsp == NULL) {
         fputs(", no decl-pos info\n", f_debug);
@@ -268,7 +271,8 @@ Dump decl-pos information for the specified symbol (for debugging).
               fprintf(f_debug, "    base class \"");
               db_type_name(bcp->type);
               fprintf(f_debug, "\", decl_position: %lu/%lu\n",
-                      bcp->decl_position.seq, bcp->decl_position.column);
+                      (unsigned long)bcp->decl_position.seq,
+                      (unsigned long)bcp->decl_position.column);
               fprintf(f_debug, "      specifier range: ");
               db_source_range(&bcp->base_specifier_range);
               fputc('\n', f_debug);
