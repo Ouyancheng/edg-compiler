@@ -1,5 +1,11 @@
 Version 2.30, October 10, 1995
 
+1/10/96  Added iso646.h header file
+
+The iso646.h header has been added.  It defines macros for the alternative
+spellings (e.g., bitand, bitor) for certain operators as specified in
+Normative Addendum 1 of the ISO C standard.
+
 12/1/95  Remove include of iostream.h from assert.h
 
 The assert.h include file was changed to use stdio.h instead of iostream.h.
