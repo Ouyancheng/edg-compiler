@@ -7508,6 +7508,94 @@ is a non-real instantiation.
 }  /* check_complete_member_type */
 
 
+static void check_typedef_function_type(a_type_ptr         *member_type,
+                                        a_source_position  *err_pos,
+                                        a_boolean          is_definition,
+                                        a_type_ptr         class_type,
+                                        a_boolean          is_nonstatic_member)
+/*
+
+*member_type points to a typedef type with which a member or friend function
+has been declared.  Since typedef types are shared, update *member_type with
+a copy of the underlying routine type if this is a definition or if the
+implicit-this-param pointer needs to be supplied.  *err_pos is the source
+position at which to issue a diagnostic, if required.  is_definition is TRUE
+if this declaration is a definition; class_type indicates the class in which
+the member or friend function appears, and is_nonstatic_member is TRUE when
+the function is a nonstatic member of class_type.
+
+*/
+{
+  a_type_ptr  rout_type;
+
+  check_assertion((*member_type)->kind == (a_type_kind)tk_typeref);
+  if (is_definition) {
+    /* Not legal to define a function with a typedef type. */
+    pos_error(ec_function_type_must_come_from_declarator, err_pos);
+  }  /* if */
+  if (is_definition || is_nonstatic_member) {
+     rout_type = skip_typerefs(*member_type);
+     /* Build a copy of the routine type so as to have a
+        non-shared routine type entry. */
+     rout_type = copy_routine_type_with_param_types(rout_type);
+     if (is_nonstatic_member) {
+       /* This is a nonstatic member function declared through a typedef.
+          Be sure the implicit this-param type is filled in, since that's
+          the only way a nonstatic member function is distinguished from a
+          static member function. */
+       a_type_ptr tp;
+
+       tp = make_pointer_type(class_type);
+       tp = make_qualified_type(tp, TQ_CONST);
+       rout_type->variant.routine.extra_info->implicit_this_param_type = tp;
+     } else if (any_cfront_mode()) {
+       /* Just in case this is a copy of the weird cfront-compatibility
+          typedef, clear out the implicit this-param pointer in the copied
+          type entry. */
+       rout_type->variant.routine.extra_info->implicit_this_param_type = NULL;
+     }  /* if */
+     *member_type = rout_type;
+  }  /* if */
+}  /* check_typedef_function_type */
+
+
+static a_boolean is_invalid_use_of_virtual(a_symbol_locator  *locator,
+                                           a_type_ptr        class_type,
+                                           a_boolean         is_friend,
+                                           a_boolean         is_constructor,
+                                           a_storage_class   storage_class,
+                                           a_source_position *err_pos)
+/*
+Issue an error and return TRUE is the virtual specifier is invalid for the
+current function declaration.  *locator identifies the function declared, and
+class_type is the class in which the declared appears.  is_friend is TRUE if
+this is a friend declaration, is_constructor is TRUE if it is a constructor
+declaration, and *storage_class is the storage class that was specified.
+*err_pos indicates the source position for diagnostics.
+*/
+{
+  an_error_code  error_code = ec_no_error;
+
+  if (is_friend) {
+    /* A friend function may not be declared virtual. */
+    error_code = ec_bad_friend_decl;
+  } else if (is_constructor || is_union_type(class_type)) {
+    /* Constructors may not be virtual functions (WP 12.1 [class.ctor]) and
+       unions may not have them (WP 9.5 [class.union]). */
+    error_code = ec_virtual_not_allowed;
+  } else if (storage_class == (a_storage_class)sc_static ||
+             (locator->is_operator_name &&
+              (is_new_operator(locator->variant.opname) ||
+               is_delete_operator(locator->variant.opname)))) {
+    /* Only nonstatic member functions may be specified as virtual.  This
+       applies to operators new and delete since they are always static. */
+    error_code = ec_virtual_static_not_allowed;
+  }  /* if */
+  if (error_code != ec_no_error) pos_error(error_code, err_pos);
+  return (error_code != ec_no_error);
+}  /* is_invalid_use_of_virtual */
+
+
 a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
                                 a_scope_depth    orig_decl_level,
@@ -7989,7 +8077,14 @@ completed (C++ only).
               /* "mutable" is only allowed on nonstatic data member decls. */
               pos_error(ec_mutable_not_allowed, &decl_start_pos);
             }  /* if */
-            function_def_present = (curr_token == tok_lbrace);
+            function_def_present =
+                             ((curr_token == tok_lbrace) ||
+                              (is_constructor && (curr_token == tok_colon)));
+            if (function_def_present && !first_declarator) {
+              pos_error(ec_exp_semicolon, &pos_curr_token);
+            }  /* if */
+            func_info.is_definition = function_def_present;
+            func_info.is_inline = inline_specified || function_def_present;
             if (!type_explicitly_specified) {
               /* No type specifier. */
               if (is_constructor || is_destructor ||
@@ -8017,73 +8112,38 @@ completed (C++ only).
                 }  /* if */
               }  /* if */
             }  /* if */
-            spec_kind = (a_special_function_kind)sfk_none;
             if (local_type == member_type) {
               /* When scanning the declarator does not change the type,
                  we know this member is a function based on the specifier
                  type alone.  This is only possible with a typedef name that
-                 represents a function type.  Such typedef types are shared
-                 and so are unsuited to be the type of a defined function. */
-              a_type_ptr  rout_type = skip_typerefs(local_type);
-              a_boolean   copy_needed = TRUE;
-
+                 represents a function type. */
               func_info.function_type_from_typedef = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
               func_info.declarator_ssep = declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-              if (function_def_present) {
-                /* Not legal to define a function with a typedef type. */
-                pos_error(ec_function_type_must_come_from_declarator,
-                          &locator.source_position);
-              } else if (friend_specified ||
-                         member_storage_class ==
-                                         (a_storage_class)sc_static) {
-                /* No copy is needed. */
-                copy_needed = FALSE;
-              }  /* if */
-              if (copy_needed) {
-                /* Build a copy of the routine type so as to have a
-                   non-shared routine type entry. */
-                local_type = copy_routine_type_with_param_types(rout_type);
-                if (!friend_specified &&
-                    member_storage_class != (a_storage_class)sc_static) {
-                  /* This is a nonstatic member function declared through
-                     a typedef.  Be sure the implicit this-param type is
-                     filled in, since that's the only way a nonstatic
-                     member function is distinguished from a static member
-                     function. */
-                  a_type_ptr tp;
-
-                  tp = make_pointer_type(class_type);
-                  tp = make_qualified_type(tp, TQ_CONST);
-                  skip_typerefs(local_type)->variant.routine.extra_info->
-                                    implicit_this_param_type = tp;
-                } else if (any_cfront_mode()) {
-                  /* Just in case this is a copy of the weird
-                     cfront-compatibility typedef, clear out the implicit
-                     this-param pointer in the copied type entry. */
-                  skip_typerefs(local_type)->variant.routine.extra_info->
-                                          implicit_this_param_type = NULL;
-                }  /* if */
-              }  /* if */
+              /* Such typedef function types are shared and so are unsuited
+                 to be the type of a defined function. */
+              check_typedef_function_type(&local_type,
+                                          &locator.source_position,
+                                          function_def_present, class_type,
+                                          (!friend_specified &&
+                                           member_storage_class !=
+                                                (a_storage_class)sc_static));
             }  /* if */
-            if (function_def_present && !first_declarator) {
-              pos_error(ec_exp_semicolon, &pos_curr_token);
+            if (virtual_specified &&
+                is_invalid_use_of_virtual(&locator, class_type,
+                                          friend_specified, is_constructor,
+                                          member_storage_class,
+                                          &decl_start_pos)) {
+              virtual_specified = FALSE;
+              suppress_pure_specifier_error = TRUE;
             }  /* if */
-            func_info.is_definition = function_def_present;
-            func_info.is_inline = inline_specified || function_def_present;
             if (friend_specified) {
               /* Process a friend function declaration. */
-              if (virtual_specified ||
-                  member_storage_class != (a_storage_class)sc_unspecified) {
+              if (member_storage_class != (a_storage_class)sc_unspecified) {
                 /* A storage class declaration along with "friend" is not
                    allowed. */
                 pos_error(ec_bad_friend_decl, &decl_start_pos);
-                set_to_error_locator(locator);
-                if (virtual_specified) {
-                  virtual_specified = FALSE;
-                  suppress_pure_specifier_error = TRUE;
-                }  /* if */
                 member_storage_class = (a_storage_class)sc_unspecified;
               }  /* if */
               rout_sym = decl_friend_function(&locator, class_type,
@@ -8098,26 +8158,6 @@ completed (C++ only).
                 pos_error(ec_static_not_allowed, &decl_start_pos);
                 member_storage_class = (a_storage_class)sc_unspecified;
               }  /* if */
-              if (virtual_specified) {
-                if (is_constructor || is_union_type(class_type)) {
-                  /* Constructors may not be virtual functions (ARM 12.1)
-                     and unions may not have them (ARM 9.5). */
-                  pos_error(ec_virtual_not_allowed, &decl_start_pos);
-                  virtual_specified = FALSE;
-                  suppress_pure_specifier_error = TRUE;
-                } else if (member_storage_class ==
-                                         (a_storage_class)sc_static ||
-                           (locator.is_operator_name &&
-                            (is_new_operator(locator.variant.opname) ||
-                             is_delete_operator(locator.variant.opname)))) {
-                  /* Only nonstatic member functions may be specified as
-                     virtual.  This applies to operators new and delete
-                     since they are always static (ARM 12.5). */
-                  pos_error(ec_virtual_static_not_allowed, &decl_start_pos);
-                  virtual_specified = FALSE;
-                  suppress_pure_specifier_error = TRUE;
-                }  /* if */
-              }  /* if */
               if (is_constructor || virtual_specified) {
                 /* A class with a user-defined constructor or a virtual
                    function cannot be an "aggregate" (8.5.1). */
@@ -8131,10 +8171,6 @@ completed (C++ only).
                 spec_kind = (a_special_function_kind)sfk_destructor;
               } else if (is_constructor) {
                 spec_kind = (a_special_function_kind)sfk_constructor;
-                if (curr_token == tok_colon) {
-                  func_info.is_definition = function_def_present = TRUE;
-                  func_info.is_inline = TRUE;
-                }  /* if */
               }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
               /* If decl-modifiers were declared for the class and/or for the
