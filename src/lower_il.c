@@ -1380,10 +1380,11 @@ This is used when the constant is already an allocated IL constant.
   an_expr_node_ptr node;
   a_variable_ptr   temp_var;
 
-  /* If the constant is a converted pointer-to-member-function constant.
-     If so, it is now a ck_aggregate constant, which cannot be used directly
-     in an expression.  For that case, create a temporary variable
-     initialized with the ck_aggregate, and use the value of the variable. */
+  /* Check whether the constant is a converted pointer-to-member-function
+     constant.  If so, it is now a ck_aggregate constant, which cannot be
+     used directly in an expression.  For that case, create a temporary
+     variable initialized with the ck_aggregate, and use the value of the
+     variable. */
   if (check_for_troublesome_ptr_to_member_constant(constant, &temp_var)) {
     node = var_rvalue_expr(temp_var);
   } else {
@@ -2759,6 +2760,12 @@ the constant.
         /* Make the constant the initial value of the variable. */
         assoc_var->init_kind = (an_init_kind)initk_static;
         assoc_var->initializer.constant = constant;
+        /* Make sure the variable gets lowered so that the constant will
+           be lowered too.  This is necessary when the recording of orphan
+           entries is turned off in lower_os_constant because we're
+           maintaining "needed" flags and we don't want to record orphans
+           from functions that will be deleted. */
+        if (!lowering_file_scope) mark_as_not_visited(assoc_var);
       } else {
         /* The constant is in the function scope, so use a function-local
            static variable. */
