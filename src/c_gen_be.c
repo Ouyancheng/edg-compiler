@@ -434,7 +434,7 @@ Return a temporary name for the given IL pointer.  The name is in a
 local static array, so it has limited lifetime.
 */
 {
-  static char temp[30];
+  static char temp[50];
 
   (void)sprintf(temp, "_T%lu", unique_id_for_il_pointer(ptr));
   return temp;
@@ -5122,7 +5122,7 @@ one or more non-arithmetic constants (hollerith, hex/octal).
 */
 {
   int            ent_number = 1;
-  char           ent_name[30];
+  char           ent_name[50];
   a_targ_size_t  curr_offset = 0, num_bytes;
   a_constant_ptr init_con;
   unsigned long  repeat_count;

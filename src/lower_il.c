@@ -2676,7 +2676,7 @@ used to encode constants as part of the mangled names of template classes.
          for -12. */
       offset = con->variant.address.offset;
       if (offset != 0) {
-        char buffer[30];
+        char buffer[50];
         (void)sprintf(buffer, "%ld", (long)offset);
         str = buffer;
         str_length = strlen(str);  /* Includes "-" sign if any. */
