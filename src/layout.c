@@ -547,13 +547,9 @@ curr_max_member_alignment.
     (void)required_token(tok_lparen, ec_exp_lparen);
   }  /* if */
   if (curr_token == tok_identifier) {
-    /* Issue warnings in Microsoft mode for incorrect "push" and "pop"
+    /* Issue warnings in Microsoft and GNU modes for incorrect "push" and "pop"
        uses, errors otherwise. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    severity = microsoft_mode ? es_warning : es_error;
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-    severity = es_error;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    severity = (microsoft_mode || gnu_mode) ? es_warning : es_error;
     /* Scan the tokens of the "enhanced syntax", except for the integer
        constant if any.  First check for "push" and "pop". */
     if (locator_for_curr_id.symbol_header->identifier_length == 4 &&

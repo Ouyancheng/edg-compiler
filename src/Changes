@@ -1,5 +1,11 @@
 Version 3.5
 
+7/9/04   GNU compatibility: Warning on #pragma pack(pop) mismatch
+
+In GNU modes, the front end previously issued an error if a #pragma pack(pop)
+directive did not match a preceding "push" directive.  Now a warning is issued
+instead (as was already the case in Microsoft mode).
+
 7/8/04   C-generating back end: VLA declarations following labels
 
 GNU C compilers allow declarations after executable statements, but not
