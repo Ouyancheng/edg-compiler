@@ -3384,19 +3384,20 @@ to default values.
       num_routine_type_supplements_allocated++;
 #endif /* DEBUG */
       rtsp->param_type_list          = NULL;
-      rtsp->implicit_this_param_type = NULL;
-      rtsp->value_returned_by_cctor  = FALSE;
-      rtsp->prototype_scope          = NULL;
       rtsp->assoc_routine            = NULL;
       rtsp->has_ellipsis             = FALSE;
       rtsp->prototyped               = FALSE;
       rtsp->old_style_params_scanned = FALSE;
       rtsp->lint_argsused_flag       = FALSE;
+      rtsp->value_returned_by_cctor  = FALSE;
 #if CHECKING
       rtsp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (an_arg_pragma_kind)apk_none;
+      rtsp->implicit_this_param_type = NULL;
+      rtsp->prototype_scope          = NULL;
+      rtsp->throw_specification      = NULL;
       break;
     case tk_typeref:
       pte->variant.typeref.type        = NULL;
@@ -4689,7 +4690,6 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;
-  rp->throw_specification     = NULL;
 #ifdef FIL
   rp->is_fortran_entry        = FALSE;
   rp->local_routine_scope     = NULL;

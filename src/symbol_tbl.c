@@ -626,8 +626,10 @@ and indentation is the indentation desired.
         put_string(buffer);
         (void)str_name_linkage(buffer, &(rp->source_corresp));
         put_string(buffer);
+        type = rp->type;
         if (C_dialect == C_dialect_cplusplus) {
-          a_throw_specification_ptr  tsp = rp->throw_specification;
+          a_throw_specification_ptr  tsp;
+          tsp = type->variant.routine.extra_info->throw_specification;
           if (tsp != NULL) {
             switch (tsp->kind) {
               case tsk_any:
@@ -652,7 +654,6 @@ and indentation is the indentation desired.
             }  /* switch */
           }  /* if */
         }  /* if */
-        type = rp->type;
       }  /* if */
       break;
     case sk_projection:

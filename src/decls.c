@@ -1529,31 +1529,33 @@ already has one, leave it but check for consistency between the current
 one and the one previously declared.
 */
 {
-  a_boolean                       match, any_difference_seen;
-  a_throw_specification_ptr       new_tsp = func_info->throw_specification;
-  a_throw_specification_ptr       new_list, old_list, tsp, other_tsp;
-  a_symbol_ptr                    rout_sym;
+  a_boolean                      match, any_difference_seen;
+  a_throw_specification_ptr      new_tsp = func_info->throw_specification;
+  a_throw_specification_ptr      new_list, old_list, tsp, other_tsp;
+  a_symbol_ptr                   rout_sym;
+  a_routine_type_supplement_ptr  rtsp;
 
   db_enter(4, "add_throw_specification");
   check_assertion(new_tsp != NULL || exceptions_disabled);
   rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+  rtsp = rp->type->variant.routine.extra_info;
   if (exceptions_disabled) {
     /* If exception processing is suppressed for the current compilation,
        the constructs will have been scanned (after an error is issued) but
        the IL needed be updated. */
-    check_assertion(rp->throw_specification == NULL);
-  } else if (rp->throw_specification == NULL) {
+    check_assertion(rtsp->throw_specification == NULL);
+  } else if (rtsp->throw_specification == NULL) {
     /* No comparison need be done -- this must be the first declaration of
        the routine. */
-    rp->throw_specification = new_tsp;
+    rtsp->throw_specification = new_tsp;
   } else if (new_tsp->kind == (a_throw_spec_kind)tsk_any) {
     /* Issue an error on the omission of a throw specification on the current
        declaration if it was present on the previous one. */
-    if (rp->throw_specification->kind != (a_throw_spec_kind)tsk_any) {
+    if (rtsp->throw_specification->kind != (a_throw_spec_kind)tsk_any) {
       pos_sy_error(ec_omitted_throw_specification, &func_info->throw_position,
                    rout_sym);
     }  /* if */
-  } else if (rp->throw_specification->kind == (a_throw_spec_kind)tsk_none) {
+  } else if (rtsp->throw_specification->kind == (a_throw_spec_kind)tsk_none) {
     /* Previous specification asserted that no exceptions will be thrown.
        It is compatible only with an identical specification on the current
        declaration. */
@@ -1563,7 +1565,7 @@ one and the one previously declared.
       add_diag_info(ec_previously_empty_throw_list);
       end_error();
     }  /* if */
-  } else if (rp->throw_specification->kind == (a_throw_spec_kind)tsk_any) {
+  } else if (rtsp->throw_specification->kind == (a_throw_spec_kind)tsk_any) {
     /* Previous specification asserted that any exception may be thrown.
        It is compatible only with an identical specification on the current
        declaration. */
@@ -1575,7 +1577,7 @@ one and the one previously declared.
     /* Previous specification was a list of the types that will be
        thrown.  Check for a mismatch between the previous list and the
        current one. */
-    old_list = rp->throw_specification;
+    old_list = rtsp->throw_specification;
     if (new_tsp->kind == (a_throw_spec_kind)tsk_list_entry) {
       /* The current throw specification is also a list of types. */
       new_list = new_tsp;
@@ -2308,12 +2310,6 @@ scope is that of a class definition.
   if (C_dialect == C_dialect_cplusplus) {
     a_type_ptr  this_param_type = NULL;
 
-    if (curr_token == tok_throw) {
-      if (func_info == &local_func_info_block) {
-        /* Error. */
-      }  /* if */
-      scan_throw_specification(func_info);
-    }  /* if */
     /* Create a pointer to the implicit this parameter.  This can be done
        for nonstatic function declarations within a class definition or
        for member function declarations outside a class definition when
@@ -2381,14 +2377,14 @@ scope is that of a class definition.
                                             /*is_volatile=*/FALSE);
       extra_info->implicit_this_param_type = this_param_type;
     }  /* if */
-    if (func_info->throw_specification == NULL) {
-      if (curr_token == tok_throw) {
-        if (func_info == &local_func_info_block) {
-          /* Error. */
-        }  /* if */
+    if (curr_token == tok_throw) {
+      if (func_info == &local_func_info_block) {
+#if 0
+        /* Error?  Warning? */
+#endif /* if 0 */
       }  /* if */
-      scan_throw_specification(func_info);
     }  /* if */
+    scan_throw_specification(func_info);
   }  /* if */
   copy_source_position(start_pos, error_position);
   db_exit();

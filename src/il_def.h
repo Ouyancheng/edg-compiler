@@ -882,7 +882,57 @@ typedef short a_lint_varargs_count;
 #define LINT_VARARGS_COUNT_MAX SHRT_MAX
 /* Value used to indicate that there is no lint varargs count: */
 #define NOT_LINT_VARARGS (-1)
+
+/* An enumeration of C++ throw specification kinds. */
+enum a_throw_spec_kind_tag {
+  tsk_none,		/* Specifies that no exceptions will be thrown by
+			   a given routine, e.g.,
+			     void f() throw ();              */
+  tsk_list_entry,	/* Specifies that only the listed exceptions will
+			   be thrown by a given routine, e.g.,
+			     void f() throw (int,char);      */
+  tsk_any               /* Specifies that any exception may be thrown by a
+			   a given routine, e.g.,
+			     void f();                       */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_throw_spec_kind;
+
+/* An throw specification entry is used in C++ only. */
+typedef struct a_throw_specification *a_throw_specification_ptr;
+typedef struct a_throw_specification {
+  a_throw_specification_ptr
+		next;
+			/* Pointer to the next in the linked list of throw
+			   specification entries defined for a given routine.
+			   Note that this is always NULL when the kind is
+			   tsk_none or tsk_any; it is also NULL for the last
+			   entry in an tsk_list_entry list. */
+  a_throw_spec_kind
+		kind;
+			/* Indicates whether this entry specifies one of a
+			   list of types that will be thown, or specifies
+			   that nothing will be thrown, or specifies that
+			   anything will be thrown. */
+  a_byte_boolean
+		redundant;
+			/* TRUE when kind == tsk_list_entry and another entry
+			   with the same type already appears in the list. */
+  a_type_ptr	type;
+			/* When kind == tsk_list_entry, a pointer to the type
+                           declared; NULL otherwise. */
+  a_source_position
+		decl_position;
+			/* Source position of the declaration of this
+			   exception specification.  When kind is tsk_none,
+			   it is the source position of "throw".  When kind is
+			   tsk_list_entry, it is the source position of the
+			   type.  When kind is tsk_any, it is the source
+			   position where "throw" would have appeared, e.g.,
+			   the position of the ";" in "void f();". */
+} a_throw_specification;
 #endif /* ifdef CIL */
+
 /* Entry containing additional information about a routine type
 (segregated to keep down the size of a_type). */
 typedef struct a_routine_type_supplement *a_routine_type_supplement_ptr;
@@ -921,20 +971,6 @@ typedef struct a_routine_type_supplement {
                         /* If this type is the type for a function that
                            has been defined (has a body), this points to
                            the associated function.  Otherwise, it is NULL. */
-#ifdef CIL
-  a_type_ptr    implicit_this_param_type;
-			/* Pointer to the type of the implicit "this"
-			   parameter of C++ member functions; NULL for all
-			   other functions. */
-  a_byte_boolean
-		value_returned_by_cctor;
-			/* If TRUE, the caller provides a place for the return
-			   value (by passing its address as a parameter), and
-			   the called routine must place its result in that
-			   location.  This is used only for functions that
-			   return C++ class types, for cases where the
-			   class type returned requires a copy constructor. */
-#endif /* ifdef CIL */
 #ifndef CIL
 #ifdef FIL  /* Note double definition of has_ellipsis. */
   a_byte_boolean
@@ -963,6 +999,13 @@ typedef struct a_routine_type_supplement {
                            to a lint-style "argsused" flag, indicating that
                            warnings on unreferenced parameters should not
                            be issued. */
+  unsigned int value_returned_by_cctor:1;
+			/* If TRUE, the caller provides a place for the return
+			   value (by passing its address as a parameter), and
+			   the called routine must place its result in that
+			   location.  This is used only for functions that
+			   return C++ class types, for cases where the
+			   class type returned requires a copy constructor. */
   unsigned int	avoid_codecenter_warnings:2;
 			/* Cleared to avoid warnings from CodeCenter about
 			   uninitialized storage. */
@@ -978,6 +1021,10 @@ typedef struct a_routine_type_supplement {
                         /* Indicates whether or not a #pragma implying
                            special argument-type checking (e.g., for printf)
                            applies to this function type. */
+  a_type_ptr    implicit_this_param_type;
+			/* Pointer to the type of the implicit "this"
+			   parameter of C++ member functions; NULL for all
+			   other functions. */
   a_scope_ptr   prototype_scope;
                         /* Almost always NULL.  In rare cases, points to
                            a scope entry that contains things declared
@@ -996,6 +1043,14 @@ typedef struct a_routine_type_supplement {
                            old-style parameter list, because those types
                            are likewise needed outside the routine in order
                            to check type compatibility. */
+  a_throw_specification_ptr
+		throw_specification;
+			/* In C++ only, pointer to an entry or a linked list
+			   of entries describing the exception specification
+			   declared for this routine.  NULL in C mode or if
+			   exceptions are disabled for this compilation; also
+			   NULL if the type is not bound to a particular
+			   routine. */
 #endif /* ifndef CIL */
 } a_routine_type_supplement;
 
@@ -2167,57 +2222,6 @@ typedef a_byte an_opname_kind;
 /*
 Data structures related to routines:
 */
-#ifdef CIL
-/* An enumeration of C++ throw specification kinds. */
-enum a_throw_spec_kind_tag {
-  tsk_none,		/* Specifies that no exceptions will be thrown by
-			   a given routine, e.g.,
-			     void f() throw ();              */
-  tsk_list_entry,	/* Specifies that only the listed exceptions will
-			   be thrown by a given routine, e.g.,
-			     void f() throw (int,char);      */
-  tsk_any               /* Specifies that any exception may be thrown by a
-			   a given routine, e.g.,
-			     void f();                       */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_throw_spec_kind;
-
-/* An throw specification entry is used in C++ only. */
-typedef struct a_throw_specification *a_throw_specification_ptr;
-typedef struct a_throw_specification {
-  a_throw_specification_ptr
-		next;
-			/* Pointer to the next in the linked list of throw
-			   specification entries defined for a given routine.
-			   Note that this is always NULL when the kind is
-			   tsk_none or tsk_any; it is also NULL for the last
-			   entry in an tsk_list_entry list. */
-  a_throw_spec_kind
-		kind;
-			/* Indicates whether this entry specifies one of a
-			   list of types that will be thown, or specifies
-			   that nothing will be thrown, or specifies that
-			   anything will be thrown. */
-  a_byte_boolean
-		redundant;
-			/* TRUE when kind == tsk_list_entry and another entry
-			   with the same type already appears in the list. */
-  a_type_ptr	type;
-			/* When kind == tsk_list_entry, a pointer to the type
-                           declared; NULL otherwise. */
-  a_source_position
-		decl_position;
-			/* Source position of the declaration of this
-			   exception specification.  When kind is tsk_none,
-			   it is the source position of "throw".  When kind is
-			   tsk_list_entry, it is the source position of the
-			   type.  When kind is tsk_any, it is the source
-			   position where "throw" would have appeared, e.g.,
-			   the position of the ";" in "void f();". */
-} a_throw_specification;
-#endif /* ifdef CIL */
-
 typedef struct a_routine {
   /* Description of a routine.  Note that this is pointed to from a scope
      block, and the local variables (etc.) are declared there. */
@@ -2323,12 +2327,6 @@ typedef struct a_routine {
                            this function; it is unique among the virtual
 			   functions of a given class.  When is_virtual is
 			   FALSE, this field is undefined. */
-  a_throw_specification_ptr
-		throw_specification;
-			/* In C++ only, pointer to an entry or a linked list
-			   of entries describing the exception specification
-			   declared for this routine.  NULL in C mode or if
-			   exceptions are disabled for this compilation . */
 #endif /* ifdef CIL */
 #ifdef FIL
   a_byte_boolean

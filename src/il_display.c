@@ -1091,22 +1091,24 @@ Display a_routine_type_supplement.
 {
   disp_ptr("param_type_list", (char *)ptr->param_type_list, iek_param_type);
   disp_ptr("assoc_routine", (char *)ptr->assoc_routine, iek_routine);
+  disp_boolean("has_ellipsis", (a_boolean)ptr->has_ellipsis);
 #ifdef CFE
+  disp_boolean("prototyped", (a_boolean)ptr->prototyped);
+  disp_boolean("lint_argsused_flag", (a_boolean)ptr->lint_argsused_flag);
+  disp_boolean("value_returned_by_cctor",
+               (a_boolean)ptr->value_returned_by_cctor);
+  disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
+  disp_name("arg_pragma");
+  disp_arg_pragma_kind_name(ptr->arg_pragma);
   if (ptr->implicit_this_param_type != NULL) {
     disp_ptr("implicit_this_param_type", (char *)ptr->implicit_this_param_type,
              iek_type);
   }  /* if */
-  disp_boolean("value_returned_by_cctor",
-               (a_boolean)ptr->value_returned_by_cctor);
-#endif /*ifdef CFE */
-  disp_boolean("has_ellipsis", (a_boolean)ptr->has_ellipsis);
-#ifdef CFE
   disp_ptr("prototype_scope", (char *)ptr->prototype_scope, iek_scope);
-  disp_boolean("prototyped", (a_boolean)ptr->prototyped);
-  disp_boolean("lint_argsused_flag", (a_boolean)ptr->lint_argsused_flag);
-  disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
-  disp_name("arg_pragma");
-  disp_arg_pragma_kind_name(ptr->arg_pragma);
+  if (ptr->throw_specification != NULL) {
+    disp_ptr("throw_specification", (char *)ptr->throw_specification,
+             iek_throw_specification);
+  }  /* if */
 #endif /* ifdef CFE */
  (void) printf("\n");
 }  /* disp_routine_type_supplement */
@@ -1708,8 +1710,6 @@ Display the indicated routine.
     disp_unsigned_long("virtual_function_number",
                        (unsigned long)ptr->virtual_function_number);
   }  /* if */
-  disp_ptr("throw_specification", (char *)ptr->throw_specification,
-           iek_throw_specification);
 #endif /* ifdef CFE */
 #ifdef FFE
   disp_boolean("is_fortran_entry", (a_boolean)ptr->is_fortran_entry);
@@ -2060,8 +2060,27 @@ static void disp_throw_specification(a_throw_specification_ptr ptr)
 Display the indicated throw-specification entry.
 */
 {
-  disp_ptr("next", (char *)ptr->next, iek_throw_specification);
-  disp_ptr("type", (char *)ptr->type, iek_type);  
+  disp_name("kind");
+  switch (ptr->kind) {
+    case tsk_none:
+      (void)printf("tsk_none\n");
+      break;
+    case tsk_any:
+      (void)printf("tsk_any\n");
+      break;
+    case tsk_list_entry:
+      (void)printf("tsk_list_entry\n");
+      disp_ptr("next", (char *)ptr->next, iek_throw_specification);
+      disp_ptr("type", (char *)ptr->type, iek_type);  
+      disp_boolean("redundant", (a_boolean)ptr->redundant);
+      break;
+    default:
+      (void)printf("**BAD THROW SPECIFICATION KIND**\n");
+  }  /* switch */
+  disp_unsigned_long("decl_position.seq",
+                     (unsigned long)ptr->decl_position.seq);
+  disp_unsigned_long("decl_position.column",
+                     (unsigned long)ptr->decl_position.column);
 }  /* disp_throw_specification */
 
 
