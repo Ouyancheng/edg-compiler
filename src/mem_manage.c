@@ -603,6 +603,13 @@ file and is no longer needed.
   a_mem_block_header_ptr hdr, next_hdr;
 
   db_enter(5, "free_memory_region");
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "free_memory_region: region %lu, size = %lu\n",
+                     (unsigned long)region_number,
+                     (unsigned long)allocated_in_region[region_number]);
+  }  /* if */
+#endif /* DEBUG */
   /* Traverse the list of blocks and free each one. */
   for (hdr = mem_region_table[region_number]; hdr != NULL;) {
     next_hdr = hdr->next;
