@@ -1178,6 +1178,7 @@ scope is that of a class definition.
   a_boolean               dangling_type_specifier = FALSE;
   a_boolean               defines_something;
   a_boolean               default_arg_expr_allowed = FALSE;
+  an_expr_node_ptr        *dim_expr_ptr;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -1295,7 +1296,7 @@ scope is that of a class definition.
                          DI_ABSTRACT_DECLARATOR_ALLOWED, &do_flags,
                        param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
                        &param_locator, &param_type_ptr, &bottom_derived_type,
-                       (a_func_info_block_ptr)NULL);
+                       (a_func_info_block_ptr)NULL, dim_expr_ptr);
           } else {
             /* No declarator. */
             set_to_error_locator(param_locator);
@@ -3686,7 +3687,8 @@ void declarator(a_decl_flag_set   input_flags,
                 a_symbol_locator  *locator,
                 a_type_ptr        *p_complete_type,
                 a_type_ptr        *p_bottom_derived_type,
-                a_func_info_block *func_info)
+                a_func_info_block *func_info,
+                an_expr_node_ptr  *dim_expr_ptr)
 /*
 Scan a declarator (3.5.4) or an abstract declarator (3.5.5), depending
 on the values of real_declarator_allowed and abstract_declarator_allowed
@@ -3757,6 +3759,7 @@ otherwise it is NULL.  The syntax is:
                   class_symbol_header;
   a_boolean       is_constructor_or_destructor;
   a_boolean       is_nonstatic_member_function = FALSE;
+  a_boolean       is_first_dimension = TRUE;
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -3772,6 +3775,7 @@ otherwise it is NULL.  The syntax is:
   if (func_info != NULL) clear_func_info(func_info);
   /* Set the locator to indicate there is no identifier. */
   if (locator != NULL) set_to_error_locator(*locator);
+  *dim_expr_ptr = NULL;
   /* Look for any initial "*" list indicating pointer types. */
   bottom_pointer_derived_type = NULL;
   complete_type = pointer_declarator(specifiers_type,
@@ -3807,7 +3811,8 @@ otherwise it is NULL.  The syntax is:
     declarator(~(~input_flags | DI_PARENTHESIZED_INITIALIZER_ALLOWED),
                &local_do_flags, /*specifiers_type=*/(a_type_ptr)NULL,
                /*member_parent_type=*/(a_type_ptr)NULL,
-               locator, &derived_type, &bottom_derived_type, func_info);
+               locator, &derived_type, &bottom_derived_type, func_info,
+               dim_expr_ptr);
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
     }  /* if */
@@ -4090,7 +4095,17 @@ function_lparen:
       }  /* if */
     } else {
       /* Left bracket, indicating array declarator. */
-      array_declarator(&new_type_ptr);
+      if (is_first_dimension &&
+          (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED)) {
+        /* In C++ a array declarator that appears in an operator new()
+           expression may have a nonconstant expression in the first
+           dimension. */
+        nonconstant_array_declarator(&new_type_ptr, dim_expr_ptr);
+        is_first_dimension = FALSE;
+      } else {
+        /* The normal case. */
+        array_declarator(&new_type_ptr);
+      }  /* if */
     }  /* if */
     /* Add the new type to the bottom of the existing derived type list.
        Note that this involves error checking. */
@@ -5665,6 +5680,7 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
   a_decl_flag_set           dso_flags, do_flags;
   a_type_ptr                bottom_derived_type;
   a_source_position         start_pos;
+  an_expr_node_ptr          *dim_expr_ptr = NULL;
 
   db_enter(3, "type_name");
   set_err_pos_to_curr_token();
@@ -5683,17 +5699,20 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
     declarator(DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED,
                &do_flags, *type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
 	       (a_symbol_locator *)NULL,
-               type_ptr, &bottom_derived_type, (a_func_info_block_ptr)NULL);
+               type_ptr, &bottom_derived_type, (a_func_info_block_ptr)NULL,
+               dim_expr_ptr);
   }  /* if */
   copy_source_position(start_pos, error_position);
   db_exit();
 }  /* type_name */
 
 
-void new_type_name(a_type_ptr        *type_ptr,
+void new_type_name(a_boolean         is_parenthesized,
+                   a_type_ptr        *type_ptr,
                    an_expr_node_ptr  *dimension_expr)
 /*
-Scan a C++ new-type-name (ARM 5.3.3) and return a pointer to the type.  The
+Scan a C++ new-type-name or a parenthesized type-name that may appear in a
+"new" expression (ARM 5.3.3), and return a pointer to the type.  The
 syntax is:
    new-type-name:
               type-specifier-list new-declarator
@@ -5705,15 +5724,20 @@ syntax is:
                                                opt               opt
               new-declarator    [ expression ]
                             opt
+
+   type-name:
+              type-specifier-list abstract-declarator
+                                                     opt
 */
 {
   a_type_ptr            specifiers_type, complete_type, new_type_ptr;
   a_type_ptr            derived_type, bottom_derived_type = NULL;
-  a_decl_flag_set       dso_flags;
+  a_decl_flag_set       dso_flags, do_flags;
   a_source_position     start_pos;
   a_storage_class       storage_class;
 
   db_enter(3, "new_type_name");
+  if (is_parenthesized) add_stop_token(tok_rparen);
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   *dimension_expr = NULL;
@@ -5728,34 +5752,48 @@ syntax is:
   }  /* if */
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   bottom_derived_type = NULL;
-  complete_type = pointer_declarator(specifiers_type, &bottom_derived_type);
-  derived_type = NULL;
-  bottom_derived_type = NULL;
-  add_stop_token(tok_lbracket);
-  if (curr_token == tok_lbracket) {
-    nonconstant_array_declarator(&new_type_ptr, dimension_expr);
-    add_to_derived_type_list(new_type_ptr,
-                             &derived_type, &bottom_derived_type);
-    while (curr_token == tok_lbracket) {
-      array_declarator(&new_type_ptr);
-      /* Add the new type to the bottom of the existing derived type list.
-         Note that this involves error checking. */
+  if (is_parenthesized) {
+    if (is_abstract_declarator_start()) {
+      declarator(DI_ABSTRACT_DECLARATOR_ALLOWED |
+                    DI_QUALIFIED_NAME_ALLOWED |
+                    DI_DIMENSION_EXPRESSION_ALLOWED,
+                 &do_flags, *type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
+                 (a_symbol_locator *)NULL,
+                 type_ptr, &bottom_derived_type, (a_func_info_block_ptr)NULL,
+                 dimension_expr);
+    }  /* if */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_rparen);
+  } else {
+    complete_type = pointer_declarator(specifiers_type, &bottom_derived_type);
+    derived_type = NULL;
+    bottom_derived_type = NULL;
+    add_stop_token(tok_lbracket);
+    if (curr_token == tok_lbracket) {
+      nonconstant_array_declarator(&new_type_ptr, dimension_expr);
       add_to_derived_type_list(new_type_ptr,
                                &derived_type, &bottom_derived_type);
-    }  /* while */
-    if (derived_type != NULL) {
-      if (complete_type != NULL) {
-        if (!is_error_type(bottom_derived_type)) {
-          /* Combine derived_type and complete_type. */
-          add_to_derived_type_list(complete_type,
-                                   &derived_type, &bottom_derived_type);
+      while (curr_token == tok_lbracket) {
+        array_declarator(&new_type_ptr);
+        /* Add the new type to the bottom of the existing derived type list.
+           Note that this involves error checking. */
+        add_to_derived_type_list(new_type_ptr,
+                                 &derived_type, &bottom_derived_type);
+      }  /* while */
+      if (derived_type != NULL) {
+        if (complete_type != NULL) {
+          if (!is_error_type(bottom_derived_type)) {
+            /* Combine derived_type and complete_type. */
+            add_to_derived_type_list(complete_type,
+                                     &derived_type, &bottom_derived_type);
+          }  /* if */
         }  /* if */
+        complete_type = derived_type;
       }  /* if */
-      complete_type = derived_type;
     }  /* if */
+    remove_stop_token(tok_lbracket);
+    *type_ptr = complete_type;
   }  /* if */
-  remove_stop_token(tok_lbracket);
-  *type_ptr = complete_type;
   db_exit();
 }  /* new_type_name */
 
@@ -6616,6 +6654,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean         need_comma_remove_stop_token     = FALSE;
   a_boolean         need_assign_remove_stop_token    = FALSE;
   a_boolean         need_lbrace_remove_stop_token    = FALSE;
+  an_expr_node_ptr  *dim_expr_ptr = NULL;
 #if ASM_FUNCTION_ALLOWED
   a_boolean         is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -6834,7 +6873,8 @@ continue_with_declaration:
                    (storage_class == (a_storage_class)sc_typedef ?
                            0 : DI_QUALIFIED_NAME_ALLOWED),
                  &do_flags, type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
-                 &locator, &local_type_ptr, &bottom_derived_type, &func_info);
+                 &locator, &local_type_ptr, &bottom_derived_type, &func_info,
+                 dim_expr_ptr);
       is_function = is_function_type(local_type_ptr);
       is_main_function =
                 (is_function && !is_error_locator(locator) &&
