@@ -1,5 +1,21 @@
 Version 2.35
 
+2/19/97  Multibyte characters accepted in source
+
+Multibyte character sequences are now accepted in comments, string
+literals, characters constants, and header names.  They are not
+supported by default: see MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED.
+When supported, they are enabled according to
+DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED and the --[no_]multibyte_chars
+command line option.  There are various configuration options; see
+host_envir.h (look for MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED).  The usual
+configuration uses C library routines like mbtowc and mblen to
+decode the multibyte character sequences, thus obtaining the
+multibyte character handling appropriate to the host system.
+In multibyte character mode, the strings passed to a back end are
+still strings of "char", but where appropriate they will contain
+multibyte character sequences.
+
 2/19/97  Effect of unnamed non-zero-width bit field on struct's alignment
 
 A new global variable, targ_unnamed_bit_field_affects_struct_alignment, has
