@@ -5385,7 +5385,8 @@ of the function, and again overloading is a possibility.
                      scope_stack[depth_scope_stack].in_prototype_instantiation;
     /* Set the source correspondence. */
     set_source_corresp(&sym->variant.routine.ptr->source_corresp, sym);
-  } else {
+  } else if (!class_type->variant.class_struct_union.is_nonreal_class ||
+             prototype_instantiations_in_il) {
     update_friend_function_info(sym->variant.routine.ptr, class_type,
                                 (a_boolean)func_info->is_definition,
                                 /*move_to_front=*/FALSE);
