@@ -12425,7 +12425,7 @@ see expr.h).
         make_error_operand(&local_result);
       } else if (curr_expr_kind_is(ek_pp) ||
                  curr_expr_kind_is(ek_integral_constant)) {
-        /* This is not an integral constant expression. */
+        /* These are not allowed in an integral constant expression. */
         error_and_make_error_operand(enum_type_is_integral ?
                                        ec_expr_not_integral :
                                        ec_expr_not_integral_or_enum,
