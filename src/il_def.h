@@ -7712,6 +7712,9 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "f++", "f--", "++f", "--f",
    "p++", "p--", "++p", "--p",
    "lvalue<==",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+   "__assume",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
 #ifdef FIL
    "x-", "len ", "&", "loc ", "test",
