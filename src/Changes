@@ -1,5 +1,17 @@
 Version 3.5
 
+7/21/04  Microsoft compatibility: dllimport variable as nontype template
+         argument
+
+The change of 6/11/03 -- making the address of a dllimport variable
+not constant -- went too far.  MSVC++ allows the address of a
+dllimport variable to be used as a nontype template argument.
+That's now allowed again.
+
+  template <int* X> class A {};
+  __declspec(dllimport) extern int i;
+  A< &i > b;  // Allowed again
+
 7/21/04  Microsoft compatibility: incompatible template parameter lists
 
 The Microsoft compatibility issue described in the Changes entry of 11/24/98

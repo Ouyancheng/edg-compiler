@@ -6652,9 +6652,11 @@ variable does not.
   a_boolean const_addr = has_static_storage_duration(variable->storage_class);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (variable->decl_modifiers & DM_DLLIMPORT) {
+  if ((variable->decl_modifiers & DM_DLLIMPORT) &&
+      !curr_expr_kind_is(ek_template_arg)) {
     /* A dllimport variable is accessed indirect through a variable
-       and therefore does not have a constant address. */
+       and therefore does not have a constant address.  But it's
+       allowed as a nontype template argument. */
     const_addr = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
