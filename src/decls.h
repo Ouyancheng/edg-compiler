@@ -299,11 +299,7 @@ typedef int a_decl_flag_set;
                            missing type specifier. */
 #define DSI_INLINE_ALLOWED 0x40
 			/* If this bit is set allow an inline specifier. */
-#define DSI_LINKAGE_SPECIFIER_ALLOWED 0x80
-			/* If this bit is set a literal string may follow the
-			   "extern" keyword to specify the form of external
-			   linkage required. */
-#define DSI_IS_NEW_TYPE_NAME 0x100
+#define DSI_IS_NEW_TYPE_NAME 0x80
 			/* If this bit is set the declaration specifiers are
 			   part of the type declaration associated with a
 			   "new" operator. */
@@ -364,10 +360,6 @@ typedef int a_decl_flag_set;
                            specifiers, if any, are consistent with those
 			   allowed on a destructor declaration), and so a type
                            of tk_void was returned. */
-#define DSO_LINKAGE_SPECIFIER_BLOCK 0x4000
-			/* If this bit is set the value returned in
-			   *linkage_specifier applies to a brace-enclosed
-			   declaration list. */
 
 extern void declarator(a_decl_flag_set   input_flags,
                        a_decl_flag_set   *output_flags,
