@@ -1334,6 +1334,7 @@ extern void pop_input_stack(void);
 extern void flush_until_matching_token(void);
 /* Flush tokens on error, to a token in the stop token set. */
 extern void flush_tokens(void);
+extern void flush_to_end_of_arg_list(void);
 /* Initialize the lexical routines. */
 extern void lexical_reset(void);
 extern void lexical_one_time_init(void);
