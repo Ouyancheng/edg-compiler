@@ -529,10 +529,14 @@ Instantiate the body of the template function associated with tip.
 #endif /* DEBUG */
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
   rout_sym->defined = TRUE;
-  /* It may be that the function was declared using a typedef.  Now that it
-     is being *defined* (i.e., given a body by the instantiation), strip off
-     the typedef. */
-  rout_ptr->type = skip_typerefs(rout_ptr->type);
+  if (rout_ptr->type->kind == (a_type_kind)tk_typeref) {
+    /* The function was declared using a typedef.  Now that it is being
+       defined (given a body by the instantiation), create an unshared type
+       with the typedef stripped off. */
+    a_type_ptr  new_tp = alloc_type((a_type_kind)tk_routine);
+    copy_routine_type_with_param_types(skip_typerefs(rout_ptr->type), new_tp);
+    rout_ptr->type = new_tp;
+  }  /* if */
   /* Set the linkage and storage class. */
   if (rout_sym->class_of_which_a_member != NULL) {
     /* Member functions are handled in check_class_linkage. */
