@@ -353,11 +353,11 @@ Print the contents of a region description entry.
 #endif /* DEBUG */
 
 
-static void set_base_class_flags(a_typeinfo_ptr	class_typeinfo,
+static void set_base_class_flags(a_typeinfo_ptr	class_info,
 				 a_boolean	set_flag)
 /*
 Go through all of the base classes (direct and indirect) of the class
-indicated by class_typeinfo and set the base class flags in the unique
+indicated by class_info and set the base class flags in the unique
 ID.  This is used later to determine whether a catch clause refers to
 a base class of the class being thrown.  set_flag is TRUE if the flags
 are to be set and FALSE if they are to be cleared.
@@ -366,7 +366,7 @@ When the flags are set this routine detects ambiguous base classes and
 sets the flags accordingly.
 */
 {
-  a_base_class_spec_ptr	bcsp = class_typeinfo->base_class_entries;
+  a_base_class_spec_ptr	bcsp = class_info->base_class_entries;
 
   if (bcsp != NULL) {
     /* A base class list is present. */
@@ -378,7 +378,15 @@ sets the flags accordingly.
          recursively. */
       if (set_flag) {
         a_unique_id	old_value = *(base_typeinfo->unique_id);
-        if (old_value == BCS_NO_FLAGS) new_value = bcsp->flags;
+        if (old_value == BCS_NO_FLAGS) {
+          a_base_class_spec_flag_set	flags;
+          /* Mask of bits that should not be tested. */
+          flags = bcsp->flags & ~BCS_FLAGS;
+          /* If any of the flag bits are set, simply use the flags in the
+	     base class specifier; otherwise set the flags that indicates
+	     that this is a normal base class. */
+          new_value = flags ? flags : BCS_IS_BASE;
+        }  /* if */
       } else {
         new_value = BCS_NO_FLAGS;
       }  /* if */
@@ -396,6 +404,89 @@ sets the flags accordingly.
     } while (!done);
   }  /* if */
 }  /* set_base_class_flags */
+
+
+static a_boolean derived_to_base_conversion(void**		ptr_param,
+	       			            a_typeinfo_ptr	class_info,
+				            a_typeinfo_ptr	base_info)
+/*
+Converts ptr from a pointer to a derived class (described by class_info)
+to a pointer to a base class (described by base_info).  Returns TRUE
+if the base class was found and the conversion was done; otherwise
+returns FALSE.
+*/
+{
+  a_boolean		result = FALSE;
+  a_base_class_spec_ptr	bcsp = class_info->base_class_entries;
+  void*			ptr = *ptr_param;
+
+  if (bcsp != NULL) {
+    /* A base class list is present. */
+    a_boolean	done = FALSE;
+    /* Loop through the direct base classes and look for one that matches
+       the specified base class.  We look through all of the direct bases
+       first because the direct base list also includes any virtual bases.
+       We want to make sure that we find the virtual base classes at
+       the top level when possible. */
+    do {
+      void*		new_ptr = ptr;
+      a_typeinfo_ptr	test_info = bcsp->typeinfo;
+      /* Adjust the pointer by the offset provided in the base class
+         specification. */
+      new_ptr = (void*) (((char *) ptr) + bcsp->offset);
+      if (matching_typeinfo(test_info, base_info)) {
+        /* We have found a match. */
+        result = TRUE;
+        if (bcsp->flags & BCS_VIRTUAL) {
+          /* If this is a virtual base class then the offset provides the
+             location of a pointer to the base class.  Dereference the
+             pointer and return that value. */
+          *ptr_param = *((void **)new_ptr);
+        } else {
+	  /* A nonvirtual base class.  new_ptr has already been adjusted to
+             point to the start of the base class.  Return this value
+	     to the caller. */
+          *ptr_param = new_ptr;
+        }  /* if */
+      }  /* if */
+      /* The last entry in the array will have the BCS_LAST flag set. */
+      done = bcsp->flags & BCS_LAST;
+      /* Advance the pointer to the next element in the array of base
+         class specifications. */
+      bcsp++;
+    } while (!done);
+    if (!result) {
+      /* The specified base class is not one of the direct or virtual bases.
+         Search the indirect base classes. */
+      do {
+        void*		new_ptr = ptr;
+        a_typeinfo_ptr	test_info = bcsp->typeinfo;
+        /* Adjust the pointer by the offset provided in the base class
+           specification. */
+        new_ptr = (void*) (((char *) ptr) + bcsp->offset);
+        /* This is not the base class we are looking for.  Look at the
+           base classes of this base class. */
+        if (test_info->base_class_entries != NULL) {
+          /* This base class has its own bases.  Call this routine
+             recursively. */
+          if (derived_to_base_conversion(&new_ptr, test_info, base_info)) {
+            /* We have found a match.  Update the pointer passed to us
+               to reflect the value found by the recursive call. */
+            *ptr_param = new_ptr;
+            result = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+        /* The last entry in the array will have the BCS_LAST flag set. */
+        done = bcsp->flags & BCS_LAST;
+        /* Advance the pointer to the next element in the array of base
+           class specifications. */
+        bcsp++;
+      } while (!done);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* derived_to_base_conversion */
 
 
 static void cleanup(an_eh_stack_entry_ptr ehsep,
@@ -458,7 +549,8 @@ The current region number within ehsep is designated by region.
 
 
 static int check_catches(an_eh_stack_entry_ptr	ehsep,
-                         a_typeinfo_ptr		typeinfo)
+                         a_typeinfo_ptr		typeinfo,
+			 void**			object_ptr)
 /*
 Examine the catch information associated with a given try block and
 determine whether any of the clauses match the object being thrown.
@@ -485,13 +577,23 @@ plus 1).
       match = TRUE;
     } else if (etsp->typeinfo->unique_id == NULL) {
       /* No unique ID -- don't check any further.  No match. */
-    } else if (*(etsp->typeinfo->unique_id) != BCS_AMBIGUOUS) {
+    } else if (*(etsp->typeinfo->unique_id) == BCS_AMBIGUOUS) {
       /* An ambiguous base class -- no match. */
     } else if (*(etsp->typeinfo->unique_id) != BCS_NO_FLAGS) {
       /* A base class of the class that was thrown. */
       match = TRUE;
+      /* Convert the pointer from a pointer to the derived class to a pointer
+         to the base class. */
 #if 0
-      /* Derived to base conversion needs to be done. */
+#else /* 0 */
+      void* orig_ptr = *object_ptr;
+#endif /* 0 */
+      derived_to_base_conversion(object_ptr, typeinfo, etsp->typeinfo);
+#if 0
+#else /* 0 */
+      if (orig_ptr != *object_ptr) {
+        fprintf(__f_debug, "Orig ptr=%p, new ptr=%p\n", orig_ptr, *object_ptr);
+      }  /* if */
 #endif /* 0 */
     }  /* if */
     if (match) {
@@ -523,8 +625,9 @@ a try block with a catch that matches the type of the object thrown.
 {
   an_eh_stack_entry_ptr	ehsep;
   a_region_number		region = __eh_curr_region;
-  an_eh_stack_entry_ptr	destination_ehsep = NULL;
+  an_eh_stack_entry_ptr		destination_ehsep = NULL;
   int				destination_catch_value;
+  void*				object_ptr;
 
 #if DEBUG
   if (__debug_level >= 1) {
@@ -532,23 +635,20 @@ a try block with a catch that matches the type of the object thrown.
   }  /* if */
 #endif /* DEBUG */
   /* Set the base class flags for the thrown type. */
-  /* Find the try block that can catch the object being thrown. */
-#if 0
-#else /* 0 */
-  if (thrown_typeinfo != NULL) {
-    /* Clear the base class flags from the previous throw.  This needs to
-       be changed when stacked throws are implemented. */
-    set_base_class_flags(thrown_typeinfo, /*set_flag=*/FALSE);
-  }  /* if */
-#endif /* 1 */
   set_base_class_flags(thrown_typeinfo, /*set_flag=*/TRUE);
+  /* Get the address of the thrown object. */
+#if 0
+  /* Get address from object stack. */
+#endif /* 0 */
+  object_ptr = (void *)throw_buffer;
+  /* Find the try block that can catch the object being thrown. */
   ehsep = __curr_eh_stack_entry;
   while (ehsep != NULL) {
     an_eh_stack_entry_kind	kind = ehsep->kind;
     if (kind == (an_eh_stack_entry_kind)ehsek_function) {
       /* Do nothing with function blocks at this time. */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
-      int result = check_catches(ehsep, thrown_typeinfo);
+      int result = check_catches(ehsep, thrown_typeinfo, &object_ptr);
       if (result != 0) {
         destination_ehsep = ehsep;
         destination_catch_value = result;
@@ -593,12 +693,7 @@ a try block with a catch that matches the type of the object thrown.
   if (destination_ehsep != NULL) {
     __catch_clause_number = destination_catch_value;
     __curr_eh_stack_entry = destination_ehsep;
-#if 0
-    /* This will need to be modified for a more sophisticated memory
-       management scheme.  Also, needs to handle derived to base
-       conversions. */
-#endif /* 0 */
-    __caught_object_address = (void *)throw_buffer;
+    __caught_object_address = object_ptr;
    longjmp(destination_ehsep->variant.try_block.setjmp_buffer, 1);
   }  /* if */
   return 0;
@@ -624,6 +719,14 @@ the type being thrown.
     abort();
   }  /* if */
 #endif /* DEBUG */
+#if 0
+#else /* 0 */
+  if (thrown_typeinfo != NULL) {
+    /* Clear the base class flags from the previous throw.  This needs to
+       be changed when stacked throws are implemented. */
+    set_base_class_flags(thrown_typeinfo, /*set_flag=*/FALSE);
+  }  /* if */
+#endif /* 1 */
   thrown_typeinfo = typeinfo;
   thrown_is_pointer = is_pointer;
   return (void *)throw_buffer;
