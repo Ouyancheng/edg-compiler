@@ -3811,10 +3811,8 @@ this routine to do a relatively simple copy of the all the fields.
     }  /* if */
     subobject_type->source_corresp.decl_position = 
                                       class_type->source_corresp.decl_position;
-    subobject_type->source_corresp.parent =
-                                      class_type->source_corresp.parent;
-    subobject_type->source_corresp.is_class_member =
-                                    class_type->source_corresp.is_class_member;
+    subobject_type->source_corresp.parent.class_type =
+                            class_type->source_corresp.parent.class_type;
 #if 0
     /* Ideally, the referenced flag would not be set if the class type is
        not referenced.  However, the class type might not be referenced now
@@ -8415,9 +8413,6 @@ Promote the constants on the constants list of the indicated scope
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    /* Mangle the name. */
-    mangle_member_constant_name(constant);
-    constant->source_corresp.is_local_to_function = FALSE;
     add_to_constants_list(constant, /*at_file_scope=*/TRUE);
   }  /* for */
   /* Clear the list of promoted constants.  Since the scope is for a class
@@ -8442,7 +8437,7 @@ Promote the static variables on the variables list of the indicated scope
      members out of file-scope classes or classes nested within them.
      (Or namespaces in the file scope or nested within such namespaces.)
      For those, the file scope is the right place to promote to. */
-  /* Promote the variables to the end of the file-scope variables list. */
+  /* Promote the variables to the end of the proper variables list. */
   for (variable = scope->variables;
        variable != NULL;
        variable = next_variable) {
@@ -8456,9 +8451,6 @@ Promote the static variables on the variables list of the indicated scope
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    /* Mangle the name. */
-    mangle_member_variable_name(variable);
-    variable->source_corresp.is_local_to_function = FALSE;
     add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
   }  /* for */
   /* Clear the list of promoted variables.  Since the scope is for a class
@@ -8489,9 +8481,6 @@ or namespace scope) into the file scope.
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    /* Mangle the name. */
-    mangle_function_name(routine);
-    routine->source_corresp.is_local_to_function = FALSE;
     add_to_routines_list(routine, /*at_file_or_namespace_scope=*/TRUE);
   }  /* for */
   /* Clear the list of promoted routines.  Since the scope is for a class
@@ -8522,8 +8511,6 @@ Promote the asm entries on the asm_entries list of the indicated scope
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    clear_parent(asm_entry);
-    asm_entry->source_corresp.is_local_to_function = FALSE;
     add_to_asm_entries_list(asm_entry);
   }  /* for */
   /* Clear the list of asm entries.  Since the scope is for a namespace,
@@ -8998,6 +8985,27 @@ by things that will be in the file scope.
 }  /* local_entities_should_be_promoted */
 
 
+static void clear_is_local_to_function_flag_in_type(a_type_ptr type)
+/*
+The indicated type is (part of something) being promoted to file scope.
+Clear its is_local_to_function flag and the flags of any subtypes.
+*/
+{
+  type->source_corresp.is_local_to_function = FALSE;
+  /* If the type is a class, process its type list. */
+  if (is_immediate_class_type(type)) {
+    a_scope_ptr scope =
+                      type->variant.class_struct_union.extra_info->assoc_scope;
+    if (scope != NULL) {
+      a_type_ptr subtype;
+      for (subtype = scope->types; subtype != NULL; subtype = subtype->next) {
+        clear_is_local_to_function_flag_in_type(subtype);
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* clear_is_local_to_function_flag_in_type */
+
+
 void promote_local_entities_to_file_scope(a_scope_ptr   scope,
                                           a_routine_ptr routine)
 /*
@@ -9075,8 +9083,8 @@ scope) along with the class members.
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
       mangle_promoted_entity_name(&type->source_corresp, routine, scope);
-      /* Do not clear the is_local_to_function flag in the type yet, because
-         it's needed in generating a proper mangled name for the class. */
+      /* Clear the is_local_function flag in the type and any subtypes. */
+      clear_is_local_to_function_flag_in_type(type);
       if (routine_class == NULL) {
         /* Not promoting from a member function: just add to the file-scope
            types list. */
@@ -9106,7 +9114,6 @@ scope) along with the class members.
              enum_con = enum_con->next) {
           mangle_promoted_entity_name(&enum_con->source_corresp, routine,
                                       scope);
-          enum_con->source_corresp.is_local_to_function = FALSE;
         }  /* for */
       }  /* if */
     }  /* for */
@@ -9676,109 +9683,6 @@ next_kind:;
 }  /* lower_orphaned_entries */
 
 
-static void clear_parent_info_on_file_scope_routines(void)
-/*
-Clear class/namespace membership information from all file-scope routines.
-This is done late in file scope lowering so that class membership information
-remains in constructors and destructors for the use of IL lowering; that
-information is the easiest way to know the associated class for those.
-*/
-{
-  a_routine_ptr rout;
-
-  for (rout = il_header.primary_scope->routines;
-       rout != NULL;
-       rout = rout->next) {
-    clear_parent(rout);
-  }  /* for */
-}  /* clear_parent_info_on_file_scope_routines */
-
-
-static void clear_parent_info_on_type_list(a_type_ptr type_list,
-                                           a_boolean  function_local)
-/*
-Clear class/namespace membership information on the types in the indicated
-list.  If function_local is FALSE, also clear the is_local_to_function flag.
-*/
-{
-  a_type_ptr type;
-
-  for (type = type_list; type != NULL; type = type->next) {
-    clear_parent(type);
-    if (!function_local) type->source_corresp.is_local_to_function = FALSE;
-  }  /* for */
-}  /* clear_parent_info_on_type_list */
-
-
-static void clear_parent_info_on_types(void)
-/*
-Clear class/namespace membership information and the is_local_to_function
-flag (where appropriate) on all types (including orphans from function
-and block scopes).  This is done late in file scope lowering so that the
-information is around for the use of IL lowering, e.g., for promotion
-of types out of namespaces via placeholders.
-*/
-{
-  a_scope_orphaned_list_header_ptr solhp;
-
-  /* Note that this routine is called at the end of lowering a memory
-     region, so the IL is flattened here; there are no nested classes
-     and no namespaces. */
-  clear_parent_info_on_type_list(il_header.primary_scope->types,
-                                 /*function_local=*/FALSE);
-  /* Process local types by visiting the types on orphan lists. */
-  for (solhp = il_header.scope_orphaned_list_headers;
-       solhp != NULL;
-       solhp = solhp->next) {
-    clear_parent_info_on_type_list(solhp->orphaned_types,
-                                   /*function_local=*/TRUE);
-  }  /* for */
-}  /* clear_parent_info_on_types */
-
-
-#if !(NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR)
-/*ARGSUSED*/
-#endif /* !(NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR) */
-static void do_class_lowering_wrapup(a_scope_ptr scope)
-/*
-Do any wrapup processing on classes that has to wait until the very
-end of the lowering process for a memory region.
-*/
-{
-#if NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR 
-  a_type_ptr  type;
-  a_scope_ptr block_scope;
-
-  /* Visit all types to find all class types.  Note that this routine is
-     called at the end of lowering a memory region, so the IL is flattened
-     here; there are no nested classes and no namespaces. */
-  /* Note that when processing a function or block scope we will be crossing
-     into the file scope here, but these class types are truly local types
-     and are not used in the file scope, so it's okay to process them
-     now. */
-  for (type = scope->types; type != NULL; type = type->next) {
-    if (is_immediate_class_type(type)) {
-      /* Found a class type. */
-      a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-      ctsp->assoc_operator_new_routine = NULL;
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
-#if DELETE_CAN_BE_FOLDED_INTO_DTOR
-      ctsp->assoc_operator_delete_routine = NULL;
-#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
-    }  /* if */
-  }  /* for */
-  /* Visit all block scopes. */
-  for (block_scope = scope->scopes;
-       block_scope != NULL;
-       block_scope = block_scope->next) {
-    do_class_lowering_wrapup(block_scope);
-  }  /* for */
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR */
-}  /* do_class_lowering_wrapup */
-
-
 void lower_il_memory_region(a_memory_region_number region_number)
 /*
 Rewrite the intermediate language in memory region region_number from
@@ -9861,18 +9765,11 @@ C++ to C, so that a C back end can handle it without change.
         mark_inlined_routines_as_unreferenced();
       }  /* if */
 #endif /* MINIMAL_INLINING */
-      /* Clear class membership information on routines now that it isn't
-         needed anymore for IL lowering purposes. */
-      clear_parent_info_on_file_scope_routines();
-      /* Likewise for types. */
-      clear_parent_info_on_types();
     }  /* if */
     /* Add definitions for any typeinfo variables generated for classes.
        This must be done late so that all the required typeinfo variables
        will have been created already. */
     define_scope_class_typeinfo_vars(scope);
-    /* Do any processing on classes that has to wait until the very end. */
-    do_class_lowering_wrapup(scope);
     /* Pop the file-scope context. */
     pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
