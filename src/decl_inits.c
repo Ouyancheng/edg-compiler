@@ -230,10 +230,11 @@ static void scan_initializer_of_simple_object(
 }  /* scan_initializer_of_simple_object */
 
 
-static a_symbol_ptr get_copy_constructor(a_type_ptr         class_type,
-                                         a_boolean          must_be_const,
+static a_symbol_ptr get_copy_constructor(a_type_ptr  class_type,
+                                         a_boolean   const_object_required,
+                                         a_boolean   volatile_object_required,
                                          a_source_position  *err_pos,
-                                         a_boolean          *err)
+                                         a_boolean   *err)
 /*
 Find and return a symbol pointer representing a copy constructor for the
 class indicated by class_type.  If must_be_const is TRUE, return a copy
@@ -246,10 +247,10 @@ symbols.
 */
 {
   a_symbol_ptr      sym, cctor_sym = NULL;
-  a_boolean         is_overloaded_function, ambiguous = FALSE, is_const;
-#if CHECKING
-  a_boolean         nonconst_found = FALSE;
-#endif /* CHECKING */
+  a_boolean         is_overloaded_function, ambiguous = FALSE;
+  a_boolean         const_object_okay, volatile_object_okay;
+  a_boolean         cctor_sym_accepts_const, cctor_sym_accepts_volatile;
+  a_boolean         sym_matches_exactly, cctor_sym_matches_exactly;
 
   *err = FALSE;
   class_type = skip_typerefs(class_type);
@@ -259,50 +260,74 @@ symbols.
     internal_error("get_copy_constructor: NULL constructor");
   }  /* if */
 #endif /* CHECKING */
+  /* If sym is an overloaded function symbol we need to go through the whole
+     list. */
   if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
     is_overloaded_function = TRUE;
     sym = sym->variant.overloaded_function.symbols;
   } else {
     is_overloaded_function = FALSE;
   }  /* if */
+  /* Examine each constructor for this class to find a copy constructor.
+     There may be more than one.  For instance, there may be a copy
+     constructor that can copy a const object and another that cannot. */
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    if (is_copy_constructor(sym->variant.routine,
-                            sym->class_of_which_a_member, &is_const)) {
-      if (must_be_const && !is_const) {
-#if CHECKING
-        nonconst_found = TRUE;
-#endif /* CHECKING */
-        continue;
-      }  /* if */
-      if (cctor_sym != NULL) {
-        /* Ambiguous reference. */
-        ambiguous = TRUE;
+    if (is_copy_constructor(sym->variant.routine, sym->class_of_which_a_member,
+                            &const_object_okay, &volatile_object_okay)) {
+      if ((const_object_required && !const_object_okay) || 
+          (volatile_object_required && !volatile_object_okay)) {
+        /* A copy constructor was found that cannot copy the sort of object
+           that we need to be able to copy. Keep looking for a suitable copy
+           constructor. */
       } else {
+        /* sym represents a suitable copy constructor. */
+        if (cctor_sym != NULL) {
+          /* A suitable copy constructor had already been found, so there's
+             more than one.  We may have an ambiguous reference.  We give
+             preference to a perfect match over the case in which the
+             required and provided qualifiers do not match up exactly. */
+          sym_matches_exactly =
+                           (const_object_okay == const_object_required &&
+                            volatile_object_okay == volatile_object_required);
+          if (!cctor_sym_matches_exactly && sym_matches_exactly) {
+            /* cctor_sym was not a perfect match but sym is, so sym is
+               preferred.  Fall through to override the previous settings of
+               cctor_sym and related variables. */
+          } else {
+            if (cctor_sym_matches_exactly == sym_matches_exactly) {
+              /* Both constructors match up exactly with the const and
+                 volatile requirements or neither does.  In either case
+                 there's no reason to prefer one over the other. */
+              ambiguous = TRUE;
+            } else {
+              /* cctor_sym is an exact match and sym is not.  Ignore sym. */
+            }  /* if */
+            /* Skip to the end of the loop. */
+            continue;
+          }  /* if */
+        }  /* if */
+        /* We've found one.  Record it, but keep looking.  If there's an
+           ambiguity we need to report it. */
         cctor_sym = sym;
+        cctor_sym_accepts_const = const_object_okay;
+        cctor_sym_accepts_volatile = volatile_object_okay;
+        cctor_sym_matches_exactly = sym_matches_exactly;
+        ambiguous = FALSE;
       }  /* if */
     }  /* if */
   }  /* for */
   if (cctor_sym == NULL) {
-#if CHECKING
-    if (!must_be_const || !nonconst_found) {
-      /* Missing copy constructor. */
-      internal_error("get_copy_constructor: no copy constructor");
+    if (const_object_required && !volatile_object_required) {
+      /* The common case:  missing const copy constructor. */
+      pos_st_error(ec_missing_const_copy_constructor, err_pos,
+                   class_type->source_corresp.name);
+    } else {
+      /* Unusual case: volatile or const-volatile expected. */
+      pos_st_error(ec_no_suitable_copy_constructor, err_pos,
+                   class_type->source_corresp.name);
     }  /* if */
-#endif /* CHECKING */
-    /* Missing const copy constructor. */
-    pos_st_error(ec_missing_const_copy_constructor, err_pos,
-                 class_type->source_corresp.name);
     *err = TRUE;
   } else if (ambiguous) {
-#if 0
-#else
-#if CHECKING
-    if (must_be_const && nonconst_found) {
-      internal_error(
-           "get_copy_constructor: const/nonconst overloading not implemented");
-    }  /* if */
-#endif /* CHECKING */
-#endif /* if 0 */
     pos_st_error(ec_ambiguous_copy_constructor, err_pos,
                  class_type->source_corresp.name);
     *err = TRUE;
@@ -320,7 +345,8 @@ Return TRUE if a copy constructor exists for "type" and it is accessible.
   a_symbol_ptr  cctor_sym;
   a_boolean     err;
 
-  cctor_sym = get_copy_constructor(type, is_const_qualified_type(type),
+  cctor_sym = get_copy_constructor(type, /*const_required=*/FALSE,
+                                   /*volatile_required=*/FALSE,
                                    err_pos, &err);
   if (!err && cctor_sym != NULL) {
     if (!have_access_to_symbol(cctor_sym)) {
@@ -400,7 +426,7 @@ for unions and aggregates at that level).
       a_boolean  dummy_flag;
       if (!is_copy_constructor(ctor_sym->variant.routine,
                                ctor_sym->class_of_which_a_member,
-                               &dummy_flag) &&
+                               &dummy_flag, &dummy_flag) &&
           !check_access_to_copy_constructor(*type, &expr_pos)) {
         /* Something other than the copy constructor was returned, but the
            copy constructor still has to be accessible (ARM 12.6.1). */
@@ -957,7 +983,7 @@ The syntax is:
         a_boolean  dummy_flag;
         if (!is_copy_constructor(ctor_sym->variant.routine,
                                  ctor_sym->class_of_which_a_member,
-                                 &dummy_flag) &&
+                                 &dummy_flag, &dummy_flag) &&
             !check_access_to_copy_constructor(vp_type, &expr_pos)) {
           /* Something other than the copy constructor was returned, but the
              copy constructor still has to be accessible (ARM 12.6.1). */
@@ -1288,7 +1314,8 @@ which subobjects require initialization and therefore must be implicitly
 initialized.  These are addressed in the course of the processing.
 */
 {
-  a_boolean                     err, is_cctor, const_required;
+  a_boolean                     err, is_cctor;
+  a_boolean                     const_object_okay, volatile_object_okay;
   a_type_ptr                    class_type, init_type, tp, array_type;
   a_symbol_ptr                  sym, class_sym, member_or_base_sym;
   a_constructor_init_ptr        cip, new_cip, prev_cip;
@@ -1306,7 +1333,8 @@ initialized.  These are addressed in the course of the processing.
 #if CHECKING
   if (class_type == NULL) internal_error("ctor_initializer: NULL class type");
 #endif /* if CHECKING */
-  is_cctor = is_copy_constructor(ctor_rout, class_type, &const_required);
+  is_cctor = is_copy_constructor(ctor_rout, class_type, &const_object_okay,
+                                 &volatile_object_okay);
   /* The first step is to construct three lists of constructor initializer
      entries, one for virtual base classes that have constructors, one for
      nonvirtual direct base classes that have constructors, and one for
@@ -1709,8 +1737,17 @@ scan_paren:
              find the copy constructor for this field or base class. */
           a_symbol_ptr  cctor_sym;
           a_boolean     cctor_err;
-          cctor_sym = get_copy_constructor(tp, const_required, &error_position,
-                                           &cctor_err);
+          /* The flag const_object_okay describes whether the top-level
+             constructor can accept a const object for copying; if it can,
+             then all constructors called to copy subobjects *must* accept a
+             const object for copying (a conclusion based in part on ARM 12.8).
+             By extension, the same applies to the volatile qualifier.  Thus
+             the parameter name on the other end of this call stipulates a
+             requirement on the search for a copy constructor. */
+          cctor_sym =
+               get_copy_constructor(tp, /*const_required=*/const_object_okay,
+                                    /*volatile_required=*/volatile_object_okay,
+                                    &error_position, &cctor_err);
           if (cctor_err) {
             /* The copy constructor was invalid in some way or other. */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
