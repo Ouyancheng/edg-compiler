@@ -1911,7 +1911,6 @@ Dump the definition ({...}) if body is TRUE.
 */
 {
   a_field_ptr field;
-  char        *name;
 
   if (body && type->size == 0) {
     /* The struct is not defined, so do not put out a "body" definition. */
@@ -1931,17 +1930,21 @@ Dump the definition ({...}) if body is TRUE.
       }  /* if */
       while (field != NULL) {
         startline(field->source_corresp.decl_position.seq);
-        /* Use an empty name for an unnamed bit field or unnamed field. */
-        name = (field->source_corresp.name != NULL) ? field_name(field) : "";
         if (!field->is_bit_field) {
           /* Not bit field. */
+          /* Use an empty name for an unnamed field in K&R C, but use a
+             generated name for an anonymous union in C++. */
+          char *name = (field->source_corresp.name != NULL ||
+                        il_header.source_language == sl_Cplusplus) ?
+                                                        field_name(field) : "";
           simple_type_reference(name, field->type);
         } else {
           /* Bit field. */
           (void)fprintf(f_C_output, "%s %s: %d",
                                     field->bit_field_is_signed ?
                                        "int" : "unsigned int",
-                                    name,
+                                    (field->source_corresp.name != NULL) ?
+                                                        field_name(field) : "",
                                     field->bit_size);
         }  /* if */
         (void)fputc(';', f_C_output);
@@ -7215,11 +7218,27 @@ Generate C for a statement.
       init_stmt = statement->variant.for_loop.extra_info->initialization;
       if (init_stmt == NULL) {
         init_expr = NULL;
-      } else if (init_stmt->kind == (a_statement_kind)stmk_expr) {
-        init_expr = init_stmt->expr;
       } else {
-        dump_statement(init_stmt);
-        init_expr = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* If source sequence entries are being generated, a common C++
+           idiom will generate a block containing an stmk_decl followed
+           by an stmk_init.  Just process the stmk_init in that case. */
+        if (init_stmt->kind == (a_statement_kind)stmk_block) {
+          a_statement_ptr stmt = init_stmt->variant.block.statements;
+          if (stmt->kind == (a_statement_kind)stmk_decl &&
+              stmt->next != NULL &&
+              stmt->next->kind == (a_statement_kind)stmk_init &&
+              stmt->next->next == NULL) {
+            init_stmt = stmt->next;
+          }  /* if */
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        if (init_stmt->kind == (a_statement_kind)stmk_expr) {
+          init_expr = init_stmt->expr;
+        } else {
+          dump_statement(init_stmt);
+          init_expr = NULL;
+        }  /* if */
       }  /* if */
       startline(seq_number_from_stmt_source_position(statement->position));
       fputs("for (", f_C_output);
