@@ -215,9 +215,13 @@ certain language features and preprocessing features are available.
 #ifndef USING_ISO_C
 #ifdef __STDC__
 #define USING_ISO_C TRUE
-#else /* !__STDC__ */
+#else /* !defined(__STDC__) */
+#ifdef __cplusplus
+#define USING_ISO_C TRUE
+#else /* !defined(__cplusplus) */
 #define USING_ISO_C FALSE
-#endif /* __STDC__ */
+#endif /* ifdef __cplusplus */
+#endif /* ifdef __STDC__ */
 #endif /* ifndef USING_ISO_C */
 
 /* Define typedefs to be used for "void *" and "const void *".  When
