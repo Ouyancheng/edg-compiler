@@ -21,6 +21,11 @@ symbol_tbl.h - Declarations related to symbol table processing.
    is declared here to prevent recursion problems. */
 typedef int an_id_lookup_options_set;
 
+/*
+Type used to represent a local class number.
+*/
+typedef long a_local_class_number;
+
 /* Declare pointer types up front to minimize mutual recursion problems. */
 typedef struct a_symbol        *a_symbol_ptr;
 typedef struct a_symbol_header *a_symbol_header_ptr;
@@ -774,6 +779,11 @@ typedef struct a_class_symbol_supplement {
   a_routine_ptr	enclosing_routine;
 			/* For local classes, the routine in which the class
 			   was defined. */
+  a_local_class_number
+		local_class_number;
+			/* For local classes, a number assigned to uniquely
+			   identify each local class declared within a given
+			   function. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_symbol_ptr	super_lookup_symbols;
 			/* A list of symbols created when doing a Microsoft

@@ -2234,9 +2234,11 @@ new expression and should therefore not be treated as a declaration.
       } else {
         /* For a local class, save information about the enclosing function. */
         a_class_symbol_supplement_ptr	cssp;
+        a_scope_stack_entry_ptr		ssep;
+        ssep = &scope_stack[depth_innermost_function_scope];
         cssp = symbol_supplement_for_class(class_type);
-        cssp->enclosing_routine = 
-                     scope_stack[depth_innermost_function_scope].assoc_routine;
+        cssp->enclosing_routine = ssep->assoc_routine; 
+        cssp->local_class_number = ssep->number_of_local_classes++;
       }  /* if */
       if (is_friend_decl && tag_id_present &&
           secondary_translation_unit_seen()) {

@@ -619,6 +619,11 @@ typedef struct a_scope_stack_entry {
                         /* Depth of the nearest enclosing namespace scope or,
 			   by default, the depth of the file scope. This is
 			   a copy of the global variable of the same name. */
+  a_local_class_number
+		number_of_local_classes;
+			/* For routine scopes, a counter of the number of
+			   local classes created.  Used to assign a local
+			   class number to each class. */
   long		num_of_extra_times_pushed;
 			/* Namespace scopes may be pushed more than once
 			   under some circumstances (such as defining a
