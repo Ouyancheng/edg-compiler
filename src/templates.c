@@ -1962,9 +1962,8 @@ to represent the template parameters.
       sym = enter_symbol((a_symbol_kind)sk_constant, &param_locator,
                          decl_scope_level, /*suppress_redecl_error=*/FALSE);
       sym->variant.constant = fs_constant((a_constant_repr_kind)ck_error);
-      sym->variant.constant->type = param_type_ptr;
+      sym->variant.constant->type = template_param_type = param_type_ptr;
       set_source_corresp(&sym->variant.constant->source_corresp, sym);
-      template_param_type = NULL;
     }  /* if */
     /* Allocate a template parameter and add it to the end of the list. */
     template_param = alloc_template_param();
