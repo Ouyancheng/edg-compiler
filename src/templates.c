@@ -11811,6 +11811,52 @@ is being created.
                        p_template_body_cache);
 }  /* select_caches_and_make_template_string */
 
+
+static void record_string_version_of_template(
+				a_tmpl_decl_state_ptr  decl_state,
+                                a_symbol_ptr           sym,
+                                a_token_cache          *p_template_body_cache)
+/*
+Make the string version of the template.
+*/
+{
+  /* Do some initial processing on the body cache to get it into the form
+     required by the template string routines. */
+  if (p_template_body_cache != NULL) {
+    a_cached_token_ptr	first_token;
+    first_token = p_template_body_cache->first_token;
+    /* Skip over any pragmas that precede the first token of the body. */
+    while (first_token != NULL &&
+           first_token->extra_info_kind ==
+                                 (a_token_extra_info_kind)teik_pragma) {
+      first_token = first_token->next;
+    }  /* while */
+    if (first_token != NULL &&
+        ((a_token_kind)first_token->token == tok_colon ||
+         (a_token_kind)first_token->token == tok_try)) {
+      /* There can sometimes be an overlap between the template
+         declaration cache and the template body cache.  Such an
+         overlap does not cause problems for the normal
+         processing, but must be eliminated when template
+         strings are created.  Split the declaration cache at
+         the first token of the body cache and discard the
+         duplicated tokens. */
+      a_token_cache		dummy_cache;
+      a_token_sequence_number	tsn_to_split;
+      tsn_to_split = first_token->token_sequence_number;
+      clear_token_cache(&dummy_cache, /*reusable=*/TRUE);
+      split_token_cache(&decl_state->decl_token_cache, &dummy_cache,
+                        tsn_to_split,
+                        /*include_prev_token=*/FALSE,
+                        /*okay_if_not_found=*/FALSE);
+      discard_token_cache(&dummy_cache);
+    } /* if */
+  }  /* if */
+  /* Create the string that represents the template declaration. */
+  select_caches_and_make_template_string(decl_state, sym,
+                                         p_template_body_cache);
+}  /* record_string_version_of_template */
+
 #endif /* RECORD_TEMPLATE_STRINGS */
 
 #if !RECORD_TEMPLATE_STRINGS
@@ -11819,8 +11865,7 @@ is being created.
 #endif /* RECORD_TEMPLATE_STRINGS */
 static
 void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
-                                a_symbol_ptr           sym,
-                                a_token_cache          *p_template_body_cache)
+                                a_symbol_ptr           sym)
 /*
 Finish up establishing the IL template entry.  (Its decl_position has been
 set, and its source sequence entry, if any, has been put out.)
@@ -11976,41 +12021,6 @@ set, and its source sequence entry, if any, has been put out.)
              record the access. */
           il_template_entry->source_corresp.access = decl_state->access;
         }  /* if */
-#if RECORD_TEMPLATE_STRINGS
-        if (p_template_body_cache != NULL) {
-          a_cached_token_ptr	first_token;
-          first_token = p_template_body_cache->first_token;
-          /* Skip over any pragmas that precede the first token of the body. */
-          while (first_token != NULL &&
-                 first_token->extra_info_kind ==
-                                       (a_token_extra_info_kind)teik_pragma) {
-            first_token = first_token->next;
-          }  /* while */
-          if (first_token != NULL &&
-              ((a_token_kind)first_token->token == tok_colon ||
-               (a_token_kind)first_token->token == tok_try)) {
-            /* There can sometimes be an overlap between the template
-               declaration cache and the template body cache.  Such an
-               overlap does not cause problems for the normal
-               processing, but must be eliminated when template
-               strings are created.  Split the declaration cache at
-               the first token of the body cache and discard the
-               duplicated tokens. */
-            a_token_cache		dummy_cache;
-            a_token_sequence_number	tsn_to_split;
-            tsn_to_split = first_token->token_sequence_number;
-            clear_token_cache(&dummy_cache, /*reusable=*/TRUE);
-            split_token_cache(&decl_state->decl_token_cache, &dummy_cache,
-                              tsn_to_split,
-                              /*include_prev_token=*/FALSE,
-                             /*okay_if_not_found=*/FALSE);
-            discard_token_cache(&dummy_cache);
-          } /* if */
-        }  /* if */
-	/* Create the string that represents the template declaration. */
-        select_caches_and_make_template_string(decl_state, sym,
-                                               p_template_body_cache);
-#endif /* RECORD_TEMPLATE_STRINGS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         /* Record source range information for this template declaration. */
         il_template_entry->source_corresp.decl_pos_info =
@@ -12644,6 +12654,15 @@ caller.
       set_or_find_prototype_friend_info(decl_state, sym, tssp);
     }  /* if */
   }  /* if */
+  if (sym != NULL) {
+    /* Save the IL template entry pointer for this symbol. */
+    set_il_template_entry(decl_state, sym, tssp);
+    /* Set the assoc_template field of the prototype instantiation routine
+       entry. */
+    tssp->variant.function.routine->assoc_template = tssp->il_template_entry;
+    /* Update the exported flag, if necessary. */
+    update_export_flag_for_function(decl_state, rout_ptr, sym, tssp);
+  }  /* if */
   /* Make sure that the template parameter list is compatible with
      any previous declaration (i.e., the declaration of the class
      if this is a member function. */
@@ -12737,6 +12756,8 @@ caller.
 					  decl_state->defines_something,
 					  curr_default_args);
     }  /* if */
+    /* Update the exported flag, if necessary. */
+    update_export_flag_for_function(decl_state, rout_ptr, sym, tssp);
     /* Update the default argument information for this template from
        either curr_default_args or from the corresponding declaration
        from the prototype instantiation of the enclosing class. */
@@ -12749,15 +12770,6 @@ caller.
                                           tssp, decl_state->class_declared_in);
     }  /* if */
   } /* if */
-  if (sym != NULL) {
-    /* Save the IL template entry pointer for this symbol. */
-    set_il_template_entry(decl_state, sym, tssp);
-    /* Set the assoc_template field of the prototype instantiation routine
-       entry. */
-    tssp->variant.function.routine->assoc_template = tssp->il_template_entry;
-    /* Update the exported flag, if necessary. */
-    update_export_flag_for_function(decl_state, rout_ptr, sym, tssp);
-  }  /* if */
   if (decl_state->defines_something) {
     /* A function template definition -- leave it to the caller to advance
        past the closing right brace. */
@@ -13411,6 +13423,9 @@ any non-empty template parameter lists that were scanned.
      declaration.  In case this is a redeclaration, set the source
      correspondence for this template entry. */
   set_il_template_entry(decl_state, sym, tssp);
+  /* Complete the a_template entry and link it into the list of templates
+     for the appropriate scope. */
+  complete_il_template_entry(decl_state, sym);
   if (is_class_template) {
     if (!decl_state->decl_scope_err && decl_state->defines_something) {
       a_type_ptr	prototype_type;
@@ -13471,9 +13486,12 @@ any non-empty template parameter lists that were scanned.
                                                 class_templ_cache_segments,
                                                 /*keep_default_args=*/TRUE);
   } /* if */
-  /* Complete the a_template entry and link it into the list of templates
-     for the appropriate scope. */
-  complete_il_template_entry(decl_state, sym, p_template_body_cache);
+  /* Build the template string for this template */
+#if RECORD_TEMPLATE_STRINGS
+  /* Build the string version of the template.  This must be done after the
+     member bodies are extracted above. */
+  record_string_version_of_template(decl_state, sym, p_template_body_cache);
+#endif /* RECORD_TEMPLATE_STRINGS */
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */
     (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,
