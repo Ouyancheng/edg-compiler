@@ -307,7 +307,7 @@ in C++, sometimes otherwise) a nonconstant expression is allowed; if not,
 a constant is required.  type is the data type of the object being
 initialized.  dip_ptr is a pointer to a dynamic init pointer; if the latter
 is NULL, a dynamic init entry may be allocated and returned, but if *dip_ptr
-is non-NULL, build the intialization information into the object pointed to.
+is non-NULL, build the initialization information into the object pointed to.
 A (possibly NULL) constant pointer is returned; iff *dip_ptr is updated,
 NULL is returned.  Thus, if nonconst_allowed is TRUE, return a pointer to a
 constant entry.  Otherwise, if the initializer is a constant value then
@@ -871,6 +871,68 @@ ref field of a class object (or an array of same) remains uninitialized.
 }  /* get_initializer */
 
 
+static a_boolean scan_initializer_list(a_type_ptr          *type,
+                                       a_variable_ptr      vp,
+                                       a_constant_ptr      *init_con,
+                                       a_dynamic_init_ptr  *init_dip,
+                                       a_source_position   *err_pos)
+/*
+*/
+{
+  a_boolean          any_member_uninitialized = FALSE;
+  a_boolean          any_const_or_ref_member_uninitialized = FALSE;
+  a_boolean          initialization_is_dynamic = FALSE;
+  a_boolean          nothing_taken;
+  a_boolean          err = FALSE;
+
+  /* Scan the initializer list. */
+#if DEBUG
+  if (debug_level == 4) {
+    fputs("scanning initializer list for variable \"", f_debug);
+    db_name(&vp->source_corresp);
+    fputs("\", type = ", f_debug);
+    db_abbreviated_type(*type);
+    fputc('\n', f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  *init_con = get_initializer(type, /*top_level=*/TRUE,
+                              &any_member_uninitialized,
+                              &any_const_or_ref_member_uninitialized,
+                              &initialization_is_dynamic, &nothing_taken);
+  if ((*init_con)->kind == (a_constant_repr_kind)ck_error) {
+    err = TRUE;
+  } else {
+    if (initialization_is_dynamic) {
+      check_assertion((*init_con)->kind == (a_constant_repr_kind)ck_aggregate);
+      *init_dip = alloc_dynamic_init(
+                         (a_dynamic_init_kind)dik_nonconstant_aggregate);
+      (*init_dip)->variant.constant = *init_con;
+      *init_con = NULL;
+#if CHECKING
+    } else {
+      check_assertion((*init_con)->kind == (a_constant_repr_kind)ck_string ||
+                      (*init_con)->kind == (a_constant_repr_kind)ck_aggregate);
+#endif /* CHECKING */
+    }  /* if */
+    if (any_const_or_ref_member_uninitialized) {
+      /* A const or ref field was not initialized. */
+      if (is_union_type(*type)) {
+        /* No diagnostic for unions. */
+      } else {
+        a_symbol_ptr  sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+        if (C_mode()) {
+          pos_sy_warning(ec_var_with_uninitialized_field, err_pos, sym);
+        } else {
+          pos_sy_error(ec_var_with_uninitialized_member, err_pos, sym);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (any_member_uninitialized) vp->is_partially_initialized = TRUE;
+  }  /* if */
+  return !err;
+}  /* scan_initializer_list */
+
+
 static a_boolean init_con_has_side_effects(a_constant_ptr con,
                                            a_boolean      *suppress_warning)
 /*
@@ -967,7 +1029,6 @@ unreachable code).
 */
 {
   a_statement_ptr         init_stmt;
-  a_memory_region_number  region_to_switch_back_to = NULL_region_number;
   a_boolean               static_lifetime;
   a_boolean               at_file_scope;
 
@@ -1103,37 +1164,43 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
 issuing an error on an incomplete type.
 */
 {
-  a_boolean                      err = FALSE;
-  a_boolean                      put_init_in_variable;
   a_variable_ptr                 vp = NULL;
   a_type_ptr                     vp_type = NULL;
+  a_boolean                      var_err, init_err;
+  a_boolean                      static_lifetime = FALSE;
   a_boolean                      brace_flag = FALSE;
   a_constant                     constant;
   a_constant_ptr                 init_con = NULL;
   a_dynamic_init_ptr             init_dip = NULL;
-  an_expr_node_ptr               arg_list;
   a_class_symbol_supplement_ptr  cssp = NULL;
-  a_routine_ptr                  conversion_routine;
   a_memory_region_number         region_to_switch_back_to = NULL_region_number;
+  a_boolean                      nonconstant_allowed;
 
   db_enter(3, "initializer");
+  /* There are a number of tests to determine whether the variable can take
+     an initializer.  If it cannot, set var_err; it will be checked later
+     to decide whether to update the variable with information about the
+     initialization. */
+  var_err = FALSE;
   if (is_parameter) {
     /* Parameter declarations cannot contain an initializer.  (Declarations
        for which is_parameter is TRUE are old-style C parameter declarations.
        C++ default arguments, which look a bit like a parameter with an
        initializer -- e.g., void f(int i = 1) -- are handled elsewhere.) */
     pos_error(ec_initializer_in_param, source_pos);
-    err = TRUE;
+    var_err = TRUE;
   } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
     vp = symbol_ptr->variant.variable.ptr;
+    static_lifetime = has_static_storage_duration(vp->storage_class);
   } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     vp = symbol_ptr->variant.static_data_member.variable;
+    static_lifetime = TRUE;
   } else {
     /* Not a variable (for example, might be a typedef). */
     pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
-    err = TRUE;
+    var_err = TRUE;
   }  /* if */
-  if (!err) {
+  if (!var_err) {
     vp_type = vp->type;
     if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
         symbol_ptr->decl_scope != FILE_SCOPE_NUMBER && 
@@ -1141,12 +1208,12 @@ issuing an error on an incomplete type.
       /* Block scope variable with internal or external linkage --
          not allowed to be initialized.  (3.5.7 Constraints) */
       pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
-      err = TRUE;
+      var_err = TRUE;
     } else if (vp->init_kind != (an_init_kind)initk_none) {
       /* Variable already initialized (presumably, it is being declared
          again, and we have the variable from the earlier declaration). */
       pos_sy_error(ec_already_initialized, source_pos, symbol_ptr);
-      err = TRUE;
+      var_err = TRUE;
     } else {
       /* Only object types and incomplete arrays are allowed to be
          initialized. */
@@ -1168,16 +1235,17 @@ issuing an error on an incomplete type.
           /* Catch-all error. */
           pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
         }  /* if */
-        err = TRUE;
-        /* Use an error type to avoid additional errors. */
+        var_err = TRUE;
         vp_type = NULL;
       }  /* if */
     }  /* if */
   }  /* if */
   /* Note that in the error cases just detected, we go ahead and scan the
      initializer, but then discard the value. */
-  put_init_in_variable = !err;
-  if (vp_type == NULL) vp_type = error_type();
+  if (vp_type == NULL) {
+    /* Use an error type to avoid additional errors. */
+    vp_type = error_type();
+  }  /* if */
   if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     /* Though static data members may be given storage class of extern or
        unspecified, that fixup should not have taken place yet. */
@@ -1197,179 +1265,125 @@ issuing an error on an incomplete type.
       is_class_struct_union_type(vp_type)) {
     cssp = symbol_supplement_for_class(vp_type);
   }  /* if */
-  if (cssp != NULL && parenthesized_initializer) {
-    /* This is an initialization of the form S x (arg [, ...]), where S is a
-       class type name. */
-    if (cssp->constructor != NULL) {
+  /* If the initialization is invalid in some way, init_err will be set to
+     TRUE.  It will be used to assure that the initialization bound to the
+     variable will be an error constant (or a dynamic initializer pointing
+     to an error constant. */
+  init_err = FALSE;
+  /* Now process the initializer.  There are three cases:  parenthesized
+     initializer (C++ only), brace-enclosed initializer list, and simple
+     initializer.  These are handled in turn. */
+  if (parenthesized_initializer) {
+    /* Either this is an initialization of the form S x (arg [, ...]), where
+       S is a class type name or an initialization of a scalar like int i(0).
+       This form of initialization is allowed in C++ mode only.  Note that
+       the opening parenthesis has already been scanned in the caller. */
+    if (cssp != NULL && cssp->constructor != NULL) {
+      /* It's a class type and there's a constructor. */
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
       scan_class_parenthesized_initializer(vp_type, vp_type, &init_dip);
-      if (init_dip == NULL) err = TRUE;
+      if (init_dip == NULL) init_err = TRUE;
     } else {
-      /* C-style class with no constructors, so initialization by bitwise
-         copy is allowed. */
-      init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-      (void)scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
-                                              vp_type, &init_dip);
-      /* The closing right paren will not be consumed, as it is when scanning
-         the arg list for a constructor call, so bypass it explicitly. */
+      /* An entity with no constructor.  (If it's a C-style struct with no
+         constructor, initialization with bitwise copy is allowed -- e.g.,
+         S x, y(x) -- but typically it's an object of non-class type.) */
+      add_stop_token(tok_rparen);
+      /* Scan the initializer.  Either a constant pointer is returned or else
+         a dynamic init entry representing an expression. */
+      nonconstant_allowed = (!C_mode() || !static_lifetime);
+      init_con = scan_initializer_of_simple_object(nonconstant_allowed,
+                                                   vp_type, &init_dip);
+      /* The closing right paren will not have been consumed, as it is
+         the arg list for a constructor call is scanned, so bypass it
+         explicitly. */
+      remove_stop_token(tok_rparen);
       check_closing_paren_after_expr_list();
     }  /* if */
-  } else if (cssp != NULL && !cssp->is_class_aggregate &&
-             curr_token == tok_lbrace) {
-    /* This is an attempt to do C-style aggregate initialization on a class
-       object for which there is a constructor, nonpublic members, base
-       classes, or virtual functions.  In such cases a constructor must be
-       used. */
-    /* We can't call syntax_error because the type is being displayed. */
-    type_error(ec_brace_initialization_not_allowed, vp_type);
-    /* Flush tokens until something in the stop token set turns up. */
-    flush_tokens();
-    err = TRUE;
-  } else if (is_class_struct_union_type(vp_type) && curr_token != tok_lbrace &&
-             (C_dialect == C_dialect_cplusplus ||
-                (vp != NULL &&
-                 !has_static_storage_duration(vp->storage_class)))) {
-    /* Special C++ case:  a class aggregate may be initialized with an object
-       of its class or a class derived from it.  E.g., if S is the name of a
-       struct and x is an S, then S y = x is permitted.  In addition, x may
-       be any expression of a type for which there is a type conversion to S.
-       Thus S y = 1 is a legal initialization if S(int) exists to perform the
-       conversion. */
-    /* In ordinary C a struct or union variable may be initialized by an
-       object of the same type as long as dynamic initialization is otherwise
-       allowed. */
-    if (!scan_class_initializer_expression(vp_type, &init_dip)) {
-      /* No appropriate constructor was found.  Abort the initialization. */
-      err = TRUE;
-    }  /* if */
-  } else if (is_aggregate_or_union_type(vp_type) ||
-             (is_error_type(vp_type) && curr_token == tok_lbrace)) {
-    /* Ordinary C-style aggregate initialization, usually with a brace-
-       enclosed list of values.  Except that in C++ such lists may include
-       non-constants. */
-    a_boolean  any_member_uninitialized = FALSE;
-    a_boolean  any_const_or_ref_member_uninitialized = FALSE;
-    a_boolean  initialization_is_dynamic = FALSE;
-    a_boolean  nothing_taken;
-
-    /* Scan the initializer list. */
-#if DEBUG
-    if (debug_level == 4) {
-      fputs("scanning initializer list for variable \"", f_debug);
-      db_name(&vp->source_corresp);
-      fputs("\", type = ", f_debug);
-      db_abbreviated_type(vp_type);
-      fputc('\n', f_debug);
-    }  /* if */
-#endif /* DEBUG */
-    init_con = get_initializer(&vp_type, /*top_level=*/TRUE,
-                               &any_member_uninitialized,
-                               &any_const_or_ref_member_uninitialized,
-                               &initialization_is_dynamic, &nothing_taken);
-    switch (init_con->kind) {
-      case ck_error:
-        err = TRUE;
+  } else if (curr_token == tok_lbrace) {
+    /* A brace enclosed list of initializers. */
+    if (cssp != NULL && !cssp->is_class_aggregate) {
+      /* This is an attempt to do C-style aggregate initialization on a class
+         object for which there is a constructor, nonpublic members, base
+         classes, or virtual functions.  In such cases a constructor must be
+         used. */
+      /* We can't call syntax_error because the type is being displayed. */
+      type_error(ec_brace_initialization_not_allowed, vp_type);
+      /* Flush tokens until something in the stop token set turns up. */
+      flush_tokens();
+      init_err = TRUE;
+    } else if (is_class_struct_union_type(vp_type) &&
+               (C_dialect == C_dialect_cplusplus || !static_lifetime)) {
+      /* Special C++ case:  a class aggregate may be initialized with an
+         object of its class or a class derived from it.  E.g., if S is the
+         name of a struct and x is an S, then S y = x is permitted.  In
+         addition, x may be any expression of a type for which there is a
+         type conversion to S. Thus S y = 1 is a legal initialization if
+         S(int) exists to perform the conversion. */
+      /* In ordinary C a struct or union variable may be initialized by an
+         object of the same type as long as dynamic initialization is
+         otherwise allowed. */
+      if (!scan_class_initializer_expression(vp_type, &init_dip)) {
+        /* No appropriate constructor was found.  Abort the initialization. */
+        init_err = TRUE;
+      }  /* if */
+    } else if (is_aggregate_or_union_type(vp_type) || is_error_type(vp_type)) {
+      /* Ordinary C-style aggregate initialization, usually with a brace-
+         enclosed list of values.  Except that in C++ such lists may include
+         non-constants. */
+      if (scan_initializer_list(&vp_type, vp, &init_con, &init_dip,
+                                source_pos)) {
+        /* The scan was successful. */
+        if (!var_err) {
+          /* Copy the type back into the variable.  It might have been changed
+             if vp is an incomplete array. */
+          if (vp != NULL && vp_type != vp->type) {
+            put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
+                                        vp_type);
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Errors were encountered (and reported) during the scan. */
+        init_err =  TRUE;
         if (is_incomplete_type(vp_type) && is_array_type(vp_type)) {
           /* Initialization of an incomplete array failed and some appropriate
              error has been reported.  Suppress further errors on this failed
              initialization. */
           *incomplete_type_error_reported = TRUE;
         }  /* if */
-        break;
-      case ck_aggregate:
-        if (initialization_is_dynamic) {
-          init_dip = alloc_dynamic_init(
-                           (a_dynamic_init_kind)dik_nonconstant_aggregate);
-          init_dip->variant.constant = init_con;
-          init_con = NULL;
-        }  /* if */
-        break;
-      case ck_string:
-        check_assertion(!initialization_is_dynamic);
-        break;
-#if CHECKING
-      default:
-        internal_error("initializer: bad constant kind from get_initializer");
-    }  /* switch */
-#endif /* CHECKING */
-    if (!err) {
-      if (any_const_or_ref_member_uninitialized) {
-        /* A const or ref field was not initialized. */
-        if (is_union_type(vp_type)) {
-          /* No diagnostic for unions. */
-        } else {
-          /* Issue an error. */
-          an_error_code		code;
-          an_error_severity	severity;
-
-          if (C_dialect == C_dialect_cplusplus) {
-            code = ec_var_with_uninitialized_member;
-            severity = es_error;
-          } else {
-            code = ec_var_with_uninitialized_field;
-            severity = es_warning;
-          }  /* if */
-          pos_sy_diagnostic(severity, code, source_pos, symbol_ptr);
-        }  /* if */
       }  /* if */
-      if (any_member_uninitialized) vp->is_partially_initialized = TRUE;
-      if (put_init_in_variable) {
-        /* Copy the type back into the variable.  It might have been changed
-           if vp is an incomplete array. */
-        if (vp != NULL && vp_type != vp->type) {
-          put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
-                                      vp_type);
-        }  /* if */
-      }  /* if */
+    } else {
+      /* A simple object is being intialized, but the initializer was
+         surrounded by braces -- int i = { 0 }; */        
+      check_for_opening_brace(&brace_flag);
+      goto initialize_nonaggregate_object;
     }  /* if */
   } else {
-    /* A non-aggregate object is being initialized.  Braces or parens are
-       permitted (but not both, of course).  A constant or non-constant
-       expression may be permitted as the initializer. */
-    a_boolean  nonconstant_okay;
-
-    if (parenthesized_initializer) {
-      add_stop_token(tok_rparen);
-    } else {
-      check_for_opening_brace(&brace_flag);
-    }  /* if */
-    if (!C_mode()) {
-      /* In C++ either a constant or a nonconstant initializer is allowed. */
-      nonconstant_okay = TRUE;
-    } else {
-      /* In C mode a nonconstant initializer is only allowed for automatic
-         variables. */
-      nonconstant_okay = (vp != NULL &&
-                          !has_static_storage_duration(vp->storage_class));
-    }  /* if */
+    /* A non-aggregate object is being initialized.  Braces are permitted
+       but not required.  A constant or non-constant expression may be
+       permitted as the initializer. */
+initialize_nonaggregate_object:
+    nonconstant_allowed = (!C_mode() || !static_lifetime);
     /* Scan the initializer.  Either a constant pointer is returned or else
        a dynamic init entry representing an expression. */
-    init_con = scan_initializer_of_simple_object(nonconstant_okay, vp_type,
+    init_con = scan_initializer_of_simple_object(nonconstant_allowed, vp_type,
                                                  &init_dip);
-    /* Check for matching delimiter if lparen or lbrace appeared in front of
-       the initializer. */
-    if (parenthesized_initializer) {
-      remove_stop_token(tok_rparen);
-      check_closing_paren_after_expr_list();
-    } else {
-      /* If an extra opening brace was ignored earlier, ignore the matching
-         closing brace now.  Check also for an extra comma (required in C++
-         per ARM 8.4, offered in C along with the extension that permits
-         brace-enclosed initializers on non-aggregate variables in the first
-         place). */
-      if (brace_flag && curr_token == tok_comma) (void)get_token();
-      check_for_matching_closing_brace(brace_flag);
-    }  /* if */
+    /* If an extra opening brace was ignored earlier, ignore the matching
+       closing brace now.  Check also for an extra comma (required in C++
+       per ARM 8.4, offered in C along with the extension that permits
+       brace-enclosed initializers on non-aggregate variables in the first
+       place). */
+    if (brace_flag && curr_token == tok_comma) (void)get_token();
+    check_for_matching_closing_brace(brace_flag);
   }  /* if */
   if (region_to_switch_back_to != NULL_region_number) {
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
-  if (put_init_in_variable) {
+  if (!var_err) {
     /* There was no error that precludes initialization, so update the
        variable entry with the initializer. */
     a_routine_ptr  dtor = NULL;
-    if (err) {
+    if (init_err) {
       /* There was an error in the initializer.  Put an error constant
          into the initializer field of the variable, if only to be sure
          another initialization will be prevented. */
@@ -1490,7 +1504,6 @@ the default constructor (if one exists) is called.
   a_dynamic_init_ptr             init_dip, dip;
   a_routine_ptr                  ctor = NULL, dtor = NULL;
   a_targ_size_t                  count;
-  a_memory_region_number         region_to_switch_back_to = NULL_region_number;
 
   db_enter(3, "def_initializer");
   /* Default initialization is done only in C++ and only for variables and
@@ -1640,7 +1653,7 @@ initialized.  These are addressed in the course of the processing.
   a_base_class_ptr              bcp;
   a_class_type_supplement_ptr   ctsp;
   a_class_symbol_supplement_ptr cssp;
-  a_routine_ptr                 conversion_routine, rp;
+  a_routine_ptr                 rp;
   a_dynamic_init_ptr            dip, ctor_dip;
   int                           direct_base_class_count = 0;
   a_source_position             lparen_pos;
@@ -2047,7 +2060,6 @@ scan_paren:
                either case, it will be initialized by a constructor call if
                a constructor exists.  Otherwise, it will be initialized
                like any scalar. */
-            an_expr_node_ptr  arg_list;
             a_type_ptr        object_class_type;
 
             /* If it is a base class, the object being constructed is the
@@ -2066,7 +2078,7 @@ scan_paren:
                constructor for which the arguments match. */
             scan_class_parenthesized_initializer(init_type, object_class_type,
                                                  &dip);
-            if (dip  == NULL) {
+            if (dip == NULL) {
               /* Create a fake initializer to represent the error. */
               a_constant_ptr  cp;
               dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
