@@ -669,8 +669,8 @@ static void copy_virtual_function_override_list(
                                  an_overriding_virtual_function_ptr list,
                                  a_base_class_ptr                   base_class)
 /*
-Make a copy of each item on "list" a linked list of overriding virtual
-function entries, and add add each of the copies to the list belonging to
+Make a copy of each item on "list" (a linked list of overriding virtual
+function entries), and add each of the copies to the list belonging to
 base_class.
 */
 {
@@ -1268,7 +1268,7 @@ a_boolean check_for_dominance(a_symbol_ptr          sym1,
 /*
 This routine returns TRUE if sym2 is on a path dominated by sym1.
 
-Dominance in discussed (rather imprecisely) in ARM 10.1.1.  Briefly, if the
+Dominance is discussed (rather imprecisely) in ARM 10.1.1.  Briefly, if the
 declaration of a name in a virtual base class is hidden/overridden by a
 redeclaration along one of the paths from the virtual base class, an ambiguity
 between the initial declaration and the redeclaration is resolved in favor of
@@ -1472,7 +1472,7 @@ other instance of the base class.
     }  /* if */
   } else {
     /* Give preference to the path of the previously declared base class
-       unless the accessibility of the new declaration is greated. */
+       unless the accessibility of the new declaration is greater. */
     if (is_more_accessible(compute_access(normal_access_to_end_of_path(path),
                                           new_access),
                            base_class_access)) {
@@ -1487,7 +1487,7 @@ other instance of the base class.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Make a copy of each item on the the override list base class and merge
+  /* Make a copy of each item on the override list base class and merge
      it into the list of base_class. */
   copy_virtual_function_override_list(ovf_list, base_class);
   if (recompute_path_and_access) {
@@ -1762,7 +1762,7 @@ or struct definition.  The syntax is
       }  /* if */
       base_class_type->source_corresp.referenced = TRUE;
       /* If it is a const or volatile qualified type name (where in the ARM is
-         this required???) or if it is the the class now being defined or if
+         this required???) or if it is the class now being defined or if
          it is a union or if it has been declared but not yet defined (ARM
          10, p. 196), issue an error and skip over this class: it is not a
          valid base class name. */
@@ -1886,7 +1886,7 @@ or struct definition.  The syntax is
                 new_bcp->next->type != bcp->type) {
               /* There is a gap in the new base class entries added to the
                  list. This can be the result of duplicating a virtual base
-                 class that's aleady present on the list. */
+                 class that's already present on the list. */
               continue;
             }  /* if */
             new_bcp = new_bcp->next;
@@ -4372,7 +4372,7 @@ assignment operator.
                  class_type->source_corresp.name);
   } else {
     /* Exactly one assignment operator function is best. */
-    /* Check that the fucntion is accessible and mark it referenced. */
+    /* Check that the function is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(opass_sym);
     opass_routine = opass_sym->variant.routine;
   }  /* if */
@@ -4911,7 +4911,7 @@ destination type is not yet on the current class's conversion list.
            conversion defined in the base class.  Otherwise, go ahead and
            create a projection into the current class. */
         if (clep == NULL) {
-          /* Allocate the new conversion list entry and link it in the the
+          /* Allocate the new conversion list entry and link it in the
              list for the current class. */
           clep = alloc_conversion_list_entry();
           clep->next = cssp->conversion_list;
