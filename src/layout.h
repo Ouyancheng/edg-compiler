@@ -52,7 +52,8 @@ extern void clear_layout_block(a_layout_block_ptr  lob,
 
 extern void scan_bit_field_size(a_boolean  unnamed_bit_field,
                                 a_type_ptr *p_base_type,
-                                long       *p_bit_field_size);
+                                long       *p_bit_field_size,
+                                a_boolean  *p_is_signed);
 
 extern a_boolean do_alignment(a_targ_size_t    *byte_offset,
                               int              *bit_offset,
