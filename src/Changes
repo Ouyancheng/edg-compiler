@@ -7,6 +7,31 @@ If a namespace qualified friend declaration referred to an instance of a
 function template, the parent namespace pointer for that instance was
 sometimes set incorrectly.  This could result in name lookup errors
 during the instantiation of the instance.
+  
+  namespace N {
+    template<class T> struct A;
+  }
+   
+  namespace O {
+    template<class T> void f(N::A<T>);
+  }
+   
+  namespace N {
+    template<class T> struct A {
+      friend void O::f<T>(A<T>);
+    };
+  }
+   
+  namespace O {
+    void g(void) { }
+    template<class T> void f(N::A<T>) {
+      g();  // g not found during instantiation
+    }
+  }
+   
+  int main() {
+    O::f(N::A<int>());
+  }
 
 10/26/98  Access of virtual base class set incorrectly
 
