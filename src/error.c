@@ -29,8 +29,8 @@ error.c -- Error reporting routines.
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#else /* STANDALONE_UTILITY_PROGRAM */
 
 /* Many support functions and macros that are generally available in the
    front end are duplicated here so that error.c can be compiled
@@ -60,6 +60,7 @@ that ordinarily this routine should not be called directly; use the macro
   }  /* while */
   return(type_ptr);
 }  /* local_skip_typerefs */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
 #define is_pointer_or_reference_type(tp) \
