@@ -10064,11 +10064,7 @@ with the outermost enclosing class, for later promotion out of the class
          function). */
       mangle_promoted_entity_name(&type->source_corresp, routine, scope);
       /* The is_local_function flag in the type is not cleared yet.  That
-         happens at the end of lowering.  For now, it's necessary to keep the
-         flag set because when eventually we promote the types from the
-         promoted_local_types list, we want to promote the function-local
-         types after the class_local types, even though they are
-         intermixed on the list. */
+         happens at the end of lowering. */
       if (routine_class == NULL) {
         /* Not promoting from a member function: just add to the file-scope
            types list. */
