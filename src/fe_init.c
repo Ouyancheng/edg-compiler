@@ -145,7 +145,7 @@ token that corresponds to it.
 
   sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
-  sym_ptr->variant.keyword_token = token;
+  sym_ptr->variant.keyword.token = token;
 }  /* enter_keyword */
 
 

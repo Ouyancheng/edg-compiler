@@ -515,7 +515,7 @@ and indentation is the indentation desired.
       break;
     case sk_keyword:
       fprintf(f_debug, "\"%s\"",
-                       token_names[(int)sym->variant.keyword_token]);
+                       token_names[(int)sym->variant.keyword.token]);
       break;
     case sk_macro:
 
@@ -1397,7 +1397,8 @@ state.
       /* No variant fields to set. */
       break;
     case sk_keyword:
-      sym_ptr->variant.keyword_token = tok_error;
+      sym_ptr->variant.keyword.token = tok_error;
+      sym_ptr->variant.keyword.unimplemented_diagnostic_issued = FALSE;
       break;
     case sk_macro:
       sym_ptr->variant.macro_def = NULL;

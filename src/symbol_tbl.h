@@ -1105,9 +1105,16 @@ typedef struct a_symbol {
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
-    a_token_kind
-		keyword_token;
+    struct {
+      a_token_kind
+		token;
 			/* For keywords, the token identifying the keyword. */
+      a_byte_boolean
+		unimplemented_diagnostic_issued;
+			/* TRUE if this is an unimplemented keyword and we
+			   have already issued a diagnostic indicating that
+			   this reserved word has been used. */
+    } keyword;
     /* When kind == sk_macro: */
     a_macro_def_ptr
 		macro_def;
