@@ -52,6 +52,10 @@ static int    line_size;
                 /* Number of characters in the input line not including
                    the final null. */
 
+/* TRUE if external names have an extra underscore prefix.  Can be
+   modified by a command line option. */
+static a_boolean		skip_underscore_prefix = UNDERSCORE_PREFIX;
+
 /*
 Simple macro to find the end of the identifier.  Right now it just looks
 for white space or the end of the line.  This can be made fancier if
@@ -157,14 +161,15 @@ length of the name.
   /* Less that 12 characters of input must be invalid. */
   if (line_size < 12) goto invalid_input;
 
-  /* Look for 8 hex characters or blanks at the start of the line. */
-  for (i = 0; i < 8; ++i) {
-    ch = *pos++;
-    if ((!isxdigit(ch)) && (ch != ' ')) goto invalid_input;
-  }  /* for */
+  /* Skip over the first field which is expected to contain the
+     value field.  Skip to a blank. */
+   while((ch = *pos), ch != ' ' && ch != '\0') pos++;
 
   /* Look for blank after value. */
   if (*pos++ != ' ') goto invalid_input;
+
+  /* Now look for a nonblank. */
+  while (*pos == ' ') pos++;
 
   /* Get the type code. */
   type = *pos++;
@@ -173,11 +178,9 @@ length of the name.
   /* Look for blank after type. */
   if (*pos++ != ' ') goto invalid_input;
 
-#if UNDERSCORE_PREFIX
   /* Skip passed extra underscore at the start of every symbol if an
      underscore is present.  */
-  if (*pos == '_') pos++;
-#endif /* UNDERSCORE_PREFIX */
+  if (skip_underscore_prefix && *pos == '_') pos++;
 
   /* Save the position of the start of the name. */
   local_name_pos = pos;
@@ -244,7 +247,7 @@ Generate the output for this list of functions.
 
 
 
-int main (void)
+int main(int argc, char *argv[])
 {
   a_list_entry_ptr     ctor_list = NULL;
   a_list_entry_ptr     dtor_list = NULL;
@@ -253,6 +256,22 @@ int main (void)
   char*                name_string;
   int                  name_length;
   a_boolean            is_ctor;
+  int		       optchar;
+
+#define OPTION_LIST "u"
+  while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
+    switch (optchar) {
+      case 'u':
+        /* Specify whether names have an extra underscore that should
+           be ignored.  The option selects the opposite of the default. */
+        skip_underscore_prefix = !UNDERSCORE_PREFIX;
+        break;
+      default:
+        fprintf(stderr, "Unrecognized option: %c\n", optchar);
+        error_util("command line error");
+        break;
+    }  /* switch */
+  }  /* while */
 
   while (read_input_line()) {
     if (check_type_and_get_name(&name_pos, &name_length, &is_ctor)) {
