@@ -3709,6 +3709,20 @@ well as C++ mode.
       }
 #endif /* 0 */
     }  /* if */
+  } else if (is_error(dest_type)) {
+    /* Anything can be converted to an error type. */
+    okay = TRUE;
+  } else if (is_template_param_type(dest_type)) {
+    /* Anything can be converted to a template parameter type in a prototype
+       instantiation. */
+    okay = TRUE;
+  }  /* if */
+  /* If compatibility was not found any other way, check for the source
+     having an error type or a template parameter type. */
+  if (!okay) {
+    if (is_error(source_type) || is_template_param_type(source_type)) {
+      okay = TRUE;
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
