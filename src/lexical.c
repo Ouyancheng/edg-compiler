@@ -7013,19 +7013,22 @@ current token.  Loop to pick up all the adjacent string literals.
     (void)get_token();
     do_string_literal_concatenation = TRUE;
     /* In GNU C mode (but not in GNU C++ mode), treat __FUNCTION__ and
-       __PRETTY_FUNCTION__ as string literals (when they appear in function
-       scope).  The case where these appear as the first literal is handled
-       in expression processing. */
-    if (gcc_mode && depth_innermost_function_scope != 0 &&
-        (curr_token == tok_function_name ||
-         curr_token == tok_decorated_function_name)) {
+       __PRETTY_FUNCTION__ as string literals.  The case where these appear
+       as the first literal is handled in expression processing. */
+    if (gcc_mode && (curr_token == tok_function_name ||
+                     curr_token == tok_decorated_function_name)) {
       /* We should be in C mode.  In C++ mode, we'd have to deal with
          templates (and perhaps other constructs that may cache tokens). */
       a_scope_stack_entry_ptr  ssep =
                                  &scope_stack[depth_innermost_function_scope];
+      char                     *fn_name;
       check_assertion(C_mode());
-      set_curr_token_to_string_literal(ssep->assoc_routine
-                                                       ->source_corresp.name);
+      if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        fn_name = ssep->assoc_routine->source_corresp.name;
+      } else {
+        fn_name = "";
+      }  /* if */
+      set_curr_token_to_string_literal(fn_name);
     }  /* if */
     /* End the loop if the new token is not a string literal. */
     if (curr_token != tok_string_literal) break;

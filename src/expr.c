@@ -13479,13 +13479,26 @@ returned instead of the unqualified function name.
   a_scope_stack_entry_ptr  ssep;
 
   check_assertion(microsoft_mode || gnu_mode || (c99_mode && !decorated_name));
-  check_assertion(depth_innermost_function_scope != 0);
+  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH ||
+                  gnu_mode);
   ssep = &scope_stack[depth_innermost_function_scope];
-  if (gcc_mode) {
-    /* In GNU C mode (but not in GNU C++ mode) we create a constant operand. */
-    set_curr_token_to_string_literal(ssep->assoc_routine->source_corresp.name);
-    /* Make sure that e.g. __FUNCTION__ "(postfix)" is accepted. */
-    concat_adjacent_string_literals(/*curr_token_set=*/TRUE);
+  if (gcc_mode ||
+      (gpp_mode && depth_innermost_function_scope == NO_SCOPE_DEPTH)) {
+    /* In GNU C mode we create a constant operand and it is OK not to be in
+       function scope.  In GNU C++ mode, this is only TRUE if we're not in a
+       function scope.  If we're not in function scope, the token is
+       equivalent to "". */
+    char  *fn_name;
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      fn_name = ssep->assoc_routine->source_corresp.name;
+    } else {
+      fn_name = "";
+    }  /* if */
+    set_curr_token_to_string_literal(fn_name);
+    if (gcc_mode) {
+      /* Make sure that e.g. __FUNCTION__ "(postfix)" is accepted. */
+      concat_adjacent_string_literals(/*curr_token_set=*/TRUE);
+    }  /* if */
     make_string_constant_operand(&const_for_curr_token, result);
   } else {
     /* Check if this scope already has an associated generated entity block. */
@@ -13745,7 +13758,7 @@ see expr.h).
          only and in Microsoft mode it expands to the mangled name.) */
       check_assertion(microsoft_mode || gnu_mode ||
                       (c99_mode && curr_token == tok_function_name));
-      if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+      if (depth_innermost_function_scope == NO_SCOPE_DEPTH && !gnu_mode) {
         /* We're not inside a function. */
         str_error(ec_id_can_only_appear_in_function,
                   locator_for_curr_id.symbol_header->identifier);
