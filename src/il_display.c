@@ -2683,6 +2683,9 @@ do_assoc_type:
   disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
 #endif /* ifdef CFE */
   disp_ptr("pragmas", (char *)ptr->pragmas, iek_pragma);
+#if RECORD_HIDDEN_NAMES_IN_IL
+  disp_ptr("hidden_names", (char *)ptr->hidden_names, iek_hidden_name);
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #ifdef FFE
   disp_ptr("entries", (char *)ptr->entries, iek_entry_description);
   disp_ptr("namelist_groups", (char *)ptr->namelist_groups,
