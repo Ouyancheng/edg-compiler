@@ -2786,7 +2786,7 @@ Display the indicated hidden-name entry.
       (void)printf("**BAD TEMPLATE KIND**\n");
   }  /* switch */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_source_range("initializer_range", &ptr->initializer_range);
+  disp_source_range("definition_range", &ptr->definition_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_string_ptr("text", ptr->text, iek_other_text, (sizeof_t)0);
 }  /* disp_template */

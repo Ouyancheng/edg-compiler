@@ -2581,7 +2581,7 @@ fields, and return a pointer to it.
   tp->kind = (a_template_kind)templk_none;
   tp->text = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  tp->initializer_range = null_source_range;
+  tp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   return tp;

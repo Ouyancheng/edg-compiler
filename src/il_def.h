@@ -6866,12 +6866,15 @@ typedef struct a_template {
 			   keyword "template". */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
-		initializer_range;
-			/* When the template is a static data member template
-			   and an initializer appears explicitly in the
-			   source, the source positions corresponding to the
-			   start and end of the top-level initializer
-			   construct (i.e, including "=" or "(" and ")").
+		definition_range;
+			/* When the template is a class template, the source
+			   positions of the class definition, if present
+			   (i.e., from "{" to "}").  When the template is a
+			   function template, the source positions of the
+			   body, if present (i.e., from "{" to "}".  When
+			   the template is a static data member template,
+			   the source positions of the top-level initializer
+			   construct (i.e., including "=" or "(" and ")").
 			   May be null_source_range. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_template;
