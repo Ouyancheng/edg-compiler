@@ -304,11 +304,19 @@ so the integer representation is just some host integral type.
 This type must be unsigned; a_signed_integer_value is the signed version.
 Note that the types are allowed to be the unsigned and signed versions
 of "long long" if the host allows them.  If "long long" is used, check the
-setting of AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG.  Also make sure
-that HOST_ALIGNMENT_REQUIRED is appropriate for long longs.
+setting of AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG, MAX_INTEGER_VALUE,
+MIN_INTEGER_VALUE, MAX_UNSIGNED_INTEGER_VALUE, and the three
+PRINTF_FORMAT_FOR_... macros.  Also make sure that HOST_ALIGNMENT_REQUIRED
+is appropriate for long longs.
 */
-typedef unsigned long an_integer_value;
-typedef long a_signed_integer_value;
+#ifndef TYPE_FOR_AN_INTEGER_VALUE
+#define TYPE_FOR_AN_INTEGER_VALUE unsigned long
+#endif /* ifndef TYPE_FOR_AN_INTEGER_VALUE */
+typedef TYPE_FOR_AN_INTEGER_VALUE an_integer_value;
+#ifndef TYPE_FOR_A_SIGNED_INTEGER_VALUE
+#define TYPE_FOR_A_SIGNED_INTEGER_VALUE long
+#endif /* ifndef TYPE_FOR_A_SIGNED_INTEGER_VALUE */
+typedef TYPE_FOR_A_SIGNED_INTEGER_VALUE a_signed_integer_value;
 
 /*
 If this flag is TRUE an_integer_value is larger than a host long.
@@ -317,18 +325,32 @@ integer, but would be TRUE if an_integer_value is represented using a
 host long long.
 */
 #ifndef AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
-#define AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG	FALSE
+#define AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG FALSE
 #endif /* !defined(AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG) */
 
 /* Minimum and maximum values that can be represented in an_integer_value. */
+#ifndef MAX_INTEGER_VALUE
 #define MAX_INTEGER_VALUE LONG_MAX
+#endif /* ifndef MAX_INTEGER_VALUE */
+#ifndef MIN_INTEGER_VALUE
 #define MIN_INTEGER_VALUE LONG_MIN
+#endif /* ifndef MIN_INTEGER_VALUE */
+#ifndef MAX_UNSIGNED_INTEGER_VALUE
 #define MAX_UNSIGNED_INTEGER_VALUE ULONG_MAX
+#endif /* ifndef MAX_UNSIGNED_INTEGER_VALUE */
+#ifndef BITS_IN_AN_INTEGER_VALUE
 #define BITS_IN_AN_INTEGER_VALUE (sizeof(an_integer_value) * CHAR_BIT)
+#endif /* ifndef BITS_IN_AN_INTEGER_VALUE */
 /* The printf formatting specifier to be used to print the integer type. */
+#ifndef PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE
 #define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%ld"  /* long */
+#endif /* ifndef PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE */
+#ifndef PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE
 #define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%lu"  /* unsigned long */
+#endif /* ifndef PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE */
+#ifndef PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE
 #define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%lx"  /* hexadecimal */
+#endif /* ifndef PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE */
 
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
