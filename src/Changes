@@ -51,9 +51,13 @@ has been fixed.
 11/10/99 Internal error in ensure_il_scope_exists
 
 Certain obscure and erroneous uses of elaborated type names appearing as part
-of a default template function parameters could lead to an internal error in
-function ensure_il_scope_exists (file il.c).  The following example used to
-trigger the problem:
+of a default function argument could lead to an internal error in function
+ensure_il_scope_exists (file il.c).  The following example used to trigger the
+problem:
+
+  struct S { int f(int, int = sizeof(enum)); };
+
+Another example involves template arguments:
 
   template <class T> struct A { static int x; };
   template <class T> void f(T, int = A<class {}>::x) {} 
