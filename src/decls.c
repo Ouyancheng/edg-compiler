@@ -9547,10 +9547,14 @@ current scope.
         /* Attempting a using declaration at file scope with name already
            declared in the file scope -- e.g.,
              int i; using ::i;
-           Issue a warning and ignore the using-declaration. */
-        check_assertion(locator_for_curr_id.is_global_qualified_name ||
-                        nonstandard_using_decl_allowed);
-        warning(ec_useless_using_declaration);
+           Issue a warning and ignore the using-declaration.  When using the
+           g++ compatibility feature that treats "std" as a synonym for the
+           global namespace, suppress this processing. */
+        if (!ignore_std_namespace) {
+          check_assertion(locator_for_curr_id.is_global_qualified_name ||
+                          nonstandard_using_decl_allowed);
+          warning(ec_useless_using_declaration);
+        }  /* if */
       } else {
         check_assertion(qualifier_namespace_ptr(locator_for_curr_id) != NULL ||
                         locator_for_curr_id.is_global_qualified_name ||
