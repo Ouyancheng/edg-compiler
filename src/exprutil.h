@@ -609,10 +609,12 @@ extern void conv_lvalue_to_rvalue(an_operand *operand);
 extern a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
 					           an_operand *operand_2);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern void adjust_constant_operand_info_for_microsoft_null_pointer_test(
                                                an_operand *operand,
                                                a_boolean  *operand_is_constant,
                                                a_constant **operand_constant);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean check_compatibility_of_pointer_operands(
                    an_operand        *operand_1,
