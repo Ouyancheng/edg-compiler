@@ -177,20 +177,8 @@ can be used as an argument.
   (ff_same_entities(&(ptr1)->source_corresp, &(ptr2)->source_corresp))
 
 
-/* SUPPRESS 763 */ /* Suppress codecenter warning on unused function. */
-/*lint -esym(528,ff_same_entities)*/
-INLINE a_boolean ff_same_entities(a_source_correspondence	*ptr1,
-				  a_source_correspondence	*ptr2)
-/*
-Function version of same_entities.
-*/
-{
-  return ptr1 == ptr2 ||
-         (ptr1 != NULL && ptr2 != NULL &&
-          same_trans_unit_corresps(trans_unit_corresp_of_unknown_entry(ptr1),
-                                   trans_unit_corresp_of_unknown_entry(ptr2)));
-}  /* ff_same_entities */
-
+extern a_boolean ff_same_entities(a_source_correspondence	*ptr1,
+				  a_source_correspondence	*ptr2);
 /*
 Return TRUE if two base classes refer to the same IL entry.  If the
 pointers differ, check the translation unit correspondence pointers.
