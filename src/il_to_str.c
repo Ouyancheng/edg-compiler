@@ -1138,8 +1138,10 @@ output in the way described by octl.
     char c = 0;
     /* Look for unprintable characters with specific escape codes. */
     switch (ch) {
-                                  /* pcc does not recognize \a. */
-      case TARG_ALERT_CHAR:       if (!octl->gen_pcc_code) c = 'a';
+                                  /* pcc does not recognize \a.  Also, some
+                                     SVR4 compilers give a warning on it. */
+      case TARG_ALERT_CHAR:       if (!octl->c_generating_back_end &&
+                                      !octl->gen_pcc_code) c = 'a';
                                   break;
       case TARG_BACKSPACE_CHAR:   c = 'b'; break;
       case TARG_FORM_FEED_CHAR:   c = 'f'; break;
