@@ -6534,7 +6534,8 @@ typedef struct a_scope {
 			   if it is an sck_class_struct_union scope, the list
 			   will only contain class member using-declarations
 			   (and will be NULL if there are none and/or if the
-			   associated class is not a derived class). */
+			   associated class is not a derived class).  Cleared
+			   to NULL by IL lowering. */
   a_dynamic_init_ptr
 		dynamic_inits;
 			/* List of dynamic initializations to be done in the

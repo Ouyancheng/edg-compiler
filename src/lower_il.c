@@ -10013,6 +10013,17 @@ Do IL lowering of the indicated scope and everything under it.
   lower_routine_list(scope->routines);
   lower_asm_entry_list(scope->asm_entries);
   lower_namespace_list(scope->namespaces);
+  /* Remove using-declarations, because they prevent the removal of otherwise
+     unreferenced routines.  This can be done by just clearing the pointer
+     only because source sequence entries are not maintained when IL lowering
+     is done.  If a back end would like to see using-declarations for some
+     reason, this code can just be removed. */
+  scope->using_decls = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  check_assertion_str2(source_sequence_entries_disallowed,
+                       "lower_scope: source sequence entries not allowed",
+                       "with IL lowering of using decls");
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (scope_kind == (a_scope_kind)sck_function) {
     /* A function scope. */
     /* Lower any block scopes within it.  Note that statements are not
