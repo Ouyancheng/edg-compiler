@@ -4190,7 +4190,6 @@ empty statement block.
 {
   a_scope_ptr               scope;
   a_routine_type_supplement *rtsp = rout_ptr->type->variant.routine.extra_info;
-  a_boolean                 class_reactivation_required = FALSE;
 
   db_enter(4, "define_special_member_function");
   if (rout_ptr->special_kind != (a_special_function_kind)sfk_constructor &&
@@ -4858,7 +4857,6 @@ class/struct/union is actually defined.
   an_extern_linkage       dummy_linkage;
   a_class_symbol_supplement_ptr
                           cssp;
-  a_boolean               is_definition_or_forward_reference = FALSE;
   a_scope_depth           effective_decl_level = decl_scope_level;
 
   db_enter(3, "class_specifier");
@@ -4952,7 +4950,9 @@ class/struct/union is actually defined.
       /* Use the existing tag.  If this is actually a use in a declaration
          of the form "struct name ;" to establish the name, do that even
          if the name exists in an outer scope.  Do not do this in pcc mode. */
-      if (first_specifier && curr_token == tok_semicolon &&
+      if (is_friend_decl) {
+        tag_sym = assoc_symbol;
+      } else if (first_specifier && curr_token == tok_semicolon &&
           outer_scope_tag && C_dialect != C_dialect_pcc) {
         /* Part of an empty declaration, and there is no declaration
            of the tag in the current scope.  Do not use the previous
