@@ -315,7 +315,7 @@ pch_init was called instead of being called from fe_one_time_init as is
 the case for all of the other one_time_init routines.  For consistency,
 it is now called the same way as the other one_time_init routines.
 
-4/15/05  Possible leaked file descriptor
+4/15/04  Possible leaked file descriptor
 
 When the front end is generating makefile dependencies and using implicit
 inclusion of template definition files, a file could potentially be opened
@@ -323,7 +323,7 @@ but never closed.  This occurs only if the template definition file found by
 the search process turns out to be the same as the primary source file
 being compiled.  Now fixed.
 
-4/15/05  Macro argument entry for _Pragma operator not freed
+4/15/04  Macro argument entry for _Pragma operator not freed
 
 The macro argument entry allocated during processing of a C99 _Pragma
 operator was not freed.  Now fixed.
