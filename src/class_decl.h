@@ -67,8 +67,9 @@ extern a_boolean is_default_constructor(a_routine_ptr  ctor_rout);
 
 #if ASSIGNMENT_TO_THIS_ALLOWED
 extern void set_class_assoc_operator_new_routine(a_type_ptr class_type);
-extern void set_class_assoc_operator_delete_routine(a_type_ptr class_type);
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+
+extern void set_class_assoc_operator_delete_routine(a_type_ptr class_type);
 
 extern void define_special_member_function(a_routine_ptr      rout_ptr,
                                            a_type_ptr         class_type,

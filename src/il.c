@@ -2927,8 +2927,8 @@ a pointer to it.
   ctsp->template_arg_list                 = NULL;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   ctsp->assoc_operator_new_routine        = NULL;
-  ctsp->assoc_operator_delete_routine     = NULL;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+  ctsp->assoc_operator_delete_routine     = NULL;
 #if DO_IL_LOWERING
   ctsp->virtual_function_table_var        = NULL;
   ctsp->type_as_subobject                 = NULL;

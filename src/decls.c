@@ -7228,11 +7228,9 @@ explicitly specified (rather than defaulted to "int").
                                    (a_special_function_kind)sfk_destructor) {
     scope_ptr->variant.routine.constructor_inits =
                                       dtor_initializer(routine_ptr);
-#if ASSIGNMENT_TO_THIS_ALLOWED
     /* Determine and remember the operator delete() routine for the class. */
     set_class_assoc_operator_delete_routine(
                           routine_ptr->source_corresp.class_of_which_a_member);
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   }  /* if */
   /* Scan the compound statement defining the function.  The closing "}"
      is not swallowed by compound_statement, so that the pop_scope call
@@ -7394,11 +7392,9 @@ processing of function definition.
       /* Record the destructors that are to be called implicitly when this
          destructor is executed. */
       scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
-#if ASSIGNMENT_TO_THIS_ALLOWED
       /* Determine and remember the operator delete() routine for the class. */
       set_class_assoc_operator_delete_routine(
                              rout_ptr->source_corresp.class_of_which_a_member);
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
       break;
     default:;
       /* No action. */

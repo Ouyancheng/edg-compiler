@@ -2632,9 +2632,9 @@ Display the indicated class type supplement entry.
 #if ASSIGNMENT_TO_THIS_ALLOWED
   disp_ptr("assoc_operator_new_routine",
            (char *)ptr->assoc_operator_new_routine, iek_routine);
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   disp_ptr("assoc_operator_delete_routine",
            (char *)ptr->assoc_operator_delete_routine, iek_routine);
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 #if DO_IL_LOWERING
   /* Do not print out the IL entry members that are used only
      during IL lowering. */

@@ -1236,13 +1236,18 @@ typedef struct a_class_type_supplement {
 			   This pointer is NULL for ordinary classes that are
 			   not generated from a template. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
-  a_routine_ptr	assoc_operator_new_routine,
-		assoc_operator_delete_routine;
-			/* The operator new() (or operator delete()) routine
-			   to be used for the class.  NULL until a new (or
-			   delete) is done or a constructor (or destructor)
-			   is defined. */
+  a_routine_ptr	assoc_operator_new_routine;
+			/* The operator new() routine to be used for the class.
+			   NULL until a new is done or a constructor is
+			   defined.  Not needed if assignment to "this" is
+			   not allowed, because the constructor does not
+			   do the allocation in that case. */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+  a_routine_ptr	assoc_operator_delete_routine;
+			/* The operator delete() routine to be used for the
+			   class.  NULL until a delete is done or a destructor
+			   is defined.  Used in generating the delete
+			   operation in the destructor. */
 #if DO_IL_LOWERING
   a_variable_ptr
 		virtual_function_table_var;

@@ -4202,7 +4202,6 @@ will return a pointer to the constructed object.
   db_exit();
 }  /* make_default_constructor_body */
 
-#if ASSIGNMENT_TO_THIS_ALLOWED
 
 void set_class_assoc_operator_delete_routine(a_type_ptr class_type)
 /*
@@ -4244,7 +4243,6 @@ and record it in the class's assoc_operator_delete_routine field.
   }  /* if */
 }  /* set_class_assoc_operator_delete_routine */
 
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 
 static void make_default_destructor_body(a_scope_ptr  scope)
 /*
@@ -4257,11 +4255,9 @@ Create the body for a default destructor.  It will return no value.
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block->variant.block.statements =
           alloc_statement((a_statement_kind)stmk_return);
-#if ASSIGNMENT_TO_THIS_ALLOWED
   /* Determine and remember the operator delete() routine for the class. */
   set_class_assoc_operator_delete_routine(scope->variant.routine.ptr->
                                        source_corresp.class_of_which_a_member);
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   db_exit();
 }  /* make_default_destructor_body */
 

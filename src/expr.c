@@ -3929,27 +3929,16 @@ As an anachronism, allow an expression inside the [ ].
         function_node->next->next =
               node_for_integer_constant((long)(delete_type->size),
                                         (an_integer_kind)TARG_SIZE_T_INT_KIND);
-#if 0
-#else /* 0 */
-#if !ASSIGNMENT_TO_THIS_ALLOWED
-        /* The two-argument form requires that the destructor be called
-           to do the deletion, so the current implementation is incompatible
-           with !ASSIGNMENT_TO_THIS_ALLOWED. */
-??=error ASSIGNMENT_TO_THIS_ALLOWED must be TRUE
-#endif /* !ASSIGNMENT_TO_THIS_ALLOWED */
-#endif /* 0 */
       }  /* if */
       make_function_call(function_node, delete_routine->type,
                          (a_boolean)delete_routine->is_virtual,
                          /*new_or_delete_call_for_array=*/array_delete,
                          &delete_position, result);
-#if ASSIGNMENT_TO_THIS_ALLOWED
       if (is_class_struct_union_type(delete_type)) {
         /* Determine and remember the default operator delete() routine for
            the class. */
         set_class_assoc_operator_delete_routine(delete_type);
       }  /* if */
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     }  /* if */
   }  /* if */
 
