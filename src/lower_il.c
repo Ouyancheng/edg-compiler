@@ -2775,9 +2775,9 @@ It might be changed later to add a definition.
 }  /* make_var_for_virtual_function_table */
 
 
-#if !CFRONT_OBJECT_CODE_COMPATIBILITY
+#if !CFRONT_OBJECT_CODE_COMPATIBILITY ||ABI_CHANGES_FOR_RTTI
 /*ARGSUSED*/  /* <-- Because class_type is not used in that case. */
-#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY || ... */
 static a_boolean base_class_needs_virtual_function_table(
                                                    a_base_class_ptr bcp,
                                                    a_type_ptr       class_type)
@@ -2800,6 +2800,14 @@ FALSE means either the base class does not need a virtual function table
           base class or with class_type itself, so it does not need its own
           virtual function table instance. */
       needed = FALSE;
+#if ABI_CHANGES_FOR_RTTI
+    } else {
+      /* When RTTI is supported, entry [0] of the virtual function table
+         identifies the type of the complete object, so a separate instance
+         is needed for each derived class even if the derived class does
+         not override any virtual functions. */
+      needed = TRUE;
+#else /* !ABI_CHANGES_FOR_RTTI */
     } else if (bcp->overriding_virtual_functions != NULL) {
       /* Some of the virtual functions in the base class are overridden
          in class_type, so a separate virtual function table instance is
@@ -2815,6 +2823,7 @@ FALSE means either the base class does not need a virtual function table
     } else {
       /* In other cases, no separate instance is needed. */
       needed = FALSE;
+#endif /* ABI_CHANGES_FOR_RTTI */
     }  /* if */
   }  /* if */
   return needed;

@@ -8,6 +8,14 @@ of kind eok_dynamic_cast.  These are rewritten by IL lowering.
 New runtime routines __dynamic_cast, __dynamic_cast_ref, and __get_typeid
 are required (and provided in our runtime).
 
+Element [0] of virtual function tables now contains a pointer to the
+typeinfo for the complete object class type associated with that virtual
+function table.  This makes it possible to determine the type of a
+polymorphic class object at runtime.  However, it also means more
+instances of virtual function tables are required, because a separate
+instance is required for base-class-in-derived-class even if the
+derived class does not override any functions in the base class.
+
 ABI_CHANGES_FOR_RTTI must be TRUE if you want to be able to use
 these features with IL lowering, and the ABI changes break binary
 compatibility, so you'll have to make your own decision about when
