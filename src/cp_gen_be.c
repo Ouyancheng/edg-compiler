@@ -8375,11 +8375,6 @@ TRUE if the declaration following this one is such a continuation.
            an extern "C" { ... } wrapped around the function. */
         !decl_within_function) {
       write_tok_str("extern \"C\" ");
-      if (rout->source_corresp.name_linkage ==
-                                           (a_name_linkage_kind)nlk_external) {
-        /* Suppress the storage class if it's extern "C". */
-        storage_class = (a_storage_class)sc_unspecified;
-      }  /* if */
       /* For declarations with an explicit "inline" keyword, use the form
            extern "C" { inline void foo() {} }
          because simply
@@ -8392,6 +8387,10 @@ TRUE if the declaration following this one is such a continuation.
         write_tok_str("{ ");
         /* Force matching "}" to be output later */
         need_extern_C_closing_brace = TRUE;
+      } else if (storage_class == (a_storage_class)sc_extern) {
+        /* Suppress the storage class if it's "extern", because that's
+           implied by extern "C". */
+        storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
     }  /* if */
     /* Put out the storage class determined above. */
