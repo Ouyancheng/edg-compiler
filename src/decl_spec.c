@@ -2153,7 +2153,8 @@ the template.
       *declares_something = FALSE;
     }  /* if */
   }  /* if */
-  if (tag_sym->kind != (a_symbol_kind)sk_type && !is_redeclaration &&
+  if (tag_sym->kind != (a_symbol_kind)sk_type &&
+      !is_redeclaration && !is_template_specific_decl &&
       may_be_added_to_types_list(class_type, effective_decl_level)) {
     /* This is the initial declaration of this class type. */
     add_to_types_list(class_type, effective_decl_level);
