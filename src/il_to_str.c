@@ -2635,6 +2635,7 @@ confusion.  Do the output in the way described by octl.
 #ifdef CFE
     case ck_template_param:
       check_assertion(!octl->gen_compilable_code);
+      check_assertion(!is_reference_type(constant->type));
       switch (constant->variant.template_param.kind) {
         case tpck_param:
         case tpck_member:
@@ -2698,6 +2699,12 @@ way described by octl.
   if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* An address constant (the usual case).  Drop one level of "&". */
     form_address_constant(constant, /*form_lvalue=*/TRUE, need_parens, octl);
+  } else if (constant->kind == (a_constant_repr_kind)ck_template_param &&
+             constant->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_param) {
+    /* This is a template parameter list in a prototype instantiation.
+       The parameter has a reference type, so no adjustment is needed. */
+    form_name(&constant->source_corresp, iek_constant, octl);
   } else {
     /* For other cases, e.g.,
          int &r = *(int *)5;
