@@ -6669,7 +6669,7 @@ to indicate whether the class/struct/union is actually defined.
   a_symbol_kind           tag_kind;
   a_type_kind             type_kind;
   a_symbol_locator        locator;
-  a_symbol_ptr            tag_sym;
+  a_symbol_ptr            tag_sym, error_tag_sym = NULL;
   a_boolean               tag_id_present;
   a_type_ptr              class_type;
   a_boolean               is_local_class = FALSE;
@@ -6764,7 +6764,8 @@ to indicate whether the class/struct/union is actually defined.
         pos_sy_error(ec_union_nonunion_mismatch, &decl_start_pos,
                      tag_sym->variant.class_struct_union.extra_info->
                                                             class_template);
-        set_to_error_locator(locator);
+        set_to_named_error_locator(locator);
+        error_tag_sym = tag_sym;
         tag_sym = NULL;
       }  /* if */
     }  /* if */    
@@ -6811,8 +6812,9 @@ skip_tag_scan:
       if (is_class_definition && tag_sym->defined) {
         /* This template class has already been instantiated. */
         pos_sy_error(ec_already_defined, &locator.source_position, tag_sym);
+        error_tag_sym = tag_sym;
         tag_sym = NULL;
-        set_to_error_locator(locator);
+        set_to_named_error_locator(locator);
         err = TRUE;
       } else if (is_class_definition ||
                  (curr_token == tok_semicolon && !is_friend_decl)) {
@@ -6826,6 +6828,11 @@ skip_tag_scan:
        allocated in the file scope memory region, though local types will be
        added to the function scope's types list. */
     class_type = alloc_type(type_kind);
+    if (C_dialect == C_dialect_cplusplus && error_tag_sym != NULL) {
+      class_type->variant.class_struct_union.extra_info->template_arg_list =
+             error_tag_sym->variant.class_struct_union.type->
+                      variant.class_struct_union.extra_info->template_arg_list;
+    }  /* if */
     /* Wait to add the type to the types list; it should not be added
        until the closing brace of the full definition appears, to get the
        IL list in the right order. */
