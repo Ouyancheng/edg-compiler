@@ -7125,7 +7125,8 @@ specific version of the template.
     /* Determine whether this scope affects whether access checks can
        be deferred. */
     if (kind == (a_scope_kind)sck_file ||
-        kind == (a_scope_kind)sck_pragma) {
+        kind == (a_scope_kind)sck_pragma ||
+        kind == (a_scope_kind)sck_class_struct_union) {
       /* A scope that introduces a new level at which deferred access
          checks may be recorded. */
       curr_deferred_access_scope = depth_scope_stack;
