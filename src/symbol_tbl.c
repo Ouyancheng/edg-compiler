@@ -11121,6 +11121,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.is_template_param                 = FALSE;
   cleared_symbol.template_param_not_visible        = FALSE;
   cleared_symbol.force_external_linkage            = FALSE;
+  cleared_symbol.ambiguous                         = FALSE;
   cleared_symbol.synthesized_namespace_projection  = FALSE;
   cleared_symbol.qualified_lookup                  = FALSE;
   cleared_symbol.must_be_class_or_namespace_lookup = FALSE;
@@ -11130,7 +11131,6 @@ are handled in symbol_tbl_init.)
   cleared_symbol.instantiation_context_lookup      = FALSE;
   cleared_symbol.must_be_class_lookup              = FALSE;
   cleared_symbol.must_be_namespace_lookup          = FALSE;
-  cleared_symbol.ambiguous                         = FALSE;
   cleared_symbol.hidden_by_old_for_init            = FALSE;
   cleared_symbol.overload_set_member               = FALSE;
   cleared_symbol.is_invisible                      = FALSE;
