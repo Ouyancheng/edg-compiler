@@ -3614,9 +3614,9 @@ it is set to "" if not needed.
 
 
 static char *demangle_source_name(
-                                 char                       *ptr,
-                                 a_boolean                  stop_on_underscore,
-                                 a_decode_control_block_ptr dctl)
+                                char                       *ptr,
+                                a_boolean                  stop_on_underscores,
+                                a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <source-name> and output the demangled form.
 Return a pointer to the character position following what was demangled.
@@ -3626,8 +3626,8 @@ characters of the name. The syntax is:
     <source-name> ::= <positive length number> <identifier>
     <identifier> ::= <unqualified source code identifier>
 
-If stop_on_underscore is TRUE, stop outputting characters of the
-name on encountering an underscore (continue scanning, but do not
+If stop_on_underscores is TRUE, stop outputting characters of the
+name on encountering a double underscore (continue scanning, but do not
 output the characters).  This is used for module ids (an EDG extension).
 */
 {
@@ -3659,8 +3659,8 @@ output the characters).  This is used for module ids (an EDG extension).
           bad_mangled_name(dctl);
           break;
         }  /* if */
-      } if (stop_on_underscore && *ptr == '_') {
-        /* Stop outputting characters on the first underscore. */
+      } if (stop_on_underscores && *ptr == '_' && ptr[1] == '_') {
+        /* Stop outputting characters on the first double underscore. */
         output_chars = FALSE;
       } else if (output_chars) {
         write_id_ch(*ptr, dctl);
@@ -3696,7 +3696,7 @@ caller does not need the value.
   if (isdigit((unsigned char)*ptr)) {
     /* A <source-name>, which has a length followed by the characters
        of the identifier, as in "3abc". */
-    ptr = demangle_source_name(ptr, /*stop_on_underscore=*/FALSE, dctl);
+    ptr = demangle_source_name(ptr, /*stop_on_underscores=*/FALSE, dctl);
   } else {
     /* <operator-name> */
     write_id_str("operator ", dctl);
@@ -4259,7 +4259,7 @@ as a prefix to specify a module id for an externalized name.
   if (*ptr == 'B') {
     /* Module-id prefix for externalized name. */
     write_id_str("[static from ", dctl);
-    ptr = demangle_source_name(ptr+1, /*stop_on_underscore=*/TRUE, dctl);
+    ptr = demangle_source_name(ptr+1, /*stop_on_underscores=*/TRUE, dctl);
     write_id_str("] ", dctl);
   }  /* if */
   if (*ptr == 'N') {
