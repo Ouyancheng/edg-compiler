@@ -300,7 +300,7 @@ static void gen_expr(an_expr_node_ptr expr,
    provided parentheses or the like). */
 #define gen_expr_with_parens(expr) gen_expr(expr, /*need_parens=*/TRUE)
 #define gen_expression(expr)       gen_expr(expr, /*need_parens=*/FALSE)
-static void gen_boolean_controlling_expression(an_expr_node_ptr expr);
+#define gen_boolean_controlling_expression(expr) gen_expr_with_parens(expr)
 
 
 static void alloc_hidden_name_fixup(a_tagged_pointer entity)
@@ -3116,6 +3116,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_ch('!');
           gen_boolean_controlling_expression(operand_1);
           goto done_with_operation;
+        case eok_bool_cast:
         case eok_cast:
           /* Normal casts can be eliminated if they are implicit. */
           /* But watch out for casts that implement the implicit type decay
@@ -3575,32 +3576,40 @@ Generate code for the indicated expression, which is a full expression
 }  /* gen_full_expression */
 
 
-static void gen_boolean_controlling_expression(an_expr_node_ptr expr)
-/*
-Generate code for the indicated expression, which is the controlling expression
-of a statement or short-circuit operator.  The expression is surrounded
-by parentheses.
-*/
-{
-  m_write_tok_ch('(');
-  gen_expression(expr);
-  m_write_tok_ch(')');
-}  /* gen_boolean_controlling_expression */
-
-
 static void gen_full_boolean_controlling_expression(an_expr_node_ptr expr)
 /*
 Generate code for the indicated expression, which is the controlling expression
 of a statement or short-circuit operator, and also a full expression
-(it's not part of another expression).  The expression is surrounded
-by parentheses.
+(it's not part of another expression).
 */
 {
   /* For C, process any tags declared within the expression (e.g., in
      casts). */
   skip_embedded_declarations();
-  gen_boolean_controlling_expression(expr);
+  gen_expression(expr);
 }  /* gen_full_boolean_controlling_expression */
+
+
+static void gen_condition(a_statement_ptr statement)
+/*
+Generate code for the "condition" of an if, while, switch, or for statement.
+This can be a condition declaration or simply an expression.
+*/
+{
+  an_expr_node_ptr expr = statement->expr;
+
+  if (expr->kind != (an_expr_node_kind)enk_condition) {
+    /* Normal expression. */
+    if (statement->kind == (a_statement_kind)stmk_switch) {
+      gen_full_expression(expr);
+    } else {
+      gen_full_boolean_controlling_expression(expr);
+    }  /* if */
+  } else {
+    /* Condition declaration. */
+    gen_variable_decl();
+  }  /* if */
+}  /* gen_condition */  
 
 
 static void set_output_position_for_stmt(a_stmt_source_position *spos)
@@ -3647,7 +3656,7 @@ Generate code for the indicated "for" statement.
   }  /* if */
   /* Generate the termination-test expression if there is one. */
   if (statement->expr != NULL) {
-    gen_full_boolean_controlling_expression(statement->expr);
+    gen_condition(statement);
   }  /* if */
   write_tok_ch(';');
   /* Generate the increment expression if there is one. */
@@ -3834,7 +3843,7 @@ Generate code for the indicated switch statement.
   a_boolean       need_pop_context = FALSE;
 
   write_tok_str("switch (");
-  gen_full_expression(statement->expr);
+  gen_condition(statement);
   write_tok_str(") ");
   /* Generate the body statement.  During the processing, when statements
      that correspond to case labels turn up, the case labels will be
@@ -4263,8 +4272,9 @@ Generate code for the indicated statement.
          the IL tree. */
       if (else_stmt == NULL) write_tok_ch('{');
 #endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
-      write_tok_str("if ");
-      gen_full_boolean_controlling_expression(statement->expr);
+      write_tok_str("if (");
+      gen_condition(statement);
+      write_tok_ch(')');
       write_space();
       /* Generate the "then" part. */
       gen_statement(statement->variant.if_stmt.then_statement);
@@ -4281,8 +4291,9 @@ Generate code for the indicated statement.
       break;
     case stmk_while:
       /* "while" statement: generate "while (expr) statement". */
-      write_tok_str("while ");
-      gen_full_boolean_controlling_expression(statement->expr);
+      write_tok_str("while (");
+      gen_condition(statement);
+      write_tok_ch(')');
       write_space();
       /* Generate the dependent statement. */
       gen_statement(statement->variant.loop_statement);
@@ -4292,9 +4303,9 @@ Generate code for the indicated statement.
       write_tok_str("do ");
       /* Generate the dependent statement. */
       gen_statement(statement->variant.loop_statement);
-      write_tok_str("while ");
+      write_tok_str("while (");
       gen_full_boolean_controlling_expression(statement->expr);
-      write_tok_ch(';');
+      write_tok_str(");");
       break;
     case stmk_for:
       /* "for" statement. */
