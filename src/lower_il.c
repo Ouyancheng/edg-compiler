@@ -1642,9 +1642,12 @@ routine after it has discarded the troublesome lvalue cases).
        as enk_temp_init nodes, and one could change to the address of the
        class temporary and store that in the temporary here. */
     if (is_class_struct_union_type(temp_type) &&
-        !symbol_supplement_for_class(temp_type)->
+        /* Watch out for types created by IL lowering. */
+        temp_type->source_corresp.assoc_info != NULL) {
+      if (!symbol_supplement_for_class(temp_type)->
                                         construction_by_bitwise_copy_allowed) {
-      internal_error("make_reusable_copy: temp of class type with cctor");
+        internal_error("make_reusable_copy: temp of class type with cctor");
+      }  /* if */
     }  /* if */
 #endif /* CHECKING */
     temp = make_lowered_temporary(temp_type);
