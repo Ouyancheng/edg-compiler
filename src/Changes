@@ -879,7 +879,7 @@ an extra "template<>" at the beginning.  Now fixed.
 
 7/7/97    Eliminating unneeded template instances in -tused mode
 
-When source is compiled with both --remove_unneeded_entries and -tused, an
+When source is compiled with both --remove_unneeded_entities and -tused, an
 improvement has been made in eliminating unneeded template instances from
 the IL that is passed to the back end.  Since -tused mode means an
 instantiation is triggered whenever a template instance is referenced, and
@@ -1073,7 +1073,7 @@ entry.  For example:
 With this change __TIR__ variables are not put out for f(int) or S<int>::x,
 since they are only referenced in an unneeded static function.  (This
 optimization is only available when MAINTAIN_NEEDED_FLAGS is TRUE and the
-source is compiled with --remove_unneeded_il_entries.)
+source is compiled with --remove_unneeded_entities.)
 
 6/24/97   Internal error in using-directive lookup in error case
 
@@ -2809,7 +2809,7 @@ block-extern declarations or (in C mode) implicit function declarations,
 even when such declarations are the first in the translation unit.  This
 implies that the pointer may be NULL sometimes.  This change fixes an
 internal error that appeared in the following when it was compiled with
---remove_unneeded_il_entries and no IL lowering was being performed:
+--remove_unneeded_entities and no IL lowering was being performed:
 
   static void f() {
     extern void g();
