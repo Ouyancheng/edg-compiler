@@ -7150,7 +7150,7 @@ initializer has previously been found to be acceptable, and
          to the call of convert_operand_into_temp we would be looking
          at copy constructors, which really isn't appropriate and
          produces confusing error messages. */
-      if (!dropping_qualifiers) {
+      if (!dropping_qualifiers && !any_cfront_mode()) {
         /* [dcl.init.ref] of the WP requires that the copy constructor be
            callable whether or not it is actually called.  We never call
            it, but we must check it anyway. */
