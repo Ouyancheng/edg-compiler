@@ -9380,6 +9380,14 @@ both C and C++ modes.
                             /*is_statement_expr=*/TRUE);
     restore_expr_stack(saved_expr_stack);
     curr_object_lifetime = saved_curr_object_lifetime;
+    if (!C_mode()) {
+      /* Check that no destructible entities were declared in the
+         statement. */
+      if (sp->variant.block.extra_info->assoc_scope != NULL &&
+          sp->variant.block.extra_info->assoc_scope->lifetime != NULL) {
+        pos_error(ec_destr_in_statement_expr, &start_position);
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (err) {
     make_error_operand(result);
