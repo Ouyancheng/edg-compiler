@@ -1,5 +1,16 @@
 Version 3.5
 
+8/19/04  Embedded C: Named address space qualifiers in array declarators
+
+In C99 mode with Embedded C extensions, the front sometimes failed to diagnose
+named address space qualifiers appearing inside the brackets of an array
+declarator.  For example:
+
+  void f(int x[_EDG_NAS_A const]);  // Previously accepted in C99 mode with
+                                    // Embedded C extensions.  Now an error.
+
+This is now fixed (a diagnostic is consistently issued).
+
 8/19/04  External name conflicts with C++ variables
 
 Most C++ ABIs (including those supported by the EDG front end) do not mangle

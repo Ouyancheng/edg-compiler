@@ -2222,10 +2222,13 @@ expression can be a multiple of the special UPC THREADS constant.
     if (top_level_param_decl) {
       /* This is a top-level declaration of a function parameter type. */
       /* Only C99 mode allows cv-qualifiers.  restrict is allowed in
-         any mode where the keyword is enabled. */
-      if (!c99_mode && ((qualifiers & TQ_RESTRICT) != qualifiers)) {
+         any mode where the keyword is enabled.  Named-address space
+         qualifiers are not allowed in any mode. */
+      if ((!c99_mode && ((qualifiers & TQ_RESTRICT) != qualifiers)) ||
+          named_address_space_from_qualifier_set(qualifiers) != 0) {
         pos_error(ec_type_qualifier_not_allowed, &qualifier_pos);
-        qualifiers &= TQ_RESTRICT;
+        qualifiers &= c99_mode ? TQ_RESTRICT | TQ_CONST | TQ_VOLATILE
+                               : TQ_RESTRICT;
       }  /* if */
     } else {
       /* This is not a top-level declarator for a parameter, so "restrict"
