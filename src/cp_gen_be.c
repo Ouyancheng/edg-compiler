@@ -7245,6 +7245,8 @@ TRUE, "()" is put out.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
             gen_argument_list(args, (ctor == NULL)? NULL : ctor->type,
                               /*skip_num=*/0);
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+            gen_argument_list(args, ctor->type, /*skip_num=*/0);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           }  /* if */
         }  /* if */
