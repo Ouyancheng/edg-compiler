@@ -504,7 +504,7 @@ is an error, issue it at *err_pos.  result->type need not be set on entry.
       /* Check that the base class is accessible from the current class.
          Accessibility is not checked if the cast is explicit. */
       if (check_cast_access) {
-        if (!is_accessible_base_class(base_class, curr_type)) {
+        if (!is_accessible_imm_base_class(base_class, curr_type)) {
           /* The base class is inaccessible. */
           /* Keep going, and put out the error only the first time. */
           if (access_okay) {
@@ -888,7 +888,7 @@ If there is an error, it is issued at *err_pos.
       for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
         /* Check that the base class is accessible from the current class. */
         base_class = dsp->base_class;
-        if (!is_accessible_base_class(base_class, curr_type)) {
+        if (!is_accessible_imm_base_class(base_class, curr_type)) {
           pos_ty_error(ec_inaccessible_base_class, err_pos, base_class->type);
           break;
         }  /* if */
