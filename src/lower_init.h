@@ -68,6 +68,8 @@ extern void free_init_pos_modifier_list(an_init_pos_modifier_ptr ipmp);
 
 extern void clear_init_pos_descr(an_init_pos_descr_ptr ipdp);
 
+extern void free_init_pos_descr(an_init_pos_descr_ptr ipdp);
+
 extern void set_var_init_pos_descr(a_variable_ptr        var,
                                    an_init_pos_descr_ptr ipdp);
 

@@ -628,7 +628,7 @@ static an_init_pos_modifier_ptr alloc_init_pos_modifier(void)
 /*
 Allocate an initialization position modifier entry, set its fields
 to default values, and return a pointer to it.  Note that such entries are
-usually allocated on the stack, so this routine is not called much.
+sometimes allocated on the stack.
 */
 {
   an_init_pos_modifier_ptr ipmp;
@@ -689,13 +689,51 @@ void clear_init_pos_descr(an_init_pos_descr_ptr ipdp)
 Clear an initialization position description entry to default values.
 */
 {
+  ipdp->next                      = NULL;
   ipdp->variable                  = NULL;
   ipdp->indirect_through_variable = FALSE;
+  ipdp->whole_array               = FALSE;
   ipdp->base_type                 = NULL;
   ipdp->modifiers                 = NULL;
-  ipdp->whole_array               = FALSE;
   ipdp->array_element_count       = 0;
+  ipdp->conditional_flag_var      = NULL;
 }  /* clear_init_pos_descr */
+
+
+static an_init_pos_descr_ptr alloc_init_pos_descr(void)
+/*
+Allocate an initialization position description entry, set its fields
+to default values, and return a pointer to it.  Note that such entries are
+sometimes allocated on the stack.
+*/
+{
+  an_init_pos_descr_ptr ipdp;
+
+  if (avail_init_pos_descrs != NULL) {
+    /* Reuse a freed entry. */
+    ipdp = avail_init_pos_descrs;
+    avail_init_pos_descrs = ipdp->next;
+  } else {
+    /* Allocate a new entry. */
+    ipdp = (an_init_pos_descr_ptr)alloc_fe(sizeof(an_init_pos_descr));
+#if DEBUG
+    num_init_pos_descrs_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  clear_init_pos_descr(ipdp);
+  return ipdp;
+}  /* alloc_init_pos_descr */
+
+
+void free_init_pos_descr(an_init_pos_descr_ptr ipdp)
+/*
+Free an initialization position description entry by putting it on
+the available list.
+*/
+{
+  ipdp->next = avail_init_pos_descrs;
+  avail_init_pos_descrs = ipdp;
+}  /* free_init_pos_descr_list */
 
 
 void set_var_init_pos_descr(a_variable_ptr        var,
@@ -1272,7 +1310,8 @@ static a_routine_ptr
 		vec_delete_routine;
 
 
-static an_expr_node_ptr num_elem_node_from_count(long array_element_count)
+static an_expr_node_ptr num_elem_node_from_count(
+                                          a_targ_ptrdiff_t array_element_count)
 /*
 Build an expression for a constant that represents the number of elements
 in an array for an array new/delete call.  -1 indicates a variable-length
@@ -1283,7 +1322,7 @@ array.
   a_constant       num_elem_constant;
 
   set_integer_constant_with_overflow_check(&num_elem_constant,
-                                           array_element_count,
+                                           (long)array_element_count,
                                            (an_integer_kind)ik_int);
   /* Allocate an expression node for the constant. */
   num_elem_node = alloc_node_for_constant(&num_elem_constant);
@@ -1393,7 +1432,7 @@ A pointer to the expression created is returned.
 
 static an_expr_node_ptr make_vec_delete_call(
                                           an_expr_node_ptr entity_node,
-                                          long             array_element_count,
+                                          a_targ_ptrdiff_t array_element_count,
                                           a_routine_ptr    dtor_routine,
                                           a_boolean        free_storage)
 /*
@@ -1451,7 +1490,7 @@ array is to be freed.  A pointer to the expression created is returned.
 static an_expr_node_ptr make_vec_cctor_call(
                                           an_expr_node_ptr entity_node,
                                           an_expr_node_ptr source_node,
-                                          long             array_element_count,
+                                          a_targ_ptrdiff_t array_element_count,
                                           a_routine_ptr    cctor_routine)
 /*
 Make a call to a runtime routine (__vec_cctor) that will call a copy
@@ -1705,7 +1744,7 @@ static void add_array_constructor_call(
                                    a_dynamic_init_ptr     dip,
                                    an_expr_node_ptr       entity_node,
                                    an_expr_node_ptr       source_node,
-                                   long                   array_element_count,
+                                   a_targ_ptrdiff_t       array_element_count,
                                    an_insert_location_ptr insert_location)
 /*
 Generate code that calls a constructor for each element of an array.
@@ -1749,29 +1788,23 @@ in default_version_of_routine).
 }  /* add_array_constructor_call */
 
 
-static void add_destructor_call(a_dynamic_init_ptr     dip,
+static void add_destructor_call(a_routine_ptr          dtor_routine,
                                 an_expr_node_ptr       entity_node,
                                 a_boolean              have_complete_object,
                                 an_insert_location_ptr insert_location)
 /*
-Make a call statement that invokes a destructor as required in the dynamic
-initialization entry pointed to by dip.  entity_node is an expression
-that gives the address of the entity to be destroyed.  have_complete_object
-is TRUE if the entity is a complete object.  Insert the statement at
-*insert_location and update *insert_location.  The call generated is
-not a virtual call even if the destructor is virtual.
+Make a call statement that invokes the destructor dtor_routine.
+entity_node is an expression that gives the address of the entity to be
+destroyed.  have_complete_object is TRUE if the entity is a complete
+object.  Insert the statement at *insert_location and update
+*insert_location.  The call generated is not a virtual call even if
+the destructor is virtual.
 */
 {
-  a_routine_ptr    dtor_routine = dip->destructor;
   a_statement_ptr  call_stmt;
   an_expr_node_ptr implied_arg_node;
   a_type_ptr       this_param_type;
 
-#if CHECKING
-  if (dtor_routine == NULL) {
-    internal_error("add_destructor_call: destructor == NULL");
-  }  /* if */
-#endif /* CHECKING */
   /* Cast the entity node pointer to the right type.  It might be a pointer
      to the class type-as-subobject. */
   this_param_type = implicit_this_param_type_of(dtor_routine->type);
@@ -1791,28 +1824,20 @@ not a virtual call even if the destructor is virtual.
 
 
 static void add_array_destructor_call(
-                                   a_dynamic_init_ptr     dip,
+                                   a_routine_ptr          dtor_routine,
                                    an_expr_node_ptr       entity_node,
-                                   long                   array_element_count,
+                                   a_targ_ptrdiff_t       array_element_count,
                                    an_insert_location_ptr insert_location)
 /*
-Generate code that calls a destructor for each element of an array.
-dip indicates the destruction to be performed; entity_node gives the
-address of the array; and array_element_count gives the number of elements
-in the array.  Insert the statements at *insert_location and update
-*insert_location.
+Generate code that calls the destructor dtor_routine for each element
+of an array.  entity_node gives the address of the array and
+array_element_count gives the number of elements in the array.  Insert
+the statements at *insert_location and update *insert_location.
 */
 {
-  a_routine_ptr    dtor_routine;
   an_expr_node_ptr call_node;
   a_statement_ptr  call_stmt;
 
-#if CHECKING
-  if (dip->destructor == NULL) {
-    internal_error("add_array_destructor_call: no destructor");
-  }  /* if */
-#endif /* CHECKING */
-  dtor_routine = dip->destructor;
   /* default_version_of_routine is not called on purpose; __vec_delete
      knows about the implicit argument for destructors and generates
      it automatically. */
@@ -1986,7 +2011,8 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
       }  /* if */
 #endif /* CHECKING */
       ipd.whole_array = TRUE;
-      ipd.array_element_count = con_ptr->variant.init_repeat.count;
+      ipd.array_element_count =
+                          (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
       lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, ctor_init,
                             insert_location);
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_aggregate) {
@@ -3181,11 +3207,11 @@ are inserted at *insert_location and *insert_location is updated.
   /* Generate code for the destructor call. */
   if (ipdp->whole_array) {
     /* Destruction of whole array. */
-    add_array_destructor_call(dip, entity_node, ipdp->array_element_count,
-                              insert_location);
+    add_array_destructor_call(dip->destructor, entity_node,
+                              ipdp->array_element_count, insert_location);
   } else {
     /* Destruction of simple entity (non-array). */
-    add_destructor_call(dip, entity_node, have_complete_object,
+    add_destructor_call(dip->destructor, entity_node, have_complete_object,
                         insert_location);
   }  /* if */
   error_position = saved_error_position;
@@ -3460,7 +3486,8 @@ i.e., arrays with class elements.
     dtor_routine = NULL;
   }  /* if */
   vec_delete_node = make_vec_delete_call(ndsp->arg,
-                                         /*array_element_count=*/-1L,
+                                         /*array_element_count=*/
+                                                          (a_targ_ptrdiff_t)-1,
                                          dtor_routine,
                                          /*free_storage=*/TRUE);
   /* Overwrite the original node with the __vec_delete call. */

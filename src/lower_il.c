@@ -8331,6 +8331,8 @@ Display and return the amount of space used for various IL lowering tables.
   db_space_used("Name strings", allocated_name_string_length, char);
   db_space_used_lost("init pos modifier", avail_init_pos_modifiers,
                     num_init_pos_modifiers_allocated, an_init_pos_modifier);
+  db_space_used_lost("init pos descr", avail_init_pos_descrs,
+                    num_init_pos_descrs_allocated, an_init_pos_descr);
   db_space_used_lost("cleanup action", avail_cleanup_actions,
                      num_cleanup_actions_allocated,
                      a_cleanup_action);
@@ -8356,6 +8358,7 @@ are handled in il_lower_init.)
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_init_pos_modifiers),
+      pch_saved_var_array_elem(avail_init_pos_descrs),
       pch_saved_var_array_elem(avail_cleanup_actions),
       pch_saved_var_array_elem(avail_return_memos),
       pch_saved_var_array_elem(pure_virtual_called_routine),
@@ -8366,6 +8369,7 @@ are handled in il_lower_init.)
       pch_saved_var_array_elem(mptr_f_field),
 #if DEBUG
       pch_saved_var_array_elem(num_init_pos_modifiers_allocated),
+      pch_saved_var_array_elem(num_init_pos_descrs_allocated),
       pch_saved_var_array_elem(allocated_name_string_length),
       pch_saved_var_array_elem(num_cleanup_actions_allocated),
       pch_saved_var_array_elem(num_return_memos_allocated),
@@ -8406,9 +8410,11 @@ of the front end.
   }  /* if */
 #endif /* CHECKING && ASSIGNMENT_TO_THIS_ALLOWED */
   avail_init_pos_modifiers = NULL;
+  avail_init_pos_descrs = NULL;
   curr_full_expression = NULL;
 #if DEBUG
-  num_init_pos_modifiers_allocated        = 0;
+  num_init_pos_modifiers_allocated = 0;
+  num_init_pos_descrs_allocated    = 0;
 #endif /* DEBUG */
   return_value_pointer_variable = NULL;
   code_pos_for_lowering = null_source_position;

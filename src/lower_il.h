@@ -112,12 +112,19 @@ typedef struct an_init_pos_descr {
   /* An initialization position description.  Starts with a variable (the
      variable itself or what it points to).  That base address may be
      modified by a modifiers list. */
+  an_init_pos_descr_ptr
+		next;	/* Next entry on the available list. */
   a_variable_ptr
 		variable;
 			/* The base variable. */
-  a_boolean	indirect_through_variable;
+  a_byte_boolean
+		indirect_through_variable;
 			/* If TRUE, variable is a pointer and its value gives
 			   the base address. */
+  a_byte_boolean
+		whole_array;
+			/* TRUE if the entity is a whole array being
+			   initialized as one unit. */
   a_type_ptr	base_type;
 			/* Base entity type. */
   an_init_pos_modifier_ptr
@@ -125,14 +132,31 @@ typedef struct an_init_pos_descr {
 			/* Optional list of modifiers of the base variable,
 			   NULL if none.  In order from innermost to outermost
 			   modifier. */
-  a_boolean	whole_array;
-			/* TRUE if the entity is a whole array being
-			   initialized as one unit. */
-  long		array_element_count;
+  a_targ_ptrdiff_t
+		array_element_count;
 			/* If whole_array is TRUE, the count of elements in
 			   the array, or -1 for an unknown-length array
 			   (new/delete only).  Zero otherwise. */
+  a_variable_ptr
+		conditional_flag_var;
+			/* If non-NULL, points to a variable that is the
+			   conditional flag variable that indicates that the
+			   initialization has been done. */
 } an_init_pos_descr;
+
+EXTERN an_init_pos_descr_ptr
+		avail_init_pos_descrs;
+			/* List of initialization position description entries
+			   that have been freed and are available for reuse. */
+
+#if DEBUG
+/*
+Count of entries allocated, for debugging purposes.
+*/
+EXTERN unsigned long
+		num_init_pos_modifiers_allocated,
+		num_init_pos_descrs_allocated;
+#endif /* DEBUG */
 
 
 /*
@@ -418,13 +442,6 @@ EXTERN a_source_position
 			/* The source position associated with executable code
 			   currently being lowered. */
 
-#if DEBUG
-/*
-Count of entries allocated, for debugging purposes.
-*/
-EXTERN unsigned long
-		num_init_pos_modifiers_allocated;
-#endif /* DEBUG */
 
 extern a_boolean il_lowering_needed(void);
 
