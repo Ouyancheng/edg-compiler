@@ -941,6 +941,9 @@ error code.
     case ec_inaccessible_copy_constructor:
       m = "copy constructor is inaccessible";
       break;
+    case ec_no_default_constructor:
+      m = "no default constructor exists for this class";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

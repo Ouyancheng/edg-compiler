@@ -335,7 +335,8 @@ typedef enum /*an_error_code*/ {
   ec_ambiguous_derived_class,
   ec_derived_class_from_virtual_base,
   ec_no_matching_constructor,
-  ec_inaccessible_copy_constructor
+  ec_inaccessible_copy_constructor,
+  ec_no_default_constructor
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
