@@ -36,7 +36,6 @@ scope_stk.c - Management of the scope stack and related routines.
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#include "templates.h"
 
 /*
 Variables and constants related to the scope_stack:
