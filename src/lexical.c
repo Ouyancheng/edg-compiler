@@ -8015,6 +8015,9 @@ are handled in lexical_init.)
     if (strict_ansi_mode) {
       /* Strict ANSI/ISO C: // comments are not allowed. */
       end_of_line_comments_allowed = FALSE;
+    } else if (C_dialect == C_dialect_pcc) {
+      /* pcc mode: // comments are not allowed. */
+      end_of_line_comments_allowed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode) {
       /* Microsoft C mode: // comments are allowed. */
