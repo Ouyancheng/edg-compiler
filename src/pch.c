@@ -2001,6 +2001,10 @@ from the PCH file) to reflect the information loaded from the file.
   il_header.primary_source_file = orig_sfp;
   il_header.primary_scope = il_header_from_pch.primary_scope;
   il_header.main_routine = il_header_from_pch.main_routine;
+  il_header.seq_number_lookup_entries =
+                                  il_header_from_pch.seq_number_lookup_entries;
+  il_header.num_seq_number_lookup_entries =
+                              il_header_from_pch.num_seq_number_lookup_entries;
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   il_header.scope_orphaned_list_headers =
                               il_header_from_pch.scope_orphaned_list_headers;
@@ -2022,6 +2026,9 @@ from the PCH file) to reflect the information loaded from the file.
   }
   /* Clear the stop tokens array that was restored. */
   clear_stop_tokens();
+  /* Rebuild the sequence number lookup table used for sequence number
+     to file/line conversion. */
+  build_seq_number_lookup_table((unsigned long)0);
   db_exit();
 }  /* pch_fixup_part_1 */
 

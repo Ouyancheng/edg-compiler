@@ -840,15 +840,14 @@ with same_src_error; otherwise, use distinct_src_error.
   a_source_position_ptr
                  pos1 = &sym->decl_position;
   a_line_number  line1, line2;
-  unsigned long  nesting_depth;
   a_boolean      at_end_of_source;
   a_source_file_ptr
                  src_file1 = source_file_for_seq(
                                 pos1->seq, &line1, &at_end_of_source,
-                                &nesting_depth, /*physical_line=*/TRUE),
+                                /*physical_line=*/TRUE),
                  src_file2 = source_file_for_seq(
                                 pos2->seq, &line2, &at_end_of_source,
-                                &nesting_depth, /*physical_line=*/TRUE);
+                                /*physical_line=*/TRUE);
 
   if (src_file1 != NULL && src_file2 != NULL &&
       src_file1->full_name != NULL && src_file2->full_name != NULL &&

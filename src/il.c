@@ -103,15 +103,33 @@ typedef struct a_source_sequence_cache_entry {
   a_boolean	physical_line;
 			/* TRUE if the cached information reflects a physical
 			   line lookup. */
-  unsigned long
-		nesting_depth;
-			/* Cached nesting depth. */
   a_source_file_ptr
 		source_file;
 			/* Cached source file pointer. */
 } a_source_sequence_cache_entry;
 
 static a_source_sequence_cache_entry seq_cache;
+
+static a_seq_number_lookup_entry_ptr
+		curr_seq_number_lookup_entry;
+			/* Pointer to the sequence number lookup entry for
+			   the source file segment currently being read. */
+
+#define SEQ_NUMBER_LOOKUP_TABLE_INITIAL_ALLOCATION 1024
+			/* The initial number of elements in the sequence
+			   number lookup table. */ 
+
+static unsigned long
+		seq_number_lookup_table_size;
+			/* The allocated size of the sequence number lookup
+			   table. */
+
+static a_seq_number_lookup_entry_ptr
+		*seq_number_lookup_table;
+			/* Pointer to a dynamically allocated array of sequence
+			   number lookup entries.  See the description of
+			   a_seq_number_lookup_entry and the routine
+			   add_seq_number_lookup_entry for more information. */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -2251,10 +2269,94 @@ file and line number.
   seq_cache.last_seq_number = 0;
   seq_cache.line_offset = 0;
   seq_cache.physical_line = FALSE;
-  seq_cache.nesting_depth = 0;
   seq_cache.source_file = NULL;
 }  /* reset_seq_cache */
   
+
+static void expand_seq_number_lookup_table(unsigned long	new_entries)
+/*
+Increase the size of the sequence number lookup table.  new_entries specifies
+the size of the new table. If it is zero, the routine determines the size
+to be used.
+*/
+{
+  sizeof_t	old_size = seq_number_lookup_table_size *
+                                         sizeof(a_seq_number_lookup_entry_ptr);
+  sizeof_t	new_size;
+
+  if (new_entries != 0) {
+    /* Use the value provided by the caller. */
+  } else if (seq_number_lookup_table_size == 0) {
+    /* If this is the first allocation, use the special initial allocation
+       size. */
+    new_entries = SEQ_NUMBER_LOOKUP_TABLE_INITIAL_ALLOCATION;
+  } else {
+    /* Otherwise, double the size of the table. */
+    new_entries = seq_number_lookup_table_size * 2;
+  }  /* if */
+  new_size = new_entries * sizeof(a_seq_number_lookup_entry_ptr);
+  seq_number_lookup_table = (a_seq_number_lookup_entry_ptr*)
+                            realloc_general((char*)seq_number_lookup_table,
+                                            old_size, new_size);
+  seq_number_lookup_table_size = new_entries;
+}  /* expand_seq_number_lookup_table */
+
+
+void build_seq_number_lookup_table(unsigned long	num_entries)
+/*
+This routine is used to reconstruct the sequence number lookup table.  It
+is called after the IL had been read from a file, or after memory has been
+restored from a precompiled header file.  num_entries is the number of
+entries in the table, if known.  If it is not known, a value of zero is
+used.
+*/
+{
+  a_seq_number_lookup_entry_ptr	snlep;
+  unsigned long			entry_number;
+
+  /* If the size of the table is known, make sure the table is large
+     enough. */
+  if (num_entries != 0 && num_entries > seq_number_lookup_table_size) {
+    expand_seq_number_lookup_table(num_entries);
+  }  /* if */
+  for (snlep = il_header.seq_number_lookup_entries, entry_number = 0;
+       snlep != NULL; snlep = snlep->next) {
+    if (entry_number >= seq_number_lookup_table_size) {
+      /* The table is not big enough.  Increase the size. */
+      expand_seq_number_lookup_table((unsigned long)0);
+    }  /* if */
+    seq_number_lookup_table[entry_number++] = snlep;
+  }  /* for */
+  /* Record the table size in the IL header. */
+  il_header.num_seq_number_lookup_entries = entry_number;
+}  /* build_seq_number_lookup_table */
+
+#if DEBUG
+
+void db_seq_number_lookup_table(void)
+/*
+Display the sequence number lookup table, for debugging purposes.
+*/
+{
+  unsigned long			count = 0;
+  a_seq_number_lookup_entry_ptr	snlep;
+
+  for (snlep = il_header.seq_number_lookup_entries;
+       snlep != NULL; snlep = snlep->next) {
+    count++;
+    fprintf(f_debug, "  first=%8ld, last=%8ld, line=%8ld, file=%s\n",
+            (unsigned long)snlep->first, (unsigned long)snlep->last,
+            (unsigned long)snlep->line_number, snlep->source_file->file_name);
+  }  /* for */
+  if (count != il_header.num_seq_number_lookup_entries) {
+    fprintf(f_debug, "  *** Sequence number count mismatch ***\n");
+    fprintf(f_debug, "  il_header=%ld, list=%ld\n",
+            (unsigned long)il_header.num_seq_number_lookup_entries,
+            (unsigned long)count);
+  }  /* if */
+}  /* db_seq_number_lookup_table */
+
+#endif /* DEBUG */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -2353,6 +2455,79 @@ Allocate a scope entry in the new region and return a pointer to it.
 }  /* new_il_region */
 
 
+static void add_seq_number_lookup_entry(a_source_file_ptr	source_file,
+					a_seq_number		seq_number,
+					a_line_number		line_number)
+/*
+Add an entry to the list of sequence number lookup entries.  The source file
+begins at the sequence number and line number specified by seq_number and
+line_number, respectively.  The ending sequence number is not known yet.
+
+The sequence number lookup table is a dynamically allocated array of pointers
+to sequence number lookup table entries.  The entries in the array are in
+sequence number order so that a binary search can be used to find a given
+sequence number.  The table contains entries that reflect any #line
+directives in the program, so this lookup mechanism is only suitable for
+sequence number lookups that are not seeking the actual physical line of
+the input file.
+
+A linked list of lookup entries is maintained so that they can be easily
+be written as part of the IL file.
+
+Because the lookup table is reallocated as needed, it is stored in general
+memory, not IL memory.  The table is reconstructed from the individual
+entries when the IL is read from a file, or when a precompiled header file
+is used.
+*/
+{
+  a_seq_number_lookup_entry_ptr	snlep;
+
+#if DEBUG
+  if (db_flag_is_set("seq_number_lookup")) {
+    fprintf(f_debug,
+           "Created seq lookup %lu for file %s seq %lu line %lu\n",
+            il_header.num_seq_number_lookup_entries, source_file->file_name,
+            (unsigned long)seq_number,(unsigned long)line_number);
+  }  /* if */
+#endif /* DEBUG */
+  if (curr_seq_number_lookup_entry != NULL &&
+      curr_seq_number_lookup_entry->first == seq_number) {
+    /* The previously created entry turns out not to be needed.  Reuse
+       that entry instead of adding a new one. */
+    snlep = curr_seq_number_lookup_entry;
+  } else {
+    if (curr_seq_number_lookup_entry != NULL) {
+      /* Set the ending sequence number of the previous entry.  In some cases,
+         it may have already been set. */
+      curr_seq_number_lookup_entry->last = seq_number - 1;
+    }  /* if */
+    snlep = alloc_seq_number_lookup_entry();
+    if (il_header.num_seq_number_lookup_entries >=
+                                                seq_number_lookup_table_size) {
+      /* There is not enough space in the table for the new entry.
+         Expand it. */
+      expand_seq_number_lookup_table((unsigned long)0);
+    }  /* if */
+    /* Set the IL header field to point to the head of the list of lookup
+       entries. */
+    if (il_header.seq_number_lookup_entries == NULL) {
+      il_header.seq_number_lookup_entries = snlep;
+    } else {
+      /* Link this entry into the list of lookup entries. */
+      curr_seq_number_lookup_entry->next = snlep;
+    }  /* if */
+    seq_number_lookup_table[il_header.num_seq_number_lookup_entries] = snlep;
+    il_header.num_seq_number_lookup_entries++;
+    /* Save the pointer to this entry so that it can be updated later. */
+    curr_seq_number_lookup_entry = snlep; 
+  }  /* if */
+  snlep->source_file = source_file;
+  snlep->first = seq_number;
+  snlep->last = MAX_SEQ_NUMBER;
+  snlep->line_number = line_number;
+}  /* add_seq_number_lookup_entry */
+
+
 void record_start_of_source_file(a_source_file_ptr parent_file,
 			         a_seq_number      seq_number,
 				 a_line_number     line_number,
@@ -2437,10 +2612,26 @@ in a directory marked as a system include directory.
     }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
+  /* Add an entry to the sequence number lookup table to reflect this
+     source file entry. */
+  add_seq_number_lookup_entry(sfp, sfp->first_seq_number,
+                              sfp->first_line_number);
   /* Clear the cached sequence number conversion information. */
   reset_seq_cache();
   db_exit();
 } /* record_start_of_source_file */
+
+
+void record_resumption_of_source_file(a_source_file_ptr	curr_file,
+				      a_seq_number	seq_number,
+				      a_line_number	line_number) 
+/*
+Indicate that we are resuming the processing of curr_file at the sequence
+number specified by seq_number and line number specified by line_number.
+*/
+{
+  add_seq_number_lookup_entry(curr_file, seq_number, line_number);
+}  /* record_resumption_of_source_file */
 
 
 void record_end_of_source_file(a_source_file_ptr curr_file,
@@ -2459,6 +2650,9 @@ by recording that the last sequence number contained therein is seq_number.
   curr_file->last_seq_number = seq_number;
   /* Clear the cached sequence number conversion information. */
   reset_seq_cache();
+  /* Update the current sequence number lookup entry with the ending sequence
+     number. */
+  curr_seq_number_lookup_entry->last = seq_number;
   db_exit();
 }  /* record_end_of_source_file */
 
@@ -2521,10 +2715,271 @@ falls and return a pointer to it.
 }  /* primary_source_file_for_seq */
 
 
+static void update_seq_cache(a_source_file_ptr	source_file,
+			     a_seq_number	first_seq_number,
+			     a_seq_number	last_seq_number,
+			     long		line_offset,
+			     a_boolean		physical_line)
+/*
+Update the cache entry used to speed up sequence number to file and line
+number conversions.
+*/
+{
+  seq_cache.first_seq_number = first_seq_number;
+  seq_cache.last_seq_number = last_seq_number;
+  seq_cache.line_offset = line_offset;
+  seq_cache.physical_line = physical_line;
+  seq_cache.source_file = source_file; 
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "Cached source sequence conversion information:\n");
+    fprintf(f_debug, "  file=%s\n", source_file->file_name);
+    fprintf(f_debug, "  first_seq_number: %lu\n", seq_cache.first_seq_number);
+    fprintf(f_debug, "  last_seq_number: %lu\n", seq_cache.last_seq_number);
+    fprintf(f_debug, "  line_offset: %ld\n", seq_cache.line_offset);
+    fprintf(f_debug, "  physical_line: %d\n", seq_cache.physical_line);
+  }  /* if */
+#endif /* DEBUG */
+}  /* update_seq_cache */
+
+
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+BEGIN_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
+
+static int compare_seq_info(a_const_void_ptr arg1,
+                            a_const_void_ptr arg2)
+/*
+Function called by bsearch to compare two sequence number lookup entries based.
+The first pointer represents the sequence number to be found.  The second
+pointer points into the lookup array.
+*/
+{
+  a_seq_number_lookup_entry_ptr	snlep1;
+  a_seq_number_lookup_entry_ptr	snlep2;
+  int				result;
+  a_seq_number			seq_to_find;
+
+  snlep1 = (a_seq_number_lookup_entry_ptr)arg1;
+  snlep2 = *(a_seq_number_lookup_entry_ptr*)arg2;
+  seq_to_find = snlep1->first;
+  if (seq_to_find < snlep2->first) {
+    /* The sequence number we're looking for precedes this entry. */
+    result = -1;
+  } else if (seq_to_find > snlep2->last) {
+    /* The sequence number we're looking for follows this entry. */
+    result = 1;
+  } else {
+    /* The sequence number we're looking for is within the range of this
+       entry. */
+    result = 0;
+  }  /* if */
+  return result;
+}  /* compare_seq_info */
+
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+END_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
+
+
+static a_source_file_ptr find_seq_in_lookup_table(
+					a_seq_number	seq_number,
+					a_line_number	*line_number,
+					a_boolean	*at_end_of_source)
+/*
+Convert a sequence number into the source file containing the specified line,
+and the line number offset within that file.  See source_file_for_seq
+for more information.
+
+This routine is used for searches that respect #line directives (i.e., that
+are not looking for a physical line).  This lookup uses the sequence number
+lookup table.
+*/
+{
+  a_seq_number_lookup_entry	snle_to_find;
+  a_seq_number_lookup_entry_ptr	snlep_found;
+  a_source_file_ptr		curr_file;
+  long				line_offset;
+  a_seq_number_lookup_entry_ptr	*bsearch_result;
+
+  /* Check whether this is the end-of-file position for any of the
+     translation units being processed. */
+  for (curr_file = il_header.primary_source_file; curr_file != NULL;
+       curr_file = curr_file->next) {
+    if (seq_number-1 == curr_file->last_seq_number) {
+      /* At end of source.  Use the last line of the primary source file. */
+      *at_end_of_source = TRUE;
+      seq_number--;
+    }  /* if */
+  }  /* for */
+  /* Construct a special lookup entry whose "first" value holds the sequence
+     number we are looking fore. */
+  snle_to_find.first = seq_number;
+  /* Use bsearch to find the entry that contains the sequence number that we
+     are looking for. */
+  bsearch_result = (a_seq_number_lookup_entry_ptr*)
+                   bsearch((a_bsearch_arg_type)&snle_to_find,
+                           (a_bsearch_arg_type)seq_number_lookup_table,
+                           size_t_arg(il_header.num_seq_number_lookup_entries),
+                           sizeof(a_seq_number_lookup_entry_ptr),
+                           compare_seq_info);
+  check_assertion_str2(bsearch_result != NULL, "find_seq_in_lookup_table:",
+                       "seq_number not found");
+  snlep_found = *bsearch_result;
+  curr_file = snlep_found->source_file;
+  line_offset = -(long)(snlep_found->first) + snlep_found->line_number;
+  /* Save information about this conversion so that subsequent conversions
+     can be done more quickly. */
+  update_seq_cache(curr_file, snlep_found->first, snlep_found->last,
+                   line_offset, /*physical_line=*/FALSE);
+  /* Compute the line number to be returned to the caller. */
+  *line_number = seq_number + line_offset;
+  return curr_file;
+}  /* find_seq_in_lookup_table */
+
+
+static a_source_file_ptr find_seq_in_source_files(
+					a_seq_number	seq_number,
+					a_line_number	*line_number,
+					a_boolean	*at_end_of_source,
+					a_boolean	physical_line)
+/*
+Convert a sequence number into the source file containing the specified line,
+and the line number offset within that file.  See source_file_for_seq
+for more information.
+
+This routine is typically used for searches that ignore #line directives (i.e.,
+that are looking for a physical line), but the physical_line parameter is
+provided should there be need to respect line directives.  This routine uses
+the source file structure to do the conversion.
+*/
+{
+  a_source_file_ptr	curr_file;
+  a_source_file_ptr	child_file;
+  a_source_file_ptr	grandchild_file;
+  a_source_file_ptr	phys_curr_file;
+  a_source_file_ptr	orig_curr_file;
+  a_seq_number		first_seq_for_cache;
+  a_seq_number		last_seq_for_cache;
+  unsigned long		lines_in_children;
+  long			line_offset;
+
+  /* Find the top-level file for this sequence number. */
+  curr_file = il_header.primary_source_file;
+  check_assertion(seq_number >= curr_file->first_seq_number);
+  while (seq_number-1 > curr_file->last_seq_number) {
+    curr_file = curr_file->next;
+#if CHECKING
+    if (curr_file == NULL) {
+#if DEBUG
+      if (debug_level > 0) {
+        fprintf(f_debug, "seq number = %lu\n", seq_number);
+      }  /* if */
+#endif /* DEBUG */
+      internal_error("source_file_for_seq: bad seq number");
+    }  /* if */
+#endif /* CHECKING */
+  }  /* while */
+  if (seq_number-1 == curr_file->last_seq_number) {
+    /* At end of source.  Use the last line of the primary source file. */
+    *at_end_of_source = TRUE;
+    seq_number--;
+  }  /* if */
+  lines_in_children = 0;
+  /* See if the sequence number falls within any child file. */
+examine_children:
+  if (!physical_line) {
+    /* #line directives are just as valid as #includes. */
+    lines_in_children = 0;
+  } else {
+    /* We want the physical line number, so #line directives count less than
+       #includes. */
+    if (curr_file->full_name != NULL) {
+      /* Examining a real file, rather than an entry for a #line directive.
+         Remember the physical file information in case what we're descending
+         to is an entry for a #line directive. */
+      phys_curr_file = curr_file;
+      lines_in_children = 0;
+    }  /* if */
+  }  /* if */
+  child_file = curr_file->first_child_file;
+  /* Record the first sequence number of the current file as the first
+     sequence number for which the cached information applies.  This will
+     be updated below if necessary to reflect child files. */
+  first_seq_for_cache = curr_file->first_seq_number;
+  /* Check the sequence number against each child.  The children are
+     in order by sequence number. */
+  while (child_file != NULL) {
+    if (seq_number < child_file->first_seq_number) {
+      /* Sequence number falls before the start of this child, and
+         therefore must be in the current file. */
+      break;
+    } else if (seq_number <= child_file->last_seq_number) {
+      /* The sequence number falls within this child (or one of its
+         children). */
+      curr_file = child_file;
+      goto examine_children;
+    }  /* if */
+    /* The sequence number falls after this child, so keep looking.
+       Keep track of the number of lines in children.  If the entry we
+       are skipping over is for a #line directive, only count the lines
+       in its #include children, not those of the current file spanned
+       by the #line directive. */
+    if (child_file->full_name != NULL) {
+      /* Real file. */
+      lines_in_children += child_file->last_seq_number -
+                           child_file->first_seq_number + 1;
+    } else {
+      /* #line directive.  Note that typically when #line directives
+         appear there are no #includes, so the loop here does nothing. */
+      for (grandchild_file = child_file->first_child_file;
+           grandchild_file != NULL;
+           grandchild_file = grandchild_file->next) {
+        lines_in_children += grandchild_file->last_seq_number -
+                             grandchild_file->first_seq_number + 1;
+      }  /* for */
+    }  /* if */
+    /* Record the sequence number following this child as the first
+       sequence number for which the cached information applies. */
+    first_seq_for_cache = child_file->last_seq_number + 1;
+    child_file = child_file->next;
+  }  /* while */
+  /* Save the current file entry before potentially changing it to
+     point to the physical file. */
+  orig_curr_file = curr_file;
+  if (physical_line) {
+    /* If we want to ignore #line directives, go back to the last entry
+       for a real file that we saw. */
+    curr_file = phys_curr_file;
+  }  /* if */
+  /* Save information about the file in which this sequence number was found
+     so that subsequent lines may be found more quickly. */
+  line_offset = -(long)(curr_file->first_seq_number) + 
+                            curr_file->first_line_number - lines_in_children;
+  /* Save information about this conversion so that subsequent conversions
+     can be done more quickly. */
+  seq_cache.first_seq_number = first_seq_for_cache;
+  if (child_file != NULL) {
+    /* This cache entry is valid up to the first line of the next
+       child file. */
+    last_seq_for_cache = child_file->first_seq_number - 1;
+  } else {
+    /* This cached entry is valid through the end of the current file. */
+    last_seq_for_cache = orig_curr_file->last_seq_number;
+  }  /* if */
+  update_seq_cache(curr_file, first_seq_for_cache, last_seq_for_cache,
+                   line_offset, physical_line);
+  /* Compute the line number to be returned to the caller. */
+  *line_number = seq_number + line_offset;
+  return curr_file;
+}  /* find_seq_in_source_files */
+
+
 a_source_file_ptr source_file_for_seq(a_seq_number   seq_number,
                                       a_line_number  *line_number,
                                       a_boolean      *at_end_of_source,
-                                      unsigned long  *nesting_depth,
                                       a_boolean      physical_line)
 /*
 Find the source file entry within which the sequence number seq_number falls,
@@ -2533,17 +2988,11 @@ outside of any file.  If the sequence number falls within a file, also
 return *line_number set to the line number in the file.  Return
 *at_end_of_source TRUE if the line number is the special number indicating
 the end-of-file line (one more than the last line in the primary input file).
-Return the file nesting depth in *nesting_depth (0 => not inside any file,
-1 => in primary source file, 2 => inside one level of #include, etc.).  If
-physical_line is TRUE, ignore #line directive information and return the
+If physical_line is TRUE, ignore #line directive information and return the
 physical line position for the sequence number.
 */
 {
-  a_source_file_ptr curr_file, child_file, grandchild_file, phys_curr_file;
-  a_source_file_ptr orig_curr_file;
-  unsigned long     lines_in_children;
-  a_seq_number	    first_seq_for_cache;
-  long		    line_offset;
+  a_source_file_ptr	curr_file = NULL;
 
   db_enter(5, "source_file_for_seq");
 #if DEBUG
@@ -2553,11 +3002,8 @@ physical line position for the sequence number.
 #endif /* DEBUG */
   *at_end_of_source = FALSE;
   *line_number = 0;
-  *nesting_depth = 0;
-  curr_file = il_header.primary_source_file;
-  if (seq_number == 0 || curr_file == NULL) {
+  if (seq_number == 0 || il_header.primary_source_file == NULL) {
     /* Unknown position or no files. */
-    curr_file = NULL;
   } else if (physical_line == seq_cache.physical_line &&
              seq_number >= seq_cache.first_seq_number &&
              seq_number <= seq_cache.last_seq_number) {
@@ -2565,133 +3011,22 @@ physical line position for the sequence number.
        associated with the information saved by the last lookup,
        use the information saved last time to speed up the conversion. */
     *line_number = seq_number + seq_cache.line_offset;
-    *nesting_depth = seq_cache.nesting_depth;
     curr_file = seq_cache.source_file;
   } else {
-    /* Find the top-level file for this sequence number. */
-    check_assertion(seq_number >= curr_file->first_seq_number);
-    while (seq_number-1 > curr_file->last_seq_number) {
-      curr_file = curr_file->next;
-#if CHECKING
-      if (curr_file == NULL) {
-#if DEBUG
-        if (debug_level > 0) {
-          fprintf(f_debug, "seq number = %lu\n", seq_number);
-        }  /* if */
-#endif /* DEBUG */
-        internal_error("source_file_for_seq: bad seq number");
-      }  /* if */
-#endif /* CHECKING */
-    }  /* while */
-    if (seq_number-1 == curr_file->last_seq_number) {
-      /* At end of source.  Use the last line of the primary source file. */
-      *at_end_of_source = TRUE;
-      seq_number--;
-    }  /* if */
-    lines_in_children = 0;
-    /* See if the sequence number falls within any child file. */
-examine_children:
-    (*nesting_depth)++;
-    if (!physical_line) {
-      /* #line directives are just as valid as #includes. */
-      lines_in_children = 0;
-    } else {
-      /* We want the physical line number, so #line directives count less than
-         #includes. */
-      if (curr_file->full_name != NULL) {
-        /* Examining a real file, rather than an entry for a #line directive.
-           Remember the physical file information in case what we're descending
-           to is an entry for a #line directive. */
-        phys_curr_file = curr_file;
-        lines_in_children = 0;
-      }  /* if */
-    }  /* if */
-    child_file = curr_file->first_child_file;
-    /* Record the first sequence number of the current file as the first
-       sequence number for which the cached information applies.  This will
-       be updated below if necessary to reflect child files. */
-    first_seq_for_cache = curr_file->first_seq_number;
-    /* Check the sequence number against each child.  The children are
-       in order by sequence number. */
-    while (child_file != NULL) {
-      if (seq_number < child_file->first_seq_number) {
-        /* Sequence number falls before the start of this child, and
-           therefore must be in the current file. */
-        break;
-      } else if (seq_number <= child_file->last_seq_number) {
-        /* The sequence number falls within this child (or one of its
-           children). */
-        curr_file = child_file;
-        goto examine_children;
-      }  /* if */
-      /* The sequence number falls after this child, so keep looking.
-         Keep track of the number of lines in children.  If the entry we
-         are skipping over is for a #line directive, only count the lines
-         in its #include children, not those of the current file spanned
-         by the #line directive. */
-      if (child_file->full_name != NULL) {
-        /* Real file. */
-        lines_in_children += child_file->last_seq_number -
-                             child_file->first_seq_number + 1;
-      } else {
-        /* #line directive.  Note that typically when #line directives
-           appear there are no #includes, so the loop here does nothing. */
-        for (grandchild_file = child_file->first_child_file;
-             grandchild_file != NULL;
-             grandchild_file = grandchild_file->next) {
-          lines_in_children += grandchild_file->last_seq_number -
-                               grandchild_file->first_seq_number + 1;
-        }  /* for */
-      }  /* if */
-      /* Record the sequence number following this child as the first
-         sequence number for which the cached information applies. */
-      first_seq_for_cache = child_file->last_seq_number + 1;
-      child_file = child_file->next;
-    }  /* while */
-    /* Save the current file entry before potentially changing it to
-       point to the physical file. */
-    orig_curr_file = curr_file;
     if (physical_line) {
-      /* If we want to ignore #line directives, go back to the last entry
-         for a real file that we saw. */
-      curr_file = phys_curr_file;
-    }  /* if */
-    /* Save information about the file in which this sequence number was found
-       so that subsequent lines may be found more quickly. */
-    line_offset = -(long)(curr_file->first_seq_number) + 
-                            curr_file->first_line_number - lines_in_children;
-    /* Save information about this conversion so that subsequent conversions
-       can be done more quickly. */
-    seq_cache.first_seq_number = first_seq_for_cache;
-    if (child_file != NULL) {
-      /* This cache entry is valid up to the first line of the next
-         child file. */
-      seq_cache.last_seq_number = child_file->first_seq_number - 1;
+      /* The less common case where #line directives are ignored.  Use the
+         more expensive search of the source file data structure. */
+      curr_file = find_seq_in_source_files(seq_number, line_number,
+					   at_end_of_source, physical_line); 
     } else {
-      /* This cached entry is valid through the end of the current file. */
-      seq_cache.last_seq_number = orig_curr_file->last_seq_number;
+      /* Use the sequence number lookup table to find the source file. */
+      curr_file = find_seq_in_lookup_table(seq_number, line_number,
+					   at_end_of_source);
     }  /* if */
-    seq_cache.line_offset = line_offset;
-    seq_cache.source_file = curr_file;
-    seq_cache.nesting_depth = *nesting_depth;
-    seq_cache.physical_line = physical_line;
-#if DEBUG
-    if (debug_level >= 5) {
-      fprintf(f_debug, "Cached source sequence conversion information:\n");
-      fprintf(f_debug, "  file=%s\n", curr_file->file_name);
-      fprintf(f_debug, "  first_seq_number: %lu\n",
-                       seq_cache.first_seq_number);
-      fprintf(f_debug, "  last_seq_number: %lu\n", seq_cache.last_seq_number);
-      fprintf(f_debug, "  line_offset: %ld\n", seq_cache.line_offset);
-      fprintf(f_debug, "  physical_line: %d\n", seq_cache.physical_line);
-      fprintf(f_debug, "  seq number requested=%lu\n", seq_number);
-    }  /* if */
-#endif /* DEBUG */
-    /* Compute the line number to be returned to the caller. */
-    *line_number = seq_number + line_offset;
   }  /* if */
 #if DEBUG
-  if (debug_level >= 5) {
+  if (debug_level >= 5 ||
+      db_flag_is_set("source_file_for_seq")) {
     fprintf(f_debug, "File=%s, Line=%lu, sequence number=%lu\n",
                      curr_file->file_name, *line_number, seq_number);
   }  /* if */
@@ -2719,13 +3054,12 @@ the line number to 0.
 */
 {
   a_source_file_ptr proper_file;
-  unsigned long     nesting_depth;
 
   db_enter(5, "conv_seq_to_file_and_line");
 
   /* Find out which file the sequence number is in. */
   proper_file = source_file_for_seq(seq_number, line_number, at_end_of_source,
-                                    &nesting_depth, /*physical_line=*/FALSE);
+                                   /*physical_line=*/FALSE);
   if (proper_file == NULL) {
     /* Strange or unknown position. */
     *file_name = *full_name = "";
@@ -2783,13 +3117,11 @@ indicates an unknown position, the source file pointer will be set to
 NULL, and the line number to 0.
 */
 {
-  unsigned long nesting_depth;
-
   db_enter(5, "conv_seq_to_physical_file_and_line");
 
   /* Find out which file the sequence number is in. */
   *src_file = source_file_for_seq(seq_number, physical_line, at_end_of_source,
-                                  &nesting_depth, /*physical_line=*/TRUE);
+                                  /*physical_line=*/TRUE);
 
   db_exit();
 }  /* conv_seq_to_physical_file_and_line */
@@ -2840,11 +3172,10 @@ Return TRUE if the sequence number seq_number falls within an include file.
   a_source_file_ptr proper_file;
   a_line_number     line_number;
   a_boolean         at_end_of_source;
-  unsigned long     nesting_depth;
 
   proper_file = source_file_for_seq(seq_number, &line_number,
-                                    &at_end_of_source, &nesting_depth,
-                                    /*physical_line=*/FALSE);
+                                    &at_end_of_source,
+                                   /*physical_line=*/FALSE);
   if (proper_file == NULL) {
     /* Sequence number is not in a file, so it's not in an include file. */
     in_include_file = FALSE;
@@ -15161,6 +15492,9 @@ in il_init.)
     internal_error(
                    "il_one_time_init: incorrect initialization of pragma_ids");
   }  /* if */
+  /* Static variables in il.c: */
+  seq_number_lookup_table_size = 0;
+  seq_number_lookup_table = NULL;
   /* Variable in il_def.h: */
   /* Check that unsigned_int_kind_of is correctly initialized.  This
      guards against someone changing the enumeration and forgetting to update
@@ -15211,6 +15545,9 @@ in il_init.)
       pch_saved_var_array_elem(curr_fp_contract_state),
       pch_saved_var_array_elem(curr_fenv_access_state),
       pch_saved_var_array_elem(curr_cx_limited_range_state),
+      pch_saved_var_array_elem(curr_seq_number_lookup_entry),
+      /* Don't save seq_number_lookup_table because it points to general
+         memory. */
 #if UPC_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(curr_upc_access_method),
       pch_saved_var_array_elem(max_upc_block_size),
@@ -15358,10 +15695,21 @@ of the front end.
   num_get_based_type_calls               = 0;
   num_based_type_fixups_allocated        = 0;
 #endif /* DEBUG */
+  curr_seq_number_lookup_entry = NULL;
   il_alloc_init();
 }  /* il_init */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+
+void rebuild_structures_on_il_read(void)
+/*
+Reconstruct any data structures that are built based on information in the
+IL.  This routine is called after the IL has been read from a file.
+*/
+{
+  build_seq_number_lookup_table(il_header.num_seq_number_lookup_entries);
+}  /* rebuild_structures_on_il_read */
 
 
 void il_reset(void)

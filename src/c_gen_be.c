@@ -648,7 +648,6 @@ etc.
   } else {
     a_line_number line_number;
     a_boolean     at_end_of_source;
-    unsigned long nesting_depth;
     /* When generating debug-oriented output, put each thing on a separate
        line. */
     if (annotate) end_output_line_if_begun();
@@ -657,7 +656,6 @@ etc.
        directives as well as true file information. */
     new_output_file = source_file_for_seq(seq, &line_number,
                                           &at_end_of_source,
-                                          &nesting_depth,
                                           /*physical_line=*/FALSE);
     /* Don't put out line 0 for empty files. */
     if (at_end_of_source && line_number == 0) line_number = 1;

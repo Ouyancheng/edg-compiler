@@ -4035,6 +4035,11 @@ at the next level down.
 #endif /* __VMS__ */
     }  /* if */
     curr_input_stream = curr_ise->file;
+    /* Indicate that we are resuming the processing of the specified
+       file. */
+    record_resumption_of_source_file(curr_ise->assoc_il_file,
+                                     seq_number_last_read + 1,
+                                     curr_ise->line_number + 1);
     /* If generating preprocessing output, put out a line-identifying
        directive for the new file. */
     if (generate_pp_output) {

@@ -191,6 +191,36 @@ typedef struct a_source_file {
 } a_source_file;
 
 /*
+Entry used to build a lookup table that translates a sequence number into a
+source file pointer.  An array of pointers to these entries is constructed
+in sequence number order.  A binary search is used to find a given sequence
+number in the table.  The table contains entries that reflect #line directives,
+so this table can only be used for lookups that are not seeking an actual
+physical line of the input file.
+*/
+typedef struct a_seq_number_lookup_entry *a_seq_number_lookup_entry_ptr;
+typedef struct a_seq_number_lookup_entry {
+  a_seq_number_lookup_entry_ptr
+		next;
+			/* Pointer to the next entry in the list.  This is
+			   not used for searching, but is used to write the
+			   list to the IL file, and to reconstruct the lookup
+			   table after the IL is read. */
+  a_seq_number	first;
+			/* The first sequence number represented by this
+			   entry. */ 
+  a_seq_number	last;
+			/* The last sequence number represented by this
+			   entry. */
+  a_line_number	line_number;
+			/* The line number that corresponds with the first
+			   sequence number specified by this entry. */ 
+  a_source_file_ptr
+		source_file;
+			/* The source file containing this sequence number. */ 
+} a_seq_number_lookup_entry;
+
+/*
 A source position as stored in an IL statement.  Depending on conditional
 compilation, it is either just a sequence number or a full source position.
 seq_number_from_stmt_source_position is a macro that extracts the
@@ -508,6 +538,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_ms_attribute,	/* an_ms_attribute */
   iek_ms_attribute_arg,	/* an_ms_attribute_arg */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  iek_seq_number_lookup_entry,
+			/* a_seq_number_lookup_entry */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -644,6 +676,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_ms_attribute */			"ms-attribute",
 /* iek_ms_attribute_arg */		"ms-attribute-arg",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+/* iek_seq_number_lookup_entry */	"seq-number-lookup-entry",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -10571,6 +10604,14 @@ typedef struct an_il_header {
 			/* Pointer to a list of types that were used in an
 			   exception handling or RTTI construct and aren't
 			   otherwise on a types list. */
+  a_seq_number_lookup_entry_ptr
+		seq_number_lookup_entries;
+			/* Pointer to the start of a list of sequence number
+			   lookup entries that are used to build the sequence
+			   number lookup table. */ 
+  unsigned long	num_seq_number_lookup_entries;
+			/* The number of sequence number lookup entries in
+			   use. */ 
 } an_il_header;
 
 EXTERN an_il_header il_header;
@@ -10803,6 +10844,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_ms_attribute),
   sizeof(an_ms_attribute_arg),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  sizeof(a_seq_number_lookup_entry),
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

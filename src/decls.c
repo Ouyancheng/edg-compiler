@@ -929,10 +929,8 @@ system headers are downgraded to warnings.)
     a_source_file_ptr	sfp;
     a_boolean		at_end_of_source;
     a_line_number	line_number;
-    unsigned long	nesting_depth;
     sfp = source_file_for_seq(prev_decl->decl_position.seq, &line_number,
-                              &at_end_of_source, &nesting_depth,
-                             /*physical_line=*/FALSE);
+                              &at_end_of_source, /*physical_line=*/FALSE);
     if (sfp != NULL && sfp->from_system_include_dir) {
       severity = es_warning;
     }  /* if */

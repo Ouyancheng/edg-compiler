@@ -90,6 +90,7 @@ static unsigned long
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated,
+		num_seq_number_lookup_entries_allocated,
                 num_trans_unit_copy_address_pointers_allocated;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static unsigned long
@@ -3602,6 +3603,27 @@ to it.
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
+a_seq_number_lookup_entry_ptr alloc_seq_number_lookup_entry(void)
+/*
+Allocate a sequence number lookup entry, initialize its fields, and return
+a pointer to it.
+*/
+{
+  a_seq_number_lookup_entry_ptr snlep;
+
+  snlep = (a_seq_number_lookup_entry_ptr)
+                alloc_primary_file_scope_il(sizeof(a_seq_number_lookup_entry));
+  snlep->first = 0;
+  snlep->last = 0;
+  snlep->line_number = 0;
+  snlep->next = NULL;
+  snlep->source_file = NULL;
+#if DEBUG
+  num_seq_number_lookup_entries_allocated++;
+#endif /* DEBUG */
+  return snlep;
+}  /* alloc_seq_number_lookup_entry */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 an_ms_attribute_ptr alloc_ms_attribute(void)
@@ -3690,6 +3712,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used_header("IL table use:");
 
   db_space_used("source file", num_source_files_allocated, a_source_file);
+  db_space_used("seq number lookup entries",
+                num_seq_number_lookup_entries_allocated,
+                a_seq_number_lookup_entry);
   db_space_used("constant", num_constants_allocated, a_constant);
   db_space_used("String literal text", string_literal_text_space_allocated,
                 char);
@@ -4035,6 +4060,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_ms_attributes_allocated),
       pch_saved_var_array_elem(num_ms_attribute_args_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      pch_saved_var_array_elem(num_seq_number_lookup_entries_allocated),
       pch_saved_var_array_elem(num_il_entry_prefixes_allocated),
       pch_saved_var_array_elem(num_labels_allocated),
       pch_saved_var_array_elem(num_new_delete_supplements_allocated),
@@ -4215,6 +4241,8 @@ initializations that are done for each compilation.
   num_ms_attributes_allocated            = 0;
   num_ms_attribute_args_allocated        = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  num_seq_number_lookup_entries_allocated
+                                         = 0;
   num_blocks_allocated                   = 0;
   num_for_loops_allocated                = 0;
   num_statements_allocated               = 0;

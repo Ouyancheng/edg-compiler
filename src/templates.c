@@ -16094,7 +16094,6 @@ file we simply return.
   a_source_position	*decl_position;
   a_line_number		line_number;
   a_boolean		at_end_of_source;
-  unsigned long		nesting_depth;
   a_source_file_ptr	sfp;
   char			*full_file_name, *display_name;
   FILE			*f_source;
@@ -16116,8 +16115,7 @@ file we simply return.
 #endif /* DEBUG */
   decl_position = &tip->template_sym->decl_position;
   sfp = source_file_for_seq(decl_position->seq, &line_number,
-                            &at_end_of_source, &nesting_depth,
-                            /*physical_line=*/FALSE);
+                            &at_end_of_source, /*physical_line=*/FALSE);
   if (sfp != NULL && !sfp->top_level_file &&
       sfp->name_as_written != NULL) {
     /* A source file was found and it does not refer to the primary source

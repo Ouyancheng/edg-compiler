@@ -1000,6 +1000,9 @@ build the in-memory version.
   }  /* if */
   /* Read in the file-scope region. */
   read_memory_region(FILE_SCOPE_REGION_NUMBER);
+  /* Reconstruct any data structures that must be rebuilt from the IL
+     that was just read. */
+  rebuild_structures_on_il_read();
   db_exit();
 }  /* il_read */
 

@@ -544,6 +544,15 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_source_file_ptr, iek_source_file);
       }
       break;
+    case iek_seq_number_lookup_entry:
+      {
+        a_seq_number_lookup_entry_ptr ptr =
+                                      (a_seq_number_lookup_entry_ptr)entry_ptr;
+        remap_ptr(ptr->source_file, a_source_file_ptr, iek_source_file);
+        remap_next_ptr(ptr->next, a_seq_number_lookup_entry_ptr,
+                       iek_seq_number_lookup_entry);
+      }
+      break;
     case iek_constant:
       {
         a_constant_ptr ptr = (a_constant_ptr)entry_ptr;
@@ -3150,6 +3159,8 @@ pointers.  The subtree is not processed.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   remap_list_ptr(il_header.nontag_types_used_in_exception_or_rtti, a_type_ptr,
                  iek_type);
+  remap_list_ptr(il_header.seq_number_lookup_entries,
+                 a_seq_number_lookup_entry_ptr, iek_seq_number_lookup_entry);
   /* region_scope_entry should not be changed; it's not a pointer into
      IL memory in the usual way.  It's changed explicitly as needed. */
   walk_remap_func = saved_walk_remap_func;

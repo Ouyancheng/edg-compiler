@@ -943,6 +943,8 @@ source file's compilation.
   il_header.gcc_mode = gcc_mode;
   il_header.gpp_mode = gpp_mode;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  il_header.num_seq_number_lookup_entries = 0;
+  il_header.seq_number_lookup_entries = NULL;
 #if NEAR_AND_FAR_ALLOWED
   /* near_and_far_enabled, far_data_pointers, and far_code_pointers are
      initialized in fe_early_init and changed if necessary in cmd_line.c. */

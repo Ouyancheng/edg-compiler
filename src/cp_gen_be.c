@@ -1368,12 +1368,10 @@ file to the proper location, which may involve a #line directive, etc.
     /* Find the file in which this sequence number lies. */
     a_line_number line_number;
     a_boolean     at_end_of_source;
-    unsigned long nesting_depth;
     /* physical_line == FALSE means consider information from #line
        directives as well as true file information. */
     new_output_file = source_file_for_seq(seq, &line_number,
                                           &at_end_of_source,
-                                          &nesting_depth,
                                           /*physical_line=*/FALSE);
     /* Don't put out line 0 for empty files. */
     if (at_end_of_source && line_number == 0) line_number = 1;

@@ -127,6 +127,7 @@ extern
 an_ms_attribute_arg_ptr alloc_ms_attribute_arg(an_ms_attribute_arg_kind	kind);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_seq_number_lookup_entry_ptr alloc_seq_number_lookup_entry(void);
 
 #if GNU_EXTENSIONS_ALLOWED
 extern an_asm_operand_constraint_ptr alloc_asm_operand_constraint(

@@ -1019,6 +1019,8 @@ extern a_boolean pop_object_lifetime(void);
 extern an_object_lifetime_ptr innermost_block_object_lifetime(
                                              an_object_lifetime_ptr  olp);
 
+extern void build_seq_number_lookup_table(unsigned long	num_entries);
+
 extern void record_start_of_source_file(
 				 a_source_file_ptr parent_file,
 			         a_seq_number      seq_number,
@@ -1033,13 +1035,16 @@ extern void record_start_of_source_file(
 				 a_boolean	   preinclude_macros_only,
 				 a_boolean	   from_system_include_dir);
 
+extern void record_resumption_of_source_file(a_source_file_ptr	curr_file,
+					     a_seq_number	seq_number,
+					     a_line_number	line_number);
+
 extern void record_end_of_source_file(a_source_file_ptr curr_file,
 			              a_seq_number      seq_number);
 extern a_source_file_ptr primary_source_file_for_seq(a_seq_number seq_number);
 extern a_source_file_ptr source_file_for_seq(a_seq_number   seq_number,
                                              a_line_number  *line_number,
                                              a_boolean      *at_end_of_source,
-                                             unsigned long  *nesting_depth,
                                              a_boolean      physical_line);
 extern void conv_seq_to_file_and_line(a_seq_number  seq_number,
 			              char          **file_name,
@@ -1307,6 +1312,8 @@ extern void db_object_lifetime_tree(an_object_lifetime_ptr olp);
 extern unsigned long db_show_based_type_fixups_used(unsigned long grand_total);
 
 extern unsigned long show_il_space_used(void);
+
+extern void db_seq_number_lookup_table(void);
 #endif /* DEBUG */
 
 #if ORPHAN_PROCESSING_NEEDED
@@ -1399,6 +1406,8 @@ extern a_constant_hash_value hash_constant(a_constant *cp);
 extern a_boolean compare_template_param_constant_expressions(
                                                      an_expr_node_ptr  node1,
                                                      an_expr_node_ptr  node2);
+
+extern void rebuild_structures_on_il_read(void);
 
 extern void il_reset(void);
 

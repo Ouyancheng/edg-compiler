@@ -4188,6 +4188,18 @@ Display the indicated macro entry.
 
 #endif /* RECORD_MACROS_IN_IL */
 
+static void disp_seq_number_lookup_entry(a_seq_number_lookup_entry_ptr ptr)
+/*
+Display the indicated sequence number lookup entry.
+*/
+{
+  disp_ptr("next", (char*)ptr->next, iek_seq_number_lookup_entry);
+  disp_unsigned_long("first seq number", (unsigned long)ptr->first);
+  disp_unsigned_long("last seq number", (unsigned long)ptr->last);
+  disp_unsigned_long("line number", (unsigned long)ptr->line_number);
+  disp_ptr("source file", (char*)ptr->source_file, iek_source_file);
+}  /* disp_seq_number_lookup_entry */
+
 static void disp_object_lifetime(an_object_lifetime_ptr ptr)
 /*
 Display the indicated object lifetime.
@@ -5595,6 +5607,10 @@ This routine is called during IL walking.
           break;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #endif /* ifdef CFE */
+        case iek_seq_number_lookup_entry:
+          disp_seq_number_lookup_entry(
+                                    (a_seq_number_lookup_entry_ptr)entry_ptr);
+          break;
         default:
           (void)printf("**BAD ENTRY KIND**\n");
       }  /* switch */
@@ -5716,6 +5732,9 @@ Display the IL for the file scope in human-readable form.
   disp_ptr("nontag_types_used_in_exception_or_rtti",
            (char *)il_header.nontag_types_used_in_exception_or_rtti,
            iek_type);
+  disp_ptr("sequence number lookup entries",
+           (char *)il_header.seq_number_lookup_entries,
+           iek_seq_number_lookup_entry);
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
                      (a_remap_function_ptr)NULL, (a_remap_function_ptr)NULL,
                      (a_walk_termination_test_function_ptr)NULL,
