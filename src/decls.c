@@ -6798,6 +6798,10 @@ caller.
                     /*is_old_style_param_decl=*/FALSE,
                     /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
       }  /* while */
+      /* Process pragmas associated with the closing brace before the current
+         scope is popped and before add_end_of_construct_source_sequence_entry
+         is called. */
+      process_curr_token_pragmas();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Add a source sequence entry marking the end of the namespace
          definition. */
