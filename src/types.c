@@ -4143,20 +4143,21 @@ preference is given to the first.
       }  /* if */
     }  /* for */
   }  /* if */
+  if (rtsp1->exception_specification == NULL) {
+    if (rtsp2->exception_specification != NULL) {
+      return_type1_as_comp_type = FALSE;
+    }  /* if */
+  } else {
+    if (rtsp2->exception_specification == NULL) {
+      return_type2_as_comp_type = FALSE;
+    }  /* if */
+  }  /* if */
   if (return_type1_as_comp_type) {
     /* Nothing prevents returning rout_type1 as the composite type. */
     comp_type = rout_type1;
-    /* Merge the exception specifications. */
-    if (rtsp1->exception_specification == NULL) {
-      rtsp1->exception_specification = rtsp2->exception_specification;
-    }  /* if */
   } else if (return_type2_as_comp_type) {
     /* rout_type1 can't serve as composite type, but rout_type2 can. */
     comp_type = rout_type2;
-    /* Merge the exception specifications. */
-    if (rtsp2->exception_specification == NULL) {
-      rtsp2->exception_specification = rtsp1->exception_specification;
-    }  /* if */
   } else {
 make_new_comp_type:
     /* Neither of the types passed in can be returned as the composite type,
@@ -4244,6 +4245,8 @@ make_new_comp_type:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (!C_mode()) {
       rtsp->implicit_this_param_type = rtsp1->implicit_this_param_type;
+      /* If the two exception specifications are not identical, it is
+         because of an error that will already have been reported. */
       if (rtsp1->exception_specification != NULL) {
         rtsp->exception_specification = rtsp1->exception_specification;
       } else {
