@@ -103,19 +103,15 @@ Traverse the list of alias fixups and set the alias fields as needed.
   while (entries != NULL) {
     entry = entries;
     entries = entries->next;
-    (void)find_symbol(entry->aliased_name,
-                      (sizeof_t)strlen(entry->aliased_name), &locator);
-    aliased_sym = locator.symbol_header->inactive_symbols;
-    for (; aliased_sym != NULL; aliased_sym = aliased_sym->next) {
-      if (aliased_sym->decl_scope == FILE_SCOPE_NUMBER) {
-        break;
-      }  /* if */
-    }  /* for */
     if (entry->alias->defined) {
       /* An entity cannot have a definition and simultaneously be an alias for
          another entity. */
       pos_error(ec_alias_cannot_have_definition, &entry->alias->decl_position);
     }  /* if */
+    clear_locator(&locator, &entry->alias->decl_position);
+    (void)find_symbol(entry->aliased_name,
+                      (sizeof_t)strlen(entry->aliased_name), &locator);
+    aliased_sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
     if (aliased_sym == NULL) {
       pos_st_error(ec_aliased_name_undeclared,
                    &entry->alias_position, entry->aliased_name);

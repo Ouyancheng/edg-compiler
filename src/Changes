@@ -1,5 +1,16 @@
 Version 3.1
 
+6/11/02  GNU C compatibility: alias attribute should not find macros
+
+The front end used to mistakenly find macros when looking up an entity
+named by the alias attribute.
+
+  void SX() {}  // (1)
+  #define SX sx
+  extern void sx() __attribute__((alias("SX")));  // Should bind to (1)
+
+This is now fixed.
+
 6/11/02  Microsoft and Sun compatibility: static_cast to same type
          leaves lvalue
 
