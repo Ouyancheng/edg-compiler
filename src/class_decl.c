@@ -6925,8 +6925,7 @@ next_declaration:
               } else if (is_const_qualified_type(tp)) {
                 /* Usually, a member of const type must be explicitly
                    initialized. */
-                if (is_class_struct_union_type(tp) &&
-                    symbol_supplement_for_class(tp)->has_default_constructor) {
+                if (type_has_default_constructor(tp)) {
                   /* A const data member that has its own default constructor
                      will be initialized when the default constructor for the
                      current class is generated.  So skip this one and keep
