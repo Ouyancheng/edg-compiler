@@ -1,5 +1,14 @@
 Version 2.37
 
+10/2/97   Some redeclarations of template parameters not detected
+
+Certain kinds of redeclarations of template parameters were not
+diagnosed.  Specifically, those in the declarator of a function
+template declaration.  This has been fixed.
+
+  template <class T> void T(T);
+  template <class T> void f(T T);
+
 10/1/37   Microsoft compatibility: "__asm" is now put out in strings in the
           IL for templates
 

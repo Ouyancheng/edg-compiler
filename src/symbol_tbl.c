@@ -2259,18 +2259,35 @@ severity to be used for the diagnostic when TRUE is returned.
   a_template_param_ptr		tpp;
   a_boolean			result = FALSE;
   a_scope_stack_entry_ptr	ssep;
+  a_scope_depth			starting_depth;
 
   /* If the current scope is the one in which the template parameters are
      considered to be declared, then a redeclaration is an error.  Otherwise,
      the severity depends on the mode. */
   *severity = scope_stack[depth_scope_stack].template_param_decl_scope
                                       ? es_error : strict_ansi_error_severity;
-  for (ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
+  /* Start searching at the innermost instantiation scope, if one exists.
+     Otherwise, start at the innermost template declaration scope. */
+  starting_depth = depth_innermost_instantiation_scope;
+  if (starting_depth == NO_SCOPE_DEPTH) {
+    /* There is no instantiation scope, start at the innermost template
+       declaration scope.  For redeclarations in template declaration
+       scopes, always issue an error at the innermost template declaration
+       scope. */
+    starting_depth = depth_template_declaration_scope;
+    *severity = es_error;
+  }  /* if */
+  for (ssep = scope_stack_entry_for(starting_depth);
        ssep != NULL; ssep = previous_scope_of(ssep)) {
-    /* Only look at template instantiation scopes. */
-    if (ssep->kind != (a_scope_kind)sck_template_instantiation) continue;
+    /* Only look at template instantiation and declaration scopes. */
+    if (ssep->kind != (a_scope_kind)sck_template_instantiation &&
+        ssep->kind != (a_scope_kind)sck_template_declaration) continue;
     tpp = ssep->template_decl_info->parameters;
-    check_assertion(tpp != NULL);
+    /* There should be a template parameter list present, except when we
+       are in the process of scanning the template parameter list. */
+    check_assertion(tpp != NULL ||
+                    (ssep->kind == (a_scope_kind)sck_template_declaration &&
+                     scope_stack[decl_scope_level].number == ssep->number));
     while (tpp != NULL && !result) {
       a_symbol_ptr  param_symbol = tpp->param_symbol;
       if (param_symbol->header == sym->header) {
@@ -2497,7 +2514,8 @@ symbol must be added to the inactive list.
         }  /* if */
         /* See if this name a redeclaration of a template parameter name. */
         if (!redecl_err &&
-            depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+            (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||
+             depth_template_declaration_scope != NO_SCOPE_DEPTH) &&
             sym_name_space_kind == nsk_other &&
             sym_ptr->kind != (a_symbol_kind)sk_undefined) {
           an_error_severity severity;
