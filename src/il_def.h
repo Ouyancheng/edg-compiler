@@ -71,6 +71,8 @@ typedef struct a_routine     *a_routine_ptr;
 typedef struct a_label       *a_label_ptr;
 typedef struct an_expr_node  *an_expr_node_ptr;
 typedef struct a_statement   *a_statement_ptr;
+typedef struct a_handler     *a_handler_ptr;
+typedef struct a_try_supplement *a_try_supplement_ptr;
 typedef struct an_object_lifetime *an_object_lifetime_ptr;
 typedef struct a_scope       *a_scope_ptr;
 
@@ -1183,6 +1185,7 @@ typedef struct a_constant {
       } variant;
     } ptr_to_member;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+    /* When kind == ck_stack_offset: */
     a_variable_ptr
 		stack_offset_variable;
 			/* A constant for the stack offset of the indicated
@@ -3687,13 +3690,13 @@ typedef struct an_asm_entry {
 			/* TRUE if this represents the body of an asm
 			   function (only if ASM_FUNCTION_ALLOWED is TRUE). */
   union {
-    /* When is_asm_function_body is FALSE. */
+    /* When is_asm_func_body == FALSE: */
     a_constant_ptr
 		asm_string;
 			/* Constant containing a string representing an asm
 			   definition argument (an uninterpreted line of
 			   assembly language). */
-    /* When is_asm_function_body is TRUE. */
+    /* When is_asm_func_body == TRUE: */
     struct {
       a_targ_size_t
 		length;
@@ -3828,19 +3831,9 @@ enum an_expr_node_kind_tag {
 			   node is not necessarily the top node in the
 			   expression tree.  C++ only. */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-  enk_caught_object_address,
-			/* Used to represent the address of the object caught
-			   in the lowered form of a catch. */
-  enk_thrown_object_address,
-			/* Used to represent the address to which a thrown
-			   object should be copied in the lowered form of
-			   a throw. */
-  enk_cleanup_state,	/* Used to mark the cleanup state for exception
-			   handling after lowering. */
-  enk_eh_prologue,	/* Used on entry to a function to represent the
-			   exception handling prologue after lowering. */
-  enk_eh_epilogue,	/* Used on exit from a function to represent the
-			   exception handling epilogue after lowering. */
+  enk_lowered_eh_construct,
+			/* Used to represent a partially-lowered exception
+			   handling construct. */
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CIL */
 #ifdef FIL
@@ -3857,6 +3850,28 @@ enum an_expr_node_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_expr_node_kind;
 
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+/* Modifier for enk_lowered_eh_construct nodes, indicating the kind of
+   node. */
+enum a_lowered_eh_construct_kind_tag {
+  leck_caught_object_address,
+			/* Address of the object caught at the current active
+			   catch clause. */
+  leck_thrown_object_address,
+			/* Address to which the thrown object should be
+			   copied. */
+  leck_cleanup_state,	/* Set the cleanup state. */
+  leck_function_prologue,
+			/* Prologue for function. */
+  leck_function_epilogue,
+			/* Epilogue for function. */
+  leck_catch_epilogue,	/* Epilogue for catch clause. */
+  leck_try_epilogue	/* Epilogue for try block. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_lowered_eh_construct_kind;
+
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
 enum an_expr_operator_kind_tag {
   /* When the expression node kind is "enk_operation", these are the possible
@@ -4242,9 +4257,9 @@ typedef struct a_new_delete_supplement {
 
 
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-/* Supplement for an expression node of kind enk_eh_prologue, which indicates
-   the partially-lowered form of the function prologue for exception
-   handling. */
+/* Supplement for an expression node of kind enk_lowered_eh_construct,
+   indicating the partially-lowered form of a function prologue for
+   exception handling. */
 typedef struct an_eh_prologue_supplement *an_eh_prologue_supplement_ptr;
 typedef struct an_eh_prologue_supplement {
   a_routine_ptr	routine;
@@ -4395,27 +4410,37 @@ typedef struct an_expr_node {
 		ptr;	/* The object lifetime itself. */
     } object_lifetime;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-    /* When kind == enk_caught_object_address or enk_thrown_object_address,
-       no variant fields. */
-    /* When kind == enk_cleanup_state: */
+    /* When kind == enk_lowered_eh_construct: */
     struct {
+      a_lowered_eh_construct_kind
+		kind;	/* Kind of construct. */
+      union {
+        /* When kind == leck_caught_object_address or
+           leck_thrown_object_address, no variant fields. */
+        /* When kind == leck_cleanup_state: */
 #if GENERATE_EH_TABLES
-      a_cleanup_region_number
-		region_number;
+        a_cleanup_region_number
+		cleanup_region_number;
 			/* Region number at which to start cleanup. */
 #else /* !GENERATE_EH_TABLES */
-      a_dynamic_init_ptr
-		ptr;	/* Destruction at which to start cleanup. */
+        a_dynamic_init_ptr
+		cleanup_ptr;
+			/* Destruction at which to start cleanup. */
 #endif /* GENERATE_EH_TABLES */
-    } cleanup_state;
-    /* When kind == enk_eh_prologue: */
-    an_eh_prologue_supplement_ptr
-		prologue;
-    /* When kind == enk_eh_epilogue: */
-    a_routine_ptr
+        /* When kind == leck_function_prologue: */
+        an_eh_prologue_supplement_ptr
+		prologue_info;
+        /* When kind == leck_function_epilogue: */
+        a_routine_ptr
 		epilogue_routine;
-			/* Pointer to the routine for which this is an
-			   epilogue.  Having this makes inlining easier. */
+        /* When kind == leck_catch_epilogue: */
+        a_handler_ptr
+		epilogue_handler;
+        /* When kind == leck_try_epilogue: */
+        a_try_supplement_ptr
+		epilogue_try_block;
+      } variant;
+    } lowered_eh;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CIL */
 #ifdef FIL
@@ -4579,7 +4604,6 @@ typedef struct a_for_loop {
 } a_for_loop;
 
 /* Information about a handler (or catch-clause) defined within a try block. */
-typedef struct a_handler *a_handler_ptr;
 typedef struct a_handler {
   a_handler_ptr	next;
 			/* Pointer to the next in the linked list of handlers
@@ -4613,7 +4637,6 @@ typedef struct a_handler {
 
 /* Description of an exception-handling "try" statement and the associated
    "catch" clauses. */
-typedef struct a_try_supplement *a_try_supplement_ptr;
 typedef struct a_try_supplement {
   a_statement_ptr
 		statement;
