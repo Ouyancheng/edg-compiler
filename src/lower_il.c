@@ -3300,8 +3300,13 @@ or not to put out the definition; otherwise, it's set to NULL.
       for (routine = scope->routines;
            routine != NULL;
            routine = routine->next) {
-        if (!routine->is_inline && routine->is_virtual &&
-            !routine->pure_virtual) {
+        if (routine->is_virtual && !routine->pure_virtual &&
+            /* A member function of a template class is not marked as
+               inline until it is fully instantiated, so we have to call
+               a function to see whether it is really inline. */
+            (routine->is_template_function ?
+                                  !rout_is_inline_template_function(routine) :
+                                  !routine->is_inline)) {
           /* This is the first non-inline virtual non-pure member function in
              the class.  If it is defined in this compilation, we should put
              out the virtual function tables here. */
