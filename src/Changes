@@ -4,7 +4,8 @@ Version 2.42
 
 The C-generating back end can now handle a case where the address of
 an lvalue cast is taken in pcc mode.  Formerly, an example like the
-following produced an internal error in dump_expr.
+following produced an internal error in dump_expr.  A similar change
+was also made in the C++-generating back end.
 
   void func(void) {
     char *cptr;
