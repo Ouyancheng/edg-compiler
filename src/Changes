@@ -1,5 +1,12 @@
 Version 3.2
 
+2/7/03   Abort in correspondence processing
+
+Under relatively obscure circumstances the front end could abort while
+attempting to establish a cross-translation-unit correspondence between
+two types have the same name but different parent classes.  This is now
+fixed.
+
 2/6/03   GNU C++ mode: Attributes on members not recorded in IL
 
 In many cases, attributes specified on member functions and static data

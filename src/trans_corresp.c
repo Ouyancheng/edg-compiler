@@ -1019,6 +1019,32 @@ in that no attempt is made to establish a canonical entry for the parents.)
 }  /* known_same_parents */
 
 
+static a_boolean f_il_entries_have_known_same_parents(
+                                            a_source_correspondence_ptr  scp1,
+                                            a_source_correspondence_ptr  scp2)
+/*
+This function performs the same task for IL entries as known_same_parents
+does for symbol entries.
+*/
+{
+  a_boolean  result;
+
+  if (scp1->is_class_member != scp2->is_class_member) {
+    result = FALSE;
+  } else if (scp1->is_class_member) {
+    result = (canonical_il_entry_of(scp1->parent.class_type) ==
+                              canonical_il_entry_of(scp2->parent.class_type));
+  } else {
+    result = (canonical_il_entry_of(scp1->parent.namespace_ptr) ==
+                           canonical_il_entry_of(scp2->parent.namespace_ptr));
+  }  /* if */
+  return result;
+}  /* f_il_entries_have_known_same_parents */
+
+#define il_entries_have_known_same_parents(ptr1, ptr2)                      \
+  f_il_entries_have_known_same_parents((a_source_correspondence_ptr)ptr1,   \
+                                       (a_source_correspondence_ptr)ptr2)
+
 static a_boolean may_have_correspondence(a_symbol_ptr sym)
 /*
 Return TRUE if the given symbol is associated with an entity that may appear
@@ -3648,9 +3674,9 @@ the canonical entry.
 a_boolean seek_type_corresp(a_type_ptr  type_1,
                             a_type_ptr  type_2)
 /*
-Check if the given class types are in fact the same and, if so, record all
-the needed correspondence pointers for type_1 and return TRUE.  Otherwise,
-return FALSE.
+Check if the given class or enumeration types are in fact the same and, if so,
+record all the needed correspondence pointers for type_1 and return TRUE.  
+Otherwise, return FALSE.
 */
 {
   a_boolean result;
@@ -3662,6 +3688,8 @@ return FALSE.
        set of corresponding entries. */
   } else if (!same_name(type_1, type_2)) {
     /* If the type names differ, they can certainly not correspond. */
+  } else if (!il_entries_have_known_same_parents(type_1, type_2)) {
+    /* If the types have different parents, they cannot correspond. */
   } else if (total_errors != 0) {
     /* If correspondence errors already occurred, an attempt to compare
        the structure of type_1 and type_2 may end up being meaningless. */
