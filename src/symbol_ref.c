@@ -166,10 +166,10 @@ Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
 #if RECORD_HIDDEN_NAMES_IN_IL
 
 static void record_defeatable_name_hiding(
-                                    a_symbol_ptr  hidden_sym,
-                                    a_boolean     tag_hidden_by_nontag,
-                                    a_boolean     hidden_class_or_namespace_member,
-                                    a_scope_ptr   sp)
+                              a_symbol_ptr  hidden_sym,
+                              a_boolean     tag_hidden_by_nontag,
+                              a_boolean     hidden_class_or_namespace_member,
+                              a_scope_ptr   sp)
 /*
 hidden_sym is a symbol for an entity that is hidden by another declaration
 of the same name -- but the hiding can be "defeated" by using an
