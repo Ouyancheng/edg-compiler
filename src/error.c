@@ -1030,6 +1030,12 @@ error code.
     case ec_ambiguous_virtual_function_override:
       m = "redefinition of base class virtual function \"%s\" is ambiguous";
       break;
+    case ec_pure_specifier_on_nonvirtual_function:
+      m = "pure specifier (\"= 0\") allowed only on virtual functions";
+      break;
+    case ec_exp_zero:
+      m = "expected a \"0\"";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

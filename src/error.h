@@ -364,7 +364,9 @@ typedef enum /*an_error_code*/ {
   ec_unqual_function_with_qual_object,
   ec_too_many_virtual_functions,
   ec_bad_return_type_on_virtual_function_override,
-  ec_ambiguous_virtual_function_override
+  ec_ambiguous_virtual_function_override,
+  ec_pure_specifier_on_nonvirtual_function,
+  ec_exp_zero
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
