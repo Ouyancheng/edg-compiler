@@ -395,6 +395,14 @@ typedef struct a_source_line_modif {
 			   this entry is be inserted preceding the first
 			   character of the source line (there can be only
 			   one of those). */
+  a_source_line_modif_ptr
+		parent_modif;
+			/* If line_loc points into the text inserted by
+			   another modification, this points to that parent
+			   modification entry.  Otherwise (i.e., if line_loc
+			   points into the primary source line), NULL.
+			   Meaningful only if parent_modif_determined is
+			   TRUE. */
   sizeof_t	num_chars_to_delete;
 			/* The number of characters to be logically deleted
 			   (beginning at line_loc).  Greater than zero
@@ -408,6 +416,9 @@ typedef struct a_source_line_modif {
   unsigned int	is_for_comment:1;
 			/* TRUE if this modification is due to a comment
 			   in the source (as opposed to a macro expansion). */
+  unsigned int	parent_modif_determined:1;
+			/* TRUE if a value has been determined for
+			   parent_modif. */
   char		orig_char;
 			/* The character that was in the source line at
 			   position line_loc (provided so that the original
@@ -704,6 +715,12 @@ extern void rem_source_line_modif(a_source_line_modif_ptr slmp);
 /* Find the source line modification entry associated with a given source
    location. */
 extern a_source_line_modif_ptr assoc_source_line_modif(char *loc_in_line);
+/* Find the parent modification of a given source line modification. */
+#define parent_source_line_modif(slmp)                                \
+  ((slmp)->parent_modif_determined ? (slmp)->parent_modif :           \
+                                     f_parent_source_line_modif(slmp))
+extern a_source_line_modif_ptr f_parent_source_line_modif(
+                                                 a_source_line_modif_ptr slmp);
 /* Find the source line modification that affects the attention marker
    at a given source location. */
 extern a_source_line_modif_ptr nested_source_line_modif(char *loc_in_line);
@@ -762,8 +779,9 @@ extern unsigned long show_lexical_space_used(void);
 loc_in_line points to an attention marker indicating the start of
 an insertion.  Update loc_in_line to point to the first character in the
 insertion.  If the insertion is really a deletion, update loc_in_line
-to after the deleted character.  slmp is a temporary pointer used
-for the operation; it must be supplied by the caller.
+to after the deleted character.  slmp is set to point to the source
+line modification for the insertion.
+If you change this, also change walk_into_insertion.
 */
 #define go_into_insertion(slmp, loc_in_line)                          \
 { (slmp) = nested_source_line_modif(loc_in_line);                     \
@@ -777,12 +795,50 @@ for the operation; it must be supplied by the caller.
 }  /* go_into_insertion */
 
 /*
+Similar to go_into_insertion, but for cases where one maintains a pointer
+to the modification entry for the current position, as when one is
+walking the entire line modification tree.  slmp on entry points to the
+current modification entry, and it is updated on exit.  loc_in_line points
+to an attention marker indicating the start of an insertion.  loc_in_line
+is updated to point to the first character in the insertion.  If the
+insertion is really a deletion, loc_in_line is updated to after the
+deleted character.  ins_slmp is set to point to the source line
+modification for the insertion.  The parent pointer in the insertion
+entry is set, so exiting from the insertion will be quick.
+If you change this, also change go_into_insertion.
+*/
+#define walk_into_insertion(slmp, ins_slmp, loc_in_line)              \
+{ (ins_slmp) = nested_source_line_modif(loc_in_line);                 \
+  (ins_slmp)->parent_modif = (slmp);                                  \
+  (ins_slmp)->parent_modif_determined = TRUE;                         \
+  if ((ins_slmp)->inserted_text != (ins_slmp)->end_inserted_text) {   \
+    /* Text replacement; continue with the text in the expansion. */  \
+    (loc_in_line) = (ins_slmp)->inserted_text;                        \
+    (slmp) = (ins_slmp);                                              \
+  } else {                                                            \
+    /* Text deletion; skip over the deleted text. */                  \
+    (loc_in_line) += (ins_slmp)->num_chars_to_delete;                 \
+  }  /* if */                                                         \
+}  /* walk_into_insertion */
+
+/*
 slmp points to a source modification.  Set loc_in_line to the character
-location that follows the last character of that insertion.
+location that follows the characters replaced by that modification.
 */
 #define leave_insertion(slmp, loc_in_line)                            \
 { (loc_in_line) = loc_of_insert(slmp) + (slmp)->num_chars_to_delete;  \
 }  /* leave_insertion */
+
+/*
+slmp points to a source modification.  Set loc_in_line to the character
+location that follows the characters replaced by that modification.  Update
+slmp to point to the modification associated with loc_in_line (i.e.,
+the parent of the original slmp).
+*/
+#define walk_out_of_insertion(slmp, loc_in_line)                      \
+{ leave_insertion(slmp, loc_in_line)                                  \
+  slmp = parent_source_line_modif(slmp);                              \
+}  /* walk_out_of_insertion */
 
 /* Determine the insert location for a source line modification.  This is
    tricky for an entry that is inserted in front of the first character

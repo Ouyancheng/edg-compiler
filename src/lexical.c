@@ -599,9 +599,12 @@ invocations.
   }  /* if */
   slmp->next                = source_line_modif_list;
   slmp->line_loc            = line_loc;
+  slmp->parent_modif        = NULL;
   slmp->num_chars_to_delete = num_chars_to_delete;
   slmp->is_isolated_text    = FALSE;
   slmp->is_for_comment      = FALSE;
+  slmp->parent_modif_determined
+                            = FALSE;
   slmp->inserted_text       = inserted_text;
   slmp->end_inserted_text   = end_inserted_text;
   slmp->assoc_macro         = (a_macro_def_ptr)NULL;
@@ -610,7 +613,7 @@ invocations.
   slmp->sequence_id         = ++sequence_id_for_source_line_modifs;
   slmp->assoc_copy_modif    = (a_source_line_modif_ptr)NULL;
   if (line_loc != NULL) {
-    /* Normal case, line_loc points to the point of insertion.  Save the
+    /* Normal case: line_loc points to the point of insertion.  Save the
        original character, and replace it with a marker that will call
        attention to the source modification. */
     slmp->orig_char         = *line_loc;
@@ -762,6 +765,35 @@ within_curr_source_line(loc_in_line) == FALSE).
 }  /* assoc_source_line_modif */
 
 
+a_source_line_modif_ptr f_parent_source_line_modif(
+                                                  a_source_line_modif_ptr slmp)
+/*
+Find the parent of the source line modification entry slmp, and return
+a pointer to it.  The parent modification is the modification that inserts
+the text that slmp modifies.  Return NULL if slmp has no parent (i.e., it
+modifies the primary source line).  This routine should not be called
+directly: call the macro parent_source_line_modif instead, which checks
+the parent_modif_determined flag to see if the parent is already known.
+*/
+{
+  a_source_line_modif_ptr parent_slmp;
+  char                    *line_loc;
+
+  line_loc = slmp->line_loc;
+  if (within_curr_source_line(line_loc)) {
+    /* slmp modifies the primary source line; it has no parent. */
+    parent_slmp = NULL;
+  } else {
+    /* slmp modifies the text inserted by some other modification.  Find
+       out which. */
+    parent_slmp = assoc_source_line_modif(line_loc);
+  }  /* if */
+  slmp->parent_modif = parent_slmp;
+  slmp->parent_modif_determined = TRUE;
+  return parent_slmp;
+}  /* f_parent_source_line_modif */
+
+
 a_source_line_modif_ptr nested_source_line_modif(char *loc_in_line)
 /*
 *loc_in_line contains an ATTENTION_MARKER, indicating that the text at that
@@ -889,6 +921,7 @@ is TRUE.
   register char                    *loc_in_line;
   register char                    ch;
   register a_source_line_modif_ptr slmp;
+           a_source_line_modif_ptr ins_slmp;
            char                    prev_ch;
            a_boolean               token_start;
 
@@ -947,6 +980,7 @@ is TRUE.
          gen_expanded_raw_listing_output_for_curr_line.  If you change
          this routine, change the other too. */
       loc_in_line = first_char_of_modified_source_line();
+      slmp = NULL;
       prev_ch = '\n';
       token_start = FALSE;
       for (;;) {
@@ -956,20 +990,16 @@ is TRUE.
         if (ch == ATTENTION_MARKER) {
           /* Attention marker.  Find the associated source line modification
              and process it. */
-          go_into_insertion(slmp, loc_in_line);
+          walk_into_insertion(slmp, ins_slmp, loc_in_line);
           token_start = TRUE;
         } else if (ch == '\0') {
           /* Null indicates either the end of the whole line or the end
-             of a macro expansion.  Find out which. */
-          if (within_curr_source_line(loc_in_line)) {
-            /* End of the entire logical source line. */
-            break;
-          } else {
-            /* End of a macro.  Pick up after the invocation text. */
-            slmp = assoc_source_line_modif(loc_in_line);
-            leave_insertion(slmp, loc_in_line);
-            token_start = TRUE;
-          }  /* if */
+             of a macro expansion.  Exit the loop if at the end of the whole
+             line. */
+          if (slmp == NULL) break;
+          /* End of a macro.  Pick up after the invocation text. */
+          walk_out_of_insertion(slmp, loc_in_line);
+          token_start = TRUE;
         } else {
           if (ch == END_OF_TOKEN_MARKER) {
             /* Do not output end-of-token markers. */
@@ -1137,6 +1167,7 @@ f_raw_listing != NULL.
   register char                    *loc_in_line;
   register char                    ch;
   register a_source_line_modif_ptr slmp;
+           a_source_line_modif_ptr ins_slmp;
            char                    prev_ch;
            a_boolean               token_start;
 
@@ -1174,6 +1205,7 @@ f_raw_listing != NULL.
     /* The logic here is very similar to that in gen_pp_output_for_curr_line.
        If you change this routine, change the other too. */
     loc_in_line = first_char_of_modified_source_line();
+    slmp = NULL;
     prev_ch = '\n';
     token_start = FALSE;
     for (;;) {
@@ -1183,25 +1215,21 @@ f_raw_listing != NULL.
       if (ch == ATTENTION_MARKER) {
         /* Attention marker.  Find the associated source line modification
            and process it. */
-        go_into_insertion(slmp, loc_in_line);
+        walk_into_insertion(slmp, ins_slmp, loc_in_line);
         token_start = TRUE;
-        if (!slmp->is_for_comment) {
+        if (!ins_slmp->is_for_comment) {
           /* Keep track of whether or not there are noncomment (i.e., macro)
              modifications in the lines in the buffer. */
           must_display_raw_listing_buffer = TRUE;
         }  /* if */
       } else if (ch == '\0') {
         /* Null indicates either the end of the whole line or the end
-           of a macro expansion.  Find out which. */
-        if (within_curr_source_line(loc_in_line)) {
-          /* End of the entire logical source line. */
-          break;
-        } else {
-          /* End of a macro.  Pick up after the invocation text. */
-          slmp = assoc_source_line_modif(loc_in_line);
-          leave_insertion(slmp, loc_in_line);
-          token_start = TRUE;
-        }  /* if */
+           of a macro expansion.  Exit the loop if at the end of the whole
+           line. */
+        if (slmp == NULL) break;
+        /* End of a macro.  Pick up after the invocation text. */
+        walk_out_of_insertion(slmp, loc_in_line);
+        token_start = TRUE;
       } else {
         if (ch == END_OF_TOKEN_MARKER) {
           /* Do not output end-of-token markers. */
@@ -1665,7 +1693,7 @@ when speed is critical.
 */
 {
   char                    *adj_loc_in_line;
-  a_source_line_modif_ptr slmp;
+  a_source_line_modif_ptr slmp, parent_slmp;
   an_orig_line_modif_ptr  olmp                     = orig_line_modif_list;
   char                    *start_of_curr_phys_line = curr_source_line;
   a_seq_number            seq_number               = curr_seq_number;
@@ -1678,17 +1706,23 @@ when speed is critical.
        that begins the macro expansion that ultimately generates
        adj_loc_in_line.  This gives us a source line position we can
        convert. */
-    do {
-      slmp = assoc_source_line_modif(adj_loc_in_line);
-      adj_loc_in_line = loc_of_insert(slmp);
-    } while (!within_curr_source_line(adj_loc_in_line));
-    /* If the topmost source line modification is for a macro, it gives us
-       the source position of the macro invocation, and we need do no
-       further work.  This is useful for multi-line macro invocations. */
-    if (slmp->assoc_macro != NULL) {
-      copy_source_position(slmp->macro_invocation_position, *position_var);
-      goto have_position;
-    }  /* if */
+    slmp = assoc_source_line_modif(adj_loc_in_line);
+    for (;;) {
+      /* If a source line modification is for a macro, it gives us
+         the source position of the macro invocation, and we need do no
+         further work.  This is particularly useful for multi-line macro
+         invocations. */
+      if (slmp->assoc_macro != NULL) {
+        copy_source_position(slmp->macro_invocation_position, *position_var);
+        goto have_position;
+      }  /* if */
+      parent_slmp = parent_source_line_modif(slmp);
+      if (parent_slmp == NULL) break;
+      slmp = parent_slmp;
+    }  /* for */
+    /* The topmost modification is not for a macro, so we will have to
+       work out the position from the line location. */
+    adj_loc_in_line = loc_of_insert(slmp);
   }  /* if */
   /* We now have in adj_loc_in_line a position within curr_source_line, which
      must be converted to the corresponding source position. */
@@ -2245,8 +2279,8 @@ Also tests for "//" in C++ mode.
 #define start_of_comment()                                            \
   ((*(curr_char_loc+1) == '*' ||                                      \
     (C_dialect == C_dialect_cplusplus && *(curr_char_loc+1) == '/')) && \
-    (within_curr_source_line(curr_char_loc) ||                        \
-     (C_dialect == C_dialect_pcc && !in_pcc_mode_half_comment)))
+   (within_curr_source_line(curr_char_loc) ||                         \
+    (C_dialect == C_dialect_pcc && !in_pcc_mode_half_comment)))
 
 
 void skip_white_space(void)
@@ -2424,11 +2458,12 @@ white_space_loop:
       /* This is the start of a comment. */
       if (C_dialect == C_dialect_pcc &&
           !within_curr_source_line(curr_char_loc)) {
-        /* In pcc mode, the token pasting rules are different, and the
-           characters are considered to start a comment of sorts.  However,
-           in pcc it's a comment to the compiler but not a comment to the
-           preprocessor.  Therefore, we have to skip tokens until the
-           closing delimiter.  This is a strange mode. */
+        /* We're in pcc mode, and the token opening characters came from
+           token pasting inside a macro.  They are considered to start a
+           strange sort of comment: it's a comment to the compiler but not a
+           comment to the preprocessor.  Therefore, we have to skip tokens
+           until the closing delimiter.  This only comes up if the user
+           is taking terrible liberties with macro processing. */
         skip_pcc_mode_half_comment();
       } else if (*(curr_char_loc+1) == '/') {
         /* C++ comment -- //.  Skip to end of line. */
