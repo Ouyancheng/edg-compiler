@@ -1,5 +1,21 @@
 Version 2.46
 
+5/2/01   Abort on mem-initializer for nonreal base class, with
+         prototype instantiations
+
+A test case like the following, which has a mem-initializer for
+a nonreal base class, aborted sometimes when prototype instantiations
+of nonclass templates were done (e.g., in --parse_templates mode or
+in strict mode).  The abort we observed occurred only when Microsoft
+mode is enabled, but we believe this is only because of differences
+in layout of internal data structures; the problem is there in all
+configurations.
+
+  template <class Base>
+  struct A : public Base {
+    A(): Base() {}
+  };
+
 4/26/01  Internal error when recording instantiations of members of class
          templates in source sequence lists (Microsoft mode)
 
