@@ -1691,10 +1691,6 @@ step on the derivation list serves to confirm the match.
             if (disambiguator != NULL) {
               /* Keep looking. */
             } else {
-#if 0
-/* It's not clear what the right thing to do is when bcp is ambiguous and
-   there's no disambiguator.  Should we arbitrarily choose one? */
-#endif /* if 0 */
               new_base_class = bcp;
               goto done;
             }  /* if */

@@ -1417,9 +1417,6 @@ initializing declarations.
              switch statement, set a flag in the current block to say that
              there is an "exposed initialization" -- i.e., one that could
              cause an error if case selection skips past it. */
-#if 0
-	  /* Why is this flag set unconditionally?  --rma, 8/29/00 */
-#endif /* if 0 */
           parent->variant.block.exposed_init_in_switch = TRUE;
           break;
         case cfdk_label:

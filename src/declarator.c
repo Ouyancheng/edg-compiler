@@ -1262,14 +1262,6 @@ see function_declarator (below) for which this is a helper function.
      this_class == NULL but qualifiers != TQ_NONE. */
   rtsp->this_class = this_class;
   rtsp->qualifiers = qualifier_err ? TQ_NONE : qualifiers;
-#if 0
-  /* Should a diagnostic be issued if a throw specification appears other
-     than on a top-level declaration?  The standard is imprecise in this
-     area. */
-  if (curr_token == tok_throw && !top_level) {
-    /* Error? */
-  }  /* if */
-#endif /* if 0 */
   esp = scan_exception_specification(func_info, !disallow_exception_spec,
                                      top_level);
 #if MICROSOFT_EXTENSIONS_ALLOWED

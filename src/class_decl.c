@@ -11473,10 +11473,6 @@ moreover, several fields of *decl_info may be updated by this routine.
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     decl_info->is_anonymous_union = TRUE;
     /* Set the IL referenced flag for the anonymous union type. */
-#if 0
-    /* It would probably be better to set it when an anonymous union member
-       is actually referenced. */
-#endif /* if 0 */
     member_type->source_corresp.referenced = TRUE;
   } else if (!C_mode()) {
     /* C++ mode. */
