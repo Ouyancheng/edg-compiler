@@ -717,6 +717,7 @@ ec_bad_asm_function_def;;"\"asm\" must be used with a function definition"
 ec_nonstd_asm_function;;"\"asm\" function is nonstandard"
 ec_nonstd_ellipsis_only_param;;"ellipsis with no explicit parameters is nonstandard"
 ec_nonstd_address_of_ellipsis;;"\"&...\" is nonstandard"
+ec_bad_address_of_ellipsis;;"invalid use of \"&...\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
