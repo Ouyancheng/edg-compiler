@@ -2132,8 +2132,10 @@ Display the indicated field.
     if (ptr->declared_bit_size != ptr->bit_size) {
       disp_unsigned_long("declared_bit_size", ptr->declared_bit_size);
 #if BACK_END_IS_C_GEN_BE
-      disp_name("bit_field_alignment_type");
-      disp_type(ptr->bit_field_alignment_type);
+      if (ptr->bit_field_alignment_type != NULL) {
+        disp_name("bit_field_alignment_type");
+        disp_type(ptr->bit_field_alignment_type);
+      }  /* if */
 #endif /* BACK_END_IS_C_GEN_BE */
     }  /* if */
     disp_boolean("bit_field_is_signed", (a_boolean)ptr->bit_field_is_signed);
