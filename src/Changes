@@ -1,5 +1,12 @@
 Version 2.32
 
+5/9/69  Nonstandard asm declarations within templates 
+
+An error is now issued if a Microsoft-style asm declaration appears inside
+a template.  This is a provisional fix of an abort within scan_asm_body.
+A future release will include the permanent fix, which will provide
+support for such asm declarations within templates.
+
 5/9/96  Abort following error in conversion operator reference
 
 Certain invalid operator references, such as the one below, could result
