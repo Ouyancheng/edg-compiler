@@ -1372,7 +1372,8 @@ subobject_type are considered in addition to direct bases.
        conflicts with array subobjects that have a dimension equal to 1. */
     a_type_ptr  element_type = skip_typerefs(subobject_type);
     do {
-      if (has_unknown_specified_bound(element_type)) {
+      if (has_unknown_specified_bound(element_type) ||
+          is_incomplete_type(element_type)) {
         break;
       } else if (element_type->variant.array.variant.number_of_elements == 1) {
         goto done;
@@ -1381,7 +1382,9 @@ subobject_type are considered in addition to direct bases.
       }  /* if */
     } while (is_array_type(element_type));
   } /* if */
-  if (array_subobject && !has_unknown_specified_bound(subobject_type)) {
+  if (array_subobject &&
+      !(has_unknown_specified_bound(subobject_type) ||
+        is_incomplete_type(subobject_type)) {
     num_array_elts = num_array_elements(subobject_type);
     subobject_type = underlying_array_element_type(subobject_type);
   } else {
