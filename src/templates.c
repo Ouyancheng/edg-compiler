@@ -3264,7 +3264,9 @@ prototype instantiation is considered as a potential match.
   check_assertion(class_template_sym != NULL &&
                  class_template_sym->kind == (a_symbol_kind)sk_class_template);
   if (tssp->is_nonreal_member) eta_options |= ETA_IS_NONREAL_MEMBER;
-  if (microsoft_bugs) eta_options |= ETA_MS_IGNORE_QUALIFIERS;
+  if (microsoft_bugs && microsoft_version <= 1100) {
+    eta_options |= ETA_MS_IGNORE_QUALIFIERS;
+  }  /* if */
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   if (any_prototype_allowed || specific_prototype_allowed != NULL) {

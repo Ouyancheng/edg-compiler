@@ -1,5 +1,13 @@
 Version 2.43
 
+10/28/99  Microsoft compatibility: qualifiers in template arguments
+
+In version 2.39, we duplicated a Microsoft bug that ignored qualifiers
+when comparing template argument lists.  This bug has been fixed
+in Visual C++ version 6.0.  Our support for this bug is now dependent
+on the Microsoft version value that is used (i.e., it is only supported
+for Microsoft versions of 1100 and earlier).
+
 10/28/99  offsetof based on __INTADDR__ when size_t smaller than pointer
 
 An implementation of offsetof that uses __INTADDR__ on a system where
