@@ -894,20 +894,6 @@ Return a pointer to the nearest enclosing compound statement.
 }  /* nearest_enclosing_compound_statement */
 
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-/*
-Allocate a source sequence entry for statement sp and add it to the list for
-the current function scope.
-*/
-#define stmt_update_source_sequence_list(sp)                     \
-  update_source_sequence_list((char *)sp, iek_statement,         \
-                              (a_source_position *)NULL,         \
-                              (a_decl_seq_info_ptr)NULL)
-#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-#define stmt_update_source_sequence_list(sp) /* Nothing */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-
-
 static a_boolean is_throw_expr(an_expr_node_ptr node)
 /*
 Return TRUE if the given expression is a "throw".
@@ -1110,6 +1096,110 @@ position.
 */
 #define add_statement(kind) add_statement_at_stmt_pos((kind), &pos_curr_token)
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+static void decl_statement(void)
+/*
+Unless one is already active, put out an stmk_decl statement to mark the
+start of a sequence of declarations.
+*/
+{
+  a_struct_stmt_stack_entry_ptr  sssep;
+  a_statement_ptr                sp = NULL;
+  a_source_sequence_entry_ptr    old_ssep, new_ssep;
+
+  sssep = &struct_stmt_stack[depth_stmt_stack];
+  sp = sssep->curr_decl_statement;
+  if (sp != NULL) {
+    /* The top of the structured statement stack already points to a
+       decl-statement, meaning the current declaration is within (i.e., not
+       at the start of) a string of declarations. */
+    if (sp->source_sequence_entry != NULL) {
+      /* Normal case -- previous declaration was as expected. */
+      sp = NULL;
+    } else {
+      /* The initial declaration must not have resulted in a source sequence
+         entry's being added to the list.  Proceed as if this were the first
+         declaration. */
+      old_ssep = scope_stack[depth_innermost_function_scope].
+                                                 last_source_sequence_entry;
+    }  /* if */
+  } else {
+    /* This is the first of a string of one or more declarations.  Create the
+       stmk_decl pseudo statement and update the structured statement stack. */
+    sp = add_statement((a_statement_kind)stmk_decl);
+    sssep->curr_decl_statement = sp;
+    /* Note the most recently entered source sequence entry on the list for
+       the current function. */
+    old_ssep = scope_stack[depth_innermost_function_scope].
+                                                 last_source_sequence_entry;
+  }  /* if */
+  /* Now process the declaration. */
+  local_declaration();
+  if (sp != NULL) {
+    /* Get what is now the most recently entered source sequence entry. */
+    new_ssep = scope_stack[depth_innermost_function_scope].
+                                                 last_source_sequence_entry;
+    if (new_ssep == old_ssep) {
+      /* The declaration produced no new entry on the list.  Don't update
+         the pointer. */
+    } else {
+      sp->source_sequence_entry = new_ssep;
+    }  /* if */
+  }  /* if */
+}  /* decl_statement */
+
+
+static void wrapup_decl_statement(void)
+/*
+If there is a currently active decl-statement, terminate it by setting its
+last-declaration pointer and removing it from the structure statement stack
+entry.
+*/
+{
+  a_struct_stmt_stack_entry_ptr  sssep;
+  a_statement_ptr                sp = NULL;
+
+  if (depth_stmt_stack != -1) {
+    sssep = &struct_stmt_stack[depth_stmt_stack];
+    sp = sssep->curr_decl_statement;
+    if (sp != NULL) {
+      /* There is a currently active stmk_decl statement. */
+      if (sp->source_sequence_entry == NULL) {
+        /* However, there was no initial declaration recorded.  Avoid
+           recording a final declaration as well. */
+      } else {
+        /* Set the last-declaration pointer. */
+        sp->variant.last_declaration =
+                        scope_stack[depth_innermost_function_scope].
+                                                 last_source_sequence_entry;
+      }  /* if */
+      /* Deactivate the decl-statement. */
+      sssep->curr_decl_statement = NULL;
+    }  /* if */
+  }  /* if */
+}  /* wrapup_decl_statement */
+
+
+static void stmt_update_source_sequence_list(a_statement_ptr  sp)
+/*
+Allocate a source sequence entry for statement sp and add it to the list for
+the current function scope.
+*/
+{
+  if (C_dialect == C_dialect_cplusplus) wrapup_decl_statement();
+  update_source_sequence_list((char *)sp, iek_statement,
+                              (a_source_position *)NULL,
+                              (a_decl_seq_info_ptr)NULL);
+}  /* stmt_update_source_sequence_list */
+
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+
+#define decl_statement() local_declaration()
+#define wrapup_decl_statement()                    /* Nothing */
+#define stmt_update_source_sequence_list(sp)       /* Nothing */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 void warn_if_code_is_unreachable(an_error_code      error_code,
                                  a_source_position  *err_pos)
@@ -1301,6 +1391,9 @@ the associated il statement.
   sssep->curr_switch_clause   = NULL;
   sssep->extra_block          = NULL;
   sssep->last_dep_statement   = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  sssep->curr_decl_statement  = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   sssep->break_label          = NULL;
   sssep->continue_label       = NULL;
   sssep->switch_selector_type = NULL;
@@ -2986,6 +3079,7 @@ Scan a case label definition.  The syntax is:
 
   db_enter(4, "case_label");
 
+  wrapup_decl_statement();
   add_stop_token(tok_colon);
   /* See if we are within a switch body by looking at the entries in
      the structured statement stack. */
@@ -3055,6 +3149,7 @@ Scan a default case label definition.  The syntax is:
 
   db_enter(4, "default_label");
 
+  wrapup_decl_statement();
   /* See if we are within a switch body by looking at the entries in
      the structured statement stack. */
   sssep = find_enclosing_struct_stmt(/*find_switch=*/TRUE,
@@ -3180,6 +3275,7 @@ rescan_statement:
           sym_error(ec_already_defined,
                     (a_symbol_ptr)label->source_corresp.assoc_info);
           set_reachable(curr_reachability);
+          wrapup_decl_statement();
         } else {
           /* The label has not previously been declared, so put out the
              definition. */
@@ -3229,7 +3325,7 @@ expr_statement:
                                   /*real_declarator_allowed=*/TRUE)) {
         /* Scan a declaration (C++ only). */
         is_declaration = TRUE;
-        local_declaration();
+        decl_statement();
       } else {
         /* expression-statement (3.6.3). */
         add_stop_token(tok_semicolon);
@@ -3346,15 +3442,19 @@ branching into it is disallowed).
              statement. */
           if (at_function_level && pos_curr_token.column == 1) break;
         }  /* if */
-        local_declaration();
+        decl_statement();
       } else {
+        wrapup_decl_statement();
         /* Scan a statement. */
         any_statements = TRUE;
         (void)statement();
       }  /* if */
     }  /* if */
   }  /* while */
-	
+
+  if (C_dialect == C_dialect_cplusplus || !any_statements) {
+    wrapup_decl_statement();
+  }  /* if */
   /* If a lint-style "notreached" comment was detected, suppress the
      warning on unreachable code. */
   check_lint_notreached_flag();
