@@ -8992,7 +8992,8 @@ the class template argument list or diagnose an invalid template reference.
   } else {
     /* A class template symbol or a potential error case. */
     result_sym = coalesce_template_class_reference(template_sym, options, err);
-    if (result_sym != NULL && is_nonreal_instance_class_symbol(result_sym)) {
+    if (result_sym != NULL && is_nonreal_instance_class_symbol(result_sym) &&
+        result_sym != template_sym) {
       /* We scanned this as a class template reference, but it is possible
          that it should really be considered a function (but we could not
          tell until we found out what token was after the template argument
