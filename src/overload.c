@@ -11489,6 +11489,30 @@ direct binding is "possible" and not whether it is "valid".
 }  /* direct_reference_binding_possible */
 
 
+static a_boolean microsoft_can_bind_ref_to_rvalue(an_operand *operand)
+/*
+Return TRUE if in Microsoft mode it is okay to bind a reference to
+non-const to the indicated (rvalue) operand.
+*/
+{
+  a_boolean can_bind = FALSE;
+
+  if (is_an_rvalue(operand)) {
+    if (is_expression_operand(operand)) {
+      an_expr_node_ptr expr = operand->variant.expression;
+      if (expr->kind == (an_expr_node_kind)enk_new_delete) {
+        a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
+        if (ndsp->is_new) {
+          /* A reference to non-const can bind to a "new". */
+          can_bind = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return can_bind;
+}  /* microsoft_can_bind_ref_to_rvalue */
+
+
 static a_boolean underlying_entity_is_auto(an_expr_node_ptr expr,
                                            a_boolean        *is_temp)
 /*
@@ -11913,7 +11937,10 @@ to be acceptable, and *conversion describes it.
                     orig_dest_type, orig_source_type);
       conv_to_error_operand(source_operand);
     } else if (!binding_to_rvalue_allowed &&
-               !allow_anachronisms && !any_cfront_mode()) {
+               !(allow_anachronisms ||
+                 any_cfront_mode() ||
+                 (microsoft_bugs &&
+                  microsoft_can_bind_ref_to_rvalue(source_operand)))) {
       /* A temporary cannot be used when binding a reference to non-const,
          except as an anachronism. */
       /* Use a different message for the case where the operand is
@@ -11986,13 +12013,19 @@ to be acceptable, and *conversion describes it.
           }  /* if */
         } else {
           /* Allowed as an anachronism. */
-          check_assertion(allow_anachronisms);
-          pos_diagnostic(anachronism_error_severity,
+          an_error_severity severity;
+          if (microsoft_mode) {
+            severity = es_warning;
+          } else {
+            check_assertion(allow_anachronisms);
+            severity = anachronism_error_severity;
+          }  /* if */
+          pos_diagnostic(severity,
                          ref_to_const_volatile ?
                                        ec_const_volatile_ref_init_anachronism :
                                        ec_nonconst_ref_init_anachronism,
                          &source_operand->position);
-          if (anachronism_error_severity == es_error) {
+          if (severity == es_error) {
             err = TRUE;
           } else {
             warn = TRUE;
