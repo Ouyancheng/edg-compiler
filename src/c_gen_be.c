@@ -231,7 +231,7 @@ Print a number of spaces for indentation.
 
 
 #if !INCLUDE_ANNOTATIONS
-/*ARGSUSED*/ /* <-- seq_number is only used if annotations are written. */
+/*ARGSUSED*/ /* <-- seq_number is used only if annotations are written. */
 #endif /* !INCLUDE_ANNOTATIONS */
 static void startline(a_seq_number seq_number)
 /*
@@ -239,11 +239,6 @@ Start a line by printing a sequence number and a newline.  Do not print the
 sequence number if it is 0.
 */
 {
-  char          *file_name;
-  char          *full_file_name;
-  a_line_number line_number;
-  a_boolean     end_of_file;
-
   if (fputc('\n', f_C_output) == EOF) {
     /* Error in writing the output file.  This check supplements the check
        done when the file is closed.  The check here helps catch a disk full
@@ -254,6 +249,11 @@ sequence number if it is 0.
   if (annotate) {
     if (seq_number != 0) {
       /* Get the current position set in case of internal errors. */
+      char          *file_name;
+      char          *full_file_name;
+      a_line_number line_number;
+      a_boolean     end_of_file;
+
       error_position.seq    = seq_number;
       error_position.column = 0;
       conv_seq_to_file_and_line(seq_number, &file_name, &full_file_name,
@@ -308,6 +308,10 @@ information should be output.  In some modes, a #if 0 will be put out.
 }  /* start_unreferenced_bracket */
 
 
+#if !INCLUDE_ANNOTATIONS
+/*ARGSUSED*/ /* <-- source_corresp is used only when INCLUDE_ANNOTATIONS
+                    is TRUE. */
+#endif /* !INCLUDE_ANNOTATIONS */
 static void end_unreferenced_bracket(a_source_correspondence *source_corresp)
 /*
 If the corresponding call of start_unreferenced_bracket started a #if,
@@ -959,7 +963,7 @@ omit the space.
     case sc_typedef:
       fputs("typedef ", f_C_output);
       break;
-    /* sc_asm is only used in versions with ASM_FUNCTION_ALLOWED set TRUE. */
+    /* sc_asm is used only in versions with ASM_FUNCTION_ALLOWED set TRUE. */
     case sc_asm:
       (void)fprintf(stderr, "asm functions cannot be translated to K&R C.\n");
       fputs("<asm> ", f_C_output);
@@ -1085,6 +1089,9 @@ Print the name of a float type.
 
 #ifdef CFE
 
+#if !INCLUDE_ANNOTATIONS
+/*ARGSUSED*/ /* <-- Args are used only when INCLUDE_ANNOTATIONS is TRUE. */
+#endif /* !INCLUDE_ANNOTATIONS */
 static void dump_type_qualifier(a_type_ptr type,
 				a_boolean  need_trailing_space)
 /*
@@ -1232,7 +1239,7 @@ Print out the type specifier.
 
 
 #ifndef FFE
-/*ARGSUSED*/  /* <-- for_intrinsic is only used with FFE */
+/*ARGSUSED*/  /* <-- for_intrinsic is used only with FFE */
 #endif /* ifndef FFE */
 static void dump_type_first_part(a_type_ptr type,
 				 a_boolean  need_paren,
@@ -1549,8 +1556,6 @@ is TRUE, this is for the heading of a function being declared with a body.
   a_routine_ptr             routine;
 #ifdef CFE
   a_param_type_ptr          param_type;
-  register int              arg_ctr;
-  char                      arg_name[15];
 #endif /* ifdef CFE */
 
   fputc('(', f_C_output);
@@ -1615,6 +1620,8 @@ is TRUE, this is for the heading of a function being declared with a body.
       /* Prototyped list.  List parameters and types, in a comment. */
 #if INCLUDE_ANNOTATIONS
       if (annotate) {
+        unsigned long arg_ctr;
+        char          arg_name[50];
         start_comment();
         for (arg_ctr = 1;; arg_ctr++) {
           (void)sprintf(arg_name, "p%d", arg_ctr);
@@ -2137,7 +2144,7 @@ all types, but for structs/unions put out only a forward reference.
 #endif /* ifdef CFE */
 
 #ifndef CFE
-/*ARGSUSED*/ /* <-- type_list is only used if CFE is defined. */
+/*ARGSUSED*/ /* <-- type_list is used only if CFE is defined. */
 #endif /* ifndef CFE */
 static void dump_all_type_declarations(a_type_ptr type_list)
 /*
@@ -2792,7 +2799,7 @@ closing parentheses needed if any code was generated there.
 
 #endif /* ifdef CFE */
 #ifndef CFE
-/*ARGSUSED*/ /* <-- op is only used if CFE is defined. */
+/*ARGSUSED*/ /* <-- op is used only if CFE is defined. */
 #endif /* ifndef CFE */
 static void dump_assign(an_expr_node_ptr      operand_1,
                         an_expr_operator_kind op,
@@ -4546,7 +4553,7 @@ the file.
   register  int c;
   FILE      *f = *f_ptr;
 #if INCLUDE_ANNOTATIONS
-  a_boolean start_of_line;
+  a_boolean start_of_line = TRUE;
 #endif /* INCLUDE_ANNOTATIONS */
 
   /* Seek to the beginning of the file. */
@@ -4555,7 +4562,6 @@ the file.
   }  /* if */
   fputc('\n', f_C_output);
   /* Copy the file. */
-  start_of_line = TRUE;
   while ((c = getc(f)) != EOF) {
 #if INCLUDE_ANNOTATIONS
     /* Indent all lines except preprocessing directives. */
@@ -5903,6 +5909,9 @@ arrays that will hold the lower/upper bound values.
 
 #endif /* ifdef FFE */
 
+#if !INCLUDE_ANNOTATIONS
+/*ARGSUSED*/ /* <-- constant is used only if INCLUDE_ANNOTATIONS is TRUE. */
+#endif /* !INCLUDE_ANNOTATIONS */
 static void dump_constant(a_constant_ptr constant)
 /*
 Dump out one constant declaration as a #define.
