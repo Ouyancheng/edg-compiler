@@ -1355,7 +1355,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code_in_pragma=*/TRUE,
-		 /*ignore_in_back_end=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
                  es_error);
   (void)add_other_pragma_kind_description
 		((a_pragma_kind)pk_test_other,
