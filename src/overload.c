@@ -10018,7 +10018,7 @@ happen only in C++ mode.
   class_bitwise_copy = conversion->class_identity_or_bitwise_copy;
   if (class_bitwise_copy) {
     /* The operation is a class bitwise copy. */
-    if (skip_typerefs(source_operand->type) == class_type) {
+    if (skip_typerefs(source_operand->type) == class_type && !C_mode()) {
       /* The source and destination types are the same, so the bitwise copy
          is a "copy constructor call" that may be eligible for elision. */
       /* See whether the source is a temporary that can be eliminated. */
