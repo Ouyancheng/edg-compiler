@@ -374,9 +374,6 @@ current expression (used to decide how a comma should be treated).
          template argument expression, since the ">" is then not top-level. */
       if (expr_stack->is_template_arg_expression &&
           expr_stack->nested_construct_depth == 0) {
-#if 0
-        /* Simplified processing. */
-#endif
         done = TRUE;
       }  /* if */
       /* Not the end of a template argument list, so fall into the normal
@@ -6938,11 +6935,16 @@ nonstatic_member_function:
                variable, its sk_parameter type becomes sk_variable. */
             error_and_make_error_operand(ec_param_not_allowed, result);
           } else {
-            /* Use of a parameter in a sizeof expression. */
-#if 0
-#else
-            internal_error("scan_identifier: unimplemented: sizeof parameter");
-#endif /* 0 */
+            /* Use of a parameter in a sizeof expression, something like
+                 void f(a, int b[sizeof(a)]);
+               Create a constant pointer to the right type to make an lvalue
+               of the right type, since there is no variable yet. */
+            a_constant constant;
+            a_type_ptr param_type = sym_ptr->variant.param_id->type;
+            make_zero_of_proper_type(make_pointer_type(param_type), &constant);
+            make_constant_operand(&constant, result);
+            result->state = (an_operand_state)os_lvalue;
+            result->type = param_type;
           }  /* if */
           break;
 #if CHECKING
