@@ -5443,7 +5443,7 @@ This routine may only be called in C++ mode.
      left angle bracket.  A vacuous destructor reference can also begin
      with an identifier that is a type name or a token that begins
      a simple type name.  The function "type_keyword" will detect
-     a token than begins a simple type.  We will check later to determine
+     a token that begins a simple type.  We will check later to determine
      whether the identifier is a class name or a type name, if needed.  */
   might_be_qualifier = FALSE;
   if (curr_token == tok_identifier) {
