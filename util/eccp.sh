@@ -45,7 +45,7 @@ EDG_PRELINK=${EDG_PRELINK_PATH-$EDG_BASE/lib/edg_prelink}
 #
 # Flag indicating whether to use "patch" or "munch" for static initialization.
 #
-patch_mode=1
+patch_mode=${EDG_PATCH_MODE-1}
 #
 # Flag indicating whether to do automatic instantiation by default
 #
