@@ -6620,6 +6620,7 @@ C++ mode.
   a_type_ptr                routine_type;
   a_param_type_ptr          param;
   a_boolean                 undecidable_because_of_error;
+  a_boolean                 old_style_function;
 
   db_enter(4, "select_overloaded_function");
   /* candidate_functions will contain the list of viable functions. */
@@ -6673,6 +6674,7 @@ C++ mode.
     }  /* if */
 #endif /* DEBUG */
     routine_type = routine_symbol_type(function_symbol);
+    old_style_function = !routine_type->variant.routine.extra_info->prototyped;
     arg_match = candidate_functions->arg_matches;
     /* Now do the things that would have been done to the symbol but
        weren't because the specific symbol was not known, and build an operand
@@ -6730,6 +6732,13 @@ C++ mode.
       arg = node_for_arg_of_overloaded_function_call(arg_operand, arg_match,
                                                      param,
                                                      expression_kind);
+      /* If the function is an old-style unprototyped function (an anachronism;
+         yes, they can participate in overloading), promote the argument
+         value if necessary (e.g., short --> int). */
+      if (old_style_function) {
+        cast_node(&arg, default_argument_promotion(arg->type),
+                  /*is_implicit_cast=*/TRUE, &arg_operand->operand.position);
+      }  /* if */
       /* Add this argument to the end of the expression-form argument list
          being built up. */
       if (prev_arg == NULL) {
