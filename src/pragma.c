@@ -771,16 +771,21 @@ there is additional processing to be done.
       scp = source_corresp_for_il_entry(entity_ptr, entity_kind);
       check_assertion_str2(scp != NULL, "add_pragma_to_il:",
                            "invalid entity kind (no source corresp)");
-      /* Except for function-local entities, let the low-level routines
-         figure out the scope and memory region. */
-      if (!scp->is_local_to_function) {
+      if (scp->is_class_member || scp->parent.namespace_ptr != NULL) {
+        /* For class and namespace members (including local ones),
+           let the low-level routines figure out the scope and memory
+           region. */
         if (!C_mode()) {
           scope_depth = NO_SCOPE_DEPTH;
         } else {
-          /* In C mode, there are no class scopes or namespace scopes,
-             so everything is at the file scope. */
+          /* C doesn't have class or namespace scopes, so C fields
+             go into the file scope. */
           scope_depth = DEPTH_OF_FILE_SCOPE;
         }  /* if */
+      } else if (!scp->is_local_to_function) {
+        /* For entities not local to a function, let the low-level routines
+           figure out the scope and memory region. */
+        scope_depth = NO_SCOPE_DEPTH;
       } else if (in_file_scope(scp)) {
         /* Pragmas for things like local static variables are placed on
            the file-scope pragmas list, because there are no orphan lists
