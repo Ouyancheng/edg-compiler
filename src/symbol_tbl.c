@@ -1266,8 +1266,8 @@ the proper insert location.
 }  /* link_symbol_into_symbol_table */
 
 
-a_boolean check_class_and_member_name_conflict(a_type_ptr    class_type,
-                                               a_symbol_ptr  member_sym)
+static a_boolean member_name_conflicts_with_class_name(a_type_ptr   class_type,
+                                                       a_symbol_ptr member_sym)
 /*
 If the member specified by member_sym has the same name as the class of
 which it is a member (class_type), issue an error -- except for nonstatic
@@ -1302,7 +1302,7 @@ the symbol table, this routine is not called for them.
     }  /* if */
   }  /* if */
   return err;
-}  /* check_class_and_member_name_conflict */
+}  /* member_name_conflicts_with_class_name */
 
 
 static void add_symbol_to_scope_list(a_symbol_ptr  sym_ptr,
@@ -1346,7 +1346,7 @@ changed if there is no error.
          for which is not added to the scope list) or a nonstatic data
          member that is not an anonymous union member (ARM 9.2). */
       if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-          check_class_and_member_name_conflict(ssep->assoc_type, sym_ptr)) {
+          member_name_conflicts_with_class_name(ssep->assoc_type, sym_ptr)) {
         *err = TRUE;
       }  /* if */
     }  /* if */
