@@ -1154,6 +1154,18 @@ error code.
     case ec_type_must_be_object_type:
       m = "type must be an object type";
       break;
+    case ec_base_class_already_initialized:
+      m = "base class \"%s\" has already been initialized";
+      break;
+    case ec_base_class_init_anachronism:
+      m = "base class \"%s\" assumed for initializer (anachronism)";
+      break;
+    case ec_member_already_initialized:
+      m = "member has already been initialized";
+      break;
+    case ec_missing_base_class_or_member_name:
+      m = "name of member or base class is missing";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -405,7 +405,11 @@ typedef enum /*an_error_code*/ {
   ec_bad_return_type_for_operator_delete,
   ec_bad_first_arg_type_for_operator_delete,
   ec_bad_second_arg_type_for_operator_delete,
-  ec_type_must_be_object_type
+  ec_type_must_be_object_type,
+  ec_base_class_already_initialized,
+  ec_base_class_init_anachronism,
+  ec_member_already_initialized,
+  ec_missing_base_class_or_member_name
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
