@@ -2170,16 +2170,13 @@ will be involved in overloading.
     linkage = idl_none;
   } else if ((sym = locator->specific_symbol) != NULL &&
              sym->class_of_which_a_member != NULL) {
-    *linked_symbol = sym;
-    if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-      linkage = idl_external;
 #if CHECKING
-    } else if (sym->kind == (a_symbol_kind)sk_member_function) {
-      internal_error("id_linkage: member functions not yet implemented");
-    } else if (sym->kind == (a_symbol_kind)sk_field) {
-      internal_error("id_linkage: fields not yet implemented");
-#endif /* CHECKING */
+    if (sym->kind != (a_symbol_kind)sk_static_data_member) {
+      internal_error("id_linkage: bad symbol kind for class member");
     }  /* if */
+#endif /* CHECKING */
+    *linked_symbol = sym;
+    linkage = idl_external;
   } else {
     /* Is this type an object or function, and is it going to be declared
        at file scope? */
@@ -6937,7 +6934,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean	    declares_something;
   a_boolean	    defines_something;
   a_decl_flag_set   dso_flags, do_flags;
-  a_decl_flag_set   dsi_flags;
+  a_decl_flag_set   dsi_flags, di_flags;
   a_symbol_ptr      symbol_ptr, ext_sym;
   a_boolean	    decl_specifiers_omitted = FALSE;
   a_boolean         is_function, is_main_function;
@@ -7161,7 +7158,19 @@ continue_with_declaration:
     warning(ec_decl_of_void_ignored);
     (void)get_token();
   } else {
-    /* A declarator list must be present.  Scan it. */
+    /* Set the various flags for declarator processing. */
+    di_flags = DI_REAL_DECLARATOR_ALLOWED;
+    if (C_dialect == C_dialect_cplusplus) {
+      if (is_scalar_type(type_ptr) ||
+          is_class_struct_union_type(type_ptr)) {
+        di_flags |= DI_PARENTHESIZED_INITIALIZER_ALLOWED;
+      }  /* if */
+      if (storage_class != (a_storage_class)sc_typedef &&
+          decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+        di_flags |= DI_QUALIFIED_NAME_ALLOWED;
+      }  /* if */
+    }  /* if */
+    /* Scan the declarator list. */
     do {
       add_stop_token(tok_comma);
       need_comma_remove_stop_token = TRUE;
@@ -7179,14 +7188,9 @@ continue_with_declaration:
       } else {
         copy_source_position(pos_curr_token, declarator_pos);
       }  /* if */
-      declarator(DI_REAL_DECLARATOR_ALLOWED |
-                   (is_scalar_type(type_ptr) ||
-                    is_class_struct_union_type(type_ptr) ?
-                           DI_PARENTHESIZED_INITIALIZER_ALLOWED : 0) |
-                   (storage_class == (a_storage_class)sc_typedef ?
-                           0 : DI_QUALIFIED_NAME_ALLOWED),
-                 &do_flags, type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
-                 &locator, &local_type_ptr, &bottom_derived_type, &func_info,
+      declarator(di_flags, &do_flags, type_ptr, 
+                 /*member_parent_type=*/(a_type_ptr)NULL, &locator,
+                 &local_type_ptr, &bottom_derived_type, &func_info,
                  &dim_expr_ptr);
       is_function = is_function_type(local_type_ptr);
       is_main_function =
