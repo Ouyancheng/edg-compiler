@@ -2099,7 +2099,14 @@ arguments, and as dimensions of arrays in template signatures.
   /* Drop eok_lvalue and eok_rvalue. */
   while (is_operation_node(expr) &&
          (expr->variant.operation.kind == (an_expr_operator_kind)eok_lvalue ||
-          expr->variant.operation.kind == (an_expr_operator_kind)eok_rvalue)) {
+          expr->variant.operation.kind == (an_expr_operator_kind)eok_rvalue
+#if IA64_ABI
+          /* Also drop unary plus in the IA-64 ABI.  There's no representation
+             for it. */
+                                                                            ||
+          expr->variant.operation.kind == (an_expr_operator_kind)eok_unary_plus
+#endif /* IA64_ABI */
+                                                                           )) {
     expr = expr->variant.operation.operands;
   }  /* while */
   switch (expr->kind) {

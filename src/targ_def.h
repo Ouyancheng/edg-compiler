@@ -2603,15 +2603,11 @@ this switch is FALSE, but such code would not ordinarily be passed to
 a code generator.
 */
 #ifndef UNARY_PLUS_IN_IL
-#if IA64_ABI
-#define UNARY_PLUS_IN_IL FALSE /* Do not change this. */
-#else /* !IA64_ABI */
 #if BACK_END_IS_CP_GEN_BE
 #define UNARY_PLUS_IN_IL TRUE
 #else /* !BACK_END_IS_CP_GEN_BE */
 #define UNARY_PLUS_IN_IL FALSE
 #endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* !IA64_ABI */
 #endif /* ifndef UNARY_PLUS_IN_IL */
 
 #if IA64_ABI && UNARY_PLUS_IN_IL
