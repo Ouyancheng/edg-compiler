@@ -235,6 +235,10 @@ typedef int a_decl_flag_set;
 #define DI_DIMENSION_EXPRESSION_ALLOWED 0x80
 			/* If this bit is set the first dimension of an array
 			   declarator may be a nonconstant expression. */
+#define DI_IS_TEMPLATE_DECLARATION 0x100
+			/* If this bit is set declarator is called for a
+			   declaration of a template function or a template
+			   static data member. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
 #define DO_NO_OUTPUT_FLAGS 0x0
