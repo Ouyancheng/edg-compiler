@@ -1,5 +1,18 @@
 Version 2.39
 
+2/13/98   Local static character array initialized to string in extern inline
+
+The change made on 12/22/97 to fix a problem with initialization of
+local static arrays in extern inline functions broke the processing
+when the initial value is a string literal.  Fixed, again.
+
+  extern inline void f() {
+    static char s[] = "abcd";
+  }
+  int main () {
+    void (*pf)() = f;
+  }
+
 2/11/98   Improvement in code generated for call of function returning
           class by value
 

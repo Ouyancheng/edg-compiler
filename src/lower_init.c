@@ -4171,7 +4171,8 @@ scope is the scope in which the variable's definition appears.
   variable->init_kind = (an_init_kind)initk_none;
   /* The general strategy is to add an assignment that copies the constant
      value into the variable. */
-  if (constant->kind != (a_constant_repr_kind)ck_aggregate) {
+  if (constant->kind != (a_constant_repr_kind)ck_aggregate &&
+      !is_array_type(variable->type)) {
     /* For the simple, non-aggregate case, the constant can be assigned
        directly. */
     source_node = make_node_for_il_constant(constant);
