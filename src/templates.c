@@ -16983,6 +16983,25 @@ data member specified by tip.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* instantiate_entity */
 
+
+void complete_template_static_data_member_type_is_needed(a_variable_ptr vp)
+/*
+"vp" is the variable entry for a template static data member with an incomplete
+type.  If the type of "vp" can be made complete by instantiating the static
+data member, and such an instantiation can be done (a definition is available),
+do the instantiation now.
+*/
+{
+  a_template_instance_ptr	tip;
+  a_symbol_ptr			var_sym;
+
+  check_assertion(vp->is_template_static_data_member);
+  var_sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+  check_assertion(var_sym != NULL);
+  tip = var_sym->variant.static_data_member.instance_ptr;
+  instantiate_entity(tip);
+}  /* complete_template_static_data_member_type_is_needed */
+
 #if TEMPLATE_LOOKUP_NEEDED
 
 static a_template_lookup_entry_ptr alloc_template_lookup_entry(void)

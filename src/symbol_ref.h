@@ -221,6 +221,17 @@ extern void check_name_hiding_for_scope(a_scope_ptr  sp);
   record_complete_class_type_needed(tp);                                \
 }
 
+/* If the variable is a template static data member with an incomplete
+   array size, attempt an instantiation of the static data member so
+   that the size of the variable can be known. */
+#define complete_variable_type_is_needed(vp)				\
+{									\
+  if (vp->is_template_static_data_member &&				\
+      is_incomplete_type(vp->type)) {					\
+    complete_template_static_data_member_type_is_needed(vp);			\
+  }  /* if */								\
+}  /* complete_variable_type_is_needed */
+
 #endif /* ifndef SYMBOL_REF_H */
 
 /******************************************************************************

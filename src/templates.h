@@ -325,6 +325,9 @@ extern void find_static_data_member_template(
 
 extern void check_for_uninstantiated_template_class(a_type_ptr  type);
 
+extern
+void complete_template_static_data_member_type_is_needed(a_variable_ptr vp);
+
 extern void f_instantiate_template_class(a_type_ptr  type);
 
 extern a_boolean is_template_param_from_list(
