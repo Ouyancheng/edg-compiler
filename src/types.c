@@ -741,7 +741,7 @@ array_type.
   register a_targ_size_t temp, temp2;
   register a_type_ptr    elem_type;
 
-  db_enter(4, "set_array_type_size");
+  db_enter(5, "set_array_type_size");
   if (is_arr_of_incomp_struct_or_union(array_type)) {
     /* This is an array whose element type (directly or indirectly) is
        an incomplete struct or union.  The size cannot be determined now.
@@ -792,7 +792,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
   a_targ_size_t    size;
   a_targ_alignment alignment;
 
-  db_enter(4, "set_type_size");
+  db_enter(5, "set_type_size");
   size = type_ptr->size;
   /* If the size is set already, leave it alone. */
   if (size == 0) {
@@ -899,7 +899,7 @@ bit fields.
 {
   register a_type_ptr promoted_type;
 
-  db_enter(4, "type_after_integral_promotion");
+  db_enter(5, "type_after_integral_promotion");
 
   promoted_type = skip_typerefs(type);
   if (is_integral(promoted_type)) {
@@ -1108,7 +1108,7 @@ which do the initial test for exact pointer equality.
   a_param_type_ptr              list1, list2;
   a_routine_type_supplement_ptr extra_info1, extra_info2;
 
-  db_enter(4, "f_identical_types");
+  db_enter(5, "f_identical_types");
 
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
@@ -1232,7 +1232,7 @@ funcs_not_identical:;
   }  /* if */
 
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 5) {
     fprintf(f_debug, "f_identical_types: %s\n", identical ? "TRUE" : "FALSE");
   }  /* if */
 #endif /* DEBUG */
@@ -1297,7 +1297,7 @@ types_are_compatible, which does the initial test for exact pointer equality.
   a_routine_type_supplement_ptr extra_info1, extra_info2, local_extra_info2;
   a_type_ptr                    param_2_type;
 
-  db_enter(4, "f_types_are_compatible");
+  db_enter(5, "f_types_are_compatible");
 
   if (is_const_qualified_type(type_1) != is_const_qualified_type(type_2) ||
       is_volatile_qualified_type(type_1) !=
@@ -1457,7 +1457,7 @@ funcs_not_compatible:;
   }  /* if */
 
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 5) {
     fprintf(f_debug, "f_types_are_compatible: %s\n", compat ? "TRUE":"FALSE");
   }  /* if */
 #endif /* DEBUG */
@@ -1483,7 +1483,7 @@ and arguments of old-style calls.
   an_integer_kind ikind1, ikind2;
   a_type_ptr      ptr_type1, ptr_type2;
 
-  db_enter (4, "interchangeable_types");
+  db_enter(5, "interchangeable_types");
   /* The footnote in 3.1.2.5 applies to four cases:
        (1)  Corresponding signed and unsigned integral types.
        (2)  Qualified or unqualified versions of interchangeable types.
@@ -1637,13 +1637,13 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   a_type_ptr dest_type_pointed_to, source_type_pointed_to;
   a_type_ptr unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
 
-  db_enter(4, "impl_pointer_conversion");
+  db_enter(5, "impl_pointer_conversion");
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 5) {
     fprintf(f_debug, "impl_pointer_conversion: source_type = ");
-    db_type(source_type);
+    db_abbreviated_type(source_type);
     fprintf(f_debug, ", dest_type = ");
-    db_type(dest_type);
+    db_abbreviated_type(dest_type);
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
@@ -1781,7 +1781,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   }  /* if */
 
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 5) {
     fprintf(f_debug, "impl_pointer_conversion: %s\n",
                      okay ? "okay" : "not okay");
   }  /* if */
@@ -1831,13 +1831,13 @@ See conversion_possible.
   a_boolean      pointer_normalization_needed;
   a_constant_ptr dest_enum_list, source_enum_list;
 
-  db_enter(4, "impl_conversion_possible");
+  db_enter(5, "impl_conversion_possible");
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 5) {
     fprintf(f_debug, "impl_conversion_possible: source_type = ");
-    db_type(source_type);
+    db_abbreviated_type(source_type);
     fprintf(f_debug, ", dest_type = ");
-    db_type(dest_type);
+    db_abbreviated_type(dest_type);
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
@@ -1914,7 +1914,7 @@ See conversion_possible.
   if (!okay && is_error(source_type)) okay = TRUE;
 
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 5) {
     fprintf(f_debug, "impl_conversion_possible: %s\n",
                      okay ? "okay" : "not okay");
   }  /* if */
@@ -1952,13 +1952,13 @@ conversions (constructors and conversion functions).
   a_boolean     okay = FALSE, impl_okay;
   an_error_code impl_warning_suggested;
 
-  db_enter(4, "expl_conversion_possible");
+  db_enter(5, "expl_conversion_possible");
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 5) {
     fprintf(f_debug, "expl_conversion_possible: source_type = ");
-    db_type(source_type);
+    db_abbreviated_type(source_type);
     fprintf(f_debug, ", dest_type = ");
-    db_type(dest_type);
+    db_abbreviated_type(dest_type);
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
@@ -2050,7 +2050,7 @@ conversions (constructors and conversion functions).
   }  /* if */
 
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 5) {
     fprintf(f_debug, "expl_conversion_possible: %s\n",
                      okay ? "okay" : "not okay");
   }  /* if */
@@ -2082,7 +2082,7 @@ is allocated, it is allocated in the file scope.
   a_boolean        comp_prototyped;
   an_expr_node_ptr comp_default_arg_expr;
 
-  db_enter(4, "composite_type");
+  db_enter(5, "composite_type");
 
 #if CHECKING
   if (!types_are_compatible(type_1, type_2)) {
@@ -2607,7 +2607,7 @@ is returned.
       /* The type entry will have to be copied. */
       kind = old_type->kind;
 #if DEBUG
-      if (debug_level >= 4) {
+      if (debug_level >= 5) {
         fprintf(f_debug, "make_file_scope_type: copying type with kind = %d\n",
                          (int)kind);
       }  /* if */
