@@ -314,7 +314,7 @@ definition of the class is needed, and not just the declaration.
   if (!type->variant.class_struct_union.definition_needed) {
     type->variant.class_struct_union.definition_needed = TRUE;
 #if DEBUG
-    if (db_flag_is_set("dump_elim")) {
+    if (db_flag_is_set("needed_flags")) {
       fprintf(f_debug, "Setting definition_needed on ");
       db_abbreviated_type(type);
       fprintf(f_debug, "\n");
@@ -376,17 +376,17 @@ as needed.
       /* The flag is not set, so set it and keep walking. */
       scp->needed = TRUE;
 #if DEBUG
-      if (db_flag_is_set("dump_elim")) {
+      if (db_flag_is_set("needed_flags")) {
         if (entry_kind == iek_type) {
-          fprintf(f_debug, "Setting needed on type     ");
+          fprintf(f_debug, "Setting needed on type ");
           db_abbreviated_type((a_type_ptr)entry_ptr);
           fprintf(f_debug, "\n");
         } else if (entry_kind == iek_variable) {
-          fprintf(f_debug, "Setting needed on variable ");
+          fprintf(f_debug, "Setting needed on var  ");
           db_name(&((a_variable_ptr)entry_ptr)->source_corresp);
           fprintf(f_debug, "\n");
         } else if (entry_kind == iek_routine) {
-          fprintf(f_debug, "Setting needed on routine  ");
+          fprintf(f_debug, "Setting needed on rout ");
           db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
           fprintf(f_debug, "\n");
         }  /* if */
@@ -553,7 +553,7 @@ declaration.
   if (!type->variant.class_struct_union.keep_definition_in_il) {
     type->variant.class_struct_union.keep_definition_in_il = TRUE;
 #if DEBUG
-    if (db_flag_is_set("dump_elim")) {
+    if (db_flag_is_set("needed_flags")) {
       fprintf(f_debug, "Setting keep_definition_in_il on ");
       db_abbreviated_type(type);
       fprintf(f_debug, "\n");
@@ -673,17 +673,17 @@ to be kept.
     /* The flag is not set, so set it and keep walking. */
     il_entry_prefix_of(entry_ptr).keep_in_il = TRUE;
 #if DEBUG
-    if (entry_kind == iek_type && db_flag_is_set("dump_elim")) {
+    if (db_flag_is_set("needed_flags")) {
       if (entry_kind == iek_type) {
-        fprintf(f_debug, "Setting keep_in_il on type     ");
+        fprintf(f_debug, "Setting keep_in_il on type ");
         db_abbreviated_type((a_type_ptr)entry_ptr);
         fprintf(f_debug, "\n");
       } else if (entry_kind == iek_variable) {
-        fprintf(f_debug, "Setting keep_in_il on variable ");
+        fprintf(f_debug, "Setting keep_in_il on var  ");
         db_name(&((a_variable_ptr)entry_ptr)->source_corresp);
         fprintf(f_debug, "\n");
       } else if (entry_kind == iek_routine) {
-        fprintf(f_debug, "Setting keep_in_il on routine  ");
+        fprintf(f_debug, "Setting keep_in_il on rout ");
         db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
         fprintf(f_debug, "\n");
       }  /* if */
