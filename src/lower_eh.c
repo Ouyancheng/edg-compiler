@@ -1170,7 +1170,6 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
 }  /* lower_typeid */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
-#if GENERATE_EH_TABLES
 
 /*
 Following is code related to typeinfo entries that is needed only for
@@ -1437,6 +1436,7 @@ pointed to from virtual function tables.
                              il_header.nontag_types_used_in_exception_or_rtti);
 }  /* generate_typeinfo_vars */
 
+#if GENERATE_EH_TABLES
 #if DO_FULL_PORTABLE_EH_LOWERING
 
 static a_variable_ptr make_unnamed_local_array_var(a_type_ptr elem_type)
