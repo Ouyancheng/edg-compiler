@@ -68,18 +68,19 @@ static unsigned long
 		symbol_name_string_space,
 		num_class_symbol_supplements_allocated,
 		num_template_symbol_supplements_allocated,
-                num_template_params_allocated,
-                num_param_ids_allocated,
-                num_template_instances_allocated,
-                num_conversion_list_entries_allocated,
+		num_template_params_allocated,
+		num_param_ids_allocated,
+		num_dependent_type_fixups_allocated,
+		num_template_instances_allocated,
+		num_conversion_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
-                num_projection_descrs_allocated,
+		num_projection_descrs_allocated,
 		num_used_symbol_buckets,
 		num_searches_for_symbols,
 		num_compares_for_symbols,
-                num_fast_id_lookups,
-                num_slow_id_lookups;
+		num_fast_id_lookups,
+		num_slow_id_lookups;
 #endif /* DEBUG */
 
 /*
@@ -124,6 +125,11 @@ static a_param_id_ptr
 		avail_param_ids;
 			/* List of parameter id entries freed and available
 			   for reuse. */
+
+static a_dependent_type_fixup_ptr
+		avail_dependent_type_fixups;
+			/* List of dependent type fixup entries freed and
+			   available for reuse. */
 
 static a_decl_sequence_number
 		decl_seq_counter;
@@ -1432,6 +1438,7 @@ state.
         cssp->class_template = NULL;
         cssp->member_decl_scope = NO_SCOPE_NUMBER;
         cssp->template_param_for_proxy_class = NULL;
+        cssp->dependent_type_fixup_list = NULL;
         cssp->constructor_required = FALSE;
         cssp->destructor_required = FALSE;
         cssp->has_default_constructor = FALSE;
@@ -6541,7 +6548,6 @@ of the template.
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;
-  ssep->array_type_fixup_list    = NULL;
   ssep->extern_type_fixup_list   = NULL;
   ssep->shareable_constants_list = NULL;
   ssep->last_routine_fixup       = NULL;
@@ -8344,6 +8350,107 @@ Clear the fields of a function information block to default values.
 }  /* clear_func_info */
 
 
+a_boolean add_if_necessary_to_dependent_type_fixup_list(a_type_ptr        type,
+                                                        a_param_type_ptr  ptp)
+/*
+If it involves a dependency upon an incomplete class type, add type or
+ptp to the fixup list of the class type.  Either type or ptp (but not both)
+is non-NULL.  If type is non-NULL, it is either an array type or a routine
+type.  If the former, a fixup is required if the underlying element type is
+If the underlying element type of array_type is an incomplete class type
+(allowed as an extension), add a fixup pointer to the class type's list of
+dependent types.  If type is NULL, then ptp points to a param type entry that
+needs similar treatment if its type is an incomplete class type.
+*/
+{
+  a_boolean                      added_to_list = FALSE;
+  a_boolean                      is_param_type;
+  a_type_ptr                     tp;
+  a_dependent_type_fixup_ptr     dtfp;
+  a_class_symbol_supplement_ptr  cssp;
+
+  db_enter(5, "add_if_necessary_to_dependent_type_fixup_list");
+  /* One or the other of type and ptp, but not both, should be non-NULL. */
+  check_assertion((type == NULL) != (ptp == NULL));
+  if (type != NULL) {
+    is_param_type = FALSE;
+    if (is_array_type(type)) {
+      /* Drop any number of array types. */
+      tp = skip_typerefs(underlying_array_element_type(type));
+    } else {
+      check_assertion(is_function_type(type));
+      tp = skip_typerefs((skip_typerefs(type))->variant.routine.return_type);
+    }  /* if */
+  } else {
+    is_param_type = TRUE;
+    tp = skip_typerefs(ptp->type);
+  }  /* if */
+  /* Check whether tp is an incomplete class type. */
+  if (is_incomplete_type(tp) && is_immediate_class_type(tp)) {
+    /* It is.  A dependent type fixup entry is required for the type or
+       param type. */
+    if (avail_dependent_type_fixups != NULL) {
+      /* Reuse a previously freed entry. */
+      dtfp = avail_dependent_type_fixups;
+      avail_dependent_type_fixups = avail_dependent_type_fixups->next;
+    } else {
+      /* Allocate a new entry. */
+      dtfp = (a_dependent_type_fixup_ptr)alloc_fe(
+                                            sizeof(a_dependent_type_fixup));
+#if DEBUG
+      num_dependent_type_fixups_allocated++;
+#endif /* DEBUG */
+    }  /* if */
+    dtfp->is_param_type = is_param_type;
+    if (is_param_type) {
+      dtfp->variant.param_type = ptp;
+    } else {
+      dtfp->variant.type = type;
+    }  /* if */
+    /* Add a fixup entry to the list associated with the class.  It can be
+       put on the front of the list, since the order is unimportant. */
+    cssp = symbol_supplement_for_class(tp);
+    dtfp->next = cssp->dependent_type_fixup_list;
+    cssp->dependent_type_fixup_list = dtfp;
+    added_to_list = TRUE;
+  }  /* if */
+  db_exit();
+  return added_to_list;
+}  /* add_if_necessary_to_dependent_type_fixup_list */
+
+
+void check_dependent_type_fixup_list(a_type_ptr  class_type)
+/*
+*/
+{
+  a_dependent_type_fixup_ptr     dtfp, next_dtfp;
+  a_class_symbol_supplement_ptr  cssp;
+
+  cssp =  symbol_supplement_for_class(class_type);
+  dtfp = cssp->dependent_type_fixup_list;
+  if (dtfp != NULL) {
+    cssp->dependent_type_fixup_list = NULL;
+    do {
+      if (dtfp->is_param_type) {
+        set_arg_transfer_method_flag(dtfp->variant.param_type);
+      } else {
+        a_type_ptr  tp = dtfp->variant.type;
+        if (is_array_type(tp)) {
+          set_type_size(tp);
+        } else {
+          set_routine_calling_method_flag(tp);
+        }  /* if */
+      }  /* if */
+      /* Remove dtfp from its list and add it to the available list. */
+      next_dtfp = dtfp->next;
+      dtfp->next = avail_dependent_type_fixups;
+      avail_dependent_type_fixups = dtfp;
+      dtfp = next_dtfp;
+    } while (dtfp != NULL);
+  }  /* if */
+}  /* check_dependent_type_fixup_list */
+
+
 a_template_param_ptr alloc_template_param(a_symbol_ptr sym)
 /*
 Allocate a new template parameter list entry, initialize it,
@@ -8442,6 +8549,9 @@ for space tracking purposes.
                 a_template_param);
   db_space_used_lost("param ids", avail_param_ids, num_param_ids_allocated,
                      a_param_id);
+  db_space_used_lost("dependent type fixups", avail_dependent_type_fixups,
+                     num_dependent_type_fixups_allocated,
+                     a_dependent_type_fixup);
   db_space_used("template instance", num_template_instances_allocated,
                 a_template_instance);
   db_space_used("conversion list entry", num_conversion_list_entries_allocated,
@@ -8589,6 +8699,7 @@ to avoid an 8-character external name clash with symbol_table.)
   /* ident_buffer and size_ident_buffer are not per-file and should not
      be reset. */
   avail_param_ids = NULL;
+  avail_dependent_type_fixups = NULL;
   error_symbol_header = NULL;
   unnamed_class_symbol_header = NULL;
   unnamed_field_symbol_header = NULL;
@@ -8610,6 +8721,7 @@ to avoid an 8-character external name clash with symbol_table.)
   num_template_symbol_supplements_allocated    = 0;
   num_template_params_allocated                = 0;
   num_param_ids_allocated                      = 0;
+  num_dependent_type_fixups_allocated          = 0;
   num_template_instances_allocated             = 0;
   num_conversion_list_entries_allocated        = 0;
   num_extern_symbol_descrs_allocated           = 0;
