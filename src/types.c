@@ -81,8 +81,6 @@ predicates.
 /* The floating types comprise all sizes of float. */
 #define is_floating(tp) ((tp)->kind == (a_type_kind)tk_float)
 
-#define is_arithmetic(tp) (is_integral(tp) || is_floating(tp))
-
 /* Arithmetic types are the integral types plus the floating types; in C++
    mode enum types are not integral. */
 #define is_arithmetic_or_enum(tp) (is_integral_or_enum(tp) || is_floating(tp))
@@ -1391,11 +1389,17 @@ because any exception it can handle would be caught by type_1's handler.
        class, and a handler for a pointer-to-derived-class is masked by a
        handler for a pointer-to-base-class. */
     if (is_pointer_type(type_1) &&
-        is_class_struct_union_type(type_pointed_to(type_1)) &&
-        is_pointer_type(type_2) &&
-        is_class_struct_union_type(type_pointed_to(type_2))) {
-      type_1 = skip_typerefs(type_pointed_to(type_1));
-      type_2 = skip_typerefs(type_pointed_to(type_2));
+        is_pointer_type(type_2)) {
+      a_type_ptr  type_1_pointed_to = type_pointed_to(type_1);
+      a_type_ptr  type_2_pointed_to = type_pointed_to(type_2);
+
+      type_1_pointed_to = skip_typerefs(type_1_pointed_to);
+      type_2_pointed_to = skip_typerefs(type_2_pointed_to);
+      if (is_immediate_class_type(type_1_pointed_to) &&
+          is_immediate_class_type(type_2_pointed_to)) {
+        type_1 = type_1_pointed_to;
+        type_2 = type_2_pointed_to;
+      }  /* if */
     }  /* if */
     if (is_class_struct_union_type(type_1) &&
         is_class_struct_union_type(type_2)) {
@@ -1438,8 +1442,8 @@ array_type.
 
   db_enter(5, "set_array_type_size");
 
-  underlying_elem_type =
-                  skip_typerefs(underlying_array_element_type(array_type));
+  underlying_elem_type = underlying_array_element_type(array_type);
+  underlying_elem_type = skip_typerefs(underlying_elem_type);
   if (is_incomplete(underlying_elem_type) &&
       (is_immediate_class_type(underlying_elem_type) ||
        is_immediate_enum_type(underlying_elem_type))) {
@@ -1658,6 +1662,7 @@ do_unsigned_char:
           break;
         case ik_signed_char:
 do_signed_char:;
+        /*FALLTHROUGH*/
         case ik_short:
           /* Signed char and signed short are promoted to int. */
           promoted_type = integer_type((an_integer_kind)ik_int);
@@ -2949,15 +2954,15 @@ can be NULL if the caller does not need this flag returned.
     dest_type_qualifiers = get_type_qualifiers(dest_type);
     source_type_qualifiers = get_type_qualifiers(source_type);
     if (!ignore_qualifiers &&
-	any_qualifier_in_set_missing(dest_type_qualifiers,
-				     source_type_qualifiers)) {
+        any_qualifier_in_set_missing(dest_type_qualifiers,
+                                     source_type_qualifiers)) {
       /* Some qualifier is missing. */
       same = FALSE;
     } else {
       /* See whether the destination type has additional qualifiers. */
       if (any_qualifier_in_set_missing(source_type_qualifiers,
-				       dest_type_qualifiers)) {
-	qualifiers_added = TRUE;
+                                       dest_type_qualifiers)) {
+        qualifiers_added = TRUE;
       }  /* if */
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
@@ -2966,27 +2971,29 @@ can be NULL if the caller does not need this flag returned.
           && pointer_types_have_same_repr(dest_type, source_type)
 #endif /* ifdef pointer_types_have_same_repr */
                                                                  ) {
-	/* Continue at the next level for pointers. */
+        /* Continue at the next level for pointers. */
         dest_type = type_pointed_to(dest_type);
-	source_type = type_pointed_to(source_type);
+        source_type = type_pointed_to(source_type);
       } else if (is_ptr_to_member_type(dest_type) &&
                  is_ptr_to_member_type(source_type) &&
-                 types_are_compatible(pm_class_type(dest_type),
-                                      pm_class_type(source_type))) {
+                 f_types_are_compatible(
+                                 pm_class_type(dest_type),
+                                 pm_class_type(source_type),
+                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
         /* Continue at the next level for pointers to members. */
-	dest_type = pm_member_type(dest_type);
-	source_type = pm_member_type(source_type);
+        dest_type = pm_member_type(dest_type);
+        source_type = pm_member_type(source_type);
       } else if (is_array_type(dest_type) && is_array_type(source_type) &&
-		 !dest_type->variant.array.is_variable_size_array &&
-		 !source_type->variant.array.is_variable_size_array &&
-		 dest_type->variant.array.variant.number_of_elements ==
-		     source_type->variant.array.variant.number_of_elements) {
-	/* Continue at the next level for arrays. */
+                 !dest_type->variant.array.is_variable_size_array &&
+                 !source_type->variant.array.is_variable_size_array &&
+                 dest_type->variant.array.variant.number_of_elements ==
+                     source_type->variant.array.variant.number_of_elements) {
+        /* Continue at the next level for arrays. */
         dest_type = array_element_type(dest_type);
-	source_type = array_element_type(source_type);
+        source_type = array_element_type(source_type);
       } else {
-	/* For other types, the underlying types must be the same. */
-	same = types_are_compatible(dest_type, source_type);
+        /* For other types, the underlying types must be the same. */
+        same = types_are_compatible(dest_type, source_type);
         break;
       }  /* if */
     }  /* if */
@@ -3272,7 +3279,7 @@ FALSE.
                                            &qualifiers_added,
                                            /*ignore_underlying_type=*/TRUE)) {
       result = TRUE;
-   }  /* if */
+    }  /* if */
   }  /* if */
   return result;
 }  /* cast_removes_qualifiers */
@@ -3439,95 +3446,99 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
             }  /* if */
           }  /* if */
         }  /* if */
-      } else if ((conversion_from_void_star_in_C =
-                   (C_dialect != C_dialect_cplusplus &&
-                    !check_as_operands_not_conversion &&
-                    is_void(unqual_source_type_pointed_to))) &&
-                 (is_object(unqual_dest_type_pointed_to) ||
-                  is_incomplete(unqual_dest_type_pointed_to))) {
-        /* In C but not C++, a "void *" may be converted to a pointer to an
-           object or incomplete type.  ANSI C 3.3.16.1 (assignment). */
-        okay = TRUE;
-      } else if (conversion_from_void_star_in_C && !suppress_extensions) {
-        /* As an extension in C, we also allow a "void *" to be converted to
-           a function pointer; a warning is issued. */
-        okay = TRUE;
-        std_conv->warning_suggested = default_warning_code;
-      } else if (!suppress_extensions && source_is_constant &&
-                 is_address_of_string_constant(source_constant) &&
-                 is_character_type(unqual_source_type_pointed_to) &&
-                 is_character_type(unqual_dest_type_pointed_to)) {
-        /* Allow a character string to be converted to a pointer to any kind
-           of char.  This is an extension in both C and C++. */
-        okay = TRUE;
-        if (strict_ansi_mode) {
+      } else {
+        conversion_from_void_star_in_C =
+                       (C_dialect != C_dialect_cplusplus &&
+                        !check_as_operands_not_conversion &&
+                        is_void(unqual_source_type_pointed_to));
+        if (conversion_from_void_star_in_C &&
+            (is_object(unqual_dest_type_pointed_to) ||
+             is_incomplete(unqual_dest_type_pointed_to))) {
+          /* In C but not C++, a "void *" may be converted to a pointer to an
+             object or incomplete type.  ANSI C 3.3.16.1 (assignment). */
+          okay = TRUE;
+        } else if (conversion_from_void_star_in_C && !suppress_extensions) {
+          /* As an extension in C, we also allow a "void *" to be converted to
+             a function pointer; a warning is issued. */
+          okay = TRUE;
           std_conv->warning_suggested = default_warning_code;
-        }  /* if */
-      } else if (C_dialect == C_dialect_cplusplus &&
-                 is_class_or_struct(unqual_source_type_pointed_to) &&
-                 is_class_or_struct(unqual_dest_type_pointed_to) &&
-                 (bcp = find_base_class_of(unqual_source_type_pointed_to,
-                                           unqual_dest_type_pointed_to))
+        } else if (!suppress_extensions && source_is_constant &&
+                   is_address_of_string_constant(source_constant) &&
+                   is_character_type(unqual_source_type_pointed_to) &&
+                   is_character_type(unqual_dest_type_pointed_to)) {
+          /* Allow a character string to be converted to a pointer to any kind
+             of char.  This is an extension in both C and C++. */
+          okay = TRUE;
+          if (strict_ansi_mode) {
+            std_conv->warning_suggested = default_warning_code;
+          }  /* if */
+        } else if (C_dialect == C_dialect_cplusplus &&
+                   is_class_or_struct(unqual_source_type_pointed_to) &&
+                   is_class_or_struct(unqual_dest_type_pointed_to) &&
+                   (bcp = find_base_class_of(unqual_source_type_pointed_to,
+                                             unqual_dest_type_pointed_to))
                                                                      != NULL) {
-        /* In C++, a pointer to a class may be implicitly converted to a
-           pointer to an accessible base class of that class provided the
-           conversion is unambiguous (ARM 4.6).  We leave the ambiguity
-           and accessibility check to be done when the cast is done. */
-        okay = TRUE;
-        std_conv->cast_base_class = bcp;
-      } else if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
-        /* In pcc mode and in SVR4 C compatibility mode, allow conversion
-	   between incompatible pointer types, with a warning. */
-        okay = TRUE;
-        std_conv->warning_suggested = default_warning_code;
-      } else if ((!suppress_extensions || !C_mode()) &&
-                 qualification_conversion_possible
+          /* In C++, a pointer to a class may be implicitly converted to a
+             pointer to an accessible base class of that class provided the
+             conversion is unambiguous (ARM 4.6).  We leave the ambiguity
+             and accessibility check to be done when the cast is done. */
+          okay = TRUE;
+          std_conv->cast_base_class = bcp;
+        } else if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
+          /* In pcc mode and in SVR4 C compatibility mode, allow conversion
+             between incompatible pointer types, with a warning. */
+          okay = TRUE;
+          std_conv->warning_suggested = default_warning_code;
+        } else if ((!suppress_extensions || !C_mode()) &&
+                   qualification_conversion_possible
                                      (source_type_pointed_to,
 				      dest_type_pointed_to,
 				      &qualifiers_added,
                                       /*ignore_underlying_type=*/FALSE)) {
-        /* Allow conversion between pointers where type qualifiers are
-           being added at levels other than the first, e.g.,
-           "int **" -> "const int * const *".  These are the const-safe
-           cases.  This is an extension in C mode. */
-        okay = TRUE;
-        std_conv->nontrivial_conversion = FALSE;
-        std_conv->type_qualifiers_added = qualifiers_added;
-        qualifiers_checked = TRUE;
-      } else if ((!suppress_extensions || any_cfront_mode()) &&
-		 same_type_with_added_qualifiers
-                    (source_type_pointed_to,
-		     dest_type_pointed_to,
-		     /*ignore_qualifiers=*/check_as_operands_not_conversion,
-		     &qualifiers_added)) {
-        /* Allow conversion between pointers where type qualifiers are
-           being added at levels other than the first, e.g.,
-           "int **" -> "const int **".  This is similar to the qualification
-	   conversion that is checked above, except that a few additional
-	   cases are accepted.  These are cases that are not const-safe,
-           so a warning is issued in most modes.  This is an extension. */
-        okay = TRUE;
-        std_conv->nontrivial_conversion = FALSE;
-        std_conv->type_qualifiers_added = qualifiers_added;
-        qualifiers_checked = TRUE;
-	if (!any_cfront_mode()) {
+          /* Allow conversion between pointers where type qualifiers are
+             being added at levels other than the first, e.g.,
+             "int **" -> "const int * const *".  These are the const-safe
+             cases.  This is an extension in C mode. */
+          okay = TRUE;
+          std_conv->nontrivial_conversion = FALSE;
+          std_conv->type_qualifiers_added = qualifiers_added;
+          qualifiers_checked = TRUE;
+        } else if ((!suppress_extensions || any_cfront_mode()) &&
+                    same_type_with_added_qualifiers(
+                           source_type_pointed_to,
+                           dest_type_pointed_to,
+                           /*ignore_qualifiers=*/
+                               check_as_operands_not_conversion,
+                           &qualifiers_added)) {
+          /* Allow conversion between pointers where type qualifiers are
+             being added at levels other than the first, e.g.,
+             "int **" -> "const int **".  This is similar to the qualification
+             conversion that is checked above, except that a few additional
+             cases are accepted.  These are cases that are not const-safe,
+             so a warning is issued in most modes.  This is an extension. */
+          okay = TRUE;
+          std_conv->nontrivial_conversion = FALSE;
+          std_conv->type_qualifiers_added = qualifiers_added;
+          qualifiers_checked = TRUE;
+          if (!any_cfront_mode()) {
+            std_conv->warning_suggested = default_warning_code;
+          }  /* if */
+        } else if (C_mode() && !suppress_extensions &&
+                   interchangeable_types(unqual_dest_type_pointed_to,
+                                         unqual_source_type_pointed_to)) {
+          /* In C, allow conversion between pointers to interchangeable types,
+             as an extension, with a warning.  This covers cases like
+             "unsigned char *" --> "char *". */
+          okay = TRUE;
           std_conv->warning_suggested = default_warning_code;
-	}  /* if */
-      } else if (C_mode() && !suppress_extensions &&
-                 interchangeable_types(unqual_dest_type_pointed_to,
-                                       unqual_source_type_pointed_to)) {
-        /* In C, allow conversion between pointers to interchangeable types,
-           as an extension, with a warning.  This covers cases like
-           "unsigned char *" --> "char *". */
-        okay = TRUE;
-        std_conv->warning_suggested = default_warning_code;
-      } else if (C_mode() && !suppress_extensions &&
-                 is_function(unqual_dest_type_pointed_to) &&
-                 is_function(unqual_source_type_pointed_to)) {
-        /* In C, allow conversion between incompatible pointers to
-           functions, as an extension, with a warning. */
-        okay = TRUE;
-        std_conv->warning_suggested = default_warning_code;
+        } else if (C_mode() && !suppress_extensions &&
+                   is_function(unqual_dest_type_pointed_to) &&
+                   is_function(unqual_source_type_pointed_to)) {
+          /* In C, allow conversion between incompatible pointers to
+             functions, as an extension, with a warning. */
+          okay = TRUE;
+          std_conv->warning_suggested = default_warning_code;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (okay && !qualifiers_checked && !check_as_operands_not_conversion) {
@@ -3751,6 +3762,7 @@ pointers to members).
 {
   a_boolean  okay = FALSE;
   a_type_ptr dest_type_pointed_to, source_type_pointed_to;
+  a_boolean  qualifiers_added;
 
   db_enter(5, "impl_ptr_to_member_conversion");
 #if DEBUG
@@ -3773,7 +3785,6 @@ pointers to members).
        to are the same (ignoring the difference in "this" parameter types)
        and the classes involved are the same or the destination class is an
        unambiguous derived (sic) class of the source class.  See ARM 4.8. */
-    a_boolean  qualifiers_added;
     source_type_pointed_to = pm_member_type(source_type);
     dest_type_pointed_to = pm_member_type(dest_type);
     if (member_types_correspond(dest_type_pointed_to,
@@ -3783,6 +3794,7 @@ pointers to members).
       a_type_ptr       source_class_type = pm_class_type(source_type);
       a_type_ptr       dest_class_type = pm_class_type(dest_type);
       a_base_class_ptr bcp;
+
       std_conv->type_qualifiers_added = qualifiers_added;
       /* The types pointed to are the same.  Check the classes. */
       if (source_class_type == dest_class_type) {
@@ -3811,7 +3823,6 @@ pointers to members).
       }  /* if */
     }  /* if */
     if (okay && !check_as_operands_not_conversion) {
-      a_boolean  qualifiers_added;
       /* The types pointed to must be such that the type pointed to by the
          left has all the qualifiers of the type pointed to by the right.
          It might have additional qualifiers.  This is not mentioned in
@@ -4193,30 +4204,30 @@ C++ mode.  See [expr.static.cast].
   } else if (is_incomplete(dest_type)) {
     /* Cannot cast to an incomplete type. */
     /* okay = FALSE; -- already set. */
-  } else if ((impl_okay = impl_conversion_possible(
-                                       source_type,
-                                       source_is_constant,
-                                       source_constant,
-                                       dest_type,
-                                       suppress_extensions,
-                                       default_warning_code,
-                                       &impl_std_conv)) != FALSE &&
-             impl_std_conv.warning_suggested == ec_no_error) {
-    /* There is an implicit conversion, and it's not questionable. */
-    okay = TRUE;
-  } else if (!C_mode() &&
-             (inv_impl_okay =
-                 inverse_impl_conversion_possible(source_type, dest_type,
-                                                  suppress_extensions,
-                                                  &inv_impl_std_conv)) &&
-             inv_impl_std_conv.warning_suggested == ec_no_error) {
-    /* The inverse of any standard conversion is allowed in C++. */
-    okay = TRUE;
-  } else if (C_mode() &&
-             is_integral_or_enum(source_type) && is_enum(dest_type)) {
-    /* In C, integral --> enum can be done as an implicit conversion
-       but we check for it again here to avoid the warning. */
-    okay = TRUE;
+  } else {
+    impl_okay = impl_conversion_possible(source_type, source_is_constant,
+                                         source_constant, dest_type,
+                                         suppress_extensions,
+                                         default_warning_code,
+                                         &impl_std_conv) != FALSE;
+    if (impl_okay &&
+        impl_std_conv.warning_suggested == ec_no_error) {
+      /* There is an implicit conversion, and it's not questionable. */
+      okay = TRUE;
+    } else if (!C_mode()) {
+      inv_impl_okay = inverse_impl_conversion_possible(source_type, dest_type,
+                                                       suppress_extensions,
+                                                       &inv_impl_std_conv);
+      if (inv_impl_okay &&
+          inv_impl_std_conv.warning_suggested == ec_no_error) {
+        /* The inverse of any standard conversion is allowed in C++. */
+        okay = TRUE;
+      }  /* if */
+    } else if (is_integral_or_enum(source_type) && is_enum(dest_type)) {
+      /* In C, integral --> enum can be done as an implicit conversion
+         but we check for it again here to avoid the warning. */
+      okay = TRUE;
+    }  /* if */
   }  /* if */
   if (!okay) {
     if (impl_okay) {
@@ -4429,38 +4440,41 @@ conversions (constructors and conversion functions).
   if (is_incomplete(dest_type) && !is_void(dest_type)) {
     /* Cannot cast to an incomplete type. */
     /* okay = FALSE; -- already set. */
-  } else if ((static_cast_okay = static_cast_conversion_possible(
-                                             source_type,
-                                             source_is_constant,
-                                             source_constant,
-                                             dest_type,
-                                             default_warning_code,
-                                             &static_cast_warning_suggested) !=
-                                                                      FALSE) &&
-             static_cast_warning_suggested == ec_no_error) {
-    /* The conversion can be done as a static_cast, without a warning. */
-    okay = TRUE;
-  } else if (!C_mode() && is_enum(source_type) && is_enum(dest_type)) {
-    /* In C++, enum --> enum is not a static_cast or a reinterpret_cast,
-       but it can be done by enum --> integral --> enum (two static_casts),
-       so it's okay in an old-style cast. */
-    okay = TRUE;
-  } else if ((reinterpret_cast_okay = reinterpret_cast_conversion_possible(
-                                        source_type,
-                                        dest_type,
-                                        &reinterpret_cast_warning_suggested) !=
-                                                                      FALSE) &&
-             reinterpret_cast_warning_suggested == ec_no_error) {
-    /* The conversion can be done as a reinterpret_cast, without a warning. */
-    okay = TRUE;
-  } else if (static_cast_okay) {
-    /* static_cast is okay but with a warning. */
-    okay = TRUE;
-    *warning_suggested = static_cast_warning_suggested;
-  } else if (reinterpret_cast_okay) {
-    /* reinterpret_cast is okay but with a warning. */
-    okay = TRUE;
-    *warning_suggested = reinterpret_cast_warning_suggested;
+  } else {
+    static_cast_okay =
+      static_cast_conversion_possible(source_type, source_is_constant,
+                                      source_constant, dest_type,
+                                      default_warning_code,
+                                      &static_cast_warning_suggested) != FALSE;
+    if (static_cast_okay &&
+        static_cast_warning_suggested == ec_no_error) {
+      /* The conversion can be done as a static_cast, without a warning. */
+      okay = TRUE;
+    } else if (!C_mode() && is_enum(source_type) && is_enum(dest_type)) {
+      /* In C++, enum --> enum is not a static_cast or a reinterpret_cast,
+         but it can be done by enum --> integral --> enum (two static_casts),
+         so it's okay in an old-style cast. */
+      okay = TRUE;
+    } else {
+      reinterpret_cast_okay =
+            reinterpret_cast_conversion_possible(
+                              source_type, dest_type,
+                              &reinterpret_cast_warning_suggested) != FALSE;
+      if (reinterpret_cast_okay &&
+          reinterpret_cast_warning_suggested == ec_no_error) {
+        /* The conversion can be done as a reinterpret_cast, without a
+           warning. */
+        okay = TRUE;
+      } else if (static_cast_okay) {
+        /* static_cast is okay but with a warning. */
+        okay = TRUE;
+        *warning_suggested = static_cast_warning_suggested;
+      } else if (reinterpret_cast_okay) {
+        /* reinterpret_cast is okay but with a warning. */
+        okay = TRUE;
+        *warning_suggested = reinterpret_cast_warning_suggested;
+      }  /* if */
+    }  /* if */
   }  /* if */
 
 #if DEBUG
@@ -5010,12 +5024,12 @@ the old list.  Only callable in C++ mode.  See ARM 13.
 {
   a_boolean        distinguishable = TRUE;
   a_boolean        old_is_list, old_is_template;
-  a_type_ptr       old_type;
+  a_type_ptr       old_type, tp;
   a_param_type_ptr old_param, new_param;
   a_routine_type_supplement_ptr
                    old_extra_info, new_extra_info;
   a_type_ptr       old_this_param_type, new_this_param_type;
-  a_boolean        old_this_qualified, new_this_qualified;
+  a_boolean        old_this_qualified = FALSE, new_this_qualified = FALSE;
   a_boolean	   new_is_template = templ_param_list != NULL;
 
   db_enter(5, "overload_distinguishable");
@@ -5030,9 +5044,10 @@ the old list.  Only callable in C++ mode.  See ARM 13.
   new_type = skip_typerefs(new_type);
   new_extra_info = new_type->variant.routine.extra_info;
   new_this_param_type = new_extra_info->implicit_this_param_type;
-  new_this_qualified = (new_this_param_type != NULL &&
-                        is_qualified_type(
-                                   type_pointed_to(new_this_param_type)));
+  if (new_this_param_type != NULL) {
+    tp = type_pointed_to(new_this_param_type);
+    new_this_qualified = is_qualified_type(tp);
+  }  /* if */
   do {
     /* Projection symbols are ignored. */
     if (old_sym_ptr->kind == (a_symbol_kind)sk_projection ||
@@ -5082,9 +5097,10 @@ the old list.  Only callable in C++ mode.  See ARM 13.
        mode, when a type qualifier on the "this" parameter type makes a
        nonstatic function distinguishable from a static function). */
     old_this_param_type = old_extra_info->implicit_this_param_type;
-    old_this_qualified = (old_this_param_type != NULL &&
-                          is_qualified_type(
-                                    type_pointed_to(old_this_param_type)));
+    if (old_this_param_type != NULL) {
+      tp = type_pointed_to(old_this_param_type);
+      old_this_qualified = is_qualified_type(tp);
+    }  /* if */
     if ((old_this_qualified != new_this_qualified && any_cfront_mode()) ||
         (old_this_param_type != NULL && new_this_param_type != NULL &&
          !f_types_are_compatible(old_this_param_type, new_this_param_type,
@@ -5462,7 +5478,8 @@ bound.
   a_type_ptr  tp;
 
   if (is_ptr_or_ref_type(type_ptr)) {
-    tp = skip_typerefs(type_pointed_to(type_ptr));
+    tp = type_pointed_to(type_ptr);
+    tp = skip_typerefs(tp);
     if (is_array(tp)) {
       if (!tp->variant.array.is_variable_size_array &&
           tp->variant.array.variant.number_of_elements == 0) {
