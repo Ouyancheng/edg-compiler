@@ -1900,7 +1900,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
       }  /* if */
       break;
     case tk_typeref:
-      if (type->variant.typeref.is_placeholder_for_file_scope_type) {
+      if (type->variant.typeref.is_placeholder_for_class_instantiation) {
         /* Ignore placeholder typerefs for template types. */
       } else {
         /* Output typedefs only on the second pass. */

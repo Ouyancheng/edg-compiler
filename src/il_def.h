@@ -3064,11 +3064,12 @@ typedef struct a_type {
 			   the class, struct, or union or its base classes
 			   is a virtual function (C++ only). */
       a_bit_field
-		referenced_by_placeholder_typeref:1;
+		referenced_by_class_instantiation_placeholder_typeref:1;
 			/* TRUE if the class is pointed to by a placeholder
 			   typeref on a class scope's types list; the type
 			   entry for the associated typeref will have
-			   is_placeholder_for_file_scope_type set to TRUE. */
+			   is_placeholder_for_class_instantiation set to
+			   TRUE. */
       a_bit_field
 		originally_unnamed:1;
 			/* TRUE if the class was declared without a tag; in
@@ -3107,13 +3108,13 @@ typedef struct a_type {
 			   of one or more type qualifiers (const, volatile,
 			   or other(s) as defined by the implementation). */
       a_bit_field
-		is_placeholder_for_file_scope_type:1;
+		is_placeholder_for_class_instantiation:1;
 			/* TRUE if the typeref appears on a class types list
 			   to indicate the declaration sequence position of
-			   the type to which it refers, which is on the
-			   file scope types list.  Used for template classes
-			   that are instantiated in the midst of a class
-			   definition. */
+			   the template class type to which it refers, which
+			   is on the file scope or a namespace scope types
+			   list.  Used for template classes that are
+			   instantiated in the midst of a class definition. */
       a_bit_field
 		is_placeholder_for_namespace_type:1;
 			/* TRUE if the typeref appears on the file-scope

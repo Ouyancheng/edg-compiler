@@ -343,7 +343,7 @@ be written.
       } else if (entry_kind == iek_type) {
         a_type_ptr type = (a_type_ptr)entry_ptr;
         (void)printf(": ");
-        if (type->variant.typeref.is_placeholder_for_file_scope_type) {
+        if (type->variant.typeref.is_placeholder_for_class_instantiation) {
           (void)printf("placeholder for file-scope type ");
         }  /* if */
         if (type->variant.typeref.is_placeholder_for_namespace_type) {
@@ -1000,8 +1000,9 @@ do_struct_union:
       disp_boolean("any_virtual_functions_including_in_base_classes",
                    (a_boolean)ptr->variant.class_struct_union.
                               any_virtual_functions_including_in_base_classes);
-      if (ptr->variant.class_struct_union.referenced_by_placeholder_typeref) {
-        disp_boolean("referenced_by_placeholder_typeref", TRUE);
+      if (ptr->variant.class_struct_union.
+                       referenced_by_class_instantiation_placeholder_typeref) {
+        disp_boolean("referenced_by_..._placeholder_typeref", TRUE);
       }  /* if */
       if (ptr->variant.class_struct_union.originally_unnamed) {
         disp_boolean("originally_unnamed", TRUE);
@@ -1022,8 +1023,8 @@ do_struct_union:
       /* Do not print out ptr->variant.typeref.orig_type, which is used only
          during IL lowering. */
 #endif /* DO_IL_LOWERING */
-      if (ptr->variant.typeref.is_placeholder_for_file_scope_type) {
-        disp_boolean("is_placeholder_for_file_scope_type", TRUE);
+      if (ptr->variant.typeref.is_placeholder_for_class_instantiation) {
+        disp_boolean("is_placeholder_for_class_instantiation", TRUE);
       } else if (ptr->variant.typeref.is_placeholder_for_namespace_type) {
         disp_boolean("is_placeholder_for_namespace_type", TRUE);
       } else if (ptr->variant.typeref.qualifiers != TQ_NONE) {

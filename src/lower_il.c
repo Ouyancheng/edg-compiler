@@ -8430,9 +8430,9 @@ the insertion.
   for (; type != NULL; type = next_type) {
     next_type = type->next;
     if (type->kind == (a_type_kind)tk_typeref &&
-        type->variant.typeref.is_placeholder_for_file_scope_type) {
+        type->variant.typeref.is_placeholder_for_class_instantiation) {
       /* This type is a placeholder typeref that indicates the point at
-         which a file-scope type appeared in the class.  For example:
+         which a class instantiation appeared in the class.  For example:
            template<class T> struct TMPL {};
            struct A {
              typedef int I;
@@ -8632,12 +8632,13 @@ and all subscopes.
         a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
         if (type->variant.class_struct_union.
-                                           referenced_by_placeholder_typeref) {
-          /* This type is on the file scope types list but it was created while
-             scanning a class definition.  There is a placeholder typeref
-             within the class to indicate the point at which the class should
-             go, and that's where promotion of class members should happen,
-             so do nothing now except taking the type out of the list. */
+                       referenced_by_class_instantiation_placeholder_typeref) {
+          /* This type is on the file scope types list or a namespace scope
+             types list but it was created while scanning a class definition.
+             There is a placeholder typeref within the class to indicate the
+             point at which the class should go, and that's where promotion
+             of class members should happen, so do nothing now except taking
+             the type out of the list. */
 #if DEBUG
           if (debug_level >= 4) {
             (void)fprintf(f_debug, "Placeholder for class ");

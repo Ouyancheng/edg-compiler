@@ -1,5 +1,20 @@
 Version 2.30
 
+8/24/95  IL CHANGE: Two placeholder typeref flags renamed
+
+Two flags indicating placeholder typerefs (used mostly by the C-generating
+back end to resolve some thorny ordering issues) have been renamed:
+
+  is_placeholder_for_file_scope_type -->
+         is_placeholder_for_class_instantiation
+
+  referenced_by_placeholder_typeref -->
+         referenced_by_class_instantiation_placeholder_typeref
+
+The old names became insufficiently specific when other types of
+placeholder typerefs were added, and the type referenced can be
+in a namespace scope now instead of in the file scope.
+
 8/24/95  Discretionary error on unrecognized preprocessing directive
 
 The error issued for an unrecognized preprocessing directive is now

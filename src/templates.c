@@ -766,9 +766,9 @@ scanned but before the class scope has been popped.
        or symbol associated with it. */
     tp = alloc_type((a_type_kind)tk_typeref);
     tp->variant.typeref.type = class_type;
-    tp->variant.typeref.is_placeholder_for_file_scope_type = TRUE;
+    tp->variant.typeref.is_placeholder_for_class_instantiation = TRUE;
     class_type->variant.class_struct_union.
-                                    referenced_by_placeholder_typeref = TRUE;
+                  referenced_by_class_instantiation_placeholder_typeref = TRUE;
     add_to_types_list(tp, scope_depth);
   }  /* if */
 }  /* create_placeholder_for_class_instantiation */
