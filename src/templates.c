@@ -15650,6 +15650,9 @@ that follows.
   a_boolean			keep_func_info = FALSE;
   a_symbol_reference_kind       srk_flags = SRK_DECLARATION;
   a_source_position             decl_start_pos, id_pos;
+#if SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  a_source_position             prev_sym_pos;
+#endif /* SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                     has_parenthesized_initializer;
   a_source_correspondence       *scp;
   a_routine_ptr                 rp;
@@ -15954,7 +15957,9 @@ that follows.
       discard_curr_construct_pragmas();
     } else {
       /* The symbol is not NULL. */
-      sym->decl_position = id_pos;
+#if SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+      prev_sym_pos = sym->decl_position;
+#endif /* SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
       if (is_definition) {
         srk_flags |= SRK_DEFINITION;
         if (sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -16047,9 +16052,17 @@ that follows.
         }  /* if */
 #if SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
         if (sun_mode || microsoft_mode) {
+          /* update_variable_decl_modifiers expects the position recorded in
+             the symbol not to be updated yet (to reference previous
+             declarations in diagnostics).  Since record_symbol_declaration
+             may already have updated the position, we must temporarily
+             restore the previous value. */
+          a_source_position  saved_sym_pos = sym->decl_position;
+          sym->decl_position = prev_sym_pos;
           update_variable_decl_modifiers(vp, &decl_modifiers,
                                          &locator.source_position,
                                          already_specialized, is_definition);
+          sym->decl_position = saved_sym_pos;
         }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
@@ -16137,10 +16150,18 @@ that follows.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
         if (sun_mode || microsoft_mode) {
+          /* update_routine_decl_modifiers expects the position recorded in
+             the symbol not to be updated yet (to reference previous
+             declarations in diagnostics).  Since record_symbol_declaration
+             may already have updated the position, we must temporarily
+             restore the previous value. */
+          a_source_position  saved_sym_pos = sym->decl_position;
+          sym->decl_position = prev_sym_pos;
           update_routine_decl_modifiers(rp, &decl_modifiers,
                                         &locator.source_position,
                                         already_specialized, is_definition,
                                         (a_boolean)rp->is_inline);
+          sym->decl_position = saved_sym_pos;
         }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
         if (is_definition) {
