@@ -2432,14 +2432,12 @@ Scan and process a #define directive.
           }  /* if */
           any_white_space_skipped = FALSE;
         }  /* if */
-        if (curr_token == tok_sharp) {
+        if (curr_token == tok_sharp && !object_like) {
           /* "#" -- Must be followed by a parameter name.  Note that this is
-             not allowed in an object-like macro.  See standard, 3.8.3.2. */
+             ignored in an object-like macro.  See standard, 3.8.3.2. */
           (void)mdefn_get_token(param_list, &param_num,
                                 &any_white_space_skipped);
-          if (object_like) {
-            error(ec_bad_sharp_in_object_like_macro);
-          } else if (param_num == 0) {
+          if (param_num == 0) {
             error(ec_exp_macro_param);
           } else {
             put_start_of_non_text_section(rt_stringized_raw_argument,

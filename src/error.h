@@ -101,7 +101,6 @@ typedef enum /*an_error_code*/ {
   ec_bad_constant_operator,
   ec_bad_pp_operator,
   ec_bad_constant_function_call,
-  ec_bad_sharp_in_object_like_macro,
   ec_bad_integral_operator,
   ec_integer_overflow,
   ec_negative_shift_count,

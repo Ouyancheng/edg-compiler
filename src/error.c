@@ -216,9 +216,6 @@ error code.
     case ec_bad_constant_function_call:
       m = "function call not allowed in a constant expression";
       break;
-    case ec_bad_sharp_in_object_like_macro:
-      m = "\"#\" not allowed in an object-like (parameterless) macro";
-      break;
     case ec_bad_integral_operator:
       m = "this operator is not allowed in an integral constant expression";
       break;
