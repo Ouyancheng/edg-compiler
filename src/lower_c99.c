@@ -1315,13 +1315,6 @@ front end.
   cast_cdouble_to_idouble = NULL;
   cast_clong_double_to_ilong_double = NULL;
 
-  /* Create lowered complex types. */
-  if (c99_il_lowering_needed()) {
-    /* Don't create the types if they won't be needed. */
-    (void)lowered_complex_type((a_float_kind)fk_float);
-    (void)lowered_complex_type((a_float_kind)fk_double);
-    (void)lowered_complex_type((a_float_kind)fk_long_double);
-  }  /* if */
 #if MINIMAL_INLINING
   /* Do inline.c initialization. */
   if (inlining_enabled) inline_init();
