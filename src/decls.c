@@ -3318,13 +3318,11 @@ on for use in generating cross-reference output describing this declaration.
                       storage_class == (a_storage_class)sc_static);
       storage_class = (a_storage_class)sc_static;
     } else if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
-      a_namespace_ptr  nsp;
-      check_assertion(scope_stack[effective_decl_level].il_scope->kind ==
-                                               (a_scope_kind)sck_namespace);
-      nsp = scope_stack[effective_decl_level].il_scope->
-                                                   variant.assoc_namespace;
-      if (nsp->source_corresp.name == NULL ||
-          is_member_of_unnamed_namespace(&nsp->source_corresp)) {
+      /* Functions declared inside an unnamed namespace are static. */
+      a_source_correspondence  *scp;
+      scp = &scope_stack[depth_innermost_namespace_scope].il_scope->
+                                     variant.assoc_namespace->source_corresp;
+      if (scp->name == NULL || is_member_of_unnamed_namespace(scp)) {
         storage_class = (a_storage_class)sc_static;
       }  /* if */
     }  /* if */
