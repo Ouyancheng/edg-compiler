@@ -631,7 +631,7 @@ Integral kind to be used for the bool type in C++.
 /*
 Pointer types:
 */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
 /*
 Sizes of near/far pointers in 16-bit Microsoft mode.  Note that these values
 are not used in 32-bit Microsoft mode.
@@ -648,7 +648,7 @@ are not used in 32-bit Microsoft mode.
 #ifndef TARG_ALIGNOF_NEAR_POINTER
 #define TARG_ALIGNOF_NEAR_POINTER 2
 #endif /* ifndef TARG_ALIGNOF_NEAR_POINTER */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 
 /*
 Are all pointers the same size?
@@ -659,9 +659,9 @@ that is not completely determined by the type pointed to (e.g., you have
 both 32-bit and 64-bit pointers, for any underlying type, and you can choose
 between them with some language extension).
 
-Note that TARG_ALL_POINTERS_SAME_SIZE is not consulted in 16-bit Microsoft
-mode, where near and far pointers exist.  So this really means "ignoring
-16-bit Microsoft mode, are all pointers the same size?"
+Note that TARG_ALL_POINTERS_SAME_SIZE is not consulted in when near and far
+pointers exist (e.g., in 16-bit Microsoft mode).  So this really means,
+"ignoring 16-bit Microsoft mode, are all pointers the same size?"
 */
 #ifndef TARG_ALL_POINTERS_SAME_SIZE
 #define TARG_ALL_POINTERS_SAME_SIZE TRUE
@@ -673,20 +673,20 @@ All pointers have the same size and alignment, so TARG_SIZEOF_POINTER and
 TARG_ALIGNOF_POINTER should be defined.
 */
 #ifndef TARG_SIZEOF_POINTER
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
 #define TARG_SIZEOF_POINTER TARG_SIZEOF_FAR_POINTER
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#else /* !NEAR_AND_FAR_ALLOWED */
 #define TARG_SIZEOF_POINTER 4
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 			/* Default value, used to initialize global variable
 			   targ_sizeof_pointer. */
 #endif /* !defined(TARG_SIZEOF_POINTER) */
 #ifndef TARG_ALIGNOF_POINTER
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
 #define TARG_ALIGNOF_POINTER TARG_ALIGNOF_FAR_POINTER
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#else /* !NEAR_AND_FAR_ALLOWED */
 #define TARG_ALIGNOF_POINTER 4
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 			/* Default value, used to initialize global variable
 			   targ_alignof_pointer. */
 #endif /* !defined(TARG_ALIGNOF_POINTER) */

@@ -1006,9 +1006,9 @@ to default values.
       pte->variant.typeref.is_placeholder_for_class_instantiation = FALSE;
       pte->variant.typeref.is_placeholder_for_namespace_type = FALSE;
       pte->variant.typeref.is_placeholder_for_nested_class_def = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
       pte->variant.typeref.explicit_memory_attribute_made_implicit = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
       pte->variant.typeref.has_variably_modified_type = FALSE;
 #if CHECKING
       pte->variant.typeref.avoid_codecenter_warnings = 0;

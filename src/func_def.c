@@ -1446,15 +1446,15 @@ on a prior declaration.
     /* Note that type_ptr is passed to reconcile_routine_types instead of
        rout_type.  This is intended.  type_ptr should differ from rout_type
        only by the presence of a top-level type qualifiers.  These will only
-       appear on a function type in microsoft_16 mode. */
+       appear on a function type when support for near and far is enabled. */
 #if CHECKING
     if (rout_type == type_ptr) {
       /* Okay. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (il_header.microsoft_16_mode) {
+#if NEAR_AND_FAR_ALLOWED
+    } else if (il_header.near_and_far_enabled) {
       a_type_qualifier_set  qual = get_top_level_type_qualifiers(type_ptr);
       check_assertion(qual == TQ_NEAR || qual == TQ_FAR);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
     } else {
       unexpected_condition();
     }  /* if */

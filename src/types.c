@@ -827,7 +827,7 @@ in *unqual_array_type and return TRUE.
   return is_qualified_array_typedef;
 }  /* is_qualified_version_of_array_typedef */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
 
 a_boolean is_far_type(a_type_ptr tp)
 /*
@@ -838,7 +838,7 @@ type is a "far" type (explicitly or implicitly).
   a_boolean            is_far;
   a_type_qualifier_set qualifiers = get_type_qualifiers(tp);
 
-  check_assertion(il_header.microsoft_16_mode);
+  check_assertion(il_header.near_and_far_enabled);
   if (qualifiers & TQ_NEAR) {
     /* near specified explicitly. */
     is_far = FALSE;
@@ -876,6 +876,8 @@ type is a "far" type (explicitly or implicitly).
   return is_far;
 }  /* is_far_type */
 
+#endif /* NEAR_AND_FAR_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 
 a_type_qualifier_set get_original_type_qualifiers(a_type_ptr type)
 /*
@@ -890,12 +892,14 @@ the type itself.  This is used only in 16-bit Microsoft mode.
   for (;;) {
     if (type->kind == (a_type_kind)tk_typeref) {
       qualifiers |= type->variant.typeref.qualifiers;
+#if NEAR_AND_FAR_ALLOWED
       if (type->variant.typeref.explicit_memory_attribute_made_implicit) {
         /* A memory attribute was explicitly specified in the source but
            it's implied in the typeref.  Add it in. */
         qualifiers |= is_far_type(type->variant.typeref.type) ? TQ_FAR :
                                                                 TQ_NEAR;
       }  /* if */
+#endif /* NEAR_AND_FAR_ALLOWED */
       type = type->variant.typeref.type;
     } else if (type->kind == (a_type_kind)tk_array) {
       /* If an array appears, the new qualifiers must be compatible with those
@@ -908,7 +912,7 @@ the type itself.  This is used only in 16-bit Microsoft mode.
   return qualifiers;
 }  /* get_original_type_qualifiers */
     
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_abstract_class_type(a_type_ptr  tp)

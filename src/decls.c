@@ -1673,10 +1673,12 @@ determine_linkage:
         pos_sy_warning(ec_incompatible_inline_specifier_on_specific_decl,
                        &locator->source_position, other_decl);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (!microsoft_mode) {
         func_info->is_inline = templ_is_inline;
         local_storage_class = templ_storage_class;
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (!at_file_or_namespace_scope && !is_template_instance &&
         local_storage_class != (a_storage_class)sc_extern) {
@@ -3846,7 +3848,7 @@ on for use in generating cross-reference output describing this declaration.
                                                       storage_class,
                                                       is_friend_decl);
   if (C_dialect == C_dialect_cplusplus) {
-    an_error_severity  severity;
+    an_error_severity  severity = es_error;
 
     if (func_info->is_inline && !extern_inline_allowed) {
       check_assertion_str(storage_class == (a_storage_class)sc_unspecified ||
@@ -3858,15 +3860,18 @@ on for use in generating cross-reference output describing this declaration.
        argument list. */
     check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                    locator);
+#if MICROSOFT_EXTENSIONS_ALLOWED
     /* In Microsoft mode no error is issued if operator new or delete is
        declared in a namespace scope. */
-    severity = microsoft_mode ? es_warning : es_error;
+    if (microsoft_mode) severity = es_warning;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (report_bad_scope_for_new_or_delete(locator, severity)) {
       /* Set the is_error flag in the locator. */
       if (severity == es_error) set_to_named_error_locator(*locator);
       invalid_scope_for_new_or_delete = TRUE;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     if (locator->is_template_id && locator->specific_symbol == NULL) {
       /* If this is a template-id for which the symbol has not yet been
@@ -3874,6 +3879,7 @@ on for use in generating cross-reference output describing this declaration.
       (void)normal_id_lookup(locator, IDL_NO_OPTIONS);
     }  /* if */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (func_info->is_implicit_declaration) {
     check_assertion_str(srk_flags & SRK_IMPLICIT,
                         "decl_routine: missing SRK_IMPLICIT");
@@ -4843,7 +4849,7 @@ is not a template declaration scope.
       /* Not a redeclaration. */
       a_scope_stack_entry_ptr  ssep = &scope_stack[effective_decl_level];
       an_error_code            error_code;
-      an_error_severity        severity;
+      an_error_severity        severity = es_error;
       a_boolean                invalid_scope_for_new_or_delete = FALSE;
 
       if (!is_error_locator(*locator)) {
@@ -4854,7 +4860,11 @@ is not a template declaration scope.
         check_operator_function_params(type_ptr, (a_type_ptr)NULL, locator);
         /* If it's a new or delete operator, be sure the scope is not a
            namespace scope. */
-        severity = microsoft_mode ? es_warning : es_error;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* In Microsoft mode no error is issued if operator new or delete is
+           declared in a namespace scope. */
+        if (microsoft_mode) severity = es_warning;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (report_bad_scope_for_new_or_delete(locator, severity)) {
           /* Set the is_error flag in the locator. */
           if (severity == es_error) set_to_named_error_locator(*locator);
@@ -5377,13 +5387,13 @@ return a pointer to it in *symbol_ptr.
          the existing symbol. */
       tp = type_symbol_type(sym);
       if ((identical_types(tp, type_ptr)
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
            /* When near/far qualifiers appear, they have to match in what
               was explicitly specified. */
-           && (!il_header.microsoft_16_mode ||
-               get_original_type_qualifiers(tp) ==
-               get_original_type_qualifiers(type_ptr))
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+           && (!il_header.near_and_far_enabled ||
+               (get_original_type_qualifiers(tp) ==
+                   get_original_type_qualifiers(type_ptr)))
+#endif /* NEAR_AND_FAR_ALLOWED */
                                         ) || is_error_type(tp)) {
         /* The current declaration simply redefines the name to the same
            type, which is permitted in C++ (ARM 7.1.3) and warned about for

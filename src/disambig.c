@@ -228,6 +228,14 @@ not need to be cached.
 {
   int	paren_count = 0;
   for (;;) {
+#if NEAR_AND_FAR_ALLOWED
+    if (is_near_or_far()) {
+      if (state != NULL) cache_curr_token(&state->cache);
+      get_token_and_coalesce_if_identifier(flags);
+      continue;
+    }  /* if */
+#endif /* NEAR_AND_FAR_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (curr_token == tok_declspec) {
       /* Bypass the __declspec token. */
       if (state != NULL) cache_curr_token(&state->cache);
@@ -259,9 +267,6 @@ not need to be cached.
           get_token_and_coalesce_if_identifier(flags);
         }  /* if */
       }  /* if */
-    } else if (curr_token == tok_near || curr_token == tok_far) {
-      if (state != NULL) cache_curr_token(&state->cache);
-      get_token_and_coalesce_if_identifier(flags);
     } else {
       /* This is a class declaration, so if the next token is an identifier
          it is probably the class name.  But it might also be the "inheritance
@@ -285,6 +290,7 @@ not need to be cached.
       }  /* if */
       if (done) break;
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* prescan_microsoft_extended_decl_modifiers */
 
@@ -571,11 +577,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
   cache_curr_token(&state->cache);
   get_token_and_coalesce_if_identifier(flags);
   /* Skip past any cv-qualifiers associated with this function declarator. */
-  while (is_type_qualifier_token(curr_token)
-#if MICROSOFT_EXTENSIONS_ALLOWED
-         || is_microsoft_memory_attribute()
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                           ) {
+  while (is_type_qualifier_token(curr_token) or_is_near_or_far()) {
     cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
   }  /* while */

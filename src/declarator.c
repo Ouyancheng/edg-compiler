@@ -1753,11 +1753,7 @@ issue an error if a default argument expression is encountered.
        for member function declarations outside a class definition when
        a function qualifier is present.  If there is a function qualifier,
        it is applied to the type pointed to by the this param type. */
-    if ((is_type_qualifier()
-#if MICROSOFT_EXTENSIONS_ALLOWED
-         || is_microsoft_memory_attribute()
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                            ) && extra_info->prototyped) {
+    if ((is_type_qualifier() or_is_near_or_far()) && extra_info->prototyped) {
       /* In C++ the type of certain member functions may be qualified.  Scan
          for a const or volatile qualifier. */
       a_source_position  qualifier_pos;
@@ -2292,8 +2288,12 @@ Clear the pointer stored in "var" if it is used.
 }  /* make_possibly_based_pointer_type */
 
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- because when MICROSOFT_EXTENSIONS_ALLOWED if FALSE,
+                    call_conv, based_var, and based_pos are not used. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void collect_microsoft_pointer_declarator_qualifiers(
                                           a_type_qualifier_set *qualifiers,
                                           a_source_position    *qual_pos,
@@ -2316,92 +2316,102 @@ encountered, they are scanned and thrown away with a warning.
   a_type_qualifier_set new_qualifiers, duplicates;
 
   *qualifiers = TQ_NONE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   clear_call_conv_descr(call_conv);
   *based_var = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   for (;;) {
-    if (is_type_qualifier() || is_microsoft_memory_attribute()) {
+    if (is_type_qualifier() or_is_near_or_far()) {
       /* Normal qualifiers like const, and declarator-only qualifiers like
          near. */
       *qual_pos = pos_curr_token;
       new_qualifiers = collect_type_qualifiers(decl_pos_block);
-      if ((new_qualifiers & TQ_NEAR) && (*qualifiers & TQ_FAR )) {
-        /* Incompatible near and far specifications. */
-        error(ec_mem_attrib_incompatible);
-        new_qualifiers &= ~TQ_NEAR;
-      }  /* if */
-      if ((new_qualifiers & TQ_FAR ) && (*qualifiers & TQ_NEAR)) {
-        /* Incompatible near and far specifications. */
-        error(ec_mem_attrib_incompatible);
-        new_qualifiers &= ~TQ_FAR;
-      }  /* if */
-      /* Check for repetition of qualifiers.  The Microsoft compiler gives
-         only a warning for these cases, so we do too. */
       duplicates = (new_qualifiers & *qualifiers);
-      if (duplicates & (TQ_NEAR | TQ_FAR)) {
-        warning(ec_dupl_mem_attrib);
-        duplicates &= ~(TQ_NEAR | TQ_FAR);
+#if NEAR_AND_FAR_ALLOWED
+      if (il_header.near_and_far_enabled) {
+        if ((new_qualifiers & TQ_NEAR) && (*qualifiers & TQ_FAR )) {
+          /* Incompatible near and far specifications. */
+          error(ec_mem_attrib_incompatible);
+          new_qualifiers &= ~TQ_NEAR;
+          duplicates &= ~TQ_NEAR;
+        }  /* if */
+        if ((new_qualifiers & TQ_FAR ) && (*qualifiers & TQ_NEAR)) {
+          /* Incompatible near and far specifications. */
+          error(ec_mem_attrib_incompatible);
+          new_qualifiers &= ~TQ_FAR;
+          duplicates &= ~TQ_FAR;
+        }  /* if */
+        /* Check for repetition of "near" or "far".  The Microsoft compiler
+           gives only a warning for these cases, so we do too. */
+        if (duplicates & (TQ_NEAR | TQ_FAR)) {
+          warning(ec_dupl_mem_attrib);
+          duplicates &= ~(TQ_NEAR | TQ_FAR);
+        }  /* if */
       }  /* if */
+#endif /* NEAR_AND_FAR_ALLOWED */
+      /* Check for duplicates other than "near" and "far". */
       if (duplicates != TQ_NONE) {
+        /* The Microsoft compiler gives only a warning for duplicates, so
+           we do too. */
         warning(ec_dupl_type_qualifier);
       }  /* if */
       *qualifiers |= new_qualifiers;
-    } else if (is_microsoft_calling_convention()) {
-      /* Calling conventions like __cdecl. */
-      call_conv->position = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (decl_pos_block != NULL) {
-        decl_pos_block->declarator_range.end = end_pos_curr_token;
-      }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      scan_microsoft_calling_convention(&call_conv->call_conv);
-    } else if (curr_token == tok_based) {
-      /* __based. */
-      if (*based_var != NULL) {
-        /* __based appears more than once. */
-        error(ec_dupl_type_qualifier);
-      }  /* if */
-      *based_pos = pos_curr_token;
-      *based_var = scan_based_modifier();
-    } else if (curr_token == tok_declspec) {
-      /* Scan the decl-modifiers.  The Microsoft compiler appears to accept
-         and ignore __declspec declarations that appear during declarator
-         processing -- there is no evidence that the decl-modifiers are ever
-         actually applied to the function or variable being declared. */
-      a_boolean              local_err;
-      a_type_qualifier_set   local_qualifiers = TQ_NONE;
-      a_decl_modifiers_block local_decl_modifiers;
-      an_inheritance_kind    inheritance_kind;
-      a_source_position      inheritance_kind_pos;
-
-      /* Issue a warning that it's being ignored. */
-      warning(ec_decl_modifiers_ignored);
-      clear_decl_modifiers_block(&local_decl_modifiers);
-      scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/FALSE,
-                                             /*is_member_decl=*/FALSE,
-                                             &local_decl_modifiers,
-                                             &local_qualifiers,
-                                             &inheritance_kind,
-                                             &inheritance_kind_pos,
-                                             &local_err);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode && curr_token == tok_mutable) {
-      /* The Microsoft compiler appears to accept and ignore "mutable" during
-         declarator processing.  Issue a warning and continue. */
-      warning(ec_mutable_not_allowed);
+    } else if (microsoft_mode) {
+      if (is_microsoft_calling_convention()) {
+        /* Calling conventions like __cdecl. */
+        call_conv->position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (decl_pos_block != NULL) {
-        decl_pos_block->declarator_range.end = end_pos_curr_token;
-      }  /* if */
+        if (decl_pos_block != NULL) {
+          decl_pos_block->declarator_range.end = end_pos_curr_token;
+        }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (void)get_token();
+        scan_microsoft_calling_convention(&call_conv->call_conv);
+      } else if (curr_token == tok_based) {
+        /* __based. */
+        if (*based_var != NULL) {
+          /* __based appears more than once. */
+          error(ec_dupl_type_qualifier);
+        }  /* if */
+        *based_pos = pos_curr_token;
+        *based_var = scan_based_modifier();
+      } else if (curr_token == tok_declspec) {
+        /* Scan the decl-modifiers.  The Microsoft compiler appears to accept
+           and ignore __declspec declarations that appear during declarator
+           processing -- there is no evidence that the decl-modifiers are ever
+           actually applied to the function or variable being declared. */
+        a_boolean                    local_err;
+        an_extended_decl_info_block  extended_decl_info;
+
+        /* Issue a warning that it's being ignored. */
+        warning(ec_decl_modifiers_ignored);
+        clear_extended_decl_info_block(extended_decl_info);
+        scan_extended_decl_modifiers(/*is_class_decl=*/FALSE,
+                                     /* is_member_decl=*/FALSE,
+                                     &extended_decl_info, &local_err);
+      } else if (curr_token == tok_mutable) {
+        /* The Microsoft compiler appears to accept and ignore "mutable" during
+           declarator processing.  Issue a warning and continue. */
+        warning(ec_mutable_not_allowed);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (decl_pos_block != NULL) {
+          decl_pos_block->declarator_range.end = end_pos_curr_token;
+        }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        (void)get_token();
+      } else {
+        /* Something else; exit the loop. */
+        break;
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
-      /* Something else; exit the loop. */
       break;
     }  /* if */
   }  /* for */
 }  /* collect_microsoft_pointer_declarator_qualifiers */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
 
 static void check_for_addition_of_incompatible_qualifiers(
                                               a_type_ptr           type,
@@ -2430,7 +2440,7 @@ and the existing ones (explicit and implied), issue an error (at position
   }  /* if */
 }  /* check_for_addition_of_incompatible_qualifiers */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- because left_calling_convention,
@@ -2522,16 +2532,17 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
   a_type_ptr     		class_type;
   a_type_ptr     		rout_type;
   a_variable_ptr		based_var = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_type_qualifier_set		pending_qualifiers;
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+  a_type_qualifier_set		pending_qualifiers = TQ_NONE;
   a_source_position		pending_qualifiers_pos;
   a_call_conv_descr		ccd;
   a_source_position		based_pos;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
   db_enter(3, "pointer_declarator");
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+  if (microsoft_mode or_near_and_far_enabled()) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
     /* Clear parameters used to return left/unbound qualifiers. */
     if (left_calling_convention != NULL) {
       clear_call_conv_descr(left_calling_convention);
@@ -2539,6 +2550,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     if (unbound_calling_convention != NULL) {
       clear_call_conv_descr(unbound_calling_convention);
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (left_qualifiers != NULL) *left_qualifiers = TQ_NONE;
     if (unbound_qualifiers != NULL) *unbound_qualifiers = TQ_NONE;
     /* Scan qualifiers that precede the first pointer or reference, e.g.,
@@ -2570,10 +2582,11 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     /* Exit the loop if there is not another pointer declarator. */
     if (!another_pointer_declarator) break;
     set_err_pos_to_curr_token();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+    if (pending_qualifiers != TQ_NONE) {
       /* Apply pending qualifiers to the complete type being built up, now
          that we know those are not unbound qualifiers. */
+#if NEAR_AND_FAR_ALLOWED
       if ((pending_qualifiers & ~(TQ_NEAR | TQ_FAR)) != TQ_NONE) {
         /* Drop qualifiers like const/volatile because Microsoft drops
            them:
@@ -2601,6 +2614,13 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         }  /* if */
         pending_qualifiers = TQ_NONE;
       }  /* if */
+#else /* !NEAR_AND_FAR_ALLOWED */
+      pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
+      pending_qualifiers = TQ_NONE;
+#endif /* NEAR_AND_FAR_ALLOWED */
+    }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
       if (ccd.call_conv != (a_calling_convention)cc_default) {
         /* A calling convention was specified.  Apply it to the complete
            type or (at the beginning of a nested declaration) return it to
@@ -2616,6 +2636,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       /* __based is handled when building the pointer type. */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     if (!ptr_to_member_case) {
       /* Pointer ("*") or reference ("&") case. */
       /* Add a pointer type to the top of the existing type.  Note that this
@@ -2737,8 +2758,12 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     /* Scan any qualifiers following the pointer declarator, e.g.,
          int * const x;
     */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+  if (microsoft_mode
+#if NEAR_AND_FAR_ALLOWED
+      || il_header.near_and_far_enabled
+#endif /* NEAR_AND_FAR_ALLOWED */
+                                       ) {
       /* Microsoft mode allows several kinds of qualifiers. */
       collect_microsoft_pointer_declarator_qualifiers(&qualifiers,
                                                       &pending_qualifiers_pos,
@@ -2749,18 +2774,19 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       /* Break the qualifiers into those like const that are handled
          immediately and those like near that stay pending into the next
          iteration of the loop. */
+#if NEAR_AND_FAR_ALLOWED
       pending_qualifiers = (qualifiers & (TQ_NEAR | TQ_FAR));
       qualifiers -= pending_qualifiers;
-    } else {
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Not Microsoft mode; just look for type qualifiers. */
+#endif /* NEAR_AND_FAR_ALLOWED */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+    /* Do not add code here. */
+    { /* Just look for type qualifiers. */
       qualifiers = TQ_NONE;
       if (is_type_qualifier()) {
         qualifiers = collect_type_qualifiers(decl_pos_block);
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }
     if (qualifiers != TQ_NONE) {
       /* Some qualifiers were specified. */
 #if RESTRICT_ALLOWED
@@ -2803,26 +2829,33 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+  /* Return unbound qualifiers to the caller. */
+  if (pending_qualifiers != TQ_NONE) {
+#if NEAR_AND_FAR_ALLOWED
+    if (((microsoft_mode && microsoft_version >= 1000)
+         or_near_and_far_enabled()) &&
+        (pending_qualifiers & ~(TQ_NEAR | TQ_FAR)) != TQ_NONE) {
+      /* Case like
+           int i, const j;
+         The type qualifiers were applied in MSVC++ 2.0, but they are
+         ignored in 4.2 and 5.0. */
+      pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
+      pending_qualifiers &= (TQ_NEAR | TQ_FAR);
+    }  /* if */
+    /* Qualifiers like near and far. */
+    if (unbound_qualifiers != NULL) {
+      *unbound_qualifiers = pending_qualifiers;
+    } else {
+      warning(ec_mem_attrib_ignored);
+    }  /* if */
+#else /* !NEAR_AND_FAR_ALLOWED */
+    pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
+#endif /* NEAR_AND_FAR_ALLOWED */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    /* Return unbound qualifiers to the caller. */
-    if (pending_qualifiers != TQ_NONE) {
-      if (microsoft_version >= 1000 &&
-          (pending_qualifiers & ~(TQ_NEAR | TQ_FAR)) != TQ_NONE) {
-        /* Case like
-             int i, const j;
-           The type qualifiers were applied in MSVC++ 2.0, but they are
-           ignored in 4.2 and 5.0. */
-        pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
-        pending_qualifiers &= (TQ_NEAR | TQ_FAR);
-      }  /* if */
-      /* Qualifiers like near and far. */
-      if (unbound_qualifiers != NULL) {
-        *unbound_qualifiers = pending_qualifiers;
-      } else {
-        warning(ec_mem_attrib_ignored);
-      }  /* if */
-    }  /* if */
     if (ccd.call_conv != (a_calling_convention)cc_default) {
       /* Calling convention like __cdecl. */
       if (unbound_calling_convention != NULL) {

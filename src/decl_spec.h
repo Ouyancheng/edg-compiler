@@ -22,28 +22,50 @@ decl_spec.h -- Declarations related to decl_spec.c (having to with
 #include "decls.h"
 #endif /* ifndef DECLS_H */
 
+typedef struct an_extended_decl_info_block *an_extended_decl_info_block_ptr;
+typedef struct an_extended_decl_info_block {
+  a_type_qualifier_set
+		qualifiers;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern void scan_microsoft_extended_decl_modifiers(
-                            a_boolean                   is_class_decl,
-                            a_boolean                   is_member_decl,
-                            a_decl_modifiers_block_ptr  decl_modifiers,
-                            a_type_qualifier_set        *qualifiers,
-                            an_inheritance_kind         *inheritance_kind,
-                            a_source_position           *inheritance_kind_pos,
-                            a_boolean                   *err);
+  a_decl_modifiers_block
+		decl_modifiers;
+  an_inheritance_kind
+		inheritance_kind;
+  a_source_position
+		inheritance_kind_pos;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+} an_extended_decl_info_block;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define clear_extended_decl_info_block(block)                           \
+  { (block).qualifiers = TQ_NONE;                                       \
+    clear_decl_modifiers_block(&((block).decl_modifiers));              \
+    (block).inheritance_kind = (an_inheritance_kind)ihk_none;           \
+    (block).inheritance_kind_pos = null_source_position;                \
+  }
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define clear_extended_decl_info_block(block)                           \
+  { (block).qualifiers = TQ_NONE; }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+extern void scan_extended_decl_modifiers(
+                            a_boolean                    is_class_decl,
+                            a_boolean                    is_member_decl,
+                            an_extended_decl_info_block  *extended_decl_info,
+                            a_boolean                    *err);
+
+extern void update_extended_decl_info_for_class(
+                            a_type_ptr                   class_type,
+                            a_boolean                    is_class_definition,
+                            an_extended_decl_info_block  *extended_decl_info,
+                            a_source_position            *err_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern void check_inheritance_kind(a_type_ptr           class_type,
                                    an_inheritance_kind  inheritance_kind,
                                    a_source_position    *err_pos);
-
-extern void update_microsoft_decl_modifiers_info_for_class(
-                            a_type_ptr                  class_type,
-                            a_boolean                   is_class_definition,
-                            a_decl_modifiers_block_ptr  decl_modifiers,
-                            a_type_qualifier_set        class_qualifiers,
-                            an_inheritance_kind         inheritance_kind,
-                            a_source_position           *inheritance_kind_pos,
-                            a_source_position           *err_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void typename_specifier(a_type_ptr            *type_ptr,

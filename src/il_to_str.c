@@ -551,15 +551,22 @@ Do the output in the way described by octl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     if (octl->gen_compilable_code) {
-      /* Suppress "__unaligned", "__near", and "__far" in generated compilable
-         code. */
-      qualifiers &= ~(TQ_UNALIGNED | TQ_NEAR | TQ_FAR);
+      /* Suppress "__unaligned" in generated compilable code. */
+      qualifiers &= ~TQ_UNALIGNED;
     }  /* if */
 #endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
     output_qualifier(TQ_UNALIGNED, "__unaligned");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+#if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+    if (octl->gen_compilable_code) {
+      /* Suppress "__near" and "__far" in generated compilable code. */
+      qualifiers &= ~(TQ_NEAR | TQ_FAR);
+    }  /* if */
+#endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
     output_qualifier(TQ_NEAR, "__near");
     output_qualifier(TQ_FAR, "__far");
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
     /* Put out a trailing space if required. */
     if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
   }  /* if */
@@ -865,11 +872,11 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 #ifdef CFE
   a_type_qualifier_set
               qualifiers = TQ_NONE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
   a_type_qualifier_set
               microsoft_qualifiers;
   a_boolean   microsoft_need_trailing_space;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 #endif /* ifdef CFE */
 
   if (type == NULL) {
@@ -909,7 +916,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
   }  /* while */
   /* Add top-level qualifiers if told to. */
   qualifiers |= added_qualifiers;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
   /* Look for any qualifiers (like "near") that are displayed specially. */
   microsoft_qualifiers = qualifiers & (TQ_NEAR | TQ_FAR);
   if (microsoft_qualifiers != TQ_NONE) {
@@ -917,7 +924,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     microsoft_need_trailing_space = need_trailing_space;
     need_trailing_space = TRUE;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 #endif /* ifdef CFE */
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
@@ -1023,14 +1030,14 @@ handle_specifiers_type:
       if (need_trailing_space) octl->output_str(" ");
     }  /* if */
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
   if (microsoft_qualifiers != TQ_NONE) {
     /* There are special Microsoft qualifiers like "near"; display them next
        to the declarator name. */
     form_type_qualifier(microsoft_qualifiers, microsoft_need_trailing_space,
                         octl);
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 end_of_routine:;
 }  /* form_type_first_part */
 

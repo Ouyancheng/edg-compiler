@@ -2039,9 +2039,11 @@ enum a_type_qualifier_tag {
 #endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tqt_unaligned,	/* Microsoft __unaligned qualifier. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
   tqt_near,		/* near */
   tqt_far,		/* far */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
   tqt_last		/* Must be last. */
 };
 
@@ -2061,11 +2063,13 @@ Definitions of the bits in bit sets of type a_type_qualifier_set.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define TQ_UNALIGNED	(1 << (int)tqt_unaligned)
 			/* This bit is set to represent __unaligned. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
 #define TQ_NEAR		(1 << (int)tqt_near)
 			/* This bit is set to represent near. */
 #define TQ_FAR		(1 << (int)tqt_far)
 			/* This bit is set to represent far. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 
 /*
 The last type qualifier tag value is used as the number of bits required
@@ -3224,10 +3228,6 @@ typedef struct a_class_type_supplement {
 			   which always reflects the tag used in the defining
 			   declaration.  This information is used for
 			   Microsoft-style name mangling. */
-  a_type_qualifier_set
-		qualifiers;
-			/* Qualifiers that apply to the class as a whole,
-			   as in "class __far A {}". */
   an_inheritance_kind
 		inheritance_kind;
 			/* Inheritance kind (single, multiple, virtual) that
@@ -3244,6 +3244,12 @@ typedef struct a_class_type_supplement {
 			   result of an explicit specification on the class
 			   declaration. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  a_type_qualifier_set
+		qualifiers;
+			/* Qualifiers that apply to the class as a whole,
+			   as in "class __far A {}". */
+#endif /* NEAR_AND_FAR_ALLOWED */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous
@@ -3929,13 +3935,14 @@ typedef struct a_type {
 			   outside the scope of the parent class; the class
 			   type entry pointed to will be on the types list
 			   of the scope of the parent class. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
       a_bit_field
 		explicit_memory_attribute_made_implicit:1;
 			/* TRUE if an explicit memory attribute (e.g., near)
 			   was omitted from this typeref because it is the
-			   default.  Used only in 16-bit Microsoft mode. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+			   default.  Used only when near and far are
+			   enabled (e.g., Microsoft 16-bit mode). */
+#endif /* NEAR_AND_FAR_ALLOWED */
       a_bit_field
 		has_variably_modified_type:1;
 			/* The type referred to is a variably modified type,
@@ -7679,24 +7686,31 @@ EXTERN struct il_header_tag {
 		microsoft_mode;
 			/* TRUE if Microsoft extensions are accepted;
 			   corresponds to global variable microsoft_mode. */
-  a_byte_boolean
-		microsoft_16_mode;
-			/* TRUE if Microsoft 16-bit extensions are to be
-			   accepted.  This is a sub-mode of microsoft_mode. */
-  a_byte_boolean
-		far_data_pointers;
-			/* Default size (near/far) to be used for data
-			   pointers in 16-bit Microsoft mode. */
-  a_byte_boolean
-		far_code_pointers;
-			/* Default size (near/far) to be used for code
-			   pointers in 16-bit Microsoft mode. */
   long		microsoft_version;
 			/* When microsoft_mode is TRUE, the version of the
 			   Microsoft compiler with which compatibility is
 			   desired; corresponds to global variable
 			   microsoft_version. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  a_byte_boolean
+		near_and_far_enabled;
+			/* TRUE if near and far memory attributes are
+			   enabled (e.g., when Microsoft 16-bit extensions
+			   are to be accepted). */
+  a_byte_boolean
+		far_data_pointers;
+			/* TRUE if near_and_far_enabled is TRUE and the
+			   default size and alignment of data pointers
+			   are targ_sizeof_far_pointer and
+			   targ_alignof_far_pointer. */
+  a_byte_boolean
+		far_code_pointers;
+			/* TRUE if near_and_far_enabled is TRUE and the
+			   default size and alignment of data pointers
+			   are targ_sizeof_far_pointer and
+			   targ_alignof_far_pointer. */
+#endif /* NEAR_AND_FAR_ALLOWED */
 #if ONE_INSTANTIATION_PER_OBJECT
   char		*instantiation_dir_name;
 			/* When each instantiation is placed in its own object
@@ -7711,6 +7725,14 @@ EXTERN struct il_header_tag {
 			   translation unit. */
 } il_header;
 
+
+#if NEAR_AND_FAR_ALLOWED
+#define near_and_far_enabled() il_header.near_and_far_enabled
+#define or_near_and_far_enabled() || il_header.near_and_far_enabled
+#else /* !NEAR_AND_FAR_ALLOWED */
+#define near_and_far_enabled() FALSE
+#define or_near_and_far_enabled() /* Nothing */
+#endif /* NEAR_AND_FAR_ALLOWED */
 
 #if DEBUG
 /* Table of debug names for expression operators. */

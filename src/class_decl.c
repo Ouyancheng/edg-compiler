@@ -7764,12 +7764,14 @@ respectively.
           !is_incomplete_type(underlying_array_element_type(field_type))) {
         if (is_union_type(class_type)) {
           /* Incomplete member in a union; not usually allowed. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode) {
             /* In Microsoft mode, any member of a union can have such an
                array type.  The problem of a zero-sized union is dealt with
                in the layout code. */
             incomplete_okay = TRUE;
           }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (!class_state->is_first_field || microsoft_mode) {
           /* struct/class: an incomplete array is allowed only as the last
              field, and except in Microsoft mode it can't be the first field.
@@ -10372,11 +10374,13 @@ next_declaration:;
                    ec_declspec_property_not_allowed,
                    &decl_start_pos);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* Restore the default name linkage if a linkage specification appeared
        among the decl-specifiers. */
     if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (decl_pos_block_ptr != NULL) {
     /* Return to the caller the extra source position information collected
        for this declaration. */

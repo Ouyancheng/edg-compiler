@@ -38,15 +38,24 @@ calling convention.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-Macro that is TRUE if the current token is one of the extension memory
-attributes that can appear in a declarator in Microsoft mode.
+Macro that is TRUE if the current token is "near" or "far".
 */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define is_microsoft_memory_attribute()                               \
-  (curr_token == tok_near || curr_token == tok_far)
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_microsoft_memory_attribute() FALSE
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+#define is_near_or_far() (curr_token == tok_near || curr_token == tok_far)
+#else /* !NEAR_AND_FAR_ALLOWED */
+#define is_near_or_far() FALSE
+#endif /* NEAR_AND_FAR_ALLOWED */
+
+/*
+Macro to test whether the current token is "near" or "far".  Includes an "||"
+at the beginning.
+*/
+#if NEAR_AND_FAR_ALLOWED
+#define or_is_near_or_far() || is_near_or_far()
+#else /* !NEAR_AND_FAR_ALLOWED */
+#define or_is_near_or_far() /* Nothing */
+#endif /* NEAR_AND_FAR_ALLOWED */
+
 
 /*
 Macro to test whether the current token is one of the extension keywords
@@ -55,9 +64,7 @@ at the beginning.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define or_is_microsoft_declarator_keyword() ||                       \
-  (is_microsoft_calling_convention() ||                               \
-   is_microsoft_memory_attribute() ||                                 \
-   curr_token == tok_based)
+  (is_microsoft_calling_convention() || curr_token == tok_based)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define or_is_microsoft_declarator_keyword() /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -70,7 +77,7 @@ Macro that is TRUE if the current token is the start of a declarator
   (curr_token == tok_identifier ?                                    \
      (C_mode() || !identifier_is_template_id()) :                    \
      (curr_token == tok_star || curr_token == tok_lparen             \
-      or_is_microsoft_declarator_keyword() ||                        \
+      or_is_microsoft_declarator_keyword() or_is_near_or_far() ||    \
       (C_dialect == C_dialect_cplusplus &&                           \
        (curr_token == tok_ampersand || curr_token == tok_operator))))
 
@@ -90,7 +97,8 @@ declarator (3.5.5).
 */
 #define is_abstract_declarator_start()                                \
   (curr_token == tok_star || curr_token == tok_lbracket ||            \
-   curr_token == tok_lparen  or_is_microsoft_declarator_keyword() ||  \
+   curr_token == tok_lparen                                           \
+   or_is_microsoft_declarator_keyword() or_is_near_or_far() ||        \
    (C_dialect == C_dialect_cplusplus &&                               \
     (is_ptr_to_member_declarator_start() ||                           \
      curr_token == tok_ampersand)))
@@ -101,7 +109,7 @@ abstract or real declarator.
 */
 #define is_abstract_or_real_declarator_start()                        \
   (is_declarator_start() || curr_token == tok_lbracket                \
-   or_is_microsoft_declarator_keyword() ||			      \
+   or_is_microsoft_declarator_keyword() or_is_near_or_far() ||        \
    (C_dialect == C_dialect_cplusplus &&                               \
     is_ptr_to_member_declarator_start()))
 

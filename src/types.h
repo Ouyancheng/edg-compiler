@@ -216,10 +216,12 @@ extern a_boolean f_any_qualifier_missing(a_type_ptr  tp1,
 extern a_boolean is_qualified_version_of_array_typedef(
                                                 a_type_ptr type,
                                                 a_type_ptr *unqual_array_type);
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
 extern a_boolean is_far_type(a_type_ptr tp);
+#endif /* NEAR_AND_FAR_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 extern a_type_qualifier_set get_original_type_qualifiers(a_type_ptr type);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
 
 extern a_boolean f_type_has_default_constructor(a_type_ptr  tp,

@@ -109,11 +109,13 @@ typedef enum /*an_option_kind*/ {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   optk_microsoft_mode,
   optk_microsoft_16_mode,
-  optk_far_data_pointers,
-  optk_far_code_pointers,
   optk_microsoft_version,
   optk_microsoft_bugs,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  optk_far_data_pointers,
+  optk_far_code_pointers,
+#endif /* NEAR_AND_FAR_ALLOWED */
   optk_wchar_t_is_keyword,
 #if USER_CONTROL_OF_STRUCT_PACKING
   optk_pack_alignment,

@@ -1052,13 +1052,17 @@ class_struct_union:
 #if RESTRICT_ALLOWED
         if (typeref_is_restrict_qualified(tp)) fputs("restrict ", f_debug);
 #endif /* RESTRICT_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
         { a_type_qualifier_set qualifiers = tp->variant.typeref.qualifiers;
+#if MICROSOFT_EXTENSIONS_ALLOWED
           if (qualifiers & TQ_UNALIGNED) fputs("unaligned ", f_debug);
-          if (qualifiers & TQ_NEAR     ) fputs("near ", f_debug);
-          if (qualifiers & TQ_FAR      ) fputs("far ", f_debug);
-        }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+          if (qualifiers & TQ_NEAR) fputs("near ", f_debug);
+          if (qualifiers & TQ_FAR) fputs("far ", f_debug);
+#endif /* NEAR_AND_FAR_ALLOWED */
+        }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
       } else {
         fputs("typeref ", f_debug);
         if (has_name(tp)) { 
@@ -4865,10 +4869,10 @@ done:;
 }  /* add_to_based_type_fixup_list */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- Because expl_mem_attr_implicit is only used in Microsoft
-                     mode. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#if !NEAR_AND_FAR_ALLOWED
+/*ARGSUSED*/  /* <-- Because expl_mem_attr_implicit is only used when near
+                     and far may be recognized. */
+#endif /* !NEAR_AND_FAR_ALLOWED */
 static a_type_ptr get_based_type(a_type_ptr            base_type,
                                  a_based_type_kind     kind,
                                  a_type_qualifier_set  qualifiers,
@@ -4912,11 +4916,11 @@ list.
         ptr = NULL;
       } else if (kind == (a_based_type_kind)btk_qualified &&
                  (ptr->variant.typeref.qualifiers != qualifiers
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
                   || (a_boolean)ptr->variant.typeref.
                                      explicit_memory_attribute_made_implicit
                                                   != expl_mem_attr_implicit
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
                                                                            )) {
         /* Qualifiers do not match -- keep looking. */
         ptr = NULL;
@@ -5309,20 +5313,20 @@ are not already present.
   }  /* if */
   /* Applying qualifiers to a function type is not allowed in C++.  The
      check, if needed, should have been done by the caller. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
   check_assertion(!is_function_type(base_type) || qualifiers == TQ_NONE ||
-                  (il_header.microsoft_16_mode &&
+                  (il_header.near_and_far_enabled &&
                    (qualifiers & ~(TQ_NEAR | TQ_FAR)) == TQ_NONE) ||
                   C_mode());
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#else /* !NEAR_AND_FAR_ALLOWED */
   check_assertion(!is_function_type(base_type) || qualifiers == TQ_NONE ||
                   C_mode());
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
   base_type_qualifiers = get_type_qualifiers(base_type);
   qualifiers_to_add = qualifiers & ~base_type_qualifiers;
   if (qualifiers_to_add != TQ_NONE) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (il_header.microsoft_16_mode &&
+#if NEAR_AND_FAR_ALLOWED
+    if (il_header.near_and_far_enabled &&
         (qualifiers_to_add & (TQ_NEAR | TQ_FAR))) {
        /* Don't add explicit qualifiers for memory attributes that are
          implied anyway.  Note that even if only one qualifier is being
@@ -5337,7 +5341,7 @@ are not already present.
         expl_mem_attr_implicit = TRUE;
       }  /* if */
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
     /* Some qualifiers need to be added. */
     if (base_type_qualifiers != TQ_NONE) {
       /* The typeref(s) containing qualifiers, if any, are removed to get down
@@ -5365,10 +5369,10 @@ are not already present.
       ptr = alloc_type((a_type_kind)tk_typeref);
       ptr->variant.typeref.type = base_type;
       ptr->variant.typeref.qualifiers = qualifiers_to_add;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
       ptr->variant.typeref.explicit_memory_attribute_made_implicit =
                                                         expl_mem_attr_implicit;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
       /* Remember the existence of this typeref type by putting a pointer
          to it in the based_types list. */
       add_based_type_list_member(base_type, (a_based_type_kind)btk_qualified,

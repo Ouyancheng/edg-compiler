@@ -38,9 +38,10 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
 {
   a_targ_size_t size;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (il_header.microsoft_16_mode) {
-    /* Microsoft 16-bit mode.  Pointers come in "near" and "far" sizes. */
+#if NEAR_AND_FAR_ALLOWED
+  if (il_header.near_and_far_enabled) {
+    /* Pointers come in "near" and "far" sizes (e.g., Microsoft 16-bit
+       mode). */
     if (is_far_type(tp)) {
       size = targ_sizeof_far_pointer;
       *alignment = targ_alignof_far_pointer;
@@ -48,9 +49,10 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
       size = targ_sizeof_near_pointer;
       *alignment = targ_alignof_near_pointer;
     }  /* if */
-  } else {
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Non-Microsoft mode, or Microsoft 32-bit mode. */
+  } else
+#endif /* NEAR_AND_FAR_ALLOWED */
+  /* Do not add code here. */
+  {
 #if TARG_ALL_POINTERS_SAME_SIZE
     /* All pointers have the same size and alignment. */
     size = targ_sizeof_pointer;
@@ -62,9 +64,7 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
    in targ_def.h and the internal documentation; it's probably not what
    you want. */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }
   return size;
 }  /* size_of_pointer_to */
 

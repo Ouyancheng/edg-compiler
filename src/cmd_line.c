@@ -417,6 +417,17 @@ Initialize the option information table.
   add_option_description(optk_microsoft_16_mode, "microsoft_16",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_version, "microsoft_version",
+                         '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_microsoft_bugs, "microsoft_bugs",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_microsoft_bugs, "no_microsoft_bugs",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_far_data_pointers, "far_data_pointers",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -429,16 +440,7 @@ Initialize the option information table.
   add_option_description(optk_far_code_pointers, "near_code_pointers",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_microsoft_version, "microsoft_version",
-                         '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
-                         pchek_command_line);
-  add_option_description(optk_microsoft_bugs, "microsoft_bugs",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_microsoft_bugs, "no_microsoft_bugs",
-                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 #if WCHAR_T_ENABLING_POSSIBLE
   add_option_description(optk_wchar_t_is_keyword, "wchar_t_keyword",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -1705,14 +1707,18 @@ common_cfront_mode_settings:
 enable_microsoft_mode:
         /* Enable or disable Microsoft extensions, in 32-bit mode. */
         microsoft_mode = opt_value;
-        il_header.microsoft_16_mode = FALSE;
+        il_header.near_and_far_enabled = FALSE;
         break;
       case optk_microsoft_16_mode:
         /* Enable or disable Microsoft extensions, in 16-bit mode. */
         check_assertion(opt_value == TRUE);
         microsoft_mode = TRUE;
-        il_header.microsoft_16_mode = TRUE;
+#if NEAR_AND_FAR_ALLOWED
+        il_header.near_and_far_enabled = TRUE;
+#endif /* NEAR_AND_FAR_ALLOWED */
         break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
       case optk_far_data_pointers:
         /* Set size of data pointers in Microsoft 16-bit mode. */
         il_header.far_data_pointers = opt_value;
@@ -1721,7 +1727,7 @@ enable_microsoft_mode:
         /* Set size of code pointers in Microsoft 16-bit mode. */
         il_header.far_code_pointers = opt_value;
         break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
       case optk_wchar_t_is_keyword:
         /* wchar_t is or is not a keyword. */
         wchar_t_is_keyword = opt_value;
@@ -2297,7 +2303,6 @@ enable_microsoft_mode:
   } else {
     /* Microsoft mode is not being used. */
     microsoft_bugs = FALSE;
-    il_header.microsoft_16_mode = FALSE;
     if (import_dir_name != NULL) {
       /* --import_dir is allowed only in Microsoft mode. */
       command_line_error(ec_cl_import_only_in_microsoft);

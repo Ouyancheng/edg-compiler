@@ -1162,13 +1162,13 @@ do_struct_union:
         disp_type_qualifiers(ptr->variant.typeref.qualifiers);
         (void)printf("\n");
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
       if (ptr->variant.typeref.explicit_memory_attribute_made_implicit) {
         disp_boolean("explicit_memory_attribute_made_implicit",
                      (a_boolean)ptr->variant.typeref.
                                       explicit_memory_attribute_made_implicit);
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
       break;
     case tk_ptr_to_member:
       (void)printf("tk_ptr_to_member\n");
@@ -4151,14 +4151,16 @@ Display the IL for the file scope in human-readable form.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   disp_boolean("microsoft_mode",
                (a_boolean)il_header.microsoft_mode);
-  disp_boolean("microsoft_16_mode",
-               (a_boolean)il_header.microsoft_16_mode);
+  disp_long("microsoft_version", (a_boolean)il_header.microsoft_version);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  disp_boolean("near_and_far_enabled",
+               (a_boolean)il_header.near_and_far_enabled);
   disp_boolean("far_data_pointers",
                (a_boolean)il_header.far_data_pointers);
   disp_boolean("far_code_pointers",
                (a_boolean)il_header.far_code_pointers);
-  disp_long("microsoft_version", (a_boolean)il_header.microsoft_version);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (il_header.instantiation_dir_name != NULL) {
     disp_string_ptr("instantiation_dir_name",

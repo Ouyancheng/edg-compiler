@@ -270,18 +270,24 @@ Install the keywords in the symbol table.
       enter_underscore_keywords((a_token_kind)tok_int64, "__int64");
     }  /* if */
     enter_underscore_keywords((a_token_kind)tok_based, "__based");
-    if (il_header.microsoft_16_mode) {
-      /* Enter 16-bit mode keywords. */
-      enter_keyword((a_token_kind)tok_near, "near");
-      enter_underscore_keywords((a_token_kind)tok_near, "__near");
-      enter_keyword((a_token_kind)tok_far, "far");
-      enter_underscore_keywords((a_token_kind)tok_far, "__far");
-    }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
       enter_underscore_keywords((a_token_kind)tok_uuidof, "__uuidof");
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  if (il_header.near_and_far_enabled) {
+    /* Enter "near" and "far" keywords. */
+    enter_keyword((a_token_kind)tok_near, "near");
+    enter_keyword((a_token_kind)tok_far, "far");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      enter_underscore_keywords((a_token_kind)tok_near, "__near");
+      enter_underscore_keywords((a_token_kind)tok_far, "__far");
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+#endif /* NEAR_AND_FAR_ALLOWED */
   /* "asm" is a C++ keyword that is treated as a keyword in C mode, too,
      because, even though not part of the ANSI C language, it is used widely
      in C programs. */
@@ -594,11 +600,11 @@ line processing is done.
   /* Do host-specific initialization.  This must be done first in this
      routine. */
   host_envir_early_init();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  il_header.microsoft_16_mode = DEFAULT_MICROSOFT_16_MODE;
+#if NEAR_AND_FAR_ALLOWED
+  il_header.near_and_far_enabled = DEFAULT_NEAR_AND_FAR_ENABLED;
   il_header.far_data_pointers = DEFAULT_FAR_DATA_POINTERS;
   il_header.far_code_pointers = DEFAULT_FAR_CODE_POINTERS;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 }  /* fe_early_init */
 
 
@@ -804,9 +810,11 @@ source file's compilation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   il_header.microsoft_mode = microsoft_mode;
   il_header.microsoft_version = microsoft_version;
-  /* microsoft_16_mode, far_data_pointers, and far_code_pointers are
-     initialized in fe_early_init and changed if necessary in cmd_line.c. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  /* near_and_far_enabled, far_data_pointers, and far_code_pointers are
+     initialized in fe_early_init and changed if necessary in cmd_line.c. */
+#endif /* NEAR_AND_FAR_ALLOWED */
   if (pp_output_file_needed) {
     /* Open the preprocessing output file. */
     open_pp_output_file();

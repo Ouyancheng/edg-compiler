@@ -27,6 +27,36 @@ decl_spec.c -- Scanning of declaration specifiers.
 /* Additional header files. */
 #include "folding.h"
 
+#if NEAR_AND_FAR_ALLOWED
+
+static void scan_near_or_far(a_type_qualifier_set  *qualifiers)
+/*
+Scan a "near" or "far" memory attribute, setting a bit in *qualifiers if
+there is no error.
+*/
+{
+  a_type_qualifier_set new_qualifiers;
+
+  if (curr_token == tok_near) {
+    new_qualifier = TQ_NEAR;
+  } else {
+    check_assertion(curr_token == tok_far);
+    new_qualifier = TQ_FAR;
+  }  /* if */
+  /* Check for incompatibilities. */
+  if (*qualifiers & new_qualifier) {
+    /* The bit is already set -- this is a duplicate. */
+    warning(ec_dupl_mem_attrib);
+  } else if ((*qualifiers & (TQ_NEAR | TQ_FAR)) != TQ_NONE) {
+    /* The other bit has already been set -- error. */
+    error(ec_mem_attrib_incompatible);
+    new_qualifiers = TQ_NONE;
+  }  /* if */
+  *qualifiers |= new_qualifier;
+  (void)get_token();        
+}  /* scan_near_or_far */
+
+#endif /* NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static char *check_GUID_hex_digits(char      *str,
@@ -175,15 +205,57 @@ parenthesis of the property list as the current token.
   }  /* if */
 }  /* scan_declspec_property */
 
+static a_boolean scan_inheritance_kind(an_inheritance_kind  *inheritance_kind,
+                                       a_source_position    *pos)
+/*
+Unless *inheritance_kind is already set, scan for an inheritance kind keyword
+-- i.e.,
+  __single_inheritance
+  __multiple_inheritance
+  __virtual_inheritance
+(each of which can also be spelled with a single leading underscore) -- and
+return the result in *inheritance_kind.  The source position of the specified
+inheritance kind is returned in *pos.  If the scan is successful and, return
+TRUE.
+*/
+{
+  a_boolean  found = FALSE;
+  char       *name;
 
-void scan_microsoft_extended_decl_modifiers(
-                            a_boolean                   is_class_decl,
-                            a_boolean                   is_member_decl,
-                            a_decl_modifiers_block_ptr  decl_modifiers,
-                            a_type_qualifier_set        *qualifiers,
-                            an_inheritance_kind         *inheritance_kind,
-                            a_source_position           *inheritance_kind_pos,
-                            a_boolean                   *err)
+  if (*inheritance_kind == (an_inheritance_kind)ihk_none) {
+    check_assertion(curr_token == tok_identifier);
+    name = locator_for_curr_id.symbol_header->identifier;
+    if (*(name++) == '_') {
+      if (*name == '_') name++;
+      /* Check the name without its leading single or double underscore. */
+      if (strcmp(name, "single_inheritance") == 0) {
+        *inheritance_kind = (an_inheritance_kind)ihk_single;
+        found = TRUE;
+      } else if (strcmp(name, "multiple_inheritance") == 0) {
+        *inheritance_kind = (an_inheritance_kind)ihk_multiple;
+        found = TRUE;
+      } else if (strcmp(name, "virtual_inheritance") == 0) {
+        *inheritance_kind = (an_inheritance_kind)ihk_virtual;
+        found = TRUE;
+      }  /* if */
+      if (found) {
+        /* Remember the source position, in case a diagnostic is required
+           later. */
+        *pos = pos_curr_token;
+        /* Advance past the inheritance-kind keyword. */
+        (void)get_token();
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* scan_inheritance_kind */
+
+
+static void scan_declspec_attributes(
+                                a_decl_modifiers_block_ptr  decl_modifiers,
+                                a_boolean                   is_class_decl,
+                                a_boolean                   is_member_decl,
+                                a_boolean                   *err)
 /*
 Scan the Microsoft __declspec specifier, which has the form
 
@@ -215,313 +287,244 @@ In that case, and in 16-bit Microsoft mode, memory attributes like near
 and far are also allowed; they are returned in *qualifiers.
 is_member_decl is TRUE if the modifiers are being scanned as part of
 the declaration of a class member.
-
-Also, if is_class_decl is TRUE, scan the inheritance kind
-("__single_inheritance", etc.) and return it in *inheritance_kind.  The
-source position of the specified inheritance kind is returned in
-*inheritance_kind_pos.
 */
 {
-  if (is_class_decl) {
-    *qualifiers = TQ_NONE;
-    *inheritance_kind = (an_inheritance_kind)ihk_none;
-  }  /* if */
-  for (;;) {
-    if (is_class_decl && is_microsoft_memory_attribute()) {
-      /* Memory attribute like "near". */
-      a_type_qualifier_set new_qualifiers;
-      if (curr_token == tok_near) {
-        new_qualifiers = TQ_NEAR;
-      } else {
-        check_assertion(curr_token == tok_far);
-        new_qualifiers = TQ_FAR;
-      }  /* if */
-      /* Check for incompatibilities. */
-      if (*qualifiers & new_qualifiers) {
-        warning(ec_dupl_mem_attrib);
-      } else if (*qualifiers != TQ_NONE && new_qualifiers != TQ_NONE) {
-        error(ec_mem_attrib_incompatible);
-        new_qualifiers = TQ_NONE;
-      }  /* if */
-      *qualifiers |= new_qualifiers;
-      (void)get_token();        
-    } else if (curr_token == tok_declspec) {
-      /* __declspec(...) */
-      /* Bypass the __declspec token. */
-      (void)get_token();
-      if (required_token(tok_lparen, ec_exp_lparen)) {
-        add_stop_token(tok_rparen);
-        if (curr_token != tok_identifier) {
-          syntax_error(ec_exp_identifier);
-          *err = TRUE;
-        } else {
-          while (curr_token == tok_identifier) {
-            char *modifier;
-            modifier = locator_for_curr_id.symbol_header->identifier;
-            if (strcmp(modifier, "dllexport") == 0) {
-              if (decl_modifiers->flags & DM_DLLIMPORT) {
-                /* The dllimport and dllexport attributes are mutually
-                   exclusive. */
-                warning(ec_bad_combination_of_dll_attributes);
-              } else {
-                decl_modifiers->flags |= DM_DLLEXPORT;
-              }  /* if */
-            } else if (strcmp(modifier, "dllimport") == 0) {
-              if (decl_modifiers->flags & DM_DLLEXPORT) {
-                /* The dllimport and dllexport attributes are mutually
-                   exclusive. */
-                warning(ec_bad_combination_of_dll_attributes);
-              } else {
-                decl_modifiers->flags |= DM_DLLIMPORT;
-              }  /* if */
-            } else if (strcmp(modifier, "thread") == 0) {
-              if (is_class_decl) {
-                /* "thread" is not allowed on a class declaration. */
-                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                               &pos_curr_token, modifier);
-              } else {
-                decl_modifiers->flags |= DM_THREAD;
-              }  /* if */
-            } else if (strcmp(modifier, "naked") == 0) {
-              if (is_class_decl) {
-                /* "naked" is not allowed on a class declaration. */
-                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                               &pos_curr_token, modifier);
-              } else {
-                decl_modifiers->flags |= DM_NAKED;
-              }  /* if */
-            } else if (strcmp(modifier, "selectany") == 0) {
-              if (is_class_decl) {
-                /* "selectany" is not allowed on a class declaration. */
-                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                               &pos_curr_token, modifier);
-              } else {
-                decl_modifiers->flags |= DM_SELECTANY;
-              }  /* if */
-            } else if (!C_mode() && strcmp(modifier, "nothrow") == 0) {
-              if (is_class_decl) {
-                /* "nothrow" is not allowed on a class declaration. */
-                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                               &pos_curr_token, modifier);
-              } else {
-                decl_modifiers->flags |= DM_NOTHROW;
-              }  /* if */
-            } else if (!C_mode() && strcmp(modifier, "novtable") == 0) {
-              if (!is_class_decl) {
-                /* "novtable" is allowed only on a class declaration. */
-                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                               &pos_curr_token, modifier);
-              } else {
-                decl_modifiers->flags |= DM_NOVTABLE;
-              }  /* if */
-            } else if (strcmp(modifier, "noreturn") == 0) {
-              if (is_class_decl) {
-                /* "noreturn" is not allowed on a class declaration. */
-                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                               &pos_curr_token, modifier);
-              } else {
-                decl_modifiers->flags |= DM_NORETURN;
-              }  /* if */
-            } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
-              if (!is_class_decl) {
-                /* "uuid" is allowed only on a class declaration. */
-                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                               &pos_curr_token, modifier);
-                if (next_token() == tok_lparen) {
-                  /* Advance past "uuid" to the left paren. */
-                  (void)get_token();
-                  /* Flush all tokens till the matching right paren is
-                     found. */
-                  flush_until_matching_token();
-                }  /* if */
-              } else {
-                /* The syntax is
-                     uuid ( string-literal )
-                   where the string-literal optionally begins and ends with
-                   braces and is of the form
-                     hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
-                   where "h" is any hex digit and the hyphens are required. */
-                /* Advance past "uuid". */
-                (void)get_token();
-                if (required_token(tok_lparen, ec_exp_lparen)) {
-                  if (curr_token != tok_string_literal) {
-                    /* Error. */
-                    syntax_error(ec_bad_uuid_string);
-                  } else {
-                    char          *str =
-                                     const_for_curr_token.variant.string.value;
-                    a_targ_size_t length = /* Without null. */
-                                  const_for_curr_token.variant.string.length-1;
-
-                    if (*str == '{') {
-                      /* Has surrounding braces. */
-                      /* Check for matching closing brace. */
-                      if (str[length-1] != '}') {
-                        error(ec_bad_uuid_string);
-                        goto end_of_uuid_string;
-                      }  /* if */
-                      str++;
-                      length -= 2;
-                    }  /* if */
-                    /* Do error checking on the string. */
-                    if (is_valid_GUID_string(str, length)) {
-                      decl_modifiers->uuid_string=alloc_il((sizeof_t)length+1);
-                      /* Copy the string, lower-casing hex letters so that
-                         strcmp can be used to compare strings. */
-                      { char     *src = str;
-                        char     *dst = decl_modifiers->uuid_string;
-                        sizeof_t count = length;
-                        for (; count != 0; count--) {
-                          char ch = *src++;
-                          if (isalpha((unsigned char)ch)) ch = tolower(ch);
-                          *dst++ = ch;
-                        }  /* for */
-                        *dst = '\0';
-                      }
-                    } else {
-                      error(ec_bad_uuid_string);
-                      *err = TRUE;
-                    }  /* if */
-end_of_uuid_string:
-                    (void)get_token();
-                  }  /* if */
-                  (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-                } else {
-                  break;
-                }  /* if */
-              }  /* if */
-            } else if (!C_mode() && strcmp(modifier, "property") == 0) {
-              if (is_class_decl || !is_member_decl) {
-                /* "property" is not allowed on a class declaration, and
-                   not on a non-member declaration. */
-                pos_diagnostic(es_discretionary_error,
-                               ec_declspec_property_not_allowed,
-                               &pos_curr_token);
-                if (next_token() == tok_lparen) {
-                  /* Advance past "property" to the left paren. */
-                  (void)get_token();
-                  /* Flush all tokens till the matching right paren is
-                     found. */
-                  flush_until_matching_token();
-                }  /* if */
-              } else {
-                /* __declspec(property(get=..., put=...)) */
-                scan_declspec_property(decl_modifiers);
-              }  /* if */
-            } else if (strcmp(modifier, "allocate") == 0) {
-              if (is_class_decl) {
-                /* "allocate" is not allowed on a class declaration. */
-                pos_error(ec_declspec_allocate_not_allowed, &pos_curr_token);
-                *err = TRUE;
-                if (next_token() == tok_lparen) {
-                  /* Advance past "allocate" to the left paren. */
-                  (void)get_token();
-                  /* Flush all tokens till the matching right paren is
-                     found. */
-                  flush_until_matching_token();
-                }  /* if */
-              } else {
-                /* The syntax is
-                     allocate ( string-literal )
-                   where string-literal specifies the name of a data segment
-                   in which a data item will be allocated. */
-                /* Advance past "allocate". */
-                (void)get_token();
-                if (required_token(tok_lparen, ec_exp_lparen)) {
-                  if (curr_token != tok_string_literal) {
-                    /* Error. */
-                    syntax_error(ec_bad_allocate_segname);
-                    *err = TRUE;
-                  } else {
-                    /* The current token is a string literal.  No checking
-                       is done to assure that it is a valid data segment name
-                       (though such a check could be added if the appropriate
-                       #pragma support were also added). */
-                    char           *str;
-                    a_targ_size_t  len;  /* Length includes terminal null. */
-
-                    str = const_for_curr_token.variant.string.value;
-                    len = const_for_curr_token.variant.string.length;
-                    /* Copy the token string into IL memory and save the
-                       address. */
-                    decl_modifiers->allocate_segname = alloc_il((sizeof_t)len);
-                    (void)memcpy(decl_modifiers->allocate_segname, str,
-                                 size_t_arg(len));
-                    check_assertion(decl_modifiers->
-                                             allocate_segname[len-1] == '\0');
-                    /* Advance past the string literal. */
-                    (void)get_token();
-                  }  /* if */
-                  /* Advance past the right paren. */
-                  (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-                } else {
-                  break;
-                }  /* if */
-              }  /* if */
-            } else {
-              /* Issue a warning on an unrecognized __declspec attribute. */
-              pos_st_warning(ec_bad_declspec_modifier, &error_position,
-                             modifier);
-              /* An unrecognized construct could be of two forms:
-                   __declspec(xxx)        // Like "dllimport" or "nothrow"
-                   __declspec(xxx(yyy))   // Like "allocate" or "uuid"
-                 If the next token is a left paren, skip to the matching
-                 right paren. */
-              if (next_token() == tok_lparen) {
-                /* Advance to the left paren. */
-                (void)get_token();
-                /* Flush all tokens till the matching right paren is found. */
-                flush_until_matching_token();
-              }  /* if */
-            }  /* if */
-            (void)get_token();
-          }  /* while */
-        }  /* if */
-        remove_stop_token(tok_rparen);
-        /* Check for the closing right paren. */
-        (void)required_token(tok_rparen, ec_exp_rparen);
-      }  /* if */
-    } else if (!is_class_decl ||
-               *inheritance_kind != (an_inheritance_kind)ihk_none) {
-      /* Not __declspec or a memory attribute -- exit the loop. */
-      break;
+  check_assertion(curr_token == tok_declspec);
+  /* Bypass the __declspec token. */
+  (void)get_token();
+  if (required_token(tok_lparen, ec_exp_lparen)) {
+    add_stop_token(tok_rparen);
+    if (curr_token != tok_identifier) {
+      syntax_error(ec_exp_identifier);
+      *err = TRUE;
     } else {
-      /* This is a class declaration, so if the next token is an identifier
-         it is probably the class name.  But it might also be the "inheritance
-         kind" -- i.e.,
-           __single_inheritance
-           __multiple_inheritance
-           __virtual_inheritance
-         The syntax is
-           class-keyword inheritance-kind class-name ;
-         (Single-underscore versions of the keywords are also allowed.) */
-      if (curr_token == tok_identifier) {
-        char  *name = locator_for_curr_id.symbol_header->identifier;
-        if (*(name++) == '_') {
-          if (*name == '_') name++;
-          /* Check the name without its leading single or double underscore. */
-          if (strcmp(name, "single_inheritance") == 0) {
-            *inheritance_kind = (an_inheritance_kind)ihk_single;
-          } else if (strcmp(name, "multiple_inheritance") == 0) {
-            *inheritance_kind = (an_inheritance_kind)ihk_multiple;
-          } else if (strcmp(name, "virtual_inheritance") == 0) {
-            *inheritance_kind = (an_inheritance_kind)ihk_virtual;
+      while (curr_token == tok_identifier) {
+        char *modifier;
+        modifier = locator_for_curr_id.symbol_header->identifier;
+        if (strcmp(modifier, "dllexport") == 0) {
+          if (decl_modifiers->flags & DM_DLLIMPORT) {
+            /* The dllimport and dllexport attributes are mutually
+               exclusive. */
+            warning(ec_bad_combination_of_dll_attributes);
+          } else {
+            decl_modifiers->flags |= DM_DLLEXPORT;
+          }  /* if */
+        } else if (strcmp(modifier, "dllimport") == 0) {
+          if (decl_modifiers->flags & DM_DLLEXPORT) {
+            /* The dllimport and dllexport attributes are mutually
+               exclusive. */
+            warning(ec_bad_combination_of_dll_attributes);
+          } else {
+            decl_modifiers->flags |= DM_DLLIMPORT;
+          }  /* if */
+        } else if (strcmp(modifier, "thread") == 0) {
+          if (is_class_decl) {
+            /* "thread" is not allowed on a class declaration. */
+            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                           &pos_curr_token, modifier);
+          } else {
+            decl_modifiers->flags |= DM_THREAD;
+          }  /* if */
+        } else if (strcmp(modifier, "naked") == 0) {
+          if (is_class_decl) {
+            /* "naked" is not allowed on a class declaration. */
+            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                           &pos_curr_token, modifier);
+          } else {
+            decl_modifiers->flags |= DM_NAKED;
+          }  /* if */
+        } else if (strcmp(modifier, "selectany") == 0) {
+          if (is_class_decl) {
+            /* "selectany" is not allowed on a class declaration. */
+            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                           &pos_curr_token, modifier);
+          } else {
+            decl_modifiers->flags |= DM_SELECTANY;
+          }  /* if */
+        } else if (!C_mode() && strcmp(modifier, "nothrow") == 0) {
+          if (is_class_decl) {
+            /* "nothrow" is not allowed on a class declaration. */
+            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                           &pos_curr_token, modifier);
+          } else {
+            decl_modifiers->flags |= DM_NOTHROW;
+          }  /* if */
+        } else if (!C_mode() && strcmp(modifier, "novtable") == 0) {
+          if (!is_class_decl) {
+            /* "novtable" is allowed only on a class declaration. */
+            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                           &pos_curr_token, modifier);
+          } else {
+            decl_modifiers->flags |= DM_NOVTABLE;
+          }  /* if */
+        } else if (strcmp(modifier, "noreturn") == 0) {
+          if (is_class_decl) {
+            /* "noreturn" is not allowed on a class declaration. */
+            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                           &pos_curr_token, modifier);
+          } else {
+            decl_modifiers->flags |= DM_NORETURN;
+          }  /* if */
+        } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
+          if (!is_class_decl) {
+            /* "uuid" is allowed only on a class declaration. */
+            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                           &pos_curr_token, modifier);
+            if (next_token() == tok_lparen) {
+              /* Advance past "uuid" to the left paren. */
+              (void)get_token();
+              /* Flush all tokens till the matching right paren is
+                 found. */
+              flush_until_matching_token();
+            }  /* if */
+          } else {
+            /* The syntax is
+                 uuid ( string-literal )
+               where the string-literal optionally begins and ends with
+               braces and is of the form
+                 hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+               where "h" is any hex digit and the hyphens are required. */
+            /* Advance past "uuid". */
+            (void)get_token();
+            if (required_token(tok_lparen, ec_exp_lparen)) {
+              if (curr_token != tok_string_literal) {
+                /* Error. */
+                syntax_error(ec_bad_uuid_string);
+              } else {
+                char          *str =
+                                 const_for_curr_token.variant.string.value;
+                a_targ_size_t length = /* Without null. */
+                              const_for_curr_token.variant.string.length-1;
+
+                if (*str == '{') {
+                  /* Has surrounding braces. */
+                  /* Check for matching closing brace. */
+                  if (str[length-1] != '}') {
+                    error(ec_bad_uuid_string);
+                    goto end_of_uuid_string;
+                  }  /* if */
+                  str++;
+                  length -= 2;
+                }  /* if */
+                /* Do error checking on the string. */
+                if (is_valid_GUID_string(str, length)) {
+                  decl_modifiers->uuid_string=alloc_il((sizeof_t)length+1);
+                  /* Copy the string, lower-casing hex letters so that
+                     strcmp can be used to compare strings. */
+                  { char     *src = str;
+                    char     *dst = decl_modifiers->uuid_string;
+                    sizeof_t count = length;
+                    for (; count != 0; count--) {
+                      char ch = *src++;
+                      if (isalpha((unsigned char)ch)) ch = tolower(ch);
+                      *dst++ = ch;
+                    }  /* for */
+                    *dst = '\0';
+                  }
+                } else {
+                  error(ec_bad_uuid_string);
+                  *err = TRUE;
+                }  /* if */
+end_of_uuid_string:
+                (void)get_token();
+              }  /* if */
+              (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+            } else {
+              break;
+            }  /* if */
+          }  /* if */
+        } else if (!C_mode() && strcmp(modifier, "property") == 0) {
+          if (is_class_decl || !is_member_decl) {
+            /* "property" is not allowed on a class declaration, and
+               not on a non-member declaration. */
+            pos_diagnostic(es_discretionary_error,
+                           ec_declspec_property_not_allowed,
+                           &pos_curr_token);
+            if (next_token() == tok_lparen) {
+              /* Advance past "property" to the left paren. */
+              (void)get_token();
+              /* Flush all tokens till the matching right paren is
+                 found. */
+              flush_until_matching_token();
+            }  /* if */
+          } else {
+            /* __declspec(property(get=..., put=...)) */
+            scan_declspec_property(decl_modifiers);
+          }  /* if */
+        } else if (strcmp(modifier, "allocate") == 0) {
+          if (is_class_decl) {
+            /* "allocate" is not allowed on a class declaration. */
+            pos_error(ec_declspec_allocate_not_allowed, &pos_curr_token);
+            *err = TRUE;
+            if (next_token() == tok_lparen) {
+              /* Advance past "allocate" to the left paren. */
+              (void)get_token();
+              /* Flush all tokens till the matching right paren is
+                 found. */
+              flush_until_matching_token();
+            }  /* if */
+          } else {
+            /* The syntax is
+                 allocate ( string-literal )
+               where string-literal specifies the name of a data segment
+               in which a data item will be allocated. */
+            /* Advance past "allocate". */
+            (void)get_token();
+            if (required_token(tok_lparen, ec_exp_lparen)) {
+              if (curr_token != tok_string_literal) {
+                /* Error. */
+                syntax_error(ec_bad_allocate_segname);
+                *err = TRUE;
+              } else {
+                /* The current token is a string literal.  No checking
+                   is done to assure that it is a valid data segment name
+                   (though such a check could be added if the appropriate
+                   #pragma support were also added). */
+                char           *str;
+                a_targ_size_t  len;  /* Length includes terminal null. */
+
+                str = const_for_curr_token.variant.string.value;
+                len = const_for_curr_token.variant.string.length;
+                /* Copy the token string into IL memory and save the
+                   address. */
+                decl_modifiers->allocate_segname = alloc_il((sizeof_t)len);
+                (void)memcpy(decl_modifiers->allocate_segname, str,
+                             size_t_arg(len));
+                check_assertion(decl_modifiers->
+                                         allocate_segname[len-1] == '\0');
+                /* Advance past the string literal. */
+                (void)get_token();
+              }  /* if */
+              /* Advance past the right paren. */
+              (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+            } else {
+              break;
+            }  /* if */
+          }  /* if */
+        } else {
+          /* Issue a warning on an unrecognized __declspec attribute. */
+          pos_st_warning(ec_bad_declspec_modifier, &error_position,
+                         modifier);
+          /* An unrecognized construct could be of two forms:
+               __declspec(xxx)        // Like "dllimport" or "nothrow"
+               __declspec(xxx(yyy))   // Like "allocate" or "uuid"
+             If the next token is a left paren, skip to the matching
+             right paren. */
+          if (next_token() == tok_lparen) {
+            /* Advance to the left paren. */
+            (void)get_token();
+            /* Flush all tokens till the matching right paren is found. */
+            flush_until_matching_token();
           }  /* if */
         }  /* if */
-      }  /* if */
-      if (*inheritance_kind != (an_inheritance_kind)ihk_none) {
-        /* Remember the source position, in case a diagnostic is required
-           later. */
-        *inheritance_kind_pos = pos_curr_token;
-        /* Advance past the inheritance-kind keyword. */
         (void)get_token();
-      } else {
-        /* Not an inheritance-kind keyword -- exit the loop. */
-        break;
-      }  /* if */
+      }  /* while */
     }  /* if */
-  }  /* for */
-}  /* scan_microsoft_extended_decl_modifiers */
+    remove_stop_token(tok_rparen);
+    /* Check for the closing right paren. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
+}  /* scan_declspec_attributes */
 
 
 void check_inheritance_kind(a_type_ptr           class_type,
@@ -555,22 +558,21 @@ indicates the source position at which the error should be put out.
   }  /* if */
 }  /* check_inheritance_kind */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   
-void update_microsoft_decl_modifiers_info_for_class(
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* err_pos is used only if MICROSOFT_EXTENSIONS_ALLOWED is set. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+void update_extended_decl_info_for_class(
                             a_type_ptr                  class_type,
                             a_boolean                   is_class_definition,
-                            a_decl_modifiers_block_ptr  decl_modifiers,
-                            a_type_qualifier_set        class_qualifiers,
-                            an_inheritance_kind         inheritance_kind,
-                            a_source_position           *inheritance_kind_pos,
+                            an_extended_decl_info_block *extended_decl_info,
                             a_source_position           *err_pos)
 /*
 Update the specified class type with information based on a previous scan of
-the Microsoft extended decl-modifiers (contained in the specified
-decl-modifiers block), inheritance kind (as specified), and class-wide type
-qualifiers ("near" or "far", specified in the class-qualifiers parameter).
-is_definition is TRUE if this is a definition of the class.  err_pos and
-inheritance_kind_pos are pointers to source positions used for diagnostics.
+extended declaration modifiers, as specified by *extended_decl_info.  err_pos
+is a pointer to a source position used for diagnostics.
 */
 {
   a_class_type_supplement_ptr ctsp;
@@ -579,43 +581,98 @@ inheritance_kind_pos are pointers to source positions used for diagnostics.
   if (is_class_definition) {
     /* If there were any class-wide modifiers or memory attributes
        specified, record them in the class type supplement. */
-    ctsp->decl_modifiers = decl_modifiers->flags;
-    ctsp->qualifiers = class_qualifiers;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    ctsp->decl_modifiers = extended_decl_info->decl_modifiers.flags;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+    ctsp->qualifiers = extended_decl_info->qualifiers;
+#endif /* NEAR_AND_FAR_ALLOWED */
   }  /* if */
-  if (inheritance_kind != (an_inheritance_kind)ihk_none) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (extended_decl_info->inheritance_kind != (an_inheritance_kind)ihk_none) {
     /* Set the specified inheritance kind, unless a different inheritance
        kind has already been locked in -- either explicitly through a prior
        declaration or implicitly, based on the setting of global variable
        default_inheritance_kind, if a pointer-to-member declaration has
        been seen. */
     if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
-      ctsp->inheritance_kind = inheritance_kind;
-    } else if (ctsp->inheritance_kind != inheritance_kind) {
+      ctsp->inheritance_kind = extended_decl_info->inheritance_kind;
+    } else if (ctsp->inheritance_kind != extended_decl_info->inheritance_kind) {
       /* Inheritance kind has already been set for this class. */
-      pos_stsy_error(ec_inheritance_kind_already_set, inheritance_kind_pos,
+      pos_stsy_error(ec_inheritance_kind_already_set,
+                     &extended_decl_info->inheritance_kind_pos,
                      inheritance_kind_names[(int)ctsp->inheritance_kind],
                      (a_symbol_ptr)class_type->source_corresp.assoc_info);
     }  /* if */
-    if (ctsp->inheritance_kind == inheritance_kind) {
+    if (ctsp->inheritance_kind == extended_decl_info->inheritance_kind) {
       ctsp->inheritance_kind_is_explicit = TRUE;
     }  /* if */
   }  /* if */
-  if (decl_modifiers->uuid_string != NULL) {
+  if (extended_decl_info->decl_modifiers.uuid_string != NULL) {
     if (ctsp->uuid_string != NULL) {
       /* Issue an error if __declspec(uuid(...)) strings are present and
          they aren't identical. */
-      if (strcmp(ctsp->uuid_string, decl_modifiers->uuid_string) != 0) {
+      if (strcmp(ctsp->uuid_string,
+                 extended_decl_info->decl_modifiers.uuid_string) != 0) {
         pos_diagnostic(es_discretionary_error,
                        ec_decl_modifiers_incompatible_with_previous_decl,
                        err_pos);
       }  /* if */
     } else {
-      ctsp->uuid_string = decl_modifiers->uuid_string;
+      ctsp->uuid_string = extended_decl_info->decl_modifiers.uuid_string;
     }  /* if */
   }  /* if */
-}  /* update_microsoft_decl_modifiers_info_for_class */
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* update_extended_decl_info_for_class */
+
+
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* is_member_decl and err are used only if
+                MICROSOFT_EXTENSIONS_ALLOWED is set. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+void scan_extended_decl_modifiers(
+                             a_boolean                    is_class_decl,
+                             a_boolean                    is_member_decl,
+                             an_extended_decl_info_block  *extended_decl_info,
+                             a_boolean                    *err)
+/*
+Scan extended declaration modifiers (e.g., Microsoft extensions) and
+record them in the specified extended-decl-info block.  is_class_decl is
+TRUE if the current declaration is of a class; is_member_decl is TRUE
+if it's a declaration of a class member.  *err is returned TRUE for certain
+kinds of errors.
+*/
+{
+  for (;;) {
+#if NEAR_AND_FAR_ALLOWED
+    if (is_class_decl && is_near_or_far()) {
+      /* Memory attribute like "near". */
+      scan_near_or_far(&extended_decl_info->qualifiers);
+      continue;
+    }  /* if */
+#endif /* NEAR_AND_FAR_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (curr_token == tok_declspec) {
+      /* __declspec(...) */
+      scan_declspec_attributes(&extended_decl_info->decl_modifiers,
+                               is_class_decl, is_member_decl, err);
+      continue;
+    }  /* if */
+    if (is_class_decl && curr_token == tok_identifier) {
+      /* This is a class declaration, so if the next token is an identifier
+         it is probably the class name.  But it might also be the "inheritance
+         kind". */
+      if (scan_inheritance_kind(&extended_decl_info->inheritance_kind,
+                                &extended_decl_info->inheritance_kind_pos)) {
+        continue;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    break;
+  }  /* for */
+}  /* scan_extended_decl_modifiers */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
 static a_boolean tag_currently_being_defined(a_type_ptr tag_type)
 /*
@@ -1289,18 +1346,15 @@ the template.
   a_boolean               namespace_extension_pushed = FALSE;
   a_boolean               is_redeclaration;
   a_boolean               is_template_specific_decl = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_decl_modifiers_block  decl_modifiers;
-  a_type_qualifier_set    class_qualifiers = TQ_NONE;
-  an_inheritance_kind     inheritance_kind = (an_inheritance_kind)ihk_none;
-  a_source_position       inheritance_kind_pos;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_decl_pos_block        local_decl_pos_block;
+  an_extended_decl_info_block
+                          extended_decl_info;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
   *defines_something = FALSE;
   decl_start_pos = pos_curr_token;
+  clear_extended_decl_info_block(extended_decl_info);
   clear_decl_pos_block(&local_decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   local_decl_pos_block.specifiers_range.start = pos_curr_token;
@@ -1328,23 +1382,18 @@ the template.
                                                     tk_struct : tk_class);
     }  /* if */
     (void)get_token();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    clear_decl_modifiers_block(&decl_modifiers);
-    if (microsoft_mode && !C_mode()) {
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+    if (!C_mode() && (microsoft_mode or_near_and_far_enabled())) {
+      a_boolean  local_err;
+
       /* Scan the decl-modifiers that apply to an entire class.  They will be
          passed on to scan_function_definition and applied to each member
          declaration, where appropriate. */
-      a_boolean  local_err;
-
-      scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/TRUE,
-                                             /*is_member_decl=*/FALSE,
-                                             &decl_modifiers,
-                                             &class_qualifiers,
-                                             &inheritance_kind,
-                                             &inheritance_kind_pos,
-                                             &local_err);
+      scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
+                                   /*is_member_decl=*/FALSE,
+                                   &extended_decl_info, &local_err);
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     /* If there is an identifier next, it is a tag.  It can be the declaration
        of a new tag or a reference to an existing tag.  Although it is an
        error, also be on the lookout for a qualified name. */
@@ -1939,17 +1988,14 @@ the template.
        declaration. */
     process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && !C_mode() && tag_sym->kind != (a_symbol_kind)sk_type) {
-    update_microsoft_decl_modifiers_info_for_class(class_type,
-                                                   is_class_definition,
-                                                   &decl_modifiers,
-                                                   class_qualifiers,
-                                                   inheritance_kind,
-                                                   &inheritance_kind_pos,
-                                                   &locator.source_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+  if (!C_mode() && (microsoft_mode or_near_and_far_enabled()) &&
+      tag_sym->kind != (a_symbol_kind)sk_type) {
+    update_extended_decl_info_for_class(class_type, is_class_definition,
+                                        &extended_decl_info,
+                                        &locator.source_position);
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
                               orig_decl_level, is_local_class,
@@ -1969,8 +2015,8 @@ the template.
        (if any) for the class is too restrictive. */
     a_class_type_supplement_ptr ctsp = class_type->variant.
                                            class_struct_union.extra_info;
-    if (inheritance_kind != (an_inheritance_kind)ihk_none) {
-      if (inheritance_kind != ctsp->inheritance_kind) {
+    if (extended_decl_info.inheritance_kind != (an_inheritance_kind)ihk_none) {
+      if (extended_decl_info.inheritance_kind != ctsp->inheritance_kind) {
         /* An error will already have been issued -- no need for another. */
       } else if (is_incomplete_type(class_type)) {
         /* The class hasn't been defined yet, so there's no way to check. */
@@ -1978,8 +2024,8 @@ the template.
         /* Be sure the inheritance kind specified on the current declaration
            is not "too restrictive" for the actual characteristics of the
            class. */
-        check_inheritance_kind(class_type, inheritance_kind,
-                               &inheritance_kind_pos);
+        check_inheritance_kind(class_type, extended_decl_info.inheritance_kind,
+                               &extended_decl_info.inheritance_kind_pos);
       }  /* if */
     } else if (is_class_definition) {
       /* There was no explicit specification of an inheritance kind on the
@@ -3868,38 +3914,30 @@ Returns TRUE if there is an error in the specifiers.
            allows these in some nonstandard places such as on
            linkage declarations (e.g., extern "C" declarations). */
         {
-          a_decl_modifiers_block  new_modifiers;
-          a_source_position       specifier_start_pos;
-          a_boolean               is_declspec = FALSE;
-          an_inheritance_kind     inheritance_kind;
-          a_source_position       inheritance_kind_pos;
+          an_extended_decl_info_block  extended_decl_info;
+          a_source_position            specifier_start_pos;
+          a_boolean                    is_declspec = FALSE;
+          a_boolean                    is_member_decl;
 
-          clear_decl_modifiers_block(&new_modifiers);
+          is_member_decl = ((input_flags & DSI_IS_MEMBER_DECLARATION) != 0);
+          clear_extended_decl_info_block(extended_decl_info);
           specifier_start_pos = pos_curr_token;
           /* A Microsoft storage class modifier.  If this is a __declspec,
              scan the list of declaration modifiers. */
           switch (curr_token) {
             case tok_declspec:
-              scan_microsoft_extended_decl_modifiers(
-                                               /*is_class_decl=*/FALSE,
-                                               /*is_member_decl=*/
-                                                    (input_flags &
-                                                     DSI_IS_MEMBER_DECLARATION)
-                                                                          != 0,
-                                               &new_modifiers,
-                                               (a_type_qualifier_set *)NULL,
-                                               &inheritance_kind,
-                                               &inheritance_kind_pos,
-                                               &err);
+              scan_extended_decl_modifiers(/*is_class_decl=*/FALSE,
+                                           is_member_decl, &extended_decl_info,
+                                           &err);
               decl_specifiers_seen |= DS_DECLSPEC;
               is_declspec = TRUE;
               break;
             case tok_microsoft_inline:
-	      new_modifiers.flags = DM_MICROSOFT_INLINE;
+	      extended_decl_info.decl_modifiers.flags = DM_MICROSOFT_INLINE;
               decl_specifiers_seen |= DS_MICROSOFT_INLINE;
               break;
             case tok_forceinline:
-	      new_modifiers.flags = DM_FORCEINLINE;
+	      extended_decl_info.decl_modifiers.flags = DM_FORCEINLINE;
               decl_specifiers_seen |= DS_FORCEINLINE;
               break;
             default:
@@ -3916,6 +3954,8 @@ Returns TRUE if there is an error in the specifiers.
           } else {
             /* There were no errors; update decl_modifiers to reflect
                this specifier. */
+            a_decl_modifiers_block  new_modifiers =
+                                            extended_decl_info.decl_modifiers;
             decl_modifiers->flags |= new_modifiers.flags;
             /* Check __declspec(property(...)) specifications. */
             if (new_modifiers.get_property_name != NULL) {
@@ -4025,6 +4065,8 @@ Returns TRUE if there is an error in the specifiers.
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
       case tok_near:
         /* Microsoft "near" type qualifier. */
         /* This qualifier applies only on pointer declarators and not in
@@ -4063,7 +4105,7 @@ Returns TRUE if there is an error in the specifiers.
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
       case tok_friend:
 	/* "friend" specifier is allowed only in a C++ class declaration.
 	   This also excludes its appearing in a function parameter
@@ -4913,11 +4955,9 @@ no_get_token:
     if (input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) {
       /* We are only interested in scanning type qualifiers in a
          pointer declarator. */
-      if (!is_type_qualifier()
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          && !is_microsoft_memory_attribute()
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                             ) {
+      if (is_type_qualifier() or_is_near_or_far()) {
+        /* Keep looping. */
+      } else {
         goto exit_loop;
       }  /* if */
     } else if (defines_something &&

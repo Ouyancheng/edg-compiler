@@ -389,7 +389,7 @@ EXTERN a_targ_alignment
 			/* Alignment of a pointer.  Initialized to the default
 			   value but reconfigurable. */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
 EXTERN a_targ_size_t
 		targ_sizeof_far_pointer
 #if VAR_INITIALIZERS
@@ -428,7 +428,7 @@ EXTERN a_targ_alignment
 			/* Alignment of a near pointer.  Initialized to the
 			   default value but reconfigurable.  Used only in
 			   16-bit Microsoft mode. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* NEAR_AND_FAR_ALLOWED */
 
 EXTERN a_targ_ptrdiff_t
 		targ_ptrdiff_t_max

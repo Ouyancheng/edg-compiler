@@ -3262,18 +3262,22 @@ included in the search.
                            prototype_template_prototype_sym->
                                                variant.class_struct_union.type;
       if (prototype_type != NULL) {
-        a_class_type_supplement_ptr	prototype_ctsp;
-        a_decl_modifiers_block		decl_modifiers;
-        clear_decl_modifiers_block(&decl_modifiers);
+        a_class_type_supplement_ptr  prototype_ctsp;
+        an_extended_decl_info_block  extended_decl_info;
+        a_source_position            pos = class_template_sym->decl_position;
+
+        clear_extended_decl_info_block(extended_decl_info);
         prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
-        decl_modifiers.flags = prototype_ctsp->decl_modifiers;
-        decl_modifiers.uuid_string = prototype_ctsp->uuid_string;
-        update_microsoft_decl_modifiers_info_for_class(
-            class_type, /*is_class_definition=*/TRUE,
-            &decl_modifiers, prototype_ctsp->qualifiers,
-            prototype_ctsp->inheritance_kind,
-            &class_template_sym->decl_position, 
-            &class_template_sym->decl_position);
+        extended_decl_info.decl_modifiers.flags =
+                                    prototype_ctsp->decl_modifiers;
+        extended_decl_info.decl_modifiers.uuid_string =
+                                    prototype_ctsp->uuid_string;
+        extended_decl_info.qualifiers = prototype_ctsp->qualifiers;
+        extended_decl_info.inheritance_kind = prototype_ctsp->inheritance_kind;
+        extended_decl_info.inheritance_kind_pos = pos;
+        update_extended_decl_info_for_class(class_type,
+                                            /*is_class_definition=*/TRUE,
+                                            &extended_decl_info, &pos);
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -6999,14 +7003,11 @@ Make sure that any default arguments are at the end of the parameter list.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static void update_microsoft_decl_modifiers_for_class_template(
-		a_template_symbol_supplement_ptr	tssp,
-                a_boolean				is_class_definition,
-                a_decl_modifiers_block_ptr		decl_modifiers,
-                a_type_qualifier_set			qualifiers,
-                an_inheritance_kind			inheritance_kind,
-                a_source_position			*inheritance_kind_pos,
-                a_source_position			*err_pos)
+static void update_extended_decl_info_for_class_template(
+                         a_template_symbol_supplement_ptr tssp,
+                         a_boolean                        is_class_definition,
+                         an_extended_decl_info_block      *extended_decl_info,
+                         a_source_position                *err_pos)
 /*
 Update the Microsoft decl modifiers information for the specified class
 template.  Also update any instances that have already been generated.
@@ -7019,18 +7020,16 @@ template.  Also update any instances that have already been generated.
   /* Update the prototype instantiation. */
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   prototype_type = type_symbol_type(prototype_sym);
-  update_microsoft_decl_modifiers_info_for_class(
-      prototype_type, is_class_definition, decl_modifiers, qualifiers,
-      inheritance_kind, inheritance_kind_pos, err_pos);
+  update_extended_decl_info_for_class(prototype_type, is_class_definition,
+                                      extended_decl_info, err_pos);
   /* Update any instances that have already been created. */
   for (instance_sym = tssp->variant.class_template.instantiations;
        instance_sym != NULL; instance_sym = next_instance_sym(instance_sym)) {
     a_type_ptr  tp = instance_sym->variant.class_struct_union.type;
     if (is_real_class_symbol(instance_sym) &&
         !tp->variant.class_struct_union.is_specialized) {
-      update_microsoft_decl_modifiers_info_for_class(
-          tp, is_class_definition, decl_modifiers, qualifiers,
-          inheritance_kind, inheritance_kind_pos, err_pos);
+      update_extended_decl_info_for_class(tp, is_class_definition,
+                                          extended_decl_info, err_pos);
     }  /* if */
   }  /* for */
   if (tssp->subordinate_templates != NULL) {
@@ -7044,12 +7043,13 @@ template.  Also update any instances that have already been generated.
       a_template_symbol_supplement_ptr	subordinate_tssp;
       subordinate_sym = slep->symbol;
       subordinate_tssp = template_supplement_for_symbol(subordinate_sym);
-      update_microsoft_decl_modifiers_for_class_template(
-          subordinate_tssp, is_class_definition, decl_modifiers,
-          qualifiers, inheritance_kind, inheritance_kind_pos, err_pos);
+      update_extended_decl_info_for_class_template(subordinate_tssp,
+                                                   is_class_definition,
+                                                   extended_decl_info,
+                                                   err_pos);
     }  /* for */
   }  /* if */
-}  /* update_microsoft_decl_modifiers_for_class_template */
+}  /* update_extended_decl_info_for_class_template */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
@@ -7786,11 +7786,7 @@ instantiation.
   a_boolean			    is_partial_specialization = FALSE;
   a_symbol_ptr			    partial_spec_nonreal_sym = sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_decl_modifiers_block	    decl_modifiers;
-  a_type_qualifier_set		    qualifiers = TQ_NONE;
-  an_inheritance_kind		    inheritance_kind =
-                                                (an_inheritance_kind)ihk_none;
-  a_source_position		    inheritance_kind_pos;
+  an_extended_decl_info_block       extended_decl_info;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "class_template_declaration");
@@ -7833,10 +7829,10 @@ instantiation.
     /* Scan any Microsoft extended decl modifiers that may be present
        such as __single_inheritance. */
     a_boolean	err = FALSE;
-    clear_decl_modifiers_block(&decl_modifiers);
-    scan_microsoft_extended_decl_modifiers(
-         /*is_class_decl=*/TRUE, decl_state->is_member_decl, &decl_modifiers,
-         &qualifiers, &inheritance_kind, &inheritance_kind_pos, &err);
+    clear_extended_decl_info_block(extended_decl_info);
+    scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
+                                 decl_state->is_member_decl,
+                                 &extended_decl_info, &err);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Next should be the class name. */
@@ -8274,9 +8270,9 @@ instantiation.
       /* Update any decl modifiers that may have been specified.  Don't
          do this for subordinate templates -- the prototype of the prototype
          template is used. */
-      update_microsoft_decl_modifiers_for_class_template(
-          tssp, is_definition, &decl_modifiers, qualifiers,
-          inheritance_kind, &inheritance_kind_pos, &locator.source_position);
+      update_extended_decl_info_for_class_template(tssp, is_definition,
+                                                   &extended_decl_info,
+                                                   &locator.source_position);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
