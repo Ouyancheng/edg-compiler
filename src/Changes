@@ -1,5 +1,12 @@
 Version 2.44
 
+3/10/00  End position of bound function in call
+
+With EXTRA_SOURCE_POSITIONS_IN_IL, the expression node for the
+address of a nonstatic member function in a call of that function
+had a null end position.  (The start position was correct.)  The
+end position is now set correctly.
+
 3/10/00  Microsoft compatibility: conflicting dllimport/dllexport
          specifications on class declarations
 
