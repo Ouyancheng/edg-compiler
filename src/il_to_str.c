@@ -1837,7 +1837,8 @@ confusion.  Do the output in the way described by octl.
          constants (they're handled in the subroutines). */
     } else {
       /* If the constant is implicitly cast to another type, ... */
-      if (constant->implicit_cast) {
+      if (constant->implicit_cast ||
+          constant->kind == (a_constant_repr_kind)ck_cast) {
         /* ... then prefix the constant with an explicit cast. */
         output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
         form_cast(orig_type, octl);
@@ -2057,6 +2058,10 @@ confusion.  Do the output in the way described by octl.
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");
       }  /* switch */
+      break;
+    case ck_cast:
+      form_constant(constant->variant.source_constant,
+                    /*need_parens=*/FALSE, octl);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
