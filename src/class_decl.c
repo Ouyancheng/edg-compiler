@@ -8047,7 +8047,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
     sym->next = NULL;
   }  /* for */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-  if (!(microsoft_mode || sun_mode || any_cfront_mode())) {
+  if (!(C_mode() || microsoft_mode || sun_mode || any_cfront_mode())) {
     /* Types should normally not be declared inside an anonymous union. */
     a_scope_ptr  scope = skip_typerefs(assoc_object_type)
                                         ->variant.class_struct_union.extra_info
