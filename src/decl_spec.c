@@ -6289,8 +6289,8 @@ exit_loop:
        elaborated form (i.e., with the "class", "struct", "union", or
        "enum" keyword).  For friend class declarations this must be done
        even if other specifiers or qualifiers are present. */
-    if (!err && !defines_something &&
-        (((decl_specifiers_seen & DS_FRIEND) && curr_token == tok_semicolon) ||
+    if (((decl_specifiers_seen & DS_FRIEND) && curr_token == tok_semicolon) ||
+        (!err && !defines_something &&
          !(decl_specifiers_seen & (DS_STORAGE_CLASS | DS_INLINE |
                                    DS_VIRTUAL | DS_TYPE_QUALIFIER)))) {
       *output_flags |= DSO_ELABORATED_TYPE_SPECIFIER;
