@@ -2304,12 +2304,16 @@ they should be used for the outermost instantiation scope.
 
   /* Push the namespace containing the point of instantiation. */
   if (reference_nsp !=
-              scope_stack[depth_innermost_namespace_scope].assoc_namespace) {
+              scope_stack[depth_innermost_namespace_scope].assoc_namespace ||
+      depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
     /* The namespace that contains the first reference of this template
        that requires its instantiation is different than the current
-       namespace.  Reactivate the namespace associated with that
-       reference.  We must force a new entry to be pushed here to
-       make sure that the depth of the first context scope is accurate. */
+       namespace.  If we are already in an instantiation we force the
+       referencing namespace to be repushed because the earlier context
+       may include instantiation scopes that should not be considered.
+       Reactivate the namespace associated with that reference.  We must
+       force a new entry to be pushed here to make sure that the depth of
+       the first context scope is accurate. */
     if (reference_nsp != NULL) {
       depth_of_first_context_scope = depth_scope_stack + 1;
       f_push_namespace_extension_scope(reference_nsp,
