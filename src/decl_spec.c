@@ -2633,9 +2633,9 @@ exit_loop:
              to the ultimate element type.  This can only happen with typedefs,
              as in "typedef int A[2][3]; const A a;", which makes "a" an
              array of array of const int. */
-          if (((qualifier == TQ_CONST) &&
+          if (((qualifier & TQ_CONST) &&
                f_is_const_qualified_type(*type_ptr, /*top_level=*/FALSE)) ||
-              ((qualifier == TQ_VOLATILE) &&
+              ((qualifier & TQ_VOLATILE) &&
                f_is_volatile_qualified_type(*type_ptr, /*top_level=*/FALSE))) {
             /* Duplication of type qualifier (probably because of a typedef
                that is already qualified). */
