@@ -1,5 +1,20 @@
 Version 2.44
 
+2/5/00   Reference to nonstatic local variable of enclosing function allowed
+         in sizeof in local class
+
+The C++ standard forbids a reference from within a local class to a
+nonstatic local variable of an enclosing function, even when the variable
+is not evaluated (e.g., in a sizeof expression).  A non-evaluated reference
+is now allowed in non-strict mode.  A warning is issued.
+
+  void foo() {
+    int i;
+    struct S {
+      char a[sizeof(i)];  // Now allowed in non-strict mode.
+    } s;
+  }
+
 2/3/00   Microsoft compatibility: disable access checks on copy constructor
          for base classes of handler parameters
 
