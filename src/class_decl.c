@@ -9637,13 +9637,15 @@ respectively.
 
 #if DECL_MODIFIERS_IN_USE
 
-static void check_declspec_for_field(
-                                     a_member_decl_info_ptr  decl_info,
-                                     a_symbol_locator  *locator)
+static void check_declspec_for_field(a_member_decl_info_ptr  decl_info,
+                                     a_symbol_locator        *locator,
+                                     a_type_ptr              class_type,
+                                     a_type_ptr              member_type)
 /*
-A field is being declared with extended specifiers.  Issue a diagnostic for
-__declspec specifiers that are not valid in this context.  The diagnostic is
-emitted for the position indicated by the given locator.
+A field of type member_type is being declared in the given class.  Issue a
+diagnostic for __declspec specifiers that are not valid in this context.  Also
+warn about potentially unintended situations.  The diagnostic is emitted for
+the position indicated by the given locator.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -9668,6 +9670,22 @@ emitted for the position indicated by the given locator.
       err_code = ec_declspec_invalid;
     }  /* if */
     pos_diagnostic(severity, err_code, &locator->source_position);
+  }  /* if */
+  if (microsoft_mode && is_class_struct_union_type(member_type)) {
+    /* Microsoft compiler warn when fields of certain non-DLL class types are
+       used as members of classes with a DLL interface.  Specifically, a
+       warning is issued if the member type has a virtual function or a
+       constructor. */
+    a_class_type_supplement_ptr  c_ctsp, m_ctsp;
+    c_ctsp = skip_typerefs(class_type)->variant.class_struct_union.extra_info;
+    m_ctsp = skip_typerefs(member_type)->variant.class_struct_union.extra_info;
+    if ((c_ctsp->decl_modifiers & DM_DLLFLAGS) != 0 &&
+        (m_ctsp->decl_modifiers & DM_DLLFLAGS) == 0 &&
+        (symbol_supplement_for_class(member_type)->constructor != NULL ||
+         skip_typerefs(member_type)->variant.class_struct_union
+                           .any_virtual_functions_including_in_base_classes)) {
+      pos_warning(ec_field_without_dll_interface, &locator->source_position);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -9908,7 +9926,7 @@ non-NULL, *p_ms_attributes is returned NULL.
   }  /* if */
 #if DECL_MODIFIERS_IN_USE
   /* Check validity of __declspec. */
-  check_declspec_for_field(decl_info, locator);
+  check_declspec_for_field(decl_info, locator, class_type, member_type);
 #endif /* DECL_MODIFIERS_IN_USE */
   /* Remember if any member of the class, struct, or union is const-
      qualified, including recursively the members of any contained
