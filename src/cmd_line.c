@@ -2762,6 +2762,7 @@ enable_microsoft_mode:
   /* Do argument dependent lookup when doing dependent name processing. */
   if (do_dependent_name_processing) {
     arg_dependent_lookup_enabled = TRUE;
+    implicit_typename_enabled = FALSE;
   }  /* if */
   /* If no directory was specified for #import, use the current directory. */
   if (import_dir_name == NULL) {
