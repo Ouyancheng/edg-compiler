@@ -976,13 +976,13 @@ specified scope.
 }  /* make_routine */
 
 
-a_variable_ptr make_variable(a_type_ptr      type_ptr,
-                             a_storage_class storage_class,
-                             a_boolean       at_file_or_namespace_scope)
+static a_variable_ptr make_variable(a_type_ptr      type_ptr,
+                                    a_storage_class storage_class,
+                                    a_scope_depth   scope_depth)
 /*
 Allocate an entry for a variable with type type_ptr and storage class
 storage_class, and return a pointer to it.  Add the variable to the
-innermost namespace scope if at_file_or_namespace_scope is TRUE.
+scope indicated by scope_depth.
 */
 {
   a_variable_ptr          vp;
@@ -993,9 +993,7 @@ innermost namespace scope if at_file_or_namespace_scope is TRUE.
      region. */
   vp = alloc_variable(storage_class);
   vp->type = type_ptr;
-  add_to_variables_list(vp, at_file_or_namespace_scope ?
-                              depth_innermost_namespace_scope :
-                              decl_scope_level);
+  add_to_variables_list(vp, scope_depth);
   return vp;
 }  /* make_variable */
 
@@ -1011,6 +1009,7 @@ current scope.
   a_variable_ptr vp;
   a_boolean      at_file_or_namespace_scope;
   a_symbol_ptr   assoc_object_sym;
+  a_scope_depth  scope_depth;
 
   at_file_or_namespace_scope =
                      (depth_scope_stack == depth_innermost_namespace_scope);
@@ -1052,8 +1051,9 @@ current scope.
     }  /* switch */
   }  /* if */
   /* Allocate a variable to represent the anonymous union. */
-  vp = make_variable(anon_union_type, storage_class,
-                     at_file_or_namespace_scope);
+  scope_depth = at_file_or_namespace_scope ?
+                     depth_innermost_namespace_scope : decl_scope_level; 
+  vp = make_variable(anon_union_type, storage_class, scope_depth);
   vp->is_anonymous_parent_object = TRUE;
   /* Promote the fields of the anonymous union to the current scope, and do
      some error checking on the anonymous union's members. */
@@ -2101,12 +2101,15 @@ created; the caller must set it.
     is_function = FALSE;
     ext_sym_kind = (a_symbol_kind)sk_extern_variable;
   }  /* if */
+  /* Set the name linkage for the external symbol. */
   if (linkage == idl_internal) {
     name_linkage = (a_name_linkage_kind)nlk_internal;
   } else if (C_dialect != C_dialect_cplusplus ||
              (is_function && func_info->is_main_function)) {
+    /* "main" always has extern "C" linkage. */
     name_linkage = (a_name_linkage_kind)nlk_external;
   } else {
+    /* Use the default name linkage for the current declaration. */
     name_linkage = scope_stack[depth_scope_stack].default_name_linkage;
   }  /* if */
   if (suppress_ext_sym_lookup) {
@@ -2144,30 +2147,6 @@ created; the caller must set it.
         err = TRUE;
         /* Force creation of a new external symbol. */
         ext_sym = NULL;
-      } else if (!C_mode() &&
-                 name_linkage == (a_name_linkage_kind)nlk_external) {
-        /* For C++ names with C external linkage find_external_names ignores
-           the namespace qualifier, if any.  But if there is one, be sure
-           now it matches.  Otherwise, it's similar to the name conflict
-           reported above -- e.g.,
-             namespace N { extern "C" int x; }
-             namespace M { extern "C" int x; }
-           Since names with extern "C" linkage are not mangled, there would
-           be a linkage conflict here -- two external variables would have
-           the same name. */
-        a_namespace_ptr  nsp  = qualifier_namespace_ptr(*locator);
-        if (nsp == NULL &&
-            depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
-          nsp = scope_stack[depth_innermost_namespace_scope].
-                                           il_scope->variant.assoc_namespace;
-        }  /* if */
-        if (ext_sym->parent.namespace_ptr != nsp) {
-          pos_st_error(ec_external_name_clash, &locator->source_position,
-                       old_name);
-          err = TRUE;
-          /* Force creation of a new external symbol. */
-          ext_sym = NULL;
-        }  /* if */
       }  /* if */
     }  /* if */
     if (!err) {
@@ -2197,6 +2176,29 @@ created; the caller must set it.
 	  }  /* if */
 	}  /* if */
       }  /* if */
+    }  /* if */
+  } else if (is_function) {
+    if (!C_mode() && name_linkage == (a_name_linkage_kind)nlk_external &&
+        !func_info->is_main_function) {
+      /* This is an extern "C" function declaration in C++.  Be sure no other
+         extern "C" function has been declared in this translation unit --
+         only one is permitted with a given name, ignoring namespaces. */
+      a_symbol_ptr   sym = locator->symbol_header->other_symbols;
+      a_routine_ptr  rp;
+
+      for (; sym != NULL; sym = sym->next) {
+        if (sym->kind == (a_symbol_kind)sk_extern_routine) {
+          rp = sym->variant.extern_symbol_descr->variant.routine.ptr;
+          if (rp->source_corresp.name_linkage ==
+                                     (a_name_linkage_kind)nlk_external) {
+            /* Illegal overloading involving two extern "C" functions with
+               the same name. */
+            pos_sy_error(ec_overloaded_function_linkage,
+                         &locator->source_position, sym);
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
   if (ext_sym == NULL) {
@@ -2232,6 +2234,15 @@ created; the caller must set it.
       if (*routine_ptr == NULL) {
         *routine_ptr =
                     ext_sym->variant.extern_symbol_descr->variant.routine.ptr;
+        if (*routine_ptr != NULL && !C_mode()) {
+          if (func_info->is_definition &&
+              (*routine_ptr)->assoc_scope != NULL_region_number) {
+            pos_sy_error(ec_already_defined, &locator->source_position,
+                         (a_symbol_ptr)((*routine_ptr)->
+                                           source_corresp.assoc_info));
+            *routine_ptr = NULL;
+          }  /* if */
+        }  /* if */
         if (*routine_ptr != NULL) {
           /* There is a routine entry we can reuse. */
           if (C_dialect == C_dialect_cplusplus) {
@@ -2789,7 +2800,6 @@ static void set_name_linkage(an_id_linkage_kind      linkage,
                              a_symbol_ptr            sym,
                              a_source_correspondence *scp,
                              a_symbol_ptr            ext_sym,
-                             a_symbol_ptr            overload_sym,
                              a_source_position       *error_pos)
 /*
 Called from decl_variable and decl_routine, this function sets the name
@@ -2797,10 +2807,8 @@ linkage of the IL entry.  linkage is the id_linkage (internal, external,
 none) has has been assigned.  sym is the symbol for the variable or routine
 whose name linkage is to be set, and scp points to the source correspondence
 of the associated IL entry.  ext_sym is the associated sk_external_variable
-or sk_external_routine symbol, if any.  When the entry is a routine that
-belongs to an overload set, overload_sym is non-NULL and points to the
-sk_overloaded_function that represents the set.  *error_pos is the source
-position of the identifier.
+or sk_external_routine symbol, if any.  *error_pos is the source position
+of the identifier.
 */
 {
   a_boolean                is_function =
@@ -2821,23 +2829,6 @@ position of the identifier.
       scp->name_linkage = ssep->default_name_linkage;
       sym->explicit_linkage_specifier = ssep->name_linkage_is_explicit;
       ext_sym->explicit_linkage_specifier = ssep->name_linkage_is_explicit;
-      if (overload_sym != NULL &&
-          ssep->default_name_linkage == (a_name_linkage_kind)nlk_external) {
-        /* "At most one of a set of overloaded functions . . . can have
-           C linkage" (ARM 7.4).  Search for conflicts. */
-        a_symbol_ptr  sp;
-        for (sp = overload_sym->variant.overloaded_function.symbols;
-             sp != NULL;
-             sp = sp->next) {
-          if (sp != sym &&
-              sp->variant.routine.ptr->source_corresp.name_linkage ==
-                                         (a_name_linkage_kind)nlk_external) {
-            pos_sy_error(ec_overloaded_function_linkage, error_pos,
-                         overload_sym);
-            break;
-          }  /* if */
-        }  /* for */
-      }  /* if */
     } else {
       /* Multiple specifications of external linkage must be the same
          (ARM 7.4).  But it's a little trickier than that.  We will not
@@ -3279,7 +3270,17 @@ cross-reference output describing this declaration.
   if (variable_ptr == NULL) {
     /* There is no IL entry, so create one now.  If the variable has
        internal or external linkage, it is entered at the file scope. */
-    variable_ptr = make_variable(type_ptr, storage_class, alloc_at_file_scope);
+    a_scope_depth  scope_depth;
+    if (!alloc_at_file_scope) {
+      scope_depth = decl_scope_level;
+    } else if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE ||
+               scope_stack[depth_scope_stack].default_name_linkage ==
+                                          (a_name_linkage_kind)nlk_external) {
+      scope_depth = DEPTH_OF_FILE_SCOPE;
+    } else {
+      scope_depth = depth_innermost_namespace_scope;
+    }  /* if */
+    variable_ptr = make_variable(type_ptr, storage_class, scope_depth);
     source_corresp_ptr = &variable_ptr->source_corresp;
     if (*ext_sym != NULL &&
         (*ext_sym)->variant.extern_symbol_descr->variant.variable != NULL) {
@@ -3356,9 +3357,15 @@ cross-reference output describing this declaration.
            variables, since it is only by means of a prior extern declaration
            or (in C mode only) a prior tentative definition that we can be
            defining a variable that has already been declared. */
+        a_scope_depth  depth = depth_innermost_namespace_scope;
+
+        if (variable_ptr->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_external) {
+          depth = DEPTH_OF_FILE_SCOPE;
+        }
         check_assertion(in_file_scope(variable_ptr));
-        remove_from_variables_list(variable_ptr);
-        add_to_variables_list(variable_ptr, depth_innermost_namespace_scope);
+        remove_from_variables_list(variable_ptr, depth);
+        add_to_variables_list(variable_ptr, depth);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3393,14 +3400,16 @@ cross-reference output describing this declaration.
     source_corresp_ptr->is_local_to_function = FALSE;
   }  /* if */
   if (!C_mode() && alloc_at_file_scope && !redeclaration) {
-    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
+        scope_stack[depth_scope_stack].default_name_linkage !=
+                                          (a_name_linkage_kind)nlk_external) {
       set_namespace_membership(sym, source_corresp_ptr,
                                scope_stack[depth_innermost_namespace_scope].
                                            il_scope->variant.assoc_namespace);
     }  /* if */
   }  /* if */
   set_name_linkage(linkage, sym, source_corresp_ptr, *ext_sym,
-                   (a_symbol_ptr)NULL, &locator->source_position);
+                   &locator->source_position);
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the declarator_ssep
      entry. */
@@ -3919,10 +3928,16 @@ skip_overloading:;
                                   &func_info->throw_position,
                                   /*is_redecl=*/TRUE);
   } else if (routine_ptr == NULL) {
-    /* There is no IL entry, so create one now, and add it to the routine
-       list of the file scope. */
-    routine_ptr = make_routine(type_ptr, storage_class,
-                               depth_innermost_namespace_scope);
+    /* There is no IL entry, so create one now, and add it to the routines
+       list of the innermost namespace scope (or, if this is an extern "C"
+       context, add it to routines list of the file scope). */
+    a_scope_depth  scope_depth = depth_innermost_namespace_scope;
+
+    if (scope_stack[depth_scope_stack].default_name_linkage ==
+                                          (a_name_linkage_kind)nlk_external) {
+      scope_depth = DEPTH_OF_FILE_SCOPE;
+    }  /* if */
+    routine_ptr = make_routine(type_ptr, storage_class, scope_depth);
     if (C_dialect == C_dialect_cplusplus) {
       if (locator->is_operator_name) {
         routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
@@ -3987,13 +4002,18 @@ skip_overloading:;
     }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
     if (is_function_def) {
-      a_boolean saved_referenced_flag;
+      a_boolean      saved_referenced_flag;
+      a_scope_depth  scope_depth = depth_innermost_namespace_scope;
 
       /* If this is a definition, unlink the routine entry and relink it
          at the end of the routines list, so that routines appear in the
          order that their bodies appear. */
-      remove_from_routines_list(routine_ptr);
-      add_to_routines_list(routine_ptr, depth_innermost_namespace_scope);
+      if (routine_ptr->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_external) {
+        scope_depth = DEPTH_OF_FILE_SCOPE;
+      };
+      remove_from_routines_list(routine_ptr, scope_depth);
+      add_to_routines_list(routine_ptr, scope_depth);
       /* Put in the storage class for the definition (static or 
          unspecified). */
       routine_ptr->storage_class = storage_class;
@@ -4077,7 +4097,9 @@ skip_overloading:;
     source_corresp_ptr->is_local_to_function = FALSE;
   }  /* if */
   if (!C_mode() && !redeclaration && !template_function_specific_decl) {
-    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
+        scope_stack[depth_scope_stack].default_name_linkage !=
+                                          (a_name_linkage_kind)nlk_external) {
       /* Set the namespace parent.  Note that for block-extern declarations,
          this is done only in the IL entry, not in the symbol. */
       set_namespace_membership(
@@ -4100,7 +4122,7 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   set_name_linkage(linkage, sym, source_corresp_ptr, *ext_sym,
-                   overload_symbol, &locator->source_position);
+                   &locator->source_position);
   if (overload_symbol != NULL) {
     /* If a using-declaration has introduced a function name into this
        scope that has the same type as the current function, it is an error.
@@ -4772,7 +4794,7 @@ the symbol and its linkage (which is always "none").
                        /*suppress_redecl_error=*/TRUE);
     sym->header = hdr;
     vp = make_variable(error_type(), (a_storage_class)sc_static,
-                       /*at_file_or_namespace_scope=*/TRUE);
+                       depth_innermost_namespace_scope);
     sym->variant.static_data_member.variable = vp;
     /* Make the error symbol a class member -- it is expected of
        sk_static_data_member symbols downstream. */
@@ -6383,8 +6405,7 @@ Return a pointer to the variable that is declared.
   sym = enter_symbol((a_symbol_kind)sk_variable, &locator, decl_scope_level,
                      /*suppress_redecl_error=*/FALSE);
   /* Allocate the variable and bind the symbol to it. */
-  vp = make_variable(type_ptr, storage_class,
-                     /*at_file_or_namespace_scope=*/FALSE);
+  vp = make_variable(type_ptr, storage_class, decl_scope_level);
   update_variable_decl_modifiers(vp, decl_modifiers,
                                  &locator.source_position,
                                  /*is_redecl=*/FALSE);
