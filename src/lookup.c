@@ -1302,7 +1302,8 @@ Macro that initializes a lookup state variable.
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
    class template, namespace, or template type parameter. */
 #define is_acceptable_symbol(sym, fund_sym, lookup_state)               \
-  ((!(lookup_state).must_be_class_or_namespace ||			\
+  (!(fund_sym->is_invisible) &&						\
+   (!(lookup_state).must_be_class_or_namespace ||			\
     symbol_may_precede_qualifier(fund_sym)) &&                          \
    (!(lookup_state).must_be_tag   ||				        \
     is_tag_or_tag_proxy_symbol(fund_sym)) &&				\
@@ -2960,7 +2961,8 @@ namespace_qualified_id_lookup.
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
-  ((!(sym)->is_class_member) &&                                       \
+  (!(fund_sym->is_invisible) &&					      \
+   (!(sym)->is_class_member) &&                                       \
    (sym)->parent.namespace_ptr == ns_ptr &&                           \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&     		      \
@@ -3097,7 +3099,8 @@ file scope.
    space test is needed when searching the file scope so that macro symbols
    are not found. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
-  ((sym)->decl_scope == FILE_SCOPE_NUMBER &&                          \
+  (!(fund_sym->is_invisible) &&				              \
+   (sym)->decl_scope == FILE_SCOPE_NUMBER &&                          \
    (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) &&       \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) && 			      \
@@ -3468,13 +3471,19 @@ If a match is found, add the entry to to symbol_list.
     sym = file_scope_id_lookup(locator, IDL_LINKAGE_LOOKUP);
   }  /* if */
   if (sym != NULL) {
-    /* A match was found.  Add this entry to the symbol list.  We don't check
-       for an existing entry because it should not be possible for such an
-       entry to exist. */
-    slep = alloc_symbol_list_entry();
-    slep->symbol = sym;
-    slep->next = *symbol_list;
-    *symbol_list = slep;
+    a_symbol_ptr	fund_sym;
+    /* A symbol was found in the namespace.  Make sure it is a function
+       symbol. */
+    fund_sym = fundamental_symbol_of(sym);
+    if (is_function_or_template_symbol(fund_sym)) {
+      /* A match was found.  Add this entry to the symbol list.  We don't check
+         for an existing entry because it should not be possible for such an
+         entry to exist. */
+      slep = alloc_symbol_list_entry();
+      slep->symbol = sym;
+      slep->next = *symbol_list;
+      *symbol_list = slep;
+    }  /* if */
   }  /* if */
 }  /* find_functions_for_namespace */
 
