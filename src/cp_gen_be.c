@@ -300,6 +300,7 @@ static void gen_pragma(void);
 #if RECORD_MACROS_IN_IL
 static void gen_macro(void);
 #endif /* RECORD_MACROS_IN_IL */
+static void gen_template(void);
 static void gen_lvalue(an_expr_node_ptr node);
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
@@ -2512,6 +2513,10 @@ is the one associated with the definition of the class.
         gen_macro();
         break;
 #endif /* RECORD_MACROS_IN_IL */
+      case iek_template:
+        /* Needed for template friends. */
+        gen_template();
+        break;
       case iek_src_seq_secondary_decl:
         /* A secondary declaration, i.e., a declaration of something that
            is also defined/declared elsewhere. */
