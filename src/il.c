@@ -1145,7 +1145,7 @@ region_to_switch_back_to for use later by switch_back_to_original_region.
   } else {
     *region_to_switch_back_to = NULL_region_number;
   }  /* if */
-}  /* switch_to_file_scope_region */
+}  /* switch_to_function_scope_region */
 
 
 void switch_back_to_original_region(
