@@ -1880,6 +1880,9 @@ Set the given source correspondence struct to default values.
      default setting; if the value matters, the caller must adjust it. */
   sc->il_walk_flag            = curr_initial_il_walk_flag_setting;
   sc->name_linkage            = (a_name_linkage_kind)nlk_none;
+#if RECORD_SCOPE_DEPTH_IN_IL
+  sc->scope_depth             = NO_SCOPE_DEPTH;
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
 }  /* set_default_source_corresp */
 
 
