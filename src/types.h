@@ -107,6 +107,19 @@ set *bcp to point to the base class entry that shows the relationship.
    is_pointer_type(type_1) && is_pointer_type(type_2) &&              \
    f_related_class_pointers(type_1, type_2, downward_cast, bcp))
 
+extern a_boolean f_rel_member_pointers(a_type_ptr       type_1,
+                                       a_type_ptr       type_2,
+                                       a_boolean        *downward_cast,
+                                       a_base_class_ptr *bcp);
+/*
+Return TRUE if type_1 and type_2 are related pointers to members.  If they
+are, set *downward_cast if type_1 --> type_2 is a downward cast, and
+set *bcp to point to the base class entry that shows the relationship.
+*/
+#define related_member_pointers(type_1, type_2, downward_cast, bcp)   \
+  (is_ptr_to_member_type(type_1) && is_ptr_to_member_type(type_2) &&  \
+   f_rel_member_pointers(type_1, type_2, downward_cast, bcp))
+
 extern void check_fixup_list_for_array_types(void);
 extern void add_if_necessary_to_array_fixup_list(a_type_ptr array_type);
 extern void set_type_size(a_type_ptr type_ptr);

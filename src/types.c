@@ -663,6 +663,39 @@ related_class_pointers.
 }  /* f_related_class_pointers */
 
 
+a_boolean f_rel_member_pointers(a_type_ptr       type_1,
+                                a_type_ptr       type_2,
+                                a_boolean        *downward_cast,
+                                a_base_class_ptr *bcp)
+/*
+type_1 and type_2 are pointer to member types.  Check to see if they are
+pointers to related class types, and return TRUE if so.  If they are,
+set *downcard_cast if type_1 --> type_2 is a downward cast, and set *bcp
+to point to the base class entry that shows the relationship.  Note that
+the member types are not compared.  Called from the macro
+related_member_pointers.
+*/
+{
+  a_boolean  related_pointers = FALSE;
+  a_type_ptr class_1, class_2;
+
+  *downward_cast = FALSE;
+  *bcp = NULL;
+  type_1 = skip_typerefs(type_1);
+  type_2 = skip_typerefs(type_2);
+  /* See if the classes are related. */
+  class_1 = type_1->variant.ptr_to_member.class_of_which_a_member;
+  class_2 = type_2->variant.ptr_to_member.class_of_which_a_member;
+  if ((*bcp = find_base_class_of(class_1, class_2)) != NULL) {
+    related_pointers = TRUE;
+    *downward_cast = TRUE;
+  } else if ((*bcp = find_base_class_of(class_2, class_1)) != NULL) {
+    related_pointers = TRUE;
+  }  /* if */
+  return related_pointers;
+}  /* f_rel_member_pointers */
+
+
 void check_fixup_list_for_array_types(void)
 /*
 Check the list of array types to be fixed up, to see if any of their element
@@ -1952,6 +1985,27 @@ See conversion_possible.
                                    suppress_extensions,
                                    default_warning_code,
                                    warning_suggested);
+  } else if (is_ptr_to_member_type(dest_type)) {
+    /* Conversion to a C++ pointer-to-member type. */
+    if (is_ptr_to_member_type(source_type)) {
+      /* Pointer-to-member --> pointer-to-member.  Allowed if the types pointed
+         to are the same and the classes involved are the same or the
+         destination class is an unambiguous derived (sic) class of the
+         source class.  See ARM 4.8. */
+      if (types_are_compatible(dest_type->variant.ptr_to_member.type,
+                               source_type->variant.ptr_to_member.type) &&
+          is_same_class_or_base_class_thereof(
+                 dest_type->variant.ptr_to_member.class_of_which_a_member,
+                 source_type->variant.ptr_to_member.class_of_which_a_member)) {
+        /* We leave the ambiguity and accessibility check to be done when
+           the cast is done. */
+        okay = TRUE;
+      }  /* if */
+    } else if (source_is_constant &&
+               is_null_pointer_constant(source_constant)) {
+      /* 0 --> pointer-to-member.  See ARM 4.8. */
+      okay = TRUE;
+    }  /* if */
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
     okay = TRUE;
@@ -2084,6 +2138,22 @@ conversions (constructors and conversion functions).
           *warning_suggested = ec_mixed_function_object_pointers;
         }  /* if */
       }  /* if */
+    }  /* if */
+  } else if (is_ptr_to_member_type(source_type) &&
+             is_ptr_to_member_type(dest_type)) {
+    /* Pointer-to-member --> pointer-to-member.  Valid if the classes involved
+       are the same or related (ARM 5.4).  Note that the type of thing pointed
+       to is not important here, which is different than the implicit
+       base::* --> derived::* case, so the base::* --> derived::* case must be
+       checked here as well as in impl_conversion_allowed.  We leave the
+       ambiguity check to be done when the cast is done. */
+    a_type_ptr source_class, dest_class;
+    source_class = source_type->variant.ptr_to_member.class_of_which_a_member;
+    dest_class = dest_type->variant.ptr_to_member.class_of_which_a_member;
+    if (source_class == dest_class ||
+        find_base_class_of(source_class, dest_class) != NULL ||
+        find_base_class_of(dest_class, source_class) != NULL) {
+      okay = TRUE;
     }  /* if */
   }  /* if */
   if (!okay && impl_okay) {
