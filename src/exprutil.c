@@ -4807,7 +4807,7 @@ static void set_arg_summary_for_user_conversion(
                                     a_routine_ptr        conversion_routine,
                                     a_boolean            std_conversion_needed)
 /*
-Set *arg_summary to indicate an argument match involving an user-defined
+Set *arg_summary to indicate an argument match involving a user-defined
 conversion using a conversion function.  param_type is the parameter
 type, conversion_routine is the conversion function being called, and
 std_conversion_needed is TRUE if a standard conversion is needed after
@@ -6990,10 +6990,14 @@ expression_kind indicates the current expression kind.
       *processed = TRUE;
     } else if (ambiguous) {
       /* There is more than one possible conversion to a built-in type. */
-      pos_ty_start_error(ec_ambiguous_conversion_to_builtin,
-                         &operand->position, operand->type);
-      diagnose_overload_ambiguity(ambiguity_list, (an_opname_kind)onk_none);
-      free_candidate_function_list(ambiguity_list);
+      /* A NULL ambiguity_list indicates a case that was undecidable because
+         of an error (no additional error is needed). */
+      if (ambiguity_list != NULL) {
+        pos_ty_start_error(ec_ambiguous_conversion_to_builtin,
+                           &operand->position, operand->type);
+        diagnose_overload_ambiguity(ambiguity_list, (an_opname_kind)onk_none);
+        free_candidate_function_list(ambiguity_list);
+      }  /* if */
       conv_to_error_operand(operand);
       *processed = TRUE;
     }  /* if */
@@ -7948,7 +7952,8 @@ to the routine that can do the conversion and return TRUE.  Otherwise
 return FALSE.  If more than one function matches, set *ambiguous to TRUE
 and return FALSE.  If ambiguity_list is non-NULL in that case, it is set
 to point to a list describing the set of ambiguous functions; the caller must
-free that list.  This routine is only used in C++.
+free that list.  *ambiguity_list is set to NULL to indicate a case that
+is undecidable because of an error.  This routine is only used in C++.
 */
 {
   a_boolean                     okay;
@@ -8006,7 +8011,10 @@ free that list.  This routine is only used in C++.
   *ambiguous = FALSE;
   okay = FALSE;
   if (undecidable_because_of_error) {
-    okay = TRUE;
+    *ambiguous = TRUE;
+    /* Note that candidate_functions is NULL (select_best_candidate_functions
+       returns it that way in this case), so a NULL ambiguity_list will
+       be returned to indicate "undecidable because of error". */
   } else if (candidate_functions == NULL) {
     /* No constructor or conversion function is suitable. */
   } else if (candidate_functions->next != NULL) {
@@ -8072,8 +8080,9 @@ then set *conversion_routine to point to the routine that can do the
 conversion, and return TRUE.  Otherwise return FALSE.  If more than one
 function matches, set *ambiguous to TRUE and return FALSE.  If ambiguity_list
 is non-NULL in that case, it is set to point to a list describing the set
-of ambiguous functions; the caller must free that list.  If a standard
-conversion is required after the conversion function, return
+of ambiguous functions; the caller must free that list.  *ambiguity_list
+is set to NULL to indicate a case that is undecidable because of an error.
+If a standard conversion is required after the conversion function, return
 *std_conversion_needed TRUE.  This routine is only used in C++ mode.
 */
 {
@@ -8100,7 +8109,10 @@ conversion is required after the conversion function, return
   *conversion_routine = NULL;
   okay = FALSE;
   if (undecidable_because_of_error) {
-    okay = TRUE;
+    *ambiguous = TRUE;
+    /* Note that candidate_functions is NULL (select_best_candidate_functions
+       returns it that way in this case), so a NULL ambiguity_list will
+       be returned to indicate "undecidable because of error". */
   } else if (candidate_functions == NULL) {
     /* There are no viable conversion functions. */
   } else if (candidate_functions->next != NULL) {
@@ -8281,10 +8293,14 @@ equivalent pointer case).
       }  /* if */
     } else {
       /* More than one conversion applies (ambiguity). */
-      pos_ty2_start_error(err_code, &source_operand->position,
-                          source_type, dest_type);
-      diagnose_overload_ambiguity(ambiguity_list, (an_opname_kind)onk_none);
-      free_candidate_function_list(ambiguity_list);
+      /* A NULL ambiguity_list indicates a case that was undecidable because
+         of an error (no additional error is needed). */
+      if (ambiguity_list != NULL) {
+        pos_ty2_start_error(err_code, &source_operand->position,
+                            source_type, dest_type);
+        diagnose_overload_ambiguity(ambiguity_list, (an_opname_kind)onk_none);
+        free_candidate_function_list(ambiguity_list);
+      }  /* if */
       conv_to_error_operand(source_operand);
     }  /* if */
   }  /* if */

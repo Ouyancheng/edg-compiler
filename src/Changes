@@ -1,5 +1,20 @@
 Version 2.12
 
+11/21/92 Abort in overload resolution fixed
+
+Formerly, when an overload resolution case was undecidable because
+of an error, when converting to a class type, the front end would
+sometimes abort.  For example:
+
+  class Base {
+  public:
+    Base ( Base& );
+    Base ( int );
+  };
+  void bar () {Base b2 = (Base)100000000000000000000000;}
+
+This is now fixed.
+
 11/20/92 Subscript checking made more discriminating
 
 Subscript checking is now done only when the object underlying a
