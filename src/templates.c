@@ -5696,12 +5696,22 @@ declaration.
   a_boolean                        is_template_friend =
                                                       (dso_flags & DSO_FRIEND);
   a_boolean			   in_prototype_instantiation;
+  a_boolean                        is_definition;
 
   db_enter(4, "function_template_declaration");  
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
   set_type_involves_template_param_flags(type);
   is_template_friend = ((dso_flags & DSO_FRIEND) != 0);
+  if (curr_token == tok_lbrace ||
+      (curr_token == tok_colon && (dso_flags & DSO_CONSTRUCTOR))) {
+    is_definition = TRUE;
+    /* A function template defined inside a class or class template is
+       implicitly "inline". */
+    if (class_declared_in != NULL) func_info->is_inline = TRUE;
+  } else {
+    is_definition = FALSE;
+  }  /* if */
   in_prototype_instantiation = scope_stack[depth_scope_stack].
                                                     in_prototype_instantiation;
   /* Process a function template declaration. */
@@ -5715,8 +5725,7 @@ declaration.
   }  /* if */
   if (is_error_locator(*locator)) {
     err = TRUE;
-  } else if (curr_token == tok_lbrace ||
-	     (curr_token == tok_colon && is_constructor_symbol(sym))) {
+  } else if (is_definition) {
     if (sym->defined) {
       pos_sy_error(ec_already_defined, &locator->source_position, sym);
       err = TRUE;
