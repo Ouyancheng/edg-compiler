@@ -1774,7 +1774,9 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
 #endif /* CHECKING */
         }  /* if */
       } else if (tag_sym->kind != tag_kind) {
-        if (is_template_class_symbol(tag_sym)) {
+        if (is_nonreal_instance_class_symbol(tag_sym)) {
+          /* Ignore a union/nonunion mismatch on nonreal classes. */
+        } else if (is_template_class_symbol(tag_sym)) {
           /* Error -- tag-kind mismatch in a specialization. */
           pos_sy_error(ec_union_nonunion_mismatch, &decl_start_pos,
                        tag_sym->variant.class_struct_union.extra_info->
@@ -2182,7 +2184,7 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
       }  /* if */
     }  /* if */
     if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
-        tag_sym->is_class_member) {
+        tag_sym->is_class_member && !tag_sym->is_error) {
       /* Determine whether this is a referenced to a nested class within
          a class template.  If so, set the correspondence with the
          corresponding prototype class. */
@@ -2233,7 +2235,7 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
       /* If this is a nested class of a class template, update the type kind
          associated with the template. */
       if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
-          !is_template_specialization) {
+          !is_template_specialization && !tag_sym->is_error) {
         update_nested_template_class_symbol_info(tag_sym, type_kind);
       }  /* if */
     }  /* if */
