@@ -6640,6 +6640,7 @@ of compiler-generated function (e.g., a constructor).
   }  /* if */
 }  /* mark_routine_referenced */
 
+
 void set_routine_defined(a_routine_ptr rout)
 /*
 Set the "defined" flag for a routine.  This can kick off some processing
