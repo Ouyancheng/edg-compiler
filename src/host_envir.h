@@ -514,6 +514,11 @@ each containing only the things needed for one instantiation.
            when MAINTAIN_NEEDED_FLAGS is FALSE.
 #endif /* !MAINTAIN_NEEDED_FLAGS && ... */
 
+#if ONE_INSTANTIATION_PER_OBJECT && !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+ #error -- MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS must be TRUE \
+           when ONE_INSTANTIATION_PER_OBJECT is TRUE.
+#endif /* ONE_INSTANTIATION_PER_OBJECT && !... */
+
 /*
 The flag IL_WALK_NEEDED controls the compilation of the routines required
 to walk the IL.  These routines are needed if NEED_IL_DISPLAY is TRUE or
