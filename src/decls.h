@@ -90,7 +90,7 @@ Microsoft extensions.
       ((tok) == tok_int8  || (tok) == tok_int16 ||                    \
        (tok) == tok_int32 || (tok) == tok_int64))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define or_is_microsoft_type_keyword()  /* Nothing */
+#define or_is_microsoft_type_keyword(tok)  /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
