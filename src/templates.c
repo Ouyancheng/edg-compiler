@@ -7047,7 +7047,10 @@ instantiated.
   /* Now that we've found the corresponding parameter of the template,
      instantiate that default argument value. */
   if (daefp != NULL) {
-    a_boolean	trans_unit_pushed;
+    a_boolean         trans_unit_pushed;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    a_source_position saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(template_sym);
     /* Push the template instantiation scope for the context in which the
@@ -7075,8 +7078,14 @@ instantiated.
     begin_deferral_of_access_checks();
     /* Rescan the default argument tokens from the cache. */
     rescan_reusable_cache(&daefp->cache.tokens);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     delayed_scan_of_default_arg_expr(daefp->param_type,
                                      /*check_for_errors=*/FALSE);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Copy the default argument expression into the corresponding param
        type entry of the declared type, if any. */

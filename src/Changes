@@ -1,5 +1,21 @@
 Version 3.1
 
+11/24/02  End position wrong on expression for "new"
+
+The end position (maintained when EXTRA_SOURCE_POSITIONS_IN_IL is
+TRUE) on a "new" expression for a class type was wrong when the
+processing of the initializer arguments caused the instantiation
+of a default argument expression.  Now fixed.
+
+  template <class T> class C {
+    public : C(int a, int b = 0) { }
+  };
+  int main () {
+    C<int> *c;
+    c = new C<int>(0); // End position on "new" expression was wrong
+    return 0;
+  }
+
 11/24/02  Microsoft compatibility: overload resolution, reference-to-
           pointer parameter, pointer argument with different cv-qualifiers
 
