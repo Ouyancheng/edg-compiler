@@ -85,7 +85,7 @@ typedef struct an_option_description {
 			   prefix matching. */
 } an_option_description;
 
-#define SIZE_OF_OPTION_DESCRIPTIONS ((int)optk_last + (int)optk_last/3)
+#define SIZE_OF_OPTION_DESCRIPTIONS ((int)optk_last*2)
  			/* The number of entries in the option descriptions
 			   array.  This is larger than the number of options
 			   because some options have entries to both enable
