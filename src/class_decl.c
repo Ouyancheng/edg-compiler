@@ -4729,6 +4729,19 @@ entry of the function itself.
     } else if (decl_info->is_destructor) {
       rtn->special_kind = (a_special_function_kind)sfk_destructor;
     }  /* if */
+    if (exceptions_enabled) {
+      if (compiler_generated) {
+        /* A compiler generated constructor, destructor, or assignment
+           operator is assumed to through any exception that can be thrown
+           a base-class function it will call. */
+        form_exception_specification_for_generated_function(
+                                               rtn->special_kind, member_type,
+                                               class_type, func_info);
+      }  /* if */
+      /* Update the routine (actually, its routine-type-supplement) with the
+         exception-specification info. */
+      add_exception_specification(func_info, rtn);
+    }  /* if */
     /* If "virtual" was specified in the declaration, mark the routine as
        virtual.  Even if it wasn't, its virtualness can be inherited.  In
        either case record the relationship between the current routine and
@@ -4779,14 +4792,6 @@ entry of the function itself.
       /* Set the pointer to the destructor symbol in the class symbol
          supplement. */
       cssp->destructor = sym;
-    }  /* if */
-    if (exceptions_enabled) {
-      if (compiler_generated) {
-        form_exception_specification_for_generated_function(
-                                               rtn->special_kind, member_type,
-                                               class_type, func_info);
-      }  /* if */
-      add_exception_specification(func_info, rtn);
     }  /* if */
     update_routine_decl_modifiers(rtn, decl_modifiers,
                                   &locator->source_position,
