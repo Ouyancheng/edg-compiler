@@ -9241,6 +9241,15 @@ function template declarations.
         remove_stop_token(tok_lbrace);
         check_completed_member_type(&local_type, &locator, class_state,
                                     &decl_info);
+        if (is_member_template_rescan) {
+          if (decl_info.storage_class != (a_storage_class)sc_unspecified &&
+              decl_info.storage_class != (a_storage_class)sc_static) {
+            /* An error will already have been issued on, e.g.,
+                 struct A { template <class T> typedef A (T) { } };
+            */
+            decl_info.storage_class = (a_storage_class)sc_unspecified;
+          }  /* if */
+        }  /* if */
       }  /* if */
       if (locator.is_destructor_name) decl_info.is_destructor = TRUE;
     }  /* if */
