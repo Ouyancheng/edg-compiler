@@ -7774,14 +7774,12 @@ next_declaration:
       /* The type will already have been added to the current scope's types
          list.  However, it should be moved to the end of the list (unless
          it's already there), since its location in the types list should
-         record where it was defined, not where it was initially declared. */
+         record where it was defined, not where it was initially declared.
+         move_end_of_types_list also takes care of the placeholder typerefs
+         associated with this class. */
       move_to_end_of_types_list(class_type, effective_decl_level);
-      if (is_template_instantiation) {
-        /* Special processing in case this instantiation occurred in the
-           midst of a class definition, to enable il-lowering to get the
-           ordering right when it promotes the nested types to file scope. */
-        create_placeholder_for_class_instantiation(class_type);
-      } else if (cssp->partial_instantiation_placeholder != NULL) {
+      if (!is_template_instantiation &&
+          cssp->partial_instantiation_placeholder != NULL) {
         /* This must be a specialization of a template class that was
            partially instantiated before the definition was seen.  Clear out
            unneeded placeholder information. */
