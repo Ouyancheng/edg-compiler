@@ -3314,6 +3314,14 @@ skip_overloading:;
        process_curr_construct_pragmas; otherwise the pragmas we're interested
        in would have been disposed of. */
     record_lint_argsused_and_varargs_state(sym);
+    if (!C_mode() && !exceptions_enabled && !func_info->is_inline &&
+        func_info->throw_position.seq != 0) {
+      /* Issue a diagnostic on attempting to define a noninline function with
+         an exception specification when exception support is not enabled.
+         (No diagnostic is issued on nondefinition -- the exception
+         specification is just ignored.) */
+      pos_error(ec_no_exception_support, &func_info->throw_position);
+    }  /* if */
   }  /* if */
   /* Do processing required for the rest of the pragmas, if any, that are
      bound to the current declaration. */

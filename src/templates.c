@@ -1034,6 +1034,15 @@ Instantiate the body of the template function associated with tip.
      process_curr_construct_pragmas; otherwise the pragmas we're interested
      in would have been disposed of. */
   record_lint_argsused_and_varargs_state(rout_sym);
+  if (!exceptions_enabled && !tssp->variant.function.func_info.is_inline &&
+      tssp->variant.function.func_info.throw_position.seq != 0) {
+    /* Issue a diagnostic on attempting to define a noninline function with
+       an exception specification when exception support is not enabled.
+       (No diagnostic is issued on nondefinition -- the exception
+       specification is just ignored.) */
+    pos_error(ec_no_exception_support,
+              &tssp->variant.function.func_info.throw_position);
+  }  /* if */
   /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tssp->token_cache);
   scan_function_body(rout_ptr, &tssp->variant.function.func_info,

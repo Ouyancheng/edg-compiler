@@ -956,6 +956,14 @@ on a prior declaration.
     copy_source_position(locator->source_position,
                          rp->source_corresp.decl_position);
   }  /* if */
+  if (!exceptions_enabled && !func_info->is_inline &&
+      func_info->throw_position.seq != 0) {
+    /* Issue a diagnostic on attempting to define a noninline function with
+       an exception specification when exception support is not enabled.
+       (No diagnostic is issued on nondefinition -- the exception
+       specification is just ignored.) */
+    pos_error(ec_no_exception_support, &func_info->throw_position);
+  }  /* if */
   if (func_info->is_inline) {
     if (!sym->variant.routine.ptr->is_inline &&
         sym->variant.routine.ptr->called) {

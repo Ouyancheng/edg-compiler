@@ -600,17 +600,18 @@ specification is handled later (see check_exception_specification).
   a_stop_token_array                   save_stop_token_array;
 
   db_enter(4, "scan_exception_specification");
-  /* Update the source position for the "throw".  Even if there is no
-     "throw" this is where it would appear in the source. */
-  if (exceptions_enabled) func_info->throw_position = pos_curr_token;
+  if (exceptions_enabled || curr_token == tok_throw) {
+    /* Update the source position for the "throw".  Even if there is no
+       "throw" this is where it would appear in the source.  If exception
+       support is not enabled but a "throw" appears, we may want to issue
+       a diagnostic, so save the source position for that case, too. */
+    func_info->throw_position = pos_curr_token;
+  }  /* if */
   if (curr_token != tok_throw) {
     /* No explicit throw specification, meaning anything may be thrown. */
     goto done;
   }  /* if */
-  if (!exceptions_enabled) {
-    /* Exceptions are suppressed for this compilation. */
-    pos_error(ec_no_exception_support, &pos_curr_token);
-  } else {
+  if (exceptions_enabled) {
     esp = alloc_exception_specification();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     esp->throw_position = pos_curr_token;
@@ -633,7 +634,7 @@ specification is handled later (see check_exception_specification).
     /* Syntax error -- left paren is missing.  We don't actually call
        syntax_error or required_token for this, however, since writing
        "throw int" instead of "throw (int)" might be a common mistake. */
-    if (exceptions_enabled) error(ec_exp_lparen);
+    error(ec_exp_lparen);
   }  /* if */
   /* Save the current stop token state, and reinitialize it. */
   copy_stop_tokens(stop_token_array, save_stop_token_array);
@@ -653,7 +654,7 @@ specification is handled later (see check_exception_specification).
                           /*real_declarator_allowed=*/FALSE,
                           /*single_type_required=*/FALSE)) {
       /* Error. */
-      if (exceptions_enabled) pos_error(ec_exp_type_specifier, &type_pos);
+      pos_error(ec_exp_type_specifier, &type_pos);
       /* Flush tokens to the comma or right paren. */
       flush_tokens();
       estp->type = error_type();
@@ -697,11 +698,7 @@ specification is handled later (see check_exception_specification).
   } while (loop_token(tok_comma));
   /* List should be terminated by a right paren. */
   remove_stop_token(tok_rparen);
-  if (curr_token == tok_rparen) {
-    (void)get_token();
-  } else {
-    if (exceptions_enabled) (void)required_token(tok_rparen, ec_exp_rparen);
-  }  /* if */
+  (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
   /* Restore the stop token state. */
