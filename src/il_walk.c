@@ -496,6 +496,13 @@ definition of the routine is needed, and not just the declaration.
       }  /* if */
     }  /* if */
   }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (rout->assoc_template != NULL) {
+    /* If a real instantiation is marked, do the same for the corresponding
+       prototype instantiation. */
+    set_routine_definition_needed(rout->assoc_template);
+  }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
 end_of_routine:;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -1058,6 +1065,13 @@ declaration.
       innermost_function_scope = saved_innermost_function_scope;
     }  /* if */
   }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (rout->assoc_template != NULL) {
+    /* If a real instantiation is marked, do the same for the corresponding
+       prototype instantiation. */
+    set_routine_keep_definition_in_il(rout->assoc_template);
+  }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 }  /* set_routine_keep_definition_in_il */
 
 
@@ -1084,6 +1098,17 @@ declaration.
        is set. */
     remark_to_keep_in_il((char *)type, iek_type);
   }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  {
+    a_class_type_supplement_ptr  ctsp =
+                                  type->variant.class_struct_union.extra_info;
+    if (ctsp != NULL && ctsp->assoc_template != NULL) {
+      /* If a real instantiation is marked, do the same for the corresponding
+         prototype instantiation. */
+      set_class_keep_definition_in_il(ctsp->assoc_template);
+    }  /* if */
+  }
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 }  /* set_class_keep_definition_in_il */
 
 
