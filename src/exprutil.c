@@ -7981,18 +7981,21 @@ convert source_operand to an error operand, and return *err TRUE.
 
 void prep_initializer_operand(an_operand         *source_operand,
                               a_type_ptr         dest_type,
+                              a_boolean          initializing_return_value,
                               an_expression_kind expression_kind,
                               an_error_code      incompatible_err)
 /*
 Check the operand for initializer compatibility against the type supplied.
 Cast the operand if required to make it the right type.  Convert the
 operand from an lvalue to an rvalue if necessary (it usually is).
-expression_kind indicates the kind of expression being scanned
-(but it's assumed that constant expressions would not come here).
-If the operand and type are incompatible, issue the error incompatible_err.
-This routine is used for initialization, function call arguments, and
-return expressions.  It is not used when copy constructor elision is
-possible; see prep_elision_initializer_operand.
+initializing_return_value is TRUE if the initialization is being done
+to return a value in a return statement.  expression_kind indicates the
+kind of expression being scanned (but it's assumed that constant
+expressions would not come here).  If the operand and type are
+incompatible, issue the error incompatible_err.  This routine is used for
+initialization, function call arguments, and return expressions.  It is
+not used when copy constructor elision is possible; see
+prep_elision_initializer_operand.
 */
 {
   a_type_ptr base_dest_type, base_source_type;
@@ -8086,17 +8089,31 @@ possible; see prep_elision_initializer_operand.
         if (!err) {
           /* The reference must be to a const object (otherwise the user might
              change the temporary thinking he is changing the original
-             object).  Suppress the diagnostic if an error has already been put
-             out. */
-          if (allow_anachronisms && !is_const_qualified_type(base_dest_type)) {
-            /* This is an error according to the ARM (8.4.3), but we allow it 
-               as an anachronism. */
-            pos_diagnostic(anachronism_error_severity,
-                           ec_nonconst_ref_init_anachronism,
-                           &source_operand->position);
-          } else if (conversion_to_temp_done) {
+             object). */
+          if (!is_const_qualified_type(base_dest_type)) {
+            /* A reference to non-const; this is an error according to the ARM
+               (8.4.3), but we allow it as an anachronism. */
+            if (allow_anachronisms) {
+              pos_diagnostic(anachronism_error_severity,
+                             ec_nonconst_ref_init_anachronism,
+                             &source_operand->position);
+            } else {
+              /* Anachronism is not allowed. */
+              error_in_operand(incompatible_err, source_operand);
+            }  /* if */
+            err = TRUE;
+          }  /* if */
+          if (initializing_return_value && conversion_to_temp_done) {
+            /* A temporary should not be created to return a value, since
+               what would happen immediately is that the address of the
+               (stack-based) temporary would be returned to the caller. */
+            pos_error(ec_return_ref_init_requires_temp,
+                      &source_operand->position);
+            err = TRUE;
+          }  /* if */
+          if (!err && conversion_to_temp_done ) {
             /* Let the user know a temp was used. */
-            pos_warning(ec_temp_used_for_ref_init, &source_operand->position);
+            pos_remark(ec_temp_used_for_ref_init, &source_operand->position);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -8136,6 +8153,7 @@ If so, convert the operand to the formal parameter type.
   } else {
     /* Normal argument. */
     prep_initializer_operand(source_operand, formal_param->type,
+                             /*initializing_return_value=*/FALSE,
                              expression_kind, err_code);
   }  /* if */
 }  /* prep_argument_operand */
@@ -8226,6 +8244,7 @@ the value from a function.
     } else {
       /* Normal return mechanism. */
       prep_initializer_operand(source_operand, required_type,
+                               /*initializing_return_value=*/TRUE,
                                expression_kind, err_code);
     }  /* if */
   }  /* if */

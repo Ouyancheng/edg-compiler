@@ -1145,7 +1145,9 @@ error err_code.
   scan_expr(&result, PREC_LOWEST, expression_kind,
             EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
-  prep_initializer_operand(&result, dest_type, expression_kind, err_code);
+  prep_initializer_operand(&result, dest_type,
+                           /*initializing_return_value=*/FALSE,
+                           expression_kind, err_code);
    /* Check for the required closing parenthesis. */
   check_closing_paren_after_expr_list();
   remove_stop_token(tok_rparen);
@@ -7107,6 +7109,7 @@ there's no such thing as a C++ initializer that must be constant.
             EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type,
+                           /*initializing_return_value=*/FALSE,
                            (an_expression_kind)ek_init_constant,
                            ec_bad_initializer_type);
   /* Make a constant from the operand. */
@@ -7149,6 +7152,7 @@ copy constructor elision is possible; see scan_class_initializer_expression.
             EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type,
+                           /*initializing_return_value=*/FALSE,
                            (an_expression_kind)ek_normal,
                            ec_bad_initializer_type);
   /* Return a constant or expression depending on what was scanned. */

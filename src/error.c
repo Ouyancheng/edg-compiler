@@ -1629,6 +1629,9 @@ error code.
     case ec_new_array_size_must_be_nonnegative:
       m = "the size of an array in \"new\" must be non-negative";
       break;
+    case ec_return_ref_init_requires_temp:
+      m = "returning reference to local temporary";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
