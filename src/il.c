@@ -6935,7 +6935,8 @@ are not already present.
      block size. */
   qualifiers_to_add |= (qualifiers & TQ_UPC_SHARED);
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  if (qualifiers_to_add != TQ_NONE) {
+  /* cv-qualifiers are ignored when applied to a reference type. */
+  if (qualifiers_to_add != TQ_NONE && !is_reference_type(base_type)) {
 #if NEAR_AND_FAR_ALLOWED
     if (qualifiers_to_add & (TQ_NEAR | TQ_FAR)) {
        /* Don't add explicit qualifiers for memory attributes that are
