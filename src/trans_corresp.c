@@ -37,7 +37,7 @@ static a_boolean verify_template_correspondence(a_template_ptr  templ);
 static void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
 
 
-static char* f_canonical_il_entry_of(char *il_entry)
+char* f_canonical_il_entry_of(char *il_entry)
 /*
 Return the canonical IL entry for the given entry.  This is the entry itself
 if the entry is from a primary translation unit or if it has no corresponding
@@ -59,9 +59,6 @@ entry in another translation unit.
   }  /* for */
   return il_entry;
 }  /* f_canonical_il_entry_of */
-
-#define canonical_il_entry_of(ptr)                                     \
-  (f_canonical_il_entry_of((char*)ptr))
 
 #if DEBUG
 static void *trace_corresp_ptr = NULL;

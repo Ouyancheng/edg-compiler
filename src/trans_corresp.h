@@ -29,6 +29,12 @@ EXTERN a_boolean
 			/* TRUE if the correspondence checking code has been
 			   completed for the current translation unit. */
 
+extern char* f_canonical_il_entry_of(char *il_entry);
+
+#define canonical_il_entry_of(ptr)                                     \
+  (f_canonical_il_entry_of((char*)(ptr)))
+
+
 /*
 The following canonical_*_entry_of routines return the canonical entry
 associated with the given entity.  If it has not yet been looked up, that
