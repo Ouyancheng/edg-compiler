@@ -1641,24 +1641,6 @@ argument list and to FALSE otherwise.
     a_type_ptr type = (a_type_ptr)scp;
     if (is_immediate_class_type(type)) {
       tap = type->variant.class_struct_union.extra_info->template_arg_list;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-      /* Suppress template arguments on a reference to a prototype
-         instantiation.  Rule out partial specializations. */
-      if (type->variant.class_struct_union.extra_info->
-                                      partial_spec_template_arg_list == NULL) {
-        a_template_ptr templ =
-                   type->variant.class_struct_union.extra_info->assoc_template;
-        /* This is the prototype instantiation if the associated template
-           points back to this type. */
-        if (templ != NULL) {
-          check_assertion(templ->kind == (a_template_kind)templk_class ||
-                          templ->kind == (a_template_kind)templk_member_class);
-          if (templ->prototype_instantiation.type == type) {
-            tap = NULL;
-          }  /* if */
-        }  /* if */
-      }
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     }  /* if */
   } else if (entry_kind == iek_routine) {
     /* Check for template arguments on a routine, but put them out only if
@@ -1680,6 +1662,28 @@ argument list and to FALSE otherwise.
   return tap;
 }  /* template_arguments_for_name */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+
+static a_boolean type_is_prototype_instantiation(a_type_ptr type)
+/*
+Return TRUE if the indicated type is the prototype instantiation of
+a class template.
+*/
+{
+  a_boolean is_proto = FALSE;
+
+  if (is_immediate_class_type(type)) {
+    if (type->variant.class_struct_union.is_nonreal_class &&
+        /* Exclude prototype instantiations of partial specializations. */
+        type->variant.class_struct_union.extra_info->
+                                      partial_spec_template_arg_list == NULL) {
+      is_proto = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_proto;
+}  /* type_is_prototype_instantiation */
+
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static void gen_unqualified_name(a_source_correspondence *scp,
                                  an_il_entry_kind        entry_kind)
@@ -2432,11 +2436,26 @@ or enum.
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* The initial declaration of a tag cannot use a qualified name. */
-      gen_unqualified_name(&type->source_corresp, iek_type);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (type_is_prototype_instantiation(type)) {
+        /* No template arguments on a prototype instantiation. */
+        gen_bare_name(&type->source_corresp, iek_type);
+      } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+      {
+        gen_unqualified_name(&type->source_corresp, iek_type);
+      }  /* if */
       type->first_declaration_pending = FALSE;
     } else {
       /* References after the initial declaration can use a qualified name. */
-      gen_type_name(type);
+      a_gen_name_options_set options = GN_NO_OPTIONS;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (type_is_prototype_instantiation(type)) {
+        /* No template arguments on a prototype instantiation. */
+        options |= GN_NO_TEMPLATE_ARGS;
+      }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+      gen_name(&type->source_corresp, iek_type, options, (a_boolean *)NULL);
     }  /* if */
   }  /* if */
 }  /* gen_tag_reference */
@@ -3413,7 +3432,14 @@ is the one associated with the definition of the class.
   } else {
     /* Put out the name.  Note that a name will be generated for an
        unnamed class, which can be useful for casts. */
-    gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
+    a_gen_name_options_set options = GN_DECLARATION;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (type_is_prototype_instantiation(type)) {
+      /* Suppress the template argument list on a prototype instantiation. */
+      options |= GN_NO_TEMPLATE_ARGS;
+    }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    gen_name(&type->source_corresp, iek_type, options,
              (a_boolean *)NULL);
     write_space();
   }  /* if */
@@ -3441,7 +3467,10 @@ is the one associated with the definition of the class.
           /* Display the derivation access. */
           gen_access_specifier(bcdp->access);
           write_space();
-          gen_type_name(bcp->type);
+          /* Don't use gen_type_name to void adding "typename" in
+             prototype instantiations. */
+          gen_name(&bcp->type->source_corresp, iek_type, GN_NO_OPTIONS,
+                   (a_boolean *)NULL);
         }  /* if */
       }  /* for */
       write_space();
@@ -7923,13 +7952,10 @@ a constructor.
         case cik_direct_base_class:
           /* Initializing a base class. */
           type = ctor_init->variant.base_class->type;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-          /* Don't use "gen_type_name" to avoid "typename" keywords. */
+          /* Don't use "gen_type_name" to avoid "typename" keywords in
+             prototype instantiations. */
           gen_name(&type->source_corresp, iek_type,
                    GN_NO_OPTIONS, (a_boolean *)NULL);
-#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
-          gen_type_name(type);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case cik_field:
           /* Initializing a nonstatic data member. */
