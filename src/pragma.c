@@ -774,7 +774,13 @@ there is additional processing to be done.
       /* Except for function-local entities, let the low-level routines
          figure out the scope and memory region. */
       if (!scp->is_local_to_function) {
-        scope_depth = NO_SCOPE_DEPTH;
+        if (!C_mode()) {
+          scope_depth = NO_SCOPE_DEPTH;
+        } else {
+          /* In C mode, there are no class scopes or namespace scopes,
+             so everything is at the file scope. */
+          scope_depth = DEPTH_OF_FILE_SCOPE;
+        }  /* if */
       } else if (in_file_scope(scp)) {
         /* Pragmas for things like local static variables are placed on
            the file-scope pragmas list, because there are no orphan lists

@@ -5089,6 +5089,8 @@ for the scope, which means no last-pointer is being maintained (anymore).
   if (sp != NULL) {
     /* The scope has already been determined. */
   } else if (class_type != NULL) {
+    check_assertion_str(!C_mode(),
+                        "get_scope_for_list: class scope in C mode");
     sp = scp->parent.class_type->
                  variant.class_struct_union.extra_info->assoc_scope;
     if (sp != NULL) {
