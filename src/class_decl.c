@@ -5115,7 +5115,7 @@ instantiations are recorded in the IL.
   /* Treat this as a prototype instantiation so that it doesn't end up in
      the IL if prototype_instantiations_in_il is FALSE.  (Note that even
      though is_prototype_instantiation is TRUE, is_template_function is FALSE
-     unless an explicit template argument list is specified. */
+     unless an explicit template argument list is specified). */
   rp->is_prototype_instantiation = TRUE;
   sym->variant.routine.ptr = rp;
   set_source_corresp(&rp->source_corresp, sym);
