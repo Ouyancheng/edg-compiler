@@ -4491,7 +4491,7 @@ thrown away by the caller.
   }  /* if */
   scope->function_body_processing_finished = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
-  { a_boolean is_needed = FALSE;
+  { a_boolean is_needed;
     /* Walk subtrees of local types and variables that have already been
        marked as needed.  If they are not marked as needed yet, this
        allows the subtrees to be swept in the future because they
@@ -4504,10 +4504,8 @@ thrown away by the caller.
     }  /* if */
     /* If the function is globally visible and presumably needed by code
        in another translation unit, set the "needed" flag on the function. */
-    if (routine->storage_class == (a_storage_class)sc_unspecified) {
-      is_needed = (routine->source_corresp.needed ||
-                   routine_needed_even_if_unreferenced(routine));
-    }  /* if */
+    is_needed = (routine->source_corresp.needed ||
+                 routine_needed_even_if_unreferenced(routine));
     if (is_needed) {
       mark_as_needed((char *)routine, (an_il_entry_kind)iek_routine);
 #if DEBUG
