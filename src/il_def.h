@@ -756,6 +756,10 @@ typedef struct a_source_correspondence {
   a_bit_field	name_has_been_mangled:1;
 			/* TRUE if the name of the entity has been changed
 			   to the "mangled" form of the name (C++). */
+  a_bit_field	nested_type_mangling_has_been_done:1;
+			/* TRUE if the parent information has been mangled
+			   into the name of a nested type (C++).  Used only
+			   in the front end. */
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	global_qualification_needed:1;

@@ -2527,9 +2527,10 @@ in il_init.)
   def_source_corresp.has_associated_pragma = FALSE;
   def_source_corresp.is_local_to_function = FALSE;
   def_source_corresp.is_class_member = FALSE;
-#if DO_IL_LOWERING
+#if NEED_NAME_MANGLING
   def_source_corresp.name_has_been_mangled = FALSE;
-#endif /* DO_IL_LOWERING */
+  def_source_corresp.nested_type_mangling_has_been_done = FALSE;
+#endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   def_source_corresp.global_qualification_needed = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */

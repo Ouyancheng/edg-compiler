@@ -475,10 +475,11 @@ Display the indicated source correspondence entry.
   if (scp->has_associated_pragma) {
     disp_boolean("  has_associated_pragma", TRUE);
   }  /* if */
-#if DO_IL_LOWERING
-  /* Do not print out ptr->name_has_been_mangled, which is used only during
+#if NEED_NAME_MANGLING
+  /* Do not print out name_has_been_mangled and
+     nested_type_mangling_has_been_done, which are used only during
      IL lowering. */
-#endif /* DO_IL_LOWERING */
+#endif /* NEED_NAME_MANGLING */
 #if RECORD_SCOPE_DEPTH_IN_IL
   disp_long("  scope_depth", (long)scp->scope_depth);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
