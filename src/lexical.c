@@ -4278,9 +4278,27 @@ Return TRUE if the indicated token is an operator token.  See ARM 13.4.
     case tok_ge: case tok_and_and: case tok_or_or: case tok_plus_plus:
     case tok_minus_minus: case tok_comma: case tok_arrow_star:
     case tok_arrow:
-    /* Following two are two-token operators: () and []. */
-    case tok_lparen: case tok_lbracket:
       is_operator = TRUE;
+      break;
+    case tok_lparen:
+      /* Two-token operator: (). */
+      if (next_token() == tok_rparen) {
+        is_operator = TRUE;
+        /* Advance to the second token of the "operator". */
+        (void)get_token();
+      } else {
+        is_operator = FALSE;
+      }  /* if */
+      break;
+    case tok_lbracket:
+      /* Two-token operator: []. */
+      if (next_token() == tok_rbracket) {
+        is_operator = TRUE;
+        /* Advance to the second token of the "operator". */
+        (void)get_token();
+      } else {
+        is_operator = FALSE;
+      }  /* if */
       break;
     default:
       is_operator = FALSE;
@@ -4299,36 +4317,22 @@ only in C++ mode.
 */
 {
   a_source_position start_position;
+  a_token_kind      token;
 
   start_position = pos_curr_token;
   /* Skip past the "operator", check for an operator. */
-  if (!is_operator_token(get_token())) {
+  token = get_token();
+  if (!is_operator_token(token)) {
     /* syntax_error is deliberately not called. */
     error(ec_exp_operator);
     /* Put back the current token and make a fake error identifier. */
     unget_token();
-    curr_token = tok_identifier;
     make_specific_symbol_error_locator(&locator_for_curr_id);
   } else {
     /* Convert the locator to a locator for the operator. */
-    make_opname_locator(curr_token, &locator_for_curr_id, &start_position);
-    /* For () and [], check the second token.  Do not use required_token
-       because we want to stay on the final token. */
-    if (curr_token == tok_lparen) {
-      if (get_token() != tok_rparen) {
-        error(ec_exp_rparen);
-        unget_token();
-      }  /* if */
-    } else if (curr_token == tok_lbracket) {
-      if (get_token() != tok_rbracket) {
-        error(ec_exp_rbracket);
-        unget_token();
-      }  /* if */
-    }  /* if */
-    /* Convert the locator to a locator for the operator. */
-    make_opname_locator(curr_token, &locator_for_curr_id, &start_position);
-    curr_token = tok_identifier;
+    make_opname_locator(token, &locator_for_curr_id, &start_position);
   }  /* if */
+  curr_token = tok_identifier;
   return TRUE;
 }  /* f_get_opname */
 
