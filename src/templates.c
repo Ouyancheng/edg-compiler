@@ -3958,7 +3958,6 @@ as the current token; otherwise, it is consumed.
       }  /* if */
     } else if (is_function_type(type)) {
       a_boolean  err = FALSE;
-      a_boolean	 update_function_decl_info = FALSE;
 
       /* Set a flag in each param type entry whose associated type is or
          contains a template parameter. */
@@ -3998,15 +3997,6 @@ as the current token; otherwise, it is consumed.
           err = TRUE;
         }  /* if */
       }  /* if */
-      /* Copy the token cache header into the template symbol supplement. */
-      if (*defines_something ||
-          tssp->variant.function.decl_token_cache.first_token == NULL) {
-        /* The decl_token_cache should point to the declaration associated
-           with the definition, if a definition is present. */
-        tssp->variant.function.decl_token_cache = decl_token_cache;
-        decl_token_cache_used = TRUE;
-        update_function_decl_info = TRUE;
-      }  /* if */
       if (err) {
         a_token_cache  local_token_cache;
         clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
@@ -4016,10 +4006,18 @@ as the current token; otherwise, it is consumed.
       } else {
 	a_def_arg_expr_fixup_ptr  daefp;
 
-        if (update_function_decl_info) {
+        cache_function_template_body(&tssp->token_cache,
+                                     is_constructor_symbol(sym),
+                                     defines_something, sym);
+        if (*defines_something || 
+            tssp->variant.function.decl_token_cache.first_token == NULL) {
+          /* The decl_token_cache should point to the declaration associated
+             with the definition, if a definition is present. */
+          tssp->variant.function.decl_token_cache = decl_token_cache;
+          decl_token_cache_used = TRUE;
           /* Copy the func_info block and then null out its the param-id
              pointer so that it won't be freed. */
-          tssp->variant.function.func_info = func_info;
+            tssp->variant.function.func_info = func_info;
           func_info.param_id_list = NULL;
           tssp->parameters = template_param_list;
           tssp->declaration_scope = scope_stack[decl_scope_level].number;
@@ -4035,9 +4033,6 @@ as the current token; otherwise, it is consumed.
 	  daefp->next = tssp->variant.function.def_arg_expr_list;
           tssp->variant.function.def_arg_expr_list = curr_default_args;
 	}  /* if */
-        cache_function_template_body(&tssp->token_cache,
-                                     is_constructor_symbol(sym),
-                                     defines_something, sym);
 #if RECORD_TEMPLATES_IN_IL
         if (*defines_something) {
           /* Save a pointer to the token cache for function body. */
