@@ -1,5 +1,20 @@
 Version 3.1
 
+6/28/02  Warnings on just-past-end invalid subscripts, multi-dimensional
+         array
+
+A warning is now issued for a use of a just-past-the-end subscript
+in a subscript other than the last in a multi-dimensional subscripting
+operation.
+
+  struct A {
+    int x[10][3];
+  };
+  int main() {
+    A *p = new A;
+    p->x[10][1];  // [10] is invalid
+  }
+
 6/27/02  GNU C mode: Extended asm improvements
 
 The IL used to generate incorrect IL for certain extended asm constructs.

@@ -4549,6 +4549,12 @@ value is used).
   int              cmp;
 
   *just_past_end = FALSE;
+  /* Drop any possible array-decay casts. */
+  while (is_operation_node(node) &&
+         node->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+         node->variant.operation.compiler_generated) {
+    node = node->variant.operation.operands;
+  }  /* while */
   if (is_operation_node(node) &&
       (node->variant.operation.kind == (an_expr_operator_kind)eok_padd ||
        node->variant.operation.kind == (an_expr_operator_kind)eok_padd_subsc)){

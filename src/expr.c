@@ -795,6 +795,13 @@ Syntax:
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
+      if (is_an_lvalue(operand_1) &&
+          is_array_type(operand_1->type) &&
+          is_expression_operand(operand_1)) {
+        /* Detect and warn for uses of subscripts just past the end of the
+           array with multi-dimensional subscripts. */
+        using_lvalue(operand_1);
+      }  /* if */
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
       do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       /* One of the operands must have type "pointer to object type" and the 
