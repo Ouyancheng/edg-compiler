@@ -4021,7 +4021,10 @@ for the variable.
   a_constant_ptr     init_con = NULL;
 
   get_variable_initializer(variable, curr_scope, init_kind, &initializer);
-  if (*init_kind == (an_init_kind)initk_static) {
+  if (!variable->defined) {
+    /* If the variable hasn't been defined, ignore the initializer if any.
+       That's needed for static data member constants. */
+  } else if (*init_kind == (an_init_kind)initk_static) {
     /* The variable has a constant static initializer. */
     init_con = initializer->constant;
   } else if (*init_kind == (an_init_kind)initk_dynamic) {
