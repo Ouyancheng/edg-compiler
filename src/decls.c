@@ -3760,7 +3760,7 @@ class template.
                    &locator->source_position, locator->specific_symbol);
         set_to_error_locator(*locator);
       } else {
-        /* This is a member function symbol of a prototoye instantiation.
+        /* This is a member function symbol of a prototype instantiation.
            Get the associated function template. */
         sym = get_member_function_template_symbol(sym);
       }  /* if */
