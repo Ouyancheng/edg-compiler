@@ -116,7 +116,6 @@ do
     -d*)
       feoptions=$feoptions" "$1;
       shift;
-      fe_only=1;
       ;;
     -e)
 #     Set error limit.
