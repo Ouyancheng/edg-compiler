@@ -720,11 +720,11 @@ static void mark_canonical_as_needed(char             *entry_ptr,
                                      an_il_entry_kind entry_kind)
 /*
 If the indicated entity has an associated canonical entry in a secondary
-translation unit, mark the canonical entry as needed.
+translation unit, mark the canonical entry as needed.  The entry is one
+with a source correspondence field.
 */
 {
-  a_source_correspondence *scp =
-                            source_corresp_for_il_entry(entry_ptr, entry_kind);
+  a_source_correspondence *scp = (a_source_correspondence *)entry_ptr;
 
   if (scp != NULL && scp->trans_unit_corresp != NULL) {
     char *canonical = scp->trans_unit_corresp->canonical;
@@ -870,6 +870,10 @@ as needed.
           set_class_definition_needed(parent_class);
         }  /* if */
       }  /* if */
+      /* For an entity that has linkage, mark the associated canonical entry
+         as needed too, since that's the one that will be copied to the
+         primary IL. */
+      mark_canonical_as_needed(entry_ptr, entry_kind);
     }  /* if */
   }  /* if */
   return prune;
@@ -976,10 +980,6 @@ references.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
-  /* For an entity that has linkage, mark the associated canonical entry
-     as needed too, since that's the one that will be copied to the
-     primary IL. */
-  mark_canonical_as_needed(entry_ptr, entry_kind);
 }  /* mark_as_needed */
 
 
@@ -1395,6 +1395,25 @@ keep_in_il walk.
 }  /* set_keep_in_il_on_befriending_classes */
 
 
+static void mark_canonical_to_keep_in_il(char             *entry_ptr,
+                                         an_il_entry_kind entry_kind)
+/*
+If the indicated entity has an associated canonical entry in a secondary
+translation unit, mark the canonical entry to be kept in the IL.
+*/
+{
+  a_source_correspondence *scp =
+                            source_corresp_for_il_entry(entry_ptr, entry_kind);
+
+  if (scp != NULL && scp->trans_unit_corresp != NULL) {
+    char *canonical = scp->trans_unit_corresp->canonical;
+    if (canonical != entry_ptr && in_secondary_trans_unit(canonical)) {
+      mark_to_keep_in_il(canonical, entry_kind);
+    }  /* if */
+  }  /* if */    
+}  /* mark_canonical_to_keep_in_il */
+
+
 static a_boolean prune_keep_in_il_walk(char             *entry_ptr,
                                        an_il_entry_kind entry_kind)
 /*
@@ -1407,11 +1426,15 @@ to be kept.
   a_boolean prune = FALSE, is_class = FALSE, is_function_local_class = FALSE;
 
   /* Note that this routine is very similar to prune_needed_flag_il_walk. */
-  /* If walking the IL for a secondary translation unit, do not go into
-     the primary IL. */
   if (walking_secondary_trans_unit &&
       !in_secondary_trans_unit(entry_ptr)) {
+    /* If an entry in the primary IL is encountered while walking the
+       IL for a secondary translation unit, do not set the keep-in-IL flag,
+       because we want the primary IL flags to be set only on the final
+       IL after copying.  Do set the flag on the associated canonical
+       entry if there is one, however. */
     prune = TRUE;
+    mark_canonical_to_keep_in_il(entry_ptr, entry_kind);
   } else if (il_entry_prefix_of(entry_ptr).keep_in_il) {
     /* The flag is set already, so prune the walk at this entry.  */
     prune = TRUE;
@@ -1486,6 +1509,10 @@ to be kept.
         }  /* if */
       }  /* if */
     }  /* if */
+    /* For an entity that has linkage, mark the associated canonical entry
+       to be kept in the IL too, since that's the one that will be copied
+       to the primary IL. */
+    mark_canonical_to_keep_in_il(entry_ptr, entry_kind);
   }  /* if */
   return prune;
 }  /* prune_keep_in_il_walk */
