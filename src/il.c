@@ -6179,8 +6179,7 @@ with the class or namespace.
 */
 {
   a_scope_ptr                 sp;
-  a_scope_stack_entry_ptr     ssep = NULL;
-  a_scope_pointers_block_ptr  pointers_block;
+  a_scope_pointers_block_ptr  pointers_block = NULL;
 
   if (scope_depth == NO_SCOPE_DEPTH) {
     check_assertion_str(scp != NULL,
@@ -6196,35 +6195,32 @@ with the class or namespace.
     if (scp->is_class_member) {
       sp = scp->parent.class_type->
                   variant.class_struct_union.extra_info->assoc_scope;
+      if (sp->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+        pointers_block = &scope_stack[scope_depth].pointers_block;
+      } else {
+        /* The scope stack entry is no longer available. */
+        pointers_block = NULL;
+      }  /* if */
     } else {
-      check_assertion_str(scp->parent.namespace_ptr != NULL,
-                          "add_to_pragma_list: NULL namespace ptr");
-      sp = skip_namespace_aliases(scp->parent.namespace_ptr)->
-                                                 variant.assoc_scope;
+      a_namespace_ptr  nsp = scp->parent.namespace_ptr;
+      check_assertion_str(nsp, "add_to_pragma_list: NULL namespace ptr");
+      check_assertion_str(!nsp->is_namespace_alias,
+                          "add_to_pragma_list: namespace alias not expected");
+      sp = nsp->variant.assoc_scope;
+      pointers_block =
+                  &namespace_supplement_for_namespace(nsp)->pointers_block;
     }  /* if */
     /* If the scope of the class or pragma is still on the scope stack, get
        a pointer to the scope stack entry. */
-    scope_depth = sp->depth_in_scope_stack;
-    if (scope_depth != NO_SCOPE_DEPTH) {
-      ssep = &scope_stack[scope_depth];
-    } else {
-      /* The scope stack entry is no longer available. */
-      ssep = NULL;
-    }  /* if */
   } else {
-    ssep = &scope_stack[scope_depth];
+    a_scope_stack_entry_ptr  ssep = &scope_stack[scope_depth];
     sp = ensure_il_scope_exists(ssep);
-  }  /* if */
-  check_assertion_str(sp != NULL, "add_to_pragma_list: NULL IL scope");
-  if (ssep != NULL) {
-    check_assertion_str(((a_boolean)in_file_scope(pragma)) ==
-                         (ssep->il_memory_region == FILE_SCOPE_REGION_NUMBER),
-                        "add_to_pragma_list: memory region mismatch");
+    check_assertion_str(sp != NULL, "add_to_pragma_list: NULL IL scope");
     pointers_block = assoc_pointers_block_of(ssep);
   }  /* if */
   if (sp->pragmas == NULL) {
     sp->pragmas = pragma;
-  } else if (ssep == NULL) {
+  } else if (pointers_block == NULL) {
     /* No scope stack entry, find the end of the pragma list.  Note that
        the case where sp->pragmas is NULL is already tested above. */
     a_pragma_ptr	end_of_list = sp->pragmas;
@@ -6233,7 +6229,7 @@ with the class or namespace.
   } else {
     pointers_block->last_pragma->next = pragma;
   }  /* if */
-  if (ssep != NULL) pointers_block->last_pragma = pragma;
+  if (pointers_block != NULL) pointers_block->last_pragma = pragma;
 }  /* add_to_pragma_list */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
