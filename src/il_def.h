@@ -913,55 +913,53 @@ typedef short a_lint_varargs_count;
 /* Value used to indicate that there is no lint varargs count: */
 #define NOT_LINT_VARARGS (-1)
 
-/* An enumeration of C++ throw specification kinds. */
-enum a_throw_spec_kind_tag {
-  tsk_none,		/* Specifies that no exceptions will be thrown by
-			   a given routine, e.g.,
-			     void f() throw ();              */
-  tsk_list_entry,	/* Specifies that only the listed exceptions will
-			   be thrown by a given routine, e.g.,
-			     void f() throw (int,char);      */
-  tsk_any               /* Specifies that any exception may be thrown by a
-			   a given routine, e.g.,
-			     void f();                       */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_throw_spec_kind;
 
-/* An throw specification entry is used in C++ only. */
-typedef struct a_throw_specification *a_throw_specification_ptr;
-typedef struct a_throw_specification {
-  a_throw_specification_ptr
+/* Types a_throw_specification and a_throw_spec_type are used in C++ only. */
+/* a_throw_spec_type is an entry that represents a type that appears on a
+   list of types specified in an exception specification.  For instance,
+     void f() throw (int,float);
+   yields a throw-spec-type entry for int and another for float. */
+typedef struct a_throw_spec_type *a_throw_spec_type_ptr;
+typedef struct a_throw_spec_type {
+  a_throw_spec_type_ptr
 		next;
 			/* Pointer to the next in the linked list of throw
-			   specification entries defined for a given routine.
-			   Note that this is always NULL when the kind is
-			   tsk_none or tsk_any; it is also NULL for the last
-			   entry in an tsk_list_entry list. */
-  a_throw_spec_kind
-		kind;
-			/* Indicates whether this entry specifies one of a
-			   list of types that will be thown, or specifies
-			   that nothing will be thrown, or specifies that
-			   anything will be thrown. */
+			   specification type entries, or NULL for the last
+			   entry on the list. */
+  a_type_ptr	type;
+			/* A pointer to the type of the exception. */
   a_byte_boolean
 		redundant;
-			/* TRUE when kind == tsk_list_entry and another entry
-			   with the same type already appears in the list. */
-  a_type_ptr	type;
-			/* When kind == tsk_list_entry, a pointer to the type
-                           declared; NULL otherwise. */
+			/* TRUE when previous entry on the list has the same
+			   type. */
   a_source_position
 		decl_position;
 			/* Source position of the declaration of this
-			   exception specification.  When kind is tsk_none,
-			   it is the source position of "throw".  When kind is
-			   tsk_list_entry, it is the source position of the
-			   type.  When kind is tsk_any, it is the source
-			   position where "throw" would have appeared, e.g.,
-			   the position of the ";" in "void f();". */
+			   exception specification -- the source position of
+			   "throw". */
+} a_throw_spec_type;
+
+
+/* a_throw_specification is an entry that describes an exception specification
+   on a function declaration. */
+typedef struct a_throw_specification *a_throw_specification_ptr;
+typedef struct a_throw_specification {
+  a_throw_spec_type_ptr
+		throw_spec_type_list;
+			/* Pointer to the linked list of throw specification
+			   type entries giving the types of exceptions a
+			   given function will throw, e.g.,
+			     void f() throw (int,char);
+                           or NULL if no exceptions will be thrown, e.g.,
+			     void f() throw ();              */
+  a_source_position
+		throw_position;
+			/* Source position of the declaration of this
+			   exception specification -- the source position of
+			   "throw". */
 } a_throw_specification;
 #endif /* ifdef CIL */
+
 
 /* Entry containing additional information about a routine type
 (segregated to keep down the size of a_type). */
@@ -1075,12 +1073,13 @@ typedef struct a_routine_type_supplement {
                            to check type compatibility. */
   a_throw_specification_ptr
 		throw_specification;
-			/* In C++ only, pointer to an entry or a linked list
-			   of entries describing the exception specification
-			   declared for this routine.  NULL in C mode or if
-			   exceptions are disabled for this compilation; also
-			   NULL if the type is not bound to a particular
-			   routine. */
+			/* In C++ only, pointer to an entry describing the
+			   exception specification declared for this routine.
+			   NULL when any exception may be throw, e.g.,
+			     void f();     // No throw specification declared
+			   Also NULL in C mode or if exceptions are disabled
+			   for this compilation; also NULL if the type is not
+			   bound to a particular routine. */
 #endif /* ifndef CIL */
 } a_routine_type_supplement;
 
