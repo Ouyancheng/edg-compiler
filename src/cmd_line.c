@@ -750,7 +750,7 @@ to is the option letter.
   /* If no match was found for a keyword option, look again to see if
      the option is an abbreviation. */
   if (!match && is_keyword_option) {
-    an_option_description_ptr	odp_found;
+    an_option_description_ptr	odp_found = NULL;
     for (n = 0; n < option_descriptions_used; ++n) {
       odp = &option_descriptions[n];
       if (odp->keyword != NULL &&
