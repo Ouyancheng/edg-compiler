@@ -1,6 +1,25 @@
 Version 2.26
 
-10/2/94  C-generating back end: code ordering problem with local types
+10/4/94  IL lowering: type qualifiers on source argument of generated
+         copy constructor call
+
+The source argument to the copy constructor call of B(const B&) in
+D(const D&) now has the proper "const" qualifier on the type in the
+following:
+
+  struct B {
+      B(const B& cob) { }
+      B() { }
+  };
+  struct D : public B {
+  };
+  void test2()
+  {
+      D od1;
+      D od2 = od1;
+  }
+
+10/3/94  C-generating back end: code ordering problem with local types
          inside member functions of local classes
 
 An ordering problem in the generated C code for the following has been
