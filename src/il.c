@@ -4164,9 +4164,9 @@ a_type_ptr make_qualified_type(a_type_ptr            base_type,
                                a_type_qualifier_set  qualifiers)
 /*
 Make a version of the type base_type with the additional type qualifiers
-indicated by is_const and is_volatile.  Attempt to find and reuse
-an existing entry if possible.  The qualifiers are added only if
-they are not already present.
+indicated by the set of flags in "qualifiers".  Attempt to find and reuse
+an existing entry if possible.  The new qualifiers are added only if they
+are not already present.
 */
 {
   a_type_ptr            orig_base_type, ptr;
