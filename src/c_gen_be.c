@@ -3120,8 +3120,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           goto done_with_unary_operation;
         case eok_lvalue_cast:
-          unexpected_condition_str(
-                                  "dump_operation: eok_lvalue_cast as rvalue");
+          unexpected_condition_str("dump_expr: eok_lvalue_cast as rvalue");
         case eok_complement:
           is_unary = TRUE;
           opstr = "~";
@@ -3410,7 +3409,7 @@ process_assignment:
           goto done_with_binary_operation;
         case eok_bit_field:
           /* This operator shouldn't get past dump_lvalue. */
-          unexpected_condition_str("dump_operation: eok_bit_field as rvalue");
+          unexpected_condition_str("dump_expr: eok_bit_field as rvalue");
         case eok_value_bit_field:
         case eok_extract_bit_field:
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -3546,12 +3545,12 @@ process_assignment:
               if (is_integral_or_enum_type(arg_type)) {
                 an_integer_kind ikind = arg_type->variant.integer.int_kind;
                 if ((int)ikind < (int)ik_int) {
-                  internal_error("dump_operation: unwidened integer argument");
+                  internal_error("dump_expr: unwidened integer argument");
                 }  /* if */
               } else if (is_floating_type(arg_type)) {
                 a_float_kind fkind = arg_type->variant.float_kind;
                 if (fkind == (a_float_kind)fk_float) {
-                  internal_error("dump_operation: unwidened float argument");
+                  internal_error("dump_expr: unwidened float argument");
                 }  /* if */
               }  /* if */
             }  /* if */
@@ -3587,7 +3586,7 @@ process_assignment:
           write_tok_ch(')');
           goto done_with_operation;
         default:
-          unexpected_condition_str("dump_operation: bad expression operator");
+          unexpected_condition_str("dump_expr: bad expression operator");
       }  /* switch */
       if (pointer_comparison) {
         /* Comparisons of function pointers are not standard C, so put in casts
