@@ -7653,9 +7653,10 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                                           ec_expr_not_pointer_to_object)) {
           err = TRUE;
         } else {
-          if (identical_types(
-                           skip_typerefs(type_pointed_to(operand_1->type)),
-                           skip_typerefs(type_pointed_to(operand_2.type)))) {
+          if (types_are_compatible_ignoring_qualifiers(
+                                           type_pointed_to(operand_1->type),
+                                           type_pointed_to(operand_2.type))) {
+            operation_type = skip_typerefs(operand_1->type);
             result_type = integer_type(targ_ptrdiff_t_int_kind);
           } else if (check_compatibility_of_pointer_operands(
                            operand_1, &operand_2, &operator_position,
