@@ -2351,8 +2351,15 @@ after_entry_from_class:
         switch (ptr->kind) {
           case cik_virtual_base_class:
           case cik_direct_base_class:
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+            /* With prototype instantiations, there can be generated base
+               class entries. */
+            walk_ptr(ptr->variant.base_class, a_base_class_ptr,
+                     iek_base_class);
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
             remap_ptr(ptr->variant.base_class, a_base_class_ptr,
                       iek_base_class);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
             break;
           case cik_field:
             remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
