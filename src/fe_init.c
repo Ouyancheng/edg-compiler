@@ -715,6 +715,8 @@ unit, in case multiple source files are allowed.
   class_decl_one_time_init();
   def_arg_one_time_init();
   il_one_time_init();
+  lexical_one_time_init();
+  macro_one_time_init();
   statements_one_time_init();
   symbol_tbl_one_time_init();
   templates_one_time_init();
@@ -762,14 +764,14 @@ to replace the initial portion of this compilation.
   def_arg_init();
   templates_init();
   expr_init();
-  macro_proc_init();
+  macro_init();
   statements_init();
   pch_init();
   pragma_init();
   /* preproc_init must be called after keyword initialization so that
      macros have priority over keywords.  It also must be called after
      lexical_init so that is_id_char is set.  And, it must be called after
-     macro_proc_init so that predefined #assert predicates (if any) are
+     macro_init so that predefined #assert predicates (if any) are
      entered after assert_predicates has been cleared. */
   preproc_init();
   target_init();
