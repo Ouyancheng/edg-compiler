@@ -10,7 +10,7 @@ Support is now provided for class member using-declarations of the form
   };
   template <class T> struct D: public B<T> {
     using typename B<T>::char_type;    // Spurious error no longer issued
-    char_type c;                       //   during instantiation D<int>
+    char_type c;
   };
   D<int> d;
 
