@@ -1,6 +1,24 @@
 Version 3.6
+
+2/7/05   Performance of routine list management for namespace scopes
+
+The list of routines for a namespace scope (including the file scope) contains
+the routine entries for functions in that scope in the order of their primary
+declarations (where the primary declaration is the definition or, if that is
+not present, the first declaration).  For example:
+
+  void f1();
+  void f2();
+  void f1() {}  // Routine list order: f2, f1.
+
+Previously, the simple algorithm to ensure this ordering lead to a performance
+bottleneck in some cases where thousands of routine declarations were followed
+by a hundreds of definitions.  (Much of the front end's processing time was
+spent in the function "remove_from_routines_list" in these cases.) The
+algorithm has been reworked to drastically improve the front end's performance
+on such code.
  
-2/6/04   Microsoft 7.1 compatibility: string as argument to built-in ==
+2/6/05   Microsoft 7.1 compatibility: string as argument to built-in ==
 
 The emulation for MSVC++ 7.1 (microsoft_version=1310) now gives
 no ambiguity for a case like the one below where a string (which
