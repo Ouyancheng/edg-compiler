@@ -11559,7 +11559,6 @@ except for standard operand transformations.
 */
 {
   a_boolean processed = FALSE;
-  a_boolean pointer_case, was_constant;
 
   /* Convert from a class type to bool or scalar/pointer-to-member if
      necessary. */
@@ -11583,51 +11582,6 @@ except for standard operand transformations.
     /* Do lvalue --> rvalue and other transformations for the non-class
        case. */
     do_operand_transformations(result, TOPT_NO_OPTIONS);
-  }  /* if */
-  /* Remember whether or not the expression has pointer type.  This is
-     needed later, and the check standardizes the operation to a bool or
-     integer result. */
-  pointer_case = is_pointer_type(result->type) ||
-                 is_ptr_to_member_type(result->type);
-  was_constant = (is_constant_operand(result) &&
-                  result->variant.constant.kind !=
-                                      (a_constant_repr_kind)ck_template_param);
-  /* Check that the operand is scalar or a pointer to member.  Note that
-     this is done even for the cases where a class type has been converted
-     to such a type, because the subroutine does some additional checking
-     and some normalization of the expression. */
-  if (validate_boolean_controlling_expr(result, validate_only)) {
-    /* Issue a remark if the expression is constant.  (Actually, if
-       it WAS constant, because the address of an extern entity -- a
-       constant -- converted to bool becomes an expression, because
-       one can't tell at compile time whether the external's address
-       is non-zero.)  The check is here instead of
-       check_boolean_controlling_expr because we don't want to issue
-       diagnostics for things like "i = 1&&2;".  Do not issue the error
-       in constant expressions (which can happen only for conditional
-       operators, i.e., "?", not for statements). */
-    if (was_constant) {
-      if (pointer_case) {
-        /* A test of a constant address is always pretty suspicious. */
-#if GNU_EXTENSIONS_ALLOWED
-        a_constant_ptr con = &result->variant.constant;
-        if (con->kind == (a_constant_repr_kind)ck_address &&
-            ((con->variant.address.kind == (an_address_base_kind)abk_routine &&
-              con->variant.address.variant.routine->is_weak) ||
-             (con->variant.address.kind == (an_address_base_kind)abk_variable&&
-              con->variant.address.variant.variable->is_weak))) {
-          /* No warning for GNU weak externals. */
-        } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        {
-          pos_warning(ec_boolean_controlling_expr_is_constant,
-                      &result->position);
-        }  /* if */
-      } else if (!curr_expr_kind_is_const()) {
-        pos_remark(ec_boolean_controlling_expr_is_constant, &result->position);
-      }  /* if */
-    }  /* if */
   }  /* if */
 }  /* process_boolean_controlling_expression */
 

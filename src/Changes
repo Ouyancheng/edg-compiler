@@ -1,5 +1,16 @@
 Version 3.5
 
+5/20/04  "controlling expression is constant" diagnostic eliminated
+
+The warning or remark "controlling expression is constant" on a
+constant value in a tested boolean expression, as in
+
+  if (1) ;
+
+has been eliminated.  It gave undesirable warnings in some cases,
+and we didn't see any good way to preserve the useful cases and
+exclude the others.
+
 5/20/04  Spurious warning on conversion of large unsigned constant
 
 Version 3.4 introduced a problem where a spurious out-of-range diagnostic
