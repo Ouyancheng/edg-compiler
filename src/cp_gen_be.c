@@ -2605,7 +2605,7 @@ is the one associated with the definition of the enum.
   /* Advance past the source sequence entry for the enum itself. */
   check_for_and_take_source_seq_entry(
                                    type->source_corresp.source_sequence_entry);
-  /* Position the output file to the declaration position. */
+  /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
   /* Generate "enum <name>". */
   write_tok_str("enum ");
@@ -2850,7 +2850,7 @@ is the one associated with the definition of the class.
   /* Advance past the source sequence entry for the class itself. */
   check_for_and_take_source_seq_entry(
                                    type->source_corresp.source_sequence_entry);
-  /* Position the output file to the declaration position. */
+  /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
   if (ctsp != NULL &&
       ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable) {
@@ -2971,6 +2971,8 @@ of the typedef.  If it is a secondary declaration (C++ only), sec_decl
 is non-NULL and points to the secondary declaration entry.
 */
 {
+  a_type_ptr under_type, this_param_type;
+
   type->definition_put_out = TRUE;
   /* Advance past the source sequence entry for the typedef itself. */
   /* This does not use check_for_and_take_source_seq_entry on purpose,
@@ -2979,8 +2981,26 @@ is non-NULL and points to the secondary declaration entry.
   adv_curr_source_sequence_entry();
   /* The caller has called set_decl_position already. */
   write_tok_str("typedef ");
-  gen_declaration_using_type(type->variant.typeref.type,
-                             &type->source_corresp, iek_type, sec_decl);
+  under_type = type->variant.typeref.type;
+  if (is_function_type(under_type) &&
+      (this_param_type = implicit_this_param_type_of(under_type)) != NULL) {
+    /* A cfront member function typedef, e.g.,
+         typedef int A::f(int);
+       Put out with a qualified name. */
+    a_type_ptr class_type = f_skip_typerefs(type_pointed_to(this_param_type));
+    gen_type_first_part(under_type, /*under_lhs_declarator=*/FALSE,
+                        /*need_trailing_space=*/TRUE,
+                        /*add_const=*/FALSE);
+    /* Write the (qualified) name. */
+    gen_class_qualifier(class_type);
+    gen_unqualified_name(&type->source_corresp, iek_type);
+    /* Write the second part of the declarator. */
+    gen_type_second_part(under_type, /*under_lhs_declarator=*/FALSE);
+  } else {
+    /* Normal typedef. */
+    gen_declaration_using_type(under_type, &type->source_corresp,
+                               iek_type, sec_decl);
+  }  /* if */
 }  /* gen_typedef_definition */
 
 
