@@ -87,8 +87,7 @@ static unsigned long
                 num_constructor_inits_allocated,
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
-		string_literal_text_space_allocated,
-		num_rewritten_temporaries_allocated;
+		string_literal_text_space_allocated;
 #if ORPHAN_PROCESSING_NEEDED
 static unsigned long
 		num_fs_orphan_pointers_allocated,
@@ -130,37 +129,6 @@ static unsigned long
 		num_compares_for_shareable_constants;
 #endif /* DEBUG */
 
-
-/*
-Data structure used to keep track of the rewriting of temporaries when
-copying expression trees (when an expression tree is copied, the temporaries
-must be rewritten so that those in the original expression do not conflict
-with those in the copy).
-*/
-typedef struct a_rewritten_temporary *a_rewritten_temporary_ptr;
-typedef struct a_rewritten_temporary {
-  a_rewritten_temporary_ptr
-		next;	/* Pointer to the next entry on the list of rewritten
-			   temporaries, or NULL if this is the last entry. */
-  a_variable_ptr
-		old_temp,
-		new_temp;
-			/* The old temporary and the new temporary it's
-			   changed into. */
-} a_rewritten_temporary;
-static a_rewritten_temporary_ptr
-		avail_rewritten_temporaries;
-			/* List of rewritten temporary entries that have
-			   been freed and are available for reuse. */
-static a_rewritten_temporary_ptr
-		rewritten_temporaries;
-			/* While copying an expression tree, this is the
-			   list of rewrites to be done. */
-static a_boolean
-		clone_temps_on_expr_copy;
-			/* If TRUE, temporary variables should be "cloned"
-			   (replaced by new equivalent temporaries) during
-			   expression copying. */
 static a_template_arg_ptr
 		avail_template_args;
 			/* List of freed template arg entries that are
@@ -175,9 +143,6 @@ static a_source_correspondence
 
 /* Forward declarations needed because of mutual recursion: */
 static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr dip);
-static an_expr_node_ptr internal_copy_expr_tree(an_expr_node_ptr expr);
-static an_expr_node_ptr internal_copy_list_of_expr_trees(
-                                                   an_expr_node_ptr expr_list);
 static a_constant_hash_value hash_constant(a_constant *cp);
 
 #if DEBUG
@@ -1059,9 +1024,9 @@ Dump the contents of the indicated expression node for debug purposes.
       fprintf(f_debug, "field %s\n", node->variant.field->source_corresp.name);
       break;
     case enk_temp_init:
-      fputs("temp init: ", f_debug);
+      fprintf(f_debug, "temp init (%s of temporary): ",
+              node->variant.init.result_is_addr ? "addr" : "value");
       db_dynamic_initializer(node->variant.init.dynamic_init, level);
-      db_expr_node(node->variant.init.expr, level + 2);
       break;
     case enk_new_delete:
       ndsp = node->variant.new_delete;
@@ -2124,9 +2089,6 @@ value.  Several fields are cleared or adjusted.
 static a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant)
 /*
 Make a copy of an unshared constant and return pointer to the copy.
-This is meant to be called only during the process of copying an expression
-tree (the top-level routines like copy_expr_tree set up some important
-global variables).
 */
 {
   a_constant_ptr new_constant, old_aggr_con, new_aggr_con;
@@ -4006,8 +3968,7 @@ type in a function definition is based on a typedef).
        from more than one place.  Therefore a copy must be made of the
        expression node for the default arg (if one exists). */
     if (old_ptp->default_arg_expr != NULL) {
-      new_ptp->default_arg_expr = copy_expr_tree(old_ptp->default_arg_expr,
-                                                 /*clone_temps=*/TRUE);
+      new_ptp->default_arg_expr = copy_expr_tree(old_ptp->default_arg_expr);
     }  /* if */
     if (prev_new_ptp == NULL) {
       to_type->variant.routine.extra_info->param_type_list = new_ptp;
@@ -4088,41 +4049,6 @@ its kind to kind, and return a pointer to it.
 }  /* alloc_dynamic_init */
 
 
-static a_dynamic_init_ptr alloc_dtor_dynamic_init(
-                                                 a_dynamic_init_kind kind,
-                                                 a_type_ptr          type,
-                                                 a_boolean           evaluated)
-/*
-Allocate a dynamic initialization entry, clear it to default values, set
-its kind to kind, and return a pointer to it.  If type is a type that
-requires a destructor, put the destructor routine pointer into the dynamic
-initialization entry.  If evaluated is FALSE, the reference is within
-an unevaluated expression.
-*/
-{
-  a_dynamic_init_ptr            dip = alloc_dynamic_init(kind);
-  a_class_symbol_supplement_ptr cssp;
-
-  if (is_class_struct_union_type(type)) {
-    /* The class is a class. */
-    cssp = symbol_supplement_for_class(type);
-    if (cssp != NULL) {
-      /* The class is a C++ class. */
-      if (cssp->destructor != NULL) {
-        /* The class has a destructor. */
-        dip->destructor = cssp->destructor->variant.routine.ptr;
-        reference_to_implicitly_invoked_function(cssp->destructor,
-                                                 &error_position,
-						 type,
-                                                 /*honor_virtual=*/FALSE,
-                                                 evaluated);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return dip;
-}  /* alloc_dtor_dynamic_init */
-
-
 void add_to_dynamic_inits_list(a_dynamic_init_ptr dip)
 /*
 Add the given dynamic initialization entry to the file-scope dynamic_inits
@@ -4146,122 +4072,6 @@ list.
 }  /* add_to_dynamic_inits_list */
 
 
-static void add_rewritten_temporary(a_variable_ptr old_temp,
-                                    a_variable_ptr new_temp)
-/*
-Allocate an entry to record the fact that during an expression copy
-the temporary variable old_temp should be replaced by the temporary variable
-new_temp.  Add the entry to the beginning of the rewritten_temporaries list.
-*/
-{
-  a_rewritten_temporary_ptr rtp;
-
-  if (avail_rewritten_temporaries != NULL) {
-    /* Reuse a previously-freed entry. */
-    rtp = avail_rewritten_temporaries;
-    avail_rewritten_temporaries = avail_rewritten_temporaries->next;
-  } else {
-    /* Allocate a new entry. */
-    rtp = (a_rewritten_temporary_ptr)alloc_fe(sizeof(a_rewritten_temporary));
-#if DEBUG
-    num_rewritten_temporaries_allocated++;
-#endif /* DEBUG */
-  }  /* if */
-  /* Initialize the entry and put in on the front of the list. */
-  rtp->old_temp = old_temp;
-  rtp->new_temp = new_temp;
-  rtp->next = rewritten_temporaries;
-  rewritten_temporaries = rtp;
-}  /* add_rewritten_temporary */
-
-
-static void free_rewritten_temporaries(void)
-/*
-Free the entries on the rewritten_temporaries list by putting them on
-the avail_rewritten_temporaries list.
-*/
-{
-  a_rewritten_temporary_ptr rtp;
-
-  if (rewritten_temporaries != NULL) {
-    /* Find the last entry on the list. */
-    rtp = rewritten_temporaries;
-    while (rtp->next != NULL) rtp = rtp->next;
-    /* Put the list of entries on the front of the available list. */
-    rtp->next = avail_rewritten_temporaries;
-    avail_rewritten_temporaries = rewritten_temporaries;
-    rewritten_temporaries = NULL;
-  }  /* if */
-}  /* free_rewritten_temporaries */
-
-
-static a_boolean is_temporary_var(a_variable_ptr var)
-/*
-Return TRUE if the indicated variable is a temporary.
-*/
-{
-  a_boolean                   is_temporary;
-  a_type_ptr                  var_type;
-  a_class_type_supplement_ptr ctsp;
-
-  if (var->source_corresp.name != NULL) {
-    /* The variable has a name, so it's not a temporary. */
-    is_temporary = FALSE;
-  } else {
-    is_temporary = TRUE;
-    /* Check for anonymous union variables. */
-    if (C_dialect == C_dialect_cplusplus) {
-      var_type = var->type;
-      if (is_class_struct_union_type(var_type)) {
-        /* The variable has a class type. */
-        var_type = skip_typerefs(var_type);
-        ctsp = var_type->variant.class_struct_union.extra_info;
-        if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
-          /* The variable is an anonymous union, so it's not a temporary. */
-          is_temporary = FALSE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_temporary;
-}  /* is_temporary_var */
-
-
-static a_variable_ptr rewrite_if_temporary(a_variable_ptr var)
-/*
-If old_temp points to a temporary variable, and temporaries are being
-cloned during an expression copy, determine the new temporary variable
-with which it should be replaced, and return a pointer to that new
-variable.  Otherwise (i.e., if temporaries are not being cloned or
-if the variable is not a temporary), return the original variable.
-*/
-{
-  a_rewritten_temporary_ptr   rtp;
-  a_variable_ptr              new_var;
-
-  if (clone_temps_on_expr_copy && is_temporary_var(var)) {
-    /* The variable is a temporary and should be rewritten. */
-    /* See if the temporary already appears on the list of rewritten
-       temporaries.  If so, we've already assigned the corresponding new
-       temporary. */
-    for (rtp = rewritten_temporaries; rtp != NULL; rtp = rtp->next) {
-      if (rtp->old_temp == var) {
-        /* Found a match.  Use it. */
-        var = rtp->new_temp;
-        goto done;
-      }  /* if */
-    }  /* for */
-    /* This temporary has not been seen before.  Allocate a new temporary
-       and remember the correspondence. */
-    new_var = alloc_temporary_variable(var->type);
-    add_rewritten_temporary(var, new_var);
-    var = new_var;
-  }  /* if */
-done:
-  return var;
-}  /* rewrite_if_temporary */
-
-
 static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr dip)
 /*
 Make a copy of a dynamic initialization entry and return a pointer to the copy.
@@ -4274,21 +4084,16 @@ expression node.
 
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
-  /* Rewrite the variable if there is one and it's a temporary. */
-  if (dip->variable != NULL) {
-    new_dip->variable = rewrite_if_temporary(dip->variable);
-  }  /* if */
   switch (dip->kind) {
     case dik_none:
       break;
     case dik_expression:
     case dik_call_returning_class_via_cctor:
-      new_dip->variant.expression =
-                              internal_copy_expr_tree(dip->variant.expression);
+      new_dip->variant.expression = copy_expr_tree(dip->variant.expression);
       break;
     case dik_constructor:
       new_dip->variant.constructor.args =
-               internal_copy_list_of_expr_trees(dip->variant.constructor.args);
+                        copy_list_of_expr_trees(dip->variant.constructor.args);
       break;
     case dik_constant:
     case dik_nonconstant_aggregate:
@@ -4467,11 +4272,11 @@ a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type)
 Make a temporary variable whose type is temp_type.  Return a pointer to it.
 */
 {
-  a_variable_ptr   temp_var;
-  a_boolean        at_file_scope;
-  a_storage_class  storage_class;
+  a_variable_ptr  temp_var;
+  a_boolean       at_file_scope;
+  a_storage_class storage_class;
 
-  /* Typically, a temporary variable will be have automatic storage class,
+  /* Typically, a temporary variable will have automatic storage class,
      since it will appear in an expression in a function or block scope.
      However, if the temp is involved in an expression at file scope (within
      a class scope, for instance, or a default argument expression), it
@@ -4765,8 +4570,8 @@ fields to default values.
       node->variant.field = NULL;
       break;
     case enk_temp_init:
-      node->variant.init.dynamic_init = NULL;
-      node->variant.init.expr         = NULL;
+      node->variant.init.result_is_addr = FALSE;
+      node->variant.init.dynamic_init   = NULL;
       break;
     case enk_new_delete:
       /* Allocate the supplement for new/delete. */
@@ -4961,19 +4766,16 @@ Allocate a copy of an expression node and return a pointer to it.
 }  /* copy_node */
 
 
-static an_expr_node_ptr internal_copy_list_of_expr_trees(
-                                                    an_expr_node_ptr expr_list)
+an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list)
 /*
 Make a copy of a list of expression trees and return a pointer to it.
-This routine does the real work for copy_list_of_expr_trees and should not be
-called directly.
 */
 {
   an_expr_node_ptr expr, expr_copy, prev_expr_copy, expr_list_copy;
 
   expr_list_copy = prev_expr_copy = NULL;
   for (expr = expr_list; expr != NULL; expr = expr->next) {
-    expr_copy = internal_copy_expr_tree(expr);
+    expr_copy = copy_expr_tree(expr);
     if (expr_list_copy == NULL) {
       expr_list_copy = expr_copy;
     } else {
@@ -4982,14 +4784,12 @@ called directly.
     prev_expr_copy = expr_copy;
   }  /* for */
   return expr_list_copy;
-}  /* internal_copy_list_of_expr_trees */
+}  /* copy_list_of_expr_trees */
 
 
-static an_expr_node_ptr internal_copy_expr_tree(an_expr_node_ptr expr)
+an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr)
 /*
 Make a copy of an expression tree and return a pointer to it.
-This routine does the real work for copy_expr_tree and should not be
-called directly.
 */
 {
   an_expr_node_kind           kind = expr->kind;
@@ -5001,15 +4801,9 @@ called directly.
   if (kind == (an_expr_node_kind)enk_operation) {
     /* Copy the operands of the operation. */
     expr_copy->variant.operation.operands =
-            internal_copy_list_of_expr_trees(expr->variant.operation.operands);
-  } else if (kind == (an_expr_node_kind)enk_variable ||
-             kind == (an_expr_node_kind)enk_variable_address) {
-    /* Rewrite references to temporary variables. */
-    expr_copy->variant.variable = rewrite_if_temporary(expr->variant.variable);
+                     copy_list_of_expr_trees(expr->variant.operation.operands);
   } else if (kind == (an_expr_node_kind)enk_temp_init) {
-    /* Copy the subtree and dynamic init for a dynamic initialization. */
-    expr_copy->variant.init.expr =
-                              internal_copy_expr_tree(expr->variant.init.expr);
+    /* Copy the dynamic init for a dynamic initialization. */
     expr_copy->variant.init.dynamic_init =
                             copy_dynamic_init(expr->variant.init.dynamic_init);
   } else if (kind == (an_expr_node_kind)enk_new_delete) {
@@ -5018,56 +4812,12 @@ called directly.
     ndsp = expr->variant.new_delete;
     copy_ndsp = expr_copy->variant.new_delete;
     if (ndsp->arg != NULL) {
-      copy_ndsp->arg = internal_copy_list_of_expr_trees(ndsp->arg);
+      copy_ndsp->arg = copy_list_of_expr_trees(ndsp->arg);
     }  /* if */
     if (ndsp->dynamic_init != NULL) {
       copy_ndsp->dynamic_init = copy_dynamic_init(ndsp->dynamic_init);
     }  /* if */
   }  /* if */
-  return expr_copy;
-}  /* internal_copy_expr_tree */
-
-
-an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list)
-/*
-Make a copy of a list of expression trees and return a pointer to it.
-Temporaries referenced in the expressions are not changed.
-*/
-{
-  an_expr_node_ptr expr_list_copy;
-
-  /* Set some global variables that affect the copying. */
-  rewritten_temporaries = NULL;
-  clone_temps_on_expr_copy = FALSE;
-  /* Do the copying. */
-  expr_list_copy = internal_copy_list_of_expr_trees(expr_list);
-  /* Clean up. */
-  free_rewritten_temporaries();
-  return expr_list_copy;
-}  /* copy_list_of_expr_trees */
-
-
-an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr,
-                                a_boolean        clone_temps)
-/*
-Make a copy of an expression tree and return a pointer to it.  If clone_temps
-is TRUE, replace all temporaries referenced by the expression by new
-equivalent temporaries; that is needed when making copies of an expression
-that might be executed at the same time as the original expression, e.g.,
-for default argument expressions.  clone_temps cannot be TRUE when this routine
-is called from IL lowering, because the wrong temp-allocation routine would be
-called.
-*/
-{
-  an_expr_node_ptr expr_copy;
-
-  /* Set some global variables that affect the copying. */
-  rewritten_temporaries = NULL;
-  clone_temps_on_expr_copy = clone_temps;
-  /* Do the copying. */
-  expr_copy = internal_copy_expr_tree(expr);
-  /* Clean up. */
-  free_rewritten_temporaries();
   return expr_copy;
 }  /* copy_expr_tree */
 
@@ -5077,9 +4827,7 @@ an_expr_node_ptr copy_default_arg_expr_list(a_param_type_ptr ptp)
 Make an expression list containing copies of the default argument expressions
 for the parameter indicated by ptp and all parameters following that.
 If ptp is non-NULL, it must point to a parameter with a default argument
-expression.  Replace all temporaries referenced by the expression by new
-equivalent temporaries.  This routine may not be called from IL lowering,
-because the wrong temp-allocation routine would be called.
+expression.
 */
 {
   an_expr_node_ptr first_node = NULL, last_node = NULL, arg_node;
@@ -5100,7 +4848,7 @@ because the wrong temp-allocation routine would be called.
       if (ptp->default_arg_expr == NULL) {
         arg_node = error_node();
       } else {
-        arg_node = copy_expr_tree(ptp->default_arg_expr, /*clone_temps=*/TRUE);
+        arg_node = copy_expr_tree(ptp->default_arg_expr);
       }  /* if */
       if (first_node == NULL) {
         first_node = arg_node;
@@ -5280,57 +5028,51 @@ class need not be an immediate base class.
 }  /* base_class_selection_expr */
 
 
-a_variable_ptr create_expr_temporary(a_type_ptr       temp_type,
-                                     a_boolean        force_temp_init,
-                                     a_boolean        evaluated,
-                                     an_expr_node_ptr *temp_init_node)
+an_expr_node_ptr create_expr_temporary(a_type_ptr temp_type,
+                                       a_boolean  result_is_addr,
+                                       a_boolean  evaluated)
 /*
-Allocate a temporary variable of type temp_type and return a pointer to it.
-If force_temp_init is TRUE or temp_type is a type that requires a destructor,
-also allocate an enk_temp_init node pointing to a dynamic init entry
-and return a pointer to the enk_temp_init node in *temp_init_node; otherwise,
-set *temp_init_node to NULL.  If evaluated is FALSE, the reference is
-within an unevaluated expression.
+Create an enk_temp_init node and return a pointer to it.  The implied
+temporary has type temp_type.  A dynamic initialization entry indicating
+no initialization (but indicating destruction if appropriate) is attached
+under the enk_temp_init node.  The value of the enk_temp_init is the address
+(rather than the value) of the temporary if result_is_addr is TRUE.
+If evaluated is FALSE, the reference is within an unevaluated expression.
+Only used in C++.
 */
 {
-  a_variable_ptr     temp_var;
   a_dynamic_init_ptr dip;
+  an_expr_node_ptr   temp_init_node;
 
-  *temp_init_node = NULL;
-  /* Allocate the temporary. */
-  temp_var = alloc_temporary_variable(temp_type);
-  if (force_temp_init ||
-      (C_dialect == C_dialect_cplusplus &&
-       is_class_struct_union_type(temp_type) &&
-       symbol_supplement_for_class(temp_type)->destructor != NULL)) {
-    /* force_temp_init is TRUE, or the temp_type is a class with a
-       destructor. */
-    dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type,
-                                  evaluated);
-    dip->variable = temp_var;
-    /* Make an enk_temp_init node that points at the dynamic init
-       entry. */
-    (*temp_init_node) = alloc_expr_node((an_expr_node_kind)enk_temp_init);
-    (*temp_init_node)->variant.init.dynamic_init = dip;
-    /* Note that the type and expression are not set yet, as we do not
-       know what expression will be attached to the enk_temp_init. */
+  /* Allocate the dynamic initialization entry. */
+  dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+  /* See if the temporary needs a destructor. */
+  if (is_class_struct_union_type(temp_type)) {
+    a_symbol_ptr dtor_sym = symbol_supplement_for_class(temp_type)->destructor;
+    if (dtor_sym != NULL) {
+      dip->destructor = dtor_sym->variant.routine.ptr;
+      reference_to_implicitly_invoked_function(dtor_sym,
+                                               &error_position,
+                                               temp_type,
+                                               /*honor_virtual=*/FALSE,
+                                               evaluated);
+    }  /* if */
   }  /* if */
-  return temp_var;
+  /* Make an enk_temp_init node that points at the dynamic init entry. */
+  temp_init_node = alloc_expr_node((an_expr_node_kind)enk_temp_init);
+  temp_init_node->variant.init.dynamic_init = dip;
+  temp_init_node->variant.init.result_is_addr = result_is_addr;
+  if (result_is_addr) {
+    /* The result is the address of the temporary, so the type is a pointer
+       to the type of the temporary. */
+    temp_init_node->type = make_pointer_type(temp_type);
+  } else {
+    /* The result is the value of the temporary, so the type is the type
+       of the temporary. */
+    temp_init_node->type = temp_type;
+  }  /* if */
+  return temp_init_node;
 }  /* create_expr_temporary */
-
-
-void attach_expr_under_temp_init(an_expr_node_ptr *node,
-                                 an_expr_node_ptr temp_init_node)
-/*
-temp_init_node points to an enk_temp_init.  Attach the expression pointed to
-by *node under the enk_temp_init node, and update *node to point to the
-enk_temp_node.
-*/
-{
-  temp_init_node->variant.init.expr = *node;
-  temp_init_node->type = (*node)->type;
-  *node = temp_init_node;
-}  /* attach_expr_under_temp_init */
 
 
 void set_routine_calling_method_flag(a_type_ptr routine_type)
@@ -5386,16 +5128,15 @@ is invalid (i.e., incomplete); an error node is returned for that case.
 {
   an_expr_operator_kind         op;
   an_expr_node_ptr              call_node;
-  a_type_ptr                    return_type, call_type;
+  a_type_ptr                    return_type;
   a_routine_type_supplement_ptr rtsp;
-  a_variable_ptr                temp_var = NULL;
-  an_expr_node_ptr              temp_init_node = NULL, temp_node, prev_node;
+  an_expr_node_ptr              temp_init_node = NULL;
+  a_dynamic_init_ptr            dip;
 
   function_type = skip_typerefs(function_type);
   /* Any type qualifiers on the return type are dropped because rvalues
      do not have qualified types. */
-  call_type = return_type =
-                     skip_typerefs(function_type->variant.routine.return_type);
+  return_type = skip_typerefs(function_type->variant.routine.return_type);
   /* The function return type must be void or object type and not array
      type.  Half of this check is in add_to_derived_type_list.
      The check here is necessary because it is valid to declare a
@@ -5407,7 +5148,7 @@ is invalid (i.e., incomplete); an error node is returned for that case.
     internal_error("func_call_expr: function returns array or function");
   }  /* if */
 #endif /* CHECKING */
-  /* Return type may not be incomplete (but void is okay). */
+  /* The return type may not be incomplete (but void is okay). */
   check_for_uninstantiated_template_class(return_type);
   if (is_incomplete_type(return_type) && !is_void_type(return_type)) {
     pos_error(ec_incomplete_return_type_not_allowed, err_pos);
@@ -5418,30 +5159,12 @@ is invalid (i.e., incomplete); an error node is returned for that case.
       a_routine_ptr routine = function_node->variant.routine;
       if (evaluated) routine->called = TRUE;
     }  /* if */
-    rtsp = function_type->variant.routine.extra_info;
-    /* If the function is one for which the caller must supply a place for
-       the result, allocate a temporary for that and insert it into the
-       argument list. */
-    set_routine_calling_method_flag(function_type);
-    if (rtsp->caller_provides_place_to_put_return_value) {
-      /* Allocate the temporary for the return value. */
-      temp_var = create_expr_temporary(return_type, /*force_temp_init=*/FALSE,
-                                       evaluated, &temp_init_node);
-      /* Make an expression for the address of the temporary. */
-      temp_node = var_lvalue_expr(temp_var);
-      /* Put the expression into the argument list.  If there is a "this"
-         parameter, the temporary is added after it. */
-      prev_node = function_node;
-      if (rtsp->implicit_this_param_type != NULL) prev_node = prev_node->next;
-      temp_node->next = prev_node->next;
-      prev_node->next = temp_node;
-      /* The return type of the call is a pointer to the temporary. */
-      call_type = make_pointer_type(return_type);
-    } else if (is_reference_type(call_type)) {
+    if (is_reference_type(return_type)) {
       /* If the function returns a reference type, make the result a
          pointer. */
-      call_type = return_type = make_pointer_type(type_pointed_to(call_type));
+      return_type = make_pointer_type(type_pointed_to(return_type));
     }  /* if */
+    /* Determine the operator to use for the call. */
     if (is_ptr_to_member_type(function_node->type)) {
       /* Call using a pointer-to-member-function. */
       op = (an_expr_operator_kind)eok_pm_call;
@@ -5449,27 +5172,25 @@ is invalid (i.e., incomplete); an error node is returned for that case.
       /* Call of a virtual function. */
       op = (an_expr_operator_kind)eok_virtual_call;
     } else {
+      /* Normal call. */
       op = (an_expr_operator_kind)eok_call;
     }  /* if */
     /* Make an expression for the function call. */
-    call_node = make_operator_node(op, call_type, function_node);
-    /* If a temporary was allocated to hold the returned value, add
-       a comma expression to pick up the temporary value, like
-         (f(&T, a1, a2), T)
-       Note that find_class_rvalue_var_node looks for the form
-       of the expressions generated here to do an optimization.
-    */
-    if (temp_var != NULL) {
-      temp_node = var_rvalue_expr(temp_var);
-      call_node->next = temp_node;
-      call_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                     return_type, call_node);
-      /* If the object involved requires a destructor, an enk_temp_init
-         node was created above.  Attach it above the function call to
-         request the destructor invocation. */
-      if (temp_init_node != NULL) {
-        attach_expr_under_temp_init(&call_node, temp_init_node);
-      }  /* if */
+    call_node = make_operator_node(op, return_type, function_node);
+    /* If the function is one that returns its value to a caller-supplied
+       location (using a copy constructor), add an enk_temp_init node
+       for the implied temporary on top of the call. */
+    set_routine_calling_method_flag(function_type);
+    rtsp = function_type->variant.routine.extra_info;
+    if (rtsp->caller_provides_place_to_put_return_value) {
+      temp_init_node = create_expr_temporary(return_type,
+                                             /*result_is_addr=*/FALSE,
+                                             evaluated);
+      dip = temp_init_node->variant.init.dynamic_init;
+      set_dynamic_init_kind(dip,
+                      (a_dynamic_init_kind)dik_call_returning_class_via_cctor);
+      dip->variant.expression = call_node;
+      call_node = temp_init_node;
     }  /* if */
   }  /* if */
   return call_node;
@@ -5855,11 +5576,6 @@ Display and return the amount of space used for various IL tables.
   db_space_used_total();
 
   (void)fputc('\n', f_debug);
-  db_space_used_lost("rewritten temporary", avail_rewritten_temporaries,
-                     num_rewritten_temporaries_allocated,
-                     a_rewritten_temporary);
-
-  (void)fputc('\n', f_debug);
   db_space_used_other("get_based_type_calls", num_get_based_type_calls, "");
   (void)fputc('\n', f_debug);
   db_space_used_other("num_shareable_constants", num_shareable_constants, "");
@@ -5993,7 +5709,6 @@ of the front end.
   num_scopes_allocated                   = 0;
   num_il_entry_prefixes_allocated        = 0;
   string_literal_text_space_allocated    = 0;
-  num_rewritten_temporaries_allocated    = 0;
   num_shareable_constants                = 0;
   num_func_shareable_constants           = 0;
   num_used_shareable_constant_buckets    = 0;
@@ -6005,7 +5720,6 @@ of the front end.
   num_orphaned_il_lists_allocated        = 0;
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #endif /* DEBUG */
-  avail_rewritten_temporaries = NULL;
   avail_template_args = NULL;
 }  /* il_init */
 
