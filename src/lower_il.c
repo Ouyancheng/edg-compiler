@@ -10712,6 +10712,11 @@ Generate any destructor calls required preceding the indicated goto statement.
     for (temp_stmt = label_block->variant.block.statements;
          ;
          temp_stmt = temp_stmt->next) {
+#if CHECKING
+      if (temp_stmt == NULL) {
+        internal_error("gen_goto_required_destructor_calls: label not found");
+      }  /* if */
+#endif /* CHECKING */
       if (temp_stmt->kind == (a_statement_kind)stmk_label) {
         label_number++;
         if (temp_stmt == label_stmt) break;
