@@ -6332,7 +6332,7 @@ created if a projected symbol cannot be found in any of the real bases.
     a_symbol_ptr	sym;
     sym = create_nonreal_progenitor_symbol(class_ptr, options, locator, &path);
     /* Assume that the the member is publicly accessible. */
-    access = as_public;
+    access = (an_access_specifier)as_public;
     progenitor_sym = sym;
     fund_sym_is_nonreal_member = TRUE;
   }  /* if */
