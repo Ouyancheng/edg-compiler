@@ -42,6 +42,7 @@ typedef enum a_pragma_binding_kind {
                 /* Processed when encountered as a preprocessing directive. */
   pbk_last
 		/* Must be last. */
+		/*lint -esym(769,a_pragma_binding_kind::pbk_last)*/
 } a_pragma_binding_kind;
 
 
