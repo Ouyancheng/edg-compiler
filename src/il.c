@@ -1730,10 +1730,10 @@ region_to_switch_back_to for use later by switch_back_to_original_region.
   }  /* if */
 }  /* switch_to_file_scope_region */
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-static void switch_to_scope_region(
-                              a_scope_depth          scope_depth,
-                              a_memory_region_number *region_to_switch_back_to)
+#if GENERATE_SOURCE_SEQUENCE_LISTS || RECORD_HIDDEN_NAMES_IN_IL
+
+void switch_to_scope_region(a_scope_depth          scope_depth,
+                            a_memory_region_number *region_to_switch_back_to)
 /*
 Switch to the function-scope memory region if not already there.  Set
 region_to_switch_back_to for use later by switch_back_to_original_region.
@@ -1749,7 +1749,8 @@ region_to_switch_back_to for use later by switch_back_to_original_region.
     *region_to_switch_back_to = NULL_region_number;
   }  /* if */
 }  /* switch_to_scope_region */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || RECORD_HIDDEN_NAMES_IN_IL */
 
 void switch_back_to_original_region(
                                a_memory_region_number region_to_switch_back_to)
@@ -3433,7 +3434,7 @@ caller is responsible for sorting that out.)
     if (sp != NULL) {
       /* Set the scope-stack-entry depth if not already set. */
       if (sp->depth_in_scope_stack == NO_SCOPE_DEPTH) {
-        sp->depth_in_scope_stack = (scope_stack - ssep);
+        sp->depth_in_scope_stack = (ssep - scope_stack);
       }  /* if */
     } else {
       check_assertion_str(ssep->kind == (a_scope_kind)sck_pragma,
