@@ -1618,9 +1618,17 @@ cases.  Return TRUE if the two types are compatible by these relaxed rules.
       tp1->variant.routine.return_type = ret1;
     }  /* if */
   } else {
-    /* Object types -- they are "compatible" if they are interchangeable. */
     check_assertion(is_object_type(tp1) && is_object_type(tp2));
-    compat = interchangeable_types(tp1, tp2);
+    if (is_array_type(tp1)) {
+      /* Array object types are "compatible" if they have the same element
+         type. */
+      compat = identical_types(array_element_type(tp1),
+                               array_element_type(tp2));
+    } else {
+      /* Non-array object types are "compatible" if they are
+         interchangeable. */
+      compat = interchangeable_types(tp1, tp2);
+    }  /* if */
   }  /* if */
   return compat;
 }  /* types_are_SVR4_compatible */
@@ -1679,6 +1687,13 @@ issued a similar error).  Return FALSE if there is some error.
             severity = es_warning;
             /* Record the most recent type as the external symbol's type. */
             esdp->type = type_ptr;
+            goto issue_diagnostic;
+          }  /* if */
+        } else if (is_array_type(type_ptr)) {
+          /* Array types are compatible when the element types are the same
+             no matter what the visibility constraints are. */
+          if (types_are_SVR4_compatible(old_type, type_ptr)) {
+            severity = es_warning;
             goto issue_diagnostic;
           }  /* if */
         } else {
