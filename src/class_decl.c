@@ -4355,7 +4355,7 @@ as defined in the IA64 ABI.
     nearly_empty = FALSE;
   } else {
     /* There must be no non-static data members other than zero-width
-       bitfields.  */
+       bitfields. */
     for (fp = type->variant.class_struct_union.field_list;
          fp != NULL;
          fp = fp->next) {
@@ -4388,6 +4388,7 @@ as defined in the IA64 ABI.
         /* Empty bases at non-zero offsets make a class not "nearly empty". */
         if (bcp->type->variant.class_struct_union.is_empty_class &&
             bcp->offset != 0) {
+          nearly_empty = FALSE;
           break;
         }  /* if */
       }  /* for */
