@@ -4212,9 +4212,15 @@ is the one associated with the definition of the class.
                                                        max_member_alignment;
 
   /* If required, put out a #pragma pack directive to set the pack
-     alignment for the current class.  (GNU compilers ignore the
-     pragma; attributes are issued instead.) */
-  if (pack_alignment > 0 && !gcc_is_generated_code_target) {
+     alignment for the current class.  (Some GNU compilers ignore the
+     pragma; attributes are issued instead.  If we know attribute packed
+     will be emitted, we don't issue the pragma.) */
+  if (pack_alignment > 0
+#if GNU_EXTENSIONS_ALLOWED
+      && !(gcc_is_generated_code_target && pack_alignment == 1 &&
+           type->variant.class_struct_union.is_packed)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                      ) {
     if (pack_alignment == il_header.default_max_member_alignment) {
       /* No need to put out a pragma to override the default value. */
       pack_alignment = 0;

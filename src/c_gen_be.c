@@ -2601,10 +2601,16 @@ final semicolon if output_final_semi is TRUE.
   if (start_unreferenced_bracket(&type->source_corresp)) {
 #if USER_CONTROL_OF_STRUCT_PACKING
     a_targ_alignment  pack_alignment = get_pack_alignment(type);
-    if (pack_alignment != 0 && !gcc_is_generated_code_target) {
+    if (pack_alignment != 0
+#if GNU_EXTENSIONS_ALLOWED
+        && !(gcc_is_generated_code_target && pack_alignment == 1 &&
+             type->variant.class_struct_union.is_packed)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                        ) {
       /* Put out a #pragma pack directive to indicate the special alignment
-         requirements for this struct.  GNU compilers ignore the pragma;
-         an attribute will be emitted instead. */
+         requirements for this struct.  (Some GNU compilers ignore the
+         pragma; attributes are issued instead.  If we know attribute packed
+         will be emitted, we don't issue the pragma.) */
       unsigned long saved_indent = indent;
       end_output_line_if_begun();
       indent = 0;
