@@ -90,22 +90,30 @@ This is now fixed.
 Strong using-directives are now supported in g++ mode.  The strong
 using-directive is an extension added in g++ 3.4 and used in the g++
 libraries.  A strong using-directive is like a normal using-directive except
-that the namespace containing the using-directive can specialize class
-templates declared in the used namespace, and the namespace containing the
-using-directive is included in any argument-dependent lookup that looks in
-the named namespace.
+that:
+
+- The namespace containing the using-directive can specialize class
+  templates declared in the used namespace.
+- The namespace containing the using-directive is included in any
+  argument-dependent lookup that looks in the named namespace.
+- In a qualified lookup in a namespace, names from namespaces made visible
+  by strong using-directives overload with names from the using namespace
+  instead of being hidden by them.
 
   namespace std {
     namespace debug {
       template <class T> struct A {};
+      void g(int, int);
     }
     using namespace debug __attribute__((strong));
     template <> struct A<int> {};
     template <class T> void f(A<T>){}
+    void g(int);
   }
   int main() {
     f(std::A<float>());
     f(std::A<int>());
+    std::g(1, 2);  // calls std::debug::g
   }
 
 2/4/04   GNU C++ mode: Out-of-class member specialization
