@@ -30,14 +30,14 @@ fe_wrapup.c - End of front end processing.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #include "templates.h"
 #include "trans_corresp.h"
-#if DEBUG
-#include "exprutil.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #if DO_C99_IL_LOWERING
 #include "lower_c99.h"
 #endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
+#if DEBUG
+#include "exprutil.h"
 #include "macro.h"
 #include "statements.h"
 #endif /* DEBUG */
