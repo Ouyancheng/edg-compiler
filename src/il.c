@@ -626,9 +626,12 @@ class_struct_union:
       db_abbreviated_type(tp->variant.routine.return_type);
       break;
     case tk_typeref:
-      fputs("typeref ", f_debug);
-      if (tp->variant.typeref.is_const) fputs("const ", f_debug);
-      if (tp->variant.typeref.is_volatile) fputs("volatile ", f_debug);
+      if (!tp->variant.typeref.is_const && !tp->variant.typeref.is_volatile) {
+        fputs("typeref ", f_debug);
+      } else {
+        if (tp->variant.typeref.is_const) fputs("const ", f_debug);
+        if (tp->variant.typeref.is_volatile) fputs("volatile ", f_debug);
+      }  /* if */
       if (!tp->variant.typeref.is_function_scope_tag) {
         db_abbreviated_type(tp->variant.typeref.type);
       } else {
