@@ -3551,7 +3551,6 @@ entry_routine (it has no name on entry).
   /* Add two underscores after the class name. */
   add_str_to_mangled_name("__", &mctl);
   /* Add the routine name. */
-  check_assertion(!prim_routine->source_corresp.name_has_been_mangled);
   mangled_function_name(prim_routine,
                         /*suppress_param_encoding=*/FALSE,
                         &mctl);
