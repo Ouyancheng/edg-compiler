@@ -2572,15 +2572,19 @@ skip_base_class:
   if (debug_level >= 3) {
     db_base_class_list(type_ptr);
   }  /* if */
-#endif /* DEBUG */
 #if CHECKING
-  if (type_ptr->kind != (a_type_kind)tk_union) {
-    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      verify_path_consistency(type_ptr, bcp);
-      verify_virt_func_override_list(type_ptr, bcp, /*null_allowed=*/FALSE);
-    }  /* for */
+  if (db_active) {
+    /* This check is somewhat expensive, so only do it when debugging is
+       turned on. */
+    if (type_ptr->kind != (a_type_kind)tk_union) {
+      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+        verify_path_consistency(type_ptr, bcp);
+        verify_virt_func_override_list(type_ptr, bcp, /*null_allowed=*/FALSE);
+      }  /* for */
+    }  /* if */
   }  /* if */
 #endif /* CHECKING */
+#endif /* DEBUG */
   db_exit();
 }  /* scan_base_specifier_list */
 

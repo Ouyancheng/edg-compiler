@@ -7089,7 +7089,7 @@ placed but whose scope has since been popped from the scope stack.
      to be on.  This can be a costly test, so it's only done when debugging
      is done. */
 #if 0
-  if (debug_level >= 0)
+  if (db_active)
 #endif /* if 0 */
   {
     a_source_sequence_entry_ptr tmp;
