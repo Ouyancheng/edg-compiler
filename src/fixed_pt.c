@@ -425,13 +425,13 @@ negative, is_negative will be TRUE.
   }  /* if */
   if (is_negative) {
     /* If the value should be negative, negate the resulting value. */
-    a_boolean		err;
+    a_boolean		local_err;
     an_integer_value	saved_value;
     saved_value = *value;
-    negate_integer_value(value, &err);
+    negate_integer_value(value, &local_err);
     /* An error should only occur on negating the smallest integer.  In
        that case, just use the original value. */
-    if (err) *value = saved_value;
+    if (local_err) *value = saved_value;
   }  /* if */
 done:
   return;
