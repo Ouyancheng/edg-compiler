@@ -4776,11 +4776,12 @@ a_type_ptr microsoft_sized_signed_integer_type(an_integer_kind kind)
 /*
 Make or find a type entry for an explicitly signed integer type of the
 indicated kind, and return a pointer to it.  Keeping track of the difference
-between, e.g., a plain "int" and a "signed int" is necessary because the two
-may be handled differently for bit fields.  Should only be called for kinds
-ik_short, ik_int, ik_long, and ik_long_long.  (This is for the case of a
-"__intN" type that Microsoft Visual C++ 6.0 (and later?) treats as a distinct
-built-in type as opposed to just a typedef for another integral type.)
+between, e.g., a plain "__int32" and a "signed __int32" is necessary because
+the two may be handled differently for bit fields.  Should only be called for
+the kinds corresponding to __int16, __int32 and __int64.  (This is for the
+case of a "__intN" type that Microsoft Visual C++ 6.0 (and later?) treats as a
+distinct built-in type as opposed to just a typedef for another integral
+type.)
 */
 {
   a_type_ptr pit;
@@ -4791,13 +4792,9 @@ built-in type as opposed to just a typedef for another integral type.)
   } else {
     /* The type must be created. */
 #if CHECKING
-    if (kind != (an_integer_kind)ik_short &&
-        kind != (an_integer_kind)ik_int &&
-        kind != (an_integer_kind)ik_long
-#if LONG_LONG_ALLOWED
-        && kind != (an_integer_kind)ik_long_long
-#endif /* LONG_LONG_ALLOWED */
-                                                ) {
+    if (kind != targ_int16_int_kind &&
+        kind != targ_int32_int_kind &&
+        kind != targ_int64_int_kind) {
       internal_error("microsoft_sized_signed_integer_type: bad int kind");
     }  /* if */
 #endif /* CHECKING */
