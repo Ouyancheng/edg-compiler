@@ -8545,9 +8545,9 @@ Process a handler declaration:
         set_to_error_locator(locator);
         remove_stop_token(tok_rparen);
       } else {
-        decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED |
-                          DSI_EMPTY_DECL_SPECIFIERS_ALLOWED,
-                        &dso_flags, &storage_class, &type_ptr);
+        (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
+                               DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
+                              &dso_flags, &storage_class, &type_ptr);
         if (dso_flags & DSO_DEFINES_SOMETHING) {
           /* Definition of a class, struct, union, or enum type is not
              allowed. */
