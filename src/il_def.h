@@ -4222,7 +4222,18 @@ typedef struct an_expr_node {
 			   value is the value of the temporary. */
       unsigned int
 		static_temp:1;
-			/* If TRUE, the temporary must be static. */
+			/* If TRUE, the temporary must be static.  This means
+			   the storage duration of the temporary is required
+			   to be static.  A value of FALSE, however, does not
+			   mean the storage duration is forced to be
+			   automatic.  For example, temp inits in the file
+			   scope that don't need to be static will have this
+			   flag FALSE even though static may be the only
+			   possible storage duration if the temporary is
+			   realized in the file scope.  Also, storage duration
+			   is different than object lifetime; see the
+			   lifetime information in the dynamic init entry
+			   pointed to. */
       bitfield_to_avoid_codecenter_warnings();
       a_dynamic_init_ptr
 		dynamic_init;
