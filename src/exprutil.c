@@ -2781,6 +2781,32 @@ operator position (for errors).  Return FALSE if there is an error.
     pos_ty2_error(ec_incompatible_operands, operator_position,
                   operand_1_type, operand_2_type);
     *operation_type = error_type();
+  } else if (any_cfront_mode()) {
+    /* Cfront doesn't allow casts of pointers to members from virtual base
+       to derived, but it does allow comparisons of such things:
+         struct A {int j;};
+         struct B : public virtual A {int k;};
+         void f() {
+           int A::*pa = &A::j;
+           int B::*pb = &B::k;
+           (void)(pa == pb);    // allowed
+         }
+       Of course, it gets these wrong sometimes, because it doesn't do any
+       adjustment.  We allow the comparison, but we do it "right" by doing
+       the cast in the other direction and then comparing. */
+    a_base_class_ptr bcp = std_conv.cast_base_class;
+    if (bcp != NULL && !bcp->ambiguous &&
+        any_virtual_steps_in_derivation(bcp)) {
+      if (*operation_type == operand_1_type) {
+        cast_operand(operand_2_type, operand_1, /*check_cast_access=*/TRUE,
+                     /*is_implicit_cast=*/FALSE);
+        *operation_type = operand_2_type;
+      } else {
+        cast_operand(operand_1_type, operand_2, /*check_cast_access=*/TRUE,
+                     /*is_implicit_cast=*/FALSE);
+        *operation_type = operand_1_type;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return okay;
 }  /* check_ptr_to_member_operands_for_compatibility */
