@@ -872,6 +872,7 @@ display program) can query these entities.
     default:
       catastrophe(ec_bad_il_file);
   }  /* switch */
+  c99_mode = il_header.c99_mode;
   /* Also set enum_type_is_integral.  This affects how is_integral_type
      and related routines regard enum types. */
   enum_type_is_integral = il_header.enum_type_is_integral;
