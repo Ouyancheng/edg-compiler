@@ -1809,8 +1809,8 @@ a_type_ptr default_argument_promotion(a_type_ptr old_type)
 Determine what (old style) promotion should be done to this argument's
 type.  Note that this routine does not actually change the type of the
 node; it just returns the type that the node should be.  It is up to
-the caller to do the cast.  See also scan_function_call; it depends on
-the fact that the default argument promotions on an integral or enum type
+the caller to do the cast.  See also arg_default_promote_operand; it depends
+on the fact that the default argument promotions on an integral or enum type
 are simply the integral promotions (to handle the bit-field integral
 promotions case).  Note that this routine expects to receive an rvalue
 type.
@@ -1822,11 +1822,18 @@ type.
   if (is_integral_or_enum(unqual_type)) {
     /* For integral types, do the integral promotions. */
     new_type = type_after_integral_promotion(old_type);
-  } else if (is_floating(unqual_type)) {
+  } else if (is_real_floating(unqual_type)) {
     /* Promote float to double. */
     if (unqual_type->variant.float_kind == (a_float_kind)fk_float) {
       new_type = float_type((a_float_kind)fk_double);
     }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  } else if (is_imaginary(unqual_type)) {
+    /* Promote float imaginary to double imaginary. */
+    if (unqual_type->variant.float_kind == (a_float_kind)fk_float) {
+      new_type = imaginary_type((a_float_kind)fk_double);
+    }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   }  /* if */
   return new_type;
 }  /* default_argument_promotion */
