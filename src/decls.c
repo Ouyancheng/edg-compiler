@@ -8244,11 +8244,11 @@ continue_with_declaration:
             /* Postpone the checking until the initializer is scanned. */
             local_decl_modifiers &= ~DM_SELECTANY;
           }  /* if */
-          /* Copy the decl-modifiers into the routine entry. */
-          update_variable_decl_modifiers(var_ptr, local_decl_modifiers,
-                                         &locator.source_position,
-                                         /*is_redecl=*/TRUE);
         }  /* if */
+        /* Copy the decl-modifiers into the routine entry. */
+        update_variable_decl_modifiers(var_ptr, local_decl_modifiers,
+                                       &locator.source_position,
+                                       /*is_redecl=*/TRUE);
 #endif /* DECL_MODIFIERS_IN_USE */
       } else if (is_function) {
         /* A function declaration with no body. */
@@ -8394,7 +8394,8 @@ continue_with_declaration:
            changed if it was an incomplete array and was initialized. */
         if (var_ptr != NULL) local_type_ptr = var_ptr->type;
 #if DECL_MODIFIERS_IN_USE
-        if ((decl_modifiers & ~local_decl_modifiers) == DM_SELECTANY) {
+        if (microsoft_mode &&
+            (decl_modifiers & ~local_decl_modifiers & DM_SELECTANY)) {
           /* Checking for the "selectany" decl-modifier was deferred. */
           if (var_ptr->init_kind == (an_init_kind)initk_static) {
             /* Flag the variable. */
