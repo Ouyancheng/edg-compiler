@@ -326,28 +326,7 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_routine_type_supplement_ptr ptr =
                                       (a_routine_type_supplement_ptr)entry_ptr;
-        /* The param type list is special in that it is a list that can be
-           pointed to by more than one list header (i.e., from multiple
-           routine type supplements).  Remap the pointer, then check whether
-           the first entry has already been visited.  If so, do nothing more;
-           otherwise, walk the list. */
-        remap_ptr(ptr->param_type_list, a_param_type_ptr, iek_param_type);
-#if DO_SUBTREE_WALK
-        { a_param_type_ptr first_param;
-          first_param = ptr->param_type_list;
-          if (first_param == NULL ||
-              il_entry_prefix_of(first_param).il_walk_flag ==
-                                                  flag_value_meaning_visited) {
-            /* The list has already been visited, or it's an empty list. */
-          } else {
-            /* Walk the first entry and then the rest of the list.  This is
-               sort of an exploded version of walk_list without the initial
-               remap_ptr. */
-            walk_entry_and_subtree((char *)first_param, iek_param_type);
-            walk_list(first_param->next, a_param_type_ptr, iek_param_type);
-          }  /* if */
-        }
-#endif /* DO_SUBTREE_WALK */
+        walk_list(ptr->param_type_list, a_param_type_ptr, iek_param_type);
 #ifdef CFE
         walk_ptr(ptr->implicit_this_param_type, a_type_ptr, iek_type);
         walk_ptr(ptr->prototype_scope, a_scope_ptr, iek_scope);
