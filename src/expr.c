@@ -13174,7 +13174,6 @@ in a template instantiation) just do the scan.
   an_expr_node_ptr        node;
   an_expr_stack_entry     expr_stack_entry;
   an_expr_stack_entry_ptr saved_expr_stack;
-  a_boolean               discard;
 
   db_enter(3, "scan_default_arg_expr");
   /* Save, clear, and later restore the expression stack, since this expression
@@ -13197,16 +13196,9 @@ in a template instantiation) just do the scan.
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
   node = make_node_from_operand(&result);
-  discard = (ptp == NULL);
-  if (!prototype_instantiations_in_il &&
-      scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    /* Discard prototype instantiations of default arguments if we're not
-       keeping prototype instantiations in the IL. */
-    discard = TRUE;
-  }  /* if */
-  if (discard) discard_curr_expr_object_lifetime();
+  if (ptp == NULL) discard_curr_expr_object_lifetime();
   node = wrap_up_full_expression(node);
-  if (!discard) ptp->default_arg_expr = node;
+  if (ptp != NULL) ptp->default_arg_expr = node;
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
