@@ -3313,7 +3313,8 @@ otherwise, set *ext_sym to NULL.
         }  /* if */
       }  /* if */
       if (homonym_symbol->kind != (a_symbol_kind)sk_function_template &&
-          !overload_distinguishable(homonym_symbol, type_ptr, &error_code)) {
+          !overload_distinguishable(homonym_symbol, type_ptr,
+                                    /*new_is_template=*/FALSE, &error_code)) {
         /* The previous declaration and the current one are not "overload
            distinguishable" for a reason given by the error code returned. */
         pos_error(error_code, &locator->source_position);
@@ -3751,6 +3752,17 @@ class template.
                      &effective_decl_level);
     if (sym == NULL) {
       /* Not a redeclaration. */
+      an_error_code error_code;
+      if (homonym_symbol != NULL &&
+          !overload_distinguishable(homonym_symbol, type_ptr,
+                                    /*new_is_template=*/TRUE, &error_code)) {
+        /* The previous declaration and the current one are not "overload
+           distinguishable" for a reason given by the error code returned. */
+        pos_error(error_code, &locator->source_position);
+        set_to_error_locator(*locator);
+        /* Avoid overloading. */
+        homonym_symbol = NULL;
+      }  /* if */
       if (homonym_symbol != NULL) {
         /* Another function with the same name has been declared already.  It
            may or may not be a function template.  In any case, create a new
