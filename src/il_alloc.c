@@ -1527,7 +1527,7 @@ variant fields to default values.
   pte->based_types = NULL;
   pte->size = 0;
   pte->alignment = 1;
-  pte->incomplete = TRUE;
+  pte->incomplete = (kind != (a_type_kind)tk_routine);
   pte->used_in_exception_or_rtti = FALSE;
   pte->declared_in_function_prototype = FALSE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY

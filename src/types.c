@@ -2054,10 +2054,13 @@ set, leave it alone.  Also compute and set the alignment requirement.
         size = 1;
         type_ptr->incomplete = FALSE;
         break;
-      case tk_void:
       case tk_routine:
+        type_ptr->incomplete = FALSE;
+        /*FALLTHROUGH*/
+      case tk_void:
       case tk_typeref:
-        /* These stay zero; they have no size directly. */
+        /* These stay zero; they have no size directly.  However, a function
+           type is considered complete. */
         break;
       case tk_integer:
         get_integer_size_and_alignment(type_ptr->variant.integer.int_kind,
