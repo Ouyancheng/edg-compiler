@@ -1,5 +1,20 @@
 Version 3.6
 
+1/8/05   C++-generating back end: using-directives and hiding
+
+Name hiding resulting from using-directives was not considered, causing
+names that should have been qualified to be generated as unqualified names.
+Now fixed.
+
+  typedef int Int;
+  namespace Outer {
+     namespace Inner {
+       int Int;
+     };
+     using namespace Inner;
+     ::Int i;  // Formerly generated as (unqualified) "Int", now "::Int"
+  }
+
 1/8/05   Multiple translation unit merge of complete/incomplete versions of
          enum in C mode
 

@@ -1102,8 +1102,7 @@ indicated scope.
       sp->kind == (a_scope_kind)sck_namespace) {
     a_scope_stack_entry_ptr  ssep =
                                 &scope_stack[depth_innermost_namespace_scope];
-    check_assertion(ssep->il_scope == sp);
-    if (ssep->using_directives_apply) {
+    if (ssep->il_scope == sp && ssep->using_directives_apply) {
       /* If a using-directive appeared in the current scope, it may render
          sym_ptr ambiguous unless sym_ptr is displayed with a qualifier. */
       resolve_using_directive_ambiguity(sym_ptr, sp);
@@ -1173,10 +1172,14 @@ class scopes.  It is called directly from pop_scope for function and block
 scopes and for the file scope.
 */
 {
-  a_scope_stack_entry_ptr     ssep;
-  a_namespace_ptr             nsp;
-  a_type_ptr                  tp;
-  a_symbol_ptr                sym, sym_list;
+  a_scope_stack_entry_ptr           ssep;
+  a_namespace_ptr                   nsp;
+  a_type_ptr                        tp;
+  a_symbol_ptr                      sym, sym_list;
+  a_namespace_symbol_supplement_ptr ns_sym_supp;
+  a_scope_depth                     scope_depth_for_using_directive =
+                                                                NO_SCOPE_DEPTH;
+  a_scope_depth                     saved_depth_of_initial_lookup_scope;
 
   db_enter(3, "check_name_hiding_for_scope");
   if (sp != NULL) {
@@ -1221,8 +1224,10 @@ scopes and for the file scope.
         break;
       case sck_namespace:
         nsp = sp->variant.assoc_namespace;
-        sym_list = symbol_supplement_for_namespace(nsp)->
-                                             pointers_block.symbols;
+        ns_sym_supp = symbol_supplement_for_namespace(nsp);
+        sym_list = ns_sym_supp->pointers_block.symbols;
+        scope_depth_for_using_directive =
+                     ns_sym_supp->scope_depth_at_which_using_directive_applies;
         break;
       case sck_class_struct_union:
         check_name_hiding_by_template_parameters(sp);
@@ -1288,6 +1293,16 @@ scopes and for the file scope.
         /* Falling through to here means the symbol should be checked to see
            if this declaration hides another declaration. */
         check_for_defeatable_name_hiding(sym, sp);
+        if (scope_depth_for_using_directive != NO_SCOPE_DEPTH) {
+          /* This symbol is a member of a namespace to which a using-directive
+             applies, so it might hide symbols in scopes surrounding the
+             scope in which the using-directive is effective, as well. */
+          saved_depth_of_initial_lookup_scope = depth_of_initial_lookup_scope;
+          depth_of_initial_lookup_scope = scope_depth_for_using_directive;
+          check_for_defeatable_name_hiding(sym,
+                        scope_stack[scope_depth_for_using_directive].il_scope);
+          depth_of_initial_lookup_scope = saved_depth_of_initial_lookup_scope;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
