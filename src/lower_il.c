@@ -4691,6 +4691,13 @@ is returned TRUE.
              the class.  If it is defined in this compilation, we should put
              out the virtual function tables here. */
           defined_here = (routine->assoc_scope != NULL_region_number);
+          /* If the routine is local because of the -tlocal instantiation
+             mode, make the vtable local too. */
+          if (routine->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_internal) {
+            check_assertion(instantiation_mode == tim_local);
+            *force_static = TRUE;
+          }  /* if */
           goto have_defined_here;
         }  /* if */
       }  /* for */
