@@ -5829,6 +5829,16 @@ well as C++ mode.
       }  /* if */
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode &&
+      (*warning_suggested == ec_no_error ||
+       *warning_suggested == ec_pointer_conversion_to_same_size_int) &&
+      ilp64_will_narrow(source_type, dest_type)) {
+    /* Check for potential problems when porting to an ILP64 environment. */
+    *warning_suggested = ec_ilp64_will_narrow;
+    *is_mild_warning = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "reinterpret_cast_conversion_possible: %s\n",
@@ -5962,15 +5972,6 @@ set to TRUE (otherwise it is set to FALSE).
            warning or with a mild warning. */
         okay = TRUE;
         *reinterpret_cast_needed = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode &&
-            reinterpret_cast_warning_suggested == ec_no_error &&
-            ilp64_will_narrow(source_type, dest_type)) {
-          /* Check for potential problems when porting to an ILP64
-             environment. */
-          reinterpret_cast_warning_suggested = ec_ilp64_will_narrow;
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         *warning_suggested = reinterpret_cast_warning_suggested;
       } else if (static_cast_okay) {
         /* static_cast is okay but with a warning. */
