@@ -1600,12 +1600,19 @@ Output the definition of the indicated struct or union type.
 
   if (start_unreferenced_bracket(&type->source_corresp)) {
 #if USER_CONTROL_OF_STRUCT_PACKING
-    if (type->variant.class_struct_union.max_member_alignment > 0) {
-      /* Put out a #pragma pack directive to indicate the special alignment
-         requirements for this struct. */
-      set_unknown_output_position();
-      (void)fprintf(f_C_output, "#pragma pack(%d)\n",
-                    type->variant.class_struct_union.max_member_alignment);
+    a_targ_alignment  pack_alignment;
+
+    pack_alignment = type->variant.class_struct_union.max_member_alignment;
+    if (pack_alignment > 0) {
+      if (pack_alignment == il_header.default_max_member_alignment) {
+        /* No need to put out a pragma to override the default value. */
+        pack_alignment = 0;
+      } else {
+        /* Put out a #pragma pack directive to indicate the special alignment
+           requirements for this struct. */
+        set_unknown_output_position();
+        (void)fprintf(f_C_output, "#pragma pack(%d)\n", (int)pack_alignment);
+      }  /* if */
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     /* Dump any pragmas associated with the type. */
@@ -1733,7 +1740,7 @@ Output the definition of the indicated struct or union type.
     indent -= 2;
     write_tok_str("};");
 #if USER_CONTROL_OF_STRUCT_PACKING
-    if (type->variant.class_struct_union.max_member_alignment > 0) {
+    if (pack_alignment > 0) {
       /* Restore the packing alignment to a default state. */
       set_unknown_output_position();
       (void)fprintf(f_C_output, "#pragma pack()\n");
