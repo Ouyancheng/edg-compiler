@@ -5090,8 +5090,8 @@ class, struct, or union.
     member_sym->class_of_which_a_member = class_type;
     member_sym->variant.field.ptr = field;
   }  /* if */
+  field->source_corresp.class_of_which_a_member = class_type;
   if (C_dialect == C_dialect_cplusplus) {
-    field->source_corresp.class_of_which_a_member = class_type;
     field->source_corresp.access = access;
     field->is_mutable = is_mutable;
   }  /* if */
