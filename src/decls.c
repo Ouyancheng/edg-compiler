@@ -1524,158 +1524,141 @@ need not be addressed here.
 void add_throw_specification(a_func_info_block_ptr  func_info,
                              a_routine_ptr          rp)
 /*
-Add the throw specification, if any, to the routine entry.  If the routine
-already has one, leave it but check for consistency between the current
-one and the one previously declared.
 */
 {
-  a_boolean                      match, any_difference_seen;
-  a_throw_specification_ptr      new_tsp = func_info->throw_specification;
-  a_throw_specification_ptr      new_list, old_list, tsp, other_tsp;
-  a_symbol_ptr                   rout_sym;
   a_routine_type_supplement_ptr  rtsp;
 
   db_enter(4, "add_throw_specification");
-  rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
-  rtsp = rp->type->variant.routine.extra_info;
-  if (exceptions_disabled) {
-    /* If exception processing is suppressed for the current compilation,
-       the constructs will have been scanned (after an error is issued) but
-       the IL needed be updated. */
+  if (!exceptions_disabled) {
+    check_assertion(rp->type->kind == (a_type_kind)tk_routine);
+    rtsp = rp->type->variant.routine.extra_info;
     check_assertion(rtsp->throw_specification == NULL);
-  } else if (rtsp->throw_specification == NULL) {
-    /* No comparison need be done -- this must be the first declaration of
-       the routine. */
-    rtsp->throw_specification = new_tsp;
-  } else if (new_tsp->kind == (a_throw_spec_kind)tsk_any) {
-    /* Issue an error on the omission of a throw specification on the current
-       declaration if it was present on the previous one. */
-    if (rtsp->throw_specification->kind != (a_throw_spec_kind)tsk_any) {
-      pos_sy_error(ec_omitted_throw_specification, &func_info->throw_position,
-                   rout_sym);
-    }  /* if */
-  } else if (rtsp->throw_specification->kind == (a_throw_spec_kind)tsk_none) {
-    /* Previous specification asserted that no exceptions will be thrown.
-       It is compatible only with an identical specification on the current
-       declaration. */
-    if (new_tsp->kind != (a_throw_spec_kind)tsk_none) {
-      pos_stsy_start_error(ec_incompatible_throw_specification,
-                           &func_info->throw_position, ":", rout_sym);
-      add_diag_info(ec_previously_empty_throw_list);
-      end_error();
-    }  /* if */
-  } else if (rtsp->throw_specification->kind == (a_throw_spec_kind)tsk_any) {
-    /* Previous specification asserted that any exception may be thrown.
-       It is compatible only with an identical specification on the current
-       declaration. */
-    if (new_tsp->kind != (a_throw_spec_kind)tsk_any) {
-      pos_stsy_error(ec_incompatible_throw_specification,
-                     &func_info->throw_position, "", rout_sym);
-    }  /* if */
-  } else {
-    /* Previous specification was a list of the types that will be
-       thrown.  Check for a mismatch between the previous list and the
-       current one. */
-    old_list = rtsp->throw_specification;
-    if (new_tsp->kind == (a_throw_spec_kind)tsk_list_entry) {
-      /* The current throw specification is also a list of types. */
-      new_list = new_tsp;
-    } else {
-      /* The current throw specification says the function "will throw
-         nothing" (the "may throw anything" case has already been disposed
-         of). */
-      new_list = NULL;
-    }  /* if */
-    any_difference_seen = FALSE;
-    /* First loop through the current list (if any) and issue a diagnostic
-       on any type present in the current list but absent from the
-       previous one. */
-    for (tsp = new_list; tsp != NULL; tsp = tsp->next) {
-      if (tsp->redundant) {
-        /* Don't bother looking for a match on redundant types.  It will
-           already have been done. */
-      } else {
-        match = FALSE;
-        other_tsp = old_list;
-        for (; other_tsp != NULL; other_tsp = other_tsp->next) {
-          if (!other_tsp->redundant && other_tsp->type != NULL &&
-              identical_types(tsp->type, other_tsp->type)) {
-            /* An entry of the same type was found on the previous list. */
-            match = TRUE;
-            break;
-          }  /* if */
-        }  /* for */
-        if (!match) {
-          /* No match was found, so the previous list does not have a
-             type that is on the current list. */
-          if (!any_difference_seen) {
-            /* The diagnostics will be combined with a header message
-               followed by additional messages identifying the specific
-               discrepency.  This is the first diagnostic, so put out
-               the header message first. */
-            pos_stsy_start_error(ec_incompatible_throw_specification,
-                                 &func_info->throw_position, ":",
-                                 rout_sym);
-            any_difference_seen = TRUE;
-          }  /* if */
-          ty_add_diag_info(ec_previously_omitted_throw_type,
-                           tsp->type);
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    /* Next loop through the previous list and issue a diagnostic on any
-       type present in the previous list but absent from the current one
-       (if any). */
-    other_tsp = old_list;
-    for (; other_tsp != NULL; other_tsp = other_tsp->next) {
-      if (other_tsp->redundant) {
-        /* Don't bother looking for a match on redundant types.  It will
-           already have been done. */
-      } else {
-        match = FALSE;
-        for (tsp = new_tsp; tsp != NULL; tsp = tsp->next) {
-          if (!tsp->redundant &&
-              other_tsp->type != NULL && tsp->type != NULL &&
-              identical_types(tsp->type, other_tsp->type)) {
-            match = TRUE;
-            break;
-          }  /* if */
-        }  /* for */
-        if (!match) {
-          if (!any_difference_seen) {
-            /* This is the first diagnostic, so put out the header
-               message first. */
-            pos_stsy_start_error(ec_incompatible_throw_specification,
-                                 &func_info->throw_position, ":",
-                                 rout_sym);
-             any_difference_seen = TRUE;
-          }  /* if */
-          ty_add_diag_info(ec_previously_included_throw_type,
-                           other_tsp->type);
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    if (any_difference_seen) end_error();
+    rtsp->throw_specification = func_info->throw_specification;
   }  /* if */
   db_exit();
-}  /* add_throw_specification */
+}  /* if */
 
 
-void set_to_throw_anything(a_func_info_block_ptr  func_info,
-                           a_source_position      *pos)
+void check_throw_specification(a_func_info_block_ptr  func_info,
+                               a_routine_ptr          rp)
 /*
-Set the func_info block to point to a throw_specification entry that
-specifies that "any exception may be thrown from the current function".
+Check that the throw specification on the current declaration, if any, is
+consistent with that of the previous declaration.
 */
 {
-  a_throw_specification_ptr  tsp;
+  a_boolean                      match, any_difference_seen;
+  a_throw_specification_ptr      new_throw_spec, old_throw_spec;
+  a_throw_spec_type_ptr          new_tst_list, old_tst_list;
+  a_throw_spec_type_ptr          tstp, other_tstp;
+  a_symbol_ptr                   rout_sym;
 
+  db_enter(4, "check_throw_specification");
   if (!exceptions_disabled) {
-    tsp = alloc_throw_specification((a_throw_spec_kind)tsk_any);
-    tsp->decl_position = *pos;
-    func_info->throw_specification = tsp;
+    rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+    old_throw_spec = rp->type->variant.routine.extra_info->throw_specification;
+    new_throw_spec = func_info->throw_specification;
+    if (old_throw_spec == NULL) {
+      /* Previous specification asserted that any exception may be thrown.
+         It is compatible only with an identical specification on the current
+         declaration. */
+      if (new_throw_spec != NULL) {
+        pos_stsy_error(ec_incompatible_throw_specification,
+                       &func_info->throw_position, "", rout_sym);
+      }  /* if */
+    } else if (new_throw_spec == NULL) {
+      /* Issue an error on the omission of a throw specification on the current
+         declaration (it must have been present on the previous one). */
+      pos_sy_error(ec_omitted_throw_specification, &func_info->throw_position,
+                   rout_sym);
+    } else if (old_throw_spec->throw_spec_type_list == NULL) {
+      /* Previous specification asserted that no exceptions will be thrown.
+         It is compatible only with an identical specification on the current
+         declaration. */
+      if (new_throw_spec->throw_spec_type_list != NULL) {
+        pos_stsy_start_error(ec_incompatible_throw_specification,
+                             &func_info->throw_position, ":", rout_sym);
+        add_diag_info(ec_previously_empty_throw_list);
+        end_error();
+      }  /* if */
+    } else {
+      /* Previous specification was a list of the types that will be thrown.
+         Check for a mismatch between the previous list and the current one. */
+      old_tst_list = old_throw_spec->throw_spec_type_list;
+      new_tst_list = new_throw_spec->throw_spec_type_list;
+      any_difference_seen = FALSE;
+      /* First loop through the current list (if any) and issue a diagnostic
+         on any type present in the current list but absent from the
+         previous one. */
+      for (tstp = new_tst_list; tstp != NULL; tstp = tstp->next) {
+        if (tstp->redundant) {
+          /* Don't bother looking for a match on redundant types.  It will
+             already have been done. */
+        } else {
+          match = FALSE;
+          other_tstp = old_tst_list;
+          for (; other_tstp != NULL; other_tstp = other_tstp->next) {
+            if (!other_tstp->redundant && other_tstp->type != NULL &&
+                identical_types(tstp->type, other_tstp->type)) {
+              /* An entry of the same type was found on the previous list. */
+              match = TRUE;
+              break;
+            }  /* if */
+          }  /* for */
+          if (!match) {
+            /* No match was found, so the previous list does not have a
+               type that is on the current list. */
+            if (!any_difference_seen) {
+              /* The diagnostics will be combined with a header message
+                 followed by additional messages identifying the specific
+                 discrepency.  This is the first diagnostic, so put out
+                 the header message first. */
+              pos_stsy_start_error(ec_incompatible_throw_specification,
+                                   &func_info->throw_position, ":",
+                                   rout_sym);
+              any_difference_seen = TRUE;
+            }  /* if */
+            ty_add_diag_info(ec_previously_omitted_throw_type,
+                             tstp->type);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      /* Next loop through the previous list and issue a diagnostic on any
+         type present in the previous list but absent from the current one
+         (if any). */
+      other_tstp = old_tst_list;
+      for (; other_tstp != NULL; other_tstp = other_tstp->next) {
+        if (other_tstp->redundant) {
+          /* Don't bother looking for a match on redundant types.  It will
+             already have been done. */
+        } else {
+          match = FALSE;
+          for (tstp = new_tst_list; tstp != NULL; tstp = tstp->next) {
+            if (!tstp->redundant &&
+                other_tstp->type != NULL && tstp->type != NULL &&
+                identical_types(tstp->type, other_tstp->type)) {
+              match = TRUE;
+              break;
+            }  /* if */
+          }  /* for */
+          if (!match) {
+            if (!any_difference_seen) {
+              /* This is the first diagnostic, so put out the header
+                 message first. */
+              pos_stsy_start_error(ec_incompatible_throw_specification,
+                                   &func_info->throw_position, ":",
+                                   rout_sym);
+               any_difference_seen = TRUE;
+            }  /* if */
+            ty_add_diag_info(ec_previously_included_throw_type,
+                             other_tstp->type);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      if (any_difference_seen) end_error();
+    }  /* if */
   }  /* if */
-}  /* set_to_throw_anything */
+  db_exit();
+}  /* check_throw_specification */
 
 
 static void scan_throw_specification(a_func_info_block_ptr  func_info)
@@ -1695,10 +1678,12 @@ specification entry.
 
 Diagnostics are issued on redundant types on a list, but if this is a
 redeclaration of a routine, reconciliation with the previously throw
-specification is handled later (see add_throw_specification).
+specification is handled later (see check_throw_specification).
 */
 {
-  a_throw_specification_ptr  tsp, other_tsp, end_of_list = NULL;
+  a_throw_specification_ptr  tsp;
+  a_throw_spec_type_ptr      tstp, other_tstp, end_of_list = NULL;
+  a_source_position          type_pos;
 
   db_enter(4, "scan_throw_specification");
   /* Update the source position for the "throw".  Even if there is no
@@ -1706,12 +1691,15 @@ specification is handled later (see add_throw_specification).
   if (!exceptions_disabled) func_info->throw_position = pos_curr_token;
   if (curr_token != tok_throw) {
     /* No explicit throw specification, meaning anything may be thrown. */
-    set_to_throw_anything(func_info, &pos_curr_token);
     goto done;
   }  /* if */
   if (exceptions_disabled) {
     /* Exceptions are suppressed for this compilation. */
     pos_error(ec_no_exception_support, &pos_curr_token);
+  } else {
+    tsp = alloc_throw_specification();
+    tsp->throw_position = pos_curr_token;
+    func_info->throw_specification = tsp;
   }  /* if */
   /* Bypass "throw". */
   (void)get_token();
@@ -1721,50 +1709,53 @@ specification is handled later (see add_throw_specification).
     if (curr_token == tok_rparen) {
       /* Case is "throw ()" -- which means "no exception will be thrown by
          this routine. */
-      tsp = alloc_throw_specification((a_throw_spec_kind)tsk_none);
-      tsp->decl_position = pos_curr_token;
-      func_info->throw_specification = tsp;
       /* Bypass the right paren. */
       (void)get_token();
       goto done;
     }  /* if */
   } else {
-    /* Syntax error -- right paren is missing.  We don't actually call
+    /* Syntax error -- left paren is missing.  We don't actually call
        syntax_error or required_token for this, however, since writing
        "throw int" instead of "throw (int)" might be a common mistake. */
-    error(ec_exp_lparen);
+    if (!exceptions_disabled) error(ec_exp_lparen);
   }  /* if */
   /* Loop through the types. */
   do {
-    /* Allocate the throw specification entry. */
-    tsp = alloc_throw_specification((a_throw_spec_kind)tsk_list_entry);
-    tsp->decl_position = pos_curr_token;
+    /* Allocate the throw spec type entry. */
+    tstp = alloc_throw_spec_type();
+    type_pos = pos_curr_token;
+#if 0
+    /* Is this needed? */
+#endif /* if 0 */
+    tstp->decl_position = pos_curr_token;
     if (!is_decl_start(/*expr_context=*/FALSE,
                        /*real_declarator_allowed=*/FALSE)) {
       /* Error. */
-      pos_error(ec_exp_type_specifier, &tsp->decl_position);
-      tsp->type = error_type();
+      if (!exceptions_disabled) pos_error(ec_exp_type_specifier, &type_pos);
+      tstp->type = error_type();
     } else {
-      type_name(&tsp->type);
+      type_name(&tstp->type);
     }  /* if */
-    /* Add tsp to the list. */
-    if (end_of_list == NULL) {
-      func_info->throw_specification = tsp;
-    } else {
-      /* Examine other entries already on the list to see if the current one
-         is redundant. */
-      other_tsp = func_info->throw_specification;
-      for (; other_tsp != NULL; other_tsp = other_tsp->next) {
-        if (!other_tsp->redundant &&
-            identical_types(tsp->type, other_tsp->type)) {
-          pos_remark(ec_redundant_throw_type, &tsp->decl_position);
-          tsp->redundant = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
-      end_of_list->next = tsp;
+    if (!exceptions_disabled) {
+      /* Add tsp to the list. */
+      if (end_of_list == NULL) {
+        tsp->throw_spec_type_list = tstp;
+      } else {
+        /* Examine other entries already on the list to see if the current one
+           is redundant. */
+        other_tstp = tsp->throw_spec_type_list;
+        for (; other_tstp != NULL; other_tstp = other_tstp->next) {
+          if (!other_tstp->redundant &&
+              identical_types(tstp->type, other_tstp->type)) {
+            pos_remark(ec_redundant_throw_type, &type_pos);
+            tstp->redundant = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+        end_of_list->next = tstp;
+      }  /* if */
+      end_of_list = tstp;
     }  /* if */
-    end_of_list = tsp;
     /* If the next token is not a comma, it should be a right paren -- but
        check for a few other tokens that (in error cases) should also force
        the loop to terminate. */
@@ -1777,7 +1768,7 @@ specification is handled later (see add_throw_specification).
   if (curr_token == tok_rparen) {
     (void)get_token();
   } else {
-    error(ec_exp_rparen);
+    if (!exceptions_disabled) error(ec_exp_rparen);
   }  /* if */
 done:;
   db_exit();
@@ -3800,7 +3791,7 @@ skip_overloading:;
          Note that if it is a definition the checking must be done before
          the routine's decl position is modified, to assure that the
          "original declaration line number" is displayed accurately. */
-      add_throw_specification(func_info, routine_ptr);
+      check_throw_specification(func_info, routine_ptr);
     }  /* if */
     /* There is a linked symbol that is compatible with the new declaration.
        Record the re-declaration for cross-reference purposes. */
@@ -3921,7 +3912,7 @@ skip_overloading:;
                               /*preserve_rout_type=*/TRUE,
                               /*preserve_type_ptr=*/FALSE);
       /* Do compatibility checking for the throw specification. */
-      add_throw_specification(func_info, routine_ptr);
+      check_throw_specification(func_info, routine_ptr);
     } else if (routine_ptr == NULL) {
       /* There is no IL entry, so create one now, and add it to the routine
          list of the file scope. */
@@ -4262,10 +4253,13 @@ class template.
                           (storage_class == (a_storage_class)sc_extern) ?
                                 (a_name_linkage_kind)nlk_cplusplus_external :
                                 (a_name_linkage_kind)nlk_internal;
+    /* Bind the throw specification to the routine entry's type. */
+    add_throw_specification(func_info, rout_ptr);
+  } else {
+    /* Be sure the current throw specification is consistent with the one
+       on the previous declaration. */
+    check_throw_specification(func_info, rout_ptr);
   }  /* if */
-  /* Bind the throw specification to the routine entry.  Do compatibility
-     checking if this is a redeclaration. */
-  add_throw_specification(func_info, rout_ptr);
   if (overload_symbol != NULL) {
     /* A new symbol was added to an overload list which may have included
        functions that were specific declarations of the current template.
@@ -4545,10 +4539,10 @@ on a prior declaration.
       }  /* if */
     }  /* if */
     /* Do compatibility checking on the throw specification and bind the
-       throw specification to the routine entry. Note that the checking must
+       throw specification to the routine entry.  Note that the checking must
        be done before the routine's decl position is modified, to assure that
        the "original declaration line number" is displayed accurately. */
-    add_throw_specification(func_info, rp);
+    check_throw_specification(func_info, rp);
     mark_declared(sym, &locator->source_position,
                   /*save_as_decl_position=*/TRUE);
     copy_source_position(locator->source_position,
@@ -4814,11 +4808,7 @@ symbol has already been entered as an undefined symbol.
   /* Declare the function identifier. */
   clear_func_info(&func_info);
   func_info.is_implicit_declaration = TRUE;
-  if (C_dialect == C_dialect_cplusplus) {
-    /* Although this is an error case, make the throw specification
-       consistent with what downstream processing will be expecting. */
-    set_to_throw_anything(&func_info, &pos_curr_token);
-  }  /* if */
+  if (!exceptions_disabled) func_info.throw_position = locator.source_position;
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
                       &func_info, &symbol_ptr, &linkage, &old_type, &ext_sym);
   /* Set the referenced flag on the routine entry.  The implicit declaration
