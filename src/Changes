@@ -185,12 +185,13 @@ preventing the calling of the __vec_new routine if the allocation fails.
 the temporary by the array header size -- not shown above -- has been
 eliminated in deference to this new, higher-level test for non-NULL.)
 
-2/27/98   Extra source positions for templates    
+2/27/98   Extra source positions for templates
 
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, source range information is now
 put out for templates (when RECORD_TEMPLATES_IN_IL is TRUE) and for
 template instantiation directives (when GENERATE_SOURCE_SEQUENCE_LISTS is
-TRUE).
+TRUE).  (3/19/98:) The information for template definitions includes
+separate range information for the template body.
 
 2/27/98   Param-type information clobbered on declarations preceding
           routine definition
@@ -324,6 +325,7 @@ information when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  They involved:
   -- a "vacuous" class declaration that follows the class's definition
   -- a typedef redeclaration (2/27/98)
   -- address of ellipsis (e.g., &...) (3/9/98)
+  -- range for mem-initializer now includes field/base-class name (3/19/98)
 
 2/16/98   Access check on elided constructor in strict mode
 
