@@ -61,7 +61,11 @@ needed (say, for incredibly large string literals formed by token
 concatenation).
 */
 #ifndef HOST_ALLOCATION_INCREMENT
+#if __MSDOS__
+#define HOST_ALLOCATION_INCREMENT 16384
+#else /* !__MSDOS__ */
 #define HOST_ALLOCATION_INCREMENT 65536
+endif /* __MSDOS__ */
 #endif /* ifndef HOST_ALLOCATION_INCREMENT */
 
 /*
