@@ -238,6 +238,8 @@ extern an_expr_node_ptr node_for_integer_constant(long            value,
 
 extern an_expr_node_ptr copy_node(an_expr_node_ptr expr);
 
+extern an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list);
+
 extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr var_lvalue_expr(a_variable_ptr var);

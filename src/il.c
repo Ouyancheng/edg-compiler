@@ -3786,28 +3786,39 @@ Make a copy of an expression node and return a pointer to it.
 }  /* copy_node */
 
 
+an_expr_node_ptr copy_list_of_expr_trees(an_expr_node_ptr expr_list)
+/*
+Make a copy of a list of expression trees and return a pointer to it.
+*/
+{
+  an_expr_node_ptr expr, expr_copy, prev_expr_copy, expr_list_copy;
+
+  expr_list_copy = prev_expr_copy = NULL;
+  for (expr = expr_list; expr != NULL; expr = expr->next) {
+    expr_copy = copy_expr_tree(expr);
+    if (expr_list_copy == NULL) {
+      expr_list_copy = expr_copy;
+    } else {
+      prev_expr_copy->next = expr_copy;
+    }  /* if */
+    prev_expr_copy = expr_copy;
+  }  /* for */
+  return expr_list_copy;
+}  /* copy_list_of_expr_trees */
+
+
 an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr)
 /*
 Make a copy of an expression tree and return a pointer to it.
 */
 {
-  an_expr_node_ptr expr_copy, operand, operand_copy, prev_operand_copy;
+  an_expr_node_ptr expr_copy;
 
   expr_copy = copy_node(expr);
   if (expr->kind == (an_expr_node_kind)enk_operation) {
     /* Copy the operands of the operation. */
-    prev_operand_copy = NULL;
-    for (operand = expr->variant.operation.operands;
-         operand != NULL;
-         operand = operand->next) {
-      operand_copy = copy_expr_tree(operand);
-      if (prev_operand_copy == NULL) {
-        expr_copy->variant.operation.operands = operand_copy;
-      } else {
-        prev_operand_copy->next = operand_copy;
-      }  /* if */
-      prev_operand_copy = operand_copy;
-    }  /* for */
+    expr_copy->variant.operation.operands =
+                     copy_list_of_expr_trees(expr->variant.operation.operands);
   }  /* if */
   return expr_copy;
 }  /* copy_expr_tree */
