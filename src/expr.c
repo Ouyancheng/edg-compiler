@@ -3798,156 +3798,41 @@ routine is called for both C-style casts and C++ functional-notation type
 conversions.
 */
 {
-  a_type_ptr       source_type = operand->type;
+  a_type_ptr       source_type;
   an_error_code    warning_suggested;
   a_boolean        failed = FALSE;
   a_routine_ptr    conversion_routine;
   an_expr_node_ptr func_ptr_node, object_node;
 
-
-  /* For a C++ cast to reference, convert the lvalue operand to a pointer
-     to the object.  Note that source_type remains set to the original
-     type (the reference). */
-  if (cast_to_reference) {
-    /* The expression must be an lvalue (that term in C++ includes function
-       designators). */
-    if (is_an_lvalue(operand)) {
-      take_address_of_lvalue(operand, expression_kind);
-    } else if (is_a_function_designator(operand)) {
-      conv_function_designator_to_ptr_to_function(operand, expression_kind);
-    } else {
-      if (!is_error_operand(operand)) {
-        error_in_operand(ec_expr_not_an_lvalue, operand);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-
-  /* Check for casts that are allowed in general but disallowed in specific
-     modes. */
-  if (err || is_error_operand(operand)) {
-    /* There was a previous error.  Do no further checking. */
-    err = TRUE;
-  } else if (expression_kind == (an_expression_kind)ek_integral_constant) {
-    /* Integral constant expression: only arithmetic --> integral
-       is standard.  The code above has already checked that the target
-       type is integral (except that when this cast is the immediate operand
-       of another cast, integer --> pointer is allowed as an extension). */
-    if (int_to_ptr_case) {
-      /* This is the extension case let by above.  The source should be
-         integral. */
-      if (!is_integral_type(source_type)) {
-        error(ec_expr_not_integral);
-        err = TRUE;
-      }  /* if */
-    } else if (!is_arithmetic_type(source_type)) {
-      /* As an extension, allow pointer --> int for pointer constants
-         that come from casting an integer constant to a pointer type,
-         as in (int)(char *)1. */
-      if (is_pointer_type(source_type) && is_constant_operand(operand) &&
-          operand->variant.constant.kind == (a_constant_repr_kind)ck_integer) {
-        if (strict_ansi_mode) warning(ec_expr_not_arithmetic);
+  if (err) {
+    /* There was a previous error (e.g., the type to cast to is invalid
+       regardless of the type of the source).  Do no further checking. */
+  } else {
+    if (cast_to_reference) {
+      /* In C++, "An object may be explicitly converted to a reference type
+         X& if a pointer to that object may be explicitly converted
+         to an X*" (ARM 5.4).  Rewrite the cast in that form.  Note that
+         type_cast_to is already set to the proper pointer type. */
+      /* The expression must be an lvalue (that term in C++ includes function
+         designators). */
+      if (is_an_lvalue(operand)) {
+        take_address_of_lvalue(operand, expression_kind);
+      } else if (is_a_function_designator(operand)) {
+        conv_function_designator_to_ptr_to_function(operand, expression_kind);
       } else {
-        error(ec_expr_not_arithmetic);
-        err = TRUE;
-      }  /* if */
-    }  /* if */
-  } else if (expression_kind == (an_expression_kind)ek_init_constant) {
-    /* Initializer constant expression: arithmetic --> arithmetic
-       and scalar --> pointer are allowed, pointer --> integral as
-       an extension.  The code above has already checked that the
-       target type is scalar (arithmetic or pointer).  Check that a
-       cast to arithmetic converts from an arithmetic type (see 3.4).
-       The usual checks on the scalar --> pointer case are done below
-       (to catch, e.g., float --> pointer). */
-    if (is_arithmetic_type(type_cast_to)) {
-      /* Casting to arithmetic, source must be arithmetic. */
-      if (!is_arithmetic_type(source_type)) {
-        if (is_pointer_type(source_type) && is_integral_type(type_cast_to)) {
-          /* Pointer --> integral.  Allowed as an extension.  The check that
-             the integral type is large enough is done below in the call of
-             expl_conversion_possible. */
-          if (strict_ansi_mode) warning(ec_expr_not_arithmetic);
-        } else {
-          /* Non-arithmetic --> arithmetic. */
-          error(ec_expr_not_arithmetic);
-          err = TRUE;
+        if (!is_error_operand(operand)) {
+          error_in_operand(ec_expr_not_an_lvalue, operand);
         }  /* if */
       }  /* if */
     }  /* if */
-  }  /* if */
-  /* Check that the combination of the source and target types is
-     allowed, then do the cast.  See 3.4 in the ANSI C standard. */
-  if (!err) {
-    /* The bound function test is done first to make sure bound functions
-       cannot wander into the rest of the cases. */
-    if (operand->bound_function) {
-      /* In C++, a bound function pointer may be cast to a normal function
-         pointer, as in
-           struct A {int f();};
-           A *p = new A;
-           int (*pf)() = (int (*)())p->f;
-         This is an anachronism.  See ARM 18.3.4. */
-      if (cast_to_func_ptr &&
-          is_pointer_type(operand->type) &&
-          is_function_type(type_pointed_to(operand->type))) {
-        pos_warning(ec_bound_function_cast_anachronism, start_position);
-        do_operand_transformations(operand, TOPT_NO_OPTIONS, expression_kind);
-        if (operand->virtual_function) {
-          /* The function is a virtual function, so use an
-             eok_virtual_function_ptr operation to compute the address at
-             runtime. */
-          /* Make a node for the function pointer. */
-          func_ptr_node = make_node_from_operand(operand);
-          /* Make a node for the bound object address. */
-          object_node = make_node_from_operand(bound_function_selector);
-          func_ptr_node->next = object_node;
-          func_ptr_node = make_operator_node(
-                               (an_expr_operator_kind)eok_virtual_function_ptr,
-                               operand->type, func_ptr_node);
-          make_expression_operand(func_ptr_node, func_ptr_node->type, operand);
-        } else {
-          /* The function is not a virtual function, so discard the selector
-             object pointer and just use the routine address. */
-          discard_operand(bound_function_selector);
-          operand->bound_function = FALSE;
-        }  /* if */
-        /* Cast the node to the result type of the cast. */
-        cast_operand(type_cast_to, operand, expression_kind,
-                     /*is_implicit_cast=*/FALSE);
-      } else {
-        /* Any other use of a bound function.  Error. */
-        error_in_operand(ec_bound_function_must_be_called, operand);
-      }  /* if */
-    } else if (is_void_type(type_cast_to)) {
-      /* Anything --> void, allowed. */
-      do_operand_transformations(operand, TOPT_NO_OPTIONS, expression_kind);
-      /* For casts to void, we build an expression node that is a cast
-         to void.  This special cast to void is only used for the
-         case handled here, i.e., for an explicit cast to void.
-         Later, in simplify_void_operand, the cast will probably be removed.
-         cast_operand is not used because we do not wish to try to
-         change the types of constants to void.  We do not call
-         simplify_void_operand here because (a) we want to keep the
-         explicit cast to void as a signal to suppress the warning
-         about an expression with no effect, and (b) we want to keep
-         a non-NULL expression pointer all the way up to avoid
-         special-case checks. */
-      make_expression_operand(
-                          make_operator_node((an_expr_operator_kind)eok_cast,
-                                             type_cast_to,
-                                             make_node_from_operand(operand)),
-                          type_cast_to,
-                          operand);
-    } else if (cast_to_reference) {
-      /* C++ cast to reference type. */
-      cast_operand(type_cast_to, operand, expression_kind,
-                   /*is_implicit_cast=*/FALSE);
-      /* The result of a cast to reference is an lvalue. */
-      conv_object_pointer_to_lvalue(operand);
-    } else if (C_dialect == C_dialect_cplusplus &&
-               user_defined_conversion_possible(operand, type_cast_to,
-                                                &conversion_routine,
-                                                &failed)) {
+    /* Check for user-defined conversions, but not in constant expressions
+       or in C, and not when casting to void. */
+    if (C_dialect == C_dialect_cplusplus &&
+        !is_const_expr_kind(expression_kind) &&
+        !is_void_type(type_cast_to) &&
+        user_defined_conversion_possible(operand, type_cast_to,
+                                         &conversion_routine,
+                                         &failed)) {
       /* A user-defined conversion can be done. */
       user_convert_operand(operand, type_cast_to, conversion_routine,
                            expression_kind);
@@ -3955,50 +3840,196 @@ conversions.
       /* A user-defined conversion was our only hope, and it failed.
          The error has already been issued. */
       err = TRUE;
-    } else if (!is_ptr_to_member_type(type_cast_to) &&
-               !is_scalar_type(source_type)) {
-      /* Not casting to void or a class, and not casting to a pointer-to-member
-         type, so the source type must be scalar. */
-      error(ec_expr_not_scalar);
-      err = TRUE;
-    } else if (expl_conversion_possible(source_type,
-                                        is_constant_operand(operand),
-                                        &operand->variant.constant,
-                                        type_cast_to,
-                                        ec_bad_cast, &warning_suggested)) {
-      /* Valid explicit conversion.  Issue warning on oddball cases. */
-      if (warning_suggested != ec_no_error) {
-        pos_warning(warning_suggested, start_position);
-      }  /* if */
-      do_operand_transformations(operand,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
-                                 expression_kind);
-      /* In pcc mode, some lvalues cast to same-sized types remain lvalues
-         (e.g., int to unsigned). */
-      if (C_dialect == C_dialect_pcc && is_an_lvalue(operand) &&
-          still_an_lvalue(source_type, type_cast_to)) {
-        /* Use a special "lvalue cast" operator.  Always do the cast on
-           an expression node, even if the lvalue address is currently
-           given by a constant.  This is because all lvalue casts should
-           be clearly identifiable.  The lvalue cast operator looks a lot
-           like a normal cast, but its operand is an lvalue, and therefore
-           doesn't really have its address taken, which is important when
-           (e.g.) register entities are subjected to an lvalue cast.  See
-           the code in conv_lvalue_to_rvalue that removes the cast if
-           the cast lvalue is then converted to an rvalue (the usual case). */
-        lvalue_cast(type_cast_to, operand);
-      } else {
-        /* Normal cast.  All standard C cases. */
-        conv_lvalue_to_rvalue(operand, expression_kind);
-        cast_operand(type_cast_to, operand, expression_kind,
-                     /*is_implicit_cast=*/FALSE);
-      }  /* if */
     } else {
-      /* Not a valid conversion. */
-      /* Note:  If this is changed to display the types involved,
-         remember to check cast_to_reference. */
-      err = TRUE;
-      pos_error(ec_bad_cast, start_position);
+      /* No user-defined conversion applies. */
+      if (!cast_to_reference) {
+        /* Normal case (not a cast to reference).  Do array --> pointer and
+           function --> pointer conversions.  They must be done now because
+           they affect the type of the operand.  Don't do lvalue --> rvalue
+           yet because of the pcc lvalue cast case. */
+        do_operand_transformations(operand,
+                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
+                                   expression_kind);
+      }  /* if */
+      /* Get the source type after the transformations. */
+      source_type = operand->type;
+      /* cast_type_pre_check has already verified that the destination type
+         is legal in broad terms.  Check for casts that are allowed in
+         general but disallowed in specific modes. */
+      if (is_error_operand(operand)) {
+        /* There was a previous error.  Do no further checking. */
+        err = TRUE;
+      } else if (expression_kind == (an_expression_kind)ek_integral_constant) {
+        /* Integral constant expression: only arithmetic --> integral
+           is standard.  cast_type_pre_check has already checked that the
+           target type is integral (except that when this cast is the
+           immediate operand of another cast, integer --> pointer is
+           allowed as an extension). */
+        if (int_to_ptr_case) {
+          /* This is the extension case let by.  The source must be
+             integral. */
+          if (!is_integral_type(source_type)) {
+            error(ec_expr_not_integral);
+            err = TRUE;
+          }  /* if */
+        } else if (!is_arithmetic_type(source_type)) {
+          /* As an extension, allow pointer --> int for pointer constants
+             that come from casting an integer constant to a pointer type,
+             as in (int)(char *)1. */
+          if (is_pointer_type(source_type) && is_constant_operand(operand) &&
+              operand->variant.constant.kind ==
+                                            (a_constant_repr_kind)ck_integer) {
+            if (strict_ansi_mode) warning(ec_expr_not_arithmetic);
+          } else {
+            error(ec_expr_not_arithmetic);
+            err = TRUE;
+          }  /* if */
+        }  /* if */
+      } else if (expression_kind == (an_expression_kind)ek_init_constant) {
+        /* Initializer constant expression: arithmetic --> arithmetic
+           and scalar --> pointer are allowed, pointer --> integral as
+           an extension.  The code above has already checked that the
+           target type is scalar (arithmetic or pointer).  Check that a
+           cast to arithmetic converts from an arithmetic type (see 3.4).
+           The usual checks on the scalar --> pointer case are done below
+           (to catch, e.g., float --> pointer). */
+        if (is_arithmetic_type(type_cast_to)) {
+          /* Casting to arithmetic, source must be arithmetic. */
+          if (!is_arithmetic_type(source_type)) {
+            if (is_pointer_type(source_type) &&
+                is_integral_type(type_cast_to)) {
+              /* Pointer --> integral.  Allowed as an extension.  The check
+                 that the integral type is large enough is done below in the
+                 call of expl_conversion_possible. */
+              if (strict_ansi_mode) warning(ec_expr_not_arithmetic);
+            } else {
+              /* Non-arithmetic --> arithmetic. */
+              error(ec_expr_not_arithmetic);
+              err = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      /* Check that the combination of the source and target types is
+         allowed, then do the cast.  See 3.4 in the ANSI C standard. */
+      if (!err) {
+        /* The bound function test is done first to make sure bound functions
+           cannot wander into the rest of the cases. */
+        if (operand->bound_function) {
+          /* In C++, a bound function pointer may be cast to a normal function
+             pointer, as in
+               struct A {int f();};
+               A *p = new A;
+               int (*pf)() = (int (*)())p->f;
+             This is an anachronism.  See ARM 18.3.4. */
+          if (cast_to_func_ptr &&
+              is_pointer_type(operand->type) &&
+              is_function_type(type_pointed_to(operand->type))) {
+            pos_warning(ec_bound_function_cast_anachronism, start_position);
+            conv_lvalue_to_rvalue(operand, expression_kind);
+            if (operand->virtual_function) {
+              /* The function is a virtual function, so use an
+                 eok_virtual_function_ptr operation to compute the address at
+                 runtime. */
+              /* Make a node for the function pointer. */
+              func_ptr_node = make_node_from_operand(operand);
+              /* Make a node for the bound object address. */
+              object_node = make_node_from_operand(bound_function_selector);
+              func_ptr_node->next = object_node;
+              func_ptr_node = make_operator_node(
+                               (an_expr_operator_kind)eok_virtual_function_ptr,
+                               operand->type, func_ptr_node);
+              make_expression_operand(func_ptr_node, func_ptr_node->type,
+                                      operand);
+            } else {
+              /* The function is not a virtual function, so discard the
+                 selector object pointer and just use the routine address. */
+              discard_operand(bound_function_selector);
+              operand->bound_function = FALSE;
+            }  /* if */
+            /* Cast the node to the result type of the cast. */
+            cast_operand(type_cast_to, operand, expression_kind,
+                         /*is_implicit_cast=*/FALSE);
+          } else {
+            /* Any other use of a bound function.  Error. */
+            error_in_operand(ec_bound_function_must_be_called, operand);
+          }  /* if */
+        } else if (is_void_type(type_cast_to)) {
+          /* Anything --> void, allowed. */
+          conv_lvalue_to_rvalue(operand, expression_kind);
+          /* For casts to void, we build an expression node that is a cast
+             to void.  This special cast to void is only used for the
+             case handled here, i.e., for an explicit cast to void.
+             Later, in simplify_void_operand, the cast will probably be
+             removed.  cast_operand is not used because we do not wish to
+             try to change the types of constants to void.  We do not call
+             simplify_void_operand here because (a) we want to keep the
+             explicit cast to void as a signal to suppress the warning
+             about an expression with no effect, and (b) we want to keep
+             a non-NULL expression pointer all the way up to avoid
+             special-case checks. */
+          make_expression_operand(
+                          make_operator_node((an_expr_operator_kind)eok_cast,
+                                             type_cast_to,
+                                             make_node_from_operand(operand)),
+                          type_cast_to,
+                          operand);
+        } else if (!is_scalar_type(source_type) &&
+                   !is_ptr_to_member_type(type_cast_to)) {
+          /* Not casting to void or a class, and not casting to a
+             pointer-to-member type, so the source type must be scalar. */
+          error(ec_expr_not_scalar);
+          err = TRUE;
+        } else if (expl_conversion_possible(source_type,
+                                            is_constant_operand(operand),
+                                            &operand->variant.constant,
+                                            type_cast_to,
+                                            ec_bad_cast, &warning_suggested)) {
+          /* Valid explicit conversion.  Issue warning on oddball cases. */
+          if (warning_suggested != ec_no_error) {
+            pos_warning(warning_suggested, start_position);
+          }  /* if */
+          /* In pcc mode, some lvalues cast to same-sized types remain lvalues
+             (e.g., int to unsigned). */
+          if (C_dialect == C_dialect_pcc && is_an_lvalue(operand) &&
+              still_an_lvalue(source_type, type_cast_to)) {
+            /* Use a special "lvalue cast" operator.  Always do the cast on
+               an expression node, even if the lvalue address is currently
+               given by a constant.  This is because all lvalue casts should
+               be clearly identifiable.  The lvalue cast operator looks a lot
+               like a normal cast, but its operand is an lvalue, and therefore
+               doesn't really have its address taken, which is important when
+               (e.g.) register entities are subjected to an lvalue cast.  See
+               the code in conv_lvalue_to_rvalue that removes the cast if
+               the cast lvalue is then converted to an rvalue (the usual
+               case). */
+            lvalue_cast(type_cast_to, operand);
+          } else {
+            /* Not an lvalue cast. */
+            /* Convert lvalue --> rvalue unless casting to a reference type
+               (in that case, the operand has already been turned into a
+               pointer; the conversion here wouldn't hurt, but it's not
+               needed). */
+            if (!cast_to_reference) {
+              /* Normal cast.  All standard C cases. */
+              conv_lvalue_to_rvalue(operand, expression_kind);
+            }  /* if */
+            /* Do the actual cast. */
+            cast_operand(type_cast_to, operand, expression_kind,
+                         /*is_implicit_cast=*/FALSE);
+            if (cast_to_reference) {
+              /* The result of a cast to reference is an lvalue. */
+              conv_object_pointer_to_lvalue(operand);
+            }  /* if */
+          }  /* if */
+        } else {
+          /* Not a valid conversion. */
+          /* Note:  If this is changed to display the types involved,
+             remember to check cast_to_reference. */
+          err = TRUE;
+          pos_error(ec_bad_cast, start_position);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (err) make_error_operand(operand);
