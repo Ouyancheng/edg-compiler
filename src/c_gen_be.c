@@ -539,6 +539,38 @@ file.
 }  /* write_line_directive */
 
 
+static void continue_on_new_line(void)
+/*
+Continue the current line of output on the next line.
+*/
+{
+  if (curr_output_seq_number != 0) {
+    /* Continue by emitting a #line directive to repeat the current line
+       number. */
+    write_line_directive(curr_output_seq_number,
+                         curr_output_line,
+                         curr_output_file);
+  } else {
+    /* If the output position is unknown, put out a #line directive for the
+       last "known good" position to avoid wandering into line numbers that
+       don't exist in the source program file. */
+    write_line_directive(last_line_directive_seq,
+                         last_line_directive_line,
+                         last_line_directive_file);
+  }  /* if */
+}  /* continue_on_new_line */
+
+
+static void wrap_overlong_line(void)
+/*
+Continue the current line of output on the next line because it is too long.
+If line wrapping is disabled, do nothing.
+*/
+{
+  if (!line_wrapping_disabled) continue_on_new_line();
+}  /* wrap_overlong_line */
+
+
 /*
 Print a number of spaces for indentation.
 */
@@ -565,14 +597,10 @@ etc.
   error_position = *pos;
   if (seq == 0) {
     /* For an unknown position, continue on the same line. */
-    /* If the output position is unknown, put out a #line directive for the
-       last "known good" position to avoid wandering into line numbers that
-       don't exist in the source program file. */
     if (curr_output_seq_number == 0) {
-      /* Write a #line directive for the new line position. */
-      write_line_directive(last_line_directive_seq,
-                           last_line_directive_line,
-                           last_line_directive_file);
+      /* If the current output position is unknown, start a new line with
+         a #line directive for the last known good line position. */
+      continue_on_new_line();
       started_new_line = TRUE;
     }  /* if */
   } else {
@@ -699,27 +727,6 @@ complete token.  This is the non-macro version.
 }  /* write_str */
 
 
-static void continue_on_new_line(void)
-/*
-Continue the current line of output on the next line (probably because
-it is too long).  If line wrapping is disabled, do nothing.
-*/
-{
-  if (!line_wrapping_disabled) {
-    if (curr_output_seq_number != 0) {
-      /* Continue by emitting a #line directive to repeat the current line
-         number. */
-      write_line_directive(curr_output_seq_number, curr_output_line,
-                           curr_output_file);
-    } else {
-      /* The current line number is unknown, so do not use a #line
-         directive.  Just start a new line. */
-      end_output_line();
-    }  /* if */
-  }  /* if */
-}  /* continue_on_new_line */
-
-
 /*
 Write the indicated character to the output file.  It's a complete token,
 which means a long line could be broken before or after it.  This is
@@ -727,7 +734,7 @@ the macro version.
 */
 #define m_write_tok_ch(ch)                                            \
 { if (curr_output_column >= MAX_OUTPUT_LINE_SIZE) {                   \
-    continue_on_new_line();                                           \
+    wrap_overlong_line();                                             \
   }  /* if */                                                         \
   m_write_ch(ch);                                                     \
 }  /* m_write_tok_ch */
@@ -750,7 +757,7 @@ line would make it too long.
 */
 #define ensure_enough_room_on_line(len)                               \
 { if (curr_output_column + (len) > MAX_OUTPUT_LINE_SIZE) {            \
-    continue_on_new_line();                                           \
+    wrap_overlong_line();                                             \
   }  /* if */                                                         \
 }  /* ensure_enough_room_on_line */
 
