@@ -5391,6 +5391,13 @@ token.
   } else if (*curr_char_loc == '.') {
     /* Number starting with ".".  The character following the "." must be
        a digit (already checked by get_token). */
+    if (microsoft_bugs &&
+        isdigit((unsigned char)curr_char_loc[1]) &&
+        curr_char_loc[2] == '.') {
+      /* The Microsoft compiler accepts constants like ".1.234". */
+      curr_char_loc += 2;
+      warning_at_line_pos(ec_extra_chars_on_number, curr_char_loc);
+    }  /* if */
     goto float_accum_1;
   } else {
     /* Number not starting with "0" or ".".  Could be a decimal integer or

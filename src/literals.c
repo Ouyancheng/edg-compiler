@@ -458,6 +458,14 @@ the character position of the error.
     kind = (a_float_kind)fk_double;
     actual_end = end_of_curr_token;
   }  /* if */
+  if (microsoft_bugs &&
+      start_of_curr_token[0] == '.' &&
+      isdigit((unsigned char)start_of_curr_token[1]) &&
+      start_of_curr_token[2] == '.') {
+    /* Microsoft accepts constants like .1.234, and ignores the second
+       decimal point and everything after it. */
+    actual_end = start_of_curr_token+1;
+  }  /* if */
   /* Place a null after the number to guarantee stopping at the right
      point.  If the number has a missing exponent, place a zero exponent
      at the end (this is for the pcc case).  There's always room for at

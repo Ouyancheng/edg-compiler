@@ -1,5 +1,11 @@
 Version 2.46
 
+3/30/01  Malformed float constants accepted in Microsoft mode
+
+The MSVC++ compiler accepts floating-point constants like .1.234.
+Everything at or after the second decimal point is ignored.  Now,
+in Microsoft bugs mode, we do the same.
+
 3/25/01  Template instantiation can cause spurious access errors
 
 In certain unusual circumstances, the access checking state was not
