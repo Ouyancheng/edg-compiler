@@ -5675,7 +5675,7 @@ Generate code for the indicated statement.
       break;
     case stmk_set_vla_size:
     case stmk_alloc_vla_variable:
-    case stmk_val_typedef:
+    case stmk_vla_typedef:
       /* No output. */
       break;
     default:
