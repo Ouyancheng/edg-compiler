@@ -788,10 +788,10 @@ be found.
           new_base_class = bcp;
           goto done;
         } else {
-        /* We still don't have a match.  The last possibility is to check
-           for cases where the paths are congruent once should move far
-           enough along bcp's derivation -- for instance, if the derivation
-           of bcp is A==>B==>C and the derivation of base_class is B==>C. */
+          /* We still don't have a match.  The last possibility is to check
+             for cases where the paths are congruent once we move far
+             enough along bcp's derivation -- for instance, if the derivation
+             of bcp is A==>B==>C and the derivation of base_class is B==>C. */
           for (step = bcp->derivation; step != NULL; step = step->next) {
             if (step->base_class->type ==
                                  base_class->derivation->base_class->type &&
