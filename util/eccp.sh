@@ -585,6 +585,8 @@ do
          --no_implicit_typename | \
          --suppress_instantiation_flags | \
          --old_style_preprocessing | \
+         --old_for_init | \
+         --new_for_init | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
