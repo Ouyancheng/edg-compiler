@@ -1,9 +1,38 @@
 Version 2.20
 
+9/14/93  Suppressing the used-before-set warning
+
+The "-j" command line option may be used to suppress used-before-set
+warnings on local automatic variables.  The front end's algorithm for
+detecting such uses is conservative and is likely to miss some cases that
+an optimizer with sophisticated flow analysis could detect; thus, an
+implementation might choose to suppress the warnings from the front end
+when optimization has been requested but to permit them when the optimizer
+is not being run.
+
 9/9/93   Diagnostic on variable used before set
 
 A warning is now issued if an automatic variable local to a function is
-used before it is set.
+used before it is set.  The warning is not put out if a label or the start
+of an unclosed loop intervenes between the declaration and the use, since
+it is possible that the variable is set in code that has not yet been seen
+but that will actually be executed first at run time.  For example:
+
+  void f() {
+    int i;
+      :
+   L:
+     int j;
+     ++i;          // No warning -- i may be set later.
+     ++j;          // Warning -- j cannot have been set yet.
+       :
+   }
+
+A diagnostic is also issued at the end of the declaration scope of a
+variable if it has been set but never used; this applies to both static
+and automatic local variables and to file-scope static variables as well.
+The diagnostic is a remark if the variable is declared in an included file
+and a warning otherwise.
 
 9/9/93   New flags in a_variable
 
