@@ -2972,7 +2972,6 @@ is a that of a constructor.
                sym->variant.type.ptr == class_type) {
       name_match = TRUE;
     }  /* if */
-    name_match = TRUE;
   }  /* if */
   if (name_match || microsoft_mode) {
     /* Change "A::A" into "A" if we are processing inside the definition of
