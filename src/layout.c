@@ -567,7 +567,7 @@ overflow error.
   a_boolean     overflow = FALSE;
 
   db_enter(4, "increment_field_offsets");
-  if (byte_incr >= targ_max_class_object_size ||
+  if (byte_incr > targ_max_class_object_size ||
       *byte_offset > (targ_max_class_object_size - byte_incr)) {
     overflow = TRUE;
   } else {
