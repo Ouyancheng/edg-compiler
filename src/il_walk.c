@@ -120,9 +120,6 @@ from the saved values in the variable saved_state.
 static void walk_string_entry(char             *entry_ptr,
                               an_il_entry_kind entry_kind,
                               sizeof_t         entry_length);
-static void set_routine_definition_needed(a_routine_ptr rout);
-static void set_class_definition_needed(a_type_ptr type);
-
 
 /* Build a routine to walk entries and their subtrees. */
 #define DO_SUBTREE_WALK TRUE
@@ -376,6 +373,9 @@ cases (anonymous unions containing types).
 #endif /* !DO_IL_LOWERING */
     
 /* "needed" flag section: */
+/* Declarations needed because of forward references: */
+static void set_routine_definition_needed(a_routine_ptr rout);
+static void set_class_definition_needed(a_type_ptr type);
 
 /* Generate walk_tree_and_set_needed from the walk_entry.h source. */
 #undef DO_SUBTREE_WALK

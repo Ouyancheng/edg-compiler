@@ -28,7 +28,11 @@ cmd_line.c -- Command-line parsing.
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #if BACK_END_IS_C_GEN_BE
+/* c_gen_be.h is needed only for module_list_for_union_init, and that's
+   used only when generating K&R C. */
+#if !C_GEN_BE_GENERATES_ANSI_C
 #include "c_gen_be.h"
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #endif /* BACK_END_IS_C_GEN_BE */
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
