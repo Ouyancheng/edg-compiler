@@ -1354,6 +1354,9 @@ do_struct_union:
       /* Note: the keep_definition_in_il flag is not displayed, since it is
          for front-end use only. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+      if (ptr->variant.class_struct_union.is_empty_class) {
+        disp_boolean("is_empty_class", TRUE);
+      }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
       if (ptr->variant.class_struct_union.max_member_alignment != 0) {
         disp_unsigned_long("max_member_alignment",
