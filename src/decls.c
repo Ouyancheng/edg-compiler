@@ -4424,6 +4424,13 @@ skip_overloading:;
        the primary source sequence entry is put out after the class definition
        is complete. */
     a_src_seq_secondary_decl_ptr  sssdp;
+    if (func_info->is_movable_member_or_friend_def) {
+      /* Remove default arguments, if any, from the type associated with
+         the secondary source-sequence entry; they will appear on the
+         source-sequence entry for the definition instead.  (If they were
+         repeated the C++-generating back end would put out invalid code.) */
+      declared_type = routine_type_without_default_args(declared_type);
+    }  /* if */
     sssdp = set_src_seq_secondary_decl_type((char *)routine_ptr, declared_type,
                                             /*is_specialization=*/FALSE);
     if (sssdp != NULL) {

@@ -730,6 +730,12 @@ Process the default argument expressions for the indicated class.
   a_boolean                         is_real_template_instantiation = FALSE;
   a_boolean                         is_nonreal_template_instantiation = FALSE;
   a_boolean                         is_friend;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr       saved_ss_list_instantiation_insert_point;
+  a_scope_stack_entry_ptr           ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "default_argument_fixup_for_class");
   /* Go through all the routine fixup entries created for the class twice,
@@ -851,6 +857,22 @@ Process the default argument expressions for the indicated class.
           }  /* if */
           continue;
         }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        if (rfp->func_info.is_movable_member_or_friend_def) {
+          /* The source-sequence representation for the associated function
+             definition is being moved outside the class definition, and the
+             default arguments with it.  If the default argument expression
+             triggers an instantiation, it should be inserted after the
+             class definition, not before.  But save the insert point so
+             it will still be available for default arguments on member or
+             friend function declarations that aren't moved. */
+          saved_ss_list_instantiation_insert_point =
+                              ssep->ss_list_instantiation_insert_point;
+          ssep->ss_list_instantiation_insert_point = NULL;
+        }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         if (is_real_template_instantiation &&
             sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
           /* This is a real template instantiation and the default argument
@@ -907,6 +929,15 @@ Process the default argument expressions for the indicated class.
           /* Pop the reactivated function prototype scope off the stack. */
           pop_scope();
         }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        if (rfp->func_info.is_movable_member_or_friend_def) {
+          /* Restore the insert point. */
+          ssep->ss_list_instantiation_insert_point =
+                          saved_ss_list_instantiation_insert_point;
+        }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     }  /* for */
     if (curr_scope_class_type != NULL) {
@@ -5366,8 +5397,16 @@ declared member functions.
          secondary-decl entry in the source sequence list.  Enter the
          current function type. */
       a_src_seq_secondary_decl_ptr  sssdp;
+      a_type_ptr                    tp = member_type;
 
-      sssdp = set_src_seq_secondary_decl_type((char *)rtn, member_type,
+      if (func_info->is_movable_member_or_friend_def) {
+        /* Remove default arguments, if any, from the type associated with
+           the secondary source-sequence entry; they will appear on the
+           source-sequence entry for the definition instead.  (If they were
+           repeated the C++-generating back end would put out invalid code.) */
+        tp = routine_type_without_default_args(tp);
+      }  /* if */          
+      sssdp = set_src_seq_secondary_decl_type((char *)rtn, tp,
                                               /*is_specialization=*/FALSE);
       /* A member function declaration within a class definition is always
          the initial declaration. */
