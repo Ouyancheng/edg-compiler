@@ -6088,14 +6088,19 @@ number of parameters.
       }  /* if */
     }  /* if */
   }  /* for */
-#if CHECKING
   if (arg_operand != NULL) {
     /* We ran out of parameters, but we still have arguments.  There should
        be an ellipsis. */
+#if CHECKING
     if (!rtsp->has_ellipsis) {
       internal_error(
                    "function_template_matches_operand_list: missing ellipsis");
     }  /* if */
+#endif /* CHECKING */
+    /* An ellipsis match is not an exact match, so this template cannot be
+       used. */
+    goto done;
+#if CHECKING
   } else if (ptp != NULL) {
     /* We ran out of arguments, but we still have parameters.  The parameter
        should have a default argument expression. */
