@@ -5653,11 +5653,15 @@ Generate C for a statement.
   a_statement_kind kind;
   a_boolean        need_for_init_closing_brace;
 
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+  check_assertion(statement != NULL);
+#else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
   if (statement == NULL) {
     /* Empty statement. */
     write_tok_ch(';');
     goto routine_end;
   }  /* if */
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
   kind = statement->kind;
   /* Dump out any pragmas associated with the statement. */
   if (statement->has_associated_pragma) {
@@ -5677,6 +5681,11 @@ Generate C for a statement.
     set_output_position_for_stmt(&statement->position);
   }  /* if */
   switch (kind) {
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+    case stmk_empty:
+      write_tok_ch(';');
+      break;
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
     case stmk_expr:
 #if CHECKING
       check_result_not_used_flag(statement->expr);
@@ -5690,7 +5699,11 @@ Generate C for a statement.
       /* Add braces around an "if" without an "else" to avoid the "dangling
          else" problem.  This is necessary only if customer code modifies
          the IL tree. */
-      if (else_stmt == NULL && !statement->has_empty_else_clause) {
+      if (else_stmt == NULL
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+                            && !statement->has_empty_else_clause
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
+                                                                ) {
         write_tok_ch('{');
       }  /* if */
 #endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
@@ -5707,9 +5720,11 @@ Generate C for a statement.
 	indent += 2;
 	dump_statement(else_stmt);
 	indent -= 2;
+#if !REPRESENT_EMPTY_STATEMENTS_IN_IL
       } else if (statement->has_empty_else_clause) {
         /* Source contained "... else ;". */
 	write_tok_str(" else ;");
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
 #if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
       } else {
         /* Close the set of braces begun above. */
@@ -6060,6 +6075,9 @@ its subtree.
   for (; statement != NULL; statement = statement->next) {
     dump_expr_prescan_temps(statement->expr);
     switch (statement->kind) {
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+      case stmk_empty:
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
       case stmk_expr:
       case stmk_goto:
       case stmk_label:

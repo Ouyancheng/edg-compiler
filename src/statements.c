@@ -1511,6 +1511,9 @@ the current statement sequence.
     set_unreachable(curr_reachability);
   }  /* if */
   if (kind == (a_statement_kind)stmk_init ||
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+      kind == (a_statement_kind)stmk_empty ||
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       kind == (a_statement_kind)stmk_decl ||
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2795,9 +2798,14 @@ See also 3.6.4.1.
     dependent_statement();
     /* Except for a case like "... else ;" (in C mode), there should always
        be a non-NULL else-statement pointer. */
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+    check_assertion_str(sp->variant.if_stmt.else_statement != NULL,
+                        "if_statement: else-stmt pointer is NULL");
+#else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
     check_assertion_str(sp->variant.if_stmt.else_statement != NULL ||
                         sp->has_empty_else_clause,
                         "if_statement: else-stmt pointer is NULL");
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
   }  /* if */
   /* End the condition block, if necessary. */
   if (is_condition_decl) finish_condition_block();
@@ -3235,8 +3243,6 @@ semicolon.  However, this routine is also called for some error cases as
 well.
 */
 {
-  a_statement_ptr  sp;
-
   db_enter(3, "empty_statement");
   if (curr_token == tok_semicolon) {
     /* Issue diagnostics on pragmas that are trying to bind to the empty
@@ -3247,7 +3253,12 @@ well.
        current statement. */
     discard_curr_construct_pragmas();
   }  /* if */
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+  (void)add_statement((a_statement_kind)stmk_empty);
+#else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
   if (C_mode() && struct_stmt_stack[depth_stmt_stack].in_else_of_if) {
+    a_statement_ptr  sp;
+
     sp = struct_stmt_stack[depth_stmt_stack].statement;
     check_assertion(sp != NULL && sp->kind == (a_statement_kind)stmk_if);
     if (sp->variant.if_stmt.else_statement != NULL) {
@@ -3266,6 +3277,7 @@ well.
       sp->has_empty_else_clause = TRUE;
     }  /* if */
   }  /* if */
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
   /* Advance past the semicolon. */
   if (curr_token == tok_semicolon) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL

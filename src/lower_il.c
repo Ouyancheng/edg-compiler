@@ -10403,14 +10403,17 @@ Do IL lowering of the indicated statement and everything under it.
     error_position = code_pos_for_lowering;
     stmt_expr = statement->expr;
     switch (statement->kind) {
-      case stmk_expr:
-        lower_full_expr(stmt_expr, /*is_lvalue=*/FALSE, statement);
-        break;
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+      case stmk_empty:
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
       case stmk_asm:
 #if ASM_FUNCTION_ALLOWED
       case stmk_asm_func_body:
 #endif /* ASM_FUNCTION_ALLOWED */
         /* No processing required. */
+        break;
+      case stmk_expr:
+        lower_full_expr(stmt_expr, /*is_lvalue=*/FALSE, statement);
         break;
       case stmk_goto:
         /* Generate any cleanup actions required on exit from any blocks

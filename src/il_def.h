@@ -6219,6 +6219,9 @@ enum a_statement_kind_tag {
   stmk_set_array_shape, /* Set adjustable array shape. */
   stmk_input_output,	/* Fortran input/output. */
 #endif /* ifdef FIL */
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+  stmk_empty,		/* Empty ("null") statement. (";" in C/C++) */
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
   stmk_last		/*lint -esym(769,a_statement_kind_tag::stmk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -6737,11 +6740,13 @@ typedef struct a_statement {
 			   generating thread-safe code, the "if" and the
 			   first initialization within it should be rendered
 			   as an atomic test-and-set. */
+#if !REPRESENT_EMPTY_STATEMENTS_IN_IL
   a_bit_field	has_empty_else_clause:1;
 			/* If this statement is an "if" and the variant field
 			   else_statement is NULL, TRUE to indicate an empty
 			   else-clause ("... else ;") rather than an omitted
 			   else-clause. */
+#endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
   bitfield_to_avoid_codecenter_warnings()
   an_expr_node_ptr
                 expr;
@@ -6779,7 +6784,7 @@ typedef struct a_statement {
 			   entries representing declarations. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   union {
-    /* When kind == stmk_expr, no variant fields. */
+    /* When kind == stmk_expr or stmk_empty, no variant fields. */
 #ifdef FIL
     /* Likewise when kind == stmk_alt_return. */
 #endif /* ifdef FIL */

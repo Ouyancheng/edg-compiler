@@ -1315,6 +1315,9 @@ do_set_proper_definition_needed_flag:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
         switch (ptr->kind) {
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+          case stmk_empty:
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
           case stmk_expr:
 #ifdef FFE
           case stmk_alt_return:

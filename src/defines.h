@@ -158,6 +158,7 @@ Flags to be set when using the KAI inliner.
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 0
 #define USER_CONTROL_OF_STRUCT_PACKING 1
 #define DEFAULT_MICROSOFT_MODE 0
+#define REPRESENT_EMPTY_STATEMENTS_IN_IL 1
 #define EXTRA_SOURCE_POSITIONS_IN_IL 1
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
 #if 1

@@ -6346,11 +6346,15 @@ Generate code for the indicated statement.
   a_statement_ptr     else_stmt;
   a_boolean           suppress_trailing_space = FALSE;
 
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+  check_assertion(statement != NULL);
+#else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
   if (statement == NULL) {
     /* Empty statement. */
     write_tok_ch(';');
     goto done;
   }  /* if */
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
   kind = statement->kind;
   /* Process pragmas, macros, etc. */
   (void)process_preprocessing_directives();
@@ -6401,6 +6405,11 @@ Generate code for the indicated statement.
     set_output_position_for_stmt(&statement->position);
   }  /* if */
   switch (kind) {
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+    case stmk_empty:
+      write_tok_ch(';');
+      break;
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
     case stmk_expr:
       /* Expression statement: generate "expr;". */
       gen_full_expression(statement->expr);
@@ -6428,9 +6437,11 @@ Generate code for the indicated statement.
         /* Generate the "else" part. */
         write_tok_str("else ");
         gen_statement(else_stmt);
+#if !REPRESENT_EMPTY_STATEMENTS_IN_IL
       } else if (statement->has_empty_else_clause) {
         /* Source contained "... else ;". */
         write_tok_str("else ;");
+#endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
 #if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
       } else {
         /* Close the set of braces begun above. */

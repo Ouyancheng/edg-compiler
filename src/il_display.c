@@ -2649,6 +2649,9 @@ Display the indicated statement.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   disp_name("kind");
   switch (ptr->kind) {
+    case stmk_empty:
+      (void)printf("stmk_empty\n");
+      break;
     case stmk_expr:
       (void)printf("stmk_expr\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
@@ -2669,8 +2672,10 @@ Display the indicated statement.
       disp_ptr("else_statement", (char *)ptr->variant.if_stmt.else_statement,
                iek_statement);
       if (ptr->variant.if_stmt.else_statement == NULL) {
+#if !REPRESENT_EMPTY_STATEMENTS_IN_IL
         disp_boolean("has_empty_else_clause",
                      (a_boolean)ptr->has_empty_else_clause);
+#endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       } else {
         disp_stmt_source_position("else_position",

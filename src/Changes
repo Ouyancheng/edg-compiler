@@ -1,5 +1,20 @@
 Version 2.44
 
+12/15/99 New empty statement kind
+
+A new configuration flag REPRESENT_EMPTY_STATEMENTS_IN_IL enables a new
+statement kind stmk_empty to represent empty statements in the IL.
+Previously, empty statements were encoded using NULL pointers or empty blocks
+with null positions.  The new representation has the advantage of allowing
+accurate position information to be recorded (the position of the semicolon)
+and simplifies the overall processing logic.  It also eliminates the need for
+the flag has_empty_else_clause in a_statement.
+
+  void f(int i) {
+    if (i) ; else ;
+    //     ^------^--- represented using statement kind stmk_empty
+  }
+
 12/14/99 is_specialized flag not set on routines specialized with old syntax
 
 An internal logic error caused the front end not to set the is_specialized

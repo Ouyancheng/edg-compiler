@@ -2003,6 +2003,9 @@ fields to default values.
   sp->kind = stmt_kind;
   sp->expr = NULL;
   switch (stmt_kind) {
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+    case stmk_empty:
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
     case stmk_expr:
       /* No variant fields. */
       break;
@@ -2132,7 +2135,9 @@ to it.  The statement kind is set as indicated.
   sp->next                    = NULL;
   sp->has_associated_pragma   = FALSE;
   sp->is_initialization_guard = FALSE;
+#if !REPRESENT_EMPTY_STATEMENTS_IN_IL
   sp->has_empty_else_clause   = FALSE;
+#endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
 #if CHECKING
   sp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
