@@ -247,14 +247,15 @@ a constant that appears on the constant list of an enum type.
 
 
 /*
-Macro to extract the kind from a source sequence entry.
+Macro to extract the kind from a source sequence entry or secondary
+declaration entry.
 */
 #define ss_entry_kind(ssep) ((an_il_entry_kind)(ssep)->entity.kind)
 
 
 /*
-Macro to extract the pointer from a source sequence entry.  It is cast
-to the indicated type.
+Macro to extract the pointer from a source sequence entry or secondary
+declaration entry.  It is cast to the indicated type.
 */
 #define ss_entry_ptr(ssep, type) ((type)(ssep)->entity.ptr)
 
@@ -2117,8 +2118,18 @@ entry so it will not be put out as a declaration.
       ss_is_proxy(func_scope_source_sequence_entry)) {
     a_source_sequence_entry_ptr ssep =
                          ss_assoc_with_proxy(func_scope_source_sequence_entry);
-    if (ss_entry_kind(ssep) == iek_routine){
-      a_routine_ptr decl_rout = ss_entry_ptr(ssep, a_routine_ptr);
+    a_routine_ptr decl_rout = NULL;
+    /* Check for a primary or secondary declaration of a routine. */
+    if (ss_entry_kind(ssep) == iek_routine) {
+      decl_rout = ss_entry_ptr(ssep, a_routine_ptr);
+    } else if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+      a_src_seq_secondary_decl_ptr sec_decl =
+                            ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+      if (ss_entry_kind(sec_decl) == iek_routine) {
+        decl_rout = ss_entry_ptr(sec_decl, a_routine_ptr);
+      }  /* if */
+    }  /* if */
+    if (decl_rout != NULL) {
       /* Make sure the routine being called is the one being declared. */
       if (rout == decl_rout) {
         /* Advance past the declaration (the file scope list will also be
