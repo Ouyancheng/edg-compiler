@@ -3797,37 +3797,46 @@ routine body is generated at this time.
 
 
 
-static a_statement_ptr make_default_constructor_body(void)
+static void make_default_constructor_body(a_scope_ptr  scope)
 /*
 Create the body for a default constructor or a default copy constructor.  It
 will return a pointer to the constructed object.
 */
 {
-  a_statement_ptr  block, sp;
+  a_statement_ptr                sp;
+  a_routine_type_supplement_ptr  rtsp;
 
+  db_enter(4, "make_default_constructor_body");
+  /* Create the parameter variable -- needed for copy constructors only. */
+  rtsp = scope->variant.routine.ptr->type->variant.routine.extra_info;
+  if (rtsp->param_type_list != NULL) {
+    (void)make_parameter(rtsp->param_type_list, (a_storage_class)sc_auto,
+                         (a_symbol_ptr)NULL);
+  }  /* if */    
   /* Create an statement block that is empty except for the return
      statement. */
-  block = alloc_statement((a_statement_kind)stmk_block);
-  block->variant.block.statements = sp =
+  scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
+  scope->assoc_block->variant.block.statements = sp =
           alloc_statement((a_statement_kind)stmk_return);
   sp->expr = this_param_value_expr();
-  return block;
+  db_exit();
+  return;
 }  /* make_default_constructor_body */
 
 
-static a_statement_ptr make_default_destructor_body(void)
+static void make_default_destructor_body(a_scope_ptr  scope)
 /*
 Create the body for a default destructor.  It will return no value.
 */
 {
-  a_statement_ptr  block;
-
+  db_enter(4, "make_default_destructor_body");
   /* Create an statement block that is empty except for the return
      statement. */
-  block = alloc_statement((a_statement_kind)stmk_block);
-  block->variant.block.statements =
+  scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
+  scope->assoc_block->variant.block.statements =
           alloc_statement((a_statement_kind)stmk_return);
-  return block;
+  db_exit();
+  return;
 }  /* make_default_destructor_body */
 
 
@@ -3946,13 +3955,13 @@ assignment operator.
 }  /* select_assignment_operator */
 
 
-static a_statement_ptr make_default_assignment_body(a_scope_ptr  scope)
+static void make_default_assignment_body(a_scope_ptr  scope)
 /*
 */
 {
   a_type_ptr                     class_type, tp, array_type;
   a_routine_type_supplement_ptr  rtsp;
-  a_statement_ptr                block, sp;
+  a_statement_ptr                sp;
   a_statement                    head_of_statement_list;
   a_variable_ptr                 source_var;
   an_expr_node_ptr               source_expr, dest_expr;
@@ -3961,18 +3970,15 @@ static a_statement_ptr make_default_assignment_body(a_scope_ptr  scope)
   a_routine_ptr                  rp;
   a_symbol_ptr                   sym;
 
+  db_enter(4, "make_default_assignment_body");
   /* The source variable of the copy is the first parameter on the paramters
      list for the routine.  There must be exactly one parameter for an
      assignment function. */
   rtsp = scope->variant.routine.ptr->type->variant.routine.extra_info;
-  source_var = alloc_variable();
-  source_var->type = rtsp->param_type_list->type;
-  source_var->assoc_param_type = rtsp->param_type_list;
-  source_var->storage_class = (a_storage_class)sc_auto;
-  source_var->is_parameter = TRUE;
-  scope->variant.routine.parameters = source_var;
-  class_type = type_pointed_to(scope->
-                                variant.routine.this_param_variable->type);
+  source_var = make_parameter(rtsp->param_type_list, (a_storage_class)sc_auto,
+                              (a_symbol_ptr)NULL);
+  class_type =
+          type_pointed_to(scope->variant.routine.this_param_variable->type);
   /* "head_of_statement_list" is a local statement variable whose only
       interesting property is its "next" field, from which a linked list of
       allocated statement entries will be hung.  That list will eventually be
@@ -4080,14 +4086,14 @@ static a_statement_ptr make_default_assignment_body(a_scope_ptr  scope)
      variable head_of_statement_list.  The start of the list is pointed to
      by the next field.  Create a block statement and attach the list to
      it. */
-  block = alloc_statement((a_statement_kind)stmk_block);
-  block->variant.block.statements = head_of_statement_list.next;
-  /* Return a pointer to the block statement. */
-  return block;
+  scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
+  scope->assoc_block->variant.block.statements = head_of_statement_list.next;
+  db_exit();
+  return;
 }  /* make_default_assignment_body */
 
 
-static void define_special_member_function(a_routine_ptr  rout_ptr)
+void define_special_member_function(a_routine_ptr  rout_ptr)
 /*
 Define a compiler generated routine for a member function (constructor or
 destructor).  This entails creating a new memory region, a scope, and an
@@ -4098,6 +4104,13 @@ empty statement block.
   a_routine_type_supplement *rtsp = rout_ptr->type->variant.routine.extra_info;
 
   db_enter(4, "define_special_member_function");
+  if (rout_ptr->special_kind != (a_special_function_kind)sfk_constructor &&
+      rout_ptr->special_kind != (a_special_function_kind)sfk_destructor &&
+      (rout_ptr->special_kind != (a_special_function_kind)sfk_operator ||
+       rout_ptr->opname_kind != (an_opname_kind)onk_assign)) {
+    internal_error(
+                "define_special_member_function: expected ctor, dtor, or =");
+  }  /* if */
   scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
                      (a_type_ptr)NULL, rout_ptr);
   /* Associate the scope to the routine entry and the routine entry to its
@@ -4108,43 +4121,18 @@ empty statement block.
                 make_this_param_variable(rtsp->implicit_this_param_type);
   /* Enter the constructor and destructor initializers, to record possible
      implicit initializers. */
-  switch (rout_ptr->special_kind) {
-    case sfk_constructor:
-      scope->variant.routine.constructor_inits =
+  if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
+    scope->variant.routine.constructor_inits =
                           ctor_initializer(rout_ptr, /*user_defined=*/FALSE);
-      /* Only a copy constructor will have a parameter. */
-      if (rtsp->param_type_list != NULL) {
-        a_variable_ptr  vp = alloc_variable();
-        vp->type = rtsp->param_type_list->type;
-        vp->assoc_param_type = rtsp->param_type_list;
-        vp->storage_class = (a_storage_class)sc_auto;
-        vp->is_parameter = TRUE;
-        scope->variant.routine.parameters = vp;
-#if CHECKING
-        if (rtsp->param_type_list->next != NULL) {
-          internal_error("define_special_member_function: too may params");
-        }  /* if */
-#endif /* CHECKING */
-      }  /* if */    
-      scope->assoc_block = make_default_constructor_body();
-      break;
-    case sfk_destructor:
-      scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
-      scope->assoc_block = make_default_destructor_body();
-      break;
-    case sfk_operator:
-#if CHECKING
-      if (rout_ptr->opname_kind != (an_opname_kind)onk_assign) {
-        internal_error("define_special_member_function: bad opname kind");
-      }  /* if */
-#endif /* CHECKING */
-      scope->assoc_block = make_default_assignment_body(scope);
-      break;
-#if CHECKING
-    default:
-      internal_error("define_special_member_function: bad special func kind");
-#endif /* CHECKING */
-  }  /* switch */
+    (void)make_default_constructor_body(scope);
+  } else if (rout_ptr->special_kind ==
+                                (a_special_function_kind)sfk_destructor) {
+    scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
+    (void)make_default_destructor_body(scope);
+  } else {
+    /* Assignment operator case. */
+    (void)make_default_assignment_body(scope);
+  }  /* if */
   /* End of statement block is unreachable because of the return statement. */
   scope->assoc_block->variant.block.extra_info->end_of_block_reachable = FALSE;
   /* Terminate the scope. */
@@ -4153,39 +4141,56 @@ empty statement block.
 }  /* define_special_member_function */
 
 
-void reference_to_special_member_function(a_symbol_ptr  sym)
+void reference_to_implicitly_invoked_function(a_symbol_ptr sym)
 /*
-sym is points to a symbol for a special member function.  Check that it is
-accessible and mark the routine entry referenced.  Also, if the routine is
-compiler generated, it may still need to be defined, since the definition
-may have been put off until an actual reference occurred (e.g., ARM 12.8).
+sym is points to a symbol for a special member function that is invoked
+implicitly -- e.g., a copy constructor that is called when a class object
+is passed by value or an assignment operator that is called when another
+assignment operator function is being created.  Check that the special member
+function is accessible and mark the routine entry referenced.  Also, if the
+routine is compiler generated, it may still need to be defined, since the
+definition may have been put off until an actual reference occurred (e.g.,
+ARM 12.8).  This function deals with implicitly called constructors,
+destructors, and assignment operators; implicitly called conversions are
+handled separately.
 */
 {
   a_routine_ptr  rp = sym->variant.routine;
   an_error_code  err_code;
 
-  if (!have_access_to_symbol(sym)) {
-    switch (rp->special_kind) {
-      case sfk_constructor:  err_code = ec_inaccessible_constructor; break;
-      case sfk_destructor:   err_code = ec_inaccessible_destructor;  break;
-      case sfk_operator:
-        err_code = ec_inaccessible_assignment_operator;
 #if CHECKING
-        if (rp->opname_kind == (an_opname_kind)onk_assign) break;
-        internal_error(
-               "reference_to_special_member_function: bad opname kind");
-      default:
-        internal_error(
-               "reference_to_special_member_function: bad special func kind");
+  if (rp->special_kind != (a_special_function_kind)sfk_constructor &&
+      rp->special_kind != (a_special_function_kind)sfk_destructor &&
+      (rp->special_kind != (a_special_function_kind)sfk_operator ||
+       rp->opname_kind != (an_opname_kind)onk_assign)) {
+    internal_error(
+        "reference_to_implicitly_invoked_function: expected ctor, dtor, or =");
+  }  /* if */
 #endif /* CHECKING */
-        break;
-    }  /* switch */
+  /* Check for accessibility. */
+  if (!have_access_to_symbol(sym)) {
+    if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
+      err_code = ec_inaccessible_constructor;
+    } else if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
+      err_code = ec_inaccessible_destructor;
+    } else {
+      err_code = ec_inaccessible_assignment_operator;
+    }  /* if */
     str_error(err_code, name_of_symbol(sym));
   }  /* if */
+  /* Mark the IL entry referenced. */
   rp->source_corresp.referenced = TRUE;
+  /* If necessary, create the function body for a compiler generated
+     routine. */
   if (rp->compiler_generated && rp->assoc_scope == NULL_region_number) {
     define_special_member_function(rp);
   }  /* if */
+}  /* reference_to_implicitly_invoked_function */
+
+
+void reference_to_special_member_function(a_symbol_ptr  sym)
+{
+  reference_to_implicitly_invoked_function(sym);
 }  /* reference_to_special_member_function */
 
 
@@ -4204,6 +4209,7 @@ copied.
   a_boolean    sym_is_overloaded;
   a_boolean    found_assignment_operator_for_copy = FALSE;
 
+  db_enter(4, "assignment_operator_for_copy_exists");
   *const_okay = FALSE;
   if (sym != NULL) {
     sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
@@ -4248,6 +4254,7 @@ copied.
       }  /* if */
     }  /* if */
   }  /* for */
+  db_exit();
   return found_assignment_operator_for_copy;
 }  /* assignment_operator_for_copy_exists */
 
@@ -4266,15 +4273,21 @@ can copy a const object and whether bitwise copying is allowed.
   a_base_class_ptr               bcp;
   a_type_ptr                     tp;
   a_class_symbol_supplement_ptr  cssp;
+  a_symbol_ptr                   sym;
   a_field_ptr                    fp;
   a_boolean                      local_const_okay = TRUE;
   a_boolean                      local_bitwise_copy_okay = TRUE;
 
+  db_enter(4, "default_assignment_operator_check");
   /* A bitwise copy to implement default assignment can be done if there are
-     no virtual base classes and if all subobjects can be assigned by bitwise
-     copy.  The check for virtuals is easy. */
-  local_bitwise_copy_okay = !class_type->variant.class_struct_union.
-                                                    any_virtual_base_classes;
+     no virtual base classes and no virtual functions and if all subobjects
+     can be assigned by bitwise copy.  The check for virtual base classes
+     and virtual functions is easy. */
+  if (class_type->variant.class_struct_union.any_virtual_base_classes ||
+      class_type->variant.class_struct_union.extra_info->
+                                                virtual_function_count > 0) {
+    local_bitwise_copy_okay = FALSE;
+  }  /* if */
   /* Now check for const.  Do the base classes first. */
   bcp = class_type->variant.class_struct_union.extra_info->base_classes;
   for (; bcp != NULL; bcp = bcp->next) {
@@ -4293,29 +4306,33 @@ can copy a const object and whether bitwise copying is allowed.
     }  /* if */
   }  /* for */
   /* Base classes are okay.  Now check the nonstatic data members. */
-  fp = class_type->variant.class_struct_union.field_list;
-  for (; fp != NULL; fp = fp->next) {
-    tp = fp->type;
-    /* Get the element type if this is an array field. */
-    while (is_array_type(tp)) tp = array_element_type(tp);
-    if (is_class_struct_union_type(tp)) {
-      cssp = symbol_supplement_for_class(tp);
-      if (local_const_okay) {
-        (void)assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                                  &local_const_okay);
-        if (!local_const_okay && !local_bitwise_copy_okay) goto done;
-      }  /* if */
-      if (local_bitwise_copy_okay &&
-          !cssp->assignment_by_bitwise_copy_allowed) {
-        local_bitwise_copy_okay = FALSE;
-        if (!local_const_okay) goto done;
+  sym = ((a_symbol_ptr)class_type->source_corresp.assoc_info)->
+                         variant.class_struct_union.extra_info->symbols;
+  for (; sym != NULL; sym = sym->next_in_scope) {
+    if (sym->kind == (a_symbol_kind)sk_field) {
+      fp = sym->variant.field;
+      tp = fp->type;
+      /* Get the element type if this is an array field. */
+      while (is_array_type(tp)) tp = array_element_type(tp);
+      if (is_class_struct_union_type(tp)) {
+        cssp = symbol_supplement_for_class(tp);
+        if (local_const_okay) {
+          (void)assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                                    &local_const_okay);
+          if (!local_const_okay && !local_bitwise_copy_okay) goto done;
+        }  /* if */
+        if (local_bitwise_copy_okay &&
+            !cssp->assignment_by_bitwise_copy_allowed) {
+          local_bitwise_copy_okay = FALSE;
+          if (!local_const_okay) goto done;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
 done:
   *const_okay = local_const_okay;
   *bitwise_copy_okay = local_bitwise_copy_okay;
-  return;  
+  db_exit();
 }  /* default_assignment_operator_check */
 
 
@@ -4334,6 +4351,7 @@ constructors that can copy const objects.
   a_class_symbol_supplement_ptr  cssp;
   a_field_ptr                    fp;
 
+  db_enter(4, "default_copy_constructor_check");
   *const_okay = TRUE;
   /* First check the base classes. */
   bcp = class_type->variant.class_struct_union.extra_info->base_classes;
@@ -4364,8 +4382,8 @@ constructors that can copy const objects.
       }  /* if */
     }  /* if */
   }  /* for */
-done:
-  return;
+done:;
+  db_exit();
 }  /* default_copy_constructor_check */
 
 
