@@ -6021,15 +6021,18 @@ have already had their designated initializers lowered.
         /* Same member. */
         set_init_con_pos(aggr_con->variant.aggregate.first_constant,
                          &earlier_con);
-      } else if (aggr_con->variant.aggregate.first_constant != NULL) {
+      } else {
         /* saved_union_init_constant contains all the superseded
            initializations.  Add the current constant to the set. */
-        if (saved_union_init_constant != NULL) {
-          combine_initializer_constants(
+        if (aggr_con->variant.aggregate.first_constant != NULL) {
+          if (saved_union_init_constant != NULL) {
+            combine_initializer_constants(
                                    saved_union_init_constant,
                                    aggr_con->variant.aggregate.first_constant);
+          }  /* if */
+          saved_union_init_constant =
+                                    aggr_con->variant.aggregate.first_constant;
         }  /* if */
-        saved_union_init_constant = aggr_con->variant.aggregate.first_constant;
         set_init_con_pos((a_constant_ptr)NULL, &earlier_con);
       }  /* if */
       aggr_con->variant.aggregate.first_constant = NULL;
