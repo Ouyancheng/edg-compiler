@@ -2452,7 +2452,7 @@ a friend within the class.  This has been fixed.
 4/11/97   A member function template may not be defined in a friend declaration
 
 The front end incorrectly accepted a friend declaration that is used
-to define a member function of a the class.  This has been fixed.
+to define a member function of the class.  This has been fixed.
 
   template <class Z> struct A {
     template <class U> int f(U);
