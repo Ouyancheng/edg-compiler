@@ -172,7 +172,7 @@ context).
 {
   a_statement_ptr stmt;
 
-  if (insert_location->expr_insert) {
+  if (is_expr_insert_location_kind(insert_location->kind)) {
     /* Insert within an expression.  The statement need not be created. */
     insert_expr(node, insert_location);
     stmt = NULL;
@@ -475,7 +475,7 @@ case of inserting an if-equivalent into the middle of an expression.
   an_expr_node_ptr question_node, op2_node, op3_node, zero_node;
   a_type_ptr       void_type_ptr;
 
-  if (insert_location->expr_insert) {
+  if (is_expr_insert_location_kind(insert_location->kind)) {
     /* Insert within an expression. */
     /* Insert "test_expr ? (void)0 : (void)0" at the right place. */
     void_type_ptr = void_type();
@@ -2357,28 +2357,69 @@ flag has been created.
   a_constant          zero_constant;
   a_statement_ptr     stmk_init_stmt, block, label_statement;
   a_switch_clause_ptr scp;
-  an_insert_location  local_insert_location;
+  an_insert_location  local_insert_location, *eff_insert_location;
+  a_boolean           var_is_static;
+  a_boolean           follows_an_exec_statement = FALSE;
 
   check_assertion(is_object_cleanup_action(cap));
   cond_var = cap->variant.object.conditional_flag_var;
-  if (cond_var->storage_class == (a_storage_class)sc_static) {
+  var_is_static = (cond_var->storage_class == (a_storage_class)sc_static);
+  eff_insert_location = insert_location;
+  if (eff_insert_location == NULL && (!var_is_static || exceptions_enabled)) {
+    /* Some code will be generated, so we need an insert location, but we do
+       not have one.  Generate one from context.  Also set
+       follows_an_exec_statement to indicate whether the insertion point
+       follows any executable statements in its block (this is needed for
+       the dynamic initialization entry). */
+    /* For most cases, the right place is the beginning of the current block.
+       For switch clauses, it's the beginning of the clause.  When labels
+       appear, the initialization goes after the latest label. */
+    scp = curr_context->assoc_switch_clause;
+    label_statement = curr_context->latest_label_statement_processed;
+    if (label_statement != NULL) {
+      /* Insert after the most recent label. */
+      follows_an_exec_statement = TRUE;
+      set_insert_location(label_statement, &local_insert_location);
+    } else if (scp != NULL) {
+      /* Insert at the start of the current switch clause. */
+      follows_an_exec_statement = TRUE;
+      set_switch_clause_start_insert_location(scp, &local_insert_location);
+    } else {
+      /* Normal case.  Insert at the start of the current block. */
+      block = curr_context->scope->assoc_block;
+#if CHECKING
+      if (block == NULL) {
+        internal_error("init_conditional_flag_var: missing block");
+      }  /* if */
+#endif /* CHECKING */
+     set_block_start_insert_location(block, &local_insert_location);
+    }  /* if */
+    eff_insert_location = &local_insert_location;
+  }  /* if */
+  /* Initialize the conditional flag variable. */
+  if (var_is_static) {
     /* The conditional flag is static and therefore is implicitly initialized
        to zero. */
   } else if (insert_location != NULL) {
-    /* We know the insert location.  Insert an assignment at that point. */
+    /* The flag requires initialization, and the insert location was
+       provided by the caller.  Insert an assignment at that point.  Note
+       that this is an assignment rather than an stmk_init because this
+       case is used for initialization within expressions. */
     (void)insert_var_assignment_statement(cond_var,
                                           (an_expr_operator_kind)eok_iassign,
                                           node_for_integer_constant(0L,
                                                       (an_integer_kind)ik_int),
                                           insert_location);
   } else {
-    /* Use a dynamic init entry to do the initialization.  The context
-       stack tells us where to insert the stmk_init.  Note that the
-       dynamic init entry does not need to be put on a list of dynamic init
-       entries.  Such a list is used only at the file scope, and any
-       temporary allocated there would be static. */
+    /* The flag requires initialization, and the insert location was
+       generated in this routine.  Use a dynamic initialization entry to
+       do the initialization. Note that the dynamic init entry does not
+       need to be put on a list of dynamic init entries.  Such a list is
+       used only at the file scope, and any temporary allocated there
+       would be static. */
     dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
     dip->variable = cond_var;
+    dip->follows_an_exec_statement = follows_an_exec_statement;
     /* The dynamic init entry is pointed to by the variable. */
     cond_var->init_kind = (an_init_kind)initk_dynamic;
     cond_var->initializer.dynamic = dip;
@@ -2387,45 +2428,11 @@ flag has been created.
     /* The dynamic init entry is pointed to by an stmk_init statement. */
     stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
     stmk_init_stmt->variant.dynamic_init = dip;
-    scp = curr_context->assoc_switch_clause;
-    /* The stmk_init statement must be inserted at the right place.  For
-       most cases, the right place is the beginning of the current block.
-       For switch clauses, it's the beginning of the clause.  When labels
-       appear, the initialization goes after the latest label. */
-    label_statement = curr_context->latest_label_statement_processed;
-    if (label_statement != NULL) {
-      /* Insert the stmk_init after the most recent label. */
-      /* The dynamic init is not at the start of the scope. */
-      dip->follows_an_exec_statement = TRUE;
-      /* Add the stmk_init statement after the label. */
-      stmk_init_stmt->next = label_statement->next;
-      label_statement->next = stmk_init_stmt;
-    } else if (scp != NULL) {
-      /* Switch clause. */
-      /* The dynamic init is not at the start of the scope. */
-      dip->follows_an_exec_statement = TRUE;
-      /* Add the stmk_init statement at the beginning of the clause. */
-      stmk_init_stmt->next = scp->statements;
-      scp->statements = stmk_init_stmt;
-    } else {
-      /* Normal case. */
-      block = curr_context->scope->assoc_block;
-#if CHECKING
-      if (block == NULL) {
-        internal_error("init_conditional_flag_var: missing block");
-      }  /* if */
-#endif /* CHECKING */
-      /* Add the stmk_init statement at the beginning of the block. */
-      stmk_init_stmt->next = block->variant.block.statements;
-      block->variant.block.statements = stmk_init_stmt;
-    }  /* if */
-    /* Set up for insertion after the stmk_init statement. */
-    insert_location = &local_insert_location;
-    set_insert_location(stmk_init_stmt, insert_location);
+    insert_statement(stmk_init_stmt, eff_insert_location);
   }  /* if */
   if (exceptions_enabled) {
     /* Initialize the object address table entry for the conditional flag. */
-    init_conditional_flag_object_addr_table_entry(cap, insert_location);
+    init_conditional_flag_object_addr_table_entry(cap, eff_insert_location);
   }  /* if */
 }  /* init_conditional_flag_var */
 
@@ -4862,6 +4869,14 @@ Do lowering on the file-scope dynamic initializations list.
     switch_il_region(file_scope_init_routine_il_region);
     push_context(&context, scope, /*subscope_region=*/FALSE);
     processing_file_scope_init_routine = TRUE;
+    /* Put a null statement at the beginning of the block.  This changes the
+       insert_location from block-start to after-statement, which is necessary
+       in case some lower-level code tries to insert initialization code
+       (e.g., to set the object address table for a conditional flag) at
+       the beginning of the block -- we don't want that code to come out
+       after the first initialization. */
+    insert_statement(alloc_statement((a_statement_kind)stmk_block),
+                     &insert_location);
     /* Generate the initializations. */
     for (; dip != NULL; dip = dip->next) {
       set_var_init_pos_descr(dip->variable, &ipd);

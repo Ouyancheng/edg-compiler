@@ -1,5 +1,19 @@
 Version 2.21
 
+12/16/93 Conditional flags in IL lowering
+
+Three bugs related to generation of conditional flags in IL lowering have
+been fixed:
+
+(1)  -x mode no longer aborts on compiling a program that requires a
+     conditional flag for a global scope initialization.
+(2)  The initialization of conditional flags is now done at the nearest
+     preceding label if there is one.
+(3)  Initialization code in the file-scope initialization routine
+     to put the address of a conditional flag required in the first
+     initialization in the routine into the object address table in -x
+     mode is now put before the first initialization instead of after it.
+
 12/16/93 "signed" in error diagnostic messages
 
 Explicitly signed int (e.g., "signed int" rather than just "int") is
