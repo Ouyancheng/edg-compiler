@@ -5634,13 +5634,10 @@ next_declaration:
         } else {
           inline_function_definition(dsfp->variant.inline_func.routine,
                                      &dsfp->variant.inline_func.extra_info);
-#if CHECKING
-          /* End-of-source token was inserted after the closing brace to mark
-             the end of the cached token stream. */
-          if (curr_token != tok_end_of_source) {
-            internal_error("class_specifier: expected end-of-source");
-          }  /* if */
-#endif /* CHECKING */
+          /* In the normal case the current token should be end_of_source,
+             which was inserted to mark the end of the cached token stream.
+             If necessary, keep flushing until end-of-source is found. */
+          while (curr_token != tok_end_of_source) (void)get_token();
         }  /* if */
         next_dsfp = dsfp->next;
         free_delayed_scan_fixup(dsfp);
