@@ -1,5 +1,21 @@
 Version 3.5
 
+6/18/04  Zero-valued const variable as null pointer constant in conversions
+         for built-in operators
+
+A zero-valued const integral variable is now considered to be a null
+pointer constant in the processing to determine conversions for a
+built-in operator with class operands.
+
+  struct A {
+    operator void*();
+  } a;
+  int main() {
+    const int i = 0;
+    a == i;     // Formerly an error; now left operand converted to "void *"
+                // and right operand treated as null pointer constant
+  }
+
 6/17/04  "Do-nothing" cast to floating point preserved
 
 The C99 standard says that an explicit cast of a floating-point

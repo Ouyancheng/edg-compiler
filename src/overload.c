@@ -8221,6 +8221,17 @@ the target type to be used).
                                                         &arg_operand->operand);
         source_is_constant = is_constant_operand(&arg_operand->operand);
         source_constant = &arg_operand->operand.variant.constant;
+        if (is_an_lvalue(&arg_operand->operand) &&
+            !any_cfront_mode()) {
+          /* Treat a constant-valued integral variable as its value.  This
+             is useful when the value is a null pointer constant. */
+          a_constant_ptr con_var_value =
+                   value_of_constant_var_lvalue_operand(&arg_operand->operand);
+          if (con_var_value != NULL) {
+            source_is_constant = TRUE;
+            source_constant = con_var_value;
+          }  /* if */
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode && !source_is_constant) {
           /* Microsoft mode allows some expressions as null pointer
