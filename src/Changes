@@ -1,5 +1,18 @@
 Version 2.30
 
+7/21/95  Disambiguation of cast followed by field selection
+
+A field selection following a context that requires disambiguation to
+determine whether an operation is a cast or an expression was being
+interpreted incorrectly.  This has been fixed.
+
+  struct A {A();~A();};
+  int main()
+  { 
+    (A()).~A();  // formerly gave a spurious error
+  }
+
+
 7/19/95  "?" operator with lvalue result
 
 The standards committee clarified last week that a "?" operator yields
