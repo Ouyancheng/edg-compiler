@@ -2275,11 +2275,9 @@ the base class.
       if (base_class == NULL) {
         /* bcp is already a base class of class_type. */
       } else {
-        /* bcp is a base class of base_class.  We want to find to find the
-           corresponding base class of class_type. */
-        disambiguator = find_disambiguator(class_type, base_class, bcp);
         /* bcp now points to a base class of base_class; change it to point
            to the corresponding base class of class_type. */
+        disambiguator = find_disambiguator(class_type, base_class, bcp);
         bcp = corresponding_base_class(bcp, class_type, disambiguator);
       }  /* if */
       /* Set the flag. */
