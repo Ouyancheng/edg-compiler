@@ -2327,7 +2327,7 @@ Display an ELF_visibility field.
     case evk_unspecified: str = "evk_unspecified";             break;
     case evk_hidden:      str = "evk_hidden";                  break;
     case evk_protected:   str = "evk_protected";               break;
-    case evk_internal:    str = "evk_protected";               break;
+    case evk_internal:    str = "evk_internal";                break;
     default:              str = "**BAD ELF VISIBILITY KIND**";
   }  /* switch */
   (void)printf("%s\n", str);
