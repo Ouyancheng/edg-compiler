@@ -1564,11 +1564,10 @@ the symbol into the symbol table so it can be found on subsequent
 uses of the name.
 */
 {
+  /* Note that the is_error flag is not set on this symbol.  Error
+     symbols are not entered into the symbol table, but undefined
+     symbols need to be (for error recovery purposes). */
   reenter_symbol(sym, decl_scope_level, /*suppress_error=*/TRUE);
-  /* The error flag is set after the symbol is entered, because setting
-     it before hand prevents it from actually being added to the symbol
-     table. */
-  sym->is_error = TRUE;
 }  /* enter_undefined_symbol */
 
 
