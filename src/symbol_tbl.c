@@ -7185,9 +7185,14 @@ specific version of the template.
   if (!C_mode()) {
     /* Do management related to the object lifetime stack. */
     if (kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_template_instantiation) {
+        kind == (a_scope_kind)sck_template_instantiation ||
+        kind == (a_scope_kind)sck_pragma ||
+        kind == (a_scope_kind)sck_func_prototype) {
+      /* These scopes do not nest properly from the point of view of object
+         lifetimes, so break the object lifetime stack and then restore it
+         in pop_scope. */
       curr_object_lifetime =
-                       scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime;
+                   scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
     }  /* if */
     if (kind == (a_scope_kind)sck_file ||
         kind == (a_scope_kind)sck_function ||
@@ -7944,13 +7949,15 @@ End a name scope by popping an entry off the scope stack.
     if (kind == (a_scope_kind)sck_file ||
         kind == (a_scope_kind)sck_block) {
       pop_object_lifetimes_until(ssep->saved_curr_object_lifetime);
-    } else if (kind == (a_scope_kind)sck_function) {
+    } else if (kind == (a_scope_kind)sck_function ||
+               kind == (a_scope_kind)sck_pragma ||
+               kind == (a_scope_kind)sck_func_prototype) {
       pop_object_lifetimes_until(scope_stack[DEPTH_OF_FILE_SCOPE].
-                                                       il_scope->lifetime);
+                                                  curr_scope_object_lifetime);
       curr_object_lifetime = ssep->saved_curr_object_lifetime;
     } else if (kind == (a_scope_kind)sck_template_instantiation) {
-      check_assertion(curr_object_lifetime ==
-                         scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime);
+      check_assertion(curr_object_lifetime == scope_stack[DEPTH_OF_FILE_SCOPE].
+                                                   curr_scope_object_lifetime);
       curr_object_lifetime = ssep->saved_curr_object_lifetime;
     }  /* if */
   }  /* if */      
