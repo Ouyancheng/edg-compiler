@@ -4203,6 +4203,8 @@ on for use in generating cross-reference output describing this declaration.
     }  /* if */
   } else {
     /* Not a redeclaration. */
+    a_symbol_ptr  symbol_for_overloading = NULL;
+
     if (C_dialect == C_dialect_cplusplus) {
       /* Be sure the default arguments, if any, are at the end of the
          parameters list. */
@@ -4210,30 +4212,33 @@ on for use in generating cross-reference output describing this declaration.
       if (is_friend_decl && !friend_injection_enabled) {
         set_invisible = TRUE;
       }  /* if */
-    }  /* if */
-    if (homonym_symbol != NULL &&
-        homonym_symbol->kind != (a_symbol_kind)sk_function_template) {
-      /* homonym_symbol is a previously declared routine symbol with the
-         same name but a different type signature from that of the current
-         declaration.  We may have an instance of function overloading. */
-      an_error_code  error_code;
+      symbol_for_overloading = overload_symbol == NULL ? homonym_symbol :
+                                                         overload_symbol;
+      if (homonym_symbol != NULL &&
+          homonym_symbol->kind != (a_symbol_kind)sk_function_template) {
+        /* homonym_symbol is a previously declared routine symbol with the
+           same name but a different type signature from that of the current
+           declaration.  We may have an instance of function overloading. */
+        an_error_code  error_code;
 
-      if (!overload_distinguishable(homonym_symbol, type_ptr,
-                                    (a_template_param_ptr)NULL, &error_code)) {
-        /* The previous declaration and the current one are not "overload
-           distinguishable" for a reason given by the error code returned. */
-        pos_error(error_code, &locator->source_position);
-        redecl_error_already_issued = TRUE;
-        /* We can't add a symbol to the overload list, so change to locator
-           to an error locator to prevent hiding the overload symbol when the
-           new symbol is entered. */
-        set_to_error_locator(*locator);
-        /* Don't treat this as a template function specific declaration even
-           if it was previously thought to be.  Do treat it as a redeclaration
-           error. */
-        template_function_specific_decl = FALSE;
-        linked_redecl_error = TRUE;
-        goto skip_overloading;
+        if (!overload_distinguishable(homonym_symbol, type_ptr,
+                                      (a_template_param_ptr)NULL,
+                                      &error_code)) {
+          /* The previous declaration and the current one are not "overload
+             distinguishable" for a reason given by the error code returned. */
+          pos_error(error_code, &locator->source_position);
+          redecl_error_already_issued = TRUE;
+          /* We can't add a symbol to the overload list, so change to locator
+             to an error locator to prevent hiding the overload symbol when
+             the new symbol is entered. */
+          set_to_error_locator(*locator);
+          /* Don't treat this as a template function specific declaration
+             even if it was previously thought to be.  Do treat it as a
+             redeclaration error. */
+          template_function_specific_decl = FALSE;
+          linked_redecl_error = TRUE;
+          goto skip_overloading;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (template_function_specific_decl && !inside_local_class &&
@@ -4312,11 +4317,11 @@ on for use in generating cross-reference output describing this declaration.
       }  /* if */
       if (!linked_redecl_error) {
         if (!sym->variant.routine.instance_ptr->is_guiding_decl &&
-            homonym_symbol != NULL) {
+            symbol_for_overloading != NULL) {
           a_boolean	use_namespace;
 
           check_assertion_str(sym->parent.namespace_ptr ==
-                                homonym_symbol->parent.namespace_ptr,
+                                symbol_for_overloading->parent.namespace_ptr,
                              "decl_routine: namespace mismatch");
           /*  Its symbol is already on the template's function instantiation
               list, but it needs to be added to the overload list as well,
@@ -4324,7 +4329,7 @@ on for use in generating cross-reference output describing this declaration.
               resolution algorithm. */
           use_namespace = sym->parent.namespace_ptr != NULL;
           overload_symbol = 
-                    add_symbol_to_overload_list(sym, homonym_symbol,
+                    add_symbol_to_overload_list(sym, symbol_for_overloading,
                                                 use_namespace,
                                                 sym->parent.namespace_ptr);
           sym->variant.routine.instance_ptr->is_guiding_decl = TRUE;
@@ -4372,17 +4377,17 @@ on for use in generating cross-reference output describing this declaration.
       check_exception_specification(type_ptr, routine_ptr,
                                     &func_info->throw_position,
                                     /*is_redecl=*/TRUE);
-    } else if (homonym_symbol != NULL) {
+    } else if (symbol_for_overloading != NULL) {
       /* Overloaded function.  Create the new symbol, which will be on the
          list of functions connected to an sk_overloaded symbol. */
       a_boolean  overload_set_is_invisible = FALSE;
 
-      if (set_invisible && homonym_symbol->is_invisible) {
+      if (set_invisible && symbol_for_overloading->is_invisible) {
         overload_set_is_invisible = TRUE;
       }  /* if */
       sym = enter_overloaded_symbol((a_symbol_kind)sk_routine, locator,
                                     /*is_constructor=*/FALSE,
-                                    homonym_symbol, &overload_symbol);
+                                    symbol_for_overloading, &overload_symbol);
       if (set_invisible) {
         sym->is_invisible = TRUE;
         if (overload_set_is_invisible) {
