@@ -3599,16 +3599,25 @@ entry is pushed on the scope stack.
      be considered to bind to each of the instances generated from the
      template.  Save the current construct pragma list in the template
      symbol supplement. */
-  if (sym != NULL) {
-    a_template_symbol_supplement_ptr	tssp;
-    tssp = template_supplement_for_symbol(sym);
-    if (tssp != NULL) {
-      /* A null pointer could be returned if the symbol has an invalid
-         kind because of an earlier error. */
-      tssp->pragmas_bound_to_template =
-                          extract_curr_construct_pragmas();
+  {
+    a_boolean	saved_pragmas = FALSE;
+    if (sym != NULL) {
+      a_template_symbol_supplement_ptr	tssp;
+      tssp = template_supplement_for_symbol(sym);
+      if (tssp != NULL) {
+        /* A null pointer could be returned if the symbol has an invalid
+           kind because of an earlier error. */
+        tssp->pragmas_bound_to_template =
+                                          extract_curr_construct_pragmas();
+        saved_pragmas = TRUE;
+      }  /* if */
     }  /* if */
-  }  /* if */
+    if (!saved_pragmas) {
+      /* An error occurred earlier so we can't attach the pragmas to the
+         template, so they need to be discarded. */
+      discard_curr_construct_pragmas();
+    }  /* if */
+  }
   if (prototype_type != NULL) {
 #if CHECKING
     if (sym == NULL || sym->kind != (a_symbol_kind)sk_class_template ||
