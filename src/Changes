@@ -1,5 +1,23 @@
 Version 2.45
 
+8/17/00  C++-generating back end: parameter declarations
+
+The C++-generating back end was modified to generate "(void)" instead of "()"
+for empty parameter lists in function declarators that do not declare an
+actual function.  This avoids certain declaration ambiguities.  In addition,
+when RECORD_NAME_IN_PARAM_TYPE_ENTRY is TRUE, parameter names are regenerated
+even in function declarations that are not definitions.  For example:
+
+  void f(void (void));
+  void g(int *p);
+  void h(void);
+
+is now translated to:
+
+  extern void f(void (void)); // "(void)" used to be "()"
+  extern void g(int * p);     // "p" used to be omitted
+  extern h();                 // Unchanged
+
 8/17/00  C++-generating back end: access declarations vs. using-declarations
 
 A new configuration variable USING_DECLARATIONS_IN_GENERATED_CODE determines

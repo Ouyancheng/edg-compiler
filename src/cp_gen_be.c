@@ -2686,9 +2686,10 @@ parameter.
 }  /* gen_default_arg_expr */
 
 
-static void gen_function_declarator_with_scope(a_type_ptr    type,
-                                               a_scope_ptr   scope,
-                                               a_boolean     suppress_def_args)
+static void gen_function_declarator_with_scope(a_type_ptr   type,
+                                               a_scope_ptr  scope,
+                                               a_boolean    top_level_decl,
+                                               a_boolean    suppress_def_args)
 /*
 Output a function declarator for the indicated routine type.
 This is the top-level type of a function definition only if scope
@@ -2730,7 +2731,7 @@ suppress_def_args is TRUE if default arguments should be suppressed
       if (!rtsp->has_ellipsis) {
         /* The first argument is NULL, so this is a "void" parameter list.
            Write it as void in C, as empty in C++. */
-        if (il_header.source_language == sl_C) {
+        if (il_header.source_language == sl_C || !top_level_decl) {
           write_tok_str("void");
         }  /* if */
 #if !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
@@ -2785,18 +2786,33 @@ suppress_def_args is TRUE if default arguments should be suppressed
                                       /*under_lhs_declarator=*/FALSE,
                                       /*need_trailing_space=*/TRUE,
                                       &octl);
-          gen_temp_name((char *)param);
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+          if (param->name != NULL) {
+            write_tok_str(param->name);
+          } else
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
+          /* Do not insert code here. */
+          {
+            gen_temp_name((char *)param);
+          }  /* if */
           form_type_second_part_simple(param->type,
                                        /*under_lhs_declarator=*/FALSE,
                                        &octl);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
-          /* This is just a declaration, so put out the type and no name. */
-          gen_general_declaration_using_type(param->type, NO_NAME, iek_none,
-                                            (a_src_seq_secondary_decl_ptr)NULL,
-                                             param->qualifiers,
-                                             /*suppress_specifiers=*/FALSE,
-                                             GDO_NO_OPTIONS);
+          /* This is just a declaration, so put out the type and no name
+             (unless one was recorded). */
+          form_type_first_part(param->type, /*under_lhs_declarator=*/FALSE,
+                               /*need_trailing_space=*/FALSE,
+                               param->qualifiers, FTO_NO_OPTIONS, &octl);
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+          if (param->name != NULL) {
+            write_space();
+            write_tok_str(param->name);
+          }  /* if */
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
+          form_type_second_part_simple(param->type,
+                                       /*under_lhs_declarator=*/FALSE, &octl);
         }  /* if */
         if (!suppress_def_args) {
           /* Put out a default argument expression if there is one. */
@@ -2831,6 +2847,7 @@ used as an interface to the il_to_str routines.
 */
 {
   gen_function_declarator_with_scope(type, (a_scope_ptr)NULL,
+                                     /*top_level_decl=*/FALSE,
                                      /*suppress_def_args=*/FALSE);
 }  /* gen_function_declarator */
 
@@ -8117,6 +8134,7 @@ list for the function definition.
     /* Write the second part of the declarator. */
     /* Suppress default arguments on generated instances. */
     gen_function_declarator_with_scope(rout_type, scope,
+                                       /*top_level_decl=*/TRUE,
                                        /*suppress_def_args=*/
                                                  (rout->is_template_function &&
                                                   !rout->is_specialized &&
