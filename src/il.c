@@ -3042,6 +3042,30 @@ Add the given parameter to the parameters list for the current scope.
 }  /* add_to_parameters_list */
 
 
+a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type)
+/*
+Make a temporary variable whose type is temp_type.  Return a pointer to it.
+*/
+{
+  a_variable_ptr temp_var;
+  a_scope_kind   scope_kind;
+
+  temp_var = alloc_variable();
+  temp_var->type = temp_type;
+  /* Use auto storage class in functions, static elsewhere. */
+  scope_kind = scope_stack[depth_scope_stack].kind;
+  if (scope_kind == (a_scope_kind)sck_function ||
+      scope_kind == (a_scope_kind)sck_block) {
+    temp_var->storage_class = (a_storage_class)sc_auto;
+  } else {
+    temp_var->storage_class = (a_storage_class)sc_static;
+  }  /* if */
+  /* Name linkage stays nlk_none. */
+  add_to_variables_list(temp_var, /*at_file_scope=*/FALSE);
+  return temp_var;
+}  /* make_temporary */
+
+
 a_field_ptr alloc_field(void)
 /*
 Allocate a field entry, clear it to default values, and return a pointer
@@ -3443,6 +3467,36 @@ Make a copy of an expression tree and return a pointer to it.
   }  /* if */
   return expr_copy;
 }  /* copy_expr_tree */
+
+
+an_expr_node_ptr var_lvalue_expr(a_variable_ptr var)
+/*
+Build an expression node that represents the lvalue address of var and
+return a pointer to it.
+*/
+{
+  an_expr_node_ptr node;
+
+  node = alloc_expr_node((an_expr_node_kind)enk_variable_address);
+  node->type = make_pointer_type(var->type);
+  node->variant.variable = var;
+  return node;
+}  /* var_lvalue_expr */
+
+
+an_expr_node_ptr var_rvalue_expr(a_variable_ptr var)
+/*
+Build an expression node that represents the rvalue value of var and
+return a pointer to it.
+*/
+{
+  an_expr_node_ptr node;
+
+  node = alloc_expr_node((an_expr_node_kind)enk_variable);
+  node->type = var->type;
+  node->variant.variable = var;
+  return node;
+}  /* var_rvalue_expr */
 
 
 an_expr_node_ptr this_param_value_expr(void)

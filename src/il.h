@@ -158,6 +158,8 @@ extern void add_to_variables_list(a_variable_ptr var_ptr,
 
 extern void add_to_parameters_list(a_variable_ptr param_ptr);
 
+extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type);
+
 extern a_field_ptr alloc_field(void);
 
 extern a_routine_ptr alloc_routine(void);
@@ -195,6 +197,10 @@ extern an_expr_node_ptr alloc_node_for_constant(a_constant *constant);
 extern an_expr_node_ptr copy_node(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr);
+
+extern an_expr_node_ptr var_lvalue_expr(a_variable_ptr var);
+
+extern an_expr_node_ptr var_rvalue_expr(a_variable_ptr var);
 
 extern an_expr_node_ptr this_param_value_expr(void);
 
