@@ -1636,6 +1636,9 @@ by a command line option.
     allow_default_arg_on_template_member_definition = TRUE;
     /* Make template parameters visible in specialization scopes. */
     use_microsoft_specialization_scope = TRUE;
+    /* A friend class declaration finds names made visible by
+       using-directives. */
+    friend_class_decl_can_find_using_dir = TRUE;
   }  /* if */
   /* The Microsoft compiler does not find typedefs when looking up names
      in elaborated type specifiers. */

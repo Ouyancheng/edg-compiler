@@ -1,7 +1,7 @@
 Version 3.6
 
-12/19/04 GNU C++ compatibility: friend class declaration finds names made
-         visible by using-directives
+12/19/04 GNU C++ and Microsoft compatibility: friend class declaration finds
+         names made visible by using-directives
 
 When looking up a class name in a friend class declaration, the g++ compiler
 finds names made visible by using-directives.  We now emulate this in g++

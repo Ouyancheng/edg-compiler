@@ -612,7 +612,7 @@ EXTERN a_boolean
 		friend_class_decl_can_find_using_dir;
 			/* TRUE if a friend class declaration can find names
 			   made visible by using-directives.  This is used
-			   in g++ mode. */
+			   in g++ and Microsoft modes. */
 
 EXTERN a_boolean
 		nonclass_prototype_instantiations
