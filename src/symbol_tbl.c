@@ -6907,7 +6907,7 @@ of befriending classes given by befriending_list.
   a_boolean on_list = FALSE;
 
   for (; befriending_list != NULL; befriending_list = befriending_list->next) {
-    if (same_entities(befriending_list->class_type, class_type)) {
+    if (befriending_list->class_type == class_type) {
       on_list = TRUE;
       break;
     }  /* if */

@@ -4826,14 +4826,14 @@ the current class (class_type).
       friend_class_type = proxy_class_for_template_param(friend_class_type);
     }  /* if */
     check_assertion(is_immediate_class_type(friend_class_type));
-    if (same_entities(class_type, friend_class_type)) {
+    if (class_type == friend_class_type) {
       /* Diagnostic on excessive narcissism. */
       warning(ec_self_friendship);
     } else {
       ctsp = friend_class_type->variant.class_struct_union.extra_info;
       /* Issue a remark if this is a duplicate friend declaration. */
       for (clep = ctsp->befriending_classes; clep != NULL; clep = clep->next) {
-        if (same_entities(clep->class_type, class_type)) {
+        if (clep->class_type == class_type) {
           remark(ec_duplicate_friend_decl);
           break;
         }  /* if */
@@ -6492,7 +6492,7 @@ declared member functions.
              };
              void A::f(int) { }
         */
-        if (!same_entities(rtn->declared_type, rtn->type)) {
+        if (rtn->declared_type != rtn->type) {
           /* There must be default arguments.  Make a new type entry. */
           tp = copy_routine_type_with_param_types(rtn->declared_type,
                                                   /*copy_default_args=*/FALSE);
