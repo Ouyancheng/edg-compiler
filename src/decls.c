@@ -4422,7 +4422,10 @@ is not a template declaration scope.
                                     &linkage, &homonym_symbol,
                                     &namespace_reactivated);
   }  /* if */
-  if (sym == NULL) {
+  if (sym != NULL) {
+    tssp = template_supplement_for_symbol(sym);
+    rout_ptr = tssp->variant.function.routine;
+  } else {
     if (scope_stack[effective_decl_level].in_prototype_instantiation) {
       /* Suppress lookup of friend template declarations during prototype
          instantiation. */
@@ -4478,6 +4481,8 @@ is not a template declaration scope.
                                  effective_decl_level,
                                  /*suppress_redecl_error=*/FALSE);
       }  /* if */
+      tssp = template_supplement_for_symbol(sym);
+      rout_ptr = NULL;
       /* Set namespace membership on this template function. */
       if (is_friend_decl && ssep->in_prototype_instantiation) {
         ssep = &scope_stack[depth_innermost_namespace_scope];
@@ -4488,20 +4493,35 @@ is not a template declaration scope.
                                  ssep->il_scope->variant.assoc_namespace);
       }  /* if */
     } else {
+      a_param_type_ptr  ptp;
+
       check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
+      tssp = template_supplement_for_symbol(sym);
+      rout_ptr = tssp->variant.function.routine;
+      /* Declaring a default argument on a function template reclaration is
+         nonstandard.  Issue at least a warning, and always an error if the
+         template has already been instantiated. */
+      for (ptp = type_ptr->variant.routine.extra_info->param_type_list;
+           ptp != NULL;
+           ptp = ptp->next) {
+        if (ptp->has_default_arg) {
+          an_error_severity  severity = es_warning;
+          if (tssp->variant.function.instantiations != NULL) {
+            severity = es_error;
+          } else if (strict_ansi_mode) {
+            severity = strict_ansi_error_severity;
+          }  /* if */
+          pos_diagnostic(severity, ec_default_arg_on_function_template_redecl,
+                         &locator->source_position);
+          break;
+        }  /* if */
+      }  /* for */
       /* Merge type information from the two declarations. */
-      reconcile_routine_types(sym->variant.template_info->
-						variant.function.routine,
-			       type_ptr,
+      reconcile_routine_types(rout_ptr, type_ptr,
                               /*preserve_rout_type=*/TRUE,
                               /*preserve_type_ptr=*/FALSE);
     }  /* if */
   }  /* if */
-  tssp = template_supplement_for_symbol(sym);
-  rout_ptr = tssp->variant.function.routine;
-#if DECL_MODIFIERS_IN_USE
-  redeclaration = rout_ptr != NULL;
-#endif /* DECL_MODIFIERS_IN_USE */
   if (!is_error_locator(*locator)) {
     if (func_info->is_definition) {
       if (sym->defined) {
@@ -4553,6 +4573,9 @@ is not a template declaration scope.
        on the previous declaration. */
     check_exception_specification(type_ptr, rout_ptr,
                                   &func_info->throw_position);
+#if DECL_MODIFIERS_IN_USE
+    redeclaration = TRUE;
+#endif /* DECL_MODIFIERS_IN_USE */
   }  /* if */
   update_routine_decl_modifiers(rout_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
