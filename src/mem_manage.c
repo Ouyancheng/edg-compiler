@@ -1176,7 +1176,7 @@ not definition_needed, or (c) if they are inline.
 #if DEBUG
       if (debug_level >= 3 || db_flag_is_set("needed_flags")) {
         fprintf(f_debug, "check_for_done_with_all_function_memory_regions: ");
-        fprintf(f_debug, "writing memory region for ");
+        fprintf(f_debug, "writing/freeing memory region for ");
         db_name(&rout->source_corresp);
         fprintf(f_debug, "\n");
       }  /* if */
