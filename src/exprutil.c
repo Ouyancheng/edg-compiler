@@ -1507,12 +1507,14 @@ symbol is a function, an rvalue otherwise.
 void make_template_param_expr_constant_operand(
                                               an_operand            *operand_1,
                                               an_operand            *operand_2,
+                                              an_operand            *operand_3,
                                               an_expr_operator_kind op,
                                               a_type_ptr            type,
                                               an_operand            *result)
 /*
 Build an operand for a ck_template_param constant for the expression
 "operand_1 op operand_2"; or, if operand_2 is NULL, "op operand_1";
+or, if operand_3 is non-NULL, "operand_1 ? operand_2 : operand_3";
 or, if op is eok_error, simply operand_1.  The result type is "type".
 Return the operand in *result.
 */
@@ -1524,6 +1526,9 @@ Return the operand in *result.
   if (op != (an_expr_operator_kind)eok_error) {
     if (operand_2 != NULL) {
       node->next = make_node_from_operand(operand_2);
+      if (operand_3 != NULL) {
+        node->next->next = make_node_from_operand(operand_3);
+      }  /* if */
     }  /* if */
     node = make_operator_node(op, type, node);
   }  /* if */
@@ -3670,6 +3675,7 @@ if possible.
            during the prototype instantiation, make a ck_template_param
            constant for the result. */
         make_template_param_expr_constant_operand(operand_1, operand_2,
+                                                  (an_operand *)NULL,
                                                   op, result_type, result);
       } else if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
         /* An operation on constants could not be folded.  For example,

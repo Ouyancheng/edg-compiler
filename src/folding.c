@@ -58,6 +58,8 @@ constant is an address that is not known until link time.)
       known_bool = (con->variant.address.variant.routine->storage_class !=
                     (a_storage_class)sc_extern);
     }  /* if */
+  } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
+    known_bool = FALSE;
   }  /* if */
   return known_bool;
 }  /* constant_bool_value_known_at_compile_time */
