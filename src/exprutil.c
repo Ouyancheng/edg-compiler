@@ -1162,11 +1162,14 @@ destruction processed, and is updated on output.
       /* No temp inits. */
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_statement:
+      /* Statement expressions in C++ are restricted so that they cannot
+         contain destructible entities. */
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_object_lifetime:  /* Not expected at this level. */
     case enk_condition:        /* Not expected at this level. */
-#if GNU_EXTENSIONS_ALLOWED
-    case enk_statement:        /* Comes up only in C mode. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str(
                        "examine_expr_for_unordered_temp_inits: bad expr kind");
