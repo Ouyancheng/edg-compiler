@@ -8651,7 +8651,7 @@ if so.
   a_boolean            compatible = FALSE;
   an_arg_match_summary arg_summary;
 
-  determine_arg_match_level(operand, operand->type, param_type,
+  determine_arg_match_level(operand, (a_type_ptr)NULL, param_type,
                             /*try_user_conversions=*/FALSE,
                             &arg_summary);
   compatible = (arg_summary.match_level != aml_none);
