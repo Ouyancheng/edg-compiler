@@ -1054,7 +1054,7 @@ Rethrow the current thrown obejct.
 
 EXTERN_C void* __throw_alloc(a_typeinfo_ptr	typeinfo,
 			     a_sizeof_t		size,
-			     a_boolean		flags)
+			     an_ETS_flag_set	flags)
 /*
 Allocate space for the object to be thrown and save information about
 the type being thrown.
