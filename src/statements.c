@@ -6594,8 +6594,8 @@ e.g., ({ ... }).
     } else {
       /* In C mode the declarations are expected to appear first.  Note that
          label statements may look like the start of a declaration, so we
-         have to check for ident followed by ":".  In C99 mode, declarations
-         may be interspersed with statements. */
+         have to check for ident followed by ":".  In C99 and GNU C modes,
+         declarations may be interspersed with statements. */
       a_boolean  marked_as_gnu_extension = FALSE;
       if (curr_token == tok_extension) {
         marked_as_gnu_extension = TRUE;
@@ -6604,9 +6604,9 @@ e.g., ({ ... }).
       if ((curr_token != tok_identifier || next_token() != tok_colon) &&
           is_decl_start(/*expr_context=*/TRUE,
                         /*real_declarator_allowed=*/TRUE)) {
-        /* Scan a declaration.  In pre-C99 C, these must all be at the
+        /* Scan a declaration.  In C89, these must all be at the
            beginning of the block. */
-        if (!c99_mode && any_statements) {
+        if (!(c99_mode || gcc_mode) && any_statements) {
           error(ec_declaration_after_statements);
           /* Special error-recovery trick: this tries to deal with mismatched
              braces, in the case where a "}" is missing and thus there appears

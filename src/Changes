@@ -1,5 +1,15 @@
 Version 3.2
 
+3/26/03  GNU C mode: Declarations can appear anywhere in a block
+
+In GNU C mode, the front end now no longer requires that all the declaration
+in a block appear at the beginning of that block.  For example:
+
+  void f(int *p) {
+    *p += 1;
+    int a = *p;  // Now accepted in GNU C mode.
+  }
+
 3/25/03  Problem with comparison of dependent nontype template arguments
 
 A problem with the comparison of dependent nontype template argument
