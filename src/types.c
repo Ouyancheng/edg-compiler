@@ -5410,7 +5410,7 @@ name linkage is encountered).
        code will not return TRUE (which is desired behavior). */
     a_type_ptr bottom_type = find_bottom_of_type(type_ptr);
     if ((is_class_struct_union(bottom_type) || is_enum(bottom_type)) &&
-        has_name(bottom_type)) {
+        !has_name(bottom_type)) {
       *force_end_of_traversal = result = TRUE;
     }  /* if */
   }  /* if */
