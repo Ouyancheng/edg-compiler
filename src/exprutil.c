@@ -916,12 +916,7 @@ the expr_stack).  Also do nothing in C mode.
         if (is_error_node(expr)) {
           mark_object_lifetime_as_useless(lifetime);
         } else {
-          an_expr_node_ptr orig_expr = expr;
-          expr = alloc_expr_node((an_expr_node_kind)enk_object_lifetime);
-          expr->variant.object_lifetime.expr = orig_expr;
-          /* expr->variant.object_lifetime.ptr is set by the bind call. */
-          expr->type = orig_expr->type;
-          bind_object_lifetime(lifetime, iek_expr_node, (char *)expr);
+          expr = add_object_lifetime_to_expr(expr, lifetime);
         }  /* if */
       }  /* if */
     }  /* if */
