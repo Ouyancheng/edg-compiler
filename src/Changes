@@ -1,4 +1,6 @@
-Version 2.34
+Version 2.34, December 18, 1996
+
+12/18/96 IL version number changed to 2.26
 
 12/18/96 Source sequence entry for namespace declaration
 
@@ -1302,7 +1304,7 @@ the name is redeclared after the template has been declared.
 9/13/96 Microsoft compatibility: __STDC__ not defined
 
 The Microsoft Visual C++ compiler does not define the preprocessor
-variable __STDC__ when extensions are suported, so the front end has
+variable __STDC__ when extensions are supported, so the front end has
 been changed not to define __STDC__ in Microsoft mode.
 
 9/13/96 Compilation speed problem with extremely large switch statements
@@ -1321,7 +1323,7 @@ compilation of cases like
   }
 
 This has been fixed for the usual case of mostly-ascending case labels.
-The quadractic behavior remains for other cases, but since cases this
+The quadratic behavior remains for other cases, but since cases this
 large tend to be machine-generated, the mostly-ascending optimization
 probably deals with most real-world cases.
 
@@ -2015,7 +2017,7 @@ C, but some compilers weren't happy with it, and the const difference
 was unintended and unnecessary.
 
 Also, a related bug has been fixed: when "restrict" was specified on a
-function that has an assigment to "this", the restrict qualifier on
+function that has an assignment to "this", the restrict qualifier on
 the "this" parameter was inadvertently dropped in the process of dropping
 the const qualifier.
 
