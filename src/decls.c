@@ -3052,10 +3052,16 @@ otherwise, set *ext_sym to NULL.
     }  /* if */
   }  /* if */
   if (is_implicit_function) {
-    /* For an implicit function, the identifier would not be in the process
-       of being declared implicitly as a function if there were any visible
-       declaration of it, and therefore it must have external linkage. */
-    linkage = idl_external;
+    if (C_dialect != C_dialect_cplusplus) {
+      /* For an implicit function, the identifier would not be in the process
+         of being declared implicitly as a function if there were any visible
+         declaration of it, and therefore it must have external linkage. */
+      linkage = idl_external;
+    } else {
+      /* In C++ this is an error case.  Don't give this dummy routine any
+         linkage. */
+      linkage = idl_none;
+    }  /* if */
     linked_symbol = NULL;
     homonym_symbol = NULL;
     sym = *symbol_ptr;
@@ -4169,12 +4175,21 @@ symbol has already been entered as an undefined symbol.
      to that memory region if necessary. */
   switch_to_file_scope_region(&region_to_switch_back_to);
   /* Generate the function type, with an old-style no-information parameter
-     list, and a return type of "int".  See 3.3.2.2, semantics. */
+     list, and in C a return type of "int".  See 3.3.2.2, semantics. In C++
+     this must be an error, so give it a return type of tk_error. */
   rout_type = alloc_type((a_type_kind)tk_routine);
-  rout_type->variant.routine.return_type =
-                                         integer_type((an_integer_kind)ik_int);
   rout_type->variant.routine.extra_info->param_type_list = NULL;
   rout_type->variant.routine.extra_info->prototyped = FALSE;
+  if (C_dialect != C_dialect_cplusplus) {
+    rout_type->variant.routine.return_type =
+                                       integer_type((an_integer_kind)ik_int);
+  } else {
+    /* Making the return type an error type prevents cascading errors. */
+    rout_type->variant.routine.return_type = error_type();
+    /* Pretend there has been an actual definition.  This avoids some
+       inconsistencies in param_types_are_compatible. */
+    rout_type->variant.routine.extra_info->old_style_params_scanned = TRUE;
+  }  /* if */
   make_locator_for_symbol(symbol_ptr, &locator);
   /* Declare the function identifier. */
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
