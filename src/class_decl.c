@@ -5699,7 +5699,7 @@ instantiations are recorded in the IL.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
     /* A dependent friend declaration that is not a definition.  If this
-       is neither a qualified name or a template-id, issue a warning as
+       is neither a qualified name nor a template-id, issue a warning as
        it is probably not what was intended. */
     if (warning_on_non_template_friend && !guiding_decls_allowed &&
         !locator->is_qualified_name && !locator->is_template_id &&
