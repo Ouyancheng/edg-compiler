@@ -1,5 +1,13 @@
 Version 2.43
 
+12/7/99  Offset to base of object in virtual function table when
+         construction vtbls are used
+
+The offset to the base of the object stored in entry [0] of a
+virtual function table was wrong in some cases, for the virtual
+function tables generated for temporary use during construction
+and destruction of subobjects.  Now fixed.
+
 12/7/99  C++-generating back end: qualified name on function definition in
          the presence of using-directive
 

@@ -4565,8 +4565,19 @@ virtual function table.
       /* The [0] entry includes the offset of the class whose vtbl is being
          made in the complete class, and a pointer to the typeinfo entry for
          the class. */
-      add_vtbl_entry_init((bcp != NULL) ? (a_targ_ptrdiff_t)bcp->offset :
-                                          (a_targ_ptrdiff_t)0,
+      a_targ_ptrdiff_t delta;
+      if (ctor_bcp == NULL) {
+        delta = (bcp != NULL) ? (a_targ_ptrdiff_t)bcp->offset :
+                                (a_targ_ptrdiff_t)0;
+      } else {
+        a_base_class_ptr disambiguator = find_disambiguator(ctor_bcp, bcp);
+        a_base_class_ptr eff_bcp = corresponding_base_class(
+                                                       bcp,
+                                                       ctor_bcp->derived_class,
+                                                       disambiguator);
+        delta = eff_bcp->offset - ctor_bcp->offset;
+      }
+      add_vtbl_entry_init(delta,
                           (a_routine_ptr)NULL,
                           make_typeinfo_var(class_type),
                           aggr_con, first_virtual);
