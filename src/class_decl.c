@@ -5267,6 +5267,8 @@ destructors, assignment operators, and conversion functions.
   }  /* if */
   /* Mark the IL entry referenced. */
   rp->source_corresp.referenced = TRUE;
+   /* Mark the routine's class as referenced. */
+  sym->class_of_which_a_member->source_corresp.referenced = TRUE;
   /* If necessary, create the function body for a compiler generated
      routine. */
   if (rp->compiler_generated && rp->assoc_scope == NULL_region_number) {
