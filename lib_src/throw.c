@@ -571,10 +571,11 @@ requires cleanup.
   obj_addr_array = ehsep->variant.function.object_address_table;
   for (; region != stop_at_region; region = ehrdp->index_of_next_region) {
     an_object_ptr	        obj_addr;
-    a_conditional_flag*	        flag_addr;
+    a_conditional_flag*	        flag_addr = NULL;
     char			*temp_addr;
     a_region_descr_flag_set     flags;
     an_eh_array_supplement_ptr	ehasp = NULL;
+    void			*vtbl_ptr = NULL;
 
     ehrdp = &ehsep->variant.function.regions[region];
 #if DEBUG
@@ -596,12 +597,33 @@ requires cleanup.
       /* The object information is pointed to directly by the region entry. */
       flag_addr = (a_conditional_flag*)*(obj_addr_array + (ehrdp + 1)->handle);
 #if DEBUG
-    if (__debug_level >= 2) {
-      fprintf(__f_debug, "  Conditional flag=%0d\n", *flag_addr);
-    }  /* if */
+      if (__debug_level >= 2) {
+        fprintf(__f_debug, "  Conditional flag=%0d\n", *flag_addr);
+      }  /* if */
 #endif /* DEBUG */
       /* Skip processing of this entry if the flag is not set. */
       if (!*flag_addr) continue;
+    }  /* if */
+    if ((flags & (RDF_SUBOBJECT_VTABLE |
+                  RDF_BASE_CLASS_SUBOBJECT)) != 0) {
+      int	region_table_offset = 1;
+      /* This is a subobject destruction that has a special vtable pointer
+         that is to be used.  The next region table entry contains a handle
+         that points to the vtable address to be used.  If there is a
+         conditional flag, the handle is in the region table entry after
+         the conditional flag. */
+      if (flag_addr != NULL) region_table_offset++;
+#if 0
+      /* The following line needs to be modified when stack offsets are
+	 being used instead of an object address array. */
+#endif /* 0 */
+      vtbl_ptr = (void*)(obj_addr_array +
+                         (ehrdp + region_table_offset)->handle);
+#if DEBUG
+      if (__debug_level >= 2) {
+        fprintf(__f_debug, "  Vtable pointer=%p\n", vtbl_ptr);
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
 #if 0
     /* In an implementation that uses stack offsets instead of an object
@@ -650,9 +672,17 @@ requires cleanup.
         ABI_NAMESPACE::__cxa_vec_dtor(obj_addr, elements, 
                                       ehasp->element_size, dtor_ptr);
 #endif /* ifdef __EDG_IA64_ABI */
+      } else if (vtbl_ptr != NULL) {
+        /* A non-array object for which a special destructor must be called
+           in order to supply information about the construction vtable to
+           be used. */
+        a_destructor_with_vtable_param_ptr	dtor_with_vtable;
+        dtor_with_vtable = (a_destructor_with_vtable_param_ptr)dtor_ptr;
+        dtor_with_vtable(obj_addr, vtbl_ptr);
       } else {
 #ifndef __EDG_IA64_ABI
-        /* Not an array.  Just destroy the object.  If the object is a
+        /* Not an array and not an object that requires special construction
+           vtable information.  Just destroy the object.  If the object is a
            complete object, pass in the value "2" to indicate that the
 	   object and any subobjects should be destroyed.  If the object
            is itself a base class subobject, pass in the value "0"

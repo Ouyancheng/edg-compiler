@@ -126,6 +126,11 @@ EXTERN_C typedef void (*a_destructor_ptr)(void*);
 #endif /* defined(__EDG_IA64_ABI) */
 			/* Type used to store a pointer a destructor. */
 
+typedef void (*a_destructor_with_vtable_param_ptr)(void*, void*);
+			/* Type used for the kind of destructor that is used
+			   to when information about the construction vtable
+			   to be used must be provided. */
+
 #ifdef __EDG_IA64_ABI
 /* Explicit "C" linkage is required for compatibility with the declaration in
    cxxabi.h. */

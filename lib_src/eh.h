@@ -110,17 +110,25 @@ config.h file.
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING && USING_KAI_INLINER */
 #endif /* 0 */
 
-#ifndef __EDG_IA64_ABI
 #define RDF_BASE_CLASS_SUBOBJECT	0x40
 			/* TRUE if the object is a base class of some other
 			   object and therefore is not a complete object. */
-#endif /* ifndef __EDG_IA64_ABI */
+#define RDF_SUBOBJECT_VTABLE		0x80
+			/* When RDF_BASE_CLASS_SUBOBJECT is TRUE, this
+			   flag indicates that a region entry following this
+			   one gives the address of the subobject virtual
+			   function table table to be used when calling the
+			   destructor.  If there is also an extra entry for a
+			   conditional flag, the subobject vtable entry
+			   follows the flag entry.  Note that this uses the
+			   same bit as RDF_GUARD_VAR_FOR_LOCAL_STATIC. */
 #define RDF_GUARD_VAR_FOR_LOCAL_STATIC	0x80
 			/* TRUE if the object is the guard variable associated
 			   with the initialization of a local static variable.
-			   The cleanup action is to set the variable back
-			   to zero. */
-
+			   The cleanup action is to set the variable back to
+			   zero.  Note that this uses the same bit as
+			   RDF_SUBOBJECT_VTABLE, and is valid only when
+			   RDF_BASE_CLASS_SUBOBJECT is FALSE. */
 
 #define NULL_REGION_NUMBER ((a_region_number)__EDG_NULL_EH_REGION_NUMBER)
 			/* The value used when there is no active EH
