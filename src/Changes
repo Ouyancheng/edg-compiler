@@ -1,5 +1,16 @@
 Version 2.29
 
+5/13/95  Spurious used-before-set warning eliminated
+
+A spurious used-before-set warning has been eliminated for cases like
+the following:
+
+  main() {
+    char* p;
+    char* q = "hello";
+    (p = q)++;  // Got warning on using p before it is set
+  }
+
 5/4/95   operator new[] and operator delete[]
 
 Declarations of operator new[] and operator delete[] are now accepted,
