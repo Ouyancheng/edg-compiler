@@ -347,7 +347,7 @@ l_check:
                                      (an_integer_kind)ik_long)) {
       kind = (an_integer_kind)ik_long;
       goto kind_established;
-    } else if ((has_u_suffix || radix != 10 || !long_long_is_standard) &&
+    } else if ((has_u_suffix || radix != 10 || !long_long_promotion_allowed) &&
                le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
                                           (an_integer_kind)ik_unsigned_long)) {
       /* When long long is not a standard type (including the case when long

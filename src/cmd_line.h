@@ -205,6 +205,7 @@ typedef enum /*an_option_kind*/ {
 #if DEBUG
   optk_debug_name,
 #endif /* DEBUG */
+  optk_long_long,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1400,6 +1401,11 @@ EXTERN a_boolean
 			/* TRUE if the long long type is should be considered
 			   a standard data type (i.e., not an extension).
 			   This is true in C99 mode. */
+
+EXTERN a_boolean
+		long_long_promotion_allowed /* = FALSE*/;
+			/* TRUE if a value should promote to long long
+			   instead of promoting to unsigned long. */
 
 EXTERN a_boolean
 		hex_floating_point_constants_allowed /* = FALSE*/;

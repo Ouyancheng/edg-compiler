@@ -933,6 +933,10 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  add_option_description(optk_long_long,
+                         "long_long",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1577,6 +1581,7 @@ Set the various flags appropriate to C99 mode.
   va_copy_macro_allowed = TRUE;
   /* The long long data type is not an extension in C99. */
   long_long_is_standard = TRUE;
+  long_long_promotion_allowed = TRUE;
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
 }  /* set_c99_mode_flags */
@@ -2291,6 +2296,7 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
   alternative_tokens_allowed = TRUE;
   /* Treat "long long" as a standard feature. */
   long_long_is_standard = TRUE;
+  long_long_promotion_allowed = TRUE;
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
 }  /* check_and_set_gcc_mode_options */
@@ -3310,6 +3316,12 @@ enable_microsoft_mode:
         C_dialect = C_dialect_ANSI;
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      case optk_long_long:
+        /* The long long feature cannot be disabled when the front end is
+           configured to use it, but its use results in an error in certain
+           modes.  This option is used to suppress such errors. */
+        long_long_is_standard = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

@@ -542,6 +542,7 @@ check_abbreviation()
 --list
 --list_object_files
 --long_lifetime_temps
+--long_long
 --long_preserving_rules
 --microsoft
 --microsoft_16
@@ -1135,6 +1136,7 @@ process_option()
          --stdarg_builtin | \
          --no_stdarg_builtin | \
          --ignore_std | \
+	 --long_long | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing

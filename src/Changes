@@ -1,5 +1,13 @@
 Version 2.46
 
+2/5/02   Command-line option to allow long long in strict mode
+
+Except in C99 mode, the use of long long results in a diagnostic in
+strict mode.  The --long_long option can now be used to override this
+behavior so that code that uses long long can be compiled without
+diagnostics in strict mode.  The --long_long option must follow
+the strict mode option on the command line.
+
 2/5/02   Error on taking the address of an assignment to a bit field
 
 An error is now issued in C++ on attempting to take the address of
