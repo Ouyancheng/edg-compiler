@@ -3799,6 +3799,9 @@ on for use in generating cross-reference output describing this declaration.
               /* Force creation of a new symbol and a new routine entry. */
               linked_redecl_error = TRUE;
             }  /* if */
+            /* Set a flag to suppress reuse of the existing external-routine
+               symbol. */
+            suppress_ext_sym_lookup = TRUE;
           }  /* if */
           redecl_error_already_issued = TRUE;
         } else {
@@ -4133,6 +4136,26 @@ skip_overloading:;
   update_routine_decl_modifiers(routine_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
                                 is_function_def);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && func_info->is_main_function) {
+    /* main should use __cdecl calling convention.  If that's not the default
+       for the compilation, set it now. */
+    if (type_ptr->kind != (a_type_kind)tk_routine) {
+      /* Skip this processing if the function was declared with a typedef. */
+    } else {
+      a_routine_type_supplement_ptr  rtsp;
+      rtsp = type_ptr->variant.routine.extra_info;
+      if (rtsp->calling_convention != (a_calling_convention)cc_default ||
+          default_calling_convention != (a_calling_convention)cc_cdecl) {
+        if (rtsp->calling_convention == (a_calling_convention)cc_cdecl) {
+          /* __cdecl was already explicitly specified in this declaration. */
+        } else {
+          rtsp->calling_convention = (a_calling_convention)cc_cdecl;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Link the symbol to the IL routine entry. */
   sym->variant.routine.ptr = routine_ptr;
   if (*ext_sym != NULL &&
