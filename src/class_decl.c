@@ -763,15 +763,19 @@ routine recursively for each nested class.
           }  /* for */
           /* Scan the default arguments associated with the template for this
              function. */
-          /* Get the template symbol from the instance pointer. */
-          tssp = sym->variant.routine.instance_ptr->template_sym->
+          if (sym->variant.routine.instance_ptr == NULL) {
+            /* Some sort of error condition. */
+          } else {
+            /* Get the template symbol from the instance pointer. */
+            tssp = sym->variant.routine.instance_ptr->template_sym->
                                variant.routine.instance_ptr->template_info;
-          delayed_scan_for_function_template_default_args(
+            delayed_scan_for_function_template_default_args(
                                            tssp->variant.function.routine,
                                            sym->variant.routine.ptr,
                                            sym->variant.routine.instance_ptr,
                                            tssp,
                                            /*push_instantiation_scope=*/FALSE);
+          }  /* if */
         } else {
           /* A friend (or other non-member-function) declaration in a real
              template instantiation or any declaration in an ordinary
