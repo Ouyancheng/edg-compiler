@@ -5167,7 +5167,7 @@ the current identifier is a class member and a template-id.
        member.  */
     parent_sym = (a_symbol_ptr)locator_for_curr_id.parent.class_type->
                                                   source_corresp.assoc_info;
-     if (sym->header == parent_sym->header) {
+    if (sym->header == parent_sym->header) {
       result = TRUE;
     }
   }  /* if */
