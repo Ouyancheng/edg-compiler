@@ -1097,6 +1097,9 @@ error code.
     case ec_ambiguous_default_constructor:
       m = "more than one default constructor for class \"%s\"";
       break;
+    case ec_temp_used_for_ref_init:
+      m = "reference initialized to copy of initial value";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
