@@ -15339,12 +15339,13 @@ expression.
             marked_as_gnu_extension ? EOPT_MARKED_AS_GNU_EXTENSION
                                     : EOPT_NO_OPTIONS);
   if (is_statement_expr &&
-      curr_token == tok_semicolon &&
-      next_token() == tok_rbrace) {
+      ((curr_token == tok_semicolon && next_token() == tok_rbrace) ||
+       /* Also handle the case where the semicolon was omitted. */
+       curr_token == tok_rbrace)) {
     /* This is the last statement in a GNU statement expression.
        As such, it is the value of the expression. */
     result_used = TRUE;
-  }  /* if * */
+  }  /* if */
   if (!result_used) {
     simplify_void_operand(&result);
   } else {
