@@ -5385,7 +5385,7 @@ Make a copy of an expression tree and return a pointer to it.
                              (char *)expr_copy);
         (void)pop_object_lifetime();
 #if MINIMAL_INLINING
-        if (need_to_pop_function_lifetime) pop_object_lifetime();
+        if (need_to_pop_function_lifetime) (void)pop_object_lifetime();
       }
 #endif /* MINIMAL_INLINING */
       break;
