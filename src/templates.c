@@ -1745,7 +1745,8 @@ included in the search.
     if (sym->is_class_member) {
       /* If this is an instance of a member template, set the access of
          the type based on the access stored in the template. */
-      class_type->source_corresp.access = tssp->access;
+      class_type->source_corresp.access =
+                      (an_access_specifier)tssp->variant.class_template.access;
     }  /* if */
     /* A template instantiation will have the same name-linkage (C++ or
        internal) as the template itself has. */
@@ -2910,6 +2911,7 @@ type based on the template argument list and the template parameter list
     set_source_corresp(&rp->source_corresp, sym);
     set_membership_in_source_corresp(&rp->source_corresp, sym);
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
+    rp->source_corresp.access = templ_rout->source_corresp.access;
     update_routine_decl_modifiers(rp, decl_modifiers,
                                   &locator.source_position,
                                   /*is_redecl=*/FALSE, /*is_definition=*/TRUE);
@@ -4277,7 +4279,7 @@ instantiation.
       } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
         set_class_membership(sym, (a_source_correspondence *)NULL,
                              class_declared_in);
-        tssp->access = access; 
+        tssp->variant.class_template.access = access; 
       }  /* if */
       /* Set the name-linkage for this template -- it will be propagated
          into the instances. */

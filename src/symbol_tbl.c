@@ -1491,7 +1491,6 @@ and return a pointer to it.
   clear_template_cache(&tssp->cache, /*reusable=*/TRUE);
   tssp->befriending_classes = NULL;
   tssp->cache_segment = NULL;
-  tssp->access = (an_access_specifier)as_inaccessible;
   switch (kind) {
     case sk_class_template:
     case sk_class_or_struct_tag:
@@ -1500,6 +1499,8 @@ and return a pointer to it.
       tssp->variant.class_template.type_kind = (a_type_kind)tk_error;
       tssp->variant.class_template.prototype_instantiation = NULL;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
+      tssp->variant.class_template.access =
+                                         (an_access_specifier)as_inaccessible;
       tssp->variant.class_template.name_linkage =
                                             (a_name_linkage_kind)nlk_none;
       tssp->variant.class_template.not_standalone_nested_class = FALSE;
@@ -4362,11 +4363,15 @@ It cannot be used for checking access (see have_access_to_symbol).
   } else if (sym_ptr->kind == (a_symbol_kind)sk_projection) {
     /* Projection symbol. */
     access = sym_ptr->variant.projection.access;
-  } else if (sym_ptr->kind == (a_symbol_kind)sk_class_template ||
-             sym_ptr->kind == (a_symbol_kind)sk_function_template) {
-    /* Access for class and function templates is stored in the template
-       symbol supplement. */
-    access = sym_ptr->variant.template_info->access;
+  } else if (sym_ptr->kind == (a_symbol_kind)sk_class_template) {
+    /* Access for class templates is stored in the template symbol
+       supplement. */
+    access = sym_ptr->variant.template_info->variant.class_template.access;
+  } else if (sym_ptr->kind == (a_symbol_kind)sk_function_template) {
+    /* Access for function templates is stored in routine entry pointed to
+       by the template symbol supplement. */
+    access = sym_ptr->variant.template_info->
+                              variant.function.routine->source_corresp.access;
   } else {
     /* Normal symbol (not projection or overloaded function). */
     check_assertion_str2(sym_ptr->kind

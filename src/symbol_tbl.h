@@ -1195,10 +1195,6 @@ typedef struct a_template_symbol_supplement {
 			   used to extract the definitions of member
 			   functions and nested classes from the bodies
 			   of class template definitions. */
-  an_access_specifier
-		access;
-			/* If the template is a member of a class, this
-                           specifies the access for the member. */
   union {
     /* When symbol kind = sk_class_template: */
     struct {
@@ -1240,6 +1236,10 @@ typedef struct a_template_symbol_supplement {
 		is_specific_definition:1;
 			/* TRUE if the template is a specific definition of
 			   a member class template. */
+      a_bit_field /* an_access_specifier */
+		access:2;
+			/* If the template is a member of a class, this
+                           specifies the access for the member. */
       bitfield_to_avoid_codecenter_warnings()
     } class_template;
     /* When symbol kind = sk_function_template: */
