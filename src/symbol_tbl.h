@@ -431,7 +431,7 @@ typedef struct a_symbol {
                            an unqualified reference, and not all may be
                            accessible. */
       a_byte_boolean
-                access_adjustment;
+                access_adjustment_made;
                         /* If TRUE an access declaration has been made for
                            one of the projection symbols on the list, in which
                            case it cannot be overridden by a local symbol of
@@ -693,20 +693,6 @@ EXTERN a_scope_depth
 			/* Level in the scope stack that contains the innermost
 			   function scope, or NO_SCOPE_DEPTH if there isn't
 			   one. */
-EXTERN a_scope_depth
-		num_current_class_reactivations;
-			/* Current count of sck_class_reactivation entries
-			   in scope_stack.  When it is non-zero we are inside
-			   a member function or a similar reactivation of
-			   the scope of a class, and name lookup is more
-			   complicated. */
-EXTERN a_scope_number
-		next_scope_number;
-			/* Next scope number to be assigned.  These are
-			   unique identifiers for each scope, not just
-			   the scope nesting depth.  Also used for the
-			   pseudo-scopes associated with the members of
-			   structs and unions. */
 
 /*
 Enumeration indicating a kind of reference to a symbol, used in
@@ -771,7 +757,8 @@ extern a_symbol_ptr scope_qualified_id_lookup(a_symbol_locator *locator,
 /* Begin a name scope. */
 extern a_scope_ptr push_scope(a_scope_kind   kind,
 			      a_scope_number scope_number_for_function,
-                              a_type_ptr     assoc_type);
+                              a_type_ptr     assoc_type,
+                              a_routine_ptr  assoc_routine);
 /* End a name scope. */
 extern void pop_scope(void);
 /* Record use information (for cross-reference, etc.). */
