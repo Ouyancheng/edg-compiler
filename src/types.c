@@ -4424,14 +4424,21 @@ preference is given to the first.
         }  /* if */
       }  /* if */
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
-      /* Preserve the name that is associated with one or the other of the
-         parameters. */
-      if (ptp1->name != NULL) {
-        return_type2_as_comp_type = FALSE;
-        if (!return_type1_as_comp_type) goto make_new_comp_type;
-      } else if (ptp2->name != NULL) {
-        return_type1_as_comp_type = FALSE;
-        if (!return_type2_as_comp_type) goto make_new_comp_type;
+      if (ptp1->name == ptp2->name) {
+        /* The names are identical, so it doesn't affect which is used for
+           composite type formation.  (Note that a pointer comparison can be
+           used instead of strcmp, since the entries point to symbol header
+           identifiers.) */
+      } else {
+        /* Preserve the name that is associated with one or the other of the
+           parameters; if both have names, preference is given to ptp1. */
+        if (ptp1->name != NULL) {
+          return_type2_as_comp_type = FALSE;
+          if (!return_type1_as_comp_type) goto make_new_comp_type;
+        } else if (ptp2->name != NULL) {
+          return_type1_as_comp_type = FALSE;
+          if (!return_type2_as_comp_type) goto make_new_comp_type;
+        }  /* if */
       }  /* if */
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
       /* Form the composite of the two types. */
