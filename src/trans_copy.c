@@ -253,10 +253,6 @@ pruned at the entry pointed to by ptr, of kind "kind".
        memory regions that weren't moved from secondary translation
        units. */
     il_entry_prefix_of(ptr).secondary_trans_unit = FALSE;
-    if (kind == iek_scope) {
-      a_scope_ptr scope = (a_scope_ptr)ptr;
-      trans_unit_for_scope[scope->number] = translation_units;
-    }  /* if */
     prune = FALSE;
   } else {
     /* This entry is in the file scope memory region of a secondary translation
@@ -2767,10 +2763,7 @@ region of the primary IL.
     a_boolean   from_secondary_trans_unit =
                        (trans_unit_for_scope[sp->number] != translation_units);
     if (!from_secondary_trans_unit &&
-        sp->kind != (a_scope_kind)sck_file &&
-        /* Ignore functions copied from a secondary translation unit. */
-        !sp->variant.routine.ptr->source_corresp.
-                                            copied_from_secondary_trans_unit) {
+        sp->kind != (a_scope_kind)sck_file) {
       result = TRUE;
     }  /* if */
   }  /* if */

@@ -1191,8 +1191,7 @@ part of secondary translation units (perhaps).
       /* This memory has already been freed. */
     } else {
       a_scope_ptr sp = il_header.region_scope_entry[n];
-      a_boolean   from_secondary_trans_unit =
-                       (trans_unit_for_scope[sp->number] != translation_units);
+      a_boolean   from_secondary_trans_unit = in_secondary_trans_unit(sp);
       /* Skip the file-scope memory regions of secondary translation units. */
       if (!from_secondary_trans_unit ||
           sp->kind != (a_scope_kind)sck_file) {
