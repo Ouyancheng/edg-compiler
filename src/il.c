@@ -6231,6 +6231,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
     } else {
       a_source_position       *pos;
       a_source_correspondence *scp;
+      a_symbol_ptr            sym;
 
       if (kind == iek_src_seq_secondary_decl) {
         a_src_seq_secondary_decl_ptr  sssdp =
@@ -6241,7 +6242,12 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         scp = &((a_variable_ptr)ssep->entity.ptr)->source_corresp;
         pos = &scp->decl_position;
       }  /* if */
-      fprintf(f_debug, " (%lu): \"", pos->seq);
+      sym = (a_symbol_ptr)scp->assoc_info;
+      fputs(" (", f_debug);
+      if (sym != NULL && sym->decl_seq > 0) {
+        fprintf(f_debug, "#%lu, ", sym->decl_seq);
+      }  /* if */
+      fprintf(f_debug, "at %lu): \"", pos->seq);
       if (kind == iek_type) {
         db_type_name((a_type_ptr)ssep->entity.ptr);
       } else {
