@@ -1255,7 +1255,6 @@ created for this entity; otherwise, it is NULL.
       is_primary_decl = !is_tentative_def;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       sym_ptr->defined = TRUE;
-      sym_ptr->decl_position = *source_position;
     }  /* if */
     if (is_definition) {
       sym_ptr->decl_position = *source_position;
