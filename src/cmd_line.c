@@ -107,6 +107,11 @@ static a_byte_boolean
 			   the command line.  Initialized to zero by
 			   static initialization. */
 
+static a_boolean
+		old_style_preprocessing = FALSE;
+			/* TRUE if old-style preprocessing should be
+			   used in ANSI C or C++ mode. */
+
 
 static void add_option_description(an_option_kind	kind,
 				   char			*keyword,
@@ -550,6 +555,10 @@ Initialize the option information table.
   add_option_description(optk_special_subscript_cost,
                          "no_special_subscript_cost", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_old_style_preprocessing,
+                         "old_style_preprocessing", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
 }  /* initialize_option_descriptions */
 
@@ -1494,6 +1503,10 @@ common_cfront_mode_settings:
            integral operand of [] in overload resolution. */
         special_subscript_cost = opt_value;
         break;
+      case optk_old_style_preprocessing:
+        /* Enable PCC style preprocessing. */
+        old_style_preprocessing = TRUE;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1731,8 +1744,11 @@ common_cfront_mode_settings:
        enabled. */
     allow_nonconst_ref_anachronism = TRUE;
   }  /* if */
-  /* Choose the style of preprocessing. */
-  pcc_preprocessing_mode = (C_dialect == C_dialect_pcc);
+  /* Choose the style of preprocessing.  PCC preprocessing is always done
+     in PCC mode, and may also be done in other modes if specified
+     by a command line option. */
+  pcc_preprocessing_mode = (C_dialect == C_dialect_pcc) ||
+                           old_style_preprocessing;
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
   if (any_cfront_mode()) {
     /* When configured that way, use old-style preprocessing for cfront

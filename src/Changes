@@ -1,5 +1,10 @@
 Version 2.31
 
+1/17/96   Old style preprocessing allowed in ANSI C and C++ modes
+
+The --old_style_preprocessing option has been added to allow PCC style
+preprocessing to be used when compiling an ANSI C or C++ program.
+
 1/17/96   Diagnostic on unrecognized preprocessor keyword in skipped code
 
 The warning previously issued on an unrecognized preprocessor keyword
