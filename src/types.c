@@ -578,25 +578,22 @@ qualification.
 }  /* is_immediate_type_qualifier */
 
 
-a_boolean f_is_const_qualified_type(a_type_ptr tp,
-                                    a_boolean  top_level)
+a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
+                                           a_boolean   top_level)
 /*
-Return TRUE if the given type is a const-qualified type.  If top_level is
+Form a bit vector representing the type qualifiers on tp.  If top_level is
 FALSE and tp is an array, this mean checking for a qualifier on the element
 type; top_level is usually TRUE in C mode (3.1.2.5).  As a general rule,
-macros is_const_qualified_type and is_top_level_const_qualified_type
-should be used instead of calling this routine directly.
+macros get_type_qualifiers and get_top_level_type_qualifiers should be
+used instead of calling this routine directly.
 */
 {
-  a_boolean is_const = FALSE;
+  a_type_qualifier_set  qualifiers = TQ_NONE;
 
   for (;;) {
     if (tp->kind == (a_type_kind)tk_typeref) {
       /* May be a typedef or a qualification. */
-      if (typeref_is_const_qualified(tp)) {
-        is_const = TRUE;
-        break;
-      }  /* if */
+      qualifiers |= tp->variant.typeref.qualifiers;
       tp = tp->variant.typeref.type;
     } else if (!top_level && tp->kind == (a_type_kind)tk_array) {
       /* Check the array element type. */
@@ -605,71 +602,32 @@ should be used instead of calling this routine directly.
       break;
     }  /* if */
   }  /* for */
-  return(is_const);
-}  /* f_is_const_qualified_type */
+  return qualifiers;
+}  /* f_get_type_qualifiers */
 
 
-a_boolean f_is_volatile_qualified_type(a_type_ptr tp,
-                                       a_boolean  top_level)
+a_boolean f_any_qualifier_missing(a_type_ptr  tp1,
+                                  a_type_ptr  tp2)
 /*
-Return TRUE if the given type is a volatile-qualified type.  If top_level is
-FALSE and tp is an array, this mean checking for a qualifier on the element
-type; top_level is usually TRUE in C mode (3.1.2.5).  As a general rule,
-macros is_volatile_qualified_type and is_top_level_volatile_qualified_type
-should be used instead of calling this routine directly.
+Return TRUE if tp1 does not have some top-level type qualifier that tp2 has.
+This routine should be called via the any_qualifier_missing macro, which
+checks that tp2 is a tk_typeref.
 */
 {
-  a_boolean is_volatile = FALSE;
+  a_boolean             any_missing;
+  a_type_qualifier_set  tp1_qualifiers, tp2_qualifiers;
 
-  for (;;) {
-    if (tp->kind == (a_type_kind)tk_typeref) {
-      /* May be a typedef or a qualification. */
-      if (typeref_is_volatile_qualified(tp)) {
-        is_volatile = TRUE;
-        break;
-      }  /* if */
-      tp = tp->variant.typeref.type;
-    } else if (!top_level && tp->kind == (a_type_kind)tk_array) {
-      /* Check the array element type. */
-      tp = tp->variant.array.element_type;
-    } else {
-      break;
-    }  /* if */
-  }  /* for */
-  return(is_volatile);
-}  /* f_is_volatile_qualified_type */
-
-
-a_boolean f_is_qualified_type(a_type_ptr tp,
-                              a_boolean  top_level)
-/*
-Return TRUE if the given type is a const- or volatile-qualified type.  If
-top_level is FALSE and tp is an array, this mean checking for a qualifier
-on the element type; top_level is usually TRUE in C mode (3.1.2.5).  As a
-general rule, macros is_qualified_type and is_top_level_qualified_type
-should be used instead of calling this routine directly.
-*/
-{
-  a_boolean is_qualified = FALSE;
-
-  for (;;) {
-    if (tp->kind == (a_type_kind)tk_typeref) {
-      /* May be a typedef or a qualification. */
-      if (typeref_is_qualified(tp)) {
-        is_qualified = TRUE;
-        break;
-      }  /* if */
-      tp = tp->variant.typeref.type;
-    } else if (!top_level && tp->kind == (a_type_kind)tk_array) {
-      /* Check the array element type. */
-      tp = tp->variant.array.element_type;
-    } else {
-      break;
-    }  /* if */
-  }  /* for */
-  return(is_qualified);
-}  /* f_is_qualified_type */
-
+  tp2_qualifiers = f_get_type_qualifiers(tp2, /*top_level=*/TRUE);
+  if (tp2_qualifiers == TQ_NONE) {
+    /* tp2 has no qualifiers, so it can't have any that tp1 doesn't have. */
+    any_missing = FALSE;
+  } else {
+    tp1_qualifiers = get_top_level_type_qualifiers(tp1);
+    any_missing = ((tp1_qualifiers & tp2_qualifiers) != tp2_qualifiers);
+  }  /* if */
+  return any_missing;
+}  /* f_any_qualifier_missing */
+    
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_abstract_class_type(a_type_ptr  tp)
