@@ -576,8 +576,8 @@ extern void update_source_sequence_list(char                 *entity_ptr,
 extern void make_proxy_ptr_source_sequence_entry(
                                              a_source_sequence_entry_ptr ssep);
 
-extern a_source_sequence_entry_ptr add_incomplete_source_sequence_entry(
-                                                     an_il_entry_kind  kind);
+extern a_source_sequence_entry_ptr add_source_sequence_entry_for_routine(void);
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if ORPHAN_PROCESSING_NEEDED

@@ -6676,8 +6676,6 @@ within a function scope.
     a_source_sequence_entry_ptr  function_scope_ssep;
     a_memory_region_number       region_to_switch_back_to;
 
-    check_assertion(force_to_fs ==
-                       (curr_il_region_number != FILE_SCOPE_REGION_NUMBER));
     check_assertion(in_file_scope(ssep));
     if (function_scope_entry_needed) {
       switch_to_function_scope_region(&region_to_switch_back_to);
@@ -6813,34 +6811,33 @@ concept does not apply, pos can be NULL.
 }  /* update_source_sequence_list */
 
 
-a_source_sequence_entry_ptr add_incomplete_source_sequence_entry(
-                                                     an_il_entry_kind  kind)
+a_source_sequence_entry_ptr add_source_sequence_entry_for_routine(void)
 /*
+An incomplete source sequence entry is created and entered for a routine
+declaration.  The entry is incomplete because it does not (yet) point to
+the IL entry; the pointer will be supplied later in function declarator
+processing.
 */
 {
   a_source_sequence_entry_ptr   ssep = alloc_source_sequence_entry();
+  a_boolean                     force_to_fs = FALSE;
   a_memory_region_number        region_to_switch_back_to;
-  a_scope_stack_entry_ptr       scope_stack_ptr;
-  a_scope_ptr                   sp;
 
-  check_assertion(kind == (an_il_entry_kind)iek_routine);
-  switch_to_file_scope_region(&region_to_switch_back_to);
-  ssep = alloc_source_sequence_entry();
-  ssep->entity.kind = (a_byte_il_entry_kind)kind;
-  switch_back_to_original_region(region_to_switch_back_to);
-  scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
-  sp = scope_stack_ptr->il_scope;
-  if (sp->source_sequence_list == NULL) {
-    ssep->prev = NULL;
-    sp->source_sequence_list = ssep;
-  } else {
-    ssep->prev = scope_stack_ptr->last_source_sequence_entry;
-    scope_stack_ptr->last_source_sequence_entry->next = ssep;
+  /* The source sequence entry will always be allocated in the file scope
+     memory region.  However, if the current il region is that of a function,
+     an entry must also be allocated in the function scope; that is handled
+     in add_to_source_sequence_list if force_to_fs is set. */
+  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    force_to_fs = TRUE;
   }  /* if */
-  scope_stack_ptr->last_source_sequence_entry = ssep;
-  ssep->next = NULL;
+  ssep = alloc_source_sequence_entry();
+  ssep->entity.kind = (a_byte_il_entry_kind)iek_routine;
+  /* Note that the entity.ptr field is left NULL. */
+  if (force_to_fs) switch_back_to_original_region(region_to_switch_back_to);
+  add_to_source_sequence_list(ssep, force_to_fs);
   return ssep;
-}  /* add_incomplete_source_sequence_entry */
+}  /* add_source_sequence_entry_for_routine */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
