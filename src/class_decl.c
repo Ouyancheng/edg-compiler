@@ -6036,7 +6036,30 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             an_expr_node_ptr   dim_expr_ptr;
 
             if (C_dialect == C_dialect_cplusplus) {
-              curr_routine_fixup = alloc_routine_fixup();
+              if (curr_routine_fixup != NULL) {
+                /* We must be in a declarator list and this must be at least
+                   the second item in the list. */
+#if CHECKING
+                if (curr_routine_fixup->
+                              function_body_token_cache.first_token != NULL) {
+                  internal_error(
+                       "scan_class_definition: cached func body not expected");
+                }  /* if */
+#endif /* CHECKING */
+                if (curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+                   /* The previous one must have been a routine declaration
+                      with default arguments, so we have to save the routine
+                      fixup entry onto the fixup list. */
+                  add_to_routine_fixup_list(curr_routine_fixup);
+                  /* Make a new one fixup entry for the current declarator. */
+                  curr_routine_fixup = alloc_routine_fixup();
+                } else {
+                  /* The other one can be reused. */
+                }  /* if */
+              } else {
+                /* Normal case.  Allocate a new routine fixup entry. */
+                curr_routine_fixup = alloc_routine_fixup();
+              }  /* if */
             }  /* if */
             /* Set the various flags for declarator processing. */
             declarator_input_flags = DI_REAL_DECLARATOR_ALLOWED;
