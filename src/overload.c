@@ -1444,31 +1444,9 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
         goto have_level;
       }  /* if */
     }  /* if */
-    /* Try a match involving promotions.  This is case [2] in the ARM.
-       Promotions are the default argument promotions (integral promotions
-       and float --> double). */
-    if (types_are_compatible(default_argument_promotion(unqual_arg_type),
-                             unqual_param_type)) {
-      arg_summary->match_level = aml_promotion;
-      arg_converted_to_rvalue = TRUE;
-      goto have_level;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_bugs &&
-               is_integral_type(unqual_arg_type) &&
-               unqual_arg_type->variant.integer.int_kind ==
-                                                    (an_integer_kind)ik_long &&
-               is_integral_type(unqual_param_type) &&
-               unqual_param_type->variant.integer.int_kind ==
-                                                    (an_integer_kind)ik_int) {
-      /* MSVC++ considers long --> int to be better than a standard conversion
-         (presumably because the representations are the same). */
-      arg_summary->match_level = aml_promotion;
-      arg_converted_to_rvalue = TRUE;
-      goto have_level;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    }  /* if */
     /* Try a match involving standard conversions.  This is case [3] in
-       the ARM. */
+       the ARM.  As a subcase, some standard conversions are considered
+       promotions (case [2] in the ARM). */
     arg_operand_is_constant = FALSE;
     arg_operand_constant = NULL;
     if (arg_operand != NULL && is_an_rvalue(arg_operand)) {
@@ -1501,8 +1479,11 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std = std_conversion;
       arg_converted_to_rvalue = TRUE;
-      if (cfront_2_1_mode && param_is_reference &&
-          std_conversion.cast_base_class == NULL) {
+      if (std_conversion.promotion) {
+        /* This standard conversion is a promotion. */
+        arg_summary->match_level = aml_promotion;
+      } else if (cfront_2_1_mode && param_is_reference &&
+                 std_conversion.cast_base_class == NULL) {
         /* cfront 2.1 has a bug: when a reference parameter is initialized
            with something that requires a standard conversion that isn't
            class-related, the cost is considered to be a user-defined
@@ -2111,6 +2092,166 @@ next_function:;
 }  /* try_overloaded_function_match */
 
 
+static int compare_standard_conversions(a_std_conv_descr *conv1,
+                                        a_std_conv_descr *conv2,
+                                        a_boolean        skip_rank_comparisons,
+                                        a_boolean        init_conv_after_udc)
+/*
+Compare two standard conversions using the ordering criteria of
+overload resolution [over.ics.rank], and return 
+
+  +1 if conv1 is a better conversion than conv,
+   0 if the two conversions are equal, or
+  -1 if conv1 is a worse conversion than conv.
+
+The comparisons that involve rank ordering (e.g., promotion versus
+conversion) are skipped is skip_rank_comparisons is TRUE.  This is used
+as a speed optimization if those have already been handled.
+
+init_conv_after_udc is TRUE if the conversions are the standard conversions
+that follow user-defined conversions in the context of an initialization.
+In such cases, the source types of the standard conversions are different
+and the destination types are the same, and base class subsequence testing
+must be done backwards from the usual way.
+
+Note that this routine does not deal with the qualification-conversion
+ordering issues (pointer, pointer-to-member, and reference) that appear
+in [over.ics.rank].
+*/
+{
+  int              cmp = 0;
+  a_base_class_ptr bcp_1, bcp_2;
+
+  if (!skip_rank_comparisons) {
+    /* A trivial conversion (i.e., an "exact match") is better than another
+       conversion that is nontrivial. */
+    if (!conv1->nontrivial_conversion || !conv2->nontrivial_conversion) {
+      /* conv1 or conv2 is a trivial conversion (or both are). */
+      if (conv2->nontrivial_conversion) {
+        /* conv1 is a trivial conversion and conv2 is not, so conv1 is
+           better. */
+        cmp = 1;
+      } else if (conv1->nontrivial_conversion) {
+        /* conv2 is a trivial conversion and conv1 is not, so conv2 is
+           better. */
+        cmp = -1;
+      }  /* if */
+      goto have_cmp;
+    }  /* if */
+    /* A promotion is better than a conversion. */
+    if (conv1->promotion || conv2->promotion) {
+      /* conv1 or conv2 is a promotion (or both are). */
+      if (!conv2->promotion) {
+        /* conv1 is a promotion and conv2 is not, so conv1 is better. */
+        cmp = 1;
+      } else if (!conv1->promotion) {
+        /* conv2 is a promotion and conv1 is not, so conv2 is better. */
+        cmp = -1;
+      }  /* if */
+      goto have_cmp;
+    }  /* if */
+  }  /* if */
+  if (bool_is_keyword) {
+    /* A cast of a pointer or pointer-to-member to bool is worse than
+       another conversion that isn't such a cast. */
+    if (conv1->ptr_or_pm_to_bool != conv2->ptr_or_pm_to_bool) {
+      if (conv1->ptr_or_pm_to_bool) {
+        /* conv1 converts a ptr or pointer to member to bool and conv2
+           does not, so conv2 is better. */
+        cmp = -1;
+      } else {
+        /* conv2 converts a ptr or pointer to member to bool and conv1
+           does not, so conv2 is better. */
+        cmp = 1;
+      }  /* if */
+      goto have_cmp;
+    }  /* if */
+  }  /* if */
+  /* A cast to a base class is better than a cast to further along the
+     same base class derivation (see rule [3] in ARM 13.2):
+       struct A {};
+       struct B : public A {};
+       struct C : public B {};
+       void f(A*);
+       void f(B*);
+       main () {
+         C c;
+         f(&c);  // C* -> B* is better than C* -> B* -> A*
+       }
+     Similar processing applies for casts to derived classes, and for
+     pointers-to-members.  Also, a cast to "void *" is considered worse
+     that any cast to a base class.
+  */
+  bcp_1 = conv1->cast_base_class;
+  bcp_2 = conv2->cast_base_class;
+  if (bcp_1 != NULL && bcp_2 != NULL &&
+      conv1->reversed_cast == conv2->reversed_cast) {
+    /* Both entries have related-class casts, so they can be compared.
+       If one is a subsequence of the other, the shorter derivation is
+       preferable. */
+    if (bcp_1 == bcp_2) {
+      /* The same cast in both cases, so the two are equally good. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode && init_conv_after_udc) {
+      /* MSVC++ 4.2 and 5.0 do not consider the base-class tiebreaker in
+         initializing contexts. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (conv1->reversed_cast != !init_conv_after_udc) {
+      /* Normal case: derived --> base pointer cast.  Here, with a hierarchy
+         A is-base-of B is-base-of C, we are looking for C* to B* is better
+         than C* to A*, or base class B of C is better than base class A of C.
+      /* Or, a pointer-to-member conversion for initialization, where the
+         destination types are the same.  Here, we are looking for
+         B::* to C::* is better than A::* to C::*, which requires the
+         same base class relationship test. */
+      if (is_on_any_derivation_of(bcp_2, bcp_1)) {
+        /* bcp_1 is a subsequence of bcp_2 and thus preferable. */
+        cmp = 1;
+      } else if (is_on_any_derivation_of(bcp_1, bcp_2)) {
+        /* bcp_2 is a subsequence of bcp_1 and thus preferable. */
+        cmp = -1;
+      }  /* if */
+    } else {
+      /* Other case: base --> derived pointer to member cast.  Here, with
+         a hierarchy A is-base-of B is-base-of C, we are looking for A::* to
+         B::* is better than A::* to C::*, or base class A of B is better
+         than base class A of C. */
+      /* Or, a pointer conversion for initialization, where the
+         destination types are the same.  Here, we are looking for
+         B* to A* is better than C* to A*, which requires the
+         same base class relationship test. */
+      if (find_base_class_of(bcp_2->derived_class,
+                             bcp_1->derived_class) != NULL) {
+        /* bcp_1's type is a base class of bcp_2's type, so it's a
+           subsequence and thus preferable. */
+        cmp = 1;
+      } else if (find_base_class_of(bcp_1->derived_class,
+                                    bcp_2->derived_class) != NULL) {
+        /* bcp_2's type is a base class of bcp_1's type, so it's a
+           subsequence and thus preferable. */
+        cmp = -1;
+      }  /* if */
+    }  /* if */
+  } else if (bcp_1 != NULL) {
+    /* bcp_1 != NULL, bcp_2 == NULL.  We know that the source type must
+       be a class pointer, and not a constant zero, which means the
+       conv2 destination type must be "void *" (since an implicit
+       conversion is possible).  A base class cast is preferable to a
+       cast to "void *", so conv1 is better. */
+    cmp = 1;
+  } else if (bcp_2 != NULL) {
+    /* bcp_1 != NULL, bcp_2 != NULL.  We know that the source type must
+       be a class pointer, and not a constant zero, which means the
+       conv1 destination type must be "void *" (since an implicit
+       conversion is possible).  A base class cast is preferable to a
+       cast to "void *", so conv2 is better. */
+    cmp = -1;
+  }  /* if */
+have_cmp:;
+  return cmp;
+}  /* compare_standard_conversions */
+
+
 static int compare_arg_match_levels(an_arg_match_summary *arg_match1,
                                     an_arg_match_summary *arg_match2)
 /*
@@ -2122,8 +2263,7 @@ Compare two argument match summary entries and return
 
 */
 {
-  int              cmp;
-  a_base_class_ptr bcp_1, bcp_2;
+  int cmp = 0;
 
   /* Compare the gross match levels. */
   if ((int)arg_match1->match_level < (int)arg_match2->match_level) {
@@ -2144,133 +2284,19 @@ Compare two argument match summary entries and return
       arg_routine1 = arg_routine2 = NULL;
     }  /* if */
     if (arg_routine1 == arg_routine2) {
-      /* A conversion involving a user-defined conversion is better than a
-         conversion involving the same user-defined conversion followed by
-         a nontrivial conversion, e.g.,
-           A->int
-         versus
-           A->int->float
-         (see the commentary at the bottom of p. 317 of the ARM.)
-      */
-      if (arg_routine1 != NULL) {
-        /* We have two conversions using the same user-defined conversion. */
-        if (arg_match1->conversion.std.nontrivial_conversion !=
-            arg_match2->conversion.std.nontrivial_conversion) {
-          /* Two user-defined conversions involving the same conversion
-             routine.  One does not have a nontrivial conversion after the
-             user-defined conversion and the other does, so the one without
-             the nontrivial conversion is better. */
-          if (arg_match1->conversion.std.nontrivial_conversion) {
-            /* arg_match1 has the nontrivial conversion and arg_match2 does
-               not, so arg_match2 is better. */
-            cmp = -1;
-            goto have_cmp;
-          } else {
-            /* arg_match2 has the nontrivial conversion and arg_match1 does
-               not, so arg_match1 is better. */
-            cmp = 1;
-            goto have_cmp;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (bool_is_keyword) {
-        /* A cast of a pointer or pointer-to-member to bool is worse than
-           another conversion that isn't such a cast. */
-        if (arg_match1->conversion.std.ptr_or_pm_to_bool !=
-            arg_match2->conversion.std.ptr_or_pm_to_bool) {
-          if (arg_match1->conversion.std.ptr_or_pm_to_bool) {
-            /* arg_match1 converts a ptr or pointer to member to bool and
-               arg_match2 does not, so arg_match2 is better. */
-            cmp = -1;
-            goto have_cmp;
-          } else {
-            /* arg_match2 converts a ptr or pointer to member to bool and
-               arg_match1 does not, so arg_match2 is better. */
-            cmp = 1;
-            goto have_cmp;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      /* A cast to a base class is better than a cast to further along the
-         same base class derivation (see rule [3] in ARM 13.2):
-           struct A {};
-           struct B : public A {};
-           struct C : public B {};
-           void f(A*);
-           void f(B*);
-           main () {
-             C c;
-             f(&c);  // C* -> B* is better than C* -> B* -> A*
-           }
-         Similar processing applies for casts to derived classes, and for
-         pointers-to-members.  Also, a cast to "void *" is considered worse
-         that any cast to a base class.
-      */
-      bcp_1 = arg_match1->conversion.std.cast_base_class;
-      bcp_2 = arg_match2->conversion.std.cast_base_class;
-      if (bcp_1 != NULL && bcp_2 != NULL &&
-          arg_match1->conversion.std.reversed_cast ==
-          arg_match2->conversion.std.reversed_cast) {
-        /* Both entries have related-class casts, so they can be compared.
-           If one is a subsequence of the other, the shorter derivation is
-           preferable. */
-        if (bcp_1 == bcp_2) {
-          /* The same cast in both cases, so the two are equally good.
-             Keep going with subsequence checking. */
-        } else if (!arg_match1->conversion.std.reversed_cast) {
-          /* Normal case: derived --> base cast. */
-          if (is_on_any_derivation_of(bcp_2, bcp_1)) {
-            /* bcp_1 is a subsequence of bcp_2 and thus preferable. */
-            cmp = 1;
-            goto have_cmp;
-          } else if (is_on_any_derivation_of(bcp_1, bcp_2)) {
-            /* bcp_2 is a subsequence of bcp_1 and thus preferable. */
-            cmp = -1;
-            goto have_cmp;
-          }  /* if */
-          /* The two classes are unrelated, so no subsequence is possible. */
-          goto end_subsequence_check;
-        } else {
-          /* Base --> derived case (used for pointers to members). */
-          if (find_base_class_of(bcp_2->derived_class,
-                                 bcp_1->derived_class) != NULL) {
-            /* bcp_1's type is a base class of bcp_2's type, so it's a
-               subsequence and thus preferable. */
-            cmp = 1;
-            goto have_cmp;
-          } else if (find_base_class_of(bcp_1->derived_class,
-                                        bcp_2->derived_class) != NULL) {
-            /* bcp_2's type is a base class of bcp_1's type, so it's a
-               subsequence and thus preferable. */
-            cmp = -1;
-            goto have_cmp;
-          }  /* if */
-          /* The two classes are unrelated, so no subsequence is possible. */
-          goto end_subsequence_check;
-        }  /* if */
-      } else if (bcp_1 != NULL) {
-        /* bcp_1 != NULL, bcp_2 == NULL.  We know that the source type must
-           be a class pointer, and not a constant zero, which means the
-           arg_match2 destination type must be "void *" (since an implicit
-           conversion is possible).  A base class cast is preferable to a
-           cast to "void *", so arg_match1 is better. */
-        cmp = 1;
-        goto have_cmp;
-      } else if (bcp_2 != NULL) {
-        /* bcp_1 != NULL, bcp_2 != NULL.  We know that the source type must
-           be a class pointer, and not a constant zero, which means the
-           arg_match1 destination type must be "void *" (since an implicit
-           conversion is possible).  A base class cast is preferable to a
-           cast to "void *", so arg_match2 is better. */
-        cmp = -1;
-        goto have_cmp;
-      }  /* if */
-end_subsequence_check:;
+      /* The conversions have the same user-defined conversion (or both
+         have no user-defined conversion). */
+      /* Compare the standard conversions.  The comparisons that are related
+         to rank (e.g., promotion versus conversion) need not be done if
+         there is no user-defined conversion (because they have been handled
+         already by the match_level test above). */
+      cmp = compare_standard_conversions(&arg_match1->conversion.std,
+                                         &arg_match2->conversion.std,
+                                         /*skip_rank_comparisons=*/
+                                                       (arg_routine1 == NULL),
+                                         /*init_conv_after_udc=*/FALSE);
     }  /* if */
-    /* No special case was found, so the matches are equal. */
-    cmp = 0;
   }  /* if */
-have_cmp:
   return cmp;
 }  /* compare_arg_match_levels */
 
@@ -2469,8 +2495,8 @@ evaluated (but not checked to see if the match is good enough).
          function type decay, and type qualifiers). */
       /* The code here must match determine_arg_match_level and
          overload_distinguishable. */
-      /* arg_match->param_type is left NULL because subsequence checking does
-         not apply for template cases. */
+      /* arg_match->param_type should be set, but we don't have the
+         information (yet). */
       param_type = ptp->type;
       param_is_reference = is_reference_type(param_type);
       arg_type = arg_operand->operand.type;
@@ -2893,19 +2919,15 @@ other.  Return
     /* There is something about one argument list that makes it better
        than the other. */
   } else if (cfp1->is_user_conversion &&
-             cfp1->conversion.std.nontrivial_conversion !=
-             cfp2->conversion.std.nontrivial_conversion) {
-    /* The fact that a standard conversion is needed after a conversion
-       function can serve as a tie-breaker. */
-    if (cfp1->conversion.std.nontrivial_conversion) {
-      /* A standard conversion is needed after cfp1 and none is needed
-         after cfp2, so cfp2 is better. */
-      cmp = -1;
-    } else {
-      /* A standard conversion is needed after cfp2 and none is needed
-         after cfp1, so cfp1 is better. */
-      cmp = 1;
-    }  /* if */
+             (cmp = compare_standard_conversions(&cfp1->conversion.std,
+                                                 &cfp2->conversion.std,
+                                                 /*skip_rank_comparisons=*/
+                                                                         FALSE,
+                                                 /*init_conv_after_udc=*/TRUE))
+                                                                        != 0) {
+    /* The conversions are user-defined conversions followed by standard
+       conversions, and the standard conversion in one case is better than the
+       standard conversion in the other case. */
   } else if (cfp1_type_qualifiers_added &&
              (!cfp2_type_qualifiers_added ||
               candidate_return_type_same_with_added_qualifiers(cfp2, cfp1))) {

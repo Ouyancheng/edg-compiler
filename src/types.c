@@ -2862,6 +2862,7 @@ Clear a standard conversion description to default values.
   std_conv->type_qualifiers_added = FALSE;
   std_conv->pointer_normalization_needed = FALSE;
   std_conv->nontrivial_conversion = FALSE;
+  std_conv->promotion = FALSE;
   std_conv->ptr_or_pm_to_bool = FALSE;
   std_conv->conv_failed_because_of_exception_specifications = FALSE;
   std_conv->warning_suggested = ec_no_error;
@@ -3950,6 +3951,26 @@ See conversion_possible.
             /* Warn on mixing different enums, or non-enums and enums. */
             std_conv->warning_suggested = ec_mixed_enum_type;
           }  /* if */
+        }  /* if */
+      } else {
+        /* C++ mode. */
+        /* Note the cases that are promotions. */
+        a_type_ptr prom_type = default_argument_promotion(source_type);
+        if (types_are_compatible(prom_type, dest_type)) {
+          std_conv->promotion = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (microsoft_bugs &&
+                   is_integral(source_type) &&
+                   source_type->variant.integer.int_kind ==
+                                                    (an_integer_kind)ik_long &&
+                   is_integral(dest_type) &&
+                   dest_type->variant.integer.int_kind ==
+                                                    (an_integer_kind)ik_int) {
+          /* MSVC++ considers long --> int to be better than a standard
+             conversion (presumably because the representations are the
+             same). */
+          std_conv->promotion = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
     } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||

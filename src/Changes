@@ -1,5 +1,24 @@
 Version 2.37
 
+8/14/97   Standard conversion after user-defined conversion considered
+          in overload resolution
+
+In the context of an initialization, the standard conversions required
+after two different user-defined conversions can be used to choose
+between the two possibilities (the conversion sequence involving the
+better standard conversion is chosen).  This is now implemented.
+Formerly, the tie would be broken only when no conversion was
+required in one case, and a standard conversion was required in the
+other case.  The test case is from [over.ics.rank] of the WP:
+
+  struct A {
+    operator short()
+  } a;
+  int f(int);
+  int f(float);
+  int i = f(a);     // Calls f(int), because short -> int is
+                    // better than short -> float.
+
 8/14/97   Global qualifiers permitted when a namespace or class member is
           defined outside of its namespace or class
 
