@@ -2257,7 +2257,6 @@ bound with the function in *bound_function_selector.
   a_boolean             need_member_sym_check;
   a_ref_entry_ptr       rep;
   a_type_ptr            routine_type;
-  a_symbol_ptr          first_func_sym;
   a_boolean             is_qualified_name;
   a_boolean             is_vacuous_destructor_reference = FALSE;
   a_source_position     member_position, qualified_member_position;
@@ -2778,7 +2777,6 @@ nonstatic_member_function:
           }  /* if */
 #endif /* CHECKING */
           goto nonstatic_member_function;
-          break;
         case sk_function_template:
           /* Member function template. */
           goto nonstatic_member_function;
