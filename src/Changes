@@ -1,5 +1,24 @@
 Version 2.46
 
+6/19/01  C++-generating back end, Microsoft compatibility: further
+         work-around on MSVC++ problem with template uses in default arguments
+
+The MSVC++ bug workaround of 7/21/98 has been extended to apply to
+uses of qualified names for variables and constants in default
+arguments.  Because the MSVC++ 7 beta appears to no longer have this
+bug, the behavior has also been made conditional on the value of
+a new variable, msvc_target_version_number, which is set by default
+to match DEFAULT_MICROSOFT_VERSION.
+
+  template <int D> class ccXform { };
+  typedef ccXform<2> cc2Xform;
+  struct ccXform<2> { static const ccXform<2> I; };
+  struct ccPelRect { };
+  struct ccAffineRectangle {
+  ccPelRect encloseImageRect(
+    const cc2Xform& imageFromClientXform = cc2Xform::I) const;// Typedef used
+  };
+
 6/18/01  Wrong IL negation operator on "-" applied to class converted to
          floating type
 

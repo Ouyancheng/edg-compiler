@@ -939,6 +939,13 @@ EXTERN a_boolean
                                                                              ;
 			/* TRUE if code is being generated for the Microsoft
 			   MSVC++ compiler. */
+EXTERN a_boolean
+		msvc_target_version_number
+#if VAR_INITIALIZERS
+                                           = DEFAULT_MICROSOFT_VERSION
+#endif /* VAR_INITIALIZERS */
+                                                                      ;
+			/* The version of MSVC++ being targetted. */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 

@@ -2311,7 +2311,8 @@ initialized is not a reference.
     gen_dynamic_init(constant->variant.dynamic_init, type,
                      /*parenthesized_init=*/FALSE,
                      /*force_parens=*/FALSE);
-  } else if ((!msvc_is_generated_code_target || microsoft_version >= 1100) &&
+  } else if ((!msvc_is_generated_code_target ||
+              msvc_target_version_number >= 1100) &&
              constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
              pm_cast_is_unambiguous(constant)) {
     /* A pointer-to-member constant cast to a derived class where there
@@ -4059,8 +4060,9 @@ this one is such a continuation.
                                                  extra_info->template_arg_list;
       adjust_namespace_state_for_specialization(&type->source_corresp,
                                                 &common_scope, &orig_scope);
-      if (msvc_is_generated_code_target) {
-        /* Avoid a bug in the Microsoft VC++ 5.0 compiler on uses of
+      if (msvc_is_generated_code_target &&
+          msvc_target_version_number <= 1200) {
+        /* Avoid a bug in the Microsoft VC++ 5.0 and 6.0 compiler on uses of
            template class arguments in a specialization argument list. */
         if (gen_typedefs_for_template_classes_in_specialization_arg_list(
                                                              template_arg_list,
@@ -4559,7 +4561,7 @@ with the operator indicated by opstr.
   }  /* if */
   if (operand_1_type != NULL && is_template_param_type(operand_1_type)) {
     /* Replace a template parameter type by its proxy class, if it has
-       one, or by NULL it it doesn't have one. */
+       one, or by NULL if it doesn't have one. */
     operand_1_type = skip_typerefs(operand_1_type);
     operand_1_type =
                  operand_1_type->variant.template_param.extra_info->class_type;
@@ -5325,7 +5327,8 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
           suppress_this = TRUE;
         }  /* if */
       }  /* if */
-      if (!msvc_is_generated_code_target || microsoft_version != 1000) {
+      if (!msvc_is_generated_code_target ||
+          msvc_target_version_number != 1000) {
         /* Now that we've done all the work, suppress "this->" only in
            Microsoft version 4.2 mode, where it's needed to get around some
            bugs.  Otherwise, it doesn't seem to add much. */
@@ -8303,25 +8306,50 @@ flags on the classes found on an earlier call.
   for (ptp = param_type_list; ptp != NULL; ptp = ptp->next) {
     an_expr_node_ptr expr = ptp->default_arg_expr;
     if (expr != NULL) {
-      if (expr->kind == (an_expr_node_kind)enk_operation &&
-          (expr->variant.operation.kind == (an_expr_operator_kind)eok_call ||
-           expr->variant.operation.kind ==
-                                    (an_expr_operator_kind)eok_generic_call ||
-           expr->variant.operation.kind ==
-                             (an_expr_operator_kind)eok_generic_member_call)) {
-        an_expr_node_ptr op1 = expr->variant.operation.operands;
-        if (op1->kind == (an_expr_node_kind)enk_routine_address) {
-          a_routine_ptr rout = op1->variant.routine;
-          if (rout->source_corresp.is_class_member) {
-            a_type_ptr rout_class = rout->source_corresp.parent.class_type;
-            if (rout_class->variant.class_struct_union.extra_info->
+      a_source_correspondence *scp = NULL;
+      if (is_operation_node(expr)) {
+        an_expr_operator_kind op = expr->variant.operation.kind;
+        an_expr_node_ptr      op1 = expr->variant.operation.operands;
+        if (op == (an_expr_operator_kind)eok_call ||
+            op == (an_expr_operator_kind)eok_generic_call ||
+            op == (an_expr_operator_kind)eok_generic_member_call) {
+          if (op1->kind == (an_expr_node_kind)enk_routine_address) {
+            scp = &op1->variant.routine->source_corresp;
+          }  /* if */
+        }  /* if */
+      } else if (is_variable_node(expr) ||
+                 is_variable_address_node(expr)) {
+        scp = &expr->variant.variable->source_corresp;
+      } else if (is_constant_node(expr)) {
+        a_constant_ptr con = expr->variant.constant;
+        if (con->kind == (a_constant_repr_kind)ck_address) {
+          switch (con->variant.address.kind) {
+            case abk_routine:
+              scp = &con->variant.address.variant.routine->source_corresp;
+              break;
+            case abk_variable:
+              scp = &con->variant.address.variant.variable->source_corresp;
+              break;
+            case abk_constant:
+              scp = &con->variant.address.variant.constant->source_corresp;
+              break;
+            default:
+              break;
+          }  /* switch */
+        } else {
+          scp = &con->source_corresp;
+        }  /* if */
+      }  /* if */
+      if (scp != NULL) {
+        if (scp->is_class_member) {
+          a_type_ptr parent_class = scp->parent.class_type;
+          if (parent_class->variant.class_struct_union.extra_info->
                                                    template_arg_list != NULL) {
-              any_found = TRUE;
-              /* Found a template class name used in a particular way in
-                 a default argument expression.  Generate a typedef and
-                 use it in place of the template class name. */
-              establish_replacement_typedef(rout_class, set);
-            }  /* if */
+            any_found = TRUE;
+            /* Found a template class name used in a particular way in
+               a default argument expression.  Generate a typedef and
+               use it in place of the template class name. */
+            establish_replacement_typedef(parent_class, set);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -8658,8 +8686,9 @@ TRUE if the declaration following this one is such a continuation.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (msvc_is_generated_code_target && decl_within_class) {
-    /* Avoid a bug in the Microsoft VC++ 5.0 compiler on uses of
+  if (msvc_is_generated_code_target && decl_within_class &&
+      msvc_target_version_number <= 1200) {
+    /* Avoid a bug in the Microsoft VC++ 5.0 and 6.0 compiler on uses of
        template arguments in a default argument. */
     if (gen_typedefs_for_template_classes_in_default_arguments(
                                                       rtsp->param_type_list,
