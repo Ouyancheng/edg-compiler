@@ -2094,12 +2094,15 @@ entities.
                   /* next is the canonical definition. */
                   corresp_sym = (a_symbol_ptr)next->source_corresp.assoc_info;
                   canonical_def = next;
-                  check_assertion(!(in_secondary_trans_unit(next) &&
-                                    has_correspondence(next)) ||
-                                  (!has_correspondence(
-                                       trans_unit_corresp_pointer_of(next)) &&
-                                   !type_has_definition((a_type_ptr)
-                                       trans_unit_corresp_pointer_of(next))));
+#if CHECKING
+                  next = (a_type_ptr)
+                                 trans_unit_corresp_pointer_of(canonical_def);
+                  check_assertion(!(in_secondary_trans_unit(canonical_def) &&
+                                    has_correspondence(canonical_def)) ||
+                                  (!(in_secondary_trans_unit(next) &&
+                                     has_correspondence(next)) &&
+                                   !type_has_definition(next)));
+#endif /* CHECKING */
                   break;
                 } else {
                   /* canonical_def corresponds to the canonical definition
