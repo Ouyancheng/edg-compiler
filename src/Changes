@@ -1,5 +1,13 @@
 Version 2.31
 
+1/15/96   #ifndef guards on configuration values for special characters
+
+#ifndef guards have been added to allow implementations to define certain
+special character values in defines.h:
+  -- VERTICAL_TAB_CHARACTER (in host_envir.h, when USING_ISO_C is FALSE)
+  -- TARG_ALERT_CHAR and TARG_VERT_TAB_CHAR (in targ_def.h)
+  -- UNUSED_CHAR_POS (in lexical.h)
+
 1/15/96   extern "C" declaration of namespace member
 
 An error is now issued when namespaces (including the global namespace) in
