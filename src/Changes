@@ -1,5 +1,19 @@
 Version 2.46
 
+7/10/01  C++-generating back end: extraneous namespace qualifier on friend
+         function declaration
+
+The C++-generating back end sometimes generated a namespace qualifier on
+friend function declarations that are only members of the indicated namespace
+through friend name injection (see Changes entry of 2/25/99).  For example:
+
+  namespace N { class A { class B; }; }
+  class N::A::B {
+    friend void f();  // Used to be rendered as "friend void N::f();" which
+  };                  // is not valid C++.
+
+This is now fixed.
+
 7/10/01  C++-generating back end: missing namespace qualifier on member of
          anonymous union
 

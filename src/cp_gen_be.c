@@ -746,24 +746,19 @@ function scope is assumed.
 }  /* decl_scope_of */
 
 
-static a_scope_ptr innermost_nonclass_scope(void)
+static a_namespace_ptr innermost_namespace_parent_of(
+                                                a_source_correspondence  *scp)
 /*
-Return the current innermost nonclass name context scope.
+Return the namespace enclosing the declaration associated with the given
+source correspondence.  For declarations in file scope and in local scopes
+NULL is returned.
 */
 {
-  a_scope_ptr        innermost_scope;
-  a_name_context_ptr ncp;
-
-  for (ncp = curr_name_context; ; ncp = ncp->next) {
-    a_scope_ptr scope = ncp->assoc_scope;
-    if (scope != NULL &&
-        scope->kind != (a_scope_kind)sck_class_struct_union) {
-      innermost_scope = scope;
-      break;
-    }  /* if */
-  }  /* for */
-  return innermost_scope;
-}  /* innermost_nonclass_scope */
+  while (scp->is_class_member) {
+    scp = &scp->parent.class_type->source_corresp;
+  }  /* while */
+  return scp->parent.namespace_ptr;
+}  /* innermost_namespace_parent_of */
 
 
 /*
@@ -2100,10 +2095,18 @@ declaration.
   /* decl_scope_of cannot return the associated scope of a template parameter
      proxy class (because there is no such scope).  So explicitly test for the
      class member friend case. */
+  a_type_ptr  enclosing_class = curr_name_context->class_type;
   if (!scp->is_class_member &&
-      decl_scope_of(scp) == innermost_nonclass_scope()) {
+      !enclosing_class->source_corresp.is_local_to_function &&
+      scp->parent.namespace_ptr == innermost_namespace_parent_of(
+                                          &enclosing_class->source_corresp)) {
     /* The name is declared in the innermost nonclass scope, so an unqualified
-       name can be used (and, in some cases, must be used). */
+       name can be used. In some cases, a qualified name cannot be used.
+       For example, in
+         class N::A::B { friend void f(); };
+       with A and B class types and N a namespace, f is a member of N but it
+       may not have been declared explicitly in N so that N::f is invalid.
+       */
     gen_unqualified_name(scp, iek_routine);
   } else {
     gen_name(scp, iek_routine, GN_NO_OPTIONS, (a_boolean *)NULL);
