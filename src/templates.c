@@ -6313,6 +6313,43 @@ been instantiated, update the befriending information for the instances.
 }  /* add_befriending_class_to_function_template */
 
 
+static void check_for_declaration_errors(a_decl_flag_set   dso_flags,
+					 a_type_ptr	   type,
+					 a_symbol_ptr      sym,
+                                         a_symbol_locator  *locator,
+					 a_source_position *pos)
+/*
+This routine is used to detect certain kinds of errors related to
+the processing of a declaration in an explicit instantiation or
+specialization.  
+
+dso_flags and type are the values returned from decl_specifiers and
+declarator.  sym is the symbol associated with the declarator.  pos
+is the position to be used if a diagnostic is issued.
+*/
+{
+  /* Make sure the lookup was not ambiguous. */
+  check_ambiguity_and_verify_access(locator);
+  if (!is_error_locator(*locator)) {
+    if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+      if (is_function_type(type) && sym != NULL &&
+          (is_constructor_symbol(sym) || is_destructor_symbol(sym) ||
+           is_conversion_function_symbol(sym))) {
+        /* No type specifier is required. */
+      } else {
+        /* Error on omitted type specifier. */
+        pos_diagnostic(es_discretionary_error, ec_missing_type_specifier, pos);
+      }  /* if */
+    }  /* if */
+    if (dso_flags & DSO_DEFINES_SOMETHING) {
+      /* The type specifiers included a type definition, which is not allowed
+         in this context. */
+      pos_error(ec_type_definition_not_allowed, pos);
+    }  /* if */
+  }  /* if */
+}  /* check_for_declaration_errors */
+
+
 static void complete_function_template_decl(
                      a_decl_state_ptr		      decl_state,
                      a_symbol_ptr                     sym,
@@ -6485,13 +6522,92 @@ caller.
 }  /* complete_function_template_decl */
 
 
+static a_symbol_ptr function_template_specialization(
+				a_decl_state_ptr	decl_state,
+				a_symbol_locator	*locator,
+				a_type_ptr		type,
+				a_decl_flag_set		dso_flags,
+				a_source_position	*start_pos)
+/*
+Given a declaration of a specialization of a function template, find the
+template that is being specialized.  Note that only member templates
+declared within class templates can be specialized.
+
+locator, type, and dso_flags are the values returned by declarator.
+start_pos is the source position of the beginning of the specialization
+declaration (following any template clauses).
+*/
+{
+  a_symbol_ptr		sym = NULL;
+  a_symbol_ptr		new_sym = NULL;
+
+  sym = locator->specific_symbol;
+  if (!is_error_locator(*locator)) {
+    /* Check for errors such as a missing type specifier. */
+    check_for_declaration_errors(dso_flags, type, sym, locator, start_pos);
+  }  /* if */
+  if (is_error_locator(*locator)) {
+    /* Ignore it. */
+    sym = NULL;
+  } else if (sym == NULL) {
+    /* No symbol, which means the lookup failed. */
+    pos_st_error(ec_not_a_template_name, &locator->source_position,
+                 locator->symbol_header->identifier);
+  } else if (sym->kind == (a_symbol_kind)sk_projection) {
+    /* A member of a base class. */
+    pos_error(ec_inherited_member_not_allowed, &locator->source_position);
+    sym = NULL;
+    set_to_error_locator(*locator);
+  } else if (!is_function_or_template_symbol(sym)) {
+    /* We must have nonfunction class member.  This is an error, so set sym
+       to NULL to force the creation of a fake member function symbol. */
+    pos_sy_error(ec_not_compatible_with_previous_decl,
+                 &locator->source_position, locator->specific_symbol);
+    sym = NULL;
+    set_to_error_locator(*locator);
+  }  /* if */
+  if (sym != NULL) {
+    a_scope_stack_entry_ptr	ssep;
+    check_assertion(sym->is_class_member);
+    /* The symbol is a class member, find the symbol to which this
+       declaration refers. */
+    new_sym = member_function_redecl_sym(sym, type);
+    /* Make sure that a matching symbol was found, and that it represents
+       a function template. */
+    if (new_sym == NULL ||
+        new_sym->kind != (a_symbol_kind)sk_function_template) {
+      pos_sy_error(sym->kind == (a_symbol_kind)sk_overloaded_function
+                                 ? ec_overloaded_function_incompatible_type
+                                 : ec_not_compatible_with_previous_decl,
+                   &locator->source_position, sym);
+      new_sym = NULL;
+    }  /* if */
+    sym = new_sym;
+    ssep = &scope_stack[decl_state->effective_decl_level];
+    if (sym != NULL && !namespace_is_enclosed_by_scope(sym, ssep)) {
+      /* Specializations of namespace members can only occur within the
+         namespace they belong to or a namespace that encloses it. */
+      if (!decl_state->decl_scope_err) {
+        pos_sy_error(ec_bad_scope_for_specialization,
+                     &locator->source_position, sym);
+        decl_state->decl_scope_err = TRUE;
+      }  /* if */
+      sym = NULL;
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* function_template_specialization */
+
+
 static a_symbol_ptr function_template_declaration(
                                a_decl_state_ptr		decl_state,
                                a_symbol_locator         *locator,
                                a_func_info_block        *func_info,
                                a_storage_class          storage_class,
                                a_decl_modifier          decl_modifiers,
-                               a_type_ptr               type)
+                               a_type_ptr               type,
+			       a_decl_flag_set		dso_flags,
+			       a_source_position	*start_pos)
 /*
 Scan a function template declaration or the declaration of a member function
 of a class template.  locator identifies the function template being
@@ -6514,9 +6630,14 @@ information returned from decl_specifiers and declarator.
     func_info->is_inline = TRUE;
   }  /* if */
   /* Process a function template declaration. */
-  decl_function_template(locator, type, func_info, &sym, storage_class,
-                         decl_modifiers, decl_state->decl_info->parameters,
-                         decl_state->effective_decl_level);
+  if (decl_state->is_specialization) {
+    function_template_specialization(decl_state, locator, type, dso_flags,
+                                     start_pos);
+  } else {
+    decl_function_template(locator, type, func_info, &sym, storage_class,
+                           decl_modifiers, decl_state->decl_info->parameters,
+                           decl_state->effective_decl_level);
+  }  /* if */
   db_exit();
   return sym;
 }  /* function_template_declaration */
@@ -6824,8 +6945,10 @@ any non-empty template parameter lists that were scanned.
       a_func_info_block  func_info;
       a_storage_class    storage_class;
       a_decl_modifier    decl_modifiers;
+      a_source_position	 decl_start_pos;
 
       /* Scan the decl. specifiers and the declaration. */
+      decl_start_pos = pos_curr_token;
       clear_func_info(&func_info);
       scan_template_declaration(/*is_initial_decl=*/TRUE,
                                 decl_state->is_member_decl,
@@ -6864,7 +6987,8 @@ any non-empty template parameter lists that were scanned.
       } else if (is_function_type(type)) {
         sym = function_template_declaration(decl_state, &locator,
                                             &func_info, storage_class,
-                                            decl_modifiers, type);
+                                            decl_modifiers, type, dso_flags,
+					    &decl_start_pos);
         complete_function_template_decl(decl_state, sym, &func_info,
                                         &tssp, &locator.source_position);
 #if RECORD_TEMPLATES_IN_IL
@@ -7113,40 +7237,6 @@ by type.
 }  /* has_matching_template_instance */
 
 
-static void check_for_decl_spec_errors(a_decl_flag_set   dso_flags,
-					     a_type_ptr	       type,
-					     a_symbol_ptr      sym,
-                                             a_symbol_locator  *locator,
-					     a_source_position *pos)
-/*
-Check whether a type specifier is required by the current declaration,
-and issue an error if a required specifier was omitted.
-
-dso_flags and type are the values returned from decl_specifiers and
-declarator.  sym is the symbol associated with the declarator.  pos
-is the position to be used if a diagnostic is issued.
-*/
-{
-  if (!is_error_locator(*locator)) {
-    if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
-      if (is_function_type(type) && sym != NULL &&
-          (is_constructor_symbol(sym) || is_destructor_symbol(sym) ||
-           is_conversion_function_symbol(sym))) {
-        /* No type specifier is required. */
-      } else {
-        /* Error on omitted type specifier. */
-        pos_diagnostic(es_discretionary_error, ec_missing_type_specifier, pos);
-      }  /* if */
-    }  /* if */
-    if (dso_flags & DSO_DEFINES_SOMETHING) {
-      /* The type specifiers included a type definition, which is not allowed
-         in this context. */
-      pos_error(ec_type_definition_not_allowed, pos);
-    }  /* if */
-  }  /* if */
-}  /* check_for_decl_spec_errors */
-
-
 static void check_template_nesting_depth(a_symbol_ptr		sym,
 					 a_source_position	*pos,
 					 a_decl_state_ptr	decl_state)
@@ -7316,8 +7406,8 @@ that follows.
         sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
       }  /* if */
     }  /* if */
-    check_for_decl_spec_errors(dso_flags, type, sym, &locator,
-                               &decl_start_pos);
+    check_for_declaration_errors(dso_flags, type, sym, &locator,
+                                 &decl_start_pos);
     if (is_error_locator(locator)) {
       /* Ignore it. */
     } else if (sym == NULL) {
@@ -9180,7 +9270,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   if (sym == NULL) {
     sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
   }  /* if */
-  check_for_decl_spec_errors(dso_flags, type, sym, &locator, start_pos);
+  check_for_declaration_errors(dso_flags, type, sym, &locator, start_pos);
   if (sym == NULL) {
     /* No symbol was found.  If the declarator has a function type
        then say that the name is undefined.  If it was not a function
