@@ -2978,6 +2978,29 @@ precedence confusion.  Do the output in the way described by octl.
          this handles is cases that require just qualification adjustments. */
       final_cast_needed = TRUE;
     }  /* if */
+  } else if (msvc_is_generated_code_target &&
+             constant->kind == (a_constant_repr_kind)ck_address &&
+             constant->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable &&
+             constant->variant.address.variant.variable->
+                                              is_template_static_data_member &&
+             is_array_type(direct_achieved_type) &&
+             !has_unknown_specified_bound(direct_achieved_type) &&
+             direct_achieved_type->variant.array.variant.number_of_elements
+                                                                        != 0) {
+    /* The Microsoft compiler cannot complete the type of a static data
+       member of a template instance in cases like the following:
+
+           template<typename T> struct S {
+             static int arr[];
+           };
+           template<typename T> int S<T>::arr[4];
+           int (&r)[4] = &S<int>::arr;
+
+       We must therefore add a cast to the final type in such cases (but not
+       if the array type is still incomplete, as MSVC++ cannot handle a cast
+       to a reference to an array of unknown bound). */
+    final_cast_needed = TRUE;
   }  /* if */
   if (final_cast_needed) {
     /* Generate a final cast to the constant type. */
