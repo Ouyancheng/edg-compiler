@@ -3642,6 +3642,18 @@ scope_level.
       pointers_block->last_type->next = type_ptr;
     }  /* if */
     pointers_block->last_type = type_ptr;
+    if (sp->kind == (a_scope_kind)sck_namespace) {
+      /* We are adding a type to the types list of a namespace scope.  Add
+         a placeholder type to the types list of the filescope -- it's used
+         by IL lowering to get the order right when it promotes namespace
+         types to the file scope. */
+      a_type_ptr  placeholder;
+
+      placeholder = alloc_type((a_type_kind)tk_typeref);
+      placeholder->variant.typeref.type = type_ptr;
+      placeholder->variant.typeref.is_placeholder_for_namespace_type = TRUE;
+      add_to_types_list(placeholder, DEPTH_OF_FILE_SCOPE);
+    }  /* if */
   }  /* if */
   type_ptr->next = NULL;
 }  /* add_to_types_list */
