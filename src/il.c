@@ -298,10 +298,39 @@ Dump a base class entry, for debug purposes.
   a_field    *fp;
 
   fputs("\n    [[ ", f_debug);
+  if (bcp->virtual) {
+    fputs("pointer to virtual ", f_debug);
+  }  /* if */
   db_access_control(bcp->access);
-  if (bcp->virtual) fprintf(f_debug, " virtual");
   fprintf(f_debug, " base class %s (offset = %lu)",
 		   tp->source_corresp.name, bcp->offset);
+  if (!bcp->virtual) {
+    bcp = tp->variant.class_struct_union.extra_info->base_classes;
+    while (bcp != NULL) {
+      db_base_class(bcp);
+      bcp = bcp->next;
+    }  /* while */
+    fp = tp->variant.class_struct_union.field_list;
+    while (fp != NULL) {
+      db_base_class_field(fp, tp);
+      fp = fp->next;
+    }  /* while */
+  }  /* if */
+  fputs(" ]]", f_debug);
+}  /* db_base_class */
+
+
+static void db_virtual_base_class(a_virtual_base_class *vbcp)
+/*
+Dump a virtual base class entry, for debug purposes.
+*/
+{
+  a_type       *tp = vbcp->class;
+  a_field      *fp;
+  a_base_class *bcp;
+
+  fprintf(f_debug, "    [[ virtual base class %s (offset = %lu)",
+		   tp->source_corresp.name, vbcp->data_section_offset);
   bcp = tp->variant.class_struct_union.extra_info->base_classes;
   while (bcp != NULL) {
     db_base_class(bcp);
@@ -312,8 +341,8 @@ Dump a base class entry, for debug purposes.
     db_base_class_field(fp, tp);
     fp = fp->next;
   }  /* while */
-  fputs(" ]]", f_debug);
-}  /* db_base_class */
+  fputs(" ]]\n", f_debug);
+}  /* db_virtual_base_class */
 
 
 void db_type(a_type *tp)
@@ -371,31 +400,26 @@ class_struct_union:
       ctsp = tp->variant.class_struct_union.extra_info;
       if (ctsp != NULL && tp->kind != (a_type_kind)tk_union) {
         a_base_class_ptr bcp = ctsp->base_classes;
-        while (bcp != NULL) {
-          db_base_class(bcp);
-          bcp = bcp->next;
-        }  /* while */
+        for (; bcp != NULL; bcp = bcp->next) db_base_class(bcp);
       }  /* if */
       fputc('\n', f_debug);
       fp = tp->variant.class_struct_union.field_list;
-      while (fp != NULL) {
-        db_field(fp);
-        fp = fp->next;
-      }  /* while */
+      for (; fp != NULL; fp = fp->next) db_field(fp);
       if (ctsp != NULL) {
-	a_variable_ptr	vp = ctsp->assoc_scope->variables;
-        a_routine_ptr   rp = ctsp->assoc_scope->routines;
-	while (vp != NULL) {
-	  db_static_data_member(vp);
-	  vp = vp->next;
-	}  /* while */
-	while (rp != NULL) {
-	  db_member_function(rp);
-	  rp = rp->next;
-	}  /* while */
+        a_virtual_base_class_ptr vbcp = ctsp->virtual_base_classes;
+	a_variable_ptr	         vp = ctsp->assoc_scope->variables;
+        a_routine_ptr            rp = ctsp->assoc_scope->routines;
+
+        for (; vbcp != NULL; vbcp = vbcp->next) db_virtual_base_class(vbcp);
+        for (; vp != NULL; vp = vp->next) db_static_data_member(vp);
+        for (; rp != NULL; rp = rp->next) db_member_function(rp);
       }  /* if */
       fprintf(f_debug, "} : size = %lu, alignment = %d",
               tp->size, tp->alignment);
+      if (ctsp->virtual_base_classes != NULL) {
+        fprintf(f_debug, ", size w/o virtuals = %lu",
+                            ctsp->size_without_virtual_base_classes);
+      }  /* if */
       break;
     case tk_routine:
       fputs("routine ", f_debug);
