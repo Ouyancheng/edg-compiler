@@ -701,7 +701,7 @@ static a_boolean init_remaining_fields(
 This routine is called from get_initializer to deal with the case where a
 class object is only partially initialized.  It checks whether any of the
 uninitialized fields is itself of class (or array of class) type and if so
-does the appropriate default initialization (i.e., looks for and calls the
+does the appropriate value initialization (i.e., looks for and calls the
 default constructor).  *curr_field is the first of the uninitialized fields.
 *con_list is a list of constant entries that represents the initialization of
 the array; *end_of_con_list points to the terminal entry on the list.
@@ -3668,9 +3668,9 @@ initialized.  These are addressed in the course of the processing.
     }  /* if */
   }  /* for */
   /* Three lists that have been created thus far were made to cover the
-     default initialization required because base classes and fields need
-     it.  It remains to scan the user specified initializers, if any, and
-     to integrate them into the lists. */
+     default (or value) initialization required because base classes and
+     fields need it.  It remains to scan the user specified initializers,
+     if any, and to integrate them into the lists. */
   if (user_defined && curr_token == tok_colon) {
     /* User-specified initializers are present.  Bypass the colon. */
     (void)get_token();
@@ -4149,8 +4149,10 @@ scan_paren:
                                          init_type, &error_position)) {
             /* We fake a call to the trivial default constructor for the
                class.  No call is actually made, but the constructor
-               definition is triggered (in case there are side-effects). */
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+               definition is triggered (in case there are side-effects).
+               Note that this is a so-called "value-initialization" case
+               and hence the object must be zeroed. */
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
             if (new_cip != NULL) {
               new_cip->ctor_init_range.start = init_start_pos;
@@ -4176,11 +4178,10 @@ scan_paren:
                 set_error_constant(cp);
                 dip->variant.constant = cp;
               } else {
-                /* Using "()" with the mem-initializer means, perform default
+                /* Using "()" with the mem-initializer means, perform value
                    initialization.  Note that the class and array-of-class
-                   cases have already been dealt with, so default
-                   initialization is tantamount to zero-initialization
-                   (8.5 [dcl.init]). */
+                   cases have already been dealt with, so value initialization
+                   is tantamount to zero-initialization (8.5 [dcl.init]). */
                 dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
               }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4194,8 +4195,8 @@ scan_paren:
             } else {
               add_stop_token(tok_rparen);
               if (array_type != NULL) {
-                /* Arrays can only be default-initialized -- i.e., the
-                   expression-list must be omitted. */
+                /* Arrays can only be default- or value-initialized -- i.e.,
+                   the expression-list must be omitted. */
                 sym_error(ec_array_member_initialization, member_or_base_sym);
                 /* Set the initializer field to record that an initialization
                    was attempted. */
@@ -4822,7 +4823,7 @@ though neither constructors nor initialization is involved here.)
 void check_for_missing_initializer(a_symbol_ptr       sym,
                                    a_type_ptr         type)
 /*
-This routine is called when no explicit or default initialization has
+This routine is called when no explicit, value, or default initialization has
 occurred.  It determines whether an initializer should have been provided
 and issues a diagnostic if appropriate.  It is used both for variable
 declarations (when sym represents the variable) and for unnamed objects that
