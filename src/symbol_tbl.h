@@ -1151,12 +1151,11 @@ typedef struct a_template_instance {
   a_bit_field	explicit_can_instantiate:1;
 			/* TRUE if instantiation has been explicitly declared
                            as being possible by a can_instantiate pragma. */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  a_bit_field	in_info_file:1;
+  a_bit_field	automatically_instantiated:1;
 			/* TRUE if the instance was listed in the instantiation
 			   information file as an instantiation assigned to
-			   this compilation. */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+			   this compilation.  This field is only used when
+			   automatic template instantiation is configured. */
   a_bit_field	suppress_instantiation:1;
 			/* TRUE if the instantiation of this entity should be
 			   suppressed because of previous errors that occurred

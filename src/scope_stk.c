@@ -3757,9 +3757,10 @@ End a name scope by popping an entry off the scope stack.
         tip = rout_sym->variant.routine.instance_ptr;
         check_assertion(tip != NULL);
         if (tip->explicit_instantiation ||
-            tip->class_explicitly_instantiated) {
+            tip->automatically_instantiated) {
           /* The instance exists as a result of an explicit instantiation
-             directive. */
+             directive, or as a result being assigned to this file by
+	     the automatic instantiation mechanism. */
         } else {
           is_needed = FALSE;
         }  /* if */

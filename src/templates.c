@@ -102,6 +102,18 @@ static FILE	*f_instantiation_info;
 			/* File from which the instantiation list should be
 			   read.  Only valid when do_auto_instantiation is
 			   TRUE. */
+static a_boolean
+		auto_instantiation_initialized;
+			/* TRUE if the the routines that read the automatic
+			   instantiation information have already been
+			   initialized. */
+static a_boolean
+		any_instantiations_assigned_to_this_translation_unit;
+			/* TRUE if any instantiations have been assigned
+			   to this translation unit.  This means that it
+			   is necessary to compare the instances in this
+			   translation unit with the list of assigned
+			   instantiations. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 typedef struct a_can_instantiate_entry *a_can_instantiate_entry_ptr;
@@ -9924,6 +9936,125 @@ symbol_found:
 }  /* find_instance */
 
 
+static char *read_info_file(void)
+/*
+Reads a line of input from the instantiation list file.  Returns TRUE if
+a line of input is being returned.  Returns FALSE at end-of-file.
+*/
+{
+  register char*    buffer_pos;
+  register sizeof_t size = 0;
+  register int      ch;
+  char              *result;
+  static char	    *input_line;
+  static sizeof_t   info_file_line_size = 0;
+
+  /* Allocate space into which the input line can be read.  Only done
+     the first time this routine is called. */
+  if (info_file_line_size == 0) {
+    input_line =
+            (char *)alloc_general(INFO_FILE_LINE_INCREMENTAL_ALLOCATION);
+    info_file_line_size = INFO_FILE_LINE_INCREMENTAL_ALLOCATION;
+  }  /* if */
+  buffer_pos = input_line;
+
+  while (ch = getc(f_instantiation_info), ch != EOF && ch != '\n') {
+    if (++size == info_file_line_size) {
+      /* The input line needs to be expanded.  This occurs one character
+         before the actual end of the buffer to ensure that there will be
+         enough room for the null terminator at the end of the string. */
+      sizeof_t  curr_offset;
+      sizeof_t	new_size;
+      new_size = info_file_line_size + INFO_FILE_LINE_INCREMENTAL_ALLOCATION;
+      curr_offset = buffer_pos - input_line;
+      input_line = realloc_general(input_line, info_file_line_size, new_size);
+      info_file_line_size = new_size;
+      buffer_pos = input_line + curr_offset;
+    }  /* if */
+    *buffer_pos++ = ch;
+  }  /* while */
+  
+  /* Terminate string with a null character. */
+  *buffer_pos++ = '\0';
+
+  /* Determine whether to return end-of-file (NULL). */
+  result = input_line;
+  if (ch == EOF && size == 0) result = NULL;
+
+  return (result);
+}  /* read_info_file */
+
+
+static a_boolean open_instantiation_info_file(void)
+/*
+Open the instantiation information file associated with the primary source
+file.  Return TRUE if the file was successfully opened.
+*/
+{
+  f_instantiation_info = NULL;
+  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
+    /* Only open the file if the input is coming from a file.  The name of
+       the instantiation information file can be specified on the command
+       line.  If none is specified, then a default name is generated. */
+    if (ii_file_name != NULL) {
+      instantiation_info_file_name = ii_file_name;
+    } else {
+      instantiation_info_file_name =
+            derived_name(primary_source_file_name, INSTANTIATION_FILE_SUFFIX);
+    }  /* if */
+    f_instantiation_info = fopen(instantiation_info_file_name, "r");
+  }  /* if */
+  return f_instantiation_info != NULL;
+}  /* open_instantiation_info_file */
+
+
+static a_boolean read_instantiation_info_file(void)
+/*
+Read the list of names from the instantiation information file and
+enter the names into a hash table.  Returns TRUE if any entries
+were entered in the hash table; otherwise returns FALSE.
+*/
+{
+  char				*line;
+  a_boolean			result = FALSE;
+  int				i;
+
+  if (open_instantiation_info_file()) {
+    /* If the file does not exist, the open routine will return FALSE. */
+    /* Skip over initial lines of the instantiation information file
+       that don't contain instantiation entries. */
+    for (i = 1; i <= INSTANTIATION_INFO_LINES_RESERVED; ++i) {
+      /* Read and discard the line. */
+      (void)read_info_file();
+    }  /* if */
+    /* The variable do_auto_instantiation indicates that an instantiation
+       list file is present. */
+    while ((line = read_info_file()) != NULL) {
+      (void)find_instance(line, /*add=*/TRUE);
+      result = TRUE;
+    }  /* while */
+    (void)fclose(f_instantiation_info);
+  }  /* if */
+  return result;
+}  /* read_instantiation_info_file */
+
+
+static a_boolean init_auto_instantiation_information(void)
+/*
+Determine whether there are any instantiations that should be performed
+as part of the processing associated with this translation unit.  Return
+a flag that is TRUE if there are any such instantiations.  The default
+version of this routine simply opens and reads the instantiation 
+information file.
+*/
+{
+  a_boolean	result;
+
+  result = read_instantiation_info_file();
+  return result;
+}  /* init_auto_instantiation_information */
+
+
 static a_boolean check_if_present_in_info_file(a_template_instance_ptr tip)
 /*
 See if the specified instantiation is one that is included in the
@@ -9933,6 +10064,11 @@ instantiation information file.  Return TRUE if it is present.
   char		*name;
   a_boolean	found = FALSE;
 
+  if (!auto_instantiation_initialized) {
+    any_instantiations_assigned_to_this_translation_unit =
+                                       init_auto_instantiation_information();
+    auto_instantiation_initialized = TRUE;
+  }  /* if */
   if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
     a_variable_ptr	variable;
     variable = tip->instance_sym->variant.static_data_member.variable;
@@ -9947,6 +10083,87 @@ instantiation information file.  Return TRUE if it is present.
   }  /* if  */
   return found;
 }  /* check_if_present_in_info_file */
+
+
+static void create_or_remove_instantiation_information_file(void)
+/*
+If this compilation made use of any entities that could be instantiated,
+create an instantiation information file.  If this compilation did not
+make use of any entities that could be instantiated, remove the .ii file
+if one already exists.
+*/
+{
+  FILE		*f_ii_file;
+
+  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
+    /* The name of the instantiation information file should have already
+       been determined when the file was opened as part of automatic
+       instantiation processing for this file. */
+    check_assertion_str2(instantiation_info_file_name != NULL,
+                         "create_or_remove_instantiation_information_file:",
+                         "file name is NULL");
+    /* Only create the file if the input is coming from a file.  Note
+       that the file will have been closed after all input was read so
+       it must be reopened now. */
+    f_ii_file = fopen(instantiation_info_file_name, "r");
+    if (f_ii_file != NULL) (void)fclose(f_ii_file);
+    if (any_instantiations_required) {
+      /* If the file does not exist, create it. */
+      if (f_ii_file == NULL) {
+        f_ii_file = fopen(instantiation_info_file_name, "a");
+        if (f_ii_file == NULL) {
+          str_catastrophe(ec_cannot_create_instantiation_information_file,
+                          instantiation_info_file_name);
+        }  /* if */
+        (void)fclose(f_ii_file);
+      }  /* if */
+    } else {
+      /* No instantiation information needed.  Delete the file if it
+         already exits. */
+      if (f_ii_file != NULL) {
+        delete_file(instantiation_info_file_name);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* create_or_remove_instantiation_information_file */
+
+
+static a_boolean entity_should_be_automatically_instantiated(
+					a_template_instance_ptr tip)
+/*
+Return TRUE if the entity specified by tip should be instantiated as part
+of the processing of this translation unit.  The default version of this
+routine simply checks whether the specified entity was named in the
+instantiation information file.
+*/
+{
+  a_boolean	result;
+
+  result = check_if_present_in_info_file(tip);
+  return result;
+}  /* entity_should_be_automatically_instantiated */
+
+
+void wrapup_auto_instantiation_information(void)
+/*
+Do any processing that is needed to finalize the mechanism used to
+handle tracking of automatic instantiation information.  The default
+version of this routine simply creates or removes the instantiation
+information file, depending on whether or not this translation unit
+contains instantiatable entities.
+*/
+{
+  /* Create or remove the instantiation information file if necessary. */
+  if (!do_preprocessing_only &&
+      total_errors == 0 && !suppress_back_end) {
+    /* When only doing preprocessing we cannot determine whether or not the
+       instantiation information file is needed.  We also don't update
+       the instantiation file if there were errors, or if running the
+       front end only.  By not calling this routine we keep the old version
+       if one was present and don't create one if one did not already exist. */
+    create_or_remove_instantiation_information_file();
+  }  /* if */
+}  /* wrapup_auto_instantiation_information */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 
@@ -10073,6 +10290,13 @@ defer_inline is TRUE.
        processing. */
     add_to_instantiations_required_list(tip);
   }  /* if */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  /* Set a flag indicating whether this instantiation is in the
+     instantiation information file. */
+  if (entity_should_be_automatically_instantiated(tip)) {
+    tip->automatically_instantiated = TRUE;
+  }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   db_exit();
 }  /* update_instantiation_required_flag */
 
@@ -10116,206 +10340,6 @@ update_instantiation_required_flag to do the appropriate processing.
 
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-static a_boolean open_instantiation_info_file(void)
-/*
-Open the instantiation information file associated with the primary source
-file.  Return TRUE if the file was successfully opened.
-*/
-{
-  f_instantiation_info = NULL;
-  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
-    /* Only open the file if the input is coming from a file.  The name of
-       the instantiation information file can be specified on the command
-       line.  If none is specified, then a default name is generated. */
-    if (ii_file_name != NULL) {
-      instantiation_info_file_name = ii_file_name;
-    } else {
-      instantiation_info_file_name =
-            derived_name(primary_source_file_name, INSTANTIATION_FILE_SUFFIX);
-    }  /* if */
-    f_instantiation_info = fopen(instantiation_info_file_name, "r");
-  }  /* if */
-  return f_instantiation_info != NULL;
-}  /* open_instantiation_info_file */
-
-
-static void create_or_remove_instantiation_information_file(void)
-/*
-If this compilation made use of any entities that could be instantiated,
-create an instantiation information file.  If this compilation did not
-make use of any entities that could be instantiated, remove the .ii file
-if one already exists.
-*/
-{
-  FILE		*f_ii_file;
-
-  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
-    /* The name of the instantiation information file should have already
-       been determined when the file was opened as part of automatic
-       instantiation processing for this file. */
-    check_assertion_str2(instantiation_info_file_name != NULL,
-                         "create_or_remove_instantiation_information_file:",
-                         "file name is NULL");
-    /* Only create the file if the input is coming from a file.  Note
-       that the file will have been closed after all input was read so
-       it must be reopened now. */
-    f_ii_file = fopen(instantiation_info_file_name, "r");
-    if (f_ii_file != NULL) (void)fclose(f_ii_file);
-    if (any_instantiations_required) {
-      /* If the file does not exist, create it. */
-      if (f_ii_file == NULL) {
-        f_ii_file = fopen(instantiation_info_file_name, "a");
-        if (f_ii_file == NULL) {
-          str_catastrophe(ec_cannot_create_instantiation_information_file,
-                          instantiation_info_file_name);
-        }  /* if */
-        (void)fclose(f_ii_file);
-      }  /* if */
-    } else {
-      /* No instantiation information needed.  Delete the file if it
-         already exits. */
-      if (f_ii_file != NULL) {
-        delete_file(instantiation_info_file_name);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* create_or_remove_instantiation_information_file */
-
-
-static char *read_info_file(void)
-/*
-Reads a line of input from the instantiation list file.  Returns TRUE if
-a line of input is being returned.  Returns FALSE at end-of-file.
-*/
-{
-  register char*    buffer_pos;
-  register sizeof_t size = 0;
-  register int      ch;
-  char              *result;
-  static char	    *input_line;
-  static sizeof_t   info_file_line_size = 0;
-
-  /* Allocate space into which the input line can be read.  Only done
-     the first time this routine is called. */
-  if (info_file_line_size == 0) {
-    input_line =
-            (char *)alloc_general(INFO_FILE_LINE_INCREMENTAL_ALLOCATION);
-    info_file_line_size = INFO_FILE_LINE_INCREMENTAL_ALLOCATION;
-  }  /* if */
-  buffer_pos = input_line;
-
-  while (ch = getc(f_instantiation_info), ch != EOF && ch != '\n') {
-    if (++size == info_file_line_size) {
-      /* The input line needs to be expanded.  This occurs one character
-         before the actual end of the buffer to ensure that there will be
-         enough room for the null terminator at the end of the string. */
-      sizeof_t  curr_offset;
-      sizeof_t	new_size;
-      new_size = info_file_line_size + INFO_FILE_LINE_INCREMENTAL_ALLOCATION;
-      curr_offset = buffer_pos - input_line;
-      input_line = realloc_general(input_line, info_file_line_size, new_size);
-      info_file_line_size = new_size;
-      buffer_pos = input_line + curr_offset;
-    }  /* if */
-    *buffer_pos++ = ch;
-  }  /* while */
-  
-  /* Terminate string with a null character. */
-  *buffer_pos++ = '\0';
-
-  /* Determine whether to return end-of-file (NULL). */
-  result = input_line;
-  if (ch == EOF && size == 0) result = NULL;
-
-  return (result);
-}  /* read_info_file */
-
-
-static a_boolean read_instantiation_info_file(void)
-/*
-Read the list of names from the instantiation information file and
-enter the names into a hash table.  Returns TRUE if any entries
-were entered in the hash table; otherwise returns FALSE.
-*/
-{
-  char				*line;
-  a_boolean			result = FALSE;
-  int				i;
-
-  if (open_instantiation_info_file()) {
-    /* If the file does not exist, the open routine will return FALSE. */
-    /* Skip over initial lines of the instantiation information file
-       that don't contain instantiation entries. */
-    for (i = 1; i <= INSTANTIATION_INFO_LINES_RESERVED; ++i) {
-      /* Read and discard the line. */
-      (void)read_info_file();
-    }  /* if */
-    /* The variable do_auto_instantiation indicates that an instantiation
-       list file is present. */
-    while ((line = read_info_file()) != NULL) {
-      (void)find_instance(line, /*add=*/TRUE);
-      result = TRUE;
-    }  /* while */
-    (void)fclose(f_instantiation_info);
-  }  /* if */
-  return result;
-}  /* read_instantiation_info_file */
-
-
-static a_boolean init_auto_instantiation_information(void)
-/*
-Determine whether there are any instantiations that should be performed
-as part of the processing associated with this translation unit.  Return
-a flag that is TRUE if there are any such instantiations.  The default
-version of this routine simply opens and reads the instantiation 
-information file.
-*/
-{
-  a_boolean	result;
-
-  result = read_instantiation_info_file();
-  return result;
-}  /* init_auto_instantiation_information */
-
-
-static a_boolean entity_should_be_automatically_instantiated(
-					a_template_instance_ptr tip)
-/*
-Return TRUE if the entity specified by tip should be instantiated as part
-of the processing of this translation unit.  The default version of this
-routine simply checks whether the specified entity was named in the
-instantiation information file.
-*/
-{
-  a_boolean	result;
-
-  result = check_if_present_in_info_file(tip);
-  return result;
-}  /* entity_should_be_automatically_instantiated */
-
-
-void wrapup_auto_instantiation_information(void)
-/*
-Do any processing that is needed to finalize the mechanism used to
-handle tracking of automatic instantiation information.  The default
-version of this routine simply creates or removes the instantiation
-information file, depending on whether or not this translation unit
-contains instantiatable entities.
-*/
-{
-  /* Create or remove the instantiation information file if necessary. */
-  if (!do_preprocessing_only &&
-      total_errors == 0 && !suppress_back_end) {
-    /* When only doing preprocessing we cannot determine whether or not the
-       instantiation information file is needed.  We also don't update
-       the instantiation file if there were errors, or if running the
-       front end only.  By not calling this routine we keep the old version
-       if one was present and don't create one if one did not already exist. */
-    create_or_remove_instantiation_information_file();
-  }  /* if */
-}  /* wrapup_auto_instantiation_information */
-
-
 static a_boolean can_be_instantiated(a_template_instance_ptr tip)
 /*
 Determines whether this compilation is capable of generating an
@@ -10380,7 +10404,6 @@ entities from the info file list that can be instantiated.
   a_template_instance_ptr	tip;
   a_template_instantiation_mode	saved_instantiation_mode;
   a_boolean			can_instantiate;
-  a_boolean			check_for_auto_instantiation;
 
   db_enter(3, "automatic_instantiation");
   /* Set the instantiation mode to tim_none.  This is done to ensure that
@@ -10390,9 +10413,6 @@ entities from the info file list that can be instantiated.
      instantiations that are performed. */
   saved_instantiation_mode = instantiation_mode;
   instantiation_mode = tim_none;
-  /* Determine whether this translation unit is required to instantiate
-     anything. */
-  check_for_auto_instantiation = init_auto_instantiation_information();
   /* Set the flag that indicates that this compilation includes
      external template entities. */
   any_instantiations_required = instantiations_required != NULL;
@@ -10403,8 +10423,8 @@ entities from the info file list that can be instantiated.
     can_instantiate = can_be_instantiated(tip);
     /* Skip entries that do were not included in the instantiation
        information file. */
-    if (!check_for_auto_instantiation ||
-        !entity_should_be_automatically_instantiated(tip)) continue;
+    if (!any_instantiations_assigned_to_this_translation_unit ||
+        !tip->automatically_instantiated) continue;
     /* Skip non-external function. */
     if (is_static_or_inline_template_function(tip)) continue;
     /* Skip entries that have already been instantiated. */
@@ -11512,6 +11532,8 @@ Initializations for template.
   instantiation_info_file_name = NULL;
   f_instantiation_info = NULL;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
+  auto_instantiation_initialized = FALSE;
+  any_instantiations_assigned_to_this_translation_unit = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   /* Allocate a type to be used for template parameter constants whose
      real types cannot be known.  This type will be used for all such

@@ -8162,9 +8162,7 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->already_instantiated        = FALSE;
   tip->explicit_do_not_instantiate = FALSE;
   tip->explicit_can_instantiate    = FALSE;
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  tip->in_info_file                = FALSE;
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  tip->automatically_instantiated  = FALSE;
   tip->suppress_instantiation      = FALSE;
   tip->explicit_instantiation_pos  = null_source_position;
   db_exit();
