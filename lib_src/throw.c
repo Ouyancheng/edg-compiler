@@ -796,7 +796,7 @@ a try block with a catch that matches the type of the object thrown.
 
   /* When __throw is called we know that the object has been copied and
      must be destroyed when the throw stack entry is popped. */
-  curr_throw_stack_entry->object_copy_complete = FALSE;
+  curr_throw_stack_entry->object_copy_complete = TRUE;
   /* Get the information about the current thrown object from the
      throw stack. */
   thrown_typeinfo = curr_throw_stack_entry->typeinfo;
@@ -1007,10 +1007,10 @@ Push an entry onto the throw stack and initialize its fields.
      This can occur if a throw is done from a copy constructor called
      after __throw_alloc but before __throw. */
   ehsep = __curr_eh_stack_entry;
-  while (ehsep != NULL &&
-         ehsep->kind != (an_eh_stack_entry_kind)ehsek_try_block &&
-         ehsep->variant.try_block.catch_info == NULL) {
+  while (ehsep != NULL) {
     /* Try blocks that are currently inside a handler are not considered. */
+    if (ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block &&
+        ehsep->variant.try_block.catch_info == NULL) break;
     ehsep = ehsep->next;
   }  /* while */
   tsep->nearest_enclosing_try_block = ehsep;
