@@ -1702,10 +1702,12 @@ end_scan_for_macro_modifs:;
           /* Generate a warning on an empty macro argument, since that
              is "undefined" behavior according to the standard.  Do not
              generate the diagnostic if the argument was ended because of
-             the end of source or of a preprocessing directive. */
+             the end of source or of a preprocessing directive.  This
+             is a warning instead of a strict ANSI diagnostic because this
+             is "undefined" and not illegal. */
           if (strict_ansi_mode && map->raw_len == 0 &&
               (curr_token != tok_end_of_source && curr_token != tok_newline)) {
-            diagnostic(strict_ansi_error_severity, ec_empty_macro_argument);
+            warning(ec_empty_macro_argument);
           }  /* if */
           /* The raw form of the argument has been scanned.  Now scan it
              again with macro expansion.  We do that by temporarily
