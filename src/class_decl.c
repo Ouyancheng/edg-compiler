@@ -7362,7 +7362,11 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
 {
   if (!C_mode() &&
       member_type->kind == (a_type_kind)tk_union) {
-    if (decl_info->dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) {
+    if (member_type->source_corresp.name != NULL ||
+        !(decl_info->dso_flags & DSO_DEFINES_SOMETHING)) {
+      /* This union was named and/or is a reference to a previously defined
+         type -- in any case, it's not an anonymous union. */
+    } else if (decl_info->dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) {
       /* This cannot be a standard or a nonstandard anonymous union in C++. */
     } else {
       decl_info->is_anonymous_union = TRUE;
