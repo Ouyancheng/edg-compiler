@@ -2555,6 +2555,7 @@ part of a template-dependent expression.
   }  /* switch */
 }  /* mangled_encoding_for_expression */
 
+#if DO_IL_LOWERING
 
 static char *first_field_name(a_type_ptr              class_type,
                               a_source_correspondence **field_scp)
@@ -2590,6 +2591,7 @@ first named field; leave it unchanged if there is no named field.
   return name;
 }  /* first_field_name */
 
+#endif /* DO_IL_LOWERING */
 
 static unsigned long number_of_field_using_unnamed_type(a_type_ptr class_type,
                                                         a_type_ptr type)
