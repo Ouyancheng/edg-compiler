@@ -1277,6 +1277,10 @@ add_to_compile_options:
           /* Multi-trans unit mode. */
           multi_trans_unit_mode = TRUE;
           break;
+        case 'S':
+          /* Run front end only, but produce a .int.c file. */
+          fe_only = TRUE;
+          break;
         case 'y':
           /* Add the specifier string as a C to object option. */
           add_cl_argument(&c_to_obj_options, argv[++optpos]);
