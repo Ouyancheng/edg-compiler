@@ -1,5 +1,19 @@
 Version 2.43
 
+8/31/99  C++-generating back end: extern "C" around static functions and
+         classes
+
+The C++-generating back end now puts out an extern "C" block around
+functions and classes that are not themselves extern "C", e.g.,
+static functions.
+
+  extern "C" {           // This is now retained ...
+    static void f() {
+      extern void g();   // ... so that this is implicitly extern "C"
+      g();
+    }
+  }
+
 8/26/99  Microsoft C mode: Implicit pointer conversion can drop cv-qualifiers
 
 In Microsoft C mode, an implicit pointer conversion is now allowed

@@ -3123,8 +3123,8 @@ a type specifier (no trailing ";").  The current source sequence entry
 is the one associated with the definition of the class.
 */
 {
-  a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
+  a_class_type_supplement_ptr
+                    ctsp = type->variant.class_struct_union.extra_info;
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_targ_alignment  pack_alignment = type->variant.class_struct_union.
                                                        max_member_alignment;
@@ -3559,6 +3559,7 @@ this one is such a continuation.
   a_boolean                    is_definition = FALSE, friend_decl;
   a_boolean                    is_specialization;
   a_boolean                    suppress_closing_punct = FALSE;
+  a_boolean                    need_extern_C_closing_brace = FALSE;
   a_boolean                    need_to_unset_typedefs = FALSE;
   a_template_arg_ptr           template_arg_list = NULL;
   a_scope_ptr                  common_scope, orig_scope = NULL;
@@ -3678,10 +3679,25 @@ this one is such a continuation.
       check_assertion_str(is_class_type_kind(kind),
                           "gen_type_decl: bad type on list");
       /* A class type definition. */
+      if (!C_mode() &&
+          type->variant.class_struct_union.extra_info->
+                                         surrounding_name_linkage_state == 
+                                           (a_name_linkage_kind)nlk_external &&
+          (!type->source_corresp.is_class_member ||
+           type->variant.class_struct_union.
+                                     nested_class_defined_outside_of_parent)) {
+        /* The class definition is surrounded by an extern "C" block. */
+        write_tok_str("extern \"C\" { ");
+        /* Force matching "}" to be output later */
+        need_extern_C_closing_brace = TRUE;
+      }  /* if */
       gen_class_definition(type);
     }  /* if */
     if (!suppress_closing_punct) {
       write_end_of_declaration_punctuation(*another_decl_in_comma_list);
+    }  /* if */
+    if (need_extern_C_closing_brace) {
+      write_tok_ch('}');
     }  /* if */
     if (need_to_unset_typedefs) {
       (void)gen_typedefs_for_template_classes_in_specialization_arg_list(
@@ -7513,9 +7529,15 @@ TRUE if the declaration following this one is such a continuation.
   }  /* if */
   if (!suppress_specifiers) {
     /* Check for `extern "C"'.  This applies even on a definition. */
-    if (il_header.source_language == sl_Cplusplus &&
-        rout->source_corresp.name_linkage ==
-                                           (a_name_linkage_kind)nlk_external &&
+    if (!C_mode() &&
+        /* Check whether the function is extern "C". */
+        (rout->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_external ||
+         /* Check whether the function is surrounded by an extern "C" block
+            even though it is not itself extern "C". */
+         (is_definition && !decl_within_class &&
+          rout->surrounding_name_linkage_state == 
+                                         (a_name_linkage_kind)nlk_external)) &&
         /* Don't put it out on "main", however; it's implied there, and it's
            not allowed. */
         !(is_definition ? (rout == il_header.main_routine) :
@@ -7538,10 +7560,14 @@ TRUE if the declaration following this one is such a continuation.
         /* Force matching "}" to be output later */
         need_extern_C_closing_brace = TRUE;
       }  /* if */
-    } else {
-      /* Put out the storage class determined above. */
-      gen_storage_class(storage_class);
+      if (rout->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_external) {
+        /* Suppress the storage class if it's extern "C". */
+        storage_class = (a_storage_class)sc_unspecified;
+      }  /* if */
     }  /* if */
+    /* Put out the storage class determined above. */
+    gen_storage_class(storage_class);
     /* Generate other leading specifiers. */
     if (rout->is_inline && !decl_within_function) write_tok_str("inline ");
     if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
