@@ -508,6 +508,8 @@ extern void internal_error(char *error_message);
    include symbol_tbl.h and il_def.h in this file. */
 typedef struct a_symbol a_symbol_dummy_typedef;
 typedef struct a_type a_type_dummy_typedef;
+extern sizeof_t format_type_string(struct a_type *type,
+                                   char          **addr_str_ptr);
 extern void command_line_error(char *error_message);
 extern void str_command_line_error(char *error_message,
                                    char *fill_in_string);
