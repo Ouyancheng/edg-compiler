@@ -6523,26 +6523,17 @@ caution when modifying this routine.
     /* An error occurred while handling a qualified name or a template
        reference earlier. */
   } else {
-#if 0
-    if (C_dialect == C_dialect_cplusplus &&
-        scope_stack[decl_scope_level].kind ==
-                                       (a_scope_kind)sck_func_prototype) {
-    } else {
-#endif /* if 0 */
-      /* Look for a tag symbol in the current scope.  If the tag kind does
-         not match the tag being processed, issue an error. */
-      tag_sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
-      if (tag_sym != NULL && tag_sym->kind != tag_kind) {
-        pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
-                       &locator_for_curr_id.source_position,
-                       name_of_symbol_kind(tag_kind), tag_sym);
-        tag_sym = NULL;
-        tag_err = TRUE;
-        goto done;
-      }  /* if */
-#if 0
+    /* Look for a tag symbol in the current scope.  If the tag kind does
+       not match the tag being processed, issue an error. */
+    tag_sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
+    if (tag_sym != NULL && tag_sym->kind != tag_kind) {
+      pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
+                     &locator_for_curr_id.source_position,
+                     name_of_symbol_kind(tag_kind), tag_sym);
+      tag_sym = NULL;
+      tag_err = TRUE;
+      goto done;
     }  /* if */
-#endif /* if 0 */
     /* Save the symbol locator for this identifier before doing the
        get_token. */
     *locator = locator_for_curr_id;
@@ -9294,11 +9285,8 @@ specified (rather than defaulted to "int").
                        func_info->scope_number, rout_type,
                        (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
                        (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
-#if 0
-#else /* 0 */
       /* Remember the scope number for later use when the body is scanned. */
       func_info->scope_number = scope_stack[depth_scope_stack].number;
-#endif /* if 0 */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       ss_entry_start_prev = init_param_source_sequence_sublist();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
