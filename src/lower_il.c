@@ -6705,6 +6705,8 @@ added_to_list:;
       /* Copy a field. */
       copy_field(old_field, subobject_type, &last_field);
     }  /* for */
+    check_assertion(!class_type->incomplete);
+    subobject_type->incomplete = FALSE;
     subobject_type->size = ctsp->size_without_virtual_base_classes;
     subobject_type->alignment = ctsp->alignment_without_virtual_base_classes;
     /* add_to_types_list is not called on purpose.  See above. */
