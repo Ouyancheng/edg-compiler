@@ -952,6 +952,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_initializer(ptr->init_kind, ptr->initializer);
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
 #if GNU_EXTENSIONS_ALLOWED
+        if (ptr->asm_name_is_valid) {
+          walk_string_ptr(ptr->asm_name_or_reg.name, iek_other_text, 0);
+        }  /* if */
         walk_string_ptr(ptr->section, iek_other_text, 0);
         walk_ptr(ptr->aliased_variable, a_variable_ptr, iek_variable);
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1088,6 +1091,7 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if GNU_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->section, iek_other_text, 0);
         walk_ptr(ptr->aliased_routine, a_routine_ptr, iek_routine);
+        walk_string_ptr(ptr->asm_name, iek_other_text, 0);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FFE
         walk_ptr(ptr->local_routine_scope, a_scope_ptr, iek_scope);
