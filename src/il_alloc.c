@@ -1821,9 +1821,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if ONE_INSTANTIATION_PER_OBJECT
   rp->instantiation_needed_bit_number = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   rp->routine_fixup = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef FIL
   rp->is_fortran_entry            = FALSE;
   rp->local_routine_scope         = NULL;

@@ -149,9 +149,7 @@ extern void define_type_info_pragma(a_pending_pragma_ptr    ppp,
 				    a_symbol_ptr            sym,
 				    a_statement_ptr         stmt);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-extern void microsoft_friend_function_fixup(a_routine_fixup_ptr	rfp);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+extern void deferred_friend_function_fixup(a_routine_fixup_ptr	rfp);
 
 typedef unsigned long a_pending_class_definition_count;
 

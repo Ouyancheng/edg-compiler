@@ -158,10 +158,13 @@ TRUE from the beginning of scanning of the function body (not just
 after the closing brace), and is also TRUE for functions with
 compiler-generated bodies.  The value remains TRUE if the body of
 the function is discarded, as for example with trivial default
-constructors.
+constructors.  The test of routine_fixup is used so that a
+function defined in a friend declaration in a template will be
+considered defined even if the definition has not been fixed-up yet.
 */
 #define routine_has_been_defined(rout) \
-  ((rout)->defined || (rout)->assoc_scope != NULL_region_number)
+  ((rout)->defined || (rout)->assoc_scope != NULL_region_number ||	\
+   (rout)->routine_fixup != NULL)
 
 
 /* Macro to fetch the value of the needed flag. */

@@ -1148,26 +1148,25 @@ fixup_declared_type: ;
 }  /* default_argument_fixup_for_class */
 
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
 static void defer_routine_fixup_until_use(a_routine_fixup_ptr	rfp)
 /*
-The Microsoft compiler treats friend functions defined in a class
-template much like a member function of such a class.  The body is
-only processed if needed.  Save a pointer to the routine fixup entry
-in the routine entry.  The fixup will be completed later, if needed.
-"rfp" is its routine fixup entry for the definition to be deferred.
+In some modes, friend functions defined in a class template are treated
+much like a member function of such a class.  The body is only processed
+if needed.  Save a pointer to the routine fixup entry in the routine
+entry.  The fixup will be completed later, if needed. "rfp" is its
+routine fixup entry for the definition to be deferred.
 */
 {
   rfp->symbol->variant.routine.ptr->routine_fixup = rfp;
 }  /* defer_routine_fixup_until_use */
 
 
-void microsoft_friend_function_fixup(a_routine_fixup_ptr	rfp)
+void deferred_friend_function_fixup(a_routine_fixup_ptr	rfp)
 /*
-Called in Microsoft mode when a friend function defined in a class template
-is first used.  Does the fixup on the friend function that is normally done
-when the enclosing class is instantiated.
+When deferring the fixup of friend functions, called when a friend
+function defined in a class template is first used.  Does the fixup on
+the friend function that is otherwise done when the enclosing class is
+instantiated.
 */
 {
   a_routine_ptr                rp = rfp->symbol->variant.routine.ptr;
@@ -1178,7 +1177,7 @@ when the enclosing class is instantiated.
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-  db_enter(3, "microsoft_friend_function_fixup");
+  db_enter(3, "deferred_friend_function_fixup");
   /* Reset the routine fixup pointer in the routine to prevent this
      process from being attempted again. */
   rp->routine_fixup = NULL;
@@ -1258,9 +1257,8 @@ when the enclosing class is instantiated.
   /* Pop the reactivated class scope from the scope stack. */
   pop_class_reactivation_scope();
   db_exit();
-}  /* microsoft_friend_function_fixup */
+}  /* deferred_friend_function_fixup */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void inline_function_fixup_for_class(a_type_ptr  class_type,
                                             a_boolean   is_template_based)
@@ -1425,12 +1423,11 @@ nested class.
              prototype instantiations, friend definitions and Microsoft
              mode specializations are just discarded. */
           discard_token_cache(&rfp->function_body_token_cache);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (microsoft_mode &&
+        } else if (defer_friend_instantiation &&
                    is_real_template_instantiation &&
                    (is_friend || rfp->is_specialization)) {
-          /* The Microsoft compiler treats friend functions defined in a
-             class template much like a member function of such a class.
+          /* In some modes friend functions defined in a class template
+             are treated  much like a member function of such a class.
              The body is only processed if needed.  This special treatment
              is also extended to Microsoft mode specializations that are
              defined within the class.  Note that this processing is only
@@ -1439,7 +1436,6 @@ nested class.
           defer_routine_fixup_until_use(rfp);
           /* Set rfp to NULL to prevent it from being freed below. */
           rfp = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (rfp->is_template) {
           /* A function template declared in a class scope. */
           if (nonclass_prototype_instantiations) {
@@ -12259,7 +12255,6 @@ classes.
           }  /* if */
           /* Check for an access adjustment declaration. */
           if (is_decl_qualified_name_start() &&
-              qualifier_class_type(locator_for_curr_id) != NULL &&
               !f_same_entities(qualifier_class_type(locator_for_curr_id),
                                class_type) &&
               locator_for_curr_id.is_qualified_name &&

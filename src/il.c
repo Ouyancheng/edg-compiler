@@ -9984,16 +9984,14 @@ forced only if instantiate is TRUE.
   /* If the routine is compiler-generated and its definition has not
      yet been put out, force the definition now. */
   force_definition_of_compiler_generated_routine(routine);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* In Microsoft mode, friend functions defined in class templates are
+  /* In some modes, friend functions defined in class templates are
      only analyzed if they are used.  A non-NULL routine_fixup pointer
      indicates that the definition has not yet been processed.  This special
      treatment is also extended to Microsoft mode specializations that are
      defined within a class. */
   if (routine->routine_fixup != NULL) {
-    microsoft_friend_function_fixup(routine->routine_fixup);
+    deferred_friend_function_fixup(routine->routine_fixup);
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Do not instantiate things referenced from prototype instantiations. */
     instantiate = FALSE;

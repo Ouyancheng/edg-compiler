@@ -1314,6 +1314,7 @@ by a command line option.
   enum_types_can_be_smaller_than_int = FALSE;
   enum_types_can_be_larger_than_int = FALSE;
   stack_referenced_include_directories = TRUE;
+  defer_friend_instantiation = TRUE;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   allow_nonstandard_anonymous_unions = TRUE;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
@@ -3722,6 +3723,7 @@ This is done before command line processing.
   export_keyword_enabled = TRUE;
   curr_command_line_macro_def = NULL;
   force_dependent_name_rules_for_base_class_lookup = FALSE;
+  defer_friend_instantiation = TRUE;
 }  /* cmd_line_early_init */
 
 

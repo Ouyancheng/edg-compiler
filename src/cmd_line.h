@@ -594,6 +594,12 @@ EXTERN a_boolean
 			   have prototype instantiations performed on them. */
 
 EXTERN a_boolean
+		defer_friend_instantiation;
+			/* TRUE if the semantic analysis of friend functions
+			   of class templates should be deferred until the
+			   function is used. */
+
+EXTERN a_boolean
 		nonstandard_using_decl_allowed
 #if VAR_INITIALIZERS
                                       = DEFAULT_NONSTANDARD_USING_DECL_ALLOWED
