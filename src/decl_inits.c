@@ -246,9 +246,6 @@ completed, the aggregate is no longer in a state of partial construction.
     while (cp->kind == (a_constant_repr_kind)ck_aggregate) {
       cp = cp->variant.aggregate.last_constant;
     }  /* while */
-    if (cp->kind == (a_constant_repr_kind)ck_init_repeat) {
-      cp = cp->variant.init_repeat.constant;
-    }  /* if */
     if (cp->kind == (a_constant_repr_kind)ck_dynamic_init) {
       dip = cp->variant.dynamic_init;
       if (dip->destruction_is_for_partially_constructed_aggregate) {
@@ -2076,6 +2073,17 @@ the default constructor (if one exists) is called.
             /* Build the repeat construct. */
             repeat_nonconstant_init(orig_init_dip, var_type, tp, init_dip,
                                     array_element_count(var_type, tp));
+            if (exceptions_enabled) {
+              /* Set up the representation to deal with the possibility of
+                 an exception being thrown before the entire construction of
+                 the array is complete. */
+              orig_init_dip->destructor = dtor;
+              orig_init_dip->
+                    destruction_is_for_partially_constructed_aggregate = TRUE;
+              record_end_of_lifetime_destruction(orig_init_dip,
+                                                 /*static_lifetime=*/FALSE,
+                                                 /*block_lifetime=*/FALSE);
+            }  /* if */
           }  /* if */
         } else {
           /* Default initialization of an object that has a destructor.  We
