@@ -894,12 +894,20 @@ messages about any invalid attributes.
         rp->section = ap->variant.section;
         break;
       case ak_alias:
-        rp->aliased_routine = ap->variant.alias;
+        if (rp->defined) {
+          /* A routine cannot have a definition and simultaneously be
+             an alias for another routine. */
+          pos_sy_error(ec_rout_cannot_be_alias_and_defn,
+                       &ap->position,
+                       (a_symbol_ptr)rp->source_corresp.assoc_info);
+        } else {
+          rp->aliased_routine = ap->variant.alias;
 #if MAINTAIN_NEEDED_FLAGS
-        /* This routine must be kept so that we remember the fact that
-           it aliases another routine. */
-        mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
+          /* This routine must be kept so that we remember the fact that
+             it aliases another routine. */
+          mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
 #endif /* MAINTAIN_NEEDED_FLAGS */
+        }  /* if */
         break;
       case ak_malloc:
         /* GCC does not issue any diagnostics if the routine does not

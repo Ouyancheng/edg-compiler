@@ -1162,6 +1162,9 @@ ec_union_cannot_be_transparent_sym;;"%t cannot be transparent because %n does ha
 ec_union_cannot_be_transparent;;"%t cannot be transparent because it has a field of type %t which is not the same size as the union"
 ec_transparent_variable;;"only parameters can be transparent"
 ec_attribute_does_not_apply_to_local_variable;;"the %sq attribute does not apply to local variables"
+ec_rout_cannot_be_alias_and_defn;;"%n cannot be an alias and have a definition"
+ec_attributes_in_rout_defn;;"attributes are not permitted in a function definition"
+
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

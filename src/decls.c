@@ -4883,6 +4883,15 @@ generating cross-reference output describing this declaration.  */
                                   /*preserve_rout_type=*/old_decl_has_body,
                                   /*preserve_type_ptr=*/is_function_def);
         }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+        if (routine_ptr->aliased_routine != NULL) {
+          pos_sy_error(ec_rout_cannot_be_alias_and_defn, 
+                       &locator->source_position, linked_symbol);
+          /* Pretend the routine was not an alias so that the IL
+             remains internally consistent. */
+          routine_ptr->aliased_routine = NULL;
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
     } else {
       /* The linked symbol must be a variable. */
@@ -10429,6 +10438,12 @@ continue_with_declaration:
                are treated differently. */
             report_exception_spec_errors(&func_info);
           }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+          /* GCC does not allow "void f() __attribute((...)) {}". */
+          if (prefix_attributes != NULL) {
+            pos_error(ec_attributes_in_rout_defn, &locator.source_position); 
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
           /* Do processing required for a function definition, including
              scanning the function body.  Note that the closing '}' will not
              been consumed -- that will be done by the caller. */
