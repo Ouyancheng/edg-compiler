@@ -385,6 +385,7 @@ typedef struct a_projection_descr *a_projection_descr_ptr;
 typedef struct a_projection_descr {
   /* Description of the projection of a base class member symbol into
      a derived class.  Pointed to by an sk_projection symbol. */
+#if 0
   a_symbol_ptr  progenitor_symbol;
 			/* The symbol from which the current symbol was
 			   projected.  This symbol may itself be a projection
@@ -394,6 +395,7 @@ typedef struct a_projection_descr {
 			   is a projection of A::i; within class C B::i is
 			   the progenitor symbol.  If ambiguous is TRUE, this
 			   symbol is one of several possible. */
+#endif /* if 0 */
   a_symbol_ptr  fundamental_symbol;
 			/* The fundamental base class member to which this
 			   projection symbol refers.  It will be different
@@ -410,15 +412,6 @@ typedef struct a_projection_descr {
 			   base classes list, and its derivation field
 			   specifies the path between the current class object
 			   and the member specified by fundamental_symbol. */
-  a_derivation_step_ptr
-		hidden_sym_path;
-			/* Pointer to a linked list of derivation node
-                           entries associated with the virtual base class(es)
-			   along the derivation paths of symbols hidden by
-			   fundamental_symbol.  This field is updated when a
-			   projection symbol is overridden by a redeclaration
-			   of a member name, and it is referenced when
-			   dominance is computed. */
 } a_projection_descr;
 
 
@@ -450,10 +443,6 @@ typedef struct a_symbol {
 			/* For a symbol that is a class member, this points
 			   to the class type (this includes structs/unions
 			   when compiling C); NULL otherwise. */
-  a_symbol_ptr	hidden_projection_symbols;
-			/* For a symbol that is a class member, this points
-			   to a list of sk_projection symbols that are hidden
-			   the the present symbol.  NULL if not applicable. */
   a_symbol_kind kind;
 			/* The kind of symbol. */
   unsigned int	referenced:1;
@@ -519,24 +508,11 @@ typedef struct a_symbol {
 			   which it was originally declared in its base
 			   class. */
       unsigned int
-		access_adjustment_made:1;
-			/* If TRUE an access declaration has been made for
-			   the projection symbol, in which case it cannot
-			   be overridden by a local symbol of the same name. */
-      unsigned int
 		ambiguous:1;
 			/* TRUE if progenitor_symbol's name is ambiguous in
 			   the current scope, i.e., another symbol with the
 			   same name is visible, and there is no reason to
 			   prefer one over the other. */
-      unsigned int
-		dominated:1;
-			/* TRUE if progenitor_symbol is dominated by another
-			   projection symbol (see ARM 10.1.1). */
-      unsigned int
-		hidden:1;
-                        /* TRUE if progenitor_symbol is hidden from the
-                           current scope by an overriding declaration. */
     } projection;
     /* When kind = sk_overloaded_function: */
     a_symbol_ptr
