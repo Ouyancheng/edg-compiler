@@ -291,7 +291,7 @@ possible.
 }  /* alloc_pending_pragma */
 
 
-a_pending_pragma_ptr alloc_copy_of_pending_pragma
+static a_pending_pragma_ptr alloc_copy_of_pending_pragma
                                             (a_pending_pragma_ptr orig_ppp)
 /*
 Allocate a pending pragma entry and copy an existing pragma entry into
@@ -351,7 +351,7 @@ copies associated with the token being processed.
 }  /* make_copy_of_pragma_list */
 
 
-void free_pending_pragma(a_pending_pragma_ptr ppp)
+static void free_pending_pragma(a_pending_pragma_ptr ppp)
 /*
 Return a pending pragma entry to the available list.
 */
