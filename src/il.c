@@ -4551,6 +4551,32 @@ Add the given parameter to the parameters list for the current scope.
 }  /* add_to_parameters_list */
 
 
+a_variable_ptr make_handler_parameter(a_type_ptr  type_ptr)
+/*
+Create a handler parameter variable with the specified type, add it to the
+parameter field of the current block scope, and return a pointer to it.
+*/
+{
+  a_variable_ptr           vp;
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+
+  db_enter(5, "make_handler_parameter");
+  /* Allocate the variable. */
+  vp = alloc_variable((a_storage_class)sc_auto);
+  vp->type = type_ptr;
+  /* Add it to the scope entry. */
+  ssep = &scope_stack[decl_scope_level];
+  sp = ensure_il_scope_exists(ssep);
+  check_assertion(sp != NULL && sp->kind == (a_scope_kind)sck_block &&
+                  sp->variant.parameter == NULL);
+  sp->variant.parameter = vp;
+
+  db_exit();
+  return vp;
+}  /* make_handler_parameter */
+
+
 a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type)
 /*
 Make a temporary variable whose type is temp_type.  Return a pointer to it.

@@ -393,6 +393,8 @@ extern void add_to_variables_list(a_variable_ptr var_ptr,
 
 extern void add_to_parameters_list(a_variable_ptr param_ptr);
 
+extern a_variable_ptr make_handler_parameter(a_type_ptr  type_ptr);
+
 extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type);
 
 extern a_field_ptr alloc_field(void);
