@@ -2030,6 +2030,10 @@ typedef struct a_scope_stack_entry {
                         /* Depth of the nearest enclosing namespace scope.
 			   This is a copy of the global variable of the
                            same name. */
+  a_symbol_ptr	unnamed_namespace_sym;
+			/* For sck_file and sck_namespace scopes only, pointer
+			   to the symbol representing the unnamed namespace
+			   for the current scope; NULL if there is none. */
 } a_scope_stack_entry;
 
 
@@ -2197,6 +2201,8 @@ extern a_symbol_ptr make_unnamed_tag_symbol(a_symbol_kind      sym_kind,
                                             a_source_position  *pos);
 
 extern a_boolean is_unnamed_tag_symbol(a_symbol_ptr  sym);
+
+extern a_symbol_ptr make_unnamed_namespace_symbol(a_source_position  *pos);
 
 extern a_symbol_ptr unnamed_field_symbol(void);
 

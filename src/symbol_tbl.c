@@ -48,7 +48,8 @@ static a_symbol_header_ptr
 		error_symbol_header,
 		unnamed_tag_symbol_header,
 		anonymous_parent_object_symbol_header,
-		unnamed_field_symbol_header;
+		unnamed_field_symbol_header,
+		unnamed_namespace_symbol_header;
 
 /*
 An empty symbol used to initialize newly allocated symbols.
@@ -2777,7 +2778,7 @@ it into the symbol table.
   a_symbol_ptr  sym;
 
   db_enter(4, "make_unnamed_tag_symbol");
-  /* Use the unnamed class symbol header.  Allocate it if necessary. */
+  /* Use the unnamed tag symbol header.  Allocate it if necessary. */
   if (unnamed_tag_symbol_header == NULL) {
     unnamed_tag_symbol_header = alloc_symbol_header();
     unnamed_tag_symbol_header->identifier = "<unnamed>";
@@ -2819,6 +2820,27 @@ sake of identifying a given field entry as representing an unnamed field.
   }  /* if */
   return &sym;
 }  /* unnamed_field_symbol */
+
+
+a_symbol_ptr make_unnamed_namespace_symbol(a_source_position  *pos)
+/*
+Create a symbol for an unnamed namespace.  Do not enter it into the symbol
+table.
+*/
+{
+  a_symbol_ptr  sym;
+
+  /* Use the unnamed namespace symbol header.  Allocate it if necessary. */
+  if (unnamed_namespace_symbol_header == NULL) {
+    unnamed_namespace_symbol_header = alloc_symbol_header();
+    unnamed_namespace_symbol_header->identifier = "<unnamed>";
+    unnamed_namespace_symbol_header->identifier_length = 9;
+  }  /* if */
+  sym = alloc_symbol((a_symbol_kind)sk_namespace,
+                     unnamed_namespace_symbol_header, pos);
+  sym->decl_scope = scope_stack[depth_scope_stack].number;
+  return sym;
+}  /* make_unnamed_namespace_symbol */
 
 
 a_symbol_ptr make_anonymous_parent_object_symbol(a_symbol_kind      kind,
@@ -7302,6 +7324,7 @@ specific version of the template.
   ssep->saved_curr_object_lifetime = curr_object_lifetime;
   ssep->templ_member_class_sym   = NULL;
   ssep->depth_innermost_namespace_scope = depth_innermost_namespace_scope;
+  ssep->unnamed_namespace_sym    = NULL;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -9410,6 +9433,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_param_ids),
       pch_saved_var_array_elem(error_symbol_header),
       pch_saved_var_array_elem(unnamed_tag_symbol_header),
+      pch_saved_var_array_elem(unnamed_namespace_symbol_header),
       pch_saved_var_array_elem(unnamed_field_symbol_header),
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
       pch_saved_var_array_elem(last_ctor_or_dtor_sym),
@@ -9483,6 +9507,7 @@ of the front end.
   avail_access_error_descrs = NULL;
   error_symbol_header = NULL;
   unnamed_tag_symbol_header = NULL;
+  unnamed_namespace_symbol_header = NULL;
   anonymous_parent_object_symbol_header = NULL;
   unnamed_field_symbol_header = NULL;
   num_classes_on_scope_stack = 0;
