@@ -1,7 +1,7 @@
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C++ Front End                          - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
 * Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
@@ -438,6 +438,24 @@ local static array, so it has limited lifetime.
   (void)sprintf(temp, "_T%lu", unique_id_for_il_pointer(ptr));
   return temp;
 }  /* temp_name */
+
+
+static char *field_name(a_field_ptr field)
+/*
+Return the name of a field.  This routine exists to give names to unnamed
+union fields.  The name returned may be in an internal static array and
+may therefore have limited lifetime.
+*/
+{
+  char *name;
+
+  name = field->source_corresp.name;
+  if (name == NULL) {
+    /* Make up a name for an unnamed union. */
+    name = temp_name((char *)field);
+  }  /* if */
+  return name;
+}  /* field_name */
 
 
 static char *get_name(a_source_correspondence *source_corresp)
@@ -1816,8 +1834,7 @@ Dump the definition ({...}) if body is TRUE.
       dump_field_padding(curr_offset, field->type->alignment, field->bit_size,
                          field->bit_offset);
       startline(field->source_corresp.decl_position.seq);
-      /* Use original name, not name from get_name, for field. */
-      simple_type_reference(field->source_corresp.name, field->type);
+      simple_type_reference(field_name(field), field->type);
       if (field->bit_size != 0) {
         (void)fprintf(f_C_output, ": %d", field->bit_size);
       }  /* if */
@@ -1878,8 +1895,7 @@ Dump the definition ({...}) if body is TRUE.
     }  /* if */
     while (field != NULL) {
       startline(field->source_corresp.decl_position.seq);
-      /* Use original name, not name from get_name, for field. */
-      simple_type_reference(field->source_corresp.name, field->type);
+      simple_type_reference(field_name(field), field->type);
       fputc(';', f_C_output);
       field = field->next;
     }  /* while */
@@ -4050,8 +4066,7 @@ Dump out an expression tree.
       break;
 #ifdef CFE
     case enk_field:
-      /* Dump field name in original form; do not use get_name. */
-      fputs(expr->variant.field->source_corresp.name, f_C_output);
+      fputs(field_name(expr->variant.field), f_C_output);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -4281,8 +4296,7 @@ the list pointed to by "ipdp".
       (void)fprintf(f_C_output, "[%lu]", (unsigned long)ipdp->curr_elem);
     } else {
       fputc('.', f_C_output);
-      /* Dump field name in original form; do not use get_name. */
-      fputs(ipdp->curr_field->source_corresp.name, f_C_output);
+      fputs(field_name(ipdp->curr_field), f_C_output);
     }  /* if */
   }  /* for */
 }  /* dump_var_for_init */
@@ -8196,7 +8210,7 @@ version is for use as a subroutine called in the same program as the front end.
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C++ Front End                          - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
 * Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
