@@ -6140,9 +6140,9 @@ more than once.
          (virtual_step_class).  Pass it back up to the invocation that
          will deal with the virtual step. */
       *base_class_for_virtual_step = virt_bcp;
-      if (same_entities(node_complete_object_type(source_node,
-                                                  /*call_case=*/FALSE),
-                        source_class)) {
+      if (f_same_entities(node_complete_object_type(source_node,
+                                                    /*call_case=*/FALSE),
+                          source_class)) {
         /* We have a complete object, so it is possible to go directly to the
            virtual base class without using a pointer indirection. */
         *complete_object = TRUE;

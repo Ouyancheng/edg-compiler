@@ -82,15 +82,23 @@ static instead.
 */
 #ifndef INLINE
 #ifdef __cplusplus
-/* C++ has inline functions. */
+/* C++ has inline functions.  A separate inline external definition
+   is not needed. */
 #define INLINE inline
 #else /* ifndef __cplusplus */
 #if USING_C99
-/* C99 has inline functions. */
+/* C99 has inline functions.  A separate inline external definition is
+   needed. */
 #define INLINE inline
 #else /* !USING_C99 */
 #ifdef __GNUC__
-#define INLINE static __inline__
+/* gcc has inline functions.  When using "extern __inline__", the function
+   must be defined (without the "extern" keyword) in one file. */
+#if VAR_INITIALIZERS
+#define INLINE __inline__
+#else /* !VAR_INITIALIZERS */
+#define INLINE extern __inline__
+#endif /* VAR_INITIALIZERS */
 #else /* ifndef __GNUC__ */
 /* Not a compiler known to have inline functions.  Just use static. */
 #define INLINE static

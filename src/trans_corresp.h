@@ -174,6 +174,7 @@ can be used as an argument.
 
 
 /* SUPPRESS 763 */ /* Suppress codecenter warning on unused function. */
+/*lint -esym(528,ff_same_entities)*/
 INLINE a_boolean ff_same_entities(a_source_correspondence	*ptr1,
 				  a_source_correspondence	*ptr2)
 /*
