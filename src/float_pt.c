@@ -51,7 +51,7 @@ TRUE if the value is not acceptable.
 
 #ifdef SUNOS_STRTOD_BUG
 /*
-Under SunOS, 4.0 at least, strtod has a bug -- an unitialized stack
+Under SunOS, 4.0 at least, strtod has a bug -- an uninitialized stack
 variable is referenced.  Calling this routine ensures that the variable
 is cleared.
 */
@@ -84,7 +84,7 @@ type.
   /* Convert the number. */
   errno = 0;
 #ifdef SUNOS_STRTOD_BUG
-  /* Under SunOS, 4.0 at least, strtod has a bug -- an unitialized stack
+  /* Under SunOS, 4.0 at least, strtod has a bug -- an uninitialized stack
      variable is referenced.  Calling this routine ensures that the variable
      is cleared. */
   init_strtod();
