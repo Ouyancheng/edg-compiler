@@ -12614,11 +12614,16 @@ files can reference it.
         a_type_ptr  union_type = var->type;
         a_field_ptr field;
         check_assertion(union_type->kind == (a_type_kind)tk_union);
-        field = union_type->variant.class_struct_union.field_list;
-        if (field != NULL) {
+        for (;;) {
+          field = union_type->variant.class_struct_union.field_list;
+          if (field == NULL) break;
           /* Use the name of the first member. */
           name = field->source_corresp.name;
-        }  /* if */
+          if (name != NULL) break;
+          /* Loop if the first member is itself an anonymous union. */
+          if (!field->is_anonymous_parent_object) break;
+          union_type = field->type;
+        }  /* for */
       }  /* if */
     }  /* if */
     if (name == NULL) {
