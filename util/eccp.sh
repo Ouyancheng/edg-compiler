@@ -379,7 +379,7 @@ cmd_tmp_file=$TMPDIR/cl$$
 #
 # Define trap handlers
 #
-# Trap the "abort" signal to eliminte the shell-supplied diagnostic line
+# Trap the "abort" signal to eliminate the shell-supplied diagnostic line
 # that frequently includes the process number.
 trap "exit 134" 6 # abort
 trap "exit 137" 9 # kill (used by timeout detection)
