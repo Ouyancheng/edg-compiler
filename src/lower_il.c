@@ -923,12 +923,10 @@ compatibility we do too.)
 }  /* make_mptr_type */
 
 
-static a_type_ptr underlying_pm_type(a_type_ptr type)
+a_type_ptr underlying_type(a_type_ptr type)
 /*
-type is (or was, before lowering) a pointer-to-member type.  If it is
-a lowered pointer-to-member type, return the original pointer-to-member type.
-Otherwise (if it is an unlowered pointer-to-member type), return the
-type with typerefs dropped.
+Drop typerefs, watching out for a typeref with orig_type set.  For that
+case, return the original type.
 */
 {
   /* Drop typerefs, but look for a special entry that indicates that
@@ -943,7 +941,7 @@ type with typerefs dropped.
     type = type->variant.typeref.type;
   }  /* while */
   return type;
-}  /* underlying_pm_type */
+}  /* underlying_type */
 
 
 static a_type_ptr pm_member_type_possibly_lowered(a_type_ptr type)
@@ -954,7 +952,7 @@ its member type.
 {
   a_type_ptr member_type;
 
-  type = underlying_pm_type(type);
+  type = underlying_type(type);
   member_type = pm_member_type(type);
   return member_type;
 }  /* pm_member_type_possibly_lowered */
@@ -968,7 +966,7 @@ its class type.
 {
   a_type_ptr class_type;
 
-  type = underlying_pm_type(type);
+  type = underlying_type(type);
   class_type = pm_class_type(type);
   return class_type;
 }  /* pm_class_type_possibly_lowered */
