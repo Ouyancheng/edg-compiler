@@ -737,7 +737,7 @@ initializing declarations.
           prev_parent->variant.block.last_case_label == NULL &&
           prev_parent->variant.block.goto_count == 0) {
         /* A block with no labels and no forward gotos is being closed.  It
-           can be removed from the list -- even it it has initializations,
+           can be removed from the list -- even if it has initializations,
            it can't be jumped into. */
         remove_list_of_flow_control_descrs(prev_parent,
                                            end_of_control_flow_descr_list);

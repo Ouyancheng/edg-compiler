@@ -2813,7 +2813,7 @@ field cannot be passed as a constant.
     anon_parent_sym = field_sym;
     while ((anon_parent_sym =
             anon_parent_sym->variant.field.anonymous_parent_object) != NULL &&
-           /* Ignore the last step it it's for a top-level (variable)
+           /* Ignore the last step if it's for a top-level (variable)
               anonymous union. */
            anon_parent_sym->kind != (a_symbol_kind)sk_variable) {
       check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
