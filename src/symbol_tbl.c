@@ -7960,6 +7960,8 @@ symbol.  Otherwise, return NULL.
     (void)current_class_symbol_if_class_template(&assoc_symbol);
   }  /* if */
   if (assoc_symbol != NULL) {
+    /* Make sure that the lookup was not ambiguous. */
+    check_for_ambiguity(locator);
     if (assoc_symbol->is_template_param) {
       a_type_ptr   	tp;
       a_symbol_ptr	new_sym;
@@ -8011,7 +8013,8 @@ symbol.  Otherwise, return NULL.
         sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
                        locator->specific_symbol);
       }  /* if */
-      /* Do ambiguity and access control checking on the member. */
+      /* Do access control checking on the member.  Ambiguity has already
+         been checked above. */
       check_ambiguity_and_verify_access(locator);
     }  /* if */
   }  /* if */
@@ -8721,6 +8724,7 @@ type, that type is ignored by this routine.
       sym = normal_id_lookup(&locator, IDL_SKIP_CLASS_SCOPES);
       if (sym != NULL) {
         a_symbol_list_entry_ptr	slep;
+        check_assertion(!locator.specific_symbol->ambiguous);
         /* See if this symbol is already on the list. */
         for (slep = symbol_list; slep != NULL; slep = slep->next) {
           /* The same routine should not appear on the list twice.
