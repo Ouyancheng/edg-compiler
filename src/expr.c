@@ -6983,8 +6983,9 @@ to the compound literal.
   a_boolean               err = FALSE;
   a_type_ptr              literal_type = *p_literal_type;
   a_dynamic_init_ptr      dip;
-  a_boolean               is_static = (innermost_function_scope == NULL);
+  a_boolean               is_static = curr_expr_kind_is_const();
   an_expr_stack_entry_ptr saved_expr_stack;
+  a_memory_region_number  region_to_switch_back_to;
 
   check_assertion(C_mode() &&
                   !curr_expr_kind_is(ek_pp) &&
@@ -7014,6 +7015,7 @@ to the compound literal.
      inside of. */
   saved_expr_stack = expr_stack;
   expr_stack = NULL;
+  if (is_static) switch_to_file_scope_region(&region_to_switch_back_to);
   /* Scan the brace-enclosed initializer. */
   scan_compound_literal_initializer(&literal_type, is_static, &dip);
   /* The type can be updated for an incomplete array. */
@@ -7021,6 +7023,18 @@ to the compound literal.
   expr_stack = saved_expr_stack;
   if (err) {
     make_error_operand(result);
+  } else if (is_static) {
+    /* Static case.  Allocate an unnamed static variable and initialize it
+       with the compound literal. */
+    a_constant_ptr literal_con;
+    a_variable_ptr temp_var = alloc_temporary_variable(literal_type);
+    temp_var->is_compound_literal = TRUE;
+    temp_var->init_kind = (an_init_kind)initk_static;
+    check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
+    literal_con = dip->variant.constant;
+    temp_var->initializer.constant = literal_con;
+    /* The operand is an lvalue for the temporary. */
+    make_lvalue_variable_operand(temp_var, result, (a_ref_entry_ptr)NULL);
   } else {
     /* Allocate an enk_temp_int node. */
     an_expr_node_ptr expr =
@@ -7028,6 +7042,7 @@ to the compound literal.
     make_expression_operand(expr, literal_type, result);
     result->state = (an_operand_state)os_lvalue;
   }  /* if */
+  if (is_static) switch_back_to_original_region(region_to_switch_back_to);
 }  /* scan_compound_literal */
 
 

@@ -1446,7 +1446,10 @@ Display the indicated variable.
     disp_boolean("has_variably_modified_type", TRUE);
     disp_boolean("is_vla", ptr->is_vla);
   }  /* if */
-#endif /*ifdef CFE */
+  if (ptr->is_compound_literal) {
+    disp_boolean("is_compound_literal", TRUE);
+  }  /* if */
+#endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

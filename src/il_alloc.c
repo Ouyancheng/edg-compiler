@@ -1329,6 +1329,7 @@ to it.
   vp->promoted_local_static       = FALSE;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 #endif /* DO_IL_LOWERING */
+  vp->is_compound_literal         = FALSE;
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   vp->declared_type               = NULL;
