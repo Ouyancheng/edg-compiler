@@ -1904,9 +1904,10 @@ is non-NULL, in which case that is the function scope.
   /* A routine is put out as unprototyped if its interface is unprototyped
      or if this is the definition and the definition is old-style (i.e.,
      there was a prototyped declaration and then an old-style definition). */
-  /* If the prototype is attached to a function, its prototype scope if
-     any will have been processed to promote the types out into the file
-     scope.  If the prototype appears in some other weird context, e.g.,
+  /* If the prototype is attached to a function, in C mode, its prototype
+     scope if any will have been processed to promote the types out into
+     the file scope.  If the prototype appears in some other weird context,
+     e.g.,
        long *(*p) (struct { int i; }) = {0};
      the prototype will not have been processed and should be put out
      here as an old-style function declarator.  That avoids problems
@@ -1915,7 +1916,8 @@ is non-NULL, in which case that is the function scope.
   /* When generating K&R C, a definition of a prototyped function is put
      out as an old-style function. */
   if (!rtsp->prototyped ||
-      !type->prototype_scope_types_if_any_promoted ||
+      (il_header.source_language == sl_C &&
+       !type->prototype_scope_types_if_any_promoted) ||
       (scope != NULL
 #if C_GEN_BE_GENERATES_ANSI_C
                      && rtsp->old_style_params_scanned
@@ -2625,6 +2627,7 @@ any prototype scope types are processed.  This routine is used, only
 in C mode, to process types that will have to be put out more than
 once (e.g., types of functions); without promotion of the prototype
 scope types, the two instances of the type would not be compatible.
+This is only called when the source language is C.
 */
 {
   /* Do a loop so that we deal with prototype scopes at all levels in the
