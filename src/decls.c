@@ -6158,7 +6158,7 @@ exit_loop:
       }  /* if */
     } else if (basic_type == bt_double && sign == sign_none &&
                size == size_long) {
-      /* float. */
+      /* long double. */
       kind = (a_type_kind)tk_float;
       fkind = (a_float_kind)fk_long_double;
     } else if ((basic_type == bt_struct_union || basic_type == bt_enum) &&
