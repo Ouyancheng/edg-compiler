@@ -1683,9 +1683,9 @@ end_scan_for_macro_modifs:;
             map->raw_len += len_of_curr_token;
             /* Suppress end-of-token markers in pcc mode. */
             if (C_dialect != C_dialect_pcc) need_end_of_token_marker = TRUE;
-            /* Generate a warning on an invalid token. */
+            /* Generate a remark on an invalid token. */
             if (curr_token == tok_error) {
-              warning(err_code_for_error_token);
+              remark(err_code_for_error_token);
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
           }  /* while */
@@ -2627,11 +2627,11 @@ Scan and process a #define directive.
              put out later unless the next thing is "##" or the end of the
              replacement text. */
           need_end_of_token_marker = TRUE;
-          /* Generate a warning on an invalid token.  Suppress this warning if
+          /* Generate a remark on an invalid token.  Suppress this remark if
              inside a string because of looking for parameter names; the
              things inside the string aren't expected to be legal tokens. */
           if (curr_token == tok_error && end_of_cpp_string == NULL) {
-            warning(err_code_for_error_token);
+            remark(err_code_for_error_token);
           }  /* if */
           (void)mdefn_get_token(param_list, &param_num,
                                 &any_white_space_skipped);

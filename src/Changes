@@ -1,5 +1,10 @@
 Version 2.12
 
+11/13/92 Remark on invalid tokens during macro expansion
+
+The warning on invalid tokens encountered during macro expansion has
+been reduced to a remark.
+
 11/13/92 Goto to label of enclosing function
 
 In a case like the following, the label in the outer function is
