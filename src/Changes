@@ -1,5 +1,12 @@
 Version 2.38
 
+1/12/98   Microsoft compat: declspec modifiers on class template declarations
+
+The Microsoft declspec modifiers that are allowed on class declarations
+are now also allowed on class template declarations.
+
+  template <class T> class __single_inheritance A {};
+
 1/12/98   Composite routine type formation when one or both types are
           unprototyped definitions
 

@@ -3110,6 +3110,7 @@ included in the search.
 {
   a_symbol_ptr                      sym;
   a_symbol_ptr 			    prototype_sym;
+  a_type_ptr			    prototype_type;
   a_template_arg_ptr                old_list;
   a_type_ptr                        class_type;
   a_template_symbol_supplement_ptr  tssp;
@@ -3123,12 +3124,13 @@ included in the search.
   if (tssp->is_nonreal_member) eta_options |= ETA_IS_NONREAL_MEMBER;
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
+  prototype_type = prototype_sym->variant.class_struct_union.type;
   if (prototype_allowed) {
     if (prototype_sym != NULL) {
       /* Old list is the template argument list from the prototype
          instantiation of the primary template.  See if the list passed
          in matches it. */
-      old_list = prototype_sym->variant.class_struct_union.type->
+      old_list = prototype_type->
                      variant.class_struct_union.extra_info->template_arg_list;
       if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
         /* A match.  Set sym which will suppress any further search. */
@@ -3258,6 +3260,22 @@ included in the search.
        internal) as the template itself has. */
     class_type->source_corresp.name_linkage =
                              tssp->variant.class_template.name_linkage;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    { a_class_type_supplement_ptr	prototype_ctsp;
+      a_decl_modifiers_block		decl_modifiers;
+      clear_decl_modifiers_block(&decl_modifiers);
+      prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
+      /* Update the Microsoft decl modifier information for this class based
+         on the information stored in the prototype instantiation. */
+      decl_modifiers.flags = prototype_ctsp->decl_modifiers;
+      decl_modifiers.uuid_string = prototype_ctsp->uuid_string;
+      update_microsoft_decl_modifiers_info_for_class(
+          class_type, /*is_class_definition=*/TRUE,
+          &decl_modifiers, prototype_ctsp->qualifiers,
+          prototype_ctsp->inheritance_kind, &class_template_sym->decl_position,
+          &class_template_sym->decl_position);
+    }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (sym->variant.class_struct_union.extra_info->is_nonreal_class) {
       class_type->size = 1;
       class_type->alignment = 1;
@@ -6868,6 +6886,61 @@ Make sure that any default arguments are at the end of the parameter list.
 }  /* check_template_param_default_args */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void update_microsoft_decl_modifiers_for_class_template(
+		a_template_symbol_supplement_ptr	tssp,
+                a_boolean				is_class_definition,
+                a_decl_modifiers_block_ptr		decl_modifiers,
+                a_type_qualifier_set			qualifiers,
+                an_inheritance_kind			inheritance_kind,
+                a_source_position			*inheritance_kind_pos,
+                a_source_position			*err_pos)
+/*
+Update the Microsoft decl modifiers information for the specified class
+template.  Also update any instances that have already been generated.
+*/
+{
+  a_symbol_ptr  instance_sym;
+  a_type_ptr	prototype_type;
+  a_symbol_ptr	prototype_sym;
+
+  /* Update the prototype instantiation. */
+  prototype_sym = tssp->variant.class_template.prototype_instantiation;
+  prototype_type = type_symbol_type(prototype_sym);
+  update_microsoft_decl_modifiers_info_for_class(
+      prototype_type, is_class_definition, decl_modifiers, qualifiers,
+      inheritance_kind, inheritance_kind_pos, err_pos);
+  /* Update any instances that have already been created. */
+  for (instance_sym = tssp->variant.class_template.instantiations;
+       instance_sym != NULL; instance_sym = next_instance_sym(instance_sym)) {
+    a_type_ptr  tp = instance_sym->variant.class_struct_union.type;
+    if (is_real_class_symbol(instance_sym) &&
+        !tp->variant.class_struct_union.is_specialized) {
+      update_microsoft_decl_modifiers_info_for_class(
+          tp, is_class_definition, decl_modifiers, qualifiers,
+          inheritance_kind, inheritance_kind_pos, err_pos);
+    }  /* if */
+  }  /* for */
+  if (tssp->subordinate_templates != NULL) {
+    /* This is a member class template declared in another class template.
+       We need to visit the template symbols for this template in each
+       of the instantiations of the enclosing class template and update
+       the instantiations of those templates. */
+    a_symbol_list_entry_ptr	slep;
+    for (slep = tssp->subordinate_templates; slep != NULL; slep = slep->next) {
+      a_symbol_ptr			subordinate_sym;
+      a_template_symbol_supplement_ptr	subordinate_tssp;
+      subordinate_sym = slep->symbol;
+      subordinate_tssp = template_supplement_for_symbol(subordinate_sym);
+      update_microsoft_decl_modifiers_for_class_template(
+          subordinate_tssp, is_class_definition, decl_modifiers,
+          qualifiers, inheritance_kind, inheritance_kind_pos, err_pos);
+    }  /* for */
+  }  /* if */
+}  /* update_microsoft_decl_modifiers_for_class_template */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 static void add_befriending_class_to_class_template
                       (a_template_symbol_supplement_ptr     tssp,
 		       a_type_ptr                           class_declared_in)
@@ -7603,6 +7676,13 @@ instantiation.
   a_token_kind			    next_tok;
   a_boolean			    is_partial_specialization = FALSE;
   a_symbol_ptr			    partial_spec_nonreal_sym = sym;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_decl_modifiers_block	    decl_modifiers;
+  a_type_qualifier_set		    qualifiers = TQ_NONE;
+  an_inheritance_kind		    inheritance_kind =
+                                                (an_inheritance_kind)ihk_none;
+  a_source_position		    inheritance_kind_pos;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_typedef || curr_token == tok_auto ||
@@ -7630,6 +7710,16 @@ instantiation.
   }  /* switch */
   /* Bypass "class", "struct", or "union". */
   (void)get_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* Scan any Microsoft extended decl modifiers that may be present
+       such as __single_inheritance. */
+    clear_decl_modifiers_block(&decl_modifiers);
+    scan_microsoft_extended_decl_modifiers(
+         /*is_class_decl=*/TRUE, decl_state->is_member_decl, &decl_modifiers,
+         &qualifiers, &inheritance_kind, &inheritance_kind_pos, &err);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Next should be the class name. */
   if (!is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                        GID_USE_PROTOTYPE_NOT_NONREAL |
@@ -8055,6 +8145,14 @@ instantiation.
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           is_partial_specialization);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* Update any decl modifiers that may have been specified. */
+    update_microsoft_decl_modifiers_for_class_template(
+        tssp, is_definition, &decl_modifiers, qualifiers,
+        inheritance_kind, &inheritance_kind_pos, &locator.source_position);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_partial_specialization && !is_redecl) {
     /* Make sure that the template parameters are used correctly in the
        partial specialization template argument list. */
@@ -9685,6 +9783,13 @@ the declaration token cache.
   if (curr_token == tok_class || curr_token == tok_struct ||
       curr_token == tok_union) {
     (void)get_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      /* Skip over any Microsoft extended decl modifiers that may be present
+         such as __single_inheritance. */
+      prescan_decl_modifiers();
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Use "is expr context" to suppress diagnostics on invalid template
        references. */
     if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |

@@ -212,43 +212,77 @@ void prescan_microsoft_extended_decl_modifiers
 Prescan the Microsoft __declspec specifier:
 
 	__declspec ( extended-decl-modifier-seq )
+	__near
+	__far
+	__single_inheritence
+	__multiple_inheritence
+	__virtual_inheritence
 
 When this routine is called, the current token must be the __declspec
 keyword.
+
+A NULL state pointer may be provided if the tokens that are scanned do
+not need to be cached.
 */
 {
   int	paren_count = 0;
-  check_assertion_str2(curr_token == tok_declspec,
-                       "prescan_microsoft_extended_decl_modifiers:",
-                       "curr_token not tok_declspec");
-  /* Bypass the __declspec token. */
-  cache_curr_token(&state->cache);
-  (void)get_token();
-  if (curr_token == tok_lparen) {
-    /* The syntax within the parentheses of the __declspec specifier is
-       not tested by this routine, except that the parentheses are expected
-       to be properly nested (the same number of opening and closing
-       parentheses), and to improve error recovery, it is not expected to
-       include a semicolon, left brace, or end-of-source token. */
-    for (;;) {
-      cache_curr_token(&state->cache);
-      get_token_and_coalesce_if_identifier(flags);
-      if (curr_token == tok_rparen) {
-        /* A right parenthesis.  Break out if this is a zero level
-           parenthesis. */
-        if (paren_count == 0) break;
-        paren_count--;
-      } else if (curr_token == tok_lparen) {
-        paren_count++;   
-      } else if (curr_token == tok_semicolon ||
-                 curr_token == tok_end_of_source ||
-                 curr_token == tok_lbrace) {
-        break;
+  for (;;) {
+    if (curr_token == tok_declspec) {
+      /* Bypass the __declspec token. */
+      if (state != NULL) cache_curr_token(&state->cache);
+      (void)get_token();
+      if (curr_token == tok_lparen) {
+        /* The syntax within the parentheses of the __declspec specifier is
+           not tested by this routine, except that the parentheses are expected
+           to be properly nested (the same number of opening and closing
+           parentheses), and to improve error recovery, it is not expected to
+           include a semicolon, left brace, or end-of-source token. */
+        for (;;) {
+          if (state != NULL) cache_curr_token(&state->cache);
+          get_token_and_coalesce_if_identifier(flags);
+          if (curr_token == tok_rparen) {
+            /* A right parenthesis.  Break out if this is a zero level
+               parenthesis. */
+            if (paren_count == 0) break;
+            paren_count--;
+          } else if (curr_token == tok_lparen) {
+            paren_count++;   
+          } else if (curr_token == tok_semicolon ||
+                     curr_token == tok_end_of_source ||
+                     curr_token == tok_lbrace) {
+           break;
+          }  /* if */
+        }  /* for */
+        if (curr_token == tok_rparen) {
+          if (state != NULL) cache_curr_token(&state->cache);
+          get_token_and_coalesce_if_identifier(flags);
+        }  /* if */
       }  /* if */
-    }  /* for */
-    if (curr_token == tok_rparen) {
-      cache_curr_token(&state->cache);
+    } else if (curr_token == tok_near || curr_token == tok_far) {
+      if (state != NULL) cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
+    } else {
+      /* This is a class declaration, so if the next token is an identifier
+         it is probably the class name.  But it might also be the "inheritance
+         kind" (i.e., __single_inheritance, __multiple_inheritance, or
+         __virtual_inheritance).  Single-underscore versions of the keywords
+         are also allowed. */
+      a_boolean	done = TRUE;
+      if (curr_token == tok_identifier) {
+        char  *name = locator_for_curr_id.symbol_header->identifier;
+        if (*(name++) == '_') {
+          if (*name == '_') name++;
+          /* Check the name without its leading single or double underscore. */
+          if (strcmp(name, "single_inheritance") == 0 ||
+              strcmp(name, "multiple_inheritance") == 0 ||
+              strcmp(name, "virtual_inheritance") == 0) {
+            if (state != NULL) cache_curr_token(&state->cache);
+            get_token_and_coalesce_if_identifier(flags);
+            done = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (done) break;
     }  /* if */
   }  /* if */
 }  /* prescan_microsoft_extended_decl_modifiers */
@@ -441,6 +475,11 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         f_get_token_and_coalesce_if_identifier(
                        flags, curr_token == tok_typename ? GID_IS_TYPENAME
                                                          : GID_NO_OPTIONS);
+        if (microsoft_mode) {
+          /* Check for a Microsoft decl modifier, such as
+             __single_inheritence. */
+          prescan_microsoft_extended_decl_modifiers(state, flags);
+        }  /* if */
         if (type_specifier_seen) {
           /* We've already seen a type specifier, this is probably an
              error. */
@@ -1077,6 +1116,18 @@ cache passed by the caller are flushed.
   wrapup_disambig_state(&state);
   return state.decl_class_type;
 }  /* prescan_and_find_declarator */
+
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+void prescan_decl_modifiers(void)
+/*
+Skip over any Microsoft extended decl modifiers that may be present.
+*/
+{
+  prescan_microsoft_extended_decl_modifiers((a_disambig_state_ptr)NULL,
+                                            DFS_NO_FLAGS);
+}  /* prescan_decl_modifiers */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /******************************************************************************

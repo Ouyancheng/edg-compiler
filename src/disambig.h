@@ -74,6 +74,10 @@ extern
 a_type_ptr prescan_and_find_declarator(a_token_cache *decl_token_cache_ptr,
                                        a_boolean     *is_friend_decl);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void prescan_decl_modifiers(void);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #endif /* DISAMBIG_H */
 
 /******************************************************************************
