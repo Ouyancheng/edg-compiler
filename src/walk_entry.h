@@ -1230,7 +1230,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                                         (a_new_delete_supplement_ptr)entry_ptr;
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         walk_ptr(ptr->routine, a_routine_ptr, iek_routine);
-        walk_ptr(ptr->arg, an_expr_node_ptr, iek_expr_node);
+        walk_list(ptr->arg, an_expr_node_ptr, iek_expr_node);
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
         walk_ptr(ptr->delete_routine, a_routine_ptr, iek_routine);
       }

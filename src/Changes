@@ -1,5 +1,11 @@
 Version 2.22
 
+1/15/94  IL walk code for new-delete supplement
+
+The IL walk code in walk_entry.h for the new-delete supplement should
+walk the "arg" field as a list (because it can be in a placement "new").
+Fixed.
+
 1/14/94  Dummy version of virtual_dtor_should_be_generated_for_class
 
 When IL lowering is configured out, a dummy version of
