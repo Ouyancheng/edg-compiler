@@ -38,10 +38,8 @@ expr.h -- Declarations related to expression parsing.
 			   expressions when they are the immediate operand
 			   of a cast. */
 #define EOPT_OPERAND_OF_ADDRESS_OF 0x4
-			/* This expression is the immediate operand of a
-			   unary "&" operator.  This is significant when the
-			   operand is a qualified name in C++ -- it indicates
-			   a pointer-to-member. */
+			/* This expression is the operand of a unary "&"
+			   operator. */
 #define EOPT_TRAPPED_LEFT_PAREN 0x8
 			/* The caller of scan_expr scanned over a left
 			   parenthesis which it turned out should have begun
@@ -61,6 +59,11 @@ expr.h -- Declarations related to expression parsing.
 #define EOPT_MICROSOFT_CASE_LABEL 0x80
 			/* The expression is the top level of a case label
 			   constant in Microsoft mode. */
+#define EOPT_PTR_TO_MEMBER_CONTEXT 0x100
+			/* The expression is the immediate operand of the
+			   unary "&" operator where a pointer-to-member
+			   constant would be valid (presumably without
+			   intervening parentheses). */
 #define EOPT_NO_OPTIONS 0
 typedef int a_local_expr_options_set;
 

@@ -3653,7 +3653,8 @@ operation is a pointer-to-member (see ARM 5.3).
     (void)get_token();
   } else {
     /* Scan the operand. */
-    scan_expr(&operand, PREC_PREFIX, EOPT_OPERAND_OF_ADDRESS_OF);
+    scan_expr(&operand, PREC_PREFIX,
+              EOPT_OPERAND_OF_ADDRESS_OF | EOPT_PTR_TO_MEMBER_CONTEXT);
 
     if (err) {
       /* Operator is not allowed in this kind of expression. */
@@ -9070,8 +9071,9 @@ Also scans GNU C statement expressions:
          immediate operand of a cast, so pass down that option. */
       a_local_expr_options_set options =
                                       (local_options &
-                                                 (EOPT_OPERAND_OF_CAST |
-                                                  EOPT_MICROSOFT_CASE_LABEL)) |
+                                                (EOPT_OPERAND_OF_CAST |
+                                                 EOPT_MICROSOFT_CASE_LABEL |
+                                                 EOPT_OPERAND_OF_ADDRESS_OF)) |
                                        EOPT_ALLOW_BOUND_FUNCTION |
                                        EOPT_PRESERVE_PROPERTY_REF;
       /* Ordinarily, parentheses do affect whether an expression is the
@@ -9080,7 +9082,7 @@ Also scans GNU C statement expressions:
          &(X::Y), where X::Y is a data member, can be a pointer-to-member,
          so pass down that option. */
       if (any_cfront_mode()) {
-        options |= (local_options & EOPT_OPERAND_OF_ADDRESS_OF);
+        options |= (local_options & EOPT_PTR_TO_MEMBER_CONTEXT);
       }  /* if */
       scan_expr_full(result, bound_function_selector, PREC_LOWEST, options);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -12344,7 +12346,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
   /* Find out if this identifier is the immediate operand of a "&". */
-  is_operand_of_address_of = (local_options & EOPT_OPERAND_OF_ADDRESS_OF) != 0;
+  is_operand_of_address_of = (local_options & EOPT_PTR_TO_MEMBER_CONTEXT) != 0;
 
   /* If the identifier is the start of a C++ qualified name, get the whole
      name.  If not, look the name up as a normal identifier.  This routine
