@@ -1,5 +1,12 @@
 Version 2.45
 
+11/14/00 Warnings on unreferenced inlined functions
+
+The front end no longer warns about extern inline functions that are not
+referenced in a translation unit in which they are defined.  (I.e., they
+are treated like other extern functions instead of like functions with
+internal linkage.)
+
 11/14/00 Microsoft mode: cv-qualifiers dropped on non-class operands of "?"
 
 In Microsoft bugs mode, cv-qualifiers are now dropped on the second and
