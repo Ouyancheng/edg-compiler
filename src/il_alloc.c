@@ -1824,9 +1824,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->contains_try_block          = FALSE;
   rp->superseded_external         = FALSE;
   rp->defined_in_friend_decl      = FALSE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->defined_outside_of_parent   = FALSE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MINIMAL_INLINING
   rp->inlinable                   = FALSE;
   rp->need_out_of_line_copy       = FALSE;

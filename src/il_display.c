@@ -2475,11 +2475,9 @@ Display the indicated routine.
   /* Note: the keep_definition_in_il flag is not displayed, since it is
      for front-end use only. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->defined_outside_of_parent) {
     disp_boolean("defined_outside_of_parent", TRUE);
   }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DECL_MODIFIERS_IN_USE
   disp_decl_modifiers(ptr->decl_modifiers);
 #endif /* DECL_MODIFIERS_IN_USE */

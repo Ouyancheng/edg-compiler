@@ -1306,11 +1306,11 @@ member declaration (allowed in Microsoft mode only).
                                   /*is_redecl=*/TRUE,
                                   !microsoft_out_of_class_redecl,
                                   (a_boolean)func_info->is_inline);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Mark the routine to indicate that, though really belonging to the
        scope of its parent class, it is defined elsewhere. */
+    if (!microsoft_out_of_class_redecl) rp->defined_outside_of_parent = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     if (!microsoft_out_of_class_redecl) {
-      rp->defined_outside_of_parent = TRUE;
       record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                                 &locator->source_position,
                                 func_info->declarator_ssep);

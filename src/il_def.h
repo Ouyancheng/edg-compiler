@@ -6146,7 +6146,6 @@ typedef struct a_routine {
 			   friend declaration.  When this flag is set, a
 			   source sequence entry pointing to this routine
 			   will correspond to a friend declaration. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	defined_outside_of_parent:1;
 			/* TRUE for a routine that is defined in a scope other
 			   than the scope to which it really belongs -- i.e.,
@@ -6154,7 +6153,6 @@ typedef struct a_routine {
 			   definition or a namespace member defined outside
 			   the namespace definition.  It does not apply to a
 			   friend declaration that supplies a definition. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DO_IL_LOWERING && MINIMAL_INLINING
   a_bit_field	inlinable:1;
 			/* TRUE if this routine can be inlined.  Starts out as
