@@ -333,7 +333,7 @@ of constant initializers.
 
 static void flush_initializers(void)
 /*
-Flush a comma-seprarated list of initializer expressions by calling the
+Flush a comma-separated list of initializer expressions by calling the
 expression scanning routine.  This routine is called from get_initializer
 in error cases.
 */
@@ -349,7 +349,7 @@ in error cases.
     
   } while (loop_token(tok_comma) && curr_token != tok_rbrace &&
            curr_token != tok_semicolon);
-}  /* flush_initialzers */
+}  /* flush_initializers */
   
 
 static a_constant_ptr get_initializer(a_type_ptr          *type,
