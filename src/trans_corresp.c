@@ -264,11 +264,11 @@ given symbols are identical.
                                                                   sym1, &kind);
       scp2 = (a_source_correspondence_ptr)il_entry_for_symbol_null_okay(
                                                                   sym2, &kind);
-      if (scp1 != NULL && scp2 != NULL &&
+      if (!microsoft_bugs && scp1 != NULL && scp2 != NULL &&
           scp1->name_linkage == (a_name_linkage_kind)nlk_external &&
           scp2->name_linkage == (a_name_linkage_kind)nlk_external) {
         /* extern "C" entities match even if they are declared in different
-           namespaces. */
+           namespaces.  (But not in Microsoft bugs mode.) */
         result = TRUE;
       } else {
         result = same_namespace_entities(parent1, parent2);
@@ -1588,6 +1588,21 @@ unit correspondence pointer if one is found.
 }  /* find_type_correspondence */
 
 
+static void add_instantiation(a_template_symbol_supplement_ptr  tssp,
+                              a_symbol_ptr                      inst)
+/*
+Add the given instantiation symbol to the list of all instantiations
+associated with tssp.
+*/
+{
+  a_symbol_list_entry_ptr  slep = alloc_symbol_list_entry();
+
+  slep->next = tssp->all_instantiations;
+  tssp->all_instantiations = slep;
+  slep->symbol = inst;
+}  /* add_instantiation */
+
+
 static void record_class_template_instantiation(a_symbol_ptr  inst)
 /*
 Search for an instantiation that corresponds to inst in a prior translation
@@ -1628,10 +1643,7 @@ symbol supplement.
     }  /* for */
     if (sym_entry == NULL) {
       /* The instantiation was not found on the canonical list.  Add it now. */
-      a_symbol_list_entry_ptr  slep = alloc_symbol_list_entry();
-      slep->next = corresp_tssp->all_instantiations;
-      corresp_tssp->all_instantiations = slep;
-      slep->symbol = inst;
+      add_instantiation(corresp_tssp, inst);
       set_no_trans_unit_corresp(class_type);
     }  /* if */
   }  /* if */
@@ -1673,10 +1685,7 @@ symbol supplement.
   }  /* for */
   if (sym_entry == NULL) {
     /* The instantiation was not found on the canonical list.  Add it now. */
-    a_symbol_list_entry_ptr  slep = alloc_symbol_list_entry();
-    slep->next = corresp_tssp->all_instantiations;
-    corresp_tssp->all_instantiations = slep;
-    slep->symbol = inst->instance_sym;
+    add_instantiation(corresp_tssp, inst->instance_sym);
   }  /* if */
 }  /* record_function_template_instantiation */
 
@@ -1694,10 +1703,7 @@ template.
     /* Once errors have been detected correspondence checking is no
        longer done so there's no need to maintain this list. */
   } else if (is_primary_translation_unit) {
-    a_symbol_list_entry_ptr  sym_entry = alloc_symbol_list_entry();
-    sym_entry->next = tssp->all_instantiations;
-    tssp->all_instantiations = sym_entry;
-    sym_entry->symbol = inst;
+    add_instantiation(tssp, inst);
   } else if (correspondence_checking_done) {
     /* This is an instantiation in a secondary translation unit added
        after correspondence checking has been completed, so do catch-up
@@ -1915,6 +1921,24 @@ unit correspondence pointer if one is found.
       f_report_bad_trans_unit_corresp((char*)templ, &sym->decl_position);
     }  /* if */
     if (trans_unit_corresp_pointer_of(templ) == NULL) {
+      a_template_symbol_supplement_ptr  tssp = templ_sym
+                                                      ->variant.template_info;
+      /* Record the instantiations of this template. */
+      if (is_class_template_symbol(templ_sym)) {
+        a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
+        for (; inst != NULL; inst = next_instance_sym(inst)) {
+          a_type_ptr  class_type = type_symbol_type(inst);
+          set_no_trans_unit_corresp(class_type);
+          add_instantiation(tssp, inst);
+        }  /* for */
+      } else {
+        a_template_instance_ptr  inst = tssp->variant.function.instantiations;
+        for (; inst != NULL; inst = inst->next) {
+          a_routine_ptr   routine = inst->instance_sym->variant.routine.ptr;
+          set_no_trans_unit_corresp(routine);
+          add_instantiation(tssp, inst->instance_sym);
+        }  /* for */
+      }  /* if */
       /* Mark this template as visited. */
       set_no_trans_unit_corresp(templ);
     }  /* if */
