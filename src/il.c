@@ -8307,10 +8307,12 @@ a set of options for the copy.
       }  /* if */
       break;
     case enk_throw:
-      /* Copy the dynamic init for a throw. */
-      expr_copy->variant.throw_info->dynamic_init =
+      if (expr->variant.throw_info != NULL) {
+        /* Copy the dynamic init for a throw. */
+        expr_copy->variant.throw_info->dynamic_init =
                       copy_dynamic_init(expr->variant.throw_info->dynamic_init,
                                         options);
+      }  /* if */
       break;
     case enk_condition:
       /* Copy the dynamic init and the expression. */
