@@ -611,6 +611,9 @@ typedef struct a_src_seq_secondary_decl {
   a_bit_field	specialized_with_new_syntax:1;
 			/* TRUE if the "template<>" syntax was used to declare
 			   a specialization. */
+  a_bit_field	first_declaration:1;
+			/* TRUE if the declaration is the initial appearance
+			   of an entity in the translation unit. */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 

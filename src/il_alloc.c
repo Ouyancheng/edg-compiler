@@ -2301,6 +2301,7 @@ and return a pointer to it.
   sssdp->implicit_decl               = FALSE;
   sssdp->declared_in_func_prototype  = FALSE;
   sssdp->specialized_with_new_syntax = FALSE;
+  sssdp->first_declaration           = FALSE;
 #if CHECKING
   sssdp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

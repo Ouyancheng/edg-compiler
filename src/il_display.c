@@ -3430,6 +3430,7 @@ Display the indicated source sequence secondary declaration entry.
   if (sssdp->specialized_with_new_syntax) {
     disp_boolean("specialized_with_new_syntax", TRUE);
   }  /* if */
+  if (sssdp->first_declaration) disp_boolean("first_declaration", TRUE);
 }  /* disp_src_seq_secondary_decl */
 
 
