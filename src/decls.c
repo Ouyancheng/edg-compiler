@@ -5759,24 +5759,26 @@ specifier is restored.
      sure to update the name linkage kind enumeration. */
   /* Save the current default linkage. */
   saved_linkage = def_external_linkage;
-  /* Look for a matching string. */
-  for (kind = (a_name_linkage_kind)nlk_cplusplus_external;
-       (int)kind < (int)nlk_last;
-       kind = (a_name_linkage_kind)(kind + 1)) {
-    if (strcmp(str, name_linkage_kind_names[kind]) == 0) {
-      /* Found a matching linkage kind string. */
-      break;
+  if (str != NULL) {
+    /* Look for a matching string. */
+    for (kind = (a_name_linkage_kind)nlk_cplusplus_external;
+         (int)kind < (int)nlk_last;
+         kind = (a_name_linkage_kind)(kind + 1)) {
+      if (strcmp(str, name_linkage_kind_names[kind]) == 0) {
+        /* Found a matching linkage kind string. */
+        break;
+      }  /* if */
+    }  /* for */
+    if (kind != (a_name_linkage_kind)nlk_last) {
+      /* A valid linkage kind was found. */ 
+      if (!err) {
+        def_external_linkage.kind = kind;
+        def_external_linkage.is_explicit = TRUE;
+      }  /* if */
+    } else {
+      /* Bad linkage kind.  Leave def_external_linkage unmodified. */
+      error(ec_bad_linkage_specifier);
     }  /* if */
-  }  /* for */
-  if (kind != (a_name_linkage_kind)nlk_last) {
-    /* A valid linkage kind was found. */ 
-    if (!err) {
-      def_external_linkage.kind = kind;
-      def_external_linkage.is_explicit = TRUE;
-    }  /* if */
-  } else {
-    /* Bad linkage kind.  Leave def_external_linkage unmodified. */
-    error(ec_bad_linkage_specifier);
   }  /* if */
   (void)get_token();
   /* If a brace enclosed declaration list follows, call declaration
@@ -5815,17 +5817,22 @@ specifier is restored.
       next_token_is_top_level_decl_start = FALSE;
     }  /* if */
   } else {
-    /* Just one declaration is governed by this linkage specifier.  If no
-       storage class is specified it is as though "extern" were specified --
-       this is an interpretation of the sentence in ARM 7.4 asserting, "An
-       object defined withing an `extern "C" {...}' construct is still defined
-       and not just declared," and of the example following it, where without
-       the braces the variable is not defined. */
-    declaration(function_definition_allowed, /*extern_implied=*/TRUE,
-                is_old_style_param_decl, /*is_top_level_declaration=*/FALSE,
-                param_id_list);
-    /* Restore the default linkage to the value it had before the declaration
-       (or declaration list) was processed. */
+    if (curr_token == tok_end_of_source) {
+      /* Missing declaration. */
+      error(ec_exp_declaration);
+    } else {
+      /* Just one declaration is governed by this linkage specifier.  If no
+         storage class is specified it is as though "extern" were specified --
+         this is an interpretation of the sentence in ARM 7.4 asserting, "An
+         object defined withing an `extern "C" {...}' construct is still
+         defined and not just declared," and of the example following it,
+         where without the braces the variable is not defined. */
+      declaration(function_definition_allowed, /*extern_implied=*/TRUE,
+                  is_old_style_param_decl, /*is_top_level_declaration=*/FALSE,
+                  param_id_list);
+    }  /* if */
+    /* Restore the default linkage to the value it had before the
+       declaration was processed. */
     def_external_linkage = saved_linkage;
   }  /* if */
 
