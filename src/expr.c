@@ -5357,7 +5357,8 @@ type.
     take_address_of_lvalue(operand);
   } else if (is_a_function_designator(operand)) {
     conv_function_designator_to_ptr_to_function(operand);
-  } else if (is_class_struct_union_type(operand->type)) {
+  } else if (!strict_ansi_mode &&
+             is_class_struct_union_type(operand->type)) {
     /* As a transitional concession, this cast is allowed on an rvalue of
        class type.  This is not allowed under the WP, but was arguably
        okay under the ARM. */
@@ -5692,8 +5693,7 @@ Syntax:
      (e.g., turning arrays into pointers), but before the reference
      rewriting or anything else that changes cast_type. */
   if (!cast_is_valid_in_current_expression_kind(&operand, cast_type,
-                                                (a_local_expr_options_set)
-                                                               EOPT_NO_OPTIONS,
+                                                EOPT_NO_OPTIONS,
                                                 &type_position)) {
     /* This cast is not valid in this kind of expression. */
     err = TRUE;
@@ -5843,8 +5843,7 @@ Syntax:
          (e.g., turning arrays into pointers), but before the reference
          rewriting or anything else that changes type_cast_to. */
       if (!cast_is_valid_in_current_expression_kind(result, type_cast_to,
-                                                    (a_local_expr_options_set)
-                                                               EOPT_NO_OPTIONS,
+                                                    EOPT_NO_OPTIONS,
                                                     &type_position)) {
         /* This cast is not valid in this kind of expression. */
         err = TRUE;
@@ -5923,6 +5922,112 @@ Syntax:
   result->position = start_position;
   db_exit();
 }  /* scan_static_cast_operator */
+
+
+static void scan_reinterpret_cast_operator(an_operand *result)
+/*
+Scan the C++ reinterpret_cast operator.  See [expr.reinterpret.cast].
+
+Syntax:
+	reinterpret_cast < type-id > ( expression )
+
+*/
+{
+  a_source_position start_position, type_position;
+  a_type_ptr        type_cast_to, orig_type_cast_to, source_type;
+  a_boolean         cast_to_reference = FALSE, err = FALSE;
+  an_error_code     warning_suggested;
+
+  db_enter(4, "scan_reinterpret_cast_operator");
+  /* Save the position of the reinterpret_cast keyword. */
+  start_position = pos_curr_token;
+#if CHECKING
+  if (curr_expr_kind_is(ek_pp)) {
+    /* reinterpret_cast not possible for preprocessing expressions. */
+    internal_error("scan_reinterpret_cast_operator: in preprocessing expr");
+  }  /* if */
+#endif /* CHECKING */
+  /* Advance past reinterpret_cast. */
+  (void)get_token();
+  /* Scan "< type-id > ( expression )". */
+  if (!scan_new_style_cast(&type_cast_to, &type_position, result)) {
+    err = TRUE;
+  } else {
+    orig_type_cast_to = type_cast_to;
+    /* Check for casts to reference type. */
+    cast_to_reference = is_reference_type(type_cast_to);
+    if (!cast_to_reference) {
+      /* Normal case (not a cast to reference). */
+      /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
+         conversions.  They must be done now because they affect the type
+         of the operand.  Also give errors on overloaded functions. */
+      do_operand_transformations(result, TOPT_NO_OPTIONS);
+    }  /* if */
+    /* Check for casts that aren't valid in this kind of expression.
+       Note that this check is done after the operand transformations
+       (e.g., turning arrays into pointers), but before the reference
+       rewriting or anything else that changes type_cast_to. */
+    if (!cast_is_valid_in_current_expression_kind(result, type_cast_to,
+                                                  EOPT_NO_OPTIONS,
+                                                  &type_position)) {
+      /* This cast is not valid in this kind of expression. */
+      err = TRUE;
+    }  /* if */
+    /* Do any rewriting that changes the destination type. */
+    if (err) {
+      /* Some previous error. */
+    } else if (cast_to_reference) {
+      /* Rewrite a cast to a reference type as a cast to a pointer type.
+         Note that the original type_cast_to is preserved in
+         orig_type_cast_to. */
+      rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, result);
+    }  /* if */
+    /* Get the source type after the transformations. */
+    source_type = result->type;
+    /* Check for different types of casts and do the cast. */
+    if (!err) {
+      if (reinterpret_cast_conversion_possible(source_type,
+                                               type_cast_to,
+                                               &warning_suggested)) {
+        /* Valid reinterpret_cast conversion. */
+        if (cast_removes_qualifiers(source_type, type_cast_to)) {
+          /* This reinterpret_cast casts away constness, which is not
+             allowed. */
+          pos_st_error(ec_cannot_cast_away_const, &start_position,
+                       "reinterpret_cast");
+        }  /* if */
+        if (warning_suggested != ec_no_error) {
+          /* Issue warning on oddball cases. */
+          pos_warning(warning_suggested, &start_position);
+        }  /* if */
+        /* Do the actual cast. */
+        cast_operand(type_cast_to, result, /*is_implicit_cast=*/FALSE);
+        if (cast_to_reference) {
+          /* The result of a cast to reference is an lvalue. */
+          conv_object_pointer_to_lvalue(result);
+        }  /* if */
+      } else {
+        /* Not a valid cast. */
+        err = TRUE;
+        if (is_class_struct_union_type(orig_type_cast_to)) {
+          /* Use a special clearer message for casting to a class. */
+          pos_ty_error(ec_cast_to_bad_type, &type_position,
+                       orig_type_cast_to);
+        } else {
+          /* Generic message. */
+          /* Note: If this is changed to display the types involved,
+             use orig_type_cast_to (because of the reference rewrite). */
+          pos_error(ec_bad_cast, &start_position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (err) conv_to_error_operand(result);
+  /* Set the error position to the starting position. */
+  error_position = start_position;
+  result->position = start_position;
+  db_exit();
+}  /* scan_reinterpret_cast_operator */
 
 
 static void scan_cast_expression(a_type_ptr type_cast_to,
@@ -9173,6 +9278,11 @@ see expr.h).
     case tok_static_cast:
       /* static_cast operation. */
       scan_static_cast_operator(&local_result);
+      break;
+
+    case tok_reinterpret_cast:
+      /* reinterpret_cast operation. */
+      scan_reinterpret_cast_operator(&local_result);
       break;
 
     case tok_intaddr:

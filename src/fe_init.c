@@ -301,8 +301,9 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_throw,     "throw");
     enter_keyword((a_token_kind)tok_try,       "try");
     enter_keyword((a_token_kind)tok_virtual,   "virtual");
-    enter_keyword((a_token_kind)tok_const_cast,"const_cast");
-    enter_keyword((a_token_kind)tok_static_cast,"static_cast");
+    enter_keyword((a_token_kind)tok_const_cast,       "const_cast");
+    enter_keyword((a_token_kind)tok_static_cast,      "static_cast");
+    enter_keyword((a_token_kind)tok_reinterpret_cast, "reinterpret_cast");
     if (allow_anachronisms) {
       enter_keyword((a_token_kind)tok_overload, "overload");
     }  /* if */
@@ -347,7 +348,6 @@ Install the keywords in the symbol table.
     /* Enter keywords for things that are not yet implemented. */
     enter_unimplemented_keyword("mutable",          ec_unimplemented_keyword);
     enter_unimplemented_keyword("namespace",        ec_unimplemented_keyword);
-    enter_unimplemented_keyword("reinterpret_cast", ec_unimplemented_keyword);
     enter_unimplemented_keyword("using",            ec_unimplemented_keyword);
   }  /* if */
   db_exit();
