@@ -1,5 +1,11 @@
 Version 2.08
 
+8/19/92  Handling of -b, -O and -V options
+
+The cfront compatibility option (-b) now implies C++ mode.  The 
+option to enable/disable anachronisms (-O) and the option to suppress
+definition of virtual function tables (-V) are now only allowed in C++ mode.
+
 8/19/92  CFRONT_OBJECT_CODE_COMPATIBILITY
 
 This flag replaces CFRONT_CLASS_LAYOUT_COMPATIBILTY.  Defined in
