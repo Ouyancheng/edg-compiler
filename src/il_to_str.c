@@ -1279,7 +1279,7 @@ C++-generating back end.
 #if BACK_END_IS_CP_GEN_BE
 
 #if GCC_BUILTIN_VARARGS
-#define and_not_gnu_builtin_va_list(type) && !type->is_builtin_va_list
+#define and_not_gnu_builtin_va_list(type) && !(type)->is_builtin_va_list
 #else /* !GCC_BUILTIN_VARARGS */
 #define and_not_gnu_builtin_va_list(type) /* Nothing */
 #endif /* GCC_BUILTIN_VARARGS */
