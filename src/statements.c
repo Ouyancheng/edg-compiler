@@ -5472,11 +5472,13 @@ locates the corresponding following colon.
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  /* Record extra info about the position of the case and default labels.
-     Unlike the constants themselves, this information is recorded in the
-     order of source positions. */
-  record_switch_case_entry(scp, constant_ptr,
+  if (keyword_position != NULL) {
+    /* Record extra info about the position of the case and default labels.
+       Unlike the constants themselves, this information is recorded in the
+       order of source positions. */
+    record_switch_case_entry(scp, constant_ptr,
                            keyword_position, colon_position);
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (can_add_to_curr_clause) {
     /* For the case where the value could be added to the current clause, we
@@ -5591,45 +5593,19 @@ locates the corresponding following colon.
 }  /* add_switch_clause */
 
 
-static void case_label(void)
+static a_constant_ptr scan_case_label_constant(
+                                         a_struct_stmt_stack_entry_ptr  sssep)
 /*
-Scan a case label definition.  The syntax is:
-
-3.6.1  labeled_statement
-		case constant-expression : statement
-
+Scan the constant in a case label.  Sssep should point to the enclosing switch
+entry on the statement stack; NULL indicates an error.  This routine is also
+called to scan the second constant in a GNU C case range.
 */
 {
-  a_struct_stmt_stack_entry_ptr sssep;
-  a_boolean                     did_not_fold;
-  a_constant                    constant;
-  a_constant_ptr                constant_ptr = NULL;
-  a_source_position             label_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position             case_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_constant_ptr     constant_ptr = NULL;
+  a_constant         constant;
+  a_source_position  label_position;
+  a_boolean          did_not_fold;
 
-  db_enter(4, "case_label");
-
-  wrapup_decl_statement();
-  add_stop_token(tok_colon);
-  /* See if we are within a switch body by looking at the entries in
-     the structured statement stack. */
-  sssep = find_enclosing_struct_stmt(/*find_switch=*/TRUE,
-                                     /*find_loop=*/FALSE);
-  if (sssep == NULL) {
-    /* We are not inside a switch statement. */
-    error(ec_case_label_must_be_in_switch);
-  }  /* if */
-  /* Ignore the initial "case". */
-#if CHECKING
-  if (curr_token != tok_case) internal_error("case_label: expected case");
-#endif /* CHECKING */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  case_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  (void)get_token();
-  constant_ptr = NULL;
   label_position = pos_curr_token;
   /* Scan the constant expression. */
   scan_integral_constant_expression(&constant);
@@ -5676,19 +5652,95 @@ Scan a case label definition.  The syntax is:
     constant_ptr = alloc_unshared_constant(&constant);
     constant_ptr->source_corresp.decl_position = label_position;
   }  /* if */
+
+  return constant_ptr;
+}  /* scan_case_label_constant */
+
+
+static void case_label(void)
+/*
+Scan a case label definition.  The syntax is:
+
+3.6.1  labeled_statement
+		case constant-expression : statement
+
+*/
+{
+  a_struct_stmt_stack_entry_ptr sssep;
+  a_constant_ptr                constant_ptr;
+  a_constant_ptr                range_end = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position             case_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_source_position             ellipsis_position;
+
+  db_enter(4, "case_label");
+
+  wrapup_decl_statement();
+  add_stop_token(tok_colon);
+  /* See if we are within a switch body by looking at the entries in
+     the structured statement stack. */
+  sssep = find_enclosing_struct_stmt(/*find_switch=*/TRUE,
+                                     /*find_loop=*/FALSE);
+  if (sssep == NULL) {
+    /* We are not inside a switch statement. */
+    error(ec_case_label_must_be_in_switch);
+  }  /* if */
+  /* Ignore the initial "case". */
+#if CHECKING
+  if (curr_token != tok_case) internal_error("case_label: expected case");
+#endif /* CHECKING */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  case_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  (void)get_token();
+  constant_ptr = scan_case_label_constant(sssep);
+  if (gcc_mode && curr_token == tok_ellipsis) {
+    /* This is a GNU C case range. E.g.: case 'a' ... 'z': */
+    /* Skip the ellipsis. */
+    ellipsis_position = pos_curr_token;
+    get_token();
+    range_end = scan_case_label_constant(sssep);
+    /* Check that *range_end > *constant_ptr. */
+    if (range_end != NULL &&
+        cmp_integer_constants(constant_ptr, range_end) >= 0) {
+      error(ec_invalid_case_range);
+      range_end = NULL;
+    }  /* if */
+  }  /* if */
   if (sssep != NULL) {
     if (constant_ptr != NULL) {
       /* Add the proper switch clause. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       add_switch_clause(sssep, constant_ptr,
                         &case_position, &pos_curr_token,
-                        &label_position);
+                        &constant_ptr->source_corresp.decl_position);
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
       add_switch_clause(sssep, constant_ptr,
                         (a_source_position_ptr)NULL,
                         (a_source_position_ptr)NULL,
-                        &label_position);
+                        &constant_ptr->source_corresp.decl_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      if (range_end != NULL) {
+        /* Add clauses for each integer constant value between *constant_ptr
+           and *range_end. */
+        a_constant  in_between;
+        copy_constant(constant_ptr, &in_between);
+        in_between.source_corresp.decl_position = null_source_position;
+        incr_integer_value(&in_between.variant.integer_value);
+        while (cmp_integer_constants(&in_between, range_end) < 0) {
+          add_switch_clause(sssep, alloc_unshared_constant(&in_between),
+                            (a_source_position_ptr)NULL,
+                            (a_source_position_ptr)NULL,
+                            &ellipsis_position);
+          incr_integer_value(&in_between.variant.integer_value);
+        }  /* while */
+        range_end->source_corresp.decl_position = null_source_position;
+        add_switch_clause(sssep, range_end,
+                          (a_source_position_ptr)NULL,
+                          (a_source_position_ptr)NULL,
+                          &range_end->source_corresp.decl_position);
+      }  /* if */
     } else {
       /* Make code reachable if the switch is reachable for the error case. */
       start_stmt_clause(sssep);

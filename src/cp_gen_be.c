@@ -6716,10 +6716,24 @@ The current function source sequence entry is for that switch clause.
     write_tok_str("default: ");
   } else {
     /* Put out a list of case labels. */
-    for (; con != NULL; con = con->next) {
+    while (con != NULL) {
       set_output_position(&con->source_corresp.decl_position);
       write_tok_str("case ");
       gen_constant(con, /*need_parens=*/FALSE);
+      con = con->next;
+      if (con->source_corresp.decl_position.seq == 0) {
+        a_constant_ptr  last = con;
+        /* A GNU C case range.  Skip to the last constant with a null
+           position. */
+        write_tok_str(" ... ");
+        for (; last->next != NULL; last = last->next) {
+          if (last->next->source_corresp.decl_position.seq != 0) {
+            break;
+          }  /* if */
+        }  /* for */
+        gen_constant(last, /*need_parens=*/FALSE);
+        con = last->next;
+      }  /* if */
       write_tok_str(": ");
     }  /* for */
   }  /* if */
