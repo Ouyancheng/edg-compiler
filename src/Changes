@@ -1,5 +1,13 @@
 Version 2.33
 
+9/25/96 Scope of an uncaught exception now conforms to the Working Paper
+
+The Working Paper specifies that an exception is "uncaught" from the
+time that the object to be thrown is completely evaluated until the time
+that the initialization of the catch parameter is complete.  The front
+end and runtime have been updated to conform to this definition.  See
+the entry below and the runtime Changes file for more information.
+
 9/25/96 Indication of point in catch clause where exception has been caught
         (IL CHANGE if EH partially lowered)
 
