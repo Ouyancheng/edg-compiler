@@ -2035,7 +2035,7 @@ code that makes it possible to suppress subsequent re-inclusions.
     locator = cleared_locator;
     assoc_symbol =
                   find_symbol(ifhp->controlling_macro_name,
-			      size_t_arg(strlen(ifhp->controlling_macro_name)),
+			      (sizeof_t)(strlen(ifhp->controlling_macro_name)),
                               &locator);
     assoc_symbol = find_defined_macro(assoc_symbol);
     /* If the macro is undefined, then an #ifdef NAME guard would cause the
