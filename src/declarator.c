@@ -2673,6 +2673,7 @@ to FALSE if the entity being declared is not initializable.
   if (locator->is_operator_name) {
     /* Enforce some restrictions on the declarations of overloaded
        operator functions. */
+    *parenthesized_initializer_allowed = FALSE;
     if (*p_member_parent_type != NULL) {
       if (locator->specific_symbol != NULL) {
         /* This must be a redeclaration. */
