@@ -383,6 +383,10 @@ typedef struct a_std_conv_descr {
 			/* TRUE if the conversion is, in the terms of
 			   overload resolution (ARM 13.2), more than just
 			   a sequence of trivial conversions. */
+  a_byte_boolean
+		ptr_or_pm_to_bool;
+			/* TRUE if this conversion is from a pointer or
+			   pointer to member to bool. */
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this conversion is done. */

@@ -3338,9 +3338,13 @@ See conversion_possible.
       /* bool --> bool is no conversion. */
       okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
-    } else if (is_arithmetic(source_type) || is_enum(source_type) ||
-               is_pointer(source_type) || is_ptr_to_member(source_type)) {
+    } else if (is_arithmetic(source_type) || is_enum(source_type)) {
       okay = TRUE;
+    } else if (is_pointer(source_type) || is_ptr_to_member(source_type)) {
+      okay = TRUE;
+      /* This conversion is worse than others in overload resolution.
+         Remember that. */
+      std_conv->ptr_or_pm_to_bool = TRUE;
     }  /* if */
   } else if (is_arithmetic(dest_type)) {
     /* Destination type is arithmetic. */
