@@ -1,5 +1,9 @@
 Version 2.32
 
+5/5/96  IL CHANGE: field in a_src_seq_end_of_construct has been renamed
+
+In a_src_seq_end_of_construct "source_position" is now "position".
+
 5/3/96  Template parameters no longer permitted in elaborated type specifiers
 
 X3J16/WG21 has disallowed the use of template parameters in elaborated type
