@@ -1137,8 +1137,9 @@ start of a sequence of declarations.
 {
   a_struct_stmt_stack_entry_ptr  sssep;
   a_statement_ptr                sp = NULL;
-  a_source_sequence_entry_ptr    prev_ssep;
+  a_source_sequence_entry_ptr    prev_ssep, ssep;
 
+  db_enter(4, "decl_statement");
   if (!source_sequence_entries_disallowed) {
     /* We are in a context in which source sequence entries are being
        generated. */
@@ -1171,6 +1172,37 @@ start of a sequence of declarations.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (prev_ssep != NULL) {
+    /* Back up over empty source sequence entries (they may be deleted later)
+       and those that represent pragmas. */
+    for(;;) {
+      an_il_entry_kind  kind = ss_entry_kind(prev_ssep);
+      if (kind == iek_none || kind == iek_pragma) {
+        prev_ssep = prev_ssep->prev;
+      } else if (kind == iek_src_seq_sublist &&
+                 ss_entry_kind(assoc_sublist_of(prev_ssep)->
+                                         source_sequence_list) == iek_pragma) {
+        /* A sublist the first entry of which is a pragma.  Keep backing up. */
+#if CHECKING
+        /* This assumes the sublist was created for one or more global-scope
+           pragmas -- and that nothing else is on its list.  Confirm the
+           assumption. */
+        ssep = assoc_sublist_of(prev_ssep)->source_sequence_list;
+        for (; ssep != NULL; ssep = ssep->next) {
+          a_pragma_ptr  pp;
+          check_assertion(ss_entry_kind(ssep) == iek_pragma);
+          pp = (a_pragma_ptr)ssep->entity.ptr;
+          check_assertion(pp->entity.ptr == NULL);
+        }  /* for */
+#endif /* CHECKING */
+        prev_ssep = prev_ssep->prev;
+      } else {
+        /* We've found a source sequence entry that can help us find the
+           source sequence entry to point to from the decl statement. */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   /* Now process the declaration. */
   local_declaration();
   if (!source_sequence_entries_disallowed) {
@@ -1180,9 +1212,49 @@ start of a sequence of declarations.
          for the first declaration. */
     } else {
       check_assertion(prev_ssep != NULL);
-      sp->source_sequence_entry = prev_ssep->next;
+      /* In the ordinary case, prev_ssep->next is the source sequence entry
+         to which the stmk_decl statement should refer.  However, if any
+         pragmas have intervened, we advance past any that are not explcitly
+         bound to the next declaration. */
+      ssep = prev_ssep->next;
+      while (ssep != NULL) {
+        check_assertion(ssep->entity.kind != (a_byte_il_entry_kind)iek_none);
+        if (ssep->entity.kind == (a_byte_il_entry_kind)iek_pragma) {
+          /* The source sequence entry represents a pragma.  See if it's
+             a binds-to-next-decl pragma. */
+          a_pragma_kind  kind = ((a_pragma_ptr)ssep->entity.ptr)->kind;
+          if (pragma_description_for_pragma_kind[(int)kind]->
+                                                        may_bind_to_decl) {
+            /* Point the decl-statement at this source sequence entry, since
+               it is the first associated with the declaration. */
+            break;
+          } else {
+            /* It's a pragma but not a binds-to-next-decl pragma, so skip
+               past it. */
+            ssep = ssep->next;
+          }  /* if */
+        } else if (is_sublist_parent(ssep) && ssep->next == NULL) {
+          /* Scan the sublist. */
+          ssep = assoc_sublist_of(ssep)->source_sequence_list;
+        } else {
+          /* Assume this to be the source sequence entry created by the
+             declaration. */
+          break;
+        }  /* if */
+      }  /* for */
+      sp->source_sequence_entry = ssep;
+#if DEBUG
+      if (debug_level >= 4) {
+        fputs("ss list starting at prev_ssep:\n", f_debug);
+        db_source_sequence_list(prev_ssep);
+        fprintf(f_debug, "decl statement points at:%s",
+                           ssep == NULL ? " NULL\n" : "\n  ");
+        if (ssep != NULL) db_source_sequence_entry(ssep);
+      }  /* if */
+#endif /* if DEBUG */
     }  /* if */
   }  /* if */
+  db_exit();
 }  /* decl_statement */
 
 
