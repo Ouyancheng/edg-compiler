@@ -7768,7 +7768,8 @@ and for the instantiation of template functions.
      can be done to get any errors out right on the "}". */
   scope_ptr->assoc_block =
         compound_statement(/*at_function_level=*/TRUE,
-                           (flags & SFB_IMPLICITLY_DECLARED_RETURN_TYPE) == 0);
+                           (flags & SFB_IMPLICITLY_DECLARED_RETURN_TYPE) == 0,
+                           /*is_catch_clause=*/FALSE);
   if (flags & SFB_NEW_STRUCT_STMT_STACK_REQUIRED) {
     /* Restore the original structured statement stack. */
     restore_struct_stmt_stack(saved_container_pos, saved_depth_stmt_stack,
@@ -8177,6 +8178,102 @@ specifier is restored.
 
   db_exit();
 }  /* linkage_specification */
+
+
+void handler_declaration(a_statement_ptr  sp)
+/*
+Process a handler declaration:
+
+  "catch" "(" exception-declaration ")" compound-statement
+
+*/
+{
+  a_handler_ptr      handler, prev_handler;
+  a_type_ptr         type_ptr, bottom_derived_type;
+  a_storage_class    storage_class;
+  a_decl_flag_set    dso_flags, do_flags;
+  a_symbol_ptr       sym;
+  a_symbol_locator   locator;
+  a_source_position  decl_pos;
+
+  db_enter(3, "handler_declaration");
+  /* Push the scope for the handler before processing the exception
+     declaration to assure that the scope of the handler's parameter is the
+     same as that of the handler's compound statement block. */
+  (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                   (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                   (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                   (a_template_arg_ptr)NULL);
+  /* Allocate the handler. */
+  handler = alloc_handler();
+  if (required_token(tok_lparen, ec_exp_lparen)) {
+    decl_pos = pos_curr_token;
+    if (curr_token == tok_ellipsis) {
+      /* NULL parameter. */
+      (void)get_token();
+    } else {
+      if (curr_token != tok_identifier &&
+          !is_decl_start(/*expr_context=*/FALSE,
+                         /*real_declarator_allowed=*/TRUE)) {
+        add_stop_token(tok_rparen);
+        syntax_error(ec_missing_exception_declaration);
+        type_ptr = error_type();
+        set_to_error_locator(locator);
+        remove_stop_token(tok_rparen);
+      } else {
+        decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED |
+                          DSI_EMPTY_DECL_SPECIFIERS_ALLOWED,
+                        &dso_flags, &storage_class, &type_ptr);
+        if (dso_flags & DSO_DEFINES_SOMETHING) {
+          /* Definition of a class, struct, union, or enum type is not
+             allowed. */
+          pos_error(ec_type_definition_not_allowed, &decl_pos);
+        } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+          /* Missing type specifier. */
+          warning(ec_missing_type_specifier);
+        }  /* if */
+        sym = NULL;
+        if (curr_token != tok_rparen) {
+          declarator(DI_REAL_DECLARATOR_ALLOWED |
+                       DI_ABSTRACT_DECLARATOR_ALLOWED,
+                     &do_flags, type_ptr,
+                     /*member_parent_type=*/(a_type_ptr)NULL, &locator,
+                     &type_ptr, &bottom_derived_type,
+                     (a_func_info_block_ptr)NULL);
+          if (do_flags & DO_REAL_DECLARATOR_SCANNED) {
+            sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
+                               decl_scope_level,
+                               /*suppress_redecl_error=*/FALSE);
+          }  /* if */
+        }  /* if */
+        handler->parameter = make_handler_parameter(type_ptr);
+        if (sym != NULL) {
+          sym->variant.variable.ptr = handler->parameter;
+          set_source_corresp(&(handler->parameter->source_corresp), sym);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    prev_handler = sp->variant.try_block.handlers;
+    if (prev_handler == NULL) {
+      sp->variant.try_block.handlers = handler;
+    } else {
+      for (;;) {
+#if 0
+        /* Check type against types of previously declared handler. */
+#endif /* if 0 */
+        if (prev_handler->next == NULL) break;
+        prev_handler = prev_handler->next;
+      }  /* for */
+      prev_handler->next = handler;
+    }  /* if */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
+  handler->statement = compound_statement(/*at_function_level=*/FALSE,
+                                          /*explicit_return_type=*/FALSE,
+                                          /*is_catch_clause=*/TRUE);
+  pop_scope();
+  db_exit();
+}  /* handler_declaration */
 
 
 an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed)

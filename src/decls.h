@@ -193,6 +193,8 @@ extern void decl_function_template(a_symbol_locator    *locator,
                                    a_storage_class     storage_class,
                                    a_boolean           is_inline);
 
+extern void handler_declaration(a_statement_ptr  sp);
+
 extern an_asm_entry_ptr asm_declaration(a_boolean asm_decl_allowed);
 
 /* Bit vector used to pass flags into declarator and into and out of
