@@ -1463,8 +1463,8 @@ Display the indicated variable.
     disp_boolean("specific_def", (a_boolean)ptr->specific_def);
   }  /* if */
   if (ptr->is_parameter) {
-    disp_boolean("param_value_has_been_reset",
-                 (a_boolean)ptr->param_value_has_been_reset);
+    disp_boolean("param_value_has_been_changed",
+                 (a_boolean)ptr->param_value_has_been_changed);
     disp_boolean("param_used_more_than_once",
                  (a_boolean)ptr->param_used_more_than_once);
   }  /* if */
