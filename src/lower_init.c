@@ -1186,6 +1186,7 @@ NULL until then.
 */
 static a_routine_ptr
 		vec_new_routine,
+		vec_new_eh_routine,
 		vec_cctor_routine,
 		vec_delete_routine;
 
@@ -1247,15 +1248,21 @@ type of the array pointed to by ptr_type, and return a pointer to it.
 
 static an_expr_node_ptr make_vec_new_call(an_expr_node_ptr entity_node,
                                           an_expr_node_ptr num_elem_node,
-                                          a_routine_ptr    ctor_routine)
+                                          a_routine_ptr    ctor_routine,
+                                          a_routine_ptr    dtor_routine)
 /*
 Make a call to a runtime routine (__vec_new) that will allocate an array
 and call a constructor for each element of the array.  entity_node gives
 the address of the array (for cases where the array is already
 allocated).  num_elem_node gives (as an expression) the number of
 elements in the array.  ctor_routine is the constructor routine to be
-called, or NULL if no constructor is to be called.  A pointer to the
-expression created is returned.
+called, or NULL if no constructor is to be called.  dtor_routine
+is the destructor routine to be called -- this is non-NULL only if
+there is a destructor and if exceptions are enabled (in that case,
+it may be necessary to destroy array elements that were created if
+a throw occurs halfway through the initialization of the array);
+the runtime routine __vec_new_eh is called in that case.
+A pointer to the expression created is returned.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
@@ -1273,14 +1280,24 @@ expression created is returned.
     func_addr_node = alloc_node_for_constant(&null_constant);
   }  /* if */
   /* The call looks like
-       __vec_new(entity_node, num_elems, size_elem, ctor_routine)
+       __vec_new   (entity_node, num_elems, size_elem, ctor_routine)
+       __vec_new_eh(entity_node, num_elems, size_elem, ctor_routine,
+                                                       dtor_routine)
   */
   arg_expr_list = entity_node;
   entity_node->next = num_elem_node;
   num_elem_node->next = size_elem_node;
   size_elem_node->next = func_addr_node;
-  call_node = make_runtime_rout_call("__vec_new", &vec_new_routine,
-                                     void_star_type(), arg_expr_list);
+  if (dtor_routine != NULL) {
+    /* __vec_new_eh call, with destructor. */
+    func_addr_node->next = function_addr_expr(dtor_routine);
+    call_node = make_runtime_rout_call("__vec_new_eh", &vec_new_eh_routine,
+                                       void_star_type(), arg_expr_list);
+  } else {
+    /* __vec_new call, without destructor. */
+    call_node = make_runtime_rout_call("__vec_new", &vec_new_routine,
+                                       void_star_type(), arg_expr_list);
+  }  /* if */
   return call_node;
 }  /* make_vec_new_call */
 
@@ -1587,7 +1604,8 @@ dip->variant.constructor.args has already been lowered.
     /* Normal constructor case. */
     /* Build a constant node for the number of array elements. */
     num_elem_node = num_elem_node_from_count(array_element_count);
-    call_node = make_vec_new_call(entity_node, num_elem_node, ctor_routine);
+    call_node = make_vec_new_call(entity_node, num_elem_node, ctor_routine,
+                                  dip->destructor);
   }  /* if */
   /* Make a statement containing the call. */
   call_stmt = alloc_expr_statement(call_node);
@@ -2676,7 +2694,7 @@ arrays with class elements.
   a_constant                  size_constant, null_constant;
   a_targ_size_t               con_for_size;
   a_boolean                   ovflo;
-  a_routine_ptr               ctor_routine;
+  a_routine_ptr               ctor_routine, dtor_routine;
 
   /* Get the array element type. */
   array_type = skip_typerefs(ndsp->type);
@@ -2832,13 +2850,18 @@ arrays with class elements.
                         ctor_routine->type);
     ctor_routine = default_version_of_routine(ctor_routine,
                                            elem_dip->variant.constructor.args);
+    /* If exceptions are enabled, a destructor will be specified if
+       appropriate. */
+    dtor_routine = dip->destructor;
   } else {
     /* There is no dynamic init entry; the storage is not initialized after
        allocation. */
     ctor_routine = NULL;
+    dtor_routine = NULL;
   }  /* if */
   /* Construct the call of __vec_new. */
-  vec_new_node = make_vec_new_call(entity_node, num_elem_node, ctor_routine);
+  vec_new_node = make_vec_new_call(entity_node, num_elem_node, ctor_routine,
+                                   dtor_routine);
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   if (ndsp->routine != NULL) {
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
@@ -4595,7 +4618,8 @@ of the front end.
   processing_file_scope_init_routine = FALSE;
   /* Static variables in lower_init.c: */
   module_id = NULL;
-  vec_new_routine = vec_cctor_routine = vec_delete_routine = NULL;
+  vec_new_routine = vec_new_eh_routine = vec_cctor_routine =
+                                                     vec_delete_routine = NULL;
   file_scope_init_routine = NULL;
   file_scope_term_routine = NULL;
   cleanup_actions_for_local_static_variables = NULL;
