@@ -2103,8 +2103,10 @@ extern void delete_file(char *file_name);
 extern FILE *open_temp_file(a_boolean binary_file);
 /* Close a temporary file. */
 extern void close_temp_file(FILE *temp_file);
+#if MAKE_FRONT_END_CALLABLE
 /* If not NULL, close *f_file. */
 extern void close_file_if_open(FILE	**f_file);
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 /*
 Types used to determine the execution time of the compiler.

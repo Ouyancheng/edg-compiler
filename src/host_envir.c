@@ -1427,6 +1427,7 @@ have_file:;
   return(temp_file);
 }  /* open_temp_file */
 
+#if MAKE_FRONT_END_CALLABLE
 
 void close_file_if_open(FILE	**f_file)
 /*
@@ -1439,6 +1440,7 @@ Close the file specified by *f_file and set the file pointer to NULL.
   }  /* if */
 }  /* close_file_if_open */
 
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 void close_temp_file(FILE *temp_file)
 /*

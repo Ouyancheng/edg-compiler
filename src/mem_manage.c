@@ -1792,6 +1792,7 @@ Free the general memory specified by *list.
   *list = NULL;
 }  /* free_general_memory */
 
+#if MAKE_FRONT_END_CALLABLE
 
 void mem_manage_wrapup(void)
 /*
@@ -1813,6 +1814,7 @@ very end of processing.
   free_general_memory(&resizable_memory_allocation_list);
 }  /* mem_manage_wrapup */
 
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -175,8 +175,10 @@ extern void mem_manage_one_time_init(void);
 extern void mem_manage_trans_unit_init(void);
 extern void mem_manage_init(void);
 
+#if MAKE_FRONT_END_CALLABLE
 /* Free memory used by the compilation. */
 extern void mem_manage_wrapup(void);
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
