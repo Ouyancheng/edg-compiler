@@ -5082,8 +5082,8 @@ know what the underlying implementation is).
   /* The operand must be an lvalue of the builtin type va_list. */
   check_assertion(builtin_va_list_type != NULL);
   if (!is_an_lvalue(&operand) ||
-      !identical_types(builtin_va_list_type,
-                       make_unqualified_type(operand.type))) {
+      !types_are_compatible_ignoring_qualifiers(builtin_va_list_type,
+                                                operand.type)) {
     if (!is_error_operand(&operand)) {
       error_in_operand(err_code, &operand);
     }  /* if */
