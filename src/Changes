@@ -1,5 +1,20 @@
 Version 2.35
 
+2/4/97  Microsoft compatibility: class-key may be omitted on explicit
+        instantiation
+
+In Microsoft mode, explicit instantiation directives that name a class
+may omit the "class", "struct", or "union" keyword:
+
+  template <class T> struct A {
+    void f();
+    void g();
+  };
+  template <class T> void A<T>::f(){}
+  template <class T> void A<T>::g(){}
+  template class A<int>;  // standard syntax
+  template A<char>;       // Microsoft also accepts this form
+
 2/4/97  Spurious error on class member using-declaration eliminated
 
 A spurious error was issued on a class member using-declaration while

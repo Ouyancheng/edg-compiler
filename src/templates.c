@@ -10342,6 +10342,34 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   /* If this is a pragma it will end with a tok_end_of_source, if not
      it will end with a semicolon. */
   end_of_statement_token = is_pragma ? tok_end_of_source : tok_semicolon;
+  if (microsoft_mode && is_generalized_identifier_start(GID_NO_OPTIONS) &&
+      next_token() == end_of_statement_token) {
+    /* The Microsoft compiler accepts a class instantiation without the
+       elaborated type specifier. */
+    a_boolean	err = FALSE;
+    sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+						     ilm_normal, &err);
+    if (!err && sym != NULL && is_template_instance_class_symbol(sym) &&
+        !is_template_instance_specific_def_symbol(sym)) {
+      /* Process all member functions and static data members. */
+      update_instantiation_flags_for_class(sym, kind, start_pos, is_pragma,
+                                           /*top_level=*/TRUE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (!is_pragma) {
+        make_instantiation_directive(sym, ssep, &template_keyword_pos);
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    } else if (sym != NULL) {
+      /* Something else -- issue an error. */
+      sym_error(ec_not_instantiatable_entity, sym);
+    } else {
+      /* A NULL symbol was returned. */
+      error(ec_invalid_instantiation_argument);
+    }  /* if */
+    /* Bypass the end of statement token. */
+    (void)get_token();
+    goto done;
+  }  /* if */
   (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_EXPLICIT_INSTANTIATION),
