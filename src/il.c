@@ -556,12 +556,16 @@ Dump a virtual base class entry, for debug purposes.
   for (i = depth; i > 0; --i) fputs("  ", f_debug);
   fprintf(f_debug, "[( virtual base class %s (offset = %lu",
 		   tp->source_corresp.name, bcp->offset);
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
   if (bcp->data_section_base_class != NULL) {
     fprintf(f_debug, ", in %s",
             bcp->data_section_base_class->type->source_corresp.name);
   }  /* if */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   fputc(')', f_debug);
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
   if (bcp->data_section_base_class == NULL) {
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
          bcp != NULL;
          bcp = bcp->next) {
@@ -594,8 +598,8 @@ Dump a virtual base class entry, for debug purposes.
         }  /* if */
       }  /* for */
     }  /* if */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   }  /* if */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   fputs(" )]", f_debug);
 }  /* db_virtual_base_class */
 
@@ -1965,6 +1969,9 @@ fields to default values.
       cp->variant.ptr_to_member.casting_base_class = NULL;
       cp->variant.ptr_to_member.cast_to_base    = FALSE;
       cp->variant.ptr_to_member.is_function_ptr = FALSE;
+#if CHECKING
+      cp->variant.ptr_to_member.avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
       cp->variant.ptr_to_member.variant.field   = NULL;
       break;
     case ck_dynamic_init:
@@ -2003,6 +2010,9 @@ associated variant fields to default values.
   cp->type           = NULL;
   cp->implicit_cast  = FALSE;
   cp->non_arithmetic = FALSE;
+#if CHECKING
+  cp->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
   set_constant_kind(cp, kind);
 }  /* clear_constant */
 
@@ -2786,6 +2796,9 @@ at file scope.
   ptp->passed_via_copy_constructor = FALSE;
   ptp->has_default_arg = FALSE;
   ptp->type_involves_template_param = FALSE;
+#if CHECKING
+  ptp->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
   ptp->default_arg_expr = NULL;
   /* If we are in the midst of processing a function template declaration or
      a prototype instantiation of class template and the associated type entry
@@ -3053,6 +3066,9 @@ to default values.
       pte->variant.integer.int_kind = (an_integer_kind)ik_int;
       pte->variant.integer.explicitly_signed = FALSE;
       pte->variant.integer.enum_type = FALSE;
+#if CHECKING
+      pte->variant.integer.avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
       pte->variant.integer.enum_info.affiliated_type = NULL;
       break;
     case tk_float:
@@ -3100,6 +3116,9 @@ to default values.
       rtsp->prototyped               = FALSE;
       rtsp->old_style_params_scanned = FALSE;
       rtsp->lint_argsused_flag       = FALSE;
+#if CHECKING
+      rtsp->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (an_arg_pragma_kind)apk_none;
       break;
@@ -3110,6 +3129,9 @@ to default values.
 #endif /* DO_IL_LOWERING */
       pte->variant.typeref.is_const    = FALSE;
       pte->variant.typeref.is_volatile = FALSE;
+#if CHECKING
+      pte->variant.typeref.avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
       break;
     case tk_ptr_to_member:
       pte->variant.ptr_to_member.class_of_which_a_member = FALSE;
@@ -4033,6 +4055,9 @@ Initialize a dynamic_init entry of the kind specified.
   dip->variable   = NULL;
   dip->destructor = NULL;
   dip->follows_an_exec_statement = FALSE;
+#if CHECKING
+  dip->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
   set_dynamic_init_kind(dip, kind);
 }  /* clear_dynamic_init */
 
@@ -4563,6 +4588,9 @@ fields to default values.
       node->variant.operation.kind = (an_expr_operator_kind)eok_last;
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       node->variant.operation.compiler_generated = FALSE;
+#if CHECKING
+      node->variant.operation.avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
       node->variant.operation.operands = NULL;
       break;
     case enk_constant:
@@ -4613,9 +4641,13 @@ its kind to the indicated kind.
 {
   node->type = NULL;
   node->next = NULL;
+  node->result_is_not_used = FALSE;
 #ifdef FIL
   node->allow_reordering = FALSE;
 #endif /* ifdef FIL */
+#if CHECKING
+  node->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
   set_expr_node_kind(node, kind);
 }  /* clear_expr_node */
 
@@ -4652,6 +4684,10 @@ Set the operator, type, and operand list in an operator expression node.
   node->variant.operation.kind = kind;
   node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
   node->variant.operation.operands = operands;
+  if (kind == (an_expr_operator_kind)eok_comma) {
+    /* The value of the first operand of a comma operator is not used. */
+    operands->result_is_not_used = TRUE;
+  }  /* if */
 }  /* set_node_operator */
 
 

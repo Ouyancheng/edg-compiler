@@ -366,6 +366,9 @@ typedef struct a_dynamic_init {
 			   this belongs in the stmk_init, but putting it
 			   here makes it accessible from both the stmk_init
 			   and the variable being initialized. */
+  unsigned int	avoid_codecenter_warnings:2;
+			/* Cleared to avoid warnings from CodeCenter about
+			   uninitialized storage. */
   union {
     /* When kind == dik_none: no variant fields. */
     /* When kind == dik_member_copy and dik_base_class_copy: no variant fields.
@@ -451,6 +454,9 @@ typedef struct a_constant {
                            for results of folding constant bit operations.
                            Used to suppress some warnings on implicit type
                            changes. */
+  unsigned int	avoid_codecenter_warnings:2;
+			/* Cleared to avoid warnings from CodeCenter about
+			   uninitialized storage. */
   a_constant_repr_kind
                 kind;
                         /* The kind of representation for the constant. */
@@ -540,6 +546,10 @@ typedef struct a_constant {
 		is_function_ptr:1;
 			/* TRUE if the pointer is to a member function,
 			   FALSE if to a data member. */
+      unsigned int
+		avoid_codecenter_warnings:2;
+			/* Cleared to avoid warnings from CodeCenter about
+			   uninitialized storage. */
       union {
         /* When is_function_ptr == TRUE: */
         a_routine_ptr
@@ -795,6 +805,9 @@ typedef struct a_param_type {
 			/* TRUE if the type entry associated with the
 			   parameter involves (anywhere in its type tree) a
 			   tk_template_param type entry (C++ only). */
+  unsigned int	avoid_codecenter_warnings:2;
+			/* Cleared to avoid warnings from CodeCenter about
+			   uninitialized storage. */
   an_expr_node_ptr
 		default_arg_expr;
 			/* Expression node representing the default value
@@ -900,6 +913,9 @@ typedef struct a_routine_type_supplement {
                            to a lint-style "argsused" flag, indicating that
                            warnings on unreferenced parameters should not
                            be issued. */
+  unsigned int	avoid_codecenter_warnings:2;
+			/* Cleared to avoid warnings from CodeCenter about
+			   uninitialized storage. */
   a_lint_varargs_count
 	         lint_varargs_count;
                         /* If not equal to NOT_LINT_VARARGS (-1), this
@@ -1441,7 +1457,8 @@ typedef struct a_type {
   a_type_kind   kind;
                         /* The kind of type. */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-  unsigned int  use_cfront_transitional_nested_type_name_mangling:1;
+  a_byte_boolean
+		use_cfront_transitional_nested_type_name_mangling;
                         /* TRUE if this type should be treated as a
                            non-nested type for purposes such as name
                            mangling.  This is used for compatibility
@@ -1476,6 +1493,10 @@ typedef struct a_type {
                 enum_type:1;
                         /* TRUE if this type is an enumerated type (the type 
                            of the tag, not the constants, in C). */
+      unsigned int
+		avoid_codecenter_warnings:2;
+			/* Cleared to avoid warnings from CodeCenter about
+			   uninitialized storage. */
       union {
         /* When enum_type is TRUE: */
         a_constant_ptr
@@ -1603,6 +1624,10 @@ typedef struct a_type {
                         /* TRUE if type is volatile-qualified (i.e.,
                            if the thing pointed to can change due to outside
                            influences). */
+      unsigned int
+		avoid_codecenter_warnings:2;
+			/* Cleared to avoid warnings from CodeCenter about
+			   uninitialized storage. */
     } typeref;
     /* When kind = tk_ptr_to_member: */
     struct {
@@ -2589,6 +2614,13 @@ typedef struct an_expr_node {
                         /* When this node is part of a list of operands, this
                            field is used to link them together; otherwise it is
                            NULL. */
+  an_expr_node_kind
+		kind;
+                        /* Identifies what kind of node this is.  This field
+                           determines which member of the union to use. */
+  unsigned int	result_is_not_used:1;
+			/* TRUE if the result of the expression is discarded,
+			   i.e., it's a void expression. */
 #ifdef FIL
   unsigned int	allow_reordering:1;
 			/* TRUE indicates that this expression can be subjected
@@ -2598,14 +2630,10 @@ typedef struct an_expr_node {
 #ifdef CIL
 			/* Always FALSE in C, by language definition. */
 #endif /* ifdef CIL */
-  unsigned int /*an_expr_node_kind*/
-		kind:TARG_CHAR_BIT-1;
-#else /* !defined(FIL) */
-  an_expr_node_kind
-		kind;
 #endif /* ifdef FIL */
-                        /* Identifies what kind of node this is.  This field
-                           determines which member of the union to use. */
+  unsigned int	avoid_codecenter_warnings:2;
+			/* Cleared to avoid warnings from CodeCenter about
+			   uninitialized storage. */
   union {
     /* When kind == enk_error, no variant fields. */
     /* When kind == enk_operation: */
@@ -2626,6 +2654,10 @@ typedef struct an_expr_node {
 			/* TRUE if the operation is compiler-generated rather
 			   than explicitly present in the source program.
 			   Used in particular for casts. */
+      unsigned int
+		avoid_codecenter_warnings:2;
+			/* Cleared to avoid warnings from CodeCenter about
+			   uninitialized storage. */
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */
