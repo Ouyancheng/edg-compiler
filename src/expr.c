@@ -5996,6 +5996,7 @@ As an anachronism, allow an expression inside the [ ].
                                                  (a_builtin_type_kind_set)
                                                                   BTK_POINTER,
                                                  &processed);
+    if (is_template_param_type(operand.type)) template_case = TRUE;
   } else if (is_template_param_type(operand.type)) {
     /* A template parameter type is acceptable in a prototype instantiation. */
     template_case = TRUE;
