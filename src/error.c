@@ -3712,6 +3712,13 @@ Flush characters out of the local buffer putcbuffer to stderr.
 it is reset to 0.
 */
 {
+  /* The following assignment should not be necessary but is present
+     to avoid Purify errors from versions of fprintf that look one
+     character beyond the specified precision specification.
+     Specifically, the clcc runtime does this. */
+  if (*num_putcbuffer_chars < MAX_PUTCBUFFER_CHARS) {
+    putcbuffer[*num_putcbuffer_chars] = '\0';
+  }  /* if */
   if (*num_putcbuffer_chars > 0) {
      fprintf(stderr, "%.*s", *num_putcbuffer_chars, putcbuffer);
      *num_putcbuffer_chars = 0;
