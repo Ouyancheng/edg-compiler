@@ -3050,6 +3050,50 @@ statement.  Its form is
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void empty_statement(void)
+/*
+Do processing appropriate to an empty statement -- typically, just a
+semicolon.  However, this routine is also called for some error cases as
+well.
+*/
+{
+  a_statement_ptr  sp;
+
+  db_enter(3, "empty_statement");
+  if (curr_token == tok_semicolon) {
+    /* Issue diagnostics on pragmas that are trying to bind to the empty
+       statement. */
+    cannot_bind_to_curr_construct();
+  } else {
+    /* Must be an error case.  Discard any pragmas that are bound to the
+       current statement. */
+    discard_curr_construct_pragmas();
+  }  /* if */
+  if (C_mode() && struct_stmt_stack[depth_stmt_stack].in_else_of_if) {
+    sp = struct_stmt_stack[depth_stmt_stack].statement;
+    check_assertion(sp != NULL && sp->kind == (a_statement_kind)stmk_if);
+    if (sp->variant.if_stmt.else_statement != NULL) {
+      /* May be a label statement. */
+    } else {
+      /* We are in the else-clause of a C-mode if-statement for which no
+         block statement was generated.  The empty statement cannot just be
+         skipped over (as usual), since that would be indistinguishable in
+         the IL from an omitted else clause, and
+             if (flag) if (flag2) ; else ; else <statement>;
+         is not the same as
+             if (flag) if (flag2) ; else <statement>;
+         (In C++ mode this is not an issue, since an implicit block statement
+         is generated for the else-clause even when there is no explicit
+         compound statement.)  Mark the statement. */
+      sp->has_empty_else_clause = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Advance past the semicolon. */
+  if (curr_token == tok_semicolon) (void)get_token();
+  db_exit();
+}  /* empty_statement */
+
+
 static void add_goto_to_continue_label(a_struct_stmt_stack_entry_ptr sssep,
                                        a_boolean                     is_leave)
 /*
@@ -3064,9 +3108,9 @@ __leave instead of a continue.
   a_control_flow_descr_ptr cfdp;
 
   if (sssep == NULL) {
-    /* Error. */
-    /* Discard any pragmas that are bound to the current statement. */
-    discard_curr_construct_pragmas();
+    /* Error.  Since no continue statement is actually added to the IL,
+       treat this as an empty statement. */
+    empty_statement();
   } else {
     dest_label = sssep->continue_label;
     if (dest_label == NULL) {
@@ -4464,42 +4508,6 @@ Scan a default case label definition.  The syntax is:
   (void)required_token(tok_colon, ec_exp_colon);
   db_exit();
 }  /* default_label */
-
-
-static void empty_statement(void)
-/*
-Do processing appropriate to an empty statement (i.e., just a semicolon.)
-*/
-{
-  a_statement_ptr  sp;
-
-  db_enter(3, "empty_statement");
-  /* Issue diagnostics on pragmas that are trying to bind to the empty
-     statement. */
-  cannot_bind_to_curr_construct();
-  if (C_mode() && struct_stmt_stack[depth_stmt_stack].in_else_of_if) {
-    sp = struct_stmt_stack[depth_stmt_stack].statement;
-    check_assertion(sp != NULL && sp->kind == (a_statement_kind)stmk_if);
-    if (sp->variant.if_stmt.else_statement != NULL) {
-      /* May be a label statement. */
-    } else {
-      /* We are in the else-clause of a C-mode if-statement for which no
-         block statement was generated.  The empty statement cannot just be
-         skipped over (as usual), since that would be indistinguishable in
-         the IL from an omitted else clause, and
-             if (flag) if (flag2) ; else ; else <statement>;
-         is not the same as
-             if (flag) if (flag2) ; else <statement>;
-         (In C++ mode this is not an issue, since an implicit block statement
-         is generated for the else-clause even when there is no explicit
-         compound statement.)  Mark the statement. */
-      sp->has_empty_else_clause = TRUE;
-    }  /* if */
-  }  /* if */
-  /* Advance past the semicolon. */
-  (void)get_token();
-  db_exit();
-}  /* empty_statement */
 
 
 static a_boolean statement(void)
