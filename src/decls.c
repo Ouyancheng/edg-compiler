@@ -2496,6 +2496,12 @@ scope is that of a class definition.
                                     (a_param_type_ptr)NULL : ptp);
           }  /* if */
           ptp->has_default_arg = default_arg_expr_allowed;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          if (ptp->has_default_arg && func_info != &local_func_info_block) {
+            ptp->rout_src_seq_entry_for_default_arg_decl =
+                                                 func_info->declarator_ssep;
+          }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
         if (C_dialect == C_dialect_cplusplus && !default_arg_expr_allowed) {
           if (last_param_type == extra_info->param_type_list) {
