@@ -46,6 +46,8 @@ extern void add_eh_function_prologue(a_scope_ptr scope);
 
 extern void eh_function_lower_init(void);
 
+extern void lower_try_block(a_statement_ptr statement);
+
 extern void eh_lower_init(void);
 
 #endif /* DO_IL_LOWERING */

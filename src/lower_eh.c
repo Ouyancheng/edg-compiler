@@ -1158,12 +1158,14 @@ the size is not available in the region description entry).
 
 
 /*
-Variable entries for __eh_curr_region and __curr_eh_stack_entry,
-global variables used for exception processing.  NULL until created.
+Variable entries for __eh_curr_region, __curr_eh_stack_entry, and
+__catch_clause_number, global variables used for exception processing.
+NULL until created.
 */
 static a_variable_ptr
 		eh_curr_region_var,
-		curr_eh_stack_entry_var;
+		curr_eh_stack_entry_var,
+		catch_clause_number_var;
 
 static a_variable_ptr make_eh_curr_region_var(void)
 /*
@@ -1197,6 +1199,23 @@ if it has not already been made.  Return a pointer to it.
   }  /* if */
   return curr_eh_stack_entry_var;
 }  /* make_curr_eh_stack_entry_var */
+
+
+static a_variable_ptr make_catch_clause_number_var(void)
+/*
+Make __catch_clause_number, a global variable used for exception processing,
+if it has not already been made.  Return a pointer to it.
+*/
+{
+  if (catch_clause_number_var == NULL) {
+    catch_clause_number_var =
+               make_lowered_variable("__catch_clause_number",
+                                     /*already_il_name=*/FALSE,
+                                     integer_type((an_integer_kind)ik_int),
+                                     (a_storage_class)sc_extern);
+  }  /* if */
+  return catch_clause_number_var;
+}  /* make_catch_clause_number_var */
 
 
 /*
@@ -1399,7 +1418,7 @@ If type is NULL, add an ellipsis entry.
 */
 {
   a_variable_ptr typeinfo_var;
-  long           flags_value;                
+  long           flags_value;
   a_constant_ptr typeinfo_con, flags_con, aggr_con;
 
   /* The current region is already the file scope memory region when
@@ -1415,6 +1434,7 @@ If type is NULL, add an ellipsis entry.
     /* This entry is for an ellipsis, so the typeinfo pointer is NULL. */
     make_zero_of_proper_type(make_pointer_type(make_typeinfo_type()),
                              typeinfo_con);
+    flags_value = ETS_IS_ELLIPSIS;
   } else {
     /* Normal case. */
     typeinfo_var = typeinfo_var_for_type(type, &flags_value);
@@ -1463,24 +1483,16 @@ Generate code to push an exception handling stack frame on the stack.
 A local temporary variable is created to hold the stack frame; a pointer to
 that variable is returned in *stack_frame_var.  The invariant fields of
 the stack frame are set, and the kind is set to "kind".  The code is
-inserted at the beginning of the current routine and *insert_location is
-set to allow the caller to do insertion after the code inserted.  The
-current context must be the function context.
+inserted at *insert_location and *insert_location is updated to allow
+the caller to do insertion after the code inserted.
 */
 {
   a_variable_ptr   local_frame;
-  a_statement_ptr  block;
   an_expr_node_ptr local_frame_next, local_frame_kind;
 
   /* Create the local variable for the stack frame. */
   *stack_frame_var = local_frame =
                             make_lowered_temporary(make_eh_stack_entry_type());
-  /* Find the top block of the routine. */
-  block = curr_context->scope->assoc_block;
-  check_assertion(block != NULL);
-  /* The insert location for the statements is the start of the top block of
-     the routine. */
-  set_block_start_insert_location(block, insert_location);
   /* Add code as follows:
        local_frame.next = __curr_eh_stack_entry;
        __curr_eh_stack_entry = &local_frame;
@@ -1591,93 +1603,12 @@ is given by "scope".  Called only if exceptions are enabled.
   a_boolean                 need_function_epilogue = FALSE;
   a_return_memo_ptr         rmp;
 
-  /* Note that we process the function stack entry first even though we
-     want the code for it following the throw specification stack entry
-     if there is one.  This is because push_eh_stack_frame always inserts
-     the code at the very beginning of the routine. */
-  if (region_table_var != NULL) {
-    /* The function contains destructible objects, so we need to push a
-       stack entry for the function itself. */
-    /* Generate code to push an entry on the EH stack. */
-    push_eh_stack_frame(ehsek_function, &func_frame, &insert_location);
-    need_function_epilogue = TRUE;
-    /* Finish off the various arrays and put pointers to them into the
-       stack. */
-    finish_array_var(region_table_var);
-    /* Make an expression for throw_frame.variant.function.regions */
-    func_frame_function_regions = 
-                 field_lvalue_selection_expr(
-                   field_lvalue_selection_expr(
-                      field_lvalue_selection_expr(var_lvalue_expr(func_frame),
-                                                  ehse_variant_field),
-                      ehse_function_field),
-                   ehse_function_regions_field);
-    /* Assign the region table address to
-       func_frame.variant.function.regions */
-    (void)insert_assignment_statement(func_frame_function_regions,
-                                      (an_expr_operator_kind)eok_passign,
-                                      array_var_lvalue_expr(region_table_var),
-                                      &insert_location);
-    if (object_addr_table_var != NULL) {
-      finish_array_var(object_addr_table_var);
-      /* Make an expression for throw_frame.variant.function.obj_table */
-      func_frame_function_obj_table = 
-                 field_lvalue_selection_expr(
-                   field_lvalue_selection_expr(
-                      field_lvalue_selection_expr(var_lvalue_expr(func_frame),
-                                                  ehse_variant_field),
-                      ehse_function_field),
-                   ehse_function_obj_table_field);
-      /* Assign the object address table address to
-         func_frame.variant.function.obj_table */
-      (void)insert_assignment_statement(func_frame_function_obj_table,
-                                        (an_expr_operator_kind)eok_passign,
-                                        array_var_lvalue_expr(
-                                                        object_addr_table_var),
-                                        &insert_location);
-    }  /* if */
-    if (array_table_var != NULL) {
-      finish_array_var(array_table_var);
-      /* Make an expression for throw_frame.variant.function.array_table */
-      func_frame_function_array_table = 
-                 field_lvalue_selection_expr(
-                   field_lvalue_selection_expr(
-                      field_lvalue_selection_expr(var_lvalue_expr(func_frame),
-                                                  ehse_variant_field),
-                      ehse_function_field),
-                   ehse_function_array_table_field);
-      /* Assign the object address table address to
-         func_frame.variant.function.array_table */
-      (void)insert_assignment_statement(func_frame_function_array_table,
-                                        (an_expr_operator_kind)eok_passign,
-                                        array_var_lvalue_expr(array_table_var),
-                                        &insert_location);
-    }  /* if */
-    /* Generate an assignment to save eh_curr_region in the stack. */
-    /* Make an expression for
-       throw_frame.variant.function.saved_region_number */
-    func_frame_function_saved_region_number = 
-                 field_lvalue_selection_expr(
-                   field_lvalue_selection_expr(
-                      field_lvalue_selection_expr(var_lvalue_expr(func_frame),
-                                                  ehse_variant_field),
-                      ehse_function_field),
-                   ehse_function_saved_region_number_field);
-    /* Copy the global variable eh_curr_region into
-       func_frame.variant.function.saved_region_number */
-    (void)insert_assignment_statement(func_frame_function_saved_region_number,
-                                      (an_expr_operator_kind)eok_iassign,
-                                      var_rvalue_expr(
-                                                    make_eh_curr_region_var()),
-                                      &insert_location);
-    /* Reset eh_curr_region_var to max_region_number (all 1 bits). */
-    (void)insert_var_assignment_statement(eh_curr_region_var,
-                                          (an_expr_operator_kind)eok_iassign,
-                                          node_for_integer_constant(
-                                                 (long)max_region_number,
-                                                 TARG_REGION_NUMBER_INT_KIND),
-                                          &insert_location);
-  }  /* if */
+  /* The insert location for the statements is the start of the top block of
+     the routine. */
+#if 0
+  /* This needs to be adjusted (main, ctor, dtor). */
+#endif
+  set_block_start_insert_location(scope->assoc_block, &insert_location);
   /* See if the routine has a throw specification. */
   routine = scope->variant.routine.ptr;
   routine_type = routine->type;
@@ -1705,7 +1636,7 @@ is given by "scope".  Called only if exceptions are enabled.
     }  /* if */
     /* Make an expression for throw_frame.variant.throw_spec */
     throw_frame_throw_spec = 
-                   field_lvalue_selection_expr(
+                    field_lvalue_selection_expr(
                       field_lvalue_selection_expr(var_lvalue_expr(throw_frame),
                                                   ehse_variant_field),
                       ehse_throw_spec_field);
@@ -1714,6 +1645,89 @@ is given by "scope".  Called only if exceptions are enabled.
                                       (an_expr_operator_kind)eok_passign,
                                       spec_array_node,
                                       &insert_location);
+  }  /* if */
+  if (region_table_var != NULL) {
+    /* The function contains destructible objects, so we need to push a
+       stack entry for the function itself. */
+    /* Generate code to push an entry on the EH stack. */
+    push_eh_stack_frame(ehsek_function, &func_frame, &insert_location);
+    need_function_epilogue = TRUE;
+    /* Finish off the various arrays and put pointers to them into the
+       stack. */
+    finish_array_var(region_table_var);
+    /* Make an expression for throw_frame.variant.function.regions */
+    func_frame_function_regions = 
+                  field_lvalue_selection_expr(
+                    field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(func_frame),
+                                                  ehse_variant_field),
+                      ehse_function_field),
+                    ehse_function_regions_field);
+    /* Assign the region table address to
+       func_frame.variant.function.regions */
+    (void)insert_assignment_statement(func_frame_function_regions,
+                                      (an_expr_operator_kind)eok_passign,
+                                      array_var_lvalue_expr(region_table_var),
+                                      &insert_location);
+    if (object_addr_table_var != NULL) {
+      finish_array_var(object_addr_table_var);
+      /* Make an expression for throw_frame.variant.function.obj_table */
+      func_frame_function_obj_table = 
+                  field_lvalue_selection_expr(
+                    field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(func_frame),
+                                                  ehse_variant_field),
+                      ehse_function_field),
+                    ehse_function_obj_table_field);
+      /* Assign the object address table address to
+         func_frame.variant.function.obj_table */
+      (void)insert_assignment_statement(func_frame_function_obj_table,
+                                        (an_expr_operator_kind)eok_passign,
+                                        array_var_lvalue_expr(
+                                                        object_addr_table_var),
+                                        &insert_location);
+    }  /* if */
+    if (array_table_var != NULL) {
+      finish_array_var(array_table_var);
+      /* Make an expression for throw_frame.variant.function.array_table */
+      func_frame_function_array_table = 
+                  field_lvalue_selection_expr(
+                    field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(func_frame),
+                                                  ehse_variant_field),
+                      ehse_function_field),
+                    ehse_function_array_table_field);
+      /* Assign the object address table address to
+         func_frame.variant.function.array_table */
+      (void)insert_assignment_statement(func_frame_function_array_table,
+                                        (an_expr_operator_kind)eok_passign,
+                                        array_var_lvalue_expr(array_table_var),
+                                        &insert_location);
+    }  /* if */
+    /* Generate an assignment to save eh_curr_region in the stack. */
+    /* Make an expression for
+       throw_frame.variant.function.saved_region_number */
+    func_frame_function_saved_region_number = 
+                  field_lvalue_selection_expr(
+                    field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(func_frame),
+                                                  ehse_variant_field),
+                      ehse_function_field),
+                    ehse_function_saved_region_number_field);
+    /* Copy the global variable eh_curr_region into
+       func_frame.variant.function.saved_region_number */
+    (void)insert_assignment_statement(func_frame_function_saved_region_number,
+                                      (an_expr_operator_kind)eok_iassign,
+                                      var_rvalue_expr(
+                                                    make_eh_curr_region_var()),
+                                      &insert_location);
+    /* Reset eh_curr_region_var to max_region_number (all 1 bits). */
+    (void)insert_var_assignment_statement(eh_curr_region_var,
+                                          (an_expr_operator_kind)eok_iassign,
+                                          node_for_integer_constant(
+                                                 (long)max_region_number,
+                                                 TARG_REGION_NUMBER_INT_KIND),
+                                          &insert_location);
   }  /* if */
   if (need_throw_epilogue || need_function_epilogue) {
     /* Need to add epilogue code at each return in the routine. */
@@ -1732,6 +1746,168 @@ is given by "scope".  Called only if exceptions are enabled.
     }  /* for */
   }  /* if */
 }  /* add_eh_function_prologue */
+
+
+static a_variable_ptr make_catch_array_var(a_handler_ptr handlers)
+/*
+Generate an exception type specification array to describe the types of the
+catch clauses on the indicated list.  Return a pointer to the variable.
+*/
+{
+  a_variable_ptr var;
+  a_handler_ptr  handler;
+  a_memory_region_number
+                 region_to_switch_back_to;
+
+  /* Switch to the file scope memory region so that initial values will
+     be allocated there. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  /* Make the variable. */
+  var = make_exception_type_spec_array_var();
+  /* Fill the array with entries for the catch clause types. */
+  for (handler = handlers;
+       handler != NULL;
+       handler = handler->next) {
+    a_type_ptr handler_type;
+    if (handler->parameter == NULL) {
+      /* NULL means an ellipsis catch, one that catches any type. */
+      handler_type = NULL;
+    } else {
+      handler_type = handler->parameter->type;
+    }  /* if */
+    add_exception_type_spec_array_entry(handler_type, var);
+  }  /* for */
+  /* Finish off the array. */
+  finish_exception_type_spec_array(var);
+  /* Return to the memory region that was current when this routine was
+     entered. */
+  switch_back_to_original_region(region_to_switch_back_to);
+  return var;
+}  /* make_catch_array_var */
+
+
+/*
+Pointer to the routine entry for the runtime routine setjmp.  NULL until
+created.
+*/
+static a_routine_ptr
+		setjmp_routine;
+
+
+void lower_try_block(a_statement_ptr statement)
+/*
+Do IL lowering for an stmk_try_block statement.
+*/
+{
+  a_handler_ptr      handlers, handler;
+  a_variable_ptr     try_frame, catch_array_var;
+  an_insert_location insert_location;
+  a_statement_ptr    stmt_to_try, copy_of_orig_stmt;
+  an_expr_node_ptr   try_frame_catch_entries, try_frame_setjmp_buffer;
+  an_expr_node_ptr   setjmp_call, compare_node, catch_clause_number_node;
+  a_statement_ptr    prev_if_stmt, if_stmt;
+  long               catch_clause_number;
+
+  stmt_to_try = statement->variant.try_block.statement;
+  handlers = statement->variant.try_block.handlers;
+  /* Lower the dependent statement of the try. */
+  lower_statement(stmt_to_try);
+  /* Change the stmk_try_block statement into a block, and prepare to insert
+     code at the start of the block. */
+  turn_statement_into_block(statement);
+  set_block_start_insert_location(statement, &insert_location);
+  copy_of_orig_stmt = statement->variant.block.statements;
+  /* Generate code to push a stack frame. */
+  push_eh_stack_frame(ehsek_try_block, &try_frame, &insert_location);
+  /* Generate a description of the catch clause types. */
+  catch_array_var = make_catch_array_var(handlers);
+  /* Put the address of the catch types description array into the stack
+     frame. */
+  try_frame_catch_entries = 
+                  field_lvalue_selection_expr(
+                    field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(try_frame),
+                                                  ehse_variant_field),
+                      ehse_try_field),
+                    ehse_try_catch_entries_field);
+  (void)insert_assignment_statement(try_frame_catch_entries,
+                                    (an_expr_operator_kind)eok_passign,
+                                    array_var_lvalue_expr(catch_array_var),
+                                    &insert_location);
+  /* Change the original stmk_try_block statement into an if statement
+     that looks like
+       if (setjmp(try_frame.variant.try_block.setjmp_buffer) != 0) ...
+  */
+  /* Make try_frame.variant.try_block.setjmp_buffer.  Note the cast from
+     pointer-to-array to pointer-to-element. */
+  try_frame_setjmp_buffer = 
+                 add_cast(
+                   field_lvalue_selection_expr(
+                     field_lvalue_selection_expr(
+                       field_lvalue_selection_expr(var_lvalue_expr(try_frame),
+                                                   ehse_variant_field),
+                       ehse_try_field),
+                     ehse_try_setjmp_buffer_field),
+                   make_pointer_type(make_jmp_buf_type()));
+  /* Make the setjmp call. */
+#if 0
+  /* We shouldn't assume setjmp is a routine. */
+  /* What if the user has something called setjmp? */
+#endif /* 0 */
+  setjmp_call = make_runtime_rout_call("setjmp", &setjmp_routine,
+                                       integer_type((an_integer_kind)ik_int),
+                                       try_frame_setjmp_buffer);
+  /* Generate the comparison against zero. */
+  setjmp_call->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
+  compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+                                    setjmp_call->type, setjmp_call);
+  /* Rewrite the stmk_try_block as an "if". */
+  set_statement_kind(copy_of_orig_stmt, (a_statement_kind)stmk_if);
+  copy_of_orig_stmt->expr = compare_node;
+  /* The dependent statement is the statement under the "try". */
+  copy_of_orig_stmt->variant.if_stmt.then_statement = stmt_to_try;
+  if_stmt = copy_of_orig_stmt;
+  /* Walk through the catch clauses and turn each one into an "if" in the
+     "else" part of the previous "if". */
+  catch_clause_number = 0;
+  for (handler = handlers;
+       handler != NULL;
+       handler = handler->next) {
+    catch_clause_number++;
+    prev_if_stmt = if_stmt;
+    /* lower the dependent statement of the catch clause. */
+    lower_statement(handler->statement);
+    if (handler->parameter == NULL) {
+      /* This is an ellipsis entry.  No "if" is required, since it accepts
+         any type.  Previous error checks have ensured that this is the
+         last clause. */
+      check_assertion_str(handler->next == NULL,
+                          "lower_try_block: ellipsis clause not last");
+      prev_if_stmt->variant.if_stmt.else_statement = handler->statement;
+    } else {
+      /* An entry other than an ellipsis.  Test the catch clause number
+         returned by the runtime if an "if" statement:
+           if (__catch_clause_number == n) ...
+      */
+      catch_clause_number_node =
+                               var_rvalue_expr(make_catch_clause_number_var());
+      catch_clause_number_node->next = 
+                            node_for_integer_constant(catch_clause_number,
+                                                      (an_integer_kind)ik_int);
+      compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
+                                        catch_clause_number_node->type,
+                                        catch_clause_number_node);
+      if_stmt = alloc_statement((a_statement_kind)stmk_if);
+#if 0
+      /* Position in a_handler? */
+#endif /* 0 */
+      if_stmt->position = handler->statement->position;
+      if_stmt->expr = compare_node;
+      if_stmt->variant.if_stmt.then_statement = handler->statement;
+      prev_if_stmt->variant.if_stmt.else_statement = if_stmt;
+    }  /* if */
+  }  /* for */
+}  /* lower_try_block */
 
 
 void eh_function_lower_init(void)
@@ -1768,6 +1944,8 @@ invocation of the front end.
   eh_stack_entry_type = NULL;
   eh_curr_region_var = NULL;
   curr_eh_stack_entry_var = NULL;
+  catch_clause_number_var = NULL;
+  setjmp_routine = NULL;
   /* Make a constant for the maximum region number, also used for the
      null region number.  */
   { a_targ_size_t    size;
