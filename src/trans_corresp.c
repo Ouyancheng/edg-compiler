@@ -5079,6 +5079,7 @@ way, determine to which other IL entry this might correspond.
         /* Prototype instantiations are not always recorded in the IL.
            Therefore, set root to NULL so that the symbol table will be used
            to find the named member instead. */
+        root = NULL;
       } else {
         /* Make sure the parent class has been processed. */
         determine_correspondence(&scp->parent.class_type->source_corresp,
