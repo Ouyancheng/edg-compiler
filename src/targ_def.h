@@ -885,6 +885,7 @@ exception handling stack, and cleanup tables and typeinfo entries are
 generated.
 */
 #if BACK_END_IS_C_GEN_BE
+#undef DO_FULL_PORTABLE_EH_LOWERING
 #define DO_FULL_PORTABLE_EH_LOWERING TRUE /* Do not change this. */
 #else /* BACK_END_IS_C_GEN_BE */
 #ifndef DO_FULL_PORTABLE_EH_LOWERING
@@ -897,6 +898,7 @@ When this switch is TRUE, cleanup tables and typeinfo entries will be generated
 for exception-handling constructs.
 */
 #if DO_FULL_PORTABLE_EH_LOWERING
+#undef GENERATE_EH_TABLES
 #define GENERATE_EH_TABLES TRUE  /* Do not change this. */
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
 #ifndef GENERATE_EH_TABLES
