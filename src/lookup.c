@@ -838,6 +838,12 @@ scope lookup.  options specifies the options being used for the lookup.
                                                      qualified_lookup,
                                                      qualifier_namespace,
                                                      options);
+    } else if (curr_sym->kind == (a_symbol_kind)sk_namespace_projection &&
+               fundamental_symbol_of(curr_sym) == NULL) {
+      /* The current lookup set is a namespace projection symbol whose
+         fundamental symbol pointer has been cleared.  Simply set this
+         symbol to point to the new symbol. */
+      set_namespace_projection_symbol(curr_sym, new_sym, depth_scope_stack);
     } else {
       /* If new_sym is not already in the lookup set, add it. */
       if (!already_in_lookup_set(curr_sym, new_sym)) {
@@ -999,6 +1005,18 @@ scope lookup.  options specifies the options being used for the lookup.
     *any_errors = TRUE;
     curr_sym->ambiguous = TRUE;
   }  /* if */
+#if EXPENSIVE_CHECKING
+  check_assertion_str2(fundamental_symbol_of(curr_sym) != NULL,
+                       "add_symbol_to_lookup_set:", "NULL fund_sym");
+  if (curr_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    a_symbol_ptr	overload_sym;
+    overload_sym = curr_sym->variant.overloaded_function.symbols;
+    for (; overload_sym != NULL; overload_sym = overload_sym->next) {
+      check_assertion_str2(fundamental_symbol_of(overload_sym) != NULL,
+                           "add_symbol_to_lookup_set:", "NULL fund_sym");
+    }  /* for */
+  }  /* if */
+#endif /* EXPENSIVE_CHECKING */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("lookup_set")) {
     db_symbol(curr_sym, "add_symbol_to_lookup_set:", 0);
