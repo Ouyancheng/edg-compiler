@@ -1247,6 +1247,9 @@ error code.
     case ec_no_match_for_addr_of_overloaded_function:
       m = "no instance of this overloaded function matches the required type";
       break;
+    case ec_delete_count_anachronism:
+      m = "delete array size expression ignored (anachronism)";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
