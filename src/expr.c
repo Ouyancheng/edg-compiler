@@ -2579,7 +2579,8 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                             ec_expr_not_pointer_to_object)) {
             err = TRUE;
           }  /* if */
-        } else if (is_enum_type(operand->type)) {
+        } else if (C_dialect == C_dialect_cplusplus &&
+                   is_enum_type(operand->type)) {
           /* Enum types are not allowed (because the enum promotes to integer
              for the operation, and then can't get back to enum). */
           if (allow_anachronisms) {
@@ -2731,7 +2732,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                                             ec_expr_not_pointer_to_object)) {
             err = TRUE;
           }  /* if */
-        } else if (is_enum_type(operand.type)) {
+        } else if (C_dialect == C_dialect_cplusplus &&
+                   is_enum_type(operand.type)) {
           /* Enum types are not allowed (because the enum promotes to integer
              for the operation, and then can't get back to enum). */
           if (allow_anachronisms) {
@@ -6179,7 +6181,7 @@ See section 3.3.16 of the standard.
       /* Non-operator-function cases. */
       do_operand_transformations(operand_1,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-      if (is_enum_type(operand_1->type)) {
+      if (C_dialect == C_dialect_cplusplus && is_enum_type(operand_1->type)) {
         /* Enum types are not allowed (because the enum promotes to integer
            for the operation, and then can't get back to enum). */
         if (allow_anachronisms) {
