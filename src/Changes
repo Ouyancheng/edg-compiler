@@ -146,7 +146,7 @@ of a "?" operator.  Now fixed.
 
 11/19/01 Abort while computing overriding virtual functions
 
-The front end used to abort under certain circumstance involving virtual
+The front end used to abort under certain circumstances involving virtual
 functions defined both in a base subobject of a virtual base subobject and
 in a subobject derived from that virtual subobject.  For example:
 
