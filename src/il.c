@@ -4938,9 +4938,23 @@ on the specified member and class types.  Attempt to find and reuse an
 existing type entry.
 */
 {
-  register a_type_ptr tp;
+  a_type_ptr                     tp;
+  a_routine_type_supplement_ptr  rtsp;
 
   class_type = skip_typerefs(class_type);
+  if (member_type != NULL && is_function_type(member_type)) {
+    /* This is a pointer-to-member-function type.  Be sure the implicit this
+       parameter is set.  If not, create it based on class_type. */
+    rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
+    if (rtsp->implicit_this_param_type == NULL) {
+      /* Before updating the implicit param type pointer, copy the routine
+         type, since it might be shared. */
+      member_type =
+              copy_routine_type_with_param_types(skip_typerefs(member_type));
+      rtsp = member_type->variant.routine.extra_info;
+      rtsp->implicit_this_param_type = make_pointer_type(class_type);
+    }  /* if */
+  }  /* if */
   /* Check if this is an incomplete type being formed. */
   if (member_type != NULL) {
     /* See if a pointer-to-member type such as the one being requested has

@@ -36,9 +36,7 @@ and return TRUE if it's okay; otherwise issue a diagnostic and return FALSE.
 {
   a_boolean  err = FALSE;
 
-  if (is_void_type(member_type) || is_reference_type(member_type) ||
-      (is_function_type(member_type) &&
-       !routine_type_is_nonstatic_member_function(member_type))) {
+  if (is_void_type(member_type) || is_reference_type(member_type)) {
     type_error(ec_bad_member_type_in_ptr_to_member, member_type);
     err = TRUE;
   }  /* if */
