@@ -633,8 +633,8 @@ Pointer types:
 */
 #if NEAR_AND_FAR_ALLOWED
 /*
-Sizes of near/far pointers in 16-bit Microsoft mode.  Note that these values
-are not used in 32-bit Microsoft mode.
+Sizes of near/far pointers (e.g., in 16-bit Microsoft mode; note that these
+values are not used in 32-bit Microsoft mode).
 */
 #ifndef TARG_SIZEOF_FAR_POINTER
 #define TARG_SIZEOF_FAR_POINTER 4
@@ -1473,6 +1473,16 @@ MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
 #ifndef SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
 #define SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE FALSE
 #endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+
+/*
+Flag that is TRUE if, when the C-generating back end (c_gen_be) or
+C++/C-generating back end (cp_gen_be) is run, near and far should be
+suppressed in the output.  This flag is only applicable if
+NEAR_AND_FAR_ALLOWED is TRUE.
+*/
+#ifndef SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE
+#define SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE FALSE
+#endif /* SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE */
 
 /*
 Flag that is TRUE if, when the C++/C-generating back end (cp_gen_be)

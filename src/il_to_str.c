@@ -558,12 +558,12 @@ Do the output in the way described by octl.
     output_qualifier(TQ_UNALIGNED, "__unaligned");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
-#if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+#if SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE
     if (octl->gen_compilable_code) {
       /* Suppress "__near" and "__far" in generated compilable code. */
       qualifiers &= ~(TQ_NEAR | TQ_FAR);
     }  /* if */
-#endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE */
     output_qualifier(TQ_NEAR, microsoft_mode ? "__near" : "near");
     output_qualifier(TQ_FAR, microsoft_mode ? "__far" : "far");
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -874,8 +874,8 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
               qualifiers = TQ_NONE;
 #if NEAR_AND_FAR_ALLOWED
   a_type_qualifier_set
-              microsoft_qualifiers;
-  a_boolean   microsoft_need_trailing_space;
+              near_and_far_qualifiers;
+  a_boolean   near_and_far_need_trailing_space;
 #endif /* NEAR_AND_FAR_ALLOWED */
 #endif /* ifdef CFE */
 
@@ -918,10 +918,10 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
   qualifiers |= added_qualifiers;
 #if NEAR_AND_FAR_ALLOWED
   /* Look for any qualifiers (like "near") that are displayed specially. */
-  microsoft_qualifiers = qualifiers & (TQ_NEAR | TQ_FAR);
-  if (microsoft_qualifiers != TQ_NONE) {
-    qualifiers -= microsoft_qualifiers;
-    microsoft_need_trailing_space = need_trailing_space;
+  near_and_far_qualifiers = qualifiers & (TQ_NEAR | TQ_FAR);
+  if (near_and_far_qualifiers != TQ_NONE) {
+    qualifiers -= near_and_far_qualifiers;
+    near_and_far_need_trailing_space = need_trailing_space;
     need_trailing_space = TRUE;
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -1031,11 +1031,10 @@ handle_specifiers_type:
     }  /* if */
   }  /* if */
 #if NEAR_AND_FAR_ALLOWED
-  if (microsoft_qualifiers != TQ_NONE) {
-    /* There are special Microsoft qualifiers like "near"; display them next
-       to the declarator name. */
-    form_type_qualifier(microsoft_qualifiers, microsoft_need_trailing_space,
-                        octl);
+  if (near_and_far_qualifiers != TQ_NONE) {
+    /* "near" or "far": display it next to the declarator name. */
+    form_type_qualifier(near_and_far_qualifiers,
+                        near_and_far_need_trailing_space, octl);
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
 end_of_routine:;
