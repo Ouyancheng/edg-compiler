@@ -5534,6 +5534,7 @@ to indicate whether an enumeration is actually defined.
     /* Set a default representation of "int", which may be adjusted later. */
     enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
     enum_type->variant.integer.enum_type = TRUE;
+    enum_type->variant.integer.enum_info.constant_list = NULL;
     /* Wait to add the type to the types list; it should not be added
        until the closing brace of the full definition appears, to get the
        IL list in the right order. */
@@ -5583,12 +5584,12 @@ to indicate whether an enumeration is actually defined.
     } else {
       /* The type of the constants is always "int", regardless of
          the type of the enumerated type (see 3.5.2.2).  However, it is
-         tagged with enum_constant_list pointing to the constant list, so
-         that enum compatibility warnings can be generated later. */
+         tagged with the enumerated type, so that enum compatibility checking
+         can be done later. */
       enum_con_type = alloc_type((a_type_kind)tk_integer);
       enum_con_type->variant.integer.int_kind = (an_integer_kind)ik_int;
-      /* enum_con_type->variant.integer.enum_constant_list is set below when
-         the first constant is put on the list. */
+      enum_con_type->variant.integer.enum_type = FALSE;
+      enum_con_type->variant.integer.enum_info.affiliated_type = enum_type;
       set_type_size(enum_con_type);
     }  /* if */
     min_max_set = FALSE;
@@ -5691,10 +5692,7 @@ to indicate whether an enumeration is actually defined.
         /* Add the enumeration constant to the list under the enumerated
            type. */
         if (end_of_enum_con_list == NULL) {
-          enum_type->variant.integer.enum_constant_list = enum_con;
-          if (C_dialect != C_dialect_cplusplus) {
-            enum_con_type->variant.integer.enum_constant_list = enum_con;
-          }  /* if */
+          enum_type->variant.integer.enum_info.constant_list = enum_con;
         } else {
           end_of_enum_con_list->next = enum_con;
         }  /* if */

@@ -1437,13 +1437,24 @@ typedef struct a_type {
       unsigned int
                 enum_type:1;
                         /* TRUE if this type is an enumerated type (the type 
-                           of the tag, not the constants). */
-      a_constant_ptr
-                enum_constant_list;
-                        /* If this is an enumerated type (the type of a tag)
-                           or the type of an enumerated constant (int, but
-                           coming from an enumeration), this points to the
-                           list of constants; otherwise, NULL. */
+                           of the tag, not the constants, in C). */
+      union {
+        /* When enum_type is TRUE: */
+        a_constant_ptr
+		constant_list;
+			/* The list of constants that defines the enumeration.
+			   NULL if the enumeration has not yet been defined.
+			   In C++, may be NULL even after definition, since
+			   empty enumerations are allowed. */
+        /* When enum_type is FALSE: */
+        a_type_ptr
+		affiliated_type;
+			/* If non-NULL, points to the type entry for an
+			   enum type (which has enum_type == TRUE), indicating
+			   that the present type is an integral type that
+			   came from the indicated enumerated type.  Used
+			   to suppress conversion warnings. */
+      } enum_info;
 #endif /* ifdef CIL */
     } integer;
     /* When kind == tk_float: */

@@ -5652,7 +5652,7 @@ If both of the operands have the same enumerated type, keep that information
 in the result type.
 */
 {
-  a_constant_ptr op1_enum, op2_enum;
+  a_type_ptr op1_enum, op2_enum;
 
   /* In C++, enumeration constants have the same type as the enumeration, so
      this routine is not needed. */
@@ -5660,22 +5660,22 @@ in the result type.
     op1_type = skip_typerefs(op1_type);
     op2_type = skip_typerefs(op2_type);
     if (is_integral_type(op1_type) && is_integral_type(op2_type)) {
-      op1_enum = op1_type->variant.integer.enum_constant_list;
-      op2_enum = op2_type->variant.integer.enum_constant_list;
+      op1_enum = underlying_enum_type(op1_type);
+      op2_enum = underlying_enum_type(op2_type);
       if (op1_enum != NULL && op1_enum == op2_enum) {
-        /* Use the type associated with the first enumerated constant
-           on the list, which should be "int" tagged as an enumeration
-           type. */
-        op1_type = op1_enum->type;
+        /* Both types are the same enum type, so keep the enum tag in
+           the result type. */
 #if CHECKING
-        if (!is_integral_type(*result_type) || !is_integral_type(op1_type)) {
+        if (!is_integral_type(*result_type)) {
           internal_error(
                         "keep_enum_in_result_type: bad result type for enums");
         }  /* if */
 #endif /* CHECKING */
         if (skip_typerefs(*result_type)->variant.integer.int_kind ==
-                           skip_typerefs(op1_type)->variant.integer.int_kind) {
-          *result_type = op1_type;
+                                          op1_enum->variant.integer.int_kind) {
+          /* The result type has the same size/sign as the enum types, so
+             use the enum type as the result type. */
+          *result_type = op1_enum;
         } else {
           /* In some cases involving bit-fields in pcc mode that get widened
              to unsigned int instead of int, create a tagged version of the
@@ -5683,7 +5683,8 @@ in the result type.
              should not come up often. */
           op1_type = alloc_type((a_type_kind)tk_integer);
           *op1_type = **result_type;
-          op1_type->variant.integer.enum_constant_list = op1_enum;
+          op1_type->variant.integer.enum_type = FALSE;
+          op1_type->variant.integer.enum_info.affiliated_type = op1_enum;
         }  /* if */
       }  /* if */
     }  /* if */

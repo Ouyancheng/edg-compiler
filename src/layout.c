@@ -163,7 +163,7 @@ must be unsigned.
   int            bits_needed, bits_needed_largest;
   a_constant_ptr enum_con;
 
-  enum_con = bit_field_type->variant.integer.enum_constant_list;
+  enum_con = bit_field_type->variant.integer.enum_info.constant_list;
   if (enum_con == NULL) {
     /* There are no enumeration constants, so no bits are needed to
        represent all of them; by definition, they fit in the bit field. */
@@ -356,13 +356,16 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
           int_kind_is_signed[(int)bit_field_type->variant.integer.int_kind]) {
         /* Change to a signed or unsigned int type with the enum type
            indicated in it.  Note that this is a new and unshared type. */
+#if 0
+        /* This needs to be changed. */
+#endif /* 0 */
         a_type_ptr new_enum_type = alloc_type((a_type_kind)tk_integer);
         new_enum_type->variant.integer.int_kind =
                            need_signed_type ? (an_integer_kind)ik_int :
                                               (an_integer_kind)ik_unsigned_int;
-        new_enum_type->variant.integer.enum_type = TRUE;
-        new_enum_type->variant.integer.enum_constant_list =
-                            bit_field_type->variant.integer.enum_constant_list;
+        new_enum_type->variant.integer.enum_type = FALSE;
+        new_enum_type->variant.integer.enum_info.affiliated_type =
+                                                                bit_field_type;
         set_type_size(new_enum_type);
         bit_field_type = new_enum_type;
       }  /* if */

@@ -1284,13 +1284,13 @@ which do the initial test for exact pointer equality.
           identical = TRUE;
           break;
         case tk_integer:
-          /* Requiring equality for enum_constant_list forces an explicit
+          /* Requiring equality for enum types forces an explicit
              type change between enumeration types and integers or
              other enumeration types.  It also makes explicit casts
              useful in suppressing warnings on type changes between
              integral types and enumerated types. */
-          if (type_1->variant.integer.enum_constant_list ==
-                                  type_2->variant.integer.enum_constant_list) {
+          if (!type_1->variant.integer.enum_type &&
+              !type_2->variant.integer.enum_type) {
             if (type_1->variant.integer.int_kind ==
                                             type_2->variant.integer.int_kind) {
               identical = TRUE;
@@ -2304,10 +2304,10 @@ in assignments (for example, struct --> same struct is not handled here).
 See conversion_possible.
 */
 {
-  a_boolean      okay = FALSE;
-  a_boolean      pointer_normalization_needed;
-  a_boolean      source_is_integral;
-  a_constant_ptr dest_enum_list, source_enum_list;
+  a_boolean  okay = FALSE;
+  a_boolean  pointer_normalization_needed;
+  a_boolean  source_is_integral;
+  a_type_ptr dest_enum_type, source_enum_type;
 
   db_enter(5, "impl_conversion_possible");
 #if DEBUG
@@ -2341,18 +2341,18 @@ See conversion_possible.
       okay = TRUE;
       /* Check for conversion of an arithmetic type to an enumerated type,
          which may be invalid or call for a warning. */
-      dest_enum_list = NULL;
+      dest_enum_type = NULL;
       if (is_integral(dest_type)) {
-        dest_enum_list = dest_type->variant.integer.enum_constant_list;
+        dest_enum_type = underlying_enum_type(dest_type);
       }  /* if */
-      if (dest_enum_list != NULL) {
+      if (dest_enum_type != NULL) {
         /* Conversion is to an enum type. */
-        source_enum_list = NULL;
+        source_enum_type = NULL;
         source_is_integral = is_integral(source_type);
         if (source_is_integral) {
-          source_enum_list = source_type->variant.integer.enum_constant_list;
+          source_enum_type = underlying_enum_type(source_type);
         }  /* if */
-        if (source_enum_list != dest_enum_list) {
+        if (source_enum_type != dest_enum_type) {
           /* Conversion of one enum type to another, or conversion of an
              arithmetic non-enum type to an enum. */
           /* Allowing conversion of arithmetic types to an enum is an

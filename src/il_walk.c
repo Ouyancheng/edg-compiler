@@ -289,8 +289,13 @@ Process the indicated type entry.
       break;
     case tk_integer:
 #ifdef CFE
-      walk_list(ptr->variant.integer.enum_constant_list, a_constant_ptr,
-                iek_constant);
+      if (ptr->variant.integer.enum_type) {
+        walk_list(ptr->variant.integer.enum_info.constant_list, a_constant_ptr,
+                  iek_constant);
+      } else {
+        walk_ptr(ptr->variant.integer.enum_info.affiliated_type, a_type_ptr,
+                 iek_type);
+      }  /* if */
 #endif /* ifdef CFE */
       break;
     case tk_pointer:

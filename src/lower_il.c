@@ -5761,7 +5761,11 @@ Do IL lowering of the indicated type and everything under it.
         /* No processing required. */
         break;
       case tk_integer:
-        lower_constant_list(type->variant.integer.enum_constant_list);
+        if (type->variant.integer.enum_type) {
+          lower_constant_list(type->variant.integer.enum_info.constant_list);
+        } else if (type->variant.integer.enum_info.affiliated_type != NULL) {
+          lower_type(type->variant.integer.enum_info.affiliated_type);
+        }  /* if */
         break;
       case tk_pointer:
         lower_type(type->variant.pointer.type);

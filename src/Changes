@@ -1,8 +1,14 @@
 Version 2.14
 
-1/28/93 Pointer to member operations and protected members
+1/28/93 IL representation of enum types changed
 
-The interaction of protected members and pointer to member operations is
+The IL representation of enum types has been changed; see the enum_info
+union in a_constant.  The new representation allows compatibility checking
+to distinguish distinct empty enumerations from one another in C++.
+
+1/28/93 Pointer to member addresses and protected members
+
+The interaction of protected members and pointer to member addresses is
 not well specified.  We have implemented what we believe will ultimately
 be adopted by X3J16/WG21 based on discussions of this subject that have
 taken place to date.  The pointer-to-member address of a protected member
@@ -19,7 +25,7 @@ derived class, not using the name of the base class.  For example:
 
 Using "&A::i" is illegal since it would allow "i" to be updated by saying
 "a.*pmi1".  "pmi2" cannot be used with an object of type "A" without
-the use of an unsafe cast.  This feature is disabled in cfront mode.
+the use of an unsafe cast.  This access check is disabled in cfront mode.
 
 1/28/93 Protected member access checking for implicitly called functions
 

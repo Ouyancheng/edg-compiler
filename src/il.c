@@ -3068,7 +3068,7 @@ to default values.
       pte->variant.integer.int_kind = (an_integer_kind)ik_int;
       pte->variant.integer.explicitly_signed = FALSE;
       pte->variant.integer.enum_type = FALSE;
-      pte->variant.integer.enum_constant_list = NULL;
+      pte->variant.integer.enum_info.affiliated_type = NULL;
       break;
     case tk_float:
       pte->variant.float_kind = (a_float_kind)fk_float;

@@ -1742,7 +1742,7 @@ Dump an enum.  Print the associated source name if there is one.
   fputs("\n#if 0", f_C_output);
   startline(type->source_corresp.decl_position.seq);
   (void)fprintf(f_C_output, "enum %s", get_name(&type->source_corresp));
-  constant = type->variant.integer.enum_constant_list;
+  constant = type->variant.integer.enum_info.constant_list;
   if (constant != NULL) {
     fputs(" {", f_C_output);
     /* Make an integer constant 0 of the same type as the first enumeration

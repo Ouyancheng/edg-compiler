@@ -254,6 +254,18 @@ may be called only for class, struct, and union types and only in C++ mode.
 #define base_classes_of(tp) \
   ((tp)->variant.class_struct_union.extra_info->base_classes)
 
+/*
+Macro that extracts the underlying enum type from an integral type,
+or NULL if there is no underlying enum type.  Used for enum
+compatibility checking.  The type must be an integral type, and
+not even a typeref on top of an integral type.
+*/
+#define underlying_enum_type(tp)                                      \
+  ((tp)->variant.integer.enum_type ?                                  \
+          (tp) :                                                      \
+          (tp)->variant.integer.enum_info.affiliated_type)
+
+
 #endif /* ifndef TYPES_H */
 
 

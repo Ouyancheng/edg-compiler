@@ -1165,13 +1165,19 @@ Display the indicated type entry.
       disp_boolean("logical_type", ptr->variant.integer.logical_type);
 #endif /* ifdef FFE */
 #ifdef CFE
-      disp_boolean("explicitly_signed",
-                   (a_boolean)ptr->variant.integer.explicitly_signed);
-      disp_boolean("enum_type", (a_boolean)ptr->variant.integer.enum_type);
-      if (ptr->variant.integer.enum_constant_list != NULL) {
-        disp_ptr("enum_constant_list",
-                 (char *)ptr->variant.integer.enum_constant_list,
+      if (ptr->variant.integer.explicitly_signed) {
+        disp_boolean("explicitly_signed",
+                     (a_boolean)ptr->variant.integer.explicitly_signed);
+      }  /* if */
+      if (ptr->variant.integer.enum_type) {
+        disp_boolean("enum_type", (a_boolean)ptr->variant.integer.enum_type);
+        disp_ptr("enum_info.constant_list",
+                 (char *)ptr->variant.integer.enum_info.constant_list,
                  iek_constant);
+      } else if (ptr->variant.integer.enum_info.affiliated_type != NULL) {
+        disp_ptr("enum_info.affiliated_type",
+                 (char *)ptr->variant.integer.enum_info.affiliated_type,
+                 iek_type);
       }  /* if */
 #endif /* ifdef CFE */
       break;
