@@ -3030,7 +3030,8 @@ are deduced.
        argument list with NULL type/constant pointers. */
     *templ_arg_list = create_initial_template_arg_list(
 				templ_param_list, (a_template_arg_ptr)NULL,
-                                /*depth=*/0, (a_source_position*)NULL);
+                                (a_template_nesting_depth)0,
+                                (a_source_position*)NULL);
   }  /* if */
   /* For the nth template parameter find the nth template argument. */
   for (tap = *templ_arg_list; pos > 1; pos--, tap = tap->next);
