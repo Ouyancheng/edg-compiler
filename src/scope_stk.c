@@ -2130,10 +2130,11 @@ the scope.  is_function_local is TRUE if this scope belongs to a function
 body.  Only called in C++ mode.
 */
 {
-  a_routine_ptr  rp;
-  a_type_ptr     tp;
-  a_scope_ptr    class_scope;
-  a_symbol_ptr   sym;
+  a_routine_ptr            rp;
+  a_type_ptr               tp;
+  a_scope_ptr              class_scope;
+  a_symbol_ptr             sym;
+  a_template_instance_ptr  tip;
 
   /* Examine each of the class types on the types list of the scope.  If
      this is a class scope, it picks up the nested classes. */
@@ -2163,11 +2164,19 @@ body.  Only called in C++ mode.
         } else {
           sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
           if (sym != NULL) {
-            /* Put out the error. */
-            pos_sy_error(is_function_local ?
-                               ec_local_class_function_def_missing :
-                               ec_never_defined,
-                         &sym->decl_position, sym);
+            if (is_function_local) {
+              pos_sy_error(ec_local_class_function_def_missing,
+                           &sym->decl_position, sym);
+            } else {
+              tip = sym->variant.routine.instance_ptr;
+              if (tip != NULL && tip->explicit_instantiation) {
+                /* An error will already have been issued on the instantiation
+                   attempt. */
+              } else {
+                /* Put out the error. */
+                pos_sy_error(ec_never_defined, &sym->decl_position, sym);
+              }  /* if */
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -2393,8 +2402,16 @@ NULL.
             rout_ptr->source_corresp.name_linkage =
                                          (a_name_linkage_kind)nlk_external;
           } else {
-            pos_sy_error(ec_never_defined,
-                         &sym->decl_position, sym);
+            a_template_instance_ptr  tip = sym->variant.routine.instance_ptr;
+
+            if (tip != NULL && tip->explicit_instantiation) {
+              /* An error will already have been issued on the instantiation
+                 attempt. */
+            } else {
+              /* Routine with internal linkage was referenced but not
+                 defined. */
+              pos_sy_error(ec_never_defined, &sym->decl_position, sym);
+            }  /* if */
           }  /* if */
         }  /* if */
       } else if (!sym->referenced) {
