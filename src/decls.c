@@ -3016,7 +3016,7 @@ static void set_name_linkage(an_id_linkage_kind      linkage,
 /*
 Called from decl_variable and decl_routine, this function sets the name
 linkage of the IL entry.  linkage is the id_linkage (internal, external,
-none) has has been assigned.  sym is the symbol for the variable or routine
+none) that has been assigned.  sym is the symbol for the variable or routine
 whose name linkage is to be set, and scp points to the source correspondence
 of the associated IL entry.  ext_sym is the associated sk_external_variable
 or sk_external_routine symbol, if any.  *error_pos is the source position
@@ -4494,7 +4494,8 @@ skip_overloading:;
        context, add it to routines list of the file scope). */
     a_scope_depth  scope_depth = depth_innermost_namespace_scope;
 
-    if (scope_stack[depth_scope_stack].default_name_linkage ==
+    if (linkage == idl_external &&
+        scope_stack[depth_scope_stack].default_name_linkage ==
                                           (a_name_linkage_kind)nlk_external) {
       scope_depth = DEPTH_OF_FILE_SCOPE;
     }  /* if */
