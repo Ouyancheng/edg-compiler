@@ -12762,94 +12762,136 @@ files can reference it.
 }  /* externalize_source_correspondence */
 
 
-void make_statics_referenced_from_instantiations_external(void)
+static void make_scope_statics_referenced_from_instantiations_external(
+                                                             a_scope_ptr scope)
 /*
-When generating instantiations in separate object files, make any
-static variables or functions referenced from instantiations external.
-This also comes up for statics referenced from exported templates.
-This must be called after IL lowering for the file scope, and after
-the needed-flag walk for the file scope.
+Make external any static variables in the indicated scope that are
+referenced from instantiations of exported templates, or from any
+instantiations when generating instantiations in separate object files.
 */
 {
   a_routine_ptr  rout;
   a_variable_ptr var;
   a_boolean      any_exports = any_exported_templates();
 
-  if (il_lowering_needed()) {
-    /* This processing is done in a separate routine, rather than in
-       lower_variable and lower_routine, because entities created by IL
-       lowering, e.g., typeinfo variables and virtual function tables,
-       (a) are created with the IL lowering flag set, and therefore do not
-       get lowered further, and (b) have storage classes that get changed
-       as lowering proceeds. */
-    for (rout = il_header.primary_scope->routines;
-         rout != NULL;
-         rout = rout->next) {
-      if (any_exports && is_primary_translation_unit &&
-          !rout->source_corresp.copied_from_secondary_trans_unit &&
-          rout->storage_class == (a_storage_class)sc_static) {
-        /* When exported templates are present, any static is potentially
-           referenced (directly or indirectly) from an instantiation and
-           should be externalized. */
-        rout->source_corresp.static_used_by_instantiation = TRUE;
-      }  /* if */
-      if (rout->source_corresp.static_used_by_instantiation
+  /* This processing is done in a separate routine, rather than in
+     lower_variable and lower_routine, because entities created by IL
+     lowering, e.g., typeinfo variables and virtual function tables,
+     (a) are created with the IL lowering flag set, and therefore do not
+     get lowered further, and (b) have storage classes that get changed
+     as lowering proceeds. */
+  /* Also note that this process must be done in secondary translation
+     units for the entities in those translation units because we need
+     to use the proper module id in the externalized name. */
+  for (rout = scope->routines;
+       rout != NULL;
+       rout = rout->next) {
+    if (any_exports && is_primary_translation_unit &&
+        !rout->source_corresp.copied_from_secondary_trans_unit &&
+        rout->storage_class == (a_storage_class)sc_static) {
+      /* When exported templates are present, any static is potentially
+         referenced (directly or indirectly) from an instantiation and
+         should be externalized. */
+      rout->source_corresp.static_used_by_instantiation = TRUE;
+    }  /* if */
+    if (rout->source_corresp.static_used_by_instantiation
 #if ONE_INSTANTIATION_PER_OBJECT
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-          && !rout->source_corresp.duplicate_static_in_instantiation_slices
+        && !rout->source_corresp.duplicate_static_in_instantiation_slices
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-                                                                           ) {
-        if (rout->storage_class == (a_storage_class)sc_static) {
-          externalize_source_correspondence(&rout->source_corresp,
-                                            /*is_variable=*/FALSE);
-          rout->storage_class = (a_storage_class)sc_unspecified;
+                                                                         ) {
+      if (rout->storage_class == (a_storage_class)sc_static) {
+        externalize_source_correspondence(&rout->source_corresp,
+                                          /*is_variable=*/FALSE);
+        rout->storage_class = (a_storage_class)sc_unspecified;
 #if MAINTAIN_NEEDED_FLAGS
-          mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
+        mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
 #endif /* MAINTAIN_NEEDED_FLAGS */
-        }  /* if */
       }  /* if */
-    }  /* for */
-    for (var = il_header.primary_scope->variables;
-         var != NULL;
-         var = var->next) {
+    }  /* if */
+  }  /* for */
+  for (var = scope->variables;
+       var != NULL;
+       var = var->next) {
 #if !USE_INIT_SECTION_IN_GENERATED_C
-      char *var_name = var->source_corresp.name;
+    char *var_name = var->source_corresp.name;
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+    if (any_exports && is_primary_translation_unit &&
+        !var->source_corresp.copied_from_secondary_trans_unit &&
+        var->storage_class == (a_storage_class)sc_static) {
+      /* When exported templates are present, any static is potentially
+         referenced (directly or indirectly) from an instantiation and
+         should be externalized. */
+      var->source_corresp.static_used_by_instantiation = TRUE;
+    }  /* if */
+#if !USE_INIT_SECTION_IN_GENERATED_C
+    if (var_name != NULL && var_name[0] == '_' &&
+        strcmp(var_name, "__link") == 0) {
+      /* Do not rename the __link variable.  It is specific to a particular
+         slice. */
+    } else
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+    /* Do not insert code here.  This is the "else" of an "if". */
+    if (var->source_corresp.static_used_by_instantiation
+#if ONE_INSTANTIATION_PER_OBJECT
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+        && !var->source_corresp.duplicate_static_in_instantiation_slices
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                                                        ) {
+      if (var->storage_class == (a_storage_class)sc_static) {
+        externalize_source_correspondence(&var->source_corresp,
+                                          /*is_variable=*/TRUE);
+        var->storage_class = (a_storage_class)sc_unspecified;
+#if MAINTAIN_NEEDED_FLAGS
+        mark_as_needed((char *)var, (an_il_entry_kind)iek_variable);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (!is_primary_translation_unit) {
+    /* The IL is not lowered yet.  Visit class and namespace members. */
+    a_type_ptr      type;
+    a_namespace_ptr nsp;
 
-      if (any_exports && is_primary_translation_unit &&
-          !var->source_corresp.copied_from_secondary_trans_unit &&
-          var->storage_class == (a_storage_class)sc_static) {
-        /* When exported templates are present, any static is potentially
-           referenced (directly or indirectly) from an instantiation and
-           should be externalized. */
-        var->source_corresp.static_used_by_instantiation = TRUE;
-      }  /* if */
-#if !USE_INIT_SECTION_IN_GENERATED_C
-      if (var_name != NULL && var_name[0] == '_' &&
-          strcmp(var_name, "__link") == 0) {
-        /* Do not rename the __link variable.  It is specific to a particular
-           slice. */
-      } else
-#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
-      /* Do not insert code here.  This is the "else" of an "if". */
-      if (var->source_corresp.static_used_by_instantiation
-#if ONE_INSTANTIATION_PER_OBJECT
-#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-          && !var->source_corresp.duplicate_static_in_instantiation_slices
-#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-                                                                          ) {
-        if (var->storage_class == (a_storage_class)sc_static) {
-          externalize_source_correspondence(&var->source_corresp,
-                                            /*is_variable=*/TRUE);
-          var->storage_class = (a_storage_class)sc_unspecified;
-#if MAINTAIN_NEEDED_FLAGS
-          mark_as_needed((char *)var, (an_il_entry_kind)iek_variable);
-#endif /* MAINTAIN_NEEDED_FLAGS */
+    for (type = scope->types;
+         type != NULL;
+         type = type->next) {
+      if (is_immediate_class_type(type)) {
+        a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+        if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+          make_scope_statics_referenced_from_instantiations_external(
+                                                            ctsp->assoc_scope);
         }  /* if */
       }  /* if */
     }  /* for */
+    for (nsp = scope->namespaces;
+         nsp != NULL;
+         nsp = nsp->next) {
+      if (!nsp->is_namespace_alias) {
+        make_scope_statics_referenced_from_instantiations_external(
+                                                     nsp->variant.assoc_scope);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* make_scope_statics_referenced_from_instantiations_external */
+
+
+void make_statics_referenced_from_instantiations_external(void)
+/*
+When generating instantiations in separate object files, make any
+static variables or functions referenced from instantiations external.
+This also comes up for statics referenced from exported templates.
+This must be called after IL lowering for the file scope, and after
+the needed-flag walk for the file scope.  Also run in secondary translation
+units before copying, which means before IL lowering.
+*/
+{
+  if (il_lowering_needed()) {
+    make_scope_statics_referenced_from_instantiations_external(
+                                                      il_header.primary_scope);
   }  /* if */
 }  /* make_statics_referenced_from_instantiations_external */
 
