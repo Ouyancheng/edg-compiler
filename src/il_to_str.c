@@ -1277,9 +1277,17 @@ is TRUE and the typedef definition has not yet been put out in the
 C++-generating back end.
 */
 #if BACK_END_IS_CP_GEN_BE
+
+#if GCC_BUILTIN_VARARGS
+#define and_not_gnu_builtin_va_list(type) && !type->is_builtin_va_list
+#else /* !GCC_BUILTIN_VARARGS */
+#define and_not_gnu_builtin_va_list(type) /* Nothing */
+#endif /* GCC_BUILTIN_VARARGS */
+
 #define or_not_yet_defined_typedef(type) ||                           \
   ((octl)->suppress_not_yet_defined_typedefs &&                       \
-   !(type)->typedef_definition_has_been_put_out)
+   !(type)->typedef_definition_has_been_put_out                       \
+   and_not_gnu_builtin_va_list(type))
 #else /* !BACK_END_IS_CP_GEN_BE */
 #define or_not_yet_defined_typedef(type) /* Nothing */
 #endif /* BACK_END_IS_CP_GEN_BE */

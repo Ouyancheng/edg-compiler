@@ -1,5 +1,17 @@
 Version 3.4
 
+12/2/03  C/C++-generating back ends and GNU __builtin_va_list
+
+When GCC_BUILTIN_VARARGS and GCC_BUILTIN_VARARGS_IN_GENERATED_CODE were TRUE
+the C- and C++-generating back ends sometimes transformed occurrences of
+"__builtin_va_list" to "void*".  This is not entirely wrong (since the
+former is a built-in typedef for the latter), but keeping the original
+form is generally preferred.  For example:
+
+  void f(__builtin_va_list);  // Previously rendered as "void f(void*);"
+
+The original form is now preserved.
+
 12/2/03  Microsoft mode: Spurious correspondence error with dllimport/dllexport
 
 When compiling multiple translation units in Microsoft mode, the front end
