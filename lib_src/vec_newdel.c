@@ -532,14 +532,18 @@ an exception.
                     aaehip->elements_processed - 1;
     number_of_elements = first_element + 1;
   }  /* if */
-  for (i = 0,
-       arr_ptr = (void *)(((char *)array_ptr) + first_element * element_size);
-       i < number_of_elements;
-       i++, increment_ptr(arr_ptr, -element_size)) {
-    /* Call the destructor with 0x2 - whole object = TRUE
-                                0x1 - delete object = FALSE. */
-    (*dtor)(arr_ptr, 0x2 /*whole object = TRUE, delete = FALSE*/);
-  }  /* for */
+  if (dtor != NULL) {
+    /* If there is a destructor, destroy the objects. */
+    for (i = 0,
+         arr_ptr = (void *)(((char *)array_ptr) +
+                                                first_element * element_size);
+         i < number_of_elements;
+         i++, increment_ptr(arr_ptr, -element_size)) {
+      /* Call the destructor with 0x2 - whole object = TRUE
+                                  0x1 - delete object = FALSE. */
+      (*dtor)(arr_ptr, 0x2 /*whole object = TRUE, delete = FALSE*/);
+    }  /* for */
+  }  /* if */
   if (aaehip->free_memory_on_cleanup) {
     /* Call the routine to free the memory. */
     size_t	size = element_size * number_of_elements;
