@@ -43,6 +43,8 @@ the release should contain no defines.
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
 #define INCLUDE_EDG_TEST_PRAGMAS 1
 #define RECORD_HIDDEN_NAMES_IN_IL 1
+#define RECORD_TEMPLATES_IN_IL 1
+#define RECORD_MACROS_IN_IL 1
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 
