@@ -1,5 +1,19 @@
 Version 2.26
 
+9/2/94   Access control for nested classes
+
+In all modes except strict mode, nested classes are now given access
+to enclosing classes.  This is contrary to the WP/ARM statement that
+"Member functions of a nested class have no special access to members
+of an enclosing class", but (a) users have asked for that access, and
+(b) the standards committee seems to be leaning towards eliminating the
+restriction.  In strict mode, we've tightened the access checking
+to be exactly what is indicated in the WP.
+
+We've also fixed a bug with access checking from within a local class
+inside a member function -- the code there should have access to the
+members of the outer class, since the inner class is not a nested class.
+
 9/2/94   "static" with anonymous unions within a class
 
 We used to issue an error message saying that an anonymous union cannot be

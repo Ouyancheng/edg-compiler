@@ -111,7 +111,9 @@ static a_scope_depth
 		depth_of_innermost_scope_that_affects_access_control;
 			/* If there are scopes on the scope stack that
 			   affect C++ access control, this is the depth of
-			   the innermost one.  Otherwise, NO_SCOPE_DEPTH. */
+			   the innermost one.  Otherwise, NO_SCOPE_DEPTH.
+			   Heads a list linked by
+			   next_scope_that_affects_access_control. */
 
 /*
 Array used to hold an identifier for external name or destructor name
@@ -3682,12 +3684,15 @@ indicated by class_type.
   a_boolean               have_member_privilege = FALSE;
   a_scope_stack_entry_ptr ssep;
   a_routine_ptr           scope_routine;
+  a_scope_depth           scope_depth, scope_depth_to_skip = NO_SCOPE_DEPTH;
 
   /* This routine looks a lot like have_protected_member_access_privilege. */
-  if (depth_of_innermost_scope_that_affects_access_control != NO_SCOPE_DEPTH) {
-    /* There are scopes on the scope stack that affect access control.
-       Look at the innermost such scope. */
-    ssep = &scope_stack[depth_of_innermost_scope_that_affects_access_control];
+  /* Consider each scope on the scope stack that affects access control.
+     They are linked together on a list. */
+  for (scope_depth = depth_of_innermost_scope_that_affects_access_control;
+       scope_depth != NO_SCOPE_DEPTH;
+       scope_depth = ssep->next_scope_that_affects_access_control) {
+    ssep = &scope_stack[scope_depth];
     if (ssep->kind == (a_scope_kind)sck_function) {
       /* A function.  See if class_type is on its befriending list. */
       scope_routine = ssep->il_scope->variant.routine.ptr;
@@ -3695,45 +3700,40 @@ indicated by class_type.
                               class_type)) {
         /* We are inside a function that is a friend of class_type. */
         have_member_privilege = TRUE;
-      } else if ((--ssep)->kind == (a_scope_kind)sck_class_reactivation) {
-        /* There is a class reactivation outside the function scope, so
-           the function is a member function and we should check for access
-           granted that way. */
-        /* Note that there will always be a scope stack entry under the
-           function. */
-        if (have_member_access_from_class_scope(class_type, ssep)) {
-          have_member_privilege = TRUE;
-        }  /* if */
+        break;
       }  /* if */
-    } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
-      /* A class.  Check for access granted by being a member of the
-         class. */
-      if (have_member_access_from_class_scope(class_type, ssep)) {
-        have_member_privilege = TRUE;
-      } else if ((--ssep)->kind == (a_scope_kind)sck_class_struct_union) {
-        /* The class is inside another class, so check for access granted by
-           that class.  This is not in the ARM, but Bjarne Stroustrup and
-           Andy Koenig said that nested classes must have member access
-           to types (etc.) of the immediately enclosing class. */
-        /* Note that there will always be a scope stack entry under the
-           class. */
-        if (have_member_access_from_class_scope(class_type, ssep)) {
-          have_member_privilege = TRUE;
-        }  /* if */
+      /* The ARM says "Member functions of a nested class have no special
+         access to members of an enclosing class".  It's not clear that's
+         right or precise enough, but in strict mode, we'll do exactly that.
+         For a member function in a nested class, set up to skip all
+         the reactivations for the classes within which it is nested. */
+      if (strict_ansi_mode &&
+          (ssep-1)->kind == (a_scope_kind)sck_class_reactivation &&
+          (ssep-2)->kind == (a_scope_kind)sck_class_reactivation) {
+        scope_depth_to_skip = scope_depth - 2;
       }  /* if */
     } else {
-#if CHECKING
-      if (ssep->kind != (a_scope_kind)sck_class_reactivation) {
-        internal_error("have_member_access_privilege: bad scope kind");
-      }  /* if */
-#endif /* CHECKING */
-      /* A class reactivation.  Check for access granted by being a member
-         of the class. */
-      if (have_member_access_from_class_scope(class_type, ssep)) {
+      check_assertion_str(ssep->kind == (a_scope_kind)sck_class_struct_union ||
+                          ssep->kind == (a_scope_kind)sck_class_reactivation,
+                          "have_member_access_privilege: bad stack entry");
+      /* A class or class reactivation.  Check for access granted by being
+         a member of the class. */
+      if (scope_depth == scope_depth_to_skip) {
+        /* This is a reactivation that should be skipped (see comment above).
+           If the entry below this one is also a reactivation, keep skipping.
+           Otherwise, stop skipping. */
+        if ((ssep-1)->kind == (a_scope_kind)sck_class_reactivation) {
+          scope_depth_to_skip--;
+        } else {
+          scope_depth_to_skip = NO_SCOPE_DEPTH;
+        }  /* if */
+      } else if (have_member_access_from_class_scope(class_type, ssep)) {
+        /* We are inside a class that gives us member access. */
         have_member_privilege = TRUE;
+        break;
       }  /* if */
     }  /* if */
-  }  /* if */
+  }  /* for */
   return have_member_privilege;
 }  /* have_member_access_privilege */
 
@@ -3839,12 +3839,15 @@ Programming Language", 2nd Edition.
   a_boolean               have_protected_access = FALSE;
   a_scope_stack_entry_ptr ssep;
   a_routine_ptr           scope_routine;
+  a_scope_depth           scope_depth, scope_depth_to_skip = NO_SCOPE_DEPTH;
 
   /* This routine looks a lot like have_member_access_privilege. */
-  if (depth_of_innermost_scope_that_affects_access_control != NO_SCOPE_DEPTH) {
-    /* There are scopes on the scope stack that affect access control.
-       Look at the innermost such scope. */
-    ssep = &scope_stack[depth_of_innermost_scope_that_affects_access_control];
+  /* Consider each scope on the scope stack that affects access control.
+     They are linked together on a list. */
+  for (scope_depth = depth_of_innermost_scope_that_affects_access_control;
+       scope_depth != NO_SCOPE_DEPTH;
+       scope_depth = ssep->next_scope_that_affects_access_control) {
+    ssep = &scope_stack[scope_depth];
     if (ssep->kind == (a_scope_kind)sck_function) {
       /* A function.  See if class_type is on its befriending list. */
       scope_routine = ssep->il_scope->variant.routine.ptr;
@@ -3853,49 +3856,42 @@ Programming Language", 2nd Edition.
                                             class_type)) {
         /* We are inside a function that is a friend of class_type. */
         have_protected_access = TRUE;
-      } else if ((--ssep)->kind == (a_scope_kind)sck_class_reactivation) {
-        /* There is a class reactivation outside the function scope, so
-           the function is a member function and we should check for access
-           granted that way. */
-        /* Note that there will always be a scope stack entry under the
-           function. */
-        if (have_protected_access_from_class_scope(class_type, ssep)) {
-          have_protected_access = TRUE;
-        }  /* if */
+        break;
       }  /* if */
-    } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
-      /* A class.  Check for access granted by being a member of the
-         class. */
-      if (have_protected_access_from_class_scope(class_type, ssep)) {
-        have_protected_access = TRUE;
-      } else if ((--ssep)->kind == (a_scope_kind)sck_class_struct_union) {
-        /* The class is inside another class, so check for access granted by
-           that class.  This is not in the ARM, but Bjarne Stroustrup and
-           Andy Koenig said that nested classes must have member access
-           to types (etc.) of the immediately enclosing class. */
-        /* Note that there will always be a scope stack entry under the
-           class. */
-        if (have_protected_access_from_class_scope(class_type, ssep)) {
-          have_protected_access = TRUE;
-        }  /* if */
+      /* The ARM says "Member functions of a nested class have no special
+         access to members of an enclosing class".  It's not clear that's
+         right or precise enough, but in strict mode, we'll do exactly that.
+         For a member function in a nested class, set up to skip all
+         the reactivations for the classes within which it is nested. */
+      if (strict_ansi_mode &&
+          (ssep-1)->kind == (a_scope_kind)sck_class_reactivation &&
+          (ssep-2)->kind == (a_scope_kind)sck_class_reactivation) {
+        scope_depth_to_skip = scope_depth - 2;
       }  /* if */
     } else {
-#if CHECKING
-      if (ssep->kind != (a_scope_kind)sck_class_reactivation) {
-        internal_error(
-                     "have_protected_member_access_privilege: bad scope kind");
-      }  /* if */
-#endif /* CHECKING */
-      /* A class reactivation.  Check for access granted by being a member
-         of the class. */
-      if (have_protected_access_from_class_scope(class_type, ssep)) {
+      check_assertion_str(ssep->kind == (a_scope_kind)sck_class_struct_union ||
+                          ssep->kind == (a_scope_kind)sck_class_reactivation,
+                    "have_protected_member_access_privilege: bad stack entry");
+      /* A class or class reactivation.  Check for access granted by being
+         a member of the class. */
+      if (scope_depth == scope_depth_to_skip) {
+        /* This is a reactivation that should be skipped (see comment above).
+           If the entry below this one is also a reactivation, keep skipping.
+           Otherwise, stop skipping. */
+        if ((ssep-1)->kind == (a_scope_kind)sck_class_reactivation) {
+          scope_depth_to_skip--;
+        } else {
+          scope_depth_to_skip = NO_SCOPE_DEPTH;
+        }  /* if */
+      } else if (have_protected_access_from_class_scope(class_type, ssep)) {
+        /* We are inside a class that gives us member access. */
         have_protected_access = TRUE;
+        break;
       }  /* if */
     }  /* if */
-  }  /* if */
+  }  /* for */
   return have_protected_access;
 }  /* have_protected_member_access_privilege */
-
 
 
 /*
@@ -6762,6 +6758,8 @@ of the template.
   ssep->last_label_decl_seq      = 0;
   ssep->pending_pragmas          = NULL;
   ssep->curr_construct_pragmas	 = NULL;
+  ssep->next_scope_that_affects_access_control =
+                          depth_of_innermost_scope_that_affects_access_control;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -6927,13 +6925,19 @@ of the template.
        control. */
     if (is_scope_kind_that_affects_access_control(kind)) {
       depth_of_innermost_scope_that_affects_access_control = depth_scope_stack;
+    } else if (kind == (a_scope_kind)sck_template_instantiation) {
+      /* A template instantiation makes the things outside it invisible
+         out to the file scope, and the file scope doesn't affect access
+         control. */
+      depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
     }  /* if */
     /* Maintain the depth of a template declaration scope, if any. */
     if (kind == (a_scope_kind)sck_template_declaration) {
       ssep->depth_template_declaration_scope =
         depth_template_declaration_scope = depth_scope_stack;
     } else if (kind == (a_scope_kind)sck_template_instantiation) {
-      /* A template instantiation within a template declaration. */
+      /* A template instantiation.  The things outside the instantiation
+         become invisible. */
       ssep->depth_template_declaration_scope =
         depth_template_declaration_scope = NO_SCOPE_DEPTH;
     }  /* if */
@@ -7913,16 +7917,8 @@ End a name scope by popping an entry off the scope stack.
                                  ssep->depth_innermost_instantiation_scope;
     /* Maintain the depth of the innermost stack entry that affects access
        control. */
-    if (is_scope_kind_that_affects_access_control(kind)) {
-      depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
-      for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
-        if (is_scope_kind_that_affects_access_control(
-                                             scope_stack[scope_depth].kind)) {
-          depth_of_innermost_scope_that_affects_access_control = scope_depth;
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
+    depth_of_innermost_scope_that_affects_access_control =
+                                  ssep->next_scope_that_affects_access_control;
   }  /* if */
   /* Maintain the current declarative level.  It is the same as 
      depth_scope_stack except when struct/union field scopes are
