@@ -224,10 +224,11 @@ cases all the pointers to the file scope memory region from a
 function scope were not remapped, which would have disastrous
 consequences.
 
-6/25/95 Internal error in pcc mode fixed
+6/25/95 Internal error in pcc mode on extern decl of self within function
 
 A bug introduced in version 2.31 produced an assertion failure in pcc mode
--- now fixed.  Here's an example:
+when an extern declaration of a function appears within the function
+itself.  Now fixed.  Here's an example:
 
   void f() {
     void f();           // pcc mode internal error no longer occurs
