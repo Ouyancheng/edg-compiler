@@ -448,7 +448,7 @@ now called so that the cleanup can be done, if needed.
 
 The type "an_object_offset" is required to match the type specified
 by TARG_DELTA_INT_KIND in the front end.  This is now automatically
-configured by using the __EDG_DELTA_KIND macro defined by the
+configured by using the __EDG_DELTA_TYPE macro defined by the
 front end.
 
 1/12/96  Parameter type mismatch in __throw_alloc and __throw_setup
