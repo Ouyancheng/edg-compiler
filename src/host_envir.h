@@ -1817,11 +1817,13 @@ template support in such cases).  The name mangling test is sufficient to
 cover the C generating back end case because name mangling is required when
 using IL lowering or the C generating back end.
 */
-#if NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED
+#if (NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED) && \
+    !STANDALONE_UTILITY_PROGRAM
 #define MODULE_ID_NEEDED TRUE
 #else /* !(NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED) */
 #define MODULE_ID_NEEDED FALSE
-#endif /* NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED */
+#endif (NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED) && \
+       !STANDALONE_UTILITY_PROGRAM
 
 #if MODULE_ID_NEEDED
 extern void change_non_id_characters(char *str);

@@ -26,7 +26,9 @@ This version for UNIX, MS-DOS, VAX/VMS, and Windows NT.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+#if !STANDALONE_UTILITY_PROGRAM
 #include "lower_name.h"
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if EDG_WIN32
 #include <windows.h>
@@ -2295,6 +2297,7 @@ Set module_id to the string.
 }  /* make_module_id */
 
 #endif /* MODULE_ID_NEEDED */
+
 #if USE_MMAP_FOR_MEMORY_REGIONS
 
 #if EDG_WIN32
