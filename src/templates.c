@@ -5210,7 +5210,7 @@ set *copy_error to TRUE.
                                                    depth,
 						   new_const_type,
                                                    source_pos,
-                                                   copy_error);
+                                                   options, copy_error);
     } else {
       /* A template template argument. */
       new_tap->variant.templ = copy_template_with_substitution(
@@ -5320,7 +5320,7 @@ on the ck_template_param constant pointed to by the expression.
     orig_cp = type->variant.array.variant.element_count_constant;
     new_cp = copy_template_param_con_with_substitution(
                       orig_cp, templ_arg_list, depth, (a_type_ptr)NULL,
-                      source_pos, copy_error);
+                      source_pos, options, copy_error);
   }  /* if */
   if (tp == type->variant.array.element_type &&
       orig_cp == new_cp) {
@@ -10642,7 +10642,7 @@ resulting constant is stored in the pointer pointed to by "constant".
                                    param_ptr->default_arg.constant, arg_list,
                                    depth, constant_type,
                                    &param_ptr->param_symbol->decl_position,
-                                   &copy_error);
+                                   CTWS_NO_OPTIONS, &copy_error);
         check_assertion(!copy_error);
       } else {
         a_template_cache_ptr	tcp;

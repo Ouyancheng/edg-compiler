@@ -620,12 +620,30 @@ extern an_expr_node_ptr node_for_host_large_integer(
 
 extern a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type);
 
+/*
+Flags used to specify options to copy_type_with_substitution.
+*/
+
+typedef int a_ctws_options_set;
+
+#define CTWS_NO_OPTIONS			0x0
+#define CTWS_IS_PARENT			0x1
+			/* TRUE if the type being processed is the parent
+			   type of a class member.  This affects the way
+			   in which names are looked up during the
+			   substitution process. */
+#define CTWS_PROTOTYPE_ALLOWED		0x2
+			/* TRUE if, when copying a type like A<T>, that the
+			   prototype instantiation may be used in preference
+			   to the nonreal class of the same name. */
+
 extern a_constant_ptr copy_template_param_con_with_substitution(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_nesting_depth depth,
                                   a_type_ptr               template_param_type,
                                   a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
                                   a_boolean                *copy_error);
 
 extern a_boolean is_operator_returning_bool(an_expr_operator_kind op);

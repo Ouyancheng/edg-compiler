@@ -7472,6 +7472,7 @@ static a_constant_ptr copy_template_param_con(
                                   a_template_nesting_depth depth,
                                   a_type_ptr               guide_type,
                                   a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
                                   a_boolean                *copy_error,
                                   a_constant_ptr           constant);
 
@@ -7505,6 +7506,7 @@ static an_expr_node_ptr copy_template_param_expr(
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_nesting_depth depth,
                                   a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
                                   a_boolean                *copy_error,
                                   a_constant_ptr           constant,
                                   a_constant_ptr           *alloc_con)
@@ -7520,7 +7522,7 @@ on a type), set *copy_error to TRUE.  If the expression after
 substitution is a constant, set *alloc_con to the address of the
 constant and return NULL.  If there no allocated copy of the constant,
 set *alloc_con to NULL, set *constant to the constant value, and
-return NULL.
+return NULL.  options is a set of name lookup options.
 */
 {
   an_expr_node_ptr expr_copy = expr;
@@ -7535,6 +7537,7 @@ return NULL.
                                            depth,
                                            (a_type_ptr)NULL,
                                            source_pos,
+                                           options,
                                            copy_error,
                                            constant);
       expr_copy = NULL;
@@ -7557,6 +7560,7 @@ return NULL.
                                                  template_arg_list,
                                                  depth,
                                                  source_pos,
+                                                 options,
                                                  copy_error,
                                                  &constant_1,
                                                  &alloc_con_1);
@@ -7565,6 +7569,7 @@ return NULL.
                                                    template_arg_list,
                                                    depth,
                                                    source_pos,
+                                                   options,
                                                    copy_error,
                                                    &constant_2,
                                                    &alloc_con_2);
@@ -7574,6 +7579,7 @@ return NULL.
                                                      template_arg_list,
                                                      depth,
                                                      source_pos,
+                                                     options,
                                                      copy_error,
                                                      &constant_3,
                                                      &alloc_con_3);
@@ -7687,11 +7693,12 @@ static a_constant_ptr copy_template_param_unknown_entity_con(
                                   a_boolean                is_template_ref,
                                   a_template_arg_ptr       ref_arg_list,
                                   a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
                                   a_boolean                *copy_error,
                                   a_constant_ptr           constant)
 /*
-Copy a ck_template_param/tpck_member or ck_template_param/tpck_unknown_function
-constant, replacing any occurrences of template parameters at depth
+Copy the ck_template_param/tpck_member or .../tpck_unknown_function
+constant "con", replacing any occurrences of template parameters at depth
 "depth" with the corresponding values from the template argument list
 template_arg_list, and return a pointer to the copy after
 substitution.  If there is no allocated instance of the constant, set
@@ -7707,7 +7714,7 @@ constant); ref_arg_list provides the explicit argument list in that
 case.  source_pos provides the source position for any calls of
 copy_type_with_substitution.  If there is an error in the copying
 (specifically, if there is an error in doing substitution on a type),
-set *copy_error to TRUE.
+set *copy_error to TRUE.  options is a set of name lookup options.
 */
 {
   a_constant_ptr con_copy;
@@ -7741,7 +7748,7 @@ set *copy_error to TRUE.
                                              template_arg_list, depth,
                                              source_pos,
                                              /*is_type=*/FALSE,
-                                             CTWS_NO_OPTIONS,
+                                             options,
                                              copy_error);
   }  /* if */
   if (sym == NULL) {
@@ -7821,6 +7828,7 @@ static a_constant_ptr copy_template_param_con(
                                   a_template_nesting_depth depth,
                                   a_type_ptr               guide_type,
                                   a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
                                   a_boolean                *copy_error,
                                   a_constant_ptr           constant)
 /*
@@ -7834,7 +7842,8 @@ either the type of the template parameter or the destination type
 of a cast above this constant.  source_pos provides the source position
 for any calls of copy_type_with_substitution.  If there is an error in
 the copying (specifically, if there is an error in doing substitution
-on a type), set *copy_error to TRUE.
+on a type), set *copy_error to TRUE.  options is a set of name lookup
+options.
 */
 {
   a_constant_ptr con_copy, other_con;
@@ -7869,8 +7878,8 @@ on a type), set *copy_error to TRUE.
                                                   /*is_address=*/FALSE,
                                                   /*is_template_ref=*/FALSE,
                                                   (a_template_arg_ptr)NULL,
-                                                  source_pos, copy_error,
-                                                  constant);
+                                                  source_pos, options,
+                                                  copy_error, constant);
         break;
       case tpck_unknown_function:
         /* An unknown function. */
@@ -7880,8 +7889,8 @@ on a type), set *copy_error to TRUE.
                                                   /*is_address=*/TRUE,
                                                   /*is_template_ref=*/FALSE,
                                                   (a_template_arg_ptr)NULL,
-                                                  source_pos, copy_error,
-                                                  constant);
+                                                  source_pos, options,
+                                                  copy_error, constant);
         break;
       case tpck_cast:
         /* The template param constant represents a cast of a constant to
@@ -7890,7 +7899,7 @@ on a type), set *copy_error to TRUE.
                                                template_arg_list,
                                                depth,
                                                source_pos,
-                                               CTWS_NO_OPTIONS,
+                                               options,
                                                copy_error);
         other_con = copy_template_param_con(
                                  con->variant.template_param.variant.constant,
@@ -7898,6 +7907,7 @@ on a type), set *copy_error to TRUE.
                                  depth,
                                  new_type,
                                  source_pos,
+                                 options,
                                  copy_error,
                                  constant);
         if (new_type == con->type &&
@@ -7939,8 +7949,8 @@ on a type), set *copy_error to TRUE.
                                  /*is_address=*/TRUE,
                                  /*is_template_ref=*/FALSE,
                                  (a_template_arg_ptr)NULL,
-                                 source_pos, copy_error,
-                                 constant);
+                                 source_pos, options,
+                                 copy_error, constant);
         break;
       case tpck_sizeof:
       case tpck_alignof:
@@ -7953,7 +7963,7 @@ on a type), set *copy_error to TRUE.
                                                template_arg_list,
                                                depth,
                                                source_pos,
-                                               CTWS_NO_OPTIONS,
+                                               options,
                                                copy_error);
         if (new_type == con->variant.template_param.variant.type) {
           /* No change in the type. */
@@ -8005,7 +8015,7 @@ on a type), set *copy_error to TRUE.
                                                     template_arg_list,
                                                     depth,
                                                     source_pos,
-                                                    CTWS_NO_OPTIONS,
+                                                    options,
                                                     copy_error);
           /* Apply the template argument list to the template. */
           con_copy = copy_template_param_unknown_entity_con(
@@ -8015,8 +8025,8 @@ on a type), set *copy_error to TRUE.
                                  /*is_address=*/TRUE,
                                  /*is_template_ref=*/TRUE,
                                  arg_list,
-                                 source_pos, copy_error,
-                                 constant);
+                                 source_pos, options,
+                                 copy_error, constant);
         }
         break;
       case tpck_expression:
@@ -8029,6 +8039,7 @@ on a type), set *copy_error to TRUE.
                                                              template_arg_list,
                                                              depth,
                                                              source_pos,
+                                                             options,
                                                              copy_error,
                                                              constant,
                                                              &con_copy);
@@ -8058,6 +8069,7 @@ a_constant_ptr copy_template_param_con_with_substitution(
                                   a_template_nesting_depth depth,
                                   a_type_ptr               template_param_type,
                                   a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
                                   a_boolean                *copy_error)
 /*
 Copy a ck_template_param constant, and return a pointer to the
@@ -8068,7 +8080,8 @@ template parameter for which con is the actual argument.  source_pos
 provides the source position for any calls of copy_type_with_substitution.
 If there is an error in the copying (specifically, if there is an error
 in doing substitution on a type), set *copy_error to TRUE.  The copy of
-the constant is always placed in the file scope memory region.
+the constant is always placed in the file scope memory region.  options
+is a set of name lookup options.
 */
 {
   a_constant_ptr con_copy;
@@ -8082,6 +8095,7 @@ the constant is always placed in the file scope memory region.
                                      depth,
                                      template_param_type,
                                      source_pos,
+                                     options,
                                      copy_error,
                                      &constant);
   if (con_copy == NULL) {
