@@ -13331,6 +13331,9 @@ bits of information that were acquired while parsing.
   saved_error_position = error_position;
   error_position = tag_sym->decl_position;
   if (C_dialect == C_dialect_cplusplus) {
+    /* Reset the access to "public" for compiler-generated functions, if
+       any. */
+    class_state->access = (an_access_specifier)as_public;
     if (!class_state->class_aggregate_ruled_out) {
       /* Classes with no constructors, no private or protected nonstatic
          data members, no base classes, and no virtual functions are used to
@@ -13349,37 +13352,29 @@ bits of information that were acquired while parsing.
          required. */
       report_missing_constructor(tag_sym);
     }  /* if */
-    if (!class_type->variant.class_struct_union.is_prototype_instantiation) {
-      /* The following work should not be done for prototype instantiations
-         since we do not know the exact nature of the class until actual
-         template arguments are determined. */
-      /* Check to see if a remark should be issued on direct base classes
-         with nonvirtual destructors. */
-      check_base_class_destructors(class_type);
-      /* Reset the access to "public" for compiler-generated functions, if
-         any. */
-      class_state->access = (an_access_specifier)as_public;
-      /* Create compiler-generated default constructor, copy constructor,
-         destructor, and assignment operator, if any is needed. */
-      check_special_member_functions(class_type, class_state);
-#if ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI
-      /* Go though all the functions declared for this class and set the
-         virtual function number of virtual functions.  (Note: with less
-         current ABIs the numbers are updated on the fly as the member
-         function declaration is processed.) */
-      set_virtual_function_numbers(class_type);
-#endif /* ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI */
-      /* Set shares_virtual_function_info for a base class of class_type, if
-         appropriate. */
-      set_shares_virtual_function_info_flag(class_type,
-                                            (a_base_class_ptr)NULL);
-    }  /* if */
+    /* Check to see if a remark should be issued on direct base classes
+       with nonvirtual destructors. */
+    check_base_class_destructors(class_type);
+    /* Create compiler-generated default constructor, copy constructor,
+       destructor, and assignment operator, if any is needed. */
+    check_special_member_functions(class_type, class_state);
     if (cssp->is_class_aggregate && !class_state->POD_ruled_out) {
       /* It was intentional to wait until check_special_member_functions
          was called to set the is_POD flag -- the check for copy
          assignment operator was needed first. */
       cssp->is_POD = TRUE;
     }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI
+    /* Go though all the functions declared for this class and set the
+       virtual function number of virtual functions.  (Note: with less
+       current ABIs the numbers are updated on the fly as the member
+       function declaration is processed.) */
+    set_virtual_function_numbers(class_type);
+#endif /* ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI */
+    /* Set shares_virtual_function_info for a base class of class_type, if
+       appropriate. */
+    set_shares_virtual_function_info_flag(class_type,
+                                          (a_base_class_ptr)NULL);
   }  /* if */
   /* Do subobject allocation and compute the size and alignment of the
      class. */
