@@ -973,15 +973,14 @@ make_new_type:
           new_ptp = alloc_param_type(tp);
           if (ptp->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
+#if CHECKING
             if (ptp->type_involves_template_param) {
-#if 0
-              /* We need to convert the expression to the correct type. */
-              new_ptp->default_arg_expr = ???
-#endif /* if 0 */
-            } else {
-              new_ptp->default_arg_expr = copy_expr_tree(ptp->default_arg_expr,
-                                                         /*clone_temps=*/TRUE);
+              internal_error(
+                "copy_type_with_substitution: param type with template param");
             }  /* if */
+#endif /* CHECKING */
+            new_ptp->default_arg_expr = copy_expr_tree(ptp->default_arg_expr,
+                                                       /*clone_temps=*/TRUE);
           }  /* if */
           /* Add the new param type entry to the param types list. */
           if (prev_ptp == NULL) {

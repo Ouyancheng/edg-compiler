@@ -1469,6 +1469,33 @@ scope is that of a class definition.
          int f(int, char *)
 
       */
+      if (C_dialect == C_dialect_cplusplus) {
+        a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+        while (ssep->kind == (a_scope_kind)sck_class_reactivation) {
+          --ssep;
+        }  /* if */
+        if (ssep->kind == (a_scope_kind)sck_template_declaration) {
+          /* Leave default_arg_expr_allowed set to FALSE, since default args
+             are prohibited on all function template declaration, including
+             those of out of line member functions of class templates.
+             The ARM does not explicitly disallow them, but
+             if they are permitted complications in overload resolution for
+             template functions are introduced.  Rather than invent solutions
+             to such complications, we await clarification in the language
+             definition.  Incidentally, cfront issus an error in this case,
+             too. */
+         } else {
+          /* In C++ mode a default argument may be declared with the parameter
+             unless the function is a user-defined overloaded operator (except
+             operator()(), as an extension) or a user-defined conversion.  Note
+             that locator may be NULL (e.g., with abstract declarators). */
+          if (locator != NULL && !locator->is_conversion_name &&
+              (!locator->is_operator_name ||
+               locator->variant.opname == (an_opname_kind)onk_function_call)) {
+            default_arg_expr_allowed = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       /* Push a function prototype scope for the parameters. */
       (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                        *new_type_ptr, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
@@ -1478,17 +1505,6 @@ scope is that of a class definition.
         func_info->scope_number = scope_stack[depth_scope_stack].number;
       }  /* if */
       last_param_type = NULL;
-      if (C_dialect == C_dialect_cplusplus) {
-        /* In C++ mode a default argument may be declared with the parameter
-           unless the function is a user-defined overloaded operator (except
-           operator()(), as an extension) or a user-defined conversion.  Note
-           that locator may be NULL (e.g., with abstract declarators). */
-        if (locator != NULL && !locator->is_conversion_name &&
-            (!locator->is_operator_name ||
-             locator->variant.opname == (an_opname_kind)onk_function_call)) {
-          default_arg_expr_allowed = TRUE;
-        }  /* if */
-      }  /* if */
       do {
         add_stop_token(tok_comma);
         copy_source_position(pos_curr_token, param_type_pos);
