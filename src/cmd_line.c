@@ -1295,11 +1295,7 @@ Process the arguments on the command line that invoked the compiler.
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
     }  /* if */
     if (option_kind_used[(int)optk_alternate_tokens]) {
-#if 0
       command_line_error(ec_cl_alternate_token_option_only_in_cplusplus);
-#else /* 0 */
-      command_line_error(ec_cl_operator_keyword_option_only_in_cplusplus);
-#endif /* 0 */
     }  /* if */
     /* Set wchar_t_is_keyword to FALSE, just in case the default value
        is TRUE.  The value must not be TRUE in C mode. */
