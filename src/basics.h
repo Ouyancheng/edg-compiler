@@ -191,8 +191,17 @@ typedef unsigned int
 		sizeof_t;
 #endif /* __ANSIC__ */
 
+/*
+Definition of a generic byte.  Should be whichever of "char", "signed
+char", or "unsigned char" is most efficient.  Also significant, perhaps:
+How does the debugging environment display these -- integer form rather
+than character form is nice.
+*/
+typedef unsigned char a_byte;
+#define BYTE_MAX UCHAR_MAX
+
 /* Simple boolean type: */
-typedef char	a_boolean;
+typedef a_byte	a_boolean;
 #define FALSE 0
 #define TRUE 1
 
