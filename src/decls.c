@@ -1605,7 +1605,7 @@ called by id_linkage.
   a_boolean     decls_at_same_scope;
   a_boolean     is_list;
   a_symbol_ptr  other_decl, other_decl_saved;
-  a_symbol_kind kind = sk_last;
+  a_symbol_kind kind = (a_symbol_kind)sk_last;
   a_boolean     function_template_seen = FALSE;
   a_boolean     is_function = is_function_type(idlbp->type);
   a_boolean     is_namespace_member_def = FALSE;
