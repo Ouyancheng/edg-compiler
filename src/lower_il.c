@@ -6740,6 +6740,7 @@ is copied in the condition declaration case).
     */
     a_condition_supplement_ptr
                        csp = expr->variant.condition;
+    a_scope_ptr        scope = csp->scope;
     an_expr_node_ptr   value_expr = csp->expr;
     an_insert_location insert_location;
     a_statement_ptr    statement_copy;
@@ -6752,9 +6753,13 @@ is copied in the condition declaration case).
     /* Mark the block statement with added_for_condition. */
 #endif /* 0 */
     /* Move the condition scope into the block. */
-    statement->variant.block.extra_info->assoc_scope = csp->scope;
-    push_context(&context, csp->scope, (an_object_lifetime_ptr)NULL);
-    /* Put the condition value expression under the original statement. */
+    statement->variant.block.extra_info->assoc_scope = scope;
+    /* Activate the scope and object lifetime for the condition. */
+    push_context(&context, scope, (an_object_lifetime_ptr)NULL);
+    if (scope->lifetime != NULL) {
+      begin_object_lifetime(scope->lifetime, &insert_location);
+    }  /* if */
+    /* Lower the value expression. */
     if (bool_is_keyword && !is_switch_stmt) {
       /* For boolean cases (i.e., not switch), adjust the result types of
          boolean operations. */
@@ -6763,6 +6768,7 @@ is copied in the condition declaration case).
                                   /*see_if_possible=*/FALSE);
     }  /* if */
     lower_full_expr(value_expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+    /* Put the condition value expression under the original statement. */
     statement_copy->expr = value_expr;
     /* Insert code for the initialization preceding that condition value
        expression. */
@@ -6773,6 +6779,11 @@ is copied in the condition declaration case).
                        (a_constructor_init_ptr)NULL,
                        /*is_full_expr=*/TRUE,
                        &insert_location, (a_boolean *)NULL);
+    if (scope->lifetime != NULL) {
+      /* Generate the destruction for the condition variable if necessary. */
+      set_insert_location(statement_copy, &insert_location);
+      gen_cleanup_actions(scope->lifetime, &insert_location);
+    }  /* if */
     pop_context();
   }  /* if */
 }  /* lower_condition */
