@@ -12514,9 +12514,9 @@ been annotated in the source with the GNU keyword __extension__.
       if (expr == NULL) {
         /* Create a constant expression to record the extension flag. */
         a_memory_region_number  region_to_switch_back_to;
-        switch_to_file_scope_region(&region_to_switch_back_to);
         a_constant_ptr  con = fs_constant(op->variant.constant.kind);
         copy_constant(&op->variant.constant, con);
+        switch_to_file_scope_region(&region_to_switch_back_to);
         expr = alloc_expr_node((an_expr_node_kind)enk_constant);
         expr->type = con->type;
         expr->variant.constant = con;
