@@ -2782,6 +2782,17 @@ to FALSE if the entity being declared is not initializable.
       ((input_flags & DI_IS_FRIEND_DECL) &&
        !(options & GID_IS_TEMPLATE_DECLARATION))) {
     explicit_template_args_allowed = TRUE;
+  } else if (microsoft_mode &&
+             depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+    /* In Microsoft mode a function declarator can take explicit template
+       argument syntax -- the declaration is taken to be a specialization.
+       For example,
+         template <class T> void f(T) { ... }
+         void f<int>(int) { ... }
+       is allowed in Microsoft mode -- the second line is equivalent to
+         template <> void f<int>(int) { ... }
+    */
+    explicit_template_args_allowed = TRUE;
   }  /* if */
   if (*p_member_parent_type != NULL && (input_flags & DI_IS_SPECIALIZATION)) {
     /* When a member parent type is provided and the specialization flag is

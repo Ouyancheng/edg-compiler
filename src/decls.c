@@ -3264,7 +3264,7 @@ namespace-extension scope.
         *linkage = idl_external;
       }  /* if */
       *effective_decl_level = depth_scope_stack;
-      if (!is_friend_decl &&
+      if (!is_friend_decl && !microsoft_mode &&
           linked_symbol->kind == (a_symbol_kind)sk_routine &&
           linked_symbol->variant.routine.instance_ptr != NULL) {
         /* This is an out-of-scope definition of a namespace template
@@ -3424,6 +3424,14 @@ cross-reference output describing this declaration.
   effective_decl_level =
             compute_effective_decl_level(/*is_function=*/FALSE, storage_class,
                                          /*is_friend_decl=*/FALSE);
+  if (locator->is_template_id && !is_error_locator(*locator)) {
+    /* An explicit template argument list is not allowed.  It could have
+       sneaked past prior checking (during declarator processing) in Microsoft
+       compatibility mode. */
+    pos_error(ec_explicit_template_args_not_allowed,
+              &locator->source_position);
+    set_to_error_locator(*locator);
+  }  /* if */
   if (!C_mode() && locator->specific_symbol != NULL &&
       qualifier_namespace_ptr(*locator) != NULL) {
     /* This identifier is a namespace-qualified name that was previously
@@ -3890,6 +3898,13 @@ on for use in generating cross-reference output describing this declaration.
                                    locator);
     check_scope_for_new_or_delete(locator);
   }  /* if */
+  if (microsoft_mode) {
+    if (locator->is_template_id && locator->specific_symbol == NULL) {
+      /* If this is a template-id for which the symbol has not yet been
+         found, look it up now. */
+      (void)normal_id_lookup(locator, IDL_NO_OPTIONS);
+    }  /* if */
+  }  /* if */
   if (func_info->is_implicit_declaration) {
     check_assertion_str(srk_flags & SRK_IMPLICIT,
                         "decl_routine: missing SRK_IMPLICIT");
@@ -4220,7 +4235,7 @@ on for use in generating cross-reference output describing this declaration.
          Such a declaration cannot be a definition. */
       sym = linked_symbol;
       routine_ptr = sym->variant.routine.ptr;
-      if (is_function_def) {
+      if (is_function_def && !microsoft_mode) {
         pos_sy_error(ec_old_specialization_not_allowed,
                      &locator->source_position, sym);
         /* Set a flag to suppress reuse of the existing external-routine
@@ -4231,7 +4246,7 @@ on for use in generating cross-reference output describing this declaration.
         mark_symbol_to_suppress_warnings(linked_symbol);
         set_to_named_error_locator(*locator);
       }  /* if */
-      if (func_info->is_inline) {
+      if (func_info->is_inline && !is_friend_decl) {
         /* A declaration that is an explicit reference of a template cannot
            include the inline specifier. */
         pos_diagnostic(strict_ansi_discretionary_severity,
@@ -7873,7 +7888,7 @@ TRUE if an error was reported while the decl-specifiers were scanned.
     }  /* if */
     cannot_bind_to_curr_construct();
   } else if ((dso_flags & DSO_DANGLING_TYPE_SPECIFIER) ||
-             (!C_mode() && identifier_is_template_id())) {
+             (!C_mode() && identifier_is_template_id() && !microsoft_mode)) {
     /* The "dangling type specifier" case -- a class, struct, union, or
        enum definition was followed by a type specifier keyword.  This is
        treated as a missing-semicolon error, since the type specifier can

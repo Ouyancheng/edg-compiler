@@ -1,6 +1,16 @@
 Version 2.39
 
-4/6/98     Array rvalue use in C mode
+4/7/98    Microsoft compatibility: allow explicit specification of template
+          arguments in specialization declaration
+
+In Microsoft compatibility mode a template function specialization (without
+"template<>") is now permitted to include an explicit specification of
+template arguments -- for example:
+
+  template <class T> void f(int) { ... }
+  void f<int>(int) { ... }                // As if "template<>" preceded
+
+4/6/98    Array rvalue use in C mode
 
 Use of array rvalues in C mode was introduced recently (see Changes
 entry of 5/22/97, and bug fix of 10/15/97).  Some remaining problems
@@ -16,7 +26,7 @@ with comma expressions and assignment have been resolved.
     return 0;
   }
 
-4/5/98     Microsoft __declspec(property(...)) processing
+4/5/98    Microsoft __declspec(property(...)) processing
 
 In some cases, a field selection for a field declared with the
 Microsoft extension __declspec(property(...)) was not processed
@@ -33,8 +43,8 @@ correctly, and a spurious error was issued.
     f(b.i);  // Got spurious error
   }
 
-4/3/98     Default arguments in the source-sequence representation of
-           functions defined within class definitions
+4/3/98    Default arguments in the source-sequence representation of
+          functions defined within class definitions
 
 When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured
 to TRUE and a member or friend function is defined within a non-local class
@@ -54,7 +64,7 @@ the C++-generating back end now puts out:
   };
   void A::f(int) { }
 
-3/31/98    Spurious error in declaring pointer to member function type
+3/31/98   Spurious error in declaring pointer to member function type
 
 An error is no longer issued when a pointer to member function type is
 declared using a typedef name to specify the member type.  For example:
