@@ -1,5 +1,18 @@
 Version 3.6
 
+3/18/05  Stricter array bound constraints in strict C99 mode
+
+In strict C99 mode, the front end previously allowed the declaration of a
+local static or block extern array when its bound was a constant of integer
+type, but not a valid integral constant-expression.  For example:
+
+  void f() {
+    static float a[(int)(3.0+4.0)];  // Not allowed by the C99 standard.
+  }                                  // Now a diagnostic in strict mode.
+
+Such cases are now diagnosed as errors in strict C99 mode and in any other
+strict mode allowing variable-length arrays.
+
 3/17/05  GNU C++ compatibility: Nonstandard anonymous union fields
 
 GNU C++ compilers impose the same constraints on the fields of nonstandard
