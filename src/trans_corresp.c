@@ -1655,7 +1655,7 @@ Return the canonical entry established for the given namespace entry.
 correspondences with other translation units.)
 */
 {
-  a_namespace_ptr  result = result;
+  a_namespace_ptr  result = nsp;
 
   if (nsp != NULL) {
     check_assertion(trans_unit_corresp_pointer_of(nsp) != NULL);
