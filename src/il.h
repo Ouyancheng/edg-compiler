@@ -133,12 +133,14 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_variable */			"variable",
 #ifdef CIL
 /* iek_field */				"field",
+/* iek_exception_specification */       "exception_specification",
 #endif /* ifdef CIL */
 /* iek_routine */			"routine",
 /* iek_label */				"label",
 /* iek_expr_node */			"expr-node",
 #ifdef CIL
 /* iek_switch_clause */			"switch-clause",
+/* iek_handler */			"handler",
 #endif /* ifdef CIL */
 /* iek_block */				"block",
 /* iek_statement */			"statement",
