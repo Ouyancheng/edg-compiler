@@ -1,5 +1,14 @@
 Version 3.3
 
+7/24/03  Uninitialized field in_handler_parameter_declaration
+
+The field in_handler_parameter_declaration in the statement
+stack entry was not initialized.  If by chance it had the
+initial value TRUE, access checking on constructors might
+have been suppressed in certain cases in Microsoft mode,
+which might mean that some access errors that should have
+been emitted would not have been.  Now fixed.
+
 7/23/03  Side effect routines now use expression traversal routines
 
 The routines that discover whether expressions and the like have
