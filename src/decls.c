@@ -6376,7 +6376,9 @@ specifier is restored.
   /* Advance to the string literal. */
   (void)get_token();
   check_assertion(curr_token == tok_string_literal);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   linkage_spec_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* ARM 7.4 specifies that the strings "C" and "C++" must be supported,
      but that implementations are permitted to add others, such as "Ada"
      or "FORTRAN".  If changes are made here to support other strings, be
