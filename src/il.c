@@ -3310,9 +3310,18 @@ bucket of the shareable_constants_table to use for the constant.
       }  /* for */
       break;
     case ck_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case ck_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       /* Use a host-dependent routine for floating-point constants. */
       hash_value = 500 + fp_hash(&cp->variant.float_value);
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case ck_complex:
+      hash_value = 250 + fp_hash(&cp->variant.complex_value->real)
+                       + fp_hash(&cp->variant.complex_value->imag);
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
       /* Address constant.  If the thing pointed to is named, hash the name;
          otherwise (for the address of a constant), hash the constant pointed
@@ -3920,13 +3929,6 @@ put it on a list of constants).
        Those with assoc_info non-NULL were handled above.  For others, make a
        new copy every time. */
     scp = alloc_unshared_constant(cp);
-#if C99_IL_EXTENSIONS_SUPPORTED
-  } else if (cp->kind == (a_constant_repr_kind)ck_complex) {
-    /* Sharing complex constants could lead to IL walk complications due to
-       the an_internal_complex_value entity that they point to (always
-       allocated in file scope). */
-    scp = alloc_unshared_constant(cp);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   } else {
     /* The constant has no source correspondence. */
     /* If the current IL region is not the file scope region (i.e., it's

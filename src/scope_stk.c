@@ -29,6 +29,9 @@ scope_stk.c - Management of the scope stack and related routines.
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
+#if DO_C99_IL_LOWERING
+#include "lower_c99.h"
+#endif /* DO_C99_IL_LOWERING */
 /* exprutil.h is needed to get an_expr_stack_entry for the scope stack. */
 #include "exprutil.h"
 /* statement.h is needed because of wrapup_control_flow_processing call. */
@@ -4409,6 +4412,14 @@ End a name scope by popping an entry off the scope stack.
       lower_il_memory_region(old_memory_region_number);
     }  /* if */
 #endif /* DO_IL_LOWERING */
+#if DO_C99_IL_LOWERING
+    if (c99_il_lowering_needed()) {
+      lower_c99_scope(il_scope);
+      if (kind == (a_scope_kind)sck_file) {
+        lower_c99_nonreal_float_types();
+      }  /* if */
+    }  /* if */
+#endif /* DO_C99_IL_LOWERING */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
     if (kind == (a_scope_kind)sck_function &&
         !curr_routine->is_trivial_default_constructor &&

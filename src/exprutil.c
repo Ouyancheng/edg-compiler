@@ -28,9 +28,6 @@ exprutil.c -- Expression scanning utility routines.
 #include "preproc.h"
 #include "pch.h"
 #include "func_def.h"
-#if DO_C99_IL_LOWERING
-#include "lower_c99.h"
-#endif /* DO_C99_IL_LOWERING */
 
 /* Forward declaration required: */
 static void conv_array_rvalue_to_lvalue(an_operand *operand);
@@ -2317,12 +2314,6 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
                                  *p_node);
     (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
     (*p_node)->variant.operation.is_reinterpret_cast = is_reinterpret_cast;
-#if DO_C99_IL_LOWERING
-    if (c99_il_lowering_needed() && 
-        (is_complex_type(new_type) || is_complex_type(old_type))) {
-      lower_c99_operator(*p_node);
-    }  /* if */
-#endif /* DO_C99_IL_LOWERING */
   }  /* if */
 }  /* add_cast_to_node */
 

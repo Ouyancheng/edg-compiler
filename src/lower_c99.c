@@ -25,6 +25,7 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 
 /* Only include this code if it is needed: */
 #if C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING
+
 /* Header files common to all files. */
 #include "fe_common.h"
 /* Header files used by files involved in IL lowering. */
@@ -35,44 +36,115 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+/* Forward declarations (needed because of mutual recursion situations). */
+static void lower_c99_dynamic_init(a_dynamic_init_ptr dip);
+static void lower_c99_constant_list(a_constant_ptr constant_list);
+static void lower_c99_statement(a_statement_ptr statement);
+
+
+static a_type_ptr lowered_complex_float = NULL;
+static a_type_ptr lowered_complex_double = NULL;
+static a_type_ptr lowered_complex_long_double = NULL;
+
+static a_type_ptr make_lowered_complex_type(a_float_kind  fkind,
+                                            char          *name)
+/*
+Create a struct type with the given name to represent a complex type of the
+given precision.  The struct contains a single field that is an array of two
+floating point elements.
+*/
+{
+  a_type_ptr   result = alloc_type((a_type_kind)tk_struct);
+  a_type_ptr   array_type;
+  a_field_ptr  last_field = NULL;
+
+  result->source_corresp.name = alloc_il(strlen(name)+1);
+  strcpy(result->source_corresp.name, name);
+  /* Create a type "array for two real values". */
+  array_type = alloc_type((a_type_kind)tk_array);
+  array_type->variant.array.variant.number_of_elements = 2;
+  array_type->variant.array.element_type = float_type(fkind);
+  set_type_size(array_type);
+  /* Add the field. */
+  make_lowered_field("_Vals", array_type, result, &last_field);
+  finish_class_type(result);
+  return result;
+}  /* make_lowered_complex_type */
+
+
+static a_type_ptr lowered_complex_type(a_float_kind fkind)
+/*
+Return the structure used to represent a complex type of the kind fkind in
+lowered IL.
+*/
+{
+  a_type_ptr  result = NULL;
+
+  switch (fkind) {
+    case fk_float:
+      if (lowered_complex_float == NULL) {
+        lowered_complex_float = make_lowered_complex_type(
+                                                     fkind, "_Complex_float");
+      }  /* if */
+      result = lowered_complex_float;
+      break;
+    case fk_double:
+      if (lowered_complex_double == NULL) {
+        lowered_complex_double = make_lowered_complex_type(
+                                                    fkind, "_Complex_double");
+      }  /* if */
+      result = lowered_complex_double;
+      break;
+    case fk_long_double:
+      if (lowered_complex_long_double == NULL) {
+        lowered_complex_long_double = make_lowered_complex_type(
+                                               fkind, "_Complex_long_double");
+      }  /* if */
+      result = lowered_complex_long_double;
+      break;
+  }  /* switch */
+  return result;
+}  /* lowered_complex_type */
+
+
 /* Complex arithmetic and comparison routines. */
-a_routine_ptr  xnegate_routine = NULL;
-a_routine_ptr  xadd_routine = NULL;
-a_routine_ptr  xsubtract_routine = NULL;
-a_routine_ptr  xmultiply_routine = NULL;
-a_routine_ptr  xdivide_routine = NULL;
-a_routine_ptr  xeq_routine = NULL;
-a_routine_ptr  xne_routine = NULL;
+static a_routine_ptr  xnegate_routine = NULL;
+static a_routine_ptr  xadd_routine = NULL;
+static a_routine_ptr  xsubtract_routine = NULL;
+static a_routine_ptr  xmultiply_routine = NULL;
+static a_routine_ptr  xdivide_routine = NULL;
+static a_routine_ptr  xeq_routine = NULL;
+static a_routine_ptr  xne_routine = NULL;
 
 /* Complex compound assignment routines. */
-a_routine_ptr  xadd_assign_routine = NULL;
-a_routine_ptr  xsubtract_assign_routine = NULL;
-a_routine_ptr  xmultiply_assign_routine = NULL;
-a_routine_ptr  xdivide_assign_routine = NULL;
+static a_routine_ptr  xadd_assign_routine = NULL;
+static a_routine_ptr  xsubtract_assign_routine = NULL;
+static a_routine_ptr  xmultiply_assign_routine = NULL;
+static a_routine_ptr  xdivide_assign_routine = NULL;
 
 /* Complex-to-complex conversion routines. */
-a_routine_ptr  cast_cfloat_to_cdouble_routine = NULL;
-a_routine_ptr  cast_cfloat_to_clong_double_routine = NULL;
-a_routine_ptr  cast_cdouble_to_cfloat_routine = NULL;
-a_routine_ptr  cast_cdouble_to_clong_double_routine = NULL;
-a_routine_ptr  cast_clong_double_to_cfloat_routine = NULL;
-a_routine_ptr  cast_clong_double_to_cdouble_routine = NULL;
+static a_routine_ptr  cast_cfloat_to_cdouble_routine = NULL;
+static a_routine_ptr  cast_cfloat_to_clong_double_routine = NULL;
+static a_routine_ptr  cast_cdouble_to_cfloat_routine = NULL;
+static a_routine_ptr  cast_cdouble_to_clong_double_routine = NULL;
+static a_routine_ptr  cast_clong_double_to_cfloat_routine = NULL;
+static a_routine_ptr  cast_clong_double_to_cdouble_routine = NULL;
 
 /* Non-complex to complex conversion routines. */
-a_routine_ptr  cast_float_to_cfloat = NULL;
-a_routine_ptr  cast_double_to_cdouble = NULL;
-a_routine_ptr  cast_long_double_to_clong_double = NULL;
-a_routine_ptr  cast_ifloat_to_cfloat = NULL;
-a_routine_ptr  cast_idouble_to_cdouble = NULL;
-a_routine_ptr  cast_ilong_double_to_clong_double = NULL;
+static a_routine_ptr  cast_float_to_cfloat = NULL;
+static a_routine_ptr  cast_double_to_cdouble = NULL;
+static a_routine_ptr  cast_long_double_to_clong_double = NULL;
+static a_routine_ptr  cast_ifloat_to_cfloat = NULL;
+static a_routine_ptr  cast_idouble_to_cdouble = NULL;
+static a_routine_ptr  cast_ilong_double_to_clong_double = NULL;
 
 /* Complex to non-complex conversion routines. */
-a_routine_ptr  cast_cfloat_to_float = NULL;
-a_routine_ptr  cast_cdouble_to_double = NULL;
-a_routine_ptr  cast_clong_double_to_long_double = NULL;
-a_routine_ptr  cast_cfloat_to_ifloat = NULL;
-a_routine_ptr  cast_cdouble_to_idouble = NULL;
-a_routine_ptr  cast_clong_double_to_ilong_double = NULL;
+static a_routine_ptr  cast_cfloat_to_float = NULL;
+static a_routine_ptr  cast_cdouble_to_double = NULL;
+static a_routine_ptr  cast_clong_double_to_long_double = NULL;
+static a_routine_ptr  cast_cfloat_to_ifloat = NULL;
+static a_routine_ptr  cast_cdouble_to_idouble = NULL;
+static a_routine_ptr  cast_clong_double_to_ilong_double = NULL;
 
 
 static void lower_c99_xnegate(an_expr_node_ptr  expr)
@@ -96,10 +168,8 @@ with C89).
     case fk_long_double:
       rout_name = "__c99_complex_long_double_negate";
       break;
-#if CHECKING
     default:
-      internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+      unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xnegate_call = make_runtime_rout_call(rout_name, &xnegate_routine,
                                         return_type,
@@ -129,10 +199,8 @@ Transform the given complex expression ("z1+z2") into a function call
     case fk_long_double:
       rout_name = "__c99_complex_long_double_add";
       break;
-#if CHECKING
     default:
-      internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+      unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xadd_call = make_runtime_rout_call(rout_name, &xadd_routine, return_type,
                                      expr->variant.operation.operands);
@@ -161,10 +229,8 @@ Transform the given complex expression ("z1-z2") into a function call
     case fk_long_double:
       rout_name = "__c99_complex_long_double_subtract";
       break;
-#if CHECKING
     default:
-      internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+      unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xsubtract_call = make_runtime_rout_call(rout_name, &xsubtract_routine,
                                           return_type,
@@ -194,10 +260,8 @@ Transform the given complex expression ("z1*z2") into a function call
     case fk_long_double:
       rout_name = "__c99_complex_long_double_multiply";
       break;
-#if CHECKING
     default:
-      internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+      unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xmultiply_call = make_runtime_rout_call(rout_name, &xmultiply_routine,
                                           return_type,
@@ -227,10 +291,8 @@ Transform the given complex expression ("z1/z2") into a function call
     case fk_long_double:
       rout_name = "__c99_complex_long_double_divide";
       break;
-#if CHECKING
     default:
-      internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+      unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xdivide_call = make_runtime_rout_call(rout_name, &xdivide_routine,
                                         return_type,
@@ -246,11 +308,12 @@ Transform the given complex expression ("z1==z2") into a function call
 */
 {
   a_type_ptr  return_type = expr->type;
+  a_type_ptr  op_type = expr->variant.operation.operands->type;
   char        *rout_name;
   an_expr_node_ptr  xeq_call;
 
-  check_assertion(is_complex_type(return_type));
-  switch (return_type->variant.float_kind) {
+  check_assertion(is_complex_type(op_type));
+  switch (op_type->variant.float_kind) {
     case fk_float:
       rout_name = "__c99_complex_float_eq";
       break;
@@ -260,10 +323,8 @@ Transform the given complex expression ("z1==z2") into a function call
     case fk_long_double:
       rout_name = "__c99_complex_long_double_eq";
       break;
-#if CHECKING
     default:
-      internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+      unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xeq_call = make_runtime_rout_call(rout_name, &xeq_routine, return_type,
                                     expr->variant.operation.operands);
@@ -278,11 +339,12 @@ Transform the given complex expression ("z1!=z2") into a function call
 */
 {
   a_type_ptr  return_type = expr->type;
+  a_type_ptr  op_type = expr->variant.operation.operands->type;
   char        *rout_name;
   an_expr_node_ptr  xne_call;
 
-  check_assertion(is_complex_type(return_type));
-  switch (return_type->variant.float_kind) {
+  check_assertion(is_complex_type(op_type));
+  switch (op_type->variant.float_kind) {
     case fk_float:
       rout_name = "__c99_complex_float_ne";
       break;
@@ -292,10 +354,8 @@ Transform the given complex expression ("z1!=z2") into a function call
     case fk_long_double:
       rout_name = "__c99_complex_long_double_ne";
       break;
-#if CHECKING
     default:
-      internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+      unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xne_call = make_runtime_rout_call(rout_name, &xne_routine, return_type,
                                     expr->variant.operation.operands);
@@ -324,10 +384,8 @@ Transform the given complex expression ("z1 += z2") into a function call
     case fk_long_double:
       rout_name = "__c99_complex_long_double_add_assign";
       break;
-#if CHECKING
     default:
-      internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+      unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xadd_assign_call = make_runtime_rout_call(rout_name, &xadd_assign_routine,
                                             return_type,
@@ -357,10 +415,8 @@ Transform the given complex expression ("z1 -= z2") into a function call
     case fk_long_double:
       rout_name = "__c99_complex_long_double_subtract_assign";
       break;
-#if CHECKING
     default:
-      internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+      unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xsubtract_assign_call = make_runtime_rout_call(
                             rout_name, &xsubtract_assign_routine, return_type,
@@ -390,10 +446,8 @@ Transform the given complex expression ("z1 *= z2") into a function call
     case fk_long_double:
       rout_name = "__c99_complex_long_double_multiply_assign";
       break;
-#if CHECKING
     default:
-      internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+      unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xmultiply_assign_call = make_runtime_rout_call(
                             rout_name, &xmultiply_assign_routine, return_type,
@@ -423,10 +477,8 @@ Transform the given complex expression ("z1 /= z2") into a function call
     case fk_long_double:
       rout_name = "__c99_complex_long_double_divide_assign";
       break;
-#if CHECKING
     default:
-      internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+      unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xdivide_assign_call = make_runtime_rout_call(
                               rout_name, &xdivide_assign_routine, return_type,
@@ -475,10 +527,8 @@ Transform the given cast expression into a function call (compatible with C89).
               routine_name = "__c99_cfloat_to_clong_double";
               routine = &cast_cfloat_to_clong_double_routine;
               break;
-#if CHECKING
             default:
-              internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+              unexpected_condition_str("invalid floating-point kind");
           }  /* switch */
           break;
         case fk_double:
@@ -491,10 +541,8 @@ Transform the given cast expression into a function call (compatible with C89).
               routine_name = "__c99_cdouble_to_clong_double";
               routine = &cast_cdouble_to_clong_double_routine;
               break;
-#if CHECKING
             default:
-              internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+              unexpected_condition_str("invalid floating-point kind");
           }  /* switch */
           break;
         case fk_long_double:
@@ -507,16 +555,12 @@ Transform the given cast expression into a function call (compatible with C89).
               routine_name = "__c99_clong_double_to_cdouble";
               routine = &cast_clong_double_to_cdouble_routine;
               break;
-#if CHECKING
             default:
-              internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+              unexpected_condition_str("invalid floating-point kind");
           }  /* switch */
           break;
-#if CHECKING
           default:
-            internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+            unexpected_condition_str("invalid floating-point kind");
       }  /* switch */
       cast_call = make_runtime_rout_call(routine_name, routine, dst_type, src);
     } else if (is_imaginary_type(src_type)) {
@@ -534,10 +578,8 @@ Transform the given cast expression into a function call (compatible with C89).
           routine_name = "__c99_ilong_double_to_clong_double";
           routine = &cast_ilong_double_to_clong_double;
           break;
-#if CHECKING
         default:
-          internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+          unexpected_condition_str("invalid floating-point kind");
       }  /* switch */
       /* Before creating a complex value, be sure the imaginary value is cast
          to the needed precision. */
@@ -559,10 +601,8 @@ Transform the given cast expression into a function call (compatible with C89).
           routine_name = "__c99_long_double_to_clong_double";
           routine = &cast_long_double_to_clong_double;
           break;
-#if CHECKING
         default:
-          internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+          unexpected_condition_str("invalid floating-point kind");
       }  /* switch */
       /* Before creating a complex value, be sure the real value is cast
          to the needed precision. */
@@ -588,10 +628,8 @@ Transform the given cast expression into a function call (compatible with C89).
           routine_name = "__c99_clong_double_to_ilong_double";
           routine = &cast_clong_double_to_ilong_double;
           break;
-#if CHECKING
         default:
-          internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+          unexpected_condition_str("invalid floating-point kind");
       }  /* switch */
       cast_call = make_runtime_rout_call(
                            routine_name, routine,
@@ -618,10 +656,8 @@ Transform the given cast expression into a function call (compatible with C89).
           routine_name = "__c99_clong_double_to_long_double";
           routine = &cast_clong_double_to_long_double;
           break;
-#if CHECKING
         default:
-          internal_error("invalid floating-point kind");
-#endif /* CHECKING */
+          unexpected_condition_str("invalid floating-point kind");
       }  /* switch */
       cast_call = make_runtime_rout_call(
                            routine_name, routine,
@@ -636,6 +672,11 @@ Transform the given cast expression into a function call (compatible with C89).
 
 
 void lower_c99_operator(an_expr_node_ptr  expr)
+/*
+The given expression should be an operation.  If it is a complex or an
+imaginary operation, replace it by IL that is compatible with C89 IL.
+Otherwise, do nothing.
+*/
 {
   check_assertion(expr->kind == (an_expr_node_kind)enk_operation);
   switch (expr->variant.operation.kind) {
@@ -679,13 +720,413 @@ void lower_c99_operator(an_expr_node_ptr  expr)
       lower_c99_jmultiply(expr);
       break;
     case eok_cast:
-      lower_c99_complex_cast(expr);
+      if (is_nonreal_floating_type(expr->type) ||
+          is_nonreal_floating_type(expr->variant.operation.operands->type)) {
+        lower_c99_complex_cast(expr);
+      }  /* if */
       break;
     default:
       /* Nothing needs to be done. */
       break;
   }  /* switch */
 }  /* lower_c99_operator */
+
+
+static void lower_c99_complex_constant(a_constant_ptr  constant)
+/*
+Replace the given ck_complex constant by a ck_aggregate constant structure
+that can initialize a lowered complex variable.  (Since complex constants are
+allocated in file scope, the lowered structure must also be placed there.)
+*/
+{
+  a_constant_ptr  real_part, imag_part, pair;
+  a_float_kind    fkind = constant->type->variant.float_kind;
+  a_type_ptr      lowered_type = lowered_complex_type(fkind);
+
+  real_part = fs_constant((a_constant_repr_kind)ck_float);
+  real_part->type = float_type(fkind);
+  memcpy(&real_part->variant.float_value,
+         &constant->variant.complex_value->real,
+         sizeof(an_internal_float_value));
+  imag_part = fs_constant((a_constant_repr_kind)ck_float);
+  imag_part->type = float_type(fkind);
+  memcpy(&imag_part->variant.float_value,
+         &constant->variant.complex_value->imag,
+         sizeof(an_internal_float_value));
+  real_part->next = imag_part;
+
+  pair = fs_constant((a_constant_repr_kind)ck_aggregate);
+  pair->type = lowered_type->variant.class_struct_union.field_list->type;
+  check_assertion(is_array_type(pair->type));
+  pair->variant.aggregate.first_constant = real_part;
+  pair->variant.aggregate.last_constant = imag_part;
+
+  set_constant_kind(constant, (a_constant_repr_kind)ck_aggregate);
+  constant->type = lowered_type;
+  constant->variant.aggregate.first_constant = pair;
+  constant->variant.aggregate.last_constant = pair;
+}  /* lower_c99_complex_constant */
+
+
+static void lower_c99_constant(a_constant_ptr  constant)
+/*
+If the given constant contains C99-specific constructs (like _Complex values),
+replace them by a representation compatible with C89.
+*/
+{
+  switch (constant->kind) {
+    case ck_complex:
+      lower_c99_complex_constant(constant);
+      break;
+    case ck_aggregate:
+      lower_c99_constant_list(constant->variant.aggregate.first_constant);
+      break;
+    case ck_imaginary:
+      /* Represent the constant as a regular floating-point constant.
+         It's type will similarly be adjusted. */
+      constant->kind = ck_float;
+      break;
+    case ck_address:
+      switch (constant->variant.address.kind) {
+        case abk_routine:
+          /* Routines will be visited from the scope. */
+          break;
+        case abk_variable:
+          /* Variables will be visited from the scope. */
+          break;
+        case abk_constant:
+          /* Constants might not be on the scope constant list, so visit
+             their subtrees. */
+          break;
+        default:
+          unexpected_condition_str("Bad c99 address const kind");
+      }  /* switch */
+      break;
+    case ck_dynamic_init:
+      lower_c99_dynamic_init(constant->variant.dynamic_init);
+      break;
+    case ck_init_repeat:
+      /* FIXME?  Move lowering code here? */
+      break;
+    case ck_designator:
+      /* FIXME?  Move lowering code here? */
+      break;
+    case ck_error:
+    case ck_integer:
+    case ck_float:
+    case ck_string:
+      /* Nothing to be done. */
+      break;
+    default:
+      unexpected_condition_str("Invalid C99 constant");
+      break;
+  }  /* switch */
+}  /* lower_c99_constant */
+
+
+static void lower_c99_constant_expr(an_expr_node_ptr  expr)
+/*
+Transform the given expression to remove certain C99-specific constructs.
+*/
+{
+  if (is_imaginary_type(expr->type)) {
+    /* Turn the imaginary constant into a real floating point constant. */
+    lower_c99_constant(expr->variant.constant);
+  } else if (is_complex_type(expr->type)) {
+    /* Replace this node by a reference to a new static variable initialized
+       with an aggregate representing the constant complex value. */
+    a_variable_ptr  tmp = make_temporary_in_scope(
+                                   lowered_complex_type(
+                                              expr->type->variant.float_kind),
+                                   scope_stack[DEPTH_OF_FILE_SCOPE].il_scope,
+                                   /*force_static=*/FALSE);
+    tmp->init_kind = initk_static;
+    tmp->initializer.constant = expr->variant.constant;
+    lower_c99_constant(tmp->initializer.constant);
+    overwrite_node(expr, var_rvalue_expr(tmp));
+  }  /* if */
+}  /* lower_c99_constant_expr */
+
+
+static void lower_c99_temp_init(an_expr_node_ptr  expr)
+/*
+Transform the given enk_temp_init expression to remove certain C99-specific
+constructs.
+*/
+{
+  lower_c99_dynamic_init(expr->variant.init.dynamic_init);
+}  /* lower_c99_temp_init */
+
+
+static void lower_c99_expr(an_expr_node_ptr  expr)
+/*
+Transform the given expression to remove certain C99-specific constructs.
+*/
+{
+  an_expr_node_ptr  operand;
+
+  switch (expr->kind) {
+    case enk_operation:
+      /* First lower all the operands (if any). */
+      for (operand = expr->variant.operation.operands;
+           operand != NULL;
+           operand = operand->next) {
+        lower_c99_expr(operand);
+      }  /* if */
+      /* Then transform the current operator if needed. */
+      lower_c99_operator(expr);
+      break;
+    case enk_constant:
+      lower_c99_constant_expr(expr);
+      break;
+    case enk_temp_init:
+      lower_c99_temp_init(expr);
+      break;
+    case enk_routine_address:
+    case enk_variable:
+    case enk_variable_address:
+      /* Nothing to be done. */
+      break;
+    default:
+      unexpected_condition_str("Invalid C99 IL expression kind");
+      break;
+  }  /* switch */
+}  /* lower_c99_expr */
+
+
+static void lower_c99_dynamic_init(a_dynamic_init_ptr dip)
+/*
+Do C99 lowering on the indicated dynamic initialization entry.
+*/
+{
+  switch (dip->kind) {
+    case dik_constant:
+      lower_c99_constant(dip->variant.constant);
+      break;
+    case dik_expression:
+      lower_c99_expr(dip->variant.expression);
+      break;
+    default:
+      unexpected_condition_str("lower_c99_dynamic_init: bad kind");
+  }  /* switch */
+}  /* lower_c99_dynamic_init */
+
+
+static void lower_c99_constant_list(a_constant_ptr constant_list)
+/*
+Do C99 lowering on a constant list.
+*/
+{
+  a_constant_ptr constant;
+
+  for (constant = constant_list;
+       constant != NULL;
+       constant = constant->next) {
+    lower_c99_constant(constant);
+  }  /* if */
+}  /* lower_c99_constant_list */
+
+
+static void lower_c99_statement_list(a_statement_ptr statement_list)
+/*
+Do C99 lowering on the indicated statement list.
+*/
+{
+  a_statement_ptr statement;
+
+  for (statement = statement_list;
+       statement != NULL;
+       statement = statement->next) {
+    lower_c99_statement(statement);
+  }  /* for */
+}  /* lower_c99_statement_list */
+
+
+static void lower_c99_statement(a_statement_ptr statement)
+/*
+Do C99 lowering on the indicated statement.
+*/
+{
+  a_source_position saved_error_position;
+
+  /* Set the error position to the statement position, in case there is
+     an error in lowering. */
+  saved_error_position = error_position;
+  set_position_from_stmt_source_position(error_position, statement->position);
+  if (statement->expr != NULL) {
+    lower_c99_expr(statement->expr);
+  }  /* if */
+  switch (statement->kind) {
+    case stmk_expr:
+    case stmk_goto:
+    case stmk_label:
+    case stmk_return:
+    case stmk_init:
+    case stmk_asm:
+#if ASM_FUNCTION_ALLOWED
+    case stmk_asm_func_body:
+#endif /* ASM_FUNCTION_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    case stmk_decl:
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    case stmk_set_vla_size:
+    case stmk_vla_decl:
+    case stmk_vla_dealloc:
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+    case stmk_empty:
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
+      /* Nothing to lower. */
+      break; 
+    case stmk_if:
+      lower_c99_statement(statement->variant.if_stmt.then_statement);
+      if (statement->variant.if_stmt.else_statement != NULL) {
+        lower_c99_statement(statement->variant.if_stmt.else_statement);
+      }  /* if */
+      break;
+    case stmk_while:
+    case stmk_end_test_while:
+      lower_c99_statement(statement->variant.loop_statement);
+      break;
+    case stmk_for:
+      { a_for_loop_ptr flp = statement->variant.for_loop.extra_info;
+        if (flp->initialization != NULL) {
+          lower_c99_statement(flp->initialization);
+        }  /* if */
+        if (flp->increment != NULL) {
+          lower_c99_expr(flp->increment);
+        }  /* if */
+      }
+      lower_c99_statement(statement->variant.for_loop.statement);
+      break;
+    case stmk_block:
+      lower_c99_statement_list(statement->variant.block.statements);
+      break;
+    case stmk_switch:
+      { a_switch_clause_ptr scp;
+        /* Walk the switch clause list. */
+        for (scp = statement->variant.switch_stmt.clause_list;
+             scp != NULL;
+             scp = scp->next) {
+          lower_c99_constant_list(scp->constant_list);
+          lower_c99_statement_list(scp->statements);
+        }  /* for */
+      }
+      lower_c99_statement(statement->variant.switch_stmt.body_statement);
+      break;
+    default:
+      unexpected_condition_str("lower_c99_statement: bad statement kind");
+  }  /* switch */
+  error_position = saved_error_position;
+}  /* lower_c99_statement */
+
+
+static void lower_c99_initializer(an_init_kind   init_kind,
+                                  an_initializer *initializer)
+/*
+Do C99 lowering for an initializer (e.g., from a variable).  init_kind
+indicates the kind of initialization, and *initializer provides the details.
+*/
+{
+  switch (init_kind) {
+    case initk_static:
+      /* The initializer is a constant. */
+      lower_c99_constant(initializer->constant);
+      break;
+    case initk_dynamic:
+      /* The initializer is dynamic. */
+      lower_c99_dynamic_init(initializer->dynamic);
+      break;
+    case initk_function_local:
+      /* Local static variable inits are handled at the scope level. */
+      break;
+    case initk_none:
+      /* Nothing to be done. */
+      break;
+    case initk_zero:
+      /* Should only appear when lowering C++ IL. */
+    default:
+      unexpected_condition_str("lower_c99_initializer: bad init kind");
+  }  /* switch */
+}  /* lower_c99_initializer */
+
+
+static void lower_c99_variable(a_variable_ptr var)
+/*
+Do C99 lowering on the indicated variable and its subtree.
+*/
+{
+  a_source_position saved_error_position;
+
+  /* Set the error position to the variable position, in case there is
+     an error in lowering. */
+  saved_error_position = error_position;
+  error_position = var->source_corresp.decl_position;
+  lower_c99_initializer(var->init_kind, &var->initializer);
+  error_position = saved_error_position;
+}  /* lower_c99_variable */
+  
+
+void lower_c99_scope(a_scope_ptr scope)
+/*
+Do C99 lowering for all entities in and under the given scope.
+*/
+{
+  a_variable_ptr                   variable;
+  a_scope_ptr                      block_scope;
+  a_vla_dimension_ptr              vla_dim;
+  a_local_static_variable_init_ptr lsvip;
+
+  switch (scope->kind) {
+    case sck_file:
+    case sck_block:
+      /* Nothing to lower. */
+      break;
+    case sck_function:
+      /* Lower all parameters. */
+      for (variable = scope->variant.routine.parameters;
+           variable != NULL;
+           variable = variable->next) {
+        lower_c99_variable(variable);
+      }  /* for */
+      break;
+    default:
+      unexpected_condition_str("lower_c99_scope: bad scope kind");
+  }  /* switch */
+  /* Visit all nonstatic variables. */
+  for (variable = scope->nonstatic_variables;
+       variable != NULL;
+       variable = variable->next) {
+    lower_c99_variable(variable);
+  }  /* for */
+  /* Visit all static variables. */
+  for (variable = scope->variables;
+       variable != NULL;
+       variable = variable->next) {
+    lower_c99_variable(variable);
+  }  /* for */
+  /* Visit all block scopes (only present in function and block scopes). */
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    lower_c99_scope(block_scope);
+  }  /* for */
+  if (scope->kind == (a_scope_kind)sck_function) {
+    /* Lower the function block statement. */
+    lower_c99_statement(scope->assoc_block);
+  }  /* if */
+  /* Visit all VLA dimension expressions. */
+  for (vla_dim = scope->vla_dimensions;
+       vla_dim != NULL;
+       vla_dim = vla_dim->next) {
+    lower_c99_expr(vla_dim->dimension_expr);
+  }  /* for */
+  /* Visit all initializers for local static variables. */
+  for (lsvip = scope->local_static_variable_inits;
+       lsvip != NULL;
+       lsvip = lsvip->next) {
+    lower_c99_initializer(lsvip->init_kind, &lsvip->initializer);
+  }  /* for */
+}  /* lower_c99_scope */
 
 
 static void lower_c99_imaginary_type(a_float_kind  kind,
@@ -705,29 +1146,30 @@ static void lower_c99_complex_type(a_float_kind  kind,
                                    char          *name)
 {
   a_type_ptr   cmplx_type = complex_type(kind);
-  a_type_ptr   array_type;
-  a_field_ptr  last_field = NULL;
+  a_type_ptr   lowered_repr = lowered_complex_type(kind);
 
-  /* Create a struct type with a layout similar to that of the complex type. */
-  set_type_kind(cmplx_type, (a_type_kind)tk_struct);
+  /* Typedef the complex type to its lowered representation. */
+  set_type_kind(cmplx_type, (a_type_kind)tk_typeref);
   cmplx_type->source_corresp.name = alloc_il(strlen(name)+1);
   strcpy(cmplx_type->source_corresp.name, name);
-  /* Create a type "array for two real values". */
-  array_type = alloc_type((a_type_kind)tk_array);
-  array_type->variant.array.variant.number_of_elements = 2;
-  array_type->variant.array.element_type = float_type(kind);
-  set_type_size(array_type);
-  /* Add the field. */
-  make_lowered_field("_Vals", array_type, cmplx_type, &last_field);
-  finish_class_type(cmplx_type);
-  add_to_front_of_file_scope_types_list(cmplx_type);
+  cmplx_type->variant.typeref.type = lowered_repr;
 #if MAINTAIN_NEEDED_FLAGS
-  set_class_keep_definition_in_il(cmplx_type);
+  /* Ensure it is kept in the IL. */
+  mark_as_needed((char *)lowered_repr, iek_type);
+  set_class_definition_needed_flag(lowered_repr);
+  set_class_keep_definition_in_il(lowered_repr);
+  mark_as_needed((char *)cmplx_type, iek_type);
 #endif /* MAINTAIN_NEEDED_FLAGS */
+  /* Link the types into the IL (in the right order). */
+  add_to_front_of_file_scope_types_list(cmplx_type);
+  add_to_front_of_file_scope_types_list(cmplx_type->variant.typeref.type);
 }  /* lower_c99_complex_type */
 
 
 void lower_c99_nonreal_float_types(void)
+/*
+Replace the imaginary and complex C99 types by their lowered representations.
+*/
 {
   lower_c99_imaginary_type((a_float_kind)fk_float, "_Imaginary_float");
   lower_c99_imaginary_type((a_float_kind)fk_double, "_Imaginary_double");
@@ -736,7 +1178,97 @@ void lower_c99_nonreal_float_types(void)
   lower_c99_complex_type((a_float_kind)fk_float, "_Complex_float");
   lower_c99_complex_type((a_float_kind)fk_double, "_Complex_double");
   lower_c99_complex_type((a_float_kind)fk_long_double, "_Complex_long_double");
-}  /*  */
+}  /* lower_c99_nonreal_float_types */
+
+
+void lower_c99_one_time_init(void)
+/*
+Do one-time initialization of variables related to C99 IL lowering.
+(Variables that need to be reinitialized with each new translation unit
+are handled in lower_c99_init.)
+*/
+{
+  /* Save variables from lower_c99.c that are needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(xnegate_routine),
+      pch_saved_var_array_elem(xadd_routine),
+      pch_saved_var_array_elem(xsubtract_routine),
+      pch_saved_var_array_elem(xmultiply_routine),
+      pch_saved_var_array_elem(xdivide_routine),
+      pch_saved_var_array_elem(xadd_assign_routine),
+      pch_saved_var_array_elem(xsubtract_assign_routine),
+      pch_saved_var_array_elem(xmultiply_assign_routine),
+      pch_saved_var_array_elem(xdivide_assign_routine),
+      pch_saved_var_array_elem(cast_cfloat_to_cdouble_routine),
+      pch_saved_var_array_elem(cast_cfloat_to_clong_double_routine),
+      pch_saved_var_array_elem(cast_cdouble_to_cfloat_routine),
+      pch_saved_var_array_elem(cast_cdouble_to_clong_double_routine),
+      pch_saved_var_array_elem(cast_clong_double_to_cfloat_routine),
+      pch_saved_var_array_elem(cast_clong_double_to_cdouble_routine),
+      pch_saved_var_array_elem(cast_float_to_cfloat),
+      pch_saved_var_array_elem(cast_double_to_cdouble),
+      pch_saved_var_array_elem(cast_long_double_to_clong_double),
+      pch_saved_var_array_elem(cast_ifloat_to_cfloat),
+      pch_saved_var_array_elem(cast_idouble_to_cdouble),
+      pch_saved_var_array_elem(cast_ilong_double_to_clong_double),
+      pch_saved_var_array_elem(cast_cfloat_to_float),
+      pch_saved_var_array_elem(cast_cdouble_to_double),
+      pch_saved_var_array_elem(cast_clong_double_to_long_double),
+      pch_saved_var_array_elem(cast_cfloat_to_ifloat),
+      pch_saved_var_array_elem(cast_cdouble_to_idouble),
+      pch_saved_var_array_elem(cast_clong_double_to_ilong_double),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* lower_c99_one_time_init */
+
+
+void lower_c99_init(void)
+/*
+Initialize static variables related to C99 IL lowering.  This is done as a
+subroutine (rather than relying on static initialization) so that it can be
+redone to compile more than one source file in a single invocation of the
+front end.
+*/
+{
+  xnegate_routine = NULL;
+  xadd_routine = NULL;
+  xsubtract_routine = NULL;
+  xmultiply_routine = NULL;
+  xdivide_routine = NULL;
+  xeq_routine = NULL;
+  xne_routine = NULL;
+  xadd_assign_routine = NULL;
+  xsubtract_assign_routine = NULL;
+  xmultiply_assign_routine = NULL;
+  xdivide_assign_routine = NULL;
+  cast_cfloat_to_cdouble_routine = NULL;
+  cast_cfloat_to_clong_double_routine = NULL;
+  cast_cdouble_to_cfloat_routine = NULL;
+  cast_cdouble_to_clong_double_routine = NULL;
+  cast_clong_double_to_cfloat_routine = NULL;
+  cast_clong_double_to_cdouble_routine = NULL;
+  cast_float_to_cfloat = NULL;
+  cast_double_to_cdouble = NULL;
+  cast_long_double_to_clong_double = NULL;
+  cast_ifloat_to_cfloat = NULL;
+  cast_idouble_to_cdouble = NULL;
+  cast_ilong_double_to_clong_double = NULL;
+  cast_cfloat_to_float = NULL;
+  cast_cdouble_to_double = NULL;
+  cast_clong_double_to_long_double = NULL;
+  cast_cfloat_to_ifloat = NULL;
+  cast_cdouble_to_idouble = NULL;
+  cast_clong_double_to_ilong_double = NULL;
+
+  /* Create lowered complex types. */
+  (void)lowered_complex_type((a_float_kind)fk_float);
+  (void)lowered_complex_type((a_float_kind)fk_double);
+  (void)lowered_complex_type((a_float_kind)fk_long_double);
+}  /* lower_c99_init */
+
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING */
 

@@ -29,9 +29,6 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "decl_spec.h"
 #include "func_def.h"
-#if DO_C99_IL_LOWERING
-#include "lower_c99.h"
-#endif /* DO_C99_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the
@@ -105,6 +102,13 @@ should be suppressed.
     case eok_and_assign:
     case eok_or_assign:
     case eok_xor_assign:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_xassign:
+    case eok_xmultiply_assign:
+    case eok_xdivide_assign:
+    case eok_xadd_assign:
+    case eok_xsubtract_assign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_call:
     case eok_virtual_call:
     case eok_pm_call:
@@ -8751,11 +8755,6 @@ be of integral type.  See section 3.3.5 of the standard.
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2,
                         result_type, result, &operator_position);
-#if DO_C99_IL_LOWERING
-    if (c99_il_lowering_needed() && is_complex_type(result_type)) {
-      lower_c99_operator(result->variant.expression);
-    }  /* if */
-#endif /* DO_C99_IL_LOWERING */
   }  /* if */
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
@@ -8992,11 +8991,6 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
           op == (an_expr_operator_kind)eok_psubtract) {
         result->ref_entries_list = operand_1->ref_entries_list;
       }  /* if */
-#if DO_C99_IL_LOWERING
-      if (is_complex_type(result_type)) {
-        lower_c99_operator(result->variant.expression);
-      }  /* if */
-#endif /* DO_C99_IL_LOWERING */
     }  /* if */
   }  /* if */
 
@@ -9489,11 +9483,6 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &operator_position);
-#if DO_C99_IL_LOWERING
-    if (c99_il_lowering_needed() && is_complex_type(result_type)) {
-      lower_c99_operator(result->variant.expression);
-    }  /* if */
-#endif /* DO_C99_IL_LOWERING */
   }  /* if */
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
@@ -10708,11 +10697,6 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
         change_assignment_result_to_lvalue(result, operand_1,
                                            orig_result_type);
       }  /* if */
-#if DO_C99_IL_LOWERING
-      if (c99_il_lowering_needed() && is_complex_type(result_type)) {
-        lower_c99_operator(result->variant.expression);
-      }  /* if */
-#endif /* DO_C99_IL_LOWERING */
     }  /* if */
   }  /* if */
 
@@ -10977,11 +10961,6 @@ See section 3.3.16 of the standard.
             change_assignment_result_to_lvalue(result, operand_1,
                                                orig_result_type);
           }  /* if */
-#if DO_C99_IL_LOWERING
-          if (c99_il_lowering_needed() && is_complex_type(result_type)) {
-            lower_c99_operator(result->variant.expression);
-          }  /* if */
-#endif /* DO_C99_IL_LOWERING */
         }  /* if */
       }  /* if */
     }  /* if */

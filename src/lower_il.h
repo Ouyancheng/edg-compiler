@@ -587,11 +587,15 @@ extern void set_expr_insert_location(an_expr_node_ptr   node,
 
 extern void set_expr_creation_insert_location(
                                           an_insert_location *insert_location);
+#endif /* DO_IL_LOWERING */
 
+#if DO_IL_LOWERING || DO_C99_IL_LOWERING
 extern void finish_class_type(a_type_ptr class_type);
 
 extern void add_to_front_of_file_scope_types_list(a_type_ptr type);
+#endif /* DO_IL_LOWERING || DO_C99_IL_LOWERING */
 
+#if DO_IL_LOWERING
 extern a_type_ptr make_mptr_type(void);
 
 extern a_type_ptr underlying_type(a_type_ptr type);
