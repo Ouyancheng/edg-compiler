@@ -1390,10 +1390,9 @@ Dump a linked list of base class entries, for debug purposes.
     }  /* if */
   }  /* if */
 }  /* db_base_class_list */
-#endif /* DEBUG */
-
 
 #if CHECKING
+
 static void verify_path_consistency(a_type_ptr        class_type,
                                     a_base_class_ptr  base_class)
 /*
@@ -1464,20 +1463,16 @@ entries associated with base_class are on the base_classes list of class_type.
 
   db_enter(5, "verify_virt_func_override_list");
   ovfp = base_class->overriding_virtual_functions;
-#if DEBUG
     if (debug_level >= 5) {
       if (ovfp != NULL) {
         fputs("base class = ", f_debug);
         db_base_class(base_class, /*show_offset=*/FALSE);
       }  /* if */
     }  /* if */
-#endif /*if */
   for (; ovfp != NULL; ovfp = ovfp->next) {
-#if DEBUG
     if (debug_level >= 5) {
       db_virtual_function_override(ovfp);
     }  /* if */
-#endif /*if */
     if (ovfp->base_class == NULL) {
       check_assertion(null_allowed);
     } else if (ovfp->base_class != base_class) {
@@ -1489,8 +1484,9 @@ entries associated with base_class are on the base_classes list of class_type.
   }  /* for */
   db_exit();
 }  /* verify_virt_func_override_list */
-#endif /* CHECKING */
 
+#endif /* CHECKING */
+#endif /* DEBUG */
 
 a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
                           a_derivation_step_ptr  dsp2)
