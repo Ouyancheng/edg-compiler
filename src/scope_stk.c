@@ -3444,6 +3444,7 @@ been completed.
 }  /* set_needed_flags_at_end_of_file_scope */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#if MAINTAIN_NEEDED_FLAGS
 
 static a_boolean routine_needed_even_if_unreferenced(a_routine_ptr rout)
 /*
@@ -3490,6 +3491,7 @@ e.g., because it's externally defined.
   return is_needed;
 }  /* routine_needed_even_if_unreferenced */
 
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 void pop_scope(void)
 /*
