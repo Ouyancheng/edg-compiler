@@ -1,5 +1,11 @@
 Version 2.25
 
+8/9/94   Cross-reference information on undefined names in declarations
+
+We now put out cross-reference information when an undefined name appears
+in a declaration, as had already been done for undefined names in
+expressions.
+
 8/9/94   Old-style parameter lists in C++
 
 In C++ mode, when anachronism support is turned off, a function parameter
