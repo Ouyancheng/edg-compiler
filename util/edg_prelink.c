@@ -2442,12 +2442,12 @@ int main(int argc, char *argv[])
         break;
       case 'W':
         /* Alternate form of the library directory name option (e.g.,
-           -Wl/edg/cpfe/lib). */
-        if (optarg[0] != 'l') {
+           -Wl,-L/edg/cpfe/lib). */
+        if (strncmp(optarg, "l,-L") != 0) {
           fprintf(stderr, pl_error_text(pl_ec_unrecognized_option), optarg);
           pl_error(pl_ec_command_line_error, (char*)NULL);
         }  /* if */
-        L_directories[num_of_L_directories++] = &optarg[1];
+        L_directories[num_of_L_directories++] = &optarg[4];
         break;
       case 'm':
         /* Leave identifier names in mangled format for display. */
