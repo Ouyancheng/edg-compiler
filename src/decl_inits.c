@@ -307,8 +307,8 @@ in C++, sometimes otherwise) a nonconstant expression is allowed; if not,
 a constant is required.  type is the data type of the object being
 initialized.  dip_ptr is a pointer to a dynamic init pointer; if the latter
 is NULL, a dynamic init entry may be allocated and returned, but if *dip_ptr
-is non-NULL, build the initialization information into the object pointed to.
-A (possibly NULL) constant pointer is returned; iff *dip_ptr is updated,
+is non-NULL, build the initialization information into the object it points
+to.  A (possibly NULL) constant pointer is returned; iff *dip_ptr is updated,
 NULL is returned.  Thus, if nonconst_allowed is TRUE, return a pointer to a
 constant entry.  Otherwise, if the initializer is a constant value then
 return a pointer to a constant only if *dip_ptr is NULL.  If the initializer
@@ -877,6 +877,17 @@ static a_boolean scan_initializer_list(a_type_ptr          *type,
                                        a_dynamic_init_ptr  *init_dip,
                                        a_source_position   *err_pos)
 /*
+Scan an initializer list for an aggregate initialization.  Usually it is a
+brace-enclosed list of initializers, but the case of initializing an
+array-of-char with a string is also handled here.  *type points to the type
+of the variable being initialized, and vp points to the variable.  (*type is
+passed independently because it may be modified as part of initializer
+processing, but the variable should not necessarily be updated.)  Either
+*init_con or *init_dip (but not both) will be updated, depending on whether
+this is an instance of dynamic initialization.  *err_pos indicates the
+source position for diagnostics.  The function returns TRUE unless there
+were errors in the scan (other than those reporting the detection of
+uninitialized fields).
 */
 {
   a_boolean          any_member_uninitialized = FALSE;
@@ -1160,8 +1171,11 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
        initializer:
                 ( expression-list )
 
-*incomplete_type_error_reported is set to TRUE if the caller should suppress
-issuing an error on an incomplete type.
+Note: when parenthesized_initializer is TRUE, the current token is the token
+immediately following the left parenthesis; on return, the closing right
+parenthesis will have been swallowed.  If the caller should suppress issuing
+an error on an incomplete type, *incomplete_type_error_reported will be
+returned set to TRUE.
 */
 {
   a_variable_ptr                 vp = NULL;
@@ -1293,6 +1307,8 @@ issuing an error on an incomplete type.
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
       scan_class_parenthesized_initializer(vp_type, vp_type, &init_dip);
+      /* If no dynamic init entry was created, there must have been an
+         error. */
       if (init_dip == NULL) init_err = TRUE;
     } else {
       /* An entity with no constructor.  (If it's a C-style struct with no
@@ -2060,9 +2076,9 @@ scan_paren:
             a_type_ptr        object_class_type;
 
             /* If it is a base class, the object being constructed is the
-               whole class (and the base class is an incomplete subobject
-               thereof).  If it is a field, the object being constructed is
-               field itself.  Set the object class type accordingly. */
+               whole class (and the base class is a subobject thereof).
+               If it is a field, the object being constructed is field
+               itself.  Set the object class type accordingly. */
             if (new_cip->kind == (a_constructor_init_kind)cik_field) {
               object_class_type = init_type;
             } else {
@@ -2071,8 +2087,8 @@ scan_paren:
             /* This is treated like an initialization of the form
                S x (arg [, ...]), where S is a class type name.  Depending
                on the arguments present, a constructor will be selected and
-               returned.  The scan function returns FALSE if it finds no
-               constructor for which the arguments match. */
+               returned.  The scan function returns dip set to NULL if it
+               finds no constructor for which the arguments match. */
             scan_class_parenthesized_initializer(init_type, object_class_type,
                                                  &dip);
             if (dip == NULL) {
