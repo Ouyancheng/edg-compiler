@@ -60,6 +60,25 @@ typedef struct a_template_param_block {
   unsigned long	nesting_level;
 			/* Number of levels of template nesting at this
 			   point (1 == top level). */
+  char		*final_specialization;
+			/* Set to point to the mangled encoding for the final
+			   specialization encountered while working from
+			   outermost template to innermost.  NULL if
+			   no specialization has been found yet. */
+  a_boolean	set_final_specialization;
+			/* TRUE if final_specialization should be set while
+			   scanning. */
+  a_boolean	actual_template_args_until_final_specialization;
+			/* TRUE if template parameter names should not be
+			   put out.  Reset when the final_specialization
+			   position is reached. */
+  a_boolean	output_only_correspondences;
+			/* TRUE if doing a post-pass to output only template
+			   parameter/argument correspondences and not
+			   anything else.  suppress_id_output will have been
+			   incremented to suppress everything else, and
+			   gets decremented temporarily when correspondences
+			   are output. */
 } a_template_param_block;
 
 
@@ -640,6 +659,10 @@ Clear the fields of the indicated template parameter block.
 */
 {
   tpbp->nesting_level = 0;
+  tpbp->final_specialization = NULL;
+  tpbp->set_final_specialization = FALSE;
+  tpbp->actual_template_args_until_final_specialization = FALSE;
+  tpbp->output_only_correspondences = FALSE;
 }  /* clear_template_param_block */
 
 
@@ -657,7 +680,7 @@ extra information on template parameters.
 {
   char          *p = ptr, *arg_base;
   unsigned long nchars, position;
-  a_boolean     nontype;
+  a_boolean     nontype, skipped, unskipped;
 
   if (temp_par_info != NULL) temp_par_info->nesting_level++;
   /* A template argument list looks like
@@ -681,12 +704,36 @@ extra information on template parameters.
     }  /* if */
     /* "X" identifies the beginning of a nontype argument. */
     nontype = (*p == 'X');
-    if (temp_par_info != NULL) {
-      /* Write "name=" in front of the argument value. */
+    skipped = unskipped = FALSE;
+    if (temp_par_info != NULL &&
+        !temp_par_info->actual_template_args_until_final_specialization) {
+      /* Doing something special: writing out the template parameter name. */
+      if (temp_par_info->output_only_correspondences) {
+        /* This is the second pass, which writes out parameter/argument
+           correspondences, e.g., "T1=int".  Output has been suppressed
+           in general, and is turned on briefly here. */
+        dctl->suppress_id_output--;
+        unskipped = TRUE;
+        /* Put out a comma between entries and preceding the first entry. */
+        write_id_str(", ", dctl);
+      }  /* if */
+      /* Write the template parameter name instead of the argument value. */
       write_template_parameter_name(temp_par_info->nesting_level, position,
                                     nontype, dctl);
-      write_id_ch('=', dctl);
+      if (temp_par_info->output_only_correspondences) {
+        /* This is the second pass, to write out correspondences, so put the
+           argument value out after the parameter name. */
+        write_id_ch('=', dctl);
+      } else {
+        /* This is the first pass.  The argument value is skipped now.  In
+           the second pass, its value will be written out. */
+        /* We still have to scan over the argument value, but suppress
+           output. */
+        dctl->suppress_id_output++;
+        skipped = TRUE;
+      }  /* if */
     }  /* if */
+    /* Write the argument value. */
     if (nontype) {
       /* Nontype argument. */
       p++;  /* Advance past the "X". */
@@ -695,6 +742,8 @@ extra information on template parameters.
       /* Type argument. */
       p = demangle_type(p, dctl);
     }  /* if */
+    if (skipped) dctl->suppress_id_output--;
+    if (unskipped) dctl->suppress_id_output++;
     /* Stop after the last argument. */
     if ((p - arg_base) >= nchars) break;
     write_id_str(", ", dctl);
@@ -852,6 +901,28 @@ the demangled form, and *mangled_length to the length of the mangled form.
 }  /* demangle_operator_function_name */
 
 
+static void note_specialization(char                       *ptr,
+                                a_template_param_block_ptr temp_par_info)
+/*
+Note the fact that a specialization indication has been encountered at ptr
+while scanning a mangled name.  temp_par_info, if non-NULL, points to
+a block of information related to template parameter processing.
+*/
+{
+  if (temp_par_info != NULL) {
+    if (temp_par_info->set_final_specialization) {
+      /* Remember the location of the last specialization seen. */
+      temp_par_info->final_specialization = ptr;
+    } else if (temp_par_info->actual_template_args_until_final_specialization&&
+               ptr == temp_par_info->final_specialization) {
+      /* Stop doing the special processing for specializations when the
+         final specialization is reached. */
+      temp_par_info->actual_template_args_until_final_specialization = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* note_specialization */
+
+
 static char *full_demangle_name(char                       *ptr,
                                 unsigned long              nchars,
                                 char                       *mclass,
@@ -964,6 +1035,7 @@ simple case.
   if (char_from_name(end_ptr)   == '_' &&
       char_from_name(end_ptr+1) == '_' &&
       char_from_name(end_ptr+2) == 'S') {
+    note_specialization(end_ptr, temp_par_info);
     end_ptr += 3;
   }  /* if */
   /* If there's a template argument list (beginning with "__pt__"),
@@ -976,6 +1048,7 @@ simple case.
     if (char_from_name(end_ptr)   == '_' &&
         char_from_name(end_ptr+1) == '_' &&
         char_from_name(end_ptr+2) == 'S') {
+      note_specialization(end_ptr, temp_par_info);
       end_ptr += 3;
     }  /* if */
   }  /* if */
@@ -1482,7 +1555,7 @@ a pointer to the character position following what was demangled.
 */
 {
   char          *p = ptr, *origname, *pname, *end_ptr;
-  a_boolean     simple_member = FALSE;
+  a_boolean     member_function = TRUE;
   a_template_param_block
                 temp_par_info;
 
@@ -1527,23 +1600,34 @@ a pointer to the character position following what was demangled.
       /* A class (or namespace) name must be next. */
       /* Remember the location of the parent entity name. */
       pname = end_ptr;
+      /* Scan over the class name, producing no output, and remembering the
+         position of the final specialization, if any. */
       dctl->suppress_id_output++;
-      end_ptr = demangle_type_name(pname, dctl);
+      temp_par_info.set_final_specialization = TRUE;
+      end_ptr = full_demangle_type_name(pname, /*base_name_only=*/FALSE,
+                                        &temp_par_info, dctl);
+      temp_par_info.set_final_specialization = FALSE;
       dctl->suppress_id_output--;
       /* If the name ends here, this is a simple member (e.g., a static
          data member). */
       if (*end_ptr == '\0' ||
-          (end_ptr[0] == '_' && end_ptr[1] == '_')) simple_member = TRUE;
+          (end_ptr[0] == '_' && end_ptr[1] == '_')) member_function = FALSE;
     }  /* if */
-    if (!simple_member) {
+    if (member_function) {
       /* "S" here means a static member function (ignore). */
       if (*end_ptr == 'S') end_ptr++;
       /* Write the specifier part of the type. */
       demangle_type_first_part(end_ptr, /*under_lhs_declarator=*/FALSE,
                                /*need_trailing_space=*/TRUE, dctl);
     }  /* if */
+    temp_par_info.nesting_level = 0;
     if (pname != NULL) {
       /* Write the parent class or namespace qualifier. */
+      if (temp_par_info.final_specialization != NULL) {
+        /* Up to the final specialization, put out actual template arguments
+           for specializations. */
+        temp_par_info.actual_template_args_until_final_specialization = TRUE;
+      }  /* if */
       (void)full_demangle_type_name(pname, /*base_name_only=*/FALSE,
                                     &temp_par_info, dctl);
       write_id_str("::", dctl);
@@ -1551,11 +1635,33 @@ a pointer to the character position following what was demangled.
     /* Write the name of the member. */
     (void)full_demangle_name(origname, (unsigned long)0, pname,
                              &temp_par_info, dctl);
-    if (!simple_member) {
+    if (member_function) {
       /* Write the declarator part of the type. */
       end_ptr = demangle_type_second_part(end_ptr,
                                           /*under_lhs_declarator=*/FALSE,
                                           dctl);
+    }  /* if */
+    if (member_function && temp_par_info.nesting_level != 0) {
+      /* Put out correspondences for template parameters, e.g, "T=int". */
+      temp_par_info.nesting_level = 0;
+      temp_par_info.output_only_correspondences = TRUE;
+      /* Output is suppressed in general, and turned on only where
+         appropriate. */
+      dctl->suppress_id_output++;
+      if (pname != NULL) {
+        /* Write the parent class or namespace qualifier. */
+        if (temp_par_info.final_specialization != NULL) {
+          /* Up to the final specialization, put out actual template arguments
+             for specializations. */
+          temp_par_info.actual_template_args_until_final_specialization = TRUE;
+        }  /* if */
+        (void)full_demangle_type_name(pname, /*base_name_only=*/FALSE,
+                                      &temp_par_info, dctl);
+      }  /* if */
+      /* Write the name of the member. */
+      (void)full_demangle_name(origname, (unsigned long)0, pname,
+                               &temp_par_info, dctl);
+      dctl->suppress_id_output--;
     }  /* if */
   }  /* if */
 end_of_routine:
