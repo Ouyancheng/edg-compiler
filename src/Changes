@@ -438,7 +438,7 @@ We now do the same in Microsoft mode.
     return a;  // Accepted in Microsoft mode
   }
 
-1/18/97   IL lowering temporaries allocated in innermost braces
+1/18/98   IL lowering temporaries allocated in innermost braces
 
 When IL lowering creates temporaries, it puts them in the innermost
 enclosing scope.  To date, this has only considered scopes that were
