@@ -13230,6 +13230,12 @@ a thrown exception) if that is appropriate.
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
+  if (static_lifetime) {
+    /* In initializations of static variables, fold constant addressing
+       expressions to constants so that constant initialization can be
+       more easily discerned. */
+    expr_stack->fold_constant_addr_exprs = TRUE;
+  }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   *is_constant = FALSE;

@@ -1,5 +1,17 @@
 Version 2.45
 
+8/9/00  Folding of constant address expressions in aggregate class
+        initializations
+
+A change to provide greater conformance with the C++ standard on
+initializations in aggregate classes (see Changes entry of 4/7/99)
+had the unintended side effect of suppressing some constant address
+folding in such initializers.  The folding has been restored.
+
+  struct X {char *x;};
+  static char a[3];
+  static X x[] = {&a[0]};  // Once again folded to a constant address
+
 8/8/00  Microsoft compatibility: typedef name of a class visible to in-class
         member definitions
 
