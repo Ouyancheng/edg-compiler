@@ -1,5 +1,20 @@
 Version 2.46
 
+6/18/01  Wrong IL negation operator on "-" applied to class converted to
+         floating type
+
+The IL operator for a negation was wrong (eok_inegate instead
+of eok_fnegate) in a case where a unary "-" is applied to a
+class and the class is implicitly converted to a floating-point
+value.
+
+  struct A {
+    operator double();
+  };
+  double f( A& x ) {
+    return -x;
+  }
+
 6/17/01  Spurious error on typename std::X when using --ignore_std
 
 When using the g++ compatibility feature "--ignore_std", which treats

@@ -3824,34 +3824,6 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   (void)get_token();
   scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
 
-  /* Determine the operator. */
-  switch (save_token) {
-    case tok_plus:
-      op = (an_expr_operator_kind)eok_unary_plus;
-      break;
-    case tok_not:
-      op = (an_expr_operator_kind)eok_not;
-      break;
-    case tok_minus:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      /* Note that imaginary types fall through to use the normal
-         floating-point operator. */
-      if (is_complex_type(operand.type)) {
-        op = (an_expr_operator_kind)eok_xnegate;
-      } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      if (is_floating_type(operand.type)) {
-        op = (an_expr_operator_kind)eok_fnegate;
-      } else {
-        op = (an_expr_operator_kind)eok_inegate;
-      }  /* if */
-      break;
-    case tok_compl:
-      op = (an_expr_operator_kind)eok_complement;
-      break;
-    default:
-      unexpected_condition_str("scan_arith_prefix_operator: bad operator");
-  }  /* switch */
   if (C_dialect == C_dialect_cplusplus &&
       is_overloadable_type_operand(&operand)) {
     /* Look for C++ operator overloading cases. */
@@ -3886,6 +3858,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
     do_promotion = TRUE;
     switch (save_token) {
       case tok_plus:
+        op = (an_expr_operator_kind)eok_unary_plus;
         if (C_dialect == C_dialect_cplusplus &&
             is_pointer_type(operand.type)) {
           /* In C++, the operand may be a pointer (ARM 5.3). */
@@ -3895,14 +3868,28 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         }  /* if */
         break;
       case tok_not:
+        op = (an_expr_operator_kind)eok_not;
         (void)check_boolean_controlling_expr(&operand);
         do_promotion = FALSE;
         result_type = boolean_result_type();
         break;
       case tok_minus:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        /* Note that imaginary types fall through to use the normal
+           floating-point operator. */
+        if (is_complex_type(operand.type)) {
+          op = (an_expr_operator_kind)eok_xnegate;
+        } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+        if (is_floating_type(operand.type)) {
+          op = (an_expr_operator_kind)eok_fnegate;
+        } else {
+          op = (an_expr_operator_kind)eok_inegate;
+        }  /* if */
         (void)check_arithmetic_or_enum_operand(&operand);
         break;
       case tok_compl:
+        op = (an_expr_operator_kind)eok_complement;
         (void)check_integral_or_enum_operand(&operand);
         break;
       default:
