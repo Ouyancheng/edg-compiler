@@ -1,5 +1,30 @@
 Version 2.36
 
+3/27/97   Internal error in object-lifetime management for default argument
+
+An assertion failure could be provoked when instantiation of a template
+function was triggered while processing the default arguments for another
+template function instantiation.  Now fixed.  Here's an example:
+
+  template <class T> struct allocator {
+    allocator() { }
+    ~allocator() { }
+  };
+  template <class T, class Allocator = allocator<T> > struct list {
+    struct list_node { T  data; };
+    static int buffer_size () { return sizeof(list_node); };
+    void *get_node (int n = buffer_size()) { return 0; }
+    list (const Allocator& alloc = Allocator()) {
+      get_node(1);
+    }
+  };
+  template <class T, class Allocator> struct vector {
+    explicit vector (const Allocator& alloc = Allocator()) { }
+  };
+  main() {
+    list<vector<char, allocator<void> >, allocator<void> > lvc;
+  }
+
 3/26/97   Definition of db_flag_is_set when DEBUG is FALSE
 
 The definition of the macro db_flag_is_set when DEBUG is FALSE is

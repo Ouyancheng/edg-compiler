@@ -8146,7 +8146,7 @@ lifetime is retained in the IL tree.
 */
 {
   a_boolean               is_implicit_child = FALSE;
-  an_object_lifetime_ptr  olp, parent, child, end_of_child_list;
+  an_object_lifetime_ptr  olp, parent;
   a_boolean               is_retained_in_il;
 
   db_enter(3, "pop_object_lifetime");
@@ -8192,7 +8192,23 @@ lifetime is retained in the IL tree.
          function scope, so there must not be any children. */
       check_assertion(olp->child_lifetime == NULL);
     } else {
-      check_assertion(parent->child_lifetime == olp);
+      /* Remove the current object lifetime from the parent's child-lifetime
+         list.  Promote it's own children, if appropriate. */
+      an_object_lifetime_ptr  child, end_of_child_list, *olp_loc;
+
+      /* Determine the position of the current object lifetime in its
+         parent's object-lifetime list. */
+      olp_loc = &parent->child_lifetime;
+      if (parent->child_lifetime != olp) {
+        /* It's not the first in the list, so find the point at which to
+           link around it and at which to insert its children, if required. */
+        an_object_lifetime_ptr  prev = parent->child_lifetime;
+        while (prev->next != olp) {
+          prev = prev->next;
+          check_assertion(prev != NULL);
+        }  /* while */
+        olp_loc = &prev->next;
+      }  /* if */
       /* Loop through all the children of olp and move them up to the parent's
          child list -- i.e., promote the children to siblings. */
       end_of_child_list = NULL;
@@ -8204,9 +8220,9 @@ lifetime is retained in the IL tree.
       /* If there is a child list, promote it to parent. */
       if (olp->child_lifetime != NULL) {
         end_of_child_list->next = olp->next;
-        parent->child_lifetime = olp->child_lifetime;
+        *olp_loc = olp->child_lifetime;
       } else {
-        parent->child_lifetime = olp->next;
+        *olp_loc = olp->next;
       }  /* if */
       if (olp->kind == (an_object_lifetime_kind)olk_block_after_label) {
         /* We have removed a block-after-label child from the parent's list
