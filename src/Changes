@@ -1,5 +1,20 @@
 Version 2.33
 
+9/26/96  Name mangling for types/variables promoted out of functions
+
+The name mangling for variables and types promoted out of functions
+in IL lowering has been changed to make it possible to demangle them
+and to permit implementation of extern inline.  The "__Lnn" piece of
+such mangled names has been moved to between the local entity name
+and the mangled name of the function, instead of at the end, and the
+number in the "__Lnn" has been made relative to the function.
+(These two changes have no ABI implications, since such names have been,
+by definition, internal to a compilation.)  A local variable "j"
+in function "f", whose mangled name was formerly something like
+"j__f__Fv__L10", now has a mangled name like "j__L2__f__Fv".  The name
+demangler has been updated to deal with the new form (it didn't handle
+the old form at all).
+
 9/25/96 Scope of an uncaught exception now conforms to the Working Paper
 
 The Working Paper specifies that an exception is "uncaught" from the

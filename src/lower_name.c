@@ -3250,6 +3250,35 @@ information.
 
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 
+static unsigned long search_scope_list(a_scope_ptr scope,
+                                       a_scope_ptr scope_to_search,
+                                       a_boolean   *found)
+/*
+Look for "scope" in "scope_to_search".  If it is found, set *found to TRUE
+and return the position where it was found: 0 means scope and scope_to_search
+are the same scope; scopes under scope_to_search are numbered in tree
+traversal order starting from 1.  If the scope is not found, *found is not
+changed (it is expected to be FALSE) and the count of scopes in the tree is
+returned.
+*/
+{
+  unsigned long scope_number;
+
+  if (scope == scope_to_search) {
+    scope_number = 0;
+    *found = TRUE;
+  } else {
+    a_scope_ptr sp;
+    scope_number = 1;
+    for (sp = scope_to_search->scopes; sp != NULL; sp = sp->next) {
+      scope_number += search_scope_list(scope, sp, found);
+      if (*found) break;
+    }  /* for */
+  }  /* if */
+  return scope_number;
+}  /* search_scope_list */
+
+
 void mangle_promoted_entity_name(a_source_correspondence *scp,
                                  a_routine_ptr           routine,
                                  a_scope_ptr             scope)
@@ -3265,14 +3294,17 @@ and that is after normal name mangling has been done.
   sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
   sizeof_t scope_num_length;
   char     *mangled_name, *store_at;
+  unsigned long
+           scope_number;
 
   /* Leave the name alone if the entity is unnamed. */
   if (scp->name != NULL) {
     /* Name mangling is needed. */
-    /* The encoding is the original name, two underscores, the mangled
-       name of the routine, and "__Lnn", where "nn" is the scope number.
-       Note that the routine name has not been mangled yet, but the
-       entity's name has been (if it needs mangling). */
+    /* The encoding is the original name, followed by "__Lnn", where "nn"
+       is the scope number within the function, followed by two underscores,
+       followed by the mangled name of the routine.  Note that the routine
+       name has not been mangled yet, but the entity's name has been (if
+       it needs mangling). */
     check_assertion(!routine->source_corresp.name_has_been_mangled);
     name_length = strlen(scp->name);
     if (routine->source_corresp.name != NULL) {
@@ -3285,7 +3317,20 @@ and that is after normal name mangling has been done.
       routine_name_length = 0;
     }  /* if */
     /* Determine the length of "__Lnn". */
-    scope_num_length = digits_to_represent((unsigned long)scope->number) + 3;
+    /* Develop a scope number for the scope in which the entity appears.
+       This number must be relative to the function rather than to the
+       whole compilation so that if a given function (e.g., an extern inline
+       function) is compiled in more than one compilation unit the scope
+       number -- and therefore the mangled name -- will be the same in each
+       compilation. */
+    { a_scope_ptr rout_scope =
+                            il_header.region_scope_entry[routine->assoc_scope];
+      a_boolean   found = FALSE;
+      scope_number = search_scope_list(scope, rout_scope, &found);
+      check_assertion_str(found,
+                          "mangle_promoted_entity_name: scope not found");
+    }
+    scope_num_length = digits_to_represent(scope_number) + 3;
     mangled_name_length = name_length + 2 + routine_name_length +
                           scope_num_length;
     /* Allocate space for the mangled name and build it.  The old name is
@@ -3294,6 +3339,8 @@ and that is after normal name mangling has been done.
     mangled_name = alloc_lowered_name_string(alloc_length);
     (void)strcpy(mangled_name, scp->name);
     store_at = mangled_name + name_length;
+    (void)sprintf(store_at, "__L%lu", scope_number);
+    store_at += scope_num_length;
     *store_at++ = '_';
     *store_at++ = '_';
     if (routine_name_length > 0) {
@@ -3301,9 +3348,8 @@ and that is after normal name mangling has been done.
                                   store_at);
       store_at += routine_name_length;
     }  /* if */
-    (void)sprintf(store_at, "__L%lu", (unsigned long)scope->number);
     /* Store the final null. */
-    mangled_name[mangled_name_length] = '\0';
+    *store_at = '\0';
     scp->unmangled_name = scp->name;
     scp->name = mangled_name;
     scp->name_has_been_mangled = TRUE;
