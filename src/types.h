@@ -47,6 +47,7 @@ extern a_boolean is_void_star_type(a_type_ptr tp);
 extern a_boolean is_integral_type(a_type_ptr tp);
 extern a_boolean is_signed_integral_type(a_type_ptr tp);
 extern a_boolean is_enum_type(a_type_ptr tp);
+extern a_boolean is_bool_type(a_type_ptr tp);
 extern a_boolean is_character_type(a_type_ptr tp);
 extern a_boolean is_floating_type(a_type_ptr tp);
 extern a_boolean is_arithmetic_type(a_type_ptr tp);

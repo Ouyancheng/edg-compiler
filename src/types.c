@@ -53,6 +53,10 @@ predicates.
 /* Enum types are integral types that are tagged as enums. */
 #define is_enum(tp) (is_integral(tp) && (tp)->variant.integer.enum_type)
 
+/* The bool type is an integral type that is tagged as bool.  It only
+   exists when bool_is_keyword is TRUE. */
+#define is_bool(tp) (is_integral(tp) && (tp)->variant.integer.bool_type)
+
 /* Character types are three particular integral types. */
 #define is_character(tp) \
   (is_integral(tp) && \
@@ -247,6 +251,17 @@ Return TRUE if the given type is an enum type.
   tp = skip_typerefs(tp);
   return(is_enum(tp));
 }  /* is_enum_type */
+
+
+a_boolean is_bool_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is the bool type.  The bool type does not exist
+when bool_is_keyword is FALSE (which, among other times, means when in C mode).
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_bool(tp);
+}  /* is_bool_type */
 
 
 a_boolean is_character_type(a_type_ptr tp)
@@ -3321,6 +3336,18 @@ See conversion_possible.
        One is allowed to declare a parameter of that type, but the type must
        be completed if the function is defined or called. */
     /* okay = FALSE; -- already set. */
+  } else if (is_bool(dest_type)) {
+    /* Conversion to the bool type.  This is possible only in C++.
+       Conversion is allowed from arithmetic, enumeration, pointer,
+       and pointer to member. */
+    if (is_bool(source_type)) {
+      /* bool --> bool is no conversion. */
+      okay = TRUE;
+      std_conv->nontrivial_conversion = FALSE;
+    } else if (is_arithmetic(source_type) || is_enum(source_type) ||
+               is_pointer(source_type) || is_ptr_to_member(source_type)) {
+      okay = TRUE;
+    }  /* if */
   } else if (is_arithmetic(dest_type)) {
     /* Destination type is arithmetic. */
     if (identical_types(source_type, dest_type)) {
