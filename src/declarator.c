@@ -2828,25 +2828,30 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   /* Return unbound qualifiers to the caller. */
   if (pending_qualifiers != TQ_NONE) {
-#if NEAR_AND_FAR_ALLOWED
-    if (((pending_qualifiers & ~(TQ_NEAR | TQ_FAR)) != TQ_NONE) &&
-        (!microsoft_mode || microsoft_version >= 1000)) {
+    if (microsoft_mode && microsoft_version < 1000) {
       /* Case like
            int i, const j;
-         The type qualifiers were applied in MSVC++ 2.0, but they are
-         ignored in 4.2 and 5.0. */
-      pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
-      pending_qualifiers &= (TQ_NEAR | TQ_FAR);
-    }  /* if */
-    /* Qualifiers like near and far. */
-    if (unbound_qualifiers != NULL) {
-      *unbound_qualifiers = pending_qualifiers;
+         The type qualifiers are ignored in later versions of the Microsoft
+         compiler, but were applied in MSVC++ 2.0. */
     } else {
-      warning(ec_mem_attrib_ignored);
-    }  /* if */
+#if NEAR_AND_FAR_ALLOWED
+      if ((pending_qualifiers & ~(TQ_NEAR | TQ_FAR)) != TQ_NONE) {
+        /* A qualifier other than near/far.  These are ignored. */
+        pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
+        pending_qualifiers &= (TQ_NEAR | TQ_FAR);
+      }  /* if */
+      if (pending_qualifiers != TQ_NONE) {
+        /* Qualifiers like near and far. */
+        if (unbound_qualifiers != NULL) {
+          *unbound_qualifiers = pending_qualifiers;
+        } else {
+          pos_warning(ec_mem_attrib_ignored, &pending_qualifiers_pos);
+        }  /* if */
+      }  /* if */
 #else /* !NEAR_AND_FAR_ALLOWED */
-    pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
+      pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
 #endif /* NEAR_AND_FAR_ALLOWED */
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
