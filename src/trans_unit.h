@@ -20,6 +20,13 @@ trans_unit.h -- Declarations related to translation unit management.
 
 
 /*
+Type declaration for a pointer to a list of fixups to be applied to based-type
+lists.  The definition of the fixup structure is private to il.c.
+*/
+typedef struct a_based_type_fixup *a_based_type_fixup_ptr;
+
+
+/*
 Structure used to record information about a translation unit.
 
 The front end processes more than one translation unit at once when doing
@@ -58,16 +65,25 @@ typedef struct a_translation_unit {
 			   field are maintained.  See
 			   save_translation_unit_state to see the list. */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-   a_scope_orphaned_list_header_ptr
+  a_scope_orphaned_list_header_ptr
 		last_scope_orphaned_list_header;
 			/* End of the il_header.scope_orphaned_list_headers
 			   list; NULL if the list is empty. */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if RECORD_MACROS_IN_IL
-   a_macro_ptr	last_macro;
+  a_macro_ptr	last_macro;
 			/* End of the il_header.macros list; NULL if the
 			   list is empty. */
 #endif /* RECORD_MACROS_IN_IL */
+  a_based_type_fixup_ptr
+		based_type_fixup_list;
+			/* Head of a linked list of entries identifying
+			   types whose based-type lists include entries that
+			   must not be remove (either because they refer to
+			   type entries that are for front-end use only, or
+			   because they refer to types from other translation
+			   units. */
+
 } a_translation_unit;
 
 

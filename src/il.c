@@ -145,9 +145,9 @@ static unsigned long
 
 /*
 Data struct used to do a fixup pass on based-type lists containing entries
-that should not escape to the back end.
+that should not escape to the back end.  This class is declared (but not
+defined) in trans_unit.h.
 */
-typedef struct a_based_type_fixup *a_based_type_fixup_ptr;
 typedef struct a_based_type_fixup {
   a_based_type_fixup_ptr
 		next;
@@ -158,13 +158,6 @@ typedef struct a_based_type_fixup {
 			   during the based-type-list fixup. */
 } a_based_type_fixup;
 
-static a_based_type_fixup_ptr
-		based_type_fixup_list;
-			/* Head of a linked list of entries identifying
-			   types whose based-type lists include entries that
-			   must not be passed to the back end because they
-			   refer to type entries that are for front-end use
-			   only. */
 #if DEBUG
 static unsigned long
 		num_based_type_fixups_allocated;
@@ -5519,7 +5512,8 @@ the associated based-type list and remove any entries marked as front-end
 only.
 */
 {
-  a_based_type_fixup_ptr        btfp = based_type_fixup_list;
+  a_based_type_fixup_ptr        btfp = curr_translation_unit
+                                                      ->based_type_fixup_list;
   a_type_ptr                    tp;
   a_based_type_list_member_ptr  btlmp, prev_btlmp, next_btlmp;
 
@@ -5544,11 +5538,12 @@ only.
       }  /* if */
     }  /* for */
   }  /* for */
-  based_type_fixup_list = NULL;
+  curr_translation_unit->based_type_fixup_list = NULL;
 }  /* do_based_type_fixup */
 
 
-static void add_to_based_type_fixup_list(a_type_ptr  base_type)
+static void add_to_based_type_fixup_list(a_type_ptr              base_type,
+                                         a_translation_unit_ptr  trans_unit)
 /*
 Look for an entry on the based-type fixup list that points to base_type.
 If none is found, create one and add it to the list.
@@ -5566,7 +5561,8 @@ If none is found, create one and add it to the list.
        the IL, but the base type int is. */
   } else {
     prev_btfp = NULL;
-    for (btfp = based_type_fixup_list; btfp != NULL; btfp = btfp->next) {
+    for (btfp = trans_unit->based_type_fixup_list;
+         btfp != NULL; btfp = btfp->next) {
       if (btfp->base_type == base_type) {
         /* The specified base type is already represented on the fixup list.
            Unless it's already there, move the entry to the head of the
@@ -5574,8 +5570,8 @@ If none is found, create one and add it to the list.
         if (prev_btfp != NULL) {
           /* Remove the entry and re-add it at the front. */
           prev_btfp->next = btfp->next;
-          btfp->next = based_type_fixup_list;
-          based_type_fixup_list = btfp;
+          btfp->next = trans_unit->based_type_fixup_list;
+          trans_unit->based_type_fixup_list = btfp;
         }  /* if */
         goto done;
       }  /* if */
@@ -5588,8 +5584,8 @@ If none is found, create one and add it to the list.
 #endif /* DEBUG */
     btfp->base_type = base_type;
     /* Add the entry to the start of the list. */
-    btfp->next = based_type_fixup_list;
-    based_type_fixup_list = btfp;
+    btfp->next = trans_unit->based_type_fixup_list;
+    trans_unit->based_type_fixup_list = btfp;
   }  /* if */
 done:;
 }  /* add_to_based_type_fixup_list */
@@ -5699,8 +5695,17 @@ is already an entry of the indicated kind on the list.
          stay in the IL, and the based type entry must not, so we
          arrange to remove the based type entry later in a fixup pass. */
       btlmp->front_end_only = TRUE;
-      add_to_based_type_fixup_list(base_type);
+      add_to_based_type_fixup_list(base_type, curr_translation_unit);
     }  /* if */
+  }  /* if */
+  if (in_secondary_trans_unit(based_type) &&
+      !in_secondary_trans_unit(base_type)) {
+    /* We're about to create a situation where a based-type entry in the
+       primary IL points to a type in secondary IL.  Record this in the
+       based-type fixup list so that the entry can be removed later on. */
+    check_assertion(!is_primary_translation_unit);
+    btlmp->front_end_only = TRUE;
+    add_to_based_type_fixup_list(base_type, translation_units);
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   /* Don't set keep-in-il or needed flags on the based type if it is a
@@ -12395,7 +12400,6 @@ in il_init.)
       pch_array_saved_var_array_elem(wide_string_types),
       pch_array_saved_var_array_elem(shareable_constants_table),
       pch_saved_var_array_elem(curr_object_lifetime),
-      pch_saved_var_array_elem(based_type_fixup_list),
 #if ORPHAN_PROCESSING_NEEDED
       pch_array_saved_var_array_elem(orphaned_file_scope_il_entries),
 #endif /* ORPHAN_PROCESSING_NEEDED */
@@ -12437,7 +12441,6 @@ in il_init.)
   register_trans_unit_variable(il_wchar_t_type);
   register_trans_unit_variable(il_bool_type);
   register_trans_unit_array(shareable_constants_table);
-  register_trans_unit_variable(based_type_fixup_list);
   register_trans_unit_variable(seq_cache);
   /* Global variables declared in il.h. */
   register_trans_unit_array(orphaned_file_scope_il_entries);
@@ -12511,7 +12514,6 @@ need initialization for every (primary and secondary) translation unit.
   memzero((char *)orphaned_file_scope_il_entries,
           sizeof(orphaned_file_scope_il_entries));
 #endif /* ORPHAN_PROCESSING_NEEDED */
-  based_type_fixup_list = NULL;
   il_reset();
   il_alloc_trans_unit_init();
 }  /* il_trans_unit_init */

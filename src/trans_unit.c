@@ -426,6 +426,7 @@ a pointer to the entry created.
 #if RECORD_MACROS_IN_IL
   tup->last_macro = NULL;
 #endif /* RECORD_MACROS_IN_IL */
+  tup->based_type_fixup_list = NULL;
   return tup;
 }  /* alloc_translation_unit */
 

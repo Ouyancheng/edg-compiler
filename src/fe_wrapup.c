@@ -143,6 +143,15 @@ it needs to be executed after all templates have been instantiated.
                /*is_namespace_wrapup=*/TRUE);
   wrapup_namespace_scopes(il_scope);
 
+  if (!C_mode()) {
+    /* Go through the fixup list for based-type entries and remove entities
+       as required.  This must happen before the call to mark_secondary_-
+       trans_unit_IL_entities_used_from_primary_as_needed to ensure that
+       based type list entries in the primary translation unit pointing to
+       types in secondary translation units are removed. */
+    do_based_type_fixup();
+  }  /* if */
+
   if (is_primary_translation_unit) {
     /* Sweep the primary translation unit IL tree and look for any
        pointers to entities in secondary translation units that it uses,
@@ -166,12 +175,6 @@ secondary translation units will have already been copied over.
   a_scope_ptr	il_scope;
 
   il_scope = curr_translation_unit->primary_scope;
-
-  if (!C_mode()) {
-    /* Go through the fixup list for based-type entries and remove entities
-       as required. */
-    do_based_type_fixup();
-  }  /* if */
 
   if (is_primary_translation_unit) {
     /* Sweep the primary translation unit IL tree and look for any
