@@ -482,14 +482,14 @@ Dump the contents of the indicated type entry, for debug purposes.
       fprintf(f_debug, "%s", db_float_type_name(tp->variant.float_kind));
       break;
     case tk_pointer:
-      fputs("ptr(", f_debug);
-      goto pointer_or_reference;
-    case tk_reference:
-      fputs("ref(", f_debug);
-pointer_or_reference:
+      if (tp->variant.pointer.is_reference) {
+        fputs("ref(", f_debug);
+      } else {
+        fputs("ptr(", f_debug);
+      }  /* if */
       /* Dump classes/structs/unions specially to avoid recursive loops
          when then contain pointers to themselves. */
-      db_abbreviated_type(tp->variant.pointer_type_pointed_to);
+      db_abbreviated_type(tp->variant.pointer.type);
       fputc(')', f_debug);
       break;
     case tk_array:
@@ -2267,8 +2267,8 @@ to default values.
       pte->variant.float_kind = (a_float_kind)fk_float;
       break;
     case tk_pointer:
-    case tk_reference:
-      pte->variant.pointer_type_pointed_to = NULL;
+      pte->variant.pointer.type = NULL;
+      pte->variant.pointer.is_reference = FALSE;
       break;
     case tk_array:
       pte->variant.array.element_type = NULL;
@@ -2723,7 +2723,7 @@ an existing entry if possible.
     } else {
       ptr = alloc_type((a_type_kind)tk_pointer);
     }  /* if */
-    ptr->variant.pointer_type_pointed_to = type_pointed_to;
+    ptr->variant.pointer.type = type_pointed_to;
     set_type_size(ptr);
     /* Remember the existence of this pointer type by putting a pointer
        to it in the based_types list. */
@@ -2753,11 +2753,12 @@ an existing entry if possible.
        to a file-scope type, make sure it gets allocated in the file-scope
        memory region. */
     if (in_file_scope((char *)type_pointed_to)) {
-      ptr = fs_type((a_type_kind)tk_reference);
+      ptr = fs_type((a_type_kind)tk_pointer);
     } else {
-      ptr = alloc_type((a_type_kind)tk_reference);
+      ptr = alloc_type((a_type_kind)tk_pointer);
     }  /* if */
-    ptr->variant.pointer_type_pointed_to = type_pointed_to;
+    ptr->variant.pointer.type = type_pointed_to;
+    ptr->variant.pointer.is_reference = TRUE;
     set_type_size(ptr);
     /* Remember the existence of this reference type by putting a pointer
        to it in the based_types list. */

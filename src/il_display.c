@@ -361,7 +361,7 @@ Print the first of possibly two parts of a type reference.
   /* For the pointer case, ignore any typerefs that provide qualifiers
      on the indirection. */
   if (is_pointer_type(type)) {
-    local_type = skip_typerefs(type)->variant.pointer_type_pointed_to;
+    local_type = skip_typerefs(type)->variant.pointer.type;
     /* Recursive call to print out any lower indirections. */
     disp_type_first_part(local_type, /*need_parens=*/TRUE);
     /* Print out the star for this indirection. */
@@ -405,7 +405,7 @@ dimension information.
   if (is_pointer_type(type)) {
     local_type = skip_typerefs(type);
     if (need_parens) putchar(')');
-    disp_type_second_part(local_type->variant.pointer_type_pointed_to,
+    disp_type_second_part(local_type->variant.pointer.type,
                           /*need_parens=*/TRUE);
 #ifdef CFE
   } else if (type->kind == (a_type_kind)tk_array) {
@@ -1114,8 +1114,10 @@ do_float_complex:
       break;
     case tk_pointer:
       printf("tk_pointer\n");
-      disp_ptr("pointer_type_pointed_to", 
-               (char *)ptr->variant.pointer_type_pointed_to, iek_type);
+      disp_ptr("type_pointed_to", (char *)ptr->variant.pointer.type, iek_type);
+#ifdef CFE
+      disp_boolean("is_reference", ptr->variant.pointer.is_reference);
+#endif /* ifdef CFE */
       break;
     case tk_routine:
       printf("tk_routine\n");

@@ -66,10 +66,12 @@ predicates.
 #define is_arithmetic(tp) (is_integral(tp) || is_floating(tp))
 
 /* The pointer type is simply the pointer type. */
-#define is_pointer(tp) ((tp)->kind == (a_type_kind)tk_pointer)
+#define is_pointer(tp) ((tp)->kind == (a_type_kind)tk_pointer &&      \
+                        !(tp)->variant.pointer.is_reference)
 
 /* The reference type is simply the reference type. */
-#define is_reference(tp) ((tp)->kind == (a_type_kind)tk_reference)
+#define is_reference(tp) ((tp)->kind == (a_type_kind)tk_pointer &&    \
+                          (tp)->variant.pointer.is_reference)
 
 /* Scalar types are the arithmetic types plus the pointer types. */
 #define is_scalar(tp) (is_arithmetic(tp) || is_pointer(tp))
@@ -290,6 +292,17 @@ Return TRUE if the given type is a reference type.
 }  /* is_reference_type */
 
 
+a_boolean is_ptr_or_ref_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an IL pointer type (i.e., a pointer or
+reference).
+*/
+{
+  tp = skip_typerefs(tp);
+  return ((tp)->kind == (a_type_kind)tk_pointer);
+}  /* is_ptr_or_ref_type */
+
+
 a_boolean is_scalar_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a scalar type (3.1.2.5).
@@ -397,21 +410,19 @@ is an array of abstract class objects, or if it is pointer or reference
 to an array of abstract class objects.
 */
 {
-  a_boolean                    is_abstract = FALSE;
-  a_boolean                    array_type_required = FALSE;
+  a_boolean is_abstract = FALSE;
+  a_boolean array_type_required = FALSE;
 
   for (;;) {
     tp = skip_typerefs(tp);
     switch (tp->kind) {
       case tk_pointer:
         tp = type_pointed_to(tp);
-        array_type_required = TRUE;
-        break;
-      case tk_reference:
-        tp = type_referenced(tp);
-        /* Check for NULL pointer in situation where type is being constructed
-           but is not yet complete. */
-        if (tp == NULL) goto done;
+        if (tp->variant.pointer.is_reference) {
+          /* Check for NULL pointer in situation where type is being
+             constructed but is not yet complete. */
+          if (tp == NULL) goto done;
+        }  /* if */
         array_type_required = TRUE;
         break;
       case tk_array:
@@ -462,7 +473,8 @@ Return the element type of the given array type.
 
 a_type_ptr type_pointed_to(a_type_ptr pointer_type)
 /*
-Return the type pointed to by the given tk_pointer type entry.
+Return the type pointed to by the given tk_pointer type entry.  This can be
+a pointer or a reference type.
 */
 {
   a_type_ptr tp = skip_typerefs(pointer_type);
@@ -471,23 +483,8 @@ Return the type pointed to by the given tk_pointer type entry.
     internal_error("type_pointed_to: not a pointer type");
   }  /* if */
 #endif /* CHECKING */
-  return(tp->variant.pointer_type_pointed_to);
+  return tp->variant.pointer.type;
 }  /* type_pointed_to */
-
-
-a_type_ptr type_referenced(a_type_ptr ref_type)
-/*
-Return the type referenced by the given tk_reference type entry.
-*/
-{
-  a_type_ptr tp = skip_typerefs(ref_type);
-#if CHECKING
-  if (tp->kind != (a_type_kind)tk_reference) {
-    internal_error("type_referenced: not a reference type");
-  }  /* if */
-#endif /* CHECKING */
-  return(tp->variant.pointer_type_pointed_to);
-}  /* type_referenced */
 
 
 a_boolean f_is_const_qualified_type(a_type_ptr tp)
@@ -814,7 +811,6 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_void:
       case tk_routine:
       case tk_typeref:
-      case tk_reference:
         /* These stay zero; they have no size directly. */
         break;
       case tk_integer:
@@ -1169,13 +1165,14 @@ which do the initial test for exact pointer equality.
                        type_2->variant.float_kind);
           break;
         case tk_pointer:
-        case tk_reference:
-          /* For pointers and references, they must point to identical
-	     types. */
-          identical = f_identical_types(
-                                       type_1->variant.pointer_type_pointed_to,
-                                       type_2->variant.pointer_type_pointed_to,
-                                       il_identical);
+          /* For pointers and references, they both be pointers or both
+             references and must point to identical types. */
+          if (type_1->variant.pointer.is_reference ==
+                                        type_2->variant.pointer.is_reference) {
+            identical = f_identical_types(type_1->variant.pointer.type,
+                                          type_2->variant.pointer.type,
+                                          il_identical);
+          }  /* if */
           break;
         case tk_array:
           /* For arrays, the sizes must be the same and the element types
@@ -1350,12 +1347,13 @@ types_are_compatible, which does the initial test for exact pointer equality.
           compat = (type_1->variant.float_kind == type_2->variant.float_kind);
           break;
         case tk_pointer:
-        case tk_reference:
-          /* For pointers and references, they must point to compatible
-             types. */
-          compat = types_are_compatible(
-                           type_1->variant.pointer_type_pointed_to,
-                           type_2->variant.pointer_type_pointed_to);
+          /* For pointers and references, they both be pointers or both
+             references and must point to compatible types. */
+          if (type_1->variant.pointer.is_reference ==
+                                        type_2->variant.pointer.is_reference) {
+            compat = types_are_compatible(type_1->variant.pointer.type,
+                                          type_2->variant.pointer.type);
+          }  /* if */
           break;
         case tk_array:
           /* For arrays, if both have sizes the sizes must be the same.  The
@@ -1540,8 +1538,8 @@ and arguments of old-style calls.
     }  /* if */
   } else if (type_1->kind == (a_type_kind)tk_pointer) {
     /* Pointer types.  Get the underlying types. */
-    ptr_type1 = skip_typerefs(type_1->variant.pointer_type_pointed_to);
-    ptr_type2 = skip_typerefs(type_2->variant.pointer_type_pointed_to);
+    ptr_type1 = skip_typerefs(type_1->variant.pointer.type);
+    ptr_type2 = skip_typerefs(type_2->variant.pointer.type);
     if (ptr_type1 == ptr_type2 ||  /* This test for speed. */
         interchangeable_types(ptr_type1, ptr_type2)) {
       /* Pointers to interchangeable types are interchangeable. */
@@ -1553,7 +1551,7 @@ and arguments of old-style calls.
     }  /* if */
   }  /* if */
   db_exit();
-  return (interch);
+  return interch;
 }  /* interchangeable_types */
 
 
@@ -2112,24 +2110,21 @@ is allocated, it is allocated in the file scope.
           comp_type = base_type_1;
           break;
         case tk_pointer:
-        case tk_reference:
           /* Pointer and reference types.  The composite type is a pointer
 	     or reference to the composite of the types pointed to. */
-          comp_elem = composite_type(
-                        base_type_1->variant.pointer_type_pointed_to,
-                        base_type_2->variant.pointer_type_pointed_to);
+          comp_elem = composite_type(base_type_1->variant.pointer.type,
+                                     base_type_2->variant.pointer.type);
           /* Try to use one of the two types we already have.  If that's
              not possible, build a new pointer type. */
-          if (comp_elem == base_type_1->variant.pointer_type_pointed_to) {
+          if (comp_elem == base_type_1->variant.pointer.type) {
             comp_type = base_type_1;
-          } else if (comp_elem ==
-                     base_type_2->variant.pointer_type_pointed_to) {
+          } else if (comp_elem == base_type_2->variant.pointer.type) {
             comp_type = base_type_2;
           } else {
-	    if (base_type_1->kind == (a_type_kind)tk_pointer) {
-              comp_type = make_pointer_type(comp_elem);
-	    } else {
+	    if (base_type_1->variant.pointer.is_reference) {
               comp_type = make_reference_type(comp_elem);
+	    } else {
+              comp_type = make_pointer_type(comp_elem);
 	    }  /* if */
           }  /* if */
           break;
@@ -2377,11 +2372,11 @@ cumulative over all the parameters).
   /* See if one of the types is a reference to the other type,
      e.g., T and T&. */
   if (is_reference_type(type_1)) {
-    type_1 = type_referenced(type_1);
+    type_1 = type_pointed_to(type_1);
     reference_dropped = TRUE;
   }  /* if */
   if (is_reference_type(type_2)) {
-    type_2 = type_referenced(type_2);
+    type_2 = type_pointed_to(type_2);
     reference_dropped = TRUE;
   }  /* if */
   /* If neither top-level type was a reference, drop the type qualifiers
@@ -2626,19 +2621,16 @@ is returned.
 #endif /* if */
           break;
         case tk_pointer:
-          new_type->variant.pointer_type_pointed_to =
-               make_file_scope_type(old_type->variant.pointer_type_pointed_to);
+          if (new_type->variant.pointer.is_reference) {
+            based_type_kind = (a_based_type_kind)btk_reference;
+          } else {
+            based_type_kind = (a_based_type_kind)btk_pointer;
+          }  /* if */
+          new_type->variant.pointer.type =
+                          make_file_scope_type(old_type->variant.pointer.type);
           /* Build the proper based_types list entry for the pointer. */
-          add_based_type_list_member(new_type->variant.pointer_type_pointed_to,
-                                     (a_based_type_kind)btk_pointer, new_type);
-          break;
-        case tk_reference:
-          new_type->variant.pointer_type_pointed_to =
-               make_file_scope_type(old_type->variant.pointer_type_pointed_to);
-          /* Build the proper based_types list entry for the reference. */
-          add_based_type_list_member(new_type->variant.pointer_type_pointed_to,
-                                     (a_based_type_kind)btk_reference,
-                                     new_type);
+          add_based_type_list_member(new_type->variant.pointer.type,
+                                     based_type_kind, new_type);
           break;
         case tk_array:
           new_type->variant.array.element_type =

@@ -140,6 +140,7 @@ that ordinarily this routine should not be called directly; use the macro
 
 #endif /* ifdef CFE */
 
+#define type_pointed_to(tp) (skip_typerefs(tp)->variant.pointer.type)
 /*
 Return the type of the variable (lvalue) represented by node.  This mainly
 involves removing the extra "pointer to" in the expression type for
@@ -147,7 +148,7 @@ an lvalue.
 */
 #define lvalue_expr_type(node)                                        \
 (is_error_type((node)->type) ? (node)->type :                         \
-                               (node)->type->variant.pointer_type_pointed_to)
+                               (node)->type->variant.pointer.type)
 
 #define is_error_type(tp) (skip_typerefs(tp)->kind == (a_type_kind)tk_error)
 #define is_function_type(tp) \
@@ -186,8 +187,6 @@ an lvalue.
 #endif /* ifdef CFE */
 #define is_array_type(tp) \
 	(is_carray_type(tp) || is_farray_type(tp))
-#define type_pointed_to(tp) \
-	(skip_typerefs(tp)->variant.pointer_type_pointed_to)
 
 /*
 Start a comment, unless we're already inside one.
@@ -1126,7 +1125,7 @@ Print the first of possibly two parts of a type reference.
   /* For the pointer case, ignore any typerefs that provide qualifiers
      on the indirection. */
   if (is_pointer_type(type)) {
-    local_type = skip_typerefs(type)->variant.pointer_type_pointed_to;
+    local_type = type_pointed_to(type);
     /* Recursive call to print out any lower indirections. */
     dump_type_first_part(local_type,
                          /*need_paren=*/TRUE, /*need_trailing_space=*/TRUE,
@@ -1524,7 +1523,7 @@ function definition with a body (this controls dumping of parameters).
   if (is_pointer_type(type)) {
     local_type = skip_typerefs(type);
     if (need_paren) fputc(')', f_C_output);
-    dump_type_second_part(local_type->variant.pointer_type_pointed_to,
+    dump_type_second_part(type_pointed_to(local_type),
 			  /*need_paren=*/TRUE, /*for_func_with_body=*/FALSE);
   } else if (type->kind == (a_type_kind)tk_routine) {
     if (need_paren) fputc(')', f_C_output);
@@ -1631,7 +1630,7 @@ Dump the length for the indicated character type.
 {
   /* For a pointer type, get the underlying type. */
   if (tp->kind == (a_type_kind)tk_pointer) {
-    tp = tp->variant.pointer_type_pointed_to;
+    tp = type_pointed_to(tp);
   }  /* if */
   /* For an array of character, get the underlying character type. */
   if (tp->kind == (a_type_kind)tk_farray) tp = tp->variant.farray.element_type;
@@ -1655,7 +1654,7 @@ Dump the length for the indicated character variable.
 
   /* For a pointer type, get the underlying type. */
   if (char_type->kind == (a_type_kind)tk_pointer) {
-    char_type = char_type->variant.pointer_type_pointed_to;
+    char_type = type_pointed_to(char_type);
   }  /* if */
   /* For an array of character, get the underlying character type. */
   if (char_type->kind == (a_type_kind)tk_farray) {
@@ -3634,8 +3633,7 @@ char_compare:
         for (call_argument = operand_2; call_argument != NULL;) {
 #ifdef FFE
           if (call_argument->type->kind == (a_type_kind)tk_pointer &&
-              is_char_or_char_array(
-                       call_argument->type->variant.pointer_type_pointed_to)) {
+              is_char_or_char_array(type_pointed_to(call_argument))) {
             dump_char_expression(call_argument);
           } else if (call_argument->kind ==
                                       (an_expr_node_kind)enk_routine_address &&

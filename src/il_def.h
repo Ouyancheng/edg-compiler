@@ -554,6 +554,9 @@ enum a_type_kind_tag {
   tk_integer,           /* All integral types, including enum. */
   tk_float,             /* All float types. */
   tk_pointer,           /* Pointer type. */
+#ifdef CIL
+			/* Also used for reference in C++. */
+#endif /* ifdef CIL */
   tk_routine,           /* Function. */
 #ifdef FIL
                         /* Also, Fortran main programs, subroutines and
@@ -567,7 +570,6 @@ enum a_type_kind_tag {
   tk_typeref,           /* Use of a typedef, i.e., a type equivalent to
                            another type; also used to add type qualifiers
                            (const or volatile) to a type. */
-  tk_reference,         /* Reference. */
 #endif /* ifdef CIL */
 #ifdef FIL
   tk_fcharacter,        /* Fortran character. */
@@ -1185,12 +1187,16 @@ typedef struct a_type {
                 float_kind;
                         /* Which size of float. */
     /* When kind == tk_pointer: */
-#ifdef CIL
-    /* Also, when kind == tk_reference. */
-#endif /* ifdef CIL */
-    a_type_ptr
-                pointer_type_pointed_to;
+    struct {
+      a_type_ptr
+                type;
                         /* Type pointed to by this pointer type. */
+#ifdef CIL
+      a_byte_boolean
+		is_reference;
+			/* If TRUE, this type is a C++ reference type. */
+#endif /* ifdef CIL */
+    } pointer;
     /* When kind == tk_routine: */
     struct {
       a_type_ptr

@@ -238,7 +238,7 @@ Process the indicated type entry.
 #endif /* ifdef CFE */
       break;
     case tk_pointer:
-      walk_ptr(ptr->variant.pointer_type_pointed_to, a_type_ptr, iek_type);
+      walk_ptr(ptr->variant.pointer.type, a_type_ptr, iek_type);
       break;
 #ifdef CFE
     case tk_array:

@@ -49,6 +49,7 @@ extern a_boolean is_floating_type(a_type_ptr tp);
 extern a_boolean is_arithmetic_type(a_type_ptr tp);
 extern a_boolean is_pointer_type(a_type_ptr tp);
 extern a_boolean is_reference_type(a_type_ptr tp);
+extern a_boolean is_ptr_or_ref_type(a_type_ptr tp);
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_array_type(a_type_ptr tp);
 extern a_boolean is_char_array_type(a_type_ptr tp);
@@ -60,7 +61,6 @@ extern a_boolean is_illegal_abstract_class_type(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);
 extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);
-extern a_type_ptr type_referenced(a_type_ptr pointer_type);
 
 /*
 Return TRUE if a type is a direct class type (i.e., not a typeref on
