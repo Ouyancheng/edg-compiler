@@ -1398,7 +1398,7 @@ a locator for the new symbol.  Return a pointer to the new symbol.
        function symbol to it. */
     hdr_ptr = other_sym->header;
     overload_symbol = alloc_symbol((a_symbol_kind)sk_overloaded_function,
-                                   hdr_ptr, &(sym_ptr->decl_position));
+                                   hdr_ptr, &(other_sym->decl_position));
     overload_symbol->decl_scope = other_sym->decl_scope;
     overload_symbol->class_of_which_a_member =
                                        other_sym->class_of_which_a_member;
