@@ -9,7 +9,9 @@
 ******************************************************************************/
 /*
 
-Prelink utility for template instantiation.
+Utility program that generates error tables used by the compiler
+from a text file.  Also generates a documentation file containing
+the error text.
 
 */
 
