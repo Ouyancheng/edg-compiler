@@ -3100,7 +3100,8 @@ on every expression.
         break;
       case enk_operation:
 #if DEBUG
-        { an_expr_node_ptr operand = expr->variant.operation.operands;
+        if (octl->debug_output) {
+          an_expr_node_ptr operand = expr->variant.operation.operands;
           char *op_str = db_operator_names[expr->variant.operation.kind];
           an_expr_operator_kind op = expr->variant.operation.kind;
           octl->output_str("(");
@@ -3157,10 +3158,12 @@ on every expression.
             octl->output_str(")");
           }  /* if */
           octl->output_str(")");
-        }
-#else /* !DEBUG */
-        octl->output_str("<operation>");
+        } else
 #endif /* DEBUG */
+        /* Do not insert code here. */
+        {
+          octl->output_str("<expression>");
+        }  /* if */
         break;
       case enk_constant:
         form_constant(expr->variant.constant, /*need_parens=*/TRUE, octl);
@@ -3186,9 +3189,17 @@ on every expression.
                   (an_il_entry_kind)iek_field, octl);
         break;
       case enk_temp_init:
-        octl->output_str("temp-init(");
-        form_dynamic_init(expr->variant.init.dynamic_init, octl);
-        octl->output_str(")");
+#if DEBUG
+        if (octl->debug_output) {
+          octl->output_str("temp-init(");
+          form_dynamic_init(expr->variant.init.dynamic_init, octl);
+          octl->output_str(")");
+        } else
+#endif /* DEBUG */
+        /* Do not insert code here */
+        {
+          octl->output_str("<expression>");
+        }  /* if */
         break;
       default:
         octl->output_str("<expression>");
