@@ -2073,7 +2073,8 @@ The per-compilation unit initialization routine for variables related to
 Microsoft attribute processing.
 */
 {
-  accept_unrecognized_attributes = !RECOGNIZE_MICROSOFT_ATTRIBUTES;
+  accept_unrecognized_attributes =
+                                !RECOGNIZE_MICROSOFT_ATTRIBUTES; /*lint !e506*/
   scan_all_attributes_as_unrecognized =
                                        SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING;
   unrecognized_attribute = NULL;
