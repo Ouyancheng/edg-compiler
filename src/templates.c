@@ -4802,7 +4802,7 @@ static a_boolean tentatively_matching_template_param_lists(
 Compare the two template parameter lists to see if they match.  When
 involves_template_param is FALSE, the parameter lists can be compared
 fully.  When involves_template_param is TRUE, one of the parameter lists
-includes a a type that depends on a prior template parameter, and the full
+includes a type that depends on a prior template parameter, and the full
 comparison cannot be done until the template argument values are known.  In
 that case we compare the two template parameter lists to see if they have
 the same number of parameters, and that the parameters are of matching kinds.
