@@ -71,7 +71,6 @@ extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);
 extern a_type_ptr pm_member_type(a_type_ptr pm_type);
 extern a_type_ptr pm_class_type(a_type_ptr pm_type);
 extern a_type_ptr underlying_type_of_derived_type(a_type_ptr type);
-extern a_boolean is_immediate_type_qualifier(a_type_ptr type);
 
 /*
 Return TRUE if a type is a direct class type (i.e., not a typeref on
@@ -104,6 +103,14 @@ an enum type).
  (((tp)->variant.typeref.qualifiers & TQ_CONST) != 0)
 #define typeref_is_volatile_qualified(tp)                             \
  (((tp)->variant.typeref.qualifiers & TQ_VOLATILE) != 0)
+
+/*
+Return TRUE if the type pointed to is a tk_typeref that indicates type
+qualification.
+*/
+#define is_immediate_type_qualifier(tp)                               \
+  ((tp)->kind == (a_type_kind)tk_typeref && typeref_is_qualified(tp))
+
 
 extern a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
                                                   a_boolean   top_level);

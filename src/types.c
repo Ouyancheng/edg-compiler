@@ -559,25 +559,6 @@ Otherwise, return NULL.
 }  /* underlying_type_of_derived_type */
 
 
-a_boolean is_immediate_type_qualifier(a_type_ptr type)
-/*
-Return TRUE if the type pointed to is a tk_typeref that indicates type
-qualification.
-*/
-{
-  a_boolean is_type_qual = FALSE;
-
-  if (type->kind == (a_type_kind)tk_typeref) {
-    /* Ignore typedefs, and typerefs that do nothing. */
-    if (type->source_corresp.name == NULL && typeref_is_qualified(type)) {
-      /* This is a type qualifier. */
-      is_type_qual = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_type_qual;
-}  /* is_immediate_type_qualifier */
-
-
 a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
                                            a_boolean   top_level)
 /*
