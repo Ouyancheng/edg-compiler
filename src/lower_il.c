@@ -6809,8 +6809,10 @@ happens to be a base class.  Keep any side effects.
     class_type = type_pointed_to(class_type);
   }  /* if */
   class_type = skip_typerefs(class_type);
-  check_assertion(is_immediate_class_type(class_type));
-  if (class_type->variant.class_struct_union.is_empty_class) {
+  /* The is_immediate_class_type test avoids problems with unlowered
+     pointer-to-member-function assignments. */
+  if (is_immediate_class_type(class_type) &&
+      class_type->variant.class_struct_union.is_empty_class) {
     /* An empty class.  Eliminate the assignment but keep the side effects
        by rewriting it as a comma node. */
     an_expr_node_ptr op1 = expr->variant.operation.operands;
