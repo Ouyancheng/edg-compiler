@@ -3402,6 +3402,7 @@ routine is called only in C++ mode.
   a_boolean                undecidable_because_of_error = FALSE;
   a_boolean                ambiguous = FALSE;
   a_boolean                sym_is_undefined;
+  a_boolean                some_function_tried = FALSE;
 
   db_enter(4, "select_overloaded_function");
   /* candidate_functions will contain the list of viable functions. */
@@ -3431,6 +3432,7 @@ routine is called only in C++ mode.
                                   /*effects_copy_initialization=*/FALSE,
                                   &candidate_functions,
                                   &matched_except_for_missing_selector);
+    some_function_tried = TRUE;
   } else {
     /* Do argument-dependent lookup, which may add additional functions
        from the classes and namespaces associated with the argument
@@ -3476,6 +3478,7 @@ routine is called only in C++ mode.
                                       /*effects_copy_initialization=*/FALSE,
                                       &candidate_functions,
                                       &matched_except_for_missing_selector);
+        some_function_tried = TRUE;
       }  /* if */
     }  /* for */
     free_list_of_symbol_list_entries(symbol_list);
@@ -3498,6 +3501,12 @@ routine is called only in C++ mode.
       /* A nonstatic member function is used someplace where there is no
          "this" available, e.g., outside of a member function. */
       pos_error(ec_member_ref_requires_object, call_position);
+    } if (sym_is_undefined && !some_function_tried) {
+      /* The function symbol is not defined, and no functions were added
+         by argument-dependent lookup, so the best diagnostic is one
+         that says the name is undefined. */
+      pos_st_error(ec_undefined_identifier, call_position,
+                   overloaded_function_symbol->header->identifier);
     } else {
       /* Normal case. */
       pos_sy_start_error(err_none_applies, call_position,
