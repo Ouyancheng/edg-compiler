@@ -3466,6 +3466,17 @@ of curr_object_lifetime (which is assumed to be its former parent).
 {
   db_enter(4, "add_as_child_of_curr_object_lifetime");
   if (olp != NULL) {
+    a_dynamic_init_ptr outer_dip = olp->parent_destruction_sublist;
+    if (outer_dip != NULL &&
+        outer_dip->overlaps_temps_in_inner_lifetime &&
+        outer_dip->lifetime_of_overlapping_temps == olp) {
+      /* There was an associated destruction for a temporary whose lifetime
+         was promoted (to bind it to a reference).  The destruction was
+         removed by detach_object_lifetime_for_dynamic_init.  Put it back
+         now at the right place in the list. */
+      record_end_of_lifetime_destruction(outer_dip, /*static_lifetime=*/FALSE,
+                                         /*block_lifetime=*/TRUE);
+    }  /* if */
     check_assertion_str2(olp->parent_lifetime == NULL,
                          "add_as_child_of_curr_object_lifetime:",
                          "non-NULL parent_lifetime");
@@ -3483,6 +3494,32 @@ of curr_object_lifetime (which is assumed to be its former parent).
   }  /* if */
   db_exit();
 }  /* add_as_child_of_curr_object_lifetime */
+
+
+
+static void detach_object_lifetime_for_dynamic_init(a_dynamic_init_ptr dip)
+/*
+If the indicated initialization has an associated object lifetime, detach
+it from the object lifetime tree.  This is done for ctor-initializers
+so that the object lifetime list can be re-constructed in the canonical
+order rather than the order in which the initializers appear in the
+source.  Also unlink any destruction for an associated temporary whose
+lifetime was promoted to match a reference.
+*/
+{
+  an_object_lifetime_ptr olp = init_expr_lifetime_of(dip);
+  a_dynamic_init_ptr     outer_dip;
+
+  if (olp != NULL) {
+    detach_from_object_lifetime_tree(olp);
+    outer_dip = olp->parent_destruction_sublist;
+    if (outer_dip != NULL &&
+        outer_dip->overlaps_temps_in_inner_lifetime &&
+        outer_dip->lifetime_of_overlapping_temps == olp) {
+      remove_from_destruction_list(outer_dip);
+    }  /* if */
+  }  /* if */
+}  /* detach_object_lifetime_for_dynamic_init */
 
 
 static a_boolean are_disjoint_members_of_union(a_field_ptr field1,
@@ -4182,7 +4219,7 @@ scan_paren:
               /* If the initializer produced an object lifetime for the full
                  expression, remove it temporarily from the object lifetime
                  tree and restore it in the correct position later. */
-              detach_from_object_lifetime_tree(init_expr_lifetime_of(dip));
+              detach_object_lifetime_for_dynamic_init(dip);
               /* If this is the initialization of an array, the dynamic init
                  entry at this point represents the initialization of an
                  element of the array, not of the array as a whole.  The
@@ -4268,7 +4305,7 @@ scan_paren:
                 /* If the initializer produced an object lifetime for the full
                    expression, remove it temporarily from the object lifetime
                    tree and restore it in the correct position later. */
-                detach_from_object_lifetime_tree(init_expr_lifetime_of(dip));
+                detach_object_lifetime_for_dynamic_init(dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
                 if (new_cip != NULL && curr_token == tok_rparen) {
                   new_cip->ctor_init_range.start = init_start_pos;

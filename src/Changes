@@ -1,5 +1,26 @@
 Version 3.0
 
+3/10/02  Abort in add_dyn_init_cleanup: no temps
+
+An abort in add_dyn_init_cleanup has been eliminated.  The abort
+was provoked by binding a reference to a temporary in a
+ctor-initializer that also contains an array new with a non-default
+operator delete.
+
+  struct A {
+    A();
+    A(int);
+    ~A();
+    void *operator new[](size_t);
+    void operator delete[](void *, size_t);
+  };
+  struct B : virtual A {
+    const A &r;
+    A a;
+    B() : a(0), r(((new A[5]), 1)) {}
+  };
+  B b;
+
 3/8/02   Name mangling problem: apparent unnamed structs as template arguments
 
 Due to a name mangling problem, pointer-to-member types that appear as
