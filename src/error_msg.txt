@@ -1326,6 +1326,7 @@ ec_invalid_use_of_ms_attr;;"%sq attribute cannot be used here"
 ec_unrecognized_ms_attr;;"unrecognized attribute %sq"
 ec_ms_attr_not_allowed;;"attributes are not allowed here"
 ec_invalid_ms_attr_uuid_value;;"invalid argument value for the %sq attribute parameter"
+ec_too_many_ms_attr_args;;"too many attribute arguments"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

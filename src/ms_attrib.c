@@ -321,7 +321,7 @@ are accepted.
 */
 {
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             (char*)NULL, MSAT_ANY);
+                             "<unrecognized>", MSAT_ANY);
   /* Save a pointer to the special "unrecognized" attribute kind. */
   unrecognized_attribute = curr_attribute_descr;
   /* [aggregatable] */
@@ -356,6 +356,11 @@ are accepted.
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "function", /*is_unnamed=*/TRUE, NULL);
+  /* [case] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "case", MSAT_DATA_MEMBER);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
+                          "value", /*is_unnamed=*/FALSE, NULL);
   /* [coclass] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "coclass", MSAT_CLASS | MSAT_STRUCT);
@@ -367,9 +372,20 @@ are accepted.
                           "entry",
                           /*is_unnamed=*/TRUE,
                           NULL);
+  /* [default] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "default",
+                             MSAT_CLASS | MSAT_STRUCT | MSAT_DATA_MEMBER);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "interface1", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "interface2", /*is_unnamed=*/FALSE, NULL);
   /* [dispinterface] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "dispinterface", MSAT_INTERFACE);
+  /* [dual] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "dual", MSAT_INTERFACE);
   /* [emitidl] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "emitidl", MSAT_STANDALONE);
@@ -445,6 +461,9 @@ are accepted.
   /* [library_block] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "library_block", MSAT_ANY);
+  /* [local] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "local", MSAT_METHOD | MSAT_INTERFACE);
   /* [module] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "module", MSAT_STANDALONE);
@@ -613,8 +632,9 @@ are accepted.
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, NULL);
   /* [string] */
+  /* The Microsoft documentation does not have the correct target. */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "string", MSAT_PARAMETER | MSAT_ANY_TYPE);
+			     "string", MSAT_ANY);
   /* [support_error_info] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "support_error_info", MSAT_CLASS);
@@ -622,6 +642,20 @@ are accepted.
      to actually be a string. */
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "error_interface", /*is_unnamed=*/FALSE, NULL);
+  /* [switch_type] */
+  /* The Microsoft documentation does not describe the field argument and
+     does not have the correct target. */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "switch_type", MSAT_UNION);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "field", /*is_unnamed=*/TRUE, NULL);
+  /* [switch_is] */
+  /* The Microsoft documentation does not describe the type argument and
+     does not have the correct target. */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "switch_is", MSAT_UNION);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "type", /*is_unnamed=*/TRUE, NULL);
   /* [synchronize] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "synchronize", MSAT_METHOD | MSAT_ROUTINE);
@@ -1235,6 +1269,7 @@ list.  Return a pointer to the list of arguments.
       arg_list = scan_ms_attribute_arg(param);
     }  /* if */
   } else {
+    a_boolean	any_errors = FALSE;
     /* Bypass the left parenthesis. */
     check_assertion(curr_token == tok_lparen);
     (void)get_token();
@@ -1255,9 +1290,15 @@ list.  Return a pointer to the list of arguments.
         }   /* if */
       } else if (any_named_args) {
         /* A positional argument cannot follow a named one. */
-        error(ec_positional_after_named);
+        if (!any_errors) error(ec_positional_after_named);
         /* Flush to the next argument. */
         flush_tokens();
+        any_errors = TRUE;
+        continue;
+      } else if (param == NULL) {
+        if (!any_errors) error(ec_too_many_ms_attr_args);
+        flush_tokens();
+        any_errors = TRUE;
         continue;
       }   /* if */
       arg = scan_ms_attribute_arg(param);
