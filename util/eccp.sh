@@ -312,7 +312,7 @@ prelink_options=
 # candidates for assignment of instantiations.  prelink_copy_if_nonlocal
 # is TRUE if the assignment of an instantiation to a nonlocal object file
 # should result in the object file being recompiled in the current
-# directory.  use_definition_list_file specifies whether a the prelinker
+# directory.  use_definition_list_file specifies whether the prelinker
 # should use a definition list file when invoking the front end.
 #
 prelink_local_only=0
@@ -1535,6 +1535,12 @@ do
   #
   if [ $status -ge 128 ] ; then
     echo $driver_name: $CPFE returned an exit status of $status
+    # EDG_SHOW_TRACEBACK enables a special debugging mode in which the
+    # location of an abort is displayed.  This requires that a "show_traceback"
+    # command exist and the CPFE be set to the full path of the executable.
+    if [ ${EDG_SHOW_TRACEBACK-0} -gt 0 ] ; then
+      show_traceback $CPFE
+    fi
   fi
   #
   # If we are doing automatic instantiation and if the program involves
