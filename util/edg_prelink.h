@@ -31,12 +31,10 @@ Declarations for EDG template prelink utility.
 #define PL_DO_NOT_INSTANTIATE_PREFIX_LEN	7
 #define PL_INSTANCE_REQUIRED_PREFIX		"__TIR___"
 #define PL_INSTANCE_REQUIRED_PREFIX_LEN		7
-#define PL_FIRST_VIRTUAL_FUNCTION_PREFIX	"__FVF___"
-#define PL_FIRST_VIRTUAL_FUNCTION_PREFIX_LEN	7
 
 /* The maximum number of iterations after which we give up under the
    assumption that we've encountered an instantiation loop. */
-#define PL_MAX_ITERATIONS	30
+#define PL_MAX_ITERATIONS	100
 
 /* Function that executes "command" and directs its output to the
    returned file pointer. */

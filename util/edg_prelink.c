@@ -757,32 +757,6 @@ table.
         sym = pl_find_symbol(&psp->name[PL_DO_NOT_INSTANTIATE_PREFIX_LEN],
                              psp, /*add=*/TRUE);
         sym->do_not_instantiate = TRUE;
-      } else if (strncmp(psp->name, PL_FIRST_VIRTUAL_FUNCTION_PREFIX,
-                  PL_FIRST_VIRTUAL_FUNCTION_PREFIX_LEN) == 0) {
-        /* The "first virtual function" prefix indicates that a given name
-           is the first noninline virtual function of a class.  The prelinker
-           treats this as a name that is referenced and could have been
-	   instantiated in the file.  This will cause the function to be
-           instantiated which will in turn cause a vtable to be generated.
-	   This will ultimately result in all of the virtual functions for the
-	   class to be instantiated.  The input file is not considered to
-           be an instantiation site if it is an archive. */
-        is_special_symbol = TRUE;
-        sym = pl_find_symbol(&psp->name[PL_FIRST_VIRTUAL_FUNCTION_PREFIX_LEN],
-                             psp, /*add=*/TRUE);
-        sym->referenced = TRUE;
-        if (sym->last_referenced_from != input_file) {
-          /* Keep track of the number of references.  Only update the counter
-             for the first reference in this file.  There can be multiple
-             references as a result of the special symbols. */
-          sym->last_referenced_from = input_file;
-          sym->number_of_references++;
-        }  /* if */
-        sym->is_template = TRUE;
-        if (!input_file->is_archive) {
-          sym->can_be_instantiated = TRUE;
-          add_possible_instantiation_site(sym, input_file);
-        }  /* if */
       } else if (!input_file->is_archive &&
                  strncmp(psp->name, PL_CAN_BE_INSTANTIATED_PREFIX,
                   PL_CAN_BE_INSTANTIATED_PREFIX_LEN) == 0) {
