@@ -753,7 +753,7 @@ do_variable:
           }  /* if */
           fprintf(f_debug, "\n");
           fprintf(f_debug, "%*sclass_declared_in: ", indentation, "");
-          if (routine != NULL) {
+          if (tssp->variant.function.class_declared_in != NULL) {
             db_type(tssp->variant.function.class_declared_in);
           } else {
             fprintf(f_debug, "(NULL)");
