@@ -3095,7 +3095,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
           case dmt_thread:
             if (!has_static_storage_duration(variable->storage_class)) {
               /* The "thread" specifier can only be applied to variables with
-                 a static life time. */
+                 a static lifetime. */
               invalid_modifier = TRUE;
             }  /* if */
             break;
