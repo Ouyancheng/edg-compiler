@@ -1,5 +1,14 @@
 Version 3.2
 
+4/20/03  Better position information on parenthesized reference to
+         global variable
+
+The extra position information recorded when EXTRA_SOURCE_POSITIONS_IN_IL
+is TRUE is now improved for references of the form (j) where j is
+a variable with static storage duration.  Formerly, the expression
+node produced had start/end positions that included the parentheses,
+whereas only the variable reference itself should have been included.
+
 4/20/03  No const-qualification on "this" parameter in declaration
          when "new" is folded into constructor
 
