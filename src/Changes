@@ -1,5 +1,13 @@
 Version 3.1
 
+1/15/03  Bug in covariant return adjustment with dominance
+
+The overriding functions list was not built correctly when an
+entry that doesn't have covariance on the return type is dominated
+by an entry that does -- the return adjustment base class
+was not set, and as a consequence incorrect code would be
+generated that did not adjust the return type.  Now fixed.
+
 1/15/03  "||" or "&&" expression with dependent second operand should
          be considered dependent
 
