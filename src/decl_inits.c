@@ -723,6 +723,37 @@ The syntax is:
       }  /* if */
       initialization_is_dynamic = TRUE;
     }  /* if */
+
+  } else if (C_dialect == C_dialect_cplusplus &&
+             is_class_struct_union_type(vp_type) && curr_token != tok_lbrace) {
+    /* Special C++ case:  a class aggregate may be initialized with an object
+       of its class or a class derived from it.  E.g., if S is the name of a
+       struct and x is an S, then S y = x is permitted. */
+    scan_initializer_expression(/*convert_array_to_pointer=*/TRUE,
+                                  &is_constant, &expression, &constant, &err);
+    if (!err) {
+      if (is_constant) {
+        /* Check the type of the initial value against the type of the object
+           being initialized. */
+        /* This should always be an error. */
+        check_constant_initializer(&constant, &vp_type, &err);
+#if CHECKING
+        if (!err) {
+          internal_error("get_initializer: expected error on conversion");
+        }  /* if */
+#endif /* CHECKING */
+      } else {
+        /* Non-constant.  Check the type by assignment rules and cast the
+           node if necessary. */
+        node_prepare_assignment(&expression, vp_type,
+                                ec_bad_initializer_type, &err);
+        if (!err) {
+          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_expression);
+          local_di.variant.expression = expression;
+          initialization_is_dynamic = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */    
   } else if (is_aggregate_or_union_type(vp_type)) {
     if (paren_flag) {
       /* Error has already been reported.  Scan the arguments, but don't
