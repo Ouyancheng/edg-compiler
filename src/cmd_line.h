@@ -1674,6 +1674,12 @@ EXTERN a_boolean
 			   This is also used in Sun mode. */
 
 EXTERN a_boolean
+		emulate_microsoft_nonreal_instantiation_bug /* = FALSE */;
+			/* TRUE if nonreal classes should undergo normal
+			   instantiations so that prototype instantiation
+			   members can also be found in nonreal classes. */
+
+EXTERN a_boolean
 		elab_type_lookup_finds_typedefs
 #if VAR_INITIALIZERS
 			= FALSE

@@ -1620,6 +1620,11 @@ by a command line option.
     allow_default_arg_on_template_member_definition = TRUE;
     /* Make template parameters visible in specialization scopes. */
     use_microsoft_specialization_scope = TRUE;
+    /* The Microsoft compiler can (incorrectly) lookup template members
+       in nonreal instantiations.  Don't enable this bug emulation if dependent
+       name lookup was explicitly requested. */
+    emulate_microsoft_nonreal_instantiation_bug =
+                               microsoft_bugs && !do_dependent_name_processing;
   }  /* if */
   /* The Microsoft compiler does not find typedefs when looking up names
      in elaborated type specifiers. */
