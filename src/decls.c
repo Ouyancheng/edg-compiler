@@ -8657,7 +8657,9 @@ clause is to be attached.  catch_pos is the source position of "catch".
           }  /* if */
         }  /* if */
         if (!exceptions_enabled) {
-          /* Don't bother with the semantic checks on the handler type. */
+          /* Don't bother with the semantic checks on the handler type.  Set
+             type to error type to avoid inappropriate errors downstream. */
+          type_ptr = error_type();
         } else if (!is_error_type(type_ptr)) {
           /* Force instantiation of template class. */
           check_for_uninstantiated_template_class(type_ptr);
@@ -8675,7 +8677,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
                  external linkage; however, it is possible to write a useful
                  program in which a local type is thrown and caught -- e.g.,
                    void f() {
-                     class A;
+                     class A { ... };
                      try { ... throw A ... }
                      catch (A) { ... }
                    }
