@@ -797,7 +797,7 @@ TARG_MAX_CLASS_OBJECT_SIZE is zero, then targ_max_class_object_size is set
 to targ_size_t_max.
 */
 #ifndef TARG_MAX_CLASS_OBJECT_SIZE
-#define TARG_MAX_CLASS_OBJECT_SIZE TARG_SIZE_T_MAX
+#define TARG_MAX_CLASS_OBJECT_SIZE 0
 #endif /* ifndef TARG_MAX_CLASS_OBJECT_SIZE */
 
 #if BACK_END_IS_C_GEN_BE
