@@ -621,8 +621,7 @@ extern void change_binary_operand_types(a_type_ptr type,
 extern void do_operand_transformations(an_operand                   *operand,
                                        a_transformation_options_set options);
 
-extern a_type_ptr get_logical_result_type(an_operand *operand_1,
-				          an_operand *operand_2);
+extern a_type_ptr boolean_result_type(void);
 
 extern a_boolean op_is_zero_constant(an_operand *operand);
 

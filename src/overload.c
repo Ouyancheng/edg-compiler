@@ -618,6 +618,8 @@ for overload resolution.
 			/* Pointer to function. */
 #define PTR_TO_MEMBER_TYPE_CODE 'M'
 			/* Pointer to member. */
+#define BOOL_TYPE_CODE 'B'
+			/* bool. */
 
 
 static char *name_for_type_code(char type_code)
@@ -647,6 +649,9 @@ Return a printable string describing a type code.
       break;
     case PTR_TO_MEMBER_TYPE_CODE:
       str = "pointer-to-member";
+      break;
+    case BOOL_TYPE_CODE:
+      str = "bool";
       break;
     default:
       str = "?";
@@ -1760,6 +1765,24 @@ Compare two argument match summary entries and return
           } else {
             /* arg_match2 has the nontrivial conversion and arg_match1 does
                not, so arg_match1 is better. */
+            cmp = 1;
+            goto have_cmp;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (bool_is_keyword) {
+        /* A cast of a pointer or pointer-to-member to bool is worse than
+           another conversion that isn't such a cast. */
+        if (arg_match1->conversion.std.ptr_or_pm_to_bool !=
+            arg_match2->conversion.std.ptr_or_pm_to_bool) {
+          if (arg_match1->conversion.std.ptr_or_pm_to_bool) {
+            /* arg_match1 converts a ptr or pointer to member to bool and
+               arg_match2 does not, so arg_match2 is better. */
+            cmp = -1;
+            goto have_cmp;
+          } else {
+            /* arg_match2 converts a ptr or pointer to member to bool and
+               arg_match1 does not, so arg_match2 is better. */
             cmp = 1;
             goto have_cmp;
           }  /* if */
@@ -3792,6 +3815,8 @@ is only used in C++ mode.
 #endif /* 0 */
       if (((builtin_types_allowed & BTK_INTEGRAL) != 0 &&
                                               is_integral_type(return_type)) ||
+          ((builtin_types_allowed & BTK_BOOL) != 0 &&
+                                              is_bool_type(return_type)) ||
           ((builtin_types_allowed & BTK_FLOATING) != 0 &&
                                               is_floating_type(return_type)) ||
           ((builtin_types_allowed & BTK_POINTER) != 0 &&
@@ -3806,6 +3831,16 @@ is only used in C++ mode.
                                          is_ptr_to_member_type(return_type))) {
         /* This conversion function returns an acceptable built-in type. */
         compatible = TRUE;
+        /* The result does not have to be forced to an rvalue. */
+      } else if (((builtin_types_allowed & BTK_BOOL) != 0 &&
+                                           (is_arithmetic_type(return_type) ||
+                                            is_enum_type(return_type) ||
+                                            is_pointer_type(return_type) ||
+                                        is_ptr_to_member_type(return_type)))) {
+        /* The conversion function returns something that can be converted to
+           the desired kind of type via a standard conversion. */
+        compatible = TRUE;
+        std_conversion.nontrivial_conversion = TRUE;
         /* The result does not have to be forced to an rvalue. */
       }  /* if */
     }  /* if */
@@ -3927,8 +3962,13 @@ as its first operand.
         operand_type_pattern = "A";
         break;
       case onk_not:
-        /* "!" takes an arithmetic, pointer, or pointer-to-member operand. */
-        operand_type_pattern = "a;P;M";
+        if (bool_is_keyword) {
+          /* "!" takes a bool operand. */
+          operand_type_pattern = "B";
+        } else {
+          /* "!" takes an arithmetic, pointer, or pointer-to-member operand. */
+          operand_type_pattern = "a;P;M";
+        }  /* if */
         break;
       case onk_compl:
         /* "~" takes an integral operand. */
@@ -3989,9 +4029,14 @@ as its first operand.
         break;
       case onk_and_and:
       case onk_or_or:
-        /* "&&" and "||" take arithmetic, pointer, or pointer-to-member
-           operands, but they can be mixed. */
-        operand_type_pattern = "aa;aP;aM;Pa;PP;PM;Ma;MP;MM";
+        if (bool_is_keyword) {
+          /* "&&" and "||" take bool operands. */
+          operand_type_pattern = "BB";
+        } else {
+          /* "&&" and "||" take arithmetic, pointer, or pointer-to-member
+             operands, but they can be mixed. */
+          operand_type_pattern = "aa;aP;aM;Pa;PP;PM;Ma;MP;MM";
+        }  /* if */
         break;
       case onk_times_assign:
       case onk_divide_assign:
@@ -4079,6 +4124,9 @@ it fits that type description or can be promoted to it.
     case PTR_TO_MEMBER_TYPE_CODE:
       matches = is_ptr_to_member_type(type);
       break;
+    case BOOL_TYPE_CODE:
+      matches = is_bool_type(type);
+      break;
     default:
       unexpected_condition_str("type_matches_type_code: bad type code");
   }  /* switch */
@@ -4114,6 +4162,9 @@ type_code.
       break;
     case PTR_TO_MEMBER_TYPE_CODE:
       builtin_types_allowed = BTK_PTR_TO_MEMBER;
+      break;
+    case BOOL_TYPE_CODE:
+      builtin_types_allowed = BTK_BOOL;
       break;
     default:
       unexpected_condition_str(

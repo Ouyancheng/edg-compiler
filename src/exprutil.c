@@ -1819,6 +1819,11 @@ invalid casts of that kind (e.g., ambiguous).
                                  /*check_cast_access=*/is_implicit_cast,
                                  is_implicit_cast, p_node, err_pos);
     }  /* if */
+  } else if (!C_mode() && is_bool_type(new_type)) {
+    /* Cast to bool.  Use eok_bool_cast. */
+    *p_node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
+                                 new_type, *p_node);
+    (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
   } else {
     /* For an ordinary cast, generate the eok_cast node. */
     *p_node = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
@@ -2428,7 +2433,7 @@ compatible, and return the type of the result.  Note that this routine assumes
 that the type is arithmetic, and does not actually change the result type.
 See section 3.2.1.5 of the standard.  In C++, when wchar_t is a keyword,
 wchar_t is represented by one of the normal integral types and obeys
-the same conversion rules as its underlying type.
+the same conversion rules as its underlying type.  Likewise for bool.
 */
 {
   a_type_ptr      type_1;
@@ -5274,38 +5279,42 @@ its result still an lvalue.
 }  /* still_an_lvalue */
 
 
-a_type_ptr get_logical_result_type(an_operand *operand_1,
-				   an_operand *operand_2)
+a_type_ptr boolean_result_type(void)
 /*
-Return the result type for a logical expression (one that returns a logical
-value of 0 or 1) with the indicated two operands.
+Return the result type for a boolean expression (one that returns 0 or 1 in
+C, and false or true in C++).
 */
 {
   a_type_ptr result_type;
 
-  if (is_error_operand(operand_1) || is_error_operand(operand_2)) {
-    result_type = error_type();
+  if (bool_is_keyword) {
+    /* bool exists (C++), so the result type is bool. */
+    result_type = bool_type();
   } else if (curr_expr_kind_is(ek_pp)) {
-    /* All integers (logicals) have a type of long in the preprocessor. */
+    /* All integers have a type of long in the preprocessor. */
     result_type = integer_type((an_integer_kind)ik_long);
   } else {
-    /* All logical and relational expressions have a result type of int. */
+    /* Result type is int. */
     result_type = integer_type((an_integer_kind)ik_int);
   }  /* if */
 
   return result_type;
-}  /* get_logical_result_type */
+}  /* boolean_result_type */
 
 
 a_boolean check_boolean_controlling_expr(an_operand *operand)
 /*
 Do some checks on a boolean controlling expression (e.g., "i != 0" in 
-"(i != 0) ? j : k").  Check that it's a scalar (arithmetic or pointer)
-or a pointer to member; return FALSE if not.  Also normalize the
-expression to "!= 0" form if necessary.
+"(i != 0) ? j : k").  Check that (if bool is enabled) it has bool type
+or can be converted to it, or (if bool is disabled) it's a scalar
+(arithmetic or pointer) or a pointer to member; return FALSE if not.
+Also (if bool is enabled) convert the expression to bool, or (if
+bool is disabled) normalize the expression to "!= 0" form if necessary.
+This routine does not attempt conversions from class types to built-in
+types to get a boolean expression (see process_boolean_controlling_expression).
 */
 {
-  a_boolean             okay, add_ne_0;
+  a_boolean             okay = FALSE, add_ne_0;
   an_expr_node_ptr      expr;
   an_expr_operator_kind op;
   an_expr_node_ptr      operand1;
@@ -5315,70 +5324,103 @@ expression to "!= 0" form if necessary.
 
   /* Save the operand's source position. */
   orig_operand = *operand;
-  if (is_ptr_to_member_type(operand->type)) {
-    /* Pointer to member type is okay. */
-    okay = TRUE;
-  } else {
-    /* Check that the operand is a scalar. */
-    okay = check_scalar_operand(operand);
-  }  /* if */
-  if (okay) {
-    switch (operand->kind) {
-      case ok_error:
-        /* No action. */
-        break;
-      case ok_expression:
-        expr = operand->variant.expression;
-        if (!is_operation_node(expr)) {
-          /* Add an appropriate "!= 0" on top of variable and variable
-             address references. */
-          add_ne_0 = TRUE;
-        } else {
-          op = expr->variant.operation.kind;
-          operand1 = expr->variant.operation.operands;
-          if (op == (an_expr_operator_kind)eok_iassign ||
-              op == (an_expr_operator_kind)eok_fassign ||
-              op == (an_expr_operator_kind)eok_passign) {
-            /* An assignment operator at the top level.  Check for
-               "x = constant", which was probably intended to be
-               "x == constant". */
-            if (is_constant_node(operand1->next)) {
-              pos_warning(ec_assign_where_compare_meant, &operand->position);
-            }  /* if */
-          }  /* if */
-          /* If the top of the expression is not an operator that returns
-             a boolean 0/1, add a "!= 0" of the right kind on top. */
-          add_ne_0 = !is_operator_returning_bool(op);
-	}  /* if */
-        if (add_ne_0) {
-          /* Add a "!= 0" of the appropriate type on top of the expression
-             to standardize it. */
-          make_zero_of_proper_type(expr->type, &con);
-          zero_node = alloc_node_for_constant(&con);
-          /* Build a "!=" node of the right kind, pointing to the original
-             expression and the zero constant node. */
-          new_expr = make_operator_node(which_binary_operator(tok_ne,
-                                                              expr->type),
-                                        integer_type((an_integer_kind)ik_int),
-                                        expr);
-          new_expr->next = expr->next;
-          expr->next = zero_node;
-          make_expression_operand(new_expr, new_expr->type, operand);
+  /* Check for possible misuse of "=" where "==" was intended. */
+  if (is_expression_operand(operand)) {
+    expr = operand->variant.expression;
+    if (is_operation_node(expr)) {
+      op = expr->variant.operation.kind;
+      operand1 = expr->variant.operation.operands;
+      if (op == (an_expr_operator_kind)eok_iassign ||
+          op == (an_expr_operator_kind)eok_fassign ||
+          op == (an_expr_operator_kind)eok_passign) {
+        /* An assignment operator at the top level.  Check for
+           "x = constant", which was probably intended to be
+           "x == constant". */
+        if (is_constant_node(operand1->next)) {
+          pos_warning(ec_assign_where_compare_meant, &operand->position);
         }  /* if */
-        break;
-      case ok_constant:
-        /* The expression is constant.  Make a standard integer 0 or 1
-           constant. */
-        make_integer_constant_operand(operand,
-                                      (long)(!op_is_false_constant(operand)));
-        operand->variant.constant.null_pointer_constant_ruled_out =
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (bool_is_keyword) {
+    /* bool is enabled.  The expression must have bool type or be convertible
+       to bool. */
+    if (is_bool_type(operand->type)) {
+      okay = TRUE;
+    } else {
+      /* The expression must be convertible to bool. */
+      a_std_conv_descr std_conv;
+      if (impl_conversion_possible(operand->type,
+                                   is_constant_operand(operand),
+                                   &operand->variant.constant,
+                                   bool_type(),
+                                   /*suppress_extensions=*/FALSE,
+                                   ec_expr_not_bool,
+                                   &std_conv)) {
+        okay = TRUE;
+        /* Convert the expression to bool. */
+        cast_operand(bool_type(), operand, /*is_implicit_cast=*/TRUE);
+      } else {
+        error_in_operand(ec_expr_not_bool, operand);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* bool is disabled.  The expression must have scalar or pointer to member
+       type. */
+    if (is_ptr_to_member_type(operand->type)) {
+      /* Pointer to member type is okay. */
+      okay = TRUE;
+    } else {
+      /* Check that the operand is a scalar. */
+      okay = check_scalar_operand(operand);
+    }  /* if */
+    if (okay) {
+      /* Standardize the operand. */
+      switch (operand->kind) {
+        case ok_error:
+          /* No action. */
+          break;
+        case ok_expression:
+          expr = operand->variant.expression;
+          if (!is_operation_node(expr)) {
+            /* Add an appropriate "!= 0" on top of variable and variable
+               address references. */
+            add_ne_0 = TRUE;
+          } else {
+            /* If the top of the expression is not an operator that returns
+               a boolean 0/1, add a "!= 0" of the right kind on top. */
+            add_ne_0=!is_operator_returning_bool(expr->variant.operation.kind);
+          }  /* if */
+          if (add_ne_0) {
+            /* Add a "!= 0" of the appropriate type on top of the expression
+               to standardize it. */
+            make_zero_of_proper_type(expr->type, &con);
+            zero_node = alloc_node_for_constant(&con);
+            /* Build a "!=" node of the right kind, pointing to the original
+               expression and the zero constant node. */
+            new_expr = make_operator_node(which_binary_operator(tok_ne,
+                                                                expr->type),
+                                         integer_type((an_integer_kind)ik_int),
+                                          expr);
+            new_expr->next = expr->next;
+            expr->next = zero_node;
+            make_expression_operand(new_expr, new_expr->type, operand);
+          }  /* if */
+          break;
+        case ok_constant:
+          /* The expression is constant.  Make a standard integer 0 or 1
+             constant. */
+          make_integer_constant_operand(operand,
+                                       (long)(!op_is_false_constant(operand)));
+          operand->variant.constant.null_pointer_constant_ruled_out =
                  orig_operand.variant.constant.null_pointer_constant_ruled_out;
-        break;
+          break;
 #if CHECKING
-      default:
-        internal_error("check_boolean_controlling_expr: bad operand kind");
+        default:
+          internal_error("check_boolean_controlling_expr: bad operand kind");
 #endif /* CHECKING */
-    }  /* switch */
+      }  /* switch */
+    }  /* if */
   }  /* if */
   /* Restore the original source position. */
   restore_operand_details(operand, &orig_operand);

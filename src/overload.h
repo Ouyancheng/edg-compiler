@@ -103,6 +103,8 @@ conversion_from_class_possible.
 			/* Any pointer to function. */
 #define BTK_PTR_TO_MEMBER 0x20
 			/* Any pointer to member. */
+#define BTK_BOOL 0x40
+			/* bool (C++). */
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;
 

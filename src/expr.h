@@ -124,9 +124,7 @@ extern void scan_template_argument_constant_expression(a_type_ptr param_type,
 extern void scan_constant_initializer_expression(a_type_ptr required_type,
                                                  a_constant *constant);
 
-extern an_expr_node_ptr scan_boolean_controlling_expression(
-                                                   a_boolean is_condition_expr,
-                                                   a_boolean repeated_in_loop);
+extern an_expr_node_ptr scan_boolean_controlling_expression(void);
 
 /*
 Macro that is TRUE if the node is an operation node.

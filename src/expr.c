@@ -2716,6 +2716,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 */
 {
   an_expr_operator_kind op;
+  a_boolean             is_increment;
   a_type_ptr            result_type;
   a_boolean             err = FALSE, processed = FALSE;
   an_operand            zero_operand;
@@ -2725,6 +2726,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
   db_enter(4, "scan_postfix_incr_decr");
 
   operator_position = pos_curr_token;
+  is_increment = (curr_token == tok_plus_plus);
   if (curr_expr_kind_is_const()) {
     /* Postfix ++/-- not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &operator_position);
@@ -2808,6 +2810,14 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
             error_in_operand(ec_enum_type_not_allowed, operand);
             err = TRUE;
           }  /* if */
+        } else if (is_bool_type(operand->type)) {
+          /* "++" on bool is allowed but deprecated.  "--" on bool is not
+             allowed. */
+          if (is_increment) {
+            pos_warning(ec_incr_of_bool_deprecated, &operand->position);
+          } else {
+            error_in_operand(ec_bool_type_not_allowed, operand);
+          }  /* if */
         }  /* if */
       }  /* if */
       if (err) {
@@ -2821,7 +2831,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
         modifying_lvalue(operand, /*value_used=*/TRUE);
         result_type = make_unqualified_type(operand->type);
         kind = skip_typerefs(result_type)->kind;
-        if (curr_token == tok_plus_plus) {
+        if (is_increment) {
           switch (kind) {
             case tk_integer:
               op = (an_expr_operator_kind)eok_ipost_incr;
@@ -2970,6 +2980,14 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
           } else {
             error_in_operand(ec_enum_type_not_allowed, &operand);
             err = TRUE;
+          }  /* if */
+        } else if (is_bool_type(operand.type)) {
+          /* "++" on bool is allowed but deprecated.  "--" on bool is not
+             allowed. */
+          if (is_increment) {
+            pos_warning(ec_incr_of_bool_deprecated, &operand.position);
+          } else {
+            error_in_operand(ec_bool_type_not_allowed, &operand);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -3363,7 +3381,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         (void)check_boolean_controlling_expr(&operand);
         op = (an_expr_operator_kind)eok_not;
         do_promotion = FALSE;
-        result_type = integer_type((an_integer_kind)ik_int);
+        result_type = boolean_result_type();
         break;
       case tok_minus:
         (void)check_arithmetic_operand(&operand);
@@ -6312,7 +6330,7 @@ standard.
       }  /* if */
     }  /* if */
     /* Determine the result type. */
-    result_type = get_logical_result_type(operand_1, &operand_2);
+    result_type = boolean_result_type();
     /* Convert the operands to a common type. */
     change_binary_operand_types(operation_type, operand_1, &operand_2);
     if (funny_unsigned_comparison) {
@@ -6461,7 +6479,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
       }  /* if */
     }  /* if */
 
-    result_type = get_logical_result_type(operand_1, &operand_2);
+    result_type = boolean_result_type();
     change_binary_operand_types(operation_type, operand_1, &operand_2);
     if (funny_unsigned_comparison) {
       /* Check for pointless comparisons of unsigned integers against negative
@@ -6722,7 +6740,7 @@ standard.
     (void)check_boolean_controlling_expr(&operand_2);
     if (!known_result) {
       /* Normal case: the result is not known. */
-      result_type = get_logical_result_type(operand_1, &operand_2);
+      result_type = boolean_result_type();
       op = which_binary_operator(save_token, result_type);
       do_binary_operation(op, operand_1, &operand_2, result_type, result,
                           &operator_position);
@@ -6804,25 +6822,30 @@ class type if necessary.
   a_boolean processed = FALSE;
   a_boolean pointer_case;
 
-  /* Convert from a class type to a scalar if necessary. */
+  /* Convert from a class type to bool or scalar/pointer-to-member if
+     necessary. */
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(result->type)) {
-    try_to_convert_class_operand_to_builtin_type(result,
-                                                 (a_builtin_type_kind_set)
-                                                           (BTK_INTEGRAL |
-                                                            BTK_FLOATING |
-                                                            BTK_POINTER |
-                                                            BTK_PTR_TO_MEMBER),
+    a_builtin_type_kind_set type_kind_set;
+    if (bool_is_keyword) {
+      type_kind_set = BTK_BOOL;
+    } else {
+      type_kind_set = (a_builtin_type_kind_set)(BTK_INTEGRAL |
+                                                BTK_FLOATING |
+                                                BTK_POINTER |
+                                                BTK_PTR_TO_MEMBER);
+    }  /* if */
+    try_to_convert_class_operand_to_builtin_type(result, type_kind_set,
                                                  &processed);
   }  /* if */
   if (!processed) {
-    /* Do lvalue --> rvalue and other transformations for the non-overloaded
+    /* Do lvalue --> rvalue and other transformations for the non-class
        case. */
     do_operand_transformations(result, TOPT_NO_OPTIONS);
   }  /* if */
   /* Remember whether or not the expression has pointer type.  This is
-     needed later, and the check here standardizes the operation to
-     an integer result. */
+     needed later, and the check standardizes the operation to a bool or
+     integer result. */
   pointer_case = is_pointer_type(result->type) ||
                  is_ptr_to_member_type(result->type);
   /* Check that the operand is scalar or a pointer to member.  Note that
@@ -7553,6 +7576,9 @@ See section 3.3.16 of the standard.
         } else {
           error_in_operand(ec_enum_type_not_allowed, operand_1);
         }  /* if */
+      } else if (is_bool_type(operand_1->type)) {
+        /* The first operand cannot be bool. */
+        error_in_operand(ec_bool_type_not_allowed, operand_1);
       }  /* if */
       if (check_modifiable_lvalue_operand(operand_1)) {
         modifying_lvalue(operand_1, /*value_used=*/TRUE);
@@ -8704,6 +8730,7 @@ handle_trapped_left_paren:
     case tok_double:
     case tok_void:
     case tok_wchar_t:
+    case tok_bool:
       /* In C++, these type keywords begin a functional-notation type
          conversion (ARM 5.2.3).  In C, they're a syntax error. */
       if (C_dialect != C_dialect_cplusplus) goto bad_start_of_primary;
@@ -9791,18 +9818,13 @@ overall errors.
 }  /* scan_class_parenthesized_initializer */
 
 
-an_expr_node_ptr scan_boolean_controlling_expression(
-                                                   a_boolean is_condition_expr,
-                                                   a_boolean repeated_in_loop)
+an_expr_node_ptr scan_boolean_controlling_expression(void)
 /*
 Scan an expression that is used in controlling contexts that need a boolean
 result, such as if, while, do while, or for statements.  The type of the
-expression must be scalar, a pointer-to-member type, or must be of a
-class type that can be converted to such a type.  is_condition_expr is
-TRUE if this expression is a "condition" in the terms of the C++ standard.
-repeated_in_loop is TRUE if the expression is part of a loop and it is
-re-evaluated each time around the loop.  This routine is used only for
-full expressions.
+expression must be (if bool is enabled) bool or convertible to bool, or
+(if bool is disabled) scalar or a pointer-to-member type; or it must be of a
+class type that can be converted to those types.
 */
 {
   an_operand          result;
@@ -9813,8 +9835,7 @@ full expressions.
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/is_condition_expr ||
-                                            repeated_in_loop);
+                  /*force_object_lifetime=*/TRUE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
 

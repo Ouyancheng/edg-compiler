@@ -248,6 +248,10 @@ static void lower_boolean_controlling_expr(an_expr_node_ptr expr);
 static void lower_related_class_cast(an_expr_node_ptr node,
                                      a_boolean        is_lvalue,
                                      a_boolean        lower_source);
+static void adjust_bool_operation_types(an_expr_node_ptr expr,
+                                        a_boolean        *p_adjusted,
+                                        a_boolean        see_if_possible);
+static void lower_pm_comparison(an_expr_node_ptr expr);
 
 
 static void clear_insert_location(an_insert_location      *insert_location,
@@ -4580,7 +4584,7 @@ to skip the input parameter).
   }  /* if */
   /* Track the current parameter type as we go through the list. */
   for (expr = expr_list; expr != NULL; expr = expr->next) {
-    lower_expr(expr, FALSE);
+    lower_expr(expr, /*is_lvalue=*/FALSE);
     if (param != NULL) {
       /* Prototyped parameter. */
       if (make_all_functions_unprototyped) {
@@ -5262,6 +5266,34 @@ Lower an eok_dynamic_init expression.  The subtree has already been lowered.
 }  /* lower_dynamic_cast */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
+
+static void lower_bool_cast(an_expr_node_ptr expr)
+/*
+Lower an eok_bool_cast node, which converts an operand to bool.
+*/
+{
+  an_expr_node_ptr      operand = expr->variant.operation.operands;
+  an_expr_node_ptr      zero_node;
+  a_constant            zero_constant;
+  an_expr_operator_kind op;
+
+  /* A cast to bool in C++ is rewritten as a "!= 0" test in C. */
+  make_zero_of_proper_type(operand->type, &zero_constant);
+  zero_node = alloc_node_for_constant(&zero_constant);
+  operand->next = zero_node;
+  /* Note that the result type may still be "bool" here; if so, a cast will
+     be inserted later.  The type will be "int" if adjust_bool_operation_types
+     has discovered this case can be optimized. */
+  op = which_binary_operator(tok_ne, operand->type);
+  set_node_operator(expr, op, expr->type, operand);
+  if (op == (an_expr_operator_kind)eok_pmne) {
+    /* For the pointer-to-member case, the comparison must be lowered. */
+    mark_as_not_visited(zero_node->variant.constant);
+    lower_expr(zero_node, /*is_lvalue=*/FALSE);
+    lower_pm_comparison(expr);
+  }  /* if */
+}  /* lower_bool_cast */
+
 
 static a_routine_ptr routine_from_node(an_expr_node_ptr node)
 /*
@@ -6198,6 +6230,16 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           /* Other operators.  See if the first operand is an lvalue. */
           if (operator_takes_lvalue_operand(op)) is_lvalue_mask = 0x1;
         }  /* if */
+        if (bool_is_keyword && op == (an_expr_operator_kind)eok_cast &&
+            is_bool_type(operand_node->type)) {
+          /* A cast can eliminate the need for an extra cast on a
+             bool-producing operation.  This has to be done before lowering
+             the operand expression because this sets up an optimization
+             done during lowering. */
+          a_boolean adjusted;
+          adjust_bool_operation_types(operand_node, &adjusted,
+                                      /*see_if_possible=*/FALSE);
+        }  /* if */
         /* Lower the operands of the expression. */
         lower_expr_list(operand_node, is_lvalue_mask,
                         is_bool_controlling_expr_mask);
@@ -6235,6 +6277,29 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             lower_dynamic_cast(expr);
             break;
 #endif /* ABI_CHANGES_FOR_RTTI */
+          case eok_bool_cast:
+            lower_bool_cast(expr);
+            break;
+          case eok_ipost_incr:
+          case eok_ipre_incr:
+            if (bool_is_keyword) {
+              /* Incrementing a bool (which is deprecated) sets the bool to
+                 true. */
+              a_type_ptr operand_type = type_pointed_to(operand_node->type);
+              operand_type = skip_typerefs(operand_type);
+              if (is_bool_type(operand_type)) {
+                an_expr_node_ptr one_node = node_for_integer_constant(1L,
+                                       operand_type->variant.integer.int_kind);
+                a_boolean returns_lvalue = expr->variant.operation.
+                                        returns_lvalue_instead_of_usual_rvalue;
+                operand_node->next = one_node;
+                set_node_operator(expr, (an_expr_operator_kind)eok_iassign,
+                                  expr->type, operand_node);
+                expr->variant.operation.returns_lvalue_instead_of_usual_rvalue=
+                                                                returns_lvalue;
+              }  /* if */
+            }  /* if */
+            break;
           case eok_pmassign:
             /* Pointer-to-member assignment turns into integer assignment
                for pointers to data members, struct assignment for pointers
@@ -6332,6 +6397,19 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             break;
         }  /* switch */
 #if LOWER_LVALUE_RETURNING_OPERATIONS
+        if (bool_is_keyword && is_operator_returning_bool(op)) {
+          /* Operators that return bool in C++ return int in C.  Unless
+             an optimization applies, a cast must be inserted to cast the
+             result (int) to the desired bool type.  The optimization
+             is detected by adjust_bool_operation_types and indicated
+             by setting the result type to int.  In that case no
+             transformation is needed. */
+          if (is_bool_type(expr->type)) {
+            an_expr_node_ptr expr_copy = copy_node(expr);
+            expr_copy->type = integer_type((an_integer_kind)ik_int);
+            change_to_cast(expr, expr_copy, expr->type);
+          }  /* if */
+        }  /* if */
         /* Transform lvalue-returning assignments, prefix ++/--, and "?" and
            "," operators into valid C. */
         lower_operations_returning_lvalue_instead_of_usual_rvalue(expr,
@@ -6459,15 +6537,95 @@ to the statement; otherwise, it is NULL.
 }  /* lower_full_expr */
 
 
+static void adjust_bool_operation_types(an_expr_node_ptr expr,
+                                        a_boolean        *p_adjusted,
+                                        a_boolean        see_if_possible)
+/*
+The expression expr appears in a boolean controlling expression context.
+If it is an operation that returns bool (e.g., "!="), change the type of
+the operation to int.  If the operation is one that has an operand that
+is an operation returning bool, and this operation passes that boolean
+through, adjust the operand node as well (and so on down the expression
+tree).  If a type adjustment is made, return *p_adjusted TRUE.
+If see_if_possible is TRUE, set *p_adjusted appropriately but do
+not adjust any types.  This routine should be called only when
+bool_is_keyword is TRUE.  Note that this routine is called before the
+expression tree is lowered; setting an operation type to int indicates
+that lowering need not insert a cast to change the operation type from
+int to bool (an optimization).
+*/
+{
+  a_boolean adjusted = FALSE;
+
+  if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    if (is_operator_returning_bool(op)) {
+      /* This operator returns a bool.  Rewrite it to return int. */
+      /* Note that one of the cases handled here is eok_bool_cast. */
+      if (!see_if_possible) expr->type = integer_type((an_integer_kind)ik_int);
+      adjusted = TRUE;
+    } else {
+      an_expr_node_ptr operand1 = expr->variant.operation.operands;
+      an_expr_node_ptr operand2 = operand1->next;
+      if (op == (an_expr_operator_kind)eok_comma) {
+        /* A comma node.  See if the second operand is a node that returns
+           a bool. */
+        adjust_bool_operation_types(operand2, &adjusted, see_if_possible);
+        if (adjusted && !see_if_possible) expr->type = operand2->type;
+      } else if (op == (an_expr_operator_kind)eok_question) {
+        /* A question node.  If both the second and third operands return
+           bool, both can be rewritten and the result of the question mark
+           operation can also. */
+        a_boolean        adjusted2, adjusted3;
+        an_expr_node_ptr operand3 = operand2->next;
+        /* Find out if both can be rewritten but do not rewrite yet. */
+        adjust_bool_operation_types(operand2, &adjusted2,
+                                    /*see_if_possible=*/TRUE);
+        adjust_bool_operation_types(operand3, &adjusted3,
+                                    /*see_if_possible=*/TRUE);
+        adjusted = adjusted2 && adjusted3;
+        if (adjusted && !see_if_possible) {
+          /* Both can be rewritten.  Rewrite them. */
+          adjust_bool_operation_types(operand2, &adjusted2,
+                                      /*see_if_possible=*/FALSE);
+          adjust_bool_operation_types(operand3, &adjusted3,
+                                      /*see_if_possible=*/FALSE);
+          expr->type = operand2->type;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  *p_adjusted = adjusted;
+}  /* adjust_bool_operation_types */
+
+
 static void lower_boolean_controlling_expr(an_expr_node_ptr expr)
 /*
 Lower a boolean controlling expression, e.g., the expression in an "if"
 statement.  The expression is not an lvalue.
 */
 {
+  if (bool_is_keyword) {
+    /* When bool is enabled, adjust the result type of top-level
+       bool-returning operations to be int. */
+    a_boolean        adjusted;
+    an_expr_node_ptr expr_to_adjust = expr;
+    if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+      /* If an enk_object_lifetime node is on top, look under that. */
+      expr_to_adjust = expr->variant.object_lifetime.expr;
+    }  /* if */
+    adjust_bool_operation_types(expr_to_adjust, &adjusted,
+                                /*see_if_possible=*/FALSE);
+    if (adjusted && expr_to_adjust != expr) {
+      /* Adjust the type of the enk_object_lifetime node. */
+      expr->type = expr_to_adjust->type;
+    }  /* if */
+  }  /* if */
   lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
   /* This expression is supposed to have something on top that guarantees
-     a 0/1 value.  If the rewriting has disturbed that, add a "!= 0" test. */
+     a 0/1 value.  If the rewriting has disturbed that, add a "!= 0" test.
+     When bool is enabled, this transformation is necessary even if no
+     rewriting has occurred, for things like "if (bool_var) ...". */
   if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
     /* If an enk_object_lifetime node is (still) on top, look under that. */
     expr = expr->variant.object_lifetime.expr;
@@ -6479,6 +6637,17 @@ statement.  The expression is not an lvalue.
        value, so it's okay. */
   } else if (is_constant_node(expr)) {
     /* A constant here ought to be okay already. */
+    /* If the constant has bool type, make it int. */
+    if (bool_is_keyword) {
+      a_constant     constant;
+      a_constant_ptr conp;
+      set_integer_constant(&constant,
+                           (long)!is_false_constant(expr->variant.constant),
+                           (an_integer_kind)ik_int);
+      conp = alloc_shareable_constant(&constant);
+      expr->variant.constant = conp;
+      expr->type = constant.type;
+    }  /* if */
   } else {
     /* A variable (e.g., a generated temporary), an operator that is
        not guaranteed to return a boolean value, or something else
