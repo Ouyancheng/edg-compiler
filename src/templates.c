@@ -2155,9 +2155,11 @@ structure.
     if (is_or_contains_local_type(tap->variant.type)) {
       pos_error(ec_local_type_in_template_arg, source_pos);
     }  /* if */
+#if 0
     if (tap->variant.type->source_corresp.name == NULL) {
       pos_error(ec_unnamed_type_in_template_arg, source_pos);
     }  /* if */
+#endif
     tap = tap->next;
   }  /* while */
   tip = tssp->variant.function.instantiations;
