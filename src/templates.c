@@ -20293,7 +20293,7 @@ or the specific definition flag (if instantiate is FALSE).
     if (!is_pragma && tip->explicit_instantiation) {
       /* A template cannot be instantiated more than once using an explicit
          instantiation. */
-      sym_diagnostic(es_discretionary_error,
+      sym_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
                      ec_multiple_explicit_instantiations, sym);
     }  /* if */
     if (pragma_kind == (a_pragma_kind)pk_instantiate) {
