@@ -783,7 +783,7 @@ the class template token cache in class_tssp.
        follows the function declarator to have the token sequence number
        of the opening brace of the function.  This is needed for matching
        a function declaration in an actual instantiation with the
-       correpsonding declaration in the prototype instantiation. */
+       corresponding declaration in the prototype instantiation. */
     prev_ctp->next = last_to_discard->next;
     last_to_discard->next->token_sequence_number =
                                        first_to_discard->token_sequence_number;
