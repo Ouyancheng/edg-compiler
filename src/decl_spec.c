@@ -522,7 +522,7 @@ C mode.
 
 static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_symbol_locator  *locator,
-                                  a_boolean         is_friend_decl,
+                                  a_boolean         *is_friend_decl,
                                   a_boolean         *check_for_vacuous_decl,
                                   a_boolean         is_ref_within_new_expr,
                                   a_scope_depth     *effective_decl_level,
@@ -534,7 +534,9 @@ If a tag symbol already exists for the identifier, return a pointer to
 that symbol; otherwise return NULL.  If there is no identifier or if there
 is an error, return NULL.
 
-is_friend_decl is TRUE when the declaration is of the form "friend class X;".
+*is_friend_decl is TRUE when the declaration appears to be of the form
+"friend class X;"; if it turns out that no semicolon follows the identifier,
+however, the flag will be reset to FALSE and a normal lookup will be done.
 *check_for_vacuous_decl is TRUE when the context permits a declaration like
 "struct x;".  is_ref_within_new_expr is TRUE when the declaration appears
 inside a new expression.  *effective_decl_level will have been initialized
@@ -806,13 +808,20 @@ caution when modifying this routine.
 
     /* Save the symbol locator for this identifier. */
     *locator = locator_for_curr_id;
-    if (next_tok == tok_semicolon && *check_for_vacuous_decl &&
-        C_dialect != C_dialect_pcc) {
-      /* This may be a "vacuous declaration" (e.g. "struct S;" or "enum E;").
-         The effect of a vacuous declaration (unless we are in pcc mode) is
-         to establish the name in the current scope, even if the tag name
-         exists in a containing scope or is inherited from a base class. */
-      is_vacuous_declaration = TRUE;
+    if (next_tok == tok_semicolon) {
+      if (*check_for_vacuous_decl && C_dialect != C_dialect_pcc) {
+        /* This may be a "vacuous declaration" (e.g. "struct S;" or "enum E;").
+           The effect of a vacuous declaration (unless we are in pcc mode) is
+           to establish the name in the current scope, even if the tag name
+           exists in a containing scope or is inherited from a base class. */
+        is_vacuous_declaration = TRUE;
+      }  /* if */
+    } else if (*is_friend_decl) {
+      /* In a friend class declaration a semicolon will always follow the
+         identifier.  It doesn't here -- maybe it's something like:
+           friend class X *f();
+         i.e., the "friend" specifier doesn't apply to the class. */
+      *is_friend_decl = FALSE;
     }  /* if */
     if (is_tag_definition || is_vacuous_declaration) {
       /* Look for a tag symbol in the current scope.  If the tag kind does
@@ -884,7 +893,7 @@ caution when modifying this routine.
       } else {
         /* This may be a reference to an existing tag, either from the
            current scope or from a containing scope or a base class. */
-        tag_sym = curr_tag_symbol(locator, tag_kind, is_friend_decl);
+        tag_sym = curr_tag_symbol(locator, tag_kind, *is_friend_decl);
         if (tag_sym == NULL) {
           /* We will need to enter an incomplete tag that may be resolved
              later.  Just leave tag_sym NULL.  In C it will be entered at
@@ -1241,7 +1250,7 @@ the template.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     *declares_something = TRUE;
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
-    tag_sym = scan_tag_name(tag_kind, &locator, is_friend_decl,
+    tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
                             &vacuous_decl_allowed, is_ref_within_new_expr,
                             &effective_decl_level, &tag_resolution,
                             &local_decl_pos_block);
@@ -1996,7 +2005,8 @@ to indicate whether an enumeration is actually defined.
      of a new tag or a reference to an existing tag. */
   tag_id_present = is_expr_qualified_name_start();
   if (tag_id_present) {
-    a_boolean          tag_resolution;
+    a_boolean   tag_resolution;
+    a_boolean   is_friend_decl = FALSE;
     /* It seems that appearance of a tag name is a declaration of the
        tag, even if it just repeats a previous name.  At least, there's
        a Plum Hall test that implies that. */
@@ -2006,7 +2016,7 @@ to indicate whether an enumeration is actually defined.
     local_decl_pos_block.identifier_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
-                            /*is_friend_decl=*/FALSE, &vacuous_decl_allowed,
+                            &is_friend_decl, &vacuous_decl_allowed,
                             /*is_ref_within_new_expr=*/FALSE,
                             &effective_decl_level, &tag_resolution,
                             &local_decl_pos_block);

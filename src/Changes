@@ -1,5 +1,21 @@
 Version 2.38
 
+1/10/98   Class name lookup in routine friend declaration
+
+A spurious error was put out on the following because the special lookup
+for friend declarations was incorrectly done on the class name "C" in the
+friend declaration of g:
+
+  class C { } c;
+  namespace N {
+    class X {
+      friend class C g() { return c; }  // Incorrect lookup of "C"
+    };
+  }
+
+The spurious error (invalid type on return value) followed from interpreting
+the return type of X::g as N::C instead of ::C.  Now fixed.
+
 1/9/98    Order of template specialization entries in source sequence during
           instantiation wrapup
 
