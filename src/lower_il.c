@@ -5999,37 +5999,26 @@ and *insert_location is updated.
   for (dip = lifetime->destructions;
        dip != NULL;
        dip = dip->next_in_destruction_list) {
-    a_variable_ptr return_opt_var = nearest_function_scope->variant.routine.
-                                                         return_value_variable;
-    if (return_opt_var != NULL && dip->variable == return_opt_var) {
-      /* This is the initialization of the parameter substituted for the
-         return value optimization variable.  The destruction doesn't get
-         done on exit from the routine (the caller does it), so remove
-         the destruction from the destructions list. */
-      remove_from_destruction_list(dip);
-      dip->destructor = NULL;
-    } else {
-      /* Allocate a destructible entity description entry pointed to by
-         the dynamic init entry. */
-      check_assertion_str(dip->destructible_entity_descr == NULL,
+    /* Allocate a destructible entity description entry pointed to by
+       the dynamic init entry. */
+    check_assertion_str(dip->destructible_entity_descr == NULL,
            "begin_object_lifetime: destructible entity descr already present");
-      dip->destructible_entity_descr = alloc_destructible_entity_descr();
-      if (dip->inside_conditional_expression ||
-          (exceptions_enabled && dip->unordered)) {
-        /* This destruction requires a conditional flag that indicates that
-           the construction was done; add one and initialize it to zero.
-           The conditional flag is used for the unordered case if we can't
-           predict the order in which certain initializations will be
-           done (because the C language leaves evaluation order weakly
-           defined; a real back end could figure out the actual evaluation
-           order and would not need the flags for this case). */
-        add_conditional_flag(dip);
-        init_conditional_flag_var(dip->destructible_entity_descr->
+    dip->destructible_entity_descr = alloc_destructible_entity_descr();
+    if (dip->inside_conditional_expression ||
+        (exceptions_enabled && dip->unordered)) {
+      /* This destruction requires a conditional flag that indicates that
+         the construction was done; add one and initialize it to zero.
+         The conditional flag is used for the unordered case if we can't
+         predict the order in which certain initializations will be
+         done (because the C language leaves evaluation order weakly
+         defined; a real back end could figure out the actual evaluation
+         order and would not need the flags for this case). */
+      add_conditional_flag(dip);
+      init_conditional_flag_var(dip->destructible_entity_descr->
                                                           conditional_flag_var,
-                                  dip->destructible_entity_descr->
+                                dip->destructible_entity_descr->
                                                        conditional_flag_handle,
-                                  insert_location);
-      }  /* if */
+                                insert_location);
     }  /* if */
   }  /* for */
   /* Visit all children of this lifetime.  Don't go into block or
@@ -6564,6 +6553,12 @@ code.
           /* Also skip entries for constructor inits (in constructors and
              destructors).  They apply for exception cleanup but not on
              exit via branch. */
+        } else if (dip->variable == NULL &&
+                   dip->destructible_entity_descr->init_pos_descr.variable ==
+                                               return_value_pointer_variable) {
+          /* This is the initialization of the parameter substituted for the
+             return value optimization variable.  The destruction doesn't get
+             done on exit from the routine (the caller does it). */
         } else {
           any_cleanup_needed = TRUE;
           if (check_only) goto done;
