@@ -7342,6 +7342,7 @@ standard.
         /* The result is not a null pointer constant. */
         result->variant.constant.null_pointer_constant_ruled_out = TRUE;
       }  /* if */
+      result->variant.constant.is_simple_zero = FALSE;
     }  /* if */
   }  /* if */
 
@@ -7903,12 +7904,14 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       copy_operand(&operand_2, result);
       other_operand = &operand_3;
     }  /* if */
-    if (is_constant_operand(result) && 
-        (!is_constant_operand(other_operand) ||
-         other_operand->variant.constant.null_pointer_constant_ruled_out ||
-         operand_1->variant.constant.null_pointer_constant_ruled_out)) {
-      /* The result is not a null pointer constant. */
-      result->variant.constant.null_pointer_constant_ruled_out = TRUE;
+    if (is_constant_operand(result)) {
+      if (!is_constant_operand(other_operand) ||
+          other_operand->variant.constant.null_pointer_constant_ruled_out ||
+          operand_1->variant.constant.null_pointer_constant_ruled_out) {
+        /* The result is not a null pointer constant. */
+        result->variant.constant.null_pointer_constant_ruled_out = TRUE;
+      }  /* if */
+      result->variant.constant.is_simple_zero = FALSE;
     }  /* if */
   } else {
     /* Build the expression. */

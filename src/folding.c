@@ -1244,6 +1244,7 @@ exit:
       constant. */
     new_constant.null_pointer_constant_ruled_out = TRUE;
   }  /* if */
+  new_constant.is_simple_zero = FALSE;
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "type_change_constant of ");
@@ -1579,6 +1580,7 @@ the reason is that the constant is a template parameter constant).
                           constant->null_pointer_constant_ruled_out ||
                           constant->kind != (a_constant_repr_kind)ck_integer ||
                           constant->implicit_cast;
+    result->is_simple_zero = FALSE;
   }  /* if */
 
   db_exit();
@@ -2804,6 +2806,7 @@ as the position for any diagnostics issued.
                         constant_2->null_pointer_constant_ruled_out ||
                         constant_2->kind != (a_constant_repr_kind)ck_integer ||
                         constant_2->implicit_cast;
+    result->is_simple_zero = FALSE;
     if (depends_on_rounding_mode && !constant_context) {
       /* In a non-constant context, leave an operation to be done at runtime
          if its result depends on the floating-point rounding mode. */
