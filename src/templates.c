@@ -9484,11 +9484,11 @@ to be used.
       /* Both are constants.  Make sure the values are the same. */
       err = !eq_constants(old_tpp->variant.constant.ptr,
                           new_tpp->variant.constant.ptr);
-      if (err && (microsoft_bugs || (gpp_mode && gnu_version < 30300)) &&
-          (options & ETP_BAD_PARAM_TYPE_OKAY) != 0) {
-        /* In Microsoft bugs mode and in early g++ modes, a member of a class
-           template can be declared using a template parameter with a type
-           that is different than that of the associated class template. */
+      if (err && (options & ETP_BAD_PARAM_TYPE_OKAY) != 0) {
+        /* The ETP_BAD_PARAM_TYPE is used to indicate a context in which
+           an incompatible nontype template parameter declaration should be
+           accepted with just a warning.  This is allowed in certain
+           Microsoft and GNU modes. */
         err = !equiv_nontype_template_param_names(
                  old_tpp->variant.constant.ptr, new_tpp->variant.constant.ptr);
         if (!err && !any_errors) {
@@ -9545,11 +9545,12 @@ done:
 }  /* equiv_template_param_lists */
 
 
-static a_boolean reconcile_template_param_lists
-					(a_template_param_ptr param_list,
-                                         a_symbol_ptr         class_sym,
-					 a_source_position    *error_pos,
-					 a_boolean	      default_allowed)
+static a_boolean reconcile_template_param_lists(
+				 a_template_param_ptr param_list,
+                                 a_symbol_ptr         class_sym,
+				 a_source_position    *error_pos,
+				 a_boolean	      default_allowed,
+				 a_boolean	      checking_parent_params)
 /*
 Compare the template parameter list of the template declaration currently
 being scanned with the template parameter list of a previous declaration
@@ -9569,19 +9570,37 @@ except for the first one:
 Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
 
 default_allowed is TRUE if a default argument is permitted in the new argument
-list (the one specified by param_list).
+list (the one specified by param_list).  checking_parent_params is TRUE
+for a member of class template being defined outside of its class.  It is
+FALSE for the redeclaration of a class template.
 */
 {
   a_template_param_ptr	new_tpp;
   a_template_param_ptr	old_tpp;
   a_boolean		any_errors;
+  an_equiv_templ_param_options_set
+			etp_options = ETP_NO_OPTIONS;
 
   new_tpp = param_list;
   old_tpp = class_sym->variant.template_info->cache.decl_info->parameters;
+  /* In Microsoft bugs mode, a member of a class template can be declared
+     using a template parameter with a type that is different than that of
+     the associated class template.  This bug is fixed in version 7.1 of the
+     Microsoft compiler. */
+  if (microsoft_bugs && microsoft_version <= 1300 && checking_parent_params) {
+    etp_options |= ETP_BAD_PARAM_TYPE_OKAY;
+  } else if (gpp_mode) {
+    /* Such declarations are also accepted in g++ mode through GNU
+       version 3.3.  In addition, the g++ compiler accepts a class template
+       with incompatible template parameter declarations. */
+    if (!checking_parent_params || gnu_version < 30300) {
+      etp_options |= ETP_BAD_PARAM_TYPE_OKAY;
+    }  /* if */
+  }  /* if */
   /* Compare the two template parameter lists. */
   any_errors = !equiv_template_param_lists(old_tpp, new_tpp,
                                            /*issue_errors=*/TRUE,
-                                           ETP_BAD_PARAM_TYPE_OKAY,
+                                           etp_options,
                                            error_pos);
   if (!any_errors) {
     /* Update type parameters so that they point to the same template
@@ -9752,7 +9771,8 @@ Otherwise, return FALSE.
     }  /* if */
     if (!reconcile_template_param_lists(decl_info->parameters,
                                         template_sym, error_pos,
-                                        /*default_allowed=*/FALSE)) {
+                                        /*default_allowed=*/FALSE,
+                                        /*checking_parent_params=*/TRUE)) {
       any_mismatches = TRUE;
     }  /* if */
     /* Skip out to the enclosing class type. */
@@ -11448,7 +11468,8 @@ declaration of a partial specialization declared outside of its class.
                it has been defined. */
           } else if (!reconcile_template_param_lists(
                                 templ_params, sym, &locator.source_position,
-                                default_allowed)) {
+                                default_allowed,
+                                /*checking_parent_params=*/FALSE)) {
             err = TRUE;
           }  /* if */
         } /* if */
