@@ -539,10 +539,10 @@ Return a pointer to the name for the indicated variable.
 #endif /* ifdef FFE */
   if (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
-      variable->source_corresp.name[0] != '_') {
+      strcmp(variable->source_corresp.name, "__link") != 0) {
     /* Name is at file scope, but is not external.  Add a prefix so
        that it will not conflict with external names.  See dump_variable.
-       Leave names beginning with "_" alone. */
+       Leave __link (used for C++ startup) alone. */
     (void)sprintf(name_buffer, "_S%s_%s", module_name,
                                variable->source_corresp.name);
     name = name_buffer;
@@ -5166,6 +5166,12 @@ parameters.
   if (!dump_vars_without_initializers && init_con == NULL) {
     /* The variable has no initializer, and we're not supposed to dump
        variables without initializers. */
+  } else if (!dump_initializers && init_con != NULL &&
+             variable->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_internal &&
+             strcmp(variable->source_corresp.name, "__link") == 0) {
+    /* Dump the C++ startup variable __link only once, rather than once
+       without the initializer and once with.  That allows it to be static. */
   } else {
 #ifdef FFE
     /* If the variable is a function result variable, make it referenced,
