@@ -1,5 +1,11 @@
 Version 2.43
 
+10/28/99  Extra source positions for "else" token
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the source position associated
+with the "else" keyword in an if-statement is recorded in a_statement
+(variant field variant.if_stmt.else_position).
+
 10/28/99  Microsoft compatibility: (int)0 is not a null pointer constant
 
 In Microsoft C++ bugs mode, (int)0 is no longer considered a null

@@ -2780,6 +2780,9 @@ See also 3.6.4.1.
   remove_stop_token(tok_else);
   /* Scan "else" and another statement if they appear. */
   if (curr_token == tok_else) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    sp->variant.if_stmt.else_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
     /* Getting the address of the struct_stmt_stack entry is done late
        because the stack might be reallocated while scanning the contained

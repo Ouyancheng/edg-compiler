@@ -1971,6 +1971,9 @@ fields to default values.
     case stmk_if:
       sp->variant.if_stmt.then_statement =
           sp->variant.if_stmt.else_statement = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      clear_stmt_source_position(sp->variant.if_stmt.else_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       break;
     case stmk_while:
     case stmk_end_test_while:

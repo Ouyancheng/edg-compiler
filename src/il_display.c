@@ -2645,6 +2645,11 @@ Display the indicated statement.
       if (ptr->variant.if_stmt.else_statement == NULL) {
         disp_boolean("has_empty_else_clause",
                      (a_boolean)ptr->has_empty_else_clause);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      } else {
+        disp_stmt_source_position("else_position",
+                                  ptr->variant.if_stmt.else_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
       break;
     case stmk_while:

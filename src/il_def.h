@@ -6722,6 +6722,11 @@ typedef struct a_statement {
                            point to a single statement, which will be a block
                            statement if there are several dependent
                            statements. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      a_stmt_source_position
+		else_position;
+                        /* The position of the "else" keyword (if any). */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } if_stmt;
     /* When kind == stmk_while: */
 #ifdef CIL
