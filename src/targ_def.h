@@ -1516,6 +1516,31 @@ array new and delete language features are turned off.
 #endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && ... */
 
 /*
+This switch controls whether or not the ABI changes for placement
+delete are done.  New runtime routines/variables are added.
+The changes are upward-compatible (you can use old object code
+with new object code and the new library).  If the switch is off,
+compatibility with versions up to 2.33 is preserved, but the
+placement delete language feature is turned off.  Allocating an
+array with placement new and then using the delete operator on it
+is also considered part of "placement delete" and is controlled by
+this switch.
+*/
+#ifndef ABI_CHANGES_FOR_PLACEMENT_DELETE
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
+#if ABI_COMPATIBILITY_VERSION <= 233 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define ABI_CHANGES_FOR_PLACEMENT_DELETE FALSE /* Versions up to 2.33. */
+#else /* ABI_COMPATIBILITY_VERSION > 233 && !CFRONT_... */
+#define ABI_CHANGES_FOR_PLACEMENT_DELETE TRUE  /* Versions after 2.33. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 233 || CFRONT_... */
+#endif /* ifndef ABI_CHANGES_FOR_PLACEMENT_DELETE */
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE && (ABI_COMPATIBILITY_VERSION <= 233)
+ #error -- ABI_CHANGES_FOR_PLACEMENT_DELETE TRUE is incompatible with \
+           ABI_COMPATIBILITY_VERSION <= 233
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE && ... */
+
+/*
 This switch controls whether or not operations with
 returns_lvalue_instead_of_usual_rvalue TRUE are rewritten by IL lowering.
 These are operations (specifically, assignments, prefix ++/--, and
