@@ -1,5 +1,11 @@
 Version 2.40
 
+10/21/98  Template static data member not instantiated if first referenced
+          in a sizeof
+
+A template static data member first referenced in a static data member
+would not get instantiated.  This has been fixed.
+
 10/21/98  Template information file not written when there are errors
 
 The template information file (.ti) is no longer written (and any
