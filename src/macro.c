@@ -1531,9 +1531,6 @@ hence its name should not be changed.
 */
 {
   sizeof_t result = 0;
-  /* Beware of (L#x) expanding to L"abc"; insert a space if necessary to
-     obtain L "abc" instead. */
-  a_boolean space_before_stringized_arg = FALSE;
 
   for (; *rtp != (int)rt_null;) {
     sizeof_t             sect_len, rts_number;
@@ -1543,12 +1540,10 @@ hence its name should not be changed.
     if (rts_kind == rt_text) {
       sect_len = rts_number;
       rtp += sect_len;
-      space_before_stringized_arg = TRUE;
     } else if (rts_kind == rt_paste) {
       /* Just a placeholder for "##"; it will not take up space in the
          expansion. */
       sect_len = 0;
-      space_before_stringized_arg = FALSE;
     } else {
       a_macro_arg_ptr map;
       /* Other section kinds have an associated parameter number. */
@@ -1567,7 +1562,6 @@ hence its name should not be changed.
              (or the charized version in some Microsoft macros). */
           sect_len = stringized_arg(map, (char **)NULL,
                                     rts_kind == rt_charized_raw_argument);
-          if (space_before_stringized_arg) ++sect_len;
           break;
         case rt_argument:
           /* Note that the length here is without any source modifications
@@ -1580,7 +1574,6 @@ hence its name should not be changed.
                      "length_of_replacement_text: expansion section unknown");
 #endif /* CHECKING */
       }  /* switch */
-      space_before_stringized_arg = TRUE;
     }  /* if */
     /* When extended variadic macros are enabled, a "##" followed by an empty
        variadic argument has a special deletion effect. */
@@ -2248,9 +2241,6 @@ end_arg_expansion:;
   } else {
     /* More complicated expansion; do it by interpreting the replacement
        text sections. */
-    /* Beware of (L#x) expanding to L"abc"; insert a space if necessary to
-       obtain L "abc" instead. */
-    a_boolean space_before_stringized_arg = FALSE;
     for (rtp = repl_text; *rtp != (int)rt_null;) {
       rts_kind = (a_repl_text_seq_kind)*(rtp++);
       /* Extract the section length or argument number. */
@@ -2259,10 +2249,8 @@ end_arg_expansion:;
         sect_len = rts_number;
         text_loc = rtp;
         rtp += sect_len;
-        space_before_stringized_arg = TRUE;
       } else if (rts_kind == rt_paste) {
         sect_len = 0;
-        space_before_stringized_arg = FALSE;
       } else {
         /* Other section kinds have an associated parameter number. */
         get_arg_value(rts_number, map);
@@ -2301,7 +2289,6 @@ end_arg_expansion:;
           case rt_charized_raw_argument:
             /* Generate the text of the stringized (or charized) version of
                the argument, in the right place. */
-            if (space_before_stringized_arg) *src_loc++ = ' ';
             (void)stringized_arg(map, &src_loc,
                                  rts_kind == rt_charized_raw_argument);
             goto copy_done;
@@ -2316,7 +2303,6 @@ end_arg_expansion:;
             internal_error("macro_invocation: expansion section unknown");
 #endif /* CHECKING */
         }  /* switch */
-        space_before_stringized_arg = TRUE;
       }  /* if */
       /* When extended variadic macros are enabled, a "##" followed by an empty
          variadic argument has a special deletion effect. */
