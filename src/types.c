@@ -2393,16 +2393,16 @@ In that case, type_1 will have its correspondence set to type_2.
      driving by type comparisons.  If we are comparing two unnamed types of
      the same kind, seek if perhaps the types do correspond to each other. */
   if (seek_corresp &&
-      (is_class_1 && is_class_2 &&
-       (!has_name(new_type_1) ||
-        new_type_1->variant.class_struct_union.originally_unnamed) &&
-       (!has_name(new_type_2) ||
-        new_type_2->variant.class_struct_union.originally_unnamed)) ||
-      (is_enum_1 && is_enum_2 &&
-       (!has_name(new_type_1) ||
-        new_type_1->variant.integer.originally_unnamed) &&
-       (!has_name(new_type_2) ||
-        new_type_2->variant.integer.originally_unnamed))) {
+      ((is_class_1 && is_class_2 &&
+        (!has_name(new_type_1) ||
+         new_type_1->variant.class_struct_union.originally_unnamed) &&
+        (!has_name(new_type_2) ||
+         new_type_2->variant.class_struct_union.originally_unnamed)) ||
+       (is_enum_1 && is_enum_2 &&
+        (!has_name(new_type_1) ||
+         new_type_1->variant.integer.originally_unnamed) &&
+        (!has_name(new_type_2) ||
+         new_type_2->variant.integer.originally_unnamed)))) {
     (void)seek_type_corresp(new_type_1, new_type_2);
   }  /* if */
   /* Convert each type to its canonical entry if applicable. */
