@@ -808,6 +808,11 @@ typedef struct an_input_stack_entry {
 			   --preinclude command-line directive.  FALSE
 			   for all other cases including implicitly included
 			   source files. */
+  a_bit_field	from_system_include_dir:1;
+			/* TRUE if this source file was found in an include
+			   directory marked as a "system" include directory.
+			   Warnings are suppressed when processing system
+			   include directories. */
   a_bit_field	nested_inclusion:1;
 			/* TRUE if this is a nested inclusion of a file
 			   already on the input stack. */

@@ -3591,6 +3591,8 @@ the search path that was used to find this file.
   curr_ise->dir_name = directory_of(full_file_name);
   curr_ise->dir_entry = dir_entry;
   curr_ise->is_include_file = is_include_file;
+  curr_ise->from_system_include_dir =
+                     dir_entry == NULL ? FALSE : dir_entry->system_include_dir;
   curr_ise->nested_inclusion = (times_name_appears != 0);
   curr_ise->include_history   = ifhp;
   curr_ise->ifg_state = IFG_STATE_START;
@@ -3678,11 +3680,8 @@ the search path that was used to find this file.
        searched first.  Note that this is not done for the primary source
        file.  The include search entry for the primary source file is
        managed by the routines in cmd_line.c. */
-    a_boolean	is_system_include_dir = FALSE;
-    if (curr_ise->dir_entry != NULL) {
-      is_system_include_dir = curr_ise->dir_entry->system_include_dir;
-    }  /* if */
-    push_primary_include_search_dir(curr_ise->dir_name, is_system_include_dir);
+    push_primary_include_search_dir(curr_ise->dir_name,
+                                    curr_ise->from_system_include_dir);
   }  /* if */
   if (C_dialect != C_dialect_pcc) {
     /* If not in pcc mode, keep the base of the preprocessing if stack
@@ -3849,18 +3848,11 @@ at the next level down.
     if (f_raw_listing != NULL) {
       gen_rlisting_line_info('2');
     }  /* if */
-    {
-      /* Modify the search rules for #include directives found within this
-         source file, so that the directory containing the current include
-         file will be searched first.  Determine whether the previous
-         directory should be considered a system include directory. */
-      a_boolean	prev_is_system_include_dir = FALSE;
-      if (curr_ise->dir_entry != NULL) {
-        prev_is_system_include_dir = curr_ise->dir_entry->system_include_dir;
-      }  /* if */
-      pop_primary_include_search_dir(curr_ise->dir_name,
-                                     prev_is_system_include_dir);
-    }
+    /* Modify the search rules for #include directives found within this
+       source file, so that the directory containing the current include
+       file will be searched first. */
+    pop_primary_include_search_dir(curr_ise->dir_name,
+                                   curr_ise->from_system_include_dir);
     if (C_dialect != C_dialect_pcc) {
       /* If not in pcc mode, keep the base of the preprocessing if stack
          up to date.  Each file's #ifs are kept separate; an #if must
