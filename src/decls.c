@@ -3981,25 +3981,14 @@ a pointer to it in *symbol_ptr.
          enter_symbol. */
     }  /* if */
   } else if (C_dialect == C_dialect_cplusplus) {
-    /* No symbol by this name.  See if this is a tagless class, struct,
-       union, or enum type.  If so, the present name will serve as the
-       tag (ARM 7.1.3).  Note that we do NOT want to do a skip_typerefs on
-       the type; only if *type_ptr itself lacks an associated tag symbol
-       with a name do we want to create a new symbol. */
+    /* No symbol by this name.  See if this is a tagless class, struct, or
+       union type.  If so, the present name will serve as the tag (ARM 7.1.3).
+       Note that we do NOT want to do a skip_typerefs on the type; only if
+       *type_ptr itself lacks an associated tag symbol with a name do we want
+       to create a new symbol. */
     if (!is_error_type(type_ptr) && !is_error_locator(*locator)) {
       sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
-      if (sym == NULL) {
-        if (type_ptr->kind == (a_type_kind)tk_integer &&
-            type_ptr->variant.integer.enum_type) {
-          /* This is a tagless enum -- e.g., typedef enum { ... } E; */
-          sym = enter_local_symbol((a_symbol_kind)sk_enum_tag, locator,
-                                   decl_scope_level,
-                                   /*suppress_redecl_error=*/FALSE);
-          sym->variant.type = type_ptr;
-          set_source_corresp(&(type_ptr->source_corresp), sym);
-          suppress_redecl_error = TRUE;
-        }  /* if */
-      } else if (is_unnamed_class_symbol(sym)) {
+      if (sym != NULL && is_unnamed_class_symbol(sym)) {
         /* An unnamed tag symbol was created for the class and can be reused
            now that we have a name to assign to it.  We need to unlink it from
            the symbol table, give it the name, and relink it into the symbol
