@@ -38,6 +38,13 @@ for production use.
 /* See if this code is needed at all. */
 #if BACK_END_IS_C_GEN_BE
 
+/*
+If this flag is TRUE code is included to produce extra annotation comments
+in the C output.  The extra annotation is only produced when "annotate"
+is TRUE (by default, it is set when db_active is TRUE).
+*/
+#define INCLUDE_ANNOTATIONS DEBUG
+
 #include "c_gen_be.h"
 #include "debug.h"
 #include "error.h"
@@ -76,8 +83,13 @@ static FILE	*f_C_output;
 static int	indent;
 /* Current file name, used to check for file name changes. */
 static char	*curr_file_name;
+#if INCLUDE_ANNOTATIONS
 /* Flag indicating if the current output is inside a comment. */
 static int	in_comment;
+/* Flag indicating whether or not annotations should be output. */
+static a_boolean
+		annotate;
+#endif /* INCLUDE_ANNOTATIONS */
 /* Seed for module-unique names, which is input file name and current
    date/time in identifier form. */
 static char	*module_id, *module_init_id;
@@ -189,18 +201,23 @@ an lvalue.
 #define is_array_type(tp) \
 	(is_carray_type(tp) || is_farray_type(tp))
 
+#if INCLUDE_ANNOTATIONS
 /*
 Start a comment, unless we're already inside one.
 */
 #define start_comment() if (!in_comment++) fputs("/*", f_C_output);
+#endif /* INCLUDE_ANNOTATIONS */
 
 
+#if INCLUDE_ANNOTATIONS
 /*
 End a comment, for real if we're at the outermost level.
 */
 #define end_comment() if (!--in_comment) fputs("*/", f_C_output);
+#endif /* INCLUDE_ANNOTATIONS */
 
 
+#if INCLUDE_ANNOTATIONS
 /*
 Print a number of spaces for indentation.
 */
@@ -210,8 +227,12 @@ Print a number of spaces for indentation.
     putc(' ', f_C_output);						\
   }  /* for */								\
 }  /* space_over */
+#endif /* INCLUDE_ANNOTATIONS */
 
 
+#if !INCLUDE_ANNOTATIONS
+/*ARGSUSED*/ /* <-- seq_number is only used if annotations are written. */
+#endif /* !INCLUDE_ANNOTATIONS */
 static void startline(a_seq_number seq_number)
 /*
 Start a line by printing a sequence number and a newline.  Do not print the
@@ -229,58 +250,77 @@ sequence number if it is 0.
        error quickly. */
     str_catastrophe(ec_file_write_error, "generated C output");
   }  /* if */
-  if (seq_number != 0) {
-    /* Get the current position set in case of internal errors. */
-    error_position.seq    = seq_number;
-    error_position.column = 0;
-    conv_seq_to_file_and_line(seq_number, &file_name, &full_file_name,
-		              &line_number, &end_of_file);
-    if (!end_of_file) {
-      space_over();
-      start_comment();
-      (void)fprintf(f_C_output, " %lu", (unsigned long)seq_number);
-      if (file_name != curr_file_name) {
-        /* We have entered a new file. */
-        (void)fprintf(f_C_output, ", file %s", file_name);
-        curr_file_name = file_name;
+#if INCLUDE_ANNOTATIONS
+  if (annotate) {
+    if (seq_number != 0) {
+      /* Get the current position set in case of internal errors. */
+      error_position.seq    = seq_number;
+      error_position.column = 0;
+      conv_seq_to_file_and_line(seq_number, &file_name, &full_file_name,
+                                &line_number, &end_of_file);
+      if (!end_of_file) {
+        space_over();
+        start_comment();
+        (void)fprintf(f_C_output, " %lu", (unsigned long)seq_number);
+        if (file_name != curr_file_name) {
+          /* We have entered a new file. */
+          (void)fprintf(f_C_output, ", file %s", file_name);
+          curr_file_name = file_name;
+        }  /* if */
+        if (seq_number != line_number) {
+          (void)fprintf(f_C_output, ", line %lu", (unsigned long)line_number);
+        }  /* if */
+        fputc(' ', f_C_output);
+        end_comment();
+        fputc('\n', f_C_output);
       }  /* if */
-      if (seq_number != line_number) {
-        (void)fprintf(f_C_output, ", line %lu", (unsigned long)line_number);
-      }  /* if */
-      fputc(' ', f_C_output);
-      end_comment();
-      fputc('\n', f_C_output);
     }  /* if */
   }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
 #if DEBUG
   if (db_active) (void)fflush(f_C_output);
 #endif /* DEBUG */
-  space_over();
+#if INCLUDE_ANNOTATIONS
+  if (annotate) space_over();
+#endif /* INCLUDE_ANNOTATIONS */
 }  /* startline */
 
 
-static void start_unreferenced_bracket(a_source_correspondence *source_corresp)
+static a_boolean start_unreferenced_bracket(
+                                       a_source_correspondence *source_corresp)
 /*
-If the given source correspondence information indicates that the item is
-unreferenced, put out an #if to skip the definition.
+Return TRUE if the code for the entity with the given source correspondence
+information should be output.  In some modes, a #if 0 will be put out.
 */
 {
+  a_boolean output_code_for_entity = TRUE;
+
   if (!source_corresp->referenced) {
-    fputs("\n#if 0 /* unreferenced */", f_C_output);
+    output_code_for_entity = FALSE;
+#if INCLUDE_ANNOTATIONS
+    if (annotate) {
+      fputs("\n#if 0 /* unreferenced */", f_C_output);
+      output_code_for_entity = TRUE;
+    }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
   }  /* if */
+  return output_code_for_entity;
 }  /* start_unreferenced_bracket */
 
 
 static void end_unreferenced_bracket(a_source_correspondence *source_corresp)
 /*
-If the given source correspondence information indicates that the item is
-unreferenced, put out an #endif to end the skip started by
-start_unreferenced_bracket.
+If the corresponding call of start_unreferenced_bracket started a #if,
+end it here.
 */
 {
-  if (!source_corresp->referenced) {
-    fputs("\n#endif /* unreferenced */", f_C_output);
+#if INCLUDE_ANNOTATIONS
+  if (annotate) {
+    if (!source_corresp->referenced) {
+      fputs("\n#endif /* unreferenced */", f_C_output);
+    }  /* if */
   }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
 }  /* end_unreferenced_bracket */
 
 
@@ -578,7 +618,7 @@ static void dump_var_name(a_variable_ptr variable)
 Print the name of the indicated variable.
 */
 {
-  (void)fprintf(f_C_output, "%s", get_var_name(variable));
+  (void)fputs(get_var_name(variable), f_C_output);
 }  /* dump_var_name */
 
 #ifdef FFE
@@ -791,7 +831,7 @@ static void dump_rout_name(a_routine_ptr routine)
 Print the name of the indicated routine.
 */
 {
-  (void)fprintf(f_C_output, "%s", get_rout_name(routine));
+  (void)fputs(get_rout_name(routine), f_C_output);
 }  /* dump_rout_name */
 
 
@@ -903,11 +943,15 @@ omit the space.
         /* Use of "?" or "," with lvalues can cause the addresses of variables
            to be used in the C code even though the address_taken flag is
            FALSE.  Suppress the "register" storage class. */
-        start_comment();
-        fputs("register", f_C_output);
-        end_comment();
-        /* "auto" is not put out because it's not valid for parameters. */
-        fputs(" ", f_C_output);
+#if INCLUDE_ANNOTATIONS
+        if (annotate) {
+          start_comment();
+          fputs("register", f_C_output);
+          end_comment();
+          /* "auto" is not put out because it's not valid for parameters. */
+          fputc(' ', f_C_output);;
+        }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
       } else {
         fputs("register ", f_C_output);
       }  /* if */
@@ -923,10 +967,15 @@ omit the space.
 #endif /* ifdef CFE */
 #ifdef FFE
     case sc_intrinsic:
-      start_comment();
-      (void)fprintf(f_C_output, "intrinsic");
-      end_comment();
-      (void)fprintf(f_C_output, " extern ");
+#if INCLUDE_ANNOTATIONS
+      if (annotate) {
+        start_comment();
+        (void)fprintf(f_C_output, "intrinsic");
+        end_comment();
+        (void)fputc(' ', f_C_output);;
+      }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
+      (void)fprintf(f_C_output, "extern ");
       break;
 #endif /* ifdef FFE */
 #if CHECKING
@@ -956,10 +1005,15 @@ Print the name of an integer type.
 #ifdef CFE
 do_signed_char:
 #endif /* ifdef CFE */
-      start_comment();
-      fputs("signed", f_C_output);
-      end_comment();
-      fputs(" char", f_C_output);
+#if INCLUDE_ANNOTATIONS
+      if (annotate) {
+        start_comment();
+        fputs("signed", f_C_output);
+        end_comment();
+        fputc(' ', f_C_output);;
+      }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
+      fputs("char", f_C_output);
       break;
     case ik_unsigned_char:
 do_unsigned_char:
@@ -1012,10 +1066,15 @@ Print the name of a float type.
       fputs("double", f_C_output);
       break;
     case fk_long_double:
-      start_comment();
-      fputs("long", f_C_output);
-      end_comment();
-      fputs(" double", f_C_output);
+#if INCLUDE_ANNOTATIONS
+      if (annotate) {
+        start_comment();
+        fputs("long", f_C_output);
+        end_comment();
+        fputc(' ', f_C_output);;
+      }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
+      fputs("double", f_C_output);
       break;
 #if CHECKING
     default:
@@ -1032,25 +1091,29 @@ static void dump_type_qualifier(a_type_ptr type,
 Print a type qualifier.
 */
 {
+#if INCLUDE_ANNOTATIONS
   a_boolean is_const = FALSE, is_volatile = FALSE;
 
-  for (; type->kind == (a_type_kind)tk_typeref;
-       type = type->variant.typeref.type) {
-    if (type->variant.typeref.is_const) is_const = TRUE;
-    if (type->variant.typeref.is_volatile) is_volatile = TRUE;
-  }  /* for */
-  if (is_const) {
-    start_comment();
-    fputs("const", f_C_output);
-    end_comment();
-    if (is_volatile || need_trailing_space) fputc(' ', f_C_output);
+  if (annotate) {
+    for (; type->kind == (a_type_kind)tk_typeref;
+         type = type->variant.typeref.type) {
+      if (type->variant.typeref.is_const) is_const = TRUE;
+      if (type->variant.typeref.is_volatile) is_volatile = TRUE;
+    }  /* for */
+    if (is_const) {
+      start_comment();
+      fputs("const", f_C_output);
+      end_comment();
+      if (is_volatile || need_trailing_space) fputc(' ', f_C_output);
+    }  /* if */
+    if (is_volatile) {
+      start_comment();
+      fputs("volatile", f_C_output);
+      end_comment();
+      if (need_trailing_space) fputc(' ', f_C_output);
+    }  /* if */
   }  /* if */
-  if (is_volatile) {
-    start_comment();
-    fputs("volatile", f_C_output);
-    end_comment();
-    if (need_trailing_space) fputc(' ', f_C_output);
-  }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
 }  /* dump_type_qualifier */
 
 #endif /* ifdef CFE */
@@ -1065,20 +1128,31 @@ Print out the type specifier.
       fputs("<error type>", f_C_output);
       break;
     case tk_void:
-      start_comment();
-      fputs("void", f_C_output);
-      end_comment();
-      if (!in_comment) fputs(" char", f_C_output);
+#if INCLUDE_ANNOTATIONS
+      if (annotate) {
+        start_comment();
+        fputs("void", f_C_output);
+        end_comment();
+        fputc(' ', f_C_output);;
+      }  /* if */
+      if (!in_comment) fputs("char", f_C_output);
+#else /* !INCLUDE_ANNOTATIONS */
+      fputs("char", f_C_output);
+#endif /* INCLUDE_ANNOTATIONS */
       break;
     case tk_integer:
       /* Note that enums are translated as the appropriate size of integer. */
 #ifdef CFE
-      if (type->variant.integer.explicitly_signed) {
-        start_comment();
-        fputs("signed", f_C_output);
-        end_comment();
-        fputc(' ', f_C_output);
+#if INCLUDE_ANNOTATIONS
+      if (annotate) {
+        if (type->variant.integer.explicitly_signed) {
+          start_comment();
+          fputs("signed", f_C_output);
+          end_comment();
+          fputc(' ', f_C_output);
+        }  /* if */
       }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
 #endif /* ifdef CFE */
       dump_integer_type_name(type->variant.integer.int_kind);
       break;
@@ -1111,16 +1185,26 @@ Print out the type specifier.
                                                                    "double");
       break;
     case tk_stmt_label:
-      start_comment();
-      (void)fprintf(f_C_output, "stmt label");
-      end_comment();
-      (void)fprintf(f_C_output, " int");
+#if INCLUDE_ANNOTATIONS
+      if (annotate) {
+        start_comment();
+        (void)fprintf(f_C_output, "stmt label");
+        end_comment();
+        (void)fputc(' ', f_C_output);;
+      }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
+      (void)fprintf(f_C_output, "int");
       break;
     case tk_unspec_routine:
-      start_comment();
-      (void)fprintf(f_C_output, "unspecified routine");
-      end_comment();
-      (void)fprintf(f_C_output, " void");
+#if INCLUDE_ANNOTATIONS
+      if (annotate) {
+        start_comment();
+        (void)fprintf(f_C_output, "unspecified routine");
+        end_comment();
+        (void)fputc(' ', f_C_output);;
+      }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
+      (void)fprintf(f_C_output, "void");
       break;
 #endif /* ifdef FFE */
     case tk_unknown:
@@ -1179,18 +1263,28 @@ Print the first of possibly two parts of a type reference.
 #ifdef FFE
     /* Make a character function return void instead. */
     if (is_char_or_char_array(local_type)) {
-      start_comment();
-      (void)fprintf(f_C_output, "character");
-      end_comment();
-      (void)fprintf(f_C_output, " void ");
+#if INCLUDE_ANNOTATIONS
+      if (annotate) {
+        start_comment();
+        (void)fprintf(f_C_output, "character");
+        end_comment();
+        (void)fputc(' ', f_C_output);;
+      }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
+      (void)fprintf(f_C_output, "void ");
     } else if (local_type->kind == (a_type_kind)tk_void &&
                il_header.source_language == sl_Fortran) {
       /* Make Fortran subroutines always return int, in case there are
          alternate returns (if there aren't, it's harmless). */
-      start_comment();
-      (void)fprintf(f_C_output, "subroutine");
-      end_comment();
-      (void)fprintf(f_C_output, " int ");
+#if INCLUDE_ANNOTATIONS
+      if (annotate) {
+        start_comment();
+        (void)fprintf(f_C_output, "subroutine");
+        end_comment();
+        (void)fputc(' ', f_C_output);;
+      }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
+      (void)fprintf(f_C_output, "int ");
     } else if (for_intrinsic && is_floating_type(local_type) &&
                local_type->variant.float_kind == (a_float_kind)fk_float) {
       /* Put out float intrinsics as double. */
@@ -1218,10 +1312,15 @@ Print the first of possibly two parts of a type reference.
     fputs("char ", f_C_output);
     if (need_paren) fputc('(', f_C_output);
   } else if (type->kind == (a_type_kind)tk_hollerith) {
-    start_comment();
-    fputs("hollerith", f_C_output);
-    end_comment();
-    fputs(" char", f_C_output);
+#if INCLUDE_ANNOTATIONS
+    if (annotate) {
+      start_comment();
+      fputs("hollerith", f_C_output);
+      end_comment();
+      fputc(' ', f_C_output);;
+    }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
+    fputs("char", f_C_output);
     if (need_paren) fputc('(', f_C_output);
   } else if (type->kind == (a_type_kind)tk_farray) {
     dump_type_first_part(type->variant.farray.element_type,
@@ -1381,9 +1480,13 @@ scope).  If names_only is TRUE, dump just the parameter names.
   if (names_only && formal_param == NULL &&
       routine->type->variant.routine.extra_info->prototyped) {
     /* Void parameter list -- i.e., no parameters. */
-    start_comment();
-    (void)fprintf(f_C_output, "void");
-    end_comment();
+#if INCLUDE_ANNOTATIONS
+    if (annotate) {
+      start_comment();
+      (void)fprintf(f_C_output, "void");
+      end_comment();
+    }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
   } else
 #endif /* ifdef CFE */
   {
@@ -1457,11 +1560,15 @@ is TRUE, this is for the heading of a function being declared with a body.
     /* This parameter list is for a function with a body, so we want to
        list the parameter names. */
 #ifdef CFE
-    if (extra_info->prototyped) {
-      start_comment();
-      fputs("prototyped", f_C_output);
-      end_comment();
+#if INCLUDE_ANNOTATIONS
+    if (annotate) {
+      if (extra_info->prototyped) {
+        start_comment();
+        fputs("prototyped", f_C_output);
+        end_comment();
+      }  /* if */
     }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
 #endif /* ifdef CFE */
     routine = extra_info->assoc_routine;
 #if CHECKING
@@ -1497,28 +1604,40 @@ is TRUE, this is for the heading of a function being declared with a body.
       /* Old-style list.  No detail need be given. */
     } else if (param_type == NULL) {
       /* If the first argument is NULL, this is a "void" parameter list. */
-      start_comment();
-      fputs("void", f_C_output);
-      end_comment();
+#if INCLUDE_ANNOTATIONS
+      if (annotate) {
+        start_comment();
+        fputs("void", f_C_output);
+        end_comment();
+      }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
     } else {
       /* Prototyped list.  List parameters and types, in a comment. */
-      start_comment();
-      for (arg_ctr = 1;; arg_ctr++) {
-        (void)sprintf(arg_name, "p%d", arg_ctr);
-        simple_type_reference(arg_name, param_type->type);
-        param_type = param_type->next;
-        if (param_type == NULL) break;
-        fputs(", ", f_C_output);
-      }  /* for */
-      end_comment();
+#if INCLUDE_ANNOTATIONS
+      if (annotate) {
+        start_comment();
+        for (arg_ctr = 1;; arg_ctr++) {
+          (void)sprintf(arg_name, "p%d", arg_ctr);
+          simple_type_reference(arg_name, param_type->type);
+          param_type = param_type->next;
+          if (param_type == NULL) break;
+          fputs(", ", f_C_output);
+        }  /* for */
+        end_comment();
+      }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
     }  /* if */
 #endif /* ifdef CFE */
   }  /* if */
-  if (extra_info->has_ellipsis) {
-    start_comment();
-    fputs(", ...", f_C_output);
-    end_comment();
+#if INCLUDE_ANNOTATIONS
+  if (annotate) {
+    if (extra_info->has_ellipsis) {
+      start_comment();
+      fputs(", ...", f_C_output);
+      end_comment();
+    }  /* if */
   }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
   fputc(')', f_C_output);
 }  /* dump_param_names */
 
@@ -1858,8 +1977,7 @@ Dump the definition ({...}) if body is TRUE.
 
   if (body && type->size == 0) {
     /* The struct is not defined, so do not put out a "body" definition. */
-  } else {
-    start_unreferenced_bracket(&type->source_corresp);
+  } else if (start_unreferenced_bracket(&type->source_corresp)) {
     startline(type->source_corresp.decl_position.seq);
     (void)fprintf(f_C_output, "struct %s", get_name(&type->source_corresp));
     if (body) {
@@ -1928,8 +2046,7 @@ Dump the definition ({...}) if body is TRUE.
 
   if (body && type->size == 0) {
     /* The union is not defined, so do not put out a "body" definition. */
-  } else {
-    start_unreferenced_bracket(&type->source_corresp);
+  } else if (start_unreferenced_bracket(&type->source_corresp)) {
     startline(type->source_corresp.decl_position.seq);
     (void)fprintf(f_C_output, "union %s", get_name(&type->source_corresp));
     if (body) {
@@ -1967,13 +2084,14 @@ static void dump_typedef(a_type_ptr type)
 Print a typedef declaration.
 */
 {
-  start_unreferenced_bracket(&type->source_corresp);
-  startline(type->source_corresp.decl_position.seq);
-  fputs("typedef ", f_C_output);
-  simple_type_reference(get_name(&type->source_corresp),
-                        type->variant.typeref.type);
-  fputc(';', f_C_output);
-  end_unreferenced_bracket(&type->source_corresp);
+  if (start_unreferenced_bracket(&type->source_corresp)) {
+    startline(type->source_corresp.decl_position.seq);
+    fputs("typedef ", f_C_output);
+    simple_type_reference(get_name(&type->source_corresp),
+                          type->variant.typeref.type);
+    fputc(';', f_C_output);
+    end_unreferenced_bracket(&type->source_corresp);
+  }  /* if */
 }  /* dump_typedef */
 
 #endif /* ifdef CFE */
@@ -2153,13 +2271,21 @@ the ampersand since C will assume one.
     /* The implicit cast of an array to a pointer results in a pointer of
        the wrong type (pointer to element rather than pointer to array). */
     dump_cast_to_pointer_to(type);
-    start_comment();
-    fputc('&', f_C_output);
-    end_comment();
+#if INCLUDE_ANNOTATIONS
+    if (annotate) {
+      start_comment();
+      fputc('&', f_C_output);
+      end_comment();
+    }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
   } else if (is_function_type(type)) {
-    start_comment();
-    fputc('&', f_C_output);
-    end_comment();
+#if INCLUDE_ANNOTATIONS
+    if (annotate) {
+      start_comment();
+      fputc('&', f_C_output);
+      end_comment();
+    }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
   } else {
     fputc('&', f_C_output);
   }  /* if */
@@ -3011,9 +3137,13 @@ expansion.
      function appears in one expression.
   */
   (void)fprintf(f_C_output, "(");
-  start_comment();
-  (void)fprintf(f_C_output, "call of sf %s", stmt_func->source_corresp.name);
-  end_comment();
+#if INCLUDE_ANNOTATIONS
+  if (annotate) {
+    start_comment();
+    (void)fprintf(f_C_output, "call of sf %s", stmt_func->source_corresp.name);
+    end_comment();
+  }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
   indent += 2;
 #if CHECKING
   if (scope == NULL) {
@@ -3221,9 +3351,13 @@ expression, then the "right" side with the operator in between.
           /* A cast of the address of an array.  Optimize this case: the normal
              expansion of the address of an array includes a cast (to "pointer
              to array").  Skip that cast. */
-          start_comment();
-          fputc('&', f_C_output);
-          end_comment();
+#if INCLUDE_ANNOTATIONS
+          if (annotate) {
+            start_comment();
+            fputc('&', f_C_output);
+            end_comment();
+          }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
           dump_var_name(operand_1->variant.variable);
 #ifdef FFE
         } else if (operand_1->type->kind == (a_type_kind)tk_complex) {
@@ -4342,9 +4476,13 @@ Dump out an expression tree.
           (void)fprintf(f_C_output, "(int)_F_%s", lab->source_corresp.name);
         } else {
           /* Executable label -- use integer code. */
-          start_comment();
-          (void)fprintf(f_C_output, " label %s ", lab->source_corresp.name);
-          end_comment();
+#if INCLUDE_ANNOTATIONS
+          if (annotate) {
+            start_comment();
+            (void)fprintf(f_C_output, " label %s ", lab->source_corresp.name);
+            end_comment();
+          }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
           (void)fprintf(f_C_output, "%d", number_for_label(lab));
         }  /* if */
       }
@@ -4407,7 +4545,9 @@ the file.
 {
   register  int c;
   FILE      *f = *f_ptr;
+#if INCLUDE_ANNOTATIONS
   a_boolean start_of_line;
+#endif /* INCLUDE_ANNOTATIONS */
 
   /* Seek to the beginning of the file. */
   if (fseek(f, 0L, SEEK_SET) != 0) {
@@ -4417,10 +4557,14 @@ the file.
   /* Copy the file. */
   start_of_line = TRUE;
   while ((c = getc(f)) != EOF) {
+#if INCLUDE_ANNOTATIONS
     /* Indent all lines except preprocessing directives. */
-    if (start_of_line && c != '#') space_over();
+    if (start_of_line && db_active && c != '#') space_over();
+#endif /* INCLUDE_ANNOTATIONS */
     putc(c, f_C_output);  /* Use putc not fputc for speed. */
+#if INCLUDE_ANNOTATIONS
     start_of_line = (c == '\n');
+#endif /* INCLUDE_ANNOTATIONS */
   }  /* while */
   /* Close and delete the temporary file. */
   close_temp_file(f);
@@ -4742,7 +4886,7 @@ If this assignment is the first one, put out anything that must precede it.
     initializer_assignments_started = TRUE;
     /* If the variable is unreferenced, put out an unreferenced bracket. */
     set_init_file(variable, &save_f_C_output, &save_indent);
-    start_unreferenced_bracket(&variable->source_corresp);
+    (void)start_unreferenced_bracket(&variable->source_corresp);
     unset_init_file(save_f_C_output, save_indent);
     /* If the variable is a local static variable, put in a first-time test. */
     if (variable->storage_class == (a_storage_class)sc_static &&
@@ -5491,75 +5635,84 @@ parameters.
       variable->source_corresp.referenced = TRUE;
     }  /* if */
 #endif /* ifdef FFE */
-    start_unreferenced_bracket(&variable->source_corresp);
+    if (start_unreferenced_bracket(&variable->source_corresp)) {
 #ifdef CFE
-    /* If the variable has an initializer, see if any wide string constants
-       therein need to be preprocessed. */
-    if (dump_initializers && init_con != NULL) {
-      prescan_for_addrs_of_wide_string_constants(init_con);
-    }  /* if */
-#endif /* ifdef CFE */
-    startline(variable->source_corresp.decl_position.seq);
-    storage_class = variable->storage_class;
-#ifdef FFE
-    if (storage_class == (a_storage_class)sc_pointer_based) {
-      /* Variable that is based on a pointer.  No declaration is put out;
-         references will be references through the base variable. */
-      start_comment();
-      (void)fprintf(f_C_output, " No declaration for pointer-based %s ",
-                                get_var_name(variable));
-      end_comment();
-    } else if (storage_class == (a_storage_class)sc_associated) {
-      /* Variable that is part of an association.  No declaration is put out;
-         references will be references using the base variable. */
-      start_comment();
-      (void)fprintf(f_C_output, " No declaration for associated %s ",
-                                get_var_name(variable));
-      end_comment();
-    } else
-#endif /* ifdef FFE */
-    {
-      if (init_con != NULL && !dump_initializers) {
-        /* Do not dump storage class on first output of initialized variable.
-           This is to suppress "static" on the first declaration of an 
-           initialized static variable, because pcc will not allow two
-           declarations of a static variable.  Since the variable will be
-           put out as an external variable, get_name must modify the names
-           of static non-external variables so that they will not conflict
-           with like-named static variables in separately-compiled
-           modules. */
-      } else {
-        dump_storage_class(storage_class);
+      /* If the variable has an initializer, see if any wide string constants
+         therein need to be preprocessed. */
+      if (dump_initializers && init_con != NULL) {
+        prescan_for_addrs_of_wide_string_constants(init_con);
       }  /* if */
-      var_name = get_var_name(variable);
+#endif /* ifdef CFE */
+      startline(variable->source_corresp.decl_position.seq);
+      storage_class = variable->storage_class;
 #ifdef FFE
-      if (variable->type->kind == (a_type_kind)tk_association) {
-        /* Put out association variables in a way that allows initialization
-           of their components. */
-        dump_association_type(var_name, variable->type,
-                              variable->initializer);
-      } else if (is_non_arith_initialized_float(variable)) {
-        /* A float or complex initialized with some non-arithmetic data
-           must be put out like an association. */
-        /* We mark the variable by setting the storage class to
-           sc_associated. */
-        variable->storage_class = (a_storage_class)sc_associated;
-        variable->base_var = variable;  /* I.e., self. */
-        variable->association_offset = 0;
-        dump_association_type(var_name, variable->type,
-                              variable->initializer);
+      if (storage_class == (a_storage_class)sc_pointer_based) {
+        /* Variable that is based on a pointer.  No declaration is put out;
+           references will be references through the base variable. */
+#if INCLUDE_ANNOTATIONS
+        if (annotate) {
+          start_comment();
+          (void)fprintf(f_C_output, " No declaration for pointer-based %s ",
+                                    get_var_name(variable));
+          end_comment();
+        }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
+      } else if (storage_class == (a_storage_class)sc_associated) {
+        /* Variable that is part of an association.  No declaration is put out;
+           references will be references using the base variable. */
+#if INCLUDE_ANNOTATIONS
+        if (annotate) {
+          start_comment();
+          (void)fprintf(f_C_output, " No declaration for associated %s ",
+                                    get_var_name(variable));
+          end_comment();
+        }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
       } else
 #endif /* ifdef FFE */
       {
-        simple_type_reference(var_name, variable->type);
+        if (init_con != NULL && !dump_initializers) {
+          /* Do not dump storage class on first output of initialized variable.
+             This is to suppress "static" on the first declaration of an 
+             initialized static variable, because pcc will not allow two
+             declarations of a static variable.  Since the variable will be
+             put out as an external variable, get_name must modify the names
+             of static non-external variables so that they will not conflict
+             with like-named static variables in separately-compiled
+             modules. */
+        } else {
+          dump_storage_class(storage_class);
+        }  /* if */
+        var_name = get_var_name(variable);
+#ifdef FFE
+        if (variable->type->kind == (a_type_kind)tk_association) {
+          /* Put out association variables in a way that allows initialization
+             of their components. */
+          dump_association_type(var_name, variable->type,
+                                variable->initializer);
+        } else if (is_non_arith_initialized_float(variable)) {
+          /* A float or complex initialized with some non-arithmetic data
+             must be put out like an association. */
+          /* We mark the variable by setting the storage class to
+             sc_associated. */
+          variable->storage_class = (a_storage_class)sc_associated;
+          variable->base_var = variable;  /* I.e., self. */
+          variable->association_offset = 0;
+          dump_association_type(var_name, variable->type,
+                                variable->initializer);
+        } else
+#endif /* ifdef FFE */
+        {
+          simple_type_reference(var_name, variable->type);
+        }  /* if */
+        /* Dump the initializer if there is a constant one. */
+        if (dump_initializers && init_con != NULL) {
+          dump_initializer(variable, init_con, /*is_dynamic_init=*/FALSE);
+        }  /* if */
+        fputc(';', f_C_output);
       }  /* if */
-      /* Dump the initializer if there is a constant one. */
-      if (dump_initializers && init_con != NULL) {
-        dump_initializer(variable, init_con, /*is_dynamic_init=*/FALSE);
-      }  /* if */
-      fputc(';', f_C_output);
+      end_unreferenced_bracket(&variable->source_corresp);
     }  /* if */
-    end_unreferenced_bracket(&variable->source_corresp);
   }  /* if */
 }  /* dump_variable */
 
@@ -5755,11 +5908,15 @@ static void dump_constant(a_constant_ptr constant)
 Dump out one constant declaration as a #define.
 */
 {
-  startline(constant->source_corresp.decl_position.seq);
-  start_comment();
-  (void)fprintf(f_C_output, "#define %s ", constant->source_corresp.name);
-  dump_constant_value(constant);
-  end_comment();
+#if INCLUDE_ANNOTATIONS
+  if (annotate) {
+    startline(constant->source_corresp.decl_position.seq);
+    start_comment();
+    (void)fprintf(f_C_output, "#define %s ", constant->source_corresp.name);
+    dump_constant_value(constant);
+    end_comment();
+  }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
 }  /* dump_constant */
 
 
@@ -6984,13 +7141,15 @@ Generate C for a statement.
                           get_name(&statement->variant.label->source_corresp));
       break;
     case stmk_label:
-      start_unreferenced_bracket(&statement->variant.label->source_corresp);
-      startline(statement->seq_number);
-      /* Note that K&R/pcc compilers do not provide a separate name space
-         for labels. */
-      (void)fprintf(f_C_output, "_L_%s:;",
+      if (start_unreferenced_bracket(
+                                  &statement->variant.label->source_corresp)) {
+        startline(statement->seq_number);
+        /* Note that K&R/pcc compilers do not provide a separate name space
+           for labels. */
+        (void)fprintf(f_C_output, "_L_%s:;",
                           get_name(&statement->variant.label->source_corresp));
-      end_unreferenced_bracket(&statement->variant.label->source_corresp);
+        end_unreferenced_bracket(&statement->variant.label->source_corresp);
+      }  /* if */
       break;
     case stmk_return:
 #ifdef FFE
@@ -6998,12 +7157,12 @@ Generate C for a statement.
 #endif /* ifdef FFE */
       fputs("return", f_C_output);
       if (statement->expr != NULL) {
-        fputs(" ", f_C_output);
+        fputc(' ', f_C_output);;
         dump_expression(statement->expr, /*need_parens=*/FALSE);
 #ifdef FFE
       } else if (curr_function_result_var != NULL) {
         /* Return the function result variable if there is one. */
-        fputs(" ", f_C_output);
+        fputc(' ', f_C_output);;
         dump_var_ref(curr_function_result_var);
       } else if (curr_scope->variant.routine.ptr->type->variant.routine.
                                    return_type->kind == (a_type_kind)tk_void &&
@@ -7437,22 +7596,30 @@ its subtree.
       if (op == (an_expr_operator_kind)eok_call) {
         if (is_stmt_func_ref(op1)) {
           /* Statement function call; generate result variable temporary. */
-          startline((a_seq_number)0);
-          start_comment();
-          (void)fprintf(f_C_output,
+#if INCLUDE_ANNOTATIONS
+          if (annotate) {
+            startline((a_seq_number)0);
+            start_comment();
+            (void)fprintf(f_C_output,
                                  " Temporary for a stmt function call node. ");
-          end_comment();
+            end_comment();
+          }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
           startline((a_seq_number)0);
           simple_type_reference(temp_name((char *)node), node_type);
           (void)fprintf(f_C_output, ";");
         } else if (is_char_or_char_array(node_type)) {
           /* Call of a CHARACTER function.  Declare a temporary for the result
              characters.  Don't do this for statement functions. */
-          startline((a_seq_number)0);
-          start_comment();
-          (void)fprintf(f_C_output,
+#if INCLUDE_ANNOTATIONS
+          if (annotate) {
+            startline((a_seq_number)0);
+            start_comment();
+            (void)fprintf(f_C_output,
                             " Temporary for a character function call node. ");
-          end_comment();
+            end_comment();
+          }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
           startline((a_seq_number)0);
           (void)fprintf(f_C_output, "char %s[%lu];", temp_name((char *)node),
                                     node_type->variant.fcharacter.length);
@@ -7486,11 +7653,15 @@ its subtree.
             op1_type->kind == (a_type_kind)tk_hollerith) {
           /* The character case requires no temporaries. */
         } else {
-          startline((a_seq_number)0);
-          start_comment();
-          (void)fprintf(f_C_output,
+#if INCLUDE_ANNOTATIONS
+          if (annotate) {
+            startline((a_seq_number)0);
+            start_comment();
+            (void)fprintf(f_C_output,
                               " Temporary for an eok_address_of_value node. ");
-          end_comment();
+            end_comment();
+          }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
           startline((a_seq_number)0);
           /* Use the node address converted to unsigned long to generate
              the temporary name. */
@@ -7503,11 +7674,15 @@ its subtree.
            between the address calculation and the length calculation, and
            one for the address of the substring (see
            start_difficult_char_ops). */
-        startline((a_seq_number)0);
-        start_comment();
-        (void)fprintf(f_C_output,
+#if INCLUDE_ANNOTATIONS
+        if (annotate) {
+          startline((a_seq_number)0);
+          start_comment();
+          (void)fprintf(f_C_output,
                                 " Temporary for a character substring node. ");
-        end_comment();
+          end_comment();
+        }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
         startline((a_seq_number)0);
         (void)fprintf(f_C_output, "char *%s;", temp_name((char *)node));
         startline((a_seq_number)0);
@@ -7515,11 +7690,15 @@ its subtree.
       } else if (op == (an_expr_operator_kind)eok_concat) {
         /* Character concatenation.  Need a temporary for the characters of
            the concatenated string, and one for its length. */
-        startline((a_seq_number)0);
-        start_comment();
-        (void)fprintf(f_C_output,
+#if INCLUDE_ANNOTATIONS
+        if (annotate) {
+          startline((a_seq_number)0);
+          start_comment();
+          (void)fprintf(f_C_output,
                                  " Temporary for a character concatenation. ");
-        end_comment();
+          end_comment();
+        }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
         startline((a_seq_number)0);
         /* If the length is character*(*), use a large size. */
         if (node_type->variant.fcharacter.star_star) {
@@ -7537,21 +7716,29 @@ its subtree.
            from it. */
         if (op1_type->kind == (a_type_kind)tk_complex &&
             node_type->kind != (a_type_kind)tk_complex) {
-          startline((a_seq_number)0);
-          start_comment();
-          (void)fprintf(f_C_output,
+#if INCLUDE_ANNOTATIONS
+          if (annotate) {
+            startline((a_seq_number)0);
+            start_comment();
+            (void)fprintf(f_C_output,
                            " Temporary for a complex->noncomplex cast node. ");
-          end_comment();
+            end_comment();
+          }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
           startline((a_seq_number)0);
           simple_type_reference(temp_name((char *)node), op1_type);
           (void)fprintf(f_C_output, ";");
         } else if (node_type->kind == (a_type_kind)tk_fcharacter) {
           /* A cast to character is used for the CHAR intrinsic.  We need
              a temporary in which to store the integer. */
-          startline((a_seq_number)0);
-          start_comment();
-          (void)fprintf(f_C_output, " Temporary for a CHAR intrinsic cast. ");
-          end_comment();
+#if INCLUDE_ANNOTATIONS
+          if (annotate) {
+            startline((a_seq_number)0);
+            start_comment();
+            (void)fprintf(f_C_output," Temporary for a CHAR intrinsic cast. ");
+            end_comment();
+          }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
           startline((a_seq_number)0);
           (void)fprintf(f_C_output, "char %s;", temp_name((char *)node));
         }  /* if */
@@ -7567,11 +7754,15 @@ its subtree.
           /* The transformation can optimized and does not need the temp.
              See dump_rvalue_selection. */
         } else {
-          startline((a_seq_number)0);
-          start_comment();
-          (void)fprintf(f_C_output,
+#if INCLUDE_ANNOTATIONS
+          if (annotate) {
+            startline((a_seq_number)0);
+            start_comment();
+            (void)fprintf(f_C_output,
                                  " Temporary for an rvalue field selection. ");
-          end_comment();
+            end_comment();
+          }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
           startline((a_seq_number)0);
           simple_type_reference(temp_name((char *)node), op1_type);
           (void)fprintf(f_C_output, ";");
@@ -7587,10 +7778,14 @@ its subtree.
       if (non_arith_float_constant(con)) {
         /* A non-arithmetic float/complex constant in an expression must be
            stored in a temporary. */
-        startline((a_seq_number)0);
-        start_comment();
-        (void)fprintf(f_C_output, " Temporary for a non-arith float const. ");
-        end_comment();
+#if INCLUDE_ANNOTATIONS
+        if (annotate) {
+          startline((a_seq_number)0);
+          start_comment();
+          (void)fprintf(f_C_output," Temporary for a non-arith float const. ");
+          end_comment();
+        }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
         startline((a_seq_number)0);
         (void)fprintf(f_C_output, "static char %s[%lu] = ",
                                   temp_name((char *)con),
@@ -7649,10 +7844,14 @@ its subtree.
     if (iolp->kind == (an_io_list_item_kind)iol_expr) {
       expr = iolp->variant.expr;
       if (!io_list_expr_addressable(expr)) {
-        startline((a_seq_number)0);
-        start_comment();
-        (void)fprintf(f_C_output, " Temporary for an I/O list expr. ");
-        end_comment();
+#if INCLUDE_ANNOTATIONS
+        if (annotate) {
+          startline((a_seq_number)0);
+          start_comment();
+          (void)fprintf(f_C_output, " Temporary for an I/O list expr. ");
+          end_comment();
+        }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
         startline((a_seq_number)0);
         simple_type_reference(temp_name((char *)iolp), expr->type);
         (void)fprintf(f_C_output, ";");
@@ -7662,10 +7861,14 @@ its subtree.
       dump_expr_prescan_temps(iolp->variant.expr);
     } else if (iolp->kind == (an_io_list_item_kind)iol_array) {
       /* Need a temporary to set to the number of elements of the array. */
-      startline((a_seq_number)0);
-      start_comment();
-      (void)fprintf(f_C_output, " Temporary for array size. ");
-      end_comment();
+#if INCLUDE_ANNOTATIONS
+      if (annotate) {
+        startline((a_seq_number)0);
+        start_comment();
+        (void)fprintf(f_C_output, " Temporary for array size. ");
+        end_comment();
+      }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
       startline((a_seq_number)0);
       (void)fprintf(f_C_output, "long %s;", temp_name((char *)iolp));
     } else if (iolp->kind == (an_io_list_item_kind)iol_implied_do) {
@@ -8071,6 +8274,7 @@ Dump information on a NAMELIST group.
 }  /* dump_namelist_group */
 
 #endif /* ifdef FFE */
+#if INCLUDE_ANNOTATIONS
 
 static void dump_all_source_files(a_source_file_ptr source_file)
 /*
@@ -8094,6 +8298,7 @@ Dump all source files at this level.
   }  /* for */
 }  /* dump_all_source_files */
 
+#endif /* INCLUDE_ANNOTATIONS */
 
 static void dump_routine(a_routine_ptr routine,
                          a_boolean     bodies)
@@ -8126,6 +8331,10 @@ routine has a body (dump nothing if it has no body).
   /* If the routine has no scope (i.e., no body), and we're supposed
      to dump it only if it has a body, do nothing. */
   if (routine->assoc_scope == NULL_region_number && bodies) {
+    goto end_of_routine;
+  }  /* if */
+  if (!start_unreferenced_bracket(&routine->source_corresp)) {
+    /* Unreferenced routine. */
     goto end_of_routine;
   }  /* if */
 
@@ -8205,7 +8414,6 @@ routine has a body (dump nothing if it has no body).
 #endif /* ifdef FFE */
 
   /* Dump the routine interface. */
-  start_unreferenced_bracket(&routine->source_corresp);
   startline(routine->source_corresp.decl_position.seq);
     
   dump_storage_class(routine->storage_class);
@@ -8268,7 +8476,7 @@ routine has a body (dump nothing if it has no body).
 #endif /* ifdef CFE */
 #ifdef FFE
     if (has_entries) {
-      /* For program units with ENTRYs, generated the merged list of
+      /* For program units with ENTRYs, generate the merged list of
          parameters. */
       dump_merged_param_list(scope, /*names_only=*/FALSE);
       /* Since the function result variable is not returned (it's a parameter
@@ -8475,7 +8683,10 @@ Generate old-style (K&R/pcc) C from the intermediate language.
 
   indent = 0;
   curr_file_name = NULL;
+#if INCLUDE_ANNOTATIONS
   in_comment = FALSE;
+  annotate = db_active;
+#endif /* INCLUDE_ANNOTATIONS */
   curr_scope = NULL;
 #ifdef FFE
   curr_function_result_var = NULL;
@@ -8525,10 +8736,14 @@ Generate old-style (K&R/pcc) C from the intermediate language.
                 source_language_name,
                 il_header.compiler_version);
   (void)fprintf(f_C_output, "/* %.24s */\n", il_header.time_of_compilation);
-  /* Dump the names of the include files. */
-  fputs("/* The primary and all include files:\n", f_C_output);
-  dump_all_source_files(il_header.primary_source_file);
-  fputs("*/\n", f_C_output);
+#if INCLUDE_ANNOTATIONS
+  if (annotate) {
+    /* Dump the names of the include files. */
+    fputs("/* The primary and all include files:\n", f_C_output);
+    dump_all_source_files(il_header.primary_source_file);
+    fputs("*/\n", f_C_output);
+  }  /* if */
+#endif /* INCLUDE_ANNOTATIONS */
   /* Other initialization code. */
   dump_header_code();
 
