@@ -2467,7 +2467,7 @@ of this determination.
 static a_boolean is_assignment_to_temp(an_expr_node_ptr expr,
                                        a_variable_ptr   *temp_var)
 /*
-If the expression expr is an assigment to a temporary, set *temp_var
+If the expression expr is an assignment to a temporary, set *temp_var
 pointing to the temporary variable and return TRUE.  Otherwise, return
 FALSE.
 */
