@@ -1190,13 +1190,22 @@ off the end is not allowed.
   pos_in_aux_buffer = aux_buffer_for_pcc_macros;
   last_token_of_expansion = tok_end_of_source;
   while (arg_get_token(&any_white_space_skipped) != tok_end_of_source) {
+    a_boolean need_inert_macro_indication = (!pcc_preprocessing_mode &&
+                                             curr_token_is_inert_macro);
     /* Make enough room in the aux. buffer for the token text. */
     ensure_aux_buffer_for_pcc_macros_space(len_of_curr_token +
-                                           any_white_space_skipped,
+                                           any_white_space_skipped +
+                                           (need_inert_macro_indication ?
+                                                            LE_ESCAPE_LEN : 0),
                                            pos_in_aux_buffer);
     /* If the token was preceded by white-space, put a blank in the
        auxiliary buffer. */
     if (any_white_space_skipped) *pos_in_aux_buffer++ = ' ';
+    if (need_inert_macro_indication) {
+      /* Keep the inert macro indication (e.g., for Microsoft mode). */
+      *pos_in_aux_buffer++ = LE_ESCAPE;
+      *pos_in_aux_buffer++ = LE_INERT_MACRO;
+    }  /* if */
     /* Copy the text of the token to the auxiliary buffer. */
     (void)memcpy(pos_in_aux_buffer, start_of_curr_token,
                 size_t_arg(len_of_curr_token));

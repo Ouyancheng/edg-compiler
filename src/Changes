@@ -1,5 +1,17 @@
 Version 2.42
 
+4/3/99   Microsoft compatibility: preprocessing problem fixed
+
+A preprocessing problem in Microsoft mode, introduced in 2.41 (see
+Changes entry of 2/25/99), has been corrected.  The symptom was
+a macro name being expanded recursively (i.e., within its own
+expansion).
+
+  #define new dbg_new
+  #define dbg_new new(x, y)
+  #define MACRO new int;
+  int *x = MACRO    // failed with new(x,y)(x,y) int
+
 4/2/99   Microsoft compatibility: incompatible extern "C" declarations
          in different namespaces
 
