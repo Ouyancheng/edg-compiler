@@ -3339,7 +3339,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
       pos_opt_ty2_warning(std_conv.warning_suggested, operator_position,
                           operand_1_type, operand_2_type);
     }  /* if */
-  } else if (!okay) {
+  } else {
     /* The operands are not compatible. */
     pos_ty2_error(ec_incompatible_operands, operator_position,
                   operand_1_type, operand_2_type);
