@@ -83,6 +83,8 @@ extern a_boolean equivalent_paths(a_derivation_step_ptr  path1,
 
 extern void check_class_linkage(void);
 
+extern void class_decl_init(void);
+
 #if DEBUG
 extern void db_base_class(a_base_class_ptr  bcp,
                           a_boolean         show_offset);
