@@ -5981,25 +5981,26 @@ in the type tree represented by tp.
 }  /* type_contains_specific_template_param_constant */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 a_boolean is_or_contains_member_of_uncompleted_class(a_type_ptr  tp)
 /*
-Return TRUE if the specified type (which is assumed to be a template
-class) is (or is dependent on) a member of a class whose definition has
-begun but has not yet been completed.
+Return TRUE if the specified type is or is dependent on a class or a member
+of a class whose definition has begun but has not yet been completed.
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEDEFS |
                                                TTT_PARAM_TYPES |
                                                TTT_TEMPLATE_ARGS);
+
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  ttt_flags |= TTT_RETURN_TYPE | TTT_THIS_PARAM_TYPE | TTT_EXCEPTION_SPECS;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   tp = skip_typerefs(tp);
-  check_assertion(is_immediate_class_type(tp) &&
-                  tp->variant.class_struct_union.is_template_class);
   return (traverse_type_tree(tp, ttt_is_uncompleted_class_type, ttt_flags));
 }  /* is_or_contains_member_of_uncompleted_class */
 
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 void set_force_external_linkage_flag(a_type_ptr  type_ptr)

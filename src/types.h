@@ -577,9 +577,9 @@ extern a_boolean type_contains_specific_template_param_constant(
                                                          a_constant_ptr cp);
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 extern a_boolean is_or_contains_member_of_uncompleted_class(a_type_ptr  tp);
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 extern void set_force_external_linkage_flag(a_type_ptr  type_ptr);
