@@ -2623,8 +2623,7 @@ was selected either.
 static void check_embedded_c_options(void)
 /*
 An ANSI C dialect has been selected.  If any options were selected to enable
-Embedded C (TR 18037) extensions, check them for consistency and select
-between C89 and C99 dialects as appropriate.
+Embedded C (TR 18037) extensions, check them for consistency.
 */
 {
 #if FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
