@@ -978,6 +978,8 @@ extern void change_nonreal_member_constant_operand_to_lvalue(
 extern void revert_gcc_rvalue_to_lvalue_if_possible(an_operand *operand,
                                                     a_boolean  ignore_casts);
 
+extern void revert_microsoft_rvalue_to_lvalue_if_possible(an_operand *operand);
+
 extern a_boolean check_modifiable_lvalue_operand(an_operand *operand);
 
 extern a_boolean check_scalar_operand(an_operand *operand);

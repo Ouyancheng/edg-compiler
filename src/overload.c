@@ -1857,7 +1857,12 @@ have_level:;
       if (allow_nonconst_ref_anachronism && param_is_class_type) {
         /* The anachronism of binding a reference to nonconst to a class
            rvalue is enabled.  Leave this alone.  A warning will be issued
-           is this binding is actually used. */
+           if this binding is actually used. */
+        if (microsoft_mode && microsoft_version >= 1310) {
+          /* MSVC++ allows binding a reference to nonconst to a class.
+             From version 7.1 on, the binding is worse than other matches. */
+          arg_summary->anachronism_used = TRUE;
+        }  /* if */
       } else {
         arg_summary->match_level = aml_none;
       }  /* if */
@@ -11526,6 +11531,7 @@ to be acceptable, and *conversion describes it.
   } else {
     /* Compare the operand type and the reference type to see if direct
        binding is possible. */
+    revert_microsoft_rvalue_to_lvalue_if_possible(source_operand);
     direct_binding_possible =
                   direct_reference_binding_possible(source_operand,
                                                     (a_type_ptr)NULL,
@@ -12042,17 +12048,22 @@ conversion_to_class_possible.
                                          conversion, err_code);
   } else {
     /* Normal argument. */
-    if (microsoft_bugs && conversion != NULL &&
+    if (microsoft_mode && conversion != NULL &&
         is_reference_type(param_type) && is_an_rvalue(source_operand)) {
-      /* In Microsoft bugs mode, a reference to non-const is sometimes
+      /* In Microsoft mode, a reference to non-const is sometimes
          allowed to bind to an rvalue.  If that's been done (which we
          know because conversion != NULL means that we've made it through
-         overload resolution), change the reference type to reference
-         to const so that the binding is valid. */
+         overload resolution), adjust the code to make it valid. */
       a_type_ptr underlying_type = type_pointed_to(param_type);
       if (!is_const_qualified_type(underlying_type)) {
-        underlying_type = make_qualified_type(underlying_type, TQ_CONST);
-        param_type = make_reference_type(underlying_type);
+        /* For certain cases, convert the rvalue back to an lvalue. */
+        revert_microsoft_rvalue_to_lvalue_if_possible(source_operand);
+        if (is_an_rvalue(source_operand)) {
+          /* For remaining cases, change the reference type to reference
+             to const so that the binding is valid. */
+          underlying_type = make_qualified_type(underlying_type, TQ_CONST);
+          param_type = make_reference_type(underlying_type);
+        }  /* if */
       }  /* if */
     }  /* if */
     prep_initializer_operand(source_operand, param_type,

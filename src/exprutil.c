@@ -4277,6 +4277,61 @@ for example, in something like "(short)i = 0").
 }  /* revert_gcc_rvalue_to_lvalue_if_possible */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- operand is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+void revert_microsoft_rvalue_to_lvalue_if_possible(an_operand *operand)
+/*
+Called in a context where an lvalue is required.  If we are in
+Microsoft C++ mode and operand is an rvalue that can be turned back into
+an lvalue, do the transformation.  This handles function calls that
+return class rvalues.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && !C_mode()) {
+    if (is_an_rvalue(operand) &&
+        is_class_struct_union_type(operand->type) &&
+        is_expression_operand(operand)) {
+      an_expr_node_ptr expr = operand->variant.expression;
+      a_boolean        revertible = FALSE;
+      if (expr->kind == (an_expr_node_kind)enk_temp_init &&
+          !expr->variant.init.result_is_addr) {
+        a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+        if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+          /* A "constructor call" can be turned back into an lvalue. */
+          revertible = TRUE;
+        } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+          /* This is probably a base-class cast on top of another
+             temp-init. */
+          revertible = TRUE;
+        } else if (dip->kind ==
+                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+          /* A function call returning a class rvalue can be turned back
+             into an lvalue. */
+          revertible = TRUE;
+        }  /* if */
+      } else if (is_operation_node(expr)) {
+        an_expr_operator_kind op = expr->variant.operation.kind;
+        if (op == (an_expr_operator_kind)eok_call ||
+            op == (an_expr_operator_kind)eok_virtual_call ||
+            op == (an_expr_operator_kind)eok_pm_call) {
+          /* A function call that returns a class can be changed back
+             into an lvalue. */
+          revertible = TRUE;
+        }  /* if */
+      }  /* if */
+      if (revertible) {
+        /* Change the rvalue back into an lvalue. */
+        conv_class_operand_to_object_pointer(operand);
+        conv_object_pointer_to_lvalue(operand);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* revert_microsoft_rvalue_to_lvalue_if_possible */
+
+
 a_boolean check_modifiable_lvalue_operand(an_operand *operand)
 /*
 Return FALSE and issue an error message if the operand is not a modifiable
@@ -4291,6 +4346,10 @@ lvalue.  If there is an error, change the operand to an error operand.
     /* Get an lvalue back from what is ordinarily an rvalue in some cases
        in gcc mode. */
     revert_gcc_rvalue_to_lvalue_if_possible(operand, /*ignore_casts=*/TRUE);
+  } else if (microsoft_mode && !C_mode()) {
+    /* Get an lvalue back from what is ordinarily an rvalue in some cases
+       in Microsoft C++ mode. */
+    revert_microsoft_rvalue_to_lvalue_if_possible(operand);
   }  /* if */
   /* 3.2.2.1:  A modifiable lvalue has to
        (a)  be an lvalue.
@@ -7056,10 +7115,10 @@ gives the source position of the call.
       conv_object_pointer_to_lvalue(result);
       call_node->implicit_reference_indirection = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_bugs && !C_mode() &&
+    } else if (microsoft_bugs && microsoft_version < 1100 && !C_mode() &&
 	       is_class_struct_union_type(return_type)) {
       /* In Microsoft C++ mode, a function that returns a class type is
-	 considered to return an lvalue. */
+	 considered to return an lvalue.  This was changed in MSVC++ 5.0. */
       conv_class_operand_to_object_pointer(result);
       conv_object_pointer_to_lvalue(result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -2601,6 +2601,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
         } else {
           /* ".*" operator. */
           qual_operand_1_type = operand_1->type;
+          revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
           if (is_an_lvalue(operand_1)) using_lvalue(operand_1);
         }  /* if */
         if (!err) {
@@ -3400,6 +3401,9 @@ operation is a pointer-to-member (see ARM 5.3).
              some cases in gcc mode. */
           revert_gcc_rvalue_to_lvalue_if_possible(&operand,
                                                   /*ignore_casts=*/FALSE);
+        } else if (microsoft_mode && !C_mode()) {
+          /* Likewise in Microsoft mode. */
+          revert_microsoft_rvalue_to_lvalue_if_possible(&operand);
         }  /* if */
         if (is_an_lvalue(&operand)) {
           if (C_dialect == C_dialect_pcc && is_array_type(operand.type)) {
@@ -7843,6 +7847,7 @@ for non-class operands).  This routine is called only in C++ mode.
       a_boolean    ref_to_const, ref_to_const_volatile;
       a_boolean    binding_to_rvalue_allowed, dropping_qualifiers;
       a_symbol_ptr function_symbol;
+      revert_microsoft_rvalue_to_lvalue_if_possible(operand);
       if (direct_reference_binding_possible(operand,
                                             operand->type,
                                             type_cast_to,
@@ -7933,9 +7938,11 @@ for non-class operands).  This routine is called only in C++ mode.
                                /*is_explicit_cast=*/TRUE);
           *processed = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (microsoft_bugs && is_class_struct_union_type(type_cast_to)) {
+          if (microsoft_bugs && microsoft_version < 1100 &&
+              is_class_struct_union_type(type_cast_to)) {
             /* In Microsoft C++ mode, a function that returns a class type is
-               considered to return an lvalue. */
+               considered to return an lvalue.  This was changed in
+               MSVC++ 5.0. */
             conv_class_operand_to_object_pointer(operand);
             conv_object_pointer_to_lvalue(operand);
           }  /* if */
@@ -9499,9 +9506,9 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
                                     /*is_value_init=*/empty_parens,
                                     start_position, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_bugs) {
+      if (microsoft_bugs && microsoft_version < 1100) {
         /* In Microsoft C++ mode, a constructor is considered to return
-           an lvalue. */
+           an lvalue.  This was changed in MSVC++ 5.0. */
         conv_class_operand_to_object_pointer(result);
         conv_object_pointer_to_lvalue(result);
       }  /* if */
@@ -11349,6 +11356,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     } else if (types_are_the_same) {
       /* If the types are the same, we do not look for conversions to
          or from class types. */
+      if (microsoft_mode && !C_mode() &&
+          is_class_struct_union_type(operand_2.type)) {
+        /* Try to get lvalues back to get an lvalue result. */
+        revert_microsoft_rvalue_to_lvalue_if_possible(&operand_2);
+        revert_microsoft_rvalue_to_lvalue_if_possible(&operand_3);
+      }  /* if */
     } else if (is_class_struct_union_type(operand_2.type) ||
                is_class_struct_union_type(operand_3.type)) {
       /* One or both of the operands has a class type, and they do not have

@@ -1,5 +1,16 @@
 Version 3.4
 
+8/5/03   Microsoft compatibility: function call returning class isn't
+         exactly an lvalue
+
+Previous changes (see entries of 5/2/96 and 7/29/97) emulated an MSVC++
+bug in which function calls returning classes and "constructor calls"
+were considered to be lvalues instead of rvalues.  This emulation turns
+out to be simplistic.  MSVC++ seems to consider those rvalues, but
+in many contexts to allow them to be used as lvalues, e.g., in
+binding a reference or on application of the "&" operator.  This
+is now emulated more precisely.
+
 8/4/03   Microsoft compatibility: template deduction qualifier bug emulation
 
 Version 7.1 of the Microsoft compiler fixes a template argument
