@@ -1815,7 +1815,7 @@ scope is that of a class definition.
               cache_default_arg = TRUE;
             } else if (parent_scope_kind ==
                                    (a_scope_kind)sck_template_instantiation) {
-              /* A template instantion -- the function declarator tokens are
+              /* A template instantiation -- the function declarator tokens are
                  being rescanned.  All the default arguments are scanned from
                  caches during a later fixup, so ignore the expression now. */
               ignore_default_arg_expr = TRUE;
