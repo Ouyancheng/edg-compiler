@@ -1,5 +1,34 @@
 Version 2.43
 
+10/18/99 Configuration option to record constant-expressions in IL
+
+Ordinarily, the front folds constant-expressions into simple a_constant nodes
+whenever possible.  The exact structure of the constant-expression is
+discarded: "1+2" has the same representation as "3".  A new configuration
+option has been added (RECORD_CONSTANT_EXPRESSIONS_IN_IL, in host_envir.h) to
+add a field expr to struct a_constant; this new field will point to the
+expression forming the constant if that expression is not a simple literal.
+The option is off by default, unless the C++-generating back end is selected.
+
+The C++-generating back end has been modified to use the new expr field when
+it is available and non-null.  This will cause the back end to generate the
+original expression rather than the resulting constant (i.e., "1+2" remains
+"1+2" and does not become "3").
+
+Some expressions are not currently representable in the IL; this includes
+sizeof and __INTADDR__ operators, as well as expressions for constants
+allocated in the file scope memory region but resulting from operations on
+entities from a function scope memory region.  For example:
+
+  void f() {
+    int const start = 22;  // "start" allocated in function scope
+    enum { e1 = start+1 };  // "e1" allocated in file scope; "expr" field
+  }                         // of associated a_constant is NULL.
+
+Note also that some constant expressions (bit field lengths in particular) are
+not represented using a_constant nodes, and are therefore never recorded in
+the IL.
+
 10/15/99 Typedef redeclaration of a type reintroduced with a using-declaration
 
 The front end now allows a typedef redeclaration of a type name that was
