@@ -5792,7 +5792,8 @@ have_accessibility:
     }  /* if */
   }  /* if */
   if (!have_access) {
-    pos_syty_error(ec_protected_access_problem, err_pos, sym, access_class);
+    pos_syty_diagnostic(es_discretionary_error, ec_protected_access_problem,
+                        err_pos, sym, access_class);
   }  /* if */
 }  /* f_check_protected_member_access */
 
