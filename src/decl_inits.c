@@ -2589,7 +2589,7 @@ though neither constructors nor initialization is involved here.)
   for (;;) {
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
       /* On the first pass select out virtual base classes; on the second
-         pass select out dirct non-virtual base classes. */
+         pass select out direct non-virtual base classes. */
       if (is_virtual_pass ? bcp->is_virtual :
                             (bcp->direct && !bcp->is_virtual)) {
         /* If the virtual base class or direct base class has a destructor, a
