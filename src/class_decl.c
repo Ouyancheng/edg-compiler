@@ -7351,7 +7351,9 @@ skip_tag_scan:
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;
     /* Record cross-reference information. */
-    if (is_class_definition || curr_token == tok_semicolon) {
+    if (is_class_definition ||
+        (curr_token == tok_semicolon &&
+         (vacuous_decl_allowed || is_friend_decl))) {
       srk_flags = SRK_DECLARATION;
       if (is_friend_decl) srk_flags |= SRK_FRIEND;
       if (is_class_definition) {
