@@ -1,5 +1,18 @@
 Version 2.37
 
+8/13/97   Microsoft compatibility: __declspec(dllimport) implies extern
+
+In Microsoft compatibility mode, __declspec(dllimport) now implies extern,
+which means a declaration containing __declspec(dllimport) is not a
+definition by default, and therefore can be repeated:
+
+  __declspec(dllimport) MEM_POOL shi_MemDefaultPool;
+  __declspec(dllimport) MEM_POOL shi_MemDefaultPool;
+
+In addition, variables declared "dllimport" are no longer allowed to be
+initialized, and functions declared "dllimport" are no longer allowed
+to be defined.
+
 8/13/97   Microsoft compatibility: checking for multiple initializers
           in the presence of anonymous structs
 

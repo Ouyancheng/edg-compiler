@@ -1742,6 +1742,14 @@ returned set to TRUE.
        the declaration appears. */
     static_lifetime = (depth_innermost_function_scope == NO_SCOPE_DEPTH);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (!var_err) {
+    /* A variable declared __declspec(dllimport) cannot be initialized. */
+    if (vp->decl_modifiers & DM_DLLIMPORT) {
+      pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!var_err) {
     vp_type = vp->type;
     if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&

@@ -951,6 +951,7 @@ ec_using_declaration_not_allowed;;"using-declaration of %n is not allowed"
 ec_destructor_qualifier_type_mismatch;;"qualifier of destructor name %t1 does not match type %t2"
 ec_type_qualifier_ignored;;"type qualifier ignored"
 ec_cl_nonstandard_qualifier_deduction_option_only_in_cplusplus;;"option \"nonstd_qualifier_deduction\" can be used only when compiling C++"
+ec_cannot_define_dllimport_function;;"a function declared \"dllimport\" may not be defined"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -8188,6 +8188,12 @@ continue_with_declaration:
           func_info.max_member_alignment =
                              current_max_alignment_for_class_members();
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* A function declared __declspec(dllimport) cannot be defined. */
+          if (decl_modifiers.flags & DM_DLLIMPORT) {
+            pos_error(ec_cannot_define_dllimport_function, &pos_curr_token);
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do processing required for a function definition, including
              scanning the function body.  Note that the closing '}' will not
              been consumed -- that will be done by the caller. */
@@ -8351,6 +8357,13 @@ continue_with_declaration:
             }  /* if */
           }  /* if */
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if ((decl_modifiers.flags & DM_DLLIMPORT) &&
+            local_storage_class == (a_storage_class)sc_unspecified) {
+          /* __declspec(dllimport) implies extern. */
+          local_storage_class = (a_storage_class)sc_extern;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       /* Enter the symbol with the proper type. */
       linkage = idl_none;
@@ -8479,7 +8492,7 @@ continue_with_declaration:
           if (local_storage_class != (a_storage_class)sc_extern) {
             is_variable_def = TRUE;
             /* Even without an explicit initializer this is an initializing
-               declaration it is the variable is nontrivially constructible
+               declaration if the variable is nontrivially constructible
                -- i.e., if it is a class object (or array of class) and the
                class has a nontrivial default constructor (which must be a
                user-declared default constructor if the variable's type is
