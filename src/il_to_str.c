@@ -441,6 +441,9 @@ Do the output in the way described by octl.
 #endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
     output_qualifier(TQ_RESTRICT, "restrict");
 #endif /* RESTRICT_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    output_qualifier(TQ_UNALIGNED, "__unaligned");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Put out a trailing space if required. */
     if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
   }  /* if */
