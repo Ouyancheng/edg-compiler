@@ -129,11 +129,6 @@ typedef struct an_arg_match_summary {
   an_arg_match_level
 		match_level;
 			/* Match level -- see ARM 13.2. */
-  a_byte_boolean
-		less_desirable_exact_match;
-			/* TRUE if the match is one of the exact match cases
-			   indicated as "less desirable", i.e., those that
-			   add type qualifiers under references or pointers. */
   a_base_class_ptr
 		cast_base_class;
 			/* If the match involves a standard conversion that

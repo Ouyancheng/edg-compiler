@@ -233,7 +233,6 @@ values.
 {
   amsp->next                       = NULL;
   amsp->match_level                = aml_none;
-  amsp->less_desirable_exact_match = FALSE;
   amsp->cast_base_class            = NULL;
   amsp->reversed_cast              = FALSE;
   amsp->const_anachronism          = FALSE;
@@ -304,9 +303,6 @@ Print an argument match summary for debug purposes.
     default:                    str = "**BAD MATCH LEVEL**";
   }  /* if */
   fprintf(f_debug, "match level = %s", str);
-  if (amsp->less_desirable_exact_match) {
-    fprintf(f_debug, " (less desirable)");
-  }  /* if */
   if (amsp->const_anachronism) {
     fprintf(f_debug, " (const anachronism)");
   }  /* if */
@@ -793,7 +789,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   an_operand        *orig_arg_operand;
   a_boolean         param_is_reference;
   a_boolean         param_is_class_type, arg_is_class_type;
-  a_boolean         ref_type_qualifiers_dropped, ref_type_qualifiers_added;
+  a_boolean         ref_type_qualifiers_dropped;
   an_error_code     warning_suggested;
   a_base_class_ptr  bcp;
   a_boolean         ambiguous;
@@ -843,7 +839,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   */
   /* Remove parts of the param type that could be added by trivial
      conversions, hoping thereby to end up with the arg type. */
-  ref_type_qualifiers_dropped = ref_type_qualifiers_added = FALSE;
+  ref_type_qualifiers_dropped = FALSE;
   param_is_reference = is_reference_type(param_type);
   /* See if the array --> pointer and function --> pointer transformations
      should be done. */
@@ -884,10 +880,6 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
          appear on the parameter type, so some type qualifiers are being
          dropped. */
       ref_type_qualifiers_dropped = TRUE;
-    } else {
-      /* Some type qualifiers are being added.  That's okay, but it's
-         one of the "less desirable" cases. */
-      ref_type_qualifiers_added = TRUE;
     }  /* if */
   } else {
     /* The parameter type is not a reference, which means the argument would
@@ -944,12 +936,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                                  unqual_param_type)) {
       /* There is an exact match, possibly involving trivial conversions. */
       arg_summary->match_level = aml_exact;
-      if (ref_type_qualifiers_added) {
-        /* This is the "T --> (qualified T)& case, which is one of the
-           "less desirable" cases. */
-        arg_summary->less_desirable_exact_match = TRUE;
-      } else if (!param_is_reference &&
-                 is_class_struct_union_type(param_type)) {
+      if (!param_is_reference && is_class_struct_union_type(param_type)) {
         /* The argument and parameter are the same class type, so this
            qualifies as a class copy. */
         check_assertion(arg_operand != NULL);
@@ -976,10 +963,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
              are not compatible. */
         } else {
           /* Some qualifiers are being added.  This is the
-             "T* --> (qualified T)*" case, one of the "less desirable"
-             cases. */
+             "T* --> (qualified T)*" case. */
           arg_summary->match_level = aml_exact;
-          arg_summary->less_desirable_exact_match = TRUE;
           goto have_level;
         }  /* if */
       }  /* if */
@@ -1551,9 +1536,8 @@ Compare two argument match summary entries and return
 {
   int              cmp;
   a_base_class_ptr bcp_1, bcp_2;
-  a_type_ptr       param_type1, param_type2;
-  a_type_ptr       under_type1, under_type2;
 
+  /* Compare the gross match levels. */
   if ((int)arg_match1->match_level < (int)arg_match2->match_level) {
     /* arg_match1 is better. */
     cmp = 1;
@@ -1561,40 +1545,22 @@ Compare two argument match summary entries and return
     /* arg_match2 is better. */
     cmp = -1;
   } else {
-    /* The major match levels are equal.  Look for tie-breakers. */
-    /* Exact matches can be distinguished by the presence of "less
-       desirable" trivial conversions, those that add type qualifiers
-       to the underlying types of reference and pointer types. */
-    if (arg_match1->match_level == (an_arg_match_level)aml_exact &&
-        arg_match1->less_desirable_exact_match !=
-                                      arg_match2->less_desirable_exact_match) {
-      if (arg_match1->less_desirable_exact_match) {
-        /* arg_match1 is a less desirable exact match, and arg_match2 is
-           not, so arg_match2 is better. */
-        cmp = -1;
-      } else {
-        /* arg_match2 is a less desirable exact match, and arg_match1 is
-           not, so arg_match1 is better. */
-        cmp = 1;
-      }  /* if */
-    } else {
-      /* The matches are equal in terms of match level.  One can still be
-         better than the other if the conversion in one case is a
-         subsequence of the conversion in the other case. */
-      /* Check first for subsequence cases involving user-defined conversions,
-         like
-           A->int
-         versus
-           A->int->float
-      */
-      if (arg_match1->user_conversion.routine !=
-          arg_match2->user_conversion.routine) {
-        /* Two different conversion functions are involved, so no subsequence
-           is possible. */
-        goto end_subsequence_check;
-      } else if (arg_match1->user_conversion.routine != NULL &&
-                 arg_match1->user_conversion.std_conversion_needed !=
-                 arg_match2->user_conversion.std_conversion_needed) {
+    /* The matches are equal in terms of match level.  One can still be
+       better than the other in some cases. */
+    /* A conversion involving a user-defined conversion is better than a
+       conversion involving the same user-defined conversion followed by
+       a standard conversion, e.g.,
+         A->int
+       versus
+         A->int->float
+       (see the commentary at the bottom of p. 317 of the ARM.)
+    */
+    if (arg_match1->user_conversion.routine != NULL &&
+        arg_match1->user_conversion.routine ==
+                                         arg_match2->user_conversion.routine) {
+      /* We have two conversions using the same user-defined conversion. */
+      if (arg_match1->user_conversion.std_conversion_needed !=
+          arg_match2->user_conversion.std_conversion_needed) {
         /* Two user-defined conversions involving the same conversion routine.
            One does not have a standard conversion after the user-defined
            conversion and the other does, so the one without the standard
@@ -1611,119 +1577,89 @@ Compare two argument match summary entries and return
           goto have_cmp;
         }  /* if */
       }  /* if */
-      /* More subsequence checking: check for subsequences in standard
-         conversions, involving casts to base or derived class types. */
-      if ((arg_match1->user_conversion.std_conversion_needed ||
-           arg_match1->match_level == (an_arg_match_level)aml_std_conversion)&&
-          (arg_match2->user_conversion.std_conversion_needed ||
-           arg_match2->match_level == (an_arg_match_level)aml_std_conversion)){
-        /* Both matches involve a standard conversion. */
-        bcp_1 = arg_match1->cast_base_class;
-        bcp_2 = arg_match2->cast_base_class;
-        if (bcp_1 != NULL && bcp_2 != NULL &&
-            arg_match1->reversed_cast == arg_match2->reversed_cast) {
-          /* Both entries have related-class casts, so they can be compared.
-             If one is a subsequence of the other, the shorter derivation is
-             preferable. */
-          if (bcp_1 == bcp_2) {
-            /* The same cast in both cases, so the two are equally good.
-               Keep going with subsequence checking. */
-          } else if (!arg_match1->reversed_cast) {
-            /* Normal case: derived --> base cast. */
-            if (is_on_any_derivation_of(bcp_2, bcp_1)) {
-              /* bcp_1 is a subsequence of bcp_2 and thus preferable. */
-              cmp = 1;
-              goto have_cmp;
-            } else if (is_on_any_derivation_of(bcp_1, bcp_2)) {
-              /* bcp_2 is a subsequence of bcp_1 and thus preferable. */
-              cmp = -1;
-              goto have_cmp;
-            }  /* if */
-            /* The two classes are unrelated, so no subsequence is possible. */
-            goto end_subsequence_check;
-          } else {
-            /* Base --> derived case (used for pointers to members). */
-            if (find_base_class_of(bcp_2->derived_class,
-                                   bcp_1->derived_class) != NULL) {
-              /* bcp_1's type is a base class of bcp_2's type, so it's a
-                 subsequence and thus preferable. */
-              cmp = 1;
-              goto have_cmp;
-            } else if (find_base_class_of(bcp_1->derived_class,
-                                          bcp_2->derived_class) != NULL) {
-              /* bcp_2's type is a base class of bcp_1's type, so it's a
-                 subsequence and thus preferable. */
-              cmp = -1;
-              goto have_cmp;
-            }  /* if */
-            /* The two classes are unrelated, so no subsequence is possible. */
-            goto end_subsequence_check;
-          }  /* if */
-        } else if (bcp_1 != NULL) {
-          /* bcp_1 != NULL, bcp_2 == NULL.  A base class cast is
-             preferable to another kind of cast (e.g., a cast to "void *"),
-             so arg_match1 is better. */
-          cmp = 1;
-          goto have_cmp;
-        } else if (bcp_2 != NULL) {
-          /* bcp_1 == NULL, bcp_2 != NULL.  A base class cast is
-             preferable to another kind of cast (e.g., a cast to "void *"),
-             so arg_match2 is better. */
-          cmp = -1;
-          goto have_cmp;
-        }  /* if */
-      }  /* if */
-      param_type1 = arg_match1->param_type;
-      param_type2 = arg_match2->param_type;
-      /* Some cases (e.g., ellipsis) have no  param_type. */
-      if (param_type1 != NULL && param_type2 != NULL) {
-        /* It shouldn't be necessary to check non-pointer/reference cases
-           because for non-lvalues the qualifiers don't matter.  For example:
-             void f(float, int);
-             void f(const float, float);
-               void m() {
-                 float i;
-                 f(i, 2.3);  // ambiguous
-               }
-        */
-        /* More subsequence checking: check for differences of type qualifiers
-           at the end of conversions to pointer and reference types, as in
-             char*->void*
-           versus
-             char*->void*->const void*
-        */
-        if ((is_pointer_type(param_type1)  && is_pointer_type(param_type2)) ||
-            (is_reference_type(param_type1)&& is_reference_type(param_type2))){
-          under_type1 = type_pointed_to(param_type1);
-          under_type2 = type_pointed_to(param_type2);
-          if (type_qualifiers_match(under_type1, under_type2)) {
-            /* The two types have the same qualifiers, so one cannot be
-               different than the other on the basis of qualifiers. */
-          } else {
-            /* The qualifiers are different, so it's worth checking further. */
-            if (types_are_compatible_ignoring_qualifiers(under_type1,
-                                                         under_type2)) {
-              /* The underlying types are the same, so it's possible than
-                 one has a subset of the other's qualifiers. */
-              if (!any_qualifier_missing(under_type1, under_type2)) {
-                /* under_type2 has a proper subset of the qualifiers in
-                   under_type1, so arg_match2 is the better match. */
-                cmp = -1;
-                goto have_cmp;
-              } else if (!any_qualifier_missing(under_type2, under_type1)) {
-                /* under_type1 has a proper subset of the qualifiers in
-                   under_type2, so arg_match1 is the better match. */
-                cmp = 1;
-                goto have_cmp;
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-end_subsequence_check:
-      /* No subsequence was found, so the matches are equal. */
-      cmp = 0;
     }  /* if */
+    /* A cast to a base class is better than a cast to further along the
+       same base class derivation (see rule [3] in ARM 13.2):
+         struct A {};
+         struct B : public A {};
+         struct C : public B {};
+         void f(A*);
+         void f(B*);
+         main () {
+           C c;
+           f(&c);  // C* -> B* is better than C* -> B* -> A*
+         }
+       Similar processing applies for casts to derived classes, and for
+       pointers-to-members.  Also, a cast to "void *" is considered worse
+       that any cast to a base class.
+    */
+    if ((arg_match1->user_conversion.std_conversion_needed ||
+         arg_match1->match_level == (an_arg_match_level)aml_std_conversion) &&
+        (arg_match2->user_conversion.std_conversion_needed ||
+         arg_match2->match_level == (an_arg_match_level)aml_std_conversion)) {
+      /* Both matches involve a standard conversion. */
+      bcp_1 = arg_match1->cast_base_class;
+      bcp_2 = arg_match2->cast_base_class;
+      if (bcp_1 != NULL && bcp_2 != NULL &&
+          arg_match1->reversed_cast == arg_match2->reversed_cast) {
+        /* Both entries have related-class casts, so they can be compared.
+           If one is a subsequence of the other, the shorter derivation is
+           preferable. */
+        if (bcp_1 == bcp_2) {
+          /* The same cast in both cases, so the two are equally good.
+             Keep going with subsequence checking. */
+        } else if (!arg_match1->reversed_cast) {
+          /* Normal case: derived --> base cast. */
+          if (is_on_any_derivation_of(bcp_2, bcp_1)) {
+            /* bcp_1 is a subsequence of bcp_2 and thus preferable. */
+            cmp = 1;
+            goto have_cmp;
+          } else if (is_on_any_derivation_of(bcp_1, bcp_2)) {
+            /* bcp_2 is a subsequence of bcp_1 and thus preferable. */
+            cmp = -1;
+            goto have_cmp;
+          }  /* if */
+          /* The two classes are unrelated, so no subsequence is possible. */
+          goto end_subsequence_check;
+        } else {
+          /* Base --> derived case (used for pointers to members). */
+          if (find_base_class_of(bcp_2->derived_class,
+                                 bcp_1->derived_class) != NULL) {
+            /* bcp_1's type is a base class of bcp_2's type, so it's a
+               subsequence and thus preferable. */
+            cmp = 1;
+            goto have_cmp;
+          } else if (find_base_class_of(bcp_1->derived_class,
+                                        bcp_2->derived_class) != NULL) {
+            /* bcp_2's type is a base class of bcp_1's type, so it's a
+               subsequence and thus preferable. */
+            cmp = -1;
+            goto have_cmp;
+          }  /* if */
+          /* The two classes are unrelated, so no subsequence is possible. */
+          goto end_subsequence_check;
+        }  /* if */
+      } else if (bcp_1 != NULL) {
+        /* bcp_1 != NULL, bcp_2 == NULL.  We know that the source type must
+           be a class pointer, and not a constant zero, which means the
+           arg_match2 destination type must be "void *" (since an implicit
+           conversion is possible).  A base class cast is preferable to a
+           cast to "void *", so arg_match1 is better. */
+        cmp = 1;
+        goto have_cmp;
+      } else if (bcp_2 != NULL) {
+        /* bcp_1 != NULL, bcp_2 != NULL.  We know that the source type must
+           be a class pointer, and not a constant zero, which means the
+           arg_match1 destination type must be "void *" (since an implicit
+           conversion is possible).  A base class cast is preferable to a
+           cast to "void *", so arg_match2 is better. */
+        cmp = -1;
+        goto have_cmp;
+      }  /* if */
+end_subsequence_check:;
+    }  /* if */
+    /* No special case was found, so the matches are equal. */
+    cmp = 0;
   }  /* if */
 have_cmp:
   return cmp;
@@ -1745,17 +1681,13 @@ entry to the next argument match.
   ((cfp)->current_arg_match = (cfp)->current_arg_match->next)
 
 
-static void check_template_arg_type_qualifiers(
-                                             a_type_ptr *arg_type,
-                                             a_type_ptr *param_type,
-                                             a_boolean  *type_qualifiers_added)
+static void check_template_arg_type_qualifiers(a_type_ptr *arg_type,
+                                               a_type_ptr *param_type)
 /*
 Check and process the type qualifiers on an argument type *arg_type and a
 parameter type *param_type as part of trying to match a function template
 to an argument list.  Adjust the types to remove qualifiers that need
-not be considered further.  Set *type_qualifiers_added to TRUE if any
-type qualifiers are added in the conversion from *arg_type to *param_type
-(that has a different cost in overload resolution).
+not be considered further.
 */
 {
   /* All combinations of type qualifiers are allowed in one way or
@@ -1763,10 +1695,11 @@ type qualifiers are added in the conversion from *arg_type to *param_type
        (a)  If both the argument and the parameter are so-qualified
             or not so-qualified, that's okay.
        (b)  If the parameter is so-qualified but the argument is not,
-            that's okay, but it's one of the "less desirable" cases
-            of exact matching in overload resolution.  For example:
+            that's okay too:
               template <class T> void f(const T &p) {}
               void m() {int i; f(i);}
+            The "const" need not be considered further in matching
+            the template.
        (c)  If the argument is so-qualified but the parameter is not,
             that can possibly be accommodated by choosing a template 
             parameter type that is so-qualified, so we call it okay
@@ -1782,7 +1715,6 @@ type qualifiers are added in the conversion from *arg_type to *param_type
   skip_common_type_qualifiers(arg_type, param_type);
   if (any_qualifier_missing(*arg_type, *param_type)) {
     /* Some type qualifiers are being added -- case (b). */
-    *type_qualifiers_added = TRUE;
     /* All the qualifiers on the parameter type are case (b) and can be
        removed from further consideration. */
     *param_type = skip_typerefs(*param_type);
@@ -1815,7 +1747,7 @@ evaluated (but not checked to see if the match is good enough).
   a_base_class_ptr   base_class_conv_needed;
   an_arg_match_summary_ptr
                      arg_match;
-  a_boolean          param_is_reference, type_qualifiers_added;
+  a_boolean          param_is_reference;
   a_boolean          class_copy_case, pointer_case;
 
   db_enter(4, "function_template_matches_operand_list");
@@ -1870,8 +1802,8 @@ evaluated (but not checked to see if the match is good enough).
          overload_distinguishable. */
       /* An indefinite function cannot be made to match anything. */
       if (is_indefinite_function_operand(&arg_operand->operand)) goto done;
-      /* arg_match->param_type is left NULL because subsequence checking does
-         not apply for template cases. */
+      /* arg_match->param_type is left NULL because tie-breakers do
+         not apply for template cases.  (This may change.) */
       param_type = ptp->type;
       arg_type = arg_operand->operand.type;
       /* An incomplete type operand cannot be made to match anything.
@@ -1881,7 +1813,6 @@ evaluated (but not checked to see if the match is good enough).
            void m() { f(*p); }
       */
       if (is_incomplete_type(arg_type)) goto done;
-      type_qualifiers_added = FALSE;
       pointer_case = FALSE;
       param_is_reference = is_reference_type(param_type);
       /* See if any implicit transformations (e.g., array --> pointer) should
@@ -1905,8 +1836,7 @@ evaluated (but not checked to see if the match is good enough).
         /* Drop the reference type. */
         param_type = type_pointed_to(param_type);
         /* Check and adjust the top-level type qualifiers. */
-        check_template_arg_type_qualifiers(&arg_type, &param_type,
-                                           &type_qualifiers_added);
+        check_template_arg_type_qualifiers(&arg_type, &param_type);
       } else {
         /* Not a reference. */
         /* The argument would be converted to an rvalue and would lose its
@@ -1926,8 +1856,7 @@ evaluated (but not checked to see if the match is good enough).
         arg_type = type_pointed_to(arg_type);
         param_type = type_pointed_to(param_type);
         /* Check and adjust the top-level type qualifiers. */
-        check_template_arg_type_qualifiers(&arg_type, &param_type,
-                                           &type_qualifiers_added);
+        check_template_arg_type_qualifiers(&arg_type, &param_type);
       }  /* if */
       /* Note that we haven't checked that the underlying types are compatible.
          That happens later. */
@@ -1961,19 +1890,6 @@ evaluated (but not checked to see if the match is good enough).
       } else {
         /* Normal case: exact match. */
         arg_match->match_level = aml_exact;
-        if (type_qualifiers_added) {
-          /* The match is a "less desirable" case that involves adding type
-             qualifiers.  For example:
-               template <class T> void f(T) {}
-               template <class T> void f(const T&) {}
-               void m() { int i; f(i); }
-          */
-#if 0
-          /* The wording of the ARM makes this case no worse than the
-             others.  Wait to see what X3J16/WG21 says. */
-          arg_match->less_desirable_exact_match = TRUE;
-#endif /* 0 */
-        }  /* if */
         if (is_class_struct_union_type(arg_type)) {
           /* Save information needed to check whether or not a copy
              constructor is needed. */
@@ -2024,6 +1940,77 @@ done:
 }  /* function_template_matches_operand_list */
 
 
+static int compare_argument_tiebreakers(a_candidate_function_ptr cfp1,
+                                        a_candidate_function_ptr cfp2)
+/*
+Compare the argument matches of the indicated candidate function calls,
+which are equally good overall so far, and look for tie-breakers.
+Return 
+
+  +1 if cfp1 is better than cfp2,
+   0 if cfp1 and cfp2 are equally good, or
+  -1 if cfp1 is worse than cfp2.
+
+This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
+*/
+{
+  int                      cmp = 0;
+  an_arg_match_summary_ptr arg1, arg2;
+  a_type_ptr               param_type1, param_type2, under_type1, under_type2;
+
+  /* Compare each argument. */
+  for (arg1 = cfp1->arg_matches, arg2 = cfp2->arg_matches;
+       arg1 != NULL;
+       arg1 = arg1->next, arg2 = arg2->next) {
+    check_assertion(arg2 != NULL);
+    /* Get the corresponding parameter types. */
+    param_type1 = arg1->param_type;
+    param_type2 = arg2->param_type;
+    /* Some arguments have no parameter type (e.g., an ellipsis match). */
+    if (param_type1 != NULL && param_type2 != NULL) {
+      /* Check for differences of type qualifiers under pointer and
+         reference types, as in
+           void f(      int *);
+           void f(const int *);
+           int i;
+           main () {
+             f(&i);  // f(int *) is better than f(const int *)
+           }
+      */
+      if ((is_pointer_type(param_type1)  && is_pointer_type(param_type2)) ||
+          (is_reference_type(param_type1)&& is_reference_type(param_type2))) {
+        under_type1 = type_pointed_to(param_type1);
+        under_type2 = type_pointed_to(param_type2);
+        if (type_qualifiers_match(under_type1, under_type2)) {
+          /* The two types have the same qualifiers, so one cannot be
+             different than the other on the basis of qualifiers. */
+        } else {
+          /* The qualifiers are different, so it's worth checking further. */
+          if (types_are_compatible_ignoring_qualifiers(under_type1,
+                                                       under_type2)) {
+            /* The underlying types are the same, so it's possible than
+               one has a subset of the other's qualifiers. */
+            if (!any_qualifier_missing(under_type1, under_type2)) {
+              /* under_type2 has a proper subset of the qualifiers in
+                 under_type1, so arg_match2 is the better match. */
+              cmp = -1;
+              goto have_cmp;
+            } else if (!any_qualifier_missing(under_type2, under_type1)) {
+              /* under_type1 has a proper subset of the qualifiers in
+                 under_type2, so arg_match1 is the better match. */
+              cmp = 1;
+              goto have_cmp;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+have_cmp:
+  return cmp;
+}  /* compare_argument_tiebreakers */
+
+
 static int compare_candidate_functions(a_candidate_function_ptr cfp1,
                                        a_candidate_function_ptr cfp2)
 /*
@@ -2038,13 +2025,16 @@ other.  Return
 
 */
 {
-  int cmp = 0;
+  int cmp;
 
   /* Note that the tests here must be ordered from most significant
      to least significant. */
-  if (cfp1->is_user_conversion &&
-      cfp1->user_conversion.std_conversion_needed !=
-      cfp2->user_conversion.std_conversion_needed) {
+  if ((cmp = compare_argument_tiebreakers(cfp1, cfp2)) != 0) {
+    /* There is something about one argument list that makes it better
+       than the other. */
+  } else if (cfp1->is_user_conversion &&
+             cfp1->user_conversion.std_conversion_needed !=
+             cfp2->user_conversion.std_conversion_needed) {
     /* The fact that a standard conversion is needed after a conversion
        function can serve as a tie-breaker. */
     if (cfp1->user_conversion.std_conversion_needed) {
@@ -2176,119 +2166,42 @@ is set to NULL.
   a_candidate_function_ptr candidates = *candidate_functions;
   a_candidate_function_ptr cfp, best_cfp, end_candidate_functions, cfp_next;
   unsigned long            number_in_best_match_set;
-  unsigned long            number_of_non_templates;
-  unsigned long            number_of_function_templates;
   an_arg_match_summary_ptr best_match_for_curr_arg, curr_arg;
   int                      cmp;
   a_boolean                overall_ambiguity = FALSE, any_error_match = FALSE;
 
   db_enter(4, "select_best_candidate_functions");
   *undecidable_because_of_error = FALSE;
-  /* See if there are any function templates. */
-  number_of_function_templates = number_of_non_templates = 0;
-  for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-    if (cfp->is_function_template) {
-      number_of_function_templates++;
+  /* See if there are any function templates.  Try matching them to the
+     arguments.  Remove those that cannot be made to match from the candidate
+     functions list (by rebuilding the list as we go through it).  The rest
+     go on to participate in the general algorithm below. */
+  *candidate_functions = end_candidate_functions = NULL;
+  for (cfp = candidates; cfp != NULL; cfp = cfp_next) {
+    cfp_next = cfp->next;
+    cfp->next = NULL;
+    if (cfp->is_function_template &&
+        !function_template_matches_operand_list(cfp)) {
+      /* A function template that cannot be made to match.  Free it instead
+         of keeping it on the list.  Note that this call only frees one
+         entry because the "next" pointer has been cleared. */
+      free_candidate_function_list(cfp);
     } else {
-      number_of_non_templates++;
+      /* A non-template function, or a template function that can be made
+         to match the operands we have.  Keep it on the list. */
+      if (end_candidate_functions == NULL) {
+        *candidate_functions = cfp;
+      } else {
+        end_candidate_functions->next = cfp;
+      }  /* if */
+      end_candidate_functions = cfp;
     }  /* if */
   }  /* for */
-  if (number_of_function_templates != 0) {
-    /* There is at least one function template.  The resolution algorithm
-       is therefore essentially the one described in ARM 14.4:
-         (1)  Look for an exact match on a normal function.  If there is
-              exactly one, take it.  If there is more than one, the call
-              is ambiguous.
-         (2)  Look for a function template that can match the arguments
-              we have.  If there is exactly one, take it.  If there is
-              more than one, the call is ambiguous.
-         (3)  Remove the function templates from the candidate functions
-              set and do the normal overload resolution.
-       Because we allow some inexact template matches as an extension,
-       (2) and (3) are instead done as
-         (2)  Determine how well each function template matches the arguments.
-         (3)  Do normal overload resolution, including the function templates
-              in the candidate functions.  Treat a match with a function
-              template as being worse than an otherwise equivalent match with
-              a non-function template.
-    */
-    /* Look for exact matches for non-template cases.   */
-    if (number_of_non_templates != 0) {
-      /* Note that we have to go through the entire list even though we know
-         how many non-template cases there are, because we have to clear the
-         in_best_match_set (etc.) flags on all entries if there's the
-         possibility we will find an exact match and branch to
-         func_winnow. */
-      number_in_best_match_set = 0;
-      for (cfp = candidates;  cfp != NULL; cfp = cfp->next) {
-        cfp->in_best_match_set = FALSE;
-        cfp->in_best_match_set_for_some_argument = FALSE;
-        if (!cfp->is_function_template) {
-          set_first_arg_match(cfp);
-          /* Loop for each argument. */
-          while (cfp->current_arg_match != NULL) {
-            if (cfp->current_arg_match->match_level !=
-                                               (an_arg_match_level)aml_exact ||
-                cfp->current_arg_match->less_desirable_exact_match) {
-              /* This argument, and therefore this function, is not an exact
-                 match.  The "less desirable" case is considered an inexact
-                 match because an exact template match could beat it. */
-              goto end_exact_test;
-            }  /* if */
-            cfp->in_best_match_set_for_some_argument = TRUE;
-            advance_arg_match(cfp);
-          }  /* while */
-          /* This function is an exact match. */
-          cfp->in_best_match_set = TRUE;
-          number_in_best_match_set++;
-end_exact_test:;
-        }  /* if */
-      }  /* for */
-      if (number_in_best_match_set != 0) {
-        /* There is an exact match or several.  Getting more than one match
-           is hard to do, but not impossible:
-             template <class T> void f(T, ...);
-             void f(char, ...);
-             void f(char){}
-             void m() {char c; f(c);}
-           Whether we have one or several best matches here, the list we have
-           is the proper list of functions that match best on all
-           arguments.
-        */
-        goto func_winnow;
-      }  /* if */
-    }  /* if */
-    /* There is no exact match.  Try matching the function templates.
-       Remove those that cannot be made to match from the candidate functions
-       list (by rebuilding the list as we go through it).  The rest go on
-       to participate in the general algorithm below. */
-    *candidate_functions = end_candidate_functions = NULL;
-    for (cfp = candidates; cfp != NULL; cfp = cfp_next) {
-      cfp_next = cfp->next;
-      cfp->next = NULL;
-      if (cfp->is_function_template &&
-          !function_template_matches_operand_list(cfp)) {
-        /* A function template that cannot be made to match.  Free it instead
-           of keeping it on the list.  Note that this call only frees one
-           entry because the "next" pointer has been cleared. */
-        free_candidate_function_list(cfp);
-        number_of_function_templates--;
-      } else {
-        /* A non-template function, or a template function that can be made
-           to match the operands we have.  Keep it on the list. */
-        if (end_candidate_functions == NULL) {
-          *candidate_functions = cfp;
-        } else {
-          end_candidate_functions->next = cfp;
-        }  /* if */
-        end_candidate_functions = cfp;
-      }  /* if */
-    }  /* for */
-    candidates = *candidate_functions;
-  }  /* if */
+  candidates = *candidate_functions;
   /* If there are no functions or there is exactly one function, the
      list is already correct. */
   if (candidates != NULL && candidates->next != NULL) {
+    /* More than one, so we will have to choose a "best" function. */
     /* The algorithm here is the one described in ARM 13.2: "The best-matching
        function is the intersection of sets of functions that best match on
        each argument.  Unless this intersection has exactly one member, the
@@ -2296,6 +2209,9 @@ end_exact_test:;
        match for at least one argument than every other possible function
        (but not necessarily the same argument for each function).  Otherwise,
        the call is illegal." */
+    /* Note that templates that could be made to match above now participate
+       in the general overload resolution.  There's a tie-breaker that makes
+       them worse than an otherwise-equivalent non-template case. */
     /* We form the intersection of best-match sets by putting all functions
        in the best-match set and then doing an intersection after each argument
        best-match set is determined. */
@@ -2322,7 +2238,8 @@ end_exact_test:;
           any_error_match = TRUE;
         } else {
           if (best_match_for_curr_arg == NULL) {
-            /* First argument.  It's the best so far by definition. */
+            /* First match considered for this argument.  It's the best
+               so far by definition. */
             cmp = 1;
           } else {
             /* Compare the current argument match level against the best
@@ -2381,9 +2298,10 @@ end_exact_test:;
       }  /* for */
       /* Loop to consider the next argument. */
     }  /* while */
-func_winnow:
     /* Here, the intersection of the best-match sets has been made, and
-       the candidates with in_best_match_set TRUE are in that set. */
+       the candidates with in_best_match_set TRUE are in that set.
+       number_in_best_match_set indicates the number of members of that
+       set. */
     if (number_in_best_match_set > 1) {
       /* There are two or more functions that are in the best-match set
          for all arguments.  See if any of those are better than the others
