@@ -20355,6 +20355,9 @@ assumed if the return type is omitted.
 			saved_instantiation_mode = instantiation_mode;
   a_pragma_kind		pragma_kind;
 
+  /* Ignore an instantiation pragma in a prototype instantiation.  It will
+     be evaluated in a real instantiation. */
+  if (is_prototype_instantiation_context()) goto done;
   /* The instantiation mode is set to "none" while the pragma processing is
      performed to ensure that no other instantiations are implicitly
      requested as a consequence of scanning the pragma. */
@@ -20441,6 +20444,8 @@ assumed if the return type is omitted.
   /* Stop rescanning tokens from the pragma token cache. */
   wrapup_rescan_of_pragma_tokens(err);
   instantiation_mode = saved_instantiation_mode;
+done:
+  return;
 }  /* instantiation_pragma */
 
 

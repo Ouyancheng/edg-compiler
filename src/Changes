@@ -1,5 +1,17 @@
 Version 3.4
 
+8/5/03   Internal error on instantiation pragma in template
+
+An internal error would occur if an instantiation pragma appeared in
+a prototype instantiation context.  This includes the body of a class
+template and the body of a function template when using --parse_templates.
+This has been fixed.
+
+  template <class T> void f(T) {}
+  template <class T> void g(T) { 
+    #pragma instantiate void f(T)
+  }
+
 8/5/03   Spurious error on qualified name in namespace class definition
 
 If a previously declared class was defined in its namespace using a
