@@ -994,6 +994,7 @@ Initialize the fields in a scope-pointers-block substructure.
   spbp->last_variable                = NULL;
   spbp->last_routine                 = NULL;
   spbp->last_asm_entry               = NULL;
+  spbp->last_dynamic_init            = NULL;
   spbp->last_namespace               = NULL;
   spbp->last_using_decl              = NULL;
   spbp->last_pragma                  = NULL;
@@ -1260,7 +1261,6 @@ the scope being pushed.
   ssep->last_label               = NULL;
   ssep->first_scope              = NULL;
   ssep->last_scope               = NULL;
-  ssep->last_dynamic_init        = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   ssep->source_sequence_avail_list = NULL;
   ssep->source_sequence_entries_disallowed =

@@ -92,6 +92,11 @@ typedef struct a_scope_pointers_block {
 		last_asm_entry;
 			/* End of list of asm entries of this scope, NULL if
 			   none. */
+  a_dynamic_init_ptr
+		last_dynamic_init;
+			/* End of list of dynamic initializations for this
+			   scope, NULL if none.  Only the file scope has
+			   a dynamic initializations list. */
   a_namespace_ptr
 		last_namespace;
 			/* End of list of namespace entries in this scope,
@@ -457,10 +462,6 @@ typedef struct a_scope_stack_entry {
 			   last_scope, then transferred to the il_scope entry
 			   or into the parent scope when the current scope
 			   is popped. */
-  a_dynamic_init_ptr
-		last_dynamic_init;
-			/* End of list of local dynamic initializations, NULL
-			   if none. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_avail_list;

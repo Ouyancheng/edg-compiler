@@ -6729,20 +6729,22 @@ Add the given dynamic initialization entry to the file-scope dynamic_inits
 list.
 */
 {
-  a_scope_stack_entry_ptr ssep;
-  a_scope_ptr             sp;
+  a_scope_stack_entry_ptr    ssep;
+  a_scope_ptr                sp;
+  a_scope_pointers_block_ptr pointers_block;
 
   /* Only the file scope has a dynamic-inits list -- dynamic init entries
      generated for namespace scopes go on the file scope list, and in function
      and block scopes dynamic initialization is handled by statements. */
   ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+  pointers_block = assoc_pointers_block_of(ssep);
   sp = ssep->il_scope;
   if (sp->dynamic_inits == NULL) {
     sp->dynamic_inits = dip;
   } else {
-    ssep->last_dynamic_init->next = dip;
+    pointers_block->last_dynamic_init->next = dip;
   }  /* if */
-  ssep->last_dynamic_init = dip;
+  pointers_block->last_dynamic_init = dip;
   dip->next = NULL;
 }  /* add_to_dynamic_inits_list */
 
