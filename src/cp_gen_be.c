@@ -8124,8 +8124,8 @@ TRUE if the declaration following this one is such a continuation.
   }  /* if */
   /* An unqualified name is used in the declarator if this is a declaration
      rather than a definition.  Specializations are an exception, and
-     get the full normal handling.  Another exception are nondefining
-     out-of-class member declarations in Microsoft mode. */
+     get the full normal handling.  Nondefining out-of-class member
+     declarations (a Microsoft extension) are another exception. */
   /* Also force an unqualified name on a declaration in the scope of the
      routine.  This is necessary sometimes in the presence of
      using-directives. */
