@@ -1079,6 +1079,22 @@ routine modifies some entry that might be earlier on the list, set
         /* This is a primary declaration. */
         entry_ptr = ssep->entity.ptr;
         entry_kind = (an_il_entry_kind)ssep->entity.kind;
+        if (entry_kind == iek_type) {
+          /* Check for a typedef that gives its name to a class for linkage
+             purposes, and keep it if the class is being kept.  This is needed
+             in cfront mode. */
+          a_type_ptr type = (a_type_ptr)entry_ptr;
+          if (type->kind == (a_type_kind)tk_typeref &&
+              typeref_is_typedef(type)) {
+            a_type_ptr subtype = type->variant.typeref.type;
+            if (is_immediate_class_type(subtype) &&
+                subtype->variant.class_struct_union.originally_unnamed &&
+                subtype->source_corresp.name == type->source_corresp.name &&
+                il_entry_prefix_of(subtype).keep_in_il) {
+              il_entry_prefix_of(type).keep_in_il = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
       }  /* if */
       if (function_local) {
         /* Keep all function-local source sequence entries. */
