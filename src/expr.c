@@ -8431,6 +8431,83 @@ destructor routines are marked as actually referenced.
 }  /* fix_up_dynamic_init_dtors */
 
 
+static void check_return_value_optimization(an_operand *operand)
+/*
+A return statement is returning the indicated operand in a function that
+returns its value via a copy constructor.  Check to see if return value
+optimization is or continues to be possible.  Return value optimization
+is possible when all return statements in a function return the same nonstatic
+local variable; the optimization is to rewrite all references to the local
+variable as references to the return-value address passed by the caller,
+thus avoiding a copy constructor call on exit.  Note that the front end
+just discovers that the optimization is possible; it is left to IL
+lowering or a back end to do the rewriting.
+*/
+{
+  a_scope_stack_entry_ptr ssep = &scope_stack[depth_innermost_function_scope];
+  a_scope_ptr             func_scope = ssep->il_scope;
+
+  if (ssep->return_value_optimization_possible) {
+    a_boolean possible = FALSE;
+    /* If return value optimization is possible for this routine, see
+       if this return expression invalidates it.  Return value optimization
+       is possible if all return statements in the function return the
+       same nonstatic local variable. */
+    if (!is_expression_operand(operand) ||
+        !is_an_lvalue(operand) ||
+        !is_variable_address_node(operand->variant.expression)) {
+      /* The expression is not a simple variable, so the optimization is no
+         longer possible. */
+      /* possible = FALSE; -- already set. */
+    } else {
+      a_variable_ptr return_var= operand->variant.expression->variant.variable;
+      a_variable_ptr opt_var =
+                             func_scope->variant.routine.return_value_variable;
+      if (opt_var != NULL) {
+        /* Previous return statements have returned the variable "opt_var".
+           See if this return statement does also. */
+        if (opt_var == return_var) possible = TRUE;
+      } else {
+        /* There have been no previous return statements, so this statement
+           can establish the local variable involved in the optimization.
+           It must be a nonstatic variable of the right type in the top
+           scope of the function (the latter is what cfront does, and it
+           helps to avoid some nasty interactions with exception handling). */
+        a_type_ptr func_type = func_scope->variant.routine.ptr->type;
+        if (types_are_compatible(return_var->type,
+                                 func_type->variant.routine.return_type) &&
+            return_var->storage_class != (a_storage_class)sc_static) {
+          a_symbol_ptr sym =
+                           (a_symbol_ptr)return_var->source_corresp.assoc_info;
+          if (sym->decl_scope == ssep->number) {
+            /* This variable is okay.  Record it as the variable for the
+               return value optimization. */
+            possible = TRUE;
+            func_scope->variant.routine.return_value_variable = return_var;
+#if DEBUG
+            if (debug_level >= 3) {
+              fprintf(f_debug, "Return value optimization variable = %s\n",
+                      return_var->source_corresp.name);
+            }  /* if */
+#endif /* DEBUG */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (!possible) {
+      /* The return value optimization has been ruled out. */
+#if DEBUG
+      if (debug_level >= 3) {
+        fprintf(f_debug, "Return value optimization ruled out.\n");
+      }  /* if */
+#endif /* DEBUG */
+      ssep->return_value_optimization_possible = FALSE;
+      func_scope->variant.routine.return_value_variable = NULL;
+    }  /* if */
+  }  /* if */
+}  /* check_return_value_optimization */
+
+
 an_expr_node_ptr scan_return_expression(a_type_ptr         required_type,
                                         an_error_code      err_code,
                                         a_dynamic_init_ptr *dip)
@@ -8463,8 +8540,10 @@ the appropriate dynamic initialization entry and return NULL.
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   if (return_by_cctor_case) {
-    /* The current routine returns its value via a copy constructor.
-       Build a dynamic initialization entry for the return statement. */
+    /* The current routine returns its value via a copy constructor. */
+    /* Check for the possibility of the return value optimization. */
+    check_return_value_optimization(&result);
+    /* Build a dynamic initialization entry for the return statement. */
     prep_return_by_cctor_operand(&result, required_type, err_code, dip);
     /* Fix up destructor references in the overall expression. */
     fix_up_dynamic_init_dtors();
@@ -8488,7 +8567,7 @@ the appropriate dynamic initialization entry and return NULL.
   pop_expr_stack();
 
 #if DEBUG
-  if (debug_level >= 3) {
+  if (debug_level >= 3 && expression != NULL) {
     db_expression(expression);
   }  /* if */
 #endif /* DEBUG */
