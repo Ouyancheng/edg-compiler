@@ -2436,12 +2436,9 @@ might not be able to if the template itself has not yet been defined.
   template_sym = template_symbol_for_class_symbol(instance_sym);
   if (template_sym == NULL) {
     /* Not a class based on a class template. */
-  } else if (class_type->variant.class_struct_union.is_nonreal_class &&
-             !emulate_microsoft_nonreal_instantiation_bug) {
+  } else if (class_type->variant.class_struct_union.is_nonreal_class) {
     /* Don't try to instantiate a template class without real template
-       arguments.  We actually need to do such instantiations when emulating
-       a Microsoft bug that allows names from the template to be found in
-       such instantiations. */
+       arguments. */
   } else if (class_type->variant.class_struct_union.is_specialized) {
     /* This is an attempt to instantiate an incomplete type that is
        a specific definition.  This can occur in error cases while scanning
@@ -4613,7 +4610,6 @@ prototype instantiation is considered as a potential match.
     a_symbol_ptr			primary_template_sym;
     a_template_symbol_supplement_ptr	primary_tssp;
     a_boolean				trans_unit_pushed;
-    a_boolean				is_nonreal_template;
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(class_template_sym);
     sym = make_template_class_symbol(class_template_sym);
@@ -4629,12 +4625,8 @@ prototype instantiation is considered as a potential match.
     class_type = alloc_type(tssp->variant.class_template.type_kind);
     class_type->variant.class_struct_union.is_template_class = TRUE;
     sym->variant.class_struct_union.type = class_type;
-    /* Instances of templates that are members of a nonreal classes,
-        and instances of template template parameters are all nonreal
-        classes. */
-    is_nonreal_template = tssp->is_nonreal_member ||
-                          tssp->variant.class_template.template_template_param;
-    if (is_nonreal_template) {
+    if (tssp->is_nonreal_member ||
+        tssp->variant.class_template.template_template_param) {
       /* Instantiations of a nonreal member template (for example,
          T::A<int>) are created as nonreal instantiations.  Likewise,
          instantiations of template template parameters are nonreal. */
@@ -4734,22 +4726,14 @@ prototype instantiation is considered as a potential match.
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-    /* Nonreal classes are considered complete, except when emulating
-       a Microsoft bug, in which case an actual instantiation is done to
-       complete the class. */
-    class_type->incomplete = (emulate_microsoft_nonreal_instantiation_bug &&
-                              !is_nonreal_template) ||
-                             !class_type->
-                                   variant.class_struct_union.is_nonreal_class;
+    class_type->incomplete =
+                     !class_type->variant.class_struct_union.is_nonreal_class;
     if (class_type->variant.class_struct_union.is_nonreal_class) {
       a_class_symbol_supplement_ptr	cssp;
       cssp = sym->variant.class_struct_union.extra_info;
-      if (is_nonreal_template ||
-          !emulate_microsoft_nonreal_instantiation_bug) {
-        cssp->member_decl_scope = take_next_scope_number();
-        class_type->size = 1;
-        class_type->alignment = 1;
-      }  /* if */
+      cssp->member_decl_scope = take_next_scope_number();
+      class_type->size = 1;
+      class_type->alignment = 1;
       if (prototype_instantiations_in_il) {
         /* If this is a nonreal member, add the type to the file scope types
            list.  Otherwise, pass in NO_SCOPE_DEPTH so that the add routine

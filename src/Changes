@@ -19,25 +19,6 @@ The assertion checks in float_pt.c have been made more robust to detect
 cases where LDBL_MANT_DIG is set to a size that is inconsistent with
 the setting of targ_sizeof_long_double.
 
-10/28/04 Microsoft compatibility: lookup of members of dependent class
-         template references
-
-The Microsoft compiler can, in violation of the standard, look up (and
-find) members in dependent class template references.  In the example
-below, the name "A" is found in the dependent base class B<T> instead of
-finding the template in the global scope.  We now emulate this in Microsoft
-bugs mode, except that this emulation is disabled if dependent name lookup
-is explicitly enabled.
-
-  template <class T> struct A {};
-  template <class T> struct B { typedef int A; };
-  template <class T> struct C : B<T> {
-    A a;
-  };
-  int main() {
-    C<int> c;
-  }
-
 10/28/04 GNU and Microsoft compatibility: Extraneous qualification on
          namespace member declarations
 

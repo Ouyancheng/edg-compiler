@@ -3874,17 +3874,6 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
    (sym)->variant.class_struct_union.type->			      \
                    variant.class_struct_union.is_nonreal_class)
 
-/* Return TRUE if we are emulating a bug in which the Microsoft compiler
-   can look up members in nonreal classes, and "sym" represents an
-   instantiation of such a class. */
-#define is_microsoft_nonreal_instantiation(sym)				\
-  (emulate_microsoft_nonreal_instantiation_bug &&			\
-   is_nonreal_instance_class_symbol(sym) &&				\
-   !(sym)->variant.class_struct_union.type->				\
-                   variant.class_struct_union.is_prototype_instantiation)
-   
-
-
 extern a_boolean is_proxy_member_symbol(a_symbol_ptr  sym);
 
 /* Return TRUE if the symbol is a specific definition of a class template
