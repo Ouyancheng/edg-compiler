@@ -669,7 +669,7 @@ to it.  This will be the top node in the final expression.
     if (!is_useless_object_lifetime(lifetime)) {
       /* An error node stays the same. */
       if (is_error_node(expr)) {
-        make_object_lifetime_useless(lifetime);
+        mark_object_lifetime_as_useless(lifetime);
       } else {
         an_expr_node_ptr orig_expr = expr;
         expr = alloc_expr_node((an_expr_node_kind)enk_object_lifetime);
@@ -693,7 +693,7 @@ mark it so it will be discarded later.  This is done for errors.
 {
   an_object_lifetime_ptr lifetime = expr_stack->lifetime;
 
-  if (lifetime != NULL) make_object_lifetime_useless(lifetime);
+  if (lifetime != NULL) mark_object_lifetime_as_useless(lifetime);
 }  /* discard_curr_expr_object_lifetime */
 
 

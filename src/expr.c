@@ -8794,7 +8794,7 @@ call.  If dip is NULL, there was an error; the lifetime is discarded.
                            /*ctor_init=*/FALSE);
     } else {
       /* Error. */
-      make_object_lifetime_useless(lifetime);
+      mark_object_lifetime_as_useless(lifetime);
     }  /* if */      
   }  /* if */
 }  /* bind_curr_expr_lifetime_to_dynamic_init */
