@@ -1,5 +1,14 @@
 Version 2.25
 
+8/15/94  Wide character constants with more than one character
+
+A wide character constant like L'ab' contains more information than can be
+stuffed in the output wchar_t, and as such is suspect.  However, the C
+standard makes such things implementation-defined, and two test suites
+that we know of include tests that check that L'ab' is accepted (even
+though it has no portable meaning).  We've changed the front end to
+issue a warning and discard the extra characters.
+
 8/12/94  Consolidated routines to convert constants and types to string form
 
 Some of out customers have pointed out the embarrassing fact that we
