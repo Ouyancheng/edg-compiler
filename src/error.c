@@ -1983,6 +1983,24 @@ error code.
     case ec_local_type_used_in_exception:
       m = "use of a local type to specify an exception";
       break;
+    case ec_redundant_throw_type:
+      m = "redundant type in throw specification";
+      break;
+    case ec_incompatible_throw_specification:
+      m = "throw specification is incompatible with that of previous %nd%s";
+      break;
+    case ec_previously_empty_throw_list:
+      m = "previously specified: no exceptions will be thrown";
+      break;
+    case ec_previously_omitted_throw_type:
+      m = "previously omitted: %t";
+      break;
+    case ec_previously_included_throw_type:
+      m = "previously specified but omitted here: %t";
+      break;
+    case ec_no_exception_support:
+      m = "support for exception handling is disabled";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
@@ -5536,6 +5554,20 @@ position, and 2 types as fill-ins.
 }  /* pos_ty2_start_error */
 
 
+void ty_add_diag_info(an_error_code error_code,
+                      a_type_ptr    type)
+
+/*
+Add the specified diagnostic message with the type substitution to the
+multiple message diagnostic being processed.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type;
+  diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
+}  /* str_add_diag_info */
+
+
 void str_add_diag_info(an_error_code error_code,
                        char          *error_string)
 /*
@@ -5545,6 +5577,17 @@ multiple message diagnostic being processed.
 {
   init_error_params();
   error_msg_strings[1] = error_string;
+  diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
+}  /* str_add_diag_info */
+
+
+void add_diag_info(an_error_code error_code)
+/*
+Add the specified diagnostic message to the multiple message diagnostic
+being processed.
+*/
+{
+  init_error_params();
   diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
 }  /* str_add_diag_info */
 
@@ -5559,6 +5602,22 @@ position and symbol fill-in.
 */
 {
   init_error_params();
+  error_msg_syms[1] = symbol;
+  diag_message(error_code, error_pos, es_error, dck_primary);
+}  /* pos_sy_start_error */
+
+
+void pos_stsy_start_error(an_error_code     error_code,
+                          a_source_position *error_pos,
+                          char              *error_string,
+                          a_symbol_ptr      symbol)
+/*
+Begin a multiple message error with the specified error code, source
+position and symbol fill-in.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string;
   error_msg_syms[1] = symbol;
   diag_message(error_code, error_pos, es_error, dck_primary);
 }  /* pos_sy_start_error */

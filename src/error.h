@@ -574,7 +574,13 @@ typedef enum /*an_error_code*/ {
   ec_missing_exception_declaration,
   ec_masked_by_default_handler,
   ec_masked_by_handler,
-  ec_local_type_used_in_exception
+  ec_local_type_used_in_exception,
+  ec_redundant_throw_type,
+  ec_incompatible_throw_specification,
+  ec_previously_empty_throw_list,
+  ec_previously_omitted_throw_type,
+  ec_previously_included_throw_type,
+  ec_no_exception_support
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
@@ -834,12 +840,19 @@ extern void pos_ty2_start_error(an_error_code     error_code,
                                 a_source_position *error_pos,
                                 struct a_type     *type1,
                                 struct a_type     *type2);
+extern void ty_add_diag_info(an_error_code error_code,
+                             struct a_type *type);
 extern void str_add_diag_info(an_error_code error_code,
                               char          *error_string);
+extern void add_diag_info(an_error_code error_code);
 #if !STANDALONE_UTILITY_PROGRAM
 extern void pos_sy_start_error(an_error_code     error_code,
                                a_source_position *error_pos,
                                struct a_symbol   *symbol);
+extern void pos_stsy_start_error(an_error_code     error_code,
+                                 a_source_position *error_pos,
+                                 char              *error_string,
+                                 struct a_symbol   *symbol);
 extern void pos_sy_start_warning(an_error_code     error_code,
                                  a_source_position *error_pos,
                                  struct a_symbol   *symbol);
