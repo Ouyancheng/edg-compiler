@@ -3959,23 +3959,13 @@ If this assignment is the first one, put out anything that must precede it.
     if (!initializer_constants_started) {
       /* There was no constant initialization at all, so we are generating
          assignments for the entire initialization of the variable.  If the
-         variable is not static, start by zeroing it in case it is
-         incompletely initialized.  See 3.5.7.  Do this for variables
-         that are initialized with an aggregate constant; those are the only
-         cases where something can be partially initialized.  Also do it
-         for variables with an explicit initk_zero initialization (there won't
-         be any assignments following the zeroing in that case). */
+         variable is not static, start by zeroing it if it is
+         incompletely initialized.  See 3.5.7.  Also do zeroing for variables
+         with an explicit initk_zero initialization (there won't be any
+         assignments following the zeroing in that case). */
       if (!has_static_storage_duration(variable->storage_class)) {
-        an_init_kind init_kind = variable->init_kind;
-        if (init_kind == (an_init_kind)initk_zero ||
-            (init_kind == (an_init_kind)initk_static &&
-             variable->initializer.constant->kind ==
-                                         (a_constant_repr_kind)ck_aggregate) ||
-            (init_kind == (an_init_kind)initk_dynamic &&
-             variable->initializer.dynamic->kind ==
-                                           (a_dynamic_init_kind)dik_constant &&
-             variable->initializer.dynamic->variant.constant->kind ==
-                                         (a_constant_repr_kind)ck_aggregate)) {
+        if (variable->init_kind == (an_init_kind)initk_zero ||
+            variable->is_partially_initialized) {
           zero_variable(variable);
         }  /* if */
       }  /* if */
