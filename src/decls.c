@@ -5523,21 +5523,6 @@ is a template specialization declaration.
   if (idlb.is_friend_decl && !friend_injection_enabled) {
     set_invisible = TRUE;
   }  /* if */
-  if (curr_token == tok_lbrace ||
-      (curr_token == tok_colon && sym != NULL && is_constructor_symbol(sym))) {
-    /* This is a defining declaration of the function template. */
-    func_info->is_definition = TRUE;
-    idlb.is_definition = TRUE;
-    if (func_info->function_type_from_typedef) {
-      /* Just as it is an error when a normal function is defined for the
-         function type to come from a typedef, so too is that an error when
-         a function template is being defined. */
-      error(ec_function_type_must_come_from_declarator);
-      /* Copy the type entry, since the typedef type may not be shared. */
-      type_ptr = copy_routine_type_with_param_types(skip_typerefs(type_ptr),
-                                                   /*copy_default_args=*/TRUE);
-    }  /* if */
-  }  /* if */
   if (locator->is_qualified_name && locator->is_class_member &&
       locator->specific_symbol != NULL) {
     a_type_ptr		parent_class;
@@ -5619,6 +5604,21 @@ is a template specialization declaration.
                     ec_template_operator_new : ec_template_operator_delete,
                 &locator->source_position);
       set_to_error_locator(*locator);
+    }  /* if */
+  }  /* if */
+  if (curr_token == tok_lbrace ||
+      (curr_token == tok_colon && sym != NULL && is_constructor_symbol(sym))) {
+    /* This is a defining declaration of the function template. */
+    func_info->is_definition = TRUE;
+    idlb.is_definition = TRUE;
+    if (func_info->function_type_from_typedef) {
+      /* Just as it is an error when a normal function is defined for the
+         function type to come from a typedef, so too is that an error when
+         a function template is being defined. */
+      error(ec_function_type_must_come_from_declarator);
+      /* Copy the type entry, since the typedef type may not be shared. */
+      type_ptr = copy_routine_type_with_param_types(skip_typerefs(type_ptr),
+                                                   /*copy_default_args=*/TRUE);
     }  /* if */
   }  /* if */
   if (sym != NULL) {
