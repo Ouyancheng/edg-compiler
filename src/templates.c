@@ -5261,7 +5261,7 @@ list of a template function.  Returns TRUE if a match is found.
           }  /* if */
         }  /* if */
       }  /* if */
-      /* The is_deductible_constant_param test below is necessary for certain
+      /* The is_deducible_constant_param test below is necessary for certain
          partial ordering cases.
 
                  template <class T, T I> void f( A<T, I> );
