@@ -1257,8 +1257,14 @@ scope.  If scope is NULL, use the nearest enclosing scope.
       } else {
         /* If the nearest scope has subscopes we don't try to add a scope,
            because it's a little difficult to figure out where the new scope
-           should go in the list of subscopes. */
-        if (scope->scopes == NULL) {
+           should go in the list of subscopes.  Likewise for pragmas. */
+        if (scope->scopes == NULL && scope->pragmas == NULL
+#if MINIMAL_INLINING
+            /* Don't add the scope if the current routine is inline, because
+               having block scopes disqualifies a routine for inlining. */ 
+            && !innermost_function_scope->variant.routine.ptr->is_inline
+#endif /* MINIMAL_INLINING */
+                                                                        ) {
           /* We have a compound statement we can use.  Add the scope. */
           a_scope_ptr parent_scope = curr_context->scope;
           scope = alloc_scope((a_scope_kind)sck_block,
