@@ -15,7 +15,6 @@ C++ functions to support exception handling.
 
 #include "basics.h"
 #include "runtime.h"
-#include "typeinfo.h"
 #include "eh.h"
 
 #if EXCEPTION_HANDLING
@@ -130,22 +129,27 @@ terminate() is called.
     STD_NAMESPACE::unexpected();
   }  /* try */
   catch (...) {
-    STD_NAMESPACE::type_info	*thrown_type;
+    a_type_info_impl_ptr	thrown_type;
     an_ETS_flag_set		thrown_flags;
     __type_of_thrown_object(&thrown_type, &thrown_flags);
     if (__can_throw_type(thrown_type, thrown_flags)) {
       /* If the thrown type is permitted, rethrow it so that it will be
          handled by an enclosing try block (if any). */
       throw;
-    } else if (__can_throw_type(&typeid(STD_NAMESPACE::bad_exception),
-                                (an_ETS_flag_set)ETS_NO_FLAGS)) {
-      /* The thrown type is not allowed, but bad_exception is.  Throw
-         bad_exception. */
-      throw STD_NAMESPACE::bad_exception();
     } else {
-      /* Neither the originally thrown type not bad_exception is permitted.
-         Call terminate. */
-      __call_terminate();
+      a_type_info_impl_ptr	bad_exception_type;
+      bad_exception_type =
+                   (a_type_info_impl_ptr)&typeid(STD_NAMESPACE::bad_exception);
+      if (__can_throw_type(bad_exception_type,
+                           (an_ETS_flag_set)ETS_NO_FLAGS)) {
+        /* The thrown type is not allowed, but bad_exception is.  Throw
+           bad_exception. */
+        throw STD_NAMESPACE::bad_exception();
+      } else {
+        /* Neither the originally thrown type not bad_exception is permitted.
+           Call terminate. */
+        __call_terminate();
+      }  /* if */
     }  /* if */
   }  /* catch */
   abort();

@@ -1430,7 +1430,7 @@ Return a pointer to __get_curr_eh_stack_entry.
 }  /* __get_curr_eh_stack_entry */
 
 
-EXTERN_C void __type_of_thrown_object(STD_NAMESPACE::type_info	**type,
+EXTERN_C void __type_of_thrown_object(a_type_info_impl_ptr	*type,
 				      an_ETS_flag_set		*flags)
 /*
 Return a pointer to the typeinfo entry for the type of the object that
@@ -1438,13 +1438,13 @@ was thrown and the flags associated with the thrown object.
 */
 {
   check_assertion(curr_throw_stack_entry != NULL);
-  *type = &curr_throw_stack_entry->type_info->user_type_info;
+  *type = curr_throw_stack_entry->type_info;
   *flags = curr_throw_stack_entry->flags;
 }  /* __type_of_thrown_object */
 
 
-EXTERN_C a_boolean __can_throw_type(const STD_NAMESPACE::type_info *type,
-				    an_ETS_flag_set		   flags)
+EXTERN_C a_boolean __can_throw_type(a_type_info_impl_ptr	type,
+				    an_ETS_flag_set		flags)
 /*
 This routine is called by the code that checks whether an exception thrown
 by unexpected() violates the current exception specification.  Find the
@@ -1463,12 +1463,9 @@ and flag combination is allowed.
   if (ehsep->variant.throw_specification != NULL) {
     an_exception_type_specification_ptr	dummy_etsp;
     int					catch_pos;
-    a_type_info_impl_ptr		thrown_type;
-    thrown_type = (a_type_info_impl_ptr)type;
     catch_pos = check_exception_type_specifications
 				  (ehsep->variant.throw_specification,
-				   thrown_type, flags,
-				   (an_access_flag_string)NULL,
+				   type, flags, (an_access_flag_string)NULL,
 				   /*use_access_flags=*/FALSE, (void**)NULL,
                                    &dummy_etsp);
     if (catch_pos != 0) result = TRUE;
