@@ -261,7 +261,9 @@ will not be generated.  However, the language accepted in ANSI mode
 is not affected; such types are not considered to be identical, and
 errors are still generated for type mismatches.
 */
+#ifndef SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
 #define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL TRUE
+#endif /* ifndef SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */
 
 /* Maximum size of a bit-field.  Must not be larger than the size of a
    long (or a long long, if they are allowed). */
