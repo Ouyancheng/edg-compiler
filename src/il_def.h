@@ -2819,6 +2819,47 @@ enum an_init_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_init_kind;
 
+
+typedef union an_initializer *an_initializer_ptr;
+typedef union an_initializer {
+  /* Entry embedded in a variable or local-static-variable-init entry to
+     indicate the initializer that is required.  Its variants are discriminated
+     by the initialization kind specified in the containing entry. */
+  /* When the initialization kind is initk_none, initk_zero, or
+     initk_function_local, there are no variant fields. */
+  /* When the initialization kind is initk_static: */
+  a_constant_ptr
+                constant;
+			/* Constant initial value for static initialization.
+			   May be a ck_aggregate constant, but only one that
+			   is truly constant, i.e., one that does not contain
+			   ck_dynamic_init constants.  Only used for static
+			   variables.  The constant is unshared. */
+#ifdef FIL
+                        /* If the variable is DATA initialized, this points
+                           to the initial value.  For arrays and COMMON
+                           blocks, the initializer is a ck_aggregate constant.
+                           For DATA-initialized user variables that belong to
+                           an EQUIVALENCE association or COMMON block, this
+                           field will be NULL; the initializer field of the
+                           association or COMMON block variable will supply
+                           the initial value. */
+#endif /* ifdef FIL */
+#ifdef CIL
+  /* When the initialization kind is initk_dynamic: */
+  a_dynamic_init_ptr
+		dynamic;
+			/* Pointer to an entry describing the dynamic
+			   initialization required.  In the unusual case in
+			   which no dynamic initialization is required
+			   (variable receives default initialization or can
+			   be statically initialized) but a destructor must
+			   be called when the variable's lifetime terminates,
+			   a dynamic init entry will also be supplied. */
+#endif /* ifdef CIL */
+} an_initializer;
+
+
 #ifdef CIL
 
 typedef struct a_local_static_variable_init *a_local_static_variable_init_ptr;
@@ -2839,27 +2880,13 @@ typedef struct a_local_static_variable_init {
 			/* Pointer to an initialized local static variable
 			   whose init_kind is initk_function_local. */
   an_init_kind	init_kind;
-			/* Kind of initialization, if any. */
-  union {
-    /* initk_none, initk_zero, and initk_function_local will never occur. */
-    /* When init_kind == initk_static: */
-    a_constant_ptr
-                constant;
-			/* Constant initial value for static initialization.
-			   Will always be a ck_aggregate constant that does
-			   not contain ck_dynamic_init constants.  The
-			   constant is unshared. */
-    /* When init_kind == initk_dynamic: */
-    a_dynamic_init_ptr
-		dynamic;
-			/* Pointer to an entry describing the dynamic
-			   initialization required.  In the unusual case in
-			   which no dynamic initialization is required
-			   (variable receives default initialization or can
-			   be statically initialized) but a destructor must
-			   be called when the variable's lifetime terminates,
-			   a dynamic init entry will also be supplied. */
-  } initializer;
+			/* Kind of initialization, if any.  Only initk_static
+			   and initk_dynamic will occur. */
+  an_initializer
+		initializer;
+			/* Union discriminated by init_kind and indicating the
+			   initializer.  When init_kind == initk_static, the
+			   constant's kind will be ck_aggregate. */
 } a_local_static_variable_init;
 
 #endif /* ifdef CIL */
@@ -2998,44 +3025,17 @@ typedef struct a_variable {
 #endif /* ifdef CIL */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */
-  union {
-    /* When init_kind == initk_none or init_kind == initk_zero, no variant
-       fields. */
-    /* When init_kind == initk_function_local, there are also no variant
-       fields; the pointer to the initializer will be in an associated
-       local-static-variable-init entry on a linked list for the current
-       function or block scope. */
-    /* When init_kind == initk_static: */
-    a_constant_ptr
-                constant;
-			/* Constant initial value for static initialization.
-			   May be a ck_aggregate constant, but only one that
-			   is truly constant, i.e., one that does not contain
-			   ck_dynamic_init constants.  Only used for static
-			   variables.  The constant is unshared. */
-#ifdef FIL
-                        /* If the variable is DATA initialized, this points
-                           to the initial value.  For arrays and COMMON
-                           blocks, the initializer is a ck_aggregate constant.
-                           For DATA-initialized user variables that belong to
-                           an EQUIVALENCE association or COMMON block, this
-                           field will be NULL; the initializer field of the
-                           association or COMMON block variable will supply
-                           the initial value. */
-#endif /* ifdef FIL */
 #ifdef CIL
-    /* When init_kind == initk_dynamic: */
-    a_dynamic_init_ptr
-		dynamic;
-			/* Pointer to an entry describing the dynamic
-			   initialization required.  In the unusual case in
-			   which no dynamic initialization is required
-			   (variable receives default initialization or can
-			   be statically initialized) but a destructor must
-			   be called when the variable's lifetime terminates,
-			   a dynamic init entry will also be supplied. */
+			/* When init_kind == initk_function_local (local
+			   static variables only), the initializer is
+			   indicated by a local-static-variable-init entry
+			   on a linked list for the current function or block
+			   scope. */
 #endif /* ifdef CIL */
-  } initializer;
+  an_initializer
+		initializer;
+			/* Union discriminated by init_kind and indicating the
+			   initializer. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* The type as it actually appears in the declaration
