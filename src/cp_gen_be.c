@@ -386,16 +386,6 @@ hidden names in C, so there's no point in maintaining this information).
 {
   a_hidden_name_ptr hnp;
 
-  if (scope->kind == (a_scope_kind)sck_class_struct_union) {
-    /* The scope is for a class.  Push the hidden name information for its
-       base classes as well. */
-    a_type_ptr       class_type = scope->variant.assoc_type;
-    a_base_class_ptr bcp;
-    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-      push_scope_hidden_names(bcp->type->variant.class_struct_union.
-                                                      extra_info->assoc_scope);
-    }  /* for */
-  }  /* if */
   for (hnp = scope->hidden_names; hnp != NULL; hnp = hnp->next) {
     a_boolean fixup_created = FALSE;
     if (hnp->qualification_needed) {
@@ -475,8 +465,6 @@ Pop the top entry off the name context stack.
   a_hidden_name_fixup_ptr hnfp, hnfp_next;
 
   /* Process the hidden-name fixup list. */
-  /* Note that if the scope pushed was a class, fixups for its base class
-     hidden names are on this list as well. */
   for (hnfp = ncp->fixups; hnfp != NULL; hnfp = hnfp_next) {
     hnfp_next = hnfp->next;
     hnfp->next = NULL;
