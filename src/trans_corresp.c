@@ -2265,9 +2265,10 @@ are not checked.
               templ->kind != corresp_templ->kind) {
             /* Could only be due to an error.  Record the correspondence
                so a diagnostic can be issued. */
-            set_unvisited_trans_unit_corresp(iek_template, templ);
-            set_trans_unit_corresp(iek_template, templ, corresp_templ);
-            process_bad_trans_unit_corresp(iek_template, templ);
+            f_report_bad_trans_unit_corresp(
+                                (char*)templ,
+                                &corresp_templ->source_corresp.decl_position);
+            set_no_trans_unit_corresp(iek_template, templ);
           } else {
             establish_instantiation_correspondences(templ);
           }  /* if */
@@ -2296,9 +2297,10 @@ are not checked.
           if (!has_correspondence(mem_type)) {
             /* Could only be due to an error.  Record the correspondence
                so a diagnostic will be issued. */
-            set_unvisited_trans_unit_corresp(iek_type, mem_type);
-            set_trans_unit_corresp(iek_type, mem_type, corresp_mem_type);
-            process_bad_trans_unit_corresp(iek_type, mem_type);
+            f_report_bad_trans_unit_corresp(
+                             (char*)mem_type,
+                             &corresp_mem_type->source_corresp.decl_position);
+            set_no_trans_unit_corresp(iek_type, mem_type);
           } else if (is_immediate_class_type(mem_type)) {
             establish_trans_unit_correspondences_for_class(mem_type);
             /* This could be a member of a template class.  If we're dealing
