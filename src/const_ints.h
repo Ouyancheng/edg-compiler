@@ -241,8 +241,10 @@ extern an_integer_kind int_kind_for_size_and_alignment(
                                                 a_targ_alignment alignment,
                                                 a_boolean        is_signed);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern an_integer_kind int_kind_for_bit_size(unsigned int  number_of_bits,
                                              a_boolean     is_signed);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DEBUG
 extern char* db_format_integer_value(an_integer_value  *value);
