@@ -2089,7 +2089,7 @@ static void disp_throw_spec_type(a_throw_spec_type_ptr ptr)
 Display the indicated throw-specification entry.
 */
 {
-  disp_ptr("next", (char *)ptr->next, iek_throw_specification);
+  disp_ptr("next", (char *)ptr->next, iek_throw_spec_type);
   disp_ptr("type", (char *)ptr->type, iek_type);  
   disp_boolean("redundant", (a_boolean)ptr->redundant);
   disp_unsigned_long("decl_position.seq",
