@@ -144,23 +144,28 @@ static unsigned long
 			   being processed. */
 
 /*
-Entry used to record an entry which has been declared with a function-local
-"extern", which has therefore been made temporarily local, and which needs
-to be made external again at the end of the current scope.
+Entry used to record an adjustment needed at the end of a name context,
+i.e., restoring the previous values of the global_qualification_needed
+and/or elaborated_type_specifier_needed flags of an IL entity, which
+were changed when the entity's name was hidden at the start of the
+name context.
 */
-typedef struct a_block_extern_fixup *a_block_extern_fixup_ptr;
-typedef struct a_block_extern_fixup {
-  a_block_extern_fixup_ptr
+typedef struct a_hidden_name_fixup *a_hidden_name_fixup_ptr;
+typedef struct a_hidden_name_fixup {
+  a_hidden_name_fixup_ptr
 		next;	/* Next fixup on the list, or NULL if this is the
 			   last entry. */
-  a_source_correspondence
-		*scp;	/* Source correspondence entry of the IL entity. */
-} a_block_extern_fixup;
+  unsigned int	global_qualification_needed:1;
+  unsigned int	elaborated_type_specifier_needed:1;
+			/* Flag values to restore. */
+  a_tagged_pointer
+		entity;	/* Pointer to the entity to be fixed up. */
+} a_hidden_name_fixup;
 
 
-static a_block_extern_fixup_ptr
-		avail_block_extern_fixups;
-			/* List of block-extern-fixup entries that have been
+static a_hidden_name_fixup_ptr
+		avail_hidden_name_fixups;
+			/* List of hidden-name-fixup entries that have been
 			   freed and are available for reuse. */
 
 /*
@@ -180,8 +185,8 @@ typedef struct a_name_context {
   an_access_specifier
 		access;	/* When putting out a class, the current default
 			   access for a member declaration. */
-  a_block_extern_fixup_ptr
-		fixups;	/* Block-extern fixups to be done at the end of the
+  a_hidden_name_fixup_ptr
+		fixups;	/* Hidden-name fixups to be done at the end of the
 			   name context. */
 } a_name_context;
 static a_name_context_ptr
@@ -192,8 +197,7 @@ static a_name_context_ptr
 Return TRUE if the current name context is a class.
 */
 #define curr_name_context_is_a_class()                                \
-  (curr_name_context != NULL &&                                       \
-   curr_name_context->assoc_scope != NULL &&                          \
+  (curr_name_context->assoc_scope != NULL &&                          \
    curr_name_context->assoc_scope->kind ==                            \
                               (a_scope_kind)sck_class_struct_union)
 
@@ -312,38 +316,46 @@ a constant that appears on the constant list of an enum type.
 }  /* is_enum_constant */
 
 
-static void alloc_block_extern_fixup(a_source_correspondence *scp)
+static void alloc_hidden_name_fixup(a_tagged_pointer entity)
 /*
-Allocate a block-extern fixup entry for the indicated source-correspondence
-entry and put it on the current name context fixup list.
+Allocate a hidden-name fixup entry for the indicated entity and put it
+on the current name context fixup list.  The current values of the
+global_qualification_needed and	elaborated_type_specifier_needed flags in
+that entry are saved for restoration at the end of the current name context.
 */
 {
-  a_block_extern_fixup_ptr befp;
+  a_hidden_name_fixup_ptr hnfp;
 
-  if (avail_block_extern_fixups != NULL) {
+  if (avail_hidden_name_fixups != NULL) {
     /* Reuse a freed entry. */
-    befp = avail_block_extern_fixups;
-    avail_block_extern_fixups = avail_block_extern_fixups->next;
+    hnfp = avail_hidden_name_fixups;
+    avail_hidden_name_fixups = avail_hidden_name_fixups->next;
   } else {
     /* Allocate a new entry. */
-    befp = (a_block_extern_fixup_ptr)
-                                   alloc_general(sizeof(a_block_extern_fixup));
+    hnfp = (a_hidden_name_fixup_ptr)alloc_general(sizeof(a_hidden_name_fixup));
   }  /* if */
-  befp->scp = scp;
+  hnfp->entity = entity;
+  /* Save the flag values from the entity, for later restoration. */
+  hnfp->global_qualification_needed =
+       ((a_source_correspondence *)entity.ptr)->global_qualification_needed;
+  if ((an_il_entry_kind)entity.kind == iek_type) {
+    hnfp->elaborated_type_specifier_needed =
+                    ((a_type_ptr)entity.ptr)->elaborated_type_specifier_needed;
+  }  /* if */
   /* Put the entry on the list. */
-  befp->next = curr_name_context->fixups;
-  curr_name_context->fixups = befp;
-}  /* alloc_block_extern_fixup */
+  hnfp->next = curr_name_context->fixups;
+  curr_name_context->fixups = hnfp;
+}  /* alloc_hidden_name_fixup */
 
 
-static void free_block_extern_fixup(a_block_extern_fixup_ptr befp)
+static void free_hidden_name_fixup(a_hidden_name_fixup_ptr hnfp)
 /*
-Free the block-extern fixup entry given.
+Free the hidden-name fixup entry given.
 */
 {
-  befp->next = avail_block_extern_fixups;
-  avail_block_extern_fixups = befp;
-}  /* free_block_extern_fixup */
+  hnfp->next = avail_hidden_name_fixups;
+  avail_hidden_name_fixups = hnfp;
+}  /* free_hidden_name_fixup */
 
 
 static void push_name_context(a_name_context *context,
@@ -361,6 +373,44 @@ scope is NULL for a block without an associated scope.
   curr_name_context->next = parent_context;
   curr_name_context->assoc_scope = scope;
   curr_name_context->fixups = NULL;
+  if (scope != NULL) {
+    /* Go through the hidden names list and mark the hidden entities so
+       they will be accessed specially in this and inner scopes. */
+    a_hidden_name_ptr hnp;
+    for (hnp = scope->hidden_names; hnp != NULL; hnp = hnp->next) {
+      a_boolean fixup_created = FALSE;
+      if (hnp->global_qualification_needed) {
+        /* The entity needs a leading "::" in the inner scopes. */
+        a_source_correspondence *scp =
+                                  (a_source_correspondence *)(hnp->entity.ptr);
+        if (!scp->global_qualification_needed) {
+          /* The global_qualification_needed flag needs to be set.  Also
+             arrange for it to be reset at the end of the current name
+             context. */
+          if (!fixup_created) {
+            alloc_hidden_name_fixup(hnp->entity);
+            fixup_created = TRUE;
+          }  /* if */
+          scp->global_qualification_needed = TRUE;
+        }  /* if */
+      }  /* if */
+      if (hnp->elaborated_type_specifier_needed) {
+        /* The entity must be referenced via an elaborated type specifier
+           (e.g., "class X" rather than just "X") in the inner scopes. */
+        a_type_ptr type = (a_type_ptr)(hnp->entity.ptr);
+        if (!type->elaborated_type_specifier_needed) {
+          /* The elaborated_type_specifier_needed flag needs to be
+             set.  Also arrange for it to be reset at the end of the current
+             name context. */
+          if (!fixup_created) {
+            alloc_hidden_name_fixup(hnp->entity);
+            fixup_created = TRUE;
+          }  /* if */
+          type->elaborated_type_specifier_needed = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* push_name_context */
 
 
@@ -369,16 +419,23 @@ static void pop_name_context(void)
 Pop the top entry off the name context stack.
 */
 {
-  a_block_extern_fixup_ptr befp, befp_next;
+  a_hidden_name_fixup_ptr hnfp, hnfp_next;
 
-  /* Process the block-extern fixup list. */
-  for (befp = curr_name_context->fixups; befp != NULL; befp = befp_next) {
-    befp_next = befp->next;
-    befp->next = NULL;
-    /* Clear the is_local_to_function flag in the entry. */
-    befp->scp->is_local_to_function = FALSE;
-    free_block_extern_fixup(befp);
+  /* Process the hidden-name fixup list. */
+  for (hnfp = curr_name_context->fixups; hnfp != NULL; hnfp = hnfp_next) {
+    hnfp_next = hnfp->next;
+    hnfp->next = NULL;
+    /* Restore the flag values to their state at the start of the current
+       name context. */
+    ((a_source_correspondence *)(hnfp->entity.ptr))->
+               global_qualification_needed = hnfp->global_qualification_needed;
+    if ((an_il_entry_kind)(hnfp->entity.kind) == iek_type) {
+      ((a_type_ptr)(hnfp->entity.ptr))->elaborated_type_specifier_needed =
+                                        hnfp->elaborated_type_specifier_needed;
+    }  /* if */
+    free_hidden_name_fixup(hnfp);
   }  /* for */
+  /* Pop the stack. */
   curr_name_context = curr_name_context->next;
 }  /* pop_name_context */
 
@@ -1170,7 +1227,7 @@ a qualified name (if required in the current name context).
       } else {
         gen_class_qualifier(class_type);
       }  /* if */
-    } else if (curr_name_context != NULL && !scp->is_local_to_function) {
+    } else if (scp->global_qualification_needed) {
       /* This is a reference to a file-scope entity from within a class
          or function, so add a leading "::". */
       write_tok_str("::");
@@ -2108,9 +2165,14 @@ or enum.
   } else {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
-    write_tok_str(tag_kind(type->kind));
-    write_space();
-    gen_decl_name(&type->source_corresp, iek_type);
+    /* In C++, don't use "class X" instead of "X" unless that is required,
+       e.g., because there's something else called "X" in the same scope. */
+    if (il_header.source_language != sl_Cplusplus ||
+        type->elaborated_type_specifier_needed) {
+      write_tok_str(tag_kind(type->kind));
+      write_space();
+    }  /* if */
+    gen_name(&type->source_corresp, iek_type);
   }  /* if */
 }  /* gen_tag_reference */
 
@@ -5232,12 +5294,15 @@ sequence entry.
       }  /* if */
       if (storage_class == (a_storage_class)sc_extern &&
           curr_function_scope != NULL) {
-        /* Extern within a function.  Set the is_local_to_function flag on
-           the entity to suppress leading "::" on references. */
-        if (!var->source_corresp.is_local_to_function) {
-          var->source_corresp.is_local_to_function = TRUE;
+        /* Extern within a function.  Clear the global_qualification_needed
+           flag in the entity to suppress leading "::" on references. */
+        if (var->source_corresp.global_qualification_needed) {
           /* Allocate a fixup entry to get the flag switched back later. */
-          alloc_block_extern_fixup(&var->source_corresp);
+          a_tagged_pointer entity;
+          entity.kind = (a_byte_il_entry_kind)iek_variable;
+          entity.ptr = (char *)var;
+          alloc_hidden_name_fixup(entity);
+          var->source_corresp.global_qualification_needed = FALSE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5499,12 +5564,15 @@ declaration or definition.
       }  /* if */
       if (storage_class == (a_storage_class)sc_extern &&
           curr_function_scope != NULL) {
-        /* Extern within a function.  Set the is_local_to_function flag on
-           the entity to suppress leading "::" on references. */
-        if (!rout->source_corresp.is_local_to_function) {
-          rout->source_corresp.is_local_to_function = TRUE;
+        /* Extern within a function.  Clear the global_qualification_needed
+           flag in the entity to suppress leading "::" on references. */
+        if (rout->source_corresp.global_qualification_needed) {
           /* Allocate a fixup entry to get the flag switched back later. */
-          alloc_block_extern_fixup(&rout->source_corresp);
+          a_tagged_pointer entity;
+          entity.kind = (a_byte_il_entry_kind)iek_routine;
+          entity.ptr = (char *)rout;
+          alloc_hidden_name_fixup(entity);
+          rout->source_corresp.global_qualification_needed = FALSE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5697,6 +5765,9 @@ static void process_file_scope_entities(void)
 Process all the file scope entities, and everything under those.
 */
 {
+  a_name_context context;
+
+  push_name_context(&context, il_header.primary_scope);
   /* Use the source sequence list to visit all the right entries in the
      right order. */
   curr_source_sequence_entry = il_header.primary_scope->source_sequence_list;
@@ -5705,6 +5776,7 @@ Process all the file scope entities, and everything under those.
     /* Generate the declaration of a file-scope entity. */
     gen_declaration();
   }  /* while */
+  pop_name_context();
 }  /* process_file_scope_entities */
 
 
@@ -5779,7 +5851,7 @@ Initialize for the C++/C-generating back end.
   curr_switch_statement = NULL;
   num_curr_switch_statements = 0;
   curr_name_context = NULL;
-  avail_block_extern_fixups = NULL;
+  avail_hidden_name_fixups = NULL;
 }  /* init_cp_gen_be */
 
 
