@@ -12702,12 +12702,14 @@ any non-empty template parameter lists that were scanned.
       free_pending_pragma_list(decl_state->pragmas_bound_to_template);
     }  /* if */
   }
-  /* If this is initial declaration, update the template symbol supplement
-     to point to the IL entry . */
-  if (tssp != NULL && tssp->il_template_entry == NULL) {
-    tssp->il_template_entry = decl_state->il_template_entry;
-    check_assertion(sym != NULL);
-    set_source_corresp(&tssp->il_template_entry->source_corresp, sym);
+  if (tssp != NULL ) {
+    check_assertion(decl_state->il_template_entry != NULL);
+    set_source_corresp(&decl_state->il_template_entry->source_corresp, sym);
+    /* If this is initial declaration, update the template symbol supplement
+       to point to the IL entry . */
+    if (tssp->il_template_entry == NULL) {
+      tssp->il_template_entry = decl_state->il_template_entry;
+    }  /* if */
   }  /* if */
   if (is_class_template) {
     if (!decl_state->decl_scope_err && decl_state->defines_something) {
