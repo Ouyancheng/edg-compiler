@@ -2644,7 +2644,7 @@ Add the type specifier to the type string being formed.
 
   switch (type->kind) {
     case tk_error:
-      s = "<error>";
+      s = "<error type>";
       break;
     case tk_unknown:
       s = "<unknown>";
