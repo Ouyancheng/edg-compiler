@@ -211,6 +211,14 @@ extern void establish_function_instantiation_corresp(a_routine_ptr  routine);
 
 extern void establish_variable_instantiation_corresp(a_variable_ptr  var);
 
+extern void establish_block_extern_function_correspondence(
+                                                      a_routine_ptr  routine);
+
+extern void establish_block_extern_variable_correspondence(
+                                                      a_variable_ptr  var);
+
+extern void establish_friend_type_correspondence(a_type_ptr  type);
+
 extern void corresp_one_time_init(void);
 
 extern void corresp_trans_unit_init(void);

@@ -4203,6 +4203,48 @@ canonical entry.
 }  /* canonical_template_entry_of */
 
 
+void establish_block_extern_function_correspondence(a_routine_ptr  routine)
+/*
+The given routine entry was just created as the result of a block extern
+declaration.  This could potentially occur during a template instantiation
+in which case this might be the only opportunity to establish its
+correspondences in other translation units.
+*/
+{
+  if (correspondence_checking_done && trans_unit_corresp_of(routine) == NULL) {
+    find_routine_correspondence(routine);
+  }  /* if */
+}  /* establish_block_extern_function_correspondence */
+
+
+void establish_block_extern_variable_correspondence(a_variable_ptr  var)
+/*
+The given variable entry was just created as the result of a block extern
+declaration.  This could potentially occur during a template instantiation
+in which case this might be the only opportunity to establish its
+correspondences in other translation units.
+*/
+{
+  if (correspondence_checking_done && trans_unit_corresp_of(var) == NULL) {
+    find_variable_correspondence(var);
+  }  /* if */
+}  /* establish_block_extern_variable_correspondence */
+
+
+void establish_friend_type_correspondence(a_type_ptr  type)
+/*
+The given type entry was just created as the result of a friend declaration.
+This could potentially occur during a template instantiation in which case
+this might be the only opportunity to establish its correspondences in other
+translation units.
+*/
+{
+  if (correspondence_checking_done && trans_unit_corresp_of(type) == NULL) {
+    find_type_correspondence(type, /*parent_found=*/FALSE);
+  }  /* if */
+}  /* establish_friend_type_correspondence */
+
+
 static void establish_trans_unit_correspondences_for_scope(a_scope_ptr  scope)
 /*
 Establish correspondences for all the applicable entities in the given

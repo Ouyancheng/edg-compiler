@@ -2162,11 +2162,19 @@ new expression and should therefore not be treated as a declaration.
       tag_sym = enter_local_symbol(tag_kind, &locator, effective_decl_level,
                                    /*suppress_redecl_error=*/FALSE);
       set_source_corresp(&(class_type->source_corresp), tag_sym);
-      if (!friend_injection_enabled && is_friend_decl) {
-        /* The name of a class first declared in a friend declaration is
-           entered into the innermost non-class scope, but it's not visible
-           to lookup. */
-        tag_sym->is_invisible = TRUE;
+      if (is_friend_decl) {
+        if (!friend_injection_enabled) {
+          /* The name of a class first declared in a friend declaration is
+             entered into the innermost non-class scope, but it's not visible
+             to lookup. */
+          tag_sym->is_invisible = TRUE;
+        }  /* if */
+        if (secondary_translation_unit_seen()) {
+          /* This class type entry might have been generated during the
+             instantiation of another template.  The correspondence checking
+             process must therefore be notified of its existence. */
+          establish_friend_type_correspondence(class_type);
+        }  /* if */
       }  /* if */
     } else {
       /* Tagless class, struct, or union.  Create a symbol to represent it;

@@ -26,7 +26,6 @@ decls.c -- Scanning of declarations.
 
 /* Additional header files. */
 #include "statements.h"
-#include "trans_corresp.h"
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -4303,6 +4302,12 @@ declaration.
     /* There is no symbol pointed to from the variable or routine, so
        update it with the current symbol. */
     set_source_corresp(source_corresp_ptr, sym);
+    if (idlb.is_block_extern_decl && secondary_translation_unit_seen()) {
+      /* This variable entry might have been generated during the
+         instantiation of a template.  The correspondence checking process
+         must therefore be notified of its existence. */
+      establish_block_extern_variable_correspondence(variable_ptr);
+    }  /* if */
   } else if (!redeclaration) {
     /* Record a reference to the outer-scope symbol of the same name,
        but do not set the IL entity referenced flag. */
@@ -5605,6 +5610,13 @@ skip_overloading:;
     /* There is no symbol pointed to from the routine, so update it with the
        current symbol. */
     set_source_corresp(source_corresp_ptr, sym);
+    if ((is_friend_decl || idlb.is_block_extern_decl) &&
+        secondary_translation_unit_seen()) {
+      /* This routine entry might have been generated during the instantiation
+         of another template.  The correspondence checking process must
+         therefore be notified of its existence. */
+      establish_block_extern_function_correspondence(routine_ptr);
+    }  /* if */
   } else {
     if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
         (!redeclaration && !template_function_specific_decl)) {
