@@ -534,7 +534,6 @@ declared with more than one base class.
 {
   a_boolean                    multiple = FALSE;
   a_base_class_ptr             bcp;
-  a_class_type_supplement_ptr  ctsp;
 
   bcp = base_classes_of(class_type);
   if (bcp != NULL) {
