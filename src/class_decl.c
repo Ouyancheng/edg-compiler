@@ -10084,17 +10084,20 @@ the overload set represented by set.  This routine also searches nested
 sets.
 */
 {
-  a_boolean  result = FALSE;
+  a_boolean         result = FALSE;
+  char              *member_entry, *set_entry;
+  an_il_entry_kind  member_kind, set_kind;
 
   member = fundamental_symbol_of(member);
+  member_entry = il_entry_for_symbol(member, &member_kind);
   set = fundamental_symbol_of(set);
   check_assertion(set->kind == (a_symbol_kind)sk_overloaded_function);
   set = set->variant.overloaded_function.symbols;
   for (; set != NULL; set = set->next) {
     a_symbol_ptr  fund_sym = fundamental_symbol_of(set);
-    if (fund_sym == member ||
-        (fund_sym->kind == (a_symbol_kind)sk_overloaded_function &&
-         in_overload_set(member, fund_sym))) {
+    set_entry = il_entry_for_symbol(fund_sym, &set_kind);
+    if (set_kind == member_kind &&
+        corresponding_entries(set_entry, member_entry, member_kind)) {
       result = TRUE;
       break;
     }  /* if */
