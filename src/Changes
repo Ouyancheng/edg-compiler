@@ -1,22 +1,30 @@
 Version 2.30
 
+8/8/95   IL CHANGE: an_access_adjustment ==> a_class_member_using_decl
+
+Certain entities have be renamed now that access-declarations are just a
+deprecated way writing using-declarations within a class definition.  Most
+notably, an_access_adjustment is now a_class_member_using_decl.  Several
+other entities, including fields in an sk_projection symbol and two
+routines, have also been renamed.
+
 8/8/95   Bug in access check for overloaded functions with access adjusted
 
 Access declarations that adjust access on a set of overloaded functions
 were not always properly handled.
 
-struct A {
-public:
-  void f(int);
-  void f(float);
-};
-struct B : private A {
-public:
-  A::f;
-};
-struct C : public B {
-  void g() { f(1); }  // Should be okay
-};
+  struct A {
+  public:
+    void f(int);
+    void f(float);
+  };
+  struct B : private A {
+  public:
+    A::f;
+  };
+  struct C : public B {
+    void g() { f(1); }    // Should be okay
+  };
 
 8/8/95   Bug in computing derivations of indirect virtual base classes
 
@@ -69,6 +77,9 @@ programs should not be affected.  For instance:
   };                 //   okay (overload set "f" has two members)
 
 (No compilation mode is provided to reenable the previous behavior.)
+
+Also, several diagnostic messages, no longer needed, have been marked
+"REMOVED" in error_msg.txt.
 
 8/4/95   Missing promotions on IL-lowering-generated pointer-to-data-member
          operations
