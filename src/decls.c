@@ -8097,11 +8097,11 @@ is saved and restored as needed by the token caching mechanism.
     /* Check for and skip the closing parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
-    /* Check for and skip the semicolon. */
-    (void)required_token(tok_semicolon, ec_exp_semicolon);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Check for and skip the semicolon. */
+    (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
   /* Update the IL. */
   if (asm_decl_allowed) {

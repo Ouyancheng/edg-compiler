@@ -1,5 +1,15 @@
 Version 2.46
 
+1/3/01   Incorrect end position on asm statements
+
+When using EXTRA_SOURCE_POSITIONS_IN_IL, the end position for asm statements
+was incorrect (it was the start of the following statement).  This has
+been fixed.
+
+  int main() {
+    asm("nop");
+  }
+
 1/3/01   Dependent lookup problem with base classes of nested classes
 
 When using dependent name lookup, a dependent base class of a nested class
