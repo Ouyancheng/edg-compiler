@@ -1,5 +1,14 @@
 Version 2.34
 
+12/12/96 Undefined inline virtual functions
+
+The checking for undefined inline virtual functions in non-local classes
+has been relaxed (see entry for 9/24/96).  An error is now issued in
+strict mode (-A) only.  By default no diagnostic is issued -- except that,
+when DO_IL_LOWERING is TRUE, a warning is put out if it is known that a
+virtual function table for the class will be generated for the current
+translation unit.
+
 12/11/96 Checking exception specifications on reference binding
 
 Exceptions specifications are now checked when binding a reference to
