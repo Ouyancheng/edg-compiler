@@ -4266,11 +4266,16 @@ scope is the scope in which the variable's definition appears.
   an_insert_location    insert_location;
   an_expr_operator_kind op;
   an_expr_node_ptr      source_node;
-  a_statement_ptr       block_stmt;
+  a_statement_ptr       block_stmt, assign_stmt;
   a_variable_ptr        test_var;
+  a_source_position     saved_error_position, saved_code_pos;
 
   check_assertion(variable->storage_class == (a_storage_class)sc_unspecified &&
                   variable->init_kind == (an_init_kind)initk_static);
+  saved_code_pos = code_pos_for_lowering;
+  saved_error_position = error_position;
+  code_pos_for_lowering = error_position =
+                                        variable->source_corresp.decl_position;
   constant = variable->initializer.constant;
   variable->init_kind = (an_init_kind)initk_none;
   /* The general strategy is to add an assignment that copies the constant
@@ -4302,9 +4307,13 @@ scope is the scope in which the variable's definition appears.
   set_block_start_insert_location(scope->assoc_block, &insert_location);
   /* Put a first-time test around the initialization. */
   add_first_time_test(variable, &insert_location, &block_stmt, &test_var);
-  (void)insert_assignment_statement(var_lvalue_expr(variable), op, source_node,
-                                    &insert_location);
+  assign_stmt = insert_assignment_statement(var_lvalue_expr(variable),
+                                            op, source_node,
+                                            &insert_location);
+  set_stmt_pos_to_code_pos_for_lowering(assign_stmt);
   variable->initialization_rewritten_as_assignment = TRUE;
+  error_position = saved_error_position;
+  code_pos_for_lowering = saved_code_pos;
 }  /* lower_constant_init_of_static_in_extern_inline */
 
 #endif /* LOWER_EXTERN_INLINE */

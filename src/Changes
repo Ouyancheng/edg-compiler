@@ -1,5 +1,11 @@
 Version 2.42
 
+6/29/99  Position on IL for initialization of extern inline local static
+
+The IL assignment statement generated to do initialization of a local
+static variable promoted out of an extern inline function by IL lowering
+now (once again) has the position of the variable declaration.
+
 6/29/99  Routine linkage difference on function pointer as template argument
 
 When the implicit conversion between a pointer to C-linkage function
