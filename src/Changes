@@ -1,5 +1,19 @@
 Version 3.6
 
+3/29/05  Microsoft compatibility: POD_func().field is an lvalue
+
+In Microsoft C++ compatibility mode, a field selection out of a
+class rvalue with a POD type now yields an lvalue (rather than
+an rvalue as previously and as the standard requires).
+
+  struct A {
+    int i;
+  } a;
+  struct A f() { return a; }
+  int main() {
+    int *p = &f().i;  // Error usually, okay in Microsoft C++ mode
+  }
+
 3/28/05  Microsoft compatibility: Type of *this in selective overriders
 
 In Microsoft mode, the front end accepts declarations of virtual member
