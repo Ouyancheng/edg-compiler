@@ -4941,6 +4941,8 @@ used as an lvalue if is_lvalue is TRUE.
   a_targ_ptrdiff_t offset;
   a_variable_ptr   temp_var;
   a_type_ptr       dest_type = node->type;
+  an_expr_operator_kind
+                   op;
 
   /* Use recursion to find a chain of similar casts and compute the overall
      class offset for the chain. */
@@ -5011,6 +5013,13 @@ used as an lvalue if is_lvalue is TRUE.
                                         source_node);
       /* Make "pdm + offset". */
       source_node = make_reusable_copy(source_node, /*vars_can_change=*/FALSE);
+      /* If the offset is negative, subtract it instead of adding. */
+      if (offset >= 0) {
+        op = (an_expr_operator_kind)eok_iadd;
+      } else {
+        op = (an_expr_operator_kind)eok_isubtract;
+        offset = -offset;
+      }  /* if */
       /* Make a node for the offset constant. */
       set_unsigned_integer_constant_with_overflow_check(
                                              &offset_constant,
@@ -5018,8 +5027,7 @@ used as an lvalue if is_lvalue is TRUE.
                                              targ_ptr_to_data_member_int_kind);
       offset_node = alloc_node_for_constant(&offset_constant);
       source_node->next = offset_node;
-      plus_node = make_operator_node((an_expr_operator_kind)eok_iadd,
-                                     source_node->type, source_node);
+      plus_node = make_operator_node(op, source_node->type, source_node);
       /* Make the "?" operation by overwriting the original node. */
       compare_node->next = plus_node;
       plus_node->next = node_for_integer_constant(0L,
