@@ -2895,7 +2895,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   a_type_ptr       dest_type_pointed_to, source_type_pointed_to;
   a_type_ptr       unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
   a_base_class_ptr bcp;
-  a_boolean        qualifiers_added;
+  a_boolean        qualifiers_added, qualifiers_checked;
 
   db_enter(5, "impl_pointer_conversion");
 #if DEBUG
@@ -2944,6 +2944,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     }  /* if */
   } else if (is_pointer(source_type)) {
     /* Pointer --> pointer. */
+    qualifiers_checked = FALSE;
     /* Get the type pointed to and drop type qualifiers and typedefs. */
     source_type_pointed_to = type_pointed_to(source_type);
     unqual_source_type_pointed_to = skip_typerefs(source_type_pointed_to);
@@ -3043,17 +3044,20 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 	   between incompatible pointer types, with a warning. */
         okay = TRUE;
         std_conv->warning_suggested = default_warning_code;
-      } else if (qualification_conversion_possible
+      } else if ((!suppress_extensions || !C_mode()) &&
+                 qualification_conversion_possible
                                      (source_type_pointed_to,
 				      dest_type_pointed_to,
 				      &qualifiers_added,
                                       /*ignore_underlying_type=*/FALSE)) {
         /* Allow conversion between pointers where type qualifiers are
            being added at levels other than the first, e.g.,
-           "int **" -> "const int * const *". */
+           "int **" -> "const int * const *".  These are the const-safe
+           cases.  This is an extension in C mode. */
         okay = TRUE;
         std_conv->nontrivial_conversion = FALSE;
         std_conv->type_qualifiers_added = qualifiers_added;
+        qualifiers_checked = TRUE;
       } else if ((!suppress_extensions || any_cfront_mode()) &&
 		 same_type_with_added_qualifiers
                     (source_type_pointed_to,
@@ -3064,10 +3068,12 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            being added at levels other than the first, e.g.,
            "int **" -> "const int **".  This is similar to the qualification
 	   conversion that is checked above, except that a few additional
-	   cases are accepted. */
+	   cases are accepted.  These are cases that are not const-safe,
+           so a warning is issued in most modes.  This is an extension. */
         okay = TRUE;
         std_conv->nontrivial_conversion = FALSE;
         std_conv->type_qualifiers_added = qualifiers_added;
+        qualifiers_checked = TRUE;
 	if (!any_cfront_mode()) {
           std_conv->warning_suggested = default_warning_code;
 	}  /* if */
@@ -3088,7 +3094,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         std_conv->warning_suggested = default_warning_code;
       }  /* if */
     }  /* if */
-    if (okay && !check_as_operands_not_conversion) {
+    if (okay && !qualifiers_checked && !check_as_operands_not_conversion) {
       /* The types pointed to must be such that the type pointed to by the
          left has all the qualifiers of the type pointed to by the right.
          It might have additional qualifiers.  ANSI C 3.3.16.1 (assignment);

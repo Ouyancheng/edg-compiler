@@ -1,5 +1,12 @@
 Version 2.32
 
+2/21/96   C++ qualification conversion on pointers is nonstandard in C
+
+C++ allows conversion of one pointer type to another with cv-qualifiers
+added at levels other than the top, e.g., "int **" to "const int *const *".
+That has been accepted in C as an extension, but it was inadvertently
+allowed in strict C mode also.  It no longer is.
+
 2/21/96   IL CHANGE: dik_zero can apply to things other than entire variables
 
 The dik_zero form of initialization in a dynamic initialization entry can
