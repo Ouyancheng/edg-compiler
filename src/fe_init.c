@@ -583,6 +583,9 @@ to replace the initial portion of this compilation.
      assert_predicates has been cleared.) */
   keyword_init();
   init_predefined_macros(curr_date_time);
+  if (!C_mode() && rtti_enabled) {
+    init_type_of_type_info();
+  }  /* if */
 #if COMPILE_MULTIPLE_SOURCE_FILES
   /* If more than one source file is being compiled, identify each
      source file as compilation starts. */
