@@ -239,7 +239,7 @@ Now, they are assigned C name linkage in all GNU modes.  For example:
   }                                  // mismatch.  Now okay.
 
 [Patch sent out 7/16/04.]
-[7/21/04] The type entry for builtin functions is now also assign C linkage.
+[7/21/04] The type entry for builtin functions is now also assigned C linkage.
 
 7/9/04   GNU compatibility: Warning on #pragma pack(pop) mismatch
 
