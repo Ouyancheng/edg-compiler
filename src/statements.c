@@ -2877,7 +2877,7 @@ sssep == NULL to indicate an error.  is_leave is TRUE to indicate a
 __leave instead of a continue.
 */
 {
-  a_label_ptr              dest_label = sssep->continue_label;
+  a_label_ptr              dest_label;
   a_statement_ptr          sp;
   a_control_flow_descr_ptr cfdp;
 
