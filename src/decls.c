@@ -2408,56 +2408,59 @@ by routine.  position is used as the error position for any
 diagnostics.
 */
 {
-  a_boolean        any_invalid_redecl = FALSE;
+  a_boolean        any_invalid_redecl, invalid_modifier, invalid_redecl;
   int              bit_number;
-  a_decl_modifier  modifier_value = 1;
+  a_decl_modifier  modifier_value;
 
   /* Loop through the bits in the new_modifiers bit vector and process the
      modifiers associated with the bits that are set. */
-  for (bit_number = 0;
-       bit_number < (int)dmt_last;
-       ++bit_number, modifier_value <<= 1) {
-    a_boolean  invalid_modifier = FALSE;
-    a_boolean  invalid_redecl = FALSE;
-
-    if ((new_modifiers->flags & modifier_value) != 0) {
-      /* This bit is set. */
-      switch (bit_number) {
-        case dmt_dllimport:
-        case dmt_dllexport:
-          /* Any previous declaration must have been declared
-             with either dllimport or dllexport. */
-          if (is_redecl &&
-              !(routine->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT))) {
-            invalid_redecl = TRUE;
-          }  /* if */
-          break;
-        case dmt_naked:
-          if (!is_definition) invalid_modifier = TRUE;
-          break;
-        case dmt_microsoft_inline:
-        case dmt_nothrow:
-          break;
-        default:
-          invalid_modifier = TRUE;
-          break;
-      }  /* switch */
-      /* If this modifier is invalid, reset the bit in the new modifiers. */
-      if (invalid_modifier || invalid_redecl) {
-        new_modifiers->flags &= (~modifier_value);
+  if (new_modifiers->flags != DM_NONE) {
+    any_invalid_redecl = FALSE;
+    for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
+      modifier_value = (1 << bit_number);
+      if ((new_modifiers->flags & modifier_value) != 0) {
+        /* This bit is set. */
+        invalid_modifier = FALSE;
+        invalid_redecl = FALSE;
+        switch (bit_number) {
+          case dmt_dllimport:
+          case dmt_dllexport:
+            /* Any previous declaration must have been declared
+               with either dllimport or dllexport. */
+            if (is_redecl &&
+                !(routine->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT))) {
+              invalid_redecl = TRUE;
+            }  /* if */
+            break;
+          case dmt_naked:
+            if (!is_definition) invalid_modifier = TRUE;
+            break;
+          case dmt_microsoft_inline:
+          case dmt_nothrow:
+            break;
+          default:
+            invalid_modifier = TRUE;
+            break;
+        }  /* switch */
+        /* If this modifier is invalid, reset the bit in the new modifiers. */
+        if (invalid_modifier || invalid_redecl) {
+          new_modifiers->flags &= (~modifier_value);
+        }  /* if */
+        if (invalid_modifier) {
+          pos_st_diagnostic(es_discretionary_error,
+                            ec_decl_modifiers_invalid_for_this_decl,
+                            position, decl_modifier_names[bit_number]);
+        }  /* if */
+        any_invalid_redecl |= invalid_redecl;
       }  /* if */
-      if (invalid_modifier) {
-        pos_st_diagnostic(es_discretionary_error,
-                          ec_decl_modifiers_invalid_for_this_decl,
-                          position, decl_modifier_names[bit_number]);
-      }  /* if */
-      any_invalid_redecl |= invalid_redecl;
+    }  /* for */
+    if (any_invalid_redecl) {
+      pos_diagnostic(es_discretionary_error,
+                     ec_decl_modifiers_incompatible_with_previous_decl,
+                     position);
     }  /* if */
-  }  /* for */
-  if (any_invalid_redecl) {
-    pos_diagnostic(es_discretionary_error,
-                   ec_decl_modifiers_incompatible_with_previous_decl,
-                   position);
+    /* Update the routine entry with any valid modifiers that were found. */
+    routine->decl_modifiers |= new_modifiers->flags;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (new_modifiers->allocate_segname != NULL) {
@@ -2465,8 +2468,6 @@ diagnostics.
     pos_error(ec_declspec_allocate_not_allowed, position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Update the routine entry with any valid modifiers that were found. */
-  routine->decl_modifiers |= new_modifiers->flags;
 }  /* update_routine_decl_modifiers */
 
 
@@ -2483,48 +2484,51 @@ by variable.  position is used as the error position for any
 diagnostics.  is_redecl is TRUE if this is a redeclaration.
 */
 {
-  a_boolean		any_invalid_redecl = FALSE;
-  int			bit_number;
-  a_decl_modifier	modifier_value = 1;
+  a_boolean	   any_invalid_redecl = FALSE;
+  a_boolean        invalid_modifier, invalid_redecl;
+  int		   bit_number;
+  a_decl_modifier  modifier_value;
 
   /* Loop through the bits of the new_modifiers bit vector and process
      the modifiers associated with the bits that are set. */
-  for (bit_number = 0;
-       bit_number < (int)dmt_last;
-       ++bit_number, modifier_value <<= 1) {
-    if ((new_modifiers->flags & modifier_value) != 0) {
-      /* This bit is set. */
-      a_boolean	 invalid_modifier = FALSE;
-      a_boolean	 invalid_redecl = FALSE;
-
-      switch (bit_number) {
-        case dmt_dllimport:
-        case dmt_dllexport:
-          /* Any previous declaration must have been declared
-             with either dllimport or dllexport. */
-          if (is_redecl &&
-              !(variable->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT))) {
-            invalid_redecl = TRUE;
-          }  /* if */
-          break;
-        case dmt_thread:
-          break;
-        default:
-          invalid_modifier = TRUE;
-          break;
-      }  /* switch */
-      /* If this modifier is invalid, reset the bit in the new modifiers. */
-      if (invalid_modifier || invalid_redecl) {
-        new_modifiers->flags &= (~modifier_value);
+  if (new_modifiers->flags != DM_NONE) {
+    for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
+      modifier_value = (1 << bit_number);
+      if ((new_modifiers->flags & modifier_value) != 0) {
+        /* This bit is set. */
+        invalid_modifier = FALSE;
+        invalid_redecl = FALSE;
+        switch (bit_number) {
+          case dmt_dllimport:
+          case dmt_dllexport:
+            /* Any previous declaration must have been declared
+               with either dllimport or dllexport. */
+            if (is_redecl &&
+                !(variable->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT))) {
+              invalid_redecl = TRUE;
+            }  /* if */
+            break;
+          case dmt_thread:
+            break;
+          default:
+            invalid_modifier = TRUE;
+            break;
+        }  /* switch */
+        /* If this modifier is invalid, reset the bit in the new modifiers. */
+        if (invalid_modifier || invalid_redecl) {
+          new_modifiers->flags &= (~modifier_value);
+        }  /* if */
+        if (invalid_modifier) {
+          pos_st_diagnostic(es_discretionary_error,
+                            ec_decl_modifiers_invalid_for_this_decl,
+                            position, decl_modifier_names[bit_number]);
+        }  /* if */
+        any_invalid_redecl |= invalid_redecl;
       }  /* if */
-      if (invalid_modifier) {
-        pos_st_diagnostic(es_discretionary_error,
-                          ec_decl_modifiers_invalid_for_this_decl,
-                          position, decl_modifier_names[bit_number]);
-      }  /* if */
-      any_invalid_redecl |= invalid_redecl;
-    }  /* if */
-  }  /* for */
+    }  /* for */
+    /* Update the variable entry with any valid modifiers that were found. */
+    variable->decl_modifiers |= new_modifiers->flags;
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (new_modifiers->allocate_segname != NULL) {
     /* __declspec(allocate(...)) has been specified. */
@@ -2550,8 +2554,6 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
                    ec_decl_modifiers_incompatible_with_previous_decl,
                    position);
   }  /* if */
-  /* Update the variable entry with any valid modifiers that were found. */
-  variable->decl_modifiers |= new_modifiers->flags;
 }  /* update_variable_decl_modifiers */
 
 #endif /* DECL_MODIFIERS_IN_USE */
