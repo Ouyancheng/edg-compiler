@@ -1953,14 +1953,16 @@ in the conversion header list; if there is none, a new one is created.
 
 a_symbol_ptr extract_default_operator_new_sym(a_symbol_ptr sym)
 /*
-Given the symbol for the global operator new() (which may be overloaded),
+Given the symbol for an operator new() (which may be overloaded),
 find the default new() and return a pointer to its symbol, or NULL if
-it is not found.
+it is not found.  The symbol might be for a class-specific operator
+new(), and therefore might be a projection symbol.
 */
 {
   a_boolean        is_overloaded;
   a_param_type_ptr ptp;
 
+  reduce_projection_symbol_to_fundamental_symbol(sym);
   is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
   if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
   for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
