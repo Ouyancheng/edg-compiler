@@ -1,26 +1,39 @@
 Version 2.21
 
+11/22/93 Function definition when the function type comes from a typedef
+
+An internal error has been fixed that occurred in scan_function_body in
+the error case in which a function definition is declared with a type from
+a typedef.  For example,
+
+  typedef void F(unsigned);
+  F f { /* ... */ }               // Internal error fixed
+  class X {
+    static F g { /* ... */ }      // Internal error fixed
+    friend F h { /* ... */ }      // Internal error fixed
+  };
+
 11/22/93 Error recovery while processing template class static data members
 
-An internal error could occur while processing a an invalid
-static data member declaration in during the instantiation of
-a template class.  This has been corrected.
+An internal error could occur while processing an invalid static data
+member declaration in during the instantiation of a template class.  This
+has been corrected.
 
-struct A {
-  int x;
-};
-template <class T> struct B : public A {
-  static A::x;
-};
-B<int> b;
+  struct A {
+    int x;
+  };
+  template <class T> struct B : public A {
+    static A::x;
+  };
+  B<int> b;
 
 11/18/93 Spurious errors in -tall mode
 
-When using the "all" instantiation mode the front end would
-attempt to instantiate a function during the instantiation of a
-template class.  This would fail if the function used the template
-class in a way that requires the class to be a complete type.
-The instantiation is now deferred until the class is complete.
+When using the "all" instantiation mode the front end would attempt to
+instantiate a function during the instantiation of a template class.  This
+would fail if the function used the template class in a way that requires
+the class to be a complete type.  The instantiation is now deferred until
+the class is complete.
 
   template <class T> struct A {
     inline friend A<T> operator+(const A<T>&, const A<T>&);
@@ -36,20 +49,20 @@ The instantiation is now deferred until the class is complete.
 
 11/17/93 Problem with non-alternate file format
 
-Because IL lowering did not clear the pointers in a class scope
-when it promoted the members out of the class, there would sometimes
-be internal errors while walking the IL tree.  The problem has been
-fixed by clearing the pointers.
+Because IL lowering did not clear the pointers in a class scope when it
+promoted the members out of the class, there would sometimes be internal
+errors while walking the IL tree.  The problem has been fixed by clearing
+the pointers.
 
 11/17/93 Instantiation pragmas not at global scope
 
-Using instantiation pragma at scopes other than the global scope
-did not work in all cases.  This has been corrected.
+Using instantiation pragma at scopes other than the global scope did not
+work in all cases.  This has been corrected.
 
 11/17/93 Instantiating members of an incomplete class
 
-The following case was accepted without issuing an error.  Attempts
-to instantiate members of an incomplete class were detected.
+The following case was accepted without issuing an error.  Attempts to
+instantiate members of an incomplete class were detected.
 
   template <class T> class A;
   #pragma instantiate A<int>
