@@ -1096,7 +1096,7 @@ list passed in.  The pointer to the start of the list is returned.
     a_template_cache_segment_ptr	tcsp;
     a_token_sequence_number		prev_tsn = NO_TOKEN_SEQUENCE_NUMBER;
     for (tcsp = cache_segments; tcsp != NULL; tcsp = tcsp->next) {
-      check_assertion(tcsp->first_token_number > prev_tsn);
+      check_assertion(tcsp->first_token_number >= prev_tsn);
       prev_tsn = tcsp->first_token_number;
     }  /* for */
   }
@@ -4536,13 +4536,11 @@ been instantiated, update the befriending information for the instances.
 }  /* add_befriending_class_to_class_template */
 
 
-static a_template_symbol_supplement_ptr
-              make_nested_class_template_supplement(a_symbol_ptr sym,
-                                                    a_type_kind	 type_kind)
+static void make_nested_class_template_supplement(a_symbol_ptr   sym,
+                                                  a_type_kind	 type_kind)
 /*
 Given a class symbol for a nested class within a class template,
-create the template symbol supplement for the class and return the
-pointer to the newly created template symbol supplement.
+and create the template symbol supplement for the class.
 */
 {
   a_template_symbol_supplement_ptr	tssp = NULL;
@@ -4561,20 +4559,24 @@ pointer to the newly created template symbol supplement.
   parent_cssp = symbol_supplement_for_class(parent_type);
   parent_tssp = parent_cssp->template_info;
   cssp = sym->variant.class_struct_union.extra_info;
-  check_assertion(parent_cssp->is_prototype_instantiation);
-  cssp->is_prototype_instantiation = TRUE;
-  cssp->is_nonreal_class = parent_cssp->is_nonreal_class;
-  /* During the prototype instantiation save the token sequence number
-     associated with this position in the class symbol supplement
-     this will be used during real instantiations to determine which
-     declaration in the real instantiation matches this one. */
-  cssp->prototype_token_sequence_number = curr_token_sequence_number;
-  tssp = alloc_template_symbol_supplement(sym->kind);
-  tssp->variant.class_template.name_linkage =
-                           parent_tssp->variant.class_template.name_linkage;
-  tssp->variant.class_template.type_kind = type_kind;
-  cssp->template_info = tssp;
-  return tssp;
+  if (!parent_cssp->is_prototype_instantiation) {
+    /* Under certain error cases, it is possible to have a real class
+       created within a prototype instantiation.  Don't mark such symbols
+       as prototype instantiations. */
+  } else {
+    cssp->is_prototype_instantiation = TRUE;
+    cssp->is_nonreal_class = parent_cssp->is_nonreal_class;
+    /* During the prototype instantiation save the token sequence number
+       associated with this position in the class symbol supplement
+       this will be used during real instantiations to determine which
+       declaration in the real instantiation matches this one. */
+    cssp->prototype_token_sequence_number = curr_token_sequence_number;
+    tssp = alloc_template_symbol_supplement(sym->kind);
+    tssp->variant.class_template.name_linkage =
+                             parent_tssp->variant.class_template.name_linkage;
+    tssp->variant.class_template.type_kind = type_kind;
+    cssp->template_info = tssp;
+  }  /* if */
 }  /* make_nested_class_template_supplement */
 
 
@@ -4618,7 +4620,7 @@ any classes that declared the nested class as a template friend.
     } else {
       /* A nested class within a prototype instantiation.  Create the
          template symbol supplement for this class. */
-      (void)make_nested_class_template_supplement(sym, type_kind);
+      make_nested_class_template_supplement(sym, type_kind);
     }  /* if */
   }  /* if */
 }  /* set_nested_template_class_symbol_info */
@@ -4766,12 +4768,17 @@ instantiation.
   /* Next should be the class name. */
   if (!is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                        GID_USE_PROTOTYPE_NOT_NONREAL)) {
+
     /* Not an identifier. */
     error(ec_exp_identifier);
     set_to_error_locator(locator);
     /* Probably a missing class name -- use the current token as the next
        token for lookahead purposes. */
     next_tok = curr_token;
+  } else if (is_error_locator(locator_for_curr_id)) {
+    /* An incorrectly formed identifier. */
+    set_to_error_locator(locator);
+    next_tok = next_token();
   } else {
     /* Look up the identifier.  If it's a qualified name there will be an
        error down the line.  The options used when coalescing the 
@@ -4834,7 +4841,7 @@ instantiation.
       decl_state->decl_scope_err = TRUE;
     }  /* if */
   }  /* if */
-  if (sym != NULL && !decl_state->decl_scope_err) {
+  if (sym != NULL && !decl_state->decl_scope_err && !sym->is_error) {
     /* Make sure the symbol found is a class template symbol or a class
        symbol.  If the class symbol is not a member of a class template,
        that error will be diagnosed later.  Issue an error if this is
@@ -5223,14 +5230,14 @@ instantiation.
 static void cache_function_template_body(a_token_cache     *p_token_cache,
                                          a_boolean         is_constructor,
                                          a_boolean         *defines_something,
-                                         a_symbol_ptr	   sym)
+					 a_source_position *decl_pos)
 /*
 Scan a function template body and cache the tokens (in *p_token_cache) so
 that they can be rescanned for the instantiation.  is_constructor is
 TRUE if the function is a constructor.  The current source position is
 immediately after the function declarator.  *defines_something is set
 to TRUE if either a ctor-initializer or a function body appears.
-"sym" is the symbol of the function being scanned.
+decl_pos is the position of the function declarator.
 */
 {
   a_token_set_array  stop_tokens;
@@ -5263,7 +5270,7 @@ to TRUE if either a ctor-initializer or a function body appears.
         /* A get_token is intentionally not done -- the caller will
            advance past the end of the template declaration. */
       } else {
-        sym_error(ec_template_missing_closing_brace, sym);
+        pos_error(ec_template_missing_closing_brace, decl_pos);
       }  /* if */
       /* Add an end-of-source token to the end of the token cache to
          assure that we don't scan past the end of the cache in the actual
@@ -6414,7 +6421,7 @@ caller.
     a_token_cache  local_token_cache;
     clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
     cache_function_template_body(&local_token_cache, /*is_ctor=*/TRUE,
-                                 &decl_state->defines_something, sym);
+                                 &decl_state->defines_something, decl_pos);
     discard_token_cache(&local_token_cache);
   } else {
     a_def_arg_expr_fixup_ptr    daefp;
@@ -6426,7 +6433,7 @@ caller.
     first_token_number = curr_token_sequence_number;
     cache_function_template_body(&local_token_cache,
                                  is_constructor_symbol(sym),
-                                 &decl_state->defines_something, sym);
+                                 &decl_state->defines_something, decl_pos);
     last_token_number = curr_token_sequence_number;
     if (decl_state->in_prototype_instantiation) {
       if (sym->is_class_member && decl_state->class_declared_in != NULL &&
