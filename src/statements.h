@@ -195,6 +195,9 @@ typedef enum /*a_struct_stmt_kind*/ {
   ssk_while,		/* while (...) {} statement. */
   ssk_do,		/* do {} while (...); statement. */
   ssk_for,		/* for (...; ...; ...) {} statement. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ssk_microsoft_try,	/* Microsoft try-except or try-finally. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ssk_try_block		/* try compound-stmt handler-seq statement. */
 } a_struct_stmt_kind;
 
@@ -204,9 +207,40 @@ typedef struct a_struct_stmt_stack_entry {
      current structured statement. */
   a_struct_stmt_kind
 		kind;	/* Kind of structured statement. */
-  a_boolean	in_else_of_if;
+  unsigned int	in_else_of_if:1;
 			/* TRUE when kind == ssk_if and we are in the
 			   "else" clause. */
+  unsigned int  for_init:1;
+			/* TRUE if the structured statement is a for loop and
+			   the statement currently being processed is a
+			   for-init statement; FALSE otherwise. */
+  unsigned int	is_catch_clause:1;
+			/* TRUE if kind == ssk_compound and this structured
+			   statement represents the top level block of a
+			   catch clause. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  unsigned int	in_cleanup_statement_of_microsoft_try:1;
+			/* TRUE if current inside the cleanup statement of
+			   a Microsoft try-finally or try-except. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  unsigned int	switch_has_default_clause:1;
+			/* TRUE if the structured statement is a switch and
+			   it has a default clause. */
+  unsigned int	rout_type_explicitly_specified:1;
+			/* TRUE if the current routine was declared with an
+			   explicit return type.  This flag is set in the
+			   top level statement stack entry only. */
+  unsigned int	any_exec_statement_seen:1;
+			/* Within compound statements (blocks), TRUE if any
+			   executable statement (not declaration) has been
+			   seen. */
+  unsigned int	label_invalidates_curr_block_object_lifetime:1;
+			/* TRUE if kind == ssk_compound and the object
+			   lifetime pointed to by this entry has been
+			   invalidated by a label in an inner block. This
+			   flag will be cleared again once the required fixup
+			   has been done and the curr_block_object_lifetime
+			   pointer has been reset. */
   a_statement_ptr
 		statement;
 			/* The associated IL statement.  Indirectly,
@@ -265,32 +299,6 @@ typedef struct a_struct_stmt_stack_entry {
   a_type_ptr	switch_selector_type;
 			/* The type of the switch selector expression
 			   (int or long). */
-  unsigned int	switch_has_default_clause:1;
-			/* TRUE if the structured statement is a switch and
-			   it has a default clause. */
-  unsigned int	rout_type_explicitly_specified:1;
-			/* TRUE if the current routine was declared with an
-			   explicit return type.  This flag is set in the
-			   top level statement stack entry only. */
-  unsigned int	any_exec_statement_seen:1;
-			/* Within compound statements (blocks), TRUE if any
-			   executable statement (not declaration) has been
-			   seen. */
-  unsigned int  for_init:1;
-			/* TRUE if the structured statement is a for loop and
-			   the statement currently being processed is a
-			   for-init statement; FALSE otherwise. */
-  unsigned int	is_catch_clause:1;
-			/* TRUE if kind == ssk_compound and this structured
-			   statement represents the top level block of a
-			   catch clause. */
-  unsigned int	label_invalidates_curr_block_object_lifetime:1;
-			/* TRUE if kind == ssk_compound and the object
-			   lifetime pointed to by this entry has been
-			   invalidated by a label in an inner block. This
-			   flag will be cleared again once the required fixup
-			   has been done and the curr_block_object_lifetime
-			   pointer has been reset. */
   a_reachability_summary
 		start_reachable;
 			/* Indicates whether or not the start of the structured

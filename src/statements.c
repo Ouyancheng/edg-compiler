@@ -1311,6 +1311,15 @@ the current statement sequence.
       case stmk_try_block:
         head_ptr = &ssp->variant.try_block->statement;
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case stmk_microsoft_try:
+        if (sssep->in_cleanup_statement_of_microsoft_try) {
+          head_ptr = &ssp->variant.microsoft_try->cleanup_statement;
+        } else {
+          head_ptr = &ssp->variant.microsoft_try->guarded_statement;
+        }  /* if */
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
       default:
         internal_error(
@@ -1871,6 +1880,19 @@ current structured statement.
   sssep = &struct_stmt_stack[++depth_stmt_stack];
   sssep->kind                 = kind;
   sssep->in_else_of_if        = FALSE;
+  sssep->for_init             = FALSE;
+  sssep->is_catch_clause      = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sssep->in_cleanup_statement_of_microsoft_try = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  sssep->switch_has_default_clause
+                              = FALSE;
+  sssep->rout_type_explicitly_specified
+                              = FALSE;
+  sssep->any_exec_statement_seen
+                              = FALSE;
+  sssep->label_invalidates_curr_block_object_lifetime
+                              = FALSE;
   sssep->statement            = sp;
   sssep->curr_switch_clause   = NULL;
   sssep->extra_block          = NULL;
@@ -1883,16 +1905,6 @@ current structured statement.
   sssep->continue_label       = NULL;
   sssep->continue_statements  = NULL;
   sssep->switch_selector_type = NULL;
-  sssep->switch_has_default_clause
-                              = FALSE;
-  sssep->rout_type_explicitly_specified
-                              = FALSE;
-  sssep->any_exec_statement_seen
-                              = FALSE;
-  sssep->for_init             = FALSE;
-  sssep->is_catch_clause      = FALSE;
-  sssep->label_invalidates_curr_block_object_lifetime
-                              = FALSE;
   sssep->curr_block_object_lifetime  = olp;
   sssep->depth_of_assoc_scope        = NO_SCOPE_DEPTH;
 #if DEBUG
@@ -2523,7 +2535,7 @@ See also 3.6.4.2.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the controlling expression and check to see that it is integral. */
-  sp->expr = scan_switch_expression();
+  sp->expr = scan_integer_expression();
   if (!is_error_node(sp->expr)) {
     /* The expression is integral.  Promote it (to int) if necessary. */
     if (C_dialect != C_dialect_pcc) {
@@ -2737,6 +2749,7 @@ where handler-seq is a sequence of one or more handlers of the form
   }  /* if */
   /* Bypass "try". */
   (void)get_token();
+  add_stop_token(tok_catch);
   /* Scan the compound statement, and save a pointer to it in the try-block
      statement. */
   sp->variant.try_block->statement = compound_statement(
@@ -2761,12 +2774,169 @@ where handler-seq is a sequence of one or more handlers of the form
     } while (loop_token(tok_catch));
   }  /* if */
   (void)pop_object_lifetime();
+  remove_stop_token(tok_catch);
   /* Pop the structured statement stack. */
   pop_stmt_stack();
 
   db_exit();
 }  /* try_block_statement */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void microsoft_try_statement(void)
+/*
+Scan the Microsoft structured exception handling try-finally or try-except
+statement.  Its form is
+
+  __try compound-statement __finally compound-statement
+  __try compound_statement __except ( expression) compound_statement
+
+*/
+{
+  a_statement_ptr sp;
+
+  db_enter(3, "microsoft_try_statement");
+  check_for_unreachable_code();
+  /* Allocate the statement. */
+  sp = add_statement((a_statement_kind)stmk_microsoft_try);
+  stmt_update_source_sequence_list(sp);
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
+  /* Push an entry on the structured statement stack. */
+  push_stmt_stack(ssk_microsoft_try, sp, (an_object_lifetime_ptr)NULL);
+#if CHECKING
+  if (curr_token != tok_microsoft_try) {
+    internal_error("microsoft_try_statement: expected __try");
+  }  /* if */
+#endif /* CHECKING */
+  /* Bypass "__try". */
+  (void)get_token();
+  add_stop_token(tok_except);
+  add_stop_token(tok_finally);
+  /* Scan the compound statement, and save a pointer to it in the try
+     statement. */
+  sp->variant.microsoft_try->guarded_statement = compound_statement(
+                                               /*at_function_level=*/FALSE,
+                                               /*explicit_return_type=*/FALSE,
+                                               /*is_catch_clause=*/FALSE);
+  /* Define the "continue" label, if it is needed.  This is the target of
+     __leave statements. */
+  define_continue_label();
+  remove_stop_token(tok_except);
+  remove_stop_token(tok_finally);
+  if (curr_token == tok_except) {
+    /* __except ( expression ) form. */
+    (void)get_token();
+    /* Check for and skip the opening parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_stop_token(tok_rparen);
+    /* Scan the expression and check to see that it is integral. */
+    sp->variant.microsoft_try->except_expr = scan_integer_expression();
+    /* Check for and skip the closing parenthesis. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_rparen);
+  } else {
+    /* __finally form. */
+    (void)required_token(tok_finally, ec_exp_expect_or_finally);
+  }  /* if */
+  /* Scan the cleanup statement. */
+  term_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
+  start_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
+  struct_stmt_stack[depth_stmt_stack].
+                                  in_cleanup_statement_of_microsoft_try = TRUE;
+  sp->variant.microsoft_try->cleanup_statement = compound_statement(
+                                               /*at_function_level=*/FALSE,
+                                               /*explicit_return_type=*/FALSE,
+                                               /*is_catch_clause=*/FALSE);
+  /* Pop the structured statement stack. */
+  pop_stmt_stack();
+
+  db_exit();
+}  /* microsoft_try_statement */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void leave_statement(void)
+/*
+Scan a Microsoft "__leave" statement and add it to the current statement
+sequence.  Such a statement is used to leave a try-finally.
+The syntax is:
+
+  __leave ;
+
+*/
+{
+  register a_statement_ptr      sp;
+  a_struct_stmt_stack_entry_ptr sssep;
+  a_label_ptr                   dest_label;
+  a_control_flow_descr_ptr      cfdp;
+
+  db_enter(3, "leave_statement");
+  check_for_unreachable_code();
+  /* Find an enclosing "try"> */
+  sssep = &struct_stmt_stack[depth_stmt_stack];
+  /* Note that the loop never looks at entry [0], since that is for
+     the compound statement that defines the function. */
+  while (sssep != &struct_stmt_stack[0]) {
+    if (sssep->kind == ssk_microsoft_try &&
+        !sssep->in_cleanup_statement_of_microsoft_try) goto found;
+    /* Keeping looking at entries in the structured statement stack. */
+    sssep--;
+  }  /* while */
+  /* No structured statement matching the criteria was found. */
+  sssep = NULL;
+found:
+  if (sssep == NULL) {
+    /* No appropriate structured statement was found. */
+    error(ec_leave_must_be_in_try);
+    /* Discard any pragmas that are bound to the current statement. */
+    discard_curr_construct_pragmas();
+  } else {
+    /* Found the __try that this __leave statement should exit. */
+    dest_label = sssep->continue_label;
+    if (dest_label == NULL) {
+      /* The continue label has not previously been used, so generate it. */
+      dest_label = sssep->continue_label = alloc_temp_label();
+      dest_label->leave_label = TRUE;
+    }  /* if */
+    /* Allocate the goto statement. */
+    sp = add_statement((a_statement_kind)stmk_goto);
+    stmt_update_source_sequence_list(sp);
+    /* Put the destination label into the goto. */
+    sp->variant.label.ptr = dest_label;
+    if (!C_mode()) {
+      /* Set the object lifetime.  It is a provisional setting and may be
+         changed based on the lifetime of the continue label itself. */
+      sp->variant.label.lifetime =
+                        innermost_block_object_lifetime(curr_object_lifetime);
+      /* Allocate and fill in a goto entry.  This is done in C++ mode only
+         because it's only needed for object lifetime management. */
+      cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
+      cfdp->source_pos = pos_curr_token;
+      cfdp->variant.goto_statement.ptr = sp;
+      add_to_control_flow_descr_list(cfdp);
+      cfdp->variant.goto_statement.prev_goto = sssep->continue_statements;
+      sssep->continue_statements = cfdp;
+    }  /* if */
+    /* Do processing required for any pragmas that are bound to the current
+       statement. */
+    process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
+  }  /* if */
+  /* Ignore the initial "__leave". */
+#if CHECKING
+  if (curr_token != tok_leave) {
+    internal_error("leave_statement: expected __leave");
+  }  /* if */
+#endif /* CHECKING */
+  (void)get_token();
+  /* Check for and ignore the final semicolon. */
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  db_exit();
+}  /* leave_statement */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void expression_statement(void)
 /*
@@ -4158,6 +4328,16 @@ rescan_statement:
       /* C++ try block. */
       try_block_statement();
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_microsoft_try:
+      /* Microsoft try-finally or try-except statement. */
+      microsoft_try_statement();
+      break;
+    case tok_leave:
+      /* Microsoft __leave. */
+      leave_statement();
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_case:
       /* Case label (3.6.1). */
       case_label();
