@@ -1,5 +1,11 @@
 Version 2.31
 
+10/25/95  IL lowering: class/namespace membership information now cleared
+
+IL lowering now clears the class/namespace membership information in
+the source correspondence entry of entities promoted out of classes
+and namespaces.  This makes the IL arguably more correct as C code.
+
 10/25/95  IL CHANGE: new field defined_outside_of_parent
 
 A new flag has been added to a_routine when GENERATE_SOURCE_SEQUENCE_LISTS
