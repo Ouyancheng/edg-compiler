@@ -979,7 +979,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->aliased_variable, a_variable_ptr, iek_variable);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && IA64_ABI
-        walk_string_ptr(ptr->comdat_group, iek_other_text, 0);
+        /* This has to be iek_id_name because the name is copied from
+           a variable name originally. */
+        walk_string_ptr(ptr->comdat_group, iek_id_name, 0);
 #endif /* DO_IL_LOWERING && IA64_ABI */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
