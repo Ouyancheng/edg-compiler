@@ -2892,9 +2892,7 @@ Add to the mangled name the encoding for the name of a base class in
 a virtual function table.  The name describes the base class given by bcp.
 */
 {
-  sizeof_t                 name_length;
   a_derivation_step_ptr    dsp;
-  a_boolean                ambiguous_direct_base_class = FALSE;
   a_mangling_control_block sctl;
 
   /* The form of the name is like
@@ -2908,7 +2906,9 @@ a virtual function table.  The name describes the base class given by bcp.
   /* Determine the length. */
   set_control_block_for_supression(&sctl, mctl);
   mangled_derivation_name(dsp, &sctl);
-  name_length = sctl.slength;
+  /* Put out the name length and the name. */
+  add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
+  mangled_derivation_name(dsp, mctl);
   if (bcp->ambiguous && bcp->direct && !bcp->is_virtual &&
       virtual_base_class_of_same_name_exists(bcp)) {
     /* This base class is a direct nonvirtual base class and there is
@@ -2917,17 +2917,8 @@ a virtual function table.  The name describes the base class given by bcp.
        the direct nonvirtual base class rather than the other one because
        cfront eliminates the direct base class (and therefore its virtual
        function table instance too). */
-    ambiguous_direct_base_class = TRUE;
-#define AMB_SUFFIX "__A"
-    name_length += sizeof(AMB_SUFFIX)-1;
+    add_str_to_mangled_name("__A", mctl);
   }  /* if */
-  /* Put out the name length and the name. */
-  add_number_to_mangled_name((unsigned long)name_length, mctl);
-  mangled_derivation_name(dsp, mctl);
-  if (ambiguous_direct_base_class) {
-    add_str_to_mangled_name(AMB_SUFFIX, mctl);
-  }  /* if */
-#undef AMB_SUFFIX
 }  /* mangled_vtbl_base_class_name */
 
 
