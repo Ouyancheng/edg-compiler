@@ -1039,7 +1039,11 @@ dispose of it, depending on whether the IL is passed to the back end in
 memory or with an IL file.
 */
 {
-  a_boolean  keep_memory;
+  a_boolean      keep_memory;
+#if !STANDALONE_UTILITY_PROGRAM
+  a_scope_ptr    scope;
+  a_routine_ptr  rout;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
   db_enter(5, "check_for_done_with_memory_region");
 #if DEBUG
@@ -1054,34 +1058,37 @@ memory or with an IL file.
   /* In a standalone program the memory is always freed. */
   keep_memory = FALSE;
 #else /* !STANDALONE_UTILITY_PROGRAM */
-#if !IL_SHOULD_BE_WRITTEN_TO_FILE
-  /* The IL is passed to the back end in memory, so it is always kept. */
-  keep_memory = TRUE;
-#else /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  /* Communication with the back end is via a file.  Usually the memory
-     is freed after it's been written to the IL file. */
-  keep_memory = FALSE;
-  if (may_be_building_new_pch()) {
-    /* We are still considering whether to build a PCH file, so keep this
-       region around so we can use it in generating the PCH file.
-       check_for_done_with_memory_region will be called again once we've
-       written the PCH or decided not to write one.  We can still trim the
-       unused portion of the memory block at this time, though. */
-    keep_memory = TRUE;
+  scope = il_header.region_scope_entry[region_number];
+  check_assertion(scope != NULL);
+  rout = (scope->kind == (a_scope_kind)sck_function) ?
+                                      scope->variant.routine.ptr : NULL;
+  if (rout != NULL && rout->is_trivial_default_constructor) {
+    /* Always free the memory of for the generated definition of a trivial
+       default constructor.  It is an incidental byproduct of front-end
+       processing (to detect some constraint violations) and is never needed
+       by the back end. */
+    keep_memory = FALSE;
   } else {
-    a_scope_ptr    scope = il_header.region_scope_entry[region_number];
-    a_boolean      write_region = TRUE;
-
-    check_assertion(scope != NULL);
-    if (scope->kind == (a_scope_kind)sck_function) {
-      a_routine_ptr  rout = scope->variant.routine.ptr;
-      if (rout->is_trivial_default_constructor) {
-        /* Definitions of trivial default constructors should never be
-           written out -- they are really for front-end use only. */
-        write_region = FALSE;
-        /* keep_memory = FALSE; */
+#if !IL_SHOULD_BE_WRITTEN_TO_FILE
+    /* The IL is passed to the back end in memory, so it is always kept. */
+    keep_memory = TRUE;
+#else /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+    /* Communication with the back end is via a file.  Usually the memory
+       is freed after it's been written to the IL file. */
+    keep_memory = FALSE;
+    if (may_be_building_new_pch()) {
+      /* We are still considering whether to build a PCH file, so keep this
+         region around so we can use it in generating the PCH file.
+         check_for_done_with_memory_region will be called again once we've
+         written the PCH or decided not to write one.  We can still trim the
+         unused portion of the memory block at this time, though. */
+      keep_memory = TRUE;
+    } else {
 #if MAINTAIN_NEEDED_FLAGS || MINIMAL_INLINING
-      } else {
+      a_boolean      write_region = TRUE;
+
+      if (rout != NULL) {
+        /* Memory for a function scope. */
 #if MAINTAIN_NEEDED_FLAGS
         if (!rout->keep_definition_in_il || !rout->definition_needed) {
           /* This memory region so far looks as if it's unneeded.  Hold on
@@ -1114,11 +1121,12 @@ memory or with an IL file.
         if (index_for_il_file[region_number] != 0) {
           write_region = FALSE;
         }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS || MINIMAL_INLINING */
       }  /* if */
+      /* Write the region to the file. */
+      if (write_region)
+#endif /* MAINTAIN_NEEDED_FLAGS || MINIMAL_INLINING */
+                        write_memory_region(region_number);
     }  /* if */
-    /* Write the region to the file. */
-    if (write_region) write_memory_region(region_number);
   }  /* if */
 #endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
