@@ -93,6 +93,8 @@ extern void class_decl_init(void);
 #if DEBUG
 extern void db_base_class(a_base_class_ptr  bcp,
                           a_boolean         show_offset);
+
+extern void db_all_virtual_function_override_lists(a_type_ptr  class_type);
 #endif /* DEBUG */
 
 #endif /* CLASS_DECL_H */
