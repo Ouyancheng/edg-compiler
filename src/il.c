@@ -9788,6 +9788,7 @@ returns the successor of ssep.
   a_src_seq_end_of_construct_ptr  sseocp;
   a_src_seq_secondary_decl_ptr    sssdp = NULL;
   a_type_ptr                      tag_type = NULL, tp;
+  an_il_entry_kind                prev_il_entry_kind;
 
   switch (ss_entry_kind(ssep)) {
     case iek_src_seq_end_of_construct:
@@ -9844,6 +9845,7 @@ returns the successor of ssep.
       db_source_sequence_entry(ssep);
     }  /* if */
 #endif /* DEBUG */
+    prev_il_entry_kind = (an_il_entry_kind)iek_none;
     for (;;) {
       if (next_ssep == NULL) {
         check_assertion_str2(okay_if_not_found,
@@ -9866,6 +9868,27 @@ returns the successor of ssep.
         }  /* if */
 #endif /* DEBUG */
         next_ssep = next_ssep->next;
+      } else if (prev_il_entry_kind != (an_il_entry_kind)iek_none &&
+                 ss_entry_kind(next_ssep) != prev_il_entry_kind) {
+        /* We assume a comma list of declarators will all be of the same
+           kind.  This allows us to handle this sort of case correctly:
+             typedef struct S { int i; } *T;   // T is not needed
+             struct S x;
+           The source-sequence entry for the typedef is eliminated, and the
+           next entry is a variable.  Since a typedef and a variable cannot
+           appear in the same declaration, break when the IL-entry kind
+           changes.  This means, however, that we don't quite get this one
+           right:
+             typedef struct S { int i; } *T;   // T is not needed
+             typedef struct S U;               // U is needed
+           In other words, after elimination of the source-sequence entry for
+           T, the representation for these two declarations will be the same
+           as for:
+             typedef struct S { int i; } *T, U; // T is not needed, but U is
+           because the source-sequence entry for struct S will not be marked
+           as autonomous. */
+        make_autonomous = TRUE;
+        break;
       } else {
         /* See what kind of entity follows the tag definition; get the type
            with which it was declared. */
@@ -9891,6 +9914,7 @@ returns the successor of ssep.
             db_source_sequence_entry(next_ssep);
           }  /* if */
 #endif /* DEBUG */
+          prev_il_entry_kind = ss_entry_kind(next_ssep);
           next_ssep = drop_from_fs_src_seq_list(next_ssep);
           /* We continue searching the source sequence list.  In a case like
                struct S { int i; } x, y, z;
