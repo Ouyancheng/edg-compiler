@@ -1,5 +1,17 @@
 Version 3.0
 
+4/8/02   Template function with explicit arguments treated as simple function
+
+In accordance with the proposed resolution to Core Issue 115, the front
+end now treats a template function with explicit template arguments
+as a simple function if the arguments are sufficient to select a
+unique template function.
+
+  template <class T> void f(T);
+  int main() {
+    &f<int>;  // Okay now
+  }
+
 4/6/02   Abort in copy_template_param_expr fixed
 
 An abort in copy_template_param_expr has been fixed.  It came up

@@ -439,9 +439,16 @@ param_type.
 
   reduce_projection_symbol_to_fundamental_symbol(sym);
   if (sym->kind == (a_symbol_kind)sk_function_template) {
-    /* There's no way to match up a function template as an argument to a
-       function template. */
-    /* can_be_arg = FALSE;  -- already set. */
+    /* A template with explicit arguments can be made to match if there's
+       only one possible instance. */
+    if (operand->is_template_id) {
+      a_template_arg_ptr new_arg_list;
+      matching_arg_type =
+        explicit_arg_list_identifies_specialization(operand->variant.symbol,
+                                                    operand->template_arg_list,
+                                                    &new_arg_list);
+      if (matching_arg_type != NULL) can_be_arg = TRUE;
+    }  /* if */
   } else {
     a_template_symbol_supplement_ptr	tssp;
     check_assertion(sym->kind == (a_symbol_kind)sk_overloaded_function);
@@ -449,35 +456,59 @@ param_type.
     for (proj_sym = sym->variant.overloaded_function.symbols;
          proj_sym != NULL;
          proj_sym = proj_sym->next) {
+      a_type_ptr routine_type, ptr_routine_type;
+      a_boolean  matches = FALSE;
       /* Remove projections for namespaces, if any. */
       sym = fundamental_symbol_of(proj_sym);
       if (sym->kind == (a_symbol_kind)sk_function_template) {
-        /* There's no way to match up a function template as an argument to a
-           function template, so ignore this symbol. */
+        /* A template with explicit arguments can be made to match if there's
+           only one possible instance. */
+        if (operand->is_template_id) {
+          a_template_arg_ptr new_arg_list;
+          routine_type = explicit_arg_list_identifies_specialization(
+                                                    sym,
+                                                    operand->template_arg_list,
+                                                    &new_arg_list);
+          if (routine_type != NULL) {
+            matches = TRUE;
+            if (routine_type_is_nonstatic_member_function(routine_type)) {
+              ptr_routine_type = ptr_to_member_type(routine_type,
+                                                    sym->parent.class_type);
+            } else {
+              ptr_routine_type = make_pointer_type(routine_type);
+            }  /* if */
+          }  /* if */
+        }  /* if */
       } else {
         /* Not a function template. */
-        a_type_ptr routine_type = routine_symbol_type(sym), ptr_routine_type;
-        if (routine_type_is_nonstatic_member_function(routine_type)) {
-          ptr_routine_type = ptr_to_member_type(routine_type,
-                                                sym->parent.class_type);
-        } else {
-          ptr_routine_type = make_pointer_type(routine_type);
-        }  /* if */
-        if (tentatively_matches_template_type(
+        /* This can't match if there are explicit template arguments. */
+        if (!operand->is_template_id) {
+          routine_type = routine_symbol_type(sym);
+          if (routine_type_is_nonstatic_member_function(routine_type)) {
+            ptr_routine_type = ptr_to_member_type(routine_type,
+                                                  sym->parent.class_type);
+          } else {
+            ptr_routine_type = make_pointer_type(routine_type);
+          }  /* if */
+          if (tentatively_matches_template_type(
                     ptr_routine_type, param_type,
                     tssp->variant.function.decl_cache.decl_info->parameters)) {
-          /* This function matches.  Only one is allowed to match, so if
-             a previous one matched, the overall match fails. */ 
-          if (can_be_arg) {
-            can_be_arg = FALSE;
-            break;
-          } else {
-            can_be_arg = TRUE;
-            /* For the argument type, use a pointer or the function type itself
-               according to what the original operand is. */
-            matching_arg_type = is_a_function_designator(operand) ?
-                                           routine_type : ptr_routine_type;
+            matches = TRUE;
           }  /* if */
+        }  /* if */
+      }  /* if */
+      if (matches) {
+        /* This function matches.  Only one is allowed to match, so if
+           a previous one matched, the overall match fails. */ 
+        if (can_be_arg) {
+          can_be_arg = FALSE;
+          break;
+        } else {
+          can_be_arg = TRUE;
+          /* For the argument type, use a pointer or the function type itself
+             according to what the original operand is. */
+          matching_arg_type = is_a_function_designator(operand) ?
+                                           routine_type : ptr_routine_type;
         }  /* if */
       }  /* if */
     }  /* for */

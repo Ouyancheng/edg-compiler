@@ -8681,6 +8681,42 @@ is a "get" if put_operand is NULL.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void convert_function_template_to_single_function_if_possible(
+                                                           an_operand *operand)
+/*
+If operand is a reference to a function template with explicit template
+arguments that reduces to a single function, change the operand to that
+function.  See Core Issue 115.
+*/
+{
+  if (is_indefinite_function_operand(operand) &&
+      operand->is_template_id) {
+    a_template_arg_ptr new_arg_list;
+    an_operand         orig_operand;
+    orig_operand = *operand;
+    if (explicit_arg_list_identifies_specialization(operand->variant.symbol,
+                                                    operand->template_arg_list,
+                                                    &new_arg_list)) {
+      /* The template reference -- something like f<1> -- corresponds to
+         a single function. */
+      a_symbol_ptr sym = find_template_function(
+                                            operand->variant.symbol,
+                                            &new_arg_list,
+                                            /*explicit_arg_list_present=*/TRUE,
+                                            &orig_operand.position);
+      check_assertion(sym != NULL &&
+                      (sym->kind == (a_symbol_kind)sk_routine ||
+                       sym->kind == (a_symbol_kind)sk_member_function));
+      make_function_designator_operand(sym,
+                                       orig_operand.is_qualified_name,
+                                       &orig_operand.position,
+                                       orig_operand.ref_entries_list,
+                                       operand);
+    }  /* if */
+  }  /* if */
+}  /* convert_function_template_to_single_function_if_possible */
+
+
 void error_if_indefinite_function(an_operand *operand)
 /*
 If the given operand is an indefinite function, issue an error and
@@ -8733,7 +8769,18 @@ transformations.
       /* Convert an lvalue to an rvalue. */
       conv_lvalue_to_rvalue(operand);
     }  /* if */
-  } else if (is_a_function_designator(operand)) {
+  }  /* if */
+  if (is_indefinite_function_operand(operand) &&
+      !(options & TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION)) {
+    /* Issue an error for an indefinite function (i.e., a C++ overloaded
+       function that wasn't called, so we were never able to determine
+       which function was intended). */
+    /* Try to convert a template with explicit arguments to a single
+       function. */
+    convert_function_template_to_single_function_if_possible(operand);
+    error_if_indefinite_function(operand);
+  }  /* if */
+  if (is_a_function_designator(operand)) {
     if (is_sym_for_member_operand(operand) ?
                     (options & TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION) :
                     (options & TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION)) {
@@ -8747,12 +8794,6 @@ transformations.
       conv_function_designator_to_ptr_to_function(operand,
                     /*allow_ctor=*/(options & TOPT_ADDR_OF_CTOR_ALLOWED) != 0);
     }  /* if */
-  }  /* if */
-  if (!(options & TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION)) {
-    /* Issue an error for an indefinite function (i.e., a C++ overloaded
-       function that wasn't called, so we were never able to determine
-       which function was intended). */
-    error_if_indefinite_function(operand);
   }  /* if */
 }  /* do_operand_transformations */
 
