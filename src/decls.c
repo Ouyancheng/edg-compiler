@@ -9048,20 +9048,23 @@ continue_with_declaration:
       pos_error(ec_enum_not_allowed, &decl_start_pos);
     } else {
       if (storage_class == (a_storage_class)sc_typedef) {
+        /* Typedef declaration with no declarator. */
+        an_error_severity  severity = es_warning;
+
         if (declares_something ||
             (defines_something && is_enum_type(type_ptr))) {
-          /* No diagnostic on a case like "typedef struct S { int i; };" or
+          /* No error on a case like "typedef struct S { int i; };" or
              "typedef enum { red, green, blue };" -- see first constraint,
-             Section 3.5 of the ANSI C standard. */
+             Section 3.5 of the ANSI C standard.  However, a warning should
+             be issued, since the "typedef" is superfluous. */
         } else {
           /* A case like "typedef int;" or "typedef struct { int i; };" --
              gets a warning by default but may get an error in strict ANSI
              mode. */
-          set_err_pos_to_curr_token();
-          diagnostic(strict_ansi_mode ?
-                       strict_ansi_error_severity : es_warning,
-                     ec_missing_typedef_name);
+          if (strict_ansi_mode) severity = strict_ansi_error_severity;
         }  /* if */
+        set_err_pos_to_curr_token();
+        diagnostic(severity, ec_missing_typedef_name);
       } else if (!declares_something) {
         if (defines_something &&
             (storage_class != (a_storage_class)sc_unspecified ||
