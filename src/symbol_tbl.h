@@ -1245,6 +1245,13 @@ Extract the type from a type symbol (one for which is_type_symbol is TRUE).
                                (sym)->variant.class_struct_union.type)
 
 /*
+Extract the routine type from the routine associated with an sk_routine
+or sk_member_function symbol.
+*/
+#define routine_symbol_type(sym)                                      \
+  (skip_typerefs((sym)->variant.routine->type))
+
+/*
 Extract a pointer to the class symbol supplement for a given type for
 which is_class_struct_union_type is TRUE.
 */
