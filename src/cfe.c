@@ -54,6 +54,9 @@ int main(int argc, char *argv[])
   set_signal_handlers();
   /* Process the command line. */
   proc_command_line(argc, argv);
+  /* Initialize values that apply to the entire compilation in multiple
+     files are allowed. */
+  fe_one_time_init();
 #if COMPILE_MULTIPLE_SOURCE_FILES
   /* Loop if multiple source files are allowed. */
   do {
