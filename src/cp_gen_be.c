@@ -1294,10 +1294,15 @@ class type.
   for (; class_type->variant.class_struct_union.extra_info->
                     anonymous_union_kind == (an_anonymous_union_kind)auk_field;
        class_type = class_type->source_corresp.parent.class_type) {}
-  /* Use recursion to handle multiple levels of nesting. */
-  gen_name(&class_type->source_corresp, iek_type,
-           /*force_qualified_name=*/TRUE);
-  write_tok_str("::");
+  if (class_type->variant.class_struct_union.extra_info->anonymous_union_kind
+                                    == (an_anonymous_union_kind)auk_variable) {
+    /* Put out no name for the topmost level in a non-field anonymous union. */
+  } else {
+    /* Use recursion to handle multiple levels of nesting. */
+    gen_name(&class_type->source_corresp, iek_type,
+             /*force_qualified_name=*/TRUE);
+    write_tok_str("::");
+  }  /* if */
 }  /* gen_class_qualifier */
 
 
