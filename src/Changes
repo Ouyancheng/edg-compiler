@@ -1,5 +1,13 @@
 Version 2.36
 
+5/20/97   IL CHANGE: is_template_class field in a_type
+
+A new bit field named is_template_class has been added to the
+class_struct_union variant of the type entry.  This field can be used
+to determine whether a class is an instance of a class template or a
+class nested within a class template.  Formerly, this field was in the
+class symbol supplement and was named is_instance.
+
 5/20/97   Instantiation control interface
 
 A new layer of functions has been introduced in the automatic instantiation

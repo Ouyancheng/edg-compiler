@@ -1236,7 +1236,7 @@ the template.
     } else {
       a_boolean		class_type_is_complete;
       class_type_is_complete = !is_incomplete_type(class_type);
-      if (cssp->is_instance) {
+      if (class_type->variant.class_struct_union.is_template_class) {
         /* A template class or a nested class within a template class. */
         if (is_template_specialization) {
           /* A specialization using the template<> syntax. */

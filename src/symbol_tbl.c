@@ -491,7 +491,7 @@ and indentation is the indentation desired.
         if (cssp->class_template != NULL) {
           if (debug_level >= 4) put_string("has class template ptr");
         }  /* if */
-        if (cssp->is_instance) {
+        if (temp_type->variant.class_struct_union.is_template_class) {
           put_string("is instance");
         }  /* if */
         if (cssp->is_nonreal_class) {
@@ -1424,8 +1424,9 @@ Otherwise, return NULL.
 
   check_assertion(is_class_struct_union_symbol(sym));
   cssp = sym->variant.class_struct_union.extra_info;
-  if (cssp->is_instance && !cssp->is_nonreal_class) {
-    class_type = sym->variant.class_struct_union.type;
+  class_type = sym->variant.class_struct_union.type;
+  if (class_type->variant.class_struct_union.is_template_class &&
+      !cssp->is_nonreal_class) {
     if (!class_type->variant.class_struct_union.is_specialized) {
       result_sym = cssp->corresp_prototype_sym;
       check_assertion_str2(result_sym != NULL,
@@ -1750,7 +1751,6 @@ state.
         cssp->has_operator_array_new = FALSE;
         cssp->has_operator_delete = FALSE;
         cssp->has_operator_array_delete = FALSE;
-        cssp->is_instance = FALSE;
         cssp->is_nonreal_class = FALSE;
         cssp->is_prototype_instantiation = FALSE;
         cssp->any_nonstatic_data_members = FALSE;
@@ -3428,7 +3428,6 @@ ct_symbol is the symbol of the class template.
   /* Set the pointer that points back to the original class template symbol. */
   cssp = sym->variant.class_struct_union.extra_info;
   cssp->class_template = ct_symbol;
-  cssp->is_instance = TRUE;
   /* Make the declaration scope the same as the class template's. */
   sym->decl_scope = ct_symbol->decl_scope;
   /* Set the new symbol to have the same class or namespace membership as

@@ -3461,6 +3461,12 @@ typedef struct a_type {
 			   pointer is non-NULL, since a name may be acquired
 			   from a typedef name (ARM 7.1.3). */
       a_bit_field
+		is_template_class:1;
+			/* TRUE if the class is an instance of a class template
+			   or a class nested within a class template.  This
+			   value is TRUE even if the instance has been
+			   explicitly specialized. */
+      a_bit_field
 		is_specialized:1;
 			/* TRUE for class template instances for which the
 			   definition is supplied independently of the class

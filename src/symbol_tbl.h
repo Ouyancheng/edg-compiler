@@ -709,9 +709,6 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if a member operator delete[]() has been
 			   declared for this class or a class from which it
 			   is derived. */
-  a_bit_field	is_instance:1;
-			/* TRUE if the class is an instance of a class template
-			   or a class nested within a class template. */
   a_bit_field	is_nonreal_class:1;
 			/* TRUE if the class is an instantiation of a class
 			   template based on template arguments that include
@@ -2732,7 +2729,8 @@ extern a_boolean is_member_enum_symbol(a_symbol_ptr sym);
    instance or a class nested within a class template. */
 #define is_template_instance_class_symbol(sym)				\
   (is_real_class_symbol(sym) &&						\
-   (sym)->variant.class_struct_union.extra_info->is_instance)
+   (sym)->variant.class_struct_union.type->				\
+                   variant.class_struct_union.is_template_class)
 
 /* Return TRUE if the symbol is a template class symbol for a real or
    nonreal class template instance or a class nested within a class
@@ -2740,7 +2738,8 @@ extern a_boolean is_member_enum_symbol(a_symbol_ptr sym);
 #define is_any_template_instance_class_symbol(sym)		\
   (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||           \
     (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
-   (sym)->variant.class_struct_union.extra_info->is_instance)
+   (sym)->variant.class_struct_union.type->			      \
+                   variant.class_struct_union.is_template_class)
 
 /* Return TRUE if the symbol is a template class symbol for a nonreal
    class template instance or a class nested within a nonreal class
@@ -2750,7 +2749,8 @@ extern a_boolean is_member_enum_symbol(a_symbol_ptr sym);
 #define is_nonreal_instance_class_symbol(sym)				\
   (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||           \
     (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
-   (sym)->variant.class_struct_union.extra_info->is_instance &&	      \
+   (sym)->variant.class_struct_union.type->			      \
+                   variant.class_struct_union.is_template_class &&    \
    (sym)->variant.class_struct_union.extra_info->is_nonreal_class)
 
 /* Return TRUE if the symbol is a specific definition of a class template

@@ -2544,6 +2544,7 @@ included in the search.
     primary_tssp->variant.class_template.instantiations = sym;
     /* Now create a new type entry. */
     class_type = alloc_type(tssp->variant.class_template.type_kind);
+    class_type->variant.class_struct_union.is_template_class = TRUE;
     sym->variant.class_struct_union.type = class_type;
     if (tssp->is_nonreal_member) {
       /* Instantiations of a nonreal member template (for example,
@@ -5397,7 +5398,7 @@ any classes that declared the nested class as a template friend.
         cssp = sym->variant.class_struct_union.extra_info;
         cssp->corresp_prototype_sym = ct_symbol;
         class_type = sym->variant.class_struct_union.type;
-        cssp->is_instance = TRUE;
+        class_type->variant.class_struct_union.is_template_class = TRUE;
         tssp = template_supplement_for_symbol(ct_symbol);
         /* Update the friend information associated with this template.
            These are the classes that declared this template as a friend. */
@@ -5609,6 +5610,7 @@ initially used when processing the declaration of a partial specialization.
     prototype_sym = make_template_class_symbol(sym);
     /* Now create a new type entry. */
     prototype_type = alloc_type(tssp->variant.class_template.type_kind);
+    prototype_type->variant.class_struct_union.is_template_class = TRUE;
     prototype_sym->variant.class_struct_union.type = prototype_type;
     set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
     set_membership_in_source_corresp(&(prototype_type->source_corresp),
