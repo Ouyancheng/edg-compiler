@@ -567,14 +567,12 @@ match the target machine behavior on integer operations in C.
 #else /* !TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 #if ABI_COMPATIBILITY_VERSION <= 231
 /* Setting it to FALSE corresponds to hard-coded behavior prior to 2.32. */
-#define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT TRUE
+#define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT FALSE
 #else /* !(ABI_COMPATIBILITY_VERSION <= 231) */
 #if ABI_COMPATIBILITY_VERSION >= 235
 /* This can be changed. */
-#define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT TRUE
+#define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT FALSE
 #else /* !(ABI_COMPATIBILITY_VERSION >= 235) */
-/* Setting this to FALSE will produce an ABI incompatibility with versions
-   2.32 through 2.34. */
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT TRUE
 #endif /* ABI_COMPATIBILITY_VERSION >= 235 */
 #endif /* ABI_COMPATIBILITY_VERSION <= 231 */
