@@ -1,5 +1,11 @@
 Version 2.34
 
+12/11/96 Speed improvement on name demangling
+
+The name demangling code was agonizingly slow on demangling very large
+names (a 3000-character name could take 10 minutes on a workstation).
+The offending piece of the algorithm has been changed.
+
 11/4/96  Demangling of names for interface routines for covariant return types
 
 The implementation of virtual functions with covariant return types
