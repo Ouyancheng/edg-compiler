@@ -304,6 +304,10 @@ typedef struct an_expr_stack_entry {
 			   nonconstant expressions (e.g., initializer
 			   expressions, where it helps in discerning static
 			   initialization cases from others). */
+  a_byte_boolean
+		inside_conditional_expression;
+			/* TRUE if inside a conditional operand of an
+			   operator like "?". */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
@@ -312,6 +316,11 @@ typedef struct an_expr_stack_entry {
   unsigned long	nested_construct_depth;
 			/* Number of nested constructs like parentheses
 			   begun within this major expression level. */
+  an_object_lifetime_ptr
+		lifetime;
+			/* If non-NULL, points to an object lifetime that
+			   exactly covers this expression, i.e., the lifetime
+			   for temporaries created in the expression. */
 } an_expr_stack_entry;
 
 EXTERN an_expr_stack_entry_ptr
@@ -472,9 +481,15 @@ extern void free_dynamic_init_dtor_fixup(a_dynamic_init_dtor_fixup_ptr didfp);
 extern void if_evaluating_mark_routine_referenced(a_routine_ptr  routine);
 
 extern void push_expr_stack(an_expression_kind      expression_kind,
-                            an_expr_stack_entry_ptr new_entry);
+                            an_expr_stack_entry_ptr new_entry,
+                            a_boolean               new_object_lifetime);
 
 extern void pop_expr_stack(void);
+
+extern an_expr_node_ptr add_object_lifetime_node_if_needed(
+                                                        an_expr_node_ptr expr);
+
+extern void discard_curr_expr_object_lifetime(void);
 
 extern a_constant_ptr var_constant_value(a_variable_ptr var);
 
