@@ -4593,7 +4593,7 @@ points to the partial specialization).
   push_template_instantiation_scope(decl_info, class_type,
                                     (a_routine_ptr)NULL, class_sym,
                                     template_sym, template_arg_list,
-				    /*push_stop_token_stack=*/FALSE);
+				    /*push_stop_tokens=*/FALSE);
 }  /* push_instantiation_scope_for_class */
 
 
