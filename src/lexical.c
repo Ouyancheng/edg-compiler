@@ -261,8 +261,10 @@ static unsigned long
                 num_cached_tokens_in_reusable_caches,
 		num_cached_constants_allocated,
 		num_reusable_cache_entries_allocated,
-		num_access_error_descrs_allocated,
-                num_file_suffixes_allocated;
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+                num_file_suffixes_allocated,
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+		num_access_error_descrs_allocated;
 #endif /* DEBUG */
 
 
@@ -6570,8 +6572,10 @@ Display and return the amount of space used for various lexical tables.
                      a_reusable_cache_entry);
   db_space_used_lost("access error descr", avail_access_error_descrs,
                      num_access_error_descrs_allocated, an_access_error_descr);
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
   db_space_used("file suffixes", num_file_suffixes_allocated,
                 a_file_suffix);
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
   total = after_end_of_curr_source_line - curr_source_line;
   db_space_used_general_buffer("curr_source_line", total);
@@ -6639,7 +6643,9 @@ of the front end.
   num_cached_constants_allocated = 0;
   num_reusable_cache_entries_allocated = 0;
   num_access_error_descrs_allocated = 0;
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
   num_file_suffixes_allocated = 0;
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 #endif /* DEBUG */
 
   /* Do the initial allocation for curr_source_line the first time this
