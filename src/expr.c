@@ -1800,6 +1800,7 @@ static void do_field_selection_operation(
                                an_operand        *operand_1,
                                a_type_ptr        class_struct_union_type,
                                a_boolean         is_arrow_operator,
+                               a_boolean         rvalue_result,
                                a_symbol_ptr      field_sym,
                                a_source_position *member_position,
                                a_ref_entry_ptr   rep,
@@ -1810,7 +1811,10 @@ operand (the class/struct/union) is given by operand_1.  The type
 of the class/struct/union (before C++ baseward casts, if any) is given
 by class_struct_union_type; it provides the type qualifiers that should
 be attached to the result expression.  The operator is "->" if
-*is_arrow_operator is TRUE, "." otherwise.  field_sym points to the symbol
+is_arrow_operator is TRUE, "." otherwise (more precisely, the flag means
+operand_1 is an rvalue pointer; the operation might have started out as a
+"." and have been rewritten in "->" form since then).  rvalue_result is
+TRUE if the result should be an rvalue.  field_sym points to the symbol
 for the right-side field.  *member_position gives its position.  rep
 points to an associated reference entry, or is NULL if none is needed.
 The result is placed in *result.
@@ -1818,7 +1822,7 @@ The result is placed in *result.
 {
   a_field_ptr           field;
   a_type_ptr            result_type;
-  a_boolean             rvalue_selection;
+  a_boolean             operand_1_is_pointer;
   a_type_ptr            selection_type;
   an_expr_operator_kind op;
   a_boolean             did_not_fold;
@@ -1828,6 +1832,7 @@ The result is placed in *result.
     make_error_operand(result);
   } else {
     field = field_sym->variant.field.ptr;
+    /* Determine the result type. */
     if (cfront_2_1_mode && is_array_type(field->type)) {
       /* cfront 2.1 fouls up the qualifiers on arrays.  Duplicate the
          behavior.  (This comes up in the NIH libraries.) */
@@ -1839,20 +1844,23 @@ The result is placed in *result.
       result_type = type_plus_qualifiers_from_second_type(field->type,
                                                       class_struct_union_type);
     }  /* if */
-    rvalue_selection = (!is_arrow_operator && is_an_rvalue(operand_1));
-    /* The operator is eok_value_field if the left operand is an rvalue and
-       the selection was via the dot operator; otherwise it's the eok_field
-       operator.  Note that in both the "lvalue . field" case and the
+    /* Determine the IL operator to use.  If the first operand is a pointer
+       (either explicitly, or because it's an lvalue and the operation is "."),
+       eok_field is used.  Otherwise, the first operand is an rvalue and
+       eok_value_field must be used. */
+    /* Note that in both the "lvalue . field" case and the
        "rvalue -> field" case, the left operand gives the address; the
        lvalue/rvalue representation difference cancels the "."/"->"
        difference. */
-    /* Use different operators for the bit-field case: 
+    /* Different operators are used for the bit-field cases: 
          eok_value_field -> eok_value_bit_field
          eok_field       -> eok_bit_field
     */
-    if (rvalue_selection) {
+    operand_1_is_pointer = (is_arrow_operator || !is_an_rvalue(operand_1));
+    if (!operand_1_is_pointer) {
       /* For "rvalue . field", the type of the selection is the same
          as the result type. */
+      check_assertion(rvalue_result);
       selection_type = result_type;
       op = field->is_bit_field ? (an_expr_operator_kind)eok_value_bit_field :
                                  (an_expr_operator_kind)eok_value_field;
@@ -1860,6 +1868,9 @@ The result is placed in *result.
       /* For "lvalue . field" and "rvalue -> field", the type of the
          selection (giving, as it does, the address of the resulting
          lvalue) is pointer-to the field type. */
+      /* "rvalue . field" also comes here if a base-class cast was
+         needed on the rvalue, but it's been rewritten as "rvalue -> field",
+         with rvalue_result TRUE. */
       selection_type = make_pointer_type(result_type);
       op = field->is_bit_field ? (an_expr_operator_kind)eok_bit_field :
                                  (an_expr_operator_kind)eok_field;
@@ -1905,14 +1916,24 @@ The result is placed in *result.
                                     selection_type, result);
       }  /* if */
     }  /* if */
-    /* The operand type has one less level of "pointer-to" than does the
-       address if the result is an lvalue. */
+    /* Set the operand type.  This is needed in particular if the result
+       is an lvalue, because the operand type has one less level of
+       "pointer-to" than does the expression node. */
     result->type = result_type;
-    if (rvalue_selection) {
-      /* "rvalue . field": the result is an rvalue. */
+    if (rvalue_result) {
+      /* The result is an rvalue. */
       result->state = (an_operand_state)os_rvalue;
+      if (operand_1_is_pointer) {
+        /* This is the "rvalue . field" case where the first operand required
+           a base class cast and was therefore turned into a pointer.  An
+           indirection is needed after the field selection to turn the
+           expression for the address into an expression for the rvalue. */
+        an_expr_node_ptr node = make_node_from_operand(result);
+        node = add_indirection_to_node(node);
+        make_expression_operand(node, result_type, result);
+      }  /* if */
     } else {
-      /* Other cases: the result is an lvalue. */
+      /* The result is an lvalue. */
       result->state = (an_operand_state)os_lvalue;
     }  /* if */
     /* In C++, a field may have a reference type.  An implicit indirection
@@ -1979,7 +2000,7 @@ bound with the function in *bound_function_selector.
 */
 {
   a_symbol_ptr          member_sym, projection_member_sym;
-  a_boolean             is_arrow_operator;
+  a_boolean             is_arrow_operator, rvalue_result;
   a_type_ptr            class_struct_union_type, orig_class_struct_union_type;
   a_boolean             err = FALSE, processed = FALSE, found_id = FALSE;
   a_boolean             operand_1_is_complete_class = FALSE, local_err;
@@ -2346,13 +2367,16 @@ bound with the function in *bound_function_selector.
       switch (member_sym->kind) {
         case sk_field:
           /* Normal field selection. */
+          /* The result is an rvalue if the operator is "." and the left
+             operand is an rvalue. */
+          rvalue_result = !is_arrow_operator && is_an_rvalue(operand_1);
           /* This operation uses the left-side operand, so cast the
              operand to the type of the member symbol. */
           cast_pointer_for_field_selection(operand_1, class_struct_union_type,
                                            &is_arrow_operator,
                                            &locator_for_curr_id);
           do_field_selection_operation(operand_1, orig_class_struct_union_type,
-                                       is_arrow_operator,
+                                       is_arrow_operator, rvalue_result,
                                        member_sym, &member_position, rep,
                                        result);
           break;
@@ -7311,6 +7335,7 @@ the field.
   /* Add a field selection to get to the field. */
   do_field_selection_operation(&operand_1, union_var->type,
                                /*is_arrow_operator=*/FALSE,
+                               /*rvalue_result=*/FALSE,
                                sym_ptr, source_position, rep, result);
   result->position = *source_position;
 }  /* make_anonymous_union_field_operand */
@@ -7667,6 +7692,7 @@ normal_function:
                 do_field_selection_operation(&this_pointer_operand,
                                              qual_class_type,
                                              /*is_arrow_operator=*/TRUE,
+                                             /*rvalue_result=*/FALSE,
                                              sym_ptr,
                                              &locator_for_curr_id.
                                                                source_position,

@@ -1,5 +1,18 @@
 Version 2.25
 
+8/1/94   rvalue . field when rvalue requires a base-class adjustment
+
+"rvalue . field", where "rvalue" is a class rvalue of a derived class
+that must be converted to a base class to do the field selection,
+was formerly incorrectly considered to be an lvalue.  Now it's an rvalue.
+
+  struct B {int b;};
+  struct D : public B {};
+  D f();
+  int main() {
+     int *p = &(f().b);  // Gets error now
+  }
+
 7/31/94  Integer --> enum implicit conversions now a cfront 2.1-ism
 
 Integer --> enum implicit conversions, which were formerly considered
