@@ -1388,7 +1388,7 @@ state.
         cssp->target_of_conversion_function = FALSE;
         cssp->any_ref_member = FALSE;
         cssp->any_nested_classes = FALSE;
-        /* The is_class_aggregate is initialized to TRUE when we are not
+        /* The is_class_aggregate flag is initialized to TRUE when we are not
            in C++ mode. */
         cssp->is_class_aggregate = (C_dialect != C_dialect_cplusplus);
         cssp->has_operator_new = FALSE;
