@@ -7123,6 +7123,11 @@ Syntax:
       }  /* if */
     } else {
       /* The type cast to is okay. */
+      if (is_template_dependent_context() && !template_param_case &&
+          is_or_contains_template_param(underlying_cast_type)) {
+        /* Casting to an unknown type in a prototype instantiation. */
+        template_param_case = TRUE;
+      }  /* if */
       /* The operation type for the cast is the type specified, except that
          for a cast to a reference type it is the corresponding pointer
          type. */
@@ -7133,7 +7138,7 @@ Syntax:
       operand_type = operand.type;
       if (is_template_dependent_context() &&
           is_or_contains_template_param(operand_type)) {
-        /* An operand of unknown type, in a prototype instantiation. */
+        /* An operand of unknown type in a prototype instantiation. */
         template_param_case = TRUE;
       } else if (reference_case) {
         /* Cast to reference type. */
