@@ -8956,6 +8956,8 @@ of local variables (and types, etc.) of functions and in blocks.
       /* "asm" is allowed only on function definitions at file scope. */
       dsi_flags |= DSI_ASM_ALLOWED;
 #endif /* ASM_FUNCTION_ALLOWED */
+    } else if (microsoft_bugs) {
+      dsi_flags |= DSI_INLINE_ALLOWED;
     }  /* if */
   }  /* if */
   /* Scan the initial declaration specifiers (including storage class,

@@ -1,5 +1,14 @@
 Version 2.43
 
+10/15/99 Microsoft compatibility: inline on block-extern declarations
+
+In Microsoft bugs mode, the front end now accepts the inline specifier on
+block-extern function declarations.
+
+  int main() {
+    inline void f();  // Accepted in Microsoft bugs mode
+  }
+
 10/14/99 Padding of allocated empty bases
 
 An "allocated empty base" is an empty base class subobject that was not
