@@ -492,7 +492,7 @@ Hash table used by nested_source_line_modif to find the source
 line modification associated with the ATTENTION_MARKER at a given
 location.
 */
-#define SOURCE_LINE_MODIF_HASH_TABLE_SIZE 1999
+#define SOURCE_LINE_MODIF_HASH_TABLE_SIZE 7993
 static a_source_line_modif_ptr
 		source_line_modif_hash_table
                                            [SOURCE_LINE_MODIF_HASH_TABLE_SIZE];
@@ -628,7 +628,10 @@ static unsigned long
 		num_preinclude_files_allocated,
 		cached_pp_token_string_space,
                 num_stop_token_stack_entries_allocated,
-		num_reusable_cache_entries_allocated;
+		num_reusable_cache_entries_allocated,
+		num_compares_in_source_line_modif_hash_table,
+		num_lookups_in_source_line_modif_hash_table;
+
 #endif /* DEBUG */
 
 
@@ -2043,11 +2046,17 @@ optimize calls to nested_source_line_modif.
                               hash_value_for_source_line_modif(slmp->line_loc);
   a_source_line_modif_ptr tslmp, pslmp;
 
+#if DEBUG
+  num_lookups_in_source_line_modif_hash_table++;
+#endif /* DEBUG */
   for (pslmp = NULL, tslmp = source_line_modif_hash_table[hash];
        ;
        pslmp = tslmp, tslmp = tslmp->next_in_hash_table) {
     check_assertion_str(tslmp != NULL,
              "rem_source_line_modif_from_hash_table: not found in hash table");
+#if DEBUG
+    num_compares_in_source_line_modif_hash_table++;
+#endif /* DEBUG */
     if (tslmp->line_loc == slmp->line_loc) {
       /* Found the entry.  Unlink it from the hash table. */
       if (pslmp == NULL) {
@@ -2334,12 +2343,18 @@ and return a pointer to it.
   unsigned long           hash = hash_value_for_source_line_modif(loc_in_line);
   a_source_line_modif_ptr slmp;
 
+#if DEBUG
+  num_lookups_in_source_line_modif_hash_table++;
+#endif /* DEBUG */
   /* Find the location in the hash table. */
   for (slmp = source_line_modif_hash_table[hash];
        ;
        slmp = slmp->next_in_hash_table) {
     check_assertion_str(slmp != NULL,
                         "nested_source_line_modif: not found in hash table");
+#if DEBUG
+    num_compares_in_source_line_modif_hash_table++;
+#endif /* DEBUG */
     if (slmp->line_loc == loc_in_line) break;
   }  /* for */
   return slmp;
@@ -13822,6 +13837,13 @@ Display and return the amount of space used for various lexical tables.
   if (after_end_of_raw_listing_buffer != NULL) {
     total = after_end_of_raw_listing_buffer - raw_listing_buffer;
     db_space_used_general_buffer("raw_listing_buffer", total);
+  }  /* if */
+
+  if (num_lookups_in_source_line_modif_hash_table != 0) {
+    db_space_used_float_other(
+                      "Avg slm hash comp/search",
+                      (double)num_compares_in_source_line_modif_hash_table /
+                      (double)num_lookups_in_source_line_modif_hash_table, "");
   }  /* if */
 
   db_space_used_total();
