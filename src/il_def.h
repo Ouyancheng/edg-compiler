@@ -6072,7 +6072,7 @@ enum a_scope_kind_tag {
 			   namespace-definition" or an implicit extension
 			   of the namespace when processing the definitions
 			   of namespace members in enclosing scopes (because
-		           the of the name-injection rules for friend and
+		           of the name-injection rules for friend and
 			   block-extern declarations).  Only used in the
 		           front end.  (When a scope stack entry
 			   has this kind, the IL scope entry it points to will
