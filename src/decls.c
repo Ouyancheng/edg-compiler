@@ -3265,6 +3265,7 @@ a pointer to it in *symbol_ptr.
   a_type_ptr    tp;
   a_symbol_ptr  sym = NULL;
   a_boolean     suppress_redecl_error = FALSE;
+  a_boolean     saved_referenced_flag;
 
   db_enter(3, "decl_typedef");
   if ((sym = normal_id_lookup(locator, IDL_NO_OPTIONS)) != NULL) {
@@ -3320,39 +3321,36 @@ a pointer to it in *symbol_ptr.
        the type; only if *type_ptr itself lacks an associated tag symbol
        with a name do we want to create a new symbol. */
     if (!is_error_type(type_ptr) && !is_error_locator(*locator)) {
-      a_symbol_ptr old_sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
-      if (old_sym == NULL || is_unnamed_class_symbol(old_sym)) {
-        if (type_ptr->kind == (a_type_kind)tk_class ||
-            type_ptr->kind == (a_type_kind)tk_struct) {
-          sym = enter_local_symbol((a_symbol_kind)sk_class_or_struct_tag,
-                                   locator, decl_scope_level,
-                                   /*suppress_redecl_error=*/FALSE);
-          sym->variant.class_struct_union.type = type_ptr;
-        } else if (type_ptr->kind == (a_type_kind)tk_union) {
-          sym = enter_local_symbol((a_symbol_kind)sk_union_tag,
-                                   locator, decl_scope_level,
-                                   /*suppress_redecl_error=*/FALSE);
-          sym->variant.class_struct_union.type = type_ptr;
-        } else if (type_ptr->kind == (a_type_kind)tk_integer &&
-                   type_ptr->variant.integer.enum_type) {
+      sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
+      if (sym == NULL) {
+        if (type_ptr->kind == (a_type_kind)tk_integer &&
+            type_ptr->variant.integer.enum_type) {
+          /* This is a tagless enum -- e.g., typedef enum { ... } E; */
           sym = enter_local_symbol((a_symbol_kind)sk_enum_tag, locator,
                                    decl_scope_level,
                                    /*suppress_redecl_error=*/FALSE);
           sym->variant.type = type_ptr;
-        }  /* if */
-        if (sym != NULL) {
-          suppress_redecl_error = TRUE;
           set_source_corresp(&(type_ptr->source_corresp), sym);
-          if (old_sym != NULL) {
-            if (is_class_symbol(sym)) {
-              sym->variant.class_struct_union.extra_info =
-                              old_sym->variant.class_struct_union.extra_info;
-            }  /* if */
-            sym->class_of_which_a_member = old_sym->class_of_which_a_member;
-            sym->referenced = old_sym->referenced;
-            sym->defined = old_sym->defined;
-          }  /* if */
+          suppress_redecl_error = TRUE;
+#if CHECKING
+        } else if (is_class_struct_union_type(type_ptr)) {
+          /* A tagless class -- e.g., typedef class { ... } C -- should always
+             have a tag symbol. */
+          internal_error("decl_typedef: expected unnamed tag sym for class");
+#endif /* CHECKING */
         }  /* if */
+      } else if (is_unnamed_class_symbol(sym)) {
+        /* An unnamed tag symbol was created for the class and can be reused
+           now that we have a name to assign to it.  We need to unlink it from
+           the symbol table, give it the name, and relink it into the symbol
+           table. */
+        relink_unnamed_class_symbol(sym, locator);
+        /* Call set_source_corresp, but preserve the current IL referenced
+           setting, which set_source_corresp will clear. */
+        saved_referenced_flag = type_ptr->source_corresp.referenced;
+        set_source_corresp(&(type_ptr->source_corresp), sym);
+        type_ptr->source_corresp.referenced = saved_referenced_flag;
+        suppress_redecl_error = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
