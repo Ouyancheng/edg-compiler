@@ -213,6 +213,8 @@ Macro to test a type kind to see if it is a tag (class or enum).
 
 
 /* Needed because of forward references: */
+static void gen_name(a_source_correspondence *scp,
+                     an_il_entry_kind        entry_kind);
 static void gen_constant(a_constant_ptr constant);
 static void gen_type(a_type_ptr type);
 static void gen_enum_definition(a_type_ptr type);
@@ -1069,9 +1071,11 @@ class type.
   /* Use recursion to handle multiple levels of nesting. */
   if (parent_class != NULL) {
     gen_class_qualifier(parent_class);
+    /* Do the last level. */
+    gen_unqualified_name(&class_type->source_corresp, iek_type);
+  } else {
+    gen_name(&class_type->source_corresp, iek_type);
   }  /* if */
-  /* Do the last level. */
-  gen_unqualified_name(&class_type->source_corresp, iek_type);
   write_tok_str("::");
 }  /* gen_class_qualifier */
 
@@ -1683,6 +1687,51 @@ Output the indicated constant.
 }  /* gen_constant */
 
 
+static a_boolean is_implicitly_cast_integral_constant(a_constant_ptr con)
+/*
+Return TRUE if the indicated constant is an integral constant cast to
+some other type, and the conversion is one that can be done implicitly.
+This is used for calls of C-mode functions with parameters that
+possibly involve prototype scope types.  For example:
+
+  void f(struct A { int i; } *);
+  void g(enum E { AA });
+  main() {
+    f(0);
+    g(5);
+  }
+
+These cases are problems because the cast cannot be written explicitly
+since the type cannot be named at the call site; therefore we detect them
+and put them out as implicit conversions.  Note that for the 0 --> pointer
+case we're not checking to see if a prototype scope type is involved in
+the conversion, so some cases not involving such types will be rendered
+as implicit conversions even though the conversion could be written
+explicitly, but that's a good thing for a null pointer constant.  Implicit
+conversions on nonconstants are handled in eok_cast processing.
+*/
+{
+  a_boolean is_implicit_cast = FALSE;
+
+  /* The implicit_cast flag is not checked here on purpose.  It's not set
+     for the enum case. */
+  if (con->kind == (a_constant_repr_kind)ck_integer) {
+    a_type_ptr con_type = skip_typerefs(con->type);
+    if (con_type->kind == (a_type_kind)tk_pointer &&
+        cmplit_integer_constant(con, 0L) == 0) {
+      /* Zero converted to a pointer type. */
+      is_implicit_cast = TRUE;
+    } else if (con_type->kind == (a_type_kind)tk_integer &&
+               con_type->variant.integer.enum_type &&
+               con_type->declared_in_function_prototype) {
+      /* Any integral value converted to a prototype scope enum type. */
+      is_implicit_cast = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_implicit_cast;
+}  /* is_implicitly_cast_integral_constant */
+
+
 static void gen_initializer_constant(a_constant_ptr constant,
                                      a_type_ptr     type)
 /*
@@ -1751,6 +1800,13 @@ initialized is not a reference.
       gen_constant(constant);
       write_tok_str(")");
    }  /* if */
+  } else if (il_header.source_language == sl_C &&
+             is_implicitly_cast_integral_constant(constant)) {
+    /* An integral constant that can be implicitly converted to another
+       type.  Put out with the conversion implicit.  This is important in
+       the case where the type involves a prototype scope type that cannot
+       be named here. */
+    gen_integer_constant(constant, /*suppress_cast=*/TRUE);
   } else {
     /* Normal constant. */
     gen_constant(constant);
@@ -2769,7 +2825,7 @@ is the one associated with the definition of the class.
       }  /* for */
     }  /* if */
   }  /* if */
-  write_tok_str(" {");
+  write_tok_str(" { ");
   if (il_header.source_language == sl_Cplusplus) {
     push_name_context(&context, ctsp->assoc_scope);
     /* Keep track of the current access category, in order to emit a change
@@ -3281,6 +3337,14 @@ need_parens is TRUE.
     }  /* while */
     /* Put the expression out as an lvalue to remove a level of indirection. */
     gen_lvalue(expr);
+  } else if (il_header.source_language == sl_C &&
+             is_constant_node(expr) &&
+             is_implicitly_cast_integral_constant(expr->variant.constant)) {
+    /* An integral constant that can be implicitly converted to another
+       type.  Put out with the conversion implicit.  This is important in
+       the case where the type involves a prototype scope type that cannot
+       be named here. */
+    gen_integer_constant(expr->variant.constant, /*suppress_cast=*/TRUE);
   } else {
     gen_expr(expr, need_parens);
   }  /* if */
@@ -3298,53 +3362,6 @@ Generate a cast to the indicated type.
 }  /* gen_cast */
 
 
-static a_boolean expr_is_implicitly_cast_integral_constant(
-                                                         an_expr_node_ptr expr)
-/*
-Return TRUE if the indicated expression is an integral constant cast to
-some other type, and the conversion is one that can be done implicitly.
-This is used for calls of C-mode functions with parameters that
-possibly involve prototype scope types.  For example:
-
-  void f(struct A { int i; } *);
-  void g(enum E { AA });
-  main() {
-    f(0);
-    g(5);
-  }
-
-These cases are problems because the cast cannot be written explicitly
-since the type cannot be named at the call site; therefore we detect them
-and put them out as implicit conversions.  Note that we're not checking
-to see if a prototype scope type is involved in the conversion, so some
-cases not involving such types will be rendered as implicit conversions
-even though the conversion could be written explicitly.  Implicit
-conversions on nonconstants are handled in eok_cast processing.
-*/
-{
-  a_boolean is_implicit_cast = FALSE;
-
-  if (is_constant_node(expr)) {
-    a_constant_ptr con = expr->variant.constant;
-    /* The implicit_cast flag is not checked here on purpose.  It's not set
-       for the enum case. */
-    if (con->kind == (a_constant_repr_kind)ck_integer) {
-      a_type_ptr con_type = skip_typerefs(con->type);
-      if (con_type->kind == (a_type_kind)tk_pointer &&
-          cmplit_integer_constant(con, 0L) == 0) {
-        /* Zero converted to a pointer type. */
-        is_implicit_cast = TRUE;
-      } else if (con_type->kind == (a_type_kind)tk_integer &&
-                 con_type->variant.integer.enum_type) {
-        /* Any integral value converted to an enum type. */
-        is_implicit_cast = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_implicit_cast;
-}  /* expr_is_implicitly_cast_integral_constant */
-
-
 static void gen_argument_list(an_expr_node_ptr arg,
                               a_type_ptr       rout_type,
                               int              skip_num)
@@ -3359,19 +3376,9 @@ put out for them).
   a_param_type_ptr              param;
   a_boolean                     skipped_argument;
   a_routine_type_supplement_ptr rtsp;
-  a_boolean                     prototype_scope_type_arguments_are_possible =
-                                                                         FALSE;
 
   rout_type = skip_typerefs(rout_type);
   rtsp = rout_type->variant.routine.extra_info;
-  if (rtsp->prototype_scope != NULL) {
-    /* In C mode, it is possible for arguments to be based on prototype
-       scope types, as in
-         void f(struct { int i; } *);
-         f(0);
-    */
-    prototype_scope_type_arguments_are_possible = TRUE;
-  }  /* if */
   param = rtsp->param_type_list;
   write_tok_ch('(');
   for (; arg != NULL;) {
@@ -3392,17 +3399,7 @@ put out for them).
       /* Normal case. */
       if (param != NULL) {
         /* Parameter type known. */
-        if (prototype_scope_type_arguments_are_possible &&
-            expr_is_implicitly_cast_integral_constant(arg)) {
-          /* This argument is an integral constant implicitly cast to
-             another type in a context where the other type might involve
-             a prototype scope type, so put out the constant without the
-             cast, leaving the cast as implicit. */
-          gen_integer_constant(arg->variant.constant, /*suppress_cast=*/TRUE);
-        } else {
-          /* Normal case. */
-          gen_initializer_expr(arg, param->type, /*need_parens=*/TRUE);
-        }  /* if */
+        gen_initializer_expr(arg, param->type, /*need_parens=*/TRUE);
       } else {
         /* Parameter type not known. */
         gen_expr_with_parens(arg);
