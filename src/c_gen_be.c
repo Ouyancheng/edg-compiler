@@ -1719,7 +1719,7 @@ Dump an enum.  Print the associated source name if there is one.
 
 static void dump_field_padding(a_targ_size_t    curr_offset,
                                a_targ_alignment next_field_alignment,
-                               a_targ_size_t    next_field_bit_size,
+                               a_byte           next_field_bit_size,
                                a_targ_size_t    next_field_offset)
 /*
 Output any declarations required to do padding between fields in a struct.
@@ -1842,7 +1842,7 @@ Dump the definition ({...}) if body is TRUE.
       field = field->next;
     }  /* while */
     /* Do any alignment required at the end. */
-    dump_field_padding(curr_offset, type->alignment, (a_targ_alignment)0,
+    dump_field_padding(curr_offset, type->alignment, (a_byte)0,
                        type->size*TARG_CHAR_BIT);
     indent -= 2;
     startline((a_seq_number)0);
