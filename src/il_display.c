@@ -1318,6 +1318,16 @@ Display the indicated field.
     disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */
   if (ptr->is_mutable) disp_boolean("is_mutable", TRUE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->get_property_name != NULL) {
+    disp_string_ptr("get_property_name", ptr->get_property_name,
+                    iek_other_text, (sizeof_t)0);
+  }  /* if */
+  if (ptr->put_property_name != NULL) {
+    disp_string_ptr("put_property_name", ptr->put_property_name,
+                    iek_other_text, (sizeof_t)0);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* disp_field */
 
 #endif /* ifdef CFE */
