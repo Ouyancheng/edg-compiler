@@ -2543,7 +2543,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   gpp_dependent_name_lookup = TRUE;
   /* We will presumably want to pick std::type_info from the GNU headers.
      In that case, we cannot expect an EDG-specific pragma. */
-  pragma_defined_type_info_is_required = FALSE;
+  pragma_define_type_info_is_required = FALSE;
   /* Guiding declarations should be disabled in g++ mode. */
   if (!option_kind_used[(int)optk_guiding_decls]) {
     guiding_decls_allowed = FALSE;

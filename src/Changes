@@ -1,5 +1,11 @@
 Version 3.4
 
+12/17/03 Variable pragma_defined_type_info_is_required is misspelled
+
+The global variable pragma_defined_type_info_is_required should be
+called pragma_define_type_info_is_required, to match the macro
+PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED.  Now changed.
+
 12/15/03 Namespace of va_list type when using --ignore_std
 
 When passing stdarg references in the generated code and

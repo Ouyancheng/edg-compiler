@@ -1310,7 +1310,7 @@ caution when modifying this routine.
                                                 ec_rtti_in_embedded_cplusplus);
             free_pending_pragma_list(ppp);
           } else {
-            if (!pragma_defined_type_info_is_required) {
+            if (!pragma_define_type_info_is_required) {
               /* The pragma is not required (e.g., when the C++ generating
                  back end is in use). */
               tag_sym = type_info_sym;

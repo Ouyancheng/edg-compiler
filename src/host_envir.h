@@ -632,7 +632,7 @@ of tim_all mode.
 Flag that is TRUE if "#pragma define_type_info" is required by default before
 a declaration of class "type_info" to identify it as an explicit declaration
 of the predeclared class "type_info".  This is the initial value of the global
-variable pragma_defined_type_info_is_required.
+variable pragma_define_type_info_is_required.
 */
 #ifndef PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED
 #if BACK_END_IS_CP_GEN_BE
@@ -2269,7 +2269,7 @@ EXTERN a_boolean
 			   a standalone utility program. */
 
 EXTERN a_boolean
-		pragma_defined_type_info_is_required
+		pragma_define_type_info_is_required
 #if VAR_INITIALIZERS
 			= PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED
 #endif /* VAR_INITIALIZERS */
