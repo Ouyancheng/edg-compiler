@@ -569,11 +569,10 @@ new fields are set properly.
          (ARM 13.4.7). */
       ptp = rout_type->variant.routine.extra_info->param_type_list;
       if (!is_nonstatic_member_function) ptp = ptp->next;
-      tp = ptp->type;
+      tp = skip_typerefs(ptp->type);
       if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
-        if (!is_integral_type(tp) ||
-            skip_typerefs(tp)->variant.integer.int_kind !=
-                                                  (an_integer_kind)ik_int) {
+        if (!is_integral_type(tp) || tp->variant.integer.enum_type ||
+            tp->variant.integer.int_kind != (an_integer_kind)ik_int) {
           pos_st_error(ec_bad_extra_arg_for_postfix_operator,
                        &locator->source_position,
                        opname == (an_opname_kind)onk_plus_plus ? "++" : "--");
