@@ -1088,28 +1088,8 @@ the file scope, do not process it (but record an orphan in the latter case).
         an_access_adjustment_ptr ptr = (an_access_adjustment_ptr)entry_ptr;
         remap_next_ptr(ptr->next, an_access_adjustment_ptr,
                        iek_access_adjustment);
-        switch (ptr->kind) {
-          case aak_field:
-            remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
-            break;
-          case aak_variable:
-            remap_ptr(ptr->variant.variable, a_variable_ptr, iek_variable);
-            break;
-          case aak_routine:
-            remap_ptr(ptr->variant.routine, a_routine_ptr, iek_routine);
-            break;
-          case aak_type:
-            remap_ptr(ptr->variant.type, a_type_ptr, iek_type);
-            break;
-          case aak_constant:
-            remap_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
-            break;
-#if CHECKING
-          default:
-            internal_error(
-                         "walk_entry_and_subtree: bad access adjustment kind");
-#endif /* CHECKING */
-        }  /* switch */
+        remap_ptr(ptr->entity.ptr, a_char_ptr,
+                  (an_il_entry_kind)ptr->entity.kind);
       }
       break;
     case iek_overriding_virtual_function:

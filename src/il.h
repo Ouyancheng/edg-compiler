@@ -100,8 +100,7 @@ extern a_param_type_ptr alloc_param_type(a_type_ptr type);
 extern a_param_type_ptr make_param_type(a_type_ptr         tp,
                                         a_source_position  *decl_pos);
 
-extern an_access_adjustment_ptr alloc_access_adjustment(
-                                              an_access_adjustment_kind  kind);
+extern an_access_adjustment_ptr alloc_access_adjustment(an_il_entry_kind kind);
 
 extern a_class_list_entry_ptr alloc_list_entry_for_class(void);
 

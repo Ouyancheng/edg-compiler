@@ -5337,41 +5337,46 @@ Allocate an access adjustment entry, set its fields based on sym, and return
 a pointer to it.
 */
 {
-  an_access_adjustment_ptr   aap;
-  an_access_adjustment_kind  aa_kind;
+  an_access_adjustment_ptr  aap;
+  an_il_entry_kind          kind;
+  char                      *entity;
 
   /* Determine the access-adjustment-kind, based on the symbol kind. */
   switch (sym->kind) {
     case sk_static_data_member:
-      aa_kind = (an_access_adjustment_kind)aak_variable;  break;
+      kind = iek_variable;
+      entity = (char *)sym->variant.static_data_member.variable;
+      break;
     case sk_constant:
-      aa_kind = (an_access_adjustment_kind)aak_constant;  break;
+      kind = iek_constant;
+      entity = (char *)sym->variant.constant;
+      break;
     case sk_class_or_struct_tag:
     case sk_union_tag:
     case sk_enum_tag:
     case sk_type:
-      aa_kind = (an_access_adjustment_kind)aak_type;      break;
+      kind = iek_type;
+      entity = (char *)sym->variant.type;
+      break;
     case sk_member_function:
-      aa_kind = (an_access_adjustment_kind)aak_routine;   break;
+      kind = iek_routine;
+      entity = (char *)sym->variant.routine.ptr;
+      break;
     case sk_field:
-      aa_kind = (an_access_adjustment_kind)aak_field;     break;
+      kind = iek_field;
+      entity = (char *)sym->variant.field.ptr;
+      break;
 #if CHECKING
     default:
       internal_error("new_access_adjustment: unexpected symbol kind");
 #endif /* CHECKING */
   }  /* switch */
   /* Allocate an access adjustment entry of the appropriate kind. */
-  aap = alloc_access_adjustment(aa_kind);
+  aap = alloc_access_adjustment(kind);
   aap->access = access;
   /* Add a pointer to the correct IL entity. */
-  switch (aa_kind) {
-    case aak_variable:  aap->variant.variable =
-                               sym->variant.static_data_member.variable; break;
-    case aak_constant:  aap->variant.constant = sym->variant.constant;   break;
-    case aak_type:      aap->variant.type = sym->variant.type;           break;
-    case aak_routine:   aap->variant.routine = sym->variant.routine.ptr; break;
-    case aak_field:     aap->variant.field = sym->variant.field.ptr;     break;
-  }  /* switch */
+  aap->entity.kind = (a_byte_il_entry_kind)kind;
+  aap->entity.ptr = entity;
 
   return aap;
 }  /* new_access_adjustment */

@@ -696,35 +696,20 @@ Dump information on an access adjustment entry, for debug purposes.
   a_source_correspondence  *sc;
   char                     *str;
 
-  switch (aap->kind) {
-    case aak_variable:
-      sc = &aap->variant.variable->source_corresp;
-      str = "static data member";
-      break;
-    case aak_field:
-      sc = &aap->variant.field->source_corresp;
-      str = "field";
-      break;
-    case aak_routine:
-      sc = &aap->variant.routine->source_corresp;
-      str = "member function";
-      break;
-    case aak_type:
-      sc = &aap->variant.type->source_corresp;
-      str = "member type";
-      break;
-    case aak_constant:
-      sc = &aap->variant.constant->source_corresp;
-      str = "member constant";
-      break;
-    default:
-      sc = NULL;
+  switch (aap->entity.kind) {
+    case iek_variable:   str = "static data member";  break;
+    case iek_field:      str = "field";               break;
+    case iek_routine:    str = "member function";     break;
+    case iek_type:       str = "member type";         break;
+    case iek_constant:   str = "member constant";     break;
+    default:             str = NULL;                  break;
   }  /* switch */
   fputs("\n    ", f_debug);
-  if (sc == NULL) {
+  if (str == NULL) {
     fputs("<bad access adjustment kind>", f_debug);
   } else {
     db_access_control(aap->access);
+    sc = &((a_variable_ptr)aap->entity.ptr)->source_corresp;
     fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
     db_name(sc);
   }  /* if */
@@ -3664,7 +3649,7 @@ to it.
 }  /* alloc_base_class */
 
 
-an_access_adjustment_ptr alloc_access_adjustment(an_access_adjustment_kind kind)
+an_access_adjustment_ptr alloc_access_adjustment(an_il_entry_kind kind)
 /*
 Allocate an access-adjustment entry, initialize its fields, and return a
 pointer to it.
@@ -3676,16 +3661,10 @@ pointer to it.
 #if DEBUG
   num_access_adjustments_allocated++;
 #endif /* DEBUG */
-  aap->next    = NULL;
-  aap->access  = (an_access_specifier)as_public;
-  aap->kind    = kind;
-  switch (kind) {
-    case aak_field:     aap->variant.field    = NULL;  break;
-    case aak_variable:  aap->variant.variable = NULL;  break;
-    case aak_routine:   aap->variant.routine  = NULL;  break;
-    case aak_constant:  aap->variant.constant = NULL;  break;
-    case aak_type:      aap->variant.type     = NULL;  break;
-  }  /* switch */
+  aap->next        = NULL;
+  aap->access      = (an_access_specifier)as_public;
+  aap->entity.kind = (a_byte_il_entry_kind)kind;
+  aap->entity.ptr  = (char *)NULL;
 
   return aap;
 }  /* alloc_access_adjustment */
@@ -7042,10 +7021,10 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       an_access_adjustment_ptr  aap;
       aap = (an_access_adjustment_ptr)ssep->entity.ptr;
       fputs(": \"", f_debug);
-      if (aap->kind == (an_access_adjustment_kind)aak_type) {
-        db_type_name(aap->variant.type);
+      if (aap->entity.kind == (a_byte_il_entry_kind)iek_type) {
+        db_type_name((a_type_ptr)aap->entity.ptr);
       } else {
-        db_name(&aap->variant.field->source_corresp);
+        db_name(&((a_field_ptr)aap->entity.ptr)->source_corresp);
       }  /* if */
       fputc('"', f_debug);
     } else {

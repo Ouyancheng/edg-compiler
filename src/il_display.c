@@ -2997,31 +2997,8 @@ Display the indicated access_adjustment entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_access_adjustment);
   disp_access("access", ptr->access);
-  disp_name("kind");
-  switch (ptr->kind) {
-    case aak_field:
-      (void)printf("aak_field\n");
-      disp_ptr("field", (char *)ptr->variant.field, iek_field);
-      break;
-    case aak_variable:
-      (void)printf("aak_variable\n");
-      disp_ptr("variable", (char *)ptr->variant.variable, iek_variable);
-      break;
-    case aak_routine:
-      (void)printf("aak_routine\n");
-      disp_ptr("routine", (char *)ptr->variant.routine, iek_routine);
-      break;
-    case aak_type:
-      (void)printf("aak_type\n");
-      disp_ptr("type", (char *)ptr->variant.type, iek_type);
-      break;
-    case aak_constant:
-      (void)printf("aak_constant\n");
-      disp_ptr("constant", (char *)ptr->variant.constant, iek_constant);
-      break;
-    default:
-      (void)printf("**BAD ACCESS ADJUSTMENT KIND**\n");
-  }  /* switch */  
+  disp_ptr("entity", (char *)ssep->entity.ptr,
+           (an_il_entry_kind)ssep->entity.kind);
 }  /* disp_access_adjustment */
 
 

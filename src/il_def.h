@@ -223,8 +223,6 @@ enum a_name_linkage_kind_tag {
 typedef a_byte a_name_linkage_kind;
 
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS || ORPHAN_PROCESSING_NEEDED || \
-    NEED_DECLARATIVE_WALK
 /*
 List of all IL entry kinds:
 */
@@ -409,7 +407,6 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* VAR_INITIALIZERS */
 ;
 #endif /* NEED_IL_DISPLAY || DEBUG */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || ORPHAN_PROCESSING_NEEDED || ... */
 
 /*
 A range of source text, starting at one source position and ending at another.
@@ -1702,16 +1699,6 @@ typedef struct a_template_arg {
 /* Data structures related to C++ classes (type entries of kind tk_class,
    tk_struct, and tk_union). */
 
-enum an_access_adjustment_kind_tag {
-  aak_field,     /* Non-static data member. */
-  aak_variable,  /* Static data member. */
-  aak_routine,   /* Member function. */
-  aak_type,      /* Member type. */
-  aak_constant   /* Member constant. */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_access_adjustment_kind;
-
 typedef struct an_access_adjustment *an_access_adjustment_ptr;
 typedef struct an_access_adjustment {
   /* Representation of a C++ access declaration, which adjusts the access
@@ -1725,34 +1712,11 @@ typedef struct an_access_adjustment {
                            adjustment is always to reinstate the member's
                            original access after it had been reduced by a
 			   private derivation.) */
-  an_access_adjustment_kind
-                kind;   /* Indicates what kind of member is being affected
-                           by the access adjustment. */
-  union {
-    /* If kind == aak_field: */
-    a_field_ptr field;
-                        /* Pointer to a field entry representing a nonstatic
-                           data member of a base class. */
-    /* If kind == aak_variable: */
-    a_variable_ptr
-                variable;
-                        /* Pointer to a variable entry representing a static
-                           data member of a base class. */
-    /* If kind == aak_routine: */
-    a_routine_ptr
-                routine;
-                        /* Pointer to a routine entry representing a member
-                           function of a base class. */ 
-    /* If kind == aak_type: */
-    a_type_ptr	type;
-			/* Pointer to a type entry representing a type that is
-			   a member of a base class. */
-    /* If kind == aak_constant: */
-    a_constant_ptr
-		constant;
-			/* Pointer to a constant entry representing a constant
-			   that is a member of a base class. */
-  } variant;
+  a_tagged_pointer
+		entity;
+			/* The entity (field, function, member type, etc.)
+			   whose access is being affect by the access
+			   adjustmemnt. */
 } an_access_adjustment;
 
 
