@@ -1219,17 +1219,19 @@ make_template_function needs to be updated to make sure that the
 new fields are set properly.
 */
 {
-  an_opname_kind    opname;
-  int               param_count;
-  a_param_type_ptr  ptp;
-  a_boolean         any_class_type_params = FALSE;
-  a_type_ptr        tp;
-  a_boolean         is_nonstatic_member_function;
-  an_error_code     error_code = ec_no_error;
-  a_boolean         err = FALSE;
+  an_opname_kind                 opname;
+  int                            param_count;
+  a_param_type_ptr               ptp;
+  a_boolean                      any_class_type_params = FALSE;
+  a_type_ptr                     tp;
+  a_boolean                      is_nonstatic_member_function;
+  an_error_code                  error_code = ec_no_error;
+  a_boolean                      err = FALSE;
+  a_routine_type_supplement_ptr  rtsp;
 
   db_enter(4, "check_operator_function_params");
   rout_type = skip_typerefs(rout_type);
+  rtsp = rout_type->variant.routine.extra_info;
   if (is_error_locator(*locator)) {
     /* Nothing to do. */
   } else if (locator->is_conversion_name) {
@@ -1246,7 +1248,7 @@ new fields are set properly.
       err = TRUE;
     }  /* if */
     /* Any parameter is too many for a conversion function. */
-    if (rout_type->variant.routine.extra_info->param_type_list != NULL) {
+    if (rtsp->param_type_list != NULL || rtsp->has_ellipsis) {
       pos_error(ec_too_many_args_for_conversion, &locator->source_position);
       err = TRUE;
     }  /* if */
@@ -1274,7 +1276,36 @@ new fields are set properly.
       if (is_reference_type(tp)) tp = type_pointed_to(tp);
       if (is_class_struct_union_type(tp)) any_class_type_params = TRUE;
     }  /* if */
-    if (opname == (an_opname_kind)onk_compl ||
+    if (opname == (an_opname_kind)onk_function_call ||
+        opname == (an_opname_kind)onk_new) {
+      /* Function call and new must have one or more arguments. */
+      if (param_count == 0) {
+        if (rtsp->has_ellipsis) {
+          /* operator()(...) and operator new(...) are errors, but we do,
+             with some trepidation, allow operator()(T, ...) and
+             operator new(size_t, ...). */
+          error_code = ec_ellipsis_on_operator_function;
+        } else {
+          error_code = ec_too_few_args_for_operator;
+        }  /* if */
+      } else if (opname == (an_opname_kind)onk_new) {
+        ptp = rout_type->variant.routine.extra_info->param_type_list;
+        tp = ptp->type;
+        if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
+          if (!is_integral_type(tp) ||
+              skip_typerefs(tp)->variant.integer.int_kind !=
+                                  (an_integer_kind)TARG_SIZE_T_INT_KIND) {
+            error_code = ec_bad_arg_type_for_operator_new;
+            ptp->type = error_type();
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    } else if (rtsp->has_ellipsis) {
+      /* All overloaded operators (except function call and new, handled
+         above) require a specific number of arguments, so ellipsis is not
+         allowed. */
+      error_code = ec_ellipsis_on_operator_function;
+    } else if (opname == (an_opname_kind)onk_compl ||
         opname == (an_opname_kind)onk_not ||
         opname == (an_opname_kind)onk_arrow) {
       /* Unary operator must have exactly one argument. */
@@ -1309,23 +1340,6 @@ new fields are set properly.
                        opname == (an_opname_kind)onk_plus_plus ? "++" : "--");
           ptp->type = error_type();
           err = TRUE;
-        }  /* if */
-      }  /* if */
-    } else if (opname == (an_opname_kind)onk_function_call ||
-               opname == (an_opname_kind)onk_new) {
-      /* Function call and new must have one or more arguments. */
-      if (param_count == 0) {
-        error_code = ec_too_few_args_for_operator;
-      } else if (opname == (an_opname_kind)onk_new) {
-        ptp = rout_type->variant.routine.extra_info->param_type_list;
-        tp = ptp->type;
-        if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
-          if (!is_integral_type(tp) ||
-              skip_typerefs(tp)->variant.integer.int_kind !=
-                                  (an_integer_kind)TARG_SIZE_T_INT_KIND) {
-            error_code = ec_bad_arg_type_for_operator_new;
-            ptp->type = error_type();
-          }  /* if */
         }  /* if */
       }  /* if */
     } else if (opname == (an_opname_kind)onk_delete) {
