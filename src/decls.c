@@ -9941,7 +9941,7 @@ of local variables (and types, etc.) of functions and in blocks.
   copy_source_position(pos_curr_token, decl_start_pos);
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry so they can be examined and acted upon in subsequent processing. */
-  (void)select_curr_construct_pragmas(/*is_decl=*/TRUE);
+  (void)select_curr_construct_pragmas(/*is_decl=*/TRUE, /*add_to_list=*/FALSE);
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"
