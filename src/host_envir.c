@@ -1837,6 +1837,10 @@ buffer.
 #if USE_MMAP_FOR_MEMORY_REGIONS
 #include <sys/mman.h>
 
+#if __BSD__
+extern int getpagesize(void);
+#endif /* __BSD__ */
+
 int get_page_size(void)
 /*
 Return the size of a host page.  When map_file_region is called,
@@ -1845,7 +1849,6 @@ incremental_size must be a multiple of the page size.
 {
   int	page_size;
 #if __BSD__
-  extern int getpagesize(void);
   page_size = getpagesize();
 #else /* !__BSD__ */
   page_size = sysconf(_SC_PAGESIZE);

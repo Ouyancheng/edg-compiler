@@ -1119,7 +1119,7 @@ directory.  Return TRUE if an applicable PCH was found.
 {
   a_boolean		first;
   char			*file_name;
-  a_source_position	best_result_so_far = null_source_position;
+  a_source_position	best_result_so_far;
   a_boolean		is_applicable;
   a_boolean		result = FALSE;
 
@@ -1128,6 +1128,7 @@ directory.  Return TRUE if an applicable PCH was found.
   debug_level=1;
 #endif
   db_enter(3, "find_applicable_pch");
+  best_result_so_far = null_source_position;
   for (first = TRUE;
        (file_name = get_file_name_from_curr_dir(first)) != NULL;
        first = FALSE) {
