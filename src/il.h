@@ -424,7 +424,8 @@ extern a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind);
 extern a_pragma_ptr alloc_pragma(a_pragma_kind  kind);
 
 extern void add_to_pragma_list(a_pragma_ptr   pragma,
-                               a_scope_depth  scope_depth);
+                               a_boolean      at_file_scope,
+                               a_type_ptr     class_type);
 
 extern a_scope_ptr alloc_scope(a_scope_kind   kind,
                                a_scope_number number,

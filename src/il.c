@@ -6745,27 +6745,43 @@ pointer to it.
 
 
 void add_to_pragma_list(a_pragma_ptr   pragma,
-                        a_scope_depth  scope_depth)
+                        a_boolean      at_file_scope,
+			a_type_ptr     class_type)
 /*
-Add pragma to the end of the pragma_list associated with the scope entry
-at scope_depth.
+Add pragma to the end of the pragma_list of the appropriate scope.
+If class_type is not NULL, the scope of the class is used.  Otherwise,
+either the file scope or the current scope is used, depending on the
+value of at_file_scope.
 */
 {
   a_scope_ptr              sp;
-  a_scope_stack_entry_ptr  ssep;
+  a_scope_stack_entry_ptr  ssep = NULL;
 
-  ssep = &scope_stack[scope_depth];
-  sp = ensure_il_scope_exists(ssep);
+  if (class_type != NULL) {
+    /* Get the scope pointer from the class type supplement. */
+    sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
+  } else {
+    a_scope_depth	scope_depth;
+    scope_depth = at_file_scope ? DEPTH_OF_FILE_SCOPE : depth_scope_stack;
+    ssep = &scope_stack[scope_depth];
+    sp = ensure_il_scope_exists(ssep);
+  }  /* if */
   check_assertion_str(sp != NULL, "add_to_pragma_list: NULL IL scope");
-  check_assertion_str(in_file_scope(pragma) ==
-                         (ssep->il_memory_region == FILE_SCOPE_REGION_NUMBER),
+  check_assertion_str(ssep == NULL ? TRUE : (in_file_scope(pragma) ==
+                         (ssep->il_memory_region == FILE_SCOPE_REGION_NUMBER)),
                       "add_to_pragma_list: memory region mismatch");
   if (sp->pragma_list == NULL) {
     sp->pragma_list = pragma;
+  } else if (ssep == NULL) {
+    /* No scope stack entry, find the end of the pragma list.  Note that
+       the case where sp->pragma_list is NULL is already tested above. */
+    a_pragma_ptr	end_of_list = sp->pragma_list;
+    while (end_of_list->next != NULL) end_of_list = end_of_list->next;
+    end_of_list->next = pragma;
   } else {
     ssep->last_pragma->next = pragma;
   }  /* if */
-  ssep->last_pragma = pragma;
+  if (ssep != NULL) ssep->last_pragma = pragma;
 }  /* add_to_pragma_list */
 
 

@@ -534,6 +534,7 @@ return FALSE.
 static void add_pragma_to_il(a_pending_pragma_ptr  ppp,
                              an_il_entry_kind      entity_kind,
                              char                  *entity_ptr,
+			     a_type_ptr		   class_type,
                              a_boolean             at_file_scope)
 /*
 ppp points to the front-end representation of a pragma.  When the pragma
@@ -543,9 +544,10 @@ entity_ptr is NULL.  at_file_scope is TRUE if the pragma IL entry should be
 allocated in the file-scope memory region and added to the file-scope
 pragmas list; it is FALSE when the current IL scope should be used.
 The at_file_scope flag passed by the caller is only used when no entity
-has been provided.  When an entity is supplied, the at_file_scope
-flag is set to FALSE causing the IL pragma entry to be allocated in
-the current memory region.
+has been provided.  When an entity is supplied, the pragma is added
+to the scope associated with class_type, or if class_type is NULL,
+to the current scope.  class_type points to the class of which the entity
+is a member, or NULL if the entity is not a member of a class.
 
 This routine (1) allocates the IL pragma entry and initializes it, (2)
 binds it to the entity it's associated with, if any, and sets the
@@ -558,10 +560,12 @@ there is additional processing to be done.
   a_pragma_ptr            pp;
   a_memory_region_number  region_to_switch_back_to;
 
-  /* If we are binding to an entity, the IL pragma entry should be allocated
-     in the current memory region and is added to the scope list for the
-     current scope. */
-  if (entity_ptr != NULL) at_file_scope = FALSE;
+  if (entity_ptr != NULL) {
+    /* If we are binding to an entity, the IL pragma entry should be allocated
+       in the current memory if class_type is NULL, or at file scope if
+       a class_type is specified. */
+    at_file_scope = class_type != NULL;
+  }  /* if */
   if (at_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
   pp = alloc_pragma(ppp->descr_ptr->kind);
   pp->decl_position = ppp->id_position;
@@ -579,8 +583,7 @@ there is additional processing to be done.
                       source_corresp.has_associated_pragma = TRUE;
     }  /* if */
   }  /* if */
-  add_to_pragma_list(pp, at_file_scope ?
-                            DEPTH_OF_FILE_SCOPE : depth_scope_stack);
+  add_to_pragma_list(pp, at_file_scope, class_type);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
@@ -609,6 +612,7 @@ or sp pointer must be supplied.  The IL entry is then added to the IL.
   a_boolean	         	 at_file_scope;
   a_boolean			 is_bound_to_curr_construct;
   a_pragma_kind_description_ptr	 pkdp;
+  a_type_ptr			 class_type = NULL;
 
   pkdp = ppp->descr_ptr;
   is_bound_to_curr_construct = pkdp->binding_kind == pbk_next_construct;
@@ -628,6 +632,7 @@ or sp pointer must be supplied.  The IL entry is then added to the IL.
   if (is_bound_to_curr_construct) {
     if (sym != NULL) {
       entity = il_entry_for_symbol(sym, &entity_kind);
+      class_type = sym->class_of_which_a_member;
     } else {
       entity = (char *)sp;
       entity_kind = (an_il_entry_kind)iek_statement;
@@ -638,7 +643,7 @@ or sp pointer must be supplied.  The IL entry is then added to the IL.
     entity_kind = (an_il_entry_kind)iek_none;
     at_file_scope = pkdp->global;
   }  /* if */
-  add_pragma_to_il(ppp, entity_kind, entity, at_file_scope);
+  add_pragma_to_il(ppp, entity_kind, entity, class_type, at_file_scope);
 }  /* create_il_entry_for_pragma */
 
 
