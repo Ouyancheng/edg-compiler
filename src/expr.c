@@ -4470,7 +4470,7 @@ for both C-style casts and C++ functional-notation type conversions.
          issued even in cfront mode because this is a questionable
          practice. */
       *p_type_cast_to = type_cast_to =
-                           make_pointer_type(array_element_type(type_cast_to));
+                      type_after_array_to_pointer_transformation(type_cast_to);
       type_warning(ec_nonstd_array_cast, type_cast_to);
     } else {
       /* Invalid destination type for cast. */
