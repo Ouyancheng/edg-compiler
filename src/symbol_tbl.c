@@ -11800,8 +11800,8 @@ for space tracking purposes.
                      a_dependent_type_fixup);
   db_space_used("template instance", num_template_instances_allocated,
                 a_template_instance);
-  db_space_used_lost("symbol list entry", avail_symbol_list_entries,
-                     num_symbol_list_entries_allocated, a_symbol_list_entry);
+  db_space_used("symbol list entry", num_symbol_list_entries_allocated,
+                a_symbol_list_entry);
   db_space_used("namespace list entry", num_namespace_list_entries_allocated,
                a_namespace_list_entry);
   db_space_used("projection symbol descr", num_projection_descrs_allocated,
