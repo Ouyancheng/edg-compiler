@@ -659,6 +659,113 @@ to allocate the space in the intermediate language memory region.
 }  /* combine_dir_and_file_name */
 
 
+char *replace_file_name_suffix(char  *new_suffix,
+                               char  *file_name,
+                               char  *buffer,
+                               int   buffer_size,
+                               char  **suffix_loc)
+/*
+Replace the suffix of a file name with a specified suffix.  Try to replace
+the file name in place.  This can be done if file_name is within buffer and
+buffer has enough addition space for the possibly enlarged name or if the
+new suffix takes no more space than the suffix it replaces; otherwise
+storage will be allocated for the new name.  This routine may be called
+iteratively.  On second and subsequent calls, suffix_loc points to the
+place in file_name where the suffix begins.
+*/
+{
+  char       *ch, *new_file_name;
+  a_boolean  suffix_delim_required = FALSE;
+  sizeof_t   curr_file_name_size, curr_suffix_length;
+  sizeof_t   new_file_name_base_size, new_file_name_size;
+#define SUFFIX_DELIMITER '.'
+
+  db_enter(5, "replace_file_name_suffix");
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf("current file_name = \"%s\", new suffix = \"%s\"\n", file_name,
+            new_suffix);
+  }  /* if */
+#endif /* DEBUG */
+  /* Determine the size of file_name, excluding the trailing NULL. */
+  curr_file_name_size = strlen(file_name);
+  check_assertion(curr_file_name_size > 0);
+  check_assertion(file_name[curr_file_name_size] == '\0');
+  if (*suffix_loc != NULL) {
+    /* This name has already had a new suffix added, so we can use *suffix_loc
+       saved from last time. */
+    /* Determine the length of the current suffix. */
+    check_assertion(*(*suffix_loc-1) == SUFFIX_DELIMITER);
+    curr_suffix_length = &file_name[curr_file_name_size-1] - *suffix_loc;
+  } else {
+    /* *suffix_loc is NULL, so this is the first attempt to replace the suffice
+       on this file name. */
+    /* Find the start of the suffix by backing up from the end of file_name
+       until the suffix delimiter is located.  Start from the character
+       position immediately before the trailing NULL.   This search is
+       intended to handle file names of the following formats "aaa.xxx",
+       "aaa/bbb.xxx", "aaa.", and "aaa/bbb."; in each case *suffix_loc should
+       point to the character position immediately following the period.  In
+       addition, it should point to the position just past the end of the file
+       name if no delimiter if found before reaching either the start of
+       file_name or a '/' -- i.e., cases like "aaa" and "aaa/bbb", to which
+       the suffix (with delimiter) will simply be appended. */
+    curr_suffix_length = 0;
+    for (ch = &file_name[curr_file_name_size-1]; ch >= file_name; --ch) {
+      if (*ch == SUFFIX_DELIMITER) {
+        /* Make *suffix_loc point just past the delimiter. */
+        *suffix_loc = ch + 1;
+        break;
+      }  /* if */
+      if (*ch == '/' || ch == file_name) {
+        /* file_name has no suffix.  A delimiter character will be added to
+           the end of file_name and then the suffix will be appended. */
+        suffix_delim_required = TRUE;
+        *suffix_loc = &file_name[curr_file_name_size];
+        curr_suffix_length = 0;
+        break;
+      }  /* if */
+      /* Increment curr_suffix_length for each iteration of the loop. */
+      ++curr_suffix_length;
+    }  /* for */
+  }  /* if */
+  /* The base size of the new file name is the size when the current
+     file name without its suffix. */
+  new_file_name_base_size = curr_file_name_size - curr_suffix_length;
+  /* The total size of the new file name is the base size plus the new
+     suffix plus 1 for the delimiter, if required. */
+  new_file_name_size = new_file_name_base_size + sizeof(new_suffix) +
+                       (sizeof_t)(suffix_delim_required ? 1 : 0);
+  if ((file_name == buffer && new_file_name_size > buffer_size) ||
+      new_file_name_size > curr_file_name_size) {
+    /* We need to allocate new storage for the file name. */
+    new_file_name = (char *)alloc_il(new_file_name_size+1);
+    /* Copy the file name, minus the current suffix. */
+    (void)memcpy(new_file_name, file_name,
+                 size_t_arg(new_file_name_base_size));
+    *suffix_loc = &new_file_name[new_file_name_base_size];
+  } else {
+    /* We can do the replacement "in place". */
+    new_file_name = file_name;
+  }  /* if */
+  if (suffix_delim_required) {
+    /* Add the delimiter, if required. */
+    **suffix_loc = SUFFIX_DELIMITER;
+    (*suffix_loc)++;
+  };
+  /* Add the new suffix to new_file_name. */
+  strcpy(*suffix_loc, new_suffix);
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf("new file name = \"%s\"\n", new_file_name);
+  }  /* if */
+#endif /* DEBUG */
+  /* Return a pointer to the new file name. */
+  return new_file_name;
+#undef SUFFIX_DELIMITER
+}  /* replace_file_name_suffix */
+
+
 FILE *open_source_file(char          *file_name,
                        a_boolean     *not_found,
                        a_boolean     *bad_format,

@@ -604,6 +604,12 @@ extern char *combine_dir_and_file_name (char *dir_name,
                                         char *file_name,
 				        char *buffer,
 				        int  buffer_size);
+/* Replace the suffix of a file name with a specified suffix. */
+extern char *replace_file_name_suffix(char  *suffix,
+                                      char  *file_name,
+                                      char  *buffer,
+                                      int   buffer_size,
+                                      char  **suffix_loc);
 /* Open a source file. */
 extern FILE *open_source_file(char          *file_name,
                               a_boolean     *not_found,
