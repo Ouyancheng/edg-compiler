@@ -7232,6 +7232,19 @@ symbol "used" or "set", if appropriate.
             if (ssep->kind == (a_scope_kind)sck_function) {
               /* We are at the outermost scope of the function.  Check for
                  a label. */
+#if 0
+              check_assertion(ssep->number == sym_ptr->decl_scope ||
+                              !scptr->is_local_to_function);
+#else
+              if (scptr->is_local_to_function &&
+                  ssep->number != sym_ptr->decl_scope) {
+                /* A reference to a local variable from within quasi-nested
+                   function definition.  This should have been reported as
+                   an error. */
+                suppress_warning = TRUE;
+                break;
+              }  /* if */
+#endif /* if 0 */
               goto check_label_decl_seq;
             } else if (ssep->number == sym_ptr->decl_scope) {
               /* We are at the scope in which the variable was declared.
