@@ -5222,6 +5222,13 @@ Dump out the declarations (if any) for a block.
                          /*dump_initializers=*/TRUE);
     dump_prescan_temps(statement->variant.block.statements);
     dump_rout_initializations(rout);
+    /* If the first statement in the block has no source position, set the
+       output position to the beginning of the block. */
+    if (statement->variant.block.statements != NULL &&
+        seq_number_from_stmt_source_position(
+                         statement->variant.block.statements->position) == 0) {
+      set_output_position_for_stmt(&statement->position);
+    }  /* if */
   }  /* if */
 }  /* dump_block_declarations */
 

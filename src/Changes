@@ -1,5 +1,13 @@
 Version 2.42
 
+3/22/99  C-generating back end: source position for generated code at the
+         beginning of a block
+
+On generated code at the beginning of a block, the C-generating back end
+now puts out a #line directive indicating the line of the opening "{"
+of the block.  This should produce more reasonable behavior when stepping
+through that code with a debugger.
+
 3/22/99  Microsoft compatibility: incomplete type allowed in explicit
          instantiation directive
 
