@@ -544,15 +544,6 @@ is used for allocation of general front end memory (i.e., not IL).
 }  /* alloc_in_region */
 
 
-char *alloc_fe(sizeof_t size)
-/*
-Allocate and return "size" bytes of storage that will last through execution
-of the front end.
-*/
-{
-  return (alloc_in_region(NULL_region_number, size));
-}  /* alloc_fe */
-
 #ifdef FFE
 
 char *alloc_pufe(sizeof_t size)

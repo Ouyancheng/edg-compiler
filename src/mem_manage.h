@@ -97,9 +97,6 @@ divisible by HOST_ALIGNMENT_REQUIRED.
 
 #endif /* ALIGNMENT_BITS == 0 */
 
-
-/* Allocate space in "front end" storage. */
-extern char *alloc_fe(sizeof_t size);
 #ifdef FFE
 extern char *alloc_pufe(sizeof_t size);
 #endif /* ifdef FFE */
@@ -112,6 +109,13 @@ extern char *realloc_general(char     *old_ptr,
 /* Allocate space in a given memory region. */
 extern char *alloc_in_region(a_memory_region_number number,
                              sizeof_t               size);
+
+/*
+Macro to allocate and return "size" bytes of storage that will last through
+execution of the front end.
+*/
+#define alloc_fe(size) alloc_in_region(NULL_region_number, size)
+
 /* Create a new memory region. */
 extern a_memory_region_number new_memory_region(void);
 /* Initialize a memory region. */
