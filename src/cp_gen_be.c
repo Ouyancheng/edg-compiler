@@ -246,11 +246,23 @@ Macro to test a type kind to see if it is a tag (class or enum).
 #define is_tag_type_kind(kind)                                        \
   (is_class_type_kind(kind) || (kind) == (a_type_kind)tk_enum)
 
+/*
+Flags for gen_name:
+*/
+typedef int a_gen_name_options_set;
+#define GNO_NO_OPTIONS 0
+#define GNO_FORCE_QUALIFIED_NAME 0x1
+			/* Force use of a qualified name even if one
+			   is not required in the current context. */
+#define GNO_DECLARATION 0x2
+			/* This use of the name is a declaration or
+			   definition, rather than a use. */
+
 
 /* Needed because of forward references: */
 static void gen_name(a_source_correspondence *scp,
                      an_il_entry_kind        entry_kind,
-                     a_boolean               force_qualified_name);
+                     a_gen_name_options_set  options);
 static void gen_constant(a_constant_ptr constant,
                          a_boolean      need_parens);
 static void gen_type(a_type_ptr type);
@@ -1603,8 +1615,7 @@ reference to a bound function.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Use recursion to handle multiple levels of nesting. */
-    gen_name(&class_type->source_corresp, iek_type,
-             /*force_qualified_name=*/FALSE);
+    gen_name(&class_type->source_corresp, iek_type, GNO_NO_OPTIONS);
     write_tok_str("::");
   }  /* if */
 }  /* gen_class_qualifier */
@@ -1623,8 +1634,7 @@ namespace.
   }  /* while */
   if (nsp != NULL) {
     /* Use recursion to handle multiple levels of nesting. */
-    gen_name(&nsp->source_corresp, iek_namespace,
-             /*force_qualified_name=*/FALSE);
+    gen_name(&nsp->source_corresp, iek_namespace, GNO_NO_OPTIONS);
     write_tok_str("::");
   }  /* if */
 }  /* gen_namespace_qualifier */
@@ -1632,17 +1642,22 @@ namespace.
 
 static void gen_name(a_source_correspondence *scp,
                      an_il_entry_kind        entry_kind,
-                     a_boolean               force_qualified_name)
+                     a_gen_name_options_set  options)
 /*
 Output the name of the entity whose source correspondence information
 is given by scp.  entry_kind indicates the IL entry kind.  If the entity
 is unnamed, generate a name.  If the entity is a class member, generate
 a qualified name (if required in the current name context).  Don't
 suppress the qualifier (because it seems to be unnecessary) if
-force_qualified_name is TRUE (this is used for things like pointer-to-member
-constants, which must have the form of a qualified name).
+GNO_FORCE_QUALIFIED_NAME is set in options (this is used for things
+like pointer-to-member constants, which must have the form of a
+qualified name).  The current use of the name is in a declaration or
+definition if GNO_DECLARATION is set in options.
 */
 {
+  a_boolean force_qualified_name = (options & GNO_FORCE_QUALIFIED_NAME) != 0;
+  a_boolean declaration          = (options & GNO_DECLARATION         ) != 0;
+
   /* If the name is a member of a class or namespace in C++, output the
      class or namespace qualifier. */
   if (il_header.source_language == sl_Cplusplus) {
@@ -1670,9 +1685,10 @@ constants, which must have the form of a qualified name).
       } else {
         gen_namespace_qualifier(nsp);
       }  /* if */
-    } else if (scp->qualification_needed) {
+    } else if (scp->qualification_needed && !declaration) {
       /* This is a reference to a file-scope entity from within a class
-         or function, so add a leading "::". */
+         or function, so add a leading "::".  Don't do this on the
+         declaration of a name. */
       write_tok_str("::");
     }  /* if */
   }  /* if */
@@ -1682,11 +1698,9 @@ constants, which must have the form of a qualified name).
 
 /* Interface routines to gen_name. */
 #define gen_routine_name(routine)                                     \
-  gen_name(&(routine)->source_corresp, iek_routine,                   \
-           /*force_qualified_name=*/FALSE)
+  gen_name(&(routine)->source_corresp, iek_routine, GNO_NO_OPTIONS)
 #define gen_type_name(type)                                           \
-  gen_name(&(type)->source_corresp, iek_type,                         \
-           /*force_qualified_name=*/FALSE)
+  gen_name(&(type)->source_corresp, iek_type, GNO_NO_OPTIONS)
 #define gen_field_name(field)                                         \
   gen_unqualified_name(&(field)->source_corresp, iek_field)
 
@@ -1700,8 +1714,7 @@ Output the name of the indicated variable, qualified if necessary.
     /* "this" parameter in C++. */
     m_write_tok_str("this");
   } else {
-    gen_name(&var->source_corresp, iek_variable,
-             /*force_qualified_name=*/FALSE);
+    gen_name(&var->source_corresp, iek_variable, GNO_NO_OPTIONS);
   }  /* if */
 }  /* gen_variable_name */
 
@@ -1737,7 +1750,7 @@ a definition.
       }  /* if */
     }  /* for */
     if (top_scp->qualification_needed) write_tok_ch('(');
-    gen_name(scp, entry_kind, /*force_qualified_name=*/FALSE);
+    gen_name(scp, entry_kind, GNO_DECLARATION);
     if (top_scp->qualification_needed) write_tok_ch(')');
   }  /* if */
 }  /* gen_decl_name */
@@ -1754,7 +1767,7 @@ declaration.
        name can be used (and, in some cases, must be used). */
     gen_unqualified_name(scp, iek_routine);
   } else {
-    gen_name(scp, iek_routine, /*force_qualified_name=*/FALSE);
+    gen_name(scp, iek_routine, GNO_NO_OPTIONS);
   }  /* if */
 }  /* gen_friend_function_decl_name */
 
@@ -2200,8 +2213,9 @@ Routine to be called by the il_to_str routines to output a name.
   if (kind == iek_type) {
     gen_type_reference((a_type_ptr)entry);
   } else {
-    gen_name((a_source_correspondence *)entry, kind,
-             (a_boolean)octl.force_qualified_name);
+    a_gen_name_options_set options = GNO_NO_OPTIONS;
+    if (octl.force_qualified_name) options |= GNO_FORCE_QUALIFIED_NAME;
+    gen_name((a_source_correspondence *)entry, kind, options);
   }  /* if */
 }  /* gen_name_reference */
 
@@ -3066,7 +3080,7 @@ is the one associated with the definition of the class.
   } else {
     /* Put out the name.  Note that a name will be generated for an
        unnamed class, which can be useful for casts. */
-    gen_type_name(type);
+    gen_name(&type->source_corresp, iek_type, GNO_DECLARATION);
     write_space();
   }  /* if */
   /* Put out the class definition. */
@@ -5689,7 +5703,7 @@ Generate code for a namespace definition or namespace alias declaration.
     */
     write_tok_str(" = ");
     gen_name(&nsp->variant.assoc_namespace->source_corresp,
-             iek_namespace, /*force_qualified_name=*/FALSE);
+             iek_namespace, GNO_NO_OPTIONS);
     write_tok_ch(';');
   } else {
     /* Not a namespace alias, and therefore a namespace definition (either
@@ -5731,8 +5745,7 @@ Generate code for a namespace "using" directive.
   /* Position the output file to the "using" position. */
   set_output_position(&udp->position);
   write_tok_str("using namespace ");
-  gen_name(&nsp->source_corresp, iek_namespace,
-           /*force_qualified_name=*/FALSE);
+  gen_name(&nsp->source_corresp, iek_namespace, GNO_NO_OPTIONS);
   write_tok_ch(';');
 }  /* gen_using_directive */
 
