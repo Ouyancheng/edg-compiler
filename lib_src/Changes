@@ -1,3 +1,16 @@
+Version 2.29
+
+7/7/95    USE_SYSTEM_JMP_BUF_DEFINITION in config.h
+
+In version 2.29, the runtime was changed to automatically configure
+the setjmp buffer to the size and type configured in the front end.
+This does not work if the buffer is a struct instead of an array.
+In such cases, the configuration flag USE_SYSTEM_JMP_BUF_DEFINITION should
+be set to TRUE, either on the compilation command line in the runtime
+Makefile or in the config.h file.  This causes setjmp.h to be included,
+and jmp_buf to be used as the type of the setjmp buffer.
+This is only needed when full portable exception handling is being used.
+-------------------------------------------------------------------------------
 Version 2.29, May 24, 1995
 
 5/23/95   More efficient means of recording array sizes
