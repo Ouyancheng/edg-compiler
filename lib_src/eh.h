@@ -82,12 +82,21 @@ typedef a_byte a_region_descr_flag_set;
 			   a constructor or destructor.  Not used in the
 			   portable scheme. */
 
+#if 0
+/*
+This flag is used by the Kuck & Associates inliner when not doing
+full portable EH lowering.  This flag is not used by the EDG supplied
+runtime.  Also, the DO_FULL_PORTABLE_EH_LOWERING and USING_KAI_INLINER
+flags are defined in the front end, but are not defined in the runtime
+config.h file.
+*/
 #if !DO_FULL_PORTABLE_EH_LOWERING && USING_KAI_INLINER
 #define RDF_LET_THIS            0x20
                         /* TRUE if address computed should be used as a 
-                           "formal this" parameter.  The region entry following this one
-                           describes what to do with the "formal this"
-                           pointer.  The following entry will have the
+                           "formal this" parameter.  The region entry
+                           following this one describes what to do
+                           with the "formal this" pointer.  The
+                           following entry will have the
                            RDF_THIS_PARAM_OFFSET flag set, and
                            possibly the RDF_LET_THIS flag set.
                            Chained RDF_LET_THIS entries allow object
@@ -98,6 +107,7 @@ typedef a_byte a_region_descr_flag_set;
                            More detailed information on RDF_LET_THIS
                            is available from KAI. */
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING && USING_KAI_INLINER */
+#endif /* 0 */
 
 
 #define NULL_REGION_NUMBER ((a_region_number)-1)
