@@ -1082,7 +1082,7 @@ memory or with an IL file.
     /* The IL is passed to the back end in memory, so it is always kept. */
     keep_memory = TRUE;
 #else /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-    /* Communication with the back end is via a file.  Usually the memory
+    /* Communication with the back end is via a file.  The memory
        is freed after it's been written to the IL file. */
     keep_memory = FALSE;
     if (may_be_building_new_pch()) {
@@ -1092,49 +1092,42 @@ memory or with an IL file.
          written the PCH or decided not to write one.  We can still trim the
          unused portion of the memory block at this time, though. */
       keep_memory = TRUE;
-    } else {
-#if MAINTAIN_NEEDED_FLAGS || MINIMAL_INLINING
-      a_boolean      write_region = TRUE;
-
-      if (rout != NULL) {
-        /* Memory for a function scope. */
-#if MAINTAIN_NEEDED_FLAGS
-        if (!rout->keep_definition_in_il || !rout->definition_needed) {
-          /* This memory region so far looks as if it's unneeded.  Hold on
-             to it for now.  If we make it to the end of the compilation with
-             the memory region still unneeded, we will have the option of
-             just freeing it at that point. */
-          write_region = FALSE;
-          keep_memory = TRUE;
-        }  /* if */
-#if DEBUG
-        if (db_flag_is_set("needed_flags")) {
-          fprintf(f_debug, "check_for_done_with_memory_region: ");
-          fprintf(f_debug, "%s writing memory region for ",
-                  write_region ? "" : "not");
-          db_name(&rout->source_corresp);
-          fprintf(f_debug, "\n");
-        }  /* if */
-#endif /* DEBUG */
-#endif /* MAINTAIN_NEEDED_FLAGS */
 #if MINIMAL_INLINING
-        if (inlining_enabled && rout->is_inline) {
-          /* Keep the region for an inline function so it can be used to
-             do inlining. */
-          keep_memory = TRUE;
-        }  /* if */
+    } else if (inlining_enabled && rout != NULL && rout->is_inline) {
+      /* Keep the region for an inline function so it can be used to
+         do inlining. */
+      keep_memory = TRUE;
 #endif /* MINIMAL_INLINING */
-        /* Don't write the memory region again if it has already been written.
-           This can happen for cases like inline functions where the function
-           is written out but kept in memory. */
-        if (index_for_il_file[region_number] != 0) {
-          write_region = FALSE;
-        }  /* if */
-      }  /* if */
-      /* Write the region to the file. */
-      if (write_region)
-#endif /* MAINTAIN_NEEDED_FLAGS || MINIMAL_INLINING */
-                        write_memory_region(region_number);
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+    } else if (one_instantiation_per_object &&
+               rout != NULL && rout->is_inline) {
+      /* In one-instantiation-per-object mode, keep an inline function
+         around so that its body can be swept for each instantiation that
+         needs it. */
+      keep_memory = TRUE;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#if MAINTAIN_NEEDED_FLAGS
+    } else if (rout != NULL &&
+               (!rout->keep_definition_in_il || !rout->definition_needed)) {
+      /* This memory region so far looks as if it's unneeded.  Hold on
+         to it for now.  If we make it to the end of the compilation with
+         the memory region still unneeded, we will have the option of
+         freeing it at that point. */
+      keep_memory = TRUE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
+    }  /* if */
+#if DEBUG
+    if (rout != NULL && (debug_level >= 3 || db_flag_is_set("needed_flags"))) {
+      fprintf(f_debug, "check_for_done_with_memory_region: ");
+      fprintf(f_debug, "%s memory region for ",
+              keep_memory ? "keeping" : "writing/freeing");
+      db_name(&rout->source_corresp);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+    if (!keep_memory) {
+      /* Write the region to the file and free it. */
+      write_memory_region(region_number);
     }  /* if */
 #endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
   }  /* if */
@@ -1155,14 +1148,11 @@ memory or with an IL file.
 
 void check_for_done_with_all_function_memory_regions(void)
 /*
-This routine is called to write out function memory regions that were not
-written out because definition_needed did not get set in the routine.
+This routine is called at the end of the compilation to write out
+function memory regions that were not previously written out.
 Such routines remain in the IL tree (a) if unneeded entities are not
-being eliminated, or (b) if they are marked with keep_definition_in_il but
-not definition_needed.  A routine with both definition_needed and
-keep_definition_in_il can be eliminated immediately (because nothing
-further can happen to it), but a routine with just keep_definition_in_il
-is kept around in case definition_needed might be set later.
+being eliminated, (b) if they are marked with keep_definition_in_il but
+not definition_needed, or (c) if they are inline.
 */
 {
   db_enter(5, "check_for_done_with_all_function_memory_regions");
@@ -1177,19 +1167,22 @@ is kept around in case definition_needed might be set later.
     } else {
       a_scope_ptr   sp = il_header.region_scope_entry[n];
       a_routine_ptr rout;
-      a_boolean     saved_definition_needed;
 
       check_assertion(sp->kind == (a_scope_kind)sck_function);
       rout = sp->variant.routine.ptr;
-      /* Mark the routine definition to be kept in the IL, to assure it will
-         be written out. */
-      set_routine_keep_definition_in_il(rout);
-      /* Set definition_needed temporarily so that
-         check_for_done_with_memory_region will release the memory. */
-      saved_definition_needed = rout->definition_needed;
-      rout->definition_needed = TRUE;
-      check_for_done_with_memory_region(n);
-      rout->definition_needed = saved_definition_needed;
+      check_assertion_str2(!rout->is_trivial_default_constructor,
+                           "check_for_done_with_all_function_memory_regions:",
+                           "trivial default constructor");
+#if DEBUG
+      if (debug_level >= 3 || db_flag_is_set("needed_flags")) {
+        fprintf(f_debug, "check_for_done_with_all_function_memory_regions: ");
+        fprintf(f_debug, "writing memory region for ");
+        db_name(&rout->source_corresp);
+        fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
+      write_memory_region(n);
+      free_memory_region(n);
     }  /* if */
   }  /* for */
   }
