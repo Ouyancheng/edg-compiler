@@ -362,9 +362,30 @@ as needed.
           walk_tree_and_set_needed((char *)scope, iek_scope);
         }  /* if */
       }  /* if */
+#if 0
+#else /* 0 */
+      /* For now, set the definition_needed flag on a class whenever the needed
+         flag is set. */
+      if (entry_kind == iek_type) {
+        a_type_ptr type = (a_type_ptr)entry_ptr;
+        if (is_immediate_class_type(type)) {
+          type->variant.class_struct_union.definition_needed = TRUE;
+        }  /* if */
+      }  /* if */
+#endif /* 0 */
       /* If this is an entry that might be redeclared or redefined later,
          do not walk its subtree now. */
-      if (should_not_walk_subtree(entry_ptr, entry_kind)) prune = TRUE;
+      if (should_not_walk_subtree(entry_ptr, entry_kind)) {
+        prune = TRUE;
+      } else if (entry_kind == iek_type) {
+        a_type_ptr type = (a_type_ptr)entry_ptr;
+        if (is_immediate_class_type(type) &&
+            !type->variant.class_struct_union.definition_needed) {
+          /* Don't walk the subtree of a class if its definition is not
+             needed. */
+          prune = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return prune;
@@ -463,13 +484,10 @@ to be kept.
         walk_tree_and_set_keep_in_il((char *)scope, iek_scope);
       }  /* if */
     }  /* if */
-    /* If this is an entry that might be redeclared or redefined later,
-       do not walk its subtree now. */
-    if (should_not_walk_subtree(entry_ptr, entry_kind)) prune = TRUE;
 #if 0
 #else /* 0 */
-    /* For now, set the definition_needed flag on a class whenever the needed
-       flag is set. */
+    /* For now, set the keep_definition_in_il flag on a class whenever the
+       keep_in_il flag is set. */
     if (entry_kind == iek_type) {
       a_type_ptr type = (a_type_ptr)entry_ptr;
       if (is_immediate_class_type(type)) {
@@ -477,6 +495,19 @@ to be kept.
       }  /* if */
     }  /* if */
 #endif /* 0 */
+    /* If this is an entry that might be redeclared or redefined later,
+       do not walk its subtree now. */
+    if (should_not_walk_subtree(entry_ptr, entry_kind)) {
+      prune = TRUE;
+    } else if (entry_kind == iek_type) {
+      a_type_ptr type = (a_type_ptr)entry_ptr;
+      if (is_immediate_class_type(type) &&
+          !type->variant.class_struct_union.keep_definition_in_il) {
+        /* Don't walk the subtree of a class if its definition is not
+           marked to be kept in the IL. */
+        prune = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return prune;
 }  /* prune_keep_in_il_walk */
