@@ -100,7 +100,7 @@ The access_flags string was retained for backward compatibility.
            In previous versions of the ABI, ambiguous bases were indicated
            by marking all instances of the base as inaccessible in the
 	   access string. */
-        is_ambiguous = ((bcsp->flags & BCS_AMBIGUOUS) == 0);
+        is_ambiguous = ((bcsp->flags & BCS_AMBIGUOUS) != 0);
         result = !is_ambiguous;
         if (ptr != NULL) {
           if (bcsp->flags & BCS_VIRTUAL) {
