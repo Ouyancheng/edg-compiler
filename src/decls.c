@@ -4097,9 +4097,8 @@ otherwise it is NULL.  The syntax is:
        passed on in the recursive call.) */
     declarator(~(~input_flags | DI_PARENTHESIZED_INITIALIZER_ALLOWED),
                &local_do_flags, /*specifiers_type=*/(a_type_ptr)NULL,
-               /*member_parent_type=*/(a_type_ptr)NULL,
-               locator, &derived_type, &bottom_derived_type, func_info,
-               dim_expr_ptr);
+               member_parent_type, locator, &derived_type,
+               &bottom_derived_type, func_info, dim_expr_ptr);
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
     }  /* if */
