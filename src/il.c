@@ -8512,6 +8512,57 @@ static a_boolean eliminate_unneeded_scope_orphaned_list_headers(
 }  /* eliminate_unneeded_scope_orphaned_list_headers */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
+void eliminate_bodies_of_unneeded_functions(void)
+/*
+*/
+{
+  a_memory_region_number  n;
+  a_scope_ptr             sp;
+  a_routine_ptr           rp;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr   ssep;
+  a_src_seq_secondary_decl_ptr  sssdp;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+  /* Loop through the memory regions.  Skip the front end and file scope
+     memory regions. */
+  for (n = FILE_SCOPE_REGION_NUMBER + 1;
+       n <= highest_used_region_number;
+       ++n) {
+    if (mem_region_table[n] == NULL) {
+      /* This memory has already been freed. */
+    } else {
+      sp = il_header.region_scope_entry[n];
+      check_assertion(sp->kind == (a_scope_kind)sck_function);
+      rp = sp->variant.routine.ptr;
+      if (!rp->source_corresp.needed) {
+        rp->defined = FALSE;
+        rp->assoc_scope = NULL_region_number;
+        rp->type->variant.routine.extra_info->assoc_routine = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        ssep = rp->source_corresp.source_sequence_entry;
+        if (ssep != NULL) {
+          check_assertion(ssep->entity.ptr == (char *)rp);
+          sssdp = alloc_src_seq_secondary_decl();
+          sssdp->entity = ssep->entity;
+          ssep->entity.ptr = (char *)sssdp;
+          ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+          sssdp->decl_position = rp->source_corresp.decl_position;
+          sssdp->declared_type = rp->type;
+          sssdp->friend_decl = rp->defined_in_friend_decl;
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        rp->defined_in_friend_decl = FALSE;
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+        (void)eliminate_unneeded_scope_orphaned_list_headers(sp, rp);
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+        free_memory_region(n);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* eliminate_bodies_of_unneeded_functions */
+
+
 void eliminate_unneeded_il_entries(a_scope_ptr scope)
 /*
 */
@@ -8708,31 +8759,6 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
 #endif /* DEBUG */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (scope->kind == (a_scope_kind)sck_file) {
-    /* Loop through the memory regions.  Skip the front end and file scope
-       memory regions. */
-    a_memory_region_number  n;
-    a_scope_ptr             sp;
-
-    for (n = FILE_SCOPE_REGION_NUMBER + 1;
-         n <= highest_used_region_number; ++n) {
-      if (mem_region_table[n] == NULL) {
-        /* This memory has aleady been freed. */
-      } else {
-        sp = il_header.region_scope_entry[n];
-        check_assertion(sp->kind == (a_scope_kind)sck_function);
-        rp = sp->variant.routine.ptr;
-        if (!rp->source_corresp.needed) {
-          rp->defined = FALSE;
-          rp->assoc_scope = NULL;
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-          (void)eliminate_unneeded_scope_orphaned_list_headers(sp, rp);
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-          free_memory_region(n);
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
   db_exit();
 }  /* eliminate_unneeded_il_entries */
 
