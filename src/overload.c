@@ -9385,6 +9385,9 @@ happen only in C++ mode.
         class_bitwise_copy = FALSE;
       }  /* if */
     }  /* if */
+  } else if (conversion->unknown_dependent_conversion) {
+    /* Conversion to or from an unknown template-dependent type in a
+       prototype instantiation. */
   } else if (conversion_routine == NULL) {
     /* There was a previous error. */
 #if CHECKING
@@ -9477,6 +9480,14 @@ happen only in C++ mode.
                                           class_type,
                                           &source_operand->position);
     dip->variant.expression = make_node_from_operand(source_operand);
+  } else if (conversion->unknown_dependent_conversion) {
+    /* Conversion to or from an unknown template-dependent type in a
+       prototype instantiation. */
+    /* Set the dynamic init entry to represent "constructor" initialization,
+       leaving the constructor pointer NULL. */
+    dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
+    dip->variant.constructor.ptr = NULL;
+    dip->variant.constructor.args = make_node_from_operand(source_operand);
   } else if (conversion_routine != NULL) {
     /* conversion_routine is a constructor (copy or other). */
     set_up_for_constructor_call(source_operand, conversion_routine,
