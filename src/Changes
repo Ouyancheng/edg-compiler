@@ -1,5 +1,12 @@
 Version 3.6
 
+11/22/04 Microsoft compatibility: value of __cplusplus for 7.1
+
+In older versions of MSVC++, the macro__cplusplus was defined as 1
+instead of the 199711L required by the standard.  In MSVC++ 7.1
+this is corrected.  Therefore, we now set the macro to 199711L
+when microsoft_version >= 1310.
+
 11/19/04 Incorrect handling of template-id in friend declaration
 
 A friend declaration in which the declarator is a template-id that
