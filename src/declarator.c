@@ -308,15 +308,11 @@ array-to-pointer decay).
               if (is_function_type(tp) && !is_function_type(ptp->type)) {
                 /* Undo the change of a function type to pointer-to-function
                    type. */
-                check_assertion(is_pointer_type(tp) &&
-                                is_function_type(type_pointed_to(tp)));
                 ptp->type = type_pointed_to(ptp->type);
+                check_assertion(is_function_type(ptp->type));
               } else if (is_array_type(tp) && !is_array_type(ptp->type)) {
                 /* Undo array-to-pointer decay. */
-                a_type_ptr  new_type;
-
-                check_assertion(is_pointer_type(ptp->type));
-                new_type = alloc_type((a_type_kind)tk_array);
+                a_type_ptr new_type = alloc_type((a_type_kind)tk_array);
                 new_type->variant.array.element_type =
                                              type_pointed_to(ptp->type);
                 ptp->type = new_type;
