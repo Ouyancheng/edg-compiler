@@ -6958,10 +6958,13 @@ that follows.
   a_func_info_block             func_info;
   a_symbol_reference_kind       srk_flags = SRK_DECLARATION;
   a_boolean                     is_definition;
+  a_source_position             decl_start_pos;
 
   db_enter(3, "full_template_instantiation");
+  decl_start_pos = pos_curr_token;
   /* First scan the decl-specifiers. */
   (void)decl_specifiers((DSI_IS_TEMPLATE_SPECIALIZATION |
+                         DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                          DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
                          DSI_TYPE_SPECIFIER_ALLOWED |
@@ -7039,6 +7042,23 @@ that follows.
         is_definition = (curr_token == tok_lbrace ||
                          (curr_token == tok_colon &&
                           is_constructor_symbol(sym)));
+      }  /* if */
+      if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+        if (is_function_type(type)) {
+          if (is_constructor_symbol(sym) || is_destructor_symbol(sym) ||
+              is_conversion_function_symbol(sym)) {
+            /* No type specifier is required. */
+          } else if (is_definition) {
+            /* Omitted type specifier on a definition. */
+            pos_remark(ec_missing_type_specifier, &decl_start_pos);
+          } else {
+            /* Omitted type specifier on a declaration. */
+            pos_diagnostic(es_discretionary_error,
+                           ec_missing_type_specifier, &decl_start_pos);
+          }  /* if */
+        } else {
+          pos_warning(ec_missing_type_specifier, &decl_start_pos);
+        }  /* if */
       }  /* if */
       if (is_definition) srk_flags |= SRK_DEFINITION;
       /* Update cross reference info, etc. */
