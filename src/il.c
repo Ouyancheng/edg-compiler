@@ -1325,6 +1325,11 @@ Dump a dynamic initializer entry for debug purposes.
 {
   int a;
 
+  if (dip->variable != NULL) {
+    fputs("variable: \"", f_debug);
+    db_name(&dip->variable->source_corresp);
+    fputs("\", ", f_debug);
+  }  /* if */
   switch (dip->kind) {
     case dik_constant:
       db_static_initializer(dip->variant.constant);
