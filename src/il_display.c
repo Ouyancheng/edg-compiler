@@ -2121,6 +2121,10 @@ do_assoc_type:
   disp_ptr("constants", (char *)ptr->constants, iek_constant);
   disp_ptr("types", (char *)ptr->types, iek_type);
   disp_ptr("variables", (char *)ptr->variables, iek_variable);
+#ifdef CFE
+  disp_ptr("nonstatic_variables", (char *)ptr->nonstatic_variables,
+           iek_variable);
+#endif /* ifdef CFE */
   disp_ptr("labels", (char *)ptr->labels, iek_label);
   disp_ptr("routines", (char *)ptr->routines, iek_routine);
 #ifdef CFE
