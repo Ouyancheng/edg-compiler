@@ -622,7 +622,7 @@ and the class instantiation will detect the runaway case.
        a reference, we should set the referenced flag anyway, so that
        the back-end will be sure to generate the function. */ 
     var_ptr->source_corresp.referenced = TRUE;
-    var_ptr->is_instantiation = TRUE;
+    var_ptr->is_template_static_data_member = TRUE;
     tip->already_instantiated = TRUE;
     /* By pass end-of-source token, which is probably the terminator token
        in the cache. */
@@ -1551,7 +1551,7 @@ templ_sym).
   rp->special_kind = templ_rout->special_kind;
   rp->opname_kind = templ_rout->opname_kind;
   rp->is_inline = templ_rout->is_inline;
-  rp->is_instantiation = TRUE;
+  rp->is_template_function = TRUE;
   set_source_corresp(&rp->source_corresp, sym);
   rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
   /* Add it to the file scope routines list. */
@@ -1834,6 +1834,7 @@ the function instantiation entry and set all the pointers.
       if (rout_sym->defined) {
         /* User-defined, so no instantiation is required. */
         tip->specific_def = TRUE;
+        rout_sym->variant.routine.ptr->specific_def = TRUE;
       }  /* if */
       tssp = templ_sym->variant.template_info;
       tip->next = tssp->variant.function.instantiations;
@@ -1842,7 +1843,7 @@ the function instantiation entry and set all the pointers.
          point at each other. */
       tip->instance_sym = rout_sym;
       rout_sym->variant.routine.instance_ptr = tip;
-      rout_sym->variant.routine.ptr->is_instantiation = TRUE;
+      rout_sym->variant.routine.ptr->is_template_function = TRUE;
       /* Normally, function instantiation entries are not marked for actual
          instantiation (that is, for generation of the function body) until
          there is an invocation of the function.  This is partly under user
@@ -1974,7 +1975,7 @@ and create a function instantiation entry to bind the two symbols together.
   tip->instance_sym = rout_sym;
   rout_sym->variant.routine.instance_ptr = tip;
   /* Mark the routine entry as an instance of a member function template. */
-  rout_sym->variant.routine.ptr->is_instantiation = TRUE;
+  rout_sym->variant.routine.ptr->is_template_function = TRUE;
 
   db_exit();
 }  /* find_member_function_template */
@@ -2075,7 +2076,8 @@ Also, add the instance to the definitions list for the template.
   tssp->variant.static_data_member.definitions = tip;
   /* Mark the variable entry as an instance of a static data member
      template. */
-  static_data_member_sym->variant.variable.ptr->is_instantiation = TRUE;
+  static_data_member_sym->variant.variable.ptr->
+                                      is_template_static_data_member = TRUE;
 
   db_exit();
 }  /* find_static_data_member_template */
@@ -3369,6 +3371,7 @@ file we simply return.
   a_source_file_ptr	sfp;
   char			*full_file_name;
   FILE			*f_source;
+  a_boolean		is_system_include;
 
   db_enter(4, "do_implicit_include_if_needed");
   /* Translate the sequence number into a file name and line number. */
@@ -3395,16 +3398,13 @@ file we simply return.
       }  /* if */
 #endif /* DEBUG */
       sfp->related_file_implicit_include_done = TRUE;
+      is_system_include = sfp->included_by_system_include;
       /* Call a routine to search for a file with an appropriate suffix. */
-#if 0
-      f_source = open_file_for_input(sfp->file_name, incl_search_path,
+      f_source = open_file_for_input(sfp->file_name, 
+                                     is_system_include ? sys_incl_search_path :
+                                                         incl_search_path,
 				     /*replace_suffix=*/TRUE,
 				     &full_file_name);
-#else /* 0 */
-      f_source = open_file_for_input(sfp->file_name, sys_incl_search_path,
-				     /*replace_suffix=*/TRUE,
-				     &full_file_name);
-#endif /* 0 */
       if (f_source != NULL) {
         if (strcmp(full_file_name, sfp->full_name) != 0) {
 #if DEBUG
@@ -3416,7 +3416,8 @@ file we simply return.
              file found is not the same as the file we started with.  This
              could occur if the user included a .c file that contains a
              template declaration. */
-          push_input_stack(f_source, full_file_name, full_file_name);
+          push_input_stack(f_source, full_file_name, full_file_name,
+                           is_system_include);
           scan_implicitly_included_template_definition_file();
         } else {
           /* The file name returned by open_file_for_input is the same as
