@@ -1305,6 +1305,12 @@ Display the indicated variable.
                     iek_other_text, (sizeof_t)0);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  if (ptr->instantiation_needed_bit_number != 0) {
+    disp_unsigned_long("instantiation_needed_bit_number",
+                       (unsigned long)ptr->instantiation_needed_bit_number);
+  }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #ifdef FFE
   if (ptr->storage_class == (a_storage_class)sc_associated ||
       ptr->storage_class == (a_storage_class)sc_pointer_based) {
@@ -1686,6 +1692,12 @@ Display the indicated routine.
              iek_routine);
   }  /* if */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  if (ptr->instantiation_needed_bit_number != 0) {
+    disp_unsigned_long("instantiation_needed_bit_number",
+                       (unsigned long)ptr->instantiation_needed_bit_number);
+  }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #ifdef FFE
   disp_boolean("is_fortran_entry", (a_boolean)ptr->is_fortran_entry);
   disp_ptr("local_routine_scope", (char *)ptr->local_routine_scope, iek_scope);

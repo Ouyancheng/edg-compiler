@@ -945,9 +945,12 @@ typedef struct a_source_correspondence {
 			   field.  Bit N indicates whether the entity of
 			   which this is the source correspondence field is
 			   needed in the instantiation assigned number N.
-			   Bit 0 is used to indicate the things needed in
-			   the main body of the compilation, excluding the
-			   instantiations. */
+			   Bits are numbered from 1.  Bit 1 is the
+			   least-significant bit of the first byte; bit
+			   CHAR_BIT if the most-significant character of
+			   that same byte; bit CHAR_BIT+1 is the
+			   least-significant bit of the second byte; etc.
+			   NULL if not needed. */
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 } a_source_correspondence;
 
@@ -4144,6 +4147,13 @@ typedef struct a_variable {
 			/* When __declspec(allocate(segname)) is specified for
 			   a variable, pointer to a null-terminated segname. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  unsigned long	instantiation_needed_bit_number;
+			/* When a separate "needed" flag is maintained for
+			   each instantiation, this is the bit number
+			   associated with this (static data member) variable.
+			   0 if there is no associated bit. */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #ifdef FIL
   a_variable_ptr
                 base_var;
@@ -4657,6 +4667,13 @@ typedef struct a_routine {
 			   cast on top of an enk_result_of_overriding_function
 			   node. */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  unsigned long	instantiation_needed_bit_number;
+			/* When a separate "needed" flag is maintained for
+			   each instantiation, this is the bit number
+			   associated with this function.  0 if there is no
+			   associated bit. */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #ifdef FIL
   a_byte_boolean
                 is_fortran_entry;
