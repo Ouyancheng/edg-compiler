@@ -6597,11 +6597,19 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
 
 #if DEBUG
   if (debug_level >= 4) {
+    fprintf(f_debug, "coalesce_and_lookup_qualified_name: ");
     if (return_value) {
-      fprintf(f_debug, "coalesce_and_lookup_qualified_name: name = %s\n",
-              locator_for_curr_id.specific_symbol->header->identifier);
+      if (is_error_locator(locator_for_curr_id)) {
+        fprintf(f_debug, "<error>\n");
+      } else if (locator_for_curr_id.specific_symbol == NULL) {
+        fprintf(f_debug, "name = %s (no specific symbol)\n",
+                locator_for_curr_id.symbol_header->identifier);
+      } else {
+        fprintf(f_debug, "name = %s\n",
+                locator_for_curr_id.specific_symbol->header->identifier);
+      }  /* if */
     } else {
-      fprintf(f_debug, "coalesce_and_lookup_qualified_name: not qualified name\n");
+      fprintf(f_debug, "not qualified name\n");
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -6847,7 +6855,8 @@ Display and return the amount of space used for various lexical tables.
   total = after_end_of_curr_source_line - curr_source_line;
   db_space_used_general_buffer("curr_source_line", total);
   if (size_pragma_string_buffer != 0) {
-    db_space_used_general_buffer("pragma string", size_pragma_string_buffer);
+    db_space_used_general_buffer("pragma string",
+                                 ((unsigned long)size_pragma_string_buffer));
   }  /* if */
 
   if (after_end_of_raw_listing_buffer != NULL) {
