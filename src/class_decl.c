@@ -4487,32 +4487,40 @@ function declarations.)
     if (locator->is_operator_name) {
       /* If this is an assignment operator, record a pointer to it in the
          symbol -- to facilitate generating default assignment operators. */
-      if (rtn->opname_kind == (an_opname_kind)onk_assign) {
-        if (cssp->assignment_operator == NULL) {
-          cssp->assignment_operator = sym;
-        } else if (cssp->assignment_operator->kind ==
+      switch(rtn->opname_kind) {
+        case onk_assign:
+          if (cssp->assignment_operator == NULL) {
+            cssp->assignment_operator = sym;
+          } else if (cssp->assignment_operator->kind ==
                                     (a_symbol_kind)sk_overloaded_function) {
-          /* The overloaded function symbol is already registered. */
-        } else {
-          /* The overloaded function symbol was just created. */
-          cssp->assignment_operator = overload_sym;
-        }  /* if */
-      } else if (rtn->opname_kind == (an_opname_kind)onk_new) {
-        cssp->has_operator_new = TRUE;
-      } else if (rtn->opname_kind == (an_opname_kind)onk_array_new) {
-        cssp->has_operator_array_new = TRUE;
-      } else if (rtn->opname_kind == (an_opname_kind)onk_delete) {
-        cssp->has_operator_delete = TRUE;
-      } else if (rtn->opname_kind == (an_opname_kind)onk_array_delete) {
-        cssp->has_operator_array_delete = TRUE;
-      } else if (rtn->opname_kind == (an_opname_kind)onk_arrow) {
-        /* For operator->() do a special check on the return type.  It must
-           be something that can be used as a pointer -- either a pointer
-           to a class or an object of or reference to a class for which
-           operator->() is defined (ARM 13.4.6). */
-        check_operator_arrow_return_type(rtn, /*is_expr_use=*/FALSE,
-                                         &locator->source_position);
-      }  /* if */
+            /* The overloaded function symbol is already registered. */
+          } else {
+            /* The overloaded function symbol was just created. */
+            cssp->assignment_operator = overload_sym;
+          }  /* if */
+          break;
+        case onk_new:
+          cssp->has_operator_new = TRUE;
+          break;
+        case onk_array_new:
+          cssp->has_operator_array_new = TRUE;
+          break;
+        case onk_delete:
+          cssp->has_operator_delete = TRUE;
+          break;
+        case onk_array_delete:
+          cssp->has_operator_array_delete = TRUE;
+          break;
+        case onk_arrow:
+          /* For operator->() do a special check on the return type.  It must
+             be something that can be used as a pointer -- either a pointer
+             to a class or an object of or reference to a class for which
+             operator->() is defined (ARM 13.4.6). */
+          check_operator_arrow_return_type(rtn, /*is_expr_use=*/FALSE,
+                                           &locator->source_position);
+          break;
+        default:;
+      }  /* switch */
     } else if (locator->is_conversion_name) {
       /* Create a conversion list entry.  This list provides an alternative
          to traversing the entire symbols list for a class to find its
@@ -7411,11 +7419,93 @@ returned TRUE if this is a microsoft-style anonymous union.
     /* This is a free-standing declaration of a class, struct, union, or
        enum. */
     set_autonomous_tag_decl_flag(member_type,
-                                 (dso_flags & DSO_DECLARES_SOMETHING) != 0);
+                                 (dso_flags & DSO_DEFINES_SOMETHING) != 0);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* check_missing_declarator_in_member_declaration */
 
+
+static void check_complete_member_type(a_type_ptr         *type,
+                                       a_symbol_locator   *locator,
+                                       a_storage_class    storage_class,
+                                       a_source_position  *decl_start_pos,
+                                       a_boolean          *return_type_def_err,
+                                       a_boolean          defines_something,
+                                       a_boolean          is_nonreal_class)
+/*
+This routine is called after declarator to perform some checks on the type
+produced by the combined processing of decl_specifiers and declarator. "type"
+is the complete type.  storage_class is the storage class that was specified.
+locator points to the symbol locator for the member.  *decl_start_pos indicates
+the source position of the start of the declaration.  *return_type_def_error
+is set once a definition-in-return-type error has been issued (so it won't
+be put out more than once).  defines_something is TRUE when decl_specifiers
+has scanned a class or enum definition.  is_nonreal is TRUE when the class
+is a non-real instantiation.
+*/
+{
+  if (storage_class != (a_storage_class)sc_typedef) {
+    if (is_abstract_class_type(*type)) {
+      /* Abstract class objects are prohibited (ARM 10.3). */
+      pos_error(ec_abstract_class_object_not_allowed,
+                &locator->source_position);
+    } else if (any_cfront_mode() &&
+               check_member_function_typedef(*type,
+                                             &locator->source_position)) {
+      /* This is declaration using a member function typedef.  A typedef has
+         been previously been declared like this:
+              typedef void A::t(int);  // Nonstandard
+         meaning "t" names a routine type taking an int argument, returning
+         void, and having an implicit this-param type of const-ptr-to-A.
+         (This "member function typedef" is not part of the standard language
+         nor of the ARM; it's allowed for cfront compatibility only.)  The
+         only supported use is to declare a pointer-to-member type, e.g.,
+              t *pm;                   // Okay
+         Whereas it is apparently being used here to declare a function, e.g.,
+              t f;                     // Error
+         The diagnostic has already been issued by the subroutine, but change
+         the type to an error type. */
+      *type = error_type();
+    }  /* if */
+  }  /* if */
+  if (defines_something) {
+    /* A class or enum definition was scanned as part of this declaration.
+       However, it is explicitly prohibited to define a type in a function
+       return type.  This is taken to apply to pointer-to-function type
+       declarations as well to the function declarations. */
+    if (*return_type_def_err) {
+      /* Error has already been issued. */
+    } else {
+      a_type_ptr  tp = *type;
+      for (;;) {
+        if (is_function_type(tp)) {
+          /* Function type in which the return type involves a
+             definition. */
+          pos_error(ec_type_def_not_allowed_in_func_type_decl,
+                    decl_start_pos);
+          *return_type_def_err = TRUE;
+          break;
+        } else if (is_ptr_or_ref_type(tp)) {
+          /* Get type pointed to and continue. */
+          tp = type_pointed_to(tp);
+        } else if (is_ptr_to_member_type(tp)) {
+          /* Get member type and continue. */
+          tp = pm_member_type(tp);
+        } else {
+          /* No function type can be involved.  Stop looping. */
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  if (is_nonreal_class && is_function_type(*type)) {
+    /* The class is a non-real template instantiation.  Go through the
+       parameters for this function type, and if any of the associated types
+       involves a template parameter, mark the param type entry; this is
+       useful for function arg matching. */
+    set_type_involves_template_param_flags(*type);
+  }  /* if */
+}  /* check_complete_member_type */
 
 
 a_boolean scan_class_definition(a_type_ptr       class_type,
@@ -7454,7 +7544,6 @@ completed (C++ only).
   a_boolean                        any_const_or_ref_fields = FALSE;
   a_boolean                        is_template_instantiation;
   a_boolean                        is_nonreal_instantiation = FALSE;
-  a_boolean                        error_on_def_in_return_type_already_issued;
   an_override_registry_entry_ptr   override_registry = NULL;
   a_stop_token_array               save_stop_token_array;
   a_template_symbol_supplement_ptr class_tssp;
@@ -7595,6 +7684,7 @@ completed (C++ only).
         a_boolean            is_destructor, is_constructor;
         a_boolean            is_anonymous_union, is_nonstd_anonymous_union;
         a_boolean            mutable_specified, explicit_specified;
+        a_boolean            return_type_def_err;
 
         add_stop_token(tok_semicolon);
         /* Move cached #pragma declarations (if any) to the current scope
@@ -7757,7 +7847,7 @@ completed (C++ only).
         }  /* if */
         /* A declarator list should be present.  Scan it. */
         first_declarator = TRUE;
-        error_on_def_in_return_type_already_issued = FALSE;
+        return_type_def_err = FALSE;
         do {
           a_symbol_locator   locator;
           a_type_ptr         local_type;
@@ -7875,71 +7965,15 @@ completed (C++ only).
                        friend_specified ? (a_type_ptr)NULL : class_type,
                        &locator, &local_type, &declarator_ssep, &func_info);
             if (!C_mode()) {
+              remove_stop_token(tok_lbrace);
               /* Check whether this is a non-standard typedef declaration. */
               cfront_member_function_typedef =
                   declarator_output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
-              remove_stop_token(tok_lbrace);
-              if (member_storage_class != (a_storage_class)sc_typedef) {
-                if (is_abstract_class_type(local_type)) {
-                  /* Abstract class objects are prohibited (ARM 10.3). */
-                  pos_error(ec_abstract_class_object_not_allowed,
-                            &locator.source_position);
-                } else if (any_cfront_mode() &&
-                           check_member_function_typedef(
-                                                 local_type,
-                                                 &locator.source_position)) {
-                  /* This is declaration using a member function typedef.  A
-                     typedef has been previously been declared like this:
-                          typedef void A::t(int);  // Nonstandard
-                     meaning "t" names a routine type taking an int argument
-                     and returning void and having an implicit this-param type
-                     of const-ptr-to-A.  (This "member function typedef" is
-                     not part of the language of the ARM  and is allowed for
-                     cfront compatibility only.)  The only supported use is
-                     to declare a pointer-to-member type, e.g.,
-                          t *pm;                   // Okay
-                     Whereas it is apparently being used here to declare a
-                     function, e.g.,
-                            t f;                     // Error
-                     The diagnostic has already been issued by the subroutine,
-                     but change the type to an error type. */
-                  local_type = error_type();
-                }  /* if */
-              }  /* if */
-              if (local_defines_something &&
-                  !error_on_def_in_return_type_already_issued) {
-                /* The ARM (8.2.5) explicitly prohibits defining a type in
-                   a function return type.  This is taken to apply to
-                   pointer-to-function type declarations as well to the
-                   function declarations. */
-                a_type_ptr  tp = local_type;
-                for (;;) {
-                  if (is_function_type(tp)) {
-                    /* Function type in which the return type involves a
-                       definition. */
-                    pos_error(ec_type_def_not_allowed_in_func_type_decl,
-                              &decl_start_pos);
-                    error_on_def_in_return_type_already_issued = TRUE;
-                    break;
-                  } else if (is_ptr_or_ref_type(tp)) {
-                    /* Get type pointed to and continue. */
-                    tp = type_pointed_to(tp);
-                  } else if (is_ptr_to_member_type(tp)) {
-                    /* Get member type and continue. */
-                    tp = pm_member_type(tp);
-                  } else {
-                    /* No function type can be involved.  Stop looping. */
-                    break;
-                  }  /* if */
-                }  /* for */
-              }  /* if */
-              if (is_nonreal_instantiation && is_function_type(local_type)) {
-                /* Go through the parameters for this function type.  If any
-                   of the associated types involves a template parameter,
-                   mark the param type entry; this is useful for function
-                   arg matching. */
-                set_type_involves_template_param_flags(local_type);
-              }  /* if */
+              check_complete_member_type(&local_type, &locator,
+                                         member_storage_class, &decl_start_pos,
+                                         &return_type_def_err,
+                                         local_defines_something,
+                                         is_nonreal_instantiation);
             }  /* if */
           }  /* if */
           remove_stop_token(tok_colon);
@@ -7951,48 +7985,6 @@ completed (C++ only).
             a_special_function_kind
                            spec_kind = (a_special_function_kind)sfk_none;
 
-            if (friend_specified) {
-              if (virtual_specified ||
-                  member_storage_class != (a_storage_class)sc_unspecified) {
-                /* A storage class declaration along with "friend" is not
-                   allowed. */
-                pos_error(ec_bad_friend_decl, &decl_start_pos);
-                set_to_error_locator(locator);
-                if (virtual_specified) {
-                  virtual_specified = FALSE;
-                  suppress_pure_specifier_error = TRUE;
-                }  /* if */
-                member_storage_class = (a_storage_class)sc_unspecified;
-              }  /* if */
-            } else {
-              if ((is_constructor || is_destructor) &&
-                  member_storage_class == (a_storage_class)sc_static) {
-                /* Constructors and destructors may not be declared
-                   "static" (ARM 12.1, 12.4). */
-                pos_error(ec_static_not_allowed, &decl_start_pos);
-                member_storage_class = (a_storage_class)sc_unspecified;
-              }  /* if */
-              if (virtual_specified) {
-                if (is_constructor || is_union_type(class_type)) {
-                  /* Constructors may not be virtual functions (ARM 12.1)
-                     and unions may not have them (ARM 9.5). */
-                  pos_error(ec_virtual_not_allowed, &decl_start_pos);
-                  virtual_specified = FALSE;
-                  suppress_pure_specifier_error = TRUE;
-                } else if (member_storage_class ==
-                                         (a_storage_class)sc_static ||
-                           (locator.is_operator_name &&
-                            (is_new_operator(locator.variant.opname) ||
-                             is_delete_operator(locator.variant.opname)))) {
-                  /* Only nonstatic member functions may be specified as
-                     virtual.  This applies to operators new and delete
-                     since they are always static (ARM 12.5). */
-                  pos_error(ec_virtual_static_not_allowed, &decl_start_pos);
-                  virtual_specified = FALSE;
-                  suppress_pure_specifier_error = TRUE;
-                }  /* if */
-              }  /* if */
-            }  /* if */
             if (mutable_specified) {
               /* "mutable" is only allowed on nonstatic data member decls. */
               pos_error(ec_mutable_not_allowed, &decl_start_pos);
@@ -8082,11 +8074,50 @@ completed (C++ only).
             func_info.is_inline = inline_specified || function_def_present;
             if (friend_specified) {
               /* Process a friend function declaration. */
+              if (virtual_specified ||
+                  member_storage_class != (a_storage_class)sc_unspecified) {
+                /* A storage class declaration along with "friend" is not
+                   allowed. */
+                pos_error(ec_bad_friend_decl, &decl_start_pos);
+                set_to_error_locator(locator);
+                if (virtual_specified) {
+                  virtual_specified = FALSE;
+                  suppress_pure_specifier_error = TRUE;
+                }  /* if */
+                member_storage_class = (a_storage_class)sc_unspecified;
+              }  /* if */
               rout_sym = decl_friend_function(&locator, class_type,
                                               local_type, &func_info,
                                               decl_modifiers);
             } else {
               /* Must be a member function declaration. */
+              if ((is_constructor || is_destructor) &&
+                  member_storage_class == (a_storage_class)sc_static) {
+                /* Constructors and destructors may not be declared
+                   "static" (ARM 12.1, 12.4). */
+                pos_error(ec_static_not_allowed, &decl_start_pos);
+                member_storage_class = (a_storage_class)sc_unspecified;
+              }  /* if */
+              if (virtual_specified) {
+                if (is_constructor || is_union_type(class_type)) {
+                  /* Constructors may not be virtual functions (ARM 12.1)
+                     and unions may not have them (ARM 9.5). */
+                  pos_error(ec_virtual_not_allowed, &decl_start_pos);
+                  virtual_specified = FALSE;
+                  suppress_pure_specifier_error = TRUE;
+                } else if (member_storage_class ==
+                                         (a_storage_class)sc_static ||
+                           (locator.is_operator_name &&
+                            (is_new_operator(locator.variant.opname) ||
+                             is_delete_operator(locator.variant.opname)))) {
+                  /* Only nonstatic member functions may be specified as
+                     virtual.  This applies to operators new and delete
+                     since they are always static (ARM 12.5). */
+                  pos_error(ec_virtual_static_not_allowed, &decl_start_pos);
+                  virtual_specified = FALSE;
+                  suppress_pure_specifier_error = TRUE;
+                }  /* if */
+              }  /* if */
               if (is_constructor || virtual_specified) {
                 /* A class with a user-defined constructor or a virtual
                    function cannot be an "aggregate" (8.5.1). */
