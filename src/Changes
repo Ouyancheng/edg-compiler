@@ -113,7 +113,9 @@ This required the addition of a new expression operator eok_binary_question,
 which can be lowered to a normal eok_question (IL CHANGE).
 [9/27/01] extern inline [10/1/01] The sizeof operator is applicable to void
 and function types and evaluates to the value one.  Arithmetic on pointers
-to these types is possible (they behave much like char*).
+to these types is possible (they behave much like char*). [10/2/01] Variables
+can be redeclared with different top-level cv-qualifiers (the new qualification
+is merged into existing qualifiers).
 
 8/28/01  C++-generating back end: unnamed classes/structs not given names
 
