@@ -461,6 +461,7 @@ check_abbreviation()
 --debug
 --define_macro
 --definition_list_file
+--dep_name
 --dependencies
 --designators
 --diag_error
@@ -526,6 +527,7 @@ check_abbreviation()
 --no_compound_literals
 --no_const_string_literals
 --no_definition_list_file
+--no_dep_name
 --no_designators
 --no_distinct_template_signatures
 --no_enum_overloading
@@ -1026,6 +1028,8 @@ process_option()
          --no_base_assign_op_is_default | \
          --sun | \
          --no_sun | \
+         --dep_name | \
+         --no_dep_name | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
