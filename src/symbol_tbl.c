@@ -4394,8 +4394,6 @@ save_as_decl_position is TRUE, the position is saved as the decl_position
 for the symbol.
 */
 {
-  a_source_correspondence *scptr;
-
   if (f_xref_info != NULL) {
     /* If writing cross-reference information, write an entry for this
        declaration. */
@@ -4404,9 +4402,6 @@ for the symbol.
   /* Put the decl_position in the symbol. */
   if (save_as_decl_position) {
     sym_ptr->decl_position = *source_position;
-    /* Also put the decl_position in the IL entry if there is one. */
-    scptr = source_corresp_entry_for_symbol(sym_ptr);
-    if (scptr != NULL) scptr->decl_position = *source_position;
   }  /* if */
 }  /* mark_declared */
 
