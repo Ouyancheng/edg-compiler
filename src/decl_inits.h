@@ -33,6 +33,8 @@ extern void initializer(a_symbol_ptr       symbol_ptr,
 extern a_boolean def_initializer(a_symbol_ptr       sym,
                                  a_source_position  *err_pos);
 
+extern a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout);
+
 #endif /* ifndef DECL_INITS_H */
 
 /******************************************************************************
