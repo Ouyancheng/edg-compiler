@@ -35,7 +35,7 @@ Scan a "near" or "far" memory attribute, setting a bit in *qualifiers if
 there is no error.
 */
 {
-  a_type_qualifier_set new_qualifiers;
+  a_type_qualifier_set new_qualifier;
 
   if (curr_token == tok_near) {
     new_qualifier = TQ_NEAR;
@@ -50,7 +50,7 @@ there is no error.
   } else if ((*qualifiers & (TQ_NEAR | TQ_FAR)) != TQ_NONE) {
     /* The other bit has already been set -- error. */
     error(ec_mem_attrib_incompatible);
-    new_qualifiers = TQ_NONE;
+    new_qualifier = TQ_NONE;
   }  /* if */
   *qualifiers |= new_qualifier;
   (void)get_token();        
