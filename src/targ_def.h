@@ -234,83 +234,6 @@ but only with modifications to IL lowering and support in the back end.
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
 /*
-Alignment required of pointers to malloc'd space (i.e., the maximum
-alignment required by the host computer).  Use "1" if there are no
-alignment requirements.  This must be defined as an actual constant
-rather than as something like "sizeof(int)"; see mem_manage.h.
-Note that space allocated by malloc must provide at least this
-alignment, or the front end is powerless to provide the requested
-alignment.
-
-This is really a host configuration macro, and as such should be
-in host_envir.h.  However, the most sensible default takes into
-account whether LONG_LONG_ALLOWED is set, and that is only known
-here.
-*/
-#ifndef HOST_ALIGNMENT_REQUIRED
-#ifdef __alpha
-/* Alpha always needs 8 byte alignment. */
-#define HOST_ALIGNMENT_REQUIRED 8
-#else /* ifndef __alpha */
-#if defined(__i386) && !defined(__CYGWIN__)
-/* Intel architecture only required 4 byte alignment, even with long long.
-   The Windows convention is 8 byte alignment, however.  Windows compilers
-   other than Cygwin do not seem to set __i386, so the test above
-   essentially checks for i386 Unix compilers. */
-#define HOST_ALIGNMENT_REQUIRED 4
-#else /* !(defined(__i386) && !defined(__CYGWIN__)) */
-#if LONG_LONG_ALLOWED
-#define HOST_ALIGNMENT_REQUIRED 8
-#else /* !LONG_LONG_ALLOWED */
-#define HOST_ALIGNMENT_REQUIRED 4
-#endif /* LONG_LONG_ALLOWED */
-#endif /* defined(__i386) && !defined(__CYGWIN__) */
-#endif /* ifdef __alpha */
-#endif /* ifndef HOST_ALIGNMENT_REQUIRED */
-
-/*
-The alignment required by host pointers.  This is used to determine the
-size of the prefix allocated as part of each IL entry.  Four byte alignment
-is correct for most systems.  When checking code is enabled, the value of
-this macro is checked when the front end is executed.
-*/
-#ifndef HOST_POINTER_ALIGNMENT
-#ifdef __alpha
-/* Alpha always needs 8 byte alignment. */
-#define HOST_POINTER_ALIGNMENT 8
-#else /* ifndef __alpha */
-#define HOST_POINTER_ALIGNMENT 4
-#endif /* ifdef __alpha */
-#endif /* ifndef HOST_POINTER_ALIGNMENT */
-
-/*
-The alignment required for the an_il_entry_prefix structure defined in
-mem_tables.h.  This is used to determine the size of the prefix allocated
-as part of each IL entry.  The IL entry prefix alignment must be a multiple
-of HOST_POINTER_ALIGNMENT because things like the file scope orphan pointer
-are stored immediately before the IL prefix and must be suitably aligned.
-Because of this requirement, the default value based on HOST_POINTER_ALIGNMENT
-is correct in most cases.  When checking code is enabled, the value of
-this macro is checked when the front end is executed.  The check ensures
-that the value is large enough.  The preprocessor test below makes sure
-the value is a multiple of HOST_POINTER_ALIGNMENT.
-*/
-#ifndef HOST_IL_ENTRY_PREFIX_ALIGNMENT
-#define HOST_IL_ENTRY_PREFIX_ALIGNMENT HOST_POINTER_ALIGNMENT
-#endif /* ifndef HOST_IL_ENTRY_PREFIX_ALIGNMENT */
-
-/*
-The value of HOST_IL_ENTRY_PREFIX_ALIGNMENT must be a multiple of the value
-of HOST_POINTER_ALIGNMENT to ensure the correct alignment of addresses
-computed to access pointer "fields" preceding an IL prefix (file-scope
-orphan pointers and/or translation unit copy addresses).
-*/
-#if (HOST_IL_ENTRY_PREFIX_ALIGNMENT % HOST_POINTER_ALIGNMENT) != 0
- #error -- HOST_IL_ENTRY_PREFIX_ALIGNMENT must be multiple of \
-           HOST_POINTER_ALIGNMENT
-#endif /* (HOST_IL_ENTRY_PREFIX_ALIGNMENT % HOST_POINTER_ALIGNMENT) != 0 */
-
-/*
 Target byte order.  Little-endian means the least-significant part of a
 multi-byte integer is at the lowest memory address.
 */
@@ -3515,6 +3438,85 @@ aren't enabled.
 #endif /* !ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 #endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE && DO_IL_LOWERING */
 #endif /* ifndef ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
+
+/*
+Alignment required of pointers to malloc'd space (i.e., the maximum
+alignment required by the host computer).  Use "1" if there are no
+alignment requirements.  This must be defined as an actual constant
+rather than as something like "sizeof(int)"; see mem_manage.h.
+Note that space allocated by malloc must provide at least this
+alignment, or the front end is powerless to provide the requested
+alignment.
+
+This is really a host configuration macro, and as such should be
+in host_envir.h.  However, the most sensible default takes into
+account whether LONG_LONG_ALLOWED is set, and that is only known
+here.
+*/
+#ifndef HOST_ALIGNMENT_REQUIRED
+#ifdef __alpha
+/* Alpha always needs 8 byte alignment. */
+#define HOST_ALIGNMENT_REQUIRED 8
+#else /* ifndef __alpha */
+#if defined(__i386) && !defined(__CYGWIN__)
+/* Intel architecture only required 4 byte alignment, even with long long.
+   The Windows convention is 8 byte alignment, however.  Windows compilers
+   other than Cygwin do not seem to set __i386, so the test above
+   essentially checks for i386 Unix compilers. */
+#define HOST_ALIGNMENT_REQUIRED 4
+#else /* !(defined(__i386) && !defined(__CYGWIN__)) */
+/* Use 8 byte alignment if long long is supported and we are using a host
+   integer to represent integer values. */
+#if LONG_LONG_ALLOWED && INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+#define HOST_ALIGNMENT_REQUIRED 8
+#else /* !(LONG_LONG_ALLOWED && INTEGER_VALUE_REPR_IS_A_HOST_INTEGER) */
+#define HOST_ALIGNMENT_REQUIRED 4
+#endif /* LONG_LONG_ALLOWED && INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+#endif /* defined(__i386) && !defined(__CYGWIN__) */
+#endif /* ifdef __alpha */
+#endif /* ifndef HOST_ALIGNMENT_REQUIRED */
+
+/*
+The alignment required by host pointers.  This is used to determine the
+size of the prefix allocated as part of each IL entry.  Four byte alignment
+is correct for most systems.  When checking code is enabled, the value of
+this macro is checked when the front end is executed.
+*/
+#ifndef HOST_POINTER_ALIGNMENT
+#ifdef __alpha
+/* Alpha always needs 8 byte alignment. */
+#define HOST_POINTER_ALIGNMENT 8
+#else /* ifndef __alpha */
+#define HOST_POINTER_ALIGNMENT 4
+#endif /* ifdef __alpha */
+#endif /* ifndef HOST_POINTER_ALIGNMENT */
+
+/*
+The alignment required for the an_il_entry_prefix structure defined in
+mem_tables.h.  This is used to determine the size of the prefix allocated
+as part of each IL entry.  The IL entry prefix alignment must be a multiple
+of HOST_POINTER_ALIGNMENT because things like the file scope orphan pointer
+are stored immediately before the IL prefix and must be suitably aligned.
+Because of this requirement, the default value based on HOST_POINTER_ALIGNMENT
+is correct in most cases.  When checking code is enabled, the value of
+this macro is checked when the front end is executed.  The check ensures
+that the value is large enough.  The preprocessor test below makes sure
+the value is a multiple of HOST_POINTER_ALIGNMENT.
+*/
+#ifndef HOST_IL_ENTRY_PREFIX_ALIGNMENT
+#define HOST_IL_ENTRY_PREFIX_ALIGNMENT HOST_POINTER_ALIGNMENT
+#endif /* ifndef HOST_IL_ENTRY_PREFIX_ALIGNMENT */
+
+/*
+The value of HOST_IL_ENTRY_PREFIX_ALIGNMENT must be a multiple of the value
+of HOST_POINTER_ALIGNMENT to ensure the correct alignment of addresses
+computed to access pointer "fields" preceding an IL prefix (file-scope
+orphan pointers and/or translation unit copy addresses).
+*/
+#if (HOST_IL_ENTRY_PREFIX_ALIGNMENT % HOST_POINTER_ALIGNMENT) != 0
+ #error -- HOST_IL_ENTRY_PREFIX_ALIGNMENT must be multiple of \
+           HOST_POINTER_ALIGNMENT
+#endif /* (HOST_IL_ENTRY_PREFIX_ALIGNMENT % HOST_POINTER_ALIGNMENT) != 0 */
 
 #endif /* !defined(TARG_DEF_H) */
 
