@@ -113,6 +113,26 @@ lowered IL.
 }  /* lowered_complex_type */
 
 
+static a_field_ptr complex_vals_field(a_type_ptr ctype)
+/*
+ctype is a complex type, possibly lowered.  Return a pointer to the
+single field in the struct for the lowered version of the type.
+*/
+{
+  a_field_ptr field;
+
+  ctype = skip_typerefs(ctype);
+  if (ctype->kind == (a_type_kind)tk_complex) {
+    /* Not lowered yet.  Substitute the proper lowered type. */
+    ctype = lowered_complex_type(ctype->variant.float_kind);
+  }  /* if */
+  check_assertion(ctype->kind == (a_type_kind)tk_struct);
+  field = ctype->variant.class_struct_union.field_list;
+  check_assertion(field != NULL && field->next == NULL);
+  return field;
+}  /* complex_vals_field */
+
+
 /* Complex arithmetic and comparison routines. */
 static a_routine_ptr  xnegate_routine[(int)fk_last];
 static a_routine_ptr  xadd_routine[(int)fk_last];
@@ -600,6 +620,106 @@ division followed by a sign inversion ( a/(b*__I__) = -(a/b)*__I__ ).
 }  /* lower_c99_jdivide */
 
 
+static void lower_real_imag_add_subtract(an_expr_node_ptr expr)
+/*
+Lower a mixed real/imaginary add/subtract operation, i.e.,
+
+  eok_fjadd      real      + imaginary
+  eok_jfadd      imaginary + real
+  eok_fjsubtract real      - imaginary
+  eok_jfsubtract imaginary - real
+
+The code for these assembles a complex value from the two parts,
+negating one part in the "-" case.
+*/
+{
+  a_variable_ptr   temp_var = make_lowered_temporary(expr->type);
+  an_expr_node_ptr real_part_lvalue, imag_part_lvalue;
+  an_expr_node_ptr operand_1, operand_2, assign_1, assign_2, comma_node;
+  a_field_ptr      vals_field = complex_vals_field(expr->type);
+  a_type_ptr       ptr_to_elem_type;
+
+  /* We will assign the proper values to the components in the temporary,
+     then use the temporary as the result. */
+  /* Make "*(temp._Vals)" as the lvalue for the real part. */
+  real_part_lvalue = field_lvalue_selection_expr(var_lvalue_expr(temp_var),
+                                                 vals_field);
+  ptr_to_elem_type = type_after_array_to_pointer_transformation(
+                                                             vals_field->type);
+  real_part_lvalue = add_cast(real_part_lvalue, ptr_to_elem_type);
+  /* Make "temp._Vals[1]" as the lvalue for the imaginary part. */
+  imag_part_lvalue = field_lvalue_selection_expr(var_lvalue_expr(temp_var),
+                                                 vals_field);
+  imag_part_lvalue = add_cast(imag_part_lvalue, ptr_to_elem_type);
+  imag_part_lvalue->next = node_for_integer_constant((long)1,
+                                                     targ_ptrdiff_t_int_kind);
+  imag_part_lvalue = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
+                                        ptr_to_elem_type, imag_part_lvalue);
+  operand_1 = expr->variant.operation.operands;
+  operand_2 = operand_1->next;
+  operand_1->next = NULL;
+  switch (expr->variant.operation.kind) {
+    case eok_fjadd:
+      /* Real + imaginary.
+           (temp.real = operand_1, temp.imag = operand_2)
+      */
+      real_part_lvalue->next = operand_1;
+      assign_1 = make_operator_node((an_expr_operator_kind)eok_fassign,
+                                    operand_1->type, real_part_lvalue);
+      imag_part_lvalue->next = operand_2;
+      assign_2 = make_operator_node((an_expr_operator_kind)eok_fassign,
+                                    operand_2->type, imag_part_lvalue);
+      break;
+    case eok_jfadd:
+      /* Imaginary + real.
+           (temp.imag = operand_1, temp.real = operand_2)
+      */
+      imag_part_lvalue->next = operand_1;
+      assign_1 = make_operator_node((an_expr_operator_kind)eok_fassign,
+                                    operand_1->type, imag_part_lvalue);
+      real_part_lvalue->next = operand_2;
+      assign_2 = make_operator_node((an_expr_operator_kind)eok_fassign,
+                                    operand_2->type, real_part_lvalue);
+      break;
+    case eok_fjsubtract:
+      /* Real - imaginary.
+           (temp.real = operand_1, temp.imag = -operand_2)
+      */
+      real_part_lvalue->next = operand_1;
+      assign_1 = make_operator_node((an_expr_operator_kind)eok_fassign,
+                                    operand_1->type, real_part_lvalue);
+      operand_2 = make_operator_node((an_expr_operator_kind)eok_fnegate,
+                                     operand_2->type, operand_2);
+      imag_part_lvalue->next = operand_2;
+      assign_2 = make_operator_node((an_expr_operator_kind)eok_fassign,
+                                    operand_2->type, imag_part_lvalue);
+      break;
+    case eok_jfsubtract:
+      /* Imaginary - real.
+           (temp.imag = operand_1, temp.real = -operand_2)
+      */
+      imag_part_lvalue->next = operand_1;
+      assign_1 = make_operator_node((an_expr_operator_kind)eok_fassign,
+                                    operand_1->type, imag_part_lvalue);
+      operand_2 = make_operator_node((an_expr_operator_kind)eok_fnegate,
+                                     operand_2->type, operand_2);
+      real_part_lvalue->next = operand_2;
+      assign_2 = make_operator_node((an_expr_operator_kind)eok_fassign,
+                                    operand_2->type, real_part_lvalue);
+      break;
+    default:
+      unexpected_condition_str("lower_real_imag_add_subtract: bad operator");
+  }  /* switch */
+  /* Combine the two assignments with a comma. */
+  comma_node = make_comma_node(assign_1, assign_2);
+  /* Add another comma to return the temporary as the result of the
+     operation.  This node is created by overwriting the original node. */
+  comma_node->next = var_rvalue_expr(temp_var);
+  set_node_operator(expr, (an_expr_operator_kind)eok_comma,
+                    expr->type, comma_node);
+}  /* lower_real_imag_add_subtract */
+
+
 static void lower_c99_complex_cast(an_expr_node_ptr  expr)
 /*
 Transform the given complex cast expression into a function call
@@ -915,6 +1035,13 @@ Otherwise, do nothing.
       break;
     case eok_jdivide:
       lower_c99_jdivide(expr);
+      break;
+    case eok_fjadd:
+    case eok_jfadd:
+    case eok_fjsubtract:
+    case eok_jfsubtract:
+      /* Mixed real/imaginary add/subtract. */
+      lower_real_imag_add_subtract(expr);
       break;
 #endif /* LOWER_COMPLEX */
     case eok_cast:

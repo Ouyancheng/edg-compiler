@@ -1,5 +1,20 @@
 Version 3.2
 
+5/6/03   C99 real + imaginary: new IL operators
+
+The mixed real/imaginary add/subtract cases in C99 are now represented
+by specialized expression operators (IL CHANGE):
+
+  eok_fjadd      real      + imaginary
+  eok_jfadd      imaginary + real
+  eok_fjsubtract real      - imaginary
+  eok_jfsubtract imaginary - real
+
+These differ from the former implementation, of converting to
+complex and adding, in that they preserve unusual values such as
+negative zeroes.  The new operators are rewritten by lowering, so
+customers who use lowering will not see these new operators.
+
 5/6/03   Microsoft compatibility: nonstandard uses of typename
 
 The standard requires that the typename keyword be followed by

@@ -3617,7 +3617,9 @@ to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
     case tok_minus:
     case tok_plus_assign:
     case tok_minus_assign:
-      if (is_imaginary_type(type_1) && is_imaginary_type(type_2)) {
+      is_imaginary_1 = is_imaginary_type(type_1);
+      is_imaginary_2 = is_imaginary_type(type_2);
+      if (is_imaginary_1 && is_imaginary_2) {
         /* Imaginary + imaginary gives imaginary.  Likewise for -. */
         is_special = TRUE;
         fkind_1 = type_1->variant.float_kind;
@@ -3643,6 +3645,37 @@ to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
           default:
             unexpected_condition();
         }  /* switch */
+      } else if ((op_token == tok_plus || op_token == tok_minus) &&
+                 ((is_imaginary_1 && is_real_floating_type(type_2)) ||
+                  (is_imaginary_2 && is_real_floating_type(type_1)))) {
+        /* Real + imaginary and similar combinations have special
+           operators.  We do not convert first to complex and then add
+           or subtract, because (a) it's less efficient, and (b) it
+           destroys negative zeroes.  See G.5.2 in the C99 standard. 
+           Note that += and -= are not handled specially. */
+        is_special = TRUE;
+        fkind_1 = type_1->variant.float_kind;
+        fkind_2 = type_2->variant.float_kind;
+        fkind_result = promoted_float_kind(fkind_1, fkind_2);
+        *result_type = complex_type(fkind_result);
+        /* Determine the IL operator to use. */
+        if (op_token == tok_plus) {
+          if (is_imaginary_2) {
+            /* Real + imaginary. */
+            *op = (an_expr_operator_kind)eok_fjadd;
+          } else {
+            /* Imaginary + real. */
+            *op = (an_expr_operator_kind)eok_jfadd;
+          }  /* if */
+        } else {
+          if (is_imaginary_2) {
+            /* Real - imaginary. */
+            *op = (an_expr_operator_kind)eok_fjsubtract;
+          } else {
+            /* Imaginary - real. */
+            *op = (an_expr_operator_kind)eok_jfsubtract;
+          }  /* if */
+        }  /* if */
       }  /* if */
       break;
     case tok_star:

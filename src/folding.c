@@ -3434,6 +3434,74 @@ Do the division of a real number by an imaginary number (any precision).
 #endif /* DEBUG */
 }  /* do_jdivide */
 
+
+static void do_real_imag_add_subtract(a_constant            *constant_1,
+                                      an_expr_operator_kind op,
+                                      a_constant            *constant_2,
+                                      a_constant            *result,
+                                      an_error_code         *err_code,
+                                      an_error_severity     *err_severity)
+/*
+Do mixed real/imaginary addition and subtraction, i.e.,
+
+  eok_fjadd      real      + imaginary
+  eok_jfadd      imaginary + real
+  eok_fjsubtract real      - imaginary
+  eok_jfsubtract imaginary - real
+
+These differ from simply converting to complex and adding, by the
+preservation of negative zeroes.
+*/
+{
+  a_boolean    err = FALSE;
+  a_type_ptr   constant_type = skip_typerefs(constant_1->type);
+  a_float_kind float_kind = constant_type->variant.float_kind;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  set_constant_kind(result, (a_constant_repr_kind)ck_complex);
+  switch (op) {
+    case eok_fjadd:
+      /* Real + imaginary. */
+      result->variant.complex_value->real = constant_1->variant.float_value;
+      result->variant.complex_value->imag = constant_2->variant.float_value;
+      break;
+    case eok_jfadd:
+      /* Imaginary + real. */
+      result->variant.complex_value->imag = constant_1->variant.float_value;
+      result->variant.complex_value->real = constant_2->variant.float_value;
+      break;
+    case eok_fjsubtract:
+      /* Real - imaginary. */
+      result->variant.complex_value->real = constant_1->variant.float_value;
+      fp_negate(float_kind,
+                &constant_2->variant.float_value,
+                &result->variant.complex_value->imag,
+                &err);
+      break;
+    case eok_jfsubtract:
+      /* Imaginary - real. */
+      result->variant.complex_value->imag = constant_1->variant.float_value;
+      fp_negate(float_kind,
+                &constant_2->variant.float_value,
+                &result->variant.complex_value->real,
+                &err);
+      break;
+    default:
+      unexpected_condition_str("do_real_imag_add_subtract: bad operator");
+  }  /* switch */
+  if (err) {
+    *err_code = ec_bad_complex_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+#if DEBUG
+  db_binary_operation(db_operator_names[op],
+                      constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_real_imag_add_subtract */
+
+
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 a_boolean valid_address_constant(a_constant *constant,
@@ -4154,6 +4222,14 @@ as the position for any diagnostics issued.
         case eok_jdivide:
           do_jdivide(constant_1, constant_2, result,
                      &err_code, &err_severity, &depends_on_rounding_mode);
+          break;
+        case eok_fjadd:
+        case eok_jfadd:
+        case eok_fjsubtract:
+        case eok_jfsubtract:
+          /* Mixed real/imaginary addition/subtraction. */
+          do_real_imag_add_subtract(constant_1, op, constant_2, result,
+                                    &err_code, &err_severity);
           break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 

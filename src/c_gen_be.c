@@ -4196,6 +4196,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_fadd:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xadd:
+        case eok_fjadd:
+        case eok_jfadd:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_padd:
         case eok_padd_subsc:
@@ -4205,6 +4207,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_fsubtract:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xsubtract:
+        case eok_fjsubtract:
+        case eok_jfsubtract:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_psubtract:
         case eok_pdiff:
