@@ -2904,18 +2904,18 @@ End a name scope by popping an entry off the scope stack.
        both in the file scope and in each of the namespace scopes. */
     end_of_file_scope_needed_flags_phase = TRUE;
     set_needed_flags_at_end_of_file_scope(il_scope);
+    end_of_file_scope_needed_flags_phase = FALSE;
     /* Don't bother pruning the IL of unneeded entries if errors were seen. */
     if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
     if (okay_to_eliminate_unneeded_il_entries) {
-        /* Eliminate all function bodies for unneeded functions.  Note that
-           the function declarations are not removed at this point. */
-        eliminate_bodies_of_unneeded_functions();
-      }  /* if */
-    /* Set the "keep_in_il" flag for all file-scope IL entries that must
-       be kept to maintain the integrity of the IL. */
-    mark_to_keep_in_il_at_end_of_file_scope(il_scope);
-    end_of_file_scope_needed_flags_phase = FALSE;
-    if (okay_to_eliminate_unneeded_il_entries) {
+      /* Eliminate all function bodies for unneeded functions.  Note that
+         the function declarations are not removed at this point. */
+      eliminate_bodies_of_unneeded_functions();
+      /* Set the "keep_in_il" flag for all file-scope IL entries that must
+         be kept to maintain the integrity of the IL. */
+      end_of_file_scope_needed_flags_phase = TRUE;
+      mark_to_keep_in_il_at_end_of_file_scope(il_scope);
+      end_of_file_scope_needed_flags_phase = FALSE;
       /* Now all IL entries that are really needed are so marked, and other
          entries that they may depend on are also marked, with "keep_in_il"
          set to TRUE.  Everything else can be eliminated from the IL. */
