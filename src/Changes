@@ -1,5 +1,19 @@
 Version 2.46
 
+1/29/02  Repeated friend class declarations (IL Change)
+
+The front end use to avoid duplicates in the representation of friend class
+declarations.  For example:
+
+  class X {
+    friend class F;
+    friend class F;  // Used to be ignored (with a remark)
+  };
+
+For the above example, the IL now records class F twice as a friend of class X
+and class X appears twice on the list of class befriending class F.  A remark
+is still emitted.
+
 1/28/02  Error recovery abort on invalid nested class of class template
 
 An abort could occur during the fixup processing for a member of a

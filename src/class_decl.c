@@ -4838,20 +4838,18 @@ the current class (class_type).
           break;
         }  /* if */
       }  /* for */
-      if (clep == NULL) {
-        /* No duplication was detected. */
-        clep = alloc_list_entry_for_class();
-        clep->class_type = class_type;
-        clep->next = ctsp->befriending_classes;
-        ctsp->befriending_classes = clep;
-        /* Now add the friend_class_type to the friends list for the current
-           class. */
-        ctsp = class_type->variant.class_struct_union.extra_info;
-        clep = alloc_list_entry_for_class();
-        clep->class_type = friend_class_type;
-        clep->next = ctsp->friend_classes;
-        ctsp->friend_classes = clep;
-      }  /* if */
+      /* No duplication was detected. */
+      clep = alloc_list_entry_for_class();
+      clep->class_type = class_type;
+      clep->next = ctsp->befriending_classes;
+      ctsp->befriending_classes = clep;
+      /* Now add the friend_class_type to the friends list for the current
+         class. */
+      ctsp = class_type->variant.class_struct_union.extra_info;
+      clep = alloc_list_entry_for_class();
+      clep->class_type = friend_class_type;
+      clep->next = ctsp->friend_classes;
+      ctsp->friend_classes = clep;
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     {
