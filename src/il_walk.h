@@ -186,6 +186,13 @@ extern void walk_declarative_entities_in_scope(
 
 #endif /* NEED_DECLARATIVE_WALK */
 
+typedef void a_type_list_processing_routine(a_type_ptr type_list);
+typedef a_type_list_processing_routine *a_type_list_processing_routine_ptr;
+
+extern void process_local_types(
+                   a_scope_ptr                        scope,
+                   a_type_list_processing_routine_ptr list_processing_routine);
+
 #endif /* IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS || NEED_DECLARATIVE_WALK */
                      
 #endif /* ifndef IL_WALK_H */

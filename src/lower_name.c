@@ -31,6 +31,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #if NEED_NAME_MANGLING
 #if DO_IL_LOWERING
 #include "templates.h"
+#include "il_walk.h"
 #endif /* DO_IL_LOWERING */
 
 /*
@@ -3007,101 +3008,16 @@ or a static data member (e.g., not a file scope variable).
 /* Declaration required because of forward reference: */
 static void do_scope_other_name_mangling(a_scope_ptr scope);
 
-typedef void a_type_list_name_mangling_routine(a_type_ptr type_list);
-typedef a_type_list_name_mangling_routine
-		*a_type_list_name_mangling_routine_ptr;
-
-static void do_local_scope_name_mangling(
-                   a_scope_ptr                           scope,
-                   a_type_list_name_mangling_routine_ptr list_mangling_routine)
-/*
-Process local types in or under the indicated scope (a file, namespace, class,
-function, or block scope) by calling the indicated routine to mangle a
-type list.  Do not process local types that are already on an orphaned
-scope list.
-*/
-{
-  a_routine_ptr   routine;
-  a_type_ptr      type;
-  a_namespace_ptr nsp;
-  a_scope_ptr     subscope;
-
-  /* Visit all functions. */
-  for (routine = scope->routines;
-       routine != NULL;
-       routine = routine->next) {
-    if (routine->assoc_scope != NULL_region_number) {
-      a_scope_ptr func_scope =
-                            il_header.region_scope_entry[routine->assoc_scope];
-      /* Process a function's scope if its orphan lists have not yet
-         been generated. */
-      if (func_scope != NULL &&
-          !func_scope->function_body_processing_finished) {
-        do_local_scope_name_mangling(func_scope, list_mangling_routine);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  if (scope->kind == (a_scope_kind)sck_function ||
-      scope->kind == (a_scope_kind)sck_block) {
-    /* Function and block scopes we encounter at this level should
-       not have orphan lists generated. */
-    check_assertion(!scope->scope_orphaned_list_header_generated);
-    /* Process all local types. */
-    list_mangling_routine(scope->types);
-  }  /* if */
-  /* Visit classes with definitions in order to process any subscopes. */
-  for (type = scope->types;
-       type != NULL;
-       type = type->next) {
-    if (is_immediate_class_type(type)) {
-      a_scope_ptr class_scope =
-                      type->variant.class_struct_union.extra_info->assoc_scope;
-      if (class_scope != NULL) {
-        do_local_scope_name_mangling(class_scope, list_mangling_routine);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  /* Visit all namespaces. */
-  for (nsp = scope->namespaces;
-       nsp != NULL;
-       nsp = nsp->next) {
-    if (!nsp->is_namespace_alias) {
-      do_local_scope_name_mangling(nsp->variant.assoc_scope,
-                                   list_mangling_routine);
-    }  /* if */
-  }  /* for */
-  /* Visit all block scopes. */
-  for (subscope = scope->scopes;
-       subscope != NULL;
-       subscope = subscope->next) {
-    do_local_scope_name_mangling(subscope, list_mangling_routine);
-  }  /* for */
-}  /* do_local_scope_name_mangling */
-
 
 static void do_local_name_mangling(
-                   a_type_list_name_mangling_routine_ptr list_mangling_routine)
+                      a_type_list_processing_routine_ptr list_mangling_routine)
 /*
 For local types in the current translation unit, call the indicated
 mangling routine for type lists.  When orphan lists have been generated,
 use them; otherwise, visit the local scopes from the routine scope.
 */
 {
-  a_scope_orphaned_list_header_ptr solhp;
-
-  for (solhp = il_header.scope_orphaned_list_headers;
-       solhp != NULL;
-       solhp = solhp->next) {
-    list_mangling_routine(solhp->orphaned_types);
-  }  /* for */
-  if (is_primary_translation_unit &&
-      secondary_translation_unit_seen()) {
-    /* Templates instantiated late in the primary translation unit have
-       their lowering delayed, and therefore their orphan lists are
-       not constructed yet.  Visit the local scopes directly. */
-    do_local_scope_name_mangling(il_header.primary_scope,
-                                 list_mangling_routine);
-  }  /* if */
+  process_local_types(il_header.primary_scope, list_mangling_routine);
 }  /* do_local_name_mangling */
 
 
@@ -3163,10 +3079,9 @@ thereunder.  Note that this does not include final processing for type names.
 
 static void do_scope_class_name_mangling(a_scope_ptr scope)
 /*
-Do name mangling for class names in the indicated scope (a file, namespace,
-function, or block scope) and all subscopes.  Note that this does not
-include final processing for type names.  Subscopes are not processed
-for function and block scopes (the caller does that).
+Do name mangling for class names in the indicated scope (a file or
+namespace scope) and all subscopes.  Note that this does not include
+final processing for type names.
 */
 {
   a_namespace_ptr nsp;
@@ -3335,10 +3250,8 @@ static void do_scope_other_name_mangling(a_scope_ptr scope)
 /*
 Do name mangling for things other than classes (e.g., functions, static
 data members) in the indicated scope and its subscopes.  The scope is
-the file scope, a namespace scope, a function or block scope, or a class
-scope.  If the scope is the file scope, function-local entities are also
-processed.  Subscopes are not processed for function and block scopes
-(the caller does that).
+a file, namespace, or class scope.  If the scope is the file scope,
+function-local entities are also processed.
 */
 {
   a_namespace_ptr nsp;
@@ -3534,9 +3447,7 @@ also processed.
 static void do_scope_final_name_mangling(a_scope_ptr scope)
 /*
 Do final name mangling for all type, function, and variable names in the
-indicated scope (a file, namespace, function, block, or class scope) and
-all subscopes.  Subscopes are not processed for function and block scopes
-(the caller does that).
+indicated scope (a file, namespace, or class scope) and all subscopes.
 */
 {
   a_namespace_ptr nsp;

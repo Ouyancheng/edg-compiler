@@ -223,14 +223,17 @@ referenced by exported templates.
 static void externalize_statics_for_exported_templates(a_scope_ptr scope)
 /*
 Externalize all statics in the indicated scope and its subscopes as potentially
-referenced by exported templates.
+referenced by exported templates.  The scope is the file scope, a namespace
+scope, or a class scope.
 */
 {
   a_routine_ptr   rout;
   a_variable_ptr  var;
   a_namespace_ptr nsp;
-  a_scope_ptr     subscope;
 
+  check_assertion(scope->kind == (a_scope_kind)sck_file ||
+                  scope->kind == (a_scope_kind)sck_namespace ||
+                  scope->kind == (a_scope_kind)sck_class_struct_union);
   externalize_type_list_statics_for_exported_templates(scope->types);
   for (rout = scope->routines; rout != NULL; rout = rout->next) {
     if (rout->storage_class == (a_storage_class)sc_static) {
@@ -238,24 +241,22 @@ referenced by exported templates.
                                                 iek_routine);
     }  /* if */
   }  /* for */
-  /* Local static variables do not get externalized. */
-  if (scope->kind != (a_scope_kind)sck_function &&
-      scope->kind != (a_scope_kind)sck_block) {
-    for (var = scope->variables; var != NULL; var = var->next) {
-      if (var->storage_class == (a_storage_class)sc_static) {
-        externalize_entity_for_exported_templates(&var->source_corresp,
-                                                  iek_variable);
-      }  /* if */
-    }  /* for */
-  }  /* if */
+  for (var = scope->variables; var != NULL; var = var->next) {
+    if (var->storage_class == (a_storage_class)sc_static) {
+      externalize_entity_for_exported_templates(&var->source_corresp,
+                                                iek_variable);
+    }  /* if */
+  }  /* for */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
       externalize_statics_for_exported_templates(nsp->variant.assoc_scope);
     }  /* if */
   }  /* for */
-  for (subscope = scope->scopes; subscope != NULL; subscope = subscope->next) {
-    externalize_statics_for_exported_templates(subscope);
-  }  /* for */
+  if (scope->kind == (a_scope_kind)sck_file) {
+    /* Process all local types. */
+    process_local_types(scope,
+                        externalize_type_list_statics_for_exported_templates);
+  }  /* if */
 }  /* externalize_statics_for_exported_templates */
 
 #endif /* DO_IL_LOWERING */
@@ -306,19 +307,10 @@ it needs to be executed after all templates have been instantiated.
        the names for statics referenced from templates are externalized. */
     do_all_name_mangling();
     if (any_exported_templates()) {
-      a_scope_orphaned_list_header_ptr solhp;
       /* In a compilation with exported templates, all statics are potentially
          referenced from templates.  Externalize them. */
       externalize_statics_for_exported_templates(
                                          curr_translation_unit->primary_scope);
-      /* Visit orphan lists to get local types. */
-      for (solhp= curr_translation_unit->il_header.scope_orphaned_list_headers;
-           solhp != NULL;
-           solhp = solhp->next) {
-        externalize_type_list_statics_for_exported_templates(
-                                                        solhp->orphaned_types);
-        /* Local static variables do not get externalized. */
-      }  /* for */
     }  /* if */
   }  /* if */
 #endif /* DO_IL_LOWERING */
