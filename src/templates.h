@@ -60,9 +60,11 @@ extern void f_check_for_uninstantiated_template_class(a_type_ptr  type);
 
 extern void f_instantiate_template_class(a_type_ptr  type);
 
-extern a_boolean equiv_template_arg_lists(a_template_arg_ptr list1,
-                                          a_template_arg_ptr list2,
-                                          a_boolean          is_func_template);
+extern a_boolean equiv_template_arg_lists(
+                                    a_template_arg_ptr list1,
+                                    a_template_arg_ptr list2,
+                                    a_boolean          is_func_template,
+                                    a_boolean          error_matches_anything);
 
 extern void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp);
 

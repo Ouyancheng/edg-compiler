@@ -1088,15 +1088,18 @@ and the class instantiation will detect the runaway case.
 }  /* define_template_static_data_member */
 
 
-a_boolean equiv_template_arg_lists(a_template_arg_ptr  list1,
-                                   a_template_arg_ptr  list2,
-                                   a_boolean           is_func_template)
+a_boolean equiv_template_arg_lists(a_template_arg_ptr list1,
+                                   a_template_arg_ptr list2,
+                                   a_boolean          is_func_template,
+                                   a_boolean          error_matches_anything)
 /*
 Return TRUE if the two linked lists of template arguments for a given template
 class or template function are equivalent -- that is, if corresponding type
 arguments refer to the same type and corresponding constant arguments refer to
 the same constant.  If is_func_template is TRUE, the lists will contain
-only type arguments.
+only type arguments.  If error_matches_anything is TRUE, an error type
+or constant will match anything (this is used for compatibility checking
+instead of equivalence checking).
 */
 {
   a_boolean           equiv;
@@ -1131,14 +1134,26 @@ only type arguments.
     if (!is_func_template && !arg1->is_type) {
       /* Both are constant arguments.  If they are not identical, this is a
          mismatch. */
-      if (!eq_constants(arg1->variant.constant, arg2->variant.constant)) {
+      a_constant_ptr con1 = arg1->variant.constant;
+      a_constant_ptr con2 = arg2->variant.constant;
+      if (eq_constants(con1, con2) ||
+          (error_matches_anything &&
+           (is_error_constant(con1) || is_error_constant(con2)))) {
+        /* Okay. */
+      } else {
         equiv = FALSE;
         break;
       }  /* if */
     } else {
       /* Both are type arguments.  If they are not identical, this is a
          mismatch. */
-      if (!identical_types(arg1->variant.type, arg2->variant.type)) {
+      a_type_ptr type1 = arg1->variant.type;
+      a_type_ptr type2 = arg2->variant.type;
+      if (identical_types(type1, type2) ||
+          (error_matches_anything &&
+           (is_error_type(type1) || is_error_type(type2)))) {
+        /* Okay. */
+      } else {
         equiv = FALSE;
         break;
       }  /* if */
@@ -1305,7 +1320,8 @@ included in the search.
     old_list = prototype_sym->variant.type->
                      variant.class_struct_union.extra_info->template_arg_list;
     if (equiv_template_arg_lists(old_list, *new_list,
-                                 /*is_func_template=*/FALSE)) {
+                                 /*is_func_template=*/FALSE,
+                                 /*error_matches_anything=*/FALSE)) {
       /* A match.  Set sym which will suppress any further search. */
       sym = prototype_sym;
     }  /* if */
@@ -1325,7 +1341,8 @@ included in the search.
       old_list = sym->variant.type->
                      variant.class_struct_union.extra_info->template_arg_list;
       if (equiv_template_arg_lists(old_list, *new_list,
-                                   /*is_func_template=*/FALSE)) {
+                                   /*is_func_template=*/FALSE,
+                                   /*error_matches_anything=*/FALSE)) {
         /* We've found a match.  Remove the found symbol from its current
            position in the instantiation list and add it to the front. */
         if (prev_sym != NULL) {
@@ -2712,7 +2729,8 @@ structure.
   prev_tip = NULL;
   for (; tip != NULL; tip = tip->next) {
     if (equiv_template_arg_lists(tip->arg_list, *new_list,
-                                 /*is_func_template=*/TRUE)) {
+                                 /*is_func_template=*/TRUE,
+                                 /*error_matches_anything=*/FALSE)) {
       /* We've found a match.  Remove the found function instantiation entry
          from its current position in the instantiation list and add it to
          the front. */
