@@ -1,5 +1,18 @@
 Version 2.45
 
+11/21/00 Richer template representation (IL CHANGE)
+
+A number of additions were made to the representation of template entities
+when the PROTOTYPE_INSTANTIATIONS_IN_IL configuration flag is TRUE:
+  - Every template IL entry (except those for template template parameters)
+    contains a pointer to a canonical template.  (The canonical declaration is
+    the first declaration.)
+  - The canonical template entry points to the template entry of the template
+    definition (if a definition was seen).
+  - The assoc_template field is now also set for nontemplate members of class
+    templates.  A placeholder template entry (without template parameter
+    information) is generated for these cases.
+
 11/20/00 printf argument checking and const char * arguments
 
 The argument checking done for printf (when #pragma __printf_args is

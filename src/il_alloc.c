@@ -2860,6 +2860,8 @@ fields, and return a pointer to it.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   tp->template_decl = NULL;
   tp->prototype_instantiation.type = NULL;
+  tp->canonical_template = NULL;
+  tp->definition_template = NULL;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   return tp;
 }  /* alloc_template */

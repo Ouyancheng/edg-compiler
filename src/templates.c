@@ -7646,6 +7646,12 @@ and create a function instantiation entry to bind the two symbols together.
     rout_sym->variant.routine.instance_ptr = tip;
     /* Mark the routine entry as an instance of a member function template. */
     rout_sym->variant.routine.ptr->is_template_function = TRUE;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    /* A placeholder a_template entry was created in the prototype
+       instantiation.  It serves as the associated "template". */
+    rout_sym->variant.routine.ptr->assoc_template =
+                                     sym->variant.routine.ptr->assoc_template;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }
 error_exit:
   db_exit();
@@ -7738,6 +7744,12 @@ Also, add the instance to the definitions list for the template.
     /* Mark the variable entry as an instance of a static data member
        template. */
     vp->is_template_static_data_member = TRUE;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    /* A placeholder a_template entry was created in the prototype
+       instantiation.  It serves as the associated "template". */
+    vp->assoc_template =
+                     sym->variant.static_data_member.variable->assoc_template;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   db_exit();
 }  /* find_static_data_member_template */
@@ -8383,33 +8395,58 @@ the prototype instantiation and updates the friend information for
 any classes that declared the nested class as a template friend.
 */
 {
-  a_symbol_ptr	ct_symbol;
-  a_scope_stack_entry_ptr	ssep;
-
-  ssep = &scope_stack[depth_innermost_instantiation_scope];
   if (sym->is_class_member) {
+    a_type_ptr   class_type = sym->variant.class_struct_union.type;
+    a_scope_stack_entry_ptr
+                 ssep = &scope_stack[depth_innermost_instantiation_scope];
     if (!ssep->in_prototype_instantiation) {
       /* Look for the prototype symbol that corresponds to this nested class
          symbol. */
-      ct_symbol = find_corresp_prototype_tag_sym(sym);
+      a_symbol_ptr  ct_symbol = find_corresp_prototype_tag_sym(sym);
       if (ct_symbol != NULL) {
         /* Set the pointer that points back to the original class template
            symbol. */
         a_class_symbol_supplement_ptr		cssp;
-        a_type_ptr				class_type;
         a_template_symbol_supplement_ptr	tssp;
         cssp = sym->variant.class_struct_union.extra_info;
         tssp = template_supplement_for_symbol(ct_symbol);
         next_instance_sym(sym) = tssp->variant.class_template.instantiations;
         tssp->variant.class_template.instantiations = sym;
         cssp->corresp_prototype_sym = ct_symbol;
-        class_type = sym->variant.class_struct_union.type;
         class_type->variant.class_struct_union.is_template_class = TRUE;
         /* Update the friend information associated with this template.
            These are the classes that declared this template as a friend. */
         update_befriending_classes_for_class(tssp, class_type);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        /* A placeholder a_template entry was created in the prototype
+           instantiation.  It serves as the associated "template". */
+        class_type->variant.class_struct_union.extra_info->assoc_template =
+             ct_symbol->variant.class_struct_union.type
+                      ->variant.class_struct_union.extra_info->assoc_template;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       } /* if */
     } else {
+      /* A nested class within a prototype instantiation. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      /* Although this is not a template, it is an instantiatable class and
+         hence we create a placeholder a_template entry for it. */
+      a_template_ptr  templ = alloc_template();
+      templ->kind = (a_template_kind)templk_member_class;
+      set_source_corresp(&templ->source_corresp, sym);
+      set_class_membership(sym, &templ->source_corresp,
+                           class_type->source_corresp.parent.class_type);
+      templ->source_corresp.access = class_type->source_corresp.access;
+      add_to_templates_list(templ, depth_scope_stack);
+      if (prototype_instantiations_in_il) {
+        templ->prototype_instantiation.type = class_type;
+      }  /* if */
+      templ->canonical_template = templ;
+      if (curr_token == tok_lbrace || curr_token == tok_colon) {
+        templ->definition_template = templ;
+      }  /* if */
+      class_type->variant.class_struct_union.extra_info->assoc_template =
+                                                                        templ;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       /* A nested class within a prototype instantiation.  Create the
          template symbol supplement for this class. */
       make_nested_class_template_supplement(sym, type_kind);
@@ -11113,6 +11150,10 @@ set, and its source sequence entry, if any, has been put out.)
 {
   a_boolean       err = FALSE;
   a_template_ptr  il_template_entry = decl_state->il_template_entry;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_symbol_ptr                      proto_sym = NULL;
+  a_template_symbol_supplement_ptr  tssp = NULL;
+#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   if (il_template_entry != NULL) {
     if (sym != NULL) {
@@ -11121,28 +11162,37 @@ set, and its source sequence entry, if any, has been put out.)
         case sk_class_template:
           il_template_entry->kind = (a_template_kind)templk_class;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+          proto_sym = prototype_template_of(sym);
+          tssp = template_supplement_for_symbol(proto_sym);
           if (prototype_instantiations_in_il) {
-            a_symbol_ptr  proto_sym = prototype_template_of(sym);
-            proto_sym = template_supplement_for_symbol(proto_sym)
-                             ->variant.class_template.prototype_instantiation;
+            proto_sym = tssp->variant.class_template.prototype_instantiation;
             il_template_entry->prototype_instantiation.type =
                                                   type_symbol_type(proto_sym);
           } else {
             il_template_entry->prototype_instantiation.type = NULL;
+          }  /* if */
+          il_template_entry->canonical_template = tssp->il_template_entry;
+          if (decl_state->defines_something) {
+            tssp->il_template_entry->definition_template = il_template_entry;
           }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_function_template:
           il_template_entry->kind = (a_template_kind)templk_function;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+          proto_sym = prototype_template_of(sym);
+          tssp = template_supplement_for_symbol(proto_sym);
           if (prototype_instantiations_in_il &&
               nonclass_prototype_instantiations) {
-            a_symbol_ptr  proto_sym = prototype_template_of(sym);
             il_template_entry->prototype_instantiation.routine =
                                   template_supplement_for_symbol(proto_sym)
                                                    ->variant.function.routine;
           } else {
             il_template_entry->prototype_instantiation.routine = NULL;
+          }  /* if */
+          il_template_entry->canonical_template = tssp->il_template_entry;
+          if (decl_state->defines_something) {
+            tssp->il_template_entry->definition_template = il_template_entry;
           }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
@@ -11156,6 +11206,12 @@ set, and its source sequence entry, if any, has been put out.)
           } else {
             il_template_entry->prototype_instantiation.routine = NULL;
           }  /* if */
+          il_template_entry->canonical_template =
+                                     sym->variant.routine.ptr->assoc_template;
+          if (decl_state->defines_something) {
+            il_template_entry->canonical_template->definition_template =
+                                                            il_template_entry;
+          }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_static_data_member:
@@ -11168,6 +11224,12 @@ set, and its source sequence entry, if any, has been put out.)
           } else {
             il_template_entry->prototype_instantiation.variable = NULL;
           }  /* if */
+          /* An out-of-class static data member declaration is always a
+             definition. */
+          il_template_entry->canonical_template =
+                     sym->variant.static_data_member.variable->assoc_template;
+          il_template_entry->canonical_template->definition_template =
+                                                            il_template_entry;
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_class_or_struct_tag:
@@ -11180,6 +11242,13 @@ set, and its source sequence entry, if any, has been put out.)
                                                         type_symbol_type(sym);
           } else {
             il_template_entry->prototype_instantiation.type = NULL;
+          }  /* if */
+          il_template_entry->canonical_template =
+                   sym->variant.class_struct_union.type
+                      ->variant.class_struct_union.extra_info->assoc_template;
+          if (decl_state->defines_something) {
+            il_template_entry->canonical_template->definition_template =
+                                                            il_template_entry;
           }  /* if */
 #endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;

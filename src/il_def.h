@@ -7749,6 +7749,18 @@ typedef struct a_template {
 			/* A pointer to the prototype instantiation of the
 			   static data member definition of a class template */
   } prototype_instantiation;
+  a_template_ptr
+		canonical_template;
+			/* A pointer to the a_template entry associated with
+			   the representative declaration of this template.
+			   (Currently, this is the first declaration.) */
+  a_template_ptr
+		definition_template;
+			/* If this is the canonical a_template entry, this
+			   field points the a_template entry associated with
+			   the definition of this template (NULL if no
+			   definition appears in this translation unit).
+			   NULL for non-canonical entries. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 } a_template;
 

@@ -1686,6 +1686,8 @@ end_sizeof:;
                                "walk_entry_and_subtree: bad template kind");
             break;
         }  /* switch */
+        remap_ptr(ptr->canonical_template, a_template_ptr, iek_template);
+        remap_ptr(ptr->definition_template, a_template_ptr, iek_template);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         /* The template_info pointer should be NULL for any entry actually
            written and read. */
