@@ -10058,6 +10058,71 @@ If the entry is already on the list the new entry is ignored.
 }  /* add_to_instantiation_file_suffix_list */
 
 
+static void cache_to_compound_stmt(a_token_cache	*p_token_cache,
+				   a_token_set_array	stop_tokens)
+/*
+Cache tokens into p_token_cache until a left brace or semicolon is
+encountered.  stop_tokens is the stop token set to be used.
+*/
+{
+  incr_token_set_array_element(stop_tokens, tok_lbrace);
+  incr_token_set_array_element(stop_tokens, tok_semicolon);
+  cache_token_stream(p_token_cache, stop_tokens);
+  decr_token_set_array_element(stop_tokens, tok_lbrace);
+  decr_token_set_array_element(stop_tokens, tok_semicolon);
+}  /* cache_to_compound_stmt */
+
+
+static void cache_compound_stmt(a_token_cache		*p_token_cache,
+				a_token_set_array	stop_tokens)
+/*
+Cache a compound statement (i.e., "{...}") into p_token_cache.
+stop_tokens is the stop token set to be used.  After this routine is
+called the current token is the right brace, except for error cases.
+*/
+{
+  check_assertion(curr_token == tok_lbrace);
+  /* Cache the "{" and advance past it. */
+  cache_curr_token(p_token_cache);
+  (void)get_token();
+  /* Cache all tokens up to the "}" (or end-of-source). */
+  incr_token_set_array_element(stop_tokens, tok_rbrace);
+  cache_token_stream(p_token_cache, stop_tokens);
+  /* Cache the "}" and append an end-of-source token. */
+  if (curr_token == tok_rbrace) {
+    cache_curr_token(p_token_cache);
+    /* A get_token is intentionally not done -- the caller will
+       advance past the end of the template declaration. */
+  }  /* if */
+}  /* cache_compound_stmt */
+
+
+static void cache_catch_clauses(a_token_cache		*p_token_cache,
+				a_token_set_array	stop_tokens)
+/*
+Cache into p_token_cache the catch clauses that follow a function
+definition that are associated with a function try block.  stop_tokens
+is the stop token set to be used.  After this routine is
+called the current token is the right brace, except for error cases.
+*/
+{
+  while (next_token() == tok_catch) {
+    /* Advance past the right brace that has already been cached. */
+    (void)get_token();
+    /* Cache the "catch" and advance past it. */
+    cache_curr_token(p_token_cache);
+    (void)get_token();
+    /* Cache the parameter declaration. */
+    cache_to_compound_stmt(p_token_cache, stop_tokens);
+    /* Cache the catch compound statement. */
+    cache_compound_stmt(p_token_cache, stop_tokens);
+    /* Exit the loop if we are not at the expected close of the
+       compound statement. */
+    if (curr_token != tok_rbrace) break;
+  }  /* while */
+}  /* cache_catch_clauses */
+
+
 a_boolean cache_function_body(
 			a_token_cache		*p_token_cache,
 			a_boolean		is_constructor,
@@ -10083,37 +10148,43 @@ not be returned.
 {
   a_token_set_array  stop_tokens;
   a_boolean	     result = FALSE;
+  a_boolean	     try_found = FALSE;
 
   db_enter(3, "cache_function_body");
   if (missing_end != NULL) *missing_end = FALSE;
   if (start_pos != NULL) *start_pos = null_source_position;
   if (end_pos != NULL) *end_pos = null_source_position;
-  if (curr_token == tok_lbrace ||
+  if (curr_token == tok_lbrace || curr_token == tok_try ||
       (curr_token == tok_colon && is_constructor)) {
     /* Initialize a local stop token set. */
     clear_token_set_array(stop_tokens);
+    /* Make a note whether this is a function try block.  This controls whether
+       we look for catch clauses later. */
+    try_found = curr_token == tok_try;
+    if (try_found) {
+      /* Cache the "try" and advance past it. */
+      cache_curr_token(p_token_cache);
+      (void)get_token();
+    }  /* if */
     /* Save the token sequence number of the first token of the definition. */
     if (first_tsn != NULL) *first_tsn = curr_token_sequence_number;
     if (curr_token == tok_colon) {
       /* This is a ctor-initializer list on a constructor.  Cache it. */
-      incr_token_set_array_element(stop_tokens, tok_lbrace);
-      incr_token_set_array_element(stop_tokens, tok_semicolon);
-      cache_token_stream(p_token_cache, stop_tokens);
-      decr_token_set_array_element(stop_tokens, tok_lbrace);
-      decr_token_set_array_element(stop_tokens, tok_semicolon);
+      cache_to_compound_stmt(p_token_cache, stop_tokens);
     }  /* if */
     if (curr_token == tok_lbrace) {
       /* This is a compound statement that is the body of the function. */
+      /* Save the starting position of the main block of the function. */
       if (start_pos != NULL) *start_pos = pos_curr_token;
-      /* Cache the "{" and advance past it. */
-      cache_curr_token(p_token_cache);
-      (void)get_token();
-      /* Cache all tokens up to the "}" (or end-of-source). */
-      incr_token_set_array_element(stop_tokens, tok_rbrace);
-      cache_token_stream(p_token_cache, stop_tokens);
-      /* Cache the "}" and append an end-of-source token. */
+      cache_compound_stmt(p_token_cache, stop_tokens);
+      /* Save the ending position of the main block of the function. */
+      if (end_pos != NULL) *end_pos = end_pos_curr_token;
+      if (try_found) {
+        /* If this function is a function try block, cache the associated
+           catch clauses. */
+        cache_catch_clauses(p_token_cache, stop_tokens);
+      }  /* if */
       if (curr_token == tok_rbrace) {
-        cache_curr_token(p_token_cache);
         /* A get_token is intentionally not done -- the caller will
            advance past the end of the template declaration. */
         result = TRUE;
@@ -10122,14 +10193,13 @@ not be returned.
            the result of a mismatched delimiter. */
         *missing_end = TRUE;
       }  /* if */
-     /* Save the token sequence number of the last token of the definition. */
-     if (last_tsn != NULL) *last_tsn = curr_token_sequence_number;
-      if (end_pos != NULL) *end_pos = end_pos_curr_token;
-      /* Add an end-of-source token to the end of the token cache to
-         assure that we don't scan past the end of the cache in the actual
-         scan. */
-      terminate_token_cache(p_token_cache);
+      /* Save the token sequence number of the last token of the definition. */
+      if (last_tsn != NULL) *last_tsn = curr_token_sequence_number;
     }  /* if */
+    /* Add an end-of-source token to the end of the token cache to
+       assure that we don't scan past the end of the cache in the actual
+       scan. */
+    terminate_token_cache(p_token_cache);
   }  /* if */
   db_exit();
   return result;

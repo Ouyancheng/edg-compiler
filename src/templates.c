@@ -5311,9 +5311,10 @@ the diagnostic is suppressed.
   /* The rescan of the declaration should have produced a routine
      type.  If not all of the tokens were used, or if the type created
      is not a function type, issue a diagnostic.  We permit a tok_colon
-     to be present because the ctor-initializers may be part of the
-     declaration cache. */
-  if ((curr_token != tok_end_of_source && curr_token != tok_colon) ||
+     and tok_try to be present because the ctor-initializers or the start
+     of a function try block may be part of the declaration cache. */
+  if ((curr_token != tok_end_of_source &&
+       curr_token != tok_colon && curr_token != tok_try) ||
       *type == NULL ||
       !is_function_type(*type)) {
     if (!suppress_diagnostic) {
@@ -9336,7 +9337,8 @@ set, and its source sequence entry, if any, has been put out.)
             first_token = first_token->next;
           }  /* while */
           if (first_token != NULL &&
-              (a_token_kind)first_token->token == tok_colon) {
+              ((a_token_kind)first_token->token == tok_colon ||
+               (a_token_kind)first_token->token == tok_try)) {
             /* There can sometimes be an overlap between the template
                declaration cache and the template body cache.  Such an
                overlap does not cause problems for the normal
@@ -9936,6 +9938,7 @@ declaration (following any template clauses).
     }  /* if */
     if (sym != NULL) {
       if (curr_token == tok_lbrace ||
+          curr_token == tok_try ||
           (curr_token == tok_colon && sym != NULL &&
            is_constructor_symbol(sym))) {
         /* This is a defining declaration of the function template. */
@@ -10292,7 +10295,7 @@ any non-empty template parameter lists that were scanned.
        recovery.  This should only happen in error cases. */
     check_assertion(total_errors != 0 || curr_token == tok_end_of_source ||
                     curr_token == tok_colon || curr_token == tok_lbrace ||
-                    curr_token == tok_semicolon);
+                    curr_token == tok_try || curr_token == tok_semicolon);
     cache_template_declaration(decl_state, /*skip_params=*/TRUE);
     /* Set the error flag to indicate that we know that some kind of error
        has occurred. */
@@ -10915,6 +10918,7 @@ that follows.
       } else {
         is_constructor = is_constructor_symbol(sym);
         is_definition = (curr_token == tok_lbrace ||
+                         curr_token == tok_try ||
                          (curr_token == tok_colon &&
                           is_constructor));
       }  /* if */
