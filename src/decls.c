@@ -5142,6 +5142,7 @@ parameter controls the restrictions imposed by the context.
            want a pointer-to-member type pointing at anything but a
            valid class type, so make it an error type instead. */
         complete_type = error_type();
+        err = TRUE;
       } else {
         /* A valid pointer-to-member declarator. */
         complete_type = ptr_to_member_type(complete_type, class_type);
@@ -5918,7 +5919,7 @@ function_lparen:
     (skip_typerefs(specifiers_type))->source_corresp.referenced = TRUE;
   }  /* if */
 #else
-  if (specifiers_type != NULL) {
+  if (specifiers_type != NULL && !is_error_type(complete_type)) {
     check_assertion((*output_flags & DO_REAL_DECLARATOR_SCANNED) ||
                     is_ptr_or_ref_type(complete_type) ||
                     derived_type != NULL ||
