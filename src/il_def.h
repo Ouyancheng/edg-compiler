@@ -3419,7 +3419,7 @@ typedef struct a_statement {
 #ifdef CIL
                         /* Also:
                              The expression to test for stmk_end_test_while.
-                             The expression to test for stmk_for.
+                             The expression to test (or NULL) for stmk_for.
                            Note that the "expression to test" in each of the
                            four cases is always standardized to an integer/
                            logical expression.
