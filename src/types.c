@@ -4287,7 +4287,7 @@ preferable.
 
 #define is_generic_shared_pointer_type(tp)                              \
   (is_shared_void_star_type(tp) &&                                      \
-   get_underlying_upc_block_size(type_pointed_to(tp)) == 1)
+   f_get_underlying_upc_block_size(type_pointed_to(tp)) == 1)
 
 
 static a_boolean check_implicit_upc_pointer_conversion(a_type_ptr  src,
