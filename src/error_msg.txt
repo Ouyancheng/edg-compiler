@@ -1041,7 +1041,7 @@ ec_ptr_or_ref_to_qualified_function_type;;"cannot create a pointer or reference 
 ec_nonstd_braces;;"extra braces are nonstandard"
 ec_bad_cmd_line_macro;;"invalid macro definition: "
 ec_nonstandard_ptr_minus_ptr;;"subtraction of pointer types %t1 and %t2 is nonstandard"
-ec_virtual_function_decl_hidden;;"%nf2 is hidden by %no1 -- virtual function override intended?"
+ec_virtual_function_decl_hidden;;"%np2 is hidden by %no1 -- virtual function override intended?"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
