@@ -643,6 +643,7 @@ is in fact valid.
     match = verify_name_correspondence(field);
     if (match &&
         (!identical_types(field->type, corresp_field->type) ||
+         !same_exception_spec(field->type, corresp_field->type) ||
          field->offset != corresp_field->offset ||
          field->offset_bit_remainder != corresp_field->offset_bit_remainder ||
          field->bit_size != corresp_field->bit_size ||
@@ -686,6 +687,7 @@ is in fact valid.
     match = verify_name_correspondence(routine);
     if (match &&
         (!types_are_redecl_compatible(routine->type, corresp_routine->type) ||
+         !same_exception_spec(routine->type, corresp_routine->type) ||
          routine->is_virtual != corresp_routine->is_virtual ||
          routine->pure_virtual != corresp_routine->pure_virtual ||
          /* The inline attribute isn't set on nonprototype template functions
@@ -728,6 +730,7 @@ is in fact valid.
     match = verify_name_correspondence(var);
     if (match &&
         (!types_are_redecl_compatible(var->type, corresp_var->type) ||
+         !same_exception_spec(var->type, corresp_var->type) ||
          var->is_specialized != corresp_var->is_specialized ||
 #if DECL_MODIFIERS_IN_USE
          var->decl_modifiers != corresp_var->decl_modifiers ||
@@ -759,6 +762,7 @@ is in fact valid.
     match = verify_name_correspondence(constant);
     if (match &&
         (!identical_types(constant->type, corresp_constant->type) ||
+         !same_exception_spec(constant->type, corresp_constant->type) ||
          !eq_constants(constant, corresp_constant) ||
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
@@ -778,12 +782,15 @@ type is in fact valid.
 {
   a_boolean       match = verify_name_correspondence(type);
   a_type_ptr      corresp_type = (a_type_ptr)canonical_il_entry_of(type);
-  a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list;
+  a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list,
+                  corresp_enumerator =
+                        corresp_type->variant.integer.enum_info.constant_list;
 
   if (match) {
-    for (; enumerator != NULL; enumerator = enumerator->next) {
-      char  *corresp_entity = trans_unit_corresp_pointer_of(enumerator);
-      if (!same_name(enumerator, corresp_entity)) {
+    for (; enumerator != NULL && corresp_enumerator != NULL;
+         enumerator = enumerator->next,
+                              corresp_enumerator = corresp_enumerator->next) {
+      if (!same_name(enumerator, corresp_enumerator)) {
         /* The error should be issued on the enum type since there is not
            much in common between the enumerators if even their names don't
            match. */
@@ -793,6 +800,11 @@ type is in fact valid.
         break;
       }  /* if */
     }  /* for */
+    if ((enumerator != NULL && corresp_enumerator == NULL) ||
+        (corresp_enumerator != NULL && enumerator == NULL)) {
+      report_bad_trans_unit_corresp(type);
+      match = FALSE;
+    }  /* if */
   }  /* if */
   if (match && 
       (enumerator != NULL ||
@@ -1125,7 +1137,8 @@ is in fact valid.
         set_no_trans_unit_corresp(type);
       }  /* if */
     } else {
-      match = identical_types(type, corresp_type);
+      match = identical_types(type, corresp_type) &&
+              same_exception_spec(type, corresp_type);
     }  /* if */
   }  /* if */
   if (match &&
@@ -1577,6 +1590,12 @@ unit correspondence pointer if one is found.
             establish_trans_unit_correspondences_for_enum(type);
           }  /* if */
           break;
+        } else if (is_tag_symbol(sym) && is_tag_symbol(type_sym)) {
+          /* Not a match, but record the correspondence so that the error
+             reporting code knows which entity conflicts. */
+          a_type_ptr  corresp_type = type_symbol_type(sym);
+          record_trans_unit_corresp(type, corresp_type);
+          process_bad_trans_unit_corresp(type);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -1910,6 +1929,10 @@ unit correspondence pointer if one is found.
             establish_instantiation_correspondences(templ);
             break;
           }  /* if */
+        } else if (!is_class_template_symbol(templ_sym) &&
+                   is_function_symbol(sym)) {
+          /* A function template can always be overloaded with a nontemplate
+             function: no conflict. */
         } else {
           /* An error if the conflicting entity has external linkage. */
           conflict = TRUE;

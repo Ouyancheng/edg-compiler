@@ -3442,7 +3442,7 @@ continue_outer_loop:;
 }  /* exception_spec_is_less_restrictive */
 
 
-static a_boolean same_exception_spec(a_type_ptr type_1, a_type_ptr type_2)
+a_boolean same_exception_spec(a_type_ptr type_1, a_type_ptr type_2)
 /*
 If the given types are function types, pointer or reference to function types,
 or pointer-to-member function types, return whether their exception
@@ -3463,7 +3463,7 @@ specifications match.  For other types, just return TRUE.
     type_2 = type_pointed_to(type_2);
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
-    if (is_function_type(type_1)) {
+    if (is_function_type(type_1) && is_function_type(type_2)) {
       result = !(exception_spec_is_less_restrictive(type_1, type_2) ||
                  exception_spec_is_less_restrictive(type_2, type_1));
     }  /* if */
@@ -3472,11 +3472,11 @@ specifications match.  For other types, just return TRUE.
     type_2 = pm_member_type(type_2);
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
-    if (is_function_type(type_1)) {
+    if (is_function_type(type_1) && is_function_type(type_2)) {
       result = !(exception_spec_is_less_restrictive(type_1, type_2) ||
                  exception_spec_is_less_restrictive(type_2, type_1));
     }  /* if */
-  } else if (is_function_type(type_1)) {
+  } else if (is_function_type(type_1) && is_function_type(type_2)) {
     result = !(exception_spec_is_less_restrictive(type_1, type_2) ||
                exception_spec_is_less_restrictive(type_2, type_1));
   }  /* if */
