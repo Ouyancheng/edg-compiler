@@ -194,6 +194,30 @@ extern void set_instantiation_needed_flag(a_source_correspondence *scp,
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+/* Macro to fetch the value of the routine definition_needed flag. */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#define routine_definition_needed_flag_is_set(rp) \
+  (needed_flag_bit_number == 0 ? \
+                   (rp)->definition_needed : \
+                   instantiation_needed_flag_is_set(&(rp)->source_corresp,1))
+#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#define routine_definition_needed_flag_is_set(rp) \
+                  ((rp)->definition_needed)
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+
+#if !STANDALONE_UTILITY_PROGRAM
+/* Macro to set the routine definition_needed flag. */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#define set_routine_definition_needed_flag(rp) \
+  (needed_flag_bit_number == 0 ? \
+                ((rp)->definition_needed = TRUE) : \
+                (set_instantiation_needed_flag(&(rp)->source_corresp,1,1), 0))
+#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#define set_routine_definition_needed_flag(rp) \
+                ((rp)->definition_needed = TRUE)
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 
 /*
 Macro that generates a unique unsigned long identifier from an IL pointer.

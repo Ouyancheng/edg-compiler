@@ -3305,8 +3305,7 @@ is done, is that all the classes have to have been marked first.
       /* If a typeref type points to a class that is needed, has a name, and
          was originally unnamed, the typeref type is needed, too. */
       if (is_immediate_class_type(class_type = tp->variant.typeref.type) &&
-          class_type->variant.class_struct_union.originally_unnamed &&
-          class_type->source_corresp.needed) {
+          class_type->variant.class_struct_union.originally_unnamed) {
         mark_as_needed_like((char *)tp, (an_il_entry_kind)iek_type,
                             &class_type->source_corresp,
                             /*set_class_defn_needed=*/FALSE);
@@ -3335,13 +3334,21 @@ been completed.
   a_namespace_ptr              nsp;
   a_variable_ptr               vp;
   a_routine_ptr                rp;
-  a_boolean                    saved_defined;
 
-  check_assertion_str2(scope->kind == (a_scope_kind)sck_file ||
-                         scope->kind == (a_scope_kind)sck_namespace ||
+  if (scope->kind == (a_scope_kind)sck_file) {
+    /* Top-level call. */
+#if DEBUG
+    if (db_flag_is_set("needed_flags")) {
+      fprintf(f_debug, "Start of set_needed_flags_at_end_of_file_scope\n");
+    }  /* if */
+#endif /* DEBUG */
+    end_of_file_scope_needed_flags_phase = TRUE;
+  } else {
+    check_assertion_str2(scope->kind == (a_scope_kind)sck_namespace ||
                          scope->kind == (a_scope_kind)sck_class_struct_union,
                        "set_needed_flags_at_end_of_file_scope:",
                        "bad scope kind");
+  }  /* if */
   /* Apply this check to namespaces defined in the current scope, if there
      are any. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
@@ -3356,11 +3363,7 @@ been completed.
       /* If the class has been marked to indicate that it is needed,
          then we need to walk the subtree of the class; if not, we can ignore
          it. */
-      if (tp->source_corresp.needed) {
-        /* Walk the class subtree, if appropriate.  Clear the needed flag
-           first, else the subtree walk will not be done. */
-        remark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
-      }  /* if */
+      remark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
       ctsp = tp->variant.class_struct_union.extra_info;
       if (ctsp != NULL && ctsp->assoc_scope != NULL) {
         /* Check nested classes and static data members, too.  Note that this
@@ -3373,50 +3376,37 @@ been completed.
      members). */
   for (vp = scope->variables; vp != NULL; vp = vp->next) {
     if (vp->storage_class == (a_storage_class)sc_unspecified ||
-        vp->source_corresp.needed ||
         vp->init_kind == (an_init_kind)initk_dynamic) {
-      /* This is an externally linked variable that has been defined or
-         (whatever its linkage) has been marked as "needed" (typically
-         because it has been referenced in a function that is needed).
-         Or else it is a variable local to this translation unit but with
+      /* This is an externally linked variable that has been defined, or
+         it is a variable local to this translation unit but with
          dynamic initialization, in which case it is treated as "needed"
          because the initialization may have side effects.  Mark it as
-         needed now, along with the type with which it was declared and its
-         initializer, if appropriate.  (Even if it was already marked as
-         needed, the initializer is not scanned till this end-of-file-scope
-         phase, so we have to do it again.) */
-      if (!vp->source_corresp.needed) {
-        mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
-      } else {
-        remark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
-      }  /* if */
+         needed now. */
+      /* Turn off end_of_file_scope_needed_flags_phase to avoid walking the
+         subtree, because we're going to do that in a moment. */
+      end_of_file_scope_needed_flags_phase = FALSE;
+      mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
+      end_of_file_scope_needed_flags_phase = TRUE;
     }  /* if */
+    /* If the variable is marked as needed, remark it to visit its
+       subtree.  The subtree is not visited until this phase, because it
+       can change. */
+    remark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
   }  /* for */
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
-    if (rp->source_corresp.needed) {
-      /* Marking the routine type as needed was suppressed before (since it
-         can be redeclared even after it's called), so do that now. */
-      /* If the "defined" flag is TRUE, the body will already have been
-         walked to mark its constituents as needed; we clear the flag to
-         keep it from being walked again. */
-      saved_defined = rp->defined;
-      rp->defined = FALSE;
-      /* Mark the routine type, etc., as needed.  The needed flag is cleared
-         first so the subtree will be visited. */
-      remark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
-      /* Restore the "defined" flag. */
-      rp->defined = saved_defined;
-    }  /* if */
+    /* If the routine is marked as needed, remark it to visit its
+       subtree.  The subtree is not visited until this phase, because it
+       can change.  Note that the subtree here is the function type,
+       not the body, which is handled elsewhere. */
+    /* If the "defined" flag is TRUE, the body will already have been
+       walked to mark its constituents as needed; we clear the flag to
+       keep it from being walked again. */
+    a_boolean saved_defined = rp->defined;
+    rp->defined = FALSE;
+    remark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
+    /* Restore the "defined" flag. */
+    rp->defined = saved_defined;
   }  /* for */
-  if (!C_mode() && scope->kind == (a_scope_kind)sck_file) {
-    /* Check for cases like this:
-         typedef struct { ... } T;
-       where the struct has been marked as needed but the typedef has not.
-       The typedef really is needed in some cases -- e.g., in producing the
-       proper definition by the C++-generating back end.  Mark the typedef,
-       too. */
-    set_needed_flags_for_typedefs(scope);
-  }  /* if */
 #if BACK_END_IS_CP_GEN_BE
   if (scope->templates != NULL) {
     /* The very presence of templates in the IL means pruning the IL of
@@ -3426,9 +3416,73 @@ been completed.
     okay_to_eliminate_unneeded_il_entries = FALSE;
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
+  if (scope->kind == (a_scope_kind)sck_file) {
+    /* End of top-level call. */
+    if (!C_mode()) {
+      /* Check for cases like this:
+           typedef struct { ... } T;
+         where the struct has been marked as needed but the typedef has not.
+         The typedef really is needed in some cases -- e.g., in producing the
+         proper definition by the C++-generating back end.  Mark the typedef,
+         too. */
+      set_needed_flags_for_typedefs(scope);
+    }  /* if */
+#if DEBUG
+    if (db_flag_is_set("needed_flags")) {
+      fprintf(f_debug, "End of set_needed_flags_at_end_of_file_scope\n");
+    }  /* if */
+#endif /* DEBUG */
+    end_of_file_scope_needed_flags_phase = FALSE;
+  }  /* if */
 }  /* set_needed_flags_at_end_of_file_scope */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
+
+static a_boolean routine_needed_even_if_unreferenced(a_routine_ptr rout)
+/*
+Return TRUE if the indicated routine is needed even if it is unreferenced,
+e.g., because it's externally defined.
+*/
+{
+  a_boolean is_needed = FALSE;
+
+  /* Generally, externally-defined routines are needed, because they might
+     be referenced from some other compilation unit. */
+  if (rout->storage_class == (a_storage_class)sc_unspecified) {
+    is_needed = TRUE;
+    if (rout->is_inline) {
+      /* An exception is "extern inline" functions, which are not regarded
+         as referenced from elsewhere.  Each compilation unit has its own
+         copy, and this copy is needed only if it is referenced in this
+         compilation unit. */
+      is_needed = FALSE;
+    } else if (rout->is_template_function &&
+               !rout->is_specialized &&
+               instantiation_mode == tim_used) {
+      /* Another exception is function template instances when the source
+         is compiled with the -tused option (meaning that any reference
+         triggers an instantiation).  The instantiation is needed only if
+         it is referenced. */
+      a_symbol_ptr             rout_sym;
+      a_template_instance_ptr  tip;
+
+      rout_sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
+      check_assertion(rout_sym != NULL);
+      tip = rout_sym->variant.routine.instance_ptr;
+      check_assertion(tip != NULL);
+      if (tip->explicit_instantiation ||
+          tip->automatically_instantiated) {
+        /* The instance exists as a result of an explicit instantiation
+           directive, or as a result of being assigned to this file by
+           the automatic instantiation mechanism. */
+       } else {
+        is_needed = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_needed;
+}  /* routine_needed_even_if_unreferenced */
+
 
 void pop_scope(void)
 /*
@@ -3734,56 +3788,14 @@ End a name scope by popping an entry off the scope stack.
 #endif /* DO_IL_LOWERING */
   }  /* if */
   if (curr_routine != NULL) {
-    /* The definition of the function is complete, so set the defined flag.
-       Note: this is done just before the call to mark_as_needed, because it
-       controls whether the function body is walked. */
-    set_routine_defined(curr_routine);
-  }  /* if */
-  if (curr_routine != NULL) {
 #if MAINTAIN_NEEDED_FLAGS
-    /* If the function is really needed (i.e., if it is referenced by code
-       that is itself really needed or if it is globally visible and
-       presumably needed by code in another translation unit) set the
-       "needed" flag not only on the function but on everything referenced
-       within the function body. */
-    a_boolean                is_needed = FALSE;
-    a_symbol_ptr             rout_sym;
-    a_template_instance_ptr  tip;
+    /* If the function is globally visible and presumably needed by code
+       in another translation unit, set the "needed" flag on the function. */
+    a_boolean is_needed = FALSE;
 
-    check_assertion_str2(!old_region_still_needed, "pop_scope:",
-                         "old_region_still_needed is TRUE for function scope");
-    if (curr_routine->source_corresp.needed) {
-      is_needed = TRUE;
-    } else if (curr_routine->storage_class ==
-                                 (a_storage_class)sc_unspecified) {
-      /* In general a routine with unspecified storage class is regarded as
-         referenced from outside the current translation unit. */
-      is_needed = TRUE;
-      if (curr_routine->is_inline) {
-        /* An exception is "extern inline" functions, which are not regarded
-           as referenced from elsewhere.  Thus references from within its
-           function body are "needed" only if it itself is. */
-        is_needed = FALSE;
-      } else if (curr_routine->is_template_function &&
-                 !curr_routine->is_specialized &&
-                 instantiation_mode == tim_used) {
-        /* Another exception is function template instances when the source
-           is compiled with the -tused option (meaning that any reference
-           triggers an instantiation).  The problem is that only references
-           which are themselves needed should render the instance needed. */
-        rout_sym = (a_symbol_ptr)curr_routine->source_corresp.assoc_info;
-        check_assertion(rout_sym != NULL);
-        tip = rout_sym->variant.routine.instance_ptr;
-        check_assertion(tip != NULL);
-        if (tip->explicit_instantiation ||
-            tip->automatically_instantiated) {
-          /* The instance exists as a result of an explicit instantiation
-             directive, or as a result being assigned to this file by
-	     the automatic instantiation mechanism. */
-        } else {
-          is_needed = FALSE;
-        }  /* if */
-      }  /* if */
+    if (curr_routine->storage_class == (a_storage_class)sc_unspecified) {
+       is_needed = (curr_routine->source_corresp.needed ||
+                    routine_needed_even_if_unreferenced(curr_routine));
     }  /* if */
     if (is_needed) {
       /* Note that mark_as_needed is called after IL lowering.  This means
@@ -3791,11 +3803,7 @@ End a name scope by popping an entry off the scope stack.
          that entities eliminated (e.g., by inlining) are not. */
       /* It must also be called before the depth_in_scope_stack flag is
          cleared. */
-      if (!curr_routine->source_corresp.needed) {
-        mark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
-      } else {
-        remark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
-      }  /* if */
+      mark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
 #if DEBUG
     } else if (debug_level >= 3) {
       fprintf(f_debug, "Not calling mark_as_needed for \"");
@@ -3805,23 +3813,19 @@ End a name scope by popping an entry off the scope stack.
 #endif /* DEBUG */
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+    /* The definition of the function is complete, so set the defined flag.
+       Note: this allows sweeping the routine definition, and (except for
+       inline functions) writing out of the body of the function, so it's
+       done late. */
+    set_routine_defined(curr_routine);
+    check_assertion_str2(!old_region_still_needed, "pop_scope:",
+                         "old_region_still_needed is TRUE for function scope");
   } else if (kind == (a_scope_kind)sck_file) {
+    /* Popping the file scope. */
 #if MAINTAIN_NEEDED_FLAGS
     /* Set the "needed" flag in defined variables with external linkage --
        both in the file scope and in each of the namespace scopes. */
-    end_of_file_scope_needed_flags_phase = TRUE;
-#if DEBUG
-    if (db_flag_is_set("needed_flags")) {
-      fprintf(f_debug, "Beginning end of file scope needed flags phase\n");
-    }  /* if */
-#endif /* DEBUG */
     set_needed_flags_at_end_of_file_scope(il_scope);
-#if DEBUG
-    if (db_flag_is_set("needed_flags")) {
-      fprintf(f_debug, "Ending end of file scope needed flags phase\n");
-    }  /* if */
-#endif /* DEBUG */
-    end_of_file_scope_needed_flags_phase = FALSE;
     /* Don't bother pruning the IL of unneeded entries if errors were seen. */
     if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
     if (okay_to_eliminate_unneeded_il_entries) {
@@ -3846,9 +3850,7 @@ End a name scope by popping an entry off the scope stack.
        keep_definition_in_il set but not definition_needed, and inline
        functions. */
     check_for_done_with_all_function_memory_regions();
-  }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  if (kind == (a_scope_kind)sck_file) {
     /* Set the IL flags used to pass automatic instantiation information to
        the link-time instantiation processor.  The timing of this call is
        important.  It must follow the call to eliminate_unneeded_il_entries,
@@ -3858,8 +3860,8 @@ End a name scope by popping an entry off the scope stack.
        (if DO_IL_LOWERING is TRUE) may allocate variables that are added to
        the IL. */
     update_auto_instantiation_flags();
-  }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  }  /* if */
 
   /* The IL scope, if any, is no longer on the stack.  This must occur
      after IL lowering and before check_for_done_with_memory_region. */

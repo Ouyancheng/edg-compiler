@@ -1881,14 +1881,13 @@ Pop function corresponding to push_generated_routine_context.
      routine. */
   add_scope_orphaned_il_lists(scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-  set_routine_defined(rout);
 #if MAINTAIN_NEEDED_FLAGS
-  /* If the routine is external, mark it as needed.  This must be done after
-     the "defined" flag is set. */
+  /* If the routine is external, mark it as needed. */
   if (rout->storage_class == (a_storage_class)sc_unspecified) {
     mark_as_needed((char *)rout, iek_routine);
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+  set_routine_defined(rout);
   restore_eh_lowering_context(&grcontext->ehcontext);
   promoted_local_static_variable_inits =
                                grcontext->promoted_local_static_variable_inits;
@@ -2745,6 +2744,8 @@ with the indicated bit number.
     alloc_length = prefix_len + strlen(module_id) + 1;
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
     if (needed_bit_number != 0) {
+      /* Add a suffix to distinguish initialization routines for
+         specific instantiations. */
       (void)sprintf(buffer, "_%lu", needed_bit_number);
       alloc_length += strlen(buffer);
     }  /* if */
@@ -2754,8 +2755,6 @@ with the indicated bit number.
     (void)strcpy(name+prefix_len, module_id);
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
     if (needed_bit_number != 0) {
-      /* Add a suffix to distinguish initialization routines for
-         specific instantiations. */
       (void)strcpy(name+prefix_len+strlen(module_id), buffer);
     }  /* if */
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
@@ -7005,9 +7004,7 @@ associated class was declared.
 #if MAINTAIN_NEEDED_FLAGS
   /* If the constant has already been marked as needed, mark it as
      needed again and visit its new subtree. */
-  if (con->source_corresp.needed) {
-    remark_as_needed((char *)con, iek_constant);
-  }  /* if */
+  remark_as_needed((char *)con, iek_constant);
 #endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* lower_uuidof */
 

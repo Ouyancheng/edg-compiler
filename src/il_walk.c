@@ -398,28 +398,54 @@ definition of the routine is needed, and not just the declaration.
 */
 {
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-  /* When we reach this spot while doing a walk for a particular
-     instantiation, just return.  Whether or not a given routine's definition
-     is included in a given instantiation object file is something known
-     statically, and no separate bit is maintained for each routine/each
-     instantiation.  However, inline functions are included in every
-     instantiation file that uses them. */
-  if (needed_flag_bit_number != 0 && !rout->is_inline) goto end_of_routine;
+  if (one_instantiation_per_object) {
+    if (!rout->is_inline) {
+      if (needed_flag_bit_number != 0) {
+      /* If we reach this spot while doing a walk for a particular
+         instantiation bit number, and that's not the bit number associated
+         with this function (i.e., the function definition doesn't go
+         in that slice), just return.  Inline functions are included in every
+         instantiation file that uses them. */
+        unsigned long eff_bit_number = rout->instantiation_needed_bit_number;
+        if (eff_bit_number == 0) eff_bit_number = 1;
+        if (needed_flag_bit_number != eff_bit_number) goto end_of_routine;
+      } else {
+        /* needed_flag_bit_number is zero.  Do a recursive call to set the
+           routine definition needed flag for whatever bit slice this
+           routine should appear in.  This must be done now so that it
+           gets done before the routine body is written out.  Note that
+           inline functions do not get here. */
+        needed_flag_bit_number = rout->instantiation_needed_bit_number;
+        /* If the bit number is 0, the function is not an instantiation with
+           an associated bit; use bit number 1 (used for everything in the
+           compilation excluding the instantiations). */
+        if (needed_flag_bit_number == 0) needed_flag_bit_number = 1;
+        set_routine_definition_needed(rout);
+        needed_flag_bit_number = 0;
+      }  /* if */
+    }  /* if */
+  }  /* if */
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   /* Set the flag if it is not set already. */
-  if (!rout->definition_needed) {
+  if (!routine_definition_needed_flag_is_set(rout)) {
     check_assertion_str(!rout->is_trivial_default_constructor,
                         "set_routine_definition_needed: trivial default ctor");
-    rout->definition_needed = TRUE;
+    set_routine_definition_needed_flag(rout);
 #if DEBUG
     if (db_flag_is_set("needed_flags")) {
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+      fprintf(f_debug, "Setting definition_needed (%lu) on rout  ",
+                       needed_flag_bit_number);
+#else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
       fprintf(f_debug, "Setting definition_needed on rout  ");
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
       db_name(&rout->source_corresp);
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    /* If the definition is present, walk it.  set_routine_defined takes
-       care of calling this again later when defined gets set. */
+    /* If the definition is present, walk it.  set_routine_defined and
+       remark_routine_definition_needed take care of calling this again
+       later when defined gets set if it is not set now. */
     if (rout->defined) {
       a_memory_region_number saved_curr_il_region_number=curr_il_region_number;
       a_scope_ptr scope;
@@ -431,46 +457,76 @@ definition of the routine is needed, and not just the declaration.
          entries need to be allocated; we need to know what memory region
          to put them in. */
       curr_il_region_number = rout->assoc_scope;
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-      if (one_instantiation_per_object &&
-          needed_flag_bit_number == 0) {
-        /* If we're maintaining a separate set of "needed" flags for each
-           instantiation, sweep the body for the bit number associated with
-           this routine.  Routines that aren't instantiations are included
-           under bit 1, used for the whole compilation excluding
-           instantiations. */
-        unsigned long saved_needed_flag_bit_number = needed_flag_bit_number;
-        needed_flag_bit_number = rout->instantiation_needed_bit_number;
-        if (needed_flag_bit_number == 0) needed_flag_bit_number = 1;
-        mark_as_needed((char *)scope, iek_scope);
-        needed_flag_bit_number = saved_needed_flag_bit_number;
-      }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
       /* walk_tree_and_set_needed is not used here so that this routine can
          be callable from outside of the needed flag walk. */
       mark_as_needed((char *)scope, iek_scope);
-      /* Do the keep_definition_in_il processing now so we can free the
-         memory region as soon as possible. */
-      set_routine_keep_definition_in_il(rout);
-      /* Decide on disposing of the memory region. */
-      if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH ||
-          innermost_function_scope == scope) {
-        /* This function's scope is still on the scope stack, so do nothing
-           now.  check_for_done_with_memory_region will be called when the
-           scope is popped off the stack.  The innermost_function_scope
-           test is needed for generated routines in IL lowering, since they're
-           not on the scope stack. */
-      } else {
-        /* We may be able to dispose of the memory region now. */
-        check_for_done_with_memory_region(rout->assoc_scope);
-      }  /* if */
       curr_il_region_number = saved_curr_il_region_number;
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+      if (needed_flag_bit_number == 0)
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+      /* Do not insert code here. */
+      {
+        /* Do the keep_definition_in_il processing now so we can free the
+           memory region as soon as possible. */
+        set_routine_keep_definition_in_il(rout);
+        /* Decide on disposing of the memory region. */
+        if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH ||
+            innermost_function_scope == scope) {
+          /* This function's scope is still on the scope stack, so do nothing
+             now.  check_for_done_with_memory_region will be called when the
+             scope is popped off the stack.  The innermost_function_scope
+             test is needed for generated routines in IL lowering, since
+             they're not on the scope stack. */
+        } else {
+          /* We may be able to dispose of the memory region now. */
+          check_for_done_with_memory_region(rout->assoc_scope);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 end_of_routine:;
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 }  /* set_routine_definition_needed */
+
+
+void remark_routine_definition_needed(a_routine_ptr rout)
+/*
+If the indicated routine is marked as having its definition needed,
+clear the flag and set it again.  Do this also for any per-instantiation
+definition-needed bits that are set.  This is used to sweep the
+body of the function when the routine "defined" flag gets set after some
+"definition needed" flags were set.
+*/
+{
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  unsigned long saved_needed_flag_bit_number = needed_flag_bit_number;
+  unsigned long bit_number;
+  an_instantiation_needed_flags_scan_state
+                state;
+
+  /* For each "definition needed" bit set in the model, set the
+     corresponding bit in the entry. */
+  clear_instantiation_needed_flags_scan_state(&state, &rout->source_corresp);
+  while ((bit_number = next_set_instantiation_needed_flag(&state)) != 0) {
+    /* Ignore bits other than the "definition needed" bits. */
+    if (bit_number % 2 == 0) {
+      needed_flag_bit_number = bit_number - 1;
+      /* Clear the bit if set, then set it. */
+      set_instantiation_needed_flag(&rout->source_corresp, 1, 0);
+      set_routine_definition_needed(rout);
+    }  /* if */
+  }  /* while */
+  needed_flag_bit_number = 0;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+  if (rout->definition_needed) {
+    rout->definition_needed = FALSE;
+    set_routine_definition_needed(rout);
+  }  /* if */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  needed_flag_bit_number = saved_needed_flag_bit_number;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+}  /* remark_routine_definition_needed */
 
 
 void set_class_definition_needed(a_type_ptr type)
@@ -659,24 +715,6 @@ references.
   walk_termination_test_func = prune_needed_flag_il_walk;
   walk_remap_func = NULL;
   /* walking_file_scope need not be set. */
-  if (entry_kind == (an_il_entry_kind)iek_routine
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-      && needed_flag_bit_number == 0
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
-                                                 ) {
-    a_routine_ptr rout = (a_routine_ptr)entry_ptr;
-
-    check_assertion_str(!rout->is_trivial_default_constructor,
-                        "mark_as_needed: trivial default ctor");
-    /* For an externally-linked non-inline function, mark the body as needed
-       too, on the presumption that it will be referenced from other
-       translation units.  The caller could reasonably be expected to do
-       this, but doing it here reduces the possibility of error. */
-    if (rout->storage_class == (a_storage_class)sc_unspecified &&
-        !rout->is_inline) {
-      set_routine_definition_needed(rout);
-    }  /* if */
-  }  /* if */
 
   /* Walk the IL tree. */
   walk_tree_and_set_needed(entry_ptr, entry_kind);
@@ -710,6 +748,24 @@ references.
     }  /* if */
   }  /* if */
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+  if (entry_kind == (an_il_entry_kind)iek_routine
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+      && needed_flag_bit_number == 0
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+                                                 ) {
+    a_routine_ptr rout = (a_routine_ptr)entry_ptr;
+
+    check_assertion_str(!rout->is_trivial_default_constructor,
+                        "mark_as_needed: trivial default ctor");
+    /* For an externally-linked non-inline function, mark the body as needed
+       too, on the presumption that it will be referenced from other
+       translation units.  The caller could reasonably be expected to do
+       this, but doing it here reduces the possibility of error. */
+    if (rout->storage_class == (a_storage_class)sc_unspecified &&
+        !rout->is_inline) {
+      set_routine_definition_needed(rout);
+    }  /* if */
+  }  /* if */
 }  /* mark_as_needed */
 
 
@@ -721,7 +777,7 @@ void mark_as_needed_like(char                    *entry_ptr,
 Set the needed flag(s) of the entry pointed to by entry_ptr (of kind
 entry_kind) to match the needed flag(s) of model_scp (which might be
 from the same entry).  The needed flag(s) of the entry are cleared
-before being set.  If set_class_definition_needed is TRUE, the
+before being set.  If set_class_defn_needed is TRUE, the
 entry is for a class, and its definition needed flags(s) are set to
 match the needed flags(s).
 */
@@ -744,7 +800,7 @@ match the needed flags(s).
     clear_instantiation_needed_flags_scan_state(&state, model_scp);
     while ((needed_flag_bit_number =
                             next_set_instantiation_needed_flag(&state)) != 0) {
-      /* Ignore class definition needed bits. */
+      /* Ignore "definition needed" bits. */
       if (needed_flag_bit_number % 2 != 0) {
         /* Clear the bit if set, then set it. */
         set_instantiation_needed_flag(scp, 0, 0);
@@ -755,6 +811,7 @@ match the needed flags(s).
       }  /* if */
     }  /* while */
   }
+  /* needed_flag_bit_number is zero after loop above. */
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   if (model_scp->needed) {
     ((a_source_correspondence *)entry_ptr)->needed = FALSE;

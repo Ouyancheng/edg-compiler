@@ -4896,9 +4896,7 @@ is already an entry of the indicated kind on the list.
        than for the based types list member, because the marking process
        ignores some based type entries and we don't want to duplicate the
        logic for that here. */
-    if (base_type->source_corresp.needed) {
-      remark_as_needed((char *)base_type, iek_type);
-    }  /* if */
+    remark_as_needed((char *)base_type, iek_type);
     if (il_entry_prefix_of(base_type).keep_in_il) {
       il_entry_prefix_of(base_type).keep_in_il = FALSE;
       mark_to_keep_in_il((char *)base_type, iek_type);
@@ -7761,13 +7759,10 @@ related to "needed" flags.
        set previously, set them again so the function body will be scanned.
        The fact that rout->defined was FALSE prevented the scanning of the
        body. */
+    remark_routine_definition_needed(rout);
     if (rout->keep_definition_in_il) {
       rout->keep_definition_in_il = FALSE;
       set_routine_keep_definition_in_il(rout);
-    }  /* if */
-    if (rout->definition_needed) {
-      rout->definition_needed = FALSE;
-      set_routine_definition_needed(rout);
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
@@ -12163,8 +12158,8 @@ unsigned long next_set_instantiation_needed_flag(
 /*
 Return the bit number of the next set per-instantiation "needed" flag in
 a bit vector.  infssp indicates the current state of the scan, and is updated
-on return.  Return 0 if there is no next set bit.  Note that class
-definition needed bits are returned; the caller must ignore them
+on return.  Return 0 if there is no next set bit.  Note that
+"definition needed" bits are returned as well; the caller must ignore them
 if appropriate.
 */
 {
