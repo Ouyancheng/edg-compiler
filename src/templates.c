@@ -132,6 +132,15 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
   db_enter(3, "instantiate_template_function");
   rout_sym = fiep->routine_sym;
   rout_ptr = rout_sym->variant.routine.ptr;
+#if CHECKING
+  if (rout_ptr->assoc_scope != NULL_region_number) {
+#if 0
+    internal_error("instantiate_template_function: already has a body");
+#else
+    goto done;
+#endif /* if 0 */
+  }  /* if */
+#endif /* CHECKING */
 #if 0
 #else
   /* TEMPORARY -- all template functions are put out as static for now -- to
@@ -241,6 +250,11 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
   while (curr_token != tok_end_of_source) (void)get_token();
   /* Advance past the end-of-source token. */
   (void)get_token();
+
+#if 0
+#else
+  done:;
+#endif /* if 0 */
   db_exit();
 }  /* instantiate_template_function */
 
@@ -902,33 +916,36 @@ templ_sym).
 }  /* make_template_function */
 
 
-a_symbol_ptr matching_template_function(a_symbol_ptr        templ_sym,
-                                        a_type_ptr          curr_type,
-                                        a_source_position   *source_pos)
+a_boolean is_match_for_function_template(a_symbol_ptr       templ_sym,
+                                         a_type_ptr         curr_type,
+                                         a_template_arg_ptr *templ_arg_list,
+                                         a_symbol_ptr       *instance_sym)
 /*
 Search for a template function based on the function template represented
-by templ_sym and the type pointed to by curr_type.  If no such template
-function exists, try to create one.  If the search/creation is successful
-return a pointer to the symbol; otherwise, return NULL.
+by templ_sym and the type pointed to by curr_type.  If such a template
+function exists, return its symbol.  Otherwise, try to generate a template
+arg list to serve as the basis for creating one.  If either a symbol can
+be found or a template arg list can be created, return TRUE; otherwise,
+return FALSE.
 */
 {
-  a_symbol_ptr                        sym;
+  a_boolean                           match = FALSE;
+  a_symbol_ptr                        sym = NULL;
   a_type_ptr                          rout_type, templ_rout_type;
   a_template_symbol_supplement_ptr    tssp;
   a_function_instantiation_entry_ptr  fiep;
   a_param_type_ptr                    ptp, other_ptp;
-  a_template_arg_ptr                  templ_arg_list = NULL;
 
-  db_enter(3, "matching_template_function");
+  db_enter(3, "is_match_for_function_template");
 #if CHECKING
   if (!is_function_type(curr_type)) {
     internal_error("matching_template_function: expected routine type");
   }  /* if */
 #endif /* CHECKING */
-  curr_type = skip_typerefs(curr_type);
+  *templ_arg_list = NULL;
+  *instance_sym = NULL;
   /* sym is the symbol for a template function to be returned.  Returning NULL
      means no template function could be found or created. */
-  sym = NULL;
   tssp = templ_sym->variant.template.extra_info;
   templ_rout_type = tssp->variant.function.routine->type;
   /* First be sure the number of parameters in the template function is
@@ -979,6 +996,8 @@ return a pointer to the symbol; otherwise, return NULL.
     /* Falling through to here means curr_type exactly matches the function
        type for sym.  Skip over the remaining processing and return sym to
        the caller. */
+    match = TRUE;
+    *instance_sym = sym;
     goto done;
 get_next_sym:;
     /* No match so far.  Continue looping through the function instantiation
@@ -989,10 +1008,9 @@ get_next_sym:;
      question, but that it is not disqualified on other grounds.  Try to match
      the type signature to the template's type signature.  If successful, a
      template arg list is returned; otherwise, NULL is returned. */
-  sym = NULL;
   if (!matches_template_type(curr_type->variant.routine.return_type,
                              templ_rout_type->variant.routine.return_type,
-                             &templ_arg_list)) {
+                             templ_arg_list)) {
     goto done;
   } else {
     /* The routine type for curr_type can be accommodated to the template
@@ -1001,26 +1019,121 @@ get_next_sym:;
     other_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
     for (; other_ptp != NULL; other_ptp = other_ptp->next) {
       if (!matches_template_type(ptp->type, other_ptp->type,
-                                 &templ_arg_list)) {
+                                 templ_arg_list)) {
         goto done;
       }  /* if */
       ptp = ptp->next;
     }  /* for */
+    match = TRUE;
   }  /* if */
-  sym = make_template_function(templ_sym, curr_type, templ_arg_list,
-                               source_pos);
 done:
-  if (sym == NULL && templ_arg_list != NULL) {
-    free_template_arg_list(templ_arg_list);
+  if (!match) {
+    if (*templ_arg_list != NULL) {
+      free_template_arg_list(*templ_arg_list);
+      *templ_arg_list = NULL;
+    }  /* if */
+#if CHECKING
+  } else if ((*instance_sym == NULL) == (*templ_arg_list == NULL)) {
+    internal_error(
+              "is_match_for_function_template: bad sym or templ arg list");
+#endif /* CHECKING */
+  }  /* if */
+  db_exit();
+  return match;
+}  /* is_match_for_function_template */
+
+
+a_symbol_ptr matching_template_function(a_symbol_ptr        templ_sym,
+                                        a_type_ptr          curr_type,
+                                        a_source_position   *source_pos)
+/*
+Search for a template function based on the function template represented
+by templ_sym and the type pointed to by curr_type.  If no such template
+function exists, try to create one.  If the search/creation is successful
+return a pointer to the symbol; otherwise, return NULL.
+*/
+{
+  a_symbol_ptr          sym;
+  a_template_arg_ptr    templ_arg_list;
+
+  db_enter(3, "matching_template_function");
+#if CHECKING
+  if (!is_function_type(curr_type)) {
+    internal_error("matching_template_function: expected routine type");
+  }  /* if */
+#endif /* CHECKING */
+  curr_type = skip_typerefs(curr_type);
+  if (is_match_for_function_template(templ_sym, curr_type,
+                                     &templ_arg_list, &sym)) {
+    if (sym != NULL) {
+      /* A match has been found -- just return a pointer to it. */
+    } else {
+      /* Use the template arg list to create a new symbol. */
+      sym = make_template_function(templ_sym, curr_type, templ_arg_list,
+                                   source_pos);
+    }  /* if */
   }  /* if */
   db_exit();
   return sym;
 }  /* matching_template_function */
 
 
+void record_predeclared_template_function(a_symbol_ptr  templ_sym,
+                                          a_symbol_ptr  rout_sym)
+/*
+*/
+{
+  a_symbol_ptr                       sym;
+  a_template_symbol_supplement_ptr   tssp;
+  a_function_instantiation_entry_ptr fiep;
+  a_type_ptr                         tp;
+  a_template_arg_ptr                 templ_arg_list;
+
+  db_enter(3, "record_predeclared_template_function");
+  if (rout_sym->variant.routine.instance_ptr != NULL) {
+    /* Symbol is already marked as an instantatiation. */
+  } else {
+    tp = skip_typerefs(rout_sym->variant.routine.ptr->type);
+    if (is_match_for_function_template(templ_sym, tp, &templ_arg_list, &sym)) {
+      /* A match has been found. */
+#if CHECKING
+#if 0
+      /* This situation might come up in an error case.  We'll figure out what
+         to do about it if it ever happens. */
+#endif /* if 0 */
+      if (sym != NULL) {
+        internal_error("record_predeclared_template_function: sym found");
+      }  /* if */
+#endif /* CHECKING */
+      /* Create the associated function instantiation entry and link it
+         onto the front of the instantiation list for the template. */
+      fiep = alloc_function_instantiation_entry();
+      fiep->template_sym = templ_sym;
+      fiep->arg_list = templ_arg_list;
+      /* Mark this function as a "specialization". */
+      fiep->specific_decl = TRUE;
+      if (rout_sym->defined) {
+        /* User-defined, so no instantiation is required. */
+        fiep->specific_def = TRUE;
+      }  /* if */
+      tssp = templ_sym->variant.template.extra_info;
+      fiep->next = tssp->variant.function.instantiations;
+      tssp->variant.function.instantiations = fiep;
+      /* Make the function instantiation entry and its associated symbol
+         point at each other. */
+      fiep->routine_sym = rout_sym;
+      rout_sym->variant.routine.instance_ptr = fiep;
+    }  /* if */
+  }  /* if */
+  db_exit();
+}  /* record_predeclared_template_function */
+
+
 a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
                                     a_template_arg_ptr  *new_list,
                                     a_source_position   *source_pos)
+/*
+*/
 {
   a_symbol_ptr                        sym;
   a_template_symbol_supplement_ptr    tssp;
