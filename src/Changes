@@ -36,11 +36,11 @@ The IL display utility now displays UPC forall statements in a form distinct
 from standard "for" statements.
 
 9/1/04  C++-generating back end: qualified references to injected class
-        names that are class template specializations
+        names that are class template instances
 
 Under some circumstances, the C++-generating back end used an unqualified
-name when referring to an injected class name that is a specialization of
-a class template that is a member of a namespace.  Many compilers do not
+name when referring to an injected class name that is an instance of a
+class template that is a member of a namespace.  Many compilers do not
 accept this form of reference.  Now fixed.  For example:
 
   namespace N {
