@@ -1074,7 +1074,9 @@ specific version of the template.
       }  /* if */
       }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    } else if (kind != (a_scope_kind)sck_file) {
+    } else if (kind != (a_scope_kind)sck_file &&
+               kind != (a_scope_kind)sck_namespace &&
+               kind != (a_scope_kind)sck_namespace_extension) {
       ssep->in_prototype_instantiation = (ssep-1)->in_prototype_instantiation;
     }  /* if */
     if (reactivate_template_params) {
