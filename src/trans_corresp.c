@@ -3093,6 +3093,8 @@ are not checked.
                trans_unit_corresp_of(corresp_routine) == NULL) &&
               !routine->source_corresp.is_class_member &&
               !corresp_routine->source_corresp.is_class_member &&
+              routine->source_corresp.parent.namespace_ptr ==
+                        corresp_routine->source_corresp.parent.namespace_ptr &&
               (param_types_are_compatible(
                                        routine->type, corresp_routine->type,
                                        TCF_REDECLARATION | TCF_SEEK_CORRESP) ||
