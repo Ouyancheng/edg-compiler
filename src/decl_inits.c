@@ -2070,6 +2070,7 @@ the default constructor (if one exists) is called.
   a_boolean                         static_lifetime;
   an_object_lifetime_ptr            local_static_lifetime = NULL;
   a_local_static_variable_init_ptr  local_static_var_init = NULL;
+  a_boolean                         is_const;
 
   db_enter(3, "def_initializer");
   /* Default initialization is done only in C++ and only for variables and
@@ -2083,6 +2084,7 @@ the default constructor (if one exists) is called.
   }  /* if */
   if (var != NULL) {
     static_lifetime = has_static_storage_duration(var->storage_class),
+    is_const = is_const_qualified_type(var->type);
     tp = var_type = skip_typerefs(var->type);
     if (is_array_type(tp)) {
       tp = skip_typerefs(underlying_array_element_type(tp));
@@ -2092,7 +2094,8 @@ the default constructor (if one exists) is called.
        and that require constructor initialization. */
     if (is_class_struct_union_type(tp) &&
         var->storage_class != (a_storage_class)sc_extern &&
-        !is_incomplete_type(var_type)) {
+        !is_incomplete_type(var_type) &&
+        (!is_const || type_has_user_declared_default_constructor(tp))) {
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         /* Perform the default initialization of a static data member with
            its parent class reactivated. */
@@ -2117,6 +2120,19 @@ the default constructor (if one exists) is called.
            constructor) we still set def_init_performed as though default
            initialization were done even though it wasn't -- this will
            prevent a redundant diagnostic from being issued. */
+        def_init_performed = TRUE;
+      } else if (!is_const && cssp->trivial_default_constructor != NULL) {
+        /* The language definition says that the object is "default
+           initialized", which means the trivial default constructor is
+           called (even though it's a no-op).  This means its definition is
+           supposed to be generated, and since that may have side-effects
+           we try at least to produce the side-effects even if we don't
+           actually generate the definition. */
+        reference_to_implicitly_invoked_function(
+                                       cssp->trivial_default_constructor,
+                                       err_pos, tp, /*honor_virtual=*/FALSE,
+                                       /*evaluated=*/TRUE,
+                                       /*suppress_access_check=*/TRUE);
         def_init_performed = TRUE;
       }  /* if */
       dtor = select_destructor(tp, tp, err_pos,
@@ -2437,16 +2453,29 @@ initialized.  These are addressed in the course of the processing.
           /* Ref-type fields and const and array-of-const fields require an
              initializer. */
         } else {
-          if (is_array_type(tp)) {
-            tp = skip_typerefs(underlying_array_element_type(tp));
-          }  /* if */
-          if (is_class_struct_union_type(tp) &&
-              ((cssp = symbol_supplement_for_class(tp))->constructor != NULL ||
-               (exceptions_enabled && cssp->destructor != NULL))) {
-            /* When the type of the field has a constructor, a constructor
-               initializer is required.  Otherwise, if it has a destructor
-               and exception handling is enabled, we put out a constructor
-               initializer entry anyway, just to record the destructor. */
+          if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+          tp = skip_typerefs(tp);
+          if (is_class_struct_union_type(tp)) {
+            cssp = symbol_supplement_for_class(tp);
+            if (cssp->constructor != NULL) {
+              /* If the mem-initializer is omitted for this field, a
+                 default constructor will have to be called. */
+            } else if (cssp->trivial_default_constructor != NULL) {
+              /* If the mem-initializer is omitted for this field, the
+                 definition of the trivial default constructor will be
+                 generated, though only in case there are diagnostics. */
+            } else if (exceptions_enabled && cssp->destructor != NULL) {
+              /* When exception handling is enabled and there's a destructor,
+                 we put out a constructor initializer entry anyway, just to
+                 record the destructor. */
+            } else if (cssp->is_POD &&
+                       tp->variant.class_struct_union.any_const_member) {
+              /* A POD with const members -- if the mem-initializer is
+                 omitted a diagnostic will have to be issued. */
+            } else {
+              /* No action is required if the mem-initializer is omitted. */
+              continue;
+            }  /* if */
           } else {
             /* No initializer is needed. */
             continue;
@@ -2782,6 +2811,17 @@ scan_paren:
                                                      array_type, init_type));
               }  /* if */
             }  /* if */
+          } else if (curr_token == tok_rparen && cssp != NULL &&
+                     cssp->trivial_default_constructor != NULL) {
+            reference_to_implicitly_invoked_function(
+                                       cssp->trivial_default_constructor,
+                                       &error_position, init_type,
+                                       /*honor_virtual=*/FALSE,
+                                       /*evaluated=*/TRUE,
+                                       /*suppress_access_check=*/TRUE);
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+            /* Bypass the right paren. */
+            (void)get_token();
           } else {
             /* A field whose initialization does not involve a constructor. */
             if (curr_token == tok_rparen) {
@@ -3037,6 +3077,27 @@ scan_paren:
             end_of_uninit_list = cip;
             if (is_reference_type(tp)) any_ref_member_on_uninit_list = TRUE;
             continue;
+          }  /* if */
+        }  /* if */
+        if (cssp != NULL) {
+          if (cssp->is_POD) {
+            if (tp->variant.class_struct_union.any_const_member) {
+              if (cip->kind == (a_constructor_init_kind)cik_field) {
+                a_symbol_ptr field_sym = (a_symbol_ptr)cip->variant.field->
+                                                   source_corresp.assoc_info;
+                pos_sy_error(ec_uninitialized_field_with_const_member,
+                             &err_pos, field_sym);
+              } else {
+                pos_ty_error(ec_uninitialized_base_class_with_const_member,
+                             &err_pos, tp);
+              }  /* if */
+            }  /* if */
+          } else if (cssp->trivial_default_constructor != NULL) {
+            reference_to_implicitly_invoked_function(
+                                       cssp->trivial_default_constructor,
+                                       &err_pos, tp, /*honor_virtual=*/FALSE,
+                                       /*evaluated=*/TRUE,
+                                       /*suppress_access_check=*/TRUE);
           }  /* if */
         }  /* if */
         if (cssp == NULL ||
@@ -3417,6 +3478,16 @@ are created by a new expression (in which case sym is NULL).  In both cases
            if (is_empty_class && !strict_ansi_mode) {
              /* Except in strict mode, don't bother issuing a diagnostic on
                 something like "const struct S { } s;". */
+           } else if (type_has_default_constructor(type)) {
+              /* The class has an implicitly declared default constructor,
+                 but a user-declared default constructor must be present
+                 (WP 7.1.5.1 [dcl.cv]). */
+             check_assertion(
+                       !type_has_user_declared_default_constructor(type));
+             pos_syty_diagnostic(is_empty_class ?
+                                   strict_ansi_error_severity : es_error,
+                                 ec_missing_default_constructor_on_const,
+                                 &error_position, sym, skip_typerefs(type));
            } else {
              /* Issue an error (or, for an empty class in -a mode, a warning)
                 on omitting the initializer. */
@@ -3444,7 +3515,17 @@ are created by a new expression (in which case sym is NULL).  In both cases
       } else {
         severity = es_discretionary_error;
       }  /* if */
-      diagnostic(severity, ec_missing_initializer_on_unnamed_const);
+      if (type_has_default_constructor(type)) {
+        /* The class has an implicitly declared default constructor, but a
+           user-declared default constructor must be present (WP 5.3.4
+           [expr.new]). */
+        check_assertion(!type_has_user_declared_default_constructor(type));
+        pos_ty_diagnostic(severity,
+                          ec_missing_default_constructor_on_unnamed_const,
+                          &error_position, skip_typerefs(type));
+      } else {
+        diagnostic(severity, ec_missing_initializer_on_unnamed_const);
+      }  /* if */
     }  /* if */
   } else {
     if (is_array_type(type)) type = underlying_array_element_type(type);
