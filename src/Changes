@@ -1,5 +1,14 @@
 Version 3.1
 
+12/31/02 Microsoft compatibility: explicit instantiation without definition
+
+The Microsoft compiler allows the explicit instantiation of an entity
+for which there is no template definition.  This is now accepted in
+Microsoft mode.  A warning is issued.
+
+  template <class T> void f(T);
+  template void f<int>(int);
+
 12/31/02 Microsoft compatibility: defining a destructor using a typedef name
 
 The Microsoft compiler allows a typedef name to be used when defining a

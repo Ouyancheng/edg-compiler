@@ -15836,9 +15836,10 @@ template entities.
          definition has not yet been compiled. */
       if (tip->explicit_instantiation && !tip->class_explicitly_instantiated &&
           !template_is_exported(tip->template_sym) && !tip->error_issued) {
-        pos_sy_error(ec_instantiation_requested_no_definition_supplied,
-  	           &tip->explicit_instantiation_pos,
-  		    tip->instance_sym);
+        pos_sy_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+                          ec_instantiation_requested_no_definition_supplied,
+   	                  &tip->explicit_instantiation_pos,
+  	                  tip->instance_sym);
         tip->error_issued = TRUE;
       }  /* if */
     } else {
