@@ -4628,7 +4628,7 @@ a pointer over a reference type or creating an array of references.
                                            depth, source_pos, options,
                                            copy_error);
           qualifiers = get_type_qualifiers(type);
-          if (type_without_typerefs->kind == (a_type_kind)tk_routine &&
+          if (tp->kind == (a_type_kind)tk_routine &&
               qualifiers != TQ_NONE) {
             /* An attempt to place a qualifier on top of a function type.
                This is not allowed. */
