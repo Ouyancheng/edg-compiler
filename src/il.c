@@ -6814,8 +6814,8 @@ within a function scope.
       function_scope_ssep->entity.kind =
                            (a_byte_il_entry_kind)iek_source_sequence_entry;
       function_scope_ssep->entity.ptr  = (char *)ssep;
-      add_to_source_sequence_list(function_scope_ssep,
-                                  /*proxy_allowed=*/FALSE);
+      (void)add_to_source_sequence_list(function_scope_ssep,
+                                        /*proxy_allowed=*/FALSE);
     }  /* if */
   }  /* if */
   sp = scope_stack_ptr->il_scope;
