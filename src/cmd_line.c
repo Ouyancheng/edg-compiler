@@ -1460,7 +1460,9 @@ by a command line option.
   /* '//' is accepted as a comment delimiter in both C and C++. */
   end_of_line_comments_allowed = TRUE;
   IEEE_handling_on_float_operation_exceptions = FALSE;
-  floating_point_template_parameters_allowed = TRUE;
+  /* Floating-point template parameters are supported by MSVC++ through
+     version 7.0. */
+  floating_point_template_parameters_allowed = microsoft_version <= 1300;
   null_chars_allowed_in_source = TRUE;
   if (!C_mode()) {
     /* Microsoft C++ mode. */

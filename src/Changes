@@ -1,5 +1,12 @@
 Version 3.4
 
+3/29/04  Microsoft compatibility: floating-point template parameters
+
+Version 7.1 of the Microsoft compiler no longer accepts floating-point
+template parameters (which are not permitted by the standard).  We now
+disallow floating-point template parameters in Microsoft mode when
+microsoft_version is > 1300.
+
 3/29/04  Abort on diagnostic for restrict qualifiers
 
 In C++ modes accepting the restrict qualifier an internal error was triggered
