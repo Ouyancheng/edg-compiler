@@ -4135,6 +4135,7 @@ restore the previously saved settings.
 }  /* check_severity */
 
 
+#if !STANDALONE_UTILITY_PROGRAM
 static a_boolean include_in_context_output
 			(a_scope_stack_entry_ptr ssep,
 			 a_symbol_ptr	         *context_sym,
@@ -4181,7 +4182,7 @@ is set to point to a symbol that provides the context information and
 #endif /* CHECKING */
   return result;
 } /* include_in_context_output */
-
+#endif /* !STANDALONE_UTILITY_PROGRMA */
 
 static void diag_message (an_error_code              error_code,
                           a_source_position          *error_pos,
@@ -4281,6 +4282,9 @@ template associated with error_code.  After constructing the segment list
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     }  /* for */
 #endif /* CHECKING */
+#if STANDALONE_UTILITY_PROGRAM
+    write_diagnostic(error_pos, severity, diag_kind);
+#else /* !STANDALONE_UTILITY_PROGRAM */
     /* Certain conditions, such as errors that occur while instantiating
        template classes and functions, require additional context information
        to be supplied after the message is printed.  The context is printed
@@ -4354,6 +4358,7 @@ template associated with error_code.  After constructing the segment list
                     dck_end_context);
       }  /* if */
     }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   }  /* if */
 }  /* diag_message */
 
