@@ -1,5 +1,19 @@
 Version 2.36
 
+5/1/97    Microsoft compatibility: explicit constructor calls
+
+In Microsoft compatibility mode, explicit calls of constructors are
+now allowed:
+
+  struct C {
+    C();
+    C f();
+  };
+  C C::f() {
+    this->C::C();   // Calls constructor on "this"
+    return C::C();  // Creates temporary of type C (not same as previous)
+  };
+
 5/1/97    Microsoft compatibility: explicit specializations inside a class
           definition
 

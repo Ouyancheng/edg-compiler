@@ -5312,10 +5312,13 @@ If arg_operand is non-NULL, it points to an operand for the argument.
 }  /* type_after_function_to_pointer_transformation */
 
 
-void conv_function_designator_to_ptr_to_function(an_operand *operand)
+void conv_function_designator_to_ptr_to_function(an_operand *operand,
+                                                 a_boolean  allow_ctor)
 /*
 Convert a function designator operand to a pointer to function expression 
-operand.
+operand.  allow_ctor is TRUE if this is allowed if the operand is a
+constructor (ordinarily, taking the address of a constructor is not
+allowed).
 */
 {
   an_operand   orig_operand;
@@ -5338,7 +5341,8 @@ operand.
     }  /* if */
     if (fund_sym->kind == (a_symbol_kind)sk_member_function) {
       a_routine_ptr rout = fund_sym->variant.routine.ptr;
-      if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+      if ((!allow_ctor &&
+           rout->special_kind == (a_special_function_kind)sfk_constructor) ||
           rout->special_kind == (a_special_function_kind)sfk_destructor) {
         error_in_operand(ec_addr_of_constructor_or_destructor, operand);
       }  /* if */
@@ -5448,7 +5452,8 @@ transformations.
       /* In most contexts, an entity of type "function returning type"
          is changed to "pointer to function returning type".  
          See section 3.2.2.1 in the ANSI C standard. */
-      conv_function_designator_to_ptr_to_function(operand);
+      conv_function_designator_to_ptr_to_function(operand,
+                    /*allow_ctor=*/(options & TOPT_ADDR_OF_CTOR_ALLOWED) != 0);
     }  /* if */
   }  /* if */
   if (is_indefinite_function_operand(operand)) {

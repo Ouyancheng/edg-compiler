@@ -282,6 +282,8 @@ some of the transformations.
 			/* Suppress conversion of an lvalue to an rvalue. */
 #define TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION 0x8
 			/* Suppress the check for indefinite functions. */
+#define TOPT_ADDR_OF_CTOR_ALLOWED 0x10
+			/* Taking the address of a constructor is allowed. */
 #define TOPT_NO_OPTIONS 0
 typedef int a_transformation_options_set;
 
@@ -811,7 +813,8 @@ extern a_type_ptr type_after_function_to_pointer_transformation(
                                                       a_type_ptr arg_type,
                                                       an_operand *arg_operand);
 
-extern void conv_function_designator_to_ptr_to_function(an_operand *operand);
+extern void conv_function_designator_to_ptr_to_function(an_operand *operand,
+                                                        a_boolean  allow_ctor);
 
 extern a_type_ptr do_implicit_type_transformations(a_type_ptr type,
                                                    an_operand *operand);

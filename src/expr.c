@@ -1600,9 +1600,14 @@ Syntax:
                                                bound_function_selector);
     }  /* if */
     /* Do standard transformations on the operand. */
-    do_operand_transformations(operand,
+    { a_transformation_options_set options =
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                               TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+                               TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION;
+      /* In Microsoft mode, allow an explicit call of a constructor, e.g.,
+         "p->X::X()". */
+      if (microsoft_mode) options |= TOPT_ADDR_OF_CTOR_ALLOWED;
+      do_operand_transformations(operand, options);
+    }
     /* Function designator must be an expression or an undefined symbol. */
     if (is_undefined_symbol_operand(operand)) {
       /* If the function designator was an undefined symbol, implicitly
@@ -1622,7 +1627,8 @@ Syntax:
                                        &func_sym->decl_position,
                                        operand->ref_entries_list,
                                        operand);
-      conv_function_designator_to_ptr_to_function(operand);
+      conv_function_designator_to_ptr_to_function(operand,
+                                                  /*allow_ctor=*/FALSE);
       routine = func_sym->variant.routine.ptr;
       routine_type = routine_symbol_type(func_sym);
     } else if (is_indefinite_function_operand(operand)) {
@@ -3353,7 +3359,10 @@ operation is a pointer-to-member (see ARM 5.3).
              member functions specified by qualified name. */
           /* Change the error position to the "&". */
           operand.position = start_position;
-          conv_function_designator_to_ptr_to_function(&operand);
+          /* In Microsoft mode, allow taking the address of a constructor,
+             to permit constructs like "p->X::X()". */
+          conv_function_designator_to_ptr_to_function(&operand,
+                                                      /*allow_ctor=*/FALSE);
           /* Note that the copy preserves ref_entries_list. */
           copy_operand(&operand, result);
         } else if (is_sym_for_member_operand(&operand)) {
@@ -5798,7 +5807,8 @@ type.
   if (is_an_lvalue(operand)) {
     take_address_of_lvalue(operand);
   } else if (is_a_function_designator(operand)) {
-    conv_function_designator_to_ptr_to_function(operand);
+    conv_function_designator_to_ptr_to_function(operand,
+                                                /*allow_ctor=*/FALSE);
   } else if (!strict_ansi_mode &&
              is_class_struct_union_type(operand->type)) {
     /* As a transitional concession, this cast is allowed on an rvalue of
@@ -6025,7 +6035,8 @@ and C++ functional-notation type conversions.
                                            start_position,
                                            (a_ref_entry_ptr)NULL,
                                            operand);
-          conv_function_designator_to_ptr_to_function(operand);
+          conv_function_designator_to_ptr_to_function(operand,
+                                                      /*allow_ctor=*/FALSE);
           cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
                        /*is_implicit_cast=*/FALSE,
                        /*is_reinterpret_cast=*/FALSE);
@@ -9288,6 +9299,13 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
     }  /* if */
   } else {
     /* The symbol is defined. */
+    if (microsoft_mode && is_constructor_symbol(sym_ptr)) {
+      /* In Microsoft mode, treat the name of a constructor as the name
+         of the class, so that something like "C::C()" is seen as a
+         functional-notation type conversion. */
+      sym_ptr = (a_symbol_ptr)(sym_ptr->parent.class_type->
+                                                    source_corresp.assoc_info);
+    }  /* if */
     /* Create a reference entry for the symbol if needed. */
     /* Don't do this if the symbol is an overloaded function (we don't
        yet know which function is being called). */

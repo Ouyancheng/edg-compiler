@@ -3585,7 +3585,8 @@ checking error was detected and reported.
                                          is_qualified_name,
                                          call_position, rep, operand);
         /* Convert the operand to a function pointer. */
-        conv_function_designator_to_ptr_to_function(operand);
+        conv_function_designator_to_ptr_to_function(operand,
+                                                    /*allow_ctor=*/FALSE);
         if (!address_taken) {
           /* Change the kind of reference to the function from "address taken"
              to "reference". */
@@ -8225,7 +8226,8 @@ to be acceptable, and *conversion describes it.
                          &source_operand->position);
         }  /* if */
       }  /* if */
-      conv_function_designator_to_ptr_to_function(source_operand);
+      conv_function_designator_to_ptr_to_function(source_operand,
+                                                  /*allow_ctor=*/FALSE);
     }  /* if */
   } else if ((direct_binding_possible || dropping_qualifiers) &&
              is_class_struct_union_type(base_dest_type)) {
