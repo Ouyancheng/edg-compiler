@@ -5959,8 +5959,8 @@ constructor, but may instead be after an assignment to "this".
 
      [If current class has any virtual base classes:]
        int complete = (first added parameter == NULL);
-         (indicating a complete object is being initialized and virtual base
-          classes must be constructed)
+           (indicating a complete object is being initialized and virtual base
+            classes must be constructed)
        If complete:
          Set the construction_vtbls temp to point to a local static array
            containing vtbl pointer values to be used for a complete object.
@@ -6094,7 +6094,6 @@ constructor, but may instead be after an assignment to "this".
                                    insert_location);
     }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
-    
     /* Make an "if" statement with a block statement under it:
          if (complete) {}
                         ^--- additional statements will be inserted.
@@ -6161,18 +6160,20 @@ constructor, but may instead be after an assignment to "this".
     for (; ctor_init != NULL &&
             ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class;
          ctor_init = ctor_init->next) {
-      /* Add complete_var as a conditional flag.  The virtual base
-         class should be destroyed only if it was constructed in this
-         constructor. */
-      a_destructible_entity_descr_ptr dedp = 
+      if (ctor_init->initializer->destructor != NULL) {
+        /* Add complete_var as a conditional flag.  The virtual base
+           class should be destroyed only if it was constructed in this
+           constructor. */
+        a_destructible_entity_descr_ptr dedp = 
                              ctor_init->initializer->destructible_entity_descr;
-      check_assertion(dedp != NULL);
-      dedp->conditional_flag_var = complete_var;
+        check_assertion(dedp != NULL);
+        dedp->conditional_flag_var = complete_var;
 #if DO_FULL_PORTABLE_EH_LOWERING
-      if (exceptions_enabled) {
-        dedp->conditional_flag_handle = complete_var_handle;
-      }  /* if */
+        if (exceptions_enabled) {
+          dedp->conditional_flag_handle = complete_var_handle;
+        }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
+      }  /* if */
       lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/TRUE,
                       class_type, construction_vtbls_var, &insert_location2);
     }  /* for */
