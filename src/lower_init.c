@@ -6549,6 +6549,147 @@ destructor scope, and also lower the user code.
   code_pos_for_lowering = saved_code_pos;
 }  /* lower_destructor_code */
 
+#if ONE_INSTANTIATION_PER_OBJECT
+
+static void mark_expr_list_slice_dyn_inits(an_expr_node_ptr expr);
+static void mark_slice_dyn_inits(a_dynamic_init_ptr dip);
+
+
+static void mark_constant_slice_dyn_inits(a_constant_ptr con)
+/*
+Set the included_in_slice flag in any dynamic initializations under
+the given constant in the same object lifetime.
+*/
+{
+  switch (con->kind) {
+    case ck_error:
+    case ck_integer:
+    case ck_string:
+    case ck_float:
+    case ck_address:
+    case ck_ptr_to_member:
+#if GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
+    case ck_stack_offset:
+#endif /* DO_IL_LOWERING && ... */
+      /* No processing. */
+      break;
+    case ck_dynamic_init:
+      mark_slice_dyn_inits(con->variant.dynamic_init);
+      break;
+    case ck_aggregate:
+      for (con = con->variant.aggregate.first_constant;
+           con != NULL;
+           con = con->next) {
+        mark_constant_slice_dyn_inits(con);
+      }  /* if */
+      break;
+    case ck_init_repeat:
+      mark_constant_slice_dyn_inits(con->variant.init_repeat.constant);
+      break;
+    case ck_template_param:
+    default:
+      unexpected_condition_str(
+                           "mark_constant_slice_dyn_inits: bad constant kind");
+  }  /* switch */
+}  /* mark_constant_slice_dyn_inits */
+
+
+static void mark_expr_slice_dyn_inits(an_expr_node_ptr expr)
+/*
+Set the included_in_slice flag in any dynamic initializations under
+the given expression in the same object lifetime.
+*/
+{
+  switch (expr->kind) {
+    case enk_error:
+    case enk_constant:
+    case enk_variable:
+    case enk_variable_address:
+    case enk_field:
+    case enk_runtime_sizeof:
+    case enk_address_of_ellipsis:
+    case enk_routine_address:
+      /* No processing. */
+      break;
+    case enk_operation:
+      mark_expr_list_slice_dyn_inits(expr->variant.operation.operands);
+      break;
+    case enk_temp_init:
+      mark_slice_dyn_inits(expr->variant.init.dynamic_init);
+      break;
+    case enk_new_delete:
+      mark_expr_list_slice_dyn_inits(expr->variant.new_delete->arg);
+      mark_slice_dyn_inits(expr->variant.new_delete->dynamic_init);
+      break;
+    case enk_throw:
+      mark_slice_dyn_inits(expr->variant.throw_info->dynamic_init);
+      break;
+    case enk_object_lifetime:
+      /* Don't go into another object lifetime. */
+      break;
+    case enk_typeid:
+      mark_expr_slice_dyn_inits(expr->variant.typeid_info.expr);
+      break;
+    case enk_condition:
+#if !DO_FULL_PORTABLE_EH_LOWERING
+    case enk_lowered_eh_construct:
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+    default:
+      unexpected_condition_str("mark_expr_slice_dyn_inits: bad expr kind");
+  }  /* switch */
+}  /* mark_expr_slice_dyn_inits */
+
+
+static void mark_expr_list_slice_dyn_inits(an_expr_node_ptr expr)
+/*
+Set the included_in_slice flag in any dynamic initializations under
+the given expression list in the same object lifetime.
+*/
+{
+  for (; expr != NULL; expr = expr->next) {
+    mark_expr_slice_dyn_inits(expr);
+  }  /* for */
+}  /* mark_expr_list_slice_dyn_inits */
+
+
+static void mark_slice_dyn_inits(a_dynamic_init_ptr dip)
+/*
+Set the included_in_slice flag in the given dynamic initialization and
+in all dynamic initializations under it in the same object lifetime.
+*/
+{
+  dip->included_in_slice = TRUE;
+  /* If the dynamic initialization has an object lifetime around the
+     initialization, do not visit the subtree. */
+  if (dip->init_expr_lifetime == NULL) {
+    switch (dip->kind) {
+      case dik_none:
+      case dik_zero:
+      case dik_constant:
+        /* No processing. */
+        break;
+      case dik_expression:
+      case dik_call_returning_class_via_cctor:
+        mark_expr_slice_dyn_inits(dip->variant.expression);
+        break;
+      case dik_constructor:
+        mark_expr_list_slice_dyn_inits(dip->variant.constructor.args);
+        break;
+      case dik_nonconstant_aggregate:
+        mark_constant_slice_dyn_inits(dip->variant.constant);
+        break;
+      case dik_bitwise_copy:
+      default:
+        /* Not expected. */
+        unexpected_condition_str("mark_slice_dyn_inits: bad dyn init kind");
+    }  /* switch */
+  }  /* if */
+}  /* mark_slice_dyn_inits */
+
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 #if !ONE_INSTANTIATION_PER_OBJECT
 /*ARGSUSED*/ /* residual_destrs is not used in that case. */
@@ -6612,6 +6753,9 @@ after all initialization routines for instantiations have been generated.
           end_process_list->next = dip;
         }  /* if */
         end_process_list = dip;
+        /* Mark any destructions associated with this initialization so we can
+           recognize them. */
+        mark_slice_dyn_inits(dip);
       } else {
         /* This dynamic initialization does not get processed on this call
            and goes back on the list. */
@@ -6628,20 +6772,15 @@ after all initialization routines for instantiations have been generated.
     dtor_process_list = end_dtor_process_list = NULL;
     dtor_delay_list = end_dtor_delay_list = NULL;
     if (file_scope->lifetime != NULL) {
-      a_boolean process = FALSE;
-
       for (dip = file_scope->lifetime->destructions;
            dip != NULL;
            dip = dip_next) {
         dip_next = dip->next_in_destruction_list;
         dip->next_in_destruction_list = NULL;
-        /* Assume that destructions following a variable on the list are
-           related to that variable. */
-        if (dip->variable != NULL) {
-          process =  (dip->variable->instantiation_needed_bit_number ==
-                                                       eff_needed_bit_number);
-        }  /* if */
-        if (process) {
+        /* See if this destruction was marked by mark_slice_dyn_inits.
+           If so, it's related to the initializations being processed on
+           this call. */
+        if (dip->included_in_slice) {
           /* This destruction gets processed on this call. */
           if (end_dtor_process_list == NULL) {
             dtor_process_list = dip;

@@ -1339,6 +1339,13 @@ typedef struct a_dynamic_init {
 			   the entity has actually been initialized.  This flag
 			   is not set for variables with static storage
 			   duration. */
+#if ONE_INSTANTIATION_PER_OBJECT && DO_IL_LOWERING
+  a_bit_field	included_in_slice:1;
+			/* Used to mark destructions associated with the
+			   initializations included in a file-scope
+			   initialization routine for a given instantiation
+			   slice. */
+#endif /* ONE_INSTANTIATION_PER_OBJECT && DO_IL_LOWERING */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
