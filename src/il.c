@@ -3408,7 +3408,6 @@ at file scope.
   ptp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
   ptp->default_arg_expr = NULL;
-  ptp->passed_via_copy_constructor = FALSE;
 
   db_exit();
   return ptp;
