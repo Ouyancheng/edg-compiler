@@ -778,8 +778,19 @@ Transform the given complex cast expression into a function call
   a_routine_ptr     *routine;
   char              *routine_name;
 
-  if (il_identical_types(src_type, dst_type) || is_void_type(dst_type)) {
-    /* Nothing needs to be done. */
+  if (is_void_type(dst_type)) {
+    /* A cast to void.  Nothing needs to be done. */
+  } else if (il_identical_types(src_type, dst_type)) {
+    /* A do-nothing cast. */
+    if (is_imaginary_type(src_type)) {
+      /* Imaginary types become floating-point types, so the cast can be
+         left as it is.  This may actually be useful/necessary, because
+         such a cast will drop extra precision on intermediate results. */
+    } else {
+      /* A cast to a complex type is eliminated because it would become
+         a cast to struct type. */
+      overwrite_node(expr, src);
+    }  /* if */
   } else if (is_complex_type(dst_type)) {
     if (is_complex_type(src_type)) {
       /* A change in floating-point precision, complex to complex. */
