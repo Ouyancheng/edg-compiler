@@ -1,5 +1,10 @@
 Version 2.06
 
+5/7/92   Bug in IL lowering of virtual destructor calls fixed.
+
+Implicitly-generated calls of virtual destructors were not put
+out as virtual calls.
+
 5/7/92   Bug in overloaded "+" operator resolution with conversion functions
 
 A case like
