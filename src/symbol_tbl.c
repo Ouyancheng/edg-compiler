@@ -166,15 +166,17 @@ that might normally precede it.
 
   /* See whether the symbol has an associated IL entry and whether the IL
      entry has a source correspondence field -- but use it only if its
-     parent class matches that of the symbol (they can differ for symbols
-     promoted from anonymous unions, in which case preference is given to
-     the symbol). */
+     parent matches that of the symbol (the parent class can differ for
+     symbols promoted from anonymous unions, in which case preference is
+     given to the symbol; the parent namespace can differ for extern-C
+     declarations). */
   entry = il_entry_for_symbol(sym, &kind);
   if (entry != NULL &&
       (scp = source_corresp_for_il_entry(entry, kind)) != NULL &&
       sym->is_class_member == scp->is_class_member &&
-      (!sym->is_class_member ||
-       sym->parent.class_type == scp->parent.class_type)) {
+      (sym->is_class_member ?
+         sym->parent.class_type == scp->parent.class_type :
+         sym->parent.namespace_ptr == scp->parent.namespace_ptr)) {
     /* Use the IL entry to generate the name. */
     if (suppress_qualifier) {
       form_unqualified_name(scp, kind, octl);
