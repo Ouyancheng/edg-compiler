@@ -56,6 +56,8 @@ extern void scan_extended_decl_modifiers(
                             an_extended_decl_info_block  *extended_decl_info,
                             a_boolean                    *err);
 
+extern void scan_and_discard_extended_decl_modifiers(void);
+
 extern void update_extended_decl_info_for_class(
                             a_type_ptr                   class_type,
                             an_extended_decl_info_block  *extended_decl_info,

@@ -1,5 +1,14 @@
 Version 2.46
 
+4/3/01   Microsoft compatibility: __declspec ignored on template type
+         parameter declaration
+
+The Microsoft compiler accepts and ignores a __declspec modifier on a
+template type parameter declaration.  We now emulate this behavior
+in Microsoft mode.  A warning is issued.
+
+  template <class __declspec(dllexport) T> class A { };
+
 4/2/01   Extraneous deallocation points for variable length arrays (VLAs)
 
 The front end used to generate VLA object deallocation points at the end of

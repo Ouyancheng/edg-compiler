@@ -2522,15 +2522,7 @@ scanned and thrown away with a warning.
            and ignore __declspec declarations that appear during declarator
            processing -- there is no evidence that the decl-modifiers are ever
            actually applied to the function or variable being declared. */
-        a_boolean                    local_err;
-        an_extended_decl_info_block  extended_decl_info;
-
-        /* Issue a warning that it's being ignored. */
-        warning(ec_decl_modifiers_ignored);
-        clear_extended_decl_info_block(extended_decl_info);
-        scan_extended_decl_modifiers(/*is_class_decl=*/FALSE,
-                                     /* is_member_decl=*/FALSE,
-                                     &extended_decl_info, &local_err);
+        scan_and_discard_extended_decl_modifiers();
       } else if (curr_token == tok_mutable) {
         /* The Microsoft compiler appears to accept and ignore "mutable"
            during declarator processing.  Issue a warning and continue. */

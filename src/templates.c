@@ -10527,6 +10527,7 @@ this parameter.
   a_token_kind	second_token;
   a_token_kind	token_after_id;
   a_boolean	is_end_of_param;
+  a_boolean	can_be_type_param = FALSE;
 
   /* Determine whether this is a "type-argument" (a parameter that
      represents a type) or a "parameter-declaration" (a parameter that
@@ -10543,8 +10544,14 @@ this parameter.
   is_end_of_param = token_after_id == tok_comma ||
                     token_after_id == tok_gt ||
                     token_after_id == tok_assign;
+  if (is_end_of_param) can_be_type_param = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* The Microsoft compiler accepts and ignores a __declspec modifier
+     on a template type parameter. */
+  if (next_tok == tok_declspec) can_be_type_param = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if ((curr_token == tok_class || curr_token == tok_typename) &&
-      is_end_of_param) {
+      can_be_type_param) {
     /* A type parameter. */
     result = (a_symbol_kind)sk_type;
   } else if (curr_token == tok_template) {
@@ -10596,6 +10603,13 @@ parameter entry for the parameter.
 
   /* Bypass "class" or "typename". */
   (void)get_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* The Microsoft compiler accepts and ignores a __declspec modifier
+     on a template type parameter. */
+  if (curr_token == tok_declspec) {
+    scan_and_discard_extended_decl_modifiers();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   is_named = curr_token == tok_identifier;
   /* Create an sk_type symbol for the parameter. */
   sym = create_template_param_symbol((a_symbol_kind)sk_type,

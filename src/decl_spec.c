@@ -757,6 +757,25 @@ kinds of errors.
   }  /* for */
 }  /* scan_extended_decl_modifiers */
 
+
+void scan_and_discard_extended_decl_modifiers(void)
+/*
+The Microsoft compiler accepts __declspec declarations in certain contexts
+in which they appear to have no effect.  This routine scans the modifiers
+and issues a warning indicating that they are being ignored.
+*/
+{
+  a_boolean                    local_err;
+  an_extended_decl_info_block  extended_decl_info;
+
+  /* Issue a warning that it's being ignored. */
+  warning(ec_decl_modifiers_ignored);
+  clear_extended_decl_info_block(extended_decl_info);
+  scan_extended_decl_modifiers(/*is_class_decl=*/FALSE,
+                               /* is_member_decl=*/FALSE,
+                               &extended_decl_info, &local_err);
+}  /* scan_and_discard_extended_decl_modifiers */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
 static a_boolean tag_currently_being_defined(a_type_ptr tag_type)
