@@ -7078,13 +7078,6 @@ ones are allocated in the scope specified by decl_scope_level.
          but the type and its supplement always are. */
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
     }  /* if */
-#if RECORD_HIDDEN_NAMES_IN_IL
-    /* If any hidden name entries were entered in the scope of the anonymous
-       union, they can be discarded.  Hidden name entries will be recomputed
-       for the scope to which the anonymous union member symbols are
-       promoted. */
-    ctsp->assoc_scope->hidden_names = NULL;
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   }  /* if */
   /* Get the list of symbols that are to be either promoted (i.e., reused
      in the new scope) or cloned. */
@@ -7211,13 +7204,6 @@ ones are allocated in the scope specified by decl_scope_level.
            of a variable anonymous union should be (i.e., should remain)
            public. */
         sym->variant.field.ptr->source_corresp.access = assoc_object_access;
-#if RECORD_HIDDEN_NAMES_IN_IL
-        /* Determine whether a hidden name entry needs to be entered for the
-           name being promoted. */
-        if (!C_mode() && !suppress_reenter_symbol_call) {
-          check_for_defeatable_name_hiding(sym);
-        }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
         if (apo_sym == NULL) {
           sym->variant.field.anonymous_parent_object = assoc_object_sym;
         } else if (reuse_symbol) {
@@ -7298,11 +7284,6 @@ ones are allocated in the scope specified by decl_scope_level.
         tp->source_corresp.access = assoc_object_access;
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
-#if RECORD_HIDDEN_NAMES_IN_IL
-        /* Determine whether a hidden name entry needs to be entered for the
-           name being promoted. */
-        check_for_defeatable_name_hiding(sym);
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
         break;
       case sk_constant:
         /* An enum constant. */
@@ -7318,11 +7299,6 @@ ones are allocated in the scope specified by decl_scope_level.
         sym->variant.constant->source_corresp.access = assoc_object_access;
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
-#if RECORD_HIDDEN_NAMES_IN_IL
-        /* Determine whether a hidden name entry needs to be entered for the
-           name being promoted. */
-        check_for_defeatable_name_hiding(sym);
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
         break;
       case sk_class_template:
         /* Member class template -- issue an error.  (This is not explicitly
@@ -11308,13 +11284,6 @@ next_declaration:
     (void)required_token(tok_rbrace, ec_exp_rbrace);
     /* Restore the stop token state. */
     pop_stop_token_stack();
-#if RECORD_HIDDEN_NAMES_IN_IL
-    if (!C_mode()) {
-      /* Perform hidden name checking on all names inherited from base
-         classes. */
-      check_hiding_by_inherited_names(class_type, scope_ptr);
-    }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
     /* If entities dependent on this class were declared before the class
        was defined, they will have been recorded on a fixup list.  Now
        go through the fixup list and complete the declarations.  (Note that

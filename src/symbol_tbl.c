@@ -91,9 +91,6 @@ static unsigned long
 		num_namespace_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_vla_fixups_allocated,
-#if RECORD_HIDDEN_NAMES_IN_IL
-		num_hidden_template_name_fixups_allocated,
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 		num_extern_type_fixups_allocated,
 		num_projection_descrs_allocated,
 		num_used_symbol_buckets,
@@ -168,13 +165,6 @@ static a_vla_fixup_ptr
 		avail_vla_fixups;
 			/* List of vla fixup entries freed and available for
 			   reuse. */
-
-#if RECORD_HIDDEN_NAMES_IN_IL
-static a_hidden_template_name_fixup_ptr
-		avail_hidden_template_name_fixups;
-			/* List of hidden template name fixup entries freed
-			   and available for reuse. */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 void form_optionally_qualified_symbol_name(
 		a_symbol_ptr				sym,
@@ -4253,9 +4243,6 @@ specified by tag_sym, and enter it into the symbol table.
     sym->parent.class_type = class_type;
     add_symbol_to_scope_list(sym, depth_scope_stack, &suppress_error);
     link_symbol_into_symbol_table(sym, depth_scope_stack, suppress_error);
-#if RECORD_HIDDEN_NAMES_IN_IL
-    check_for_defeatable_name_hiding(sym);
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   }  /* if */
 }  /* enter_injected_class_name_symbol */
 
@@ -8442,93 +8429,6 @@ Add the indicated list of vla fixup entries to the available list.
   }  /* if */
 }  /* free_vla_fixup_list */
 
-#if RECORD_HIDDEN_NAMES_IN_IL
-
-a_hidden_template_name_fixup_ptr alloc_hidden_template_name_fixup(void)
-/*
-Allocate and initialize a hidden template name fixup entry and return a
-pointer to it.
-*/
-{
-  a_hidden_template_name_fixup_ptr  htnfp;
-
-  db_enter(5, "alloc_hidden_template_name_fixup");
-  if (avail_hidden_template_name_fixups == NULL) {
-    htnfp = (a_hidden_template_name_fixup_ptr)alloc_fe(
-                                    sizeof(a_hidden_template_name_fixup));
-#if DEBUG
-    num_hidden_template_name_fixups_allocated++;
-#endif /* DEBUG */
-  } else {
-    htnfp = avail_hidden_template_name_fixups;
-    avail_hidden_template_name_fixups = htnfp->next;
-  }  /* if */
-  htnfp->next = NULL;
-  htnfp->tag_hidden_by_nontag = FALSE;
-  htnfp->hidden_class_or_namespace_member = FALSE;
-  htnfp->scope = NULL;
-  htnfp->assoc_function_scope = NULL;
-  db_exit();
-  return htnfp;
-}  /* alloc_hidden_template_name_fixup */
-
-
-void free_selected_hidden_template_name_fixups(void)
-/*
-Go through the list of template symbols recorded as hidden by declarations
-in the current sck_function scope and remove from the associated
-hidden-template-name fixup entries all entries that refer to the current
-scope with the assoc_function_scope pointer.  The entries that are removed
-from the list are returned to an available list for reuse later.
-*/
-{
-  a_scope_stack_entry_ptr           ssep = &scope_stack[depth_scope_stack];
-  a_symbol_list_entry_ptr           slep, symbol_list;
-  a_template_symbol_supplement_ptr  tssp;
-  a_hidden_template_name_fixup_ptr  htnfp, prev_htnfp, next_htnfp;
-
-  /* This routine should be called only when a function scope is popped. */
-  check_assertion(ssep->kind == (a_scope_kind)sck_function);
-  symbol_list = ssep->hidden_template_name_symbols;
-  if (symbol_list != NULL) {
-    /* Traverse the list of template symbols whose declarations are hidden
-       by declarations within the context of the current function scope. */
-    for (slep = symbol_list; slep != NULL; slep = slep->next) {
-      check_assertion(is_template_symbol(slep->symbol));
-      /* Traverse the hidden-template-name fixup entries that are recorded
-         for the indicated template.  We are looking for those that will
-         become inactive when the current scope is popped. */
-      tssp = slep->symbol->variant.template_info;
-      htnfp = tssp->hidden_name_fixup_list;
-      prev_htnfp = NULL;
-      for (; htnfp != NULL; htnfp = next_htnfp) {
-        /* Remember the next entry, in case the current entry is removed from
-           the list. */
-        next_htnfp = htnfp->next;
-        if (htnfp->assoc_function_scope == ssep->il_scope) {
-          /* This fixup entry applies to the context of the routine that is
-             going out of scope, so remove it from the list and place it on
-             the free list. */
-          if (prev_htnfp == NULL) {
-            tssp->hidden_name_fixup_list = next_htnfp;
-          } else {
-            prev_htnfp->next = next_htnfp;
-          }  /* if */
-          htnfp->next = avail_hidden_template_name_fixups;
-          avail_hidden_template_name_fixups = htnfp;
-        } else {
-          /* Leave the entry on the list. */
-          prev_htnfp = htnfp;
-        }  /* if */
-      }  /* for */
-    }  /* for */
-    /* Free the symbol-list entries, too. */
-    free_list_of_symbol_list_entries(symbol_list);
-    ssep->hidden_template_name_symbols = NULL;
-  }  /* if */
-}  /* free_selected_hidden_template_name_fixups */
-
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 an_extern_type_fixup_ptr alloc_etype_fixup(void)
 /*
@@ -9436,11 +9336,6 @@ for space tracking purposes.
                      a_dependent_type_fixup);
   db_space_used_lost("vla fixup", avail_vla_fixups, num_vla_fixups_allocated,
                      a_vla_fixup);
-#if RECORD_HIDDEN_NAMES_IN_IL
-  db_space_used("hidden templ name fixup",
-                 num_hidden_template_name_fixups_allocated,
-                 a_hidden_template_name_fixup);
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   db_space_used("template instance", num_template_instances_allocated,
                 a_template_instance);
   db_space_used("symbol list entry", num_symbol_list_entries_allocated,
@@ -9645,9 +9540,6 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_dependent_type_fixups),
       pch_saved_var_array_elem(avail_param_ids),
       pch_saved_var_array_elem(avail_vla_fixups),
-#if RECORD_HIDDEN_NAMES_IN_IL
-      pch_saved_var_array_elem(avail_hidden_template_name_fixups),
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
       pch_saved_var_array_elem(avail_progenitors),
       pch_saved_var_array_elem(error_symbol_header),
       pch_saved_var_array_elem(unnamed_tag_symbol_header),
@@ -9671,9 +9563,6 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_dependent_type_fixups_allocated),
       pch_saved_var_array_elem(num_extern_symbol_descrs_allocated),
       pch_saved_var_array_elem(num_vla_fixups_allocated),
-#if RECORD_HIDDEN_NAMES_IN_IL
-      pch_saved_var_array_elem(num_hidden_template_name_fixups_allocated),
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
       pch_saved_var_array_elem(num_extern_type_fixups_allocated),
       pch_saved_var_array_elem(num_fast_id_lookups),
       pch_saved_var_array_elem(num_namespace_list_entries_allocated),
@@ -9750,9 +9639,6 @@ of the front end.
   avail_substituted_type_list_entries = NULL;
   avail_template_cache_segments = NULL;
   avail_vla_fixups = NULL;
-#if RECORD_HIDDEN_NAMES_IN_IL
-  avail_hidden_template_name_fixups = NULL;
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   avail_progenitors = NULL;
   error_symbol_header = NULL;
   unnamed_tag_symbol_header = NULL;
@@ -9794,9 +9680,6 @@ of the front end.
   num_namespace_list_entries_allocated         = 0;
   num_extern_symbol_descrs_allocated           = 0;
   num_vla_fixups_allocated                     = 0;
-#if RECORD_HIDDEN_NAMES_IN_IL
-  num_hidden_template_name_fixups_allocated    = 0;
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   num_extern_type_fixups_allocated             = 0;
   num_projection_descrs_allocated              = 0;
   num_used_symbol_buckets                      = 0;
