@@ -3633,7 +3633,7 @@ pointers to members).
 #endif /* DEBUG */
   clear_std_conv_descr(std_conv);
   /* Assume a nontrivial conversion; the flag will be cleared later if in
-    fact there is nothing nontrivial. */
+     fact there is nothing nontrivial. */
   std_conv->nontrivial_conversion = TRUE;
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
@@ -3666,6 +3666,18 @@ pointers to members).
         okay = TRUE;
         std_conv->cast_base_class = bcp;
         std_conv->reversed_cast = TRUE;
+      }  /* if */
+      /* If the pointer-to-member types otherwise match, be sure, if the
+         member type is a function type, that the exception specifications
+         are compatible. */
+      if (okay && !check_as_operands_not_conversion &&
+          is_function_type(dest_type_pointed_to) &&
+          exception_spec_is_less_restrictive(
+                           skip_typerefs(source_type_pointed_to),
+                           skip_typerefs(dest_type_pointed_to))) {
+        okay = FALSE;
+        clear_std_conv_descr(std_conv);
+        std_conv->conv_failed_because_of_exception_specifications = TRUE;
       }  /* if */
     }  /* if */
     if (okay && !check_as_operands_not_conversion) {
