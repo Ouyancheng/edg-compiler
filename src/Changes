@@ -1,17 +1,32 @@
 Version 2.45
 
-8/22/00  C++-generating back end: extern "C" and local class definition
+8/22/00  Incorrect position range information
 
-The C++-generating back end formerly put an extern "C" block around
-a local class defined inside an extern "C" function.  That's not
-necessary, and it's not valid C++.  The extern "C" on the class
-is now suppressed.
+The front end used to record incorrect position information for an add
+operator when its first operand has an integral type and its second has
+a pointer type.  A similar problem occurred when an integral type was
+subscripted with a pointer type.  For example:
 
-  extern "C" void f () {
-    class X {};  // Formerly put out with extern "C" { ... }
+  void f(int *p) {
+    int a = 1+p;  // Incorrect position range for IL entry of add
+    int b = 1[p]; // Incorrect position range for IL entry of subscript
   }
 
-8/21/00  C++-generating back end: invalid redeclaration of typedef class name
+This is now fixed.
+
+8/21/00  Linker errors when building some configurations
+
+A mistake in conditional compilation directives could cause linker errors when
+building the front end with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE while
+both MICROSOFT_EXTENSIONS_ALLOWED and MAINTAIN_NEEDED_FLAGS set set to FALSE.
+This is now fixed.
+
+8/21/00  Compilation errors in il_display.c
+
+Compilation errors occurred in il_display.c when building an IL display
+program for the C++ IL.  This is now fixed.
+
+8/21/00  C++ generating back end: invalid redeclaration of typedef class name
 
 When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was TRUE, the
 front end would occasionally attempt to forward declare a class whose name

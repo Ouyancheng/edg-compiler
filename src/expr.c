@@ -602,6 +602,7 @@ Syntax:
   an_operand         operand_2, operand_temp;
   a_type_ptr         result_type;
   a_source_position  operator_position;
+  a_boolean          operands_have_been_reversed = FALSE;
   a_token_sequence_number
                      operator_tok_seq_number;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -693,6 +694,9 @@ Syntax:
         copy_operand(operand_1, &operand_temp);
         copy_operand(&operand_2, operand_1);
         copy_operand(&operand_temp, &operand_2);
+        /* Remember that we did this so that we can adjust the position
+           information later on. */
+        operands_have_been_reversed = TRUE;
       }  /* if */
 
       /* The first operand must be a pointer to object. */
@@ -742,8 +746,10 @@ Syntax:
   (void)required_token(tok_rbracket, ec_exp_rbracket);
   remove_matching_stop_token(tok_rbracket);
 
-  set_operand_position(result, &operand_1->position, &end_position,
-                       &operator_position);
+  set_operand_position(
+            result,
+            &(operands_have_been_reversed ? &operand_2 : operand_1)->position,
+            &end_position, &operator_position);
 
   db_exit();
 }  /* scan_subscript_operator */
@@ -8325,6 +8331,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   an_operand            operand_2;
   an_operand            operand_temp;
   a_source_position     operator_position;
+  a_boolean             operands_have_been_reversed = FALSE;
   a_token_sequence_number
                         operator_tok_seq_number;
   a_boolean             operand_1_is_pointer;
@@ -8470,6 +8477,9 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       copy_operand(operand_1, &operand_temp);
       copy_operand(&operand_2, operand_1);
       copy_operand(&operand_temp, &operand_2);
+      /* Remember that we did this so that we can adjust the position
+         information later on. */
+      operands_have_been_reversed = TRUE;
     } else {
       /* Operand 1 is arithmetic or enum. */
       if (is_arithmetic_or_enum_type(operand_2.type)) {
@@ -8519,8 +8529,11 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
     }  /* if */
   }  /* if */
 
-  set_operand_position(result, &operand_1->position, &operand_2.end_position,
-                       &operator_position);
+  set_operand_position(
+        result,
+        &(operands_have_been_reversed ? &operand_2 : operand_1)->position,
+        &(operands_have_been_reversed ? operand_1 : &operand_2)->end_position,
+        &operator_position);
   db_exit();
 }  /* scan_add_operator */
 
