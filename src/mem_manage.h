@@ -45,8 +45,7 @@ typedef struct a_group_of_local_scope_entities_allocated_in_file_scope
 typedef struct a_group_of_local_scope_entities_allocated_in_file_scope {
   a_group_of_local_scope_entities_allocated_in_file_scope_ptr
 		next;
-			/* Pointer to the next block_file_scope_list_entry
-			   in this linked list. */
+			/* Pointer to the next entry in this linked list. */
   a_variable_ptr
 		static_variables;
 			/* Pointer to the first of a list of static
