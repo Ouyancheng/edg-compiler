@@ -241,6 +241,21 @@ Dump a static data member (a variable entry), for debug purposes.
 }  /* db_static_data_member */
 
 
+void db_member_function(a_routine_ptr rp)
+/*
+Dump a member function (a routine entry), for debug purposes.
+*/
+{
+  fputs("  ", f_debug);
+  db_access_control(rp->source_corresp.access);
+  fputs(" member function \"", f_debug);
+  db_name(&rp->source_corresp);
+  fputs("\", type = ", f_debug);
+  db_abbreviated_type(rp->type);
+  fputc('\n', f_debug);
+}  /* db_static_data_member */
+
+
 static void db_base_class_field(a_field *fp,
 				a_type *tp)
 /*
@@ -352,9 +367,14 @@ class_struct_union:
       }  /* while */
       if (ctsp != NULL) {
 	a_variable_ptr	vp = ctsp->static_data_members;
+        a_routine_ptr   rp = ctsp->member_functions;
 	while (vp != NULL) {
 	  db_static_data_member(vp);
 	  vp = vp->next;
+	}  /* while */
+	while (rp != NULL) {
+	  db_member_function(rp);
+	  rp = rp->next;
 	}  /* while */
       }  /* if */
       fprintf(f_debug, "} : size = %lu, alignment = %d",
