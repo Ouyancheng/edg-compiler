@@ -280,8 +280,8 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef CFE
         walk_ptr(ptr->implicit_this_param_type, a_type_ptr, iek_type);
         walk_ptr(ptr->prototype_scope, a_scope_ptr, iek_scope);
-        walk_list(ptr->throw_specification, a_throw_specification_ptr,
-                  iek_throw_specification);
+        walk_ptr(ptr->throw_specification, a_throw_specification_ptr,
+                 iek_throw_specification);
 #endif /* ifdef CFE */
         remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
       }
@@ -447,11 +447,15 @@ the file scope, do not process it (but record an orphan in the latter case).
     case iek_throw_specification:
       {
         a_throw_specification_ptr ptr = (a_throw_specification_ptr)entry_ptr;
-        if (ptr->kind == (a_throw_spec_kind)tsk_list_entry) {
-          remap_next_ptr(ptr->next, a_throw_specification_ptr,
-                         iek_throw_specification);
-          walk_ptr(ptr->type, a_type_ptr, iek_type);
-        }  /* if */
+        walk_ptr(ptr->throw_spec_type_list, a_throw_spec_type_ptr,
+                 iek_throw_spec_type);
+      }
+      break;
+    case iek_throw_spec_type:
+      {
+        a_throw_spec_type_ptr ptr = (a_throw_spec_type_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_throw_spec_type_ptr, iek_throw_spec_type);
+        walk_ptr(ptr->type, a_type_ptr, iek_type);
       }
       break;
 #endif /* ifdef CFE */

@@ -1105,10 +1105,8 @@ Display a_routine_type_supplement.
              iek_type);
   }  /* if */
   disp_ptr("prototype_scope", (char *)ptr->prototype_scope, iek_scope);
-  if (ptr->throw_specification != NULL) {
-    disp_ptr("throw_specification", (char *)ptr->throw_specification,
-             iek_throw_specification);
-  }  /* if */
+  disp_ptr("throw_specification", (char *)ptr->throw_specification,
+           iek_throw_specification);
 #endif /* ifdef CFE */
  (void) printf("\n");
 }  /* disp_routine_type_supplement */
@@ -2086,32 +2084,32 @@ Display the indicated switch clause.
 }  /* disp_switch_clause */
 
 
+static void disp_throw_spec_type(a_throw_spec_type_ptr ptr)
+/*
+Display the indicated throw-specification entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_throw_specification);
+  disp_ptr("type", (char *)ptr->type, iek_type);  
+  disp_boolean("redundant", (a_boolean)ptr->redundant);
+  disp_unsigned_long("decl_position.seq",
+                     (unsigned long)ptr->decl_position.seq);
+  disp_unsigned_long("decl_position.column",
+                     (unsigned long)ptr->decl_position.column);
+}  /* disp_throw_spec_type */
+
+
 static void disp_throw_specification(a_throw_specification_ptr ptr)
 /*
 Display the indicated throw-specification entry.
 */
 {
-  disp_name("kind");
-  switch (ptr->kind) {
-    case tsk_none:
-      (void)printf("tsk_none\n");
-      break;
-    case tsk_any:
-      (void)printf("tsk_any\n");
-      break;
-    case tsk_list_entry:
-      (void)printf("tsk_list_entry\n");
-      disp_ptr("next", (char *)ptr->next, iek_throw_specification);
-      disp_ptr("type", (char *)ptr->type, iek_type);  
-      disp_boolean("redundant", (a_boolean)ptr->redundant);
-      break;
-    default:
-      (void)printf("**BAD THROW SPECIFICATION KIND**\n");
-  }  /* switch */
-  disp_unsigned_long("decl_position.seq",
-                     (unsigned long)ptr->decl_position.seq);
-  disp_unsigned_long("decl_position.column",
-                     (unsigned long)ptr->decl_position.column);
+  disp_ptr("throw_spec_type_list", (char *)ptr->throw_spec_type_list,
+           iek_throw_spec_type);
+  disp_unsigned_long("throw_position.seq",
+                     (unsigned long)ptr->throw_position.seq);
+  disp_unsigned_long("throw_position.column",
+                     (unsigned long)ptr->throw_position.column);
 }  /* disp_throw_specification */
 
 
@@ -2989,6 +2987,9 @@ This routine is called during IL walking.
           break;
         case iek_throw_specification:
           disp_throw_specification((a_throw_specification_ptr)entry_ptr);
+          break;
+        case iek_throw_spec_type:
+          disp_throw_spec_type((a_throw_spec_type_ptr)entry_ptr);
           break;
         case iek_switch_clause:
           disp_switch_clause((a_switch_clause_ptr)entry_ptr);
