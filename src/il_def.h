@@ -224,7 +224,8 @@ typedef a_byte an_access_specifier;
 /* If you add linkage kinds, be sure to update name_linkage_kind_names and
    NUM_BITS_FOR_NAME_LINKAGE; you may also need to customize
    routine_linkages_are_compatible and routine_linkages_are_identical
-   (in types.c) and macro is_custom_name_linkage_kind_for_rout_type. */
+   (in types.c) and macros is_custom_name_linkage_kind_for_rout_type
+   and is_name_linkage_kind_subject_to_name_mangling. */
 enum a_name_linkage_kind_tag {
   nlk_none,		/* No linkage, as for a local variable. */
 #ifdef CIL
@@ -269,6 +270,17 @@ typedef a_byte a_name_linkage_kind;
    nlk == (a_name_linkage_kind)nlk_cplusplus_external                   \
    or_is_custom_name_linkage_kind_for_rout_type(nlk))
 #endif /* CHECKING */
+
+#if NEED_NAME_MANGLING
+/* Macro that determines whether name mangling should be done for
+   an entity with a given linkage kind.  By default, name mangling
+   is done for everything except extern "C". */
+#ifndef is_name_linkage_kind_subject_to_name_mangling
+#define is_name_linkage_kind_subject_to_name_mangling(nlk)              \
+  ((nlk) != (a_name_linkage_kind)nlk_external)
+#endif /* ifndef is_name_linkage_kind_subject_to_name_mangling */
+#endif /* NEED_NAME_MANGLING */
+
 
 /*
 Names of linkage kinds.  These are used to recognize the string in a

@@ -2391,8 +2391,8 @@ mangled without parameter encoding.
      they exist in a scope that does not exist in the C version of the
      program (of course, none of them have C external linkage, so no
      separate test is needed). */
-  if (routine->source_corresp.name_linkage !=
-                                           (a_name_linkage_kind)nlk_external) {
+  if (is_name_linkage_kind_subject_to_name_mangling(
+                                       routine->source_corresp.name_linkage)) {
     mangling_needed = TRUE;
   } else if (routine->special_kind != (a_special_function_kind)sfk_none) {
     /* Operator function names must be somewhat mangled even if they are
@@ -2795,8 +2795,8 @@ variable.
 
   if (!variable->source_corresp.name_has_been_mangled &&
       /* Do not mangle namespace members with extern "C" linkage. */
-      variable->source_corresp.name_linkage !=
-                                           (a_name_linkage_kind)nlk_external) {
+      is_name_linkage_kind_subject_to_name_mangling(
+                                      variable->source_corresp.name_linkage)) {
     error_position = variable->source_corresp.decl_position;
     /* Determine how long the mangled name is. */
     mangled_name_length = mangled_member_variable_name(variable, (char *)NULL);

@@ -1,5 +1,12 @@
 Version 2.36
 
+4/3/97    Custom linkage kinds: whether name mangling should be done
+
+A new macro is_name_linkage_kind_subject_to_name_mangling has been
+added so that it can be redefined as necessary if entities of any
+custom linkage kinds that are added should not be subject to name
+mangling.
+
 4/3/97    Cfront 3.0 mode should not be permitted with strict mode
 
 Cfront mode is not compatible with strict mode.  An error was issued
