@@ -138,10 +138,7 @@ static a_source_sequence_entry_ptr
 
 
 /*
-The following variables indicate state within a function.  They are saved
-and restored by gen_function_definition to deal with the case of a
-member function nested inside another function.  innermost_function_scope
-is also maintained.
+The following variables indicate state within a function.
 */
 static a_statement_ptr
 		curr_switch_statement;
@@ -151,6 +148,7 @@ static unsigned long
 		num_curr_switch_statements;
 			/* Nesting depth of switch statements currently
 			   being processed. */
+
 
 /*
 Entry used to record an adjustment needed at the end of a name context,
@@ -638,6 +636,45 @@ Return the current innermost nonclass name context scope.
 }  /* innermost_nonclass_scope */
 
 
+/*
+Data structure used to save the current function state for later restoration.
+See save_function_state.
+*/
+typedef struct a_function_state {
+  a_statement_ptr
+		curr_switch_statement;
+  unsigned long	num_curr_switch_statements;
+  a_scope_ptr   innermost_function_scope;
+} a_function_state;
+
+
+static void save_function_state(a_function_state *state)
+/*
+Save the current function state in *state for later restoration.  This is
+needed, for example, when a member function is processed inside another
+function.  Also clear the state variables.
+*/
+{
+  state->curr_switch_statement = curr_switch_statement;
+  state->num_curr_switch_statements = num_curr_switch_statements;
+  state->innermost_function_scope = innermost_function_scope;
+  innermost_function_scope = NULL;
+  curr_switch_statement = NULL;
+  num_curr_switch_statements = 0;
+}  /* save_function_state */
+
+
+static void restore_function_state(a_function_state *state)
+/*
+Restore the current function state from *state.
+*/
+{
+  curr_switch_statement = state->curr_switch_statement;
+  num_curr_switch_statements = state->num_curr_switch_statements;
+  innermost_function_scope = state->innermost_function_scope;
+}  /* restore_function_state */
+
+  
 /*
 Data structure used to save the current source sequence position for
 later restoration.  See save_source_sequence_scan_state.
@@ -6192,32 +6229,6 @@ function.
 }  /* gen_old_style_parameter_decls */
 
 
-static void gen_function_definition(a_scope_ptr scope)
-/*
-Generate the definition of the routine associated with the indicated
-scope, starting with the opening brace of the top-level block.
-*/
-{
-  /* Save state variables for functions for the case where a member function
-     is nested inside another function. */
-  a_scope_ptr            saved_innermost_function_scope =
-                                                      innermost_function_scope;
-  a_statement_ptr        saved_curr_switch_statement = curr_switch_statement;
-  unsigned long          saved_num_curr_switch_statements =
-                                                    num_curr_switch_statements;
-
-  innermost_function_scope = scope;
-  curr_switch_statement = NULL;
-  num_curr_switch_statements = 0;
-  /* Generate the body statement. */
-  gen_statement(scope->assoc_block);
-  /* Restore function state variables to their states on entry. */
-  innermost_function_scope = saved_innermost_function_scope;
-  curr_switch_statement = saved_curr_switch_statement;
-  num_curr_switch_statements = saved_num_curr_switch_statements;
-}  /* gen_function_definition */
-
-
 static void gen_exception_specification(an_exception_specification_ptr esp)
 /*
 Generate an exception throw specification, which indicates the exceptions
@@ -6310,6 +6321,7 @@ TRUE if the declaration following this one is such a continuation.
   a_source_sequence_scan_state  saved_state;
   a_routine_type_supplement_ptr rtsp;
   a_boolean                     is_specialization;
+  a_function_state              state;
 
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -6352,17 +6364,6 @@ TRUE if the declaration following this one is such a continuation.
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
   set_decl_position(&rout->source_corresp, sec_decl);
-  if (is_definition) {
-    /* Put out lint argsused and varargs comments if applicable. */
-    if (rtsp->lint_argsused_flag) write_tok_str("/*ARGSUSED*/ ");
-    if (rtsp->lint_varargs_count != NOT_LINT_VARARGS) {
-      disable_line_wrapping();
-      write_str("/*VARARGS");
-      write_unsigned_num((unsigned long)rtsp->lint_varargs_count);
-      write_str("*/ ");
-      enable_line_wrapping();
-    }  /* if */
-  }  /* if */
   if (!suppress_specifiers) {
     /* If generating a member of a class within the class, set the right access
        mode for the member. */
@@ -6379,6 +6380,17 @@ TRUE if the declaration following this one is such a continuation.
     read_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     scope = il_header.region_scope_entry[scope_region_number];
+    save_function_state(&state);
+    innermost_function_scope = scope;
+    /* Put out lint argsused and varargs comments if applicable. */
+    if (rtsp->lint_argsused_flag) write_tok_str("/*ARGSUSED*/ ");
+    if (rtsp->lint_varargs_count != NOT_LINT_VARARGS) {
+      disable_line_wrapping();
+      write_str("/*VARARGS");
+      write_unsigned_num((unsigned long)rtsp->lint_varargs_count);
+      write_str("*/ ");
+      enable_line_wrapping();
+    }  /* if */
   }  /* if */
   if (is_specialization) {
     /* For a specialization, put out "template<>" at the beginning. */
@@ -6593,7 +6605,7 @@ TRUE if the declaration following this one is such a continuation.
       gen_ctor_initializers(scope->variant.routine.constructor_inits);
     }  /* if */
     /* Generate the body of the function. */
-    gen_function_definition(scope);
+    gen_statement(scope->assoc_block);
     /* Pop the name context for the function. */
     pop_name_context();
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
@@ -6605,6 +6617,9 @@ TRUE if the declaration following this one is such a continuation.
   /* Pop the name context for a class/namespace member. */
   if (context_pop_needed) {
     pop_name_context_if_member(&rout->source_corresp);
+  }  /* if */
+  if (is_definition) {
+    restore_function_state(&state);
   }  /* if */
 }  /* gen_routine_decl */
 
