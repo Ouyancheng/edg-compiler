@@ -2778,7 +2778,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         if (strict_ansi_mode) {
           std_conv->warning_suggested = default_warning_code;
         }  /* if */
-      } else if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
+      } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode)
+		 && !suppress_extensions) {
         /* In pcc mode and in SVR4 C compatibility mode, allow conversion
 	   between incompatible pointer types, with a warning. */
         okay = TRUE;
@@ -2856,7 +2857,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       }  /* if */
     }  /* if */
   } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode) &&
-	     is_integral(source_type)) {
+	     is_integral(source_type) && !suppress_extensions) {
     /* In pcc mode and SVR4 C compatibility mode, allow integer --> pointer
        with a warning.  The null pointer constant --> pointer case has been
        handled above and does not come here. */
