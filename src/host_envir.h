@@ -1626,8 +1626,36 @@ but it always gets the right answer.
 #define STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR TRUE
 #endif /* ifndef STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 
-/* Determine length of multibyte character sequence. */
-extern int mbc_length(char *ptr, a_boolean *err);
+/*
+Macro that returns TRUE if a given character might be the beginning
+of a multibyte character sequence.  This is used only for a speed
+optimization (possibly significant if the C library mblen is
+inefficient), and only when multibyte characters are enabled;
+the macro need not be defined at all.
+*/
+#ifndef char_may_begin_multibyte_sequence
+/* If the character set appears to contain ASCII, a safe version of
+   this is to test for the printable part of the ASCII code set. */
+#if 'a' == 97
+#define char_may_begin_multibyte_sequence(ch) \
+  ((unsigned char)(ch) < 0x20 || ((unsigned char)(ch) > 0x7e))
+#endif /* 'a' == 97 */
+#endif /* ifndef char_may_begin_multibyte_sequence */
+
+/* Return the length of the multibyte character sequence beginning at ptr.
+   If the sequence there is invalid, set *err to TRUE if err is non-NULL,
+   and return 1. */
+#ifdef char_may_begin_multibyte_sequence
+#define mbc_length(ptr, err) \
+  (char_may_begin_multibyte_sequence(*(ptr)) ? \
+     f_mbc_length((ptr), (err)) : \
+     (/*lint --e(506)*/(((err) != NULL) ? (*(err) = FALSE) : FALSE), 1))
+#else /* !defined(char_may_begin_multibyte_sequence) */
+/* The char_may_begin_multibyte_sequence macro is not defined, so just
+   call f_mbc_length. */
+#define mbc_length(ptr, err) f_mbc_length((ptr), (err))
+#endif /* ifdef char_may_begin_multibyte_sequence */
+extern int f_mbc_length(char *ptr, a_boolean *err);
 /* Convert multibyte character sequence to wide character. */
 extern int mbc_to_wide_char(char          *mb,
                             unsigned long *wc,

@@ -2814,12 +2814,12 @@ Used for debugging purposes.
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
-int mbc_length(char      *ptr,
-               a_boolean *err)
+int f_mbc_length(char      *ptr,
+                 a_boolean *err)
 /*
 Return the length of the multibyte character sequence beginning at ptr.
 If the sequence there is invalid, set *err to TRUE if err is non-NULL,
-and return 1.
+and return 1.  This should usually be called via the macro mbc_length.
 */
 {
   int len;
@@ -2858,7 +2858,7 @@ and return 1.
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
 
   return len;
-}  /* mbc_length */
+}  /* f_mbc_length */
 
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED

@@ -1,5 +1,16 @@
 Version 3.4
 
+8/18/03  Compilation speed improvement with multibyte characters
+
+In versions configured to allow multibyte characters in source code,
+the function mbc_length was sometimes a bottleneck (it calls the
+system C library mblen function, and we have reports that that is
+surprisingly slow on Windows).  We have changed mbc_length to a macro,
+and added a char_may_begin_multibyte_sequence macro that can be defined
+to an appropriate test to short-circuit the call of mblen.  We've
+also provided a default version of the macro that works for ASCII-based
+encodings.
+
 8/18/03  GNU C++ mode: injected template class name as template template
          argument
 
