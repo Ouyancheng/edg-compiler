@@ -1622,22 +1622,25 @@ bound with the function in *bound_function_selector.
     /* Field selection not allowed in preprocessor expression. */
     pos_error(ec_bad_pp_operator, &pos_curr_token);
     err = TRUE;
-  } else if (curr_expr_kind_is(ek_integral_constant)) {
-    /* Field selection not allowed in integral constant expression. */
+  } else if (curr_expr_kind_is(ek_integral_constant) ||
+             curr_expr_kind_is(ek_template_arg)) {
+    /* Field selection is not allowed in integral constant expressions
+       or template argument expressions. */
     if (microsoft_mode && !C_mode()) {
       /* ... except in Microsoft C++ mode, where something like
            struct A { enum { e1 = 1 }; } a;
            int x[a.e1];
          is allowed.  The constant check is done at the end. */
       allow_integral_constant_selection = TRUE;
-    } else {
+    } else if (curr_expr_kind_is(ek_integral_constant)) {
+      /* Field selection not allowed in integral constant expression. */
       pos_error(ec_bad_integral_operator, &pos_curr_token);
       err = TRUE;
+    } else {
+      /* Field selection not allowed in a template argument expression. */
+      pos_error(ec_bad_templ_arg_expr_operator, &pos_curr_token);
+      err = TRUE;
     }  /* if */
-  } else if (curr_expr_kind_is(ek_template_arg)) {
-    /* Field selection not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &pos_curr_token);
-    err = TRUE;
   }  /* if */
   if (err) {
     /* Operation is not allowed in this kind of expression. */
@@ -10089,6 +10092,8 @@ variable:
               /* Make an lvalue operand for the variable. */
               make_lvalue_variable_operand(var_ptr, result, rep);
             } else if (microsoft_mode && !C_mode() &&
+                       (curr_expr_kind_is(ek_integral_constant) ||
+                        curr_expr_kind_is(ek_template_arg)) &&
                        ((is_class_struct_union_type(var_ptr->type) &&
                          next_token() == tok_period) ||
                         (is_pointer_type(var_ptr->type) &&
@@ -10609,7 +10614,13 @@ see expr.h).
       if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
         /* We're not inside a function. */
         error_and_make_error_operand(ec_this_used_incorrectly, &local_result);
-      } else if (curr_expr_kind_is_const()) {
+      } else if (curr_expr_kind_is_const() &&
+                 /* Microsoft allows this->k, where k is a constant, in
+                    a constant expression. */
+                 !(microsoft_mode && !C_mode() &&
+                   next_token() == tok_arrow &&
+                   (curr_expr_kind_is(ek_integral_constant) ||
+                    curr_expr_kind_is(ek_template_arg)))) {
         /* "this" cannot be used in a constant expression. */
         error_and_make_error_operand(ec_expr_not_constant, &local_result);
       } else {

@@ -3,7 +3,8 @@ Version 2.42
 3/23/99  Microsoft compatibility: p->k allowed in constant expression
 
 In Microsoft mode, an expression of the form p->k, where k is a member
-constant, is now allowed in a constant expression.
+constant, is now allowed in a constant expression.  The form this->k
+is also allowed.
 
   struct A {
     enum { i = 1 };
