@@ -1858,7 +1858,6 @@ C and C++.
       }  /* if */
     }  /* if */
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
-cfront_global_vs_memer_name_lookup:
     if (cfront_2_1_mode &&
         (sym != NULL || lookup_state.projection_symbol_found) &&
         lookup_state.last_scope_used != NO_SCOPE_DEPTH) {
