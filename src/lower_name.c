@@ -37,12 +37,6 @@ typedef struct a_mangling_control_block *a_mangling_control_block_ptr;
 typedef struct a_mangling_control_block {
   sizeof_t	length;
 			/* Current length of the mangled name. */
-  a_boolean	suppress_output;
-			/* If TRUE, do not output characters to
-			   the mangled name. */
-  sizeof_t	slength;
-			/* Number of characters output while the output
-			   was suppressed. */
   a_boolean	suppress_partial_spec_args;
 			/* TRUE to suppress extra information on partial
 			   specialization arguments. */
@@ -108,30 +102,12 @@ Interface to r_mangled_parent_qualifier, to provide nesting_level == 1.
   r_mangled_parent_qualifier((parent), (unsigned long)1, (mctl))
 
 
-static sizeof_t digits_to_represent(unsigned long value)
-/*
-Return the number of digits needed for the decimal representation of value,
-e.g., 1297 --> 4.
-*/
-{
-  sizeof_t ndigits = 1;
-
-  while (value > 9) {
-    value /= 10;
-    ndigits++;
-  }  /* while */
-  return ndigits;
-}  /* digits_to_represent */
-
-
 static void clear_mangling_control_block(a_mangling_control_block_ptr mctl)
 /*
 Set the fields of the indicated mangling control block to default values.
 */
 {
   mctl->length = 0;
-  mctl->suppress_output = FALSE;
-  mctl->slength = 0;
   mctl->suppress_partial_spec_args = FALSE;
 }  /* clear_mangling_control_block */
 
@@ -147,21 +123,6 @@ mangling_text_buffer and mctl.
 }  /* start_mangling */
 
 
-static void set_control_block_for_suppression(
-                                             a_mangling_control_block_ptr sctl,
-                                             a_mangling_control_block_ptr mctl)
-/*
-Copy the mangling control block mctl to sctl, then set sctl to indicate
-that output is suppressed.  The caller will then use sctl to do a
-provisional mangling, e.g., to determine the length of an encoding.
-*/
-{
-  *sctl = *mctl;
-  sctl->suppress_output = TRUE;
-  sctl->slength = 0;
-}  /* set_control_block_for_suppression */
-
-
 static void add_to_mangled_name(char                         ch,
                                 a_mangling_control_block_ptr mctl)
 /*
@@ -170,13 +131,8 @@ Add the indicated character to the mangled name.
 {
   /* Count characters. */
   mctl->length++;
-  if (mctl->suppress_output) {
-    /* Output is suppressed.  Count suppressed characters. */
-    mctl->slength++;
-  } else {
-    add_char_to_text_buffer(mangling_text_buffer, ch);
-    check_assertion(mctl->length == mangling_text_buffer->size);
-  }  /* if */
+  add_char_to_text_buffer(mangling_text_buffer, ch);
+  check_assertion(mctl->length == mangling_text_buffer->size);
 }  /* add_to_mangled_name */
 
 
@@ -190,13 +146,8 @@ Add the indicated null-terminated string to the mangled name.
 
   /* Count characters. */
   mctl->length += len;
-  if (mctl->suppress_output) {
-    /* Output is suppressed.  Count suppressed characters. */
-    mctl->slength += len;
-  } else {
-    add_to_text_buffer(mangling_text_buffer, str, len);
-    check_assertion(mctl->length == mangling_text_buffer->size);
-  }  /* if */
+  add_to_text_buffer(mangling_text_buffer, str, len);
+  check_assertion(mctl->length == mangling_text_buffer->size);
 }  /* add_str_to_mangled_name */
 
 
@@ -254,6 +205,72 @@ encoding.
   (void)sprintf(buffer, "%lu", value);
   add_str_to_mangled_name(buffer, mctl);
 }  /* add_number_to_mangled_name */
+
+
+static void reserve_space_for_length(sizeof_t                 *start_position,
+                                     a_mangling_control_block *mctl)
+/*
+Reserve some space in the mangled name so that we can insert a length
+later.  Return the position of the length in *start_position.
+*/
+{
+  *start_position = mctl->length;
+  /* We reserve 3 characters so that we don't have to move strings of
+     length 100 through 999.  Smaller strings are not that expensive
+     to move, and bigger strings come up very seldom. */
+  add_str_to_mangled_name("   ", mctl);
+#define NUM_CHARS_RESERVED_FOR_LENGTH 3
+}  /* reserve_space_for_length */
+
+
+static void fill_in_length(sizeof_t                 start_position,
+                           a_mangling_control_block *mctl)
+/*
+Fill in the length of an item in the space previously reserved by a
+call of reserve_space_for_length.  start_position is the value returned
+from that call.
+*/
+{
+  sizeof_t length, length_length;
+  long     offset;
+  char     *length_pos = mangling_text_buffer->buffer + start_position;
+  char     buffer[20];
+
+  /* Determine the length, and the number of digits needed to
+     represent the length. */
+  length = mctl->length - start_position - NUM_CHARS_RESERVED_FOR_LENGTH;
+  (void)sprintf(buffer, "%lu", (unsigned long)length);
+  length_length = strlen(buffer);
+  offset = length_length - NUM_CHARS_RESERVED_FOR_LENGTH;
+  if (offset != 0) {
+    /* The text of the item must be moved. */
+    char *dest = length_pos+length_length;
+    char *src  = length_pos+NUM_CHARS_RESERVED_FOR_LENGTH;
+#if USING_ISO_C
+    (void)memmove(dest, src, length);
+#else /* !USING_ISO_C */
+    if (offset > 0) {
+      /* Move up.  Note that this means we're moving a very long string. */
+      char *final_dest = dest-1;
+      dest += length-1;
+      src  += length-1;
+      do {
+        *dest-- = *src--;
+      } while (dest != final_dest);
+    } else {
+      /* Move down. */
+      char *final_dest = dest+length;
+      do {
+        *dest++ = *src++;
+      } while (dest != final_dest);
+    }  /* if */
+#endif /* USING_ISO_C */
+  }  /* if */
+  /* Copy the length. */
+  (void)memcpy(length_pos, buffer, size_t_arg(length_length));
+  mctl->length += offset;
+  mangling_text_buffer->size += offset;
+}  /* fill_in_length */
 
 
 static void mangled_encoding_for_type_qualifiers(
@@ -640,13 +657,9 @@ This is used to encode address constants as part of the mangled names of
 template classes.
 */
 {
-  sizeof_t                 str_length;
   char                     *str;
-  a_variable_ptr           variable;
-  a_boolean                is_member = FALSE;
-  a_routine_ptr            routine;
   an_address_base_kind     abkind;
-  a_mangling_control_block sctl;
+  sizeof_t                 start_position;
 
   /* The offset can be non-zero in cases where a pointer to class was
      cast to a related class.  That's ignored in the output. */
@@ -659,31 +672,28 @@ template classes.
         ^^^^---- Name of entity.
        ^-------- Length of the name.
      This is compatible with cfront 3.0.1. */
+  reserve_space_for_length(&start_position, mctl);
   if (abkind == (an_address_base_kind)abk_variable) {
-    variable = con->variant.address.variant.variable;
+    a_variable_ptr variable = con->variant.address.variant.variable;
     if (variable->source_corresp.is_class_member ||
         variable->source_corresp.parent.namespace_ptr != NULL) {
       /* Static data member or namespace member variable. */
-      is_member = TRUE;
-      set_control_block_for_suppression(&sctl, mctl);
-      mangled_member_variable_name(variable, &sctl);
-      str_length = sctl.slength;
+      mangled_member_variable_name(variable, mctl);
     } else {
       /* Normal variable. */
       str = unmangled_name_of(&variable->source_corresp);
       check_assertion_str(str != NULL,
                      "mangled_encoding_for_address_constant: addr of unnamed");
-      str_length = strlen(str);
+      add_str_to_mangled_name(str, mctl);
     }  /* if */
   } else if (abkind == (an_address_base_kind)abk_routine) {
-    /* Routine. */
-    /* Do the mangling once to get the length, then again for real. */
-    set_control_block_for_suppression(&sctl, mctl);
-    routine = con->variant.address.variant.routine;
-    mangled_function_name(routine, /*suppress_param_encoding=*/TRUE, &sctl);
-    str_length = sctl.slength;
+    a_routine_ptr routine = con->variant.address.variant.routine;
+    mangled_function_name(routine, /*suppress_param_encoding=*/TRUE, mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (abkind == (an_address_base_kind)abk_uuidof) {
+    a_type_ptr uuid_type;
+    char       *uuid_str;
+
     /* Microsoft __uuidof. */
     /* The uuid string attached to the associated type has the format
          hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
@@ -692,32 +702,8 @@ template classes.
        removed.  This is just made up; the Microsoft compiler uses a
        completely different mangling scheme, so compatibility is a moot
        point here. */
-#define UUID_STR "__UUID"
-    str_length = 32 + sizeof(UUID_STR)-1;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else {
-    unexpected_condition_str(
-                          "mangled_encoding_for_address_constant: bad abkind");
-  }  /* if */
-  add_number_to_mangled_name((unsigned long)str_length, mctl);
-  if (abkind == (an_address_base_kind)abk_variable) {
-    if (is_member) {
-      /* Static data member or namespace member variable. */
-      mangled_member_variable_name(variable, mctl);
-    } else {
-      /* Normal variable. */
-      add_str_to_mangled_name(str, mctl);
-    }  /* if */
-  } else if (abkind == (an_address_base_kind)abk_routine) {
-    mangled_function_name(routine, /*suppress_param_encoding=*/TRUE, mctl);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (abkind == (an_address_base_kind)abk_uuidof) {
-    a_type_ptr uuid_type;
-    char       *uuid_str;
-
-    /* Microsoft __uuidof. */
+    add_str_to_mangled_name("__UUID", mctl);
     uuid_type = con->variant.address.variant.type;
-    add_str_to_mangled_name(UUID_STR, mctl);
     if (uuid_type == NULL) {
       /* Null GUID case. */
       uuid_str = "00000000-0000-0000-000000000000";
@@ -731,12 +717,12 @@ template classes.
     for (; *uuid_str != '\0'; uuid_str++) {
       if (*uuid_str != '-') add_to_mangled_name(*uuid_str, mctl);
     }  /* for */
-#undef UUID_STR
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     unexpected_condition_str(
                           "mangled_encoding_for_address_constant: bad abkind");
   }  /* if */
+  fill_in_length(start_position, mctl);
 }  /* mangled_encoding_for_address_constant */
 
 
@@ -812,6 +798,7 @@ specification in the mangling for lengths of literals.
     add_str_to_mangled_name(str, mctl);
     add_to_mangled_name('_', mctl);
     if (func != NULL) {
+      sizeof_t start_position;
       /* Name of function. */
       /* The newer version of this includes parent information, but that's
          not compatible with cfront. */
@@ -825,29 +812,23 @@ specification in the mangling for lengths of literals.
          a ridiculous idea. */
       include_parent_info = distinct_template_signatures;
 #endif /* ABI_COMPATIBILITY_VERSION < 235 */
+      reserve_space_for_length(&start_position, mctl);
       if (include_parent_info) {
         /* Include class and namespace information in the name. */
-        a_mangling_control_block sctl;
-        /* Do the mangling once to get the length, then again for real. */
-        set_control_block_for_suppression(&sctl, mctl);
-        mangled_function_name(func, /*suppress_param_encoding=*/TRUE, &sctl);
-        str_length = sctl.slength;
+        mangled_function_name(func, /*suppress_param_encoding=*/TRUE, mctl);
       } else {
         /* Use a simple name (no class or namespace information). */
         str = unmangled_name_of(&func->source_corresp);
         check_assertion(str != NULL);
-        /* Determine the size of the name.  Stop on two underscores. */
+        /* Output the name.  Stop on two underscores. */
         for (str_length = 0;
              str[str_length] != '\0' &&
                (str[str_length] != '_' || str[str_length+1] != '_');
-             str_length++) {}
+             str_length++) {
+          add_to_mangled_name(str[str_length], mctl);
+        }  /* for */
       }  /* if */
-      add_number_to_mangled_name((unsigned long)str_length, mctl);
-      if (include_parent_info) {
-        mangled_function_name(func, /*suppress_param_encoding=*/TRUE, mctl);
-      } else {
-        add_str_to_mangled_name(str, mctl);
-      }  /* if */
+      fill_in_length(start_position, mctl);
     } else {
       /* Offset, always coded as "0". */
       add_to_mangled_name('0', mctl);
@@ -986,33 +967,24 @@ specification in the mangling for lengths of literals.
           template_arg_list = NULL;
           unk_func_con = con;
 do_unknown_function:
-          { a_mangling_control_block sctl;
-            /* Do the mangling once to get the length, then again for real. */
-            set_control_block_for_suppression(&sctl, mctl);
+          { sizeof_t start_position;
+            reserve_space_for_length(&start_position, mctl);
             mangled_encoding_for_unknown_function(unk_func_con,
                                                   has_template_args,
                                                   template_arg_list,
-                                                  &sctl);
-            add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
+                                                  mctl);
+            fill_in_length(start_position, mctl);
           }
-          mangled_encoding_for_unknown_function(unk_func_con,
-                                                has_template_args,
-                                                template_arg_list,
-                                                mctl);
           break;
         case tpck_member:
           /* A member of a template parameter type, e.g., T::x. */
-          { a_mangling_control_block sctl;
-            /* Do the mangling once to get the length, then again for real. */
-            set_control_block_for_suppression(&sctl, mctl);
+          { sizeof_t start_position;
+            reserve_space_for_length(&start_position, mctl);
             mangled_member_name(&con->source_corresp,
                                 /*is_specialization=*/FALSE,
-                                &sctl);
-            add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
+                                mctl);
+            fill_in_length(start_position, mctl);
           }
-          mangled_member_name(&con->source_corresp,
-                              /*is_specialization=*/FALSE,
-                              mctl);
           break;
         case tpck_cast:
           mangled_encoding_for_constant_cast(
@@ -1319,9 +1291,7 @@ given by tap.
   } else {
     /* The value of the argument is a template. */
     a_source_correspondence  *scp = &temp->source_corresp;
-    sizeof_t                 str_length;
-    a_boolean                is_member;
-    a_mangling_control_block sctl;
+    sizeof_t                 start_position;
 
     /* Name of template.  The encoding is like
          4abcd <-- encoding for template "abcd"
@@ -1329,27 +1299,17 @@ given by tap.
          ^-------- Length of the name.
     */
     check_assertion(scp->name != NULL);
-    /* Compute the length of the mangled name. */
-    str_length = strlen(scp->name);
-    is_member = (scp->is_class_member || scp->parent.namespace_ptr != NULL);
-    if (is_member) {
-      /* The template is a member of a class or namespace, so it needs a
-         parent qualifier.  Compute the length of the qualifier. */
-      set_control_block_for_suppression(&sctl, mctl);
-      mangled_parent_qualifier(scp, &sctl);
-      str_length += 2 + sctl.slength;  /* "2" for the underscores. */
-    }  /* if */
-    /* Put out the length. */
-    add_number_to_mangled_name((unsigned long)str_length, mctl);
+    reserve_space_for_length(&start_position, mctl);
     /* Put out the base part of the name. */
     add_str_to_mangled_name(scp->name, mctl);
-    if (is_member) {
+    if (scp->is_class_member || scp->parent.namespace_ptr != NULL) {
       /* Add two underscores after the name. */
       add_str_to_mangled_name("__", mctl);
       /* Put out the name of the class or namespace of which this template
          is a member. */
       mangled_parent_qualifier(scp, mctl);
     }  /* if */
+    fill_in_length(start_position, mctl);
   }  /* if */
 }  /* mangled_encoding_for_template_template_argument */
 
@@ -1369,12 +1329,9 @@ literals.
 {
   char               *str;
   a_template_arg_ptr tap;
-  int                pass;
+  sizeof_t           start_position;
   a_boolean          saved_suppress_partial_spec_args =
                                               mctl->suppress_partial_spec_args;
-  a_mangling_control_block
-                     sctl, *eff_ctl;
-
 
   /* The mangled form of template arguments is something like
        __tm__3_ii
@@ -1399,48 +1356,31 @@ literals.
      referenced in the template arguments. */
   mctl->suppress_partial_spec_args = TRUE;
 #endif /* ABI_COMPATIBILITY_VERSION > 245 */
+  reserve_space_for_length(&start_position, mctl);
+  add_to_mangled_name('_', mctl);
   /* Run through the template argument list, determining the representation
-     for each argument.  The first time through, determine the size;
-     the second, put out the string. */
-  set_control_block_for_suppression(&sctl, mctl);
-  eff_ctl = &sctl;
-  for (pass = 1; ; pass++) {
-    for (tap = template_arg_list; tap != NULL; tap = tap->next) {
-      if (is_type_templ_arg(tap)) {
-        /* Type argument. */
-        mangled_encoding_for_type(tap->variant.type, eff_ctl);
-      } else if (is_template_templ_arg(tap)) {
-        /* A template template argument. */
-        mangled_encoding_for_template_template_argument(tap, eff_ctl);
-      } else {
-        check_assertion_str2(!tap->is_array_bound_of_unknown_type,
-                             "mangled_template_arguments:",
-                             "is_array_bound_of_unknown_type set");
-        /* Constant argument.  The encoding for the constant begins with
-           an "X". */
-        add_to_mangled_name('X', eff_ctl);
-        mangled_encoding_for_constant(tap->variant.constant,
-                                      old_form,
-                                      eff_ctl);
-      }  /* if */
-    }  /* for */
-    /* After the second pass, quit the loop. */
-    if (pass == 2) break;
-    if (mctl->suppress_output) {
-      /* If we are suppressing output, we do not need to do the second pass.
-         We can just increment the slength in mctl to indicate the number
-         of characters we would have put out on the second pass (length of
-         the entire argument section, and "_"). */
-      mctl->slength += digits_to_represent((unsigned long)sctl.slength+1) + 1
-                       + sctl.slength;
-      break;
+     for each argument. */
+  for (tap = template_arg_list; tap != NULL; tap = tap->next) {
+    if (is_type_templ_arg(tap)) {
+      /* Type argument. */
+      mangled_encoding_for_type(tap->variant.type, mctl);
+    } else if (is_template_templ_arg(tap)) {
+      /* A template template argument. */
+      mangled_encoding_for_template_template_argument(tap, mctl);
+    } else {
+      check_assertion_str2(!tap->is_array_bound_of_unknown_type,
+                           "mangled_template_arguments:",
+                           "is_array_bound_of_unknown_type set");
+      /* Constant argument.  The encoding for the constant begins with
+         an "X". */
+      add_to_mangled_name('X', mctl);
+      mangled_encoding_for_constant(tap->variant.constant,
+                                    old_form,
+                                    mctl);
     }  /* if */
-    /* End of first pass, preparation for second: */
-    /* Put out the length of the entire argument section, and the "_". */
-    add_number_to_mangled_name((unsigned long)sctl.slength+1, mctl);
-    add_to_mangled_name('_', mctl);
-    eff_ctl = mctl;
   }  /* for */
+  /* Go back and fill in the length. */
+  fill_in_length(start_position, mctl);
   mctl->suppress_partial_spec_args = saved_suppress_partial_spec_args;
 }  /* mangled_template_arguments */
 
@@ -1681,28 +1621,14 @@ that fact should be put out.
     if (!is_template_template_param) {
       /* Not a template template parameter. */
       /* Put out the class name preceded by its length. */
-      a_mangling_control_block sctl;
-      /* Do the mangling once to get the length, then again for real. */
-      set_control_block_for_suppression(&sctl, mctl);
+      sizeof_t start_position;
+      reserve_space_for_length(&start_position, mctl);
       mangled_full_class_name(type,
                               show_partial_spec_args,
                               show_template_specialization,
                               show_specialization,
-                              &sctl);
-      if (mctl->suppress_output) {
-        /* If we are suppressing output, we do not need to do the processing
-           again.  We can just increment the length to indicate the number
-           of characters we would have put out. */
-        mctl->slength += digits_to_represent((unsigned long)sctl.slength) +
-                         sctl.slength;
-      } else {
-        add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
-        mangled_full_class_name(type,
-                                show_partial_spec_args,
-                                show_template_specialization,
-                                show_specialization,
-                                mctl);
-      }  /* if */
+                              mctl);
+      fill_in_length(start_position, mctl);
     }  /* if */
   }  /* if */
 }  /* mangled_class_encoding */
@@ -3372,8 +3298,8 @@ Add to the mangled name the encoding for the name of a base class in
 a virtual function table.  The name describes the base class given by bcp.
 */
 {
-  a_derivation_step_ptr    dsp;
-  a_mangling_control_block sctl;
+  a_derivation_step_ptr dsp;
+  sizeof_t              start_position;
 
   /* The form of the name is like
        4abcd
@@ -3383,12 +3309,10 @@ a virtual function table.  The name describes the base class given by bcp.
      base classes, the first step is directly to the virtual base class.
   */
   dsp = cast_derivation_path_of(bcp);
-  /* Determine the length. */
-  set_control_block_for_suppression(&sctl, mctl);
-  mangled_derivation_name(dsp, &sctl);
   /* Put out the name length and the name. */
-  add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
+  reserve_space_for_length(&start_position, mctl);
   mangled_derivation_name(dsp, mctl);
+  fill_in_length(start_position, mctl);
   if (bcp->ambiguous) {
     /* Ambiguous base classes get a suffix to differentiate the different
        like-named base classes. */
@@ -3426,12 +3350,10 @@ for use in a virtual function table name.
   if (type_needs_parent_qualifier(type)) {
     /* The type is a nested type.  Add a length in front of the mangled
        form (e.g., "7Q2_1A1B" instead of "Q2_1A1B"). */
-    a_mangling_control_block sctl;
-    /* Do the mangling once to get the length, then again for real. */
-    set_control_block_for_suppression(&sctl, mctl);
-    mangled_type_name(type, &sctl);
-    add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
+    sizeof_t start_position;
+    reserve_space_for_length(&start_position, mctl);
     mangled_type_name(type, mctl);
+    fill_in_length(start_position, mctl);
   } else {
     /* Not a nested type name; just put out the type encoding. */
     mangled_type_name(type, mctl);
