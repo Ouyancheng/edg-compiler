@@ -11909,8 +11909,11 @@ the requirement is returned.  Otherwise, NULL is returned.
        f != NULL;
        f = f->next) {
     /* Try every field type in turn.  Note that a more-or-less exact type
-       match is required, not a conversion. */
-    if (interchangeable_types(source_type, f->type)) {
+       match is required, not a conversion, except for null pointer
+       constants. */
+    if (interchangeable_types(source_type, f->type) ||
+        (is_pointer_type(f->type) && is_constant_operand(source_operand) &&
+         is_null_pointer_constant(&source_operand->variant.constant))) {
       /* source_operand can be converted to the type of this member. */
       break;
     } /* if */
@@ -11937,10 +11940,17 @@ GNU C extensions.)
   a_dynamic_init_ptr  field_init;
   a_dynamic_init_ptr  aggr_init;
   an_expr_node_ptr    init_expr;
+  a_type_ptr          field_type = rvalue_type(field->type);
 
   db_enter(3, "prep_transparent_union_conversion_operand");
   /* Make sure we have an rvalue. */
   conv_lvalue_to_rvalue(source_operand);
+  /* Convert the source expression to the destination type if necessary. */
+  cast_operand(field_type, source_operand,
+               /*check_cast_access=*/FALSE,
+               /*is_implicit_cast=*/TRUE,
+               /*is_reinterpret_cast=*/FALSE,
+               /*reinterpret_sementics=*/FALSE);
   /* Build a designator indicating which field should be initialized. */
   designator_con = alloc_constant((a_constant_repr_kind)ck_designator);
   designator_con->variant.designator.field = field;
@@ -11963,7 +11973,7 @@ GNU C extensions.)
     unexpected_condition();
   } /* if */
   member_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-  member_con->type = field->type;
+  member_con->type = field_type;
   member_con->variant.dynamic_init = field_init;
   /* Build the entire aggregate initializer. */
   designator_con->next = member_con;
