@@ -20069,13 +20069,21 @@ instantiation.
   /* If this is a pragma it will end with a tok_end_of_source, if not
      it will end with a semicolon. */
   end_of_statement_token = is_pragma ? tok_end_of_source : tok_semicolon;
-  if (microsoft_mode && is_generalized_identifier_start(GID_NO_OPTIONS) &&
+  if ((microsoft_mode || gpp_mode) &&
+      is_generalized_identifier_start(GID_NO_OPTIONS) &&
       next_token() == end_of_statement_token) {
-    /* The Microsoft compiler accepts a class instantiation without the
+    /* The Microsoft and g++ compilers accept a class instantiation without the
        elaborated type specifier. */
     a_boolean	err = FALSE;
     sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
 						     ilm_normal, &err);
+    if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
+      /* The symbol found is a typedef.  Replace it with the type that is
+         referred to. */
+      a_type_ptr	typedef_type = sym->variant.type.ptr;
+      typedef_type = skip_typerefs(typedef_type);
+      sym = (a_symbol_ptr)typedef_type->source_corresp.assoc_info;
+    }  /* if */
     if (!err && sym != NULL && is_template_instance_class_symbol(sym) &&
         !is_template_instance_specific_def_symbol(sym)) {
       /* Process all member functions and static data members. */

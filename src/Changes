@@ -1,5 +1,14 @@
 Version 3.3
 
+7/24/03  Microsoft and GNU C++ compatibility: typedef in explicit instantiation
+
+In Microsoft and g++ modes, a typedef that refers to an instance of a class
+template is accepted in an explicit instantiation directive.
+
+  template <class T> struct C {};
+  typedef C<int> CI;
+  template CI;
+
 7/24/03  Microsoft compatibility: change in overload resolution for
          built-in operators with promoted operands
 
