@@ -3447,7 +3447,7 @@ Syntax:
     set_error_constant(&constant);
   } else {
     set_unsigned_integer_constant(&constant, (unsigned long)sizeof_type->size,
-                                  (an_integer_kind)TARG_SIZE_T_INT_KIND);
+                                  targ_size_t_int_kind);
   }  /* if */
   make_constant_operand(&constant, result);
 
@@ -3519,7 +3519,7 @@ be inappropriate, because the feature is probably used to implement
   } else {
     set_unsigned_integer_constant(&constant,
                                   (unsigned long)alignof_type->alignment,
-                                  (an_integer_kind)TARG_SIZE_T_INT_KIND);
+                                  targ_size_t_int_kind);
   }  /* if */
   make_constant_operand(&constant, result);
   /* Check for and pass over the right parenthesis. */
@@ -3589,8 +3589,8 @@ because the feature is used to implement offsetof, a standard feature.
     conv_to_error_operand(result);
   } else {
     /* Cast the constant to type size_t. */
-    cast_operand(integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND),
-                 result, /*is_implicit_cast=*/TRUE);
+    cast_operand(integer_type(targ_size_t_int_kind), result,
+                 /*is_implicit_cast=*/TRUE);
   }  /* if */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
@@ -3869,8 +3869,7 @@ specification allow a variable-sized array as the top type.
          the expression giving the number of elements. */
       /* Cast the dimension expression to size_t (it's already an integral
          type). */
-      cast_node(&new_array_dimension,
-                integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND),
+      cast_node(&new_array_dimension, integer_type(targ_size_t_int_kind),
                 /*is_implicit_cast=*/TRUE, &error_position);
       if (element_type->size == 1) {
         /* If the element size is 1, skip the multiplication. */
@@ -3878,7 +3877,7 @@ specification allow a variable-sized array as the top type.
       } else {
         /* Multiply the number of elements by the size of each element. */
         sizeof_node = node_for_integer_constant((long)element_type->size,
-                                        (an_integer_kind)TARG_SIZE_T_INT_KIND);
+                                                targ_size_t_int_kind);
         new_array_dimension->next = sizeof_node;
         sizeof_node = make_operator_node((an_expr_operator_kind)eok_imultiply,
                                          sizeof_node->type,
@@ -3890,9 +3889,8 @@ specification allow a variable-sized array as the top type.
          time, as in
            new char[17]
       */
-      set_integer_constant(&sizeof_constant,
-                           (long)unqual_new_type->size,
-                           (an_integer_kind)TARG_SIZE_T_INT_KIND);
+      set_integer_constant(&sizeof_constant, (long)unqual_new_type->size,
+                           targ_size_t_int_kind);
       make_constant_operand(&sizeof_constant, &sizeof_operand);
     }  /* if */
     /* Add the sizeof operand, in argument operand form, to the front of the
@@ -4358,9 +4356,8 @@ As an anachronism, allow an expression inside the [ ].
         if (param1->next != NULL) {
           /* Two-argument form.  Add a second argument of type size_t that
              indicates the (static) size of the object. */
-          ptr_node->next =
-              node_for_integer_constant((long)(delete_type->size),
-                                        (an_integer_kind)TARG_SIZE_T_INT_KIND);
+          ptr_node->next = node_for_integer_constant((long)(delete_type->size),
+                                                     targ_size_t_int_kind);
         }  /* if */
       }  /* if */
       ndsp->routine = delete_routine;
@@ -5356,7 +5353,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                                          ec_expr_not_pointer_to_object)) {
           /* Difference between compatible pointers.  Result has type
              ptrdiff_t (see 3.3.6 and <stddef.h>). */
-          result_type = integer_type((an_integer_kind)TARG_PTRDIFF_T_INT_KIND);
+          result_type = integer_type(targ_ptrdiff_t_int_kind);
         } else {
           /* Difference between incompatible pointers.  Error has already been
              issued. */

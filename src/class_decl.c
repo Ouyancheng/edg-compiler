@@ -4733,15 +4733,17 @@ operator routine or do bitwise assignment.
               */
               a_variable_ptr   temp_var;
               an_expr_node_ptr temp_node, temp_incr_node, compare_node;
-              a_type_ptr       size_t_type =
-                           integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND);
+              a_type_ptr       size_t_type;
               a_targ_size_t    num_elems;
+
+              size_t_type = integer_type(targ_size_t_int_kind);
               temp_var = alloc_temporary_variable(size_t_type);
               /* Make "tmp = 0;" */
               temp_node = var_lvalue_expr(temp_var);
-              sp = sp->next = make_assignment_statement(temp_node,
-                                node_for_integer_constant(0L,
-                                       (an_integer_kind)TARG_SIZE_T_INT_KIND));
+              sp = sp->next =
+                make_assignment_statement(temp_node,
+                                          node_for_integer_constant(
+                                                    0L, targ_size_t_int_kind));
               /* Make "++tmp < num_elements". */
               temp_node = var_lvalue_expr(temp_var);
               temp_incr_node = make_operator_node(
@@ -4749,8 +4751,8 @@ operator routine or do bitwise assignment.
                                           size_t_type, temp_node);
               num_elems = skip_typerefs(array_type)->size / tp->size;
               temp_incr_node->next = 
-                                node_for_integer_constant((long)num_elems,
-                                        (an_integer_kind)TARG_SIZE_T_INT_KIND);
+                               node_for_integer_constant((long)num_elems,
+                                                         targ_size_t_int_kind);
               compare_node =
                       make_operator_node((an_expr_operator_kind)eok_ilt,
                                          integer_type((an_integer_kind)ik_int),

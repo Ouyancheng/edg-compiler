@@ -15,6 +15,7 @@ exprutil.c -- Expression scanning utility routines.
 
 #include "basics.h"
 #include "host_envir.h"
+#include "target.h"
 #include "mem_manage.h"
 #include "debug.h"
 #include "error.h"
@@ -1710,9 +1711,9 @@ of bit-fields, where the size in bits is needed in addition to the base type.
       internal_error(
                  "node_type_after_integral_promotion: bit-field not integral");
     }  /* if */
-    if (field->bit_size > (unsigned int)(TARG_SIZEOF_LONG*TARG_CHAR_BIT)) {
+    if (field->bit_size > (unsigned int)(targ_sizeof_long*targ_char_bit)) {
       /* This is supposedly prevented by the definition of
-         TARG_MAX_BIT_FIELD_SIZE. */
+         targ_max_bit_field_size. */
       internal_error("node_type_after_integral_promotion: bit-field too big");
     }  /* if */
 #endif /* CHECKING */
@@ -1726,13 +1727,13 @@ of bit-fields, where the size in bits is needed in addition to the base type.
 #if LONG_LONG_ALLOWED
       /* ... or long long or unsigned long long. */
 #endif /* LONG_LONG_ALLOWED */
-      if (field->bit_size <= (unsigned int)(TARG_SIZEOF_INT*TARG_CHAR_BIT)) {
+      if (field->bit_size <= (unsigned int)(targ_sizeof_int*targ_char_bit)) {
         ikind = is_signed ? (an_integer_kind)ik_int :
                             (an_integer_kind)ik_unsigned_int;
       } else {
 #if LONG_LONG_ALLOWED
         if (field->bit_size <=
-                            (unsigned int)(TARG_SIZEOF_LONG*TARG_CHAR_BIT)) {
+                            (unsigned int)(targ_sizeof_long*targ_char_bit)) {
 #endif /* LONG_LONG_ALLOWED */
           ikind = is_signed ? (an_integer_kind)ik_long :
                               (an_integer_kind)ik_unsigned_long;
@@ -1751,12 +1752,12 @@ of bit-fields, where the size in bits is needed in addition to the base type.
 #if LONG_LONG_ALLOWED
         /* ... or long long. */
 #endif /* LONG_LONG_ALLOWED */
-        if (field->bit_size <= (unsigned int)(TARG_SIZEOF_INT*TARG_CHAR_BIT)) {
+        if (field->bit_size <= (unsigned int)(targ_sizeof_int*targ_char_bit)) {
           ikind = (an_integer_kind)ik_int;
         } else {
 #if LONG_LONG_ALLOWED
           if (field->bit_size <=
-                             (unsigned int)(TARG_SIZEOF_LONG*TARG_CHAR_BIT)) {
+                             (unsigned int)(targ_sizeof_long*targ_char_bit)) {
 #endif /* LONG_LONG_ALLOWED */
             ikind = (an_integer_kind)ik_long;
 #if LONG_LONG_ALLOWED
@@ -1772,23 +1773,23 @@ of bit-fields, where the size in bits is needed in addition to the base type.
 #if LONG_LONG_ALLOWED
         /* ... or long long or unsigned long long. */
 #endif /* LONG_LONG_ALLOWED */
-        if (field->bit_size < (unsigned int)(TARG_SIZEOF_INT*TARG_CHAR_BIT)) {
+        if (field->bit_size < (unsigned int)(targ_sizeof_int*targ_char_bit)) {
           ikind = (an_integer_kind)ik_int;
         } else if (field->bit_size ==
-                              (unsigned int)(TARG_SIZEOF_INT*TARG_CHAR_BIT)) {
+                              (unsigned int)(targ_sizeof_int*targ_char_bit)) {
           ikind = (an_integer_kind)ik_unsigned_int;
         } else if (field->bit_size <
-                             (unsigned int)(TARG_SIZEOF_LONG*TARG_CHAR_BIT)) {
+                             (unsigned int)(targ_sizeof_long*targ_char_bit)) {
           ikind = (an_integer_kind)ik_long;
         } else {
 #if LONG_LONG_ALLOWED
           if (field->bit_size ==
-                            (unsigned int)(TARG_SIZEOF_LONG*TARG_CHAR_BIT)) {
+                            (unsigned int)(targ_sizeof_long*targ_char_bit)) {
 #endif /* LONG_LONG_ALLOWED */
             ikind = (an_integer_kind)ik_unsigned_long;
 #if LONG_LONG_ALLOWED
           } else if (field->bit_size <
-                         (unsigned int)(TARG_SIZEOF_LONG_LONG*TARG_CHAR_BIT)) {
+                         (unsigned int)(targ_sizeof_long_long*targ_char_bit)) {
             ikind = (an_integer_kind)ik_long_long;
           } else {
             ikind = (an_integer_kind)ik_unsigned_long_long;
@@ -2012,51 +2013,52 @@ See section 3.2.1.5 of the standard.
                                            (an_integer_kind)ik_last;
       ikind_2 = is_integral_type(type_2) ? type_2->variant.integer.int_kind :
                                            (an_integer_kind)ik_last;
-
 #if LONG_LONG_ALLOWED
       if (is_unsigned_long_long(ikind_1) || is_unsigned_long_long(ikind_2)) {
         /* If either operand has type "unsigned long long", the other operand
            is converted to "unsigned long long". */
         result_type = integer_type((an_integer_kind)ik_unsigned_long_long);
-      } else if (is_long_long(ikind_1) || is_long_long(ikind_2)) {
+        goto done;
+      }  /* if */
+      if (is_long_long(ikind_1) || is_long_long(ikind_2)) {
         /* At least one operand has type "long long". */
-#if TARG_SIZEOF_LONG_LONG == TARG_SIZEOF_LONG
-        /* A long long cannot represent all unsigned long values, so check for
-           unsigned long values. */
-        if (is_unsigned_long(ikind_1) || is_unsigned_long(ikind_2)) {
-          /* One operand has type "long long" and the other has type
-             "unsigned long", and all values of "unsigned long" cannot be
-             represented by "long long", so both operands are converted to
-             "unsigned long long". */
-          result_type = integer_type((an_integer_kind)ik_unsigned_long_long);
-        } else
-#endif /* TARG_SIZEOF_LONG_LONG == TARG_SIZEOF_LONG */
-#if TARG_SIZEOF_LONG_LONG == TARG_SIZEOF_INT
-        /* A long long cannot represent all unsigned int values, so check for
-           unsigned int values. */
-        if (is_unsigned_int(ikind_1) || is_unsigned_int(ikind_2)) {
-          /* One operand has type "long long" and the other has type
-             "unsigned int", and all values of "unsigned int" cannot be
-             represented by "long long", so both operands are converted to
-             "unsigned long long". */
-          result_type = integer_type((an_integer_kind)ik_unsigned_long_long);
-        } else
-#endif /* TARG_SIZEOF_LONG_LONG == TARG_SIZEOF_INT */
-        {
-          /* One operand has type "long long"; the other operand is
-             converted to "long long". */
-          result_type = integer_type((an_integer_kind)ik_long_long);
-        }
-      } else 
+        if (targ_sizeof_long_long == targ_sizeof_long) {
+          /* A long long cannot represent all unsigned long values, so check
+             for unsigned long values. */
+          if (is_unsigned_long(ikind_1) || is_unsigned_long(ikind_2)) {
+            /* One operand has type "long long" and the other has type
+               "unsigned long", and all values of "unsigned long" cannot be
+               represented by "long long", so both operands are converted to
+               "unsigned long long". */
+            result_type = integer_type((an_integer_kind)ik_unsigned_long_long);
+            goto done;
+          }  /* if */
+        }  /* if */
+        if (targ_sizeof_long_long == targ_sizeof_int) {
+          /* A long long cannot represent all unsigned int values, so check for
+             unsigned int values. */
+          if (is_unsigned_int(ikind_1) || is_unsigned_int(ikind_2)) {
+            /* One operand has type "long long" and the other has type
+               "unsigned int", and all values of "unsigned int" cannot be
+               represented by "long long", so both operands are converted to
+               "unsigned long long". */
+            result_type = integer_type((an_integer_kind)ik_unsigned_long_long);
+            goto done;
+          }  /* if */
+        }  /* if */
+        /* One operand has type "long long"; the other operand is
+           converted to "long long". */
+        result_type = integer_type((an_integer_kind)ik_long_long);
+        goto done;
+      }  /* if */
 #endif /* LONG_LONG_ALLOWED */
       if (is_unsigned_long(ikind_1) || is_unsigned_long(ikind_2)) {
         /* If either operand has type "unsigned long", the other operand is
 	   converted to "unsigned long". */
         result_type = integer_type((an_integer_kind)ik_unsigned_long);
-      } else {
-        if (is_long(ikind_1) || is_long(ikind_2)) {
-          /* At least one operand has type "long". */
-#if TARG_SIZEOF_LONG == TARG_SIZEOF_INT
+      } else if (is_long(ikind_1) || is_long(ikind_2)) {
+        /* At least one operand has type "long". */
+        if (targ_sizeof_long == targ_sizeof_int) {
           /* A "long" cannot represent all "unsigned int" values, so check for
              "unsigned int" values. */
           if (is_unsigned_int(ikind_1) || is_unsigned_int(ikind_2)) {
@@ -2065,24 +2067,23 @@ See section 3.2.1.5 of the standard.
                represented by "long", so both operands are converted to
                "unsigned long". */
             result_type = integer_type((an_integer_kind)ik_unsigned_long);
-          } else
-#endif /* TARG_SIZEOF_LONG == TARG_SIZEOF_INT */
-          {
-            /* One operand has type "long"; the other operand is
-               converted to "long". */
-            result_type = integer_type((an_integer_kind)ik_long);
-          }
-        } else if (is_unsigned_int(ikind_1) || is_unsigned_int(ikind_2)) {
-          /* If either operand has type "unsigned int", the other operand is
-             converted to "unsigned int". */
-          result_type = integer_type((an_integer_kind)ik_unsigned_int);
-        } else {
-          /* Otherwise, both operands are converted to "int". */
-          result_type = integer_type((an_integer_kind)ik_int);
+            goto done;
+          }  /* if */
         }  /* if */
+        /* One operand has type "long"; the other operand is
+           converted to "long". */
+        result_type = integer_type((an_integer_kind)ik_long);
+      } else if (is_unsigned_int(ikind_1) || is_unsigned_int(ikind_2)) {
+        /* If either operand has type "unsigned int", the other operand is
+           converted to "unsigned int". */
+        result_type = integer_type((an_integer_kind)ik_unsigned_int);
+      } else {
+        /* Otherwise, both operands are converted to "int". */
+        result_type = integer_type((an_integer_kind)ik_int);
       }  /* if */
     }  /* if */
   }  /* if */
+done:;
 
   db_exit();
   return result_type;
@@ -3518,12 +3519,12 @@ of the pointer to that bit field, in *ptr_type.
   if (!strict_ansi_mode) {
     /* See if the bit field is an even number of bytes long. */
     field_size = field->bit_size;
-    if (field_size > 0 && (field_size % TARG_CHAR_BIT == 0)) {
-      field_size /= TARG_CHAR_BIT;
+    if (field_size > 0 && (field_size % targ_char_bit == 0)) {
+      field_size /= targ_char_bit;
       /* See if the bit field is at an even byte offset. */
       field_offset = field->bit_offset;
-      if (field_offset % TARG_CHAR_BIT == 0) {
-        field_offset /= TARG_CHAR_BIT;
+      if (field_offset % targ_char_bit == 0) {
+        field_offset /= targ_char_bit;
         /* Get the overall alignment of the structure of which this field is
            a member. */
         struct_alignment =

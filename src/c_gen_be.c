@@ -15,7 +15,7 @@ Compile with STANDALONE_C_GEN_BE defined and BACK_END_IS_C_GEN_BE
 defined as 1 to get a main program back end.  Otherwise, a version to be
 called in the same program as the front end is produced (if needed).
 
-If C_GEN_BE_GENERATES_ANSI_C is TRUE (see target.h), ANSI C is generated
+If C_GEN_BE_GENERATES_ANSI_C is TRUE (see targ_def.h), ANSI C is generated
 instead of K&R C.
 */
 
@@ -37,6 +37,7 @@ instead of K&R C.
 /* See if this code is needed at all. */
 #if BACK_END_IS_C_GEN_BE
 
+#include "target.h"
 #include "c_gen_be.h"
 #include "debug.h"
 #include "error.h"
@@ -1132,7 +1133,7 @@ Handle unprintable characters and necessary escapes.
   } else {
     char buffer[10];
     (void)sprintf(buffer, "\\%03o",
-                  (unsigned int)(ch&((1<<TARG_HOST_STRING_CHAR_BIT)-1)));
+                  (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
     write_str(buffer);
   }  /* if */
 }  /* dump_char */
@@ -1418,7 +1419,7 @@ Output the indicated constant.
            cast to unsigned long. */
         if (is_pointer_type(con_type) ||
             (is_integral_type(con_type) &&
-             con_type->size >= TARG_SIZEOF_POINTER)) {
+             con_type->size >= targ_sizeof_pointer)) {
           /* Okay. */
         } else {
           need_second_ptr_cast = TRUE;
@@ -2324,13 +2325,13 @@ Output the definition of the indicated struct or union type.
       }  /* if */
       if (annotate) {
         /* Display the offset in an annotation comment. */
-        unsigned long temp = field->bit_offset / TARG_CHAR_BIT;
+        unsigned long temp = field->bit_offset / targ_char_bit;
         write_space();
         start_comment();
         write_tok_str(" offset = ");
         write_unsigned_num(temp);
         write_tok_str((temp == 1) ? " byte" : " bytes");
-        temp = field->bit_offset % TARG_CHAR_BIT;
+        temp = field->bit_offset % targ_char_bit;
         if (temp != 0) {
           write_tok_str(", ");
           write_unsigned_num(temp);
@@ -3006,7 +3007,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             dump_variable_name(operand_1->variant.variable);
           } else if (is_pointer_type(operand_1->type) &&
                      is_integral_type(expr_type) &&
-                     expr_type->size < TARG_SIZEOF_POINTER) {
+                     expr_type->size < targ_sizeof_pointer) {
             /* Casting from a pointer type to a smaller integral type.  Go by
                way of unsigned long to avoid errors or warnings from the
                underlying C compiler. */
@@ -3972,20 +3973,20 @@ value.
   unsigned long temp;
   
   len = constant->variant.string.length;
-  for (a = 0; a < len; a += TARG_SIZEOF_WCHAR_T) {
+  for (a = 0; a < len; a += targ_sizeof_wchar_t) {
     /* Assemble the right number of bytes into one integer. */
     temp = 0;
-    for (i = 0; i < TARG_SIZEOF_WCHAR_T; i++) {
-#if TARG_LITTLE_ENDIAN
-      ch = constant->variant.string.value[a + (TARG_SIZEOF_WCHAR_T - 1) - i];
-#else /* !TARG_LITTLE_ENDIAN */
-      ch = constant->variant.string.value[a + i];
-#endif /* TARG_LITTLE_ENDIAN */
-      temp <<= TARG_CHAR_BIT;
+    for (i = 0; i < targ_sizeof_wchar_t; i++) {
+      if (targ_little_endian) {
+        ch = constant->variant.string.value[a + (targ_sizeof_wchar_t - 1) - i];
+      } else {
+        ch = constant->variant.string.value[a + i];
+      }  /* if */
+      temp <<= targ_char_bit;
       temp |= ch;
     }  /* for */
     write_unsigned_num(temp);
-    if (a != len-TARG_SIZEOF_WCHAR_T) write_tok_ch(',');
+    if (a != len-targ_sizeof_wchar_t) write_tok_ch(',');
   }  /* for */
 }  /* dump_exploded_wide_string */
 

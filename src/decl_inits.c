@@ -15,6 +15,7 @@ decl_inits.c -- Scanning of initializers in declarations.
 
 #include "basics.h"
 #include "decl_inits.h"
+#include "target.h"
 #include "decls.h"
 #include "il.h"
 #include "symbol_tbl.h"
@@ -82,7 +83,7 @@ and return *err TRUE if there is an error of some kind.
       num_elems = string_length = constant->variant.string.length;
       if (is_wide_string) {
         /* Adjust the wide string number of elements. */
-        num_elems /= TARG_SIZEOF_WCHAR_T;
+        num_elems /= targ_sizeof_wchar_t;
       }  /* if */
       array_type = skip_typerefs(*type);
       if (is_incomplete_type(array_type)) {
@@ -108,7 +109,7 @@ and return *err TRUE if there is an error of some kind.
               string_length--;
               constant->type = string_type(num_elems);
             } else {
-              string_length -= TARG_SIZEOF_WCHAR_T;
+              string_length -= targ_sizeof_wchar_t;
               constant->type = wide_string_type(num_elems);
             }  /* if */
             constant->variant.string.length = string_length;
@@ -619,7 +620,7 @@ ref field of a class object (or an array of same) remains uninitialized.
           /* Error case; do not advance. */
         } else if (kind == (a_type_kind)tk_array) {
           /* Array; see if there are any elements remaining. */
-          if (curr_array_element == TARG_SIZE_T_MAX) {
+          if (curr_array_element == targ_size_t_max) {
             /* Array too long; presumably, this is an incomplete array
                being initialized with a ridiculous number of initial
                values.  Note that it is okay to do the check and increment

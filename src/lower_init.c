@@ -19,6 +19,7 @@ lower_init.c -- IL lowering: initializations and new/delete.
 /* Only include this code if it is needed: */
 #if DO_IL_LOWERING
 
+#include "target.h"
 #include "lower_il.h"
 #include "lower_init.h"
 #include "lower_eh.h"
@@ -847,7 +848,7 @@ tree.
       if (modifiers->curr_elem != 0) {
         /* Add the subscript if it's non-zero. */
         elem_num_node = node_for_integer_constant((long)modifiers->curr_elem,
-                                                  TARG_SIZE_T_INT_KIND);
+                                                  targ_size_t_int_kind);
         entity_node->next = elem_num_node;
         entity_node = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
                                          make_pointer_type(modifiers->type),
@@ -1284,7 +1285,7 @@ type of the array pointed to by ptr_type, and return a pointer to it.
   elem_type = new_delete_base_type_from_operation_type(
                                                     type_pointed_to(ptr_type));
   size_elem_node = node_for_integer_constant((long)elem_type->size,
-                                             TARG_SIZE_T_INT_KIND);
+                                             targ_size_t_int_kind);
   return size_elem_node;
 }  /* size_elem_node_from_pointer_type */
 
@@ -3085,7 +3086,7 @@ arrays with class elements.
        multi-dimensional array case. */
     set_unsigned_integer_constant(&num_elem_constant,
                                   array_type->size / elem_type->size,
-                                  TARG_SIZE_T_INT_KIND);
+                                  targ_size_t_int_kind);
     num_elem_node = alloc_node_for_constant(&num_elem_constant);
   } else {
     /* Nonconstant number of elements in the array.  The number of elements
@@ -4381,7 +4382,7 @@ constructor scope, and also lower the user code.
        not one that takes a single argument. */
     if (new_routine != NULL) {
       size_node = node_for_integer_constant((long)class_type->size,
-                                            TARG_SIZE_T_INT_KIND);
+                                            targ_size_t_int_kind);
       call_node = make_call_node(new_routine, size_node,
                                  /*honor_virtual=*/FALSE);
       /* Make "this = new_rout(size)". */
@@ -4879,7 +4880,7 @@ destructor scope, and also lower the user code.
          indicates the (static) size of the object. */
       this_param_node->next =
               node_for_integer_constant((long)(class_type->size),
-                                        TARG_SIZE_T_INT_KIND);
+                                        targ_size_t_int_kind);
     }  /* if */
     delete_routine->source_corresp.referenced = TRUE;
     call_stmt = make_call_statement(delete_routine, this_param_node);

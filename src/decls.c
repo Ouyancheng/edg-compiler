@@ -1445,7 +1445,7 @@ new fields are set properly.
         if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
           if (!is_integral_type(tp) ||
               skip_typerefs(tp)->variant.integer.int_kind !=
-                                  (an_integer_kind)TARG_SIZE_T_INT_KIND) {
+                                                      targ_size_t_int_kind) {
             error_code = ec_bad_arg_type_for_operator_new;
             ptp->type = error_type();
           }  /* if */
@@ -1532,7 +1532,7 @@ new fields are set properly.
             if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
               if (!is_integral_type(tp) ||
                   skip_typerefs(tp)->variant.integer.int_kind !=
-                                    (an_integer_kind)TARG_SIZE_T_INT_KIND) {
+                                                      targ_size_t_int_kind) {
                 pos_error(ec_bad_second_arg_type_for_operator_delete,
                           &locator->source_position);
                 ptp->type = error_type();
@@ -6938,7 +6938,7 @@ to indicate whether an enumeration is actually defined.
                 conversion_allowed = strict_ansi_error_severity != es_error;
               }  /* if */
               if (conversion_allowed &&
-                  f_skip_typerefs(constant.type)->size <= TARG_SIZEOF_INT) {
+                  f_skip_typerefs(constant.type)->size <= targ_sizeof_int) {
                 /* In non-strict mode, allow unsigned constants that can be
                    coerced into an int. */
                 type_change_constant(&constant,
@@ -7047,16 +7047,16 @@ to indicate whether an enumeration is actually defined.
     /* Check for and pass over the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
     /* Determine the representation type for the enumeration.  In pcc mode,
-       and when enum_types_can_be_smaller_than_int is FALSE, it's always
+       and when targ_enum_types_can_be_smaller_than_int is FALSE, it's always
        "int", and that's already set.  Otherwise, pick the first of "char",
        "signed char", "unsigned char", "short", "unsigned short", and
        "int" into which the enumeration values will fit.  Note that
        it is pointless to try "unsigned int", because all enumeration
        values must fall in the "int" range. */	
-    if (C_dialect != C_dialect_pcc && enum_types_can_be_smaller_than_int) {
-      if (!min_max_set ||
-          in_range_for_integer_kind(&min_value, &max_value,
-                                    plain_char_int_kind)) {
+    if (C_dialect != C_dialect_pcc &&
+        targ_enum_types_can_be_smaller_than_int) {
+      if (!min_max_set || in_range_for_integer_kind(&min_value, &max_value,
+                                                    plain_char_int_kind)) {
         /* "Plain" char. */
         enum_type->variant.integer.int_kind = plain_char_int_kind;
       } else if (in_range_for_integer_kind(&min_value, &max_value,
@@ -7072,8 +7072,8 @@ to indicate whether an enumeration is actually defined.
                                            (an_integer_kind)ik_short)) {
         /* Short. */
         enum_type->variant.integer.int_kind = (an_integer_kind)ik_short;
-#if TARG_SIZEOF_SHORT < TARG_SIZEOF_INT
-      } else if (in_range_for_integer_kind(&min_value, &max_value,
+      } else if ((targ_sizeof_short < targ_sizeof_int) &&
+                  in_range_for_integer_kind(&min_value, &max_value,
                                          (an_integer_kind)ik_unsigned_short)) {
         /* Unsigned short.  Note that we can only get here if
            sizeof(short) < sizeof(int) on the target, for otherwise the
@@ -7084,7 +7084,6 @@ to indicate whether an enumeration is actually defined.
            promote it to "unsigned int" rather than "int". */
         enum_type->variant.integer.int_kind =
                                             (an_integer_kind)ik_unsigned_short;
-#endif /* TARG_SIZEOF_SHORT < TARG_SIZEOF_INT */
       } else {
         /* Representation type should be int, which is already set. */
       }  /* if */

@@ -19,6 +19,7 @@ lower_eh.c -- IL lowering for exception handling constructs.
 /* Only include this code if it is needed: */
 #if DO_IL_LOWERING
 
+#include "target.h"
 #include "lower_eh.h"
 #include "lower_il.h"
 #include "lower_init.h"
@@ -892,7 +893,7 @@ if it is not made already, and return a pointer to it.  Its definition is
                        &byte_offset, array_descr_type, &last_field);
     /* field: size_t elem_size */
     make_lowered_field("elem_size",
-                       integer_type(TARG_SIZE_T_INT_KIND),
+                       integer_type(targ_size_t_int_kind),
                        &byte_offset, array_descr_type, &last_field);
     /* field: long elem_count */
     make_lowered_field("elem_count",
@@ -924,9 +925,9 @@ try/throw) if it is not made already, and return a pointer to it.
        and number of elements to give the right size and alignment. */
     jmp_buf_type = alloc_type((a_type_kind)tk_array);
     jmp_buf_type->variant.array.element_type =
-                                   integer_type(TARG_JMP_BUF_ELEMENT_INT_KIND);
+                                   integer_type(targ_jmp_buf_element_int_kind);
     jmp_buf_type->variant.array.variant.number_of_elements =
-                                                     TARG_JMP_BUF_NUM_ELEMENTS;
+                                                     targ_jmp_buf_num_elements;
     set_type_size(jmp_buf_type);
   }  /* if */
   return jmp_buf_type;
@@ -1309,7 +1310,7 @@ Lower an enk_throw expression node.
     /* Make the arguments for the __throw_alloc call. */
     typeinfo_node = var_lvalue_expr(typeinfo_var);
     size_node = node_for_integer_constant((long)throw_type->size,
-                                          TARG_SIZE_T_INT_KIND);
+                                          targ_size_t_int_kind);
     typeinfo_node->next = size_node;
     flags_node = node_for_integer_constant((long)flags_value,
                                            (an_integer_kind)ik_int);
@@ -1394,7 +1395,7 @@ at *insert_location and *insert_location is updated.
   */
   object_addr_table_node = array_var_lvalue_expr(object_addr_table_var);
   object_addr_table_node->next = node_for_integer_constant((long)entry_number,
-                                                         TARG_SIZE_T_INT_KIND);
+                                                         targ_size_t_int_kind);
   subsc_node = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
                                   object_addr_table_node->type,
                                   object_addr_table_node);
@@ -1496,7 +1497,7 @@ the size is not available in the region description entry).
   elem_type = skip_typerefs(elem_type);
   elem_size_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(elem_size_con, (unsigned long)elem_type->size,
-                                TARG_SIZE_T_INT_KIND);
+                                targ_size_t_int_kind);
   size_con = alloc_constant((a_constant_repr_kind)ck_integer);
   if (cap->variant.object.init_pos_descr.whole_array) {
     /* The entity really is an array.  Get the element count.  -1 indicates
@@ -2829,7 +2830,7 @@ invocation of the front end.
     a_targ_alignment align;
     /* Find out how big a field is used for region numbers. */
     get_integer_size_and_alignment(TARG_REGION_NUMBER_INT_KIND, &size, &align);
-    size *= TARG_CHAR_BIT;
+    size *= targ_char_bit;
     /* Make a bit mask "size" bits long. */
     if (size >= sizeof(unsigned long)*CHAR_BIT) {
       max_region_number = ~(unsigned long)0;

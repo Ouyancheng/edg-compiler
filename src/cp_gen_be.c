@@ -38,6 +38,7 @@ called in the same program as the front end is produced (if needed).
 /* See if this code is needed at all. */
 #if BACK_END_IS_CP_GEN_BE
 
+#include "target.h"
 #include "cp_gen_be.h"
 #include "debug.h"
 #include "error.h"
@@ -1140,7 +1141,7 @@ Output the indicated constant.
            cast to unsigned long. */
         if (is_pointer_type(con_type) ||
             (is_integral_type(con_type) &&
-             con_type->size >= TARG_SIZEOF_POINTER)) {
+             con_type->size >= targ_sizeof_pointer)) {
           /* Okay. */
         } else {
           need_second_ptr_cast = TRUE;

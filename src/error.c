@@ -14,6 +14,7 @@ error.c -- Error reporting routines.
 */
 
 #include "basics.h"
+#include "target.h"
 #include "error.h"
 #include "host_envir.h"
 #include "cmd_line.h"
@@ -2552,7 +2553,7 @@ Add a string representing a constant value to a string being formed.
             /* Print non-printable character in octal form.  Truncate
                to right number of bits to avoid problems with signed chars. */
             sprintf(&buffer[i], "%03o",
-                    (unsigned int)(*p_char & ((1<<TARG_CHAR_BIT)-1)));
+                    (unsigned int)(*p_char & ((1<<targ_char_bit)-1)));
             i += 3;
           }  /* if */
         }  /* if */

@@ -17,6 +17,7 @@ and parsing of them into tokens.
 */
 
 #include "basics.h"
+#include "target.h"
 #include "lexical.h"
 #include "preproc.h"
 #include "error.h"
@@ -4714,10 +4715,9 @@ concatenate_adjacent_string_literals:
            it for next time. */
         start_of_curr_token = NULL;
         break;
-      } else if (((*start_of_curr_token == 'L') ?
-                                       (an_integer_kind)TARG_WCHAR_T_INT_KIND :
-                                       plain_char_int_kind) !=
-                 centity_int_kind) {
+      } else if (centity_int_kind != ((*start_of_curr_token == 'L') ?
+                                         targ_wchar_t_int_kind :
+                                         plain_char_int_kind)) {
         /* If the new string will not have the same underlying character
            entity type as what we have so far, do not add the new string
            to the old one.  That happens when a wide string literal is next

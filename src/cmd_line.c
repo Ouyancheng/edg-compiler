@@ -14,6 +14,7 @@ cmd_line.c -- Command-line parsing.
 */
 
 #include "basics.h"
+#include "target.h"
 #include "cmd_line.h"
 #include "host_envir.h"
 #include "error.h"

@@ -143,7 +143,7 @@ Clear the block used to contain information while working out class layout.
   lob->class_type = class_type;
   lob->byte_offset = 0;
   lob->bit_offset = 0;
-  lob->alignment = TARG_MINIMUM_STRUCT_ALIGNMENT;
+  lob->alignment = targ_minimum_struct_alignment;
   lob->any_overflow = FALSE;
 }  /* clear_layout_block */
 
@@ -160,7 +160,7 @@ must be unsigned.
 {
   a_boolean      use_signed = FALSE, smallest_is_negative;
   a_constant     smallest, largest;
-  unsigned long  bits_needed, bits_needed_largest;
+  unsigned long  bits_needed, bits_needed_largest, bits_needed_smallest;
   a_constant_ptr enum_con;
 
   enum_con = bit_field_type->variant.integer.enum_info.constant_list;
@@ -189,55 +189,51 @@ must be unsigned.
                         bits_required_to_represent_integer_constant(&largest);
     /* See if the smallest value is negative. */
     smallest_is_negative = (sign_of_integer_constant(&smallest) < 0);
-#if TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
-    /* Enum bit fields are always unsigned (many ABIs require this). */
-    use_signed = FALSE;
-    bits_needed = bits_needed_largest;
-#else /* !TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED */
-    /* Determine the proper signedness for the bit field.  One can't
-       simply use the signedness of the enum type, since that was chosen
-       for efficiency reasons: if the enum values just fit in the bit
-       field size, an unsigned field might be necessary even though a 
-       signed type was a good choice for the enum type. */
-    if (smallest_is_negative) {
-      /* Some enum values are negative, so a signed type is required.
-         The enum type must already be signed. */
-      use_signed = TRUE;
-    } else if (bits_needed_largest >= bit_field_size) {
-      /* The largest value is nonnegative (because the smallest is
-         nonnegative), and it's big enough that it wouldn't fit in a
-         signed field.  Therefore, an unsigned type is required. */
+    if (targ_enum_bit_fields_are_always_unsigned) {
+      /* Enum bit fields are always unsigned (many ABIs require this). */
       use_signed = FALSE;
+      bits_needed = bits_needed_largest;
     } else {
-      /* The signedness is not forced by the enum values, so use the 
-         target preference.  Make a one-bit field always unsigned. */
-      if (bit_field_size == 1) {
+      /* Determine the proper signedness for the bit field.  One can't
+         simply use the signedness of the enum type, since that was chosen
+         for efficiency reasons: if the enum values just fit in the bit
+         field size, an unsigned field might be necessary even though a 
+         signed type was a good choice for the enum type. */
+      if (smallest_is_negative) {
+        /* Some enum values are negative, so a signed type is required.
+           The enum type must already be signed. */
+        use_signed = TRUE;
+      } else if (bits_needed_largest >= bit_field_size) {
+        /* The largest value is nonnegative (because the smallest is
+           nonnegative), and it's big enough that it wouldn't fit in a
+           signed field.  Therefore, an unsigned type is required. */
         use_signed = FALSE;
       } else {
-        use_signed = !(TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED);
+        /* The signedness is not forced by the enum values, so use the 
+           target preference.  Make a one-bit field always unsigned. */
+        if (bit_field_size == 1) {
+          use_signed = FALSE;
+        } else {
+          use_signed = !targ_plain_int_bit_field_is_unsigned;
+        }  /* if */
       }  /* if */
-    }  /* if */
-    if (use_signed && sign_of_integer_constant(&largest) >= 0) {
-      /* Using a signed bit field and the largest is nonnegative, so the
-         largest really requires one more bit for a zero sign. */
-      bits_needed_largest++;
-    }  /* if */
-    /* Determine the number of bits needed. */
-    { a_boolean bits_needed_smallest =
+      if (use_signed && sign_of_integer_constant(&largest) >= 0) {
+        /* Using a signed bit field and the largest is nonnegative, so the
+           largest really requires one more bit for a zero sign. */
+        bits_needed_largest++;
+      }  /* if */
+      /* Determine the number of bits needed. */
+      bits_needed_smallest =
                         bits_required_to_represent_integer_constant(&smallest);
       if (bits_needed_largest > bits_needed_smallest) {
         bits_needed = bits_needed_largest;
       } else {
         bits_needed = bits_needed_smallest;
       }  /* if */
-    }
-#endif /* TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED */
+    }  /* if */
     /* Check that the enum values will fit in the bit field. */
-    if (bits_needed > bit_field_size
-#if TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
-        || smallest_is_negative
-#endif /* TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED */
-                                    ) {
+    if (bits_needed > bit_field_size ||
+        (targ_enum_bit_fields_are_always_unsigned && smallest_is_negative)) {
       warning(ec_enum_bit_field_too_small);
     }  /* if */
   }  /* if */
@@ -288,12 +284,12 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   scan_integral_constant_expression(&constant);
   if (is_error_constant(&constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */
-    bit_field_size = TARG_CHAR_BIT;
+    bit_field_size = targ_char_bit;
     err = TRUE;
   } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
     /* A template parameter during the prototype instantiation.  The value
        is not known.  Use a small value that is not 1. */
-    bit_field_size = TARG_CHAR_BIT;
+    bit_field_size = targ_char_bit;
   } else {
 #if CHECKING
     if (constant.kind != (a_constant_repr_kind)ck_integer) {
@@ -303,9 +299,9 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
     /* The size of the bit field must be non-negative and must not exceed
        the size of the underlying type (except for enums, whose type was
        picked by the front end) or the target maximum bit field size. */
-    max_size_allowed = TARG_MAX_BIT_FIELD_SIZE;
+    max_size_allowed = targ_max_bit_field_size;
     if (!bit_field_type->variant.integer.enum_type) {
-      max_size_allowed = bit_field_type->size*TARG_CHAR_BIT;
+      max_size_allowed = bit_field_type->size*targ_char_bit;
     }  /* if */
     bit_field_size = unsigned_value_of_integer_constant(&constant, &err);
     /* Note that one reason for err to be TRUE is if the constant is
@@ -365,7 +361,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       /* The integral type is "plain" (i.e., plain "int", "char", "short",
          "long", or "long long") -- it's not explicitly signed or unsigned and
          it's not an enum type. */
-      if (bit_field_size > 1 && !TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED &&
+      if (bit_field_size > 1 && !targ_plain_int_bit_field_is_unsigned &&
           !cfront_compatibility_mode) {
         /* Keep the default signedness of the plain integral type.  Note that
            cfront treats all bit fields as unsigned. */
@@ -417,7 +413,7 @@ overflow error.
 {
   /* The ULTRIX C compiler has trouble with the type of folded compile-time
      unsigned expressions, so we use a variable for this value. */
-  a_targ_size_t max_byte_offset = TARG_SIZE_T_MAX / TARG_CHAR_BIT;
+  a_targ_size_t max_byte_offset = targ_size_t_max / targ_char_bit;
   a_targ_size_t extra_byte_offset;
   a_boolean     overflow = FALSE;
 
@@ -439,14 +435,14 @@ overflow error.
     }  /* if */
     /* If the bit offset has gone into the next byte, transfer some of the
        bit offset over to the byte offset. */
-    if (*bit_offset >= TARG_CHAR_BIT) {
-      extra_byte_offset = *bit_offset / TARG_CHAR_BIT;
+    if (*bit_offset >= targ_char_bit) {
+      extra_byte_offset = *bit_offset / targ_char_bit;
       if (*byte_offset > max_byte_offset-extra_byte_offset) {
         overflow = TRUE;
       } else {
         *byte_offset += extra_byte_offset;
       }  /* if */
-      *bit_offset = *bit_offset % TARG_CHAR_BIT;
+      *bit_offset = *bit_offset % targ_char_bit;
     }  /* if */
   }  /* if */
   db_exit();
@@ -471,7 +467,7 @@ there was an overflow error.
        to the next byte. */
     overflow = !increment_field_offsets(byte_offset, bit_offset,
 				       (a_targ_size_t)0,
-                                       (int)(TARG_CHAR_BIT - *bit_offset));
+                                       (int)(targ_char_bit - *bit_offset));
   }  /* if */
   if (!overflow) {
     byte_mod = *byte_offset % alignment;
@@ -487,13 +483,6 @@ there was an overflow error.
 }  /* do_alignment */
 
 
-#if TARG_BIT_FIELD_CONTAINER_SIZE < 0           /* base_type is used. */
-#else
-#if  TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT < 0    /* base_type is used. */
-#else                                           /* base_type is not used. */
-/*ARGSUSED*/
-#endif /* TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT < 0 */
-#endif /* TARG_BIT_FIELD_CONTAINER_SIZE < 0 */
 static a_boolean align_offsets_for_bit_field(int              bit_size,
                                              a_targ_size_t    *byte_offset,
                                              int              *bit_offset,
@@ -523,8 +512,8 @@ current offset will fit into a container of size container_size (in bytes)
 aligned according to container_alignment.
 */
 #define fits_in_container(container_size, container_alignment)        \
- (((*byte_offset % (container_alignment))*TARG_CHAR_BIT + *bit_offset) + \
-                                    bit_size <= (container_size)*TARG_CHAR_BIT)
+ (((*byte_offset % (container_alignment))*targ_char_bit + *bit_offset) + \
+                                    bit_size <= (container_size)*targ_char_bit)
 
   if (bit_size == 0) {
     /* A zero-width bit field is declared for alignment only.  The container
@@ -548,111 +537,99 @@ aligned according to container_alignment.
 #endif /* TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT == 0 */
 #endif /* TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT > 0 */
   } else {
-    /* TARG_BIT_FIELD_CONTAINER_SIZE is
+    /* targ_bit_field_container_size is
          >  0 to indicate a particular size for the bit-field container.
          == 0 to indicate "use the smallest integral type into which the
               bit-field will fit".
          < 0  to indicate "use the base type from the declaration as
               the container type".
     */
-#if TARG_BIT_FIELD_CONTAINER_SIZE > 0
-    /* Use a fixed size container.  TARG_BIT_FIELD_CONTAINER_SIZE indicates the
-       size in bytes. */
-    container_size = TARG_BIT_FIELD_CONTAINER_SIZE;
-#if TARG_BIT_FIELD_CONTAINER_SIZE == 1
-    container_alignment = 1;
-#else
-#if TARG_BIT_FIELD_CONTAINER_SIZE == TARG_SIZEOF_SHORT
-    container_alignment = TARG_ALIGNOF_SHORT;
-#else
-#if TARG_BIT_FIELD_CONTAINER_SIZE == TARG_SIZEOF_INT
-    container_alignment = TARG_ALIGNOF_INT;
-#else
-#if TARG_BIT_FIELD_CONTAINER_SIZE == TARG_SIZEOF_LONG
-    container_alignment = TARG_ALIGNOF_LONG;
-#else
-#if LONG_LONG_ALLOWED
-#if TARG_BIT_FIELD_CONTAINER_SIZE == TARG_SIZEOF_LONG_LONG
-#define QQ_USE_LONG_LONG
-#endif
-#endif
-#ifdef QQ_USE_LONG_LONG
-    container_alignment = TARG_ALIGNOF_LONG_LONG;
-#else
-??=error -- TARG_BIT_FIELD_CONTAINER_SIZE in target.h is set wrong.
-#endif
-#endif
-#endif
-#endif
-#endif
-
-#else
-#if TARG_BIT_FIELD_CONTAINER_SIZE == 0
-    /* Use the smallest integral type into which the field will fit as
-       the container.  Try first to find such a type for the current
-       position (where the field may start off a byte boundary, and
-       may therefore require a larger container than it would if optimally
-       aligned). */
-    container_size = 0;  /* Meaning not set yet. */
-    if (bit_size > 0) {
-      if (fits_in_container(1, 1)) {
-        /* Char. */
-        container_size      = 1;
+    if (targ_bit_field_container_size > 0) {
+      /* Use a fixed size container.  targ_bit_field_container_size indicates
+         the size in bytes. */
+      container_size = targ_bit_field_container_size;
+      if (container_size == 1) {
         container_alignment = 1;
-      } else if (fits_in_container(TARG_SIZEOF_SHORT, TARG_ALIGNOF_SHORT)) {
-        /* Short. */
-        container_size      = TARG_SIZEOF_SHORT;
-        container_alignment = TARG_ALIGNOF_SHORT;
-      } else if (fits_in_container(TARG_SIZEOF_INT, TARG_ALIGNOF_INT)) {
-        /* Int. */
-        container_size      = TARG_SIZEOF_INT;
-        container_alignment = TARG_ALIGNOF_INT;
-      } else if (fits_in_container(TARG_SIZEOF_LONG, TARG_ALIGNOF_LONG)) {
-        /* Long. */
-        container_size      = TARG_SIZEOF_LONG;
-        container_alignment = TARG_ALIGNOF_LONG;
+      } else if (container_size == targ_sizeof_short) {
+        container_alignment = targ_alignof_short;
+      } else if (container_size == targ_sizeof_int) {
+        container_alignment = targ_alignof_int;
+      } else if (container_size == targ_sizeof_long) {
+        container_alignment = targ_alignof_long;
+#if LONG_LONG_ALLOWED
+      } else if (container_size == targ_sizeof_long_long) {
+       container_alignment = targ_alignof_long_long;
+#endif
+      } else {
+        internal_error(
+             "align_offsets_for_bit_field: bad targ_bit_field_container_size");
       }  /* if */
-    }  /* if */
-    if (container_size == 0) {
-      /* The field can't be made to fit at the current position, so alignment
-         will have to be done.  A smaller container size might now apply,
-         since the field will be optimally aligned. */
-      container_size = (bit_size + (TARG_CHAR_BIT-1)) / TARG_CHAR_BIT;
-      if (container_size <= 1) {
-        /* Char. */
-        container_size      = 1;
-        container_alignment = 1;
-      } else if (container_size <= TARG_SIZEOF_SHORT) {
-        /* Short. */
-        container_size      = TARG_SIZEOF_SHORT;
-        container_alignment = TARG_ALIGNOF_SHORT;
-      } else if (container_size <= TARG_SIZEOF_INT) {
-        /* Int. */
-        container_size      = TARG_SIZEOF_INT;
-        container_alignment = TARG_ALIGNOF_INT;
-      } else if (container_size <= TARG_SIZEOF_LONG) {
-        /* Long. */
-        container_size      = TARG_SIZEOF_LONG;
-        container_alignment = TARG_ALIGNOF_LONG;
+    } else if (targ_bit_field_container_size == 0) {
+      /* Use the smallest integral type into which the field will fit as
+         the container.  Try first to find such a type for the current
+         position (where the field may start off a byte boundary, and
+         may therefore require a larger container than it would if optimally
+         aligned). */
+      container_size = 0;  /* Meaning not set yet. */
+      if (bit_size > 0) {
+        if (fits_in_container(1, 1)) {
+          /* Char. */
+          container_size      = 1;
+          container_alignment = 1;
+        } else if (fits_in_container(targ_sizeof_short, targ_alignof_short)) {
+          /* Short. */
+          container_size      = targ_sizeof_short;
+          container_alignment = targ_alignof_short;
+        } else if (fits_in_container(targ_sizeof_int, targ_alignof_int)) {
+          /* Int. */
+          container_size      = targ_sizeof_int;
+          container_alignment = targ_alignof_int;
+        } else if (fits_in_container(targ_sizeof_long, targ_alignof_long)) {
+          /* Long. */
+          container_size      = targ_sizeof_long;
+          container_alignment = targ_alignof_long;
+        }  /* if */
+      }  /* if */
+      if (container_size == 0) {
+        /* The field can't be made to fit at the current position, so alignment
+           will have to be done.  A smaller container size might now apply,
+           since the field will be optimally aligned. */
+        container_size = (bit_size + (targ_char_bit-1)) / targ_char_bit;
+        if (container_size <= 1) {
+          /* Char. */
+          container_size      = 1;
+          container_alignment = 1;
+        } else if (container_size <= targ_sizeof_short) {
+          /* Short. */
+          container_size      = targ_sizeof_short;
+          container_alignment = targ_alignof_short;
+        } else if (container_size <= targ_sizeof_int) {
+          /* Int. */
+          container_size      = targ_sizeof_int;
+          container_alignment = targ_alignof_int;
+        } else if (container_size <= targ_sizeof_long) {
+          /* Long. */
+          container_size      = targ_sizeof_long;
+          container_alignment = targ_alignof_long;
 #if LONG_LONG_ALLOWED
-      } else if (container_size <= TARG_SIZEOF_LONG_LONG) {
-        /* Long long. */
-        container_size      = TARG_SIZEOF_LONG_LONG;
-        container_alignment = TARG_ALIGNOF_LONG_LONG;
+        } else if (container_size <= targ_sizeof_long_long) {
+          /* Long long. */
+          container_size      = targ_sizeof_long_long;
+          container_alignment = targ_alignof_long_long;
 #endif /* LONG_LONG_ALLOWED */
 #if CHECKING
-      } else {
-        internal_error("align_offsets_for_bit_field: size is too big");
+        } else {
+          internal_error("align_offsets_for_bit_field: size is too big");
 #endif /* CHECKING */
+        }  /* if */
       }  /* if */
+    } else {
+      /* targ_bit_field_container_size < 0 */
+      /* Always use the base type size and alignment. */
+      base_type = skip_typerefs(base_type);
+      container_size      = base_type->size;
+      container_alignment = base_type->alignment;
     }  /* if */
-#else /* TARG_BIT_FIELD_CONTAINER_SIZE < 0 */
-    /* Always use the base type size and alignment. */
-    base_type = skip_typerefs(base_type);
-    container_size      = base_type->size;
-    container_alignment = base_type->alignment;
-#endif /* TARG_BIT_FIELD_CONTAINER == 0 */
-#endif /* TARG_BIT_FIELD_CONTAINER > 0 */
   }  /* if */
 
   /* We want to make sure that the bit field can be grabbed using one
@@ -747,7 +724,7 @@ if there's no overflow TRUE is returned.
            sum will fit in the bit_offset field because increment_field_offsets
            did not report overflow. */
         field->bit_offset =
-                        (save_byte_offset * TARG_CHAR_BIT) + save_bit_offset;
+                        (save_byte_offset * targ_char_bit) + save_bit_offset;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -937,9 +914,9 @@ dynamic function binding.  Typically, this is a virtual function table,
 and each object of the class contains a pointer to the table.  For each
 class with virtual functions this routine allocates a field to contain
 such a pointer -- or other data as required by a given implementation.
-The size and alignment of such a field are defined by constants that can
-be redefined for various implementation strategies.  Lob points to the
-layout block used to track the layout of the current class.
+The size and alignment of such a field are defined by global configuration
+variables that can be redefined for various implementation strategies.  lob
+points to the layout block used to track the layout of the current class.
 */
 {
   a_class_type_supplement_ptr  ctsp, bcp_ctsp;
@@ -951,8 +928,8 @@ layout block used to track the layout of the current class.
   ctsp = lob->class_type->variant.class_struct_union.extra_info;
   if (lob->class_type->variant.class_struct_union.any_virtual_functions) {
     if (ctsp->virtual_function_info_base_class == NULL) {
-      size = (a_targ_size_t)TARG_SIZEOF_VIRTUAL_FUNCTION_INFO;
-      alignment = (a_targ_alignment)TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO;
+      size = (a_targ_size_t)targ_sizeof_virtual_function_info;
+      alignment = (a_targ_alignment)targ_alignof_virtual_function_info;
       ctsp->virtual_function_info_offset =
                                set_offset_and_alignment (lob, size, alignment);
     } else {
@@ -993,8 +970,8 @@ bcp.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #if TARG_ALL_POINTERS_SAME_SIZE
   /* All pointers are the same size. */
-  alignment = (a_targ_alignment)TARG_ALIGNOF_POINTER;
-  size = (a_targ_size_t)TARG_SIZEOF_POINTER;
+  alignment = (a_targ_alignment)targ_alignof_pointer;
+  size = (a_targ_size_t)targ_sizeof_pointer;
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
 ??=error pointer_offset_for_virtual_base_class: different sized pointers
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */

@@ -397,8 +397,8 @@ Dump a field entry, for debug purposes.
   db_name(&fp->source_corresp);
   fputs("\", type = ", f_debug);
   db_abbreviated_type(fp->type);
-  byte_offset = fp->bit_offset / TARG_CHAR_BIT;
-  bit_offset_at_byte = fp->bit_offset - (int)(byte_offset * TARG_CHAR_BIT);
+  byte_offset = fp->bit_offset / targ_char_bit;
+  bit_offset_at_byte = fp->bit_offset - (int)(byte_offset * targ_char_bit);
   if (bit_offset_at_byte > 0 || fp->bit_size > 0) {
     fprintf(f_debug, ", bit offset %lu", fp->bit_offset);
     if (byte_offset > 0) {
@@ -1002,7 +1002,7 @@ Dump the contents of the indicated constant, for debug purposes.
           /* Print non-printable character in octal form.  Truncate
              to right number of bits to avoid problems with signed chars. */
           fprintf(f_debug, "\\%03o",
-                  (unsigned int)(c&((1<<TARG_HOST_STRING_CHAR_BIT)-1)));
+                  (unsigned int)(c&((1<<targ_host_string_char_bit)-1)));
         }  /* if */
       }  /* for */
       fputs("\"", f_debug);
@@ -4106,7 +4106,7 @@ and return a pointer to it.
     /* The type must be created. */
     pst = alloc_type((a_type_kind)tk_array);
     pst->variant.array.element_type =
-                          integer_type((an_integer_kind)TARG_WCHAR_T_INT_KIND);
+                          integer_type((an_integer_kind)targ_wchar_t_int_kind);
     pst->variant.array.variant.number_of_elements = num_chars;
     set_type_size(pst);
     if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {

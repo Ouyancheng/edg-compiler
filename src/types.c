@@ -345,9 +345,10 @@ Return TRUE if the given type is an array of wchar_t.
   tp = skip_typerefs(tp);
   if (is_array(tp)) {
     elem_type = skip_typerefs(tp->variant.array.element_type);
-    is_wchar_t_array = is_integral_type(elem_type) &&
-                       elem_type->variant.integer.int_kind ==
-                                        (an_integer_kind)TARG_WCHAR_T_INT_KIND;
+    if (is_integral_type(elem_type) &&
+        (elem_type->variant.integer.int_kind == targ_wchar_t_int_kind)) {
+      is_wchar_t_array = TRUE;
+    }  /* if */
   }  /* if */
   return is_wchar_t_array;
 }  /* is_wchar_t_array_type */
@@ -1166,7 +1167,7 @@ array_type.
     temp2 = elem_type->size;
     /* Check whether or not the multiplication will overflow.  Note that we 
        avoid dividing by temp, since it may be zero for an incomplete type. */
-    if (temp > TARG_SIZE_T_MAX/temp2) {
+    if (temp > targ_size_t_max / temp2) {
       error(ec_array_size_too_large);
       set_type_kind(array_type, (a_type_kind)tk_error);
       set_type_size(array_type);
@@ -1220,16 +1221,16 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_float:
         switch (type_ptr->variant.float_kind) {
           case fk_float:
-            size = TARG_SIZEOF_FLOAT;
-            alignment = TARG_ALIGNOF_FLOAT;
+            size = targ_sizeof_float;
+            alignment = targ_alignof_float;
             break;
           case fk_double:
-            size = TARG_SIZEOF_DOUBLE;
-            alignment = TARG_ALIGNOF_DOUBLE;
+            size = targ_sizeof_double;
+            alignment = targ_alignof_double;
             break;
           case fk_long_double:
-            size = TARG_SIZEOF_LONG_DOUBLE;
-            alignment = TARG_ALIGNOF_LONG_DOUBLE;
+            size = targ_sizeof_long_double;
+            alignment = targ_alignof_long_double;
             break;
 #if CHECKING
           default:
@@ -1240,8 +1241,8 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_pointer:
 #if TARG_ALL_POINTERS_SAME_SIZE
         /* All pointers are the same size. */
-        size = TARG_SIZEOF_POINTER;
-        alignment = TARG_ALIGNOF_POINTER;
+        size = targ_sizeof_pointer;
+        alignment = targ_alignof_pointer;
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
         error -- set_type_size: different-sized pointers not implemented.
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
@@ -1252,12 +1253,12 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_ptr_to_member:
         if (is_function_type(pm_member_type(type_ptr))) {
           /* Pointer to nonstatic member function. */
-          size = TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION;
-          alignment = TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION;
+          size = targ_sizeof_ptr_to_member_function;
+          alignment = targ_alignof_ptr_to_member_function;
         } else {
           /* Pointer to nonstatic data member. */
-          size = TARG_SIZEOF_PTR_TO_DATA_MEMBER;
-          alignment = TARG_ALIGNOF_PTR_TO_DATA_MEMBER;
+          size = targ_sizeof_ptr_to_data_member;
+          alignment = targ_alignof_ptr_to_data_member;
         }  /* if */
         break;
 #if CHECKING
@@ -1306,15 +1307,15 @@ do_unsigned_char:
           /* In ANSI mode, unsigned char is promoted to int if all values
              of type unsigned char can be represented in an int; otherwise
              unsigned char is promoted to unsigned int. */
-#if TARG_SIZEOF_INT > 1
-          /* All values of type unsigned char can fit in an int, so unsigned
-             char is promoted to int. */
-          promoted_type = integer_type((an_integer_kind)ik_int);
-#else /* TARG_SIZEOF_INT == 1 */
-          /* int and char are the same size, so unsigned char is promoted to
-             unsigned int. */
-          promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
-#endif /* TARG_SIZEOF_INT > 1 */
+          if (targ_sizeof_int > 1) {
+            /* All values of type unsigned char can fit in an int, so unsigned
+               char is promoted to int. */
+            promoted_type = integer_type((an_integer_kind)ik_int);
+          } else {
+            /* int and char are the same size, so unsigned char is promoted to
+               unsigned int. */
+            promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
+          }  /* if */
         }  /* if */
         break;
       case ik_signed_char:
@@ -1331,15 +1332,15 @@ do_signed_char:;
           /* In ANSI mode, unsigned short is promoted to int if all values
              of type unsigned short can be represented in an int; otherwise
              unsigned short is promoted to unsigned int. */
-#if TARG_SIZEOF_INT > TARG_SIZEOF_SHORT
-          /* All values of type unsigned short can fit in an int, so unsigned
-             short is promoted to int. */
-          promoted_type = integer_type((an_integer_kind)ik_int);
-#else /* TARG_SIZEOF_INT == TARG_SIZEOF_SHORT */
-          /* int and short are the same size, so unsigned short is promoted to
-             unsigned int. */
-          promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
-#endif /* TARG_SIZEOF_INT > TARG_SIZEOF_SHORT */
+          if (targ_sizeof_int > targ_sizeof_short) {
+            /* All values of type unsigned short can fit in an int, so
+               unsigned short is promoted to int. */
+            promoted_type = integer_type((an_integer_kind)ik_int);
+          } else {
+            /* int and short are the same size, so unsigned short is promoted
+               to unsigned int. */
+            promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
+          }  /* if */
 	}  /* if */
 	break;
       case ik_int:

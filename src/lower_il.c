@@ -19,6 +19,7 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 /* Only include this code if it is needed: */
 #if DO_IL_LOWERING
 
+#include "target.h"
 #include "lang_feat.h"
 #include "lower_il.h"
 #include "lower_name.h"
@@ -644,7 +645,7 @@ offset for the field.  The field allocated is not a bit field.
   field_ptr->source_corresp.name = field_name;
   field_ptr->source_corresp.class_of_which_a_member = struct_type;
   field_ptr->type = field_type;
-  field_ptr->bit_offset = bit_offset = field_offset*TARG_CHAR_BIT;
+  field_ptr->bit_offset = bit_offset = field_offset*targ_char_bit;
   /* Find the spot at which to insert the field. */
   for (prev_field = NULL,
                next_field = struct_type->variant.class_struct_union.field_list;
@@ -971,8 +972,8 @@ compatibility we do too.)
     mptr_f_field = last_field;
     finish_class_type(mptr_type, &byte_offset);
 #if CHECKING
-    if (mptr_type->size != TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION ||
-        mptr_type->alignment != TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION) {
+    if (mptr_type->size != targ_sizeof_ptr_to_member_function ||
+        mptr_type->alignment != targ_alignof_ptr_to_member_function) {
       internal_error(
  "make_mptr_type: target.h config of pointer-to-member-function is incorrect");
     }  /* if */
@@ -1568,7 +1569,7 @@ class type.
 */
 {
   a_field_ptr   field_ptr;
-  a_targ_size_t bit_offset = byte_offset * TARG_CHAR_BIT;
+  a_targ_size_t bit_offset = byte_offset * targ_char_bit;
 
 #if CHECKING
   if (!is_immediate_class_type(class_type)) {
@@ -2361,7 +2362,7 @@ constant, and return information about it in *delta.
       a_type_ptr field_class = field->source_corresp.class_of_which_a_member;
       a_class_type_supplement_ptr
                  ctsp = field_class->variant.class_struct_union.extra_info;
-      offset += (a_targ_ptrdiff_t)(field->bit_offset / TARG_CHAR_BIT);
+      offset += (a_targ_ptrdiff_t)(field->bit_offset / targ_char_bit);
       if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
         break;
       }  /* if */
@@ -3887,8 +3888,8 @@ Do IL lowering of the indicated type and everything under it.
           /* Pointer to data member; gets replaced by a short. */
           new_type = integer_type(TARG_DELTA_INT_KIND);
 #if CHECKING
-          if (new_type->size != TARG_SIZEOF_PTR_TO_DATA_MEMBER ||
-              new_type->alignment != TARG_ALIGNOF_PTR_TO_DATA_MEMBER) {
+          if (new_type->size != targ_sizeof_ptr_to_data_member ||
+              new_type->alignment != targ_alignof_ptr_to_data_member) {
             internal_error(
          "lower_type: target.h config of pointer-to-data-member is incorrect");
           }  /* if */
@@ -4422,7 +4423,7 @@ proper type if necessary.  If the offset is zero, return the original node.
     cast_to_char_star_node = add_cast_to_char_star(source_node);
     /* Make the node for the constant. */
     offset_constant_node = node_for_integer_constant((long)byte_offset,
-                                                     TARG_SIZE_T_INT_KIND);
+                                                     targ_size_t_int_kind);
     cast_to_char_star_node->next = offset_constant_node;
     /* Make the node for the pointer subtraction. */
     source_node = make_operator_node((an_expr_operator_kind)eok_psubtract,

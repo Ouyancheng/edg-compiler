@@ -14,6 +14,7 @@ symbol_tbl.c - Symbol table management routines.
 */
 
 #include "basics.h"
+#include "target.h"
 #include "const_ints.h"
 #include "symbol_tbl.h"
 #include "mem_manage.h"
@@ -3054,7 +3055,7 @@ the compiler-generated flag should be cleared.
   /* Both new and delete take one parameter -- the size for the former and
      void* for the latter. */
   if (opname == (an_opname_kind)onk_new) {
-    tp = integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND);
+    tp = integer_type(targ_size_t_int_kind);
   } else {
     tp = make_pointer_type(void_type());
   }  /* if */

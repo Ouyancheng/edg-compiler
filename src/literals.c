@@ -230,7 +230,7 @@ pcc_kind_established:
       do_sign_extension = int_kind_is_signed[kind];
       /* Mask off any bits past the end of the largest target integer. */
       make_integer_value_mask(&mask,
-                              TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT);
+                              (int)TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit);
       and_integer_values(&number, &mask);
       ovflo = FALSE;
     }  /* if */
@@ -298,7 +298,7 @@ kind_established:;
     if (do_sign_extension) {
       sign_extend_integer_value(&number,
                                 (int)(const_for_curr_token.type->size *
-                                                               TARG_CHAR_BIT));
+                                                               targ_char_bit));
     }  /* if */
     const_for_curr_token.variant.integer_value = number;
     const_for_curr_token.non_arithmetic        = non_arith;
@@ -576,7 +576,7 @@ and 3.1.3.4 in the ANSI C standard).
      the like. */
   *num_elems = num_chars;
   if (add_null) (*num_elems)++;
-  *constant_size = (sizeof_t)((*num_elems)*TARG_SIZEOF_WCHAR_T);
+  *constant_size = (sizeof_t)((*num_elems)*targ_sizeof_wchar_t);
 }  /* determine_wide_char_constant_size */
 
 
@@ -622,13 +622,13 @@ processing).
     is_wide = TRUE;
     /* Skip over the "L". */
     temp_ptr++;
-    int_kind = (an_integer_kind)TARG_WCHAR_T_INT_KIND;
+    int_kind = targ_wchar_t_int_kind;
     determine_wide_char_constant_size(temp_ptr, num_chars, /*add_null=*/FALSE,
                                       &constant_size, &num_elems);
-    centity_mask = (unsigned long)1 << ((TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT)-1);
+    centity_mask = (unsigned long)1 << ((targ_sizeof_wchar_t*targ_char_bit)-1);
     centity_mask = centity_mask | (centity_mask - 1);
-    centity_bits = TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT;
-    centity_is_signed = int_kind_is_signed[(int)TARG_WCHAR_T_INT_KIND];
+    centity_bits = targ_sizeof_wchar_t*targ_char_bit;
+    centity_is_signed = int_kind_is_signed[(int)targ_wchar_t_int_kind];
   } else {
      /* Normal character constant. */
     if (C_dialect == C_dialect_cplusplus && num_chars == 1) {
@@ -637,9 +637,9 @@ processing).
       int_kind = (an_integer_kind)ik_int;
     }  /* if */
     constant_size = (sizeof_t)num_chars;
-    centity_mask = (unsigned long)1 << (TARG_CHAR_BIT-1);
+    centity_mask = (unsigned long)1 << (targ_char_bit-1);
     centity_mask = centity_mask | (centity_mask - 1);
-    centity_bits = TARG_CHAR_BIT;
+    centity_bits = targ_char_bit;
     centity_is_signed = targ_has_signed_chars; 
   }  /* if */
   con_type = integer_type(int_kind);
@@ -661,30 +661,30 @@ processing).
       }  /* if */
       /* Put the character in the right place. */
       set_unsigned_integer_value(&ch_int_val, ch);
-#if TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT
-      /* 'ab' == 0x6162. */
-      /* Do sign extension if necessary, but only on the first character. */
-      if (i == 0 && centity_is_signed) {
-        sign_extend_integer_value(&ch_int_val, centity_bits);
-      }  /* if */
-      shift_left_integer_value(&number, centity_bits, &err);
-#else /* !TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT */
-      /* 'ab' == 0x6261. */
-      /* Do sign extension on the new character if necessary. */
-      if (centity_is_signed) {
-        sign_extend_integer_value(&ch_int_val, centity_bits);
-      }  /* if */
-      if (i != 0) {
-        /* Drop any sign extension on the previous value if this isn't the
-           first character. */
-        if (centity_is_signed) {
-          an_integer_value mask;
-          make_integer_value_mask(&mask, i*centity_bits);
-          and_integer_values(&number, &mask);
+      if (targ_char_constant_first_char_most_significant) {
+        /* 'ab' == 0x6162. */
+        /* Do sign extension if necessary, but only on the first character. */
+        if (i == 0 && centity_is_signed) {
+          sign_extend_integer_value(&ch_int_val, centity_bits);
         }  /* if */
-        shift_left_integer_value(&ch_int_val, i*centity_bits, &err);
+        shift_left_integer_value(&number, centity_bits, &err);
+      } else {
+        /* 'ab' == 0x6261. */
+        /* Do sign extension on the new character if necessary. */
+        if (centity_is_signed) {
+          sign_extend_integer_value(&ch_int_val, centity_bits);
+        }  /* if */
+        if (i != 0) {
+          /* Drop any sign extension on the previous value if this isn't the
+             first character. */
+          if (centity_is_signed) {
+            an_integer_value mask;
+            make_integer_value_mask(&mask, (int)i*centity_bits);
+            and_integer_values(&number, &mask);
+          }  /* if */
+          shift_left_integer_value(&ch_int_val, (int)i*centity_bits, &err);
+        } /* if */
       } /* if */
-#endif /* TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT */
       or_integer_values(&number, &ch_int_val);
     }  /* for */
 #if CHECKING
@@ -717,15 +717,17 @@ Put the wide character ch into the string pointed to by *pstr, and increment
 
   /* This is basically a copy of an integer to an array of characters;
      we must allow for the target endian-ness. */
-  for (i = 0; i < TARG_SIZEOF_WCHAR_T; i++) {
-#if TARG_LITTLE_ENDIAN
-    *p++ = (char) (ch & UCHAR_MAX);
-    ch >>= TARG_CHAR_BIT;
-#else /* !TARG_LITTLE_ENDIAN */
-    *p++ = (char) ((ch >> ((TARG_SIZEOF_WCHAR_T - i - 1) *
-                                               TARG_CHAR_BIT)) & UCHAR_MAX);
-#endif /* TARG_LITTLE_ENDIAN */
-  }  /* for */
+  if (targ_little_endian) {
+    for (i = 0; i < targ_sizeof_wchar_t; i++) {
+      *p++ = (char) (ch & UCHAR_MAX);
+      ch >>= targ_char_bit;
+    }  /* for */
+  } else {
+    for (i = 0; i < targ_sizeof_wchar_t; i++) {
+      *p++ = (char) ((ch >> ((targ_sizeof_wchar_t - i - 1) *
+                                               targ_char_bit)) & UCHAR_MAX);
+    }  /* for */
+  }  /* if */
   *pstr = p;
 }  /* put_wide_char_into_string */
 
@@ -757,7 +759,7 @@ processing).
   *err_code = ec_no_error;
   *err_pos = NULL;  /* To make lint happy. */
   /* Build a mask used to mask individual characters. */
-  centity_mask = (unsigned long)1 << (TARG_HOST_STRING_CHAR_BIT-1);
+  centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
   centity_mask = centity_mask | (centity_mask-1);
   temp_ptr = start_of_curr_token+1;
   /* See if this is a wide string literal. */
@@ -773,8 +775,8 @@ processing).
        because it works right even when the target character is larger than
        the host character.  In that case, there are "holes" in the bit
        pattern where a "1" bit cannot be represented. */
-    for (i = 1; i < TARG_SIZEOF_WCHAR_T; i++) {
-      centity_mask |= (centity_mask << TARG_CHAR_BIT);
+    for (i = 1; i < targ_sizeof_wchar_t; i++) {
+      centity_mask |= (centity_mask << targ_char_bit);
     }  /* for */
   } else {
     /* Normal string literal.  The "+1" is space for the null. */
@@ -853,7 +855,7 @@ the final null of the concatenated string; see 3.1.4.
     if (!wide_strings) {
       s1_len--;
     } else {
-      s1_len -= TARG_SIZEOF_WCHAR_T;
+      s1_len -= targ_sizeof_wchar_t;
     }  /* if */
     if (s1_len > 0) {
       s2_len = second_string->variant.string.length;
@@ -881,7 +883,7 @@ the final null of the concatenated string; see 3.1.4.
         second_string->type = string_type((a_targ_size_t)new_len);
       } else {
         second_string->type = wide_string_type(
-                               (a_targ_size_t)(new_len / TARG_SIZEOF_WCHAR_T));
+                               (a_targ_size_t)(new_len / targ_sizeof_wchar_t));
       }  /* if */
     }  /* if */
   }  /* if */
