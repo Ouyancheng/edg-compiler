@@ -2103,7 +2103,12 @@ state.
 #endif /* DEBUG */
         sym_ptr->variant.extern_symbol_descr = esdp;
         esdp->type = NULL;
-        esdp->variant.variable = NULL;  /* Clears routine too. */
+        /* Both the variable and routine pointer are cleared even though
+           they share the same location.  This is done to support a
+           testing mode in which they do not actually share the same
+           location. */
+        esdp->variant.variable = NULL;
+        esdp->variant.routine.ptr = NULL;
 	esdp->variant.routine.is_implicit_declaration = FALSE;
       }
       break;
