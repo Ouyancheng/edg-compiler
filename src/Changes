@@ -1,5 +1,18 @@
 Version 2.25
 
+8/12/94  Consolidated routines to convert constants and types to string form
+
+Some of out customers have pointed out the embarrassing fact that we
+had 5 or 6 different copies of routines that produce output strings for
+constants and types.  Embarrassment is a great motivator, so we've
+consolidated those routines into one set in il_to_str.c.  Of course,
+there are some variations in the output desired in those various cases,
+so the consolidated routines have about a zillion option flags.  Still,
+it's a big improvement over what was there, and there's a substantial
+net savings in lines of code.  The places that had their own routines
+and now use the consolidated routines are c_gen_be.c, cp_gen_be.c,
+error.c, il_display.c, il.c, and symbol_tbl.c.
+
 8/12/94  Default arguments in function template declarations
 
 A bug has been fixed that would cause a spurious error if the default
