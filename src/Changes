@@ -1,5 +1,13 @@
 Version 3.2
 
+3/5/03   compiler_generated flag in cast following conversion function
+         call
+
+The compiler-generated flag is now FALSE in a cast generated to
+perform the standard conversion following the invocation of
+a conversion function, if the overall conversion is caused by
+an explicit cast in the source code.
+
 3/4/03   File handle not released on Windows version
 
 On Windows, the routine that reads directory entries failed to release

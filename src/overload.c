@@ -10379,7 +10379,7 @@ an explicit cast.
       /* Do any necessary standard or trivial conversion. */
       if (is_an_rvalue(operand)) {
         cast_operand(dest_type, operand, /*check_cast_access=*/TRUE,
-                     /*is_implicit_cast=*/TRUE,
+                     /*is_implicit_cast=*/!is_explicit_cast,
                      /*is_reinterpret_cast=*/FALSE,
                      /*reinterpret_semantics=*/FALSE);
       }  /* if */
