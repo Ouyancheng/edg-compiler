@@ -2288,7 +2288,8 @@ Allocate a using-decl entry, initialize its fields, and return a pointer to it.
   udp->is_class_member       = FALSE;
   udp->hidden                = FALSE;
   udp->access                = (an_access_specifier)as_public;
-  udp->qualifier.class_type  = NULL;
+  udp->qualifier.namespace_ptr
+                             = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   udp->source_sequence_entry = NULL;
   udp->next_in_overload_set  = NULL;
