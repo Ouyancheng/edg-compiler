@@ -1,5 +1,17 @@
 Version 2.44
 
+4/13/00  Diagnostics when redeclaring functions in Microsoft C mode
+
+In C mode, Microsoft compilers only issue a warning when redeclaring a
+function with an incompatible type.  However, if the return type is
+incompatible, a strict error is issued.  The front end now emulates this
+behavior (it used to just warn in all cases; see Changes entry of 4/28/95).
+
+  long f(int);
+  long f(double, int);  /* Warning in Microsoft C mode */
+  long g(int);
+  char g(int);          /* Error in Microsoft C mode */
+
 4/12/00  Incorrect handling of template template arguments in
          nested instantiations
 

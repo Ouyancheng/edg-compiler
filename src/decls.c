@@ -4595,9 +4595,12 @@ on for use in generating cross-reference output describing this declaration.
                type. */
             *old_type = routine_ptr->type;
             if (is_function_def) routine_ptr->type = type_ptr;
-          } else if (microsoft_mode && C_mode()) {
+          } else if (microsoft_mode && C_mode() &&
+                     identical_types(return_type_of(routine_ptr->type),
+                                     return_type_of(type_ptr))) {
             /* In Microsoft C mode "anything goes" as far as function
-               redeclarations are concerned. */
+               redeclarations are concerned, provided the return types
+               are identical. */
             pos_sy_warning(ec_not_compatible_with_previous_decl,
                            &locator->source_position, linked_symbol);
             *old_type = routine_ptr->type;
