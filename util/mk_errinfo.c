@@ -135,6 +135,18 @@ static void me_invalid_input(void)
 }  /* me_invalid_input */
 
 
+static void me_command_line_error(void)
+{
+  fprintf(stderr, "usage:\n");
+  fprintf(stderr, "  %s %s\n",
+          "mk_errinfo message_input_file_name tag_input_file_name",
+          "codes_output_file data_output_file");
+  fprintf(stderr, "  %s %s\n",
+          "mk_errinfo -d message_input_file_name tag_input_file_name",
+          "documentation_output_file");
+  me_error("command line error", (char *)NULL);
+}  /* me_command_line_error */
+
 static char *header_comments[] =
 {
   "/*",
@@ -169,6 +181,7 @@ typedef struct an_error_info *an_error_info_ptr;
 typedef struct an_error_info {
   char	*text;
   char	*enumerator;
+  char	*tag;
 } an_error_info;
 
 
@@ -221,50 +234,26 @@ static a_tag_info
 
 #define skip_blanks(p) {while (*p == ' ') p++;}
 
-int main(int argc, char *argv[])
-{
-  char		*message_input_file_name;
-  FILE		*message_input_file;
-  char		*tag_input_file_name;
-  FILE		*tag_input_file;
-  char		*codes_output_file_name;
-  FILE		*codes_output_file;
-  char		*data_output_file_name;
-  FILE		*data_output_file;
-  int		number_of_errors = 0;
-  int		number_of_tags = 0;
-  int		removed_count = 0;
-  int		i;
+static char		*message_input_file_name;
+static FILE		*message_input_file;
+static char		*tag_input_file_name;
+static FILE		*tag_input_file;
+static char		*codes_output_file_name;
+static FILE		*codes_output_file;
+static char		*data_output_file_name;
+static FILE		*data_output_file;
+static char		*doc_output_file_name;
+static FILE		*doc_output_file;
+static int		number_of_errors = 0;
+static int		number_of_tags = 0;
+static int		removed_count = 0;
 
-  if (argc < 4) {
-    me_error
-      ("usage: mk_errinfo message_input_file_name tag_input_file_name codes_output_file data_output_file\n",
-       (char *)NULL);
-  }  /* if */
-  message_input_file_name = argv[1];
-  tag_input_file_name = argv[2];
-  codes_output_file_name = argv[3];
-  data_output_file_name = argv[4];
-  message_input_file = fopen(message_input_file_name, "r");
-  if (message_input_file == NULL) {
-   me_error("cannot open %s", message_input_file_name);
-  }  /* if */
-  tag_input_file = fopen(tag_input_file_name, "r");
-  if (tag_input_file == NULL) {
-    me_error("cannot open %s", tag_input_file_name);
-  }  /* if */
-  codes_output_file = fopen(codes_output_file_name, "w");
-  if (codes_output_file == NULL) {
-    me_error("cannot open %s", codes_output_file_name);
-  }  /* if */
-  data_output_file = fopen(data_output_file_name, "w");
-  if (codes_output_file == NULL) {
-    me_error("cannot open %s", data_output_file_name);
-  }  /* if */
-  /* Generate the output file headers. */
-  me_write_file_header(codes_output_file);
-  me_write_file_header(data_output_file);
-  /* Read the input file. */
+
+static void me_read_input_file(void)
+/*
+Read the message input file and build the error_info array.
+*/
+{
   while (me_read_input_line(message_input_file)) {
     /* Read lines of the form:
 
@@ -333,61 +322,38 @@ int main(int argc, char *argv[])
     /* If there is no tag, use the enumerator as the tag. Skip past
        the ec_ prefix, though. */
     if (*tag_start == '\0') tag_start = me_input_line+3;
-    copy_of_tag = me_copy_string(tag_start);
-    tag_info[number_of_tags].enumerator = copy_of_enumerator;
-    tag_info[number_of_tags].tag = copy_of_tag;
+    if (strcmp(tag_start, "INTERNAL") == 0) {
+      /* Don't create a tag_info entry for this message. */
+      error_info[number_of_errors].tag = (char *)NULL;
+    } else {
+      copy_of_tag = me_copy_string(tag_start);
+      error_info[number_of_errors].tag = copy_of_tag;
+      tag_info[number_of_tags].enumerator = copy_of_enumerator;
+      tag_info[number_of_tags].tag = copy_of_tag;
+      number_of_tags++;
+    }  /* if */
     number_of_errors++;
-    number_of_tags++;
   }  /* while */
   fclose(message_input_file);
   /* Add a dummy "last" error code. */
   error_info[number_of_errors].enumerator = "ec_last";
   error_info[number_of_errors].text = (char *)NULL;
   number_of_errors++;
-  /* Generate the output file.  Start with the error code enumeration. */
-  fprintf(codes_output_file, "typedef enum /*an_error_code*/ {\n");
-  for (i = 0; i < number_of_errors; ++i) {
-    /* If this is not the first time through, terminate the previous line. */
-    if (i != 0) fprintf(codes_output_file, ",\n");
-    fprintf(codes_output_file, "  %s /* = %0d */",
-            error_info[i].enumerator, i);
-  }  /* for */
-  fprintf(codes_output_file, "\n} an_error_code;\n\n");
-  /* Generate the error text array. */
-  fprintf(data_output_file,
-          "static char *message_text[(int)ec_last + 1] = {\n");
-  for (i = 0; i < number_of_errors; ++i) {
-    char	*ptr;
-    /* If this is not the first time through, terminate the previous line. */
-    if (i != 0) fprintf(data_output_file, ",\n");
-    fprintf(data_output_file, "  /* %s */\n", error_info[i].enumerator);
-    putc(' ', data_output_file);
-    putc(' ', data_output_file);
-    ptr = error_info[i].text;
-    if (ptr == NULL) {
-      /* There is no error text.  This is used for REMOVED errors. */
-      fprintf(data_output_file, "(char *)NULL");
-    } else {
-      for (; *ptr != '\0'; ++ptr) {
-        char ch = *ptr;
-        putc(ch, data_output_file);
-      }  /* for */
-    }  /* if */
-  }  /* for */
-  fprintf(data_output_file, "\n};\n");
-  /* Sort the error information by enumeration code so that the enumerations
-     can be looked up while processing the tag file. */
-  qsort((a_void_ptr)error_info, (size_t)number_of_errors,
-         sizeof(an_error_info), compare_error_info);
-  /* Process the tag file.  The tag file contains line of the form
+}  /* me_read_input_file */
+
+
+static void me_read_tag_file(void)
+/*
+Process the tag file.  The tag file contains line of the form
 
 	enumeration;tag
 
-     The enumeration is looked up in the error_info array (that is now
-     sorted by the enumeration string), and an entry is added to the
-     tag_info array. Note that there may be any number of tag
-     entries that refer to the same enumeration entry.
-  */
+The enumeration is looked up in the error_info array (that is now
+sorted by the enumeration string), and an entry is added to the
+tag_info array. Note that there may be any number of tag
+entries that refer to the same enumeration entry.
+*/
+{
   while (me_read_input_line(tag_input_file)) {
     char		*ptr;
     char		*tag_start;
@@ -417,10 +383,234 @@ int main(int argc, char *argv[])
     number_of_tags++;
   }  /* while */
   fclose(tag_input_file);
-  /* Sort the tag information by tag. */
-  qsort((a_void_ptr)tag_info, (size_t)number_of_tags, sizeof(a_tag_info),
-        compare_tag_info);
-  /* Output the number of tags to the error code file. */
+}  /* me_read_tag_file */
+
+
+static void me_write_error_codes(void)
+/*
+Generate the file containing the error code enumeration.
+*/
+{
+  int	i;
+
+  fprintf(codes_output_file, "typedef enum /*an_error_code*/ {\n");
+  for (i = 0; i < number_of_errors; ++i) {
+    /* If this is not the first time through, terminate the previous line. */
+    if (i != 0) fprintf(codes_output_file, ",\n");
+    fprintf(codes_output_file, "  %s /* = %0d */",
+            error_info[i].enumerator, i);
+  }  /* for */
+  fprintf(codes_output_file, "\n} an_error_code;\n\n");
+}  /* me_write_error_codes */
+
+typedef enum /*a_font_kind*/ {
+  fk_none,
+  fk_normal,
+  fk_tt,
+  fk_em
+} a_font_kind;
+
+
+static a_font_kind curr_font;
+			/* The font currently used for characters written
+			   to the documentation file. */
+
+a_boolean any_em_chars;
+
+
+static void me_output_doc_string(char	     *string,
+                                 int	     length,
+				 a_font_kind font)
+/*
+Output characters that are part of the error text.  Make sure that
+certain characters are put in the right font, when needed.
+If the length specified is zero, the string is null terminated and strlen
+should be used to determine the length.
+*/
+{
+  int	i;
+
+  if (curr_font != font) {
+    char	*start_string;
+    /* We need to switch fonts.  Terminate the previous font. */
+    if (curr_font == fk_normal) {
+      /* No action needed to terminate normal font. */
+    } else if (curr_font == fk_em) {
+      /* Terminate em font with "\/}". */
+      fprintf(doc_output_file, "%s", "\\/}");
+    } else {
+      /* Terminate other fonts with a "}". */
+      fprintf(doc_output_file, "%s", "}");
+    }  /* if */
+    /* Begin the new font. */
+    any_em_chars = FALSE;
+    switch (font) {
+      case fk_normal: start_string = ""; break;
+      case fk_tt: start_string = "{\\tt "; break;
+      case fk_em: start_string = "{\\em "; break;
+    }  /* switch */
+    fprintf(doc_output_file, "%s", start_string);
+    curr_font = font;
+  }  /* if */
+  if (length == 0) length = strlen(string);
+  for (i = 0; i < length; ++i) {
+    char	ch = string[i];
+    /* Check for characters that must be escaped. */
+    if (strchr("_#&${}%", ch) != NULL) putc('\\', doc_output_file);
+    if (curr_font != fk_tt && strchr("\"<>", ch) != NULL) {
+      /* Check for characters that can't be displayed in the normal
+         font. */
+      if (curr_font == fk_em && any_em_chars) fprintf(doc_output_file, "\\/");
+      fprintf(doc_output_file, "{\\tt %c}", ch);
+    } else {
+      /* Just a normal character. */
+      putc(ch, doc_output_file);
+    }  /* if */
+    if (curr_font == fk_em) any_em_chars = TRUE;
+  }  /* if */
+}  /* me_output_doc_string */
+
+
+static void me_create_doc_fillin(char	**ptr_to_ptr)
+/*
+*/
+{
+  char		*ptr = *ptr_to_ptr;
+  char		*orig_ptr = ptr;
+  char		ch;
+  char    	*fill_in = NULL;
+  char		fill_in_specifier[100];
+  char		*fis_ptr;
+  char		*fill_in_override = NULL;
+
+  /* Scan the characters that make up the fill-in specifier. */
+  fis_ptr = fill_in_specifier;
+  /* Always copy the first character, then any alphanumeric characters that
+     follow. */
+  *fis_ptr++ = *ptr++;
+  while (isalnum(*ptr)) *fis_ptr++ = *ptr++;
+  *fis_ptr = '\0';
+  /* Check for a fill-in override.  This is specified in the source
+     using notation like
+
+	This uses a %s\='fill-in' override
+
+     Make a pointer to a null-terminated fill in string. */
+  if (*ptr == '\\' && ptr[1] == '=' && ptr[2] == '\'') {
+    /* Skip past the \='. */
+    ptr += 3;
+    fill_in_override = ptr;
+    while (*ptr != '\'' && *ptr != '\0') ptr++;
+    /* Replace the ending quote with a null. */
+    *ptr = '\0';
+    ptr++;
+  }  /* if */
+  if (fill_in_override != NULL) {
+    me_output_doc_string(fill_in_override, 0, fk_normal);
+  } else {
+    fis_ptr = fill_in_specifier;
+    ch = *fis_ptr++;
+    switch (ch) {
+      case 's':
+        if (*fis_ptr == 'q') {
+          fill_in = "\"xxxx\"";
+          fis_ptr++;
+        } else {
+          fill_in = "xxxx";
+        }  /* if */
+        me_output_doc_string(fill_in, 0, fk_em);
+        break;
+      case 't':
+        me_output_doc_string("\"type\"", 0, fk_em);
+        break;
+      case 'p':
+        fill_in = "at line {\\em xxxx\\/}";
+        me_output_doc_string("at line ", 0, fk_normal);
+        me_output_doc_string("xxxx", 0, fk_em);
+        break;
+      case '%':
+        me_output_doc_string("%", 0, fk_normal);
+        break;
+      case 'n':
+        {
+          a_boolean	name_only = FALSE;
+          a_boolean	template_args = FALSE;
+          a_boolean	decl_pos = FALSE;
+          while (isalnum(*fis_ptr)) {
+            ch = *fis_ptr++;
+            switch (ch) {
+              case 'f': break;
+              case 'o': name_only = TRUE; break;
+              case 'a': template_args = TRUE; break;
+              case 'd': decl_pos = TRUE; break;
+              case '1': break;
+              case '2': break;
+              default: me_error("unexpected symbol fill-in %s\n", fis_ptr);
+            }  /* switch */
+          }  /* while */
+          if (!name_only) me_output_doc_string("entity-kind ", 0, fk_em);
+          me_output_doc_string("\"entity\"", 0, fk_em);
+          if (template_args) me_output_doc_string("<args>", 0, fk_em);
+          if (decl_pos) {
+            me_output_doc_string(" (declared at line ", 0, fk_normal);
+            me_output_doc_string("xxxx", 0, fk_em);
+            me_output_doc_string(")", 0, fk_normal);
+          }  /* if */
+        }
+        break;
+      default:
+        me_error("unexpected message fill-in: %s", orig_ptr);
+    }  /* switch */
+  }  /* if */
+  *ptr_to_ptr = ptr;
+}  /* me_create_doc_fillin */
+
+
+static void me_write_error_text(void)
+/*
+Write the error text array to the error data file.
+*/
+{
+  int	i;
+
+  fprintf(data_output_file,
+          "static char *message_text[(int)ec_last + 1] = {\n");
+  for (i = 0; i < number_of_errors; ++i) {
+    char	*ptr;
+    /* If this is not the first time through, terminate the previous line. */
+    if (i != 0) fprintf(data_output_file, ",\n");
+    fprintf(data_output_file, "  /* %s */\n", error_info[i].enumerator);
+    putc(' ', data_output_file);
+    putc(' ', data_output_file);
+    ptr = error_info[i].text;
+    if (ptr == NULL) {
+      /* There is no error text.  This is used for REMOVED errors. */
+      fprintf(data_output_file, "(char *)NULL");
+    } else {
+      for (; *ptr != '\0'; ++ptr) {
+        char ch = *ptr;
+        if (ch == '\\' && ptr[1] == '=') {
+          /* A fill-in override string of the form \='xxx'.  Skip past this
+             string.  First skip past the opening quote. */
+          ptr += 3;
+          while (*ptr != '\'' && *ptr != '\0') ptr++;
+          continue;
+        }  /* if */
+        putc(ch, data_output_file);
+      }  /* for */
+    }  /* if */
+  }  /* for */
+  fprintf(data_output_file, "\n};\n");
+}  /* me_write_error_text */
+
+
+static void me_write_tag_table(void)
+/*
+Write the tag lookup table to the error data file.
+*/
+{
+  int	i;
+
   fprintf(data_output_file, "#define NUMBER_OF_ERROR_TAGS %0d\n",
           number_of_tags);
   /* Generate the sorted list of tags and associated enumerators. */
@@ -433,8 +623,138 @@ int main(int argc, char *argv[])
             tag_info[i].enumerator);
   }  /* for */
   fprintf(data_output_file, "\n};\n");
-  fclose(codes_output_file);
-  fclose(data_output_file);
+}  /* me_write_tag_table */
+
+
+static void me_write_doc_file(void)
+/*
+Generate a TeX file that documents the error messages
+*/
+{
+  int	i;
+
+  /* Start with position 1 to skip over ec_no_error. */
+  for (i = 1; i < number_of_errors; ++i) {
+    char	*ptr;
+    /* Skip any removed errors. */
+    if (error_info[i].text == NULL) continue;
+    /* Skip INTERNAL messages that have no tags. */
+    if (error_info[i].tag == NULL) continue;
+    /* Reset the current font kind. */
+    curr_font = fk_normal;
+    /* Write the second item command containing the number. */
+    fprintf(doc_output_file, "\\item[\\tt %04d ", i);
+    /* Write the tag name. */
+    ptr = error_info[i].tag;
+    while (*ptr != '\0') {
+      if (*ptr == '_') putc('\\', doc_output_file);
+      putc(*ptr, doc_output_file);
+      ptr++;
+    }  /* while */
+    /* Close the tag line. */
+    fprintf(doc_output_file, ":]\n");
+    /* Write an empty item command. */
+    fprintf(doc_output_file, "\\item[]\n");
+    /* Put out a \parskip 0pt and \itemsep 0pt. */
+    fprintf(doc_output_file, "\\parskip 0pt\n\\itemsep 0pt\n");
+    /* Write the error text. */
+    /* Skip the opening quote. */
+    ptr = error_info[i].text;
+    ptr++;
+    for (;;) {
+      char	ch = *ptr;
+      if (ch == '%') {
+        ptr++;
+        me_create_doc_fillin(&ptr);
+      } else {
+        /* Exit the loop when we find an unescaped quote. */
+        if (ch == '"') break;
+        if (ch == '\\') ptr++;
+        ch = *ptr;
+        /* Just a normal character. */
+        me_output_doc_string(&ch, 1, fk_normal);
+        ptr++;
+      }  /* if */
+    }  /* for */
+    me_output_doc_string("\n", 0, fk_normal);
+  }  /* for */
+}  /* me_write_doc_file */
+
+
+int main(int argc, char *argv[])
+{
+  int		argpos = 1;
+  a_boolean	doc_mode = FALSE;
+
+  if (argc != 5) me_command_line_error();
+  if (strcmp(argv[argpos], "-d") == 0) {
+    /* We should generate a documentation output file instead of the normal
+       code files. */
+    doc_mode = TRUE;
+    argpos++;
+  }  /* if */
+  message_input_file_name = argv[argpos++];
+  tag_input_file_name = argv[argpos++];
+  if (doc_mode) {
+    doc_output_file_name = argv[argpos++];
+  } else {
+    codes_output_file_name = argv[argpos++];
+    data_output_file_name = argv[argpos++];
+  }  /* if */
+  /* Open the message input file. */
+  message_input_file = fopen(message_input_file_name, "r");
+  if (message_input_file == NULL) {
+   me_error("cannot open %s", message_input_file_name);
+  }  /* if */
+  if (doc_mode) {
+    /* Open the documentation output file. */
+    doc_output_file = fopen(doc_output_file_name, "w");
+    if (doc_output_file == NULL) {
+      me_error("cannot open %s", doc_output_file_name);
+    }  /* if */
+  } else {
+    /* Open the tag input file. */
+    tag_input_file = fopen(tag_input_file_name, "r");
+    if (tag_input_file == NULL) {
+      me_error("cannot open %s", tag_input_file_name);
+    }  /* if */
+    codes_output_file = fopen(codes_output_file_name, "w");
+    if (codes_output_file == NULL) {
+      me_error("cannot open %s", codes_output_file_name);
+    }  /* if */
+    data_output_file = fopen(data_output_file_name, "w");
+    if (codes_output_file == NULL) {
+      me_error("cannot open %s", data_output_file_name);
+    }  /* if */
+    /* Generate the output file headers. */
+    me_write_file_header(codes_output_file);
+    me_write_file_header(data_output_file);
+  }  /* if */
+  /* Read the input file. */
+  me_read_input_file();
+  if (doc_mode) {
+    /* Generate the documentation output file. */
+    me_write_doc_file();
+    fclose(doc_output_file);
+  } else {
+    /* Generate the output file.  Start with the error code enumeration. */
+    me_write_error_codes();
+    /* Generate the error text array. */
+    me_write_error_text();
+    /* Sort the error information by enumeration code so that the enumerations
+       can be looked up while processing the tag file. */
+    qsort((a_void_ptr)error_info, (size_t)number_of_errors,
+           sizeof(an_error_info), compare_error_info);
+    /* Read the data from the tag file. */
+    me_read_tag_file();
+    /* Sort the tag information by tag. */
+    qsort((a_void_ptr)tag_info, (size_t)number_of_tags, sizeof(a_tag_info),
+          compare_tag_info);
+    /* Output the number of tags to the error code file. */
+    me_write_tag_table();
+    fclose(codes_output_file);
+    fclose(data_output_file);
+  }  /* if */
   return (0);
 }  /* main */
 
