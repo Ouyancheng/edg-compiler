@@ -344,6 +344,12 @@ switches before this point.
 #define ALTERNATE_IL_FILE_FORMAT 0
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* ifdef IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+/* Use cfront 2.1 object compatibility for 2.28 ABI testing. */
+#ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+#define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 1
+#endif /* ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+
 #endif /* ABI_COMPATIBILITY_VERSION */
 
 
