@@ -1,5 +1,13 @@
 Version 2.39
 
+2/7/98    Minimal inlining: address of function as argument considered
+          constant
+
+The address of a function, passed as an argument to an inline function,
+is now considered a constant, and the expansion done by minimal inlining
+uses it directly instead of storing it in a temporary variable and
+using that.
+
 2/7/98    Minimal inlining: source positions on more code
 
 Minimal inlining now inserts the source position on a few pieces of

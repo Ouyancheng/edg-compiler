@@ -193,6 +193,9 @@ whether the constant is non-NULL, the safe value is FALSE.
        linker magic like weak externals. */
     *is_non_null = (expr->variant.variable->storage_class !=
                     (a_storage_class)sc_extern);
+  } else if (is_routine_address_node(expr)) {
+    is_constant_valued = TRUE;
+    *is_non_null = TRUE;
   } else if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (op == (an_expr_operator_kind)eok_field) {
