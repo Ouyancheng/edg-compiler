@@ -447,15 +447,12 @@ specified symbol.
 }  /* db_symbol_name */
 
 
-void db_symbol_name_trans_unit(a_symbol_ptr sym)
+void db_symbol_trans_unit(a_symbol_ptr sym)
 /*
-Write out the symbol name (including function parameters, if any).  Include
-the translation unit, if not the primary translation unit.
+Write out the name of the file for the translation unit of the indicated
+symbol, if it has one and if it is not the primary translation unit.
 */
 {
-  db_symbol_name(sym);
-  /* If this symbol is for a secondary translation unit, display the
-     translation unit. */
   if (sym->decl_scope != NO_SCOPE_NUMBER) {
     a_translation_unit_ptr	tup;
     tup = trans_unit_for_scope[sym->decl_scope];
@@ -465,6 +462,17 @@ the translation unit, if not the primary translation unit.
       fprintf(f_debug, " (trans unit %s)", tup->source_file->name_as_written);
     }  /* if */
   }  /* if */
+}  /* db_symbol_trans_unit */
+
+
+void db_symbol_name_trans_unit(a_symbol_ptr sym)
+/*
+Write out the symbol name (including function parameters, if any).  Include
+the translation unit, if not the primary translation unit.
+*/
+{
+  db_symbol_name(sym);
+  db_symbol_trans_unit(sym);
 }  /* db_symbol_name_trans_unit */
 
 
