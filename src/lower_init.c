@@ -2408,15 +2408,24 @@ Pop function corresponding to push_generated_routine_context.
      to the file scope, do that now and clear the lists.  That makes the
      promoted entities part of the file scope and no longer orphans. */
   promote_local_entities_to_file_scope(scope);
-  pop_context();
-  /* Restore and pop the lifetime attached to the scope so that it can be
-     deleted if it is empty. */
-  { an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
-    curr_object_lifetime = scope->lifetime;
-    (void)pop_object_lifetime();
-    curr_object_lifetime = saved_curr_object_lifetime;
-  }
+  (void)pop_object_lifetime();
   clean_up_all_object_lifetimes(scope);
+  if (exceptions_enabled
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+      /* Don't add EH code to thunks. */
+      && rout->overriding_function_for_covariant_return_type == NULL
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if IA64_ABI
+      /* Don't add EH code to alternate entry points. */
+      && rout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none
+#endif /* IA64_ABI */
+                                                              ) {
+    /* Add prologue/epilogue code for exceptions if needed.  This is done
+       after the object lifetime is popped so we can tell whether any
+       EH processing is really needed. */
+    add_eh_function_prologue(scope);
+  }  /* if */
+  pop_context();
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   /* Make orphan lists for any local types or static variables in the
      routine. */
@@ -2661,10 +2670,6 @@ default_arg_list.
   return_stmt->expr = call_node;
   insert_statement(return_stmt, &insert_location);
   add_to_return_memo_list(return_stmt);
-  if (exceptions_enabled) {
-    /* Add prologue/epilogue code for exceptions if needed. */
-    add_eh_function_prologue(new_routine_scope);
-  }  /* if */
   pop_generated_routine_context(new_routine_scope, new_routine_il_region,
                                 &grcontext);
 #if MINIMAL_INLINING
@@ -10669,10 +10674,6 @@ after all initialization routines for instantiations have been generated.
                          eff_insert_location, (a_boolean *)NULL,
                          (a_constant **)NULL);
     }  /* for */
-    if (exceptions_enabled) {
-      /* Add prologue/epilogue code for exceptions if needed. */
-      add_eh_function_prologue(scope);
-    }  /* if */
     processing_file_scope_init_routine = FALSE;
     pop_generated_routine_context(scope, region_number, &grcontext);
     /* Generate code to ensure that the initialization routine is called
