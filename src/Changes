@@ -122,7 +122,13 @@ cfront mode is unaffected.
 
 WP 8.5.1 says that an aggregate class has "no private or protected
 members".  We previously interpreted this to apply to nonstatic data
-members only; now we apply it to all members.
+members only; in strict ANSI mode we now apply it to all members.
+
+  class X {
+    static int i;
+   public:
+     int j;
+  } x = { 0 };        // Error in strict ANSI mode
 
 2/14/95  More on using .init sections in C-generating back end
 
