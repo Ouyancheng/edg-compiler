@@ -8733,6 +8733,7 @@ diagnostics can be inhibited by setting diagnose to FALSE.
       case tok_const:
       case tok_volatile:
       case tok_inline:
+      case tok_typedef:
         /* Known illegal tokens: issue an error message if requested and skip
            the token. */
         if (diagnose && !error_issued) {
