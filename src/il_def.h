@@ -1567,6 +1567,9 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_instantiate */		"instantiate",
 /* pk_do_not_instantiate */	"do_not_instantiate",
 /* pk_can_instantiate */	"can_instantiate",
+#if USER_CONTROL_OF_STRUCT_PACKING
+/* pk_pack */			"pack",
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if INCLUDE_EDG_TEST_PRAGMAS
 /* For testing purposes. */
 /* pk_test_next_statement */	"test_next_statement",
@@ -1578,9 +1581,6 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 /* pk_unrecognized */		"unrecognized",
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
-#if USER_CONTROL_OF_STRUCT_PACKING
-/* pk_pack */			"pack",
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 /* pk_last */			"last"
 } /* pragma_ids */
 #endif /* VAR_INITIALIZERS */
