@@ -1522,7 +1522,7 @@ Scan a case label definition.  The syntax is:
 */
 {
   a_struct_stmt_stack_entry_ptr sssep;
-  a_boolean                     err, did_not_fold;
+  a_boolean                     did_not_fold;
   a_constant                    constant;
   a_constant_ptr                constant_ptr = NULL;
 
@@ -1544,8 +1544,8 @@ Scan a case label definition.  The syntax is:
   (void)get_token();
   constant_ptr = NULL;
   /* Scan the constant expression. */
-  scan_integral_constant_expression(&constant, &err);
-  if (err || is_error_constant(&constant)) {
+  scan_integral_constant_expression(&constant);
+  if (is_error_constant(&constant)) {
     /* Error; constant_ptr is left NULL. */
   } else {
 #if CHECKING
@@ -1562,10 +1562,8 @@ Scan a case label definition.  The syntax is:
                            /*constant_context=*/TRUE, &did_not_fold,
                            &error_position);
     }  /* if */
-    if (!err) {
-      /* Allocate a copy of the case constant. */
-      constant_ptr = alloc_unshared_constant(&constant);
-    }  /* if */
+    /* Allocate a copy of the case constant. */
+    constant_ptr = alloc_unshared_constant(&constant);
   }  /* if */
   if (sssep != NULL) {
     if (constant_ptr != NULL) {
