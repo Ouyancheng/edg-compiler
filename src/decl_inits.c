@@ -27,6 +27,26 @@ decl_inits.c -- Scanning of initializers in declarations.
 #include "cmd_line.h"
 
 
+static a_boolean has_constructor(a_type_ptr  tp)
+{
+  a_boolean      found = FALSE;
+  a_routine_ptr  rp;
+
+  if (C_dialect == C_dialect_cplusplus && is_class_struct_union_type(tp)) {
+    skip_typerefs(tp);
+    for (rp = tp->variant.class_struct_union.extra_info->assoc_scope->routines;
+         rp != NULL;
+         rp = rp->next) {
+      if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
+        found = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return found;
+}  /* has_constructor */
+
+
 static void set_initialized_array_size(a_type_ptr    *type,
                                        a_targ_size_t size)
 /*
@@ -158,8 +178,10 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 }  /* check_for_matching_closing_brace */
 
 
-static a_constant_ptr get_initializer(a_type_ptr *type,
-                                      a_boolean  top_level)
+static a_constant_ptr get_initializer(a_type_ptr          *type,
+                                      a_dynamic_init_ptr  *di_list,
+                                      a_dynamic_init_ptr  *end_of_di_list,
+                                      a_boolean           top_level)
 /*
 Scan a constant initializer or initializer list, and return a pointer to
 the constant for it (an aggregate constant if an initializer list is
@@ -171,20 +193,23 @@ is a top-level initializer (braces are required surrounding initializers
 for unions and aggregates at that level).
 */
 {
-  a_constant_ptr init_con = NULL;
-  a_boolean      err = FALSE;
-  a_boolean      is_incomplete_array;
-  a_type_ptr     local_type, member_type;
-  a_boolean      brace_flag;
-  a_constant_ptr con_list, end_con_list;
-  a_constant_ptr member_con;
-  a_constant     constant;
-  a_targ_size_t  curr_array_element;
-  a_field_ptr    curr_field;
-  a_boolean      done, no_more_members;
-  a_type_kind    kind;
-  a_boolean      array_too_long_error_given = FALSE;
-  a_boolean      took_extra_comma;
+  a_constant_ptr      init_con = NULL;
+  a_boolean           err = FALSE;
+  a_boolean           is_incomplete_array;
+  a_type_ptr          local_type, member_type;
+  a_boolean           brace_flag;
+  a_constant_ptr      con_list, end_con_list;
+  a_constant_ptr      member_con;
+  a_constant          constant;
+  a_targ_size_t       curr_array_element;
+  a_field_ptr         curr_field;
+  a_boolean           done, no_more_members;
+  a_type_kind         kind;
+  a_boolean           array_too_long_error_given = FALSE;
+  a_boolean           took_extra_comma;
+  an_expr_node_ptr    expression;
+  a_boolean           is_constant;
+  a_dynamic_init_ptr  dip;
 
   db_enter(4, "get_initializer");
   err = FALSE;
@@ -271,7 +296,8 @@ for unions and aggregates at that level).
         }  /* if */
         add_stop_token(tok_comma);
         /* Get the initializer for this one member. */
-        member_con = get_initializer(&member_type, /*top_level=*/FALSE);
+        member_con = get_initializer(&member_type, di_list, end_of_di_list,
+                                     /*top_level=*/FALSE);
         remove_stop_token(tok_comma);
         /* Add the constant to the list. */
         if (con_list == NULL) {
@@ -392,15 +418,41 @@ for unions and aggregates at that level).
     /* Non-aggregate/union case -- initializer is a single (possibly
        brace-enclosed) value. */
     check_for_opening_brace(&brace_flag);
-    scan_constant_initializer_expression(/*convert_array_to_pointer=*/TRUE,
-                                         &constant, &err);
+    if (C_dialect == C_dialect_cplusplus) {
+      scan_initializer_expression(
+              /*convert_array_to_pointer=*/TRUE,
+              &is_constant, &expression, &constant, &err);
+    } else {
+      scan_constant_initializer_expression(/*convert_array_to_pointer=*/TRUE,
+                                           &constant, &err);
+      is_constant = TRUE;
+    }  /* if */
     if (!err) {
-      /* Check the type of the initial value against the type of the object
-         being initialized. */
-      check_constant_initializer(&constant, &local_type, &err);
-      if (!err) {
-        /* Allocate the constant that is the value of the initializer. */
-        init_con = alloc_unshared_constant(&constant);
+      if (is_constant) {
+        /* Check the type of the initial value against the type of the object
+           being initialized. */
+        check_constant_initializer(&constant, &local_type, &err);
+        if (!err) {
+          /* Allocate the constant that is the value of the initializer. */
+          init_con = alloc_unshared_constant(&constant);
+        }  /* if */
+      } else {
+        /* Non-constant.  Check the type by assignment rules and cast the
+           node if necessary. */
+        node_prepare_assignment(&expression, local_type,
+                                ec_bad_initializer_type, &err);
+        if (!err) {
+          init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+          init_con->variant.dynamic_init = dip =
+                       alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+          dip->variant.expression = expression;
+          if (*di_list == NULL) {
+            *di_list = dip;
+          } else {
+            (*end_of_di_list)->next = dip;
+          }  /* if */
+          *end_of_di_list = dip;
+        }  /* if */
       }  /* if */
     }  /* if */
     /* If there was an initial opening brace, check for and skip the
@@ -419,9 +471,7 @@ for unions and aggregates at that level).
 
 
 static void gen_dynamic_initialization(a_variable_ptr      vp,
-                                       a_dynamic_init_kind kind,
-                                       a_constant_ptr      constant,
-                                       an_expr_node_ptr    expression)
+                                       a_dynamic_init_ptr  dip)
 /*
 Generate a dynamic initialization of the variable vp.  If
 kind == dik_constant, constant points to the initial value constant;
@@ -430,44 +480,59 @@ Except for a dynamic initialization at file scope (possible only in C++),
 also create an stmk_init statement at the current point in the code.
 */
 {
-  a_dynamic_init_ptr      dip;
+  a_dynamic_init_ptr      new_dip;
   a_statement_ptr         init_stmt;
   a_scope_stack_entry_ptr ssep;
 
   /* Build the dynamic initialization entry. */
-  dip = alloc_dynamic_init(kind, vp);
-  if (kind == (a_dynamic_init_kind)dik_constant) {
-    dip->variant.constant = constant;
-  } else {
+  new_dip = alloc_dynamic_init(dip->kind);
+  switch (dip->kind) {
+    case dik_constant:
+      new_dip->variant.constant = dip->variant.constant;
+      break;
+    case dik_expression:
+      new_dip->variant.expression = dip->variant.expression;
+      break;
+    case dik_constructor:
+      new_dip->variant.constructor.routine = dip->variant.constructor.routine;
+      new_dip->variant.constructor.args = dip->variant.constructor.args;
+      new_dip->variant.constructor.corresp_destructor =
+                                  dip->variant.constructor.corresp_destructor;
+      break;
+    case dik_aggregate:
+      new_dip->variant.aggregate.aggr_const =
+                                  dip->variant.aggregate.aggr_const;
+      new_dip->variant.aggregate.dynamic_init =
+                                  dip->variant.aggregate.dynamic_init;
+      break;
 #if CHECKING
-    if (kind != (a_dynamic_init_kind)dik_expression) {
+    default:
       internal_error("gen_dynamic_initialization: bad kind");
-    }  /* if */
 #endif /* CHECKING */
-    dip->variant.expression = expression;
-  }  /* if */
+  }  /* switch */
   /* Attach the dynamic initialization entry to the scope list. */
   ssep = &scope_stack[decl_scope_level];
   if (ssep->il_scope->dynamic_inits == NULL) {
-    ssep->il_scope->dynamic_inits = dip;
+    ssep->il_scope->dynamic_inits = new_dip;
   } else {
-    ssep->last_dynamic_init->next = dip;
+    ssep->last_dynamic_init->next = new_dip;
   }  /* if */
-  ssep->last_dynamic_init = dip;
+  ssep->last_dynamic_init = new_dip;
   /* Make the variable point at the dynamic initialization. */
   vp->init_kind = (an_init_kind)initk_dynamic;
-  vp->initializer.dynamic = dip;
+  vp->initializer.dynamic = new_dip;
   /* Set the referenced flag for the variable, because there is a
      reference now -- the dynamic initialization. */
   vp->source_corresp.referenced = TRUE;
   if (ssep->kind == (a_scope_kind)sck_file) {
     /* A dynamic file-scope initialization (possible only in C++) has
        no associated stmk_init statement. */
+    new_dip->variable = vp;
   } else {
     /* Build the initialization statement. */
     init_stmt = add_statement((a_statement_kind)stmk_init);
     init_stmt->seq_number = vp->source_corresp.decl_position.seq;
-    init_stmt->variant.dynamic_init = dip;
+    init_stmt->variant.dynamic_init = new_dip;
   }  /* if */
 }  /* gen_dynamic_initialization */
 
@@ -519,6 +584,7 @@ vp had an incomplete array type that has been completed by an initializer.
 void initializer(a_symbol_ptr       symbol_ptr,
                  a_source_position  *source_pos,
                  an_id_linkage_kind linkage,
+                 a_boolean          paren_flag,
                  a_boolean          is_parameter)
 /*
 Scan an initializer (3.5.7) for the symbol pointed to by symbol_ptr
@@ -548,6 +614,11 @@ The syntax is:
   a_constant            constant;
   a_constant_ptr        cp;
   an_init_kind          init_kind;
+  a_dynamic_init        local_di, *di_list, *end_of_di_list;
+  a_boolean             dynamic_init_required;
+  a_boolean             initialization_is_dynamic;
+  a_routine_ptr         rp;
+  an_expr_node_ptr      arg_list;
 
   db_enter(3, "initializer");
 
@@ -599,88 +670,114 @@ The syntax is:
      initializer, but then discard the value. */
   put_init_in_variable = !err;
   if (vp_type == NULL) vp_type = error_type();
-  /* There are two basic kinds of initializers, constant and non-constant;
-     the latter can only be used for non-static objects, and are implemented
-     like assignment statements.  The non-constant form is allowed only
-     at the outermost level, so by handling it here, we can avoid dealing
-     with it in get_initializer.  For union or aggregate types, an
-     initializer starting with a brace indicates a constant initializer;
-     for other types, a non-constant initializer is allowed to be
-     enclosed in an unnecessary set of braces. */
-  if (vp != NULL && !has_static_storage_duration(vp->storage_class) &&
-      (!is_aggregate_or_union_type(vp_type) || curr_token != tok_lbrace)) {
-    /* Potentially non-constant initialization of a non-static object.
-       The initializer or initializer list will contain only a single
-       expression. */
-    /* Issue a warning for a dynamic initialization in an unreachable
-       block. */
-    if (!curr_code_reachable()) {
-      warning(ec_initialization_not_reachable);
+  initialization_is_dynamic = FALSE;
+  if (has_constructor(vp_type)) {
+    if (curr_token == tok_lbrace) {
+      error(ec_exp_primary_expr);
+      flush_tokens();
+    } else {
+#if CHECKING
+    internal_error("initializer: constructors not yet implemented");
+#endif /* CHECKING */
+#if 0
+      scan_constructor_args(vp_type, paren_flag, &arg_list);
+      rp = select_constructor(vp_type, arg_list);
+      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
+      local_di.variant.constructor.routine = rp;
+      local_di.variant.constructor.args = arg_list;
+      local_di.variant.constructor.corresp_destructor =
+                                           select_destructor(vp_type);
+      initialization_is_dynamic = TRUE;
+#endif /* if 0 */
     }  /* if */
-    /* Ignore an extra set of braces around a non-union/non-aggregate
-       initializer. */
+  } else if (is_aggregate_or_union_type(vp_type)) {
+    di_list = end_of_di_list = NULL;
+    cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
+                         /*top_level=*/TRUE);
+    if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_aggregate);
+      local_di.variant.aggregate.aggr_const = cp;
+      local_di.variant.aggregate.dynamic_init = di_list;
+      initialization_is_dynamic = (di_list != NULL);
+      if (put_init_in_variable) {
+        /* Copy the type back into the variable.  It might have been changed
+           if vp is an incomplete array. */
+        if (vp != NULL && vp_type != vp->type) {
+          put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
+                                      vp_type);
+        }  /* if */
+      }  /* if */
+    } else {
+#if CHECKING
+      if (cp->kind == (a_constant_repr_kind)ck_error) {
+        internal_error("initializer: unexpected constant kind");
+      }  /* if */
+#endif /* CHECKING */
+      err = TRUE;
+    }  /* if */
+  } else {
     check_for_opening_brace(&brace_flag);
-    /* Scan a potentially non-constant initializer expression.  The result
-       of the scan is a constant if the expression is constant, and an
-       expression node if not. */
-    scan_initializer_expression(
-            /*convert_array_to_pointer=*/!is_char_array_type(vp_type),
-            &is_constant, &expression, &constant, &err);
+    if (C_dialect == C_dialect_cplusplus ||
+        (vp != NULL && has_static_storage_duration(vp->storage_class))) {
+      /* Scan a potentially non-constant initializer expression.  The result
+         of the scan is a constant if the expression is constant, and an
+         expression node if not. */
+      scan_initializer_expression(
+              /*convert_array_to_pointer=*/!is_char_array_type(vp_type),
+              &is_constant, &expression, &constant, &err);
+    } else {
+      scan_constant_initializer_expression(
+              /*convert_array_to_pointer=*/!is_char_array_type(vp_type),
+              &constant, &err);
+      is_constant = TRUE;
+    }  /* if */
     if (!err) {
       /* See if the scanned expression was constant or not. */
       if (is_constant) {
         /* Constant.  Check the constant type to see if it is legal,
            change the constant type if necessary. */
         check_constant_initializer(&constant, &vp_type, &err);
-        cp = alloc_unshared_constant(&constant);
-        init_kind = (a_dynamic_init_kind)dik_constant;
-        expression = NULL;
+        if (!err) {
+          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
+          local_di.variant.constant = cp = alloc_unshared_constant(&constant);
+        }  /* if */
       } else {
         /* Non-constant.  Check the type by assignment rules and cast the
            node if necessary. */
         node_prepare_assignment(&expression, vp_type, ec_bad_initializer_type,
                                 &err);
-        init_kind = (a_dynamic_init_kind)dik_expression;
-        cp = NULL;
-      }  /* if */
-      if (!err && put_init_in_variable) {
-        /* Generate a dynamic initialization entry and attach it to the
-           variable, and generate an stmk_init statement. */
-        /* Note that it is not necessary to record the fact of an
-           initialization either when there is an error or when there isn't.
-           Since the variable is not static, it has no linkage.  Thus, a
-           second declaration would be an error whether or not it contains
-           another initializer. */
-        gen_dynamic_initialization(vp, init_kind, cp, expression);
+        if (!err) {
+          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_expression);
+          local_di.variant.expression = expression;
+          initialization_is_dynamic = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     /* If an extra opening brace was ignored earlier, ignore the matching
        closing brace now. */
     check_for_matching_closing_brace(brace_flag);
-  } else {
-    /* Constant initialization.  The initializer or initializer list can
-       contain many expressions, depending on the type of the object
-       to be initialized.  Fetch the initial value(s) as a single (possibly
-       aggregate) constant. */
-    cp = get_initializer(&vp_type, /*top_level=*/TRUE);
-    if (put_init_in_variable) {
-      /* Copy the type back into the variable.  It might have been changed
-         if vp is an incomplete array. */
-      if (vp != NULL && vp_type != vp->type) {
-        put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
-                                    vp_type);
+  }  /* if */
+  if (!err && put_init_in_variable) {
+    if (C_dialect == C_dialect_cplusplus) {
+      dynamic_init_required = (decl_scope_level != DEPTH_OF_FILE_SCOPE);
+    } else {
+      dynamic_init_required = !has_static_storage_duration(vp->storage_class);
+    }  /* if */
+    if (initialization_is_dynamic || dynamic_init_required) {
+      if (dynamic_init_required) {
+        /* Issue a warning for a dynamic initialization in an unreachable
+           block. */
+        if (!curr_code_reachable()) {
+          warning(ec_initialization_not_reachable);
+        }  /* if */
       }  /* if */
-      if (has_static_storage_duration(vp->storage_class)) {
-        /* Initialization of a static variable with a constant (the most
-           common case).  Attach the initializer constant to the variable. */
-        vp->init_kind = (an_init_kind)initk_static;
-        vp->initializer.constant = cp;
-      } else {
-        /* For initialization of a non-static aggregate or union, 
-           a dynamic initialization must be generated. */
-        gen_dynamic_initialization(vp, (a_dynamic_init_kind)dik_constant,
-                                   cp, (an_expr_node_ptr)NULL);
-      }  /* if */
+      /* Generate a dynamic initialization entry (based on local_di) and
+         attach it to the variable, and generate an stmk_init statement if
+         appropriate. */
+      gen_dynamic_initialization(vp, &local_di);
+    } else {
+      vp->init_kind = (an_init_kind)initk_static;
+      vp->initializer.constant = cp;
     }  /* if */
   }  /* if */
   db_exit();
