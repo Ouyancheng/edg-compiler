@@ -269,8 +269,8 @@ later.  Return information on the position of the reserved space in
 
   length_reservation->start_position = mangling_text_buffer->size;
   length_reservation->start_length = mctl->length;
-  /* Leave room for lengths of up to 999,999. */
-#define NUM_CHARS_RESERVED_FOR_LENGTH 6
+  /* Leave room for lengths of up to 9,999,999. */
+#define NUM_CHARS_RESERVED_FOR_LENGTH 7
   /* Fill the space with blanks, which cannot be part of a valid mangled
      name.  We'll overwrite some of those blanks with the actual length
      determined later.  The leftover blanks will be removed at the end of
