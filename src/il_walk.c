@@ -13,17 +13,18 @@ il_walk.c -- Routines to walk the intermediate language tree.
 
 */
 
+/* Header files common to all files. */
+#include "fe_common.h"
 
-#include "basics.h"
-#include "host_envir.h"
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 #if IL_WALK_NEEDED || NEED_DECLARATIVE_WALK
 
-#include "lang_feat.h"
 #include "il_walk.h"
-#include "il.h"
-#include "error.h"
-#include "mem_manage.h"
 #include "types.h"
 
 #if IL_WALK_NEEDED

@@ -13,8 +13,14 @@ il_read.c -- Read the intermediate language.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 /* Everything in this file has to do with reading the IL file. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
@@ -29,11 +35,7 @@ il_read.c -- Read the intermediate language.
 
 #include "il_file.h"
 #include "il_read.h"
-#include "il.h"
 #include "il_walk.h"
-#include "error.h"
-#include "version.h"
-#include "mem_manage.h"
 
 #ifdef __CENTERLINE__
 extern int centerline_untype(void *, unsigned int);

@@ -13,8 +13,14 @@ il_write.c -- Write the intermediate language to a file.
 
 */
 
-#include "basics.h"
-#include "host_envir.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 /* Everything in this file has to do with writing the IL file. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
@@ -26,10 +32,6 @@ il_write.c -- Write the intermediate language to a file.
 #include "il_file.h"
 #include "il_walk.h"
 #include "il_write.h"
-#include "il.h"
-#include "mem_manage.h"
-#include "error.h"
-#include "version.h"
 
 static a_boolean
 		writing_file_scope_il;
