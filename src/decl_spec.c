@@ -3249,11 +3249,12 @@ process_class_specifier:
                                      (a_storage_class)sc_static) ? 1 : 0) +
                                  ((*output_flags & DSO_EXPLICIT) ? 1 : 0) +
                                  (is_inline ? 1 : 0))) {
-            if (scope_stack[decl_scope_level].kind !=
-                                     (a_scope_kind)sck_class_struct_union) {
+            a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+            if (input_flags & DSI_IS_TEMPLATE_DECLARATION) --ssep;
+            if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
               /* Error case of some sort. */
             } else {
-              a_type_ptr class_type = scope_stack[decl_scope_level].assoc_type;
+              a_type_ptr class_type = ssep->assoc_type;
               check_assertion(class_type != NULL &&
                               is_class_struct_union_type(class_type)); 
               if (is_constructor_decl(class_type)) {
