@@ -1,5 +1,10 @@
 Version 2.23
 
+5/19/94  address_taken flag on virtual functions
+
+The address_taken flag is now set when the address of a function is
+taken to put it into the virtual function table.
+
 5/19/94  Comparison of function pointers in generated C code
 
 C++ allows comparison of function pointers (using <, >, <=, or >=);

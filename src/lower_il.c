@@ -3018,6 +3018,7 @@ virtual function table.
     implicit_cast(func_con, vptp_type);
     /* Mark the routine as referenced. */
     func_to_call->source_corresp.referenced = TRUE;
+    func_to_call->address_taken = TRUE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (automatic_instantiation_mode) {
       /* If the function is a template function, now marked as referenced,
