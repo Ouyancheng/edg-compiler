@@ -6952,7 +6952,6 @@ Return TRUE if the operand is a bit field.
   return is_bit_field;
 }  /* is_bit_field_operand */
 
-#if ADDR_OF_BIT_FIELD_ALLOWED
 
 a_boolean is_bit_field_whose_address_can_be_taken(a_field_ptr field,
                                                   a_type_ptr  *ptr_type)
@@ -7005,8 +7004,6 @@ of the pointer to that bit field, in *ptr_type.
   return addr_can_be_taken;
 }  /* is_bit_field_whose_address_can_be_taken */
 
-#endif /* ADDR_OF_BIT_FIELD_ALLOWED */
-#if ADDR_OF_BIT_FIELD_ALLOWED
 
 static a_boolean take_address_of_bit_field(an_operand *operand)
 /*
@@ -7056,7 +7053,6 @@ and if so, change *operand to indicate the address.  If not, return FALSE.
   return address_taken;
 }  /* take_address_of_bit_field */
 
-#endif /* ADDR_OF_BIT_FIELD_ALLOWED */
 
 void take_address_of_lvalue(an_operand *operand)
 /*
@@ -7082,15 +7078,12 @@ address_taken flag.
        and after.  However, there are some error checks to be done. */
     /* Check for taking the address of a bit field. */
     if (is_bit_field_operand(operand)) {
-#if ADDR_OF_BIT_FIELD_ALLOWED
-      /* As an extension, the address of a bit field can be taken if it has
-         the same size and alignment as one of the integral types. */
-      if (!take_address_of_bit_field(operand)) {
+      if (addr_of_bit_field_allowed && take_address_of_bit_field(operand)) {
+        /* As an extension, the address of a bit field can be taken if it has
+           the same size and alignment as one of the integral types. */
+      } else {
         error_in_operand(ec_address_of_bit_field, operand);
       }  /* if */
-#else /* !ADDR_OF_BIT_FIELD_ALLOWED */
-      error_in_operand(ec_address_of_bit_field, operand);
-#endif /* ADDR_OF_BIT_FIELD_ALLOWED */
     } else {
       /* Not a bit field reference. */
       /* The operand becomes an rvalue. */

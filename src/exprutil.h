@@ -744,11 +744,9 @@ extern void modifying_lvalue(an_operand *operand,
 
 extern a_boolean is_bit_field_operand(an_operand *operand);
 
-#if ADDR_OF_BIT_FIELD_ALLOWED
 extern a_boolean is_bit_field_whose_address_can_be_taken(
                                                         a_field_ptr field,
                                                         a_type_ptr  *ptr_type);
-#endif /* ADDR_OF_BIT_FIELD_ALLOWED */
 
 extern void take_address_of_lvalue(an_operand *operand);
 

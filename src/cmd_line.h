@@ -366,6 +366,17 @@ EXTERN a_boolean
 			   issued on automatic local variables that are used
 			   before a value is assigned to them; FALSE by
 			   default.  Set by the -j command line option. */
+
+EXTERN a_boolean
+		addr_of_bit_field_allowed
+#if VAR_INITIALIZERS
+                                          = ADDR_OF_BIT_FIELD_ALLOWED
+#endif /* VAR_INITIALIZERS */
+                                                                     ;
+			/* TRUE if the address of a bit field may be taken
+			   (provided it has a size and alignment that matches
+			   some integral type). */
+
 EXTERN a_boolean
 		exceptions_enabled
 #if VAR_INITIALIZERS

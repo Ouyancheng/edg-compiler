@@ -2283,7 +2283,9 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
   long_long_is_standard = TRUE;
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
-
+  /* Allow taking the address of a bit field (provided it is suitably sized
+     and aligned. */
+  addr_of_bit_field_allowed = TRUE;
 }  /* check_and_set_gcc_mode_options */
 
 

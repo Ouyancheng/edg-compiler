@@ -1880,11 +1880,9 @@ The result is placed in *result.
         expr_stack->fold_constant_addr_exprs) {
       /* Don't try to fold bit fields except when their addresses
          can be taken (as an extension). */
-      if (!field->is_bit_field
-#if ADDR_OF_BIT_FIELD_ALLOWED
-          || is_bit_field_whose_address_can_be_taken(field, &selection_type)
-#endif /* ADDR_OF_BIT_FIELD_ALLOWED */
-                              ) {
+      if (!field->is_bit_field ||
+          (addr_of_bit_field_allowed &&
+           is_bit_field_whose_address_can_be_taken(field, &selection_type))) {
         /* Fold a field selection relative to a constant address into another
            constant address.  Note that the "rvalue . field" case can't come
            here, since a struct/union rvalue cannot be a constant.  This
