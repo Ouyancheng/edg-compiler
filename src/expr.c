@@ -1349,7 +1349,7 @@ is being called for a derived class object).
     reference_to_implicitly_invoked_function(constructor_sym, err_pos,
 					     object_class_type,
                                              /*honor_virtual=*/FALSE,
-                                             curr_expr_is_evaluated());
+                                         curr_expr_is_potentially_evaluated());
     *conversion_routine = constructor_sym->variant.routine.ptr;
   }  /* if */
   pop_expr_stack();
@@ -3271,6 +3271,7 @@ Syntax:
 #endif /* CHECKING */
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry);
   expr_stack_entry.evaluated = FALSE;
+  expr_stack_entry.potentially_evaluated = FALSE;
   /* Save the position of the sizeof keyword. */
   copy_source_position(pos_curr_token, start_position);
 
@@ -3400,6 +3401,7 @@ be inappropriate, because the feature is probably used to implement
 
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry);
   expr_stack_entry.evaluated = FALSE;
+  expr_stack_entry.potentially_evaluated = FALSE;
   /* Save the position of the __ALIGNOF__ keyword. */
   copy_source_position(pos_curr_token, start_position);
   (void)get_token();
@@ -3826,7 +3828,7 @@ specification allow a variable-sized array as the top type.
       /* There is no new-initializer, so a default constructor should exist. */
       ctor_routine = select_default_constructor(base_new_type, &type_position,
 						base_new_type,
-                                                curr_expr_is_evaluated());
+                                         curr_expr_is_potentially_evaluated());
       arg_expr_list = NULL;
       if (ctor_routine != NULL) {
         /* Provide default arguments if any. */
@@ -4090,7 +4092,7 @@ As an anachronism, allow an expression inside the [ ].
         dtor_routine = select_destructor(base_delete_type, base_delete_type,
                                          &operand.position,
                                          /*honor_virtual=*/TRUE,
-                                         curr_expr_is_evaluated());
+                                         curr_expr_is_potentially_evaluated());
         if (dtor_routine != NULL) {
           /* Class with destructor.  Destruction is required. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
@@ -6766,7 +6768,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
         throw_type = node->type;
         dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_expression,
                                       throw_type,
-                                      curr_expr_is_evaluated(),
+                                      curr_expr_is_potentially_evaluated(),
                                       /*in_return_by_cctor_expression=*/FALSE,
                                       &operand.position);
         dip->variant.expression = node;

@@ -259,7 +259,12 @@ typedef struct an_expr_stack_entry {
   a_byte_boolean
 		evaluated;
 			/* Expression is evaluated, e.g., FALSE if it's the
-			   operand of a sizeof. */
+			   operand of a sizeof or in a "dead" part of a
+			   short-circuiting operation. */
+  a_byte_boolean
+		potentially_evaluated;
+			/* Expression is potentially evaluated, e.g., FALSE
+			   if it's the operand of a sizeof. */
   a_byte_boolean
 		is_default_arg_expression;
 			/* TRUE if the expression is or is inside of a
@@ -336,9 +341,18 @@ kinds are at the beginning of the list.
   ((int)(curr_expr_kind()) <= (int)ek_init_constant)
 
 /*
-Macro that returns TRUE if the current expression is evaluated.
+Macro that returns TRUE if the current expression is evaluated, i.e.,
+it's not inside a sizeof or alignof, and it's not in a "dead" piece of
+a short-circuiting operation like "?".
 */
 #define curr_expr_is_evaluated() ((a_boolean)expr_stack->evaluated)
+
+/*
+Macro that returns TRUE if the current expression is potentially evaluated,
+i.e., it's not inside a sizeof or alignof.
+*/
+#define curr_expr_is_potentially_evaluated()                          \
+  ((a_boolean)expr_stack->potentially_evaluated)
 
 
 /* Copy an operand. */

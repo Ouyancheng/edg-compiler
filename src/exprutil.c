@@ -213,7 +213,7 @@ recorded right away and no entry is created; NULL is returned.
 {
   a_ref_entry_ptr         rep;
   a_boolean               ref_kind_can_be_affected_by_context;
-  a_boolean               evaluated = curr_expr_is_evaluated();
+  a_boolean               evaluated = curr_expr_is_potentially_evaluated();
   a_symbol_ptr            fund_sym = fundamental_symbol_of(sym_ptr);
   a_symbol_reference_kind initial_ref_kind;
 
@@ -401,7 +401,7 @@ expression is being evaluated.  This routine is an interface to
 mark_routine_referenced.
 */
 {
-  if (curr_expr_is_evaluated()) {
+  if (curr_expr_is_potentially_evaluated()) {
     mark_routine_referenced(routine);
   }  /* if */
 }  /* if_evaluating_mark_routine_referenced */
@@ -421,6 +421,7 @@ at the start of a major expression.
   new_entry->old_ref_entries_list = curr_expr_ref_entries;
   curr_expr_ref_entries = NULL;
   new_entry->evaluated = TRUE;
+  new_entry->potentially_evaluated = TRUE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
   new_entry->in_return_by_cctor_expression = FALSE;
@@ -430,6 +431,7 @@ at the start of a major expression.
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
     new_entry->evaluated = expr_stack->evaluated;
+    new_entry->potentially_evaluated = expr_stack->potentially_evaluated;
     new_entry->is_default_arg_expression =
                                          expr_stack->is_default_arg_expression;
   }  /* if */
@@ -3058,7 +3060,8 @@ associated reference entry, or is NULL if none is needed.
   }  /* if */
 #endif /* CHECKING */
   routine = routine_sym->variant.routine.ptr;
-  if (C_dialect == C_dialect_cplusplus && curr_expr_is_evaluated()) {
+  if (C_dialect == C_dialect_cplusplus &&
+      curr_expr_is_potentially_evaluated()) {
     if (routine == il_header.main_routine) {
       /* In C++, "main" cannot be called and cannot have its address
          taken (ARM 3.4). */
@@ -3123,7 +3126,7 @@ on function_type.  *call_pos gives the source position of the call.
 
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
-                             curr_expr_is_evaluated(),
+                             curr_expr_is_potentially_evaluated(),
                              (a_boolean)expr_stack->
                                                  in_return_by_cctor_expression,
                              call_pos);
@@ -3267,7 +3270,7 @@ Set the address_taken flag in the indicated variable.  Issue an error at
     pos_error(ec_address_of_register_variable, err_pos);
   } else {
     /* The address is not "really" taken if it's not evaluated. */
-    if (curr_expr_is_evaluated()) {
+    if (curr_expr_is_potentially_evaluated()) {
       /* Set the address_taken flag in the variable. */
       variable->address_taken = TRUE;
     }  /* if */
