@@ -4960,7 +4960,7 @@ or struct definition.  The syntax is
             /* Copy the virtual function override entries from bcp (which is
                on the base classes list for base_class_type) to the
                corresponding copied base class new_bcp (which is on the base
-               bases list for type_ptr). */
+               classes list for type_ptr). */
             copy_virtual_function_override_list(bcp, new_bcp,
                                                 new_direct_bcp, type_ptr);
 #if DEBUG
