@@ -329,8 +329,10 @@ done_with_modifiers:
         ck = (an_asm_operand_constraint_kind)aoc_reg_legacy;    
         break;
       case 'q':
-      case 'Q':
         ck = (an_asm_operand_constraint_kind)aoc_reg_q;         
+        break;
+      case 'Q':
+        ck = (an_asm_operand_constraint_kind)aoc_reg_Q;         
         break;
       case 'A':
         ck = (an_asm_operand_constraint_kind)aoc_reg_ad;        

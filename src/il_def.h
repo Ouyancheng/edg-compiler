@@ -2597,7 +2597,9 @@ enum an_asm_operand_constraint_kind_tag {
   aoc_reg_si,           /* s: si */
   aoc_reg_di,           /* d: di */
   aoc_reg_legacy,       /* R: ax bx cx dx si di bp sp (avail. on non-x86-64) */
-  aoc_reg_q,            /* Q: ax bx cx dx (non-x86-64), same as 'r' (x86-64) */
+  aoc_reg_q,            /* q: ax bx cx dx, lower part only (non-x86-64),
+                              same as 'r' (x86-64) */
+  aoc_reg_Q,            /* Q: ax bx cx dx (non-x86-64), same as 'r' (x86-64) */
   aoc_reg_ad,           /* A: ax dx */
   aoc_reg_float_tos,    /* t: %st(0) */
   aoc_reg_float_second, /* u: %st(1) */
@@ -2658,7 +2660,8 @@ EXTERN char asm_operand_constraint_letters[(int)aoc_last + 1]
   /* aoc_reg_si */              'S',
   /* aoc_reg_di */              'D',
   /* aoc_reg_legacy */          'R',
-  /* aoc_reg_q */               'Q',
+  /* aoc_reg_q */               'q',
+  /* aoc_reg_Q */               'Q',
   /* aoc_reg_ad */              'A',
   /* aoc_reg_float_tos */       't',
   /* aoc_reg_float_second */    'u',
