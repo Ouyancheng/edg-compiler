@@ -2506,12 +2506,12 @@ being created to surround a dependent statement in C++.
 
   /* Allocate a block statement and add it to the statements list. */
   block_stmt = add_statement((a_statement_kind)stmk_block);
+  stmt_update_source_sequence_list(block_stmt);
   if (!dependent_statement) {
     /* This is a block statement introduced by a left brace (which should be
        the next token). */
-    stmt_update_source_sequence_list(block_stmt);
-    /* Process any pragmas that are meant to bind to the
-       block statement as a whole. */
+    /* Process any pragmas that are meant to bind to the block statement as
+       a whole. */
     process_curr_construct_pragmas((a_symbol_ptr)NULL, block_stmt);
   } else {
     /* This is a dependent statement with no surrounding braces.  Since the
@@ -2625,7 +2625,15 @@ statement no new scope is required.
        declaration. */
     pos_error(ec_dependent_stmt_is_declaration, &start_position);
   }  /* if */
-  if (block_added) finish_block_statement(block);
+  if (block_added) {
+    finish_block_statement(block);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Add a source sequence entry marking the end of the compiler-generated
+       block that was added to surround the dependent statement. */
+    add_end_of_construct_source_sequence_entry(
+                         (char *)block, (a_byte_il_entry_kind)iek_statement);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
   db_exit();
 }  /* dependent_statement */
 
