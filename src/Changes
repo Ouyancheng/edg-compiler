@@ -48,9 +48,11 @@ Now fixed.
 
 7/21/04  Spurious error on class template with conversion operator
 
-The front end sometimes issued a spurious correspondence error on two
-compatible definitions of a class template if the template contained a
-conversion operator member.  For example:
+When compiling multiple translation units (a somewhat unusual mode) the front
+end sometimes issued a spurious correspondence error on two compatible
+definitions of a class template. This error only occurred if the template
+contains a conversion operator member and the type of the conversion operator
+was expressed in another class via a typedef.  For example:
 
   // File 1:
   template<typename T> struct X {
@@ -60,9 +62,9 @@ conversion operator member.  For example:
   // File 2:
   typedef void *PV;
   struct S { operator PV(); };
-  template<typename T> struct X {  // Triggered a spurious correspondence
+  template<typename T> struct X {  // Triggered a spurious compatibility
     operator void*();              // error even though the definition in
-  };                               // File 1 is compatible with this one.
+  };                               // File 1 matches this one perfectly.
 
 This is now fixed.
 
