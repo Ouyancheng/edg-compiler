@@ -508,6 +508,9 @@ at file scope.
 #endif /* DEBUG */
   ptp->next = NULL;
   ptp->type = type;
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+  ptp->name = NULL;
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
   ptp->passed_via_copy_constructor = FALSE;
   ptp->has_default_arg = FALSE;
   ptp->type_involves_template_param = FALSE;

@@ -1810,6 +1810,11 @@ typedef struct a_param_type {
 			   have been removed -- see the field "qualifiers"
 			   below. */
 #ifdef CIL
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+  char          *name;
+                        /* Pointer to null-terminated name, or NULL if none
+			   was declared. */
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
   a_bit_field	passed_via_copy_constructor:1;
 			/* If TRUE, the parameter has a type that requires
 			   a copy constructor to be called.  For a parameter

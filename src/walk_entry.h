@@ -563,6 +563,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_param_type_ptr, iek_param_type);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         definition_needed_if_class(ptr->type);
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+        walk_string_ptr(ptr->name, iek_id_name, 0);
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
         walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
       }
       break;
