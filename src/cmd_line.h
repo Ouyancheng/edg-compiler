@@ -146,6 +146,7 @@ typedef enum /*an_option_kind*/ {
   optk_implicit_extern_c_type_conversion,
 #endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
   optk_long_preserving_rules,
+  optk_extern_inline,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -366,6 +367,16 @@ EXTERN a_boolean
 			   whether a template parameter dependent name is a
 			   type or nontype.  Significant only in C++ mode. */
 
+EXTERN a_boolean
+		extern_inline_allowed
+#if VAR_INITIALIZERS
+                                      = DEFAULT_EXTERN_INLINE_ALLOWED
+#endif /* VAR_INITIALIZERS */
+                                                                     ;
+			/* TRUE if inline functions are allowed to have
+			   external linkage (as specified by the standard) and
+			   FALSE if they imply internal linkage (as specified
+			   in the ARM).  Significant only in C++ mode. */
 EXTERN a_boolean
 		special_subscript_cost
 #if VAR_INITIALIZERS

@@ -628,6 +628,14 @@ Initialize the option information table.
                          "no_long_preserving_rules",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_none);
+  add_option_description(optk_extern_inline,
+			 "extern_inline",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_extern_inline,
+			 "no_extern_inline",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -1169,6 +1177,7 @@ common_cfront_mode_settings:
 #if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
         impl_conv_between_c_and_cpp_function_ptrs_allowed = TRUE;
 #endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+        extern_inline_allowed = FALSE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -1620,6 +1629,9 @@ common_cfront_mode_settings:
       case optk_long_preserving_rules:
         long_preserving_rules = opt_value;
         break;
+      case optk_extern_inline:
+        extern_inline_allowed = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1705,6 +1717,9 @@ common_cfront_mode_settings:
     }  /* if */
     if (option_kind_used[(int)optk_implicit_extern_c_type_conversion]) {
       command_line_error(ec_cl_impl_extern_c_conv_option_only_in_cplusplus);
+    }  /* if */
+    if (option_kind_used[(int)optk_extern_inline]) {
+      command_line_error(ec_cl_extern_inline_option_only_in_cplusplus);
     }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {
@@ -1887,6 +1902,11 @@ common_cfront_mode_settings:
          extern "C++" function pointers is allowed by default. */
       impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
 #endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+      if (!(option_kind_used[(int)optk_extern_inline])) {
+        /* If extern_inline_allowed was not explicitly set by a command line
+           option, set it now. */
+        extern_inline_allowed = TRUE;
+      }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the
        error threshold was set at a higher level. */
