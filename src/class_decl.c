@@ -8620,6 +8620,9 @@ respectively.
 }  /* check_field_type */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- attributes is not used in that case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void decl_nonstatic_data_member(a_symbol_locator        *locator,
                                        a_type_ptr              class_type,
                                        a_type_ptr              member_type,

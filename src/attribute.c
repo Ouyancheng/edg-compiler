@@ -15,8 +15,6 @@ attribute.c -- Processing of attributes, a GCC extension.
 
 /* Header files common to all files. */
 #include "fe_common.h"
-/* Header files used by files involved in declaration processing. */
-#include "decl_hdrs.h"
 
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -24,9 +22,11 @@ attribute.c -- Processing of attributes, a GCC extension.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#include "layout.h"
-
 #if GNU_EXTENSIONS_ALLOWED
+
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+#include "layout.h"
 
 /* Previously allocated attributes available for reuse. */
 static an_attribute_ptr avail_attributes;
@@ -460,7 +460,7 @@ emitted is given by pos.
     if (type->kind != type_kind) {
       pos_ty_error(ec_mode_incompatible_with_type, pos, type);
     } else if (type->kind == (a_type_kind)tk_integer) {
-      ikind = int_kind_for_bit_size(size * targ_char_bit, 
+      ikind = int_kind_for_bit_size((unsigned int(size * targ_char_bit),
                                     is_signed_integral_type(type));
       if (ikind == (an_integer_kind)ik_none) {
         pos_error(ec_no_type_of_specified_width, pos);
