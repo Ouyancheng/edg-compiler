@@ -435,7 +435,7 @@ ec_no_matching_new_function;;"no instance of overloaded %no matches the argument
 REMOVED;ec_delete_already_declared;;"operator delete() may not be overloaded"
 ec_no_match_for_addr_of_overloaded_function;;"no instance of %n matches the required type"
 ec_delete_count_anachronism;;"delete array size expression used (anachronism)"
-ec_bad_return_type_for_op_arrow;;"%t is an invalid return type for %no"
+ec_bad_return_type_for_op_arrow;;"\"operator->\" for class %t1 returns invalid type %t2"
 ec_cast_to_abstract_class;;"a cast to abstract class %t is not allowed:"
 ec_bad_use_of_main;;"function \"main\" may not be called or have its address taken"
 ec_initializer_not_allowed_on_array_new;;"a new-initializer may not be specified for an array"
@@ -456,7 +456,7 @@ ec_class_and_member_function_name_conflict;;"member function with the same name 
 ec_nested_class_anachronism;;"using nested %n (anachronism)"
 ec_too_many_params_for_destructor;;"a destructor may not have parameters"
 ec_bad_constructor_param;;"copy constructor for class %t may not have a parameter of type %t"
-ec_incomplete_function_return_type;;"function return type is incomplete"
+ec_incomplete_function_return_type;;"%n returns incomplete type %t"
 ec_protected_access_problem;;"protected %n is not accessible through a %t pointer or object"
 ec_param_not_allowed;;"a parameter is not allowed"
 ec_asm_decl_not_allowed;;"an \"asm\" declaration is not allowed here"
@@ -909,6 +909,7 @@ ec_pure_virtual_function;;"%n is a pure virtual function"
 ec_no_overrider_for_pure_virtual_function;;"pure virtual %n has no overrider"
 ec_decl_modifiers_ignored;;"__declspec attributes ignored"
 ec_invalid_char;;"invalid character in input line"
+ec_incomplete_return_type;;"function returns incomplete type %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
