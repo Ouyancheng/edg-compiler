@@ -1,4 +1,4 @@
-Version 2.29
+Version 2.29, May 24, 1995
 
 5/3/95   Mangled codes for array new (nwa) and array delete (dla) are
 	 now demangled
