@@ -1,5 +1,27 @@
 Version 2.46
 
+4/19/01  Internal error in default argument processing when doing nonclass
+         prototype instantiations
+
+When doing nonclass prototype instantiations (which is also implied by
+strict mode and dependent name lookup mode) an internal error could
+occur if the prototype instantiation of a member function of a class
+template caused a real instantiation of the same class template.  The
+internal error would only occur if the class template contained a member
+function template with default arguments.  This has been fixed.
+
+  template <class T> struct A {
+    template <class T2> void g(T2, int i = 1){}
+    void f() {
+      A<int> ai;
+      ai.g(1);
+    }
+  };
+  int main() {
+    A<int> ai;
+    ai.f();
+  }
+
 4/18/01  Compiler-generated flag on lowered cast to derived class
 
 The IL lowering process applied to an explicit cast to a derived

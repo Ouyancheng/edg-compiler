@@ -2697,9 +2697,10 @@ A pointer to the head of the list is returned in tcsp.
      with this prototype instantiation. */
   *tcsp = scope_stack[depth_innermost_instantiation_scope].
                                                   first_template_cache_segment;
+  /* Note that the fixup of inline functions and default arguments is not done
+     at this point.  It is deferred until the default arguments have been
+     removed from the class template cache. */
   pop_template_instantiation_scope();
-  /* Do the class fixups for this instantiation. */
-  process_deferred_class_fixups_and_instantiations();
   cssp->instantiation_in_progress = FALSE;
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token stream.
@@ -13134,6 +13135,12 @@ any non-empty template parameter lists that were scanned.
     (void)extract_member_bodies(&tssp->variant.function.decl_cache,
                                 function_templ_cache_segments,
                                 /*keep_default_args=*/FALSE);
+  }  /* if */
+  if (is_class_template) {
+    /* Do the class fixups for this instantiation.  This is done here so
+       that it takes place after the default arguments have been removed from
+       the class template cache. */
+    process_deferred_class_fixups_and_instantiations();
   }  /* if */
   if (invalid_decl) {
     /* The declaration was invalid -- flush to the end of the declaration
