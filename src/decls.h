@@ -147,6 +147,8 @@ extern a_boolean is_decl_start(a_boolean  expr_context,
 
 extern a_boolean is_overload_specifier(void);
 
+extern a_boolean is_class_template_decl(void);
+
 extern a_boolean check_for_overload_anachronism(void);
 
 extern a_boolean f_is_decl_not_expr(a_boolean  abstract_declarator_allowed,
@@ -164,6 +166,16 @@ routine to do lookahead, etc.
       f_is_decl_not_expr(abstract_decl_allowed, real_decl_allowed) :  \
       is_overload_specifier()) :                                      \
     is_decl_start(/*expr_context=*/TRUE, real_decl_allowed))
+
+/*
+Macro that is TRUE if the current token is the start of a declarator
+(3.5.4 -- real, not abstract).
+*/
+#define is_declarator_start()                                         \
+  (curr_token == tok_identifier || curr_token == tok_star ||          \
+   curr_token == tok_lparen ||                                        \
+   (C_dialect == C_dialect_cplusplus &&                               \
+    (curr_token == tok_ampersand || curr_token == tok_operator)))
 
 extern void type_name(a_type_ptr *type_ptr);
 
