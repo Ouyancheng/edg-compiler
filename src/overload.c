@@ -784,6 +784,8 @@ for overload resolution.
 			/* Promoted integral type. */
 #define INTEGRAL_TYPE_CODE 'i'
 			/* Integral type. */
+#define PTRDIFF_T_TYPE_CODE 'D'
+			/* ptrdiff_t. */
 #define PROMOTED_ARITH_TYPE_CODE 'A'
 			/* Promoted arithmetic type. */
 #define ARITH_TYPE_CODE 'a'
@@ -791,7 +793,7 @@ for overload resolution.
 #define POINTER_TYPE_CODE 'P'
 			/* Any pointer type. */
 #define OBJECT_POINTER_TYPE_CODE 'O'
-			/* Pointer to complete object type. */
+			/* Pointer to object type. */
 #define FUNCTION_POINTER_TYPE_CODE 'F'
 			/* Pointer to function. */
 #define PTR_TO_MEMBER_TYPE_CODE 'M'
@@ -816,6 +818,9 @@ Return a printable string describing a type code.
     case INTEGRAL_TYPE_CODE:
     case PROMOTED_INTEGRAL_TYPE_CODE:
       str = "integer";
+      break;
+    case PTRDIFF_T_TYPE_CODE:
+      str = "ptrdiff_t";
       break;
     case ARITH_TYPE_CODE:
     case PROMOTED_ARITH_TYPE_CODE:
@@ -4597,12 +4602,12 @@ as its first operand.
         operand_type_pattern = "II";
         break;
       case onk_plus:
-        /* "+" takes arith+arith, pointer+int, or int+pointer. */
-        operand_type_pattern = "AA;OI;IO";
+        /* "+" takes arith+arith, pointer+ptrdiff_t, or ptrdiff_t+pointer. */
+        operand_type_pattern = "AA;OD;DO";
         break;
       case onk_minus:
-        /* "-" takes arith-arith, pointer-int, or pointer-pointer. */
-        operand_type_pattern = "AA;OI;=OO";
+        /* "-" takes arith-arith, pointer-ptrdiff_t, or pointer-pointer. */
+        operand_type_pattern = "AA;OD;=OO";
         break;
       case onk_lt:
       case onk_le:
@@ -4649,16 +4654,16 @@ as its first operand.
         operand_type_pattern = "LiI";
         break;
       case onk_plus_assign:
-        /* "+=" takes arith+arith or pointer+int, the first an lvalue. */
-        operand_type_pattern = "LaA;OI";
+        /* "+=" takes arith+arith or pointer+ptrdiff_t, the first an lvalue. */
+        operand_type_pattern = "LaA;OD";
         break;
       case onk_minus_assign:
-        /* "-=" takes arith-arith or pointer-int, the first an lvalue. */
-        operand_type_pattern = "LaA;OI";
+        /* "-=" takes arith-arith or pointer-ptrdiff_t, the first an lvalue. */
+        operand_type_pattern = "LaA;OD";
         break;
       case onk_subscript:
-        /* "[]" takes pointer[int] or int[pointer]. */
-        operand_type_pattern = "OI;IO";
+        /* "[]" takes pointer[ptrdiff_t] or ptrdiff_t[pointer]. */
+        operand_type_pattern = "OD;DO";
         break;
       case onk_plus_plus:
       case onk_minus_minus:
@@ -4696,6 +4701,7 @@ it fits that type description or can be converted to it.
   switch (type_code) {
     case INTEGRAL_TYPE_CODE:
     case PROMOTED_INTEGRAL_TYPE_CODE:
+    case PTRDIFF_T_TYPE_CODE:
 #if 0
       /* Enum? */
 #endif /* 0 */
@@ -4745,6 +4751,7 @@ type_code.
   switch (type_code) {
     case INTEGRAL_TYPE_CODE:
     case PROMOTED_INTEGRAL_TYPE_CODE:
+    case PTRDIFF_T_TYPE_CODE:
       builtin_types_allowed = BTK_INTEGRAL;
       break;
     case ARITH_TYPE_CODE:
@@ -4824,9 +4831,34 @@ match, promotion, etc.) for the operand and record it in arg_match.
     } else if (type_code == PROMOTED_INTEGRAL_TYPE_CODE ||
                type_code == PROMOTED_ARITH_TYPE_CODE ||
                type_code == INTEGRAL_TYPE_CODE ||
-               type_code == ARITH_TYPE_CODE) {
+               type_code == ARITH_TYPE_CODE ||
+               type_code == PTRDIFF_T_TYPE_CODE) {
+      /* An arithmetic or integral operand is wanted. */
+      /* cfront does not have the case of operands of type ptrdiff_t;
+         treat them as promoted integral operands instead. */
+      if (any_cfront_mode() && type_code == PTRDIFF_T_TYPE_CODE) {
+        type_code = PROMOTED_INTEGRAL_TYPE_CODE;
+      }  /* if */
       if (is_integral_type(operand_type)) {
-        if (is_enum_type(operand_type)) {
+        if (type_code == PTRDIFF_T_TYPE_CODE) {
+          /* An operand of type ptrdiff_t is wanted. */
+          if (skip_typerefs(operand_type)->variant.integer.int_kind ==
+                                                     targ_ptrdiff_t_int_kind) {
+            /* We have ptrdiff_t. */
+            match_level = aml_exact;
+          } else {
+            a_type_ptr promoted_type =
+                                operand_type_after_integral_promotion(operand);
+            if (skip_typerefs(promoted_type)->variant.integer.int_kind ==
+                                                     targ_ptrdiff_t_int_kind) {
+              /* The operand promotes to ptrdiff_t. */
+              match_level = aml_promotion;
+            } else {
+              /* The operand converts to ptrdiff_t. */
+              match_level = aml_std_conversion;
+            }  /* if */
+          }  /* if */
+        } else if (is_enum_type(operand_type)) {
           if (any_cfront_mode()) {
             /* In cfront mode promotion of an enum doesn't have any cost. */
             /* match_level = aml_exact -- already set. */

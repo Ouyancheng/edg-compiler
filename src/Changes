@@ -1,5 +1,29 @@
 Version 2.33
 
+9/27/96  Conversion costs on built-in operator [] in overload resolution
+
+The standards committee, at the 7/96 Stockholm meeting, revisited the
+builtin operator [] problem described in the 1/8/96 entry below, and
+made a change.  The change makes the example (with an "unsigned int"
+parameter) work as expected, but only on systems where ptrdiff_t is
+larger than int (i.e., it's long).  Those who want to write portable
+code are now encouraged to use a parameter of type ptrdiff_t:
+
+  struct A {
+    A();
+    operator int *();
+    int operator[](ptrdiff_t);  // Was "unsigned"
+  };
+  int main() {
+    A a;
+    a[0];  // Not ambiguous
+  }
+
+Because this change does not solve all problems for everyone, the
+--special_subscript_cost option continues to be available.
+
+The pointer +, -, +=, and -= operators were changed similarly.
+
 9/27/96  Promotion cost for float operands of builtins in overload resolution
 
 On builtin operators that take a promoted arithmetic operand, a float
