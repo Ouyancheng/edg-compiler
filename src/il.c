@@ -6083,7 +6083,7 @@ from_type to to_type.  This should be called only in C++ mode.
     if (from_ptp->has_default_arg) {
       to_ptp->has_default_arg = TRUE;
       if (from_ptp->default_arg_expr != NULL) {
-        check_assertion(to_ptp->default_arg_expr == NULL);
+        check_assertion(to_ptp->default_arg_expr == NULL || total_errors != 0);
         to_ptp->default_arg_expr =
                         duplicate_default_arg_expr(from_ptp->default_arg_expr);
       }  /* if */
