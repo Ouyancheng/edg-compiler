@@ -4512,11 +4512,18 @@ type based on the template argument list and the template parameter list
   }
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  /* Add a secondary source sequence entry to represent the partial
-     instantiation -- it will take the form of an explicit specialization. */
-  add_source_sequence_entry_for_partial_instantiation(
-                                           (char *)rp,
-                                           (an_il_entry_kind)iek_routine);
+  if (parent_class != NULL &&
+      symbol_supplement_for_class(parent_class)->is_prototype_instantiation) {
+    /* In Microsoft mode a member template may be specialized within the
+       definition of the parent class.  Don't generate the source sequence
+       entry when the parent class is a prototype instantiation. */
+  } else {
+    /* Add a secondary source sequence entry to represent the partial
+       instantiation -- it will take the form of an explicit specialization. */
+    add_source_sequence_entry_for_partial_instantiation(
+                                             (char *)rp,
+                                             (an_il_entry_kind)iek_routine);
+  }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Pop the template instantiation scope. */
