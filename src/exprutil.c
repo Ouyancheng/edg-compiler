@@ -4045,7 +4045,7 @@ not an lvalue, it is left alone.
   an_operand       orig_operand;
   an_expr_node_ptr operand_node, cast_node;
   a_type_ptr       cast_orig_type;
-  a_boolean        constant_case = FALSE;
+  a_boolean        constant_case = FALSE, qualifiers_dropped = FALSE;
   a_constant_ptr   con_value;
 
   /* Ignore non-lvalues. */
@@ -4093,12 +4093,14 @@ not an lvalue, it is left alone.
           } else {
             /* Not constant-valued; the rvalue is the value of the variable. */
             node = var_rvalue_expr(variable);
+            qualifiers_dropped = TRUE;
             make_expression_operand(node, node->type, operand);
           }  /* if */
         } else {
           /* Not the address of a variable; add an indirection. */
           node = alloc_node_for_constant(&operand->variant.constant);
           node = add_indirection_to_node(node);
+          qualifiers_dropped = TRUE;
           make_expression_operand(node, node->type, operand);
         }  /* if */
       } else {
@@ -4158,6 +4160,23 @@ not an lvalue, it is left alone.
             operand->type = node->type;
             operand->state = (an_operand_state)os_rvalue;
           }  /* if */
+          /* The subroutine handles dropping type qualifiers. */
+          qualifiers_dropped = TRUE;
+        }  /* if */
+      }  /* if */
+      /* Drop any type qualifiers on the operand type (if they have not
+         been dropped already). */
+      if (!qualifiers_dropped && is_qualified_type(operand->type)) {
+        a_type_ptr unqualified_type = make_unqualified_type(operand->type);
+        if (is_expression_operand(operand)) {
+          /* For an expression node, just change the expression type.
+             That's an IL shorthand form for this case, and avoids a
+             cast to a struct or union type. */
+          operand->type = operand->variant.expression->type = unqualified_type;
+        } else {
+          /* For other cases (including constants), do the cast the normal
+             way. */
+          cast_operand(unqualified_type, operand, /*is_implicit_cast=*/TRUE);
         }  /* if */
       }  /* if */
       if (curr_expr_kind_is_const() && !constant_case) {
