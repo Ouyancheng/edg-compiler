@@ -1112,42 +1112,47 @@ start of a sequence of declarations.
   a_statement_ptr                sp = NULL;
   a_source_sequence_entry_ptr    prev_ssep;
 
-  sssep = &struct_stmt_stack[depth_stmt_stack];
-  sp = sssep->curr_decl_statement;
-  if (sp == NULL) {
-    /* This is the first of a string of one or more declarations.  Create the
-       stmk_decl pseudo statement and update the structured statement stack. */
-    sp = add_statement((a_statement_kind)stmk_decl);
-    sssep->curr_decl_statement = sp;
-    /* Remember the most recently entered source sequence entry on the list for
-       the current function.  It will be used to find the source sequence
-       entry corresponding to the current declaration. */
-    prev_ssep = scope_stack[depth_innermost_function_scope].
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+    sssep = &struct_stmt_stack[depth_stmt_stack];
+    sp = sssep->curr_decl_statement;
+    if (sp == NULL) {
+      /* This is the first of a string of one or more declarations.  Create
+         the stmk_decl pseudo statement and update the structured statement
+         stack. */
+      sp = add_statement((a_statement_kind)stmk_decl);
+      sssep->curr_decl_statement = sp;
+      /* Remember the most recently entered source sequence entry on the list
+         for the current function.  It will be used to find the source
+         sequence entry corresponding to the current declaration. */
+      prev_ssep = scope_stack[depth_innermost_ss_list_scope].
                                                  last_source_sequence_entry;
-  } else {
-    /* The top of the structured statement stack already points to a
-       decl-statement, meaning the current declaration is within (i.e., not
-       at the start of) a string of declarations. */
-    if (sp->source_sequence_entry != NULL) {
-      /* Normal case -- previous declaration was as expected. */
-      prev_ssep = NULL;
     } else {
-      /* The initial declaration must not have resulted in a source sequence
-         entry's being added to the list.  Proceed as if this were the first
-         declaration. */
-      prev_ssep = scope_stack[depth_innermost_function_scope].
+      /* The top of the structured statement stack already points to a
+         decl-statement, meaning the current declaration is within (i.e., not
+         at the start of) a string of declarations. */
+      if (sp->source_sequence_entry != NULL) {
+        /* Normal case -- previous declaration was as expected. */
+        prev_ssep = NULL;
+      } else {
+        /* The initial declaration must not have resulted in a source sequence
+           entry's being added to the list.  Proceed as if this were the first
+           declaration. */
+        prev_ssep = scope_stack[depth_innermost_ss_list_scope].
                                                  last_source_sequence_entry;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Now process the declaration. */
   local_declaration();
-  /* Update the source sequence entry pointer, if required. */
-  if (sp->source_sequence_entry != NULL) {
-    /* The decl-statement already has a pointer to the source sequence entry
-       for the first declaration. */
-  } else {
-    check_assertion(prev_ssep != NULL);
-    sp->source_sequence_entry = prev_ssep->next;
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+    /* Update the source sequence entry pointer, if required. */
+    if (sp->source_sequence_entry != NULL) {
+      /* The decl-statement already has a pointer to the source sequence entry
+         for the first declaration. */
+    } else {
+      check_assertion(prev_ssep != NULL);
+      sp->source_sequence_entry = prev_ssep->next;
+    }  /* if */
   }  /* if */
 }  /* decl_statement */
 
