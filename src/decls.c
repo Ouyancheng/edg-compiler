@@ -1994,8 +1994,7 @@ will be involved in overloading.
              If no type match is found, this is a candidate for overloading. */
           for (; other_decl != NULL;
                  other_decl = is_list ? other_decl->next : NULL) {
-            if (types_are_compatible(other_decl->variant.routine->type,
-                                     type)) {
+            if (types_are_compatible(routine_symbol_type(other_decl), type)) {
               /* Null out *overload_symbol in case it was set. */
               *overload_symbol = NULL;
               break;
@@ -2582,16 +2581,6 @@ otherwise, set *ext_sym to NULL.
 #endif /* CHECKING */
   *old_type = NULL;
   is_function = is_function_type(type_ptr);
-  if (is_function) {
-    /* The routine type should never be a typedef, but instead the base
-       type referred to in a typedef declaration. */
-#if CHECKING
-    if (is_qualified_type(type_ptr)) {
-      internal_error("decl_var_or_routine: qualified function type");
-    }  /* if */
-#endif /* CHECKING */
-    type_ptr = skip_typerefs(type_ptr);
-  }  /* if */
   if (inline_specified) {
 #if CHECKING
     if (storage_class != (a_storage_class)sc_unspecified &&
@@ -3221,7 +3210,7 @@ on a prior declaration.
     *old_type = type_ptr;
   } else {
     /* A member function symbol with a compatible type was found. */
-    *old_type = sym->variant.routine->type;
+    *old_type = routine_symbol_type(sym);
     /* The types may be compatible but not identical.  Create (in type_ptr)
        a composite type.  First copy the implicit this param type pointer
        into type_ptr:  it is always wrong for nonstatic member functions. */
