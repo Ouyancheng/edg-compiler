@@ -1,17 +1,23 @@
 Version 2.22
 
+2/1/94   IL change: new flag in a_field
+
+A new flag, is_bit_field, has been added to a_field.  It was necessitated
+by the recent inclusion of unnamed bit fields in the IL -- since they may
+have zero length, the check of bit_size != 0 is no longer sufficient to
+distinguish a bit field from an ordinary field.
+
 2/1/94   Assignment and comparison of different function pointer types
 
 Assignment and comparison of different function pointer types (an extension)
 is no longer allowed in C++ mode.  This example is still allowed
 in C mode but is now an error in C++ mode.
 
-void f(int);
-
-int main(void)
-{
-  void (*p)() = &f;
-}
+  void f(int);
+  int main(void)
+  {
+    void (*p)() = &f;
+  }
 
 1/31/94  Source sequence entries for return statements
 
