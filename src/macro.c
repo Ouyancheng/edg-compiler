@@ -3764,19 +3764,24 @@ from the front end to the runtime.
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 #if DO_IL_LOWERING
-  /* Define the size of the offset field in the virtual function table. */
+  /* Define the type of the offset field in the virtual function table. */
   (void)enter_predef_macro(int_kind_name(TARG_DELTA_INT_KIND),
 			   "__EDG_DELTA_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-  /* Define the size of the virtual function index field of the virtual
+  /* Define the type of the virtual function index field of the virtual
      function table. */
   (void)enter_predef_macro(int_kind_name(TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND),
 			   "__EDG_VIRTUAL_FUNCTION_INDEX_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #if GENERATE_EH_TABLES
-  /* Define the size of a region number field in the EH tables. */
+  /* Define the type of the variable-handle field in the EH tables. */
+  (void)enter_predef_macro(int_kind_name(targ_var_handle_int_kind),
+			   "__EDG_VAR_HANDLE_TYPE",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  /* Define the type of a region number field in the EH tables. */
   (void)enter_predef_macro(int_kind_name(TARG_REGION_NUMBER_INT_KIND),
 			   "__EDG_REGION_NUMBER_TYPE",
                            /*cannot_be_redefined=*/TRUE,
