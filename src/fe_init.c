@@ -564,8 +564,9 @@ Initialize target machine characteristics.
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
     /* When using host integers to represent target integers, make sure the
        host integer selected is large enough. */
-    if (TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT >
-        sizeof(an_integer_value)*CHAR_BIT) {
+    bool = (TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT >
+            sizeof(an_integer_value)*CHAR_BIT);
+    if (bool) {
       internal_error("target_init: an_integer_value in target.h is too small");
     }  /* if */
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
