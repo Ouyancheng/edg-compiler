@@ -3359,6 +3359,11 @@ enable_microsoft_mode:
     dir_name_of_primary_source_file = dir_name;
     add_to_front_of_include_search_path(dir_name);
   }  /* if */
+#if BACK_END_IS_CP_GEN_BE && AUTOMATIC_TEMPLATE_INSTANTIATION
+  /* The C++-generating back end can't handle instantiations of exported
+     templates. */
+  export_template_allowed = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE && AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if COMPILE_MULTIPLE_SOURCE_FILES || COMPILE_MULTIPLE_TRANSLATION_UNITS
   /* Multiple source files can be compiled.  Save the count and argv
      position of remaining files, if any. */

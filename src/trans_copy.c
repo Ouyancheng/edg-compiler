@@ -1498,6 +1498,11 @@ secondary translation unit IL and therefore will not be copied.
 
   db_enter(1, "copy_secondary_trans_unit_IL_to_primary");
   check_assertion(total_errors == 0 && !is_primary_translation_unit);
+  /* This code doesn't handle source sequence lists, so the result won't
+     work with the C++-generating back end. */
+  { a_boolean okay = !BACK_END_IS_CP_GEN_BE;
+    check_assertion(okay);
+  }
   check_assertion(!il_entry_prefix_of(top_scope).il_lowering_flag);
   initial_value_for_il_lowering_flag = FALSE;
   (void)prepare_for_trans_unit_copy(top_scope, &any_removed_function_bodies);

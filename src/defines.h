@@ -28,6 +28,7 @@ Flags to be set for any version that uses the C++ generating back end.
 */
 #define BACK_END_IS_C_GEN_BE 0
 #define BACK_END_IS_CP_GEN_BE 1
+#define COMPILE_MULTIPLE_TRANSLATION_UNITS 0
 #define DO_IL_LOWERING 0
 #define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL 0
 #ifdef _WIN32
@@ -100,7 +101,9 @@ Flags to be set when using the KAI inliner.
 
 /* Options common to Sun-hosted versions. */
 
+#ifndef COMPILE_MULTIPLE_TRANSLATION_UNITS
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
+#endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
 #define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
 #define C99_IL_EXTENSIONS_SUPPORTED 1

@@ -273,6 +273,11 @@ be TRUE in the standalone IL display program.
  #error -- BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE cannot both be TRUE.
 #endif /* BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE */
 
+#if BACK_END_IS_CP_GEN_BE && COMPILE_MULTIPLE_TRANSLATION_UNITS
+ #error -- COMPILE_MULTIPLE_TRANSLATION_UNITS cannot be used with the \
+           C++-generating back end.
+#endif /* BACK_END_IS_CP_GEN_BE && COMPILE_MULTIPLE_TRANSLATION_UNITS */
+
 /*
 When the C-generating back end (c_gen_be) or C++/C-generating back end
 (cp_gen_be) is run, this is the suffix appended to the base of the primary
