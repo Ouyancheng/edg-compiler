@@ -400,7 +400,7 @@ Return TRUE if the type is a complete class, struct, or union type.
 
 a_boolean is_illegal_abstract_class_type(a_type_ptr  tp)
 /*
-There are certain restrictions on the used of an abstract class type.
+There are certain restrictions on the use of an abstract class type.
 Specifically, objects of such types may not be created, except insofar as
 they are base class subobjects (ARM 10.3).  This is taken to mean that an
 array of such objects is also illegal, as well as a pointer to an array
@@ -419,6 +419,14 @@ to an array of abstract class objects.
     switch (tp->kind) {
       case tk_pointer:
         tp = type_pointed_to(tp);
+        /* Check for NULL pointer in a situation where type is being
+           constructed but is not yet complete.  This applies to pointer
+           and reference types only. */
+        if (tp == NULL) goto done;
+        array_type_required = TRUE;
+        break;
+      case tk_ptr_to_member:
+        tp = tp->variant.ptr_to_member.type;
         /* Check for NULL pointer in a situation where type is being
            constructed but is not yet complete.  This applies to pointer
            and reference types only. */
