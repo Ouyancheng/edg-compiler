@@ -182,6 +182,11 @@ typedef struct a_pl_input_file {
 			/* Next entry on the list. */
   char		*file_name;
 			/* Name of the input file. */
+  char          *orig_name;
+                        /* Name of the file as specified on the command
+			   line.  This is normally the same as file_name,
+			   but will be different for library names specified
+			   with the -l option (e.g., -lstd). */
   char		*info_file_name;
 			/* Name of the instantiation information file
 			   associated with this file (if one exists).
@@ -264,6 +269,15 @@ static a_boolean
 			   compilations) may only be done to
 			   local object files (i.e., those compiled in
 			   the current directory. */
+
+static char	**L_directories;
+                        /* Pointer to an array of library directories
+			   specified with the -L option. */
+
+static int	num_of_L_directories = 0;
+                        /* Number of entries in use in the L_directories
+			   array. */
+
 
 typedef enum /* an_nm_format_kind */ {
 	nmfk_default,
@@ -2200,8 +2214,12 @@ has changed then write the updated list of instantiations to the file.
 #if PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION
         (void)unlink(pifp->file_name);
 #endif /* PL_REMOVE_OBJECT_FILE_BEFORE_RECOMPILATION */
-        return_status = pl_recompile_file(get_reserved_line(0),
-                                          get_reserved_line(1),
+	/* Suppress CodeCenter warnings because get_reserved_line contains
+	   a test that evaluates to a constant when its argument is a
+	   constant. */
+	/*SUPPRESS 622*/
+        return_status = pl_recompile_file(get_reserved_line(0),/*SUPPRESS 622*/
+                                          get_reserved_line(1),/*SUPPRESS 622*/
                                           get_reserved_line(2));
         /* Stop if an error occurs. */
         if (return_status != 0) break;
@@ -2362,31 +2380,72 @@ Free all dynamically allocated data.
 }  /* pl_free_all */
 
 
+static char *pl_find_library_name(char *lib_name)
+/*
+Look for the library name specified by lib_name in the list of
+library directories in L_directories.  lib_name is converted to
+a library file name (e.g., -lxxx is converted to libxxx.a).
+*/
+{
+  /* Use pl_input_line as a buffer in which to build file names used when
+     searching for the library file name. */
+  char	        *string_buffer = pl_input_line;
+  a_boolean	found = FALSE;
+  char          *result = NULL;
+  int		j;
+
+  for (j = 0; j < num_of_L_directories; ++j) {
+    FILE	*f_lib;
+    sprintf(string_buffer, "%s/lib%s.a", L_directories[j], lib_name);
+#if DEBUG
+    if (pl_debug_level >= 3) {
+      fprintf(stderr, "Looking for %s\n", string_buffer);
+    }  /* if */
+#endif /* DEBUG */
+    if ((f_lib = fopen(string_buffer, "r")) != NULL) {
+      /* Replace the original library file name string with a pointer to
+	 the complete path name. */
+      result = pl_copy_string(string_buffer);
+      found = TRUE;
+      fclose(f_lib);
+      break;
+    }  /* if */
+  }  /* for */
+  /* If the library was not found then issue an error and exit. */
+  if (!found) {
+    fprintf(stderr, pl_error_text(pl_ec_lib_file_not_found), lib_name);
+    pl_error(pl_ec_command_line_error, (char *)NULL);
+  }  /* if */
+  return result;
+}  /* pl_find_library_name */
+
+
+
 int main(int argc, char *argv[])
 {
-  char		*command = NULL;
-  int		arg;
-  sizeof_t	cmd_line_size;
-  sizeof_t	prev_cmd_line_size = 0;
-  int		return_status = 0;
-  a_boolean	done = FALSE;
-  a_boolean	any_ii_files = FALSE;
-  extern char	*optarg;
-  extern int	optind;
-  int		optchar;
-  long		number_of_iterations = 0;
-  char		*nm_command = NULL;
-  char		**L_directories;
-  char		**library_file_names;
-  int		num_of_L_directories = 0;
-  int		num_of_library_file_names = 0;
-  int		i;
+  char		       *command = NULL;
+  int		       arg;
+  sizeof_t	       cmd_line_size;
+  sizeof_t             prev_cmd_line_size = 0;
+  int		       return_status = 0;
+  a_boolean	       done = FALSE;
+  a_boolean	       any_ii_files = FALSE;
+  extern char	       *optarg;
+  extern int	       optind;
+  int		       optchar;
+  long		       number_of_iterations = 0;
+  char		       *nm_command = NULL;
+  a_pl_input_file_ptr  last_file_to_reemit = 0;
 
   /* This must be done before any messages are issued. */
   message_prefix = pl_error_text(pl_ec_message_prefix);
 
-  /* The prelinker now expects there to be at least three reserved lines. */
+  /* The prelinker now expects there to be at least three reserved lines.
+     Suppress the CodeCenter warning because the if test contains a
+     constant expression. */
+  /*SUPPRESS 622*/
   if (INSTANTIATION_INFO_LINES_RESERVED < 3) {
+    /*SUPPRESS 569*/
     pl_internal_error("INSTANTIATION_INFO_LINES_RESERVED set incorrectly");
   }  /* if */
 
@@ -2395,7 +2454,6 @@ int main(int argc, char *argv[])
      appear on the command line so we will simply use the argument count
      as the number of elements. */
   L_directories = (char**)pl_malloc_with_check(argc * sizeof(char*));
-  library_file_names = (char**)pl_malloc_with_check(argc * sizeof(char*));
   /* Get the current directory name. */
   pl_get_curr_dir_name();
 
@@ -2439,9 +2497,10 @@ int main(int argc, char *argv[])
         ignore_invalid_nm_output = TRUE;
         break;
       case 'l':
-        /* Library names (e.g., -lstd). */
-        library_file_names[num_of_library_file_names++] = optarg;
-        break;
+        /* Library names (e.g., -lstd).  This is interpreted as the start
+	   of a list of file names because -l options may be intermixed
+	   with other object names. */
+	break;
       case 'L':
         /* Library directory names (e.g., -L/edg/cpfe/lib). */
         L_directories[num_of_L_directories++] = optarg;
@@ -2535,62 +2594,36 @@ int main(int argc, char *argv[])
     nm_command = default_nm_command;
   }  /* if */
 
-  /* Search for any libraries specified using the -L option. */
-  for (i = 0; i < num_of_library_file_names; ++i) {
-    /* Use pl_input_line as a buffer in which to build file names used when
-       searching for the library file name. */
-    char	*string_buffer = pl_input_line;
-    a_boolean	found = FALSE;
-    int		j;
-    for (j = 0; j < num_of_L_directories; ++j) {
-      FILE	*f_lib;
-      sprintf(string_buffer, "%s/lib%s.a", L_directories[j],
-              library_file_names[i]);
-#if DEBUG
-      if (pl_debug_level >= 3) {
-        fprintf(stderr, "Looking for %s\n", string_buffer);
-      }  /* if */
-#endif /* DEBUG */
-      if ((f_lib = fopen(string_buffer, "r")) != NULL) {
-        /* Replace the original library file name string with a pointer to
-           the complete path name. */
-        library_file_names[i] = pl_copy_string(string_buffer);
-        found = TRUE;
-        fclose(f_lib);
-        break;
-      }  /* if */
-    }  /* for */
-    /* If the library was not found then issue an error and exit. */
-    if (!found) {
-      fprintf(stderr, pl_error_text(pl_ec_lib_file_not_found),
-              library_file_names[i]);
-      pl_error(pl_ec_command_line_error, (char *)NULL);
-    }  /* if */
-  }  /* for */
-
   {
     /* Create input file records for each of the input files on the
        command line. */
     a_pl_input_file_ptr	list_tail = NULL;
     for (arg = optind; arg < argc; ++arg) {
       a_pl_input_file_ptr	pifp;
+      char                      *orig_name;
+      char                      *file_name;
+      orig_name = argv[arg];
+      if (strcmp(orig_name, "--") == 0) {
+        /* The "--" option marks the end of the list of object files
+           that should be re-emitted when the "copy nonlocal objects"
+	   option is used. */
+	last_file_to_reemit = list_tail;
+	continue;
+      }  /* if */
+      if (strncmp(orig_name, "-l", 2) == 0) {
+	/* Bypass the "-l" when searching for the library. */
+        char  *lib_name = orig_name + 2;
+        file_name = pl_find_library_name(lib_name);
+      } else {
+        file_name = orig_name;
+      }  /* if */
       pifp = alloc_pl_input_file();
-      pifp->file_name = argv[arg];
+      pifp->file_name = file_name;
       /* Add this entry to the list of input files. */
       if (pl_input_files == NULL) pl_input_files = pifp;
       if (list_tail != NULL) list_tail->next = pifp;
       list_tail = pifp;
       any_ii_files |= pl_check_for_ii_file(pifp);
-    }  /* for */
-    /* Create entries for constructed library file names. */
-    for (i = 0; i < num_of_library_file_names; ++i) {
-      a_pl_input_file_ptr	pifp;
-      pifp = alloc_pl_input_file();
-      pifp->file_name = library_file_names[i];
-      /* Add this entry to the list of input files. */
-      if (pl_input_files == NULL) pl_input_files = pifp;
-      if (list_tail != NULL) list_tail->next = pifp;
-      list_tail = pifp;
     }  /* for */
   }
 
@@ -2678,18 +2711,13 @@ int main(int argc, char *argv[])
     } while (!done);
   }  /* if */
   if (move_nonlocal_objects_to_curr_dir) {
-    /* Generate a list of object file names.  This may be different from
+    /* Generate a list of file names.  This may be different from
        the list of object files passed to the driver if one of the
        files was moved as a consequence of a recompilation. */
     a_pl_input_file_ptr	pifp;
     for (pifp = pl_input_files; pifp != NULL; pifp = pifp->next) {
-      char	*ptr;
-      /* If this file ends in the object file suffix, write the name
-         of the file to the rename list. */
-      ptr = strrchr(pifp->file_name, '.');
-      if (ptr != NULL && strcmp(ptr, OBJECT_FILE_SUFFIX) == 0) {
-        fprintf(f_obj_file_list, " %s", pifp->file_name);
-      }  /* if */
+      fprintf(f_obj_file_list, " %s", pifp->file_name);
+      if (pifp == last_file_to_reemit) break;
     }  /* for */
     fprintf(f_obj_file_list, "\n");
     fclose(f_obj_file_list);
@@ -2700,11 +2728,7 @@ int main(int argc, char *argv[])
      leaked. */
   pl_free_all();
   free(command);
-  for (i = 0; i < num_of_library_file_names; ++i) {
-    free(library_file_names[i]);
-  }  /* for */
   free(L_directories);
-  free(library_file_names);
 #endif /* USING_PURIFY */
 
   return (return_status);

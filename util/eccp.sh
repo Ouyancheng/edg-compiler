@@ -160,21 +160,21 @@ executable=a.out
 cfiles=
 more_than_one_c_file=0
 #
-# A list of .o files to link.  Note that as .c files are successfully compiled,
-# the are added to this list.
+# A list of the .o files, library files (e.g., .a files) and library 
+# options (e.g., -la) to be passed to the linker.  The list is maintained
+# in the sequence in which the source files, object files, and libraries
+# are found on the command line
 #
-ofiles=
+object_files=
 #
 # A list of .o files to be removed after linking.  These files are the ones
-# that were added to the ofiles list by compiling them.
+# that were added to the object_files list by compiling them.
 #
 rofiles=
 #
-# A list of -l and -L options and archive files to be passed to the link step.
+# A list of -L options and archive files to be passed to the link step.
 #
-loptions=
 Loptions=
-lfiles=
 #
 # Other options to be passed to the linker
 #
@@ -338,7 +338,7 @@ do
       ;;
     -l*)
 #     Collect a list of -l options to pass to the linker.
-      loptions=$loptions" "$1
+      object_files=$object_files" "$1
       any_l_or_o_files=1
       ;;
     -g*)
@@ -427,13 +427,13 @@ do
       ;;
     *\.a)
 #     Collect a list of library archive names (.a) files.
-      lfiles=$lfiles" "$1
+      object_files=$object_files" "$1
       any_l_or_o_files=1
       add_to_instantiation_command=0
       ;;
     *\.so | *\.so\.*)
 #     Collect a list of library shared object names (.so) files.
-      lfiles=$lfiles" "$1
+      object_files=$object_files" "$1
       any_l_or_o_files=1
       add_to_instantiation_command=0
       ;;
@@ -441,12 +441,14 @@ do
 #     Collect a list of .c files.
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
       cfiles=$cfiles" "$1;
+      obj_file_name=`expr $1 : '\(.*\)\.`.o  # Get basename.o
+      object_files=$object_files" "$obj_file_name
       any_c_files=1
       add_to_instantiation_command=0
       ;;
     *\.o)
 #     Collect a list of .o files.
-      ofiles=$ofiles" "$1;
+      object_files=$object_files" "$1
       any_l_or_o_files=1
       add_to_instantiation_command=0
       ;;
@@ -759,29 +761,9 @@ any_errors=0
 max_status=0
 for cfile in $cfiles
 do
-  case $cfile in
-    *\.c)
-    basefile=`basename $cfile .c`
-      ;;
-    *\.C)
-    basefile=`basename $cfile .C`
-      ;;
-    *\.cc)
-    basefile=`basename $cfile .cc`
-      ;;
-    *\.cpp)
-    basefile=`basename $cfile .cpp`
-      ;;
-    *\.CPP)
-    basefile=`basename $cfile .CPP`
-      ;;
-    *\.cxx)
-    basefile=`basename $cfile .cxx`
-      ;;
-    *\.CXX)
-    basefile=`basename $cfile .CXX`
-      ;;
-  esac
+set -x
+  basefile=`expr $cfile : '\(.*\)\.`  # Get basename
+set +x
   if [ $more_than_one_c_file -ne 0 ]
   then
     echo "$cfile:" 1>&2
@@ -895,9 +877,8 @@ do
 	any_errors=1
       else
 #
-#       Add resulting .o file to the list of files to be linked.
+#       Rename the object file to the appropriate name
 #
-	ofiles=$ofiles" "$basefile.o
 	command="mv -f $gen_c_obj_name $basefile.o"
         if [ $driver_debug -ne 0 ] ; then
           echo $command
@@ -941,7 +922,7 @@ then
                      $prelink_options \
 		     $Loptions ${library_option}$LIBDIR \
                      $EDG_DEFAULT_LIB_PATHS \
-		     $loptions $ofiles $lfiles \
+		     $object_files -- \
                      $instantiation_libraries"
         if [ $driver_debug -ne 0 ] ; then
           echo $command
@@ -957,13 +938,13 @@ then
         new_list=`cat $new_obj_list_file`
         rm -f $new_obj_list_file
         if [ $driver_debug -ne 0 ] ; then
-          if [ "$ofiles" != "$new_obj_list_file" ] ; then
+          if [ "$object_files" != "$new_obj_list_file" ] ; then
             echo Updating object file list
-            echo "  old list: $ofiles"
+            echo "  old list: $object_files"
             echo "  new list: $new_list"
           fi
         fi
-        ofiles="$new_list"
+        object_files="$new_list"
       fi
 #     Save the link command in a variable so it can be done again in the
 #     "munch" step below.
@@ -972,7 +953,7 @@ then
       link_command="$cc_command $c_to_obj_options $Loptions \
 		       ${library_option}$LIBDIR \
                        $ldoptions -o $executable \
-                       $ofiles $lfiles $loptions $EDG_STD_LIBS \
+                       $object_files $EDG_STD_LIBS \
 		       $EDG_C_TO_OBJ_LIBRARIES"
       link_command_suffix=" -lC$EDG_LIB_SUFFIX"
       if [ $link_using_purify -eq 1 ] ; then
