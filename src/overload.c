@@ -7795,7 +7795,11 @@ conversion_for_direct_reference_binding_possible.
                                 unqual_dest_type) != NULL) {
     /* The initializer has a derived type. */
     type_is_correct_or_derived = TRUE;
-  } else if (any_cfront_mode() &&
+  } else if ((any_cfront_mode()
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             || microsoft_mode)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                &&
              is_pointer_type(unqual_dest_type) &&
              is_pointer_type(unqual_source_type) &&
              same_type_with_added_qualifiers(unqual_source_type,
@@ -7803,9 +7807,8 @@ conversion_for_direct_reference_binding_possible.
                                              /*ignore_qualifiers=*/FALSE,
                                              (a_boolean *)NULL)) {
     /* The type is a pointer type and is correct, except that the
-       destination type has some qualifiers that are not present on
-       the source type (at any level).  Standard C++ processing can
-       only add type qualifiers in certain ways. */
+       destination type has some extra qualifiers that are not present on
+       the source type (at any level).  This is an extension. */
     type_is_correct_or_derived = TRUE;
   }  /* if */
   direct_binding_possible = type_is_correct_or_derived;
