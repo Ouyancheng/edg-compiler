@@ -316,7 +316,10 @@ The output includes template arguments on template classes.
   /* Check for template arguments on a class name. */
   if (il_header.source_language == sl_Cplusplus && entry_kind == iek_type) {
     a_type_ptr type = (a_type_ptr)scp;
-    if (is_immediate_class_type(type)) {
+    /* Ignore template parameters and classes whose bodies have been
+       eliminated. */
+    if (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.extra_info != NULL) {
       a_template_arg_ptr tap =
                 type->variant.class_struct_union.extra_info->template_arg_list;
       if (tap != NULL) {
@@ -364,15 +367,35 @@ class type.  Do the output in the way described by octl.  Called only for C++.
     octl->output_class_qualifier(class_type);
   } else {
     /* Default processing. */
-    a_source_correspondence  *scp = &class_type->source_corresp;
+    a_source_correspondence     *scp = &class_type->source_corresp;
+    a_class_type_supplement_ptr ctsp;
+    a_boolean                   output_base_name = TRUE;
 
     /* Use recursion to handle multiple levels of nesting. */
     form_class_or_namespace_qualifier((a_boolean)scp->is_class_member,
                                       scp->parent, octl);
     /* Do the last level. */
     /* Ignore anonymous unions. */
-    if (class_type->variant.class_struct_union.extra_info->
-                   anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
+    ctsp = class_type->variant.class_struct_union.extra_info;
+#if CHECKING || DEBUG
+    if (ctsp == NULL) {
+      /* Avoid abort on error case where parent is incomplete class, so
+         debug output will still come out okay. */
+#if DEBUG
+      if (octl->debug_output) {
+        octl->output_str("<incomplete parent>");
+      } else
+#endif /* DEBUG */
+      {
+        unexpected_condition_str("form_class_qualifier: parent has no body");
+      }  /* if */
+    } else
+#endif /* CHECKING || DEBUG */
+    /* Do not insert code here. */
+    if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+      output_base_name = FALSE;
+    }  /* if */
+    if (output_base_name) {
       form_unqualified_name(scp, iek_type, octl);
       octl->output_str("::");
     }  /* if */
