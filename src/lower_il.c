@@ -510,16 +510,12 @@ scope, or the lifetime from the parent context, will be used.
   if (new_lifetime) {
     context->saved_curr_object_lifetime = curr_object_lifetime;
     curr_object_lifetime = lifetime;
-#if GENERATE_EH_TABLES
     context->saved_curr_cleanup_state = curr_cleanup_state;
-#endif /* GENERATE_EH_TABLES */
 #if CHECKING
   } else {
     /* Clear entries to be neat, even though they are not used. */
     context->saved_curr_object_lifetime = NULL;
-#if GENERATE_EH_TABLES
     context->saved_curr_cleanup_state = NULL;
-#endif /* GENERATE_EH_TABLES */
 #endif /* CHECKING */
   }  /* if */
   /* The latest_initialization list starts at NULL for a new object lifetime,
@@ -547,9 +543,7 @@ Pop an entry off the context stack.
        and curr_cleanup_state are restored to what they were at push_context
        time. */
     curr_object_lifetime = context->saved_curr_object_lifetime;
-#if GENERATE_EH_TABLES
     curr_cleanup_state = context->saved_curr_cleanup_state;
-#endif /* GENERATE_EH_TABLES */
   } else {
     /* This context does not have its own object lifetime, so the
        latest_initialization pointer is propagated up to the parent (it's
