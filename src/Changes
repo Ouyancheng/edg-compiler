@@ -1,5 +1,29 @@
 Version 3.5
 
+6/16/04  Abort in Microsoft mode, rvalue field selection with cv-qualified
+         type used in "?" operation
+
+An abort in take_address_of_lvalue ("not an lvalue") in Microsoft mode
+has been eliminated.  It came up on a use of an rvalue field selection
+of cv-qualified type as the second or third operand of a "?" operator
+whose second and third operands have the same type (ignoring the
+cv-qualifiers).  This is fallout from the Microsoft bug emulation change
+of 11/14/00.
+
+  struct C {
+    int len;
+  };
+  const C getName();
+  int main() {
+    1 ? getName().len :  0;
+  }
+
+Part of the problem here was that cv-qualifiers were not stripped
+from the types of rvalue field selections, which violates the IL
+rules (in C, rvalues never have cv-qualified types; in C++, only
+class rvalues can have cv-qualified types).  That was a problem
+even outside of Microsoft mode.
+
 6/16/04  Refinement of protected member access checking
 
 The processing to perform the access check of section 11.5 of the

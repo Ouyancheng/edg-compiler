@@ -1869,6 +1869,7 @@ The result is placed in *result.
          or union.  const is ignored if the field was declared mutable. */
       result_type = make_field_selection_type(field, qualifiers);
     }  /* if */
+    if (rvalue_result) result_type = rvalue_type(result_type);
     /* Determine the IL operator to use.  If the first operand is a pointer
        (either explicitly, or because it's an lvalue and the operation is "."),
        eok_field is used.  Otherwise, the first operand is an rvalue and
@@ -8654,6 +8655,7 @@ Note that this will get an error if the operand is a bit field reference.
 The caller should check for that and avoid it.
 */
 {
+  check_assertion(is_an_lvalue(operand) || is_error_operand(operand));
   if (!identical_types(operand->type, new_type)) {
     take_address_of_lvalue(operand);
     cast_operand(make_pointer_type(new_type),
@@ -11962,11 +11964,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
          an error type. */
       if (is_error_type(operand_3.type)) {
         result_type = operand_3.type;
-      } else if (microsoft_bugs &&
+      } else if (microsoft_bugs && result_is_an_lvalue &&
                  !is_class_struct_union_type(result_type) &&
                  !is_error_type(result_type)) {
         /* In Microsoft mode, the cv-qualifiers are dropped on non-class
-           operands. */
+           operands that are lvalues. */
         if ((is_qualified_type(operand_2.type) &&
              is_bit_field_operand(&operand_2)) ||
             (is_qualified_type(operand_3.type) &&
