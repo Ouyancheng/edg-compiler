@@ -142,8 +142,6 @@ feature is used.
 #define CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG FALSE
 #endif /* ifndef CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
-#endif /* ifndef LANG_FEAT_H */
-
 /*
 TRUE if pcc-style preprocessing should be done when compiling C++
 in cfront compatibility mode.  This is sensible when the version of
@@ -172,6 +170,8 @@ exceptions_disabled, which can be modified by the "-x" command line option.
 #ifndef DEFAULT_EXCEPTIONS_DISABLED
 #define DEFAULT_EXCEPTIONS_DISABLED TRUE
 #endif /* ifndef DEFAULT_EXCEPTIONS_DISABLED */
+
+#endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *
