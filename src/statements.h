@@ -134,6 +134,13 @@ typedef struct a_struct_stmt_stack_entry {
 			/* TRUE if kind == ssk_compound and this structured
 			   statement represents the top level block of a
 			   catch clause. */
+  unsigned int	label_invalidates_curr_block_object_lifetime:1;
+			/* TRUE if kind == ssk_compound and the object
+			   lifetime pointed to by this entry has been
+			   invalidated by a label in an inner block. This
+			   flag will be cleared again once the required fixup
+			   has been done and the curr_block_object_lifetime
+			   pointer has been reset. */
   a_reachability_summary
 		start_reachable;
 			/* Indicates whether or not the start of the structured
@@ -142,47 +149,28 @@ typedef struct a_struct_stmt_stack_entry {
 		end_reachable;
 			/* Indicates whether or not the end of the structured
 			   statement is reachable. */
-  a_statement_ptr
-		last_label_in_block;
-			/* If kind == ssk_compound, a pointer the last label
-			   statement that appeared inside the current block,
-			   either directly or in a nested block.  (A compound
-			   statement for a catch clause is not treated as
-			   nested.)  For other kinds or when no labels have
-			   appeared, this pointer is NULL. */
   an_object_lifetime_ptr
-		last_label_object_lifetime;
-			/* If kind == ssk_compound and last_label_in_block is
-			   non-NULL, a pointer to the object lifetime pushed
-			   on the stack when last_label_in_block occurred or
-			   to an object lifetime created in a containing block
-			   that immediately after a block containing the label
-			   is terminated.  For example:
-			      {       // start lifetime (LT) for block#1
-				{     // start LT for block#2
-				  {   // start LT for block#3
-			      L:      // start LT for L-in-block#3
-				  }   // end LTs for L-in-block#3 and block#3
-				      // start LT for L-in-block#2
-				}     // end LTs for L-in-block#2 and block#2
-				      // start LT for L-in-block#1
-			      }       // end LTs for L-in-block#1 and block#1
-			   In this example there is an object lifetime created
-			   for L (at least temporarily) in all the blocks it
-			   belongs to (directly and indirectly), though they
-			   are not the same object lifetime.  Note, however,
-			   that these object lifetimes are bound not to the
-			   label but to a block statement that is created
-			   (but only if needed) and inserted into the
-			   statement stream. */
+		curr_block_object_lifetime;
+			/* If kind == ssk_compound, a pointer to the currently
+			   active object lifetime directly associated with
+			   this block (if any).  A lifetime is pushed when a
+			   block starts, but a label in the midst of the
+			   block "invalidates" the lifetime and a new one is
+			   pushed to replace it; this pointer then points to
+			   the new one. */
   a_statement_ptr
-		last_label_block_insert_loc;
-			/* Pointer to the statement (either stmk_label or
-			   stmk_block) immediately after which a block
-			   statement can be inserted to provide an IL entry
-			   to which last_label_object_lifetime can bind (if
-			   it is needed).  If a block statement is inserted,
-			   this pointer is cleared. */
+		extra_block_insert_loc;
+			/* If kind == ssk_compound, a (possibly NULL) pointer
+			   to a statement (either stmk_label or stmk_block)
+			   after which an extra block can be inserted to
+			   provide an IL entry to which a new object lifetime
+			   (i.e., one to which curr_block_object_lifetime is
+			   reset after a label) can bind (if it is needed). */
+  a_scope_depth depth_of_assoc_scope;
+			/* If kind == ssk_compound and a scope stack entry
+			   was pushed in conjuction with this structured
+			   statement stack entry, the depth of the former in
+			   the scope stack; NO_SCOPE_DEPTH otherwise. */
 } a_struct_stmt_stack_entry;
 
 EXTERN a_struct_stmt_stack_entry_ptr
