@@ -548,7 +548,7 @@ colons, which will be tokenized as a single tok_colon_colon (in C++).
   if (n > 0) {
     result = (an_asm_operand_ptr)
       alloc_in_region(curr_il_region_number,
-                      size_t_arg(n * sizeof(an_asm_operand)));
+                      (sizeof_t)(n * sizeof(an_asm_operand)));
     (void)memcpy((char*)result, (char*)operands,
                  size_t_arg(n * sizeof(an_asm_operand)));  /*lint !e645*/
   }  /* if */
@@ -618,7 +618,7 @@ The syntax is
     int i;
     clobbers = (a_named_register *)
          alloc_in_region(curr_il_region_number,
-                         size_t_arg(n * sizeof(a_named_register)));
+                         (sizeof_t)(n * sizeof(a_named_register)));
     for (i = 0; i < n; ++i) {
       a_named_register_list_entry_ptr  to_free = first_reg;
       clobbers[i] = first_reg->reg;
@@ -671,7 +671,7 @@ extended asm statements.
   regmap_size = (int)anr_last - 1;
   regmap_size += (sizeof(extra_reg_names) / sizeof(struct name_to_reg)) - 1;
   regmap = (struct name_to_reg *)alloc_general(
-                        size_t_arg(regmap_size * sizeof(struct name_to_reg)));
+                         (sizeof_t)(regmap_size * sizeof(struct name_to_reg)));
   /* Start with i = 1 since anr_invalid is not copied. */
   for (i = 1; i < (int)anr_last; i++) {
     regmap[i-1].name = named_register_names[i];
