@@ -1739,11 +1739,6 @@ EXTERN a_scope_depth
                            scope stack, this is the depth of the innermost
                            one.  Otherwise, NO_SCOPE_DEPTH. */
 
-EXTERN a_scope_depth
-		depth_template_declaration_scope;
-			/* Depth of the sck_template_declaration scope entry,
-			   if any, that the current scope is enclosed by;
-			   otherwise, NO_SCOPE_DEPTH. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 EXTERN a_scope_depth
 		depth_innermost_ss_list_scope;
@@ -1757,6 +1752,11 @@ EXTERN a_scope_depth
 			   with a source sequence list for entities in the
 			   file scope memory region (either DEPTH_OF_FILE_SCOPE
 			   or, in C++ only, the depth of a class scope). */
+EXTERN a_scope_depth
+		depth_template_declaration_scope;
+			/* Depth of the sck_template_declaration scope entry,
+			   if any, that the current scope is enclosed by;
+			   otherwise, NO_SCOPE_DEPTH. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 EXTERN a_boolean

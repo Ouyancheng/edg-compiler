@@ -7866,6 +7866,9 @@ secondary status.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/* ARGSUSED */ /* <-- ssep is only used with source sequence lists. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 void f_mark_defined(a_symbol_ptr                 sym_ptr,
                     a_source_position            *source_position,
                     a_source_sequence_entry_ptr  ssep)
@@ -7929,6 +7932,9 @@ entry already created for this entity; otherwise, it is NULL.
 }  /* f_mark_defined */
 
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/* ARGSUSED */ /* <-- ssep is only used with source sequence lists. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 void f_mark_declared(a_symbol_ptr                 sym_ptr,
                      a_source_position            *source_position,
                      a_source_sequence_entry_ptr  ssep)
