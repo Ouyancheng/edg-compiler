@@ -3523,6 +3523,7 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
 {
   a_storage_class              storage_class;
   a_decl_flag_set              dso_flags, do_flags;
+  a_type_qualifier_set         qualifiers;
   a_type_ptr                   bottom_derived_type;
   a_source_position            start_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
@@ -3531,7 +3532,7 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-			&storage_class, type_ptr);
+			&storage_class, type_ptr, &qualifiers);
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING)) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -3581,6 +3582,7 @@ syntax is:
   a_type_ptr            complete_type, new_type_ptr;
   a_type_ptr            derived_type, bottom_derived_type = NULL;
   a_decl_flag_set       dso_flags, do_flags;
+  a_type_qualifier_set  qualifiers;
   a_source_position     start_pos;
   a_storage_class       storage_class;
   a_source_sequence_entry_ptr
@@ -3595,12 +3597,12 @@ syntax is:
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
-                        &dso_flags, &storage_class, type_ptr);
+                        &dso_flags, &storage_class, type_ptr, &qualifiers);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
-  } else if (!is_parenthesized && ((dso_flags & DSO_CONST_QUALIFIED) ||
-                                   (dso_flags & DSO_VOLATILE_QUALIFIED))) {
+  } else if (!is_parenthesized &&
+             (qualifiers & ~(TQ_CONST | TQ_VOLATILE) != qualifiers)) {
     /* WP 5.3.4 states that the unparenthesized syntax (new-type-id) may
        not include "const" or "volatile".  (This doesn't seem right, since
        a qualified type can still be created with a typedef.  But in strict
@@ -3680,6 +3682,7 @@ scanning type name in a type conversion operator.
 {
   a_storage_class           storage_class;
   a_decl_flag_set           dso_flags;
+  a_type_qualifier_set      qualifiers;
   a_type_ptr                specifiers_type, complete_type;
   a_type_ptr                bottom_derived_type = NULL;
   a_source_position         type_pos;
@@ -3714,7 +3717,7 @@ scanning type name in a type conversion operator.
     set_err_pos_to_curr_token();
     copy_source_position(pos_curr_token, type_pos);
     (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-                          &storage_class, &specifiers_type);
+                          &storage_class, &specifiers_type, &qualifiers);
     if (C_dialect == C_dialect_cplusplus &&
         (dso_flags & DSO_DEFINES_SOMETHING)) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -4008,18 +4011,18 @@ try_block_stmt is a pointer to the try-block statement to which the catch
 clause is to be attached.  catch_pos is the source position of "catch".
 */
 {
-  a_handler_ptr      handler, prev_handler;
-  a_type_ptr         type_ptr = NULL, bottom_derived_type;
-  a_storage_class    storage_class;
-  a_decl_flag_set    dso_flags, do_flags;
-  a_symbol_ptr       sym;
-  a_symbol_locator   locator;
-  a_source_position  decl_pos;
-  a_routine_ptr      cctor, dtor;
-  a_param_type_ptr   ptp;
-  a_dynamic_init_ptr dip;
-  a_source_sequence_entry_ptr
-                     declarator_ssep = NULL;
+  a_handler_ptr                handler, prev_handler;
+  a_type_ptr                   type_ptr = NULL, bottom_derived_type;
+  a_storage_class              storage_class;
+  a_decl_flag_set              dso_flags, do_flags;
+  a_type_qualifier_set         qualifiers;
+  a_symbol_ptr                 sym;
+  a_symbol_locator             locator;
+  a_source_position            decl_pos;
+  a_routine_ptr                cctor, dtor;
+  a_param_type_ptr             ptp;
+  a_dynamic_init_ptr           dip;
+  a_source_sequence_entry_ptr  declarator_ssep = NULL;
 
   db_enter(3, "handler_declaration");
   /* Push the scope for the handler before processing the exception
@@ -4051,7 +4054,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
       } else {
         (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                                DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
-                              &dso_flags, &storage_class, &type_ptr);
+                              &dso_flags, &storage_class, &type_ptr,
+                              &qualifiers);
         if (dso_flags & DSO_DEFINES_SOMETHING) {
           /* Definition of a class, struct, union, or enum type is not
              allowed. */
@@ -4365,48 +4369,47 @@ variables, and functions), old-style parameter declarations, and declarations
 of local variables (and types, etc.) of functions and in blocks.
 */
 {
-  a_boolean         local_is_old_style_param_decl;
-  a_storage_class   storage_class, local_storage_class;
-  a_type_ptr        type_ptr, old_type;
-  a_type_ptr	    local_type_ptr;
-  a_boolean         has_explicit_type_specifier;
-  a_boolean	    declares_something;
-  a_boolean	    defines_something;
-  a_decl_flag_set   dso_flags, do_flags;
-  a_decl_flag_set   dsi_flags, di_flags;
-  a_symbol_ptr      symbol_ptr, ext_sym;
-  a_boolean	    decl_specifiers_omitted = FALSE;
-  a_boolean         is_function, is_main_function;
-  a_boolean         is_constructor_or_destructor;
-  a_boolean         is_static_data_member;
-  a_symbol_locator  locator;
-  a_param_id_ptr    param_id;
-  a_type_ptr        bottom_derived_type;
-  a_func_info_block func_info;
-  a_boolean         top_declarator_type_is_function;
-  an_id_linkage_kind
-                    linkage;
-  a_boolean         has_initializer;
-  a_boolean         has_parenthesized_initializer;
-  a_boolean         err = FALSE;
-  a_boolean         decl_start;
-  a_boolean         dangling_type_specifier = FALSE;
-  a_boolean         inline_specified;
-  a_source_position decl_start_pos, declarator_pos;
-  a_boolean         need_semicolon_remove_stop_token = FALSE;
-  a_boolean         need_comma_remove_stop_token     = FALSE;
-  a_boolean         need_assign_remove_stop_token    = FALSE;
-  a_boolean         need_lbrace_remove_stop_token    = FALSE;
-  a_boolean         is_variable_def, incomplete_type_error_reported;
-  a_boolean         is_tentative_definition;
-  a_variable_ptr    var_ptr;
-  a_source_sequence_entry_ptr
-                    declarator_ssep = NULL;
+  a_boolean                    local_is_old_style_param_decl;
+  a_storage_class              storage_class, local_storage_class;
+  a_type_ptr                   type_ptr, old_type;
+  a_type_ptr	               local_type_ptr;
+  a_boolean                    has_explicit_type_specifier;
+  a_boolean	               declares_something;
+  a_boolean	               defines_something;
+  a_decl_flag_set              dso_flags, do_flags;
+  a_type_qualifier_set         qualifiers;
+  a_decl_flag_set              dsi_flags, di_flags;
+  a_symbol_ptr                 symbol_ptr, ext_sym;
+  a_boolean	               decl_specifiers_omitted = FALSE;
+  a_boolean                    is_function, is_main_function;
+  a_boolean                    is_constructor_or_destructor;
+  a_boolean                    is_static_data_member;
+  a_symbol_locator             locator;
+  a_param_id_ptr               param_id;
+  a_type_ptr                   bottom_derived_type;
+  a_func_info_block            func_info;
+  a_boolean                    top_declarator_type_is_function;
+  an_id_linkage_kind           linkage;
+  a_boolean                    has_initializer;
+  a_boolean                    has_parenthesized_initializer;
+  a_boolean                    err = FALSE;
+  a_boolean                    decl_start;
+  a_boolean                    dangling_type_specifier = FALSE;
+  a_boolean                    inline_specified;
+  a_source_position            decl_start_pos, declarator_pos;
+  a_boolean                    need_semicolon_remove_stop_token = FALSE;
+  a_boolean                    need_comma_remove_stop_token     = FALSE;
+  a_boolean                    need_assign_remove_stop_token    = FALSE;
+  a_boolean                    need_lbrace_remove_stop_token    = FALSE;
+  a_boolean                    is_variable_def, incomplete_type_error_reported;
+  a_boolean                    is_tentative_definition;
+  a_variable_ptr               var_ptr;
+  a_source_sequence_entry_ptr  declarator_ssep = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean         first_declarator = TRUE;
+  a_boolean                    first_declarator = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ASM_FUNCTION_ALLOWED
-  a_boolean         is_asm_function = FALSE;
+  a_boolean                    is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
 
   db_enter(3, "declaration");
@@ -4535,7 +4538,8 @@ of local variables (and types, etc.) of functions and in blocks.
   }  /* if */
 continue_with_declaration:
   /* Scan the specifiers. */
-  err = decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr);
+  err = decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
+                        &qualifiers);
   has_explicit_type_specifier = dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
   declares_something = dso_flags & DSO_DECLARES_SOMETHING;
   defines_something = dso_flags & DSO_DEFINES_SOMETHING;

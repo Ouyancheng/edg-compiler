@@ -590,6 +590,7 @@ scope is that of a class definition.
   a_storage_class         param_storage_class;
   a_type_ptr              param_type_ptr;
   a_decl_flag_set         dso_flags;
+  a_type_qualifier_set    qualifiers;
   a_param_type_ptr        last_param_type;
   a_param_id_ptr          last_param_id;
   a_source_sequence_entry_ptr
@@ -724,7 +725,7 @@ scope is that of a class definition.
                                DSI_IS_PARAMETER |
                                DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER),
                               &dso_flags, &param_storage_class,
-                              &param_type_ptr);
+                              &param_type_ptr, &qualifiers);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         if (last_param_type == NULL && curr_token == tok_rparen) {
@@ -1135,7 +1136,8 @@ scope is that of a class definition.
 
       copy_source_position(pos_curr_token, qualifier_pos);
       (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
-                            &dummy_storage_class, &dummy_type_ptr);
+                            &dummy_storage_class, &dummy_type_ptr,
+                            &qualifiers);
       /* If this is not a member function or it is but it is a static member
          function declared within a class definition, a qualifier on the
          function is illegal (ARM 8.2.5)..  However, qualifiers on a pointer
@@ -1165,9 +1167,6 @@ scope is that of a class definition.
         }  /* if */
         this_param_type = member_function_parent_type;
       } else {
-        qualifiers = TQ_NONE;
-        if (dso_flags & DSO_CONST_QUALIFIED) qualifiers |= TQ_CONST;
-        if (dso_flags & DSO_VOLATILE_QUALIFIED) qualifiers |= TQ_VOLATILE;
         this_param_type = make_qualified_type(member_function_parent_type,
                                               qualifiers);
       }  /* if */
@@ -1413,18 +1412,17 @@ parameter controls the restrictions imposed by the context.
       a_decl_flag_set       dso_flags;
       a_storage_class       dummy_storage_class;
       a_type_ptr            dummy_type_ptr;
-      a_type_qualifier_set  qualifier = TQ_NONE;
+      a_type_qualifier_set  qualifiers;
 
       set_err_pos_to_curr_token();
       (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
-                            &dummy_storage_class, &dummy_type_ptr);
+                            &dummy_storage_class, &dummy_type_ptr,
+                            &qualifiers);
       if (is_reference_type(complete_type)) {
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_qualified_reference_type);
       } else {
-        if (dso_flags & DSO_CONST_QUALIFIED) qualifier |= TQ_CONST;
-        if (dso_flags & DSO_VOLATILE_QUALIFIED) qualifier |= TQ_VOLATILE;
-        complete_type = make_qualified_type(complete_type, qualifier);
+        complete_type = make_qualified_type(complete_type, qualifiers);
       }  /* if */
     }  /* if */
   }  /* while */

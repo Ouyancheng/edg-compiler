@@ -1917,10 +1917,12 @@ rescanning the tokens to generate a type for a specific instance
 of a function template.
 */
 {
-  a_decl_flag_set	dsi_flags;
-  a_decl_flag_set	di_flags;
-  a_type_ptr            bottom_derived_type = NULL;
-  a_source_sequence_entry_ptr declarator_ssep = NULL;
+  a_decl_flag_set              dsi_flags;
+  a_decl_flag_set              di_flags;
+  a_type_ptr                   bottom_derived_type = NULL;
+  a_source_sequence_entry_ptr  declarator_ssep = NULL;
+  a_type_qualifier_set         qualifiers;
+
 
   dsi_flags = DSI_IS_TEMPLATE_DECLARATION |
               DSI_INLINE_ALLOWED |
@@ -1951,7 +1953,8 @@ of a function template.
   } else {
     add_stop_token(tok_end_of_source);
   }  /* if */
-  (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type);
+  (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type,
+                        &qualifiers);
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(*locator);
@@ -3410,20 +3413,21 @@ void scan_a_template_parameter_declaration(a_symbol_locator *param_locator,
 Scan the declaration of a single template nontype parameter.
 */
 {
-  a_decl_flag_set			do_flags;
-  a_decl_flag_set			dso_flags;
-  a_storage_class    			param_storage_class;
-  a_type_ptr 			        bottom_derived_type;
-  a_source_position			param_pos;
-  a_source_sequence_entry_ptr           declarator_ssep;
-  a_type_ptr				tp;
+  a_decl_flag_set              do_flags;
+  a_decl_flag_set              dso_flags;
+  a_type_qualifier_set         qualifiers;
+  a_storage_class              param_storage_class;
+  a_type_ptr                   bottom_derived_type;
+  a_source_position            param_pos;
+  a_source_sequence_entry_ptr  declarator_ssep;
+  a_type_ptr                   tp;
 
   /* Scan the declaration specifiers. */
   param_pos = pos_curr_token;
   (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_TEMPLATE_PARAMETER),
-                         &dso_flags, &param_storage_class,
-                         param_type_ptr);
+                         &dso_flags, &param_storage_class, param_type_ptr,
+                         &qualifiers);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     pos_error(ec_type_definition_not_allowed, &param_pos);
     *param_type_ptr = error_type();
@@ -5488,20 +5492,20 @@ assumed if the return type is omitted.
                     /*real_declarator_allowed=*/TRUE) ||
              is_declarator_start()) {
     /* Process the function declaration case. */
-    a_storage_class    storage_class;
-    a_type_ptr         type;
-    a_symbol_locator   locator;
-    a_decl_flag_set    do_flags, dso_flags;
-    a_type_ptr         bottom_derived_type = NULL;
-    a_symbol_ptr       orig_sym;
-    a_symbol_ptr       new_sym;
-    a_source_sequence_entry_ptr
-                       declarator_ssep;
+    a_storage_class              storage_class;
+    a_type_ptr                   type;
+    a_symbol_locator             locator;
+    a_decl_flag_set              do_flags, dso_flags;
+    a_type_qualifier_set         qualifiers;
+    a_type_ptr                   bottom_derived_type = NULL;
+    a_symbol_ptr                 orig_sym;
+    a_symbol_ptr                 new_sym;
+    a_source_sequence_entry_ptr  declarator_ssep;
 
     add_stop_token(tok_newline);
     (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
 			   DSI_TYPE_SPECIFIER_ALLOWED),
-                          &dso_flags, &storage_class, &type);
+                          &dso_flags, &storage_class, &type, &qualifiers);
     if (is_error_type(type) && !is_declarator_start()) {
       /* Error of some sort. */
       set_to_error_locator(locator);

@@ -5729,16 +5729,17 @@ Scan the body of a class definition, including the base classes list.
       }  /* if */
       is_first_field = TRUE;
       do {
-        a_decl_flag_set   dso_flags;
-        a_storage_class   member_storage_class;
-        a_type_ptr        member_type;
-        a_boolean         dangling_type_specifier;
-        a_boolean         local_defines_something, local_declares_something;
-        a_boolean         local_no_decl_specifiers;
-        a_boolean         friend_specified, virtual_specified;
-        a_boolean         type_explicitly_specified, inline_specified;
-        a_boolean         is_destructor, is_constructor;
-        a_boolean         is_anonymous_union, is_nonstd_anonymous_union;
+        a_decl_flag_set      dso_flags;
+        a_type_qualifier_set qualifiers;
+        a_storage_class      member_storage_class;
+        a_type_ptr           member_type;
+        a_boolean            dangling_type_specifier;
+        a_boolean            local_defines_something, local_declares_something;
+        a_boolean            local_no_decl_specifiers;
+        a_boolean            friend_specified, virtual_specified;
+        a_boolean            type_explicitly_specified, inline_specified;
+        a_boolean            is_destructor, is_constructor;
+        a_boolean            is_anonymous_union, is_nonstd_anonymous_union;
 
         /* Move cached #pragma declarations (if any) to the current scope
            stack entry so they can be examined and acted upon in subsequent
@@ -5871,7 +5872,7 @@ Scan the body of a class definition, including the base classes list.
            be omitted, e.g., for a function member with implicit type. */
         add_stop_token(tok_colon);
         (void)decl_specifiers(dsi_flags, &dso_flags, &member_storage_class,
-                              &member_type);
+                              &member_type, &qualifiers);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         local_defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         local_declares_something = dso_flags & DSO_DECLARES_SOMETHING;
