@@ -829,6 +829,91 @@ exist.
 
 #endif /* TEMPLATE_LOOKUP_NEEDED */
 
+static void set_instantiation_required_for_template_class_routines(
+		a_type_ptr	class_type,
+		a_boolean	force_instantiation_of_virtual_functions,
+                a_boolean	process_nested_classes)
+/*
+Calls update_instantiation_required_flag for the member functions
+of class_type.  If force_instantiation_of_virtual_functions is TRUE,
+set the instantiation required flag to TRUE for virtual functions.
+If process_nested_classes is TRUE, call this routine recursively for
+nested classes.
+*/
+{
+  a_class_type_supplement_ptr	ctsp;
+
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  /* The assoc_scope pointer can be NULL if errors occurred during the
+     instantiation of the class. */
+  if (ctsp->assoc_scope != NULL) {
+    a_routine_ptr			rout;
+    a_symbol_ptr			sym;
+    a_template_instance_ptr	tip;
+    a_type_ptr			type;
+    for (rout = ctsp->assoc_scope->routines; rout != NULL; rout = rout->next) {
+      sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
+      tip = sym->variant.routine.instance_ptr;
+      if (tip == NULL) {
+        /* Under certain conditions the instance pointer will be NULL.  This
+           occurs for compiler generated routines and under some error
+           conditions.  Simply skip this routine. */
+      } else if (rout->is_prototype_instantiation) {
+        /* Don't add prototype instantiations of member templates to the
+           instantiations required list. */
+      } else {
+        /* Simply add the function to the instantiation list, without setting
+           the flag. */
+        a_boolean				flag_value = FALSE;
+        a_set_instance_required_options_set	options = SIR_DEFER_INLINE;
+        { a_routine_ptr	templ_rout;
+          /* The instantiation required flag is set for virtual functions
+             in g++ mode.  It is also set when generating class template
+             instantiation information in the source sequence lists.  This
+             is necessary when using the C++ generating back end in this
+             mode because inline virtual functions must have definitions. */
+          templ_rout = sym->variant.routine.ptr;
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+          if (templ_rout->is_virtual && templ_rout->is_inline) {
+            flag_value = TRUE;
+          }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+          if (force_instantiation_of_virtual_functions &&
+              templ_rout->is_virtual) {
+            /* The force_instantiation_of_virtual_functions flag is used
+               in g++ mode to cause the instantiation of virtual functions
+               to occur immediately following the instantiation of the
+               class. */
+            flag_value = TRUE;
+            options |= SIR_GPP_FORCE_INLINE;
+          }  /* if */
+        }
+        if (!force_instantiation_of_virtual_functions || flag_value) {
+          /* If called a second type to force instantiation of virtual
+             functions, only do the set_instance_required call if we are
+             actually setting the flag. */
+          set_instance_required(sym, flag_value, options);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (process_nested_classes) {
+      /* Process any classes nested within this class. */
+      type = ctsp->assoc_scope->types;
+      while (type != NULL) {
+        a_type_kind	tk = type->kind;
+        if (tk == (a_type_kind)tk_class ||
+            tk == (a_type_kind)tk_struct || tk == (a_type_kind)tk_union) {
+          set_instantiation_required_for_template_class_routines(
+                                      type,
+                                      force_instantiation_of_virtual_functions,
+                                      process_nested_classes);
+        }  /* if */
+        type = type->next;
+      }  /* while */
+    }  /* if */
+  }  /* if */
+}  /* set_instantiation_required_for_template_class_routines */
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 static void generate_template_file_names(void)
@@ -1103,38 +1188,12 @@ itself recursively to process classes nested within this class.
        that a virtual function table might be put out.  All instances are
        placed on the instantiation list.  In tim_all mode the instantiations
        will be generated even if the instantiation required flag is not set. */
+    set_instantiation_required_for_template_class_routines(
+                            class_type,
+                            /*force_instantiation_of_virtual_functions=*/FALSE,
+                            /*process_nested_classes=*/FALSE);
     rout = ctsp->assoc_scope->routines;
     while (rout != NULL) {
-      sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
-      tip = sym->variant.routine.instance_ptr;
-      if (tip == NULL) {
-        /* Under certain conditions the instance pointer will be NULL.  This
-           occurs for compiler generated routines and under some error
-           conditions.  Simply skip this routine. */
-      } else if (rout->is_prototype_instantiation) {
-        /* Don't add prototype instantiations of member templates to the
-           instantiations required list. */
-      } else {
-        /* Simply add the function to the instantiation list, without setting
-           the flag. */
-        a_boolean	flag_value = FALSE;
-        { a_routine_ptr	templ_rout;
-          /* The instantiation required flag is set for virtual functions
-             in g++ mode.  It is also set when generating class template
-             instantiation information in the source sequence lists.  This
-             is necessary when using the C++ generating back end in this
-             mode because inline virtual functions must have definitions. */
-          templ_rout = sym->variant.routine.ptr;
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-          if (templ_rout->is_virtual && templ_rout->is_inline) {
-            flag_value = TRUE;
-          }  /* if */
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-          if (gpp_mode && templ_rout->is_virtual) flag_value = TRUE;
-        }
-        set_instance_required(sym, flag_value,
-                              SIR_DEFER_INLINE | SIR_GPP_FORCE_INLINE);
-      }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -2555,6 +2614,14 @@ might not be able to if the template itself has not yet been defined.
       set_instantiation_required_for_template_class_members(class_type);
       /* Do the class fixups for this instantiation. */
       process_deferred_class_fixups_and_instantiations();
+      if (gpp_mode) {
+        /* In g++ mode, go back and force the instantiation of virtual
+           functions defined in the class. */
+        set_instantiation_required_for_template_class_routines(
+                            class_type,
+                            /*force_instantiation_of_virtual_functions=*/TRUE,
+                            /*process_nested_classes=*/TRUE);
+      }  /* if */
       /* If the translation unit stack was pushed above, pop it now. */
       if (trans_unit_pushed) pop_translation_unit_stack();
     }  /* if */
