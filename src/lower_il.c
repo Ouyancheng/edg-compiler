@@ -7026,8 +7026,10 @@ Do IL lowering of the indicated statement and everything under it.
         gen_goto_cleanup_actions(statement);
         break;
       case stmk_label:
-        if (exceptions_enabled) {
-          /* Exceptions are enabled.  Set the cleanup state. */
+        if (exceptions_enabled &&
+            innermost_function_scope->lifetime != NULL) {
+          /* Exceptions are enabled and the current function has
+             destructible objects.  Set the cleanup state. */
           set_insert_location(statement, &insert_location);
           set_curr_cleanup_state(curr_cleanup_state, &insert_location);
         }  /* if */
