@@ -3954,6 +3954,7 @@ corresponding instance, or NULL if no corresponding instance is found.
   /* Get the corresponding template in the specified translation unit.
      Note that it is possible that there is no such corresponding template. */
   template_sym = template_symbol_for_class_symbol(sym_to_find);
+  template_sym = primary_template_of(template_sym);
   template_sym = find_corresponding_symbol_in_trans_unit(template_sym, tup);
   if (template_sym != NULL) {
     tssp = template_supplement_for_symbol(template_sym);

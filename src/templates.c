@@ -4284,6 +4284,8 @@ prototype instantiation is considered as a potential match.
   class_template_sym =
               template_argument_if_template_template_param(class_template_sym);
   tssp = class_template_sym->variant.template_info;
+  /* The template symbol must be for the primary template. */
+  check_assertion(!tssp->variant.class_template.primary_template_sym);
   if (tssp->is_nonreal_member || tssp->is_error) {
     eta_options |= ETA_IS_NONREAL_MEMBER;
   }  /* if */
@@ -4524,9 +4526,6 @@ prototype instantiation is considered as a potential match.
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
-    /* Call a routine that manages the correspondence of entities between
-       translation units to notify it of the new instance. */
-    record_instantiation(sym, tssp);
 #if DEBUG
     if (db_sym_trace("instantiations", sym)) {
       fprintf(f_debug, "Partial instantiation of: ");
@@ -4536,6 +4535,9 @@ prototype instantiation is considered as a potential match.
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
+    /* Call a routine that manages the correspondence of entities between
+       translation units to notify it of the new instance. */
+    record_instantiation(sym, tssp);
     /* If the translation unit stack was pushed above, pop it now. */
     if (trans_unit_pushed) pop_translation_unit_stack();
   } else {
