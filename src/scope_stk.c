@@ -4154,9 +4154,10 @@ NULL.
                  always need to have a definition.  Similarly, no diagnostic
                  should be issued for IA-64 virtual call thunks. */
               if (!routine_defined(rp)) {
-                pos_sy_error(ec_never_defined,
-                             &rp->source_corresp.decl_position,
-                             (a_symbol_ptr)rp->source_corresp.assoc_info);
+                pos_sy_diagnostic(es_discretionary_error,
+                                  ec_virtual_function_never_defined,
+                                  &rp->source_corresp.decl_position,
+                                  (a_symbol_ptr)rp->source_corresp.assoc_info);
               }  /* if */
             } else if (!rp->source_corresp.referenced &&
                        !rp->compiler_generated &&

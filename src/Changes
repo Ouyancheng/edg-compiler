@@ -1,5 +1,20 @@
 Version 3.6
 
+12/16/04 Diagnostic on missing unnamed namespace virtual function definition
+
+We give an error if a virtual function of a class in an unnamed namespace is
+never defined (because it cannot be defined elsewhere).  Many compilers accept
+such code, which may result in a link error if the function is actually
+called.  We have changed the message to more clearly explain the problem
+and made it a discretionary error so that the severity can be lowered by
+the user to allow examples like the one below to be compiled.
+
+  namespace {
+    struct A {
+      virtual int f();
+    };
+  }
+
 12/16/04 Possible abort when using precompiled headers
 
 An abort could occur when dereferencing an invalid pointer to a directory
