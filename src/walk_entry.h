@@ -105,13 +105,13 @@ other than "next".
 /*
 Process the source correspondence field pointed to by ptr.
 */
-/* Macro to remap class_of_which_a_member only if it exists. */
-#undef remap_class_of_which_a_member
+/* Macro to remap scope_of_which_a_member only if it exists. */
+#undef remap_scope_of_which_a_member
 #ifdef CFE
-#define remap_class_of_which_a_member(ptr) \
-  remap_ptr((ptr).class_of_which_a_member, a_type_ptr, iek_type)
+#define remap_scope_of_which_a_member(ptr) \
+  remap_ptr((ptr).scope_of_which_a_member, a_scope_ptr, iek_scope)
 #else /* !defined(CFE) */
-#define remap_class_of_which_a_member(ptr) /* Nothing */
+#define remap_scope_of_which_a_member(ptr) /* Nothing */
 #endif /* ifdef CFE */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -126,7 +126,7 @@ Process the source correspondence field pointed to by ptr.
 #define walk_source_corresp(ptr) \
 { (ptr).assoc_info = NULL; \
   walk_string_ptr((ptr).name, iek_id_name, 0); \
-  remap_class_of_which_a_member(ptr); \
+  remap_scope_of_which_a_member(ptr); \
   remap_source_sequence_entry(ptr); \
 }  /* walk_source_corresp */
 
@@ -1585,7 +1585,7 @@ end_of_routine:;
 #endif /* DO_SUBTREE_WALK */
 }  /* walk_entry_and_subtree */
 
-#undef remap_class_of_which_a_member
+#undef remap_scope_of_which_a_member
 #undef walk_source_corresp
 
 #if !DO_SUBTREE_WALK

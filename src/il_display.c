@@ -302,6 +302,15 @@ be written.
           name = tp->source_corresp.name;
           break;
         }  /* if */
+      case iek_scope:
+        if ((a_scope_ptr)entry_ptr)->kind ==
+                                (a_scope_kind)sck_class_struct_union) {
+          tp = ((a_scope_ptr)entry_ptr)->variant.assoc_type;
+          if (tp != NULL) {
+            name = tp->source_corresp.name;
+            break;
+          }  /* if */
+        }  /* if */
       default:
         name = NULL;
     }  /* switch */
@@ -446,9 +455,9 @@ Display the indicated source correspondence entry.
                        (unsigned long)scp->decl_position.column);
   }  /* if */
 #ifdef CFE
-  if (scp->class_of_which_a_member != NULL) {
-    disp_ptr("  class_of_which_a_member", (char *)scp->class_of_which_a_member,
-             iek_type);
+  if (scp->scope_of_which_a_member != NULL) {
+    disp_ptr("  scope_of_which_a_member", (char *)scp->scope_of_which_a_member,
+             iek_scope);
     disp_access("  access", (an_access_specifier)scp->access);
   }  /* if */
 #endif /* ifdef CFE */

@@ -1258,10 +1258,12 @@ typedef struct a_symbol {
 		decl_position;
 			/* Source position of the declaration of this
 			   symbol. */
-  a_type_ptr	class_of_which_a_member;
+  a_scope_ptr	scope_of_which_a_member;
 			/* For a symbol that is a class member, this points
-			   to the class type (this includes structs/unions
-			   when compiling C); NULL otherwise. */
+			   to the class scope (this includes structs/unions
+			   when compiling C); for a symbol that is a direct
+			   member of a namespace, this points to the namespace
+			   scope; NULL otherwise. */
   a_symbol_kind kind;
 			/* The kind of symbol. */
   unsigned int	referenced:1;
@@ -1278,6 +1280,8 @@ typedef struct a_symbol {
 			/* TRUE if symbol was originally declared in a
 			   function prototype scope and was subsequently
 			   reentered in the function scope. */
+  unsigned int	is_class_member:1;
+			/* TRUE if symbol represents a class member. */
   unsigned int  is_error:1;
 			/* TRUE if the symbol represents an identifier for
 			   which an error has been diagnosed and which should
@@ -2265,7 +2269,6 @@ extern void overload_check_ambiguity_and_verify_access(
                                            a_symbol_locator *locator,
                                            a_symbol_ptr     overloaded_symbol);
 
-
 /*
 Check to see if a symbol found is ambiguous or inaccessible.  Ambiguity
 checking precedes access control (ARM, 10.1.1).  Only class members
@@ -2275,7 +2278,7 @@ to access control.  Therefore, return immediately for non-class-members,
 and call a subroutine for class members.
 */
 #define check_ambiguity_and_verify_access(locator)                    \
-{ if ((locator)->specific_symbol->class_of_which_a_member != NULL &&  \
+{ if ((locator)->specific_symbol->is_class_member &&                  \
       C_dialect == C_dialect_cplusplus) {                             \
     member_check_ambiguity_and_verify_access(locator);                \
   }  /* if */                                                         \
@@ -2353,6 +2356,14 @@ pointer of class class_type.
     f_check_protected_member_access(sym, err_pos, class_type);        \
   }  /* if */                                                         \
 }  /* check_protected_member_access */
+
+
+/*
+Return a pointer to the class of which sym is a member, or NULL if it
+is not a member.
+*/
+#define sym_class_of_which_a_member(sym)                              \
+  assoc_class_type((sym)->scope_of_which_a_member)
 
 
 /*

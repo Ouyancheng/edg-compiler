@@ -665,9 +665,10 @@ typedef struct a_source_correspondence {
                         /* Pointer to null-terminated name, or NULL if
                            there is no corresponding source entity. */
 #ifdef CIL
-  a_type_ptr    class_of_which_a_member;
-			/* For class members a pointer to the parent class;
-			   NULL for nonmembers. */ 
+  a_scope_ptr	scope_of_which_a_member;
+			/* For class members, a pointer to the scope of the
+			   parent class; for direct namespace members, a
+			   pointer to the namespace scope; NULL otherwise. */
 #endif /* ifdef CIL */
   a_source_position
                 decl_position;
