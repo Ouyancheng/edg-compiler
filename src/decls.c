@@ -3958,9 +3958,18 @@ specifier is restored.
     while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
       declaration(function_definition_allowed, /*extern_implied=*/FALSE,
                   is_old_style_param_decl, param_id_list);
+      /* Since declaration does not advance beyond the final token of the
+         declaration (which should be a ';' or '}') do it now. */
+      if (curr_token == tok_semicolon || curr_token == tok_rbrace) {
+        (void)get_token();
+      }  /* if */
     }  /* while */
+    /* Check for the final right brace of the the linkage specification block,
+       but don't advance past it -- that is handled in translation_unit. */
     remove_stop_token(tok_rbrace);
-    (void)required_token(tok_rbrace, ec_exp_rbrace);
+    if (curr_token != tok_rbrace) {
+      pos_error(ec_exp_rbrace, &pos_curr_token);
+    }  /* if */
   } else {
     /* Just one declaration is governed by this linkage specifier.  If no
        storage class is specified it is as though "extern" were specified --
@@ -4938,6 +4947,9 @@ continue_with_declaration:
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         func_info.declarator_ssep = declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        /* Do processing required for a function definition, including
+           scanning the function body.  Note that the closing '}' will not
+           been consumed -- that will be done by the caller. */
         function_definition(&locator, local_type_ptr, &func_info,
                             local_storage_class, has_explicit_type_specifier);
         done_with_func_info(func_info);
@@ -5314,8 +5326,14 @@ continue_with_declaration:
       /* Keep scanning the list of declarators. */
     } while (loop_token(tok_comma));
   }  /* if */
-  /* Check for final semicolon. */
-  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  /* Check for final semicolon -- but don't advance past it.  That is
+     handled by the caller. */
+  if (curr_token != tok_semicolon) {
+    add_stop_token(tok_semicolon);
+    set_err_pos_to_curr_token();
+    syntax_error(ec_exp_semicolon);
+    remove_stop_token(tok_semicolon);
+  }  /* if */
 
 return_point:
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
@@ -5334,6 +5352,9 @@ Scan a block-level declaration.
   declaration(/*function_definition_allowed=*/FALSE,
               /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
               (a_param_id_ptr)NULL);
+  if (curr_token == tok_semicolon || curr_token == tok_rbrace) {
+    (void)get_token();
+  }  /* if */
 }  /* local_declaration */
 
 
@@ -5353,7 +5374,9 @@ In C++, however, the declaration list is optional (3.4):
                                opt
 */
 {
+  next_token_is_top_level_decl_start = TRUE;
   (void)get_token();
+  next_token_is_top_level_decl_start = FALSE;
   if (next_event_resumes_compilation) {
      /* We are done skipping the file prefix when making use of a PCH (i.e.,
         to skip over the part of the file that is being replaced by
@@ -5407,6 +5430,11 @@ In C++, however, the declaration list is optional (3.4):
       declaration(/*function_definition_allowed=*/TRUE,
                   /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
                   (a_param_id_ptr)NULL);
+      if (curr_token == tok_semicolon || curr_token == tok_rbrace) {
+        next_token_is_top_level_decl_start = TRUE;
+        (void)get_token();
+        next_token_is_top_level_decl_start = FALSE;
+      }  /* if */
     } /* for */
   }  /* if */
   check_assertion_str2(!header_stop_position_pending, "translation_unit:",
