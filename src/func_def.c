@@ -1231,7 +1231,7 @@ on a prior declaration.
     check_exception_specification(rout_type, rp,
                                   &func_info->throw_position,
                                   /*is_redecl=*/TRUE);
-    reconcile_routine_types(sym->variant.routine.ptr, type_ptr,
+    reconcile_routine_types(sym->variant.routine.ptr, rout_type,
                             /*preserve_rout_type=*/FALSE,
                             /*preserve_type_ptr=*/TRUE);
     if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
@@ -1280,6 +1280,9 @@ on a prior declaration.
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                               &locator->source_position,
                               func_info->declarator_ssep);
+    /* The type as it actually appeared in the current declaration may
+       already have been set in reconcile_routine_types. */
+    if (rp->declared_type == NULL) rp->declared_type = rout_type;
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
     mark_defined(sym, &locator->source_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
