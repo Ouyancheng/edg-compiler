@@ -2696,15 +2696,20 @@ Do the multiplication operation on all types of float.
   a_boolean    err;
   a_type_ptr   constant_type = skip_typerefs(constant_1->type);
   a_float_kind float_kind = constant_type->variant.float_kind;
+  a_constant_repr_kind
+               result_kind = (a_constant_repr_kind)ck_float;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  set_constant_kind(result, 
-              (a_constant_repr_kind)
-                   ((constant_1->kind == (a_constant_repr_kind)ck_imaginary) !=
-                    (constant_2->kind == (a_constant_repr_kind)ck_imaginary)
-                                           ? ck_imaginary : ck_float));
+#if C99_IL_EXTENSIONS_SUPPORTED
+  /* Imaginary times float gives an imaginary result. */
+  if ((constant_1->kind == (a_constant_repr_kind)ck_imaginary) !=
+      (constant_2->kind == (a_constant_repr_kind)ck_imaginary)) {
+    result_kind = (a_constant_repr_kind)ck_imaginary;
+  }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  set_constant_kind(result, result_kind);
   fp_multiply(float_kind,
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
@@ -2734,6 +2739,8 @@ Do the division operation on all types of float.
   a_boolean    err;
   a_type_ptr   constant_type = skip_typerefs(constant_1->type);
   a_float_kind float_kind = constant_type->variant.float_kind;
+  a_constant_repr_kind
+               result_kind = (a_constant_repr_kind)ck_float;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
@@ -2743,11 +2750,14 @@ Do the division operation on all types of float.
     *err_code = ec_divide_by_zero;
     *err_severity = es_error;
   } else {
-    set_constant_kind(result, 
-              (a_constant_repr_kind)
-                   ((constant_1->kind == (a_constant_repr_kind)ck_imaginary) !=
-                    (constant_2->kind == (a_constant_repr_kind)ck_imaginary)
-                                           ? ck_imaginary : ck_float));
+#if C99_IL_EXTENSIONS_SUPPORTED
+    /* Imaginary divided by float gives an imaginary result. */
+    if ((constant_1->kind == (a_constant_repr_kind)ck_imaginary) !=
+        (constant_2->kind == (a_constant_repr_kind)ck_imaginary)) {
+      result_kind = (a_constant_repr_kind)ck_imaginary;
+    }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    set_constant_kind(result, result_kind);
     fp_divide(float_kind,
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
