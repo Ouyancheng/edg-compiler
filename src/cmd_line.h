@@ -411,6 +411,15 @@ EXTERN a_boolean
 			   by command-line options --[no_]vla. */
 
 EXTERN a_boolean
+		operator_overloading_on_enums_enabled
+#if VAR_INITIALIZERS
+                                                      = TRUE
+#endif /* VAR_INITIALIZERS */
+                                                            ;
+			/* TRUE if operator functions can be used to
+			   overload operations on enums. */
+
+EXTERN a_boolean
 		special_subscript_cost
 #if VAR_INITIALIZERS
                                        = DEFAULT_SPECIAL_SUBSCRIPT_COST

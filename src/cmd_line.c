@@ -1261,6 +1261,7 @@ common_cfront_mode_settings:
         impl_conv_between_c_and_cpp_function_ptrs_allowed = TRUE;
 #endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
         extern_inline_allowed = FALSE;
+        operator_overloading_on_enums_enabled = FALSE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back

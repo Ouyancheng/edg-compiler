@@ -445,7 +445,8 @@ should be considered.
 {
   a_boolean is_overloadable = is_error_operand(operand) ||
                               is_class_struct_union_type(operand->type) ||
-                              is_enum_type(operand->type);
+                              (operator_overloading_on_enums_enabled &&
+                               is_enum_type(operand->type));
   return is_overloadable;
 }  /* is_overloadable_type_operand */
 

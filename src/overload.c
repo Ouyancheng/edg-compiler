@@ -5833,10 +5833,13 @@ functions could still apply).
       /* At least one operand must have a class type or enum type.
          An error operand for the second operand counts as a class operand. */
       operand_1_is_class = is_class_struct_union_type(operand_1->type);
-      if (operand_1_is_class || is_enum_type(operand_1->type) ||
+      if (operand_1_is_class ||
+          (operator_overloading_on_enums_enabled &&
+           is_enum_type(operand_1->type)) ||
           (!unary_operator &&
            (is_class_struct_union_type(operand_2->type) ||
-            is_enum_type(operand_2->type) ||
+            (operator_overloading_on_enums_enabled &&
+             is_enum_type(operand_2->type)) ||
             is_error_operand(operand_2)))) {
         /* Operator overloading may apply.  That is, the operation may be a
            call of an overloaded operator function or the operands may be
