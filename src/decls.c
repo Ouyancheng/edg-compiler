@@ -8870,16 +8870,22 @@ clause is to be attached.  catch_pos is the source position of "catch".
            the initialization. */
         if (is_class_struct_union_type(type_ptr)) {
           /* Classes may require the use of a copy constructor. */
-          a_boolean  bitwise_copy;
+          a_boolean          bitwise_copy;
+          a_source_position  pos;
 
+          if (sym != NULL) {
+            pos = sym->decl_position;
+          } else {
+            pos = pos_curr_token;
+          }  /* if */
           cctor = select_copy_constructor(type_ptr,
                                           /*const_object_required=*/FALSE,
                                           /*volatile_object_okay=*/FALSE,
-                                          &decl_pos, type_ptr, &bitwise_copy,
+                                          &pos, type_ptr, &bitwise_copy,
                                           /*evaluated=*/TRUE,
                                           /*suppress_access_check=*/TRUE);
           check_assertion((cctor == NULL) == bitwise_copy); 
-          dtor = select_destructor(type_ptr, type_ptr, &decl_pos,
+          dtor = select_destructor(type_ptr, type_ptr, &pos,
                                    /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
                                    /*suppress_access_check=*/TRUE);
         } else {
