@@ -2597,9 +2597,12 @@ aggregate, set *keep_constant to TRUE.
            constant.  This comes up in C mode when IL lowering is used to
            lower nonconstant initializers.  (However, the repeated constant
            will be actually constant.) */
+#if DO_C99_IL_LOWERING
         if (c99_mode) {
           lower_c99_constant(repeated_con);
-        } else {
+        } else
+#endif /* DO_C99_IL_LOWERING */
+        {
           lower_constant(repeated_con);
         }  /* if */
         *keep_constant = TRUE;
@@ -2634,10 +2637,12 @@ aggregate, set *keep_constant to TRUE.
     } else {
       /* Normal constant. */
       if (C_mode()) {
+#if DO_C99_IL_LOWERING
         if (c99_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
           lower_c99_constant(con_ptr);
         }  /* if */
+#endif /* DO_C99_IL_LOWERING */
       } else {
         /* C++ mode. */
         lower_constant(con_ptr);
@@ -3961,10 +3966,12 @@ C99 mode for the same reason.
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
       if (C_mode()) {
+#if DO_C99_IL_LOWERING
         if (c99_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
           lower_c99_constant(dip->variant.constant);
         }  /* if */
+#endif /* DO_C99_IL_LOWERING */
       } else {
         /* C++ mode. */
         lower_constant(dip->variant.constant);
@@ -3983,6 +3990,7 @@ C99 mode for the same reason.
       /* Lower the source expression. */
       source_node = dip->variant.expression;
       if (C_mode()) {
+#if DO_C99_IL_LOWERING
         if (c99_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
           if (options & LDIO_FULL_EXPR) {
@@ -3991,6 +3999,7 @@ C99 mode for the same reason.
             lower_c99_expr(source_node);
           }  /* if */
         }  /* if */
+#endif /* DO_C99_IL_LOWERING */
       } else {
         /* It's an lvalue if the thing being initialized is a reference. */
         expr_is_lvalue = is_reference_type(type_from_init_pos_descr(ipdp));
