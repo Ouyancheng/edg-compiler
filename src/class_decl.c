@@ -1723,8 +1723,14 @@ or struct definition.  The syntax is
       mark_referenced(sym, &pos_curr_token);
       /* Do ambiguity and access control checking for the symbol. */
       check_ambiguity_and_verify_access(&locator_for_curr_id);
-      /* Get the type entry for the base class name. */
+      /* Get the type entry for the base class name.  The symbol's type entry
+         could be a "tag typeref".  If so, get the type entry at file scope
+         that it points to. */
       base_class_type = type_symbol_type(sym);
+      if (base_class_type->kind == (a_type_kind)tk_typeref &&
+          base_class_type->variant.typeref.is_function_scope_tag) {
+        base_class_type = base_class_type->variant.typeref.type;
+      }  /* if */
       /* If it is a const or volatile qualified type name (where in the ARM is
          this required???) or if it is the the class now being defined or if
          it is a union or if it has been declared but not yet defined (ARM
