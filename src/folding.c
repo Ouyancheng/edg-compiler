@@ -24,6 +24,7 @@ folding.c -- Folding routines.
 #include "const_ints.h"
 #include "cmd_line.h"
 #include "symbol_tbl.h"
+#include "folding.h"
 
 /*
 Determine the severity (error or warning) to be used for integer
