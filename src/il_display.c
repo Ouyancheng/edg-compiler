@@ -871,7 +871,7 @@ Display the indicated source correspondence entry.
   disp_boolean("  referenced", (a_boolean)scp->referenced);
   disp_unsigned_long("  il_walk_flag", (unsigned long)scp->il_walk_flag);
   if (scp->name != NULL) {
-  disp_name("  name_linkage");
+    disp_name("  name_linkage");
     switch ((a_name_linkage_kind)scp->name_linkage) {
       case nlk_none:
         (void)printf("nlk_none\n");
@@ -892,7 +892,7 @@ Display the indicated source correspondence entry.
     }  /* switch */
   }  /* if */
 #if RECORD_SCOPE_DEPTH_IN_IL
-  disp_long("  scope_depth", (long)sc->scope_depth);
+  disp_long("  scope_depth", (long)scp->scope_depth);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
 }  /* disp_source_corresp */
 
