@@ -948,6 +948,10 @@ the template.
          identifier as a syntax error. */
       syntax_error(ec_exp_identifier);
       err = TRUE;
+    } else if (scope_stack[depth_scope_stack].kind ==
+                        (a_scope_kind)sck_template_declaration) {
+      syntax_error(ec_exp_identifier);
+      err = TRUE;
     } else if (curr_token == tok_lbrace ||
                (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
       /* This is a tagless class definition. */
