@@ -1825,8 +1825,10 @@ Return TRUE if type's typeinfo is always defined in the runtime library.
   if (is_void_type(type) || is_integral_type(type) || is_floating_type(type)) {
     result = TRUE;
   } else if (is_pointer_type(type)) {
+    a_type_qualifier_set quals;
     type = type_pointed_to(type);
-    if ((!is_qualified_type(type) || is_const_qualified_type(type)) &&
+    quals = get_type_qualifiers (type);
+    if ((quals == TQ_NONE || quals == TQ_CONST) &&
         (is_void_type(type) || is_integral_type(type) ||
          is_floating_type(type))) {
       result = TRUE;
