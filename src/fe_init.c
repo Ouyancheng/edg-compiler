@@ -712,6 +712,7 @@ unit, in case multiple source files are allowed.
 #if CHECKING
   check_target_configuration();
 #endif /* CHECKING */
+  il_one_time_init();
   symbol_tbl_one_time_init();
 }  /* fe_one_time_init */
 
