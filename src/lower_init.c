@@ -6879,9 +6879,9 @@ This routine returns TRUE if guard code was emitted.
   a_variable_ptr         test_var;
 #if !IA64_ABI
   an_expr_node_ptr       test_var_node, compare_node;
+#endif /* !IA64_ABI */
   a_constant             minus_one_constant;
   a_memory_region_number region_to_switch_back_to;
-#endif /* !IA64_ABI */
   a_boolean              guard_code_emitted = FALSE;
 
   /* If the variable has internal linkage (e.g., in -tlocal mode), do not
@@ -6929,9 +6929,28 @@ This routine returns TRUE if guard code was emitted.
                                           insert_location2);
   }  /* if */
 #else /* IA64_ABI */
-  add_first_time_test(variable, insert_location, insert_location2,
-                      (a_statement_ptr *)NULL, &test_var);
-  guard_code_emitted = TRUE;
+  if (variable->is_specialized) {
+    /* This variable is a specialization of a template entity, so its
+       initialization should take precedence over any initialization code
+       for other instances.  Initialize the guard variable to -1 to lock out
+       all other initialization code.  No test of the guard variable is
+       needed here. */
+    test_var = make_global_var_with_prefixed_name("_ZGV",
+                                                  (an_integer_kind)ik_int,
+                                                  &variable->source_corresp);
+    test_var->init_kind = (an_init_kind)initk_static;
+    set_integer_constant(&minus_one_constant, (a_host_large_integer)-1,
+                         (an_integer_kind)ik_int);
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    test_var->initializer.constant =
+                                  alloc_unshared_constant(&minus_one_constant);
+    switch_back_to_original_region(region_to_switch_back_to);
+  } else {
+    /* Normal case -- emit the usual guard code. */
+    add_first_time_test(variable, insert_location, insert_location2,
+                        (a_statement_ptr *)NULL, &test_var);
+    guard_code_emitted = TRUE;
+  }  /* if */
 #endif /* IA64_ABI */
 end_of_routine:
   return guard_code_emitted;
