@@ -6659,6 +6659,7 @@ pointer to it.
 #endif /* DEBUG */
   cip->next = NULL;
   cip->kind = kind;
+  cip->compiler_generated = FALSE;
   switch (kind) {
     case cik_virtual_base_class:
     case cik_direct_base_class:

@@ -3157,6 +3157,7 @@ do_base_class:
       (void)printf("**BAD CONSTRUCTOR INIT KIND**\n");
   }  /* switch */
   disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
+  disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
 }  /* disp_constructor_init */
 
 

@@ -1701,6 +1701,10 @@ initialized.  These are addressed in the course of the processing.
                                                       cik_virtual_base_class :
                                                       cik_direct_base_class));
       cip->variant.base_class = bcp;
+      /* Mark the constructor initializer as compiler-generated (i.e., not
+         representing an explicit entry in the ctor-initializer list); clear
+         the flag later if appropriate. */
+      cip->compiler_generated = TRUE;
       /* Add the constructor init to the end of the appropriate list. */
       if (bcp->is_virtual) {
         if (virtual_list == NULL) {
@@ -1767,6 +1771,10 @@ initialized.  These are addressed in the course of the processing.
       /* A constructor init entry is required for this field. */
       cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
       cip->variant.field = sym->variant.field.ptr;
+      /* Mark the constructor initializer as compiler-generated (i.e., not
+         representing an explicit entry in the ctor-initializer list); clear
+         the flag later if appropriate. */
+      cip->compiler_generated = TRUE;
       if (cip_list == NULL) {
         cip_list = cip;
       } else {
@@ -1808,6 +1816,7 @@ initialized.  These are addressed in the course of the processing.
             /* The base class is probably on the direct_list, but if it was
                declared virtual it is on the virtual list. */
             new_cip = (direct_list != NULL) ? direct_list : virtual_list;
+            new_cip->compiler_generated = FALSE;
             bcp = new_cip->variant.base_class;
             check_assertion(bcp->direct);
             init_type = bcp->type;
@@ -1878,11 +1887,17 @@ initialized.  These are addressed in the course of the processing.
               break;
             }  /* if */
           }  /* for */
-          if (new_cip == NULL) {
+          if (new_cip != NULL) {
+            /* Already on the list and presumably marked as compiler-generated.
+               Reset the flag, now that it's appeared explicitly in the ctor-
+               initializer list. */
+            new_cip->compiler_generated = FALSE;
+          } else {
             /* No constructor init entry exists for this field.  Allocate one
                and add it to the list. */
             new_cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
             new_cip->variant.field = member_or_base_sym->variant.field.ptr;
+            new_cip->compiler_generated = FALSE;
             if (cip_list == NULL) {
               /* Easy case:  start a new list. */
               cip_list = end_of_cip_list = new_cip;
@@ -2003,6 +2018,10 @@ initialized.  These are addressed in the course of the processing.
             for (; new_cip != NULL; new_cip = new_cip->next) {
               if (new_cip->variant.base_class == bcp) break;
             }  /* for */
+            /* new_cip was initially marked as compiler-generated. Reset the
+               flag now that it's appeared explicitly in the ctor-initializer
+               list. */
+            new_cip->compiler_generated = FALSE;
             if (new_cip->initializer != NULL) {
               type_error(ec_base_class_already_initialized, bcp->type);
               err = TRUE;
@@ -2390,10 +2409,11 @@ scan_paren:
         sym = (a_symbol_ptr)cip->variant.base_class->type->
                                                 source_corresp.assoc_info;
       }  /* if */
-      fprintf(f_debug, "    initializer for %s %s: %s",
+      fprintf(f_debug, "    initializer for %s %s%s: %s",
                        (cip->kind == (a_constructor_init_kind)cik_field) ?
                           "field" : "base class",
                        sym->header->identifier,
+                       cip->compiler_generated ? " (compiler-generated)" : "",
                        (cip->initializer == NULL) ? " <none>\n" : "\n      ");
       if (cip->initializer != NULL) {
         db_dynamic_initializer(cip->initializer, 6);
@@ -2454,6 +2474,7 @@ though neither constructors nor initialization is involved here.)
                                                      cik_virtual_base_class :
                                                      cik_direct_base_class));
         cip->variant.base_class = bcp;
+        cip->compiler_generated = TRUE;
         /* Create a dynamic init entry. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
         dip->destructor = rp;
@@ -2508,6 +2529,7 @@ though neither constructors nor initialization is involved here.)
           /* Create the constructor init entry for a field. */
           cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
           cip->variant.field = sym->variant.field.ptr;
+          cip->compiler_generated = TRUE;
           /* Create a dynamic init entry. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           dip->destructor = rp;
@@ -2561,10 +2583,11 @@ though neither constructors nor initialization is involved here.)
         sym = (a_symbol_ptr)cip->variant.base_class->type->
                                                 source_corresp.assoc_info;
       }  /* if */
-      fprintf(f_debug, "    destructor for %s %s: %s",
+      fprintf(f_debug, "    destructor for %s %s%s: %s",
                        (cip->kind == (a_constructor_init_kind)cik_field) ?
                           "field" : "base class",
                        sym->header->identifier,
+                       cip->compiler_generated ? " (compiler-generated)" : "",
                        (cip->initializer == NULL) ? " <none>\n" : "\n      ");
       if (cip->initializer != NULL) {
         db_dynamic_initializer(cip->initializer, 6);
