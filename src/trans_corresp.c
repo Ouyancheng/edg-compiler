@@ -2921,7 +2921,6 @@ given type.
         /* Prefer definitions as canonical entries, and definitions in primary
            translation units in particular. */
         change_canonical_entry(trans_unit_corresp_of(type), (char*)type);
-        clear_class_type_correspondence(type, /*visited=*/TRUE);
         /* Work from the noncanonical entry to set the correspondences of
            members. */
         type = canon;
