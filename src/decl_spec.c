@@ -1759,11 +1759,6 @@ new expression and should therefore not be treated as a declaration.
        is a nested class declaration within a local class.  In either case,
        it is a local class. */
     is_local_class = TRUE;
-    if (inside_statement_expression() && !C_mode() &&
-        depth_innermost_function_scope != NO_SCOPE_NUMBER) {
-      /* Class definitions are not allowed inside statement expressions. */
-      pos_error(ec_class_def_in_statement_expr, &decl_start_pos);
-    }  /* if */
   }  /* if */
   if (curr_token == tok_class ||
       curr_token == tok_struct ||
@@ -2610,6 +2605,12 @@ new expression and should therefore not be treated as a declaration.
     check_for_and_remove_redundant_secondary_decl_ss_entry(class_type);
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (inside_statement_expression() && !C_mode() &&
+        !symbol_supplement_for_class(class_type)->is_POD) {
+      /* Non-POD class definitions are not allowed inside statement
+         expressions. */
+      pos_error(ec_class_def_in_statement_expr, &decl_start_pos);
+    }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !C_mode() && tag_sym->kind != (a_symbol_kind)sk_type) {

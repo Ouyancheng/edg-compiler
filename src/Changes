@@ -202,7 +202,7 @@ Statement expressions, i.e., ({ ... }), are now accepted in GNU C++
 mode.  Formerly, they were accepted only in GNU C mode.  To avoid
 various implementation difficulties, the following are prohibited
 in statement expressions in C++ mode: destructible entities,
-dynamically-initialized local static variables, local class
+dynamically-initialized local static variables, local non-POD class
 definitions, and try/catch.  Also, branching out of a statement
 expression is not allowed, and statement expressions may not be
 used in default argument expressions.  Variable-length arrays are
