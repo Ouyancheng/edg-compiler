@@ -856,6 +856,8 @@ nearest value that can be represented by "value_bits" bits.
     shift_right_mantissa(mp, 1);
     part_number = half_way_part_number;
     part = mp->parts[part_number];
+    /* Adjust the part mask to operate on the shifted value. */
+    part_mask >>= 1;
     orig_part = part;
     /* Get the value that should be added to round up the value.  Because we've
        shifted the mantissa, this turns out to be the same as the half way
