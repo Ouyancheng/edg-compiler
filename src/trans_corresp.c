@@ -4265,6 +4265,8 @@ static a_symbol_ptr check_routine_sym_corresponds(a_symbol_ptr   sym,
   sym_type = corresp_routine->type;
   if (routine == corresp_routine) {
     /* Skip this symbol. */
+  } else if (corresp_routine->is_template_function) {
+    /* An ordinary function never corresponds to a template instance. */
   } else if (param_types_are_compatible(routine->type,
                                         sym_type,
                                         TCF_REDECLARATION |
