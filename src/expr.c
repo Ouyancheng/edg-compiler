@@ -2659,14 +2659,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
           if (!is_class_struct_union_type(operand_1_type)) {
             /* Not (a pointer to) a class. */
             an_error_code err_code;
-            if (C_dialect == C_dialect_cplusplus) {
-              err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
-                                             ec_expr_not_class;
-            } else {
-              err_code = is_arrow_operator ?
-                                         ec_expr_not_ptr_to_struct_or_union :
-                                         ec_expr_not_struct_or_union;
-            }  /* if */
+            err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
+                                           ec_expr_not_class;
             error_in_operand(err_code, operand_1);
             err = TRUE;
           }  /* if */
