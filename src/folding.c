@@ -1109,7 +1109,8 @@ expressions should be folded (e.g., base class casts); if it is FALSE,
   if (constant->kind == (a_constant_repr_kind)ck_template_param) {
     /* A template parameter constant is cast to a new type by setting the
        implicit_cast flag. */
-    implicit_cast(constant, new_type_with_typedefs);
+    copy_constant(constant, &new_constant);
+    implicit_cast(&new_constant, new_type_with_typedefs);
     goto exit;
   }  /* if */
   if (is_template_param_type(new_type)) {
