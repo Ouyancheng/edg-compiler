@@ -1539,7 +1539,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
      for valued cases, it means inserting the value at the right spot
      on the list. */
   if (constant_ptr == NULL ||
-      can_add_to_curr_clause && scp->constant_list == NULL) {
+      (can_add_to_curr_clause && scp->constant_list == NULL)) {
     /* The default case is indicated by a NULL pointer.  Note that if
        a clause includes the default case, specifying any other constants
        along with "default" is redundant.  Therefore, we just clear the
