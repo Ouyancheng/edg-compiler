@@ -2046,12 +2046,18 @@ enable_microsoft_mode:
     namespaces_enabled = FALSE;
     wchar_t_is_keyword = FALSE;
     bool_is_keyword = FALSE;
+    /* Set global flags having to do with the potential sizes of enum types.
+       They must be no larger than int in C. */
+    enum_types_can_be_larger_than_int = FALSE;
+    if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
+      enum_types_can_be_smaller_than_int = FALSE;
+    } else {
+      enum_types_can_be_smaller_than_int =
+                              targ_enum_types_can_be_smaller_than_int;
+    }  /* if */
     if (C_dialect == C_dialect_pcc) {
       /* Alternative tokens are not recognized in PCC mode. */
       alternative_tokens_allowed = FALSE;
-      /* Enum types must be int. */
-      enum_types_can_be_smaller_than_int = FALSE;
-      enum_types_can_be_larger_than_int = FALSE;
     }  /* if */
     special_subscript_cost = FALSE;  /* Not really needed. */
     use_nonstandard_for_init_scope = TRUE;  /* Not really needed. */
@@ -2066,6 +2072,9 @@ enable_microsoft_mode:
     /* Reset the SVR4 C compatibility flag just in case it is set by
        default. */
     SVR4_C_mode = FALSE;
+    /* Set global flags having to do with potential size of enum types. */
+    enum_types_can_be_smaller_than_int =
+                            targ_enum_types_can_be_smaller_than_int;
     enum_types_can_be_larger_than_int = TRUE;
     /* The default for --long_preserving_rules in C++ is FALSE. */
     if (!option_kind_used[(int)optk_long_preserving_rules]) {
