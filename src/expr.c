@@ -1964,7 +1964,8 @@ The result is placed in *result.
              a template parameter constant. */
           make_template_param_expr_constant_operand(result,
                                                     (an_operand *)NULL,
-                                                    eok_error, result->type,
+                                              (an_expr_operator_kind)eok_error,
+                                                    result->type,
                                                     result);
         }  /* if */
       }  /* if */
