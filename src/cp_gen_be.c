@@ -4037,7 +4037,10 @@ this one is such a continuation.
                                            (a_name_linkage_kind)nlk_external &&
           (!type->source_corresp.is_class_member ||
            type->variant.class_struct_union.
-                                     nested_class_defined_outside_of_parent)) {
+                                     nested_class_defined_outside_of_parent) &&
+          /* Inside a function, this is not allowed, and can only have come
+             from an extern "C" { ... } wrapped around the function. */
+          innermost_function_scope == NULL) {
         /* The class definition is surrounded by an extern "C" block. */
         write_tok_str("extern \"C\" { ");
         /* Force matching "}" to be output later */

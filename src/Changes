@@ -1,6 +1,17 @@
 Version 2.45
 
-8/21/00  C++ generating back end: invalid redeclaration of typedef class name
+8/22/00  C++-generating back end: extern "C" and local class definition
+
+The C++-generating back end formerly put an extern "C" block around
+a local class defined inside an extern "C" function.  That's not
+necessary, and it's not valid C++.  The extern "C" on the class
+is now suppressed.
+
+  extern "C" void f () {
+    class X {};  // Formerly put out with extern "C" { ... }
+  }
+
+8/21/00  C++-generating back end: invalid redeclaration of typedef class name
 
 When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was TRUE, the
 front end would occasionally attempt to forward declare a class whose name
