@@ -12681,8 +12681,8 @@ passed via template_decl.
            strange error recovery problems, we do not add a member to the
            class type.  (If there was no declarator or if the declarator
            consisted solely of an unnamed bit field length, the locator is
-           set to an error locator even though there could not possible be
-           not possibly be a declarator-parsing error.) */
+           set to an error locator even though there could not possibly be
+           a declarator-parsing error.) */
         check_assertion(total_errors != 0);
       } else if (decl_info.storage_class == (a_storage_class)sc_static) {
         /* Static data member. */
