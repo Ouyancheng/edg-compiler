@@ -3429,6 +3429,22 @@ calls to runtime routines to implement complex operations and conversions.
 #endif /* LOWER_COMPLEX && !DO_C99_IL_LOWERING */
 
 /*
+This switch controls whether fixed-point arithmetic types and operations
+are lowered to standard C.  The lowered form uses calls to runtime routines
+provided by Dinkumware Ltd. (EDG does not provide them), so the feature
+is off by default.
+*/
+#ifndef LOWER_FIXED_POINT
+#define LOWER_FIXED_POINT FALSE
+#endif /* ifndef LOWER_FIXED_POINT */
+#if LOWER_FIXED_POINT && !DO_C99_IL_LOWERING
+ #error -- Fixed point cannot be lowered without doing C99 IL lowering
+#endif /* LOWER_FIXED_POINT && !DO_C99_IL_LOWERING */
+#if LOWER_FIXED_POINT && !FIXED_POINT_ALLOWED
+ #error -- Fixed point cannot be lowered unless fixed point is enabled
+#endif /* LOWER_FIXED_POINT && !FIXED_POINT_ALLOWED */
+
+/*
 This switch controls whether designated initializers (a C99 feature)
 are lowered to standard C.  Well, almost standard C: a designated
 initializer allows initialization of a member other than the first in
