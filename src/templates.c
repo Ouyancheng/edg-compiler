@@ -8134,6 +8134,7 @@ Otherwise, return FALSE.
   a_type_ptr    		type;
   a_boolean			any_mismatches = FALSE;
   a_template_decl_info_ptr	decl_info;
+  a_template_nesting_depth      template_depth = 0;
 
   /* If this declaration is for a member template, skip out to the
      next enclosing template parameter list because this routine is
@@ -8143,6 +8144,7 @@ Otherwise, return FALSE.
   if (member_sym->kind == (a_symbol_kind)sk_function_template ||
       member_sym->kind == (a_symbol_kind)sk_class_template) {
     decl_info = decl_info->enclosing_template_decl;
+    ++template_depth;
   }  /* if */
   type = member_sym->parent.class_type;
   /* Loop as long as we have a decl_info or a parent type.  The loop
@@ -8176,7 +8178,25 @@ Otherwise, return FALSE.
        each of the parameters if the lists are at different levels. */
     if (template_sym == NULL && decl_info == NULL) {
       /* Neither a class template symbol or any declaration information.
-         This is okay, the enclosing class is a normal class. */
+         This is probably okay (the enclosing class is a normal class),
+         but we must also verify the number of 'template<>' prefixes. */
+      /* First determine the number of 'template<>' prefixes that we should
+         have seen. */
+      a_template_nesting_depth  specialization_depth = 0;
+      while (type != NULL) {
+        if (type->variant.class_struct_union.is_template_class) {
+          ++specialization_depth;
+        }  /* if */
+        type = type->source_corresp.is_class_member ?
+                               type->source_corresp.parent.class_type : NULL;
+      }  /* while */
+      /* Now verify that the numbers match. */
+      if (!decl_state->decl_scope_err &&
+          decl_state->nesting_depth != template_depth + specialization_depth) {
+        /* An incorrect number of template parameter clauses was specified,
+           and we haven't issued a related diagnostic yet. */
+        pos_sy_error(ec_template_depth_mismatch, error_pos, member_sym);
+      }  /* if */
       break;
     } else if (decl_info == NULL || template_sym == NULL ||
                !check_template_param_nesting_depths(decl_info->parameters,
@@ -8197,6 +8217,7 @@ Otherwise, return FALSE.
     type = type->source_corresp.is_class_member ?
                                type->source_corresp.parent.class_type : NULL;
     if (decl_info != NULL) decl_info = decl_info->enclosing_template_decl;
+    ++template_depth;
   }  /* for */
   return !any_mismatches;
 }  /* member_template_param_list_matches_class */
