@@ -2415,6 +2415,12 @@ Definitions of the bits in bit sets of type a_type_qualifier_set.
 			/* This bit is set to represent __fastcall. */
 #define TQ_STDCALL	(1 << (int)tqt_stdcall)
 			/* This bit is set to represent __stdcall. */
+
+#define TQ_CALLING_CONVENTION_QUALIFIERS (TQ_CDECL |			\
+					  TQ_FASTCALL |			\
+					  TQ_STDCALL)
+			/* Macro that specifies the qualifier bits used to
+			   represent calling convention information. */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 /*
