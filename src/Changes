@@ -64,9 +64,9 @@ array-of-unknown-size, e.g.,
 was permitted to be an array of unknown size as long as it was not the
 *only* field.)
 
-Moreover, sizeof(S) in the above example is 1 in Microsoft C++ mode but
-(apparently) sizeof(int) in Microsoft C mode.  We have also attempted to
-emulate this mysterious behavior.
+Moreover, in the example above the Microsoft C++ compiler determines that
+sizeof(S) == 1, whereas its C compiler (apparently) assumes sizeof(S) ==
+sizeof(int).  We have also attempted to emulate this mysterious behavior.
 
 6/7/96  IL CHANGE: ck_cast removed, tpck_cast/tpck_sizeof/tpck_alignof added
 
