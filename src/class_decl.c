@@ -5222,6 +5222,10 @@ of the function, and again overloading is a possibility.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     declarator_ssep = func_info->declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (microsoft_mode && sym != NULL && sym->is_class_member &&
+        sym->kind == (a_symbol_kind)sk_projection) {
+      reduce_projection_symbol_to_fundamental_symbol(sym);
+    }  /* if */
     if (sym != NULL && sym->is_class_member &&
         !is_member_function_symbol(sym)) {
       /* If sym represents a member of a class, but it is not a member
