@@ -2009,17 +2009,26 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
       param_type2 = arg2->param_type;
       /* Some arguments have no parameter type (e.g., an ellipsis match). */
       if (param_type1 != NULL && param_type2 != NULL) {
-        /* Note that the test allows one to be a pointer, the other a
-           reference; that's needed when matching a "this" parameter, for
-           some cases that compare a "this" parameter pointer match with
-           a reference match.  It also seems to be common practice for
-           some other (non-"this") cases -- there's some code in the
-           NIH library that won't work without this. */
+        /* Note that the test here allows one to be a pointer, the other a
+           reference, for some cases that compare a "this" parameter
+           pointer match with a reference match.  This seems to be common
+           practice for some other cases as well; there's a pointer/reference
+           case in the NIH library. */
         if (is_ptr_or_ref_type(param_type1) &&
             is_ptr_or_ref_type(param_type2)) {
-          /* Both parameters are pointers or references, as appropriate. */
+          /* Both parameters are pointers or references. */
           under_type1 = type_pointed_to(param_type1);
           under_type2 = type_pointed_to(param_type2);
+          if (any_cfront_mode()) {
+            /* In cfront mode, ignore arrays under references.  There's a
+               case like that in the NIH libraries. */
+            if (is_reference_type(param_type1) && is_array_type(under_type1)) {
+              under_type1 = underlying_array_element_type(under_type1);
+            }  /* if */
+            if (is_reference_type(param_type2) && is_array_type(under_type2)) {
+              under_type2 = underlying_array_element_type(under_type2);
+            }  /* if */
+          }  /* if */
           if (types_are_compatible_ignoring_qualifiers(under_type1,
                                                        under_type2)) {
             /* The underlying types are the same, so tie-breaker differences
