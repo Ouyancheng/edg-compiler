@@ -1023,20 +1023,23 @@ static void set_pm_cast_base_class(a_constant_ptr   constant,
                                    a_type_ptr       new_type,
                                    a_base_class_ptr bcp,
                                    a_boolean        cast_to_base,
-                                   a_boolean        is_implicit_cast)
+                                   a_boolean        is_implicit_cast,
+                                   a_boolean        *did_not_fold)
 /*
 constant is a pointer-to-member constant.  Cast it to new_type, which is
 a pointer to member of the class indicated by bcp.  If cast_to_base is TRUE,
 this cast is toward a base class; otherwise, it is toward a derived class
 (in which case bcp gives the base class entry for the current class as
 a base class of the derived class).  is_implicit_cast is TRUE if the
-cast is implicit.
+cast is implicit.  If the cast cannot be folded, *did_not_fold is
+returned TRUE.
 */
 {
   a_type_ptr       member_class, new_class;
   a_targ_ptrdiff_t offset;
   a_base_class_ptr casting_base_class;
 
+  *did_not_fold = FALSE;
   if (pm_constant_is_null(constant)) {
     /* A NULL pointer-to-member keeps a NULL casting_base_class even
        when cast to another type. */
@@ -1097,21 +1100,25 @@ cast is implicit.
           goto have_base_class;
         }  /* if */
       }  /* for */
-#if CHECKING
-      internal_error("set_pm_cast_base_class: could not find base class");
-#endif /* CHECKING */
+      /* Weird case (undefined behavior), e.g., member cast from base class
+         A to derived class D, then to base class B (which does not contain
+         the member). */
+      *did_not_fold = TRUE;
+      goto end_of_routine;
 have_base_class:
       implicit_or_explicit_cast(constant, new_type, is_implicit_cast);
     }  /* if */
     constant->variant.ptr_to_member.casting_base_class = casting_base_class;
     constant->variant.ptr_to_member.cast_to_base = cast_to_base;
   }  /* if */
+end_of_routine:;
 }  /* set_pm_cast_base_class */
 
 
 static void fold_pm_base_class_cast(a_constant        *constant_1,
                                     a_base_class      *bcp,
                                     a_constant        *result,
+                                    a_boolean         *did_not_fold,
                                     a_source_position *err_pos)
 /*
 Fold a C++ cast of a pointer to a member of a class to pointer to a member
@@ -1119,13 +1126,15 @@ of a base class.  constant_1 is a pointer-to-member constant.  It is converted
 to a pointer-to-member for the base class indicated by bcp and the new
 constant is returned in *result.  result->type on entry indicates the
 desired pointer-to-member type, possibly with qualifiers.  If there is an
-error, issue it at *err_pos.  Note that casts of this type always come from
+error, issue it at *err_pos.  If the cast cannot be folded, *did_not_fold
+is returned TRUE.  Note that casts of this type always come from
 explicit casts, so checking for accessibility of base classes is not necessary.
 */
 {
   a_type_ptr new_type = result->type;
 
   /* The code here looks like add_pm_base_class_casts. */
+  *did_not_fold = FALSE;
   if (bcp->ambiguous) {
     /* The base class is ambiguous. */
     pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
@@ -1140,7 +1149,7 @@ explicit casts, so checking for accessibility of base classes is not necessary.
     copy_constant(constant_1, result);
     /* Set the constant to indicate the cast. */
     set_pm_cast_base_class(result, new_type, bcp, /*cast_to_base=*/TRUE,
-                           /*is_implicit_cast=*/FALSE);
+                           /*is_implicit_cast=*/FALSE, did_not_fold);
   }  /* if */
 }  /* fold_pm_base_class_cast */
 
@@ -1149,6 +1158,7 @@ static void fold_pm_derived_class_cast(a_constant        *constant_1,
                                        a_base_class      *bcp,
                                        a_constant        *result,
                                        a_boolean         is_implicit_cast,
+                                       a_boolean         *did_not_fold,
                                        a_source_position *err_pos)
 /*
 Fold a C++ cast of a pointer to a member of a class to pointer to member
@@ -1158,6 +1168,7 @@ result->type) and the new constant is returned in *result.  The cast
 is implicit (and access checking must be done) if is_implicit_cast is
 TRUE.  bcp points to the base class entry for the current type relative
 to the desired derived type.  If there is an error, it is issued at *err_pos.
+If the cast cannot be folded, *did_not_fold is returned TRUE.
 */
 {
   a_type_ptr            new_type = result->type, curr_type;
@@ -1167,6 +1178,7 @@ to the desired derived type.  If there is an error, it is issued at *err_pos.
   a_boolean             check_cast_access = is_implicit_cast;
 
   /* The code here looks like add_pm_derived_class_casts. */
+  *did_not_fold = FALSE;
   derived_class_type = pm_class_type(new_type);
   if (bcp->ambiguous) {
     /* The cast is ambiguous. */
@@ -1201,7 +1213,7 @@ to the desired derived type.  If there is an error, it is issued at *err_pos.
     copy_constant(constant_1, result);
     /* Set the constant to indicate the cast. */
     set_pm_cast_base_class(result, new_type, bcp, /*cast_to_base=*/FALSE,
-                           is_implicit_cast);
+                           is_implicit_cast, did_not_fold);
   }  /* if */
 }  /* fold_pm_derived_class_cast */
 
@@ -1210,6 +1222,7 @@ static void conv_ptr_to_member_to_ptr_to_member(
                                          a_constant        *old_constant,
                                          a_constant        *new_constant,
                                          a_boolean         is_implicit_cast,
+                                         a_boolean         *did_not_fold,
                                          a_source_position *err_pos,
                                          an_error_code     *err_code,
                                          an_error_severity *err_severity)
@@ -1218,6 +1231,7 @@ Convert a pointer-to-member constant to a pointer-to-member constant of
 a different type.  old_constant is the original constant.  new_constant->type
 indicates the desired new type.  The converted constant is put into
 *new_constant.  This is an implicit cast if is_implicit_cast is TRUE.
+If the cast cannot be folded, *did_not_fold is returned TRUE.
 Note that this should not be called to implement a reinterpret_cast operation
 since such casts on pointer-to-member types are not "constant operations".
 */
@@ -1228,6 +1242,7 @@ since such casts on pointer-to-member types are not "constant operations".
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
+  *did_not_fold = FALSE;
   /* Basically, all that's needed is to change the type of the constant and
      set implicit_cast.  However, one must also check for an ambiguous
      cast and (when the cast is implicit) for accessibility. */
@@ -1245,14 +1260,15 @@ since such casts on pointer-to-member types are not "constant operations".
   } else if ((bcp = find_base_class_of(old_class, new_class)) != NULL) {
     /* Derived --> base (allowed only as an explicit cast).  Valid unless
        the cast is ambiguous. */
-    fold_pm_base_class_cast(old_constant, bcp, new_constant, err_pos);
+    fold_pm_base_class_cast(old_constant, bcp, new_constant, did_not_fold,
+                            err_pos);
   } else if ((bcp = find_base_class_of(new_class, old_class)) != NULL) {
     /* Base --> derived (allowed as an implicit or explicit cast).  Valid
        unless the cast is ambiguous, the base class is inaccessible (if
        the cast is implicit), or the base class is a virtual base of the
        derived class. */
     fold_pm_derived_class_cast(old_constant, bcp, new_constant,
-                               is_implicit_cast, err_pos);
+                               is_implicit_cast, did_not_fold, err_pos);
   } else {
     unexpected_condition_str(
                     "conv_ptr_to_member_to_ptr_to_member: unrelated classes");
@@ -1631,7 +1647,8 @@ to the constant is maintained, by adding a cast if necessary.
           (microsoft_mode &&
            related_ptr_to_members(constant_type, new_type))) {
         conv_ptr_to_member_to_ptr_to_member(constant, &new_constant,
-                                            is_implicit_cast, err_pos,
+                                            is_implicit_cast, did_not_fold,
+                                            err_pos,
                                             &err_code, &err_severity);
       } else {
         *did_not_fold = TRUE;

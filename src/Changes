@@ -1,5 +1,19 @@
 Version 3.1
 
+7/11/02  Abort in set_pm_base_class_cast ("could not find base class")
+
+An abort on handling folding of some undefined-behavior pointer-to-
+member casts as constant casts has been fixed.  The problem cases
+involve multi-step casts such that the original member does not
+exist in the class of the final cast.  The cases are now not folded,
+leaving them to work, or not, as casts at execution time.
+
+  struct A { int a; A() : a(2) { } virtual void f() = 0; };
+  struct B { int b; B() : b(3) { } virtual void f() = 0; };
+  struct C { int c; virtual void f() = 0;  };
+  struct D : A, B, C { virtual void f() { } };
+  void (B::*ff())() { return (void (B::*)())(void (D::*)())&C::f; }
+
 7/10/02  GNU compatibility: __VERSION__ macro
 
 In GNU mode, the __VERSION__ macro is now supported.  The macro
