@@ -4047,7 +4047,7 @@ match, promotion, etc.) for the operand.
        conversions. */
     match_level = aml_std_conversion;
   } else if (cfront_3_0_mode && kind == (an_opname_kind)onk_subscript &&
-             type_code == INTEGRAL_TYPE_CODE) {
+             type_code == PROMOTED_INTEGRAL_TYPE_CODE) {
     /* The subscript operator's integral operand is treated as a
        standard conversion always in cfront 3.0.2.  Who knows why,
        but this is used in jcool and tools.h++. */
