@@ -10439,7 +10439,7 @@ existing type is simply used.
   a_source_position           saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_type_ptr				tp;
-  static int				pending_instantiations = 0;
+  static unsigned int			pending_instantiations = 0;
   a_boolean				dependent_arg_list;
 
   /* Determine whether the template argument list depends on a template
