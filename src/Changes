@@ -1,5 +1,18 @@
 Version 2.41
 
+2/25/99  Argument-dependent lookup on function calls
+
+Argument-dependent lookup (also known as Koenig lookup) is now
+implemented for function calls in the normal f(x, y, z) form.
+(It was already implemented for overloaded operators, e.g., a + b.)
+Argument-dependent lookup finds instances of the named functions
+in the classes and namespaces associated with the argument types,
+and adds them to the set of functions considered by overload resolution.
+The feature can be enabled or disabled with --[no_]arg_dep_lookup.
+The default is given by DEFAULT_ARG_DEPENDENT_LOOKUP (TRUE in the
+release).  The feature is turned off in Microsoft mode and cfront
+mode.
+
 2/25/99  Complete access checking on dynamic_cast
 
 The dynamic_cast operation requires a limited form of access checking
