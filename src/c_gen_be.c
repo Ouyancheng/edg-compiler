@@ -3956,7 +3956,7 @@ the file.
     (void)putc(c, f_C_output);  /* Use putc not fputc for speed. */
   }  /* while */
   /* Make sure there is a newline at the end of the copied text. */
-  if (c != '\n') (void)fputc('\n', f_C_output);
+  (void)fputc('\n', f_C_output);
   /* Force a #line directive after the code. */
   set_unknown_output_position();
   /* Close and delete the temporary file. */
@@ -6308,7 +6308,7 @@ definitions needed to support the generated code.
     char ch = *p;
     /* Replace non-alphanumeric characters in the version number with
        an underscore. */
-    if (!isalnum((unsigned int)ch)) ch = '_';
+    if (!isalnum((unsigned char)ch)) ch = '_';
     (void)fputc(ch, f_C_output);
   }  /* for */
   (void)fprintf(f_C_output, ";\n");
