@@ -1654,7 +1654,11 @@ Clear the correspondence pointers in the substructure of a class type.
                            variant.class_struct_union.extra_info->assoc_scope;
       a_base_class_ptr  base = type->variant.class_struct_union.extra_info
                                                                ->base_classes;
-      clear_scope_correspondence(scope, visited);
+      if (scope != NULL) {
+        /* scope is only NULL for some types generated during the lowering
+           of function bodies. */
+        clear_scope_correspondence(scope, visited);
+      }  /* if */
       for (; base != NULL; base = base->next) {
         clear_trans_unit_corresp(iek_base_class, base, visited);
       }  /* for */
