@@ -1052,9 +1052,8 @@ and for the instantiation of template functions.
        wrapup_control_flow_processing. */
     restore_struct_stmt_stack(&saved_sss_state);
   }  /* if */
-  if (is_instantiation &&
-      (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor ||
-       rout_ptr->special_kind == (a_special_function_kind)sfk_destructor)) {
+  if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor ||
+      rout_ptr->special_kind == (a_special_function_kind)sfk_destructor) {
     /* Set the instantiation_required flag for each of the virtual functions
        of the class (since they will be needed for the virtual function
        table, which may end up being defined in this translation unit).

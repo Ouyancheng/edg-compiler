@@ -371,6 +371,8 @@ the virtual function table can include non-overridden functions
 from base classes, so the processing needs to mark such functions
 to be instantiated also.
 
+(12/8/97:) Another tweak.
+
 11/12/97  extern "C" declaration inhibits generation of PCH file
 
 When the last declaration in a header file had an explicit linkage
