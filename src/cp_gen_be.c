@@ -1804,6 +1804,28 @@ entity is a template class, add the template arguments.
 }  /* gen_unqualified_name */
 
 
+static a_boolean is_direct_base_or_member_of_selector(a_type_ptr  type)
+/*
+Check if the given type is a direct base type or member type of the
+currently active selector class.
+*/
+{
+  a_boolean   result = FALSE;
+  a_type_ptr  selector_type;
+
+  check_assertion(curr_name_context != NULL &&
+                  type->source_corresp.is_class_member);
+  selector_type = curr_name_context->class_type;
+  check_assertion(selector_type != NULL);
+  if (same_entities(type->source_corresp.parent.class_type, selector_type)) {
+    result =  TRUE;
+  } else {
+    result = (find_direct_base_class_of(selector_type, type) != NULL);
+  }  /* if */
+  return result;
+}  /* is_direct_base_or_member_of_selector */
+
+
 static void gen_class_qualifier(a_type_ptr             class_type,
                                 a_gen_name_options_set options,
                                 a_boolean              *need_closing_paren)
@@ -1826,9 +1848,20 @@ for the meaning of need_closing_paren.
     gen_temp_name((char *)class_type);
     write_tok_str("::");
   } else {
-    /* Use recursion to handle multiple levels of nesting. */
-    gen_name(&class_type->source_corresp, iek_type, options | GN_QUALIFIER,
-             need_closing_paren);
+    if (msvc_is_generated_code_target && msvc_target_version_number <= 1200 &&
+        (options & GN_BOUND_MEMBER) &&
+        class_type->source_corresp.is_class_member &&
+        is_direct_base_or_member_of_selector(class_type)) {
+      /* Some Microsoft compilers don't accept bound member qualifiers
+         whose first component is not a direct base class or member class
+         of the selector expression.  For example, in "this->X::Y::m" the
+         class X must be a direct base or member of the type of *this. */
+      gen_unqualified_name(&class_type->source_corresp, iek_type);
+    } else {
+      /* Use recursion to handle multiple levels of nesting. */
+      gen_name(&class_type->source_corresp, iek_type, options | GN_QUALIFIER,
+               need_closing_paren);
+    }  /* if */
     write_tok_str("::");
   }  /* if */
 }  /* gen_class_qualifier */

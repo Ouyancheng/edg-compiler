@@ -1,5 +1,23 @@
 Version 3.1
 
+12/10/02 C++-generating back end, Microsoft compatibility:
+         Qualified member names
+
+Microsoft MSVC++ 6.0 (and earlier) cannot parse expressions of the form
+this->X::Y::f() if X is not a direct base or a member of the type of *this.
+The C++-generating back end was therefore modified to avoid generating such
+expressions when msvc_is_generated_code_target is TRUE and
+microsoft_target_version_number is less than or equal to 1200.  For example:
+
+  struct A { struct AN { virtual void f(); }; };
+  struct B {
+    struct BN: A::AN {
+      virtual void f() {
+        AN::f();  // Used to always be rendered as "this->A::AN::f();".
+      }           // For Microsoft targets we now generate "this->AN::f();".
+    };
+  };
+
 12/10/02 Ambiguous virtual function overrider not diagnosed
 
 In some cases involving virtual functions declared in virtual base classes,
