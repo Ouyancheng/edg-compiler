@@ -2198,18 +2198,12 @@ least one specifier.  The ANSI C syntax is as follows:
 		const
 		volatile
 
-When Microsoft keywords are recognized, additional the syntax is
-amended as follows (see comments below regarding recognition of the
-modified syntax):
+When Microsoft keywords are recognized, the syntax is amended as follows
+(see comments below regarding recognition of the modified syntax):
 
         storage-class-specifier:
 		__declspec ( extended-decl-modifier-seq )
 		__inline
-
-	type-qualifier:
-		__cdecl
-		__fastcall
-		__stdcall
 
 	extended-decl-modifier-seq:
 		extended-decl_modifier
