@@ -388,9 +388,6 @@ and indentation is the indentation desired.
       }
       break;
     case sk_overloaded_function:
-      if (sym->variant.overloaded_function.mixed_access) {
-        put_string ("mixed access");
-      }  /* if */
       if (sym->variant.overloaded_function.mixed_static_nonstatic) {
         put_string ("mixed static/nonstatic");
       }  /* if */
@@ -900,7 +897,6 @@ state.
       break;
     case sk_overloaded_function:
       sym_ptr->variant.overloaded_function.symbols = NULL;
-      sym_ptr->variant.overloaded_function.mixed_access  = FALSE;
       sym_ptr->variant.overloaded_function.mixed_static_nonstatic = FALSE;
       sym_ptr->variant.overloaded_function.any_virtual_functions = FALSE;
       break;
@@ -2141,24 +2137,15 @@ It cannot be used for checking access (see have_access_to_symbol).
 {
   an_access_specifier access;
 
-  if (sym_ptr->kind == (a_symbol_kind)sk_projection) {
+  if (fundamental_symbol_of(sym_ptr)->kind ==
+                                       (a_symbol_kind)sk_overloaded_function) {
+    /* Overloaded function.  Access is unknown at this point because we don't
+       know which function is being called.  The access will be checked
+       later. */
+    access = (an_access_specifier)as_public;
+  } else if (sym_ptr->kind == (a_symbol_kind)sk_projection) {
     /* Projection symbol. */
     access = sym_ptr->variant.projection.access;
-  } else if (sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
-    /* Overloaded function.  If all of the functions have the same access,
-       the access can be checked.  If not, it will have to be checked later
-       when the specific function is selected.
-       See overloaded_function_catch_up. */
-    if (sym_ptr->variant.overloaded_function.mixed_access) {
-      /* Access is unknown at this point. */
-      access = (an_access_specifier)as_public;
-    } else {
-      /* Since the access for all the functions is the same, get it from the
-         first function on the list. */
-      a_symbol_ptr first_function =
-                                  sym_ptr->variant.overloaded_function.symbols;
-      access = source_corresp_entry_for_symbol(first_function)->access;
-    }  /* if */
   } else {
     /* Normal symbol (not projection or overloaded function). */
     access = source_corresp_entry_for_symbol(sym_ptr)->access;
@@ -3285,7 +3272,8 @@ a_symbol_ptr opname_member_function_symbol(an_opname_kind kind,
 /*
 Return a pointer to the symbol entry for the operator function for the
 operator identified by kind in class class_type, or NULL if there is no such
-operator.
+operator.  The symbol may be a projection symbol (that's desirable, because
+a projection symbol is needed to check for ambiguity and access).
 */
 {
   a_symbol_ptr        sym = NULL;
@@ -3298,7 +3286,11 @@ operator.
     /* Yes.  Look for one in the desired class. */
     clear_locator(&locator, &pos_curr_token);
     locator.symbol_header = symhdr;
-    sym = class_qualified_id_lookup(&locator, class_type, IDL_NO_OPTIONS);
+    if (class_qualified_id_lookup(&locator, class_type, IDL_NO_OPTIONS)
+                                                                     != NULL) {
+      /* Get the projection symbol if any. */
+      sym = locator.specific_symbol;
+    }  /* if */
   }  /* if */
   return sym;
 }  /* opname_member_function_symbol */
@@ -3308,19 +3300,22 @@ a_symbol_ptr opname_function_symbol(an_opname_kind kind)
 /*
 Return a pointer to the symbol entry for the operator function for the
 operator identified by kind, or NULL if there is no such operator.
+Only non-member functions will be found.
 */
 {
   a_symbol_ptr        sym = NULL;
   a_symbol_header_ptr symhdr;
-  a_symbol_locator    locator;
 
   /* See if there are any functions for this operator. */
   symhdr = opname_symbol_table[kind];
   if (symhdr != NULL) {
-    /* Yes.  Look for one that's visible. */
-    clear_locator(&locator, &pos_curr_token);
-    locator.symbol_header = symhdr;
-    sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+    /* Yes.  Look for one that's visible and a non-member function. */
+    for (sym = symhdr->symbol; sym != NULL; sym = sym->next) {
+      if (sym->class_of_which_a_member == NULL && is_function_symbol(sym)) {
+        /* A non-member function. */
+        break;
+      }  /* if */
+    }  /* for */
   }  /* if */
   return sym;
 }  /* opname_function_symbol */
