@@ -1,5 +1,10 @@
 Version 2.30
 
+5/30/95  eccp bug using expr command
+
+The eccp script contained two expr commands that were not properly formed.
+These caused problems on some systems (e.g., Linux).
+
 5/25/95  Prelinker diagnostic issued if nm produces no output
 
 The prelinker now issues a warning when nm produces no output.
