@@ -1340,7 +1340,8 @@ routine entry and return TRUE; otherwise return FALSE.
   a_boolean                    is_virtual, overloaded;
   a_boolean                    is_nonreal_instantiation;
   a_base_class_ptr             bcp;
-  a_symbol_ptr                 symbol_list, sym, sym_next, sym_for_override_registry;
+  a_symbol_ptr                 symbol_list, sym, sym_next;
+  a_symbol_ptr                 sym_for_override_registry;
   a_routine_ptr                rout, rp;
   a_scope_ptr                  base_class_scope;
   a_class_type_supplement_ptr  ctsp;
