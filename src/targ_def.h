@@ -2235,12 +2235,16 @@ length arrays go out of scope and may be deallocated.  It is used to set
 global variable vla_dealloc_statements_in_il.
 */
 #ifndef VLA_DEALLOC_STATEMENTS_IN_IL
-#define VLA_DEALLOC_STATEMENTS_IN_IL VLA_ALLOWED
+#define VLA_DEALLOC_STATEMENTS_IN_IL (VLA_ALLOWED && !BACK_END_IS_CP_GEN_BE)
 #endif /* ifndef VLA_DEALLOC_STATEMENTS_IN_IL */
 #if VLA_DEALLOC_STATEMENTS_IN_IL && !VLA_ALLOWED
   #error -- VLA_DEALLOC_STATEMENTS_IN_IL cannot be true unless \
             VLA_ALLOWED is true
 #endif /* VLA_DEALLOC_STATEMENTS_IN_IL && !VLA_ALLOWED */
+#if VLA_DEALLOC_STATEMENTS_IN_IL && BACK_END_IS_CP_GEN_BE
+  #error -- VLA_DEALLOC_STATEMENTS_IN_IL cannot be true when \
+            BACK_END_IS_CP_GEN_BE is true
+#endif /* VLA_DEALLOC_STATEMENTS_IN_IL && BACK_END_IS_CP_GEN_BE */
 
 /*
 Flag that is used as the default setting for global variable vla_enabled.

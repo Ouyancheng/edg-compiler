@@ -7976,9 +7976,12 @@ statement unless suppress_trailing_space is TRUE.
       break;
     case stmk_set_vla_size:
     case stmk_vla_decl:
-    case stmk_vla_dealloc:
       /* No output. */
       break;
+    case stmk_vla_dealloc:
+      /* VLA dealloc statements should not be generated in configurations with
+         a C++-generating back end.  This should be controlled by the
+         configuration variable VLA_DEALLOC_STATEMENTS_IN_IL. */
     default:
       unexpected_condition_str("gen_statement_full: bad statement kind");
   }  /* switch */
