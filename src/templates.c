@@ -3843,16 +3843,6 @@ is responsible for setting the appropriate flags.
     a_boolean				can_instantiate;
     an_instance_lookup_entry_ptr	ilp = NULL;
 
-    /* Skip non-external function. */
-    if (is_static_or_inline_template_function(tip)) continue;
-#if DEBUG
-    if (debug_level >= 4) {
-      fprintf(f_debug, "Automatic instantiation processing for:\n");
-      db_symbol(instance_sym, "", 0);
-    }  /* if */
-#endif /* DEBUG */
-    any_instantiations_required = TRUE;
-    can_instantiate = can_be_instantiated(tip);
     /* Get a pointer to the IL entry to be processed. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       is_static_data_member = TRUE;
@@ -3861,6 +3851,17 @@ is responsible for setting the appropriate flags.
       is_static_data_member = FALSE;
       routine = instance_sym->variant.routine.ptr;
     }  /* if */
+    /* Skip non-external function. */
+    if (is_static_data_member ||
+        is_static_or_inline_template_function(tip)) continue;
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, "Automatic instantiation processing for:\n");
+      db_symbol(instance_sym, "", 0);
+    }  /* if */
+#endif /* DEBUG */
+    any_instantiations_required = TRUE;
+    can_instantiate = can_be_instantiated(tip);
     if (instantiations_needed && can_instantiate) {
       /* If an instantiation list is present and if this template could
          be instantiated then check whether it was present in the
@@ -3902,8 +3903,6 @@ is responsible for setting the appropriate flags.
     a_boolean				can_instantiate;
     a_boolean				is_static_data_member;
 
-    /* Skip non-external function. */
-    if (is_static_or_inline_template_function(tip)) continue;
     /* Get a pointer to the IL entry to be processed. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
       is_static_data_member = TRUE;
@@ -3912,6 +3911,9 @@ is responsible for setting the appropriate flags.
       is_static_data_member = FALSE;
       routine = instance_sym->variant.routine.ptr;
     }  /* if */
+    /* Skip non-external function. */
+    if (is_static_data_member ||
+        is_static_or_inline_template_function(tip)) continue;
     can_instantiate = can_be_instantiated(tip);
 #if DEBUG
     if (debug_level >= 4) {
