@@ -7412,7 +7412,7 @@ its subtree.
       case stmk_init:
         dump_dynamic_init_prescan_temps(statement->variant.dynamic_init);
         break;
-#endif /* CFE */
+#endif /* ifdef CFE */
       case stmk_if:
         dump_prescan_temps(statement->variant.if_stmt.then_statement);
         dump_prescan_temps(statement->variant.if_stmt.else_statement);
