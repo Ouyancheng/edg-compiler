@@ -3552,6 +3552,16 @@ void decl_function_template(a_symbol_locator    *locator,
                             a_storage_class     storage_class,
                             a_boolean           is_inline)
 /*
+Roughly speaking, this routine does for function templates what
+decl_var_or_routine does for ordinary functions.  Lookup and reuse or else
+create a function template symbol; for new symbols also create a routine
+entry (though one that is not added to the IL).  *locator represents the
+current identifier, type_ptr is the function type, storage_class is the
+storage class, if any, specified in the declaration, and is_inline is TRUE
+if "inline" was specified in the declaration.  The function template may
+be part of an overload set, it may have been previously declared (but not
+defined), and it may be an out-of-line defintion of a member function of a
+class template.
 */
 {
   a_scope_depth                     effective_decl_level;
@@ -3596,27 +3606,44 @@ void decl_function_template(a_symbol_locator    *locator,
     }  /* if */
   }  /* if */
   if (sym == NULL) {
+    /* id_linkage will set sym to point to an existing symbol when we have
+       a redeclaration of a function template. */
     (void)id_linkage(locator, &storage_class, type_ptr,
                      /*is_main_function=*/FALSE, &sym, &homonym_symbol,
                      &effective_decl_level);
-    if (sym != NULL) {
+    if (sym == NULL) {
+      /* Not a redeclaration. */
+      if (homonym_symbol != NULL) {
+        /* Another function with the same name has been declared already.  It
+           may or may not be a function template.  In any case, create a new
+           symbol and add it to an overload list. */
+        sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
+                                      locator, homonym_symbol,
+                                      &overload_symbol);
+      } else {
+        /* No overloading.  Simply create a new symbol. */
+        sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
+                                 DEPTH_OF_FILE_SCOPE,
+                                 /*suppress_redecl_error=*/FALSE);
+      }  /* if */
+    } else {
 #if CHECKING
       if (sym->kind != (a_symbol_kind)sk_function_template) {
         internal_error("decl_function_template:  unexpected linked symbol");
       }  /* if */
 #endif /* CHECKING */
+#if 0
       /* Error checking here? -- reconcile_routine_types call? -- etc. */
-    } else if (homonym_symbol != NULL) {
-      sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
-                                    locator, homonym_symbol, &overload_symbol);
-    } else {
-      sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
-                               DEPTH_OF_FILE_SCOPE,
-                               /*suppress_redecl_error=*/FALSE);
+#endif /* if 0 */
     }  /* if */
   }  /* if */
   tssp = sym->variant.template.extra_info;
   rout_ptr = tssp->variant.function.routine;
+  /* A routine entry is created for the function template, but it is not
+     entered in the IL.  It is a convenient place to keep track of prototype
+     information: type, storage class, etc.  These values may be reused
+     when the template is instantiated.  This routine entry will not, of
+     course, have a body associated with it. */
   if (rout_ptr == NULL) {
     switch_to_file_scope_region(&region_to_switch_back_to);
     tssp->variant.function.routine = rout_ptr = alloc_routine();
@@ -3631,15 +3658,28 @@ void decl_function_template(a_symbol_locator    *locator,
                                 (a_name_linkage_kind)nlk_internal;
   }  /* if */
   if (overload_symbol != NULL) {
+    /* A new symbol was added to an overload list which may have included
+       functions that were specific declarations of the current template.
+       For instance,
+         void f(int i) {  ... }
+         template <class T> void f(T t) { ... }
+       Here the first declaration of f turns out to be a specific declaration
+       of the template named f, even though the template is declared after the
+       instance.  We need to go back over the overload list and associate a
+       function instantiation entry with each routine that can in retrospect
+       be recognized as a specific declaration of the function template. */
     a_symbol_ptr  rout_sym;
     for (rout_sym = overload_symbol->variant.overloaded_function.symbols;
          rout_sym != NULL;
          rout_sym = rout_sym->next) {
       if (rout_sym->kind == (a_symbol_kind)sk_routine) {
+        /* Determine whether rout_sym is a specialization of the function
+           template represented by sym. */
         record_predeclared_template_function(sym, rout_sym);
       }  /* if */
     }  /* for */
   }  /* if */
+  /* Return the function template symbol. */
   *symbol_ptr = sym;
 #if DEBUG
   if (debug_level >= 3) {

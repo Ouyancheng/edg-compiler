@@ -26,7 +26,7 @@ templates.c -- Support for C++ templates.
 #include "types.h"
 
 
-static a_boolean instantiation_in_progress(a_type_ptr tp)
+static a_boolean instantiation_of_type_is_in_progress(a_type_ptr tp)
 /*
 Return TRUE if a class/struct/union scope for tp, which represents a template
 class, is currently on the scope stack.  If it is, that means an instantiation
@@ -50,6 +50,15 @@ for tp is currently in progress.
 
 void instantiate_template_class(a_type_ptr  tp)
 /*
+If tp is an instance of a class template, perform a full instantiation of it.
+This entails rescanning the tokens that were cached when the template
+definition was originally encountered; the cached tokens include the
+base specifiers list, if any, and the class body (from opening left brace
+through closing right brace).  The template arguments (the real values which
+the template parameters take on) have been recorded in tp and will be
+substituted for the template parameters when the instantiation scope is
+pushed.
+
 This routine should be called from check_for_uninstantiated_template_class,
 which determines that tp is an incomplete type.  If it also turns out to
 be a template type, this routine attempts to instantiate it; it might not be
@@ -84,7 +93,7 @@ able to if the template itself has not yet been defined.
       if (p_token_cache->first_token == NULL) {
         /* The template itself has not yet been defined.  The caller will
            issue an incomplete-type error. */
-      } else if (instantiation_in_progress(tp)) {
+      } else if (instantiation_of_type_is_in_progress(tp)) {
         /* This particular template class (not just some other one based on
            the same template) is currently being instantiated. */
       } else if (tssp->variant.class.pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
@@ -114,9 +123,15 @@ able to if the template itself has not yet been defined.
           db_symbol(template_sym, "\nbased on: ", 2);
         }  /* if */
 #endif /* DEBUG */
+        /* Push a template instantiation scope.  The real values of the
+           the template arguments will be associated with the template
+           parameter names. */
         (void)push_scope((a_scope_kind)sck_template_instantiation,
                          tssp->declaration_scope, tp, (a_routine_ptr)NULL,
                          (a_function_instantiation_entry_ptr)NULL);
+        /* The tokens of the template definition have been cached away.
+           Activate the cache so that they can be rescanned in light of
+           the new values associated with the template parameters. */
         rescan_reusable_cache(p_token_cache);
 #if CHECKING
         if (curr_token != tok_lbrace && curr_token != tok_colon) {
@@ -144,9 +159,18 @@ able to if the template itself has not yet been defined.
 }  /* instantiate_template_class */
 
 
-void instantiate_class_template(a_symbol_ptr  template_sym,
-                                a_type_ptr    prototype_type)
+static void instantiate_class_template(a_symbol_ptr  template_sym,
+                                       a_type_ptr    prototype_type)
 /*
+This routine is called to do a "prototype instantiation" of a class template,
+namely, to scan the template definition even though the template parameters
+have not yet been given "real" values; because declaration/expression
+disambiguation often cannot be done based on dummy types, only declarative
+information is scanned; inline function bodies and default argument
+expressions are ignored.  A side effect of this scan is to detect gross
+syntax errors.  The main benefit is to record the names and types of member
+functions and static data members, for which template definitions may be
+encountered.
 */
 {
   a_template_symbol_supplement_ptr  tssp;
@@ -159,7 +183,7 @@ void instantiate_class_template(a_symbol_ptr  template_sym,
   if (p_token_cache->first_token == NULL) {
     /* The template itself has not yet been defined. */
     internal_error("instantiate_class_template: bad cache");
-  } else if (instantiation_in_progress(prototype_type)) {
+  } else if (instantiation_of_type_is_in_progress(prototype_type)) {
     /* The template is currently being instantiated. */
     internal_error("instantiate_class_template: already being instantiated");
   };
@@ -196,6 +220,7 @@ void instantiate_class_template(a_symbol_ptr  template_sym,
 
 void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
 /*
+Instantiate the body of the template function associated with fiep.
 */
 {
   a_symbol_ptr                      rout_sym;
@@ -1319,6 +1344,16 @@ return a pointer to the symbol; otherwise, return NULL.
 void record_predeclared_template_function(a_symbol_ptr  templ_sym,
                                           a_symbol_ptr  rout_sym)
 /*
+rout_sym represents a routine that has already been declared, and templ_sym
+represents a function template of the same name.  It may be that rout_sym
+is a "predeclared" instance of templ_sym, as in the following example:
+  void f(int i) { ... }
+  template <class T> void f(T t) { ... }
+If so, we want to treat the first f as an instance of the template f.  This
+means including a reference to it on the list of function instantiation
+entries bound to the template f as well as devising a template argument list
+for it.  Check for such a case, and when it occurs create and initialize
+the function instantiation entry and set all the pointers.
 */
 {
   a_symbol_ptr                       sym;
