@@ -12191,6 +12191,7 @@ a thrown exception) if that is appropriate.
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           okay = TRUE, ambiguous;
+  a_boolean           string_case = FALSE;
   a_conv_descr        conversion;
 
   db_enter(3, "scan_aggregate_class_initializer_expression");
@@ -12234,6 +12235,7 @@ a thrown exception) if that is appropriate.
           result.is_simple_string_literal) {
         /* char array initialized by string literal, either one possibly
            wide.  Don't go down to the member type. */
+        string_case = TRUE;
         break;
       } else {
         /* Normal case: initialize the first member of the array. */
@@ -12253,13 +12255,15 @@ a thrown exception) if that is appropriate.
     if (*dip == NULL) okay = FALSE;
   } else {
     /* The entity being initialized has a non-class type. */
-    /* Convert to the required type. */
-    prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
-                             /*initializing_return_value=*/FALSE,
-                             /*initializing_variable=*/TRUE,
-                             static_lifetime,
-                             /*is_copy_initialization=*/TRUE,
-                             ec_bad_initializer_type);
+    if (!string_case) {
+      /* Convert to the required type. */
+      prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
+                               /*initializing_return_value=*/FALSE,
+                               /*initializing_variable=*/TRUE,
+                               static_lifetime,
+                               /*is_copy_initialization=*/TRUE,
+                               ec_bad_initializer_type);
+    }  /* if */
     switch (result.kind) {
       case ok_error:
         /* Some sort of error; message was already issued. */
