@@ -1090,12 +1090,14 @@ Dump the contents of the indicated type entry, for debug purposes.
         }  /* if */
         fputs("function", f_debug);
         if (rtsp->assoc_routine != NULL) {
-          fputs(" ", f_debug);
-          db_name_full(&rtsp->assoc_routine->source_corresp, iek_routine);
+          fprintf(f_debug, " %s",
+                         db_name_str_full(&rtsp->assoc_routine->source_corresp,
+                                          iek_routine,
+                                          /*include_func_params=*/FALSE));
         }  /* if */
         fputs("(", f_debug);
         if (!rtsp->prototyped) {
-          fputs(" unprototyped", f_debug);
+          fputs("<unprototyped>", f_debug);
         }  /* if */
         if (rtsp->this_class != NULL) {
           /* Display the type of *this (without qualifications. */
