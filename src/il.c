@@ -6195,7 +6195,8 @@ with the class or namespace.
     if (scp->is_class_member) {
       sp = scp->parent.class_type->
                   variant.class_struct_union.extra_info->assoc_scope;
-      if (sp->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+      scope_depth = sp->depth_in_scope_stack;
+      if (scope_depth != NO_SCOPE_DEPTH) {
         pointers_block = &scope_stack[scope_depth].pointers_block;
       } else {
         /* The scope stack entry is no longer available. */
