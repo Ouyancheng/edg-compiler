@@ -5314,17 +5314,15 @@ reusable value of the constant.
 
 static void concat_adjacent_string_literals(void)
 /*
-The current token (not in curr_token yet) is a string literal
-(tok_string_literal), and in the current lexical mode normal (not pp)
-tokens should be fetched, and concatenation of adjacent string literals
-should be done.  Look to see if the next token of input is a string literal,
-and if so, concatenate it with the current token.  Loop to pick up all
-the adjacent string literals.  The C standard says that a wide string literal
-next to a normal string literal is undefined; we choose not to concatenate
-them unless wchar_t is char.
+The current token (not in curr_token yet, but in const_for_curr_token) is
+a string literal (tok_string_literal), and in the current lexical mode
+normal (not pp) tokens should be fetched, and concatenation of adjacent
+string literals should be done.  Look to see if the next token of input
+is a string literal, and if so, concatenate it with the current token.
+Loop to pick up all the adjacent string literals.
 */
 {
-  an_integer_kind    centity_int_kind;
+  a_boolean          wide_strings;
   a_token_cache      cache;
   a_cached_token_ptr ctp, ctp_next, first_string_token = NULL;
   a_boolean          more_than_one_string = FALSE;
@@ -5332,12 +5330,13 @@ them unless wchar_t is char.
   db_enter(5, "concat_adjacent_string_literals");
   check_assertion_str(!fetch_pp_tokens && do_string_literal_concatenation,
                       "concat_adjacent_string_literals: bad mode");
-  /* Get the string element integer kind from the string. */
-  centity_int_kind = plain_char_int_kind;
+  /* See if the string is a wide string. */
+  wide_strings = FALSE;
   /* Watch out for the case where the constant is an error constant. */
   if (!is_error_constant(&const_for_curr_token)) {
-    centity_int_kind =
-                     char_int_kind_from_string_type(const_for_curr_token.type);
+    /* Use the negative test because in C mode, and in C++ mode when wchar_t
+       is not a keyword, wchar_t and char could be the same type. */
+    wide_strings = !is_char_array_type(const_for_curr_token.type);
   }  /* if */
   /* Start a token cache in which we will accumulate all the adjacent
      string literals.  Usually, this will be just a single string literal. */
@@ -5374,11 +5373,11 @@ them unless wchar_t is char.
     /* End the loop if the new token is not a string literal. */
     if (curr_token != tok_string_literal) break;
     /* Also end the loop if the new string is wide and the old is not, or
-       vice-versa (actually, if the underlying character representations
-       are different). */
+       vice-versa.  In C mode, and in C++ mode when wchar_t is not a keyword,
+       if wchar_t is char, wide and non-wide string literals will be
+       concatenated.  An error constant is accepted in all modes. */
     if (!is_error_constant(&const_for_curr_token) &&
-        centity_int_kind != 
-              char_int_kind_from_string_type(const_for_curr_token.type)) break;
+        wide_strings != !is_char_array_type(const_for_curr_token.type)) break;
     /* This string literal is okay, and will be added to the concatenation
        in the token cache. */
   }  /* for */
@@ -5390,7 +5389,7 @@ them unless wchar_t is char.
   } else {
     a_cached_token_ptr last_token;
     /* More than one string literal -- concatenate. */
-    concat_string_literals(&cache, centity_int_kind);
+    concat_string_literals(&cache, wide_strings);
     /* The constants have been concatenated into the first constant in the
        token cache (which might not be the first entry in the cache, if there
        are pragma entries first).  Discard the token cache entries for the

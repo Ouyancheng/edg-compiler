@@ -846,7 +846,7 @@ processing).
 
 
 void concat_string_literals(a_token_cache_ptr cache,
-                            an_integer_kind   centity_int_kind)
+                            a_boolean         wide_literals)
 /*
 Concatenate two or more string literals (or wide string literals) contained
 in the indicated token cache, and replace the constant in the first
@@ -859,9 +859,7 @@ This routine implements the lexical concatenation of section 2.1.1.2, phase
 6, of the C standard.  The nulls from the initial strings are discarded in
 doing the concatenation, and the one from the last string is copied as
 the final null of the concatenated string; see ANSI C 3.1.4.
-All the strings will be wide or not wide, or rather, all will have the
-same underlying character type (wchar_t and char might be the same type);
-centity_int_kind indicates the underlying character type.
+All the strings will be wide or not wide; wide_literals indicates which.
 */
 {
   a_targ_size_t      total_len = 0, str_len, null_len;
@@ -873,7 +871,7 @@ centity_int_kind indicates the underlying character type.
   db_enter(4, "concat_string_literals");
   /* Determine the length of the terminating null on strings.  It's usually
      1, but it may be bigger for wide string literals. */
-  if (centity_int_kind == targ_wchar_t_int_kind) {
+  if (wide_literals) {
     /* Wide string literal -- the null is the size of a wchar_t. */
     null_len = targ_sizeof_wchar_t;
   } else {
@@ -954,7 +952,7 @@ centity_int_kind indicates the underlying character type.
     concat_con->variant.string.length = total_len;
     concat_con->variant.string.value  = new_str;
     /* Adjust the constant type to match the new length. */
-    if (centity_int_kind != targ_wchar_t_int_kind) {
+    if (!wide_literals) {
       concat_con->type = string_type((a_targ_size_t)total_len);
     } else {
       concat_con->type = wide_string_type(

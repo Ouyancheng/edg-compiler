@@ -40,7 +40,7 @@ extern void conv_string_literal(unsigned long num_chars,
                                 an_error_code *err_code,
                                 char          **err_pos);
 extern void concat_string_literals(a_token_cache_ptr cache,
-                                   an_integer_kind   centity_int_kind);
+                                   a_boolean         wide_literals);
 
 #endif /* ifndef LITERALS_H */
 
