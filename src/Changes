@@ -299,7 +299,7 @@ so they are now disabled in Microsoft mode when Microsoft version is >= 1310.
 
 Microsoft attributes of the form "[attribute_name(args)]" are now accepted.
 The attribute facility was added by Microsoft in Visual C++ 7.0.  Such
-attributes are scanned and and an IL representation of the attribute is
+attributes are scanned and an IL representation of the attribute is
 created.  This information is used by the C++-generating back end to emit
 the attributes in the generated code.  Other than certain error checks,
 attributes have no semantic impact in the front end (for example, no
