@@ -4460,6 +4460,17 @@ function declarations.)
   a_class_symbol_supplement_ptr      cssp;
 
   db_enter(3, "decl_member_function_template");
+  if (!is_error_locator(*locator)) {
+#if 0
+    /* Until support for placement delete is provided, check for potential
+       overloading of operator delete. */
+#endif
+    if (locator->is_operator_name &&
+        is_delete_operator(locator->variant.opname)) {
+      pos_error(ec_template_operator_delete, &locator->source_position);
+      set_to_named_error_locator(*locator);
+    }  /* if */
+  }  /* if */
   check_operator_function_params(member_type, class_type, locator);
   clear_specific_symbol(*locator);
   (void)class_qualified_id_lookup(locator, class_type,
