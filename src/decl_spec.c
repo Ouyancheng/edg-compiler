@@ -1411,7 +1411,7 @@ the template.
     process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && !C_mode()) {
+  if (microsoft_mode && !C_mode() && tag_sym->kind != (a_symbol_kind)sk_type) {
     a_class_type_supplement_ptr ctsp =
                              class_type->variant.class_struct_union.extra_info;
     if (is_class_definition) {
