@@ -1157,11 +1157,7 @@ header information about the memory regions such as the memory_region_table.
   mem_regions_used = highest_used_region_number + 1;
   /* Write the memory region table and the region_scope_entry table from
      the IL header.  Note that index_for_il_file is not written. */
-  pch_write_value(size_of_mem_region_table);
   pch_write_value(highest_used_region_number);
-#if DEBUG
-  pch_write_value(size_of_allocated_in_region);
-#endif /* DEBUG */
   fwrite_with_check(mem_region_table,
                     sizeof(a_mem_block_header_ptr) * mem_regions_used,
                     f_pch_output);
@@ -1209,11 +1205,7 @@ header information about the memory regions such as the memory_region_table.
   check_file_section_id(pfs_memory_regions);
   /* Read the memory region table and the region_scope_entry table from
      the IL header.  Note that index_for_il_file is not written. */
-  pch_read_value(size_of_mem_region_table);
   pch_read_value(highest_used_region_number);
-#if DEBUG
-  pch_read_value(size_of_allocated_in_region);
-#endif /* DEBUG */
   /* Make sure that the tables allocated to store the memory region
      information are large enough. */
   ensure_mem_region_table_space(highest_used_region_number);
