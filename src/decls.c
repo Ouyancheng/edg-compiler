@@ -3200,6 +3200,20 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
               invalid_modifier = TRUE;
             }  /* if */
             break;
+          case dmt_selectany:
+            /* The effect of "selectany" depends on the initializer (if any).
+               More checks will therefore be needed after any initializers
+               have been scanned. */
+            if (scope_stack[decl_scope_level].kind ==
+                                       (a_scope_kind)sck_class_struct_union) {
+              /* Presumably the declaration of a static data member.  The
+                 selectany specifier can appear on an out-of-class static
+                 data member definition, but not on an in-class declaration
+                 (even if the in-class declaration has an initializer). */
+              invalid_modifier = TRUE;
+              new_modifiers->flags &= (~modifier_value);
+            }  /* if */
+            break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           default:
             invalid_modifier = TRUE;
@@ -11828,18 +11842,6 @@ continue_with_declaration:
            code are definitions. */
         is_variable_def = TRUE;
 #if DECL_MODIFIERS_IN_USE
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode) {
-          /* "selectany" is allowed only on variables that have external
-              linkage.  For Microsoft versions prior to 1300, static
-              initialization is also required. */
-          if ((has_initializer || microsoft_version >= 1300) &&
-              (local_decl_modifiers.flags & DM_SELECTANY)) {
-            /* Postpone the checking until the initializer is scanned. */
-            local_decl_modifiers.flags &= ~DM_SELECTANY;
-          }  /* if */
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Copy the decl-modifiers into the variable entry. */
         update_variable_decl_modifiers(var_ptr, &local_decl_modifiers,
                                        &locator.source_position,
@@ -11949,21 +11951,6 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         if (is_variable_def) srk_flags |= SRK_DEFINITION;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode) {
-          /* "selectany" is allowed only on variables that have static
-              initialization (in Microsoft versions prior to 1300) and
-              external linkage. */
-          if ((has_initializer || microsoft_version >= 1300) &&
-              (local_decl_modifiers.flags & DM_SELECTANY) &&
-              depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-              (local_storage_class == (a_storage_class)sc_unspecified ||
-               local_storage_class == (a_storage_class)sc_extern)) {
-            /* Postpone the checking until the initializer is scanned. */
-            local_decl_modifiers.flags &= ~DM_SELECTANY;
-          }  /* if */
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         decl_variable(&locator, local_storage_class, local_type_ptr,
                       declarator_ssep, srk_flags, &local_decl_modifiers,
                       &ms_attributes, attributes, asm_name, &asm_name_pos,
