@@ -5590,6 +5590,8 @@ to represent the template parameters.
       /* Note that the variant field template_param.kind was initialized to
          tpck_param when the constant was allocated. */
       sym->variant.constant->variant.template_param.
+                        variant.coordinates.depth = decl_state->nesting_depth;
+      sym->variant.constant->variant.template_param.
                         variant.coordinates.position = template_param_list_pos;
       set_source_corresp(&sym->variant.constant->source_corresp, sym);
       const_type_involves_template_param = 
