@@ -4417,19 +4417,16 @@ in C++ mode.  See ARM 13.
        distinguishable by overload resolution. */
     /* Note that the code here must match determine_arg_match_level
        and function_template_matches_operand_list. */
-    /* See if the "this" parameter is distinguishable if it exists.
-       Note that if one function has a "this" parameter and the other
-       does not, they cannot be distinguished on that basis.
-       However, a type qualifier on the "this" parameter type
-       makes a nonstatic function different from a static function.
-       (The ARM doesn't say that, but cfront seems to do it that
-       way; if you change this, see also member_function_redecl_sym,
-       which does a similar check.) */
+    /* See if the "this" parameter is distinguishable if it exists.  If one
+       function has a "this" parameter and the other does not, they are not
+       distinguishable on that basis alone (except in cfront compatibility
+       mode, when a type qualifier on the "this" parameter type makes a
+       nonstatic function distinguishable from a static function). */
     old_this_param_type = old_extra_info->implicit_this_param_type;
     old_this_qualified = (old_this_param_type != NULL &&
                           is_qualified_type(
                                     type_pointed_to(old_this_param_type)));
-    if (old_this_qualified != new_this_qualified ||
+    if ((old_this_qualified != new_this_qualified && any_cfront_mode()) ||
         (old_this_param_type != NULL && new_this_param_type != NULL &&
          types_distinguishable(old_this_param_type, new_this_param_type,
                                &params_all_compatible))) {
@@ -4469,8 +4466,8 @@ in C++ mode.  See ARM 13.
         /* See if the types are distinguishable.  A parameter containing
            template types is always distinguishable from one not containing
            such types. */
-        if (old_param->type_involves_template_param !=
-            new_param->type_involves_template_param ||
+        if ((old_param->type_involves_template_param !=
+                           new_param->type_involves_template_param) ||
             types_distinguishable(old_param->type, new_param->type,
                                   &params_all_compatible)) {
           distinguishable = TRUE;
@@ -4480,20 +4477,28 @@ in C++ mode.  See ARM 13.
     }  /* for */
     /* All the parameters are indistinguishable. */
     if (params_all_compatible) {
-      /* The parameter types are not just indistinguishable, they are
-         compatible.  This suggests that the user is trying to distinguish
-         the function on the basis of the return type, which is not
-         valid. */
+      if ((old_this_param_type == NULL) != (new_this_param_type == NULL)) {
+        /* Except in certain cases in cfront mode, it's an error to overload
+           a static and nonstatic member function whose parameter types are
+           the same. */
+        *err_code = ec_static_nonstatic_with_same_param_types;
+      } else {
+        /* The parameter types are not just indistinguishable, they are
+           compatible.  This suggests that the user is trying to distinguish
+           the function on the basis of the return type, which is not
+           valid. */
 #if CHECKING
-      if (types_are_strictly_compatible(old_type->variant.routine.return_type,
-                                      new_type->variant.routine.return_type)) {
-        /* The caller is supposed to have ensured that the case of
-           completely compatible function types does not come here, since
-           that's a case of redeclaration rather than overloading. */
-        internal_error("overload_distinguishable: types compatible");
-      }  /* if */
+        if (types_are_strictly_compatible(
+                                  old_type->variant.routine.return_type,
+                                  new_type->variant.routine.return_type)) {
+          /* The caller is supposed to have ensured that the case of
+             completely compatible function types does not come here, since
+             that's a case of redeclaration rather than overloading. */
+          internal_error("overload_distinguishable: types compatible");
+        }  /* if */
 #endif /* CHECKING */
-      *err_code = ec_return_type_cannot_distinguish_functions;
+        *err_code = ec_return_type_cannot_distinguish_functions;
+      }  /* if */
     } else {
       /* The parameter lists differ in some way. */
       *err_code = ec_overloaded_function_types_too_similar;
