@@ -1,6 +1,6 @@
 Version 2.32
 
-2/5/96   incorrect dealloction routine may be called if an exception is
+2/5/96   incorrect deallocation routine may be called if an exception is
          thrown while an array is being destroyed
 
 If an exception occurs while an array is being destroyed (by __vec_delete
