@@ -883,7 +883,7 @@ nonspecialized version of the name.
   if (name_buffer == NULL) {
     /* Allocate a buffer into which a copy of the unspecialized name can
        be made. */
-    name_buffer = pl_malloc_with_check(NAME_DECODE_BUFFER_SIZE);
+    name_buffer = (char *)pl_malloc_with_check(NAME_DECODE_BUFFER_SIZE);
   }  /* if */
   /* Remove any occurrences of "__S" from the name. */
   from = name;
