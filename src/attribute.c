@@ -578,9 +578,12 @@ that they appeared.
     (void)required_token(tok_lparen, ec_exp_lparen);
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_stop_token(tok_rparen);
-    /* Scan the attribute-list and attach it to the list we already
-       have. */
-    next_attribute = scan_attribute_list(next_attribute);
+    if (curr_token == tok_rparen) {
+      /* Presumably an empty attribute. */
+    } else {
+      /* Scan the attribute-list and attach it to the list we already have. */
+      next_attribute = scan_attribute_list(next_attribute);
+    }  /* if */
     /* There should now be two right parens. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     (void)required_token(tok_rparen, ec_exp_rparen);
