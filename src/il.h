@@ -472,6 +472,37 @@ a routine.
    (con)->variant.address.kind == (an_address_base_kind)abk_routine &&\
    (con)->variant.address.offset == 0 && !(con)->implicit_cast)
 
+/*
+Macros that return information about base classes that may, for virtual base
+classes, be contingent on the derivation selected.
+*/
+/* bcp is a virtual base class; return a pointer to the virtual derivation
+   entry associated with its preferred path (which is always the first in
+   list). */
+#define preferred_virtual_derivation_of(bcp)                         \
+  ((bcp)->paths_to_virtual_base_class)
+
+/* Return TRUE if bcp is a direct nonvirtual base class or a virtual base
+   class with exactly one derivation, which is direct. */
+#define sole_derivation_is_direct(bcp)                               \
+  ((bcp)->direct &&                                                  \
+   (!(bcp)->is_virtual || bcp->paths_to_virtual_base_class->next == NULL))
+
+/* Return TRUE if bcp is a direct nonvirtual base class or a virtual base
+   class whose preferred derivation is direct. */
+#define preferred_derivation_is_direct(bcp)                          \
+  ((bcp)->direct &&                                                  \
+   (!(bcp)->is_virtual || preferred_virtual_derivation_of(bcp)->direct))
+
+extern a_virtual_derivation_ptr first_virtual_derivation_of(
+                                                      a_base_class_ptr  bcp);
+
+/* Return TRUE if bcp is a direct nonvirtual base class or a virtual base
+   class whose "first" derivation (i.e., first as found in a depth-first
+   left-to-right search of the derivation graph) is direct. */
+#define first_derivation_is_direct(bcp)                              \
+  ((bcp)->direct &&                                                  \
+   (!(bcp)->is_virtual || first_virtual_derivation_of(bcp)->direct))
 
 #if DEBUG
 extern void db_type_name(a_type_ptr  tp);

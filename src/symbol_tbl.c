@@ -4526,7 +4526,7 @@ through back to the caller.
        marked as "direct" even though the path of greatest access is that of
        an indirect derivation; such cases are treated as indirect base
        classes. */
-    if (bcp->direct && (!bcp->is_virtual || bcp->derivation->next == NULL)) {
+    if (preferred_derivation_is_direct(bcp)) {
       if (sym == NULL) {
         /* Look for a projection from this base class (or from any class from
            which it is derived). */

@@ -1022,17 +1022,6 @@ bcp.
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 
-static a_boolean first_is_direct(a_base_class_ptr  bcp)
-/*
-*/
-{
-  a_virtual_derivation_ptr  vdp = bcp->paths_to_virtual_base_class;
-
-  while (!vdp->first) vdp = vdp->next;
-  return vdp->direct;
-}  /* if */
-
-
 /* This is a set of routines that allocate space for pointers to virtual
    base class data sections in cfront compatibility mode.  It is much more
    complicated that what is provided for normal mode because we have had
@@ -1056,8 +1045,7 @@ static a_boolean is_best_derivation(a_base_class_ptr  bcp,
     is_best_path = TRUE;
   } else {
     bcp = corresponding_base_class(bcp, class_type, (a_base_class_ptr)NULL);
-    if (bcp->direct &&
-        (!bcp->is_virtual || first_is_direct(bcp))) {
+    if (first_derivation_is_direct(bcp)) {
       is_best_path = FALSE;
     } else {
       derived_bcp = corresponding_base_class(derived_bcp, class_type,
@@ -1074,7 +1062,7 @@ static a_boolean is_best_derivation(a_base_class_ptr  bcp,
           }  /* if */
         }  /* for */
         if (!path->base_class->is_virtual ||
-            first_is_direct(path->base_class)) {
+            first_virtual_derivation_of(path->base_class)->direct) {
           goto done;
         }  /* if */
         vdp = path->base_class->paths_to_virtual_base_class;
@@ -1129,8 +1117,7 @@ successors on the list, if any, are processed before the predecessor.
 
   db_enter(4, "set_pointer_offsets_for_corresponding_virtual_base_classes");
   for (; base_class != NULL; base_class = base_class->next) {
-    if (base_class->direct &&
-        (!base_class->is_virtual || first_is_direct(base_class))) {
+    if (first_derivation_is_direct(base_class)) {
       /* We are only interested in direct base classes. */
       if (!use_decl_order) {
         /* We should use reverse declaration order, so do the successors
@@ -1317,7 +1304,7 @@ is not shared (i.e., where the pointer from a base class is not used).
        are put out in declaration order. */
 
     for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct && bcp->is_virtual && first_is_direct(bcp) &&
+      if (bcp->is_virtual && first_virtual_derivation_of(bcp)->direct &&
           bcp->pointer_base_class == NULL &&
           has_virtual_base_class_with_null_pointer_base_class(
                                                     bcp, lob->class_type)) {
@@ -1530,7 +1517,7 @@ base class of class_type, and allocate space for the latter.
           if (bcp->type->variant.class_struct_union.any_virtual_base_classes) {
             break;
           }  /* if */
-        } else if (first_is_direct(bcp) &&
+        } else if (first_virtual_derivation_of(bcp)->direct &&
                    bcp->type->
                         variant.class_struct_union.any_virtual_base_classes &&
                    bcp->data_section_base_class == NULL) {
@@ -1821,7 +1808,7 @@ addressed to indirect base classes.
      defined for the class, but ignore all but the direct base classes.  The
      rest are handled by recursively scanning the base class tree. */
   for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && (!bcp->is_virtual || first_is_direct(bcp))) {
+    if (first_derivation_is_direct(bcp)) {
       set_base_class_offsets(bcp);
     }  /* if */
   }  /* for */
