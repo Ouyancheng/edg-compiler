@@ -49,7 +49,8 @@ Return TRUE if tok is a token kind that is a literal constant.
 */
 #define is_literal_constant_token(tok)                                \
   (tok == tok_float_constant || tok == tok_int_constant ||            \
-   tok == tok_char_constant  || tok == tok_string_literal)
+   tok == tok_char_constant  || tok == tok_string_literal ||	      \
+   tok == tok_false          || tok == tok_true)
 
 
 /*
@@ -4223,6 +4224,28 @@ constant_accumulated:
 }  /* scan_number */
 
 
+static void scan_boolean_constant(a_token_kind ctoken)
+/*
+Scan the "true" and "false" tokens.  ctoken is tok_true or tok_false.
+Creates an integer constant of the appropriate kind (except when scanning
+pp tokens).
+*/
+{
+  if (fetch_pp_tokens) {
+    /* When fetching preprocessing tokens, just return tok_false or tok_true.
+       Nothing else needs to be done here for this case. */
+  } else {
+    /* Create a boolean constant with the appropriate value. */
+    clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
+    const_for_curr_token.type = bool_type();
+    /* The integer value is either 1 (true) or 0 (false). */
+    set_integer_value(&const_for_curr_token.variant.integer_value,
+                      (long)ctoken == tok_true);
+    const_for_curr_token.non_arithmetic = TRUE;
+  }  /* if */
+}  /* scan_boolean_constant */
+
+
 static a_token_kind accum_quoted_string(a_token_kind  ctoken,
                                         unsigned long *num_chars,
                                         a_boolean     *err)
@@ -5141,6 +5164,9 @@ id_scan:
               if (ctoken == tok_unimplemented) {
                 unimplemented_keyword_diagnostic(assoc_symbol);
                 ctoken = tok_identifier;
+	      } else if (ctoken == tok_false || ctoken == tok_true) {
+                /* A C++ boolean constant. */
+		scan_boolean_constant(ctoken);
               } else {
                 goto end_id_scan;
               }  /* if */

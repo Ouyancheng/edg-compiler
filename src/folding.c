@@ -151,7 +151,7 @@ is FALSE, suppress any warnings.
   *err_severity = es_warning;
 
   /* Copy the old value to the new value. */
-  set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
+  set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer); 
   new_constant->variant.integer_value = old_constant->variant.integer_value;
   /* Determine attributes (size, signedness) of the new integer kind. */
   get_integer_attributes(new_constant, &new_ikind, &new_signed, &new_bit_size);
@@ -1132,6 +1132,16 @@ expressions should be folded (e.g., base class casts); if it is FALSE,
     conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
                              fold_constant_addr_exprs,
                              did_not_fold, err_pos, &err_code, &err_severity);
+    goto exit;
+  }  /* if */
+  if (new_type->kind == (a_type_kind)tk_integer &&
+      new_type->variant.integer.bool_type) {
+    /* Conversion of any type to bool.  Set the boolean value to FALSE (zero)
+       if the source constant is some form of "false".  Otherwise, set it
+       to TRUE (1). */
+    set_constant_kind(&new_constant, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&new_constant.variant.integer_value,
+                      (long)!is_false_constant(constant));
     goto exit;
   }  /* if */
 
