@@ -1142,13 +1142,25 @@ static void dump_variable_storage_class(a_variable_ptr variable)
 Print the storage class of the indicated variable followed by a space.
 */
 {
+  a_boolean  suppress_register = FALSE;
   /* If the variable has an aggregate or union type, suppress the
      "register" storage class so that we can take the address of the
      variable if necessary to zero it or copy it for an eok_bassign.
      "register" on an aggregate probably doesn't do much anyway, and
      might even confuse the underlying C compiler. */
-  if (variable->storage_class == (a_storage_class)sc_register &&
-      is_aggregate_or_union_type(variable->type)) {
+  if (variable->storage_class == (a_storage_class)sc_register) {
+    if (is_aggregate_or_union_type(variable->type)) {
+      suppress_register = TRUE;
+#if !ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C
+    } else if (variable->address_taken) {
+      /* In SVR4 C compatibility mode, the address of a register variable
+         can be taken.  If the underlying C compiler cannot handle this
+         construct, suppress the register storage class for this variable. */
+      suppress_register = TRUE;
+#endif /* !ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C */
+    }  /* if */
+  }  /* if */
+  if (suppress_register) {
     if (annotate) {
       start_comment();
       write_tok_str("register");
