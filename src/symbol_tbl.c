@@ -720,7 +720,7 @@ state.
                                             sizeof(a_class_symbol_supplement));
 #if DEBUG
         num_class_symbol_supplements_allocated++;
-#endif
+#endif /* DEBUG */
         sym_ptr->variant.class_struct_union.extra_info = cssp;
         cssp->symbols = NULL;
         cssp->constructor = NULL;
@@ -3658,7 +3658,7 @@ C and C++.
   a_boolean               must_be_class = (options & IDL_MUST_BE_CLASS);
   a_boolean               must_be_tag   = (options & IDL_MUST_BE_TAG);
   a_boolean               must_be_type_name;
-  a_boolean               need_complicated_search, look_for_projected_symbol;
+  a_boolean               look_for_projected_symbol;
   a_boolean               add_to_active_list;
   a_name_space_kind       required_name_space_kind =
                             (C_dialect != C_dialect_cplusplus && must_be_tag) ?
@@ -3693,23 +3693,23 @@ C and C++.
     inactive_symbol_list = inactive_symbol_list_from_locator(*locator);
     /* If there are no classes and no class reactivations on the scope stack,
        or if the symbol cannot be a member symbol, the fast algorithm can be
-       used.  This is always the case in C. */
-    need_complicated_search = FALSE;
-    if (num_classes_on_scope_stack != 0) {
-      /* There is at least one class or class reactivation on the scope stack.
-         We may need to use the complicated algorithm, but if we can show
-         that the name does not appear as a member symbol on the inactive
-         list, we can still use the fast algorithm.  Since all symbols on
-         the inactive list are member symbols, the existence of an inactive
-         list means the symbol in question is potentially a member symbol.
-         Member symbols on the active list do not matter because they cannot
-         be projected into another class by inheritance (the class they're
-         in is not fully defined yet, so it can't have been used in a
-         derivation), and because they would be found properly on the search
-         of the active list in the fast algorithm. */
-      if (inactive_symbol_list != NULL) need_complicated_search = TRUE;
-    }  /* if */
-    if (!need_complicated_search) {
+       used.  This is always the case in C. The more complicated (and slower)
+       algorithm must be used to look up the name in the symbol (1) if there
+       are symbols on the inactive list for the name in question -- i.e.,
+       symbols that will not be found with the fast algorithm; and (2) if the
+       present scope stack is such that currently visible symbols might be on
+       an inactive list.  Only symbols for members of classes that go out of
+       scope appear on the inactive list.  Such symbols become visible in
+       only two ways -- they belong to a base class of a class that is
+       currently in scope or they belong to a class that has been reactivated
+       (e.g., for the definition of a member or friend function or the
+       initializatiion of a static data member).  Note that the slow algorithm
+       is not required for member symbols on the active list because they
+       are found properly on the search of the active list in the fast
+       algorithm. */
+    ssep = &scope_stack[depth_scope_stack];
+    if (inactive_symbol_list == NULL ||
+        !ssep->inactive_symbols_may_be_visible) {
       /* Fast algorithm: just search the active symbol list. */
 #if DEBUG
       num_fast_id_lookups++;
@@ -3720,8 +3720,8 @@ C and C++.
         if (is_acceptable_active_symbol(sym)) break;
       }  /* for */
     } else {
-      /* There is at least one class or class reactivation on the stack, so
-         a more complicated search is required. */
+      /* There are inactive symbols and they may be visible, so the more
+         complicated search is required. */
 #if DEBUG
       num_slow_id_lookups++;
 #endif /* DEBUG */
@@ -3734,7 +3734,6 @@ C and C++.
          to the scope they're in, from innermost scope to outermost. */
       prev_active_sym = NULL;
       active_sym = active_symbol_list;
-      ssep = &scope_stack[depth_scope_stack];
       /* Since there is a class or class reactivation on the stack, we know the
          stack has at least two entries (the file scope and the class or
          class reactivation). */
@@ -4244,6 +4243,7 @@ for the function scope case; it must be NULL in other cases.
   /* Fill in the fields of the scope entry. */
   ssep->kind                     = kind;
   ssep->current_access           = (an_access_specifier)as_public;
+  ssep->inactive_symbols_may_be_visible = FALSE;
   ssep->symbols                  = NULL;
   ssep->last_symbol              = NULL;
   ssep->il_scope                 = sp;
@@ -4279,11 +4279,21 @@ for the function scope case; it must be NULL in other cases.
           (kind != (a_scope_kind)sck_class_reactivation)) {
     decl_scope_level = depth_scope_stack;
   }  /* if */
-  /* Keep track of the number of current classes and class reactivations.
-     (If either count is non-zero name lookup is more involved.) */
   if (C_dialect == C_dialect_cplusplus) {
+    /* Check for class reactivations and classes with base classes.  When
+       these are found name lookup is more involved.  If the new scope is
+       neither, we can just use the state from the previous scope. */
+    if (kind == (a_scope_kind)sck_class_reactivation ||
+        (kind == (a_scope_kind)sck_class_struct_union &&
+         base_classes_of(assoc_type) != NULL)) {
+      ssep->inactive_symbols_may_be_visible = TRUE;
+    } else if (kind != (a_scope_kind)sck_file) {
+      ssep->inactive_symbols_may_be_visible =
+              scope_stack[depth_scope_stack-1].inactive_symbols_may_be_visible;
+    }  /* if */
     if (kind == (a_scope_kind)sck_class_struct_union ||
         kind == (a_scope_kind)sck_class_reactivation) {
+      /* Keep track of the number of classes and class reactivations. */
       num_classes_on_scope_stack++;
       /* If we're entering a class and we're already inside a function,
          the class is a local class. */
