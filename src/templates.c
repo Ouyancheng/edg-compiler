@@ -17001,6 +17001,9 @@ for adding the entries to the actual instantiation request file.
 {
   a_master_instance_ptr		mip;
   FILE				*f_definition_list;
+#if MAINTAIN_NEEDED_FLAGS
+  a_boolean			needed = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
   check_assertion(definition_list_file_name != NULL);
   f_definition_list = fopen(definition_list_file_name, "w");
@@ -17023,7 +17026,6 @@ for adding the entries to the actual instantiation request file.
     /* Suppress the entry if the IL entry was determined to be unneeded. */
     if (add_to_file) {
       a_symbol_ptr	sym = mip->instance->instance_sym;
-      a_boolean		needed;
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         a_variable_ptr	variable = sym->variant.static_data_member.variable;
         variable = (a_variable_ptr)canonical_il_entry_of(variable);
@@ -17044,12 +17046,15 @@ for adding the entries to the actual instantiation request file.
       fputs("\n", f_definition_list);
     }  /* if */
 #if DEBUG
-    if (db_flag_is_set("instantiations")) {
+    if (db_sym_trace("instantiations", mip->instance->instance_sym)) {
       fprintf(f_debug, "add_entities_to_request_file: ");
       db_symbol_name(mip->instance->instance_sym);
-      fprintf(f_debug, ": add_to_request_file=%d, already_instantiat=%d\n",
+      fprintf(f_debug,
+              "\n  add_to_request_file=%d\n  already_instantiated=%d\n",
               mip->add_to_request_file, mip->already_instantiated);
-      db_sym(mip->instance->instance_sym);
+#if MAINTAIN_NEEDED_FLAGS
+      fprintf(f_debug, "  needed=%d\n", needed);
+#endif MAINTAIN_NEEDED_FLAGS
     }  /* if */
 #endif /* DEBUG */
   }  /* for */
