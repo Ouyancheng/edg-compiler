@@ -689,6 +689,8 @@ extern void check_access_to_elided_copy_constructor(
                                              a_type_ptr        source_type,
                                              a_source_position *err_pos);
 
+extern a_boolean operand_is_temp_init(an_operand *operand);
+
 extern void prep_elision_initializer_operand(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,

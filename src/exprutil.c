@@ -6453,6 +6453,16 @@ entries for the operands.
   a_boolean optimizable = FALSE;
 
   *dip_2 = *dip_3 = NULL;
+  /* If only one of the operands is a temp-init, make a copy of the
+     other one so both will be temp-inits and the optimization can
+     be done. */
+  if (operand_is_temp_init(operand_2) &&
+      !operand_is_temp_init(operand_3)) {
+    temp_init_from_operand(operand_3, /*result_is_addr=*/FALSE);
+  } else if (operand_is_temp_init(operand_3) &&
+             !operand_is_temp_init(operand_2)) {
+    temp_init_from_operand(operand_2, /*result_is_addr=*/FALSE);
+  }  /* if */
   if (is_expression_operand(operand_2) &&
       is_expression_operand(operand_3)) {
     an_expr_node_ptr op_2 = operand_2->variant.expression;
