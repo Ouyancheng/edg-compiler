@@ -5442,6 +5442,11 @@ process_class_specifier:
         break;
 #if GNU_EXTENSIONS_ALLOWED
       case tok_typeof:
+        if (basic_type != bt_none || sign != sign_none || size != size_none) {
+          /* We've already seen specifiers that cannot be combined with
+             __typeof__; end the list of specifiers here. */
+          goto exit_loop;
+        }  /* if */
         basic_type = bt_typedef;
         decl_specifiers_seen |= DS_TYPE;
         *type_ptr = scan_typeof_operator();
