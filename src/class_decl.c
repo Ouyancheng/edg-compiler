@@ -6510,8 +6510,9 @@ declared member functions.
         } else if (cssp->constructor->kind ==
                                     (a_symbol_kind)sk_overloaded_function) {
           /* The overloaded function symbol is already registered. */
-        } else {
-          /* The overloaded function symbol was just created. */
+        } else if (overload_sym != NULL) {
+          /* The overloaded function symbol was just created.  (Unless an
+             error occurred, in which case overload_sym is NULL.) */
           cssp->constructor = overload_sym;
         }  /* if */
         /* Determine if this is a default constructor. */
