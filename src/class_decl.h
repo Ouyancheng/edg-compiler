@@ -31,8 +31,6 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 
 extern void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp);
 
-extern a_boolean simplify_curr_class_qualified_name(void);
-
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 extern void fixup_embedded_virtual_base_classes(a_base_class_ptr base_class,
                                                 a_type_ptr       class_type);
