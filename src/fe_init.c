@@ -239,10 +239,13 @@ Install the keywords in the symbol table.
     /* If Microsoft extensions are allowed, enter the keywords that are to
        be recognized. */
     enter_keyword((a_token_kind)tok_cdecl, "__cdecl");
+    enter_keyword((a_token_kind)tok_cdecl, "_cdecl");
     enter_keyword((a_token_kind)tok_declspec, "__declspec");
     enter_keyword((a_token_kind)tok_fastcall, "__fastcall");
+    enter_keyword((a_token_kind)tok_fastcall, "_fastcall");
     enter_keyword((a_token_kind)tok_microsoft_inline, "__inline");
     enter_keyword((a_token_kind)tok_stdcall, "__stdcall");
+    enter_keyword((a_token_kind)tok_stdcall, "_stdcall");
     enter_keyword((a_token_kind)tok_unaligned, "__unaligned");
     enter_keyword((a_token_kind)tok_microsoft_try, "__try");
     enter_keyword((a_token_kind)tok_finally, "__finally");
