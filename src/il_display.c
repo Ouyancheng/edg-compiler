@@ -2454,7 +2454,7 @@ do_assoc_type:
            iek_namelist_group);
 #endif /* ifdef FFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  disp_ptr("source_sequence_list", (char *)scp->source_sequence_entry,
+  disp_ptr("source_sequence_list", (char *)ptr->source_sequence_entry,
            iek_source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_scope */
@@ -2982,10 +2982,10 @@ static void disp_source_sequence_entry(a_source_sequence_entry_ptr ssep)
 /*
 */
 {
-  disp_ptr("next", (char *)ptr->next, iek_source_sequence_entry);  
-  disp_ptr("prev", (char *)ptr->prev, iek_source_sequence_entry);
-  disp_ptr("entity", (char *)ptr->entity.ptr,
-           (an_il_entry_kind)ptr->entity.kind);
+  disp_ptr("next", (char *)ssep->next, iek_source_sequence_entry);  
+  disp_ptr("prev", (char *)ssep->prev, iek_source_sequence_entry);
+  disp_ptr("entity", (char *)ssep->entity.ptr,
+           (an_il_entry_kind)ssep->entity.kind);
 }  /* disp_source_sequence_entry */
 
 
@@ -2994,11 +2994,11 @@ static void disp_src_seq_secondary_decl(a_src_seq_secondary_decl_ptr sssdp)
 */
 {
   disp_unsigned_long("decl_position.seq",
-                     (unsigned long)scp->decl_position.seq);
+                     (unsigned long)sssdp->decl_position.seq);
   disp_unsigned_long("decl_position.column",
-                     (unsigned long)scp->decl_position.column);
-  disp_ptr("entity", (char *)ptr->entity.ptr,
-           (an_il_entry_kind)ptr->entity.kind);
+                     (unsigned long)sssdp->decl_position.column);
+  disp_ptr("entity", (char *)sssdp->entity.ptr,
+           (an_il_entry_kind)sssdp->entity.kind);
 }  /* disp_src_seq_secondary_decl */
 
 
@@ -3008,13 +3008,13 @@ static void disp_comment(a_comment_ptr cp)
 */
 {
   disp_unsigned_long("start_position.seq",
-                     (unsigned long)cp->start_position.seq);
+                     (unsigned long)cp->range.start_position.seq);
   disp_unsigned_long("start_position.column",
-                     (unsigned long)cp->start_position.column);
+                     (unsigned long)cp->range.start_position.column);
   disp_unsigned_long("end_position.seq",
-                     (unsigned long)cp->end_position.seq);
+                     (unsigned long)cp->range.end_position.seq);
   disp_unsigned_long("end_position.column",
-                     (unsigned long)cp->end_position.column);
+                     (unsigned long)cp->range.end_position.column);
 }  /* disp_comment */
 
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
