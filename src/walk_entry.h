@@ -1196,7 +1196,7 @@ the file scope, do not process it (but record an orphan in the latter case).
            the file scope and function scopes. */
         walk_ptr_not_needed(ptr->lifetime, an_object_lifetime_ptr,
                             iek_object_lifetime);
-        walk_needed_on_list(ptr->constants, a_constant_ptr, iek_constant);
+        walk_list(ptr->constants, a_constant_ptr, iek_constant);
 #ifdef CFE
 #if DO_SUBTREE_WALK
 #if NEEDED_FLAG_WALK
