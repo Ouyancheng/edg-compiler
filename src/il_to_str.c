@@ -30,44 +30,32 @@ void clear_il_to_str_output_control_block(
 Clear an output control block to default values.
 */
 {
-  octl->output_str          = NULL;
-  octl->token_mode_control  = NULL;
-  octl->output_name         = NULL;
-  octl->output_default_arg  = NULL;
-  octl->gen_compilable_code = FALSE;
-  octl->gen_pcc_code        = FALSE;
+  octl->output_str                = NULL;
+  octl->output_name               = NULL;
+  octl->output_default_arg        = NULL;
+  octl->output_is_complete_tokens = TRUE;
+  octl->gen_compilable_code       = FALSE;
+  octl->gen_pcc_code              = FALSE;
 #if DEBUG
-  octl->debug_output        = FALSE;
+  octl->debug_output              = FALSE;
 #endif /* DEBUG */
 }  /* clear_il_to_str_output_control_block */
 
 
-static void set_complete_token_output_mode(
-                                    an_il_to_str_output_control_block_ptr octl)
 /*
 Set the indicated output stream token mode to indicate that output_str calls
 will be outputting one or more complete tokens.
 */
-{
-  /* Call the control routine only if there is one. */
-  if (octl->token_mode_control != NULL) {
-    octl->token_mode_control(TRUE);
-  }  /* if */
-}  /* set_complete_token_output_mode */
+#define set_complete_token_output_mode(octl) \
+  (octl->output_is_complete_tokens = TRUE)
 
 
-static void set_partial_token_output_mode(
-                                    an_il_to_str_output_control_block_ptr octl)
 /*
 Set the indicated output stream token mode to indicate that output_str calls
 may be outputting partial tokens.
 */
-{
-  /* Call the control routine only if there is one. */
-  if (octl->token_mode_control != NULL) {
-    octl->token_mode_control(FALSE);
-  }  /* if */
-}  /* set_partial_token_output_mode */
+#define set_partial_token_output_mode(octl) \
+  (octl->output_is_complete_tokens = FALSE)
 
 
 static void form_num(long                                  num,
