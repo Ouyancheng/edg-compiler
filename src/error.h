@@ -574,6 +574,16 @@ Error routines.
 */
 #if CHECKING
 extern void internal_error(char *error_message);
+extern void assertion_failed(char *filename,
+			     int  line_number);
+
+/* Macro to test an assertion and generate an internal error if
+   the condition is not TRUE.  The macro expands to nothing when checking
+   code is not being used. */
+#define check_assertion(test)						\
+  if (!(test)) assertion_failed(__FILE__, __LINE__);
+#else /* !CHECKING */
+#define check_assertion(test) /* Nothing */
 #endif /* CHECKING */
 /* Make sure "a_symbol", "a_type" and "a_source_file" are known as struct
    tags before their uses below.  Otherwise, the declarations would be in

@@ -4015,6 +4015,33 @@ An internal error has occurred.  Write the given message and abort.
   construct_message_segments("%s");
   write_diagnostic(&error_position, es_internal_error, dck_standalone);
 }  /* internal_error */
+
+
+
+void assertion_failed(char	*filename,
+		      int	 line_number)
+{
+#define BUFFER_SIZE 512
+  char	buffer[BUFFER_SIZE];
+  int   max_filename_length = BUFFER_SIZE - 100;
+  int	overflow;
+
+  /* Make sure that formatting the internal error string won't overflow
+     the buffer.  We subtract 100 from the buffer length to allow for
+     other information that is included in the message.  If the filename
+     is too long we print as many characters from the end of the string
+     as possible because the characters at the beginning probably contain
+     the directory portion of the name. */
+  overflow = strlen(filename) - max_filename_length;
+  if (overflow > 0) {
+    filename += overflow;
+  }  /* if */
+  
+  sprintf(buffer, "assertion failed at: \"%s\", line %0d\n", 
+          filename, line_number);
+  internal_error(buffer);
+}  /* assertion_failed */
+
 #endif /* CHECKING */
 
 
