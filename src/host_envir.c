@@ -770,7 +770,12 @@ to allocate the space in the intermediate language memory region.
       temp_file_name = buffer;
     } else {
       /* Allocate the needed space. */
+#if STANDALONE_UTILITY_PROGRAM
+      /* alloc_il can't be used in a standalone utility program. */
+      temp_file_name = (char *)alloc_general((sizeof_t)total_length);
+#else /* !STANDALONE_UTILITY_PROGRAM */
       temp_file_name = (char *)alloc_il((sizeof_t)total_length);
+#endif /* STANDALONE_UTILITY_PROGRAM */
     }  /* if */
     /* Copy the directory name. */
     (void)memcpy(temp_file_name, dir_name, size_t_arg(dir_length));
