@@ -1279,7 +1279,17 @@ the file scope, do not process it (but record an orphan in the latter case).
           }  /* for */
         }  /* if */
 #else /* !NEEDED_FLAG_WALK */
-        walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine);
+#if KEEP_IN_IL_WALK
+        if (kind == (a_scope_kind)sck_class_struct_union) {
+          /* Since we don't break up classes, all member functions of a class
+             get marked as keep_in_il if the class is so marked. */
+          walk_list(ptr->routines, a_routine_ptr, iek_routine);
+        } else {
+          walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine);
+        }  /* if */
+#else /* !KEEP_IN_IL_WALK */
+        walk_list(ptr->routines, a_routine_ptr, iek_routine);
+#endif /* KEEP_IN_IL_WALK */
 #endif /* NEEDED_FLAG_WALK */
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
