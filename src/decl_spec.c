@@ -2126,6 +2126,23 @@ process_class_specifier:
              class A, we simply fall through this test. */
           goto destructor_name;
         }  /* if */
+        if (is_friend_decl) {
+          if (curr_token_type_symbol == NULL) {
+            /* This is a declaration of the form "... friend X ... ",
+               where X is already known to be neither the name of a class
+               in a friend class declaration nor the name of a type for a
+               function return type.  That means it is probably the name of
+               a function with an implicit return type.  Clear the specific
+               symbol pointer in the locator to deal with this sort of case:
+                 class A {
+                   int x;         // Declare A::x
+                   friend x();    // Cause injection of ::x at file scope
+                 };
+            */
+            clear_specific_symbol(locator_for_curr_id);
+          }  /* if */
+          goto exit_loop;
+        }  /* if */
         if (is_error_locator(locator_for_curr_id) &&
             locator_for_curr_id.is_template_id) {
           /* An error was detected in scanning a class template id.  Since
