@@ -1967,6 +1967,12 @@ do_variable:
         disp_throw_supplement(ptr->variant.throw_info);
       }  /* if */
       break;
+    case enk_condition:
+      (void)printf("enk_condition\n");
+      disp_ptr("scope", (char *)ptr->variant.condition.scope, iek_scope);
+      disp_ptr("dynamic_init", (char *)ptr->variant.condition.dynamic_init,
+               iek_dynamic_init);
+      break;
     case enk_object_lifetime:
       (void)printf("enk_object_lifetime\n");
       disp_ptr("expr", (char *)ptr->variant.object_lifetime.expr,

@@ -1102,6 +1102,24 @@ Dump the contents of the indicated expression node for debug purposes.
       }  /* if */
       fputs("\n", f_debug);
       break;
+    case enk_condition:
+      fputs("condition: ", f_debug);
+      db_scope(node->variant.condition.scope);
+      fputs(", ", f_debug);
+      if (node->variant.condition.dynamic_init == NULL) {
+        fputs("<null dynamic init>", f_debug);
+      } else {
+        a_variable_ptr  vp = node->variant.condition.dynamic_init->variable;
+        if (vp == NULL) {
+          fputs("<null variable>", f_debug);
+        } else {
+          db_name(&vp->source_corresp);
+        }  /* if */
+        fputs(" = ", f_debug);
+        db_dynamic_initializer(node->variant.condition.dynamic_init, level+2);
+      }  /* if */
+      fputs("\n", f_debug);
+      break;
     case enk_object_lifetime:
       fputs("object lifetime:\n", f_debug);
       db_expr_node(node->variant.object_lifetime.expr, level + 2);
@@ -6282,6 +6300,10 @@ fields to default values.
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
       tsp->accessible_base_classes = NULL;
       break;
+    case enk_condition:
+      node->variant.condition.scope        = NULL;
+      node->variant.condition.dynamic_init = NULL;
+      break;
     case enk_object_lifetime:
       node->variant.object_lifetime.expr = NULL;
       node->variant.object_lifetime.ptr  = NULL;
@@ -6735,6 +6757,11 @@ Make a copy of an expression tree and return a pointer to it.
       /* Copy the dynamic init for a throw. */
       expr_copy->variant.throw_info->dynamic_init =
                      copy_dynamic_init(expr->variant.throw_info->dynamic_init);
+      break;
+    case enk_condition:
+      /* Copy the dynamic init. */
+      expr_copy->variant.condition.dynamic_init =
+                     copy_dynamic_init(expr->variant.condition.dynamic_init);
       break;
     case enk_object_lifetime:
       /* For an object lifetime, create a new object lifetime for the copy. */

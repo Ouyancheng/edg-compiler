@@ -3947,6 +3947,9 @@ enum an_expr_node_kind_tag {
 			   expression.  C++ only. */
   enk_new_delete,	/* C++ "new" or "delete". */
   enk_throw,		/* C++ throw expression. */
+  enk_condition,	/* C++ condition -- a variable declaration with
+			   initializer that appears as the condition of an
+			   if-, switch-, while- or for-statement. */
   enk_object_lifetime,	/* Used to introduce an object lifetime that surrounds
 			   a single expression, to restrict the lifetime
 			   of temporaries created in the expression.  The
@@ -4542,6 +4545,24 @@ typedef struct an_expr_node {
 			   throw expression; NULL when a no object is
 			   specified (i.e., a "rethrow" of the current
 			   throw object). */
+    /* When kind == enk_condition (C++ only): */
+    struct {
+      a_scope_ptr
+		scope;	/* The scope established for the declaration of the
+			   variable that is initialized in the condition.
+			   The scope for the dependent statement of the
+			   then- or else- clause of an if-statement or for
+			   the dependent statement of the switch-, while-,
+			   or for-statement is nested inside it.  With loop
+			   statements the scope is terminated and reentered
+			   with each iteration. */
+      a_dynamic_init_ptr
+		dynamic_init;
+			/* The dynamic init entry representing the
+			   initialization of the variable declared in the
+			   condition.  With loop statements the dynamic
+			   initialization takes place with each iteration. */
+    } condition;
     /* When kind == enk_object_lifetime: */
     struct {
       an_expr_node_ptr

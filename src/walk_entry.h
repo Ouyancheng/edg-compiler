@@ -597,6 +597,11 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_ptr(ptr->variant.throw_info, a_throw_supplement_ptr,
                      iek_throw_supplement);
             break;
+          case enk_condition:
+            walk_ptr(ptr->variant.condition.scope, a_scope_ptr, iek_scope);
+            walk_ptr(ptr->variant.condition.dynamic_init, a_dynamic_init_ptr,
+                     iek_dynamic_init);
+            break;
           case enk_object_lifetime:
             walk_ptr(ptr->variant.object_lifetime.expr, an_expr_node_ptr,
                      iek_expr_node);
