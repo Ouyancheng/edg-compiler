@@ -1372,6 +1372,7 @@ ec_bad_storage_class_for_named_address_space_variable;;"variable with automatic 
 ec_type_with_named_address_space_not_allowed;;"type cannot be qualified with named address space"
 ec_named_address_space_on_function_type;;"function type cannot be qualified with named address space"
 ec_field_type_cannot_be_qualified_with_named_address_space;;"field type cannot be qualified with named address space"
+ec_fixed_to_float_conversion;;"fixed-point value does not fit in required floating-point type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

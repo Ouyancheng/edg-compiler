@@ -1490,6 +1490,7 @@ because the exponent was out of range).
   a_boolean	any_digits;
   int		mant_dig;
 
+  *err = FALSE;
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   /* When long double is mapped onto double, store this value as a double. */
   if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
@@ -1577,7 +1578,6 @@ fit in the indicated type.
   a_mantissa	mantissa;
   a_boolean	exponent_overflow = FALSE;
 
-  *err = FALSE;
   *inexact = FALSE;
   /* Convert the string into a mantissa and exponent. */
   conv_hex_string_to_mantissa_and_exponent(str, &mantissa, &exponent,

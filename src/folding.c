@@ -1558,6 +1558,7 @@ to the constant is maintained, by adding a cast if necessary.
           break;
 #if FIXED_POINT_ALLOWED
         case tk_fixed_point:
+          /* Converting integer to fixed-point. */
           conv_integer_to_fixed_point(constant, &new_constant,
                                       &err_code, &err_severity);
           break;
@@ -1601,6 +1602,7 @@ to the constant is maintained, by adding a cast if necessary.
           break;
 #if FIXED_POINT_ALLOWED
         case tk_fixed_point:
+          /* Converting float to fixed-point. */
           conv_float_to_fixed_point(constant, &new_constant,
                                     &err_code, &err_severity);
           break;
@@ -1678,7 +1680,9 @@ to the constant is maintained, by adding a cast if necessary.
         case tk_integer:
           /* Fixed-point to integer.  Not folded at compile time. */
         case tk_float:
-          /* Fixed-point to float.  Not folded at compile time. */
+          /* Converting fixed-point to floating-point. */
+          conv_fixed_point_to_float(constant, &new_constant,
+                                    &err_code, &err_severity);
         case tk_imaginary:
           /* Fixed-point to imaginary.  Not folded at compile time. */
         case tk_complex:

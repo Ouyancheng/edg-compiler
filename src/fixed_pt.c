@@ -626,6 +626,49 @@ to be issued; otherwise set err_code to ec_no_error.
 }  /* conv_float_to_fixed_point */
 
 
+void conv_fixed_point_to_float(a_constant_ptr		old_constant,
+			       a_constant_ptr		new_constant,
+			       an_error_code		*err_code,
+			       an_error_severity	*err_severity)
+/*
+Convert the fixed-point constant "old_constant" to a floating-point constant
+in "new_constant.  If, as a result of the conversion, a diagnostic should
+be issued, set err_code and err_severity to the values for the message
+to be issued; otherwise set err_code to ec_no_error.
+*/
+{
+  a_mantissa	mantissa;
+  long		exponent;
+  a_boolean	is_negative;
+  a_boolean	err;
+  a_boolean	inexact;
+  a_fixed_point_type_descr
+		*fxp_descr;
+
+  check_assertion(old_constant->kind == (a_constant_repr_kind)ck_fixed_point);
+  set_constant_kind(new_constant, (a_constant_repr_kind)ck_float);
+  *err_code = ec_no_error;
+  fxp_descr = fxp_descr_for_constant(old_constant);
+  /* Convert the fixed-point value into the internal mantissa
+     representation. */
+  load_hex_fxp_value(&old_constant->variant.fixed_point_value,
+                     fxp_descr, &mantissa, &exponent, &is_negative);
+  /* Convert and store the mantissa as a floating-point value. */
+  conv_mantissa_to_floating_point(&mantissa, exponent, is_negative,
+                                  new_constant->type->variant.float_kind,
+                                  &new_constant->variant.float_value,
+                                  /*overflow=*/FALSE, &err, &inexact);
+  /* No diagnostic is given for an inexact result. */
+  if (err) {
+    /* The conversion to floating-point does not fit in the result type.
+       This should not occur unless there are fixed-point or floating-point
+       types with unusual sizes. */
+    *err_code = ec_fixed_to_float_conversion;
+    *err_severity = es_error;
+  }  /* if */
+}  /* conv_fixed_point_to_float */
+
+
 void fxp_hex_string_to_fixed_point(a_fixed_point_type_descr  *fxp_descr,
                                    char                      *str,
                                    a_fixed_point_value       *value,
@@ -762,7 +805,7 @@ fxp_descr specifies the format of the fixed-point value.
   a_mantissa	mantissa;
   long		exponent;
   a_boolean	is_negative;
-  a_boolean	err = FALSE;
+  a_boolean	err;
   a_boolean	inexact;
 
   load_hex_fxp_value(fxp_value, fxp_descr, &mantissa, &exponent, &is_negative);
