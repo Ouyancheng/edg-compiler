@@ -2972,14 +2972,17 @@ static a_boolean class_template_declaration(
                                     a_symbol_ptr         *p_sym_ptr,
                                     a_boolean            *resolution,
                                     a_type_ptr           *new_type,
-                                    a_boolean            *defines_something)
+                                    a_boolean            *defines_something,
+                                    a_boolean            *get_token_required)
 /*
 If this turns out to be a class template declaration, scan it and return
 TRUE, setting *p_sym_ptr to the class template symbol.  If it is not a class
 declaration, return FALSE.  If a class template had been declared previously
 but not defined, and this is a defining declaration, return *resolution
 TRUE.  In addition, if this is a defining declaration, cache all the tokens
-that make up the declaration and do a prototype instantiation.
+that make up the declaration and do a prototype instantiation.  Return
+*get_token_required TRUE if the caller needs to advance beyond a terminating
+rbrace of a class template definition.
 */
 {
   a_boolean                         is_class_template_decl = FALSE;
@@ -3194,7 +3197,8 @@ that make up the declaration and do a prototype instantiation.
         /* Now cache the "}" (unless we didn't find one). */
         if (curr_token == tok_rbrace) {
           cache_curr_token(&tssp->token_cache);
-          (void)get_token();
+          /* Let the caller know there's another token to be fetched. */
+          *get_token_required = TRUE;
         }  /* if */
       }  /* if */
       /* Add an end-of-source token to the end of the token cache to assure
@@ -3218,13 +3222,16 @@ done:;
 
 static void cache_function_template_body(a_token_cache  *p_token_cache,
                                          a_boolean      is_constructor,
-                                         a_boolean      *defines_something)
+                                         a_boolean      *defines_something,
+                                         a_boolean      *get_token_required)
 /*
 Scan a function template body and cache the tokens (in *p_token_cache) so
 that they can be rescanned for the instantiation.  is_constructor is
 TRUE if the function is a constructor.  The current source position is
 immediately after the function declarator.  *defines_something is set
-to TRUE if either a ctor-initializer or a function body appears.
+to TRUE if either a ctor-initializer or a function body appears.  Return
+*get_token_required TRUE if the caller needs to advance beyond a terminating
+rbrace of a function template definition.
 */
 {
   a_token_set_array  stop_tokens;
@@ -3254,8 +3261,8 @@ to TRUE if either a ctor-initializer or a function body appears.
       /* Cache the "}" and append an end-of-source token. */
       if (curr_token == tok_rbrace) {
         cache_curr_token(p_token_cache);
-        /* Advance to the next token. */
-        (void)get_token();
+        /* Let the caller know there's another token to be fetched. */
+        *get_token_required = TRUE;
       }  /* if */
       /* Add an end-of-source token to the end of the token cache to
          assure that we don't scan past the end of the cache in the actual
@@ -3731,6 +3738,7 @@ entry is pushed on the scope stack.
   a_boolean		            decl_token_cache_used = FALSE;
   a_boolean                         nonglobal_decl_err = FALSE;
   a_pending_pragma_ptr		    pragmas_bound_to_template;
+  a_boolean                         get_token_required = FALSE;
 #if RECORD_TEMPLATES_IN_IL
   a_template_ptr                    il_template_entry = NULL;
   a_token_cache                     template_param_list_cache;
@@ -3790,7 +3798,7 @@ entry is pushed on the scope stack.
      of the definition (if any) and cache them away of later reference. */
   if (class_template_declaration(template_param_list, nonglobal_decl_err,
                                  &sym, &tag_resolution, &prototype_type,
-                                 defines_something)) {
+                                 defines_something, &get_token_required)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
 #if RECORD_TEMPLATES_IN_IL
@@ -3948,7 +3956,7 @@ entry is pushed on the scope stack.
         a_token_cache  local_token_cache;
         clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
         cache_function_template_body(&local_token_cache, /*is_ctor=*/TRUE,
-                                     defines_something);
+                                     defines_something, &get_token_required);
         discard_token_cache(&local_token_cache);
       } else {
 	a_def_arg_expr_fixup_ptr  daefp;
@@ -3972,7 +3980,7 @@ entry is pushed on the scope stack.
         tssp->declaration_scope = scope_stack[decl_scope_level].number;
         cache_function_template_body(&tssp->token_cache,
                                      is_constructor_symbol(sym),
-                                     defines_something);
+                                     defines_something, &get_token_required);
 #if RECORD_TEMPLATES_IN_IL
         if (*defines_something) {
           /* Save a pointer to the token cache for function body. */
@@ -4166,6 +4174,12 @@ skip_template_string:
   if (!decl_token_cache_used) {
     discard_token_cache(&decl_token_cache);
   }  /* if */
+  /* Bypass the terminating token of the declaration.  It is postponed till
+     all template processing has been done, since get_token can cause the
+     input stack to be popped, which in turn can cause a pch file to be
+     generated -- in which case we want the current state of the compilation
+     to be complete. */
+  if (get_token_required) get_token();
 #if DEBUG
   if (debug_level >= 3) {
     if (sym != NULL) db_symbol(sym, "template symbol: ", 2);
