@@ -771,6 +771,14 @@ there is additional processing to be done.
       scp = source_corresp_for_il_entry(entity_ptr, entity_kind);
       check_assertion_str2(scp != NULL, "add_pragma_to_il:",
                            "invalid entity kind (no source corresp)");
+      /* One of the goals here is to use NO_SCOPE_DEPTH as often as
+         possible, because that works right even when the entity is
+         not in the current translation unit.  The low-level routines,
+         however, can't determine the scope for function-local entities
+         that aren't class or namespace members.  Note that in C mode
+         there are certain cases where NO_SCOPE_DEPTH cannot be used,
+         but that's okay because is no way to refer to something in
+         another translation unit in C. */
       if (scp->is_class_member || scp->parent.namespace_ptr != NULL) {
         /* For class and namespace members (including local ones),
            let the low-level routines figure out the scope and memory
