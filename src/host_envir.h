@@ -19,7 +19,7 @@ host_envir.h -- Declarations relating to host_envir.c (having to do with
 #define HOST_ENVIR_H 1
 
 /* Include lang_feat.h to get the definition of
-   AUTOMATIC_TEMPLATE_INSTANTIATION. */
+   MICROSOFT_EXTENSIONS_ALLOWED. */
 #ifndef LANG_FEAT_H
 #include "lang_feat.h"
 #endif /* ifndef lang_feat.h */
@@ -92,6 +92,32 @@ in this count.
 #ifndef MAX_INCLUDE_FILES_OPEN_AT_ONCE
 #define MAX_INCLUDE_FILES_OPEN_AT_ONCE 8
 #endif /* ifndef MAX_INCLUDE_FILES_OPEN_AT_ONCE */
+
+/*
+Flag that is TRUE if a stack model is used to manage the include search
+list and FALSE if some other model (by default, a replace-restore model)
+is to be used instead.  This is the default value used to initialize
+global variable stack_referenced_include_directories.
+
+The stack model says that when an include file is opened, its directory
+becomes the new primary include search directory by being added to the
+front of the list of directories to search for nested include files; the
+former head of the list is demoted to second place.  This model is used by
+Microsoft C compilers.  An alternative model is that of pcc, in which the
+current primary include search directory is removed from the search path
+altogether and the new one takes its place at the head of the list; the
+removed directory is then restored to the head of the list when the
+include file is closed.  This is the approach that predominates on UNIX
+systems.  Note that behavior in this area is left "implementation defined"
+by the ANSI C standard.
+*/
+#ifndef STACK_REFERENCED_INCLUDE_DIRECTORIES
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define STACK_REFERENCED_INCLUDE_DIRECTORIES DEFAULT_MICROSOFT_MODE
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define STACK_REFERENCED_INCLUDE_DIRECTORIES FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ifndef STACK_REFERENCED_INCLUDE_DIRECTORIES */
 
 /*
 Width at which error message lines should be wrapped to another line
@@ -303,6 +329,86 @@ slower.
 #else /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
 #define ALTERNATE_IL_FILE_FORMAT FALSE /* Do not change this. */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+/*
+Flag that is TRUE to enable automatic instantiation support for templates.
+This flag determines whether the code for automatic instantiation is
+to be compiled.
+*/
+#ifndef AUTOMATIC_TEMPLATE_INSTANTIATION
+#if BACK_END_IS_CP_GEN_BE
+/* Automatic template instantiation is generally not a good idea when doing
+   source-to-source translation. */
+#define AUTOMATIC_TEMPLATE_INSTANTIATION FALSE
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define AUTOMATIC_TEMPLATE_INSTANTIATION TRUE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* ifndef AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+/*
+Flag that is TRUE if automatic instantiation processing is to be
+performed by default.  This flag does not affect whether code is
+compiled but rather determines whether the automatic instantiation
+processing is to be performed when the compiler is executed.  This is
+the default value for the global flag automatic_instantiation_mode,
+the value of which may be modified using command line options.
+*/
+#ifndef DEFAULT_AUTOMATIC_INSTANTIATION_MODE
+#define DEFAULT_AUTOMATIC_INSTANTIATION_MODE TRUE
+#endif /* !defined(DEFAULT_AUTOMATIC_INSTANTIATION_MODE) */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+/*
+There are two conventions used for template instantiation.  One mode
+requires that the bodies for noninline template functions and static
+data members to be explicitly included by the user.  The other
+causes a source file (e.g., a .c file ) to be implicitly included
+to provide the definitions of the noninline template functions and
+static data members.  If INSTANTIATION_BY_IMPLICIT_INCLUSION is TRUE
+the implicit inclusion is performed.  If it is FALSE implicit
+inclusion is not performed. 
+*/
+#ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION
+#define INSTANTIATION_BY_IMPLICIT_INCLUSION TRUE
+#endif /* ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+/*
+Flag that is TRUE if implicit inclusion of template definition files
+is to be performed by default.  This flag does not affect whether code
+is compiled but rather determines whether the implicit inclusion
+processing is to be performed when the compiler is executed.  This is
+the default value for the global flag
+implicit_template_inclusion_mode, the value of which may be modified
+using command line options.
+*/
+#ifndef DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE
+#define DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE FALSE
+#endif /* !defined(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE) */
+#endif /* ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
+/*
+The maximum number of pending instantiations of a given template
+that may be in process at a given time.  This is used to detect
+runaway recursive instantiations.
+*/
+#ifndef MAX_PENDING_INSTANTIATIONS
+#define MAX_PENDING_INSTANTIATIONS 17
+#endif /* ifndef MAX_PENDING_INSTANTIATIONS */
+
+/*
+The maximum number of unused instantiations of a given template function
+that may be generated.  Unused instantiations can be generated in tim_all.
+For example, in tim_all mode uncalled member functions, and functions
+for which only a declaration is seen, are instantiated.  This number
+should be fairly large because, unlike true recursive instantiations,
+some number of unused instantiations will be generated in normal use
+of tim_all mode.
+*/
+#ifndef MAX_UNUSED_ALL_MODE_INSTANTIATIONS
+#define MAX_UNUSED_ALL_MODE_INSTANTIATIONS 200
+#endif /* ifndef MAX_UNUSED_INSTANTIATIONS */
 
 /*
 Flag that is TRUE if the source_corresp.needed flag in IL entries and the

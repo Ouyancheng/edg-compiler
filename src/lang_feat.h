@@ -141,29 +141,6 @@ are those of Appendix A, section 17 of K&R I:
 #endif /* ifndef C_ANACHRONISMS_ALLOWED */
 
 /*
-The maximum number of pending instantiations of a given template
-that may be in process at a given time.  This is used to detect
-runaway recursive instantiations.
-*/
-#ifndef MAX_PENDING_INSTANTIATIONS
-#define MAX_PENDING_INSTANTIATIONS 17
-#endif /* ifndef MAX_PENDING_INSTANTIATIONS */
-
-/*
-The maximum number of unused instantiations of a given template function
-that may be generated.  Unused instantiations can be generated in tim_all.
-For example, in tim_all mode uncalled member functions, and functions
-for which only a declaration is seen, are instantiated.  This number
-should be fairly large because, unlike true recursive instantiations,
-some number of unused instantiations will be generated in normal use
-of tim_all mode.
-*/
-#ifndef MAX_UNUSED_ALL_MODE_INSTANTIATIONS
-#define MAX_UNUSED_ALL_MODE_INSTANTIATIONS 200
-#endif /* ifndef MAX_UNUSED_INSTANTIATIONS */
-
-
-/*
 TRUE if code that exploits a cfront 2.1 bug that causes a global name to be
 used by a member function when a base class has an entity with the same name.
 The conditions under which this bug occurs are quite complicated.  The
@@ -244,58 +221,6 @@ or "--no_using_std" command-line options.
 #endif /* ifndef DEFAULT_IMPLICIT_USING_STD */
 
 /*
-Flag that is TRUE to enable automatic instantiation support for templates.
-This flag determines whether the code for automatic instantiation is
-to be compiled.
-*/
-#ifndef AUTOMATIC_TEMPLATE_INSTANTIATION
-#define AUTOMATIC_TEMPLATE_INSTANTIATION TRUE
-#endif /* ifndef AUTOMATIC_TEMPLATE_INSTANTIATION */
-
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-/*
-Flag that is TRUE if automatic instantiation processing is to be
-performed by default.  This flag does not affect whether code is
-compiled but rather determines whether the automatic instantiation
-processing is to be performed when the compiler is executed.  This is
-the default value for the global flag automatic_instantiation_mode,
-the value of which may be modified using command line options.
-*/
-#ifndef DEFAULT_AUTOMATIC_INSTANTIATION_MODE
-#define DEFAULT_AUTOMATIC_INSTANTIATION_MODE TRUE
-#endif /* !defined(DEFAULT_AUTOMATIC_INSTANTIATION_MODE) */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-
-/*
-There are two conventions used for template instantiation.  One mode
-requires that the bodies for noninline template functions and static
-data members to be explicitly included by the user.  The other
-causes a source file (e.g., a .c file ) to be implicitly included
-to provide the definitions of the noninline template functions and
-static data members.  If INSTANTIATION_BY_IMPLICIT_INCLUSION is TRUE
-the implicit inclusion is performed.  If it is FALSE implicit
-inclusion is not performed. 
-*/
-#ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION
-#define INSTANTIATION_BY_IMPLICIT_INCLUSION TRUE
-#endif /* ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION */
-
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
-/*
-Flag that is TRUE if implicit inclusion of template definition files
-is to be performed by default.  This flag does not affect whether code
-is compiled but rather determines whether the implicit inclusion
-processing is to be performed when the compiler is executed.  This is
-the default value for the global flag
-implicit_template_inclusion_mode, the value of which may be modified
-using command line options.
-*/
-#ifndef DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE
-#define DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE FALSE
-#endif /* !defined(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE) */
-#endif /* ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION */
-
-/*
 Flag that is TRUE if template nontype parameters with floating point
 types are allowed.  X3J16 made floating point template parameters
 ill-formed in 3/94 but they are allowed by some compilers (e.g.,
@@ -348,32 +273,6 @@ Default implicit size (near/far) for pointers in 16-bit Microsoft mode.
 #define DEFAULT_FAR_CODE_POINTERS FALSE
 #endif /* ifndef DEFAULT_FAR_CODE_POINTERS */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-/*
-Flag that is TRUE if a stack model is used to manage the include search
-list and FALSE if some other model (by default, a replace-restore model)
-is to be used instead.  This is the default value used to initialize
-global variable STACK_REFERENCED_INCLUDE_DIRECTORIES.
-
-The stack model says that when an include file is opened, its directory
-becomes the new primary include search directory by being added to the
-front of the list of directories to search for nested include files; the
-former head of the list is demoted to second place.  This model is used by
-Microsoft C compilers.  An alternative model is that of pcc, in which the
-current primary include search directory is removed from the search path
-altogether and the new one takes its place at the head of the list; the
-removed directory is then restored to the head of the list when the
-include file is closed.  This is the approach that predominates on UNIX
-systems.  Note that behavior in this area is left "implementation defined"
-by the ANSI C standard.
-*/
-#ifndef STACK_REFERENCED_INCLUDE_DIRECTORIES
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define STACK_REFERENCED_INCLUDE_DIRECTORIES DEFAULT_MICROSOFT_MODE
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define STACK_REFERENCED_INCLUDE_DIRECTORIES FALSE
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifndef STACK_REFERENCED_INCLUDE_DIRECTORIES */
 
 /*
 Flag that is TRUE if a set of extensions is supported that permits features
