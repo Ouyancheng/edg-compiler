@@ -133,11 +133,7 @@ emulated by this implementation.  This is the initial value of the global
 variable emulate_gnu_abi_bugs.
 */
 #ifndef DEFAULT_EMULATE_GNU_ABI_BUGS
-#if GNU_EXTENSIONS_ALLOWED
-#define DEFAULT_EMULATE_GNU_ABI_BUGS TRUE
-#else /* !GNU_EXTENSIONS_ALLOWED */
 #define DEFAULT_EMULATE_GNU_ABI_BUGS FALSE
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* ifndef DEFAULT_EMULATE_GNU_ABI_BUGS */
 
 /*
