@@ -489,6 +489,12 @@ the demangled form, and *mangled_length to the length of the mangled form.
   } else if (start_of_id_is("als", ptr)) {
     s = "<<=";
     len = 3;
+  } else if (start_of_id_is("nwa", ptr)) {
+    s = "new[]";
+    len = 3;
+  } else if (start_of_id_is("dla", ptr)) {
+    s = "delete[]";
+    len = 3;
   } else if (start_of_id_is("nw", ptr)) {
     s = "new";
   } else if (start_of_id_is("dl", ptr)) {

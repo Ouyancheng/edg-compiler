@@ -1139,6 +1139,12 @@ names.
     case onk_delete:            /* "delete" */
       name = "__dl";
       break;
+    case onk_array_new:         /* "new[]" */
+      name = "__nwa";
+      break;
+    case onk_array_delete:      /* "delete[]" */
+      name = "__dla";
+      break;
     case onk_plus:              /* "+" */
       name = "__pl";
       break;
