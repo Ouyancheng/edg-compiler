@@ -731,9 +731,13 @@ all_instantiations list of the associated template symbol supplement.
 {
   a_symbol_ptr  templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
   a_template_symbol_supplement_ptr
-                tssp = templ_sym->variant.template_info;
+                tssp = is_template_symbol(templ_sym) ?
+                                      templ_sym->variant.template_info : NULL;
 
-  if (is_class_template_symbol(templ_sym)) {
+  if (!is_template_symbol(templ_sym) || templ_sym->is_template_param) {
+    /* Nontemplate member of class template or template template parameter:
+       no instantiations to mark. */
+  } else if (is_class_template_symbol(templ_sym)) {
     a_symbol_ptr  inst = tssp->variant.class_template.instantiations,
                   proto = tssp
                              ->variant.class_template.prototype_instantiation;
