@@ -305,7 +305,8 @@ typedef enum /*an_error_code*/ {
   ec_bad_type_name_redefinition,
   ec_missing_initializer_on_const,
   ec_this_used_incorrectly,
-  ec_value_not_known_at_compile_time
+  ec_value_not_known_at_compile_time,
+  ec_missing_type_specifier
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
