@@ -10633,9 +10633,13 @@ to be acceptable, and *conversion describes it.
     } else {
       /* Normal case (not an indefinite function). */
       if (exceptions_enabled) {
-        /* Check compatibility of exception specifications. */
+        /* Check compatibility of exception specifications. Unlike the
+           pointer-to-function case, the reference-to-function case must
+           match exactly. */
         if (exception_spec_is_less_restrictive(source_operand->type,
-                                               base_dest_type)) {
+                                               base_dest_type) ||
+            exception_spec_is_less_restrictive(base_dest_type,
+                                               source_operand->type)) {
           pos_diagnostic(es_discretionary_error,
                          ec_incompatible_exception_specs,
                          &source_operand->position);

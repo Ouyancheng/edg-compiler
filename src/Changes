@@ -1,5 +1,16 @@
 Version 2.45
 
+8/22/00  Throw specifications and reference to function initialization
+
+The front end now requires that the throw specification of an initializer for
+a reference to function exactly matches that of the reference type.
+Previously, it was sufficient for the initializer to have a more conservative
+throw specification.
+
+  void f() throw() {}
+  void (&rf) throw (int) = f;  // Previously accepted
+                               // Now a discretionary error
+
 8/22/00  C++-generating back end: qualified names for local types
 
 When generating code to refer to a protected indirect base class defined in
