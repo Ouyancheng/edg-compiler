@@ -365,13 +365,13 @@ Initialize things related to preprocessing.
   (void)strcpy(curr_date_time, ctime(&timer));
   date_of_translation[0] = date_of_translation[12] = '"';
   /* Copy "Mmm dd " into [1] .. [7]. */
-  (void)memcpy(&date_of_translation[1], &curr_date_time[4], size_t_arg(7));
+  (void)memcpy(&date_of_translation[1], &curr_date_time[4], 7);
   /* Copy "yyyy" into [8] .. [11]. */
-  (void)memcpy(&date_of_translation[8], &curr_date_time[20], size_t_arg(4));
+  (void)memcpy(&date_of_translation[8], &curr_date_time[20], 4);
   date_of_translation[13] = '\0';
   time_of_translation[0] = time_of_translation[9] = '"';
   /* Copy "hh:mm:ss" into [1] .. [8]. */
-  (void)memcpy(&time_of_translation[1], &curr_date_time[11], size_t_arg(8));
+  (void)memcpy(&time_of_translation[1], &curr_date_time[11], 8);
   time_of_translation[10] = '\0';
 
   (void)enter_predef_macro(date_of_translation, "__DATE__");
