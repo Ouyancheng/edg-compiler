@@ -5684,10 +5684,10 @@ Generate C from the intermediate language.
 "This file contains file-scope initializations that involve executable code.\n"
                      );
         (void)fprintf(stderr,
-"For it to execute correctly, you must include \"%s\" in the list of\n",
+"For it to execute correctly, you must include \"%s\" in the list of modules\n",
                       module_init_id);
         (void)fprintf(stderr,
-"modules in the \"-i\" option during compilation of the associated main\n");
+"in the \"--module_init\" option during compilation of the associated main\n");
         (void)fprintf(stderr,
 "program.\n");
       }  /* if */
