@@ -2187,14 +2187,8 @@ Display the name of an expression operator.
     case eok_multiply_assign:   s = "eok_multiply_assign";        break;
     case eok_divide_assign:     s = "eok_divide_assign";          break;
     case eok_address:           s = "eok_address";                break;
-    case eok_dot_field:         s = "eok_dot_field";              break;
-    case eok_arrow_field:       s = "eok_arrow_field";            break;
     case eok_pm_dot_field:      s = "eok_pm_dot_field";           break;
     case eok_pm_arrow_field:    s = "eok_pm_arrow_field";         break;
-    case eok_dot_call:          s = "eok_dot_call";               break;
-    case eok_arrow_call:        s = "eok_arrow_call";             break;
-    case eok_pm_dot_call:       s = "eok_pm_dot_call";            break;
-    case eok_pm_arrow_call:     s = "eok_pm_arrow_call";          break;
     case eok_static_cast:       s = "eok_static_cast";            break;
     case eok_const_cast:        s = "eok_const_cast";             break;
     case eok_reinterpret_cast:  s = "eok_reinterpret_cast";       break;

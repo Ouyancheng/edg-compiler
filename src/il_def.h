@@ -5816,14 +5816,8 @@ enum an_expr_operator_kind_tag {
   eok_divide_assign,    /* Generic divide assign operator. */
   eok_address,          /* Generic unary "&" (for known types this need not
                            be explicitly encoded). */
-  eok_dot_field,        /* Generic field selection using the dot operator. */
-  eok_arrow_field,      /* Generic field selection using the arrow operator. */
   eok_pm_dot_field,     /* Generic ".*" field selection. */
   eok_pm_arrow_field,   /* Generic "->*" field selection. */
-  eok_dot_call,         /* Generic member function call with "." syntax. */
-  eok_arrow_call,       /* Generic member function call with "->" syntax. */
-  eok_pm_dot_call,      /* Generic member function call with ".*" syntax. */
-  eok_pm_arrow_call,    /* Generic member function call with "->*" syntax. */
   eok_static_cast,      /* Generic static_cast from the source. */
   eok_const_cast,       /* Generic const_cast from the source. */
   eok_reinterpret_cast, /* Generic reinterpret_cast from the source. */
@@ -8119,8 +8113,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "T++", "T--", "++T", "--T",
    "T+", "T-", "T*", "T/", "T==", "T!=", "T>", "T<", "T>=", "T<=",
    "T=", "T+=", "T-=", "T*=", "T/=",
-   "&T", "T.", "T->", "T.*", "T->*",
-   "T.()", "T->()", "T.*()", "T->*()",
+   "&T", "T.*", "T->*",
    "static cast", "const cast", "reinterpret cast",
    "lvalue", "rvalue",
 #endif /* ifdef CIL */
