@@ -1390,7 +1390,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
        break really terminates a switch clause; other cases are
        flow-ins. */
     /* Activate the new switch clause so code will be added here (if the
-       switch is the outermost strutured statement). */
+       switch is the outermost structured statement). */
     sssep->curr_switch_clause = scp;
     /* Define the label for one of the gotos above, if necessary. */
     define_label(label);
@@ -1722,7 +1722,7 @@ come out on the closing "}".
       check_for_unreachable_code();
     }  /* if */
     block = add_statement((a_statement_kind)stmk_block);
-    /* Clear the entry for "else" in the stop stokens set.  Without this,
+    /* Clear the entry for "else" in the stop tokens set.  Without this,
        an else encountered where a statement is expected could cause an
        error recovery loop. */
     old_else_stop_token_value = stop_token_array[(int)tok_else];
