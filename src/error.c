@@ -3160,7 +3160,7 @@ and doing any required expansions, the diagnostic is written.
      diag_should_be_issued =
                 !diagnostic_already_issued_for_prototype(error_code, severity,
                                                          error_pos, diag_kind);
-  }  /* if */
+   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   if (diag_should_be_issued) {
 #if !STANDALONE_UTILITY_PROGRAM
