@@ -52,20 +52,31 @@ typedef struct a_decode_control_block {
 
 
 /*
+Block that contains information used to control the output of template
+parameter lists.
+*/
+typedef struct a_template_param_block *a_template_param_block_ptr;
+typedef struct a_template_param_block {
+  unsigned long	nesting_level;
+			/* Number of levels of template nesting at this
+			   point (1 == top level). */
+} a_template_param_block;
+
+
+/*
 Declarations needed because of forward references:
 */
 static char *full_demangle_name(char                       *ptr,
                                 unsigned long              nchars,
                                 char                       *mclass,
-                                unsigned long              depth,
-                                unsigned long              *temp_arg_levels,
+                                a_template_param_block_ptr temp_par_info,
                                 a_decode_control_block_ptr dctl);
 /*
 Interface to full_demangle_name for the simple case.
 */
 #define demangle_name(ptr, nchars, dctl)                              \
-  full_demangle_name((ptr), (nchars), (char *)NULL, (unsigned long)0, \
-                     (unsigned long *)NULL, (dctl))
+  full_demangle_name((ptr), (nchars), (char *)NULL,                   \
+                     (a_template_param_block_ptr)NULL, (dctl))
 static char *demangle_expression(char                       *ptr,
                                  a_decode_control_block_ptr dctl);
 static char *demangle_operator(char *ptr,
@@ -74,15 +85,14 @@ static char *demangle_type(char                       *ptr,
                            a_decode_control_block_ptr dctl);
 static char *full_demangle_type_name(char                       *ptr,
                                      a_boolean                  base_name_only,
-                                     a_boolean                  temp_par_info,
-                                     unsigned long              *return_depth,
+                                     a_template_param_block_ptr temp_par_info,
                                      a_decode_control_block_ptr dctl);
 /*
 Interface to full_demangle_type_name for the simple case.
 */
 #define demangle_type_name(ptr, dctl)                                 \
   full_demangle_type_name((ptr), /*base_name_only=*/FALSE,            \
-                          /*temp_par_info=*/FALSE, (unsigned long *)NULL, \
+                          /*temp_par_info=*/(a_template_param_block_ptr)NULL, \
                           (dctl))
 
 
@@ -624,21 +634,32 @@ following what was demangled.
 }  /* demangle_expression */
 
 
-static char *demangle_template_arguments(char                       *ptr,
-                                         unsigned long              depth,
-                                         a_decode_control_block_ptr dctl)
+static void clear_template_param_block(a_template_param_block_ptr tpbp)
+/*
+Clear the fields of the indicated template parameter block.
+*/
+{
+  tpbp->nesting_level = 0;
+}  /* clear_template_param_block */
+
+
+static char *demangle_template_arguments(
+                                      char                       *ptr,
+                                      a_template_param_block_ptr temp_par_info,
+                                      a_decode_control_block_ptr dctl)
 /*
 Demangle the template class arguments beginning at ptr and output the
 demangled form.  Return a pointer to the character position following what was
-demangled.  ptr points to just past the "__pt__" string.  When depth != 0,
-extra information is put out, specifically "name=value" for each argument;
-depth indicates the template nesting depth.
+demangled.  ptr points to just past the "__pt__" string.  When
+temp_par_info != NULL, it points to a block that controls output of
+extra information on template parameters.
 */
 {
   char          *p = ptr, *arg_base;
   unsigned long nchars, position;
   a_boolean     nontype;
 
+  if (temp_par_info != NULL) temp_par_info->nesting_level++;
   /* A template argument list looks like
        __pt__3_ii
                ^^---- Argument types.
@@ -660,9 +681,10 @@ depth indicates the template nesting depth.
     }  /* if */
     /* "X" identifies the beginning of a nontype argument. */
     nontype = (*p == 'X');
-    if (depth != 0) {
+    if (temp_par_info != NULL) {
       /* Write "name=" in front of the argument value. */
-      write_template_parameter_name(depth, position, nontype, dctl);
+      write_template_parameter_name(temp_par_info->nesting_level, position,
+                                    nontype, dctl);
       write_id_ch('=', dctl);
     }  /* if */
     if (nontype) {
@@ -833,8 +855,7 @@ the demangled form, and *mangled_length to the length of the mangled form.
 static char *full_demangle_name(char                       *ptr,
                                 unsigned long              nchars,
                                 char                       *mclass,
-                                unsigned long              depth,
-                                unsigned long              *temp_arg_levels,
+                                a_template_param_block_ptr temp_par_info,
                                 a_decode_control_block_ptr dctl)
 /*
 Demangle the name at ptr and output the demangled form.  Return a pointer
@@ -847,11 +868,10 @@ of characters in the name, or is zero if the name is open-ended
 points to the mangled form of the class of which this name is a
 member.  When it's non-NULL, constructor and destructor names will
 be put out in the proper form (otherwise, they are left in their
-original forms).  When depth > 0, extra information is put out in
-template argument lists; depth indicates the template nesting level.
-If temp_arg_levels != NULL, *temp_arg_levels is incremented if the
-name has a template argument list.  See the macro demangle_name for
-an interface to this routine for the simple case.
+original forms).  When temp_par_info != NULL, it points to a
+block that controls output of extra information on template parameters.
+See the macro demangle_name for an interface to this routine for the
+simple case.
 */
 {
   char      *p, *end_ptr = NULL;
@@ -878,8 +898,9 @@ an interface to this routine for the simple case.
         /* Output the class name for the constructor name. */
         is_special_name = TRUE;
         (void)full_demangle_type_name(mclass, /*base_name_only=*/TRUE,
-                                      /*temp_par_info=*/FALSE,
-                                      (unsigned long *)NULL, dctl);
+                                      /*temp_par_info=*/
+                                              (a_template_param_block_ptr)NULL,
+                                      dctl);
       }  /* if */
     } else if (start_of_id_is("dt", p)) {
       /* Destructor. */
@@ -892,8 +913,8 @@ an interface to this routine for the simple case.
         is_special_name = TRUE;
         write_id_ch('~', dctl);
         (void)full_demangle_type_name(mclass, /*base_name_only=*/TRUE,
-                                      /*temp_par_info=*/FALSE,
-                                      (unsigned long *)NULL,
+                                      /*temp_par_info=*/
+                                              (a_template_param_block_ptr)NULL,
                                       dctl);
       }  /* if */
     } else if (start_of_id_is("op", p)) {
@@ -950,8 +971,7 @@ an interface to this routine for the simple case.
   if ((nchars == 0 || (end_ptr-ptr+6) < nchars) &&
       start_of_id_is("__pt__", end_ptr)) {
     /* Write the arguments. */
-    end_ptr = demangle_template_arguments(end_ptr+6, depth, dctl);
-    if (temp_arg_levels != NULL) (*temp_arg_levels)++;
+    end_ptr = demangle_template_arguments(end_ptr+6, temp_par_info, dctl);
     /* If there's a(nother) specialization indication ("__S"), ignore it. */
     if (char_from_name(end_ptr)   == '_' &&
         char_from_name(end_ptr+1) == '_' &&
@@ -974,15 +994,13 @@ an interface to this routine for the simple case.
 
 static char *demangle_simple_type_name(
                                    char                       *ptr,
-                                   unsigned long              depth,
-                                   unsigned long              *temp_arg_levels,
+                                   a_template_param_block_ptr temp_par_info,
                                    a_decode_control_block_ptr dctl)
 /*
 Demangle a type name (or namespace name) consisting of a length followed
 by the name.  The name is not a nested name, but it can have template
-arguments.  When depth > 0, output extra information on template argument
-lists; depth indicates the template nesting depth.  If temp_arg_levels != NULL,
-*temp_arg_levels is incremented if the name has a template argument list.
+arguments.  When temp_par_info != NULL, it points to a block that
+controls output of extra information on template parameters.
 */
 {
   char          *p = ptr;
@@ -993,34 +1011,31 @@ lists; depth indicates the template nesting depth.  If temp_arg_levels != NULL,
   /* Accumulate the count. */
   p = get_number(p, &nchars, dctl);
   /* Write the type name. */
-  p = full_demangle_name(p, nchars, (char *)NULL, depth, temp_arg_levels,
-                         dctl);
+  p = full_demangle_name(p, nchars, (char *)NULL, temp_par_info, dctl);
   return p;
 }  /* demangle_simple_type_name */
 
 
 static char *full_demangle_type_name(char                       *ptr,
-                                   a_boolean                  base_name_only,
-                                   a_boolean                  temp_par_info,
-                                   unsigned long              *temp_arg_levels,
-                                   a_decode_control_block_ptr dctl)
+                                     a_boolean                  base_name_only,
+                                     a_template_param_block_ptr temp_par_info,
+                                     a_decode_control_block_ptr dctl)
 /*
 Demangle the type name at ptr and output the demangled form.  Return a pointer
 to the character position following what was demangled.  The name can be
 a simple type name or a nested type name, or the name of a namespace.
 If base_name_only is TRUE, do not put out any nested type qualifiers,
-e.g., put out "A::x" as simply "x".  When temp_par_info is TRUE, output extra
-information on template argument lists, and set *temp_arg_levels to the
-template nesting depth.  Note that this routine is called for namespaces
-too (the mangling is the same as for class names; you can't actually tell
+e.g., put out "A::x" as simply "x".  When temp_par_info != NULL, it
+points to a block that controls output of extra information on template
+parameters.  Note that this routine is called for namespaces too
+(the mangling is the same as for class names; you can't actually tell
 the difference in a mangled name).  See demangle_type_name for an
 interface to this routine for the simple case.
 */
 {
   char          *p = ptr;
-  unsigned long nquals, depth;
+  unsigned long nquals;
 
-  if (temp_par_info) *temp_arg_levels = 0;
   if (*p == 'Q') {
     /* A nested type name has the form
          Q2_5outer5inner   (outer::inner)
@@ -1036,15 +1051,13 @@ interface to this routine for the simple case.
       /* Do not put out the nested type qualifiers if base_name_only is
          TRUE. */
       if (base_name_only && nquals != 1) dctl->suppress_id_output++;
-      depth = temp_par_info ? *temp_arg_levels+1 : 0;
-      p = demangle_simple_type_name(p, depth, temp_arg_levels, dctl);
+      p = demangle_simple_type_name(p, temp_par_info, dctl);
       if (nquals != 1) write_id_str("::", dctl);
       if (base_name_only && nquals != 1) dctl->suppress_id_output--;
     }  /* for */
   } else {
     /* A simple (non-nested) type name. */
-    depth = (temp_par_info ? 1 : 0);
-    p = demangle_simple_type_name(p, depth, temp_arg_levels, dctl);
+    p = demangle_simple_type_name(p, temp_par_info, dctl);
   }  /* if */
   return p;
 }  /* full_demangle_type_name */
@@ -1470,9 +1483,11 @@ a pointer to the character position following what was demangled.
 {
   char          *p = ptr, *origname, *pname, *end_ptr;
   a_boolean     simple_member = FALSE;
-  unsigned long template_depth = 0;
+  a_template_param_block
+                temp_par_info;
 
   origname = p;
+  clear_template_param_block(&temp_par_info);
   /* Scan through the name (the first part of the mangled name) without
      generating output, to see what's beyond it.  Special processing is
      necessary for names of constructors, conversion routines, etc. */
@@ -1520,34 +1535,23 @@ a pointer to the character position following what was demangled.
       if (*end_ptr == '\0' ||
           (end_ptr[0] == '_' && end_ptr[1] == '_')) simple_member = TRUE;
     }  /* if */
-    if (simple_member) {
-      /* Simple member.  Just write the name. */
-      if (pname != NULL) {
-        /* Write the parent class or namespace qualifier. */
-        (void)full_demangle_type_name(pname, /*base_name_only=*/FALSE,
-                                      /*temp_par_info=*/TRUE,
-                                      &template_depth, dctl);
-        write_id_str("::", dctl);
-      }  /* if */
-      (void)full_demangle_name(origname, (unsigned long)0, (char *)NULL,
-                               template_depth+1, (unsigned long *)NULL, dctl);
-    } else {
-      /* This must be a function. */
+    if (!simple_member) {
       /* "S" here means a static member function (ignore). */
       if (*end_ptr == 'S') end_ptr++;
       /* Write the specifier part of the type. */
       demangle_type_first_part(end_ptr, /*under_lhs_declarator=*/FALSE,
                                /*need_trailing_space=*/TRUE, dctl);
-      if (pname != NULL) {
-        /* Write the parent class or namespace qualifier. */
-        (void)full_demangle_type_name(pname, /*base_name_only=*/FALSE,
-                                      /*temp_par_info=*/TRUE,
-                                      &template_depth, dctl);
-        write_id_str("::", dctl);
-      }  /* if */
-      /* Write the name of the function. */
-      (void)full_demangle_name(origname, (unsigned long)0, pname,
-                               template_depth+1, (unsigned long *)NULL, dctl);
+    }  /* if */
+    if (pname != NULL) {
+      /* Write the parent class or namespace qualifier. */
+      (void)full_demangle_type_name(pname, /*base_name_only=*/FALSE,
+                                    &temp_par_info, dctl);
+      write_id_str("::", dctl);
+    }  /* if */
+    /* Write the name of the member. */
+    (void)full_demangle_name(origname, (unsigned long)0, pname,
+                             &temp_par_info, dctl);
+    if (!simple_member) {
       /* Write the declarator part of the type. */
       end_ptr = demangle_type_second_part(end_ptr,
                                           /*under_lhs_declarator=*/FALSE,
