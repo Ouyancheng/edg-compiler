@@ -1449,7 +1449,8 @@ Syntax:
                                                bound_function_selector);
     }  /* if */
     do_operand_transformations(operand,
-                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                               TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION,
                                expression_kind);
     /* Function designator must be an expression or an undefined symbol. */
     if (is_undefined_symbol_operand(operand)) {
@@ -1539,7 +1540,7 @@ Syntax:
     }  /* if */
   } else {
     /* Non-overloaded function case. */
-    if (operand->bound_function) {
+    if (operand->bound_function && routine_type != NULL) {
       /* Non-static member function call. */
       /* Check that the selector pointer is compatible with the "this"
          parameter type.  It isn't, for example, if we are calling a
