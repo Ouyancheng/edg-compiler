@@ -4346,7 +4346,7 @@ operand.
        taken (the C standard says that the return type must be complete
        when necessary, and this seems like such a case). */
     check_function_return_type(routine->type, &operand->position,
-                               /*is_expr=*/TRUE);
+                               /*is_expr_use=*/TRUE);
   }  /* if */
   operand->state = (an_operand_state)os_rvalue;
   operand->came_from_reference = FALSE;
