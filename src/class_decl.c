@@ -8703,7 +8703,10 @@ following the member declaration.
       /* Named member -- we need to call declarator. */
       a_decl_flag_set  di_flags = DI_REAL_DECLARATOR_ALLOWED;
 
-      if (!C_mode()) {
+      if (C_mode()) {
+        /* Must be a field (= nonstatic data member) in C mode. */
+        di_flags |= DI_NONSTATIC_MEMBER;
+      } else {
         /* C++ mode */
         if (curr_routine_fixup != NULL) {
           /* We must be in a declarator list and this must be at least the
