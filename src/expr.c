@@ -6872,7 +6872,8 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
       promote_operand(&operand_2);
     }  /* if */
     if (curr_expr_is_evaluated() && is_constant_operand(&operand_2) &&
-        !is_constant_operand(operand_1) && !is_error_operand(operand_1)) {
+        !is_constant_operand(operand_1) && !is_error_operand(operand_1) &&
+        operand_2.variant.constant.kind == (a_constant_repr_kind)ck_integer) {
       /* Check the shift count.  This is checked in folding.c for the
          fully constant case, but here if only the second operand is
          constant. */
