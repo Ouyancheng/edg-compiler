@@ -4171,6 +4171,50 @@ for the function scope case; it must be NULL in other cases.
 }  /* push_scope */
 
 
+static void check_referenced_member_functions(a_symbol_ptr  class_sym)
+/*
+Issue an error for member functions that have been referenced but are
+internally linked and undefined.
+*/
+{
+  a_symbol_ptr   sym, rout_sym;
+  a_routine_ptr  rp;
+  a_boolean      is_overloaded;
+
+  if (C_dialect == C_dialect_cplusplus) {
+    sym = class_sym->variant.class_struct_union.extra_info->symbols;
+    for (; sym != NULL; sym = sym->next_in_scope) {
+      if (sym->kind == (a_symbol_kind)sk_member_function) {
+        /* Member function. */
+        rout_sym = sym;
+        is_overloaded = FALSE;
+      } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        /* Overloaded member function. */
+        rout_sym = sym->variant.overloaded_function.symbols;
+        is_overloaded = TRUE;
+      } else {
+        /* Not a member function -- keep looping. */
+        continue;
+      }  /* if */
+      for (; rout_sym != NULL;
+             rout_sym = (is_overloaded ? rout_sym->next : NULL)) {
+        rp = rout_sym->variant.routine;
+        if (rout_sym->referenced) {
+          /* Referenced. */
+          if (rp->storage_class == (a_storage_class)sc_static &&
+              rp->assoc_scope == NULL_region_number) {
+            /* An undefined routine with internal linkage that has been
+               referenced -- issue an error. */
+            pos_sy_error(ec_routine_definition_missing,
+                         &rout_sym->decl_position, rout_sym);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* for */
+  }  /* if */
+}  /* check_referenced_member_functions */
+
+
 /*
 Return TRUE if a type is a completable incomplete type, i.e., it's incomplete
 but it's not void.
@@ -4295,9 +4339,8 @@ check_routine:
                 rout_ptr->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_external;
               } else {
-                pos_st_error(ec_routine_definition_missing,
-                             &rout_sym->decl_position,
-                             rout_sym->header->identifier);
+                pos_sy_error(ec_routine_definition_missing,
+                             &rout_sym->decl_position, rout_sym);
               }  /* if */
             }  /* if */
           } else {
@@ -4346,6 +4389,7 @@ check_routine:
         add_to_types_list(type_ptr, DEPTH_OF_FILE_SCOPE,
                           /*in_old_style_param_decl_list=*/FALSE);
       }  /* if */
+      check_referenced_member_functions(sym);
 #if CHECKING
       scp = &type_ptr->source_corresp;
 #endif /* CHECKING */
