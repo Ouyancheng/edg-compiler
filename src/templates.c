@@ -4476,6 +4476,10 @@ on the ck_template_param constant pointed to by the expression.
         }  /* if */
       }  /* if */
       new_type = new_array_type;
+      /* Reset the size (so that set_type_size will recompute it) and
+         recompute it based on the substituted element type. */
+      new_type->size = 0;
+      set_type_size(new_type);
     } else {
       /* The element type is invalid. */
       *copy_error = TRUE;

@@ -1,5 +1,11 @@
 Version 2.41
 
+2/11/99   Template based array type has incorrect size
+
+Under certain circumstances, an array type created by the function
+template argument deduction and matching process could have an
+incorrect size.  This has been fixed.
+
 2/10/99   Incorrect lookup in partial specialization
 
 In a partial specialization, a reference such as "A<T1,T2>" in the example
