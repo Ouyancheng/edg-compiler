@@ -823,8 +823,10 @@ hiding.
                 sym = class_qualified_id_lookup(&locator, tp,
                                                 IDL_HIDDEN_NAME_LOOKUP);
                 if (sym != NULL) {
-                  if (sym == sym_ptr) {
-                    /* No intervening declaration. */
+                  if (sym == sym_ptr ||
+                      matches_member_of_overload_set(sym_ptr, sym)) {
+                    /* The lookup found sym_ptr, which means there is no
+                       intervening declaration. */
                     hidden_class_or_namespace_member = TRUE;
                   }  /* if */
                   break;
@@ -871,7 +873,10 @@ hiding.
                   sym = namespace_qualified_id_lookup(&locator, nsp,
                                                       IDL_HIDDEN_NAME_LOOKUP);
                   if (sym != NULL) {
-                    if (sym == sym_ptr) {
+                    if (sym == sym_ptr ||
+                        matches_member_of_overload_set(sym_ptr, sym)) {
+                      /* The lookup found sym_ptr, which means there is no
+                         intervening declaration. */
                       hidden_class_or_namespace_member = TRUE;
                     }  /* if */
                     break;

@@ -1,5 +1,22 @@
 Version 2.39
 
+7/20/98   C++-generating back end:  hidden-name problem with reference
+          to function template instance
+
+The C++-generating back end was failing to use a qualified name when it
+was needed on a reference to a template function instance that triggered
+an instantiation; now fixed.  For example,
+
+  namespace N {
+    template<class T> void swap(T&, T&) { }
+    struct list {
+      int data;
+      void swap(list& that) {
+        N::swap(this->data, that.data);  // Now put out correctly in
+      }                                  //   generated C++
+    };
+  }
+
 7/17/98   Instantiations referenced by unnamed namespaces have incorrect
           linkage
 
