@@ -4302,8 +4302,8 @@ only in C++ mode.
          it's the right one, swallow it and leave the opname kind as is.
          Otherwise change the opname kind to onk_none so that an error will
          be issued. */
-      if (next_token() == (opname == (an_opname_kind)onk_function_call) ?
-                                                tok_rparen : tok_rbracket) {
+      if (next_token() == ((opname == (an_opname_kind)onk_function_call) ?
+                                                tok_rparen : tok_rbracket)) {
         /* Advance to the second token. */
         (void)get_token();
       } else {
