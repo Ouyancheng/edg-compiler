@@ -768,6 +768,14 @@ the file scope, do not process it (but record an orphan in the latter case).
         }  /* switch */
       }
       break;
+    case iek_pragma:
+      {
+        a_pragma_ptr ptr = (a_pragma_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_pragma_ptr, iek_pragma);
+        remap_ptr(ptr->entity.ptr, a_char_ptr,
+                  (an_il_entry_kind)ptr->entity.kind);
+      }
+      break;
     case iek_scope:
       {
         a_scope_ptr ptr = (a_scope_ptr)entry_ptr;
@@ -851,6 +859,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
         walk_list(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
 #endif /* ifdef CFE */
+        walk_list(ptr->pragma_list, a_pragma_ptr, iek_pragma);
 #ifdef FFE
         walk_list(ptr->entries, an_entry_description_ptr,
                   iek_entry_description);

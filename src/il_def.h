@@ -306,6 +306,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_scope_orphaned_list_header,
 			/* a_scope_orphaned_list_header */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  iek_pragma,		/* a_pragma */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -393,6 +394,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 /* iek_scope_orphaned_list_header */	"scope-orphaned-list-header",
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+/* iek_pragma */			"pragma",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */

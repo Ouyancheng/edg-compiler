@@ -2497,6 +2497,25 @@ do_stop_pause:
 }  /* disp_statement */
 
 
+static void disp_pragma(a_pragma_ptr ptr)
+/*
+Display the indicated pragma entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_pragma);
+  disp_ptr("entity", (char *)ptr->entity.ptr,
+           (an_il_entry_kind)ptr->entity.kind);
+  disp_name("kind")
+  switch (ptr->kind) {
+    case pk_none:
+      (void)printf("pk_none\n");
+      break;
+    default:
+      (void)printf("**BAD PRAGMA KIND**\n");
+  }  /* switch */
+}  /* disp_pragma */
+
+
 static void disp_scope(a_scope_ptr ptr)
 /*
 Display the indicated scope.
@@ -2577,6 +2596,7 @@ do_assoc_type:
   disp_ptr("scopes", (char *)ptr->scopes, iek_scope);
   disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
 #endif /* ifdef CFE */
+  disp_ptr("pragma_list", (char *)ptr->pragma_list, iek_pragma);
 #ifdef FFE
   disp_ptr("entries", (char *)ptr->entries, iek_entry_description);
   disp_ptr("namelist_groups", (char *)ptr->namelist_groups,
@@ -3306,6 +3326,9 @@ This routine is called during IL walking.
           break;
         case iek_scope:
           disp_scope((a_scope_ptr)entry_ptr);
+          break;
+        case iek_pragma:
+          disp_pragma((a_pragma_ptr)entry_ptr);
           break;
 #ifdef FFE
         case iek_label_list_entry:
