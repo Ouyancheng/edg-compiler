@@ -175,12 +175,12 @@ static unsigned long
 		indent;
 			/* Number of spaces to indent at the start of a
 			   line (when annotating). */
-/* Last output position set by a #line directive, saved as a "known good"
-   position: */
+/* Last "known good" output position, from the last call of
+   set_output_position: */
 static a_line_number
-		last_line_directive_line;
+		last_known_good_line;
 static a_source_file_ptr
-		last_line_directive_file;
+		last_known_good_file;
 
 
 /*
@@ -512,10 +512,6 @@ Write a #line directive for the indicated line number and file.
   }  /* if */
   (void)putc('\n', f_C_output);
   curr_output_column = 0;
-  /* Remember the position at the latest #line directive as a "known good"
-     output position. */
-  last_line_directive_line = curr_output_line;
-  last_line_directive_file = curr_output_file;
 }  /* write_line_directive */
 
 
@@ -533,8 +529,8 @@ Continue the current line of output on the next line.
     /* If the output position is unknown, put out a #line directive for the
        last "known good" position to avoid wandering into line numbers that
        don't exist in the source program file. */
-    write_line_directive(last_line_directive_line,
-                         last_line_directive_file);
+    write_line_directive(last_known_good_line,
+                         last_known_good_file);
   }  /* if */
 }  /* continue_on_new_line */
 
@@ -631,6 +627,9 @@ etc.
         started_new_line = TRUE;
       }  /* while */
     }  /* if */
+    /* Remember the position as a "known good" output position. */
+    last_known_good_line = curr_output_line;
+    last_known_good_file = curr_output_file;
   }  /* if */
   if (started_new_line || curr_output_column == 0) {
     if (annotate) {
@@ -851,6 +850,7 @@ is added at the end of the directive.
   if (more != NULL) write_str(more);
   enable_line_wrapping();
   end_output_line();
+  set_unknown_output_position();
   indent = saved_indent;
 }  /* write_pp_directive */
 
@@ -6758,8 +6758,8 @@ must be redone for each generated C file.
   curr_output_column = 0;  /* Special value meaning there is no output line. */
   curr_output_pos_known = FALSE;
   indent = 0;
-  last_line_directive_line = 0;
-  last_line_directive_file = NULL;
+  last_known_good_line = 0;
+  last_known_good_file = NULL;
   in_comment = FALSE;
 #if DEBUG
   annotate = db_active;

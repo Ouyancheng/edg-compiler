@@ -1,5 +1,17 @@
 Version 2.43
 
+10/12/99 Source positions on generated code at start/end of functions
+
+The source positions on code generated at the start and end of functions,
+e.g., constructor and destructor wrappers and exception-handling prologue
+code, had source positions that matched the line of the function
+header.  This was confusing to debuggers sometimes, in that it
+fell outside the braces that delimit the body of the function.  Now,
+the opening or closing brace position is used, as appropriate.
+
+Some minor adjustments were also made in the generation of #line
+directives by the C-generating back end for such cases.
+
 10/11/99 Clarify diagnostic on qualified friend function definitions
 
 A qualified name cannot be used in the declarator of a friend declaration that

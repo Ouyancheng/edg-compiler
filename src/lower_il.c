@@ -9217,9 +9217,51 @@ is set to point to the original statement in its new location.
   set_statement_kind(statement, (a_statement_kind)stmk_block);
   statement->variant.block.statements = stmt_copy;
   clear_stmt_source_position(statement->position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  clear_stmt_source_position(statement->end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Insert at the start of the added block. */
   set_block_start_insert_location(statement, insert_location);
 }  /* turn_statement_into_block */
+
+
+void put_block_around_try_block(a_statement_ptr        statement,
+                                an_insert_location_ptr insert_location,
+                                a_statement_ptr        *orig_statement)
+/*
+Turn a try-block statement into a block containing a copy of the statement,
+and set *insert_location so that statements can be inserted at the beginning
+of the block (i.e., in front of the original statement).  *orig_statement
+is set to point to the original statement in its new location.  Copy the
+source position information from the original statement into the new
+block statement (this makes it easy to determine the opening brace
+position on a function whose top statement is a function-try-block once
+the try-block has been rewritten).
+*/
+{
+  a_statement_ptr        orig_stmt;
+  a_stmt_source_position final_position;
+
+  check_assertion(statement->kind == (a_statement_kind)stmk_try_block);
+  turn_statement_into_block(statement, insert_location, orig_statement);
+  orig_stmt = *orig_statement;
+  statement->position = orig_stmt->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  final_position = orig_stmt->end_position;
+  statement->end_position = final_position;
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Get the closing brace position on the final catch clause. */
+  { a_try_supplement_ptr tsp;
+    a_handler_ptr        handler;
+    tsp = orig_stmt->variant.try_block;
+    for (handler = tsp->handlers;
+         handler->next != NULL;
+         handler = handler->next) {}
+    final_position = handler->statement->variant.block.extra_info->position;
+  }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  statement->variant.block.extra_info->final_position = final_position;
+}  /* put_block_around_try_block */
 
 
 static void turn_statement_into_block_transferring_pragma(
@@ -11868,7 +11910,7 @@ statement is the statement pointed to by assoc_block in the function scope.
        try block. */
     an_insert_location insert_location;
     a_statement_ptr    orig_statement;
-    turn_statement_into_block(statement, &insert_location, &orig_statement);
+    put_block_around_try_block(statement, &insert_location, &orig_statement);
   }  /* if */
   lower_statement(statement);
 }  /* lower_function_body */

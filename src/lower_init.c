@@ -6579,8 +6579,9 @@ constructor, but may instead be after an assignment to "this".
   */
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
-  code_pos_for_lowering = error_position = 
-                      scope->variant.routine.ptr->source_corresp.decl_position;
+  set_position_from_stmt_source_position(code_pos_for_lowering,
+                                         scope->assoc_block->position);
+  error_position = code_pos_for_lowering;
   /* The constructor_inits list contains a list of initializations.  Each
      initialization either appeared explicitly in the source or is a default
      initialization supplied by the front end.  Every base class and member
@@ -6875,6 +6876,7 @@ constructor scope, and also lower the user code.
 {
   a_statement_ptr    user_code_stmts;
   a_boolean          has_function_try_block = FALSE;
+  a_statement_ptr    top_stmt = scope->assoc_block;
   a_statement_ptr    last_statement, wrapper_code = NULL;
   an_insert_location insert_location;
   a_source_position  saved_error_position, saved_code_pos;
@@ -6895,18 +6897,19 @@ constructor scope, and also lower the user code.
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
-  code_pos_for_lowering = error_position = 
-                                    ctor_routine->source_corresp.decl_position;
-  if (scope->assoc_block->kind == (a_statement_kind)stmk_try_block) {
+  set_position_from_stmt_source_position(code_pos_for_lowering,
+                                         top_stmt->position);
+  error_position = code_pos_for_lowering;
+  if (top_stmt->kind == (a_statement_kind)stmk_try_block) {
     /* This constructor has a function-try-block as the top statement. */
     has_function_try_block = TRUE;
     /* Add a compound statement as the top statement of the function. */
-    turn_statement_into_block(scope->assoc_block, &insert_location,
-                              &user_code_stmts);
+    put_block_around_try_block(top_stmt, &insert_location, &user_code_stmts);
   } else {
     /* Normal case -- no function-try-block */
-    user_code_stmts = scope->assoc_block->variant.block.statements;
-    set_block_start_insert_location(scope->assoc_block, &insert_location);
+    check_assertion(top_stmt->kind == (a_statement_kind)stmk_block);
+    user_code_stmts = top_stmt->variant.block.statements;
+    set_block_start_insert_location(top_stmt, &insert_location);
   }  /* if */
   /* Start an object lifetime if appropriate. */
   begin_block_object_lifetime(scope->lifetime, &insert_location);
@@ -7068,7 +7071,7 @@ constructor scope, and also lower the user code.
         /* Initialize the conditional flag to zero.  This must be done after
            enclose_routine_in_if is called so that the initialization is
            done at the right place (i.e., outside the "if"). */
-        set_block_start_insert_location(scope->assoc_block, &insert_location);
+        set_block_start_insert_location(top_stmt, &insert_location);
         init_conditional_flag_var(dedp, &insert_location);
       }  /* if */
 #endif /* GENERATE_EH_TABLES */
@@ -7661,6 +7664,7 @@ destructor scope, and also lower the user code.
   a_class_type_supplement_ptr
                          ctsp;
   an_insert_location     insert_location, insert_location2;
+  a_statement_ptr        top_stmt = scope->assoc_block;
   a_statement_ptr        user_code_stmts, epilogue_block = NULL;
   a_boolean              has_function_try_block = FALSE;
   a_constructor_init_ptr ctor_init;
@@ -7671,6 +7675,7 @@ destructor scope, and also lower the user code.
   a_routine_ptr          dtor_routine = scope->variant.routine.ptr;
   a_routine_ptr          delete_routine;
   a_source_position      saved_error_position, saved_code_pos;
+  a_source_position      opening_brace_pos, closing_brace_pos;
   an_insert_location     prologue_insert_location;
   a_destructor_wrapper_info_block
                          dtor_info;
@@ -7723,8 +7728,10 @@ destructor scope, and also lower the user code.
   */
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
-  code_pos_for_lowering = error_position = 
-                                    dtor_routine->source_corresp.decl_position;
+  /* Set the current position to the opening brace of the destructor. */
+  set_position_from_stmt_source_position(opening_brace_pos,
+                                         top_stmt->position);
+  error_position = code_pos_for_lowering = opening_brace_pos;
   int_type = integer_type((an_integer_kind)ik_int);
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = scope->variant.routine.parameters;
@@ -7736,17 +7743,23 @@ destructor scope, and also lower the user code.
   class_type->source_corresp.referenced = TRUE;
   ctor_init = scope->variant.routine.constructor_inits;
   ctsp = class_type->variant.class_struct_union.extra_info;
-  if (scope->assoc_block->kind == (a_statement_kind)stmk_try_block) {
-    /* This constructor has a function-try-block as the top statement. */
+  if (top_stmt->kind == (a_statement_kind)stmk_try_block) {
+    /* This destructor has a function-try-block as the top statement. */
     has_function_try_block = TRUE;
     /* Add a compound statement as the top statement of the function. */
-    turn_statement_into_block(scope->assoc_block, &insert_location,
-                              &user_code_stmts);
+    put_block_around_try_block(top_stmt, &insert_location, &user_code_stmts);
   } else {
     /* Normal case -- no function-try-block */
-    user_code_stmts = scope->assoc_block->variant.block.statements;
-    set_block_start_insert_location(scope->assoc_block, &insert_location);
+    check_assertion(top_stmt->kind == (a_statement_kind)stmk_block);
+    user_code_stmts = top_stmt->variant.block.statements;
+    set_block_start_insert_location(top_stmt, &insert_location);
   }  /* if */
+  /* Get the position of the closing brace of the destructor.  Note that
+     if the top statement was a try-block it has been rewritten as a
+     block, and the source position was preserved. */
+  set_position_from_stmt_source_position(
+                           closing_brace_pos,
+                           top_stmt->variant.block.extra_info->final_position);
   /* Start an object lifetime if appropriate. */
   begin_block_object_lifetime(scope->lifetime, &insert_location);
   dtor_info.first_epilogue_destruction = NULL;
@@ -7897,10 +7910,14 @@ destructor scope, and also lower the user code.
     prologue_insert_location = insert_location;
     epilogue_block = alloc_statement((a_statement_kind)stmk_block);
     set_block_start_insert_location(epilogue_block, &insert_location);
+    /* Set the current position to the closing brace of the destructor. */
+    code_pos_for_lowering = error_position = closing_brace_pos;
     /* Create code to destroy members and bases. */
     gen_dtor_member_and_base_destructions(&insert_location,
                                           &prologue_insert_location,
                                           &dtor_info);
+    /* Set the current position to the opening brace of the destructor. */
+    error_position = code_pos_for_lowering = opening_brace_pos;
   }  /* if */
   /* Now lower the user code. */
   if (has_function_try_block) {
@@ -7924,10 +7941,12 @@ destructor scope, and also lower the user code.
        to before it. */
     insert_dtor_member_and_base_destructions(epilogue_block,
                                              &insert_location,
-                                             scope->assoc_block,
+                                             top_stmt,
                                              &dtor_info);
     epilogue_setup_done = TRUE;
   }  /* if */
+  /* Set the current position to the closing brace of the destructor. */
+  code_pos_for_lowering = error_position = closing_brace_pos;
   /* Add code to free the storage if the "free" bit (0x1) is on in the
      added parameter:
        if ((param & 0x1) != 0) delete-routine((void *)this);
@@ -7947,7 +7966,7 @@ destructor scope, and also lower the user code.
          function-try-block, add an epilogue label and change the returns
          to gotos.  In the simplest case, changes the insert location from
          after the return at the end of the routine to before it. */
-      add_epilogue_label(&insert_location, scope->assoc_block, &label_added);
+      add_epilogue_label(&insert_location, top_stmt, &label_added);
       epilogue_setup_done = TRUE;
     }  /* if */
     /* Make "param & 0x1". */

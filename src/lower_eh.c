@@ -2965,6 +2965,7 @@ statement if necessary.
   an_insert_location        insert_location;
   a_boolean                 need_function_epilogue = FALSE;
   a_return_memo_ptr         rmp;
+  a_source_position         saved_error_position, saved_code_pos;
 #if DO_FULL_PORTABLE_EH_LOWERING
   a_type_ptr                routine_type, spec_array_ptr;
   an_exception_specification_ptr
@@ -2978,6 +2979,12 @@ statement if necessary.
   a_boolean                 need_throw_epilogue = FALSE;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
+  saved_code_pos = code_pos_for_lowering;
+  saved_error_position = error_position;
+  /* Set the current position to the opening brace of the function. */
+  set_position_from_stmt_source_position(code_pos_for_lowering,
+                                         scope->assoc_block->position);
+  error_position = code_pos_for_lowering;
   /* The insert location for the statements is the start of the top block of
      the routine. */
   set_block_start_insert_location(scope->assoc_block, &insert_location);
@@ -3158,6 +3165,8 @@ statement if necessary.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
     }  /* for */
   }  /* if */
+  error_position = saved_error_position;
+  code_pos_for_lowering = saved_code_pos;
 }  /* add_eh_function_prologue */
 
 #if !DO_FULL_PORTABLE_EH_LOWERING
