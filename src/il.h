@@ -637,6 +637,8 @@ extern void db_dynamic_initializer(a_dynamic_init_ptr  dip,
 extern void db_initializer(a_variable_ptr  var_ptr,
                            int             level);
 
+extern void db_scope(a_scope_ptr sp);
+
 extern unsigned long show_il_space_used(void);
 #endif /* DEBUG */
 

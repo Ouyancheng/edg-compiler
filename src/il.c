@@ -7076,7 +7076,32 @@ points to the associated routine if the kind is sck_function.
   return sp;
 }  /* alloc_scope */
 
+#if DEBUG
 
+void db_scope(a_scope_ptr sp)
+/*
+Write out a scope entry for debugging purposes.
+*/
+{
+  if (sp == NULL) {
+    (void)fputs("<null scope>", f_debug);
+  } else {
+    (void)db_scope_kind(sp->kind);
+    (void)fprintf(f_debug, " scope %d", (int)sp->number);
+    if (sp->kind == (a_scope_kind)sck_class_struct_union ||
+        sp->kind == (a_scope_kind)sck_function) {
+      (void)fputs(" (", f_debug);
+      if (sp->kind == (a_scope_kind)sck_class_struct_union) {
+        db_type_name(sp->variant.assoc_type);
+      } else {
+        db_name(&sp->variant.routine.ptr->source_corresp);
+      }  /* if */
+      (void)fputc(')', f_debug);
+    }  /* if */
+  }  /* if */
+}  /* db_scope */
+
+#endif /* DEBUG */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
 void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep)
@@ -7302,18 +7327,7 @@ debugging purposes.
   if (sp == NULL) {
     fputs("***NULL IL SCOPE***\n", f_debug);
   } else {
-    (void)db_scope_kind(sp->kind);
-    fprintf(f_debug, " scope %d", (int)sp->number);
-    if (sp->kind == (a_scope_kind)sck_class_struct_union ||
-        sp->kind == (a_scope_kind)sck_function) {
-      fputs(" (", f_debug);
-      if (sp->kind == (a_scope_kind)sck_class_struct_union) {
-        db_type_name(sp->variant.assoc_type);
-      } else {
-        db_name(&sp->variant.routine.ptr->source_corresp);
-      }  /* if */
-      fputc(')', f_debug);
-    }  /* if */
+    db_scope(sp);
     if (sp->source_sequence_list == NULL) {
       fputs(": <empty>\n", f_debug);
     } else {
