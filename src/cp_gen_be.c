@@ -2278,7 +2278,7 @@ is the one associated with the definition of the enum.
                         ss_entry_ptr(ssecp, a_type_ptr) == type,
                         "gen_enum_definition: bad end-of-construct");
     /* Set the position for the closing "}". */
-    set_output_position(&ssecp->source_position);
+    set_output_position(&ssecp->position);
     adv_curr_source_sequence_entry();
   }
   write_tok_ch('}');
@@ -2751,7 +2751,7 @@ is the one associated with the definition of the class.
                         ss_entry_ptr(ssecp, a_type_ptr) == type,
                         "gen_class_definition: bad end-of-construct");
     /* Set the position for the closing "}". */
-    set_output_position(&ssecp->source_position);
+    set_output_position(&ssecp->position);
     adv_curr_source_sequence_entry();
   }
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
@@ -4848,7 +4848,7 @@ Generate code for a namespace definition or namespace alias declaration.
                           ss_entry_ptr(ssecp, a_namespace_ptr) == nsp,
                           "gen_namespace: bad end-of-construct");
       /* Set the position for the closing "}". */
-      set_output_position(&ssecp->source_position);
+      set_output_position(&ssecp->position);
       adv_curr_source_sequence_entry();
     }
     pop_name_context();
