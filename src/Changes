@@ -1,5 +1,25 @@
 Version 2.38
 
+1/3/98    EH cleanup state in partially constructed aggregate
+
+The exception handling cleanup state when an exception is thrown
+in the middle of a partially constructed aggregate was not correct
+in some cases when the class involved allows bitwise copying
+(i.e., it has no user-written copy constructor) but has a destructor.
+
+  struct A {
+    A(int);
+    ~A();
+  };
+  int main () {
+    try {
+      A z[3] = { A(1), A(2), A(-1) };  // Cleanup state wrong if exception
+                                       // thrown during construction of
+                                       // z[2]
+    } catch(...) {
+    }
+  }
+
 12/30/97  IL lowering: reuse of some temporaries
 
 IL lowering now frees and reuses some of the temporaries it generates.

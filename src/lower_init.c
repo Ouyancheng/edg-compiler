@@ -3040,19 +3040,13 @@ Any code needed is inserted at *insert_location.
                                      prev_initialization,
                                      insert_location);
 #endif /* GENERATE_EH_TABLES */
-    /* Check for entities initialized during an inner lifetime, which
-       may mean the entity overlaps with temporaries created in that inner
-       lifetime. */
-    if (context != curr_context &&
-        /* Rule out partial aggregate initialization cleanups for static
-           aggregates.  There is no overlap in that case. */
-        !dip->destruction_is_for_partially_constructed_aggregate) {
-      check_assertion_str(dip->overlaps_temps_in_inner_lifetime,
-                          "add_dyn_init_cleanup: context != curr_context");
+    if (dip->overlaps_temps_in_inner_lifetime) {
       /* This entity is initialized during an inner lifetime, and overlaps
          with the lifetime of some temporaries in the inner lifetime.
          Adjust the cleanup information for those so that both the temporaries
          and the present entity are on the cleanup list. */
+      check_assertion_str(curr_context != context,
+                          "add_dyn_init_cleanup: curr_context == context");
       check_assertion_str(curr_context->latest_initialization != NULL,
                           "add_dyn_init_cleanup: no temps");
       adjust_cleanup_state_for_inner_lifetime_temporaries(
@@ -3072,9 +3066,7 @@ Any code needed is inserted at *insert_location.
          try to set the cleanup state here, we would be referring to the
          region table for that last temporary, which was not cloned because
          it's not needed. */
-    } else
-    /* Do not insert code here; this is the "else" of an "if". */
-    {
+    } else {
       insert_code_to_indicate_cleanup_state(context->curr_cleanup_state,
                                             insert_location,
                                             /*unreachable=*/FALSE);
