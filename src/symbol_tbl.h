@@ -1106,7 +1106,7 @@ typedef struct a_template_param {
                 next;
                         /* Pointer to the next template parameter. */
   a_symbol_ptr	param_symbol;
-			/* Symbol entry for a formal parameters of the
+			/* Symbol entry for a formal parameter of the
                            template. */
   a_template_cache
 		cache;
