@@ -1102,6 +1102,7 @@ specific symbol which is an error symbol.
                                           locator,
                                           DEPTH_OF_FILE_SCOPE,
                                           /*suppress_error=*/TRUE);
+  locator->is_error = TRUE;
 }  /* make_specific_symbol_error_locator */
 
 
@@ -1133,6 +1134,10 @@ and return a pointer to it.
       tssp->variant.class_template.type_kind = (a_type_kind)tk_error;
       tssp->variant.class_template.member_function_templates = NULL;
       tssp->variant.class_template.pending_instantiations = 0;
+      tssp->variant.class_template.prototype_instantiation_complete = FALSE;
+#if CHECKING 
+      tssp->variant.class_template.dummy = FALSE;
+#endif /* CHECKING */
       break;
     case sk_function_template:
     case sk_member_function:

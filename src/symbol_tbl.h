@@ -796,6 +796,19 @@ typedef struct a_template_symbol_supplement {
 			/* The number of instantiations of this template
 			   that are in the process of being instantiated.
 			   Used to detect runaway recursive instantiations. */
+      unsigned int
+		prototype_instantiation_complete:1;
+			/* TRUE when the prototype instantiation of the
+			   class template has been completed.  Used to
+			   prevent a real instantiation from occurring while
+			   the prototype instantiation is in progress. */
+#if CHECKING
+      unsigned int
+		dummy:2;
+			/* Extra field that can be initialized to prevent
+			   spurious reference to uninitialized data warnings
+			   from CodeCenter. */
+#endif /* CHECKING */
     } class_template;
     /* When symbol kind = sk_function_template: */
     struct {

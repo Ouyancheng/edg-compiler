@@ -117,6 +117,12 @@ might not be able to if the template itself has not yet been defined.
     if (p_token_cache->first_token == NULL) {
       /* The template itself has not yet been defined.  The caller will
          issue an incomplete-type error. */
+    } else if (!tssp->variant.class_template.
+					prototype_instantiation_complete) {
+      /* A real instantiation is being requested while the prototype
+         instantiation is still be processed.  We simply ignore the
+         instantiation request which will typically result in an incomplete
+         type not allowed error to be issued by the caller. */
     } else if (instantiation_of_type_is_in_progress(class_type)) {
       /* This particular template class (not just some other one based on
          the same template) is currently being instantiated. */
@@ -244,6 +250,9 @@ encountered.
      which was inserted to mark the end of the cached token stream.
      If necessary, keep flushing until end-of-source is found. */
   while (curr_token != tok_end_of_source) (void)get_token();
+  /* Set the flag that indicates that the prototype instantiation has
+     been completed. */
+  tssp->variant.class_template.prototype_instantiation_complete = TRUE;
   /* Advance past the end-of-source token. */
   (void)get_token();
   db_exit();
