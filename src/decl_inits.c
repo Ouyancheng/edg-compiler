@@ -3045,6 +3045,7 @@ the default constructor (if one exists) is called.
   an_object_lifetime_ptr            local_static_lifetime = NULL;
   a_local_static_variable_init_ptr  local_static_var_init = NULL;
   a_boolean                         is_const;
+  a_boolean                         is_nonreal_class = FALSE;
 
   db_enter(3, "def_initializer");
   /* Default initialization is done only in C++ and only for variables and
@@ -3064,6 +3065,7 @@ the default constructor (if one exists) is called.
       tp = f_skip_typerefs(underlying_array_element_type(tp));
     }  /* if */
     if (is_class_struct_union_type(tp)) {
+      is_nonreal_class = tp->variant.class_struct_union.is_nonreal_class;
       cssp = symbol_supplement_for_class(tp);
     }  /* if */
     /* Default initialization is done only for non-POD class objects that
@@ -3117,6 +3119,11 @@ the default constructor (if one exists) is called.
            initialization were done even though it wasn't -- this will
            prevent a redundant diagnostic from being issued. */
         def_init_performed = TRUE;
+      } else if (is_nonreal_class) {
+        /* In general we cannot refer to constructors of nonreal classes, but
+           we should assume that they have them.  Proceed with ctor and dtor
+           set to NULL, but do generate dynamic initializers in the IL. */
+        def_init_performed = TRUE;
       } else {
         /* The class has no non-trivial constructors. */
         if (is_const) {
@@ -3137,7 +3144,7 @@ the default constructor (if one exists) is called.
       }  /* if */
       dtor = select_destructor(tp, tp, err_pos,
                                /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);
-      if (ctor == NULL && dtor == NULL) {
+      if (ctor == NULL && dtor == NULL && !is_nonreal_class) {
         /* No constructor for default initialization; no destructor either. */
       } else {
         if (ctor != NULL) {
@@ -3168,6 +3175,10 @@ the default constructor (if one exists) is called.
                                                            orig_init_dip);
             }  /* if */
           }  /* if */
+        } else if (is_nonreal_class) {
+          /* Assume a dynamic initialization is needed. */
+          init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+          init_dip->variant.constructor.ptr = ctor;
         } else {
           /* Default initialization of an object that has a destructor.  We
              generate a dik_none dynamic initialization entry for this object,
