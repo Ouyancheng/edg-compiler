@@ -1,10 +1,20 @@
 Version 2.07
 
+6/19/92  Support for "asm declarations"
+
+"asm" is now treated as a token, even in C mode.  An asm "declaration"
+(at file scope) and an asm "statement" (at function or block scope) is
+scanned by asm_declaration, a new function.  Some new IL support has
+been added: entries of type an_asm_entry are created and placed on a
+list pointed to from the current scope, and the asm entry points to the
+asm string; statements of kind stmk_asm now point to an asm entry rather
+than directly to an asm string.
+
 6/17/92  Recognition of new keywords -- temporary
 
 Warnings are issued when "catch", "template", "throw", and "try" are
 encountered in a source program.  The warnings will be eliminated when
-support for templates and exceptions is added; until them these strings
+support for templates and exceptions is added; until then these strings
 are treated as identifiers.
 
 6/16/92  Fixed bug in default arg expression processing in member function
