@@ -243,7 +243,7 @@ Head of a list of history information about include files that have
 been processed.  Used to suppress subsequence inclusions of the same
 file.
 */
-an_include_file_history_ptr
+static an_include_file_history_ptr
 		include_file_history_list;
 
 /*
