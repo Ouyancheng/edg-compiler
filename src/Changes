@@ -1,5 +1,20 @@
 Version 2.31
 
+1/11/96   Include file history list now saved in the precompiled header
+
+Formerly, the include file history list was not saved and restored
+as part of the precompiled header information.  This could result
+in different behavior when precompiled headers are used.  The
+include file history list is now saved, correcting this problem.
+
+1/11/96   Clearing the primary source file pointer when using precompiled
+          header files
+
+The primary source file pointer in the IL header must be cleared before
+the primary source file is reopened when doing precompiled header
+processing.  The point at which this is done has been changed so that
+the pointer will be NULL for the shorted possible period of time.
+
 1/11/96   Class definitions incorrectly allowed in template friend declarations
 
 Class definitions were erroneously accepted in template friend declarations.
