@@ -1799,6 +1799,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         gen_class_qualifier(class_type,
                             options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                             need_closing_paren);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
         if (class_type->variant.class_struct_union.is_nonreal_class &&
             (template_arguments_for_name(scp, entry_kind,
                                          /*insert_space=*/NULL) != NULL ||
@@ -1808,6 +1809,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              template template parameter. */
           write_tok_str("template ");
         }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       }  /* if */
     } else if (scp->parent.namespace_ptr != NULL) {
       /* The entity is a member of a namespace. */
@@ -2477,7 +2479,10 @@ Routine to be called by the il_to_str routines to output the name of a
 template.
 */
 {
-  a_gen_name_options_set options = GN_TEMPLATE;
+  a_gen_name_options_set options = GN_NO_OPTIONS;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  options = GN_TEMPLATE;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (octl.force_qualified_name) options |= GN_FORCE_QUALIFIED_NAME;
   gen_name((a_source_correspondence *)entry, kind, options,
            (a_boolean *)NULL);
