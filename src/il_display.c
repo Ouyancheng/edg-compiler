@@ -614,13 +614,6 @@ display_constant_value:
       disp_ptr("last_constant", (char *)ptr->variant.aggregate.last_constant,
                iek_constant);
       break;
-#ifdef CFE
-    case ck_cast:
-      (void)printf("ck_cast\n");
-      disp_ptr("source_constant", (char *)ptr->variant.source_constant,
-               iek_constant);
-      break;
-#endif /* CFE */
     case ck_init_repeat:
       (void)printf("ck_init_repeat\n");
       disp_ptr("constant", (char *)ptr->variant.init_repeat.constant,

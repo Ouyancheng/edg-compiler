@@ -2256,8 +2256,7 @@ confusion.  Do the output in the way described by octl.
       if (constant->implicit_cast ||
           (constant->kind == (a_constant_repr_kind)ck_template_param &&
            constant->variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tpck_cast) ||
-          constant->kind == (a_constant_repr_kind)ck_cast) {
+                                  (a_template_param_constant_kind)tpck_cast)) {
         /* ... then prefix the constant with an explicit cast. */
         output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
         form_cast(orig_type, octl);
@@ -2494,10 +2493,6 @@ confusion.  Do the output in the way described by octl.
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");
       }  /* switch */
-      break;
-    case ck_cast:
-      form_constant(constant->variant.source_constant,
-                    /*need_parens=*/FALSE, octl);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE

@@ -1303,7 +1303,6 @@ Dump a string identifying a constant-reprsentation kind, for debug purposes.
     case ck_aggregate:      s = "ck_aggregate";		break;
     case ck_init_repeat:    s = "ck_init_repeat";	break;
     case ck_template_param: s = "ck_template_param";	break;
-    case ck_cast:           s = "ck_cast";		break;
     default:                s = "**BAD CONSTANT KIND";
   }  /* switch */
   fputs(s, f_debug);
@@ -2850,9 +2849,6 @@ bucket of the shareable_constants_table to use for the constant.
       }  /* if */
       hash_value += 250;
       break;
-    case ck_cast:
-      hash_value = hash_constant(cp->variant.source_constant);
-      break;
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
       hash_value =
@@ -2865,8 +2861,7 @@ bucket of the shareable_constants_table to use for the constant.
       break;
   }  /* switch */
   if (cp->implicit_cast ||
-      cp->kind == (a_constant_repr_kind)ck_ptr_to_member ||
-      cp->kind == (a_constant_repr_kind)ck_cast) {
+      cp->kind == (a_constant_repr_kind)ck_ptr_to_member) {
     /* Work the type into the hash.  This is important when you have lots of
        NULL pointer constants for a lot of different types. */
     hash_value += hash_type(cp->type);
@@ -3075,11 +3070,6 @@ nonidentical.
           }  /* switch */
         }  /* if */
         break;
-      case ck_cast:
-        eq = compare_constants(cp1->variant.source_constant,
-                               cp2->variant.source_constant,
-                               strictly_identical);
-        break;
 #if CHECKING
       default:
         internal_error("compare_constants: bad constant kind");
@@ -3215,9 +3205,6 @@ region).
       /* The variable pointed to must be in the function scope. */
       break;
 #endif /* DO_IL_LOWERING && ... */
-    case ck_cast:
-      has_nfs_ref = has_non_file_scope_ref(cp->variant.source_constant);
-      break;
 #if CHECKING
     case ck_aggregate:
     case ck_template_param:

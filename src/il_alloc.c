@@ -421,9 +421,6 @@ fields to default values.
       set_template_param_constant_kind(cp, 
                                   (a_template_param_constant_kind)tpck_param);
       break;
-    case ck_cast:
-      cp->variant.source_constant = NULL;
-      break;
 #if CHECKING
     default:
       internal_error("set_constant_kind: bad kind");

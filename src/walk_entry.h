@@ -546,10 +546,6 @@ the file scope, do not process it (but record an orphan in the latter case).
           case ck_init_position:
             break;
 #endif /* ifdef FFE */
-          case ck_cast:
-            walk_ptr(ptr->variant.source_constant, a_constant_ptr,
-                     iek_constant);
-            break;
           case ck_template_param:
             /* Front end only. */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
