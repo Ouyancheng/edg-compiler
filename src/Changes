@@ -1,5 +1,19 @@
 Version 2.45
 
+10/31/00 Microsoft compatibility: injected class names marked as needing
+         qualification
+
+In Microsoft mode, injected class names are now marked as needing qualification
+in the hidden name table.  This changes the output of the C++-generating
+back end in the following example:
+
+  namespace N { struct S {}; }
+  class C: public N::S {
+    static void f() {
+      sizeof(N::S);  // Used to always be regenerated as "sizeof(S)";
+    }                // now "sizeof(N::S)" is produced in Microsoft mode.
+  };
+
 10/31/00 Extra source positions, recording constant expressions in IL
 
 When both EXTRA_SOURCE_POSITIONS_IN_IL and RECORD_CONSTANT_EXPRESSIONS_IN_IL
