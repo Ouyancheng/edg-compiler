@@ -1,5 +1,14 @@
 Version 2.39
 
+6/17/98   Common offsetof variants allowed in nontype template expressions
+
+The common variants of the macro offsetsof use operations that aren't,
+strictly speaking, allowed in constant expressions.  Previously, the
+processing for integral constant expressions had been changed to
+allow such expressions in non-strict mode.  Now, the processing for
+constant expressions for nontype template arguments has been similarly
+relaxed.
+
 6/17/98   C++-generating back end: vacuous destructor calls
 
 The second component of a vacuous destructor call (the part after "::~")

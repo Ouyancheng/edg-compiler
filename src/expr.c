@@ -6519,23 +6519,49 @@ this routine is called.
   } else if (curr_expr_kind_is(ek_template_arg)) {
     /* Only casts between integral or enum types are allowed in nontype
        template arguments. */
-    if (is_integral_or_enum_type(dest_type)
-#if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
-        || (!strict_ansi_mode && is_floating_type(dest_type))
-#endif /* ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
-                                                             ) {
-      /* Destination is integral (or arithmetic) or enum.  Source should be
-         arithmetic or enum (cast from float to integral is allowed). */
+    if (is_integral_or_enum_type(dest_type)) {
+      /* Destination is integral or enum.  Source should be arithmetic or
+         enum (cast from float to integral is allowed). */
       if (is_arithmetic_or_enum_type(source_type)) {
         /* Okay. */
+      } else if (is_pointer_type(source_type) &&
+                 is_constant_operand(operand) &&
+                 operand->variant.constant.kind ==
+                                            (a_constant_repr_kind)ck_integer) {
+        /* As an extension, allow pointer --> int for pointer constants
+           that come from casting an integer constant to a pointer type,
+           as in (int)(char *)1. */
+        if (strict_ansi_mode) {
+          pos_diagnostic(strict_ansi_error_severity,
+                         enum_type_is_integral ?
+                           ec_expr_not_arithmetic :
+                           ec_expr_not_arithmetic_or_enum,
+                         &operand->position);
+          err = (strict_ansi_error_severity == es_error);
+        }  /* if */
       } else {
-        /* Cast from non-arithmetic to integral (or arithmetic) in a nontype
-           template argument. */
+        /* Cast from non-arithmetic to integral in a nontype template
+           argument. */
         if (!is_error_type(source_type)) {
           pos_error(ec_non_arith_operation_in_templ_arg, &operand->position);
         }  /* if */
         err = TRUE;
       }  /* if */
+#if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
+    } else if (!strict_ansi_mode && is_floating_type(dest_type)) {
+      /* Destination is floating.  Source should be arithmetic or enum.
+         Allowed as an extension. */
+      if (is_arithmetic_or_enum_type(source_type)) {
+        /* Okay. */
+      } else {
+        /* Cast from non-arithmetic to floating in a nontype template
+           argument. */
+        if (!is_error_type(source_type)) {
+          pos_error(ec_non_arith_operation_in_templ_arg, &operand->position);
+        }  /* if */
+        err = TRUE;
+      }  /* if */
+#endif /* ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS */
     } else if ((is_pointer_type(dest_type) ||
                 is_ptr_to_member_type(dest_type)) &&
                is_constant_operand(operand) &&
@@ -7462,9 +7488,12 @@ in *bound_function_selector.
 */
 {
   /* In non-strict mode, scan the operand of a cast to an integral type
-     in an integral constant expression specially to allow address
-     expressions that reduce to integer values. */
-  if (!strict_ansi_mode && curr_expr_kind_is(ek_integral_constant) &&
+     in an integral constant or template argument expression specially to
+     allow address expressions that reduce to integer values.  This is
+     to provide better support for common variants of offsetof. */
+  if (!strict_ansi_mode &&
+      (curr_expr_kind_is(ek_integral_constant) ||
+       curr_expr_kind_is(ek_template_arg)) &&
       is_integral_type(type_cast_to)) {
     scan_extended_integral_constant_expression(allow_comma, prec_level,
                                                operand);
