@@ -13,16 +13,18 @@ pragma.c -- Routines to support #pragma directives
 
 */
 
-#include "basics.h"
-#include "mem_manage.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #include "decls.h"
-#include "host_envir.h"
-#include "lang_feat.h"
-#include "target.h"
 #include "pragma.h"
-#include "lexical.h"
-#include "il.h"
-#include "symbol_tbl.h"
 #include "statements.h"
 #include "templates.h"
 

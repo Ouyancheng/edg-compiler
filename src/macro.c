@@ -14,23 +14,22 @@ macro.c -- Macro definition and expansion routines.
 */
 
 
-#include "basics.h"
-#include "target.h"
-#include "lexical.h"
-#include "preproc.h"
-#include "debug.h"
-#include "error.h"
-#include "il.h"
-#include "symbol_tbl.h"
-#include "symbol_ref.h"
-#include "macro.h"
-#include "cmd_line.h"
-#include "mem_manage.h"
-#include "types.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #include "decls.h"
 #include "expr.h"
-#include "const_ints.h"
+#include "macro.h"
 #include "pch.h"
+#include "preproc.h"
+#include "symbol_ref.h"
 #include "sys_predef.h"
 
 /*

@@ -16,26 +16,25 @@ and parsing of them into tokens.
 
 */
 
-#include "basics.h"
-#include "target.h"
-#include "lexical.h"
+/* Header files common to all files. */
+#include "fe_common.h"
+
+#if HDRSTOP_RECOGNIZED
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
+/* Additional header files. */
 #include "preproc.h"
-#include "error.h"
-#include "host_envir.h"
-#include "cmd_line.h"
-#include "debug.h"
-#include "mem_manage.h"
-#include "symbol_tbl.h"
 #include "symbol_ref.h"
 #include "macro.h"
-#include "il.h"
 #include "literals.h"
 #include "statements.h"
 #include "decls.h"
 #include "templates.h"
 #include "pragma.h"
 #include "pch.h"
-
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
