@@ -616,13 +616,14 @@ Return a pointer to a temporary buffer containing a decoded name.
   a_boolean	buffer_overflow;
   char		*result;
   static char	decode_buffer[NAME_DECODE_BUFFER_SIZE];
+  sizeof_t	required_buffer_size;
 
   if (mangled_names_in_output) {
     /* Return the original name. */
     result = encoded_name;
   } else {
     decode_identifier(encoded_name, decode_buffer, NAME_DECODE_BUFFER_SIZE,
-                      &error, &buffer_overflow);
+                      &error, &buffer_overflow, &required_buffer_size);
     result = decode_buffer;
     if (error) {
       pl_error(pl_ec_error_occurred_during_name_decoding, encoded_name);

@@ -14,6 +14,9 @@ This program reads input from stdin, writes output to stdout.
 Things that look like mangled names in the input are demangled.
 Everything else is passed through unchanged.
 
+The -u option reverses the default setting for whether external
+names have added leading underscores.
+
 The demangling is intended to work only on names of external entities.
 There is some name mangling done for internal entities, or by the
 C-generating back end, that this program does not try to decode.
@@ -117,9 +120,10 @@ is the one following the identifier.
     }  /* if */
     if (is_mangled_name) {
       a_boolean err, buffer_overflow_err;
+      sizeof_t  required_buffer_size;
       /* Demangle the identifier. */
       decode_identifier(id, demangled_id, (sizeof_t)MAX_ID_LENGTH,
-                        &err, &buffer_overflow_err);
+                        &err, &buffer_overflow_err, &required_buffer_size);
       /* On an error, force output of the original form of the name. */
       if (err) is_mangled_name = FALSE;
     }  /* if */

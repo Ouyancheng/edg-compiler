@@ -63,17 +63,21 @@ Add the indicated character to the demangled version of the current identifier.
 */
 {
   if (!suppress_id_output) {
-    /* Test for buffer overflow, leaving room for a terminating null. */
-    if (output_id_len >= output_id_size-1) {
-      /* There's no room for the character in the buffer. */
-      output_overflow_err = TRUE;
-      /* Make sure the (truncated) output is null-terminated. */
-      output_id[output_id_size-1] = '\0';
-      err_in_id = TRUE;
-      suppress_id_output++;
-    } else {
-      output_id[output_id_len++] = ch;
+    if (!output_overflow_err) {
+      /* Test for buffer overflow, leaving room for a terminating null. */
+      if (output_id_len >= output_id_size-1) {
+        /* There's no room for the character in the buffer. */
+        output_overflow_err = TRUE;
+        /* Make sure the (truncated) output is null-terminated. */
+        output_id[output_id_size-1] = '\0';
+      } else {
+        /* No overflow; put the character in the buffer. */
+        output_id[output_id_len] = ch;
+      }  /* if */
     }  /* if */
+    /* Keep track of the number of characters (even if output has overflowed
+       the buffer). */
+    output_id_len++;
   }  /* if */
 }  /* write_id_ch */
 
@@ -1158,14 +1162,16 @@ void decode_identifier(char      *id,
                        char      *output_buffer,
                        sizeof_t  output_buffer_size,
                        a_boolean *err,
-                       a_boolean *buffer_overflow_err)
+                       a_boolean *buffer_overflow_err,
+                       sizeof_t  *required_buffer_size)
 /*
 Demangle the identifier id (which is null-terminated), and put the demangled
 form (null-terminated) into the output_buffer provided by the caller.
 output_buffer_size gives the allocated size of output_buffer.  If there
 is some error in the demangling process, *err will be returned TRUE.
 In addition, if the error is that the output buffer is too small,
-*buffer_overflow_err will (also) be returned TRUE.
+*buffer_overflow_err will (also) be returned TRUE, and *required_buffer_size
+is set to the size of buffer required to do the demangling.
 */
 {
   char *end_ptr;
@@ -1219,9 +1225,10 @@ In addition, if the error is that the output buffer is too small,
   /* Make sure the whole identifier was taken. */
   if (!err_in_id && *end_ptr != '\0') bad_mangled_name();
   /* Add a terminating null. */
-  if (!err_in_id) output_id[output_id_len] = 0;
+  if (!output_overflow_err) output_id[output_id_len] = 0;
   *err = err_in_id;
   *buffer_overflow_err = output_overflow_err;
+  *required_buffer_size = output_id_len + 1;  /* +1 for terminating null. */
 }  /* decode_identifier */
 
 

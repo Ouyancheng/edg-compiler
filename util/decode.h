@@ -19,7 +19,8 @@ void decode_identifier(char      *id,
                        char      *output_buffer,
                        sizeof_t  output_buffer_size,
                        a_boolean *err,
-                       a_boolean *buffer_overflow_err);
+                       a_boolean *buffer_overflow_err,
+                       sizeof_t  *required_buffer_size);
 
 #endif /* ifndef DECODE_H */
 
