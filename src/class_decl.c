@@ -7240,7 +7240,11 @@ is nothing that prevents it from being changed to having external linkage.
 
   db_enter(5, "is_candidate_for_linkage_change");
   check_assertion(is_immediate_class_type(tp) || is_immediate_enum_type(tp));
-  check_assertion(!tp->source_corresp.is_local_to_function);
+  /* tp appeared in the declaration of an externally linked type, function,
+     or variable.  That should have been reported as an error. */
+  check_assertion_str((total_errors > 0 ||
+                       !tp->source_corresp.is_local_to_function),
+                      "is_candidate_for_linkage_change: local type");
   if (tp->source_corresp.name_linkage !=
                                (a_name_linkage_kind)nlk_internal) {
     /* Already marked as having external linkage or else no linkage.  Only
