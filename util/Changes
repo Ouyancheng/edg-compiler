@@ -1,5 +1,11 @@
 Version 2.43
 
+12/1/99  Demangling of unnamed namespace names
+
+The mangled form of an unnamed namespace name now includes a unique
+strting after the "__N".  The demangler has been updated to ignore the
+extra characters, and put out "<unnamed>".
+
 8/17/99  Utility program build problems in strict C++ mode
 
 The utility programs have been updated so that they compile properly

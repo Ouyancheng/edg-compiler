@@ -1140,6 +1140,12 @@ controls output of extra information on template parameters.
       write_id_str("operator ", dctl);
       write_id_str(demangled_name, dctl);
       end_ptr = p + mangled_length;
+    } else if (nchars != 0 && start_of_id_is("N", p)) {
+      /* __Nxxxx: unnamed namespace name.  Put out "<unnamed>" and ignore
+         the characters after "__N". */
+      is_special_name = TRUE;
+      write_id_str("<unnamed>", dctl);
+      end_ptr = p + nchars - 2;
     } else {
       /* Something unrecognized. */
     }  /* if */
