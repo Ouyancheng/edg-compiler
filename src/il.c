@@ -3904,7 +3904,7 @@ with the class or namespace of which the entry is a member.
     sp = nsp->variant.assoc_scope;
     *pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
   } else {
-    /* Use the IL scope associate with scope_level. */
+    /* Use the IL scope associated with scope_level. */
     ssep = &scope_stack[scope_level];
     sp = ensure_il_scope_exists(ssep);
     *pointers_block = assoc_pointers_block_of(ssep);
@@ -4721,7 +4721,11 @@ is already an entry of the indicated kind on the list.
   if (!btlmp->front_end_only) {
     /* If the "needed" or "keep_in_il" flag has already been set on this
        type, clear it and set it again to ensure that the entry on the based
-       types list is visited if required. */
+       types list is visited if required.  This is done by calling
+       mark_as_needed/mark_to_keep_in_il for the primary entry, rather
+       than for the based types list member, because the marking process
+       ignores some based type entries and we don't want to duplicate the
+       logic for that here. */
     if (base_type->source_corresp.needed) {
       base_type->source_corresp.needed = FALSE;
       mark_as_needed((char *)base_type, iek_type);
