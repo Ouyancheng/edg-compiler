@@ -666,6 +666,10 @@ enum an_integer_kind_tag {
   ik_unsigned_int,
   ik_long,
   ik_unsigned_long,
+#if LONG_LONG_ALLOWED
+  ik_long_long,
+  ik_unsigned_long_long,
+#endif /* LONG_LONG_ALLOWED */
 #ifdef FIL
   ik_unsized,           /* Used only in the Fortran front end, for constants
                            that do not yet have a size from context. */
