@@ -1619,6 +1619,9 @@ asm ( "string" ) ;
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_asm);
   stmt_update_source_sequence_list(sp);
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   sp->variant.asm_entry = asm_declaration(/*asm_decl_allowed=*/TRUE,
                                           /*is_asm_statement=*/TRUE);
   db_exit();
@@ -1785,6 +1788,9 @@ See also 3.6.4.1.
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_if);
   stmt_update_source_sequence_list(sp);
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_if, sp);
   /* Ignore the initial "if". */
@@ -1843,6 +1849,9 @@ See also 3.6.4.2.
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_switch);
   stmt_update_source_sequence_list(sp);
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_switch, sp);
   /* Add a switch block entry to the control_flow_descr_list.  The
@@ -1921,6 +1930,9 @@ See also 3.6.5.1.
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_while);
   stmt_update_source_sequence_list(sp);
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_while, sp);
   /* Ignore the initial "while". */
@@ -1968,6 +1980,9 @@ See also 3.6.5.2.
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_end_test_while);
   stmt_update_source_sequence_list(sp);
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_do, sp);
   /* Ignore the initial "do". */
@@ -2022,6 +2037,9 @@ where handler-seq is a sequence of one or more handlers of the form
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_try_block);
   stmt_update_source_sequence_list(sp);
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_try_block, sp);
   current_routine_entry()->contains_try_block = TRUE;
@@ -2076,6 +2094,9 @@ Scan an expression statement.
 
   sp = add_statement_at_stmt_pos((a_statement_kind)stmk_expr, &pos_curr_token);
   stmt_update_source_sequence_list(sp);
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Scan the expression. */
   expr = scan_void_expression();
   sp->expr = expr;
@@ -2142,6 +2163,9 @@ either an expression statement or a declaration statement.
   /* Allocate the for statement. */
   sp = add_statement((a_statement_kind)stmk_for);
   stmt_update_source_sequence_list(sp);
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_for, sp);
   /* Ignore the initial "for". */
@@ -2547,6 +2571,9 @@ See also 3.6.6.1.
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_goto);
   stmt_update_source_sequence_list(sp);
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   goto_pos = pos_curr_token;
   /* Ignore the initial "goto". */
 #if CHECKING
@@ -2604,6 +2631,9 @@ See also 3.6.6.2.
     stmt_update_source_sequence_list(sp);
     /* Put the destination label into the goto. */
     sp->variant.label = dest_label;
+    /* Do processing required for any pragmas that are bound to the current
+       statement. */
+    process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   }  /* if */
   /* Ignore the initial "continue". */
 #if CHECKING
@@ -2659,21 +2689,23 @@ See also 3.6.6.3.
       struct_stmt_stack[depth_stmt_stack].curr_switch_clause = NULL;
       term_stmt_clause(sssep);
       set_unreachable(curr_reachability);
-      goto break_handled;
+    } else {
+      /* This break statement exits a loop, or some part of a switch that
+         is not inside a switch clause. */
+      dest_label = sssep->break_label;
+      if (dest_label == NULL) {
+        /* The break label has not previously been used, so generate it. */
+        dest_label = sssep->break_label = alloc_temp_label();
+      }  /* if */
+      /* Allocate the goto statement. */
+      sp = add_statement((a_statement_kind)stmk_goto);
+      stmt_update_source_sequence_list(sp);
+      /* Put the destination label into the goto. */
+      sp->variant.label = dest_label;
+      /* Do processing required for any pragmas that are bound to the current
+         statement. */
+      process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
     }  /* if */
-    /* This break statement exits a loop, or some part of a switch that
-       is not inside a switch clause. */
-    dest_label = sssep->break_label;
-    if (dest_label == NULL) {
-      /* The break label has not previously been used, so generate it. */
-      dest_label = sssep->break_label = alloc_temp_label();
-    }  /* if */
-    /* Allocate the goto statement. */
-    sp = add_statement((a_statement_kind)stmk_goto);
-    stmt_update_source_sequence_list(sp);
-    /* Put the destination label into the goto. */
-    sp->variant.label = dest_label;
-break_handled:;
   }  /* if */
   /* Ignore the initial "break". */
 #if CHECKING
@@ -2852,6 +2884,9 @@ See also 3.6.6.4.
     sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return, &return_pos);
     stmt_update_source_sequence_list(sp);
   }  /* if */
+  /* Do processing required for any pragmas that are bound to the current
+     statement. */
+  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* See if the optional expression is present. */
   if (!expr_present) {
     /* The expression is missing. */
@@ -3245,7 +3280,7 @@ rescan_statement:
      the statement may be added to the existing list.  Otherwise, the
      list is expected to have been cleared. */
   if (select_curr_construct_pragmas(/*is_decl=*/FALSE,
-                                    /*add_to_list=*/get_another_statement)) {
+                                    /*add_to_list=*/prev_was_label)) {
     /* If a lint-style "notreached" comment was detected, suppress the
        warning on unreachable code. */
     check_lint_notreached_state();
