@@ -1,5 +1,16 @@
 Version 2.30
 
+6/23/95  Static data member constants in templates
+
+Static data member constants within templates are now treated properly
+as constants during the "prototype instantiation" of the template.
+
+  template <class T> struct A {
+    static const T k = 15;
+    int a[k];  // Got error previously
+  };
+  A<int> y;
+
 6/23/95  Spurious incomplete type errors on some template parameter based types
 
 Template parameter types are always supposed to be considered 
