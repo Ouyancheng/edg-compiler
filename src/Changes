@@ -1,6 +1,11 @@
 Version 2.29
 
-5/20/95  Direct base class with a nonvirtual destructor
+5/22/95  Cross-reference output for undefined identifier in constant expr
+
+A reference to an undefined identifier in a constant expression now
+produces a cross-reference entry for that error reference.
+
+5/20/95  Warning on direct base class with a nonvirtual destructor
 
 The diagnostic reporting that a direct base class has a nonvirtual
 destructor is now suppressed in cases where calling the implicitly
