@@ -1,5 +1,18 @@
 Version 2.44
 
+1/17/00  Microsoft compatibility: cast to abstract class is allowed
+
+In Microsoft bugs mode, a cast to an abstract class type is now
+allowed:
+
+  struct A {
+    A(int);
+    virtual void f() = 0;
+  };
+  void g() {
+    A(1);  // Accepted in Microsoft bugs mode
+  }
+
 1/17/00  Microsoft compatibility: lvalue cast that casts away const
 
 In Microsoft bugs mode, a cast of an lvalue to the type it already

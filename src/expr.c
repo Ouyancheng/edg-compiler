@@ -5840,7 +5840,9 @@ be set to the source position of the type.
       err = TRUE;
     }  /* if */
     /* But not a cast to an abstract class. */
-    if (skip_typerefs(type_cast_to)->variant.class_struct_union.abstract) {
+    if (skip_typerefs(type_cast_to)->variant.class_struct_union.abstract &&
+        /* Except in Microsoft mode. */
+        !microsoft_bugs) {
       report_abstract_class_error(ec_cast_to_abstract_class, type_cast_to,
                                   &error_position);
       err = TRUE;
