@@ -1,5 +1,10 @@
 Version 2.35
 
+2/12/97 &(A::x) is not a pointer to member
+
+The form "&(A::x)" is no longer accepted as a pointer to member.  This
+avoids an internal error on cases like "&(A::x+1)".
+
 2/12/97 Error recovery involving virtual function override
 
 An internal error has been fixed in handling the following error case:

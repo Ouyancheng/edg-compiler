@@ -6547,8 +6547,7 @@ or
        of the surrounding context, so most of the option flags are
        passed down. */
     scan_expr_full(result, bound_function_selector, PREC_LOWEST,
-                   (local_options &
-                    (EOPT_OPERAND_OF_CAST | EOPT_OPERAND_OF_ADDRESS_OF)) |
+                   (local_options & EOPT_OPERAND_OF_CAST) |
                    EOPT_ALLOW_BOUND_FUNCTION);
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_matching_stop_token(tok_rparen);
