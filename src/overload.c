@@ -6140,10 +6140,10 @@ of a constructor call).  Issue an error *err_pos if not.
     if (!have_access_to_symbol(cctor_sym)) {
       if (strict_ansi_mode) {
         pos_sy_diagnostic(strict_ansi_discretionary_severity,
-                          ec_inaccessible_special_function,
+                          ec_inaccessible_elided_cctor,
                           err_pos, cctor_sym);
       } else {
-        pos_sy_warning(ec_inaccessible_special_function, err_pos, cctor_sym);
+        pos_sy_warning(ec_inaccessible_elided_cctor, err_pos, cctor_sym);
       }  /* if */
     } else {
       /* The copy constructor is accessible.  Is it callable?  Specifically,
@@ -6158,15 +6158,12 @@ of a constructor call).  Issue an error *err_pos if not.
                        cctor_type->variant.routine.extra_info->param_type_list;
         a_type_ptr this_type = type_pointed_to(ptp->type);
         a_type_qualifier_set qualifiers = get_type_qualifiers(this_type);
-        if ((qualifiers & TQ_CONST) == 0) {
-          pos_diagnostic(strict_ansi_discretionary_severity,
-                         ec_nonconst_ref_init_from_rvalue,
-                         err_pos);
-        } else if ((qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
-                                 (TQ_CONST | TQ_VOLATILE)) {
-          pos_diagnostic(strict_ansi_discretionary_severity,
-                         ec_const_volatile_ref_init_from_rvalue,
-                         err_pos);
+        if ((qualifiers & TQ_CONST) == 0 ||
+            (qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
+                          (TQ_CONST | TQ_VOLATILE)) {
+          pos_sy_diagnostic(strict_ansi_discretionary_severity,
+                            ec_uncallable_elided_cctor,
+                            err_pos, cctor_sym);
         }  /* if */
       }  /* if */
     }  /* if */

@@ -738,6 +738,8 @@ ec_det_during_implicit_static_data_member_definition;INTERNAL;"detected during i
 ec_not_found_on_pack_alignment_stack;;"%sq not found on pack alignment stack"
 ec_empty_pack_alignment_stack;;"empty pack alignment stack"
 ec_cl_rtti_option_only_in_cplusplus;;"RTTI option can be used only when compiling C++"
+ec_inaccessible_elided_cctor;;"eliminated copy constructor %nf is inaccessible"
+ec_uncallable_elided_cctor;;"eliminated copy constructor %nf is not callable"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
