@@ -3000,6 +3000,24 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
 #define is_class_template_symbol(sym)					\
   ((sym)->kind == (a_symbol_kind)sk_class_template)
 
+
+/* Return TRUE if the symbol is an sk_type symbol that represents an
+   injected class name in a template class.  In a template class, the
+   template name can be used either to refer to the template or to refer
+   to the current instance. */
+#define is_injected_template_symbol(sym)				\
+  ((sym)->kind == (a_symbol_kind)sk_type &&				\
+   (sym)->variant.type.is_injected_class_name &&			\
+   (sym)->variant.type.ptr->variant.class_struct_union.is_template_class && \
+   (sym)->variant.type.ptr->						\
+	    variant.class_struct_union.extra_info->template_arg_list != NULL)
+
+/* Return TRUE if the symbol is a class template symbol or an sk_type
+   symbol that represents an injected class name in a template class. */
+#define is_class_template_or_injected_template_symbol(sym)		\
+  (is_class_template_symbol(sym) ||					\
+   is_injected_template_symbol(sym))
+
 /* Return TRUE if the symbol is a class symbol for either a normal
    (non-template) or a "real" instantiation of a template class.  */
 #define is_real_class_symbol(sym)				      \

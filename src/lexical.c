@@ -662,7 +662,7 @@ references.
        mode. */
     sym = normal_id_lookup(&locator_for_curr_id,
                            IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
-    if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
+    if (sym != NULL && is_class_template_or_injected_template_symbol(sym)) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -7797,7 +7797,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
     }  /* if */
   }  /* if */
   if (template_sym == NULL ||
-      template_sym->kind != (a_symbol_kind)sk_class_template) {
+      !is_class_template_or_injected_template_symbol(template_sym)) {
     /* The symbol is not a class template symbol.  If the symbol
        is a type symbol followed by what looks like the beginning
        of a template argument list (i.e., a "<") issue an error
@@ -7873,6 +7873,14 @@ a routine to lookup the appropriate instance (or generate one if needed).
          class template symbol that we started with. */
       new_sym = template_sym;
       goto skip_processing;
+    } else if (template_sym != NULL &&
+               is_injected_template_symbol(template_sym)) {
+      /* The template symbol is actually an sk_type symbol that points
+         to the template instance type.  When this symbol is not followed
+         by a template argument list it may be used to refer to the
+         current instance (which it already does). */
+      new_sym = template_sym;
+      goto normal_exit;
     } else {
       /* There is no template argument list.  If we are in an instantiation of
           this class template, use the symbol associated with the innermost
@@ -7900,6 +7908,17 @@ a routine to lookup the appropriate instance (or generate one if needed).
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (template_sym != NULL && is_injected_template_symbol(template_sym)) {
+    /* The symbol is the injected name of a class template.  In a template
+       class this points to the current instance of the class.  When
+       followed by a template argument list, we need to substitute the
+       class template symbol for the injected symbol. */
+    a_type_ptr				templ_class_type;
+    a_class_symbol_supplement_ptr	cssp;
+    templ_class_type = template_sym->variant.type.ptr;
+    cssp = symbol_supplement_for_class(templ_class_type);
+    template_sym = cssp->class_template;
   }  /* if */
   /* Always allocate template arguments at the file scope. */
   switch_to_file_scope_region(&region_to_switch_back_to);
@@ -8177,7 +8196,7 @@ the class template argument list or diagnose an invalid template reference.
   a_symbol_ptr	result_sym;
 
   if (template_sym != NULL &&
-      template_sym->kind != (a_symbol_kind)sk_class_template &&
+      !is_class_template_or_injected_template_symbol(template_sym) && 
       symbol_is_or_contains_template(template_sym)) {
     /* A function template symbol or overload set containing a function
        template symbol. */
@@ -8952,7 +8971,7 @@ selection operator, in which case it points to the type of the left operand.
     /* If the class symbol is for a class template, process the argument
        list. */
     if ((qualifier_sym != NULL &&
-         qualifier_sym->kind == (a_symbol_kind)sk_class_template) ||
+         is_class_template_or_injected_template_symbol(qualifier_sym)) ||
         next_tok == tok_lt) {
       /* Process a template reference.  This is considered a potential
          template reference if the symbol points to a class template
@@ -9204,7 +9223,7 @@ selection operator, in which case it points to the type of the left operand.
             }  /* if */
           }  /* if */
           if (qualifier_sym != NULL &&
-              (qualifier_sym->kind == (a_symbol_kind)sk_class_template ||
+              (is_class_template_or_injected_template_symbol(qualifier_sym) ||
                next_tok == tok_lt)) {
             /* Process a template reference.  This is considered a potential
                template reference if the symbol points to a class template
@@ -9858,7 +9877,8 @@ scanned is, in fact, an identifier).
      to a instance of the class template.  Scan the argument list and
      get a pointer to the symbol for the specific instance of the template
      class. */
-  if (symbol != NULL && symbol->kind == (a_symbol_kind)sk_class_template) {
+  if (symbol != NULL &&
+      is_class_template_or_injected_template_symbol(symbol)) {
     symbol = coalesce_template_class_reference(symbol, options, &templ_err);
   }  /* if */
   *err |= templ_err;
