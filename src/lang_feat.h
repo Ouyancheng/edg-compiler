@@ -1485,66 +1485,15 @@ or when Microsoft extensions (including Microsoft asms) are allowed.
 #define ASM_SUPPORT_NEEDED FALSE
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
-#ifdef EMBEDDED_C_ALLOWED
 /*
 When the EMBEDDED_C_ALLOWED flag is defined it either enables or disables
 all Embedded C (ISO/IEC TR 18037) extensions (i.e., fixed-point types, named
-address spaces, and named-register storage classes).  A configuration should
-not have EMBEDDED_C_ALLOWED defined differently from FIXED_POINT_ALLOWED,
-NAMED_ADDRESS_SPACES_ALLOWED, or NAMED_REGISTERS_ALLOWED (although it is OK
-to leave any undefined).
+address spaces, and named-register storage classes) that are not otherwise
+explicitly enabled or disabled.
 */
-#if EMBEDDED_C_ALLOWED
-#ifndef FIXED_POINT_ALLOWED
-#define FIXED_POINT_ALLOWED TRUE
-#else /* defined(FIXED_POINT_ALLOWED) */
-#if !FIXED_POINT_ALLOWED
- #error -- If EMBEDDED_C_ALLOWED is TRUE, FIXED_POINT_ALLOWED must be TRUE too
-#endif /* !FIXED_POINT_ALLOWED */
-#endif /* ifndef FIXED_POINT_ALLOWED */
-#ifndef NAMED_ADDRESS_SPACES_ALLOWED
-#define NAMED_ADDRESS_SPACES_ALLOWED TRUE
-#else /* defined(NAMED_ADDRESS_SPACES_ALLOWED) */
-#if !NAMED_ADDRESS_SPACES_ALLOWED
- #error -- If EMBEDDED_C_ALLOWED is TRUE, \
-             NAMED_ADDRESS_SPACES_ALLOWED must be TRUE too
-#endif /* !NAMED_ADDRESS_SPACES_ALLOWED */
-#endif /* ifndef NAMED_ADDRESS_SPACES_ALLOWED */
-#ifndef NAMED_REGISTERS_ALLOWED
-#define NAMED_REGISTERS_ALLOWED TRUE
-#else /* defined(NAMED_REGISTERS_ALLOWED) */
-#if !NAMED_REGISTERS_ALLOWED
- #error -- If EMBEDDED_C_ALLOWED is TRUE, \
-             NAMED_REGISTERS_ALLOWED must be TRUE too
-#endif /* !NAMED_REGISTERS_ALLOWED */
-#endif /* ifndef NAMED_REGISTERS_ALLOWED */
-#else /* !EMBEDDED_C_ALLOWED */
-#ifndef FIXED_POINT_ALLOWED
-#define FIXED_POINT_ALLOWED FALSE
-#else /* defined(FIXED_POINT_ALLOWED) */
-#if FIXED_POINT_ALLOWED
- #error -- If EMBEDDED_C_ALLOWED is FALSE, \
-             FIXED_POINT_ALLOWED must be FALSE too
-#endif /* FIXED_POINT_ALLOWED */
-#endif /* ifndef FIXED_POINT_ALLOWED */
-#ifndef NAMED_ADDRESS_SPACES_ALLOWED
-#define NAMED_ADDRESS_SPACES_ALLOWED FALSE
-#else /* defined(NAMED_ADDRESS_SPACES_ALLOWED) */
-#if NAMED_ADDRESS_SPACES_ALLOWED
- #error -- If EMBEDDED_C_ALLOWED is FALSE, \
-             NAMED_ADDRESS_SPACES_ALLOWED must be FALSE too
-#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
-#endif /* ifndef NAMED_ADDRESS_SPACES_ALLOWED */
-#ifndef NAMED_REGISTERS_ALLOWED
-#define NAMED_REGISTERS_ALLOWED FALSE
-#else /* defined(NAMED_REGISTERS_ALLOWED) */
-#if NAMED_REGISTERS_ALLOWED
- #error -- If EMBEDDED_C_ALLOWED is FALSE, \
-             NAMED_REGISTERS_ALLOWED must be FALSE too
-#endif /* NAMED_REGISTERS_ALLOWED */
-#endif /* ifndef NAMED_REGISTERS_ALLOWED */
-#endif /* EMBEDDED_C_ALLOWED */
-#endif /* ifdef EMBEDDED_C_ALLOWED */
+#ifndef EMBEDDED_C_ALLOWED
+#define EMBEDDED_C_ALLOWED FALSE
+#endif /* ifndef EMBEDDED_C_ALLOWED */
 
 /*
 Flag that is TRUE if the IL and the front end code supporting Embedded C
@@ -1555,7 +1504,11 @@ can handle fixed-point extensions (but that's useful only if the downstream
 compiler also handles them).
 */
 #ifndef FIXED_POINT_ALLOWED
+#if EMBEDDED_C_ALLOWED
+#define FIXED_POINT_ALLOWED TRUE
+#else /* !EMBEDDED_C_ALLOWED */
 #define FIXED_POINT_ALLOWED FALSE
+#endif /* EMBEDDED_C_ALLOWED */
 #endif /* ifndef FIXED_POINT_ALLOWED */
 
 /*
@@ -1575,8 +1528,12 @@ Flag that is TRUE if the IL and the front end code supporting Embedded C
 (ISO/IEC TR 18037) named address spaces should be enabled.
 */
 #ifndef NAMED_ADDRESS_SPACES_ALLOWED
+#if EMBEDDED_C_ALLOWED
+#define NAMED_ADDRESS_SPACES_ALLOWED TRUE
+#else /* !EMBEDDED_C_ALLOWED */
 #define NAMED_ADDRESS_SPACES_ALLOWED FALSE
-#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#endif /* EMBEDDED_C_ALLOWED */
+#endif /* ifndef NAMED_ADDRESS_SPACES_ALLOWED */
 
 /*
 Flag that is TRUE if Embedded C (ISO/IEC TR 18037) named address space
@@ -1595,8 +1552,12 @@ Flag that is TRUE if the IL and the front end code supporting Embedded C
 (ISO/IEC TR 18037) named-register storage classes should be enabled.
 */
 #ifndef NAMED_REGISTERS_ALLOWED
+#if EMBEDDED_C_ALLOWED
+#define NAMED_REGISTERS_ALLOWED TRUE
+#else /* !EMBEDDED_C_ALLOWED */
 #define NAMED_REGISTERS_ALLOWED FALSE
-#endif /* NAMED_REGISTERS_ALLOWED */
+#endif /* EMBEDDED_C_ALLOWED */
+#endif /* ifndef NAMED_REGISTERS_ALLOWED */
 
 /*
 Flag that is TRUE if Embedded C (ISO/IEC TR 18037) named-register storage

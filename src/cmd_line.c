@@ -1049,16 +1049,12 @@ Initialize the option information table.
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* NAMED_REGISTERS_ALLOWED */
-  { a_boolean embedded_c_allowed = FIXED_POINT_ALLOWED &&
-                                   NAMED_ADDRESS_SPACES_ALLOWED &&
-                                   NAMED_REGISTERS_ALLOWED;
-    add_config_dependent_option_description(
+  add_config_dependent_option_description(
                optk_embedded_c, "embedded_c", '\0', /*value=*/TRUE,
-               /*arg_required=*/FALSE, pchek_command_line, embedded_c_allowed);
-    add_config_dependent_option_description(
+               /*arg_required=*/FALSE, pchek_command_line, EMBEDDED_C_ALLOWED);
+  add_config_dependent_option_description(
                optk_embedded_c, "no_embedded_c", '\0', /*value=*/FALSE,
-               /*arg_required=*/FALSE, pchek_command_line, embedded_c_allowed);
-  }
+               /*arg_required=*/FALSE, pchek_command_line, EMBEDDED_C_ALLOWED);
 }  /* initialize_option_descriptions */
 
 
@@ -3856,18 +3852,23 @@ enable_microsoft_mode:
         named_registers_enabled = opt_value;
         break;
 #endif /* NAMED_REGISTERS_ALLOWED */
-#if FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
-    NAMED_REGISTERS_ALLOWED
+#if EMBEDDED_C_ALLOWED
       case optk_embedded_c:
-        /* Enable (or disable) all the Embedded C (TR 18037) extensions.
-           This option implies ANSI C mode, even in the "--no_embedded_c"
-           form. */
+        /* Enable (or disable) all the Embedded C (TR 18037) extensions
+           that are supported in the current configuration.  This option
+           implies ANSI C mode, even in the "--no_embedded_c" form. */
+#if FIXED_POINT_ALLOWED
         fixed_point_enabled = opt_value;
+#endif /* FIXED_POINT_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
         named_address_spaces_enabled = opt_value;
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
         named_registers_enabled = opt_value;
+#endif /* NAMED_REGISTERS_ALLOWED */
         C_dialect = C_dialect_ANSI;
         break;
-#endif /* FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && NAMED_... */
+#endif /* EMBEDDED_C_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
