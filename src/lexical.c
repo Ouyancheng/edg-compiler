@@ -6592,7 +6592,7 @@ Pop the current entry off of the stop token stack.
 #if EXPENSIVE_CHECKING
     check_stop_tokens = TRUE;
 #endif /* EXPENSIVE_CHECKING */
-    if (check_stop_tokens) {
+    if (check_stop_tokens) { /*lint !e774*/
       /* Make sure that all of the array elements of the entry being popped
          have been reset to their initial value of zero. */
       check_all_stop_token_entries_are_reset(stsep->stop_tokens);
