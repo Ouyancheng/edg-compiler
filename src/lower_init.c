@@ -2816,6 +2816,29 @@ and update *insert_location accordingly.
 }  /* record_needed_destruction */
 
 
+static an_expr_node_ptr copy_expr_to_function_memory_region(
+                                                         an_expr_node_ptr expr)
+/*
+Copy the indicated expression (in the file scope) to the current IL memory
+region (a function scope) and return a pointer to the copy.  This is used
+when generating the file-scope initialization routine: initializer
+expressions are copied into the function scope so that when they are lowered
+there isn't a mixture of function scope and file scope pieces in the
+resulting expression.
+*/
+{
+  an_expr_node_ptr expr_copy = copy_expr_tree(expr);
+
+  if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+    /* The original expression has an object lifetime.  Since the original
+       expression won't be in the IL, eliminate that object lifetime
+       and any under it. */
+    eliminate_object_lifetime_tree(expr->variant.object_lifetime.ptr);
+  }  /* if */
+  return expr_copy;
+}  /* copy_expr_to_function_memory_region */
+
+
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
                         a_boolean              is_expr_temporary,
@@ -2972,7 +2995,8 @@ be kept, FALSE if it should be deleted.
       if (processing_file_scope_init_routine) {
         /* Copy a file-scope expression into the current (function scope)
            memory region. */
-        dip->variant.expression = copy_expr_tree(dip->variant.expression);
+        dip->variant.expression =
+                  copy_expr_to_function_memory_region(dip->variant.expression);
       }  /* if */
       lower_normal_expr(dip->variant.expression);
 do_assignment:;
@@ -2992,7 +3016,8 @@ do_assignment:;
       if (processing_file_scope_init_routine) {
         /* Copy a file-scope expression into the current (function scope)
            memory region. */
-        dip->variant.expression = copy_expr_tree(dip->variant.expression);
+        dip->variant.expression =
+                  copy_expr_to_function_memory_region(dip->variant.expression);
       }  /* if */
       /* The address of the temporary being initialized is added as an
          implicit argument of the call. */
