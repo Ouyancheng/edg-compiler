@@ -5502,8 +5502,8 @@ is a template function, and/or definition if the function is the right kind
 of compiler-generated function (e.g., a constructor).
 */
 {
-  a_symbol_ptr                       assoc_sym;
-  a_function_instantiation_entry_ptr instance_ptr;
+  a_symbol_ptr             assoc_sym;
+  a_template_instance_ptr  instance_ptr;
 
   /* Set the referenced flag.  This is only necessary for virtual
      functions referenced by qualified name.  For non-virtual functions,
