@@ -15390,9 +15390,22 @@ data member is a member of an unnamed namespace.
 {
   a_boolean     result = FALSE;
   a_symbol_ptr	sym = tip->instance_sym;
+  a_boolean	exported_templates_present;
 
+  exported_templates_present = any_exported_templates();
   if (is_inline_template_function(tip)) {
-    result = TRUE;
+    /* In the presence of exported templates, static inline template functions
+       must be treated as external because they can be referenced from
+       exported templates instantiated elsewhere. */
+    a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
+    result = !exported_templates_present ||
+             rout->storage_class != (a_storage_class)sc_static;
+  } else if (exported_templates_present) {
+    /* When exported templates are present all static templates are promoted
+       to external entities with unique names.  This is necessary because
+       the exported templates may reference a static instantiation even though
+       they are instantiated in other files. */
+    result = FALSE;
   } else if (sym->kind != (a_symbol_kind)sk_static_data_member &&
              (sym->variant.routine.ptr->storage_class ==
                                                  (a_storage_class)sc_static ||
