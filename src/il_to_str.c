@@ -3150,8 +3150,7 @@ precedence confusion.  Do the output in the way described by octl.
                           octl);
 #if C99_IL_EXTENSIONS_SUPPORTED
       if (kind == (a_constant_repr_kind)ck_imaginary) {
-        /* Complex and imaginary constants are constructed with the
-           EDG-specific __I__. */
+        /* Imaginary constants are constructed with the EDG-specific __I__. */
         octl->output_str("*__I__");
       }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -3160,7 +3159,8 @@ precedence confusion.  Do the output in the way described by octl.
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
       /* Complex constant. */
-      /* Put parentheses around the constant. */
+      /* Put parentheses around the constant and use the form
+         ( A + B*__I__ ). */
       octl->output_str("(");
       form_float_constant(&constant->variant.complex_value->real,
                           con_type->variant.float_kind,
