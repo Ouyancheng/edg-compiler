@@ -1,5 +1,14 @@
 Version 3.3
 
+6/3/03   GNU mode: Diagnostic on invalid type attributes
+
+The front end used to issue a hard error when encountering attributes on
+types that do not actually apply to types.  Now only a warning is issued.
+For example:
+
+  struct S {} __attribute__((section("text")));  // Now a warning.
+                                                 // Previously an error.
+
 6/3/03   Microsoft compatibility: abort on in-class specialization
 
 An abort would occur if a Microsoft in-class specialization of a class
