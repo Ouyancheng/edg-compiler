@@ -1910,6 +1910,31 @@ Return TRUE if a match is found.
 }  /* is_redeclared_template_param */
 
 
+static a_boolean is_redeclared_condition_decl_name(a_symbol_header_ptr  hdr,
+                                                   a_scope_depth  scope_depth)
+/*
+Return TRUE if scope_depth specifies a scope immediately enclosed by a
+condition scope and hdr matches the symbol header of a symbol (normally
+there's only one) declared in the condition scope.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[scope_depth];
+  a_boolean                match = FALSE;
+  a_symbol_ptr             sym;
+
+  if (ssep->kind == (a_scope_kind)sck_block &&
+      (ssep-1)->kind == (a_scope_kind)sck_condition) {
+    for (sym = (ssep-1)->symbols; sym != NULL; sym = sym->next_in_scope) {
+      if (sym->header == hdr) {
+        match = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return match;
+}  /* is_redeclared_condition_decl_name */
+
+
 static void link_symbol_into_symbol_table(a_symbol_ptr  sym_ptr,
                                           a_scope_depth scope_depth,
                                           a_boolean     suppress_error)
@@ -1976,6 +2001,15 @@ the proper insert location.
            filled in at the time the symbol is entered. */
         pos_st_error(ec_redeclaration_of_template_param_name,
                      &(sym_ptr->decl_position), sym_ptr->header->identifier);
+      } else if (!C_mode() && scope_depth != DEPTH_OF_FILE_SCOPE &&
+                 is_redeclared_condition_decl_name(hdr_ptr, scope_depth)) {
+        /* The name of the variable declared in a condition may not be
+           redeclared in the topmost scope of if, switch, while, or for
+           statement. */
+        if (!suppress_error) {
+          pos_st_error(ec_redeclaration_of_condition_decl_name,
+                       &(sym_ptr->decl_position), sym_ptr->header->identifier);
+        }  /* if */
       } else {
         a_boolean	set_insert_after = TRUE;
         if (redeclared_template_param) {
