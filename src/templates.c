@@ -12533,6 +12533,7 @@ caller.
       add_routine_fixup_for_template_decl(sym,
                                           decl_state->prototype_scope_symbols,
                                           decl_state->class_declared_in,
+					  decl_state->defines_something,
 					  curr_default_args);
     }  /* if */
     /* Update the default argument information for this template from

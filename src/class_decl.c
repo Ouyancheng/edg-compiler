@@ -97,6 +97,10 @@ typedef struct a_routine_fixup {
 		is_template;
 			/* TRUE if this is a fixup entry for a function
 			   template declaration. */
+  a_byte_boolean
+		is_definition;
+			/* When is_template is TRUE, this is TRUE if the
+			   declaration is a definition. */
 } a_routine_fixup;
 
 
@@ -220,6 +224,7 @@ initialize it.
   rfp->preserve_param_id_list = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   rfp->is_template = FALSE;
+  rfp->is_definition = FALSE;
   clear_func_info(&rfp->func_info);
   /* We don't know whether this cache will be reused or not.  Make it
      reusable here.  If it is rescanned as a nonreusable cache we
@@ -354,6 +359,7 @@ void add_routine_fixup_for_template_decl(
 		a_symbol_ptr			symbol,
 		a_symbol_ptr			prototype_scope_symbols,
 		a_type_ptr			class_type,
+		a_boolean			is_definition,
 		a_def_arg_expr_fixup_ptr	default_args)
 				
 /*
@@ -368,6 +374,7 @@ is a list of default arguments to be fixed up.
   rfp = alloc_routine_fixup(class_type);
   rfp->symbol = symbol;
   rfp->is_template = TRUE;
+  rfp->is_definition = is_definition;
   rfp->prototype_scope_symbols = prototype_scope_symbols;
   rfp->def_arg_expr_fixup_list = default_args;
   add_to_routine_fixup_list(rfp);
@@ -1436,11 +1443,15 @@ nested class.
         } else if (rfp->is_template) {
           /* A function template declared in a class scope. */
           if (nonclass_prototype_instantiations) {
-            /* Do the prototype instantiation of the function body. */
-            function_prototype_instantiation(sym);
+            if (rfp->is_definition) {
+              /* Do the prototype instantiation of the function body. */
+              function_prototype_instantiation(sym);
+            }  /* if */
             if (is_friend) {
               tssp = template_supplement_for_symbol(sym);
-              tssp->variant.function.routine->defined_in_friend_decl = TRUE;
+              if (rfp->is_definition) {
+                tssp->variant.function.routine->defined_in_friend_decl = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
         } else if (is_nonreal_template_instantiation &&

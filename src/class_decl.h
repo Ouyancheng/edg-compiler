@@ -80,6 +80,7 @@ extern void add_routine_fixup_for_template_decl(
 		a_symbol_ptr			symbol,
 		a_symbol_ptr			prototype_scope_symbols,
 		a_type_ptr			class_type,
+		a_boolean			is_definition,
 		a_def_arg_expr_fixup_ptr	default_args);
 
 extern void check_member_decl_is_copy_constructor(
