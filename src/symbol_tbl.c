@@ -585,6 +585,28 @@ char *name_of_symbol(a_symbol_ptr  sym)
 }  /* name_of_symbol */
 
 
+static char *qualified_name_of_symbol(a_type_ptr    class_type,
+                                      a_symbol_ptr  sym)
+/*
+TEMPORARY ROUTINE
+*/
+{
+  char              *str, buffer[200];
+
+  buffer[0] = '\0';
+  if (class_type != NULL && class_type->source_corresp.name != NULL) {
+    (void)sprintf(buffer, "%s::", class_type->source_corresp.name);
+  }  /* if */
+  (void)sprintf(&buffer[strlen(buffer)], "%s", sym->header->identifier);
+  if (is_function_symbol(sym)) {
+    (void)sprintf(&buffer[strlen(buffer)], "()");
+  }  /* if */
+  str = alloc_fe((sizeof_t)strlen(buffer));
+  (void)strcpy(str, buffer);
+  return str;
+}  /* qualified_name_of_symbol */
+
+
 static a_symbol_header_ptr alloc_symbol_header(void)
 /*
 Allocate a new symbol header, and return a pointer to it.
@@ -1263,6 +1285,46 @@ the proper insert location.
 }  /* link_symbol_into_symbol_table */
 
 
+a_boolean check_class_and_member_name_conflict(a_type_ptr    class_type,
+                                               a_symbol_ptr  member_sym)
+/*
+If the member specified by member_sym has the same name as the class of
+which it is a member (class_type), issue an error -- except for nonstatic
+data members in a class with no constructors (ARM 9.2).  Constructors
+are another special case, but since they are not actually entered into
+the symbol table, this routine is not called for them.
+*/
+{
+  a_symbol_ptr class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  a_boolean    err = FALSE;
+
+  if (class_sym->header == member_sym->header) {
+    /* Member has the same name as the class to which it belongs. */
+    /* If no constructor already exists we permit a field with the same
+       name its class, as long as it's not an anonymous union field. */
+    if (member_sym->kind == (a_symbol_kind)sk_field &&
+        class_sym->variant.
+                    class_struct_union.extra_info->constructor == NULL &&
+        (member_sym->variant.field.ptr == NULL ||
+         member_sym->class_of_which_a_member ==
+                                member_sym->variant.field.ptr->
+                                    source_corresp.class_of_which_a_member)) {
+      /* No error. */
+    } else {
+      /* Error: an identifier that is not a constructor and that has the
+         same name as a class is being defined within the class. */
+      pos_st_error(is_function_symbol(member_sym) ?
+                       ec_class_and_member_function_name_conflict :
+                       ec_class_and_member_name_conflict,
+                   &member_sym->decl_position,
+                   qualified_name_of_symbol(class_type, member_sym));
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  return err;
+}  /* check_class_and_member_name_conflict */
+
+
 static void add_symbol_to_scope_list(a_symbol_ptr  sym_ptr,
                                      a_scope_depth scope_depth,
                                      a_boolean     *err)
@@ -1303,34 +1365,9 @@ changed if there is no error.
          be defined within the class unless it's a constructor (the symbol
          for which is not added to the scope list) or a nonstatic data
          member that is not an anonymous union member (ARM 9.2). */
-      if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
-        a_type_ptr   class_type = ssep->assoc_type;
-        a_symbol_ptr class_symbol = 
-                           (a_symbol_ptr)class_type->source_corresp.assoc_info;
-        /* See if the class name is the same as the name of the symbol we've
-           just entered.  Constructors will have gotten special handling
-           so that the header here will be different from the class header
-           even though the name is the same. */
-        if (class_symbol->header == sym_ptr->header) {
-          /* If no constructor already exists we permit a field with the same
-             name as the class of which it is a member, as long as it's not
-             an anonymous union field. */
-          if (sym_ptr->kind == (a_symbol_kind)sk_field &&
-              class_symbol->variant.
-                          class_struct_union.extra_info->constructor == NULL &&
-              (sym_ptr->variant.field.ptr == NULL ||
-               sym_ptr->class_of_which_a_member ==
-                                sym_ptr->variant.field.ptr->
-                                    source_corresp.class_of_which_a_member)) {
-            /* No error. */
-          } else {
-            /* Error: an identifier that is not a constructor and that
-               has the same name as a class is being defined within the
-               class. */
-            pos_error(ec_id_has_same_name_as_class, &sym_ptr->decl_position);
-            *err = TRUE;
-          }  /* if */
-        }  /* if */
+      if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+          check_class_and_member_name_conflict(ssep->assoc_type, sym_ptr)) {
+        *err = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
