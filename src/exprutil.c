@@ -40,12 +40,6 @@ static a_ref_entry_ptr
 		avail_ref_entries;
 			/* List of reference entries that have been freed
 			   and are available for reuse. */
-static a_ref_entry_ptr
-		curr_expr_ref_entries;
-			/* List of all the reference entries for the current
-			   expression.  They are recorded at the end of the
-			   expression.  Before that, the kind of reference
-			   each indicates might be adjusted. */
 
 static an_arg_operand_ptr
 		avail_arg_operands;
@@ -115,10 +109,83 @@ Free the reference entry pointed to by rep.
 }  /* free_ref_entry */
 
 
-static void flush_ref_entries_list(void)
+static void record_and_free_ref_entry(a_ref_entry_ptr rep)
+/*
+Record the reference indicated in the reference entry rep, and free the entry.
+*/
+{
+  reference_to_symbol(rep->kind, rep->symbol, &rep->position,
+                      /*update_il_entry=*/TRUE);
+  free_ref_entry(rep);
+}  /* record_and_free_ref_entry */
+
+
+static a_boolean on_operand_ref_list(a_ref_entry_ptr rep,
+                                     a_ref_entry_ptr list)
+/*
+Return TRUE if the reference entry "rep" appears on the list of reference
+entries headed by "list".  The list considered is the one linked on the
+next_operand_ref field, i.e., the list attached to an operand.
+*/
+{
+  a_boolean on_list = FALSE;
+
+  for (; list != NULL; list = list->next_operand_ref) {
+    if (rep == list) {
+      /* The entry is on the list. */
+      on_list = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return on_list;
+}  /* on_operand_ref_list */
+
+
+void flush_ref_entries_except(a_ref_entry_ptr keep_list1,
+                              a_ref_entry_ptr keep_list2,
+                              a_ref_entry_ptr saved_list)
+/*
+Look for reference entries on the curr_expr_ref_entries list that are not
+also on either of the keep_list1 or keep_list2 lists.  For each such entry,
+record the indicated reference and free the entry.  Also restore the entries
+on saved_list to the global list.  This is used at the ends of expressions
+to commit the references that are not being passed up to the caller and
+therefore cannot be modified further.
+*/
+{
+  a_ref_entry_ptr rep, last_rep, next_rep;
+
+  last_rep = NULL;
+  for (rep = curr_expr_ref_entries; rep != NULL; rep = next_rep) {
+    next_rep = rep->next;
+    if (on_operand_ref_list(rep, keep_list1) ||
+        on_operand_ref_list(rep, keep_list2)) {
+      /* This entry appears on a list, so keep it on the global list. */
+      if (last_rep == NULL) {
+        curr_expr_ref_entries = rep;
+      } else {
+        last_rep->next = rep;
+      }  /* if */
+      last_rep = rep;
+      rep->next = NULL;
+    } else {
+      /* This entry does not appear on a list, so record it and free it. */
+      record_and_free_ref_entry(rep);
+    }  /* if */
+  }  /* while */
+  /* Put the saved_list on the end of what's left of the global list. */
+  if (last_rep == NULL) {
+    curr_expr_ref_entries = saved_list;
+  } else {
+    last_rep->next = saved_list;
+  }  /* if */
+}  /* flush_ref_entries_except */
+
+
+void flush_ref_entries_list(void)
 /*
 If there are any entries on the list of reference entries for the current
-expression, output them now.
+expression, record and free them now.
 */
 {
   a_ref_entry_ptr rep;
@@ -126,10 +193,7 @@ expression, output them now.
   while (curr_expr_ref_entries != NULL) {
     rep = curr_expr_ref_entries;
     curr_expr_ref_entries = rep->next;
-    /* Go write information on this entry to a file. */
-    reference_to_symbol(rep->kind, rep->symbol, &rep->position,
-                        /*update_il_entry=*/TRUE);
-    free_ref_entry(rep);
+    record_and_free_ref_entry(rep);
   }  /* while */
 }  /* flush_ref_entries_list */
 
@@ -203,7 +267,8 @@ void change_ref_kinds(a_ref_entry_ptr         ref_list,
                       a_symbol_reference_kind kind)
 /*
 Change the kind-of-reference field to "kind" in each of the reference
-entries on the list ref_list.
+entries on the list ref_list.  The list is linked by the next_operand_ref
+field.
 */
 {
   a_ref_entry_ptr rep;
@@ -321,8 +386,6 @@ at the start of a major expression.
 {
   new_entry->prev = expr_stack;
   new_entry->expression_kind = expression_kind;
-  new_entry->old_ref_entries_list = curr_expr_ref_entries;
-  curr_expr_ref_entries = NULL;
   new_entry->evaluated = TRUE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
@@ -352,8 +415,6 @@ major expression.
 {
   /* Flush the reference entries list for the current expression. */
   flush_ref_entries_list();
-  /* Restore the old ref entries list, if any. */
-  curr_expr_ref_entries = expr_stack->old_ref_entries_list;
   /* Pop the stack. */
   expr_stack = expr_stack->prev;
 }  /* pop_expr_stack */
@@ -482,7 +543,6 @@ Extract the constant value from the operand *operand and place it in
 }  /* extract_constant_from_operand */
 
 
-/*ARGSUSED*/ /* <-- Doesn't use operand presently. */
 void discard_operand(an_operand *operand)
 /*
 Discard the indicated operand.  It has been scanned as a normal operand,
@@ -490,9 +550,8 @@ but it's now known that it should have been a not-evaluated operand.
 This is only used in C++, for left operands of field selections.
 */
 {
-#if 0
-  /* What do do?? */
-#endif
+  /* The references in the operand aren't real references. */
+  change_ref_kinds(operand->ref_entries_list, srk_reference);
 }  /* discard_operand */
 
 
@@ -4297,13 +4356,13 @@ Initialize things related to expression scanning.
 {
   /* Variables in exprutil.h: */
   expr_stack = NULL;
+  curr_expr_ref_entries = NULL;
 #if DEBUG
   num_arg_match_summaries_allocated = 0;
 #endif /* DEBUG */
   
   /* Static variables in exprutil.c: */
   avail_ref_entries = NULL;
-  curr_expr_ref_entries = NULL;
   avail_arg_operands = NULL;
   avail_dynamic_init_dtor_fixups = NULL;
 #if DEBUG

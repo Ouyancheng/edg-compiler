@@ -252,10 +252,6 @@ typedef struct an_expr_stack_entry {
   an_expression_kind
 		expression_kind;
 			/* The kind of expression. */
-  a_ref_entry_ptr
-		old_ref_entries_list;
-			/* Saved copy of the reference entries list at the
-			   time of the push of this entry. */
   a_byte_boolean
 		evaluated;
 			/* Expression is evaluated, e.g., FALSE if it's the
@@ -300,6 +296,14 @@ typedef struct an_expr_stack_entry {
 EXTERN an_expr_stack_entry_ptr
 		expr_stack;
 			/* Pointer to the top of the expression stack. */
+
+EXTERN a_ref_entry_ptr
+		curr_expr_ref_entries;
+			/* List of all the reference entries for the current
+			   expression.  They are recorded at the end of the
+			   expression.  Before that, the kind of reference
+			   each indicates might be adjusted. */
+
 #if DEBUG
 /*
 Counts of entries allocated, for debugging purposes.
@@ -401,6 +405,12 @@ constant expressions.  See ARM 7.1.6.
 #define is_const_variable(var)                                          \
 	(is_const_qualified_type((var)->type) && is_integral_type((var)->type))
 
+
+extern void flush_ref_entries_except(a_ref_entry_ptr keep_list1,
+                                     a_ref_entry_ptr keep_list2,
+                                     a_ref_entry_ptr saved_list);
+
+extern void flush_ref_entries_list(void);
 
 extern a_ref_entry_ptr ref_entry(a_symbol_ptr      sym_ptr,
                                  a_source_position *source_position);

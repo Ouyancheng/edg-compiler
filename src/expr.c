@@ -5695,6 +5695,22 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
 }  /* scan_bit_operator */
 
 
+static void sequence_point_after_operand(an_operand *operand)
+/*
+There is a sequence point after the evaluation of the indicated operand.
+Commit any references made therein.
+*/
+{
+  /* Clear the references list on the operand, and flush the global list
+     maintained for the current expression. */
+  operand->ref_entries_list = NULL;
+  /* We expect that the operand is not bound. */
+  check_assertion_str(!operand->bound_function,
+                      "sequence_point_after_operand: bound operand");
+  flush_ref_entries_list();
+}  /* sequence_point_after_operand */
+
+
 static void scan_logical_operator(an_operand *operand_1,
                                   an_operand *result)
 /*
@@ -5732,6 +5748,8 @@ standard.
   }  /* if */
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  /* There is a sequence point after the first operand. */
+  sequence_point_after_operand(operand_1);
 
   if (C_dialect == C_dialect_cplusplus &&
       opname_symbol_table[opname_kind_for_token[(int)save_token]] != NULL) {
@@ -6040,6 +6058,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       }  /* if */
     }  /* if */
   }  /* if */
+
+  /* There is a sequence point after the first operand. */
+  sequence_point_after_operand(operand_1);
 
   /* Scan the second operand.   Evaluate the expression if the first
      operand is non-constant or a non-zero constant, and if we are currently
@@ -6754,6 +6775,9 @@ EOPT_DISALLOW_COMMA_OPERATOR).
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
+  /* There is a sequence point after the first operand. */
+  sequence_point_after_operand(operand_1);
+
   if (curr_expr_kind_is_const()) {
     /* Comma operator not allowed in constant expressions. */
     pos_error(ec_bad_constant_operator, &pos_curr_token);
@@ -7463,6 +7487,7 @@ see expr.h).
   an_operand        operand;
   an_operand        local_result, local_bound_function_selector;
   a_token_kind      ntoken;
+  a_ref_entry_ptr   saved_ref_list, selector_ref_entry_list;
 
   db_enter(4, "scan_expr_full");
 #if DEBUG
@@ -7473,6 +7498,11 @@ see expr.h).
 
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
+
+  /* Save the reference entry list for the surrounding expression.  It will
+     be restored on exit.  Start a new list for this expression. */
+  saved_ref_list = curr_expr_ref_entries;
+  curr_expr_ref_entries = NULL;
 
   /* Scan first one of the following:
      1)  A leaf operand, like an identifier or literal constant.
@@ -7783,6 +7813,9 @@ bad_start_of_primary:
               local_result.variant.symbol->header->identifier);
     make_error_operand(&local_result);
   }  /* if */
+  /* Selector_ref_entry_list will be set to the reference entry list for the
+     selector object if there is one. */
+  selector_ref_entry_list = NULL;
   if (local_result.bound_function) {
     /* Do not allow bound functions to survive unless the caller
        permits it. */
@@ -7799,11 +7832,23 @@ bad_start_of_primary:
       }  /* if */
 #endif /* CHECKING */
       copy_operand(&local_bound_function_selector, bound_function_selector);
+      selector_ref_entry_list = bound_function_selector->ref_entries_list;
     }  /* if */
   }  /* if */
 
   copy_operand(&local_result, result);
 
+  /* At this point, curr_expr_ref_entries is a list of all the ref entries
+     generated in the expression.  There is also a list attached to result,
+     of entries for which the reference kind may be affected by context.
+     Clearly, any entries on the first list that are not also on the second
+     list cannot be changed from here on, so they are removed from the
+     global list now and the references they indicate are recorded.
+     The references in the selector object (if there is one) are also kept.
+     The global list of references is updated, including adding back in the
+     list saved at the entry to this routine. */
+  flush_ref_entries_except(result->ref_entries_list, selector_ref_entry_list,
+                           saved_ref_list);
   db_exit();
 }  /* scan_expr_full */
 
