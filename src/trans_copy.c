@@ -2130,18 +2130,19 @@ end_of_routine_list_add:;
 }  /* finish_trans_unit_copy */
 
 
-static void merge_il_headers(void)
+static void merge_il_headers(a_translation_unit_ptr tup)
 /*
-Do merging of the il_header of the current secondary translation unit
+Do merging of the il_header of the indicated secondary translation unit
 into the primary translation unit il_header.
 */
 {
-  if (il_header.main_routine != NULL) {
+  check_assertion(is_primary_translation_unit);
+  if (tup->il_header.main_routine != NULL) {
     /* "main" is defined in the secondary translation unit.  Indicate
        that it is now defined in the primary translation unit. */
-    check_assertion(translation_units->il_header.main_routine == NULL);
-    translation_units->il_header.main_routine =
-             (a_routine_ptr)transitive_copy_address_of(il_header.main_routine);
+    check_assertion(il_header.main_routine == NULL);
+    il_header.main_routine =
+        (a_routine_ptr)transitive_copy_address_of(tup->il_header.main_routine);
   }  /* if */
 }  /* merge_il_headers */
 
@@ -2430,7 +2431,7 @@ therefore will not be copied.
 #endif /* DEBUG */
       top_scope = tup->primary_scope;
       finish_trans_unit_copy(top_scope, merge_pass);
-      if (merge_pass) merge_il_headers();
+      if (merge_pass) merge_il_headers(tup);
 #if DEBUG
       if (debug_level >= 1) {
         fprintf(f_debug,
