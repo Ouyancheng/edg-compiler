@@ -210,7 +210,7 @@ This change should not result in a change in behavior of existing pragmas.
 Existing code need only be changed if certain pragmas should not recognize
 keywords.
 
-4/5/95   Cfront compatiblity: conversions of class operands to pointer type
+4/5/95   Cfront compatibility: conversions of class operands to pointer type
          when they are operands of builtin operators
 
 A small adjustment in cfront mode: for class operands of builtin operators,
@@ -867,7 +867,7 @@ with the user's name space, so the prefix has been changed to "__SO__".
   struct _x {} a;
   struct x : public virtual v {};
 
-This has no effect on binary compatiblity since these names are internal
+This has no effect on binary compatibility since these names are internal
 to a compilation.
 
 2/25/95  Improved error recovery on too many arguments to macro call
