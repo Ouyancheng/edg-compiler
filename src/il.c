@@ -12369,6 +12369,49 @@ of this determination.
 }  /* is_invariant_expr */
 
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void check_expr_for_statement_expression(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from traverse_expr to check whether the expression is a
+statement expression.
+*/
+{
+  if (expr->kind == (a_statement_kind)enk_statement) {
+    /* This expression is a statement expression.  Stop the tree walk. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* check_expr_for_statement_expression */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- expr is not used in that case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
+a_boolean has_statement_expression(an_expr_node_ptr expr)
+/*
+Return whether expr contains a statement expression (a GNU extension).
+*/
+{
+  a_boolean result = FALSE;
+
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_mode) {
+    an_expr_or_stmt_traversal_block tblock;
+
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = check_expr_for_statement_expression;
+    traverse_expr(expr, &tblock);
+    result = tblock.result;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  return result;
+}  /* has_statement_expression */
+
+
 void set_routine_calling_method_flag(a_type_ptr         routine_type,
                                      a_source_position  *err_pos)
 /*

@@ -1,5 +1,21 @@
 Version 3.5
 
+7/28/04  GNU mode: Abort in C++-generating back end on statement expression
+
+In GNU mode with ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS set to TRUE,
+the C++-generating back end sometimes aborted with an internal error if the
+input source contained a GNU statement expression within a conditional
+expression with a constant condition.  For example:
+
+  void f() {
+    int i;
+    i = 1 ? 2 : ({ char c; 3; });  // Triggered an internal error.
+    i = 2;
+  }
+
+This is now fixed by not attempting to eliminate GNU statement expressions
+even when the condition is constant.
+
 7/28/04  Microsoft compatibility: Implicit int return type and type names
 
 In Microsoft mode, the front end previously accepted member function

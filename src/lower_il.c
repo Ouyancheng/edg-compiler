@@ -10637,49 +10637,6 @@ the expression have already been lowered.
 
 #if LOWER_LVALUE_RETURNING_OPERATIONS
 
-#if GNU_EXTENSIONS_ALLOWED
-
-static void check_expr_for_statement_expression(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-Called from traverse_expr to check whether the expression is a
-statement expression.
-*/
-{
-  if (expr->kind == (a_statement_kind)enk_statement) {
-    /* This expression is a statement expression.  Stop the tree walk. */
-    tblock->result = TRUE;
-    tblock->terminate = TRUE;
-  }  /* if */
-}  /* check_expr_for_statement_expression */
-
-#endif /* GNU_EXTENSIONS_ALLOWED */
-
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- expr is not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-static a_boolean has_statement_expression(an_expr_node_ptr expr)
-/*
-Return whether expr contains a statement expression (a GNU extension).
-*/
-{
-  a_boolean result = FALSE;
-
-#if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode) {
-    an_expr_or_stmt_traversal_block tblock;
-
-    clear_expr_or_stmt_traversal_block(&tblock);
-    tblock.process_expr = check_expr_for_statement_expression;
-    traverse_expr(expr, &tblock);
-    result = tblock.result;
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  return result;
-}  /* has_statement_expression */
-
-
 void lower_operations_returning_lvalue_instead_of_usual_rvalue(
                                                     an_expr_node_ptr expr,
                                                     a_boolean        is_lvalue)

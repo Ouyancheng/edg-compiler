@@ -6472,6 +6472,16 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
          we don't want to run through the expression to find the
          destruction to unlink it. */
       /* do_folding = FALSE; -- already set. */
+#if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
+    } else if (gnu_mode &&
+               ((is_expression_operand(operand_2) &&
+                 has_statement_expression(operand_2->variant.expression)) ||
+                (is_expression_operand(operand_3) &&
+                 has_statement_expression(operand_3->variant.expression)))) {
+      /* GNU statement expressions may give rise to source sequence entries,
+         which are too expensive to eliminate. */
+      /* do_folding = FALSE; -- already set. */
+#endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
     } else if ((operand_2 == NULL || is_constant_operand(operand_2)) &&
                is_constant_operand(operand_3)) {
       /* Fold if the second and third operands are constants. */

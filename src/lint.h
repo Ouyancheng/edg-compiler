@@ -417,6 +417,10 @@ extern int fileno(FILE *);
 /*lint -esym(765,add_to_end_of_temp_init_statements_list)*/
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 #endif /* DO_IL_LOWERING */
+#if !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
+/*lint -esym(759,add_to_end_of_temp_init_statements_list)*/
+/*lint -esym(765,add_to_end_of_temp_init_statements_list)*/
+#endif /* !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATOR */
 
 
 /******************************************************************************
