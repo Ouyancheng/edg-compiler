@@ -937,10 +937,10 @@ The syntax is:
       check_for_opening_brace(&brace_flag);
     }  /* if */
     scan_initializer_of_simple_object(
-             /*nonconst_allowed=*/(C_dialect == C_dialect_cplusplus ||
-               (vp != NULL && has_static_storage_duration(vp->storage_class))),
-             /*convert_array_to_pointer=*/!is_string_type(vp_type),
-             &vp_type, &local_di, &err);
+           /*nonconst_allowed=*/(C_dialect == C_dialect_cplusplus ||
+              (vp != NULL && !has_static_storage_duration(vp->storage_class))),
+           /*convert_array_to_pointer=*/!is_string_type(vp_type),
+           &vp_type, &local_di, &err);
     if (local_di.kind == (a_dynamic_init_kind)dik_expression) {
       initialization_is_dynamic = TRUE;
     }  /* if */
