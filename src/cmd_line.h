@@ -510,8 +510,12 @@ EXTERN a_calling_convention
 EXTERN a_boolean
 		wchar_t_is_keyword
 #if VAR_INITIALIZERS
-                                   = DEFAULT_WCHAR_T_IS_KEYWORD &&
-                                     WCHAR_T_ENABLING_POSSIBLE
+                             =
+#if WCHAR_T_ENABLING_POSSIBLE
+                               DEFAULT_WCHAR_T_IS_KEYWORD
+#else /* !WCHAR_T_ENABLING_POSSIBLE */
+                               FALSE
+#endif /* WCHAR_T_ENABLING_POSSIBLE */
 #endif /* VAR_INITIALIZERS */
                                                                ;
 			/* Indicates whether wchar_t is to be considered a
@@ -522,8 +526,12 @@ EXTERN a_boolean
 EXTERN a_boolean
 		bool_is_keyword
 #if VAR_INITIALIZERS
-                                   = DEFAULT_BOOL_IS_KEYWORD &&
-                                     BOOL_ENABLING_POSSIBLE
+                             =
+#if BOOL_ENABLING_POSSIBLE
+                               DEFAULT_BOOL_IS_KEYWORD
+#else /* !BOOL_ENABLING_POSSIBLE */
+                               FALSE
+#endif /* BOOL_ENABLING_POSSIBLE */
 #endif /* VAR_INITIALIZERS */
                                                                ;
 			/* Indicates whether bool is to be considered a
