@@ -10073,8 +10073,9 @@ Note that the destructor, if any, is implicit and need not be put out.
   } else if (dip->is_result_for_class_rvalue_question_mark) {
     /* This temporary is the result of a "?" operator returning
        a class rvalue. */
-    check_assertion(!parenthesized_init);
+    if (parenthesized_init) write_tok_ch('(');
     gen_class_rvalue_question_mark(dip);
+    if (parenthesized_init) write_tok_ch(')');
     goto end_of_routine;
   }  /* if */
   switch (dip->kind) {
