@@ -71,9 +71,11 @@ be used.
 Target byte order.  Little-endian means the least-significant part of a
 multi-byte integer is at the lowest memory address.
 */
+#ifndef TARG_LITTLE_ENDIAN
 #define TARG_LITTLE_ENDIAN FALSE
 			/* Default value, used to initialize global variable
 			   targ_little_endian. */
+#endif /* !defined(TARG_LITTLE_ENDIAN) */
 
 /*
 Char types:
@@ -121,11 +123,13 @@ Special characters:
 /*
 Ordering of bytes in char constants:
 */
+#ifndef TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT
 #define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT 1
 			/* if 1, 'ab' == 0x6162. */
 			/* if 0, 'ab' == 0x6261. */
 			/* Default value, used to initialize global variable
 			   targ_char_constant_first_char_most_significant. */
+#endif /* !defined(TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT) */
 
 /*
 Wide character constant type (wchar_t, see stddef.h and stdlib.h).
