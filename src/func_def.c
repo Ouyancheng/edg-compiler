@@ -1571,7 +1571,10 @@ member declaration (allowed in Microsoft mode only).
                          /*suppress_error=*/FALSE);
           if (c99_mode) {
             /* In C99, implicit declarations are not longer allowed. */
-            pos_sy_diagnostic(es_discretionary_error, ec_undeclared_parameter,
+            pos_sy_diagnostic(strict_ansi_mode ?
+                                           strict_ansi_discretionary_severity :
+                                           es_warning,
+                              ec_undeclared_parameter,
                               &param_id->symbol->decl_position,
                               param_id->symbol);
           }  /* if */

@@ -1098,7 +1098,7 @@ ec_bad_complex_operation_result;;"complex floating-point operation result is out
 ec_real_imaginary_conversion;;"conversion between real and imaginary yields zero"
 ec_cannot_initialize_flexible_array_member;;"an initializer cannot be specified for a flexible array member"
 ec_imaginary_times_assign;;"imaginary *= imaginary sets the left-hand operand to zero"
-ec_undeclared_parameter;;"%n must be given a type by a subsequent declaration"
+ec_undeclared_parameter;;"standard requires that %n be given a type by a subsequent declaration (\"int\" assumed)"
 ec_inline_never_defined;;"a definition is required for inline %n"
 ###############################################################################
 #                                                             \  ___  /       #
