@@ -316,7 +316,9 @@ The given entity should have a source correspondence.
       /* No other criteria apply. */
       break;
     case iek_routine:
-      if (assoc_sym_defined(entity)) {
+      /* Note: assoc_sym_defined not used because when unneeded routines are
+         removed the "defined" flag in the symbol is not cleared. */
+      if (((a_routine_ptr)entity)->assoc_scope != NULL_region_number) {
         rank += 8;
       }  /* if */
       if (((a_routine_ptr)entity)->is_specialized) {
