@@ -5876,9 +5876,15 @@ the same effect), and return a pointer to the new expression.
     /* Error node -- leave alone. */
   } else {
     /* For other cases, add an indirection operator. */
+    /* Drop type qualifiers from the type, because (a) they don't apply to
+       rvalues, and (b) when a pointer is used for an lvalue, it has
+       no top-level qualifiers.  An IL shorthand allows them to be dropped
+       without a cast. */
+    a_type_ptr new_type = type_pointed_to(node->type);
+    new_type = make_unqualified_type(new_type);
     node->next = NULL;
     node = make_operator_node((an_expr_operator_kind)eok_indirect,
-                              type_pointed_to(node->type), node);
+                              new_type, node);
   }  /* if */
   return node;
 }  /* add_indirection_to_node */
@@ -5953,11 +5959,9 @@ return a pointer to it.
 {
   /* Make the expression node for an lvalue reference. */
   node = field_lvalue_selection_expr(node, field);
-  /* Add an indirection to turn the lvalue into an rvalue. */
+  /* Add an indirection to turn the lvalue into an rvalue.  That also
+     drops any type qualifiers. */
   node = add_indirection_to_node(node);
-  /* Drop any type qualifiers on the type because rvalues do not have
-     type qualifiers. */
-  node->type = make_unqualified_type(node->type);
   return node;
 }  /* field_rvalue_selection_expr */
 

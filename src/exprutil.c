@@ -3053,8 +3053,8 @@ void add_reference_indirection(an_operand *result)
   /* Change the references to "use". */
   change_some_ref_kinds(result->ref_entries_list, SRK_REFERENCE, SRK_USE);
   node = add_indirection_to_node(make_node_from_operand(result));
-  result_type = type_pointed_to(result_type);
   if (is_an_lvalue(result)) {
+    result_type = type_pointed_to(result_type);
     /* Make the node have a pointer type instead of a reference type. */
     node->type = make_pointer_type(result_type);
     if (is_function_type(result_type)) {
@@ -3063,9 +3063,7 @@ void add_reference_indirection(an_operand *result)
       result_state = (an_operand_state)os_function_designator;
     }  /* if */
   } else if (is_an_rvalue(result)) {
-    /* Drop type qualifiers on an rvalue.  An IL shorthand allows them to
-       be dropped without an explicit cast. */
-    node->type = result_type = make_unqualified_type(result_type);
+    result_type = node->type;
   }  /* if */
   make_expression_operand(node, result_type, result);
   result->state = result_state;
@@ -4018,15 +4016,16 @@ non-NULL return *con_value == NULL.
     if (optimized_case) {
       /* For the optimized cases, set the node type to the type pointed to. */
       node->type = type_pointed_to(orig_type);
+      /* Drop type qualifiers because they are meaningless on rvalues.
+         Note that no cast is needed to drop the qualifiers: an IL shorthand
+         applies in this case. */
+      if (is_qualified_type(node->type)) {
+        node->type = make_unqualified_type(node->type);
+      }  /* if */
     } else {
-      /* Not an optimized case.  Just add an indirection. */
+      /* Not an optimized case.  Just add an indirection.  This also drops
+         the type qualifiers. */
       node = add_indirection_to_node(node);
-    }  /* if */
-    /* Drop type qualifiers because they are meaningless on rvalues.
-       Note that no cast is needed to drop the qualifiers: an IL shorthand
-       applies in this case. */
-    if (is_qualified_type(node->type)) {
-      node->type = make_unqualified_type(node->type);
     }  /* if */
   }  /* if */
   return node;
@@ -4045,8 +4044,8 @@ not an lvalue, it is left alone.
   an_expr_node_ptr node;
   an_operand       orig_operand;
   an_expr_node_ptr operand_node, cast_node;
-  a_type_ptr       cast_orig_type, unqualified_type;
-  a_boolean        constant_case = FALSE, qualifiers_dropped = FALSE;
+  a_type_ptr       cast_orig_type;
+  a_boolean        constant_case = FALSE;
   a_constant_ptr   con_value;
 
   /* Ignore non-lvalues. */
@@ -4094,7 +4093,6 @@ not an lvalue, it is left alone.
           } else {
             /* Not constant-valued; the rvalue is the value of the variable. */
             node = var_rvalue_expr(variable);
-            qualifiers_dropped = TRUE;
             make_expression_operand(node, node->type, operand);
           }  /* if */
         } else {
@@ -4160,22 +4158,6 @@ not an lvalue, it is left alone.
             operand->type = node->type;
             operand->state = (an_operand_state)os_rvalue;
           }  /* if */
-          /* The subroutine handles dropping type qualifiers. */
-          qualifiers_dropped = TRUE;
-        }  /* if */
-      }  /* if */
-      /* Drop any type qualifiers on the operand type. */
-      if (!qualifiers_dropped && is_qualified_type(operand->type)) {
-        unqualified_type = make_unqualified_type(operand->type);
-        if (is_expression_operand(operand)) {
-          /* For an expression node, just change the expression type.
-             That's an IL shorthand form for this case, and avoids a
-             cast to a struct or union type. */
-          operand->type = operand->variant.expression->type = unqualified_type;
-        } else {
-          /* For other cases (including constants), do the cast the normal
-             way. */
-          cast_operand(unqualified_type, operand, /*is_implicit_cast=*/TRUE);
         }  /* if */
       }  /* if */
       if (curr_expr_kind_is_const() && !constant_case) {
