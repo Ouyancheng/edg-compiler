@@ -212,6 +212,22 @@ EXTERN int	targ_bit_field_container_size
 			   to the default value but reconfigurable. */
 
 EXTERN a_boolean
+		targ_microsoft_bit_field_allocation
+#if VAR_INITIALIZERS
+                                       = TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+#endif /* VAR_INITIALIZERS */
+                                                                            ;
+			/* If this flag is TRUE, bit-field allocation follows
+			   the conventions of Microsoft C/C++.  The value of
+			   targ_bit_field_container_size must be -1 and there
+			   is a two-stage allocation: first, a bit-field
+			   container based on the bit-field type is allocated
+			   (as though it were a field in its own right), and
+			   then bit fields are allocated within it.  When the
+			   bit-field type changes or the container fills up,
+			   a new container is allocated. */
+
+EXTERN a_boolean
 		targ_plain_int_bit_field_is_unsigned
 #if VAR_INITIALIZERS
                                         = TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
