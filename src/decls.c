@@ -2704,8 +2704,7 @@ issue_diagnostic:
 static a_symbol_ptr create_external_symbol_for_linked_entity(
                             a_symbol_locator       *locator,
                             a_type_ptr             type_ptr,
-                            a_name_linkage_kind    name_linkage,
-                            a_func_info_block_ptr  func_info,
+                            an_id_linkage_block    *idlbp,
                             a_boolean              redeclaration,
                             a_boolean              suppress_incompatible_error,
                             a_boolean              suppress_ext_sym_lookup,
@@ -2735,12 +2734,14 @@ created; the caller must set it.
   char                       *old_name, *new_name;
   a_symbol_kind              ext_sym_kind;
   a_symbol_locator           ext_locator;
+  a_func_info_block_ptr      func_info = idlbp->func_info;
   a_boolean                  err = FALSE;
   a_boolean                  use_existing_il_entry = FALSE;
   a_type_ptr                 preexisting_type;
   a_boolean                  is_implicit_declaration;
   a_boolean                  is_function;
   an_error_severity          incomp_severity = es_error;
+  a_name_linkage_kind        name_linkage = idlbp->name_linkage;
 
   db_enter(4, "create_external_symbol_for_linked_entity");
   if (func_info != NULL) {
@@ -2765,10 +2766,30 @@ created; the caller must set it.
     ext_sym = find_external_symbol(locator, name_linkage,
                                    is_function ? type_ptr : NULL,
                                    &ext_locator);
+    if (ext_sym != NULL) {
+      /* There is an existing external symbol for the name. */
+      esdp = ext_sym->variant.extern_symbol_descr;
+      if ((microsoft_bugs || gpp_mode) && !
+          depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+          name_linkage == (a_name_linkage_kind)nlk_external) {
+        /* In Microsoft and GNU compilers, an extern "C" declaration in one
+           namespace scope does not link up with an extern "C" declaration of
+           the same name in another scope.  Since the linker will catch
+           redefinitions of such names we do treat two definitions as linked
+           (which will result in a redefinition error later on). */
+        a_boolean  already_defined =
+                    is_function ? esdp->variant.routine.ptr->defined :
+                                  (esdp->variant.variable->storage_class != 
+                                                  (a_storage_class)sc_extern);
+        if (!(already_defined && idlbp->is_definition)) {
+          ext_sym = NULL;
+          ext_locator = *locator;
+          clear_specific_symbol(ext_locator);
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (ext_sym != NULL) {
-    /* There is an existing external symbol for the name. */
-    esdp = ext_sym->variant.extern_symbol_descr;
     if (!redeclaration) {
       /* Check if the old entity has a different name than the new entity,
          which would indicate an error (two different names ended up mapping
@@ -4580,25 +4601,14 @@ declaration.
        is only what is known in the current scope.  The external symbol
        keeps track of the full composite type behind the scenes.
        If we do not already have an IL entry, and the external symbol entry
-       points to one, get a pointer to it and use it.
-       Note that in Microsoft and GNU compilers, an extern "C" declaration in
-       one namespace scope does not link up with an extern "C" declaration of
-       the same name in another scope (though the linker will catch
-       redefinitions of such names). */
-    a_routine_ptr  dummy_rp;
-    suppress_ext_sym_lookup =
-                     suppress_ext_sym_lookup ||
-                     ((microsoft_bugs || gpp_mode) &&
-                      depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-                      idlb.name_linkage == (a_name_linkage_kind)nlk_external);
+       points to one, get a pointer to it and use it. */
     *ext_sym = 
-        create_external_symbol_for_linked_entity(locator, type_ptr,
-                                                 idlb.name_linkage,
-                                                 (a_func_info_block_ptr)NULL,
+        create_external_symbol_for_linked_entity(locator, type_ptr, &idlb,
                                                  redeclaration,
                                                  redecl_error_already_issued,
                                                  suppress_ext_sym_lookup,
-                                                 &variable_ptr, &dummy_rp);
+                                                 &variable_ptr,
+                                                 (a_routine_ptr*)NULL);
   }  /* if */
   /* The entity being declared is a variable. */
   if (variable_ptr == NULL) {
@@ -5267,24 +5277,13 @@ to point to a routine entry attached to an existing compatible external symbol
     /* The declaration appeared during a prototype instantiation, but we
        will not record the prototype instantiation in the IL. */
   } else {
-    /* Create an external symbol for the present linkable declaration.
-       Ordinarily, this may involve some lookup to find a declaration in a
-       previous scope to which the present one is linked.  However, in
-       Microsoft and GNU C++ compilers, an extern "C" declaration (or a
-       declaration with external linkage in C mode) in one scope does not
-       link up with an extern "C" declaration of the same name in another
-       scope (though the linker will catch redefinitions of such names). */
-    a_variable_ptr  dummy_vp;
-    suppress_ext_sym_lookup = suppress_ext_sym_lookup ||
-                              ((microsoft_bugs || gpp_mode) &&
-                               idlbp->name_linkage ==
-                                           (a_name_linkage_kind)nlk_external);
+    /* Create an external symbol for the present linkable declaration. */
     result = create_external_symbol_for_linked_entity(
-                                       locator, type_ptr, idlbp->name_linkage,
-                                       func_info, /*redeclaration=*/FALSE,
+                                       locator, type_ptr, idlbp,
+                                       /*redeclaration=*/FALSE,
                                        suppress_incompatible_error,
                                        suppress_ext_sym_lookup,
-                                       &dummy_vp, routine_ptr);
+                                       (a_variable_ptr*)NULL, routine_ptr);
   }  /* if */
   return result;
 }  /* create_external_symbol_for_routine */
