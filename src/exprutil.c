@@ -273,7 +273,7 @@ recorded right away and no entry is created; NULL is returned.
 
 
 void change_ref_kinds(a_ref_entry_ptr         ref_list,
-                      a_symbol_reference_set  new_kind)
+                      a_symbol_reference_kind new_kind)
 /*
 Change the kind-of-reference field to new_kind in each of the reference
 entries on the list ref_list.  The list is linked by the next_operand_ref
@@ -281,26 +281,29 @@ field.
 */
 {
   a_ref_entry_ptr         rep;
-  a_symbol_reference_set  old_kind;
+  a_symbol_reference_kind old_kind;
 
+  /* Go through the list of references and change the reference kinds. */
   for (rep = ref_list; rep != NULL; rep = rep->next_operand_ref) {
-    /* For some cases, the old kind of reference is put out before the new
-       kind is set.  That's necessary, for example, in
-         void f(int &);
-         int j;
-         void m () {
-           f(j = 1);  // Modification gets replaced by address taken
-         }
-       One really wants both kinds of references. */
     old_kind = rep->kind;
     if (old_kind & SRK_ERROR) {
       /* An error reference is never changed to something else. */
     } else {
+      /* For some cases, the old kind of reference is put out before the new
+         kind is set.  That's necessary, for example, in
+           void f(int &);
+           int j;
+           void m () {
+             f(j = 1);  // Modification gets replaced by address taken
+           }
+         One really wants both kinds of references. */
       if ((old_kind & SRK_MODIFICATION) &&
           new_kind == SRK_ADDRESS_TAKEN) {
         record_reference(rep);
       }  /* if */
-      rep->kind = SRK_REFERENCE | new_kind;
+      /* Set the new reference kind. Turn off all old bits, then turn on
+         new bits.  SRK_REFERENCE remains set in all cases. */
+      rep->kind = (old_kind & ~SRK_ALL_REFERENCES) | new_kind;
     }  /* if */
   }  /* for */
 }  /* change_ref_kinds */
@@ -345,8 +348,8 @@ arg_operand_list to error references.
 
 
 void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
-                           a_symbol_reference_set  old_kind,
-                           a_symbol_reference_set  new_kind)
+                           a_symbol_reference_kind old_kind,
+                           a_symbol_reference_kind new_kind)
 /*
 Change the kind-of-reference field to "new_kind" in each of the reference
 entries on the list ref_list that currently has the kind "old_kind".
@@ -357,14 +360,17 @@ The list is linked by the next_operand_ref field.
 
   for (rep = ref_list; rep != NULL; rep = rep->next_operand_ref) {
     if (old_kind == SRK_REFERENCE) {
-      /* Changing a generic reference to a specific reference.  If the
-         reference entry is generic too, just set the new bit. */
-      if (rep->kind == SRK_REFERENCE) rep->kind |= new_kind;
+      /* Changing a generic reference (SRK_REFERENCE alone) to another
+         kind of reference.  Check to see if the rep entry is generic. */
+      if ((rep->kind & SRK_ALL_REFERENCES) == 0) {
+        /* Yes.  Change the reference kind. */
+        rep->kind |= new_kind;
+      }  /* if */
     } else if (rep->kind & old_kind) {
-      /* Changing a specific reference to a generic reference or to a
-         difference specific reference. */
-      rep->kind = SRK_REFERENCE;
-      if (new_kind != SRK_REFERENCE) rep->kind |= new_kind;
+      /* Changing a specific reference to another kind of reference.
+         Turn off the old bits, then turn on the new bits.
+         SRK_REFERENCE will stay set. */
+      rep->kind = (rep->kind & ~SRK_ALL_REFERENCES) | new_kind;
     }  /* if */
   }  /* for */
 }  /* change_some_ref_kinds */

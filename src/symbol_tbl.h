@@ -1677,7 +1677,7 @@ in which an address can be taken (e.g., to discriminate between taking the
 address of a const and taking the address of a nonconst object).
 
 */
-typedef int a_symbol_reference_set;
+typedef int a_symbol_reference_kind;
 #define SRK_NONE 0x0
 #define SRK_DECLARATION 0x1
 			/* Any declaration. */
@@ -1694,12 +1694,12 @@ typedef int a_symbol_reference_set;
 			   routine name in a call, to a variable in a sizeof
 			   operation, etc.). */
 #define SRK_USE 0x8
-			/* A use of the value of an object.  Both the use
+			/* A use of the value of an object.  Both the use and
 			   modification bits may be set for a given reference
 			   (e.g., an increment). */
 #define SRK_MODIFICATION 0x10
 			/* A reference that changes the value of an object.
-			   Both the use modification bits may be set for a
+			   Both the use and modification bits may be set for a
 			   given reference (e.g., an increment). */
 #define SRK_ADDRESS_TAKEN 0x20
 			/* A reference in which the address of an object or
@@ -1710,6 +1710,10 @@ typedef int a_symbol_reference_set;
 			   such a reference is treated both as a use and as a
 			   modification, in order to suppress use/def
 			   diagnostics. */
+#define SRK_ALL_REFERENCES \
+  (SRK_USE | SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_ERROR)
+			/* All types of references.  Used to mask off those
+			   bits. */
 
 
 extern a_symbol_ptr find_symbol(char             *identifier,
@@ -2005,7 +2009,7 @@ extern void mark_defined(a_symbol_ptr      sym_ptr,
                         a_source_position *source_position);
 extern void mark_declared(a_symbol_ptr      sym_ptr,
                           a_source_position *source_position);
-extern void reference_to_symbol(a_symbol_reference_set   kind,
+extern void reference_to_symbol(a_symbol_reference_kind  kind,
                                 a_symbol_ptr             sym_ptr,
                                 a_source_position        *source_position,
                                 a_boolean                update_il_entry);

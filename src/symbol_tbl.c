@@ -7135,7 +7135,7 @@ Set the declaration sequence number of the symbol pointed to by sym.
 #define set_decl_sequence_number(sym) (sym)->decl_seq = ++decl_seq_counter
 
 
-static void write_xref_entry(a_symbol_reference_set  srk_flags,
+static void write_xref_entry(a_symbol_reference_kind srk_flags,
                              a_symbol_ptr            sym_ptr,
                              a_source_position       *source_position)
 /*
@@ -7404,7 +7404,7 @@ Indicate that the given symbol is declared at the given position.
 }  /* mark_declared */
 
 
-void reference_to_symbol(a_symbol_reference_set  kind,
+void reference_to_symbol(a_symbol_reference_kind kind,
                          a_symbol_ptr            sym_ptr,
                          a_source_position       *source_position,
                          a_boolean               update_il_entry)
