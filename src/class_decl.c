@@ -8937,7 +8937,7 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
   } else if (!is_class_struct_union_type(member_type)) {
     /* Not a pseudo-anonymous-union -- it's not a class, struct,
        or union type. */
-  } else if (!C_mode() &&
+  } else if ((!C_mode() || (gcc_mode && gnu_version >= 30300)) &&
              ((decl_info->dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) ||
               !(skip_typerefs(member_type))->
                             variant.class_struct_union.originally_unnamed)) {
