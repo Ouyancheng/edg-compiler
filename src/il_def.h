@@ -1523,6 +1523,13 @@ typedef struct a_variable {
 			/* TRUE if is_parameter is TRUE and if the
 			   parameter is passed by address. */
 #endif /* ifdef FIL */
+#ifdef CIL
+  unsigned int	referenced_non_locally:1;
+			/* TRUE if the variable is a local static variable
+			   that is referenced from outside of its function
+			   (i.e., from a member function of a local class
+			   or from destructor code).  TRUE only in C++. */
+#endif /* ifdef CIL */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */
   union {

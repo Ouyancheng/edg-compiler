@@ -1366,6 +1366,9 @@ Display the indicated variable.
 #ifdef FFE
   disp_boolean("by_address", ptr->by_address);
 #endif /*ifdef FFE */
+#ifdef CFE
+  disp_boolean("referenced_non_locally", ptr->referenced_non_locally);
+#endif /*ifdef CFE */
   disp_name("init_kind");
   switch (ptr->init_kind) {
     case initk_none:
