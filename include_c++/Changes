@@ -1,5 +1,11 @@
 Version 2.33
 
+9/19/96 Exception specifications are now provided for operator new
+
+Exception specifications, as specified by the WP, are now provided on
+the declarations of operator new and placement operator new in the
+new.h header file.
+
 8/13/96 signal.h update for C vs. C++ routine linkage language changes
 
 signal.h has been updated to make sure that the function types declared/used
