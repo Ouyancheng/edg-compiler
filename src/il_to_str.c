@@ -692,7 +692,7 @@ top-level "const".  Do the output in the way described by octl.
                          octl);
     /* Output "*" or "&" for pointer or reference. */
 #ifdef CFE
-    if (type->variant.pointer.is_reference) {
+    if (type->variant.pointer.is_reference && !octl->c_generating_back_end) {
       octl->output_str("&");
     } else {
 #endif /* ifdef CFE */
