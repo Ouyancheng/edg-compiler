@@ -76,7 +76,15 @@ extern void mangle_subobject_class_name(a_type_ptr class_type,
 
 extern char *mangled_typeinfo_name(a_type_ptr type);
 
+#if !IA64_ABI
 extern char *mangled_id_object_name(a_type_ptr type);
+#else /* IA64_ABI */
+extern char *mangled_typeinfo_string_name(a_type_ptr type);
+
+extern char *mangled_virtual_table_table_name(a_type_ptr type);
+
+extern char *mangled_typeinfo_string(a_type_ptr type);
+#endif /* !IA64_ABI */
 
 #if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
@@ -89,9 +97,7 @@ extern void mangle_promoted_entity_name(a_source_correspondence *scp,
 
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 extern void mangle_covariant_return_type_entry_name(
-                                             a_routine_ptr entry_routine,
-                                             a_routine_ptr prim_routine,
-                                             a_type_ptr    vtbl_class);
+                                             a_routine_ptr entry_routine);
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
 extern void do_class_name_mangling(void);

@@ -594,6 +594,8 @@ extern void add_to_front_of_file_scope_types_list(a_type_ptr type);
 
 extern a_type_ptr make_mptr_type(void);
 
+extern a_type_ptr make_vtbl_entry_type(void);
+
 extern a_type_ptr underlying_type(a_type_ptr type);
 
 extern a_boolean is_or_was_ptr_to_data_member_type(a_type_ptr type);

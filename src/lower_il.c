@@ -1101,6 +1101,19 @@ compatibility we do too.)
 }  /* make_mptr_type */
 
 
+a_type_ptr make_vtbl_entry_type(void)
+/*
+Return the type of a virtual function table entry.
+*/
+{
+#if IA64_ABI
+  return integer_type(targ_ptrdiff_t_int_kind);
+#else /* !IA64_ABI */
+  return make_mptr_type();
+#endif /* IA64_ABI */
+}  /* make_vtbl_entry_type */
+
+
 a_type_ptr underlying_type(a_type_ptr type)
 /*
 Drop typerefs, watching out for a typeref with orig_type set.  For that
@@ -4193,10 +4206,7 @@ overridden function).
     ptp->next = NULL;
   }  /* for */
   /* Give the routine a mangled name. */
-  mangle_covariant_return_type_entry_name(entry_routine,
-                                          overriding_function,
-                                          overridden_function->
-                                             source_corresp.parent.class_type);
+  mangle_covariant_return_type_entry_name(entry_routine);
   /* Insert the routine right after the overridden routine. */
   entry_routine->next = overridden_function->next;
   overridden_function->next = entry_routine;
