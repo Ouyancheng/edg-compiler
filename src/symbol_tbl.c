@@ -676,7 +676,9 @@ do_variable:
       { a_projection_descr_ptr pdp = sym->variant.projection.extra_info;
         if (pdp->fundamental_base_class != NULL &&
             pdp->fundamental_base_class->derivation != NULL) {
-          put_string(str_path(buffer, pdp->fundamental_base_class->derivation,
+          put_string(str_path(buffer,
+                              preferred_derivation_of(
+                                           pdp->fundamental_base_class)->path,
                               "path = ==>", "==>"));
         }  /* if */
       }
@@ -2311,6 +2313,7 @@ added to the scope symbols list and is not linked into the symbol table.
         /* Confirm that the type match was in fact sufficient.  The code
            corresponds to the more expensive search used in the presence of
            ambiguity (see below). */
+#if 0
         for (tail = path; tail->next != NULL; tail = tail->next) {}
         if (progenitor_pdp != NULL) {
           tail->next = progenitor_pdp->fundamental_base_class->derivation;
@@ -2319,6 +2322,13 @@ added to the scope symbols list and is not linked into the symbol table.
           internal_error("make_projection_symbol: bad path match");
         }  /* if */
         tail->next = NULL;
+#endif /* if 0 */
+        if (progenitor_pdp != NULL) {
+          path = preferred_derivation_of(
+                                progenitor_pdp->fundamental_base_class)->path;
+        }  /* if */
+        check_assertion(
+                  congruent_paths(preferred_derivation_of(bcp)->path, path));
 #endif /* CHECKING */
         break;
       }  /* if */
@@ -2326,6 +2336,7 @@ added to the scope symbols list and is not linked into the symbol table.
   } else {
     /* When there is an ambiguity, we must check the paths as well as the
        type. */
+#if 0
     /* Find the last step in the linked list of derivation step entries
        pointed to by path. */
     for (tail = path; tail->next != NULL; tail = tail->next) {}
@@ -2346,6 +2357,14 @@ added to the scope symbols list and is not linked into the symbol table.
     }  /* for */
     /* Restore the path to what it was originally. */
     tail->next = NULL;
+#endif /* if 0 */
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (bcp->type == pdp->fundamental_symbol->class_of_which_a_member &&
+          congruent_paths(preferred_derivation_of(bcp)->path, path)) {
+        pdp->fundamental_base_class = bcp;
+        break;
+      }  /* if */
+    }  /* for */
   }  /* if */
 #if CHECKING
   if (pdp->fundamental_base_class == NULL) {
@@ -3520,10 +3539,10 @@ the indicated virtual base class derivation.
     /* Virtual base classes get special handling, but not when they appear as
        the last step of their own derivations. */
     bcp = path->base_class;
-    if (bdcp != NULL && path->next == NULL) {
+    if (bcdp != NULL && path->next == NULL) {
       /* This is the last step in the derivation for a virtual base class.
          Add the effect of this step into the accumulated access. */
-      sym_access = compute_access(sym_access, bdcp->access);
+      sym_access = compute_access(sym_access, bcdp->access);
     } else if (is_virtual_but_not_simple_direct_base_class(bcp)) {
       /* The first step is a virtual step which is more than a direct base
          class with a single derivation.  Compute the access over the
@@ -4453,7 +4472,8 @@ class of its derived class.
     /* Some symbol was found.  Determine its derivation and access
        specification. */
     *path = make_derivation_step(base_class, *path);
-    *access = compute_access(*access, base_class->access);
+    *access = compute_access(*access,
+                             preferred_derivation_of(base_class)->access);
   }  /* if */
   db_exit();
   return sym;
@@ -4519,6 +4539,7 @@ check_rout_type:
         equiv = TRUE;
     }  /* switch */
     if (!equiv) {
+#if 0
       /* Fundamental symbols are the same but may not represent the same
          object (= field) or routine.  ("The same routine" is taken to mean
          the same static member function or the same nonstatic member function
@@ -4543,6 +4564,18 @@ check_rout_type:
       /* Restore the paths to the original state, if necessary. */
       if (tail1 != NULL) tail1->next = NULL;
       if (tail2 != NULL) tail2->next = NULL;
+#endif /* if 0 */
+      a_base_class_ptr  temp_bcp;
+
+      if (sym1->kind == (a_symbol_kind)sk_projection) {
+        temp_bcp = sym1->variant.projection.extra_info->fundamental_base_class;
+        path1 = preferred_derivation_of(temp_bcp)->path;
+      }  /* if */
+      if (sym2->kind == (a_symbol_kind)sk_projection) {
+        temp_bcp = sym2->variant.projection.extra_info->fundamental_base_class;
+        path2 = preferred_derivation_of(temp_bcp)->path;
+      }  /* if */
+      equiv = congruent_paths(path1, path2);
     }  /* if */
   }  /* if */
   db_exit();
