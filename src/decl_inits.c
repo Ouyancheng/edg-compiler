@@ -187,7 +187,8 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 }  /* check_for_matching_closing_brace */
 
 
-static void init_remaining_array_elements(a_type_ptr          array_type,
+static a_boolean init_remaining_array_elements(
+                                          a_type_ptr          array_type,
                                           a_targ_size_t       curr_element,
                                           a_constant_ptr      *con_list,
                                           a_constant_ptr      *end_of_con_list,
@@ -205,7 +206,8 @@ object.  curr_element identifies the next element to be initialized.
 entries (respectively) that represent the initialization of the array;
 *end_of_con_list and *end_of_di_list point to the terminal entries on
 the two lists.  *incomplete_init is set to TRUE if a reference or const
-member remains uninitialized.  This routine is called in C++ mode only.
+member remains uninitialized.  TRUE is returned if the remaining array
+elements are indeed initialized.  This routine is called in C++ mode only.
 */
 {
   a_type_ptr                     element_type;
@@ -215,6 +217,7 @@ member remains uninitialized.  This routine is called in C++ mode only.
   a_class_symbol_supplement_ptr  cssp;
   a_param_type_ptr               ptp;
   a_dynamic_init_ptr             dip;
+  a_boolean                      init_done = FALSE;
 
   db_enter(4, "init_remaining_array_elements");
 
@@ -293,10 +296,12 @@ member remains uninitialized.  This routine is called in C++ mode only.
           (*end_of_di_list)->next = dip;
         }  /* if */
         *end_of_di_list = dip;
+        init_done = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
+  return init_done;
 }  /* init_remaining_array_elements */
 
 
@@ -344,12 +349,14 @@ of constant initializers.
 }  /* scan_initializer_of_simple_object */
   
 
-static a_constant_ptr get_initializer(a_type_ptr          *type,
-                                      a_dynamic_init_ptr  *di_list,
-                                      a_dynamic_init_ptr  *end_of_di_list,
-                                      a_boolean           top_level,
-                                      a_boolean           *incomplete_init,
-                                      a_boolean           *nothing_taken)
+static a_constant_ptr get_initializer(
+                    a_type_ptr          *type,
+                    a_dynamic_init_ptr  *di_list,
+                    a_dynamic_init_ptr  *end_of_di_list,
+                    a_boolean           top_level,
+                    a_boolean           *any_member_uninitialized,
+                    a_boolean           *any_const_or_ref_member_uninitialized,
+                    a_boolean           *nothing_taken)
 /*
 Scan a constant initializer or initializer list, and return a pointer to
 the constant for it (an aggregate constant if an initializer list is
@@ -603,7 +610,9 @@ ref field of a class object (or an array of same) remains uninitialized.
         add_stop_token(tok_comma);
         /* Get the initializer for this one member. */
         member_con = get_initializer(&member_type, di_list, end_of_di_list,
-                                     /*top_level=*/FALSE, incomplete_init,
+                                     /*top_level=*/FALSE,
+                                     any_member_uninitialized,
+                                     any_const_or_ref_member_uninitialized,
                                      &local_nothing_taken);
         remove_stop_token(tok_comma);
         check_assertion(!(local_nothing_taken && is_incomplete_array));
@@ -705,11 +714,12 @@ ref field of a class object (or an array of same) remains uninitialized.
       /* There are no more initializers in the source (at least, none
          that should be considered part of the current aggregate). */
       if (any_more_members) {
-        /* Set a flag indicating an "incomplete initialization" if (1) there
-           are more fields or array elements and (2) those fields or array
-           elements are const or ref or have const or ref components. */
+        /* Set *any_const_or_ref_member_uninitialized if (1) there are more
+           fields or array elements and (2) those fields or array elements
+           are const or ref or have const or ref components. */
         if (kind == (a_type_kind)tk_error) {
           /* No action required. */
+          any_more_members = FALSE;
         } else if (kind == (a_type_kind)tk_array) {
           /* We have been initializing the elements of an array, but we
              ran out of initializers before reaching the end of the array.
@@ -742,7 +752,7 @@ ref field of a class object (or an array of same) remains uninitialized.
               tp = fp->type;
               if (is_const_qualified_type(tp) || is_reference_type(tp)) {
                 /* Const qualified type or reference type. */
-                *incomplete_init = TRUE;
+                *any_const_or_ref_member_uninitialized = TRUE;
                 break;
               } else if (is_class_struct_union_type(tp)) {
                 /* Field is a class type (or an array of class-type
@@ -753,7 +763,7 @@ ref field of a class object (or an array of same) remains uninitialized.
                      symbol_supplement_for_class(tp)->any_ref_member)) {
                   /* At least one sub-field of the field is a const or
                      ref. */
-                  *incomplete_init = TRUE;
+                  *any_const_or_ref_member_uninitialized = TRUE;
                   break;
                 }  /* if */
               }  /* if */
@@ -779,6 +789,7 @@ ref field of a class object (or an array of same) remains uninitialized.
              last initialized.  Thus, it is the array size. */
           set_initialized_array_size(&local_type, curr_array_element);
           *type = local_type;
+          any_more_members = FALSE;
         } else if (C_dialect == C_dialect_cplusplus && brace_flag &&
                    kind == (a_type_kind)tk_array) {
           /* When the number of initializers is fewer than the number of
@@ -786,15 +797,20 @@ ref field of a class object (or an array of same) remains uninitialized.
              such that a constructor is required to initialize the elements,
              we are required to provide default initialization by calling
              the default constructor. */
-          init_remaining_array_elements(local_type, curr_array_element,
-                                        &con_list, &end_of_con_list, di_list,
-                                        end_of_di_list, incomplete_init);
+          if (init_remaining_array_elements(
+                                      local_type, curr_array_element,
+                                      &con_list, &end_of_con_list, di_list,
+                                      end_of_di_list,
+                                      any_const_or_ref_member_uninitialized)) {
+            any_more_members = FALSE;
+          }  /* if */
         }  /* if */
         /* Allocate the aggregate constant that is the value for the
            initializer. */
         init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
         init_con->variant.aggregate.first_constant = con_list;
         init_con->variant.aggregate.last_constant  = end_of_con_list;
+        if (any_more_members) *any_member_uninitialized = TRUE;
         if (brace_flag) {
           /* Allow an extra comma before the "}" in a brace-enclosed list.
              Do not allow it if an extra comma was taken already in 
@@ -1269,7 +1285,8 @@ issuing an error on an incomplete type.
        non-constants. */
     a_constant_ptr       cp;
     a_dynamic_init_ptr   di_list = NULL, end_of_di_list = NULL;
-    a_boolean            incomplete_init = FALSE;
+    a_boolean            any_member_uninitialized = FALSE;
+    a_boolean            any_const_or_ref_member_uninitialized = FALSE;
     a_boolean            nothing_taken;
 
     /* Scan the initializer list. */
@@ -1283,7 +1300,8 @@ issuing an error on an incomplete type.
     }  /* if */
 #endif /* DEBUG */
     cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
-                         /*top_level=*/TRUE, &incomplete_init,
+                         /*top_level=*/TRUE, &any_member_uninitialized,
+                         &any_const_or_ref_member_uninitialized,
                          &nothing_taken);
     if (cp->kind == (a_constant_repr_kind)ck_error) {
       err = TRUE;
@@ -1304,7 +1322,7 @@ issuing an error on an incomplete type.
                                                dik_nonconstant_aggregate :
                                                dik_constant));
       local_di.variant.constant = cp;
-      if (incomplete_init) {
+      if (any_const_or_ref_member_uninitialized) {
         /* A const or ref field was not initialized. */
         if (is_union_type(vp_type)) {
           /* No diagnostic for unions. */
@@ -1322,6 +1340,7 @@ issuing an error on an incomplete type.
           pos_sy_diagnostic(severity, code, source_pos, symbol_ptr);
         }  /* if */
       }  /* if */
+      if (any_member_uninitialized) vp->is_partially_initialized = TRUE;
     }  /* if */
     if (!err && put_init_in_variable) {
       /* Copy the type back into the variable.  It might have been changed
