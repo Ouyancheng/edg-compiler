@@ -19,7 +19,7 @@ A template lookup change made in version 3.4 broke some examples that
 seem to be in somewhat common use (see "2/24/04 Template name lookup and
 using-directives").  An additional change has been made that restores
 the previous behavior for examples such as the one below without breaking
-the cases the gave rise to the original change.
+the cases that gave rise to the original change.
 
   namespace N {
     template <typename T> T g(T t) { return t; }
