@@ -34,9 +34,8 @@ EXTERN a_boolean
    has a correspondence pointer, the pointer is set, and it doesn't
    point to itself). */
 #define has_correspondence(ptr)                                        \
-  (in_secondary_trans_unit(ptr) &&                                     \
-   trans_unit_corresp_pointer_of(ptr) != NULL &&                       \
-   trans_unit_corresp_pointer_of(ptr) != (char*)(ptr))
+  (trans_unit_corresp_of(ptr) != NULL &&                               \
+   canonical_il_entry_of(ptr) != (char*)(ptr))
 
 
 extern void f_report_bad_trans_unit_corresp(char                   *entity1,

@@ -984,6 +984,10 @@ typedef struct a_trans_unit_corresp {
   char          *primary;
                         /* The instance of the entity in the primary IL, if
                            there is one.  NULL otherwise. */
+#if CHECKING
+  unsigned int  count;
+                        /* The number of entities pointing to this entry. */
+#endif /* CHECKING */
 } a_trans_unit_corresp;
 
 

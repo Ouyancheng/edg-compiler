@@ -491,6 +491,9 @@ and return a pointer to it.
   tucp->kind = iek_none;
   tucp->canonical = NULL;
   tucp->primary = NULL;
+#if CHECKING
+  tucp->count = 0;
+#endif /* CHECKING */
   return tucp;
 }  /* alloc_trans_unit_corresp */
 

@@ -1193,10 +1193,10 @@ Macro that returns the canonical IL entry pointer for an IL entry that
 has a source correspondence.  If the entry has no correspondence pointer,
 a NULL pointer is returned.
 */
-#define canonical_il_entry_of(ptr)					\
-  (char*)(trans_unit_corresp_of(ptr) != NULL				\
+#define canonical_il_entry_of(ptr)					                     \
+  (trans_unit_corresp_of(ptr) != NULL				                     \
                         ? trans_unit_corresp_of(ptr)->canonical		\
-                        : NULL)
+                        : (char*)ptr)
 
 /*
 Compare two translation unit correspondence pointers.  They match if they
