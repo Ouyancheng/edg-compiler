@@ -2269,13 +2269,7 @@ quote_process:
     }  /* if */
     /* If the token scanned is an identifier, see if it is a macro name. */
     if (curr_token == tok_identifier) {
-      if (end_of_cpp_string != NULL &&
-          isdigit((unsigned char)*(start_of_curr_token-1))) {
-        /* cpp does not recognize the second part of "123abc" as matching 
-           the parameter "abc" within a string, so we special-case that. */
-      } else {
-        *param_num = id_matches_macro_param_name(param_list);
-      }  /* if */
+      *param_num = id_matches_macro_param_name(param_list);
     } else if (pcc_preprocessing_mode &&
                end_of_cpp_string == NULL &&
                (curr_token == tok_char_constant ||
