@@ -3005,7 +3005,7 @@ is set to an error locator.
     set_to_error_locator(*locator);
   } else if (!have_access_to_symbol(symbol)) {
     /* The symbol is not accessible. */
-    pos_error(ec_no_access_to_name, &locator->source_position);
+    pos_sy_error(ec_no_access_to_name, &locator->source_position, symbol);
     locator->access_control_error_reported = TRUE;
   }  /* if */
 }  /* member_check_ambiguity_and_verify_access */
@@ -3052,7 +3052,8 @@ a projection symbol pointing to that sk_overloaded_function symbol.
                                derivation,
                                overloaded_symbol)) {
         /* The symbol is not accessible. */
-        pos_error(ec_no_access_to_name, &locator->source_position);
+        pos_sy_error(ec_no_access_to_name, &locator->source_position,
+                                           locator->specific_symbol);
         locator->access_control_error_reported = TRUE;
       }  /* if */
     }  /* if */
@@ -3065,7 +3066,7 @@ a_boolean max_access_of_overloaded_function(a_symbol_ptr        sym,
 /*
 Given overloaded function symbol sym, return in *max_access the access control
 value of the most accessible of the functions.  If not all the functions have
-the same access, the function returns FALSE;
+the same access, the function returns FALSE.
 */
 {
   an_access_specifier  access;
@@ -3080,7 +3081,7 @@ the same access, the function returns FALSE;
   *max_access = access_for_symbol(sym);
   while ((sym = sym->next) != NULL) {
     access = access_for_symbol(sym);
-    if is_more_accessible(access, *max_access) {
+    if (is_more_accessible(access, *max_access)) {
       *max_access = access;
       all_have_same_access = FALSE;
     }  /* if */
@@ -3088,6 +3089,39 @@ the same access, the function returns FALSE;
   return all_have_same_access;
 }  /* max_access_of_overloaded_function */
 
+
+void f_check_protected_member_access(a_type_ptr        class_type,
+                                     a_source_position *err_pos)
+/*
+This routine implements the access control check mandated by ARM 11.5, which
+requires that a protected member be accessed only through a pointer or
+object of a type to which we have member access.  class_type is the class
+of the pointer or object through which the member is being accessed.
+class_type is NULL if we don't know the object type (which will cause an
+error).  class_type may also be an error type (which will cause no error).
+*err_pos is the source position for an error.  See the macro
+check_protected_member_access for a convenient way to invoke this
+function.
+*/
+{
+  a_boolean err;
+
+  if (class_type == NULL) {
+    /* Class is unknown; error. */
+    err = TRUE;
+  } else if (is_error_type(class_type)) {
+    /* Class is an error type; no error. */
+    err = FALSE;
+  } else if (have_member_access_privilege(class_type)) {
+    /* Have member access to class, so no error. */
+    err = FALSE;
+  } else {
+    err = TRUE;
+  }  /* if */
+  if (err) {
+    pos_error(ec_protected_access_problem, err_pos);
+  }  /* if */
+}  /* f_check_protected_member_access */
 
 
 /* Declaration needed because of mutual recursion: */

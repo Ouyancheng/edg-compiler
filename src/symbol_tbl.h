@@ -1132,6 +1132,20 @@ extern a_boolean max_access_of_overloaded_function(
                                              a_symbol_ptr        sym,
                                              an_access_specifier *max_access);
 
+extern void f_check_protected_member_access(a_type_ptr        class_type,
+                                            a_source_position *err_pos);
+/*
+If sym is a protected member, do the access check of ARM 11.5.  sym
+is being accessed through an object or pointer of class class_type.
+*err_pos is the source position for an error.
+*/
+#define check_protected_member_access(sym, class_type, err_pos)       \
+{ if (access_for_symbol(sym) == (an_access_specifier)as_protected) {  \
+    f_check_protected_member_access(class_type, err_pos);             \
+  }  /* if */                                                         \
+}  /* check_protected_member_access */
+
+
 /*
 If symbol is a projection symbol, change it to the fundamental symbol pointed
 to by the projection.
