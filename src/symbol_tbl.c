@@ -5321,11 +5321,14 @@ an instance of the class template.
   a_template_arg_ptr     arg_list = NULL;
   a_template_arg_ptr     last_arg = NULL;
   a_symbol_ptr           new_sym = NULL;
+  a_symbol_locator       orig_locator;
 
   db_enter(3, "get_template_class");
 
   /* Save source position for error reporting. */
   copy_source_position(pos_curr_token, start_pos);
+  /* Save the current locator. */
+  orig_locator = locator_for_curr_id;
   add_stop_token(tok_gt);
   (void)get_token();
   if (curr_token != tok_lt) {
@@ -5400,7 +5403,11 @@ an instance of the class template.
   /* The current identifier should now be an identifier whose symbol points
      to the template class that we have just looked up. */
   curr_token = tok_identifier;
-  make_locator_for_symbol(new_sym, &locator_for_curr_id);
+  /* Restore the original locator but update it to reflect the new symbol
+     that is being returned by this routine. */
+  locator_for_curr_id = orig_locator;
+  locator_for_curr_id.specific_symbol = new_sym;
+  /* Set position. */
 
 #if DEBUG
   if (debug_level >= 4) {
