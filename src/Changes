@@ -1,5 +1,10 @@
 Version 2.33
 
+9/25/96 Diagnostic on unreferenced function parameters
+
+A new error code, ec_unreferenced_function_param, is now used to report
+unreferenced function parameters.
+
 9/24/96 Undefined inline virtual function
 
 Except in cfront mode, an error is now issued if a virtual function is
