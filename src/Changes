@@ -1,5 +1,28 @@
 Version 3.6
 
+11/19/04 Incorrect handling of template-id in friend declaration
+
+A friend declaration in which the declarator is a template-id that
+refers to a template that is not in the nearest enclosing namespace
+was not handled properly, resulting in spurious errors in examples
+like the one below.  Now fixed.
+
+  namespace N { template <class T> class A; }
+  template <class T> void f(N::A<T>&);
+  namespace N {
+    template <class T> class A {
+      friend void f<T>(N::A<T>& a);
+      private: void* p;
+    };
+  }
+  template<class T> void f(N::A<T>& a) {
+    a.p;  // spurious access error
+  }
+  int main(){
+    N::A<int> a;
+    ::f(a);
+  }
+
 11/18/04 GNU compatibility: multi-line strings
 
 The GNU compilers formerly accepted character string literals that spanned

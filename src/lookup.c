@@ -2644,7 +2644,7 @@ that do normal id lookup processing.
          namespace scope. */
       if (kind == (a_scope_kind)sck_namespace ||
           kind == (a_scope_kind)sck_namespace_extension) break;
-    } else if (lookup_state->is_friend_lookup) {
+    } else if (lookup_state->is_friend_lookup && !locator->is_template_id) {
       /* When doing a friend lookup, stop when we encounter the first
          namespace scope (except for tag names in Microsoft, GNU, and Sun
          modes) or (except in cfront mode) the first function/block scope. */
@@ -2827,12 +2827,13 @@ that do normal id lookup processing.
     }  /* if */
   }  /* if */
   /* If either of these lookups failed to find a symbol, continue the
-     lookup starting from the common scope.  When doing a friend lookup,
-     only do the common scope lookup if the innermost namespace scope
-     is part of the common lookup. */
+     lookup starting from the common scope.  When doing a friend lookup
+     for a name that is not a template-id, only do the common scope lookup
+     if the innermost namespace scope is part of the common lookup. */
   if ((ref_sym == NULL || def_sym == NULL) &&
       (!lookup_state->is_friend_lookup ||
-       depth_innermost_namespace_scope <= common_depth) &&
+       depth_innermost_namespace_scope <= common_depth ||
+       locator->is_template_id) &&
        !do_not_look_in_common_scopes) {
     /* One of the lookups did not find a symbol.  Do the lookup of
        the common scopes. */
