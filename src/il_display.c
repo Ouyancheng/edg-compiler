@@ -1862,6 +1862,10 @@ Display the indicated expression node.
         disp_boolean("new_or_delete_call_for_array",
                (a_boolean)ptr->variant.operation.new_or_delete_call_for_array);
       }  /* if */
+      if (ptr->variant.operation.compiler_generated) {
+        disp_boolean("compiler_generated",
+                     (a_boolean)ptr->variant.operation.compiler_generated);
+      }  /* if */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;

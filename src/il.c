@@ -4092,6 +4092,7 @@ fields to default values.
       node->variant.operation.kind = (an_expr_operator_kind)eok_last;
       node->variant.operation.assignment_returns_lvalue = FALSE;
       node->variant.operation.new_or_delete_call_for_array = FALSE;
+      node->variant.operation.compiler_generated = FALSE;
       node->variant.operation.operands = NULL;
       break;
     case enk_constant:

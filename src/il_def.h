@@ -2312,6 +2312,11 @@ typedef struct an_expr_node {
 			/* TRUE if the operation is an eok_call that calls
 			   a new of delete routine to allocate or free an
 			   array.  FALSE otherwise.  Only TRUE in C++. */
+      unsigned int
+		compiler_generated:1;
+			/* TRUE if the operation is compiler-generated rather
+			   than explicitly present in the source program
+			   Used in particular for casts. */
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */
