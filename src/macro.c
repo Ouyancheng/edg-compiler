@@ -824,10 +824,12 @@ so a hanging delete is in effect).
        the skip_white_space call, we can undo the logical deletion.
        If we have left the original line, we have to re-insert the
        identifier at the beginning of the current line, followed by
-       a blank (because there was white space skipped).  Note one
-       strange case: we may have reached end of file, and the
-       re-insertion must therefore be done in the empty end-of-file
-       line. */
+       a newline (because there was white space skipped).  We insert
+       a newline instead of a blank because the next line might be
+       a #pragma being passed through and it must remain in column
+       one.  Note one strange case: we may have reached end of file,
+       and the re-insertion must therefore be done in the empty
+       end-of-file line. */
     *paren_found = FALSE;
     delete_source_from_loc = NULL;
     len_of_curr_token = locator_for_curr_id.symbol_header->identifier_length;
