@@ -54,7 +54,7 @@ constants).  The number may have a "u" or "l" suffix, or both.
   a_boolean        has_ll_suffix = FALSE;
 #endif /* LONG_LONG_ALLOWED */
   char             *temp_ptr;
-  a_boolean        err, ovflo = FALSE;
+  a_boolean        err, ovflo = FALSE, do_sign_extension = FALSE;
   a_boolean        non_arith = (radix != 10);
   char             *real_end_pos = end_of_curr_token;
   unsigned long    intdigit;
@@ -154,28 +154,33 @@ constants).  The number may have a "u" or "l" suffix, or both.
 #endif /* LONG_LONG_ALLOWED */
                                                  ) {
     /* Non-ANSI (pcc) checking. */
-    if (has_l_suffix) {
-      /* An explicit "L" suffix makes the constant long. */
-      kind = (an_integer_kind)ik_long;
-    } else if (radix == 10 &&
-               le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
-                                            (an_integer_kind)ik_int)) {
+    if (has_l_suffix) goto pcc_l_check;
+    if (radix == 10 &&
+        le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                     (an_integer_kind)ik_int)) {
       /* A decimal constant that is no larger than the largest signed int
          is an int. */
       kind = (an_integer_kind)ik_int;
-    } else if (radix != 10 &&
-               le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
-                                           (an_integer_kind)ik_unsigned_int)) {
+      goto pcc_kind_established;
+    }  /* if */
+    if (radix != 10 &&
+        le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                     (an_integer_kind)ik_unsigned_int)) {
       /* A hexadecimal or octal constant that is no larger than the largest
          unsigned int is treated as an int (there are no unsigned int
          constants in K&R/pcc). */
       kind = (an_integer_kind)ik_int;
-    } else if (le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
-                                          (an_integer_kind)ik_unsigned_long)) {
+      do_sign_extension = TRUE;
+      goto pcc_kind_established;
+    }  /* if */
+pcc_l_check:
+    if (le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                     (an_integer_kind)ik_unsigned_long)) {
       /* A constant that is no larger than the largest unsigned long is
          treated as a long (there are no unsigned long constants in
          K&R/pcc). */
       kind = (an_integer_kind)ik_long;
+      do_sign_extension = TRUE;
       /* A decimal constant that is greater than the largest long is considered
          a long, but tagged as non-arithmetic because the source looks
          positive but the internal value is negative.  This helps in
@@ -185,11 +190,14 @@ constants).  The number may have a "u" or "l" suffix, or both.
                                         (an_integer_kind)ik_long)) {
         non_arith = TRUE;
       }  /* if */
+      goto pcc_kind_established;
+    }  /* if */
 #if LONG_LONG_ALLOWED
-    } else if (le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+    if (le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
                                      (an_integer_kind)ik_unsigned_long_long)) {
       /* long long. */
       kind = (an_integer_kind)ik_long_long;
+      do_sign_extension = TRUE;
       /* A decimal constant that is larger than LONG_LONG_MAX is tagged as
          non-arithmetic because the source looks positive but the internal
          value is negative.  This helps in avoiding an error when
@@ -199,18 +207,19 @@ constants).  The number may have a "u" or "l" suffix, or both.
                                         (an_integer_kind)ik_long_long)) {
         non_arith = TRUE;
       }  /* if */
-#endif /* LONG_LONG_ALLOWED */
-    } else {
-      /* Doesn't fit in target integers.  This can only happen when the
-         host representation for integer values can hold values larger
-         than the largest target integer. */
-      ovflo = TRUE;
-#if LONG_LONG_ALLOWED
-      kind = (an_integer_kind)ik_long_long;
-#else /* !LONG_LONG_ALLOWED */
-      kind = (an_integer_kind)ik_long;
-#endif /* LONG_LONG_ALLOWED */
+      goto pcc_kind_established;
     }  /* if */
+#endif /* LONG_LONG_ALLOWED */
+    /* Doesn't fit in target integers.  This can only happen when the
+       host representation for integer values can hold values larger
+       than the largest target integer. */
+    ovflo = TRUE;
+#if LONG_LONG_ALLOWED
+    kind = (an_integer_kind)ik_long_long;
+#else /* !LONG_LONG_ALLOWED */
+    kind = (an_integer_kind)ik_long;
+#endif /* LONG_LONG_ALLOWED */
+pcc_kind_established:
     if (ovflo) {
       /* A warning is generated for overflow, but the overflow is then
          ignored.  The conversions above produce the same value that pcc
@@ -218,6 +227,7 @@ constants).  The number may have a "u" or "l" suffix, or both.
       /* Convert the character position into an error position. */
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
       warning(ec_integer_too_large);
+      do_sign_extension = int_kind_is_signed[kind];
       /* Mask off any bits past the end of the largest target integer. */
       make_integer_value_mask(&mask,
                               TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT);
@@ -283,6 +293,13 @@ kind_established:;
     /* Build a constant with the right type and value. */
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
     const_for_curr_token.type                  = integer_type(kind);
+    /* For values that might be negative (possible in pcc mode), do
+       sign extension. */
+    if (do_sign_extension) {
+      sign_extend_integer_value(&number,
+                                (int)(const_for_curr_token.type->size *
+                                                               TARG_CHAR_BIT));
+    }  /* if */
     const_for_curr_token.variant.integer_value = number;
     const_for_curr_token.non_arithmetic        = non_arith;
     /* is_simple_zero is TRUE if the constant is simply "0".  It's useful to

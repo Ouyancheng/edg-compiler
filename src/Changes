@@ -1,5 +1,11 @@
 Version 2.20
 
+10/18/93 Sign extension of pcc mode integer constants when long long allowed
+
+If the front end is configured to allow integers larger than long,
+some large constants in pcc mode were not sign extended properly
+and therefore did not compare correctly against other constants.
+
 10/15/93 Bug in computing alignment of a class
 
 The alignment requirements of an unnamed bit field are not longer factored
