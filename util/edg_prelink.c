@@ -430,7 +430,8 @@ static FILE	*f_obj_file_list = NULL;
 static char	curr_dir_name[CURR_DIR_NAME_SIZE];
 			/* Name of the current working directory. */
 
-static int	reserved_request_file_lines = INSTANTIATION_REQUEST_LINES_RESERVED;
+static int	reserved_request_file_lines =
+                                         INSTANTIATION_REQUEST_LINES_RESERVED;
 			/* The number of lines of the instantiation
 			   information file that are reserved and do
 			   not contain instantiation list entries. */
@@ -672,7 +673,8 @@ string.
     m = "%s assigned to %s and %s\n";
     break;
   case pl_ec_no_object_file_name_specified:
-    m = "-O and -N require a new object list file name specified with the -o option";
+    m =
+ "-O and -N require a new object list file name specified with the -o option";
     break;
   case pl_ec_invalid_definition_list_option:
     m = "invalid definition list option \"%s\"";
@@ -3419,7 +3421,8 @@ int main(int argc, char *argv[])
            file lines. */
         reserved_request_file_lines = atoi(optarg);
         if (reserved_request_file_lines < 0 ||
-            reserved_request_file_lines > INSTANTIATION_REQUEST_LINES_RESERVED) {
+            reserved_request_file_lines >
+                                       INSTANTIATION_REQUEST_LINES_RESERVED) {
           pl_error(pl_ec_invalid_reserved_request_lines_option, optarg);
         }  /* if */
         break;
