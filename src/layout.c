@@ -159,8 +159,8 @@ normally 8-byte aligned, but a struct containing a long long need only be
 4-byte aligned.  The a_type entry contains the intrinsic alignment.  The
 field alignment is accessed through the following arrays.
 */
-a_targ_alignment  int_field_alignments[(int)ik_last];
-a_targ_alignment  float_field_alignments[(int)fk_last];
+static a_targ_alignment  int_field_alignments[(int)ik_last];
+static a_targ_alignment  float_field_alignments[(int)fk_last];
 
 
 static void init_field_alignment_tables(void)
