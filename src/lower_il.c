@@ -3196,6 +3196,9 @@ Do IL lowering of the indicated constant and everything under it.
     mark_as_visited(constant);
     lower_source_correspondence(&constant->source_corresp);
     if (constant->type != NULL) lower_os_type(constant->type);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    /* Leave constant->expr unlowered if it is present. */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     switch (constant->kind) {
       case ck_integer:
       case ck_string:
@@ -8219,8 +8222,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       break;
 #endif /* ABI_CHANGES_FOR_RTTI */
     case enk_runtime_sizeof:
-      /* enk_runtime_sizeof can appear when RECORD_CONSTANT_EXPRESSIONS_IN_IL
-         is set or SIZEOF_TYPE_IS_UNKNOWN is defined. */
+      /* enk_runtime_sizeof can appear when SIZEOF_TYPE_IS_UNKNOWN is
+         defined. */
       lower_runtime_sizeof(expr);
       break;
     case enk_object_lifetime:
