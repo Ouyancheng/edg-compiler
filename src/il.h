@@ -53,9 +53,7 @@ extern void set_error_constant(a_constant *cp);
 
 extern a_param_type_ptr alloc_param_type(a_boolean at_file_scope);
 
-extern a_class_type_supplement_ptr alloc_class_type_supplement(
-                                        a_type_ptr     class_struct_union_type,
-                                        a_scope_number scope_number);
+extern a_class_type_supplement_ptr make_class_type_supplement(void);
 
 extern a_type_ptr alloc_type(a_type_kind kind);
 
