@@ -1,5 +1,12 @@
 Version 2.31
 
+10/25/95  IL CHANGE: new field defined_outside_of_parent
+
+A new flag has been added to a_routine when GENERATE_SOURCE_SEQUENCE_LISTS
+is configured to TRUE: defined_outside_of_parent is TRUE if the routine is
+a class member defined outside the class definition or a namespace member
+defined outside the namespace definition.
+
 10/25/95  C++-generating back end: mutable
 
 The C++-generating back end now outputs the "mutable" specifier.
