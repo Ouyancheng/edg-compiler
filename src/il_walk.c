@@ -1245,6 +1245,12 @@ and the entry pointer is to an entry in the file scope, just return
           walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
                     iek_class_list_entry);
           walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+          remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr,
+                    iek_routine);
+          remap_ptr(ptr->assoc_operator_delete_routine, a_routine_ptr,
+                    iek_routine);
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 #if DO_IL_LOWERING
           /* Reset the pointers used during IL lowering to NULL. */
           ptr->virtual_function_table_var = NULL;
