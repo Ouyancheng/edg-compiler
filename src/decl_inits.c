@@ -1744,9 +1744,15 @@ this function points to a tree that includes a dynamic-init entry.
         /* If this initializer was preceded by a array-range designator, put
            the pending ck_init_repeat constant on top of member_con: */
         if (context.repeat != NULL) {
-          context.repeat->variant.init_repeat.constant = member_con;
-          member_con = context.repeat;
-          context.repeat = NULL;
+          if (local_any_dynamic_init) {
+            /* Extended designators of the for '[i ... j]' cannot be applied
+               to initializers with a dynamic component. */
+            error(ec_no_range_designator_with_dynamic_init);
+          } else {
+            context.repeat->variant.init_repeat.constant = member_con;
+            member_con = context.repeat;
+            context.repeat = NULL;
+          }  /* if */
         }  /* if */
         /* Add the constant entry to the list of constants. */
         append_initializer_constant(&context, member_con);
