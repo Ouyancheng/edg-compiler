@@ -321,6 +321,16 @@ type.
 #endif /* ifndef USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
+Flag that is TRUE if "#pragma ident <string>" is recognized.  It is
+implemented by recording the string in a pragma entry and passing it to
+the back end.  When this flag is set, "#ident" is treated as equivalent
+to "#pragma ident".
+*/
+#ifndef IDENT_PRAGMA
+#define IDENT_PRAGMA FALSE
+#endif /* ifndef IDENT_PRAGMA */
+
+/*
 Flag that is TRUE if the "restrict" keyword is allowed (in both C and C++).
 This extension implements NCEG proposal X3J11.1 92-068 ("Aliasing Control
 via Restricted Pointers" by Bill Homer of CRI), which was adapted for C++
