@@ -710,6 +710,16 @@ associated scope is a file or namespace scope.
    (ssep)->kind == (a_scope_kind)sck_namespace ||            \
    (ssep)->kind == (a_scope_kind)sck_namespace_extension)
 
+/*
+TRUE if we are in a context in which template dependent types need to
+be handled in contexts such as expressions.  Typically, this is in
+a prototype instantiation, but can also occur in template declaration
+scopes.
+*/
+#define is_template_dependent_context()					\
+  (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
+   scope_stack[depth_scope_stack].in_prototype_instantiation)
+
 
 EXTERN a_scope_stack_entry_ptr
 		scope_stack /* = NULL */;
