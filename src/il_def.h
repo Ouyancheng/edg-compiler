@@ -1681,7 +1681,7 @@ typedef struct a_constant {
   a_bit_field  explicit_cast_applied:1;
 			/* This is only set for tpck_cast constructs (see
 			   the template_param variant below) when an explicit
-			   cast was used in the source to convert value
+			   cast was used in the source to convert the value
 			   indicated by the representation to the type
 			   indicated above. */
   a_bit_field	is_reinterpret_cast:1;
