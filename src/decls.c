@@ -4213,95 +4213,39 @@ to TRUE if we are in Microsoft mode and in a for-init block.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean is_winmain_routine(a_routine_ptr  rp)
+static void adjust_calling_convention_if_entry_point(
+                                           a_symbol_locator       *locator,
+                                           a_func_info_block_ptr  func_info,
+                                           a_type_ptr             type)
 /*
-Return TRUE if and only if the given routine is ::WinMain or ::wWinMain.
+A function is being declared with a name represented by locator, with the
+given type, and with additional properties pointed to by func_info.  If this
+function is the standard "main" entry point, a cc_default calling convention
+is replaced by cc_cdecl.  If its name is "WinMain" or "wWinMain", a cc_default
+calling convention is replaced by cc_stdcall (in this case the parent
+namespace and type are ignored, so that the modified function may not in
+fact be a Microsoft Windows entry point).
 */
 {
-  a_boolean  result = FALSE;
+  a_routine_type_supplement_ptr  rtsp = type->variant.routine.extra_info;
 
-  if (!rp->source_corresp.is_class_member &&
-      rp->source_corresp.parent.namespace_ptr == NULL &&
-      rp->source_corresp.name != NULL) {
-    /* A named routine in file scope: Check if it is "WinMain" or "wWinMain".
-       Microsoft does not seem to check the type of the routine. */
-    char  *name = rp->source_corresp.name;
-    if (name[0] == 'w') {
-      /* Treat "wWinMain" as "WinMain". */
-      ++name;
-    }  /* if */
-    if (strcmp(name, "WinMain") == 0) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_winmain_routine */
-
-
-static void set_nondefault_calling_convention(
-                                          a_routine_type_supplement_ptr  rtsp,
-                                          a_calling_convention           cc)
-/*
-If rtsp does not indicate an explicit calling convention and cc is different
-from the default convention, set the calling convention of rtsp to that
-indicated by cc.
-*/
-{
-  if (rtsp->calling_convention == (a_calling_convention)cc_default &&
-      default_calling_convention != cc) {
-    rtsp->calling_convention = cc;
-  }  /* if */
-}  /* set_nondefault_calling_convention */
-
-static void set_any_implicit_calling_convention(
-                                             a_routine_ptr          rp,
-                                             a_func_info_block_ptr  func_info)
-/*
-In Microsoft mode, the entry point routines main, WinMain, and wWinMain
-must be assigned a non-default calling convention even if no convention
-was specified in the source.  For main the calling convention is "__cdecl",
-whereas for WinMain and wWinMain it is "__stdcall".  rp and func_info
-represent the function whose calling convention may need to be updated.
-*/
-{
-  a_type_ptr  rtp = rp->type;
-
-  if (rtp->kind != (a_type_kind)tk_routine) {
-    /* Skip this processing if the function was declared with a typedef. */
-  } else {
-    a_routine_type_supplement_ptr  rtsp = rtp->variant.routine.extra_info;
+  if (rtsp->calling_convention == (a_calling_convention)cc_default) {
     if (func_info->is_main_function) {
-      set_nondefault_calling_convention(rtsp, (a_calling_convention)cc_cdecl);
-    } else if (is_winmain_routine(rp)) {
-      set_nondefault_calling_convention(rtsp,
-                                        (a_calling_convention)cc_stdcall);
+      /* main() is a __cdecl function by default. */
+      rtsp->calling_convention = (a_calling_convention)cc_cdecl;
+    } else if (locator->symbol_header != NULL) {
+      char  *name = locator->symbol_header->identifier;
+      if (name[0] == 'w') {
+        /* Treat "wWinMain" as "WinMain". */
+        ++name;
+      }  /* if */
+      if (strcmp(name, "WinMain") == 0) {
+        /* WinMain() is a __stdcall function by default. */
+        rtsp->calling_convention = (a_calling_convention)cc_stdcall;
+      }  /* if */
     }  /* if */
   }  /* if */
-}  /* set_any_implicit_calling_convention */
-
-
-static a_boolean compatible_calling_convention_redecl(a_routine_ptr  rp,
-                                                      a_type_ptr     new_type)
-/*
-The routine rp is being redeclared with the given new type.  Return TRUE if
-the calling conventions are compatible.  Special care must be taken to handle
-routines called "WinMain" or "wWinMain" in global scope: Their default calling
-convention is always "__stdcall".
-*/
-{
-  a_calling_convention  saved_default_cc = default_calling_convention;
-  a_boolean             result;
-
-  /* Temporarily change the default calling convention is rp represents
-     "WinMain" or "wWinMain". */
-  if (is_winmain_routine(rp)) {
-    default_calling_convention = (a_calling_convention)cc_stdcall;
-  }  /* if */
-  result = calling_conventions_are_compatible(rp->type, new_type);
-  /* Restore the default calling convention to the saved value. */
-  default_calling_convention = saved_default_cc;
-  return result;
-}  /* compatible_calling_convention_redecl */
+}  /* if */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -5628,6 +5572,7 @@ declaration.
          found, look it up now. */
       (void)normal_id_lookup(locator, IDL_NO_OPTIONS);
     }  /* if */
+    adjust_calling_convention_if_entry_point(locator, func_info, type_ptr);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (func_info->is_implicit_declaration) {
@@ -5802,8 +5747,8 @@ declaration.
           routines_compat = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode &&
-                   !compatible_calling_convention_redecl(routine_ptr,
-                                                         type_ptr)) {
+                   !calling_conventions_are_compatible(routine_ptr->type,
+                                                       type_ptr)) {
           /* Error -- calling conventions are not compatible. */
           routines_compat = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -6492,8 +6437,6 @@ skip_overloading:;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    /* main, WinMain, and wWinMain have implicit calling conventions. */
-    set_any_implicit_calling_convention(routine_ptr, func_info);
     /* In Microsoft mode we must track whether a routine was only declared
        through friend declarations.  Such declarations do not declare
        specializations of templates.
