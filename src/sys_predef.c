@@ -114,7 +114,42 @@ Enter the standard predefined macros for a SPARC system.
 }  /* enter_sparc_predefined_macros */
 
 #endif /* if defined(sparc) || defined(__sparc) */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
+static a_symbol_ptr enter_builtin_function(char       *name,
+                                           a_type_ptr return_type,
+                                           a_type_ptr param1_type,
+                                           a_type_ptr param2_type,
+                                           a_type_ptr param3_type,
+                                           a_type_ptr param4_type,
+                                           a_boolean  is_varargs)
+/*
+Enter a builtin function with the given name.  The return_type
+(which must be non-NULL) and the parameter types (which may be NULL)
+indicate how to form the function signature.  If is_varargs is TRUE,
+the function takes a variable number of arguments.  Return the
+symbol for the function.
+*/
+{
+  a_routine_type_supplement_ptr  rtsp;
+  a_symbol_ptr                   sym;
+  a_routine_ptr                  rout;
+  a_symbol_locator               loc;
+
+  clear_locator(&loc, &null_source_position);
+  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+  sym = make_predeclared_function_symbol(&loc, return_type, param1_type,
+					 param2_type, param3_type,
+					 param4_type);
+  rout = sym->variant.routine.ptr;
+  if (is_varargs) {
+    rtsp = rout->type->variant.routine.extra_info;
+    rtsp->has_ellipsis = TRUE;
+  }  /* if */
+  return sym;
+}  /* enter_builtin_function */
+
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static void enter_gnu_builtin_function(
@@ -132,24 +167,15 @@ indicate how to form the function signature.  If is_varargs is TRUE,
 the function takes a variable number of arguments.
 */
 {
-  a_routine_type_supplement_ptr  rtsp;
-  a_symbol_ptr                   sym;
-  a_routine_ptr                  rout;
-  a_symbol_locator               loc;
-  char                           *name;
+  a_symbol_ptr  sym;
+  a_routine_ptr rout;
+  char          *name;
 
   name = builtin_function_kind_names[(int)bfk];
-  clear_locator(&loc, &null_source_position);
-  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
-  sym = make_predeclared_function_symbol(&loc, return_type, param1_type,
-					 param2_type, param3_type,
-					 param4_type);
+  sym = enter_builtin_function(name, return_type, param1_type, param2_type,
+                               param3_type, param4_type, is_varargs);
   rout = sym->variant.routine.ptr;
   rout->variant.builtin_function_kind = bfk;
-  if (is_varargs) {
-    rtsp = rout->type->variant.routine.extra_info;
-    rtsp->has_ellipsis = TRUE;
-  }  /* if */
 }  /* enter_gnu_builtin_function */
 
 
@@ -848,6 +874,34 @@ Enter a predefined type.
 }  /* enter_predefined_type */
 
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void enter_microsoft_predeclared_functions(void)
+/*
+Enter the predeclared functions for Microsoft mode.
+*/
+{
+  a_symbol_ptr                  sym;
+  a_routine_ptr                 rout;
+  a_routine_type_supplement_ptr rtsp;
+
+  if (microsoft_version >= 1300) {
+    sym = enter_builtin_function("__debugbreak",
+                                 void_type(),
+                                 (a_type_ptr)NULL,
+                                 (a_type_ptr)NULL,
+                                 (a_type_ptr)NULL,
+                                 (a_type_ptr)NULL,
+                                 /*is_varargs=*/FALSE);
+    rout = sym->variant.routine.ptr;
+    /* The function is extern "C". */
+    rout->source_corresp.name_linkage = (a_name_linkage_kind)nlk_external;
+    rtsp = rout->type->variant.routine.extra_info;
+    rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_external;
+  }  /* if */
+}  /* enter_microsoft_predeclared_functions */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void enter_system_specific_predeclared_symbols(void)
 /*
@@ -930,6 +984,11 @@ Enter predeclared symbols as required by the implementation.
 #endif /* GCC_BUILTIN_VARARGS */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    enter_microsoft_predeclared_functions();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* enter_system_specific_predeclared_symbols */
 
 

@@ -1,5 +1,11 @@
 Version 3.3
 
+6/27/03  Microsoft compatibility: __debugbreak
+
+In Microsoft C and C++ modes with microsoft_version 1300 or greater,
+the intrinsic function __debugbreak is now predeclared.  Calling it
+causes a debug breakpoint.
+
 6/25/03  GNU C++ mode: Accessibility check for friend function declarations
 
 In GNU C++ mode, the front end no longer checks the accessibility of the
