@@ -8934,10 +8934,13 @@ TRUE if a symbol that can only be a vacuous destructor is returned.
        destructor. */
     *is_vacuous_dtor = TRUE;
   }  /* if */
-  if (sym == NULL && might_be_vacuous_dtor) {
+  if (sym == NULL && (might_be_vacuous_dtor || microsoft_bugs)) {
     /* The lookup has failed so far.  If this might be a vacuous destructor,
        do a more general lookup to find a nonclass type that might be
-       used as a qualifier for a vacuous destructor. */
+       used as a qualifier for a vacuous destructor.  The more general lookup
+       is also done in Microsoft bugs mode.  The Microsoft compiler does not
+       consider an identifier to start a qualified name if this lookup finds
+       a type that is not a class, enum, or template parameter. */
     normal_fund_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
     normal_sym = locator_for_curr_id.specific_symbol;
     if (do_class_lookup) {
@@ -8956,6 +8959,37 @@ TRUE if a symbol that can only be a vacuous destructor is returned.
   }  /* if */
   return sym;
 }  /* look_up_qualifier_start */
+
+
+static a_boolean is_microsoft_qualifier_start(a_symbol_ptr	sym)
+/*
+In a construct like "X::Y", the Microsoft compiler does not consider this
+to be a qualification of X when X is a typedef to a non-class type.
+In other words, this is treated as "X" and "::Y" by the Microsoft
+compiler.
+*/
+{
+  a_boolean	result = TRUE;
+
+  if (sym != NULL && is_type_symbol(sym)) {
+    a_type_ptr	tp;
+    tp = type_symbol_type(sym);
+    tp = skip_typerefs(tp);
+    /* A class, struct, union, enum, or template parameter type is
+       permitted as the start of a qualified name. */
+    switch (tp->kind) {
+      case tk_class:
+      case tk_struct:
+      case tk_union:
+      case tk_template_param:
+        break;
+      default:
+        result = FALSE;
+        break;
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* is_microsoft_qualifier_start */
 
 
 /*
@@ -9349,7 +9383,11 @@ selection operator, in which case it points to the type of the left operand.
       (void)get_token();  /* Gets the type name. */
       (void)get_token();  /* The "::" that follows the type name. */
       is_qualified_name = TRUE;
-    } else if (next_token() == qualifier_separator) {
+    } else if (next_token() == qualifier_separator &&
+               (!microsoft_bugs ||
+                is_microsoft_qualifier_start(qualifier_sym))) {
+      /* This is an identifier followed by the qualifier separator
+         (usually something like "X::").  Scan the qualified name. */
       a_source_position type_position;
       type_position = start_position;
       /* This is a qualifier. */

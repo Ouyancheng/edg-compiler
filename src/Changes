@@ -1,5 +1,16 @@
 Version 2.42
 
+7/28/99  Microsoft compatibility: nonclass typedef does not begin qualifier
+
+The Microsoft compiler does not consider a nonclass typedef as the start
+of a qualified name.  We now accept this usage in Microsoft bugs mode.
+
+  typedef unsigned int size_t;
+  size_t f(int);
+  struct A {
+    friend size_t ::f(int);  // Accepted in Microsoft bugs mode
+  };
+
 7/27/99  Incorrect handling of reference to partial specialization
 
 Certain references within the definition of a template that should refer
