@@ -1,5 +1,16 @@
 Version 3.5
 
+9/8/04  Embedded C: incorrect result when fixed-point rounding produces
+        overflow
+
+An incorrect result was produced if the rounding of a fixed-point value
+to the nearest representable value for the destination type resulted
+in an overflow.  Now fixed.
+
+  int main() {
+    unsigned short _Fract f = 1.0r;
+  }
+
 9/8/04  C++-generating back end: Microsoft compilers and qualifiers on
         virtual base class initializers
 
