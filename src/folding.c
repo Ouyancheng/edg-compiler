@@ -3716,6 +3716,11 @@ as the position for any diagnostics issued.
 #endif /* CHECKING */
         do_padd(constant_1, op, constant_2, result, &err_code,
                 &err_severity);
+      } else if (gcc_mode &&
+                 op == (an_expr_operator_kind)eok_and &&
+                 is_zero_constant(constant_2)) {
+        /* gcc allows (int)"abc" & 0 as an integral constant. */
+        do_and(constant_2 /* sic */, constant_2, result);
       } else {
         *did_not_fold = TRUE;
       }  /* if */
@@ -3737,6 +3742,11 @@ as the position for any diagnostics issued.
            constant is first. */
         do_padd(constant_2, op, constant_1, result, &err_code,
                 &err_severity);
+      } else if (gcc_mode &&
+                 op == (an_expr_operator_kind)eok_and &&
+                 is_zero_constant(constant_1)) {
+        /* gcc allows 0 & (int)"abc" as an integral constant. */
+        do_and(constant_1, constant_1 /* sic */, result);
       } else {
         *did_not_fold = TRUE;
       }  /* if */
