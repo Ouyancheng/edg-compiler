@@ -3145,16 +3145,6 @@ See conversion_possible.
                                          dest_type,
                                     /*check_as_operands_not_conversion=*/FALSE,
                                          std_conv);
-  } else if (!C_mode() && is_class_or_struct(dest_type)) {
-    /* In C++, a derived class can be converted to a base class. */
-    a_base_class_ptr bcp;
-    /* The is_incomplete test here catches cases where template classes
-       are incompletely instantiated. */
-    if (is_class_or_struct(source_type) && !is_incomplete(source_type) &&
-        (bcp = find_base_class_of(source_type, dest_type)) != NULL) {
-      okay = TRUE;
-      std_conv->cast_base_class = bcp;
-    }  /* if */
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
     okay = TRUE;
