@@ -604,12 +604,18 @@ complete token.
 static void continue_on_new_line(void)
 /*
 Continue the current line of output on the next line (presumably because
-it is too long).  Do that by emitting a #line directive to repeat the
-current line number.
+it is too long).
 */
 {
-  write_line_directive(curr_output_seq_number, curr_output_line,
-                       curr_output_file);
+  if (curr_output_seq_number != 0) {
+    /* Continue by emitting a #line directive to repeat the current line
+       number. */
+    write_line_directive(curr_output_seq_number, curr_output_line,
+                         curr_output_file);
+  } else {
+    /* The current line number is unknown, so do not use a #line directive. */
+    end_output_line();
+  }  /* if */
   curr_output_column = 1;
 }  /* continue_on_new_line */
 
