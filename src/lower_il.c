@@ -717,8 +717,7 @@ and return a pointer to the base class entry.  It must be found.
                    "find_virtual_base_class_of: virtual base class not found");
     }  /* if */
 #endif /* CHECKING */
-    if (same_entities(virt_bcp->type, virt_base_class) &&
-        virt_bcp->is_virtual) break;
+    if (virt_bcp->type == virt_base_class && virt_bcp->is_virtual) break;
   }  /* for */
   return virt_bcp;
 }  /* find_virtual_base_class_of */
@@ -737,8 +736,7 @@ a type identical to base_class_type.  It must be found.
   bcp = base_classes_of(derived_class);
   for (;;) {
     check_assertion(bcp != NULL);
-    if ((bcp->direct || bcp->is_virtual) &&
-        same_entities(bcp->type, base_class_type)) {
+    if ((bcp->direct || bcp->is_virtual) && bcp->type == base_class_type) {
       /* Found. */
       break;
     }  /* if */
@@ -1186,7 +1184,7 @@ function.
   a_boolean is_ptr_to_func = FALSE;
 
   type = skip_typerefs(type);
-  if (same_entities(type, mptr_type)) {
+  if (type == mptr_type) {
     /* The type is the struct used for pointers to members, so this is
        a pointer to member function that has been lowered. */
     is_ptr_to_func = TRUE;
@@ -1388,7 +1386,7 @@ starting after the entry found to find another temporary.
     tlep = (*ptlep)->next;
   }  /* if */
   for (; tlep != NULL; tlep = tlep->next) {
-    if (!tlep->in_use && same_entities(tlep->var->type, temp_type)) {
+    if (!tlep->in_use && tlep->var->type == temp_type) {
       /* Found a temporary with the proper type that we can reuse. */
       temp_var = tlep->var;
       break;
@@ -1640,7 +1638,7 @@ Do integral promotion on the indicated integer constant.
   a_type_ptr promoted_type = type_after_integral_promotion(cp->type);
   a_boolean  did_not_fold;
 
-  if (!same_entities(promoted_type, cp->type)) {
+  if (promoted_type != cp->type) {
     type_change_constant(cp, promoted_type,
                          /*is_implicit_cast=*/TRUE,
                          /*constant_context=*/TRUE,
@@ -2209,10 +2207,9 @@ pointer to the new node.
       node_class_type = type_pointed_to(node->type);
       node_class_type = skip_typerefs(node_class_type);
 #if CHECKING
-      if (!same_entities(node_class_type, step_class_type) &&
-          !same_entities(node_class_type,
-                         step_class_type->variant.class_struct_union.
-                                              extra_info->type_as_subobject)) {
+      if (node_class_type != step_class_type &&
+          node_class_type != step_class_type->variant.class_struct_union.
+                                               extra_info->type_as_subobject) {
         internal_error("make_base_class_lvalue: node has wrong type");
       }  /* if */
 #endif /* CHECKING */
@@ -2240,7 +2237,7 @@ pointer to the new node.
           /* Create a field selection to select the next non-virtual base
              class. */
           node = field_lvalue_selection_expr(node, base_field);
-          if (!same_entities(step_bcp->type, base_field->type)) {
+          if (step_bcp->type != base_field->type) {
             /* Presumably this is an optimized empty base class: it has no
                associated field and instead we use the field whose offset it
                shares. */
@@ -3276,7 +3273,7 @@ definition.
   /* If the class is type_info, save the vtbl pointer for use by
      the EH lowering routines, or use the variable created by the EH
      routines. */
-  if (same_entities(class_type, type_of_type_info) && bcp == NULL) {
+  if (class_type == type_of_type_info && bcp == NULL) {
     type_info_case = TRUE;
     if (vtbl_for_type_info != NULL) {
       /* The virtual function table was already allocated by EH lowering. */
@@ -3406,7 +3403,7 @@ function.
           for (step = bcp->derivation->path;
                step != NULL;
                step = step->next) {
-            if (same_entities(step->base_class->type, overriding_bcp->type)) {
+            if (step->base_class->type == overriding_bcp->type) {
               /* We encountered the overriding class, so there is no
                  virtual step. */
               goto outer_loop;
@@ -3468,7 +3465,7 @@ index number of the first entry, or 0 if no entries were created.
 
   if (bcp != NULL) {
     vtbl_class = bcp->type;
-    check_assertion(same_entities(class_type, bcp->derived_class));
+    check_assertion(class_type == bcp->derived_class);
   } else {
     vtbl_class = class_type;
   }  /* if */
@@ -4429,7 +4426,7 @@ virtual function table.
        (declared by IL lowering in case there is no type_info), make sure to
        use the correct length (from the real type_info). */
     if (vtbl_var == vtbl_for_type_info && type_of_type_info != NULL &&
-        !same_entities(class_type, type_of_type_info)) {
+        class_type != type_of_type_info) {
       ctsp->highest_virtual_function_number =
                      type_of_type_info->variant.class_struct_union.extra_info->
                                                highest_virtual_function_number;
@@ -6140,9 +6137,8 @@ more than once.
          (virtual_step_class).  Pass it back up to the invocation that
          will deal with the virtual step. */
       *base_class_for_virtual_step = virt_bcp;
-      if (f_same_entities(node_complete_object_type(source_node,
-                                                    /*call_case=*/FALSE),
-                          source_class)) {
+      if (node_complete_object_type(source_node, /*call_case=*/FALSE) ==
+                                                                source_class) {
         /* We have a complete object, so it is possible to go directly to the
            virtual base class without using a pointer indirection. */
         *complete_object = TRUE;
