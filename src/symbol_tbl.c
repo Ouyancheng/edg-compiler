@@ -7583,7 +7583,7 @@ fundamental symbol.  Return the preferred derivation of that base class.
   a_base_class_ptr       bcp;
   a_derivation_step_ptr  path = NULL;
 
-  db_enter(4, "path_to_fundamental_symbol");
+  db_enter(4, "path_to_fundamental_symbol_base_class");
   /* Note that corresponding_base_class is not called, since it is hard to
      compute a disambiguator that is immediately derived from the base
      class we're looking for. */
@@ -7600,7 +7600,7 @@ fundamental symbol.  Return the preferred derivation of that base class.
     }  /* if */
   }  /* for */
   check_assertion_str(path != NULL,
-                      "path_to_fundamental_base_class: not found");
+                      "path_to_fundamental_symbol_base_class: not found");
   db_exit();
   return path;
 }  /* path_to_fundamental_symbol_base_class */
