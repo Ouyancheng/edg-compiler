@@ -6054,7 +6054,11 @@ to indicate whether the class/struct/union is actually defined.
            ANSI mode). */
         if (curr_token == tok_rbrace) {
           /* The final semicolon is omitted. */
-          if (C_dialect != C_dialect_pcc) warning(ec_exp_semicolon);
+          if (C_dialect != C_dialect_pcc) {
+            diagnostic(strict_ansi_mode ?
+                         strict_ansi_error_severity : es_warning,
+                       ec_exp_semicolon);
+          }  /* if */ 
         } else {
           (void)required_token(tok_semicolon, ec_exp_semicolon);
         }  /* if */
