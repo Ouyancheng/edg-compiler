@@ -3548,7 +3548,12 @@ is a that of a constructor.
     } else if (microsoft_mode && locator_for_curr_id.is_qualified_name &&
                locator_for_curr_id.is_class_member &&
                !same_entities(locator_for_curr_id.parent.class_type,
+                              class_type) &&
+               !same_entities(locator_for_curr_id.parent.class_type,
                               class_type->source_corresp.parent.class_type)) {
+      /* In Microsoft mode qualifier constructor names are accepted, but the
+         qualifier should either be the current class or the enclosing class.
+         */
       type_mismatch = TRUE;
     }  /* if */
   }  /* if */
