@@ -6908,7 +6908,7 @@ on the value of at_file_scope.
        pragma bound to it at file scope and a friend declaration may have
        a pragma bound to it in the scope of some other class.  A pragma
        bound to a class member is always entered on the pragma list of
-       scope of the class. */
+       the scope of the class. */
     a_scope_depth	scope_depth;
     sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
     check_assertion_str2(sp != NULL, "add_to_pragma_list:",
