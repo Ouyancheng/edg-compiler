@@ -330,7 +330,6 @@ static void gen_cast(a_type_ptr type);
 static void gen_full_cast(a_type_ptr            dest_type,
                           an_expr_node_ptr      expr,
                           a_boolean             is_lvalue,
-                          an_expr_operator_kind op,
                           a_boolean             is_reinterpret_cast);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens);
@@ -4340,7 +4339,7 @@ precedence confusion and need_parens is TRUE.
                   type_copy = *dest_type;
                   type_copy.variant.pointer.is_reference = TRUE;
                   if (need_parens) write_tok_ch('(');
-                  gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE, op,
+                  gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE,
                                 node->variant.operation.is_reinterpret_cast);
                   if (need_parens) write_tok_ch(')');
                   processed = TRUE;
@@ -4466,13 +4465,11 @@ Generate a cast to the indicated type.
 static void gen_full_cast(a_type_ptr            dest_type,
                           an_expr_node_ptr      expr,
                           a_boolean             is_lvalue,
-                          an_expr_operator_kind op,
                           a_boolean             is_reinterpret_cast)
 /*
 Generate a cast of expr to the type dest_type.  expr is an lvalue if
-is_lvalue is TRUE.  op is the expression operator for the cast.  Usually,
-the output is an old-style cast, but a reinterpret_cast is put out
-when is_reinterpret_cast is TRUE.
+is_lvalue is TRUE.  Usually, the output is an old-style cast, but a
+reinterpret_cast is put out when is_reinterpret_cast is TRUE.
 */
 {
   if (is_reinterpret_cast) {
@@ -4908,7 +4905,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             }  /* if */
           } else {
             gen_full_cast(expr->type, operand_1, /*is_lvalue=*/FALSE,
-                          (an_expr_operator_kind)eok_cast,
                           expr->variant.operation.is_reinterpret_cast);
           }  /* if */
           goto done_with_operation;
