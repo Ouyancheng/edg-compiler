@@ -754,9 +754,12 @@ itself recursively to process classes nested within this class.
          this function is a member will itself be put out as a
          specialization, because that definition will include declarations
          of all the member functions. */
-      add_source_sequence_entry_for_partial_instantiation(
-                                           (char *)rout,
-                                           (an_il_entry_kind)iek_routine);
+      /* Don't do this for things like generated copy constructors. */
+      if (!rout->compiler_generated) {
+        add_source_sequence_entry_for_partial_instantiation(
+                                             (char *)rout,
+                                             (an_il_entry_kind)iek_routine);
+      }  /* if */
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
