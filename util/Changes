@@ -1,3 +1,11 @@
+Version 2.23
+
+3/1/94  Changes to facilitate error message catalogs
+
+edg_prelink.c has been modified to simplify the task of using
+a message catalog for the storage of error messages.
+
+-------------------------------------------------------------------------------
 Version 2.22, February 26, 1994
 
 2/21/94  Display of underlying C compiler diagnostics
