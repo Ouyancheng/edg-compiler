@@ -5314,6 +5314,13 @@ expression node.
     record_end_of_lifetime_destruction(new_dip, static_lifetime,
                                        /*block_lifetime=*/FALSE);
   }  /* if */
+#if DO_IL_LOWERING
+  /* If IL lowering has already attached a destructible entity description to
+     the dynamic initialization, it goes with the copy and not the original.
+     (If the pointer in the original were not cleared, the destructible
+     entity description would be freed twice.) */
+  dip->destructible_entity_descr = NULL;
+#endif /* DO_IL_LOWERING */
   return new_dip;
 }  /* copy_dynamic_init */
 
