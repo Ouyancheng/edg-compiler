@@ -8646,13 +8646,13 @@ are handled in symbol_tbl_init.)
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(conversion_header_list),
       pch_saved_var_array_elem(decl_seq_counter),
-      pch_saved_var_array_elem(opname_symbol_table),
+      pch_array_saved_var_array_elem(opname_symbol_table),
       /* In effect, only the first element of the scope stack entry is
          copied. */
       pch_indirect_saved_var_array_elem(scope_stack,
                                         sizeof(a_scope_stack_entry)),
       pch_saved_var_array_elem(next_scope_number),
-      pch_saved_var_array_elem(symbol_table),
+      pch_array_saved_var_array_elem(symbol_table),
       pch_saved_var_array_elem(anonymous_parent_object_symbol_header),
       pch_saved_var_array_elem(avail_access_error_descrs),
       pch_saved_var_array_elem(avail_dependent_type_fixups),

@@ -8590,18 +8590,18 @@ in il_init.)
      headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(float_types),
+      pch_array_saved_var_array_elem(float_types),
       pch_saved_var_array_elem(il_error_type),
       pch_saved_var_array_elem(il_unknown_type),
       pch_saved_var_array_elem(il_void_type),
-      pch_saved_var_array_elem(int_types),
-      pch_saved_var_array_elem(signed_int_types),
-      pch_saved_var_array_elem(string_types),
-      pch_saved_var_array_elem(wide_string_types),
-      pch_saved_var_array_elem(shareable_constants_table),
+      pch_array_saved_var_array_elem(int_types),
+      pch_array_saved_var_array_elem(signed_int_types),
+      pch_array_saved_var_array_elem(string_types),
+      pch_array_saved_var_array_elem(wide_string_types),
+      pch_array_saved_var_array_elem(shareable_constants_table),
       pch_saved_var_array_elem(avail_template_args),
 #if ORPHAN_PROCESSING_NEEDED
-      pch_saved_var_array_elem(orphaned_file_scope_il_entries),
+      pch_array_saved_var_array_elem(orphaned_file_scope_il_entries),
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
       pch_saved_var_array_elem(last_scope_orphaned_list_header),
