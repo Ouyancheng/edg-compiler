@@ -2300,6 +2300,37 @@ entry.
   }  /* if */
 }  /* gen_class_member_using_decl */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+
+static void gen_microsoft_decl_modifiers(a_decl_modifier decl_modifiers)
+/*
+Print a set of Microsoft declaration modifiers.
+*/
+{
+  if (decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT | DM_THREAD | DM_NAKED)) {
+    write_tok_str("__declspec( ");
+    if (decl_modifiers & DM_DLLIMPORT) {
+      write_tok_str("dllimport ");
+    }  /* if */
+    if (decl_modifiers & DM_DLLEXPORT) {
+      write_tok_str("dllexport ");
+    }  /* if */
+    if (decl_modifiers & DM_THREAD) {
+      write_tok_str("thread ");
+    }  /* if */
+    if (decl_modifiers & DM_NAKED) {
+      write_tok_str("naked ");
+    }  /* if */
+    write_tok_str(") ");
+  }  /* if */
+  if (decl_modifiers & DM_MICROSOFT_INLINE) {
+    write_tok_str("__inline ");
+  }  /* if */
+}  /* gen_microsoft_decl_modifiers */
+
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_class_definition(a_type_ptr type)
 /*
@@ -2345,6 +2376,12 @@ is the one associated with the definition of the class.
     write_tok_str("static ");
   }  /* if */
   write_tok_str(tag_kind(type->kind));
+  write_space();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+  gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Write the name of the class. */
   if (ctsp != NULL &&
       ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
@@ -2358,8 +2395,8 @@ is the one associated with the definition of the class.
   } else {
     /* Put out the name.  Note that a name will be generated for an
        unnamed class, which can be useful for casts. */
-    write_space();
     gen_decl_name(&type->source_corresp, iek_type);
+    write_space();
   }  /* if */
   /* Put out the class definition. */
   if (il_header.source_language == sl_Cplusplus) {
@@ -2367,7 +2404,7 @@ is the one associated with the definition of the class.
     a_base_class_ptr bcp = ctsp->base_classes;
     a_boolean        first_base_class = TRUE;
     if (bcp != NULL) {
-      write_tok_str(" : ");
+      write_tok_str(": ");
       for (; bcp != NULL; bcp = bcp->next) {
         /* The list contains all base classes, but put out only the direct
            base classes. */
@@ -2388,9 +2425,10 @@ is the one associated with the definition of the class.
           gen_type_name(bcp->type);
         }  /* if */
       }  /* for */
+      write_space();
     }  /* if */
   }  /* if */
-  write_tok_str(" { ");
+  write_tok_str("{ ");
   if (il_header.source_language == sl_Cplusplus) {
     push_name_context(ctsp->assoc_scope);
     /* Keep track of the current access category, in order to emit a change
@@ -5027,6 +5065,29 @@ Output the initializer, if any, for the indicated variable.
   pop_name_context_if_member(&var->source_corresp);
 }  /* gen_initializer */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+
+static void suppress_microsoft_decl_modifiers_put_out_on_class(
+                                       a_decl_modifier         *decl_modifiers,
+                                       a_source_correspondence *scp)
+/*
+If scp is the source correspondence entry for a class member, and
+some Microsoft decl modifiers were put out on the class, remove those
+qualifiers from the set *decl_modifiers so they will not be put out
+again on a member declaration.
+*/
+{
+  if (il_header.source_language == sl_Cplusplus && scp->is_class_member) {
+    a_type_ptr class_type = scp->parent.class_type;
+    a_class_type_supplement_ptr
+               ctsp = class_type->variant.class_struct_union.extra_info;
+    *decl_modifiers &= ~ctsp->decl_modifiers;
+  }  /* if */
+}  /* suppress_microsoft_decl_modifiers_put_out_on_class */
+
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_variable_decl(a_boolean gen_final_semicolon,
                               a_boolean suppress_specifiers)
@@ -5124,16 +5185,11 @@ lists of declarations, as in for-init statements.
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-    /* Microsoft-specific keywords. */
-    if (var->decl_modifiers & DM_DLLIMPORT) {
-      write_tok_str("__declspec(dllimport) ");
-    }  /* if */
-    if (var->decl_modifiers & DM_DLLEXPORT) {
-      write_tok_str("__declspec(dllexport) ");
-    }  /* if */
-    if (var->decl_modifiers & DM_THREAD) {
-      write_tok_str("__declspec(thread) ");
-    }  /* if */
+    { a_decl_modifier decl_modifiers = var->decl_modifiers;
+      suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
+                                                         &var->source_corresp);
+      gen_microsoft_decl_modifiers(decl_modifiers);
+    }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -5437,21 +5493,13 @@ declaration or definition.
   if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-  /* Microsoft-specific keywords. */
-  if (rout->decl_modifiers & DM_DLLIMPORT) {
-    write_tok_str("__declspec(dllimport) ");
-  }  /* if */
-  if (rout->decl_modifiers & DM_DLLEXPORT) {
-    write_tok_str("__declspec(dllexport) ");
-  }  /* if */
-  if (is_definition) {
-    if (rout->decl_modifiers & DM_NAKED) {
-      write_tok_str("__declspec(naked) ");
-    }  /* if */
-    if (rout->decl_modifiers & DM_MICROSOFT_INLINE) {
-      write_tok_str("__inline ");
-    }  /* if */
-  }  /* if */
+  { a_decl_modifier decl_modifiers = rout->decl_modifiers;
+    /* __inline and __declspec(naked) apply only to definitions. */
+    if (!is_definition) decl_modifiers &= ~(DM_NAKED | DM_MICROSOFT_INLINE);
+    suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
+                                                       &rout->source_corresp);
+    gen_microsoft_decl_modifiers(decl_modifiers);
+  }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Generate a declaration for the routine name with the right type. */
