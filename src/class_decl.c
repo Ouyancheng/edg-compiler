@@ -900,59 +900,76 @@ routine entry and return TRUE; otherwise return FALSE.
   /* Outer loop:  go through the base classes of the current class. */
   bcp = class_type->variant.class_struct_union.extra_info->base_classes;
   for (; bcp != NULL; bcp = bcp->next) {
-    /* Pull out the unique scope identifier for this base class. */
-    base_class_scope_number =
-        bcp->type->variant.class_struct_union.extra_info->assoc_scope->number;
-    /* Inner loop:  go thorough all the symbols for this name, looking for
-       one which represents a member function (overloaded or simple) from
-       the base class under examination. */
-    for (sym = symbol_list; sym != NULL; sym = sym_next) {
-      sym_next = sym->next;
-      if (sym->decl_scope == base_class_scope_number) {
-        /* Symbol represents a member of bcp's class. */
-        if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-          overloaded = TRUE;
-          sym = sym->variant.overloaded_function.symbols;
-        } else if (sym->kind == (a_symbol_kind)sk_member_function) {
-          overloaded = FALSE;
-        } else {
-          /* It's a symbol for neither a simple function nor an overloaded
-             function.  If it's in the same name space with member
-             functions, we've looked far enough for this base class.  If
-             its a typedef name, say, we can keep scanning. */
-          if (sym->kind != (a_symbol_kind)sk_field &&
-              sym->kind != (a_symbol_kind)sk_static_data_member) continue;
-          goto next_base_class;
+    if (rout->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* Special processing is required for destructors, since a virtual
+         destructor in a base class is not overridden in the derived class
+         by a function of the same name. */
+      sym = (symbol_supplement_for_class(bcp->type))->destructor;
+      if (sym != NULL) {
+        /* Base class does have a destructor. */
+        rp = sym->variant.routine;
+        if (rp->is_virtual) {
+          /* Base class destructor is virtual. */
+          is_virtual = TRUE;
+          record_virtual_function_override(bcp, rp, rout);
         }  /* if */
-        /* Innermost loop is run only once for simple functions but more
-           for overloaded functions.  This is a do-while loop instead of a
-           for loop because we can be sure of the initial conditions on the
-           first iteration. */
-        do {
-          rp = sym->variant.routine;
-          /* We are only interested in virtual functions with the same
-             type signature.  Look first at the arg types only. */
-          if (rp->is_virtual &&
-              arg_types_are_compatible(rout->type, rp->type)) {
-            /* Now compare the return types. */
-            if (types_are_compatible(rout->type->variant.routine.return_type,
-                                     rp->type->variant.routine.return_type)) {
-              /* Match */
-              is_virtual = TRUE;
-              /* Record the virtual function override in the base class
-                 entry.  It can be used later, e.g., for building a virtual
-                 function table. */
-              record_virtual_function_override(bcp, rp, rout);
-            } else {
-              /* Error -- cannot differ in return type only (ARM 10.2). */
-              pos_error(ec_bad_return_type_on_virtual_function_override,
-                        source_pos);
-            }  /* if */
-            goto next_base_class;                                       
+      }  /* if */
+    } else {
+      /* Not a destructor, so do normal processing. */
+      /* Pull out the unique scope identifier for this base class. */
+      base_class_scope_number =
+         bcp->type->variant.class_struct_union.extra_info->assoc_scope->number;
+      /* Inner loop:  go thorough all the symbols for this name, looking for
+         one which represents a member function (overloaded or simple) from
+         the base class under examination. */
+      for (sym = symbol_list; sym != NULL; sym = sym_next) {
+        sym_next = sym->next;
+        if (sym->decl_scope == base_class_scope_number) {
+          /* Symbol represents a member of bcp's class. */
+          if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+            overloaded = TRUE;
+            sym = sym->variant.overloaded_function.symbols;
+          } else if (sym->kind == (a_symbol_kind)sk_member_function) {
+            overloaded = FALSE;
+          } else {
+            /* It's a symbol for neither a simple function nor an overloaded
+               function.  If it's in the same name space with member
+               functions, we've looked far enough for this base class.  If
+               its a typedef name, say, we can keep scanning. */
+            if (sym->kind != (a_symbol_kind)sk_field &&
+                sym->kind != (a_symbol_kind)sk_static_data_member) continue;
+            goto next_base_class;
           }  /* if */
-          if (!overloaded) break;
-          sym = sym->next;
-        } while (sym != NULL);
+          /* Innermost loop is run only once for simple functions but more
+             for overloaded functions.  This is a do-while loop instead of a
+             for loop because we can be sure of the initial conditions on the
+             first iteration. */
+          do {
+            rp = sym->variant.routine;
+            /* We are only interested in virtual functions with the same
+               type signature.  Look first at the arg types only. */
+            if (rp->is_virtual &&
+                arg_types_are_compatible(rout->type, rp->type)) {
+              /* Now compare the return types. */
+              if (types_are_compatible(rout->type->variant.routine.return_type,
+                                      rp->type->variant.routine.return_type)) {
+                /* Match */
+                is_virtual = TRUE;
+                /* Record the virtual function override in the base class
+                   entry.  It can be used later, e.g., for building a virtual
+                   function table. */
+                record_virtual_function_override(bcp, rp, rout);
+              } else {
+                /* Error -- cannot differ in return type only (ARM 10.2). */
+                pos_error(ec_bad_return_type_on_virtual_function_override,
+                          source_pos);
+              }  /* if */
+              goto next_base_class;                                       
+            }  /* if */
+            if (!overloaded) break;
+            sym = sym->next;
+          } while (sym != NULL);
+        }  /* if */
       }  /* if */
     }  /* for */
 next_base_class:;
@@ -2697,18 +2714,6 @@ special function kind (e.g., constructor, destructor), if any.
     rtn->source_corresp.access = access;
     rtn->is_inline = is_inline;
     cssp = symbol_supplement_for_class(class_type);
-    /* If "virtual" was specified in the declaration, mark the routine as
-       virtual.  Even if it wasn't, its virtualness can be inherited.  In
-       either case record the relationship between the current routine and
-       its appearance in the base classes of the current class. */
-    if (check_for_virtual_function(is_virtual, sym, class_type,
-                                   &locator->source_position)) {
-      /* Classes with virtual functions require constructors. */
-      cssp->constructor_required = TRUE;
-      /* Classes with virtual functions cannot be constructed by bitwise
-         copying. */
-      cssp->construction_by_bitwise_copy_allowed = FALSE;
-    }  /* if */
     /* Do processing for special member functions, including assignment
        operators, constructors and destructors. */
     if (locator->is_operator_name) {
@@ -2756,6 +2761,18 @@ special function kind (e.g., constructor, destructor), if any.
       }  /* switch */
     } else {
       rtn->special_kind = spec_kind;
+    }  /* if */
+    /* If "virtual" was specified in the declaration, mark the routine as
+       virtual.  Even if it wasn't, its virtualness can be inherited.  In
+       either case record the relationship between the current routine and
+       its appearance in the base classes of the current class. */
+    if (check_for_virtual_function(is_virtual, sym, class_type,
+                                   &locator->source_position)) {
+      /* Classes with virtual functions require constructors. */
+      cssp->constructor_required = TRUE;
+      /* Classes with virtual functions cannot be constructed by bitwise
+         copying. */
+      cssp->construction_by_bitwise_copy_allowed = FALSE;
     }  /* if */
     /* If this is a user-defined conversion or an overloaded operator,
        check for errors in the argument list. */
