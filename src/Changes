@@ -1,5 +1,18 @@
 Version 2.46
 
+6/25/01  Abort on severely malformed class template declaration
+
+In certain cases, the parser can get confused during the initial parse
+of a class template.  In such cases, an abort could occur during an
+attempt to generate a real instantiation of the template.  This has
+been fixed.
+
+  template <class T> class C : std::A<char> {
+    void f(T); 
+  };
+  namespace std { template <class T> class A; }
+  C<char> c;
+
 6/25/01  cv-qualifiers on return type of template conversion function
 
 cv-qualifiers are now preserved in type deduction on the return type of

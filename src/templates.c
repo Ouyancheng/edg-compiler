@@ -7773,7 +7773,7 @@ to rout_sym (if the name is overloaded, use the source position to decide),
 and create a function instantiation entry to bind the two symbols together.
 */
 {
-  a_symbol_ptr                      sym;
+  a_symbol_ptr                      sym = NULL;
   a_template_instance_ptr           tip;
   a_type_ptr                        tp;
   a_scope_number                    corresp_prototype_decl_scope;
@@ -7841,20 +7841,25 @@ and create a function instantiation entry to bind the two symbols together.
   } else {
     /* Get the scope in which the members of the class represented by
        corresp_prototype_tag_sym were declared. */
+    a_scope_ptr	proto_class_scope;
     tp = type_symbol_type(corresp_prototype_tag_sym);
-    corresp_prototype_decl_scope =
-               tp->variant.class_struct_union.extra_info->assoc_scope->number;
-    for (sym = rout_sym->header->inactive_symbols;
-         sym != NULL;
-         sym = sym->next) {
-      if (sym->decl_scope == corresp_prototype_decl_scope) {
-        sym_from_prototype = sym;
-        if (sym->kind == (a_symbol_kind)sk_member_function ||
-            sym->kind == (a_symbol_kind)sk_overloaded_function) {
-          break;
+    proto_class_scope = tp->variant.class_struct_union.extra_info->assoc_scope;
+    if (proto_class_scope != NULL) {
+      /* The prototype instantiation can be incomplete in certain error
+         cases. */
+      corresp_prototype_decl_scope = proto_class_scope->number;
+      for (sym = rout_sym->header->inactive_symbols;
+           sym != NULL;
+           sym = sym->next) {
+        if (sym->decl_scope == corresp_prototype_decl_scope) {
+          sym_from_prototype = sym;
+          if (sym->kind == (a_symbol_kind)sk_member_function ||
+              sym->kind == (a_symbol_kind)sk_overloaded_function) {
+            break;
+          }  /* if */
         }  /* if */
-      }  /* if */
-    }  /* for */
+      }  /* for */
+    }  /* if */
   }  /* if */
   if (sym != NULL) {
     a_boolean	is_list = FALSE;
