@@ -5164,7 +5164,7 @@ When single_operand is TRUE, the <varargs.h> form is expected:
 #if BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE
         /* Many implementations of va_start expose the address of the
            parameter variable. */
-        node2->variant.variable->address_taken = TRUE;
+        set_variable_address_taken(node2->variant.variable);
 #endif /* BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE */
       if (!err) {
         node1->next = node2;
