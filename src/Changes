@@ -51,6 +51,20 @@ alias.  For example:
 
 Note that this allows the extension of a namespace that is not in scope.
 
+4/24/00  Abort in extract_constant_from_operand on "?" operator operating
+         on template parameter values
+
+An abort has been eliminated on processing a "?" operator whose first
+operand is a known constant value and whose second and/or third
+operands use nontype template parameters.
+
+  template <class T> class A {
+    typedef typename T::size_type size_type;
+    static const size_type i = 12345;
+    static const bool b = 1;
+    static const int result = b ? i : i + 1;
+  };
+
 4/24/00  Diagnose use of virtual on nested classes and enumeration types
 
 The front end now diagnoses the use of the keyword virtual when declaring
