@@ -25,7 +25,7 @@ Declarations for EDG template prelink utility.
 #define PL_CAN_BE_INSTANTIATED_PREFIX_LEN	7
 #define PL_DO_NOT_INSTANTIATE_PREFIX		"__DNI__"
 #define PL_DO_NOT_INSTANTIATE_PREFIX_LEN	7
-#define PL_INSTANCE_REQUIRED_PREFIX		"__TIR___"
+#define PL_INSTANCE_REQUIRED_PREFIX		"__TIR__"
 #define PL_INSTANCE_REQUIRED_PREFIX_LEN		7
 
 /* The maximum number of iterations after which we give up under the
