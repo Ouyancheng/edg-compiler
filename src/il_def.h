@@ -4159,14 +4159,6 @@ typedef struct a_switch_clause {
 			/* If the clause ends with a break statement, this
 			   gives the break statement's source position.
 			   Otherwise, zero. */
-  an_object_lifetime_ptr
-		lifetime;
-			/* Non-NULL to indicate an object lifetime that
-			   covers just this switch clause.  Used to limit
-			   the lifetime of expression temporaries (i.e., to
-			   keep them out of the other switch clauses of this
-			   switch) when the normal temporary lifetime is the
-			   old-style "to end of scope."  NULL in C mode. */
 } a_switch_clause;
 
 #endif /* ifdef CIL */
@@ -5059,12 +5051,11 @@ typedef struct an_object_lifetime {
 	iek_block	Block; points to a_block entry.  Used in cfront
 			  mode for dependent statements (they have no
 			  associated scope, but there is an associated object
-			  lifetime).
-	iek_switch_clause
-			Switch clause; points to switch clause.  Used to limit
-			  the lifetime of expression temporaries created in
-			  a switch clause when the normal temporary lifetime
-			  is the old-style "to end of scope."
+			  lifetime), and, when temporaries have the old-style
+			  "to end of scope" lifetime, to enclose sequences
+			  of statements from which temporaries should not
+			  escape (e.g., switch clauses, statements preceding
+			  a label).
 	iek_try_supplement
 			Try block; points to exception try block supplement.
 	iek_new_delete_supplement
@@ -5074,8 +5065,8 @@ typedef struct an_object_lifetime {
 	iek_dynamic_init
 			Dynamic initialization; points to the dynamic
 			  initialization entry.  Used for temporaries created
-			   in constructor-call dynamic initializations that
-			   initialize variables.
+			  in constructor-call dynamic initializations that
+			  initialize variables.
   */
   a_tagged_pointer
 		entity;	/* Entity with which this object lifetime is

@@ -644,7 +644,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_switch_clause_ptr, iek_switch_clause);
         walk_list(ptr->constant_list, a_constant_ptr, iek_constant);
         walk_list(ptr->statements, a_statement_ptr, iek_statement);
-        remap_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
       }
       break;
     case iek_handler:

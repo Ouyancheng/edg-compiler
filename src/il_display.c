@@ -1872,7 +1872,6 @@ Display the indicated switch clause.
                             "break_position.seq",
                             "break_position.column",
                             ptr->break_position);
-  disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
 }  /* disp_switch_clause */
 
 
