@@ -1,3 +1,17 @@
+6/1/92  Special handling of ":" in a class declaration when context is
+        a "new" expression.
+
+In a class declaration a colon following a tag name generally introduces
+a base class list.  However, in an expression context it can also belong
+to a ?: operator.  For instance,
+
+  struct S { int a; };
+  void f(int flag) {
+    struct S *ps = flag ? new struct S : 0;
+  }
+
+This program is now parsed correctly.
+
 5/29/92  Permit name of field to be same as name of struct.
 
 This change, based on ARM 9.2, deals with a murky part of the language
@@ -18,14 +32,14 @@ friend declaration, inline definition is disallowed.
 
 5/27/92  Extension to allow member function redeclaration.
 
-For Cfront compatibility we permit (contrary to ARM 9.2) multiple
-declarations of a member function within a class definition; a warning
-is issued.  We impose the following restrictions: accessibility must not
-be changed; static member functions cannot be redeclared as nonstatic
-and vice versa; nonvirtual member functions cannot be redeclared as
-virtual.  On the other hand, if either declaration specifies "inline",
-the routine entry is so marked, and there is support for merging default
-argument declarations (as per ARM 8.2.6).
+As an extension (bypassing a restriction in ARM 9.2) we now issue only a
+warning on multiple declarations of a member function within a class
+definition.  We impose the following restrictions: accessibility must not
+be changed; static member functions cannot be redeclared as nonstatic and
+vice versa; nonvirtual member functions cannot be redeclared as virtual.
+On the other hand, if either declaration specifies "inline", the routine
+entry is so marked, and there is support for merging default argument
+declarations (as per ARM 8.2.6).
 
 5/26/92  Added checks for inaccessible or ambiguous operator new() and
          delete() member functions in constructor and destructor wrappers
