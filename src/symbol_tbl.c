@@ -7982,7 +7982,7 @@ End a name scope by popping an entry off the scope stack.
           wrapup_control_flow_processing(il_scope);
         }  /* if */
         /* Functions are always processed in the context of the file scope
-           lifetime; restore the lifetime stack as at was when the function
+           lifetime; restore the lifetime stack as it was when the function
            scope was pushed. */
         curr_object_lifetime = ssep->saved_curr_object_lifetime;
       }  /* if */
