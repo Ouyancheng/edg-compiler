@@ -121,8 +121,10 @@ extern void init_memory_region(a_memory_region_number region_number,
 extern void done_with_memory_region(a_memory_region_number region_number);
 /* Free the space in a memory region. */
 extern void free_memory_region(a_memory_region_number region_number);
+#if !IL_SHOULD_BE_WRITTEN_TO_FILE || !ALTERNATE_IL_FILE_FORMAT
 /* Free the unused space in the final block of a memory region. */
 extern void trim_memory_region(a_memory_region_number region_number);
+#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE || !ALTERNATE_IL_FILE_FORMAT */
 #if DEBUG
 /* Display the amount of memory used, for debug purposes. */
 extern void show_mem_manage_space_used(unsigned long total_accounted_for);
