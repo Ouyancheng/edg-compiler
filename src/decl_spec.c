@@ -1460,6 +1460,8 @@ keyword.
         }  /* if */
         (void)get_token();
       }  /* while */
+      /* Check for the closing right paren. */
+      if (curr_token != tok_rparen) error(ec_exp_rparen);
     }  /* if */
     remove_stop_token(tok_rparen);
   }  /* if */
