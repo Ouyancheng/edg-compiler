@@ -6799,6 +6799,7 @@ value of at_file_scope.
   if (ssep != NULL) ssep->last_pragma = pragma;
 }  /* add_to_pragma_list */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_pragma_ptr find_assoc_pragma(char          *il_entity,
                                a_scope_ptr   curr_func_or_block_scope,
@@ -6851,6 +6852,7 @@ pragma has not yet been found for the given IL entity).
   return assoc_pragma;
 }  /* find_assoc_pragma */
 
+#if !STANDALONE_UTILITY_PROGRAM
            
 a_scope_ptr alloc_scope(a_scope_kind   kind,
                         a_scope_number number,
@@ -7965,13 +7967,14 @@ entry, if there is one.
   a_source_sequence_entry_ptr   ssep;
   a_src_seq_secondary_decl_ptr  sssdp;
 
+  type = skip_typerefs(type);
   if (is_definition) {
     /* This is a class or enum definition.  Alway set the flag in the type
        on a definition. */
     type->autonomous_primary_tag_decl = TRUE;
   } else {
-    /* This is a vacuous declaration.  Only set the flag in the type if this
-       is the first declaration. */
+    /* This is a class or enum declaration, possibly a "vacuous"
+       declaration. */
     /* Find the last source sequence entry that was created. */
     ssep = scope_stack[depth_innermost_ss_list_scope].
                                                    last_source_sequence_entry;
@@ -7979,6 +7982,8 @@ entry, if there is one.
       if (is_sublist_parent(ssep)) {
         ssep = (assoc_sublist_of(ssep))->last_source_sequence_entry;
       }  /* if */
+      /* ssep is the last source sequence entry added to the list for the
+         currently active scope.  It ought to be the one we're looking for. */
       if (ss_entry_ptr(ssep, a_type_ptr) == type) {
         /* Even though this is not a definition, this source sequence entry
            represents (at least temporarily) the primary declaration. */
