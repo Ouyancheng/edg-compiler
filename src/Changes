@@ -1,13 +1,19 @@
 Version 2.19
 
+8/6/93  Folding of constant addressing expressions to constants in the IL
+
+Constant addressing expressions that appear as initializer expressions
+in C++ mode are (once again) folded to constant entries and rendered
+as static initializations.
+
 8/5/93  Error recovery on functional-notation cast
 
-Error recovery has been improved on function-notation casts with
+Error recovery has been improved on functional-notation casts with
 no arguments, e.g., T().
 
 8/5/93  Message reworded
 
-The message about an invalid detination type for a cast has been reworded
+The message about an invalid destination type for a cast has been reworded
 from
 
   type of cast must be arithmetic, pointer, or void
@@ -49,7 +55,7 @@ scope entries for f and g, respectively.  (In C++ mode there is no change
 from previous behavior: both x and y appear on the types list of the file
 scope.)
 
-8/4/93   new of array of incomplete type
+8/4/93   new of variable-sized array of incomplete type
 
 An error is now detected on the following:
 
@@ -81,8 +87,9 @@ unsigned int under ANSI integral promotion rules.  Now it is.
 8/2/93  IL CHANGE: Added stmk_for statement
 
 A new statement kind, stmk_for, and an associated data structure,
-a_for_loop, have been added to the IL to represent for statements.  The
-for-init statement and increment expression are no longer put out
+a_for_loop, have been added to the IL to represent "for" statements.
+Formerly, an stmk_while statement was used to represent "for" statements.
+The for-init statement and increment expression are no longer put out
 independently -- they are part of the new statement.
 
 7/31/93  IL CHANGE: Widening of bit field extractions now more explicit

@@ -314,6 +314,10 @@ at the start of a major expression.
                                          expr_stack->is_default_arg_expression;
   }  /* if */
   expr_stack = new_entry;
+  /* Constant addressing expressions should be folded to constants inside
+     constant expressions.  This is set late so that
+     curr_expr_kind_is_const can be used. */
+  expr_stack->fold_constant_addr_exprs = curr_expr_kind_is_const();
 }  /* push_expr_stack */
 
 
@@ -1342,13 +1346,13 @@ in C++ mode.
     /* Leave an error operand alone. */
   } else {
     did_not_fold = TRUE;
-    if (curr_expr_is_evaluated() && curr_expr_kind_is_const() &&
+    if (curr_expr_is_evaluated() && expr_stack->fold_constant_addr_exprs &&
         is_constant_operand(operand)) {
       /* Fold a cast of a constant address into another constant address.
-         This folding could be done even in non-constant expressions (except 
-         not-evaluated ones), but it's clearer to have the cast in
-         the IL (the constant form has only an offset, and loses the sequence
-         of casts). */
+         This folding is always done in constant expressions, but in some
+         nonconstant expressions it's not done because it's clearer to
+         have the cast in the IL (the constant form has only an offset,
+         and loses the sequence of casts). */
       fold_base_class_cast(&operand->variant.constant, bcp,
                            &temp_con, check_cast_access, &did_not_fold,
                            &orig_operand.position);
@@ -2634,7 +2638,7 @@ if possible.
   if (is_error_operand(operand_1) || is_error_operand(operand_2)) {
     make_error_operand(result);
   } else {
-    /* Some addressing operations should not be folded in nonconstant
+    /* Some addressing operations should not be folded in some nonconstant
        contexts, because the expression form provides more explicit
        addressing information (which is useful for aliasing analysis). */
     /* Field-selection operations don't come through this routine, so there's
@@ -2643,7 +2647,7 @@ if possible.
         op == (an_expr_operator_kind)eok_padd) {
       /* Try folding only if the current expression is a constant
          expression. */
-      try_folding = curr_expr_kind_is_const();
+      try_folding = expr_stack->fold_constant_addr_exprs;
     } else {
       /* Not an addressing operation (normal case). */
       try_folding = TRUE;

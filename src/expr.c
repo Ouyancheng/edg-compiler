@@ -1786,8 +1786,8 @@ in *result.
                           (an_expr_operator_kind)eok_field;
     }  /* if */
     did_not_fold = TRUE;
-    if (is_constant_operand(operand_1) &&
-        curr_expr_is_evaluated() && curr_expr_kind_is_const()) {
+    if (is_constant_operand(operand_1) && curr_expr_is_evaluated() &&
+        expr_stack->fold_constant_addr_exprs) {
       /* Don't try to fold bit fields except when their addresses
          can be taken (as an extension). */
       if (field->bit_size == 0
@@ -1798,10 +1798,10 @@ in *result.
         /* Fold a field selection relative to a constant address into another
            constant address.  Note that the "rvalue . field" case can't come
            here, since a struct/union rvalue cannot be a constant.  This
-           folding could be done even in nonconstant expressions (except 
-           not-evaluated ones), but it's clearer to have the field selection in
-           the IL (the constant form has only an offset, and loses the field
-           name). */
+           folding is always done in constant expressions, but in some
+           nonconstant expressions it's not done because it's clearer to
+           have the field selection in the IL (the constant form has only
+           an offset, and loses the field name). */
         clear_operand((an_operand_kind)ok_constant, result);
         fold_field_selection(&operand_1->variant.constant, field,
                              selection_type, &result->variant.constant);
@@ -8330,6 +8330,9 @@ copy constructor elision is possible; see scan_class_initializer_expression.
   db_enter(3, "scan_initializer_expression");
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
+  /* Do fold constant addressing expressions to constants so that static
+     initialization can be more easily discerned. */
+  expr_stack->fold_constant_addr_exprs = TRUE;
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */

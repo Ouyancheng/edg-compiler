@@ -277,6 +277,14 @@ typedef struct an_expr_stack_entry {
 			   calling a copy constructor.  This has an effect
 			   on destructor calls noted in dynamic initialization
 			   entries for temporaries. */
+  a_byte_boolean
+		fold_constant_addr_exprs;
+			/* TRUE if constant addressing expressions should be
+			   folded to constants.  Always TRUE if the expression
+			   is a constant expression; sometimes TRUE for
+			   nonconstant expressions (e.g., initializer
+			   expressions, where it helps in discerning static
+			   initialization cases from others). */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
