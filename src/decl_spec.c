@@ -4326,12 +4326,20 @@ such a typedef, return the associated basic type specifier and set *sign and
           basic_type = bt_int;
           break;
         case ik_long:
-          if (*size != size_none) break;
-          basic_type = bt_int;
-          *size = size_long;
+          /* GNU compilers allow the extra "long" (with no effect). */
+          if (*size == size_none || (gnu_mode && *size == size_long)) {
+            basic_type = bt_int;
+            *size = size_long;
+          }  /* if */
           break;
         case ik_unsigned_long:
           /* No holes to fill in. */
+          /* GNU compilers allow the extra "long" (with no effect). */
+          if (gnu_mode && *size == size_long) {
+            basic_type = bt_int;
+            *sign = sign_unsigned;
+            *size = size_long;
+          }  /* if */
           break;
 #if LONG_LONG_ALLOWED
         case ik_long_long:

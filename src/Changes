@@ -1,5 +1,15 @@
 Version 3.4
 
+1/30/04  GNU mode: "long" and typedefs
+
+In GNU modes the "long" specifier can now be combined with a typedef type
+that is a synonym for "long int" or "unsigned long int."  The extra "long"
+specifier has no effect (i.e., the resulting type is still "long int" or
+"unsigned long int").  For example:
+
+  typedef long L;
+  typedef L long LL;  // "long" keyword is ignored.
+
 1/30/04  UPC mode: Predefined macros
 
 In UPC mode the macros __UPC__ and __UPC_VERSION__ are now predefined.
