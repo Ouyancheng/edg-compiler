@@ -1399,10 +1399,6 @@ Process the arguments on the command line that invoked the compiler.
     if (microsoft_mode) {
       command_line_error(ec_cl_strict_ansi_incompatible_with_microsoft);
     }  /* if */
-    /* cfront mode is incompatible with Microsoft mode. */
-    if (microsoft_mode) {
-      command_line_error(ec_cl_cfront_incompatible_with_microsoft);
-    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Strict ANSI mode is incompatible with allowing anachronisms.  Don't
        give an error if allow anachronisms is the default -- quietly
@@ -1453,6 +1449,16 @@ Process the arguments on the command line that invoked the compiler.
       error_threshold = strict_ansi_error_severity;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* cfront mode is incompatible with Microsoft mode. */
+    if (any_cfront_mode()) {
+      command_line_error(ec_cl_cfront_incompatible_with_microsoft);
+    }  /* if */
+    /* Set features implied by Microsoft compatibility. */
+    targ_enum_types_can_be_smaller_than_int = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (instantiation_mode == tim_local && automatic_instantiation_mode) {
     /* -tlocal mode cannot be used with automatic instantiation.  If
