@@ -1410,7 +1410,7 @@ the same as depth_scope_stack).
         depth = DEPTH_OF_FILE_SCOPE;
       } else if (idlbp->func_info != NULL &&
                  idlbp->storage_class == (a_storage_class)sc_static) {
-        /* In C mode, as extension, "static" is accepted on function
+        /* In C mode, as an extension, "static" is accepted on function
            declarations at function scope.  Such declarations are promoted
            to file scope. */
         depth = DEPTH_OF_FILE_SCOPE;
