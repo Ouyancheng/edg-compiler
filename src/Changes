@@ -44,10 +44,15 @@ directive" error on all #pragma once directives.  This has been fixed.
 1/11/95 Recognition of wchar_t as a keyword
 
 In C++, wchar_t is now recognized as a keyword.  This feature may be
-enabled or disabled using a command line option.  The default is specified
-by a lang_feat.h flag.  When wchar_t is a keyword, a preprocessing flag can
-be automatically defined by the front end so that a single set of system
-headers can be used for both modes.
+enabled or disabled using the --wchar_t_keyword and --no_wchar_t_keyword
+command line options.  The default is specified by DEFAULT_WCHAR_IS_KEYWORD
+in lang_feat.h.  When wchar_t is a keyword, a preprocessing flag can be
+automatically defined by the front end so that a single set of system
+headers can be used for both modes.  The lang_feat.h flag
+DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD is used to request that such a
+macro be defined.  The name of the macro is specified by the
+lang_feat.h flag MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD.  By default, a
+macro named "_WCHAR_T" is defined.
 
 1/11/95 Implicit inclusion problem introduced in 2.27
 
