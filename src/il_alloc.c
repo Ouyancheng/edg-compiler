@@ -3614,7 +3614,7 @@ a pointer to it.
   snlep = (a_seq_number_lookup_entry_ptr)
                 alloc_primary_file_scope_il(sizeof(a_seq_number_lookup_entry));
   snlep->first = 0;
-  snlep->last = 0;
+  snlep->last = MAX_SEQ_NUMBER;
   snlep->line_number = 0;
   snlep->next = NULL;
   snlep->source_file = NULL;
