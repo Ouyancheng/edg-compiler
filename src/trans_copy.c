@@ -503,7 +503,8 @@ set to TRUE if the body of a routine is eliminated.
             clear_variable_initialization(variable);
           }  /* if */
 #if DO_IL_LOWERING
-          if (variable->storage_class == (a_storage_class)sc_static) {
+          if (il_lowering_needed() &&
+              variable->storage_class == (a_storage_class)sc_static) {
             /* A static variable referenced from a template is changed to an
                external declaration and copied over. */
             /* The name must be processed now because we want to use
@@ -588,7 +589,8 @@ set to TRUE if the body of a routine is eliminated.
              as a primary file). */
           check_assertion(routine->assoc_scope == NULL_region_number);
 #if DO_IL_LOWERING
-          if (routine->storage_class == (a_storage_class)sc_static) {
+          if (il_lowering_needed() &&
+              routine->storage_class == (a_storage_class)sc_static) {
             /* A static function referenced from a template is changed to an
                external declaration and copied over. */
             /* The name must be processed now because we want to use
