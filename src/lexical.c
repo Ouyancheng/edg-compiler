@@ -254,7 +254,6 @@ Issue a warning on unimplemented keywords.  These warnings appear once per
 compilation, not once per translation unit.
 */
 {
-  static a_boolean asm_warning_issued      = FALSE;
   static a_boolean catch_warning_issued    = FALSE;
   static a_boolean template_warning_issued = FALSE;
   static a_boolean throw_warning_issued    = FALSE;
@@ -263,12 +262,6 @@ compilation, not once per translation unit.
   a_boolean        err = FALSE;
 
   switch (sym->variant.keyword_token) {
-    case tok_asm:
-      if (!asm_warning_issued) {
-        err = TRUE;
-        asm_warning_issued = TRUE;
-      }  /* if */
-      break;
     case tok_catch:
       if (!catch_warning_issued) {
         err = TRUE;
@@ -3835,12 +3828,11 @@ start_of_token_scan:  /* Restart here after scanning white space. */
 #if 0
               goto end_id_scan;
 #else
-              /* The keywords defined to support C++ templates are for the
-                 time being ignored and treated as identifiers.  However, a
-                 warning is issued.  This check will be removed when template
-                 support is added. */
-              if (ctoken == tok_asm ||
-                  ctoken == tok_catch || ctoken == tok_template ||
+              /* The keywords defined to support C++ templates and exceptions
+                 are for the time being ignored and treated as identifiers.
+                 However, a warning is issued.  This check will be removed
+                 when support is added. */
+              if (ctoken == tok_catch || ctoken == tok_template ||
                   ctoken == tok_throw || ctoken == tok_try) {
                 unimplemented_keyword_warning(assoc_symbol);
                 ctoken = tok_identifier;
