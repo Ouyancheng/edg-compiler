@@ -3428,6 +3428,7 @@ so, return the associated class type.
     if (ssep->kind == (a_scope_kind)sck_class_struct_union ||
         ssep->kind == (a_scope_kind)sck_class_reactivation) {
       class_type = ssep->assoc_type;
+      break;
     }  /* if */
   }  /* for */
   return class_type;
