@@ -2741,8 +2741,6 @@ and update *insert_location accordingly.
   next_con->next = object_con;
   object_con->next = dtor_con;
   aggr_con->variant.aggregate.last_constant = dtor_con;
-  /* Free the cleanup action now that it's no longer needed. */
-  free_cleanup_action(cap);
   switch_back_to_original_region(region_to_switch_back_to);
   if (!complex_cleanup && complex_address) {
     /* For simple cleanup with a complex address, compute the object address
@@ -2769,6 +2767,8 @@ and update *insert_location accordingly.
   set_stmt_pos_to_code_pos_for_lowering(call_stmt);
   /* Insert the statement at the right location. */
   insert_statement(call_stmt, insert_location);
+  /* Free the cleanup action now that it's no longer needed. */
+  free_cleanup_action(cap);
 }  /* record_needed_destruction */
 
 
