@@ -1904,11 +1904,6 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
 	long_preserving_rules = FALSE;
     }  /* if */
   }  /* if */
-  if (!c99_mode && !(option_kind_used[(int)optk_restrict])) {
-    /* Support for restricted pointers is turned off by default in strict
-       mode. */
-    restrict_enabled = FALSE;
-  }  /* if */
   if (!(option_kind_used[(int)optk_extended_designators])) {
     /* Support for extended designators is turned off by default in
        strict mode. */
@@ -1928,6 +1923,11 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
          strict C99 mode. */
       variadic_macros_allowed = FALSE;
     }  /* if */
+    if (!(option_kind_used[(int)optk_restrict])) {
+      /* Support for restricted pointers is turned off by default except
+         in strict C99 mode. */
+      restrict_enabled = FALSE;
+    }  /* if */
   }  /* if */
   if (C_mode()) {
     /* Set optional features to standard settings for strict C mode. */
@@ -1936,6 +1936,8 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     /* Features enabled in C99 but not in older C are handled in
        set_c99_mode_flags. */
     if (!c99_mode) {
+      /* Features listed here are those that can be turned on in pre-C99 C
+         mode but not in C++ mode. */
 #if VLA_ALLOWED
       if (!(option_kind_used[(int)optk_vla])) {
         /* Support for VLAs is turned off by default in strict C mode. */
