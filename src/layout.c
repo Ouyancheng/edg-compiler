@@ -12,6 +12,113 @@
 layout.c -- Managing the layout of class objects, based on user
             declarations and implementation conventions.
 
+General comments on class layout
+
+I.  Unions
+
+  The offset of each nonstatic data member of a union is zero bytes from
+  the starting address of the union object.  Its size is large enough to
+  contain the largest member, and its alignment is that of the member with
+  the greatest alignment requirement.  Unions cannot have base classes so
+  no space is reserved for them (nor for pointers to data sections of
+  virtual base classes).  Unions cannot have virtual functions, so no
+  space is reserved for a "virtual function info" field.
+
+II.  Classes and structs
+
+A.  C vs. C++
+
+  C structs are a special case of C++ structs.  They are classes without
+  base classes and virtual functions, so space is required for fields
+  only.  Fields are put out in strict declaration order and aligned based
+  on data type.  The alignment requirement for the struct as a whole is that
+  of the member with the greatest alignment requirment.
+
+  C++ classes (in the generic sense) that are not unions have more
+  complicated layouts.  The language definition provides few requirements
+  on how a class is laid out, so there are potential incompatibilities
+  between different language processors in (1) the order and locations of
+  nonstatic data members, base class data sections, and pointers to
+  virtual base classes, and (2) the representation of virtual function
+  information.
+
+B.  Layout options
+
+  The EDG C++ front end provides several options in laying out a class,
+  including compatibility with the layout of AT&T's cfront and a "normal"
+  option that uses memory more efficiently than cfront's layout.  There is
+  also an option that controls whether fields are put out in strict
+  declaration order or grouped by accessibility.  The front end can be
+  configured as required by setting CFRONT_CLASS_LAYOUT_COMPATIBILITY and
+  TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE, both of which are
+  defined in target.h.
+
+  The normal layout is as follows:
+
+    1. Nonvirtual direct base classes data sections, in declaration order.
+       (Such base class data sections are referred to as "incomplete
+       subobjects" because the space reserved for them does not include
+       space for their own virtual base classes.  All virtual base classes,
+       direct and indirect, appear at the end of layout.)
+
+    2. Nonstatic data members, in declaration order.
+
+    3. The virtual function information "block"; in a typical
+       implementation this will be space reserved for a pointer to a
+       virtual function table. (An optimization allows the sharing of
+       virtual function tables between a derived class and a nonvirtual
+       base class, in which case this pointer will be omitted.)
+
+    4. Pointers to direct and some indirect virtual base class subobjects.
+       (A pointer-sharing optimization results in the omission of pointers
+       to indirect virtual base classes in most cases.)
+
+    5. The data sections for all direct and indirect virtual base classes.
+       These appear as incomplete subobjects, in an order based on
+       declaration order (namely, the order of their appearance on the base
+       classes list, which is the same as the order of their construction:
+       depth-first left-to-right traversal of the directed acyclic graph of
+       the base classes).
+
+  When TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE is FALSE, only item
+  2 of the normal layout is modified.  The order of nonstatic data
+  members becomes:  all public members, in declaration order; then, all
+  protected members, in declaration order; and lastly, all private members,
+  in declaration order.  (This option is provided based on a suggestion
+  in the commentary section of ARM 11.1.)
+
+  When CFRONT_CLASS_LAYOUT_COMPATIBILITY is TRUE, items 1, 4, and 5 of the
+  normal layout are affected.
+
+    1. Nonvirtual direct base classes, in declaration order.  The first is
+       an incomplete subobject; any others are complete -- i.e., space is
+       reserved for their virtual base classes.  (This may result in wasted
+       space, since a virtual base class may appear in association with
+       more than one nonvirtual direct base class.)
+
+    2. Nonstatic data members, in declaration order.
+
+    3. Virtual function table pointer, unless omitted because the table is
+       shared with the first nonvirtual direct base class.
+
+    4. Pointers to direct and some indirect virtual base class subobjects.
+       (The pointer-sharing optimization is the same as that for the
+       normal layout.)  The order in which the pointers are put out cannot
+       be summarized easily, since it appears to be an accidental artifact
+       of the algorithm and internal data structures employed by cfront.
+
+    5. All virtual base classes (generally direct but sometimes indirect)
+       that are not embedded in some other subobject, in an order that
+       again is an artifact of cfront's implementation.  These virtual
+       base class data sections are put out as complete subobjects.
+
+  In general, there are two advantages of the normal layout over the
+  cfront-compatible layout.  First, and most importantly, it may result in
+  smaller objects, since virtual base classes data sections are guaranteed
+  to be put out only once.  Second, the order in which virtual base class
+  pointers and virtual base class data sections appear in the layout is
+  predictable, not an accident of the implementation.
+
 */
 
 #include "basics.h"
@@ -551,18 +658,60 @@ if there's no overflow TRUE is returned.
 }  /* set_field_size_and_offset */
 
 
+static a_targ_size_t set_offset_and_alignment(a_layout_block_ptr  lob,
+                                              a_targ_size_t       size,
+                                              a_targ_alignment    alignment)
+/*
+Given a subobject of the specified size in bytes and requiring the specified
+alignment, allocate space for it in the class whose current status is
+given in the layout block pointed to by lob.  Return the byte offset at
+which it is allocated.
+*/
+{
+  a_targ_size_t  offset;
+
+  /* Be sure the current byte_offset is consistent with the alignment required
+     for the subobject. */
+  if (!do_alignment(&lob->byte_offset, &lob->bit_offset, alignment)) {
+    /* Issue an error only if one has not yet been put out. */
+    if (!lob->any_overflow) {
+      error(ec_struct_too_large);
+      lob->any_overflow = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Save the offset at which space for the subobject is being reserved. */
+  offset = lob->byte_offset;
+  /* Adjust the overall alignment requirement for the current class, if
+     necessary. */
+  if (lob->alignment < alignment) lob->alignment = alignment;
+  /* Advance the layout block's byte_offset value -- it will be class's
+     size if no new subobjects are added or else the offset for the *next*
+     subobject. */
+  if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset, size, 0)) {
+    /* Not enough space remains available in the class for this subobject. */
+    if (!lob->any_overflow) {
+      /* Issue an error only if one has not yet been put out. */
+      error(ec_struct_too_large);
+      lob->any_overflow = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Return the offset for the current subobject.  This value will typically
+     be stored in the data struct representing the subobject. */
+  return offset;
+}  /* set_offset_and_alignment */
+
+
 void set_offsets_for_nonvirtual_base_classes(a_layout_block_ptr  lob)
 /*
 Lay out the class_type object to store the nonvirtual direct base classes.
 (They will precede the fields of the current class.)  Do this by going
 through the base classes list for the current class and reserving enough
 space for each base class that is directly and nonvirtually inherited;
-storage is reserved in the order in which the base classes appear.
-(Virtual base classes, both direct and indirect, are dealt with after the
-fields of the current class are allocated; indirect nonvirtual base classes
-are just subobjects of the direct nonvirtual base classes.)  If *any_overflow
-is TRUE upon entry, nothing is done; if overflow is detected in computing
-offsets and alignments, *any_overflow is set and returned to the caller.
+storage is reserved in the order in which the base classes appear.  (Virtual
+base classes, both direct and indirect, are dealt with after the fields of
+the current class are allocated; indirect nonvirtual base classes are just
+subobjects of the direct nonvirtual base classes.)  Lob points to the
+layout block used to track the layout of the current class.
 */
 {
   a_targ_size_t     size;
@@ -576,13 +725,17 @@ offsets and alignments, *any_overflow is set and returned to the caller.
     for (; bcp != NULL; bcp = bcp->next) {
       if (!lob->any_overflow && bcp->direct && !bcp->is_virtual) {
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+        /* When cfront compatibility is required, space for a complete
+           subobject (i.e., including space for it virtual base classes)
+           is sometimes reserved, depending on how the complete_subobject
+           flag has been set during prior processing. */
         if (bcp->complete_subobject) {
           alignment = bcp->type->alignment;
           size = bcp->type->size;
         } else {
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-          /* For a nonvirtual base classes reserve space for all the base class
-             fields, excluding space required for its own virtual base classes.
+          /* For a nonvirtual base classes reserve space for all the base
+             class except what is required for its own virtual base classes.
              The latter will be added at the end of the storage. */
           alignment = bcp->type->variant.class_struct_union.extra_info->
                                       alignment_without_virtual_base_classes;
@@ -591,641 +744,12 @@ offsets and alignments, *any_overflow is set and returned to the caller.
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
         }  /* if */
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-        /* Adjust the current offset to ensure that the base class is
-           properly aligned. */
-        if (!do_alignment(&lob->byte_offset, &lob->bit_offset, alignment)) {
-          error(ec_struct_too_large);
-          lob->any_overflow = TRUE;
-        } else {
-          /* No error, so increment the offset to allow for the base class. */
-          bcp->offset = lob->byte_offset;
-          if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
-                                       size, 0)) {
-            error(ec_struct_too_large);
-            lob->any_overflow = TRUE;
-          }  /* if */
-          /* Adjust the overall alignment requirement for the current class, if
-             necessary. */
-          if (lob->alignment < alignment) {
-            lob->alignment = alignment;
-          }  /* if */
-        }  /* if */
+        bcp->offset = set_offset_and_alignment(lob, size, alignment);
       }  /* if */
     }  /* for */
   }  /* if */
   db_exit();
 }  /* set_offsets_for_nonvirtual_base_classes */
-
-
-static void set_offset_for_virtual_function_info(a_layout_block_ptr  lob)
-/*
-In C++ classes with virtual functions provide a special mechanism for
-dynamic function binding.  Typically, this is a virtual function table,
-and each object of the class contains a pointer to the table.  For each
-class with virtual functions this routine allocates a field to contain
-such a pointer -- or other data as required by a given implementation.
-The size and alignment of such a field are defined by constants that can
-be redefined for various implementation strategies.  If *any_overflow
-is TRUE upon entry, nothing is done; if overflow is detected in computing
-offsets and alignments, *any_overflow is set and returned to the caller.
-*/
-{
-  a_class_type_supplement_ptr	ctsp;
-
-  db_enter(4, "set_offset_for_virtual_function_info");
-  ctsp = lob->class_type->variant.class_struct_union.extra_info;
-  if (!lob->any_overflow && ctsp->virtual_function_count > 0) {
-    if (!do_alignment(&lob->byte_offset, &lob->bit_offset,
-                      TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO)) {
-      error(ec_struct_too_large);
-      lob->any_overflow = TRUE;
-    } else {
-      ctsp->virtual_function_info_offset = lob->byte_offset;
-      if (lob->alignment < TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO) {
-        lob->alignment = TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO;
-      }  /* if */
-      if (!increment_field_offsets(
-                        &lob->byte_offset, &lob->bit_offset,
-                        (a_targ_size_t)TARG_SIZEOF_VIRTUAL_FUNCTION_INFO, 0)) {
-        error(ec_struct_too_large);
-        lob->any_overflow = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  db_exit();
-}  /* set_offset_for_virtual_function_info */
-
-
-
-
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-static void pointer_offset_for_virtual_base_class(a_layout_block_ptr  lob,
-                                                  a_base_class_ptr    bcp)
-{
-  a_targ_size_t      size;
-  a_targ_alignment   alignment;
-
-#if TARG_ALL_POINTERS_SAME_SIZE
-  /* All pointers are the same size. */
-  alignment = (a_targ_alignment)TARG_ALIGNOF_POINTER;
-  size = (a_targ_size_t)TARG_SIZEOF_POINTER;
-#else /* !TARG_ALL_POINTERS_SAME_SIZE */
-??=error set_offsets_for_virtual_base_class_pointers: different sized pointers
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
-  /* Adjust the current offset to ensure that the base class is properly
-     aligned. */
-  if (!do_alignment(&lob->byte_offset, &lob->bit_offset, alignment)) {
-    error(ec_struct_too_large);
-    lob->any_overflow = TRUE;
-  } else {
-    /* No error, so increment the offset. */
-    bcp->pointer_offset = lob->byte_offset;
-    if (lob->alignment < alignment) {
-      lob->alignment = alignment;
-    }  /* if */
-    if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
-                                 size, 0)) {
-      error(ec_struct_too_large);
-      lob->any_overflow = TRUE;
-    }  /* if */
-  }  /* if */
-}  /* pointer_offset_for_virtual_base_class */
-
-
-static a_boolean is_best_derivation(a_base_class_ptr  bcp,
-                                    a_base_class_ptr  derived_bcp,
-                                    a_type_ptr        class_type)
-{
-  a_boolean              is_best_path;
-  a_derivation_step_ptr  step;
-
-  if (derived_bcp == NULL) {
-#if CHECKING
-    if (!bcp->direct) {
-      internal_error(
-                 "is_best_derivation: no derived_bcp for indirect base class");
-    }  /* if */
-#endif /* CHECKING */
-    is_best_path = TRUE;
-  } else {
-    bcp = corresponding_base_class(bcp, (a_type_ptr)NULL, class_type);
-    if (bcp->direct) {
-      is_best_path = FALSE;
-    } else {
-      derived_bcp = corresponding_base_class(derived_bcp, (a_type_ptr)NULL,
-                                             class_type);
-#if 0
-      /* Checking based on the derivation path is not really right.  If the
-         need arises we'll have to beef this up. */
-#endif /* if 0 */
-      step = bcp->derivation;
-      for(;;) {
-        if (step->base_class == derived_bcp) {
-          is_best_path = TRUE;
-          break;
-        } else if (step->next->base_class == bcp) {
-          is_best_path = FALSE;
-          break;
-        }  /* if */
-        step = step->next;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_best_path;
-}  /* is_best_derivation */
-
-
-static void set_offsets_for_virtual_base_class_pointers(
-                                            a_layout_block_ptr lob,
-                                            a_base_class_ptr   base_class,
-                                            a_boolean          use_decl_order);
-
-static void set_pointer_offsets_for_corresponding_virtual_base_classes(
-                                             a_layout_block_ptr lob,
-                                             a_base_class_ptr   base_class,
-                                             a_boolean          use_decl_order,
-                                             a_base_class_ptr   derived_bcp)
-/*
-*/
-{
-  a_base_class_ptr  bcp;
-
-  db_enter(4, "set_pointer_offsets_for_corresponding_virtual_base_classes");
-  for (; base_class != NULL; base_class = base_class->next) {
-    if (base_class->direct) {
-      if (base_class->is_virtual) {
-        if (!use_decl_order) {
-          set_pointer_offsets_for_corresponding_virtual_base_classes(
-                                 lob, base_class->next, use_decl_order,
-                                 derived_bcp);
-        }  /* if */
-        bcp = corresponding_base_class(base_class,
-                                       /*old_type=*/(a_type_ptr)NULL,
-                                       lob->class_type);
-        if (bcp->pointer_base_class == NULL && bcp->pointer_offset == 0 &&
-            !lob->any_overflow &&
-            is_best_derivation(bcp, derived_bcp, lob->class_type)) {
-          pointer_offset_for_virtual_base_class(lob, bcp);
-          set_offsets_for_virtual_base_class_pointers(lob, bcp,
-                                                      !use_decl_order);
-        }  /* if */
-        if (!use_decl_order) break;
-      } else {
-        set_offsets_for_virtual_base_class_pointers(lob, base_class,
-                                                    !use_decl_order);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  db_exit();
-}  /* set_pointer_offsets_for_corresponding_virtual_base_classes */
-
-
-static a_boolean has_virtual_base_class_with_null_pointer_base_class(
-                                                  a_base_class_ptr  base_class,
-                                                  a_type_ptr        class_type)
-{
-  a_base_class_ptr  bcp, corresp_bcp;
-  a_boolean         has_one = FALSE;
-
-  for (bcp = base_class->type->
-                          variant.class_struct_union.extra_info->base_classes;
-       bcp != NULL;
-       bcp = bcp->next) {
-    if (bcp->is_virtual) {
-      corresp_bcp = corresponding_base_class(bcp, (a_type_ptr)NULL,
-                                             class_type);
-      if (corresp_bcp->pointer_base_class == NULL) {
-        has_one = TRUE;
-        break;
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  return has_one;
-}  /* has_virtual_base_class_with_null_pointer_base_class */
-
-
-  
-static void set_pointer_offset_for_direct_virtual_base_class(
-                                            a_layout_block_ptr lob,
-                                            a_base_class_ptr   base_class,
-                                            a_boolean          use_decl_order);
-
-static void check_direct_virtual_base_classes_for_special_case(
-                                             a_layout_block_ptr lob,
-                                             a_base_class_ptr   bcp,
-                                             a_boolean          use_decl_order,
-                                             a_base_class_ptr   derived_bcp)
-{
-  for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && bcp->is_virtual && bcp->pointer_base_class == NULL &&
-        has_virtual_base_class_with_null_pointer_base_class(bcp,
-                                                            lob->class_type)) {
-      if (!use_decl_order) {
-        check_direct_virtual_base_classes_for_special_case(lob, bcp->next,
-                                                           use_decl_order,
-                                                           derived_bcp);
-      }  /* if */
-      /* Is there another derivation for this virtual base class via a more
-         directly reachable intermediate base class?  If so, skip over it now
-         -- it will be put out later. */
-      if (is_best_derivation(bcp, derived_bcp, lob->class_type)) {
-        set_pointer_offset_for_direct_virtual_base_class(lob, bcp,
-                                                         use_decl_order);
-      }  /* if */
-      if (!use_decl_order) break;
-    }  /* if */
-  }  /* for */
-}  /* check_direct_virtual_base_classes_for_special_case */
-
-static void set_pointer_offset_for_direct_virtual_base_class(
-                                             a_layout_block_ptr lob,
-                                             a_base_class_ptr   base_class,
-                                             a_boolean          use_decl_order)
-{
-  a_base_class_ptr  bcp;
-
-  bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
-                                 lob->class_type);
-  pointer_offset_for_virtual_base_class(lob, bcp);
-  bcp = base_class->type->variant.class_struct_union.extra_info->base_classes;
-  check_direct_virtual_base_classes_for_special_case(lob, bcp, !use_decl_order,
-                                                     base_class);
-  bcp = base_class->type->variant.class_struct_union.extra_info->base_classes;
-  set_pointer_offsets_for_corresponding_virtual_base_classes(lob, bcp,
-                                                             use_decl_order,
-                                                             base_class);
-}  /* set_pointer_offsets_for_direct_virtual_base_class */
-
-
-static void set_offsets_for_virtual_base_class_pointers(
-                                             a_layout_block_ptr lob,
-                                             a_base_class_ptr   base_class,
-                                             a_boolean          use_decl_order)
-/*
-*/
-{
-  a_base_class_ptr  base_class_list, bcp;
-
-  db_enter(4, "set_offsets_for_virtual_base_class_pointers");
-  if (base_class == NULL) {
-    base_class_list =
-          lob->class_type->variant.class_struct_union.extra_info->base_classes;
-    use_decl_order = TRUE;
-    for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct && bcp->is_virtual && bcp->pointer_base_class == NULL &&
-          has_virtual_base_class_with_null_pointer_base_class(
-                                                      bcp, lob->class_type)) {
-        set_pointer_offset_for_direct_virtual_base_class(lob, bcp,
-                                                         use_decl_order);
-      }  /* if */
-    }  /* for */
-    set_pointer_offsets_for_corresponding_virtual_base_classes(
-                                      lob, base_class_list,
-                                      !use_decl_order, (a_base_class_ptr)NULL);
-  } else {
-    base_class_list =
-         base_class->type->variant.class_struct_union.extra_info->base_classes;
-    set_pointer_offsets_for_corresponding_virtual_base_classes(
-                                                  lob, base_class_list,
-                                                  !use_decl_order, base_class);
-  }  /* if */
-  db_exit();
-}  /* set_offsets_for_virtual_base_class_pointers */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-
-
-#if 0
-static void set_offsets_for_virtual_base_class_pointers(
-                                             a_base_class_ptr  base_class_list,
-                                             a_targ_size_t     *p_byte_offset,
-                                             int               *p_bit_offset,
-                                             a_targ_alignment  *p_alignment,
-                                             a_boolean         *any_overflow)
-/*
-Set the pointer_offset fields in direct virtual base classes where the pointer
-is not shared (i.e., where the pointer from a base class is not used).
-*/
-{
-  a_targ_size_t      size;
-  a_targ_alignment   alignment;
-  a_base_class_ptr   bcp;
-  
-  db_enter(4, "set_offsets_for_virtual_base_class_pointers");
-  /* Traverse the list of base classes. */
-  for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
-    /* For virtual base classes we only reserve enough space for a pointer
-       to the actual data section.  The latter is added at the end of the
-       storage. */
-    /* Only pointers to direct virtual base classes need space reserved --
-       and only when the pointer is not shared, i.e., not already present in
-       the data section of another base class, as indicated by the
-       pointer_base_class field. */
-    if (!*any_overflow && bcp->is_virtual && bcp->pointer_base_class == NULL) {
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-      /* Cfront puts out the pointers to virtual base class data sections in
-         reverse declaration order.  This is emulated by a recursive call
-         to allocate space for the next one before doing the current one. */
-      if (bcp->next != NULL) {
-        set_offsets_for_virtual_base_class_pointers(bcp->next, p_byte_offset,
-                                                    p_bit_offset, p_alignment,
-                                                    any_overflow);
-      }  /* if */
-      if (*any_overflow) break;
-#else
-      if (!bcp->direct) continue;
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-      pointer_offset_for_virtual_base_class(bcp, p_byte_offset, p_bit_offset,
-                                            p_alignment, any_overflow);
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-      break;
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-    }  /* if */
-  }  /* for */
-  db_exit();
-}  /* set_offsets_for_virtual_base_class_pointers */
-#endif /* if 0 */
-
-
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-static void set_embedded_virtual_base_class_offset(a_base_class_ptr base_class,
-                                                   a_type_ptr       class_type)
-/*
-base_class is a direct or indirect virtual base class of class_type.  If
-it is allocated inside another base class, compute its offset within the layout
-for class_type.  Then do the same check for its own direct virtual base
-classes.
-*/
-{
-  a_base_class_ptr  data_section_bcp, bcp;
-
-  if (base_class->offset == 0) {
-    /* Offset has not yet been set. */
-    data_section_bcp = base_class->data_section_base_class;
-    if (data_section_bcp != NULL) {
-      if (data_section_bcp->is_virtual &&
-          data_section_bcp->data_section_base_class != NULL &&
-          data_section_bcp->offset == 0) {
-        set_embedded_virtual_base_class_offset(data_section_bcp, class_type);
-      }  /* if */
-      /* Look for the corresponding virtual base class. */
-      bcp = corresponding_base_class(base_class, class_type,
-                                     data_section_bcp->type);
-      /* The pointer_offset value in the context of the derived class
-         is the offset of the pointer base class plus the offset of the
-         virtual base class pointer within the latter. */
-      base_class->offset = bcp->offset + data_section_bcp->offset;
-    }  /* if */
-  }  /* if */
-  /* Apply the check recursively. */
-  bcp = base_class->type->variant.class_struct_union.extra_info->base_classes;
-  for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->is_virtual && bcp->direct) {
-      set_embedded_virtual_base_class_offset(
-                  corresponding_base_class(bcp, base_class->type, class_type),
-                  class_type);
-    }  /* if */
-  }  /* for */
-}  /* set_embedded_virtual_base_class_offset */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-
-
-static void fixup_shared_virtual_base_class_offsets(a_type_ptr  class_type)
-/*
-Set the pointer_offset fields in direct virtual base classes where the
-virtual base class pointer is shared with some other base class.
-*/
-{
-  a_base_class_ptr             virtual_base_class;
-  a_base_class_ptr             pointer_base_class;
-  a_base_class_ptr             bcp;
-
-  /* Make a pass over all the base classes for the current derived class and
-     check each virtual base class. */
-  for (virtual_base_class = class_type->variant.
-                                  class_struct_union.extra_info->base_classes;
-       virtual_base_class != NULL;
-       virtual_base_class = virtual_base_class->next) {
-    if (virtual_base_class->is_virtual) {
-#if !CFRONT_CLASS_LAYOUT_COMPATIBILITY
-      if (!virtual_base_class->direct) {
-        /* Pointer base class is defined only for direct virtual base classes,
-           but it may have been set tentatively before we knew it was not a
-           direct base class. */
-        virtual_base_class->pointer_base_class = NULL;
-        continue;
-      }  /* if */
-#endif /* !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-      /* If the pointer_base_class field is non-NULL, the virtual base class
-         pointer for the derived class is the same as the pointer to the
-         corresponding virtual base class for pointer_base_class. */
-      pointer_base_class = virtual_base_class->pointer_base_class;
-      if (pointer_base_class != NULL) {
-        /* Look for the corresponding virtual base class. */
-        bcp = corresponding_base_class(virtual_base_class, class_type,
-                                       pointer_base_class->type);
-        /* The pointer_offset value in the context of the derived class
-           is the offset of the pointer base class plus the offset of the
-           virtual base class pointer within the latter. */
-        virtual_base_class->pointer_offset = bcp->pointer_offset +
-                                                  pointer_base_class->offset;
-      }  /* if */
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-      set_embedded_virtual_base_class_offset(virtual_base_class, class_type);
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-    }  /* if */
-  }  /* for */
-}  /* fixup_shared_virtual_base_class_offsets */
-
-
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-static void set_offsets_for_corresponding_virtual_base_classes(
-                                             a_layout_block_ptr lob,
-                                             a_base_class_ptr   base_class,
-                                             a_boolean          use_decl_order)
-/*
-*/
-{
-  a_targ_size_t     size;
-  a_targ_alignment  alignment;
-  a_base_class_ptr  bcp;
-
-  db_enter(4, "set_offsets_for_corresponding_virtual_base_classes");
-  for (; base_class != NULL; base_class = base_class->next) {
-    if (base_class->is_virtual && base_class->direct &&
-        base_class->data_section_base_class == NULL) {
-      if (!use_decl_order) {
-        set_offsets_for_corresponding_virtual_base_classes(
-                                        lob, base_class->next, use_decl_order);
-      }  /* if */
-      bcp = corresponding_base_class(base_class, /*old_type=*/(a_type_ptr)NULL,
-                                     lob->class_type);
-      if (bcp->data_section_base_class == NULL && bcp->offset == 0 &&
-          !lob->any_overflow) {
-#if CHECKING
-        /* All virtual base classes should be marked as "complete
-           subobjects". */
-        if (!bcp->complete_subobject) {
-          internal_error("set_offsets_for_corresp...: not complete subobj");
-        }  /* if */
-#endif /* CHECKING */
-        alignment = bcp->type->alignment;
-        size = bcp->type->size;
-        if (!do_alignment(&lob->byte_offset, &lob->bit_offset, alignment)) {
-          error(ec_struct_too_large);
-          lob->any_overflow = TRUE;
-          break;
-        } else {
-          /* Record the current offset in the data_section_offset of the
-             virtual base class entry.  This allows for direct access of
-             its fields (rather than through a pointer) as an optimization
-             under certain circumstances. */
-#if CHECKING
-          if (lob->byte_offset == 0) {
-            internal_error("set_offsets_for_corresp...: zero offset");
-          }  /* if */
-#endif /* CHECKING */
-          bcp->offset = lob->byte_offset;
-          if (lob->alignment < alignment) lob->alignment = alignment;
-          if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
-                                       size, 0)) {
-            error(ec_struct_too_large);
-            lob->any_overflow = TRUE;
-            break;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (!use_decl_order) break;
-    }  /* if */
-  }  /* for */
-  db_exit();
-}  /* set_offsets_for_corresponding_virtual_base_classes */
-
-
-static void set_offsets_for_indirect_virtual_base_classes(
-                                             a_layout_block_ptr lob,
-                                             a_base_class_ptr   base_class,
-                                             a_boolean          use_decl_order)
-/*
-base_class is a direct or indirect base class of class_type for which
-the complete_subobject flag is FALSE and whose virtual base classes, therefore,
-may space reserved in the compete derived class.  Examine the direct
-virtual base classes of base_class, find the corresponding indirect virtual
-base class of class_type, and allocate space for the latter.
-*/
-{
-  a_base_class_ptr  base_class_list, bcp;
-
-  db_enter(4, "set_offsets_for_indirect_virtual_base_classes");
-  if (base_class == NULL) {
-    base_class_list = lob->class_type->
-                           variant.class_struct_union.extra_info->base_classes;
-  } else {
-    base_class_list = base_class->type->
-                           variant.class_struct_union.extra_info->base_classes;
-  }  /* if */
-  if (use_decl_order) {
-    set_offsets_for_corresponding_virtual_base_classes(lob, base_class_list,
-                                                       use_decl_order);
-  }  /* if */
-  for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && !bcp->complete_subobject) {
-      set_offsets_for_indirect_virtual_base_classes(lob, bcp, !use_decl_order);
-      break;
-    }  /* if */
-  }  /* for */
-  if (!use_decl_order) {
-    set_offsets_for_corresponding_virtual_base_classes(lob, base_class_list,
-                                                       use_decl_order);
-  }  /* if */
-  db_exit();
-}  /* set_offsets_for_indirect_virtual_base_classes */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-
-
-static void set_offsets_for_virtual_base_classes(a_layout_block_ptr  lob)
-/*
-Reserve space at the end of the class object for virtual base classes.
-*p_byte_offset and *p_bit_offset represent the space already reserved; they
-are updated to reflect the increase in the size of the object when the
-virtual base classes are added.  *p_alignment is the overall alignment
-required for the object -- i.e., the maximum alignment required for any of
-its components; it too is updated if the alignment required for one of the
-virtual subobjects exceeds the current maximum.  *any_overflow is TRUE if
-the object has already been reported to be too large.
-*/
-{
-  a_class_type_supplement_ptr	ctsp;
-  
-  db_enter(4, "set_offsets_for_virtual_base_classes");
-
-  ctsp = lob->class_type->variant.class_struct_union.extra_info;
-  /* Record the size and alignment of the class before space is added for
-     virtual base classes. */
-  /* The size will never be set to zero, even if the class's actual size
-     is zero.  This is to assure that it will be given a unique location
-     when incorporated as a subobject of some other class. */
-  if (lob->byte_offset == 0) lob->byte_offset = 1;
-  /* We add padding (if needed) to the part of the object preceding
-     the virtual base classes based on the alignment requirements for
-     the portion of the class processed thus far.  In odd cases this
-     can result in suboptimal packing, but it permits treating the
-     class-without-virtual-base-classes as a subobject whose size is
-     consistent with its alignment. */
-  if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment)) {
-    if (!lob->any_overflow) {
-      error(ec_struct_too_large);
-      lob->any_overflow = TRUE;
-    }  /* if */
-  }  /* if */
-  ctsp->size_without_virtual_base_classes = lob->byte_offset;
-  ctsp->alignment_without_virtual_base_classes = lob->alignment;
-  if (lob->class_type->variant.class_struct_union.any_virtual_base_classes &&
-      !lob->any_overflow) {
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-    set_offsets_for_indirect_virtual_base_classes(lob, (a_base_class_ptr)NULL,
-                                                  /*use_decl_order=*/FALSE);
-#else
-    a_base_class_ptr   bcp = ctsp->base_classes;
-
-    if (bcp != NULL) {
-      /* Now add the virtual base classes to the storage.  This is done
-         almost exactly as for nonvirtual base classes. */
-      for (; bcp != NULL; bcp = bcp->next) {
-        if (bcp->is_virtual) {
-          a_targ_size_t     size;
-          a_targ_alignment  alignment;
-
-          alignment = bcp->type->variant.class_struct_union.extra_info->
-                                        alignment_without_virtual_base_classes;
-          size = bcp->type->variant.class_struct_union.extra_info->
-                                        size_without_virtual_base_classes;
-          if (!do_alignment(&lob->byte_offset, &lob->bit_offset, alignment)) {
-            error(ec_struct_too_large);
-            lob->any_overflow = TRUE;
-            break;
-          } else {
-            /* Record the current offset in the data_section_offset of the
-               virtual base class entry.  This allows for direct access of
-               its fields (rather than through a pointer) as an optimization
-               under certain circumstances. */
-            bcp->offset = lob->byte_offset;
-            if (lob->alignment < alignment) {
-              lob->alignment = alignment;
-            }  /* if */
-            if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
-                                         size, 0)) {
-              error(ec_struct_too_large);
-              lob->any_overflow = TRUE;
-              break;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* for */
-    }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-  }  /* if */
-  db_exit();
-}  /* set_offsets_for_virtual_base_classes */
 
 
 #if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
@@ -1311,6 +835,553 @@ will already have been done.
   db_exit();
 }  /* set_offsets_for_remaining_fields */
 #endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+
+
+static void set_offset_for_virtual_function_info(a_layout_block_ptr  lob)
+/*
+In C++ classes with virtual functions provide a special mechanism for
+dynamic function binding.  Typically, this is a virtual function table,
+and each object of the class contains a pointer to the table.  For each
+class with virtual functions this routine allocates a field to contain
+such a pointer -- or other data as required by a given implementation.
+The size and alignment of such a field are defined by constants that can
+be redefined for various implementation strategies.  Lob points to the
+layout block used to track the layout of the current class.
+*/
+{
+  a_class_type_supplement_ptr  ctsp;
+  a_targ_size_t                size;
+  a_targ_alignment             alignment;
+
+  db_enter(4, "set_offset_for_virtual_function_info");
+  ctsp = lob->class_type->variant.class_struct_union.extra_info;
+  if (ctsp->virtual_function_count > 0) {
+    size = (a_targ_size_t)TARG_SIZEOF_VIRTUAL_FUNCTION_INFO;
+    alignment = (a_targ_alignment)TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO;
+    ctsp->virtual_function_info_offset =
+                               set_offset_and_alignment (lob, size, alignment);
+  }  /* if */
+  db_exit();
+}  /* set_offset_for_virtual_function_info */
+
+
+static void pointer_offset_for_virtual_base_class(a_layout_block_ptr  lob,
+                                                  a_base_class_ptr    bcp)
+/*
+Allocate space in the current class for a pointer to virtual base class
+bcp.
+*/
+{
+  a_targ_size_t      size;
+  a_targ_alignment   alignment;
+
+#if TARG_ALL_POINTERS_SAME_SIZE
+  /* All pointers are the same size. */
+  alignment = (a_targ_alignment)TARG_ALIGNOF_POINTER;
+  size = (a_targ_size_t)TARG_SIZEOF_POINTER;
+#else /* !TARG_ALL_POINTERS_SAME_SIZE */
+??=error pointer_offset_for_virtual_base_class: different sized pointers
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+  bcp->pointer_offset = set_offset_and_alignment(lob, size, alignment);
+}  /* pointer_offset_for_virtual_base_class */
+
+
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+/* This is a set of routines that allocate space for pointers to virtual
+   base class data sections in cfront compatibility mode.  It is much more
+   complicated that what is provided for normal mode because we have had
+   to reverse-engineer cfront's algorithm for ordering the pointers. */
+
+static a_boolean is_best_derivation(a_base_class_ptr  bcp,
+                                    a_base_class_ptr  derived_bcp,
+                                    a_type_ptr        class_type)
+{
+  a_boolean              is_best_path;
+  a_derivation_step_ptr  step;
+
+  if (derived_bcp == NULL) {
+#if CHECKING
+    if (!bcp->direct) {
+      internal_error(
+                 "is_best_derivation: no derived_bcp for indirect base class");
+    }  /* if */
+#endif /* CHECKING */
+    is_best_path = TRUE;
+  } else {
+    bcp = corresponding_base_class(bcp, (a_type_ptr)NULL, class_type);
+    if (bcp->direct) {
+      is_best_path = FALSE;
+    } else {
+      derived_bcp = corresponding_base_class(derived_bcp, (a_type_ptr)NULL,
+                                             class_type);
+#if 0
+      /* Checking based on the derivation path is not really right.  If the
+         need arises we'll have to beef this up. */
+#endif /* if 0 */
+      step = bcp->derivation;
+      for(;;) {
+        if (step->base_class == derived_bcp) {
+          is_best_path = TRUE;
+          break;
+        } else if (step->next->base_class == bcp) {
+          is_best_path = FALSE;
+          break;
+        }  /* if */
+        step = step->next;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_best_path;
+}  /* is_best_derivation */
+
+
+static void set_pointer_offsets_for_corresponding_virtual_base_classes(
+                                             a_layout_block_ptr lob,
+                                             a_base_class_ptr   base_class,
+                                             a_boolean          use_decl_order,
+                                             a_base_class_ptr   derived_bcp)
+/*
+base_class is a base class on the base classes list of derived_bcp.  Look
+at it and its successors on the list.  For each that is a direct virtual
+base class of derived_bcp and that has a NULL pointer base class allocate a
+pointer to its data section.  For each base class on the list that is a
+direct nonvirtual base class, call this routine recursively to pick up its
+own virtual base classes, if any.  If use_decl_order is TRUE, we have a
+simple loop, allocating pointers for base classes in the order they appear
+on the base classes list; if it is FALSE, a recursive call assures that the
+successors on the list, if any, are processed before the precessor.
+*/
+{
+  a_base_class_ptr  bcp;
+  a_type_ptr        tp;
+
+  db_enter(4, "set_pointer_offsets_for_corresponding_virtual_base_classes");
+  for (; base_class != NULL; base_class = base_class->next) {
+    if (base_class->direct) {
+      /* We are only interested in direct base classes. */
+      if (!use_decl_order) {
+        /* We should use reverse declaration order, so do the successors
+           first, then return to the current base class. */
+        set_pointer_offsets_for_corresponding_virtual_base_classes(
+                                 lob, base_class->next, use_decl_order,
+                                 derived_bcp);
+      }  /* if */
+      /* Virtual and nonvirtual direct base classes are handled differently. */
+      if (base_class->is_virtual) {
+        /* If the virtual base class needs and does not yet have a pointer
+           to its data section, allocate it now and then allocate a pointer
+           for any of its own virtual base classes that may need it. */
+        bcp = corresponding_base_class(base_class,
+                                       /*old_type=*/(a_type_ptr)NULL,
+                                       lob->class_type);
+        if (bcp->pointer_base_class == NULL && bcp->pointer_offset == 0 &&
+            !lob->any_overflow &&
+            is_best_derivation(bcp, derived_bcp, lob->class_type)) {
+          /* Allocate the pointer. */
+          pointer_offset_for_virtual_base_class(lob, bcp);
+          /* Check its own virtual base classes, reversing the setting of
+             use_decl_order as we go down another step in the derivation. */
+          tp = bcp->type;
+          if (tp->variant.class_struct_union.any_virtual_base_classes) {
+            set_pointer_offsets_for_corresponding_virtual_base_classes(
+                       lob, 
+                       tp->variant.class_struct_union.extra_info->base_classes,
+                       !use_decl_order, bcp);
+          }  /* if */
+        }  /* if */
+      } else {
+        /* If the base class has any virtual base classes of its own, allocate
+           pointers to their data sections as needed.  Reverse the setting of
+           use_decl_order as we go down another step in the derivation. */
+        tp = base_class->type;
+        if (tp->variant.class_struct_union.any_virtual_base_classes) {
+          bcp = tp->variant.class_struct_union.extra_info->base_classes;
+          set_pointer_offsets_for_corresponding_virtual_base_classes(
+                                     lob, bcp, !use_decl_order, base_class);
+        }  /* if */
+      }  /* if */
+      /* If we've already done the successors, break out of the loop now. */
+      if (!use_decl_order) break;
+    }  /* if */
+  }  /* for */
+  db_exit();
+}  /* set_pointer_offsets_for_corresponding_virtual_base_classes */
+
+
+static a_boolean has_virtual_base_class_with_null_pointer_base_class(
+                                                  a_base_class_ptr  base_class,
+                                                  a_type_ptr        class_type)
+/*
+Return TRUE if any of the base classes of base_class have a NULL pointer-
+base-class field.  (It is the base class entry in the list associated with
+class_type that we are interesting in examining.)
+*/
+{
+  a_base_class_ptr  bcp, corresp_bcp;
+  a_boolean         has_one = FALSE;
+
+  /* Traverse the list of base classes of base_class. */
+  for (bcp = base_class->type->
+                          variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    /* If bcp is a virtual base class, look for the corresponding base class
+       among the base classes of class_type. */
+    if (bcp->is_virtual) {
+      corresp_bcp = corresponding_base_class(bcp, (a_type_ptr)NULL,
+                                             class_type);
+      /* If it has a NULL pointer base class (meaning its pointer is not
+         embedded within the body of some other base class) return TRUE.
+         Otherwise keep looking. */
+      if (corresp_bcp->pointer_base_class == NULL) {
+        has_one = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return has_one;
+}  /* has_virtual_base_class_with_null_pointer_base_class */
+
+
+/* Forward declaration for set_pointer_offset_for_direct_virtual_base_class --
+   mutual recursion with check_direct_virtual_base_classes_for_special_case */
+static void set_pointer_offset_for_direct_virtual_base_class(
+                                            a_layout_block_ptr lob,
+                                            a_base_class_ptr   base_class,
+                                            a_boolean          use_decl_order);
+
+static void check_direct_virtual_base_classes_for_special_case(
+                                             a_layout_block_ptr lob,
+                                             a_base_class_ptr   bcp,
+                                             a_boolean          use_decl_order,
+                                             a_base_class_ptr   derived_bcp)
+/*
+bcp is a base class on the base classes list of derived_bcp.  Look at bcp
+and its successors on the list.  For each that is a direct virtual base class
+of derived_bcp that has a NULL pointer base class *and* has at least one of
+its own virtual base classes with a NULL pointer base class (that's the
+special case) allocate a pointer to its data section.  If use_decl_order is
+TRUE, we have a simple loop, allocating pointers for base classes in the
+order they appear on the base classes list; if it is FALSE, a recursive call
+assures that the successors on the list, if any, are processed before the
+precessor.
+*/
+{
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct && bcp->is_virtual && bcp->pointer_base_class == NULL &&
+        has_virtual_base_class_with_null_pointer_base_class(bcp,
+                                                            lob->class_type)) {
+      if (!use_decl_order) {
+        check_direct_virtual_base_classes_for_special_case(lob, bcp->next,
+                                                           use_decl_order,
+                                                           derived_bcp);
+      }  /* if */
+      /* Is there another derivation for this virtual base class via a more
+         directly reachable intermediate base class?  If so, skip over it now
+         -- it will be put out later. */
+      if (is_best_derivation(bcp, derived_bcp, lob->class_type)) {
+        set_pointer_offset_for_direct_virtual_base_class(lob, bcp,
+                                                         use_decl_order);
+      }  /* if */
+      if (!use_decl_order) break;
+    }  /* if */
+  }  /* for */
+}  /* check_direct_virtual_base_classes_for_special_case */
+
+
+static void set_pointer_offset_for_direct_virtual_base_class(
+                                             a_layout_block_ptr lob,
+                                             a_base_class_ptr   base_class,
+                                             a_boolean          use_decl_order)
+/*
+base_class is a direct virtual base class of a base class of the current
+class (identified by lob->class_type).  Allocate a pointer to its data
+section in the current class, and then check its own direct virtual base
+classes, for which pointers may also be needed.  Once all its own direct
+virtual base classes have been accounted for, go through all its virtual
+base classes, direct and indirect, and allocate pointers as needed for them.
+*/
+{
+  a_base_class_ptr  bcp;
+  a_type_ptr        tp;
+
+  /* Find the base class entry on the base classes list of the current class
+     that corresponds to base_class. */
+  bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
+                                 lob->class_type);
+  if (bcp->pointer_offset == 0) {
+    /* Allocate a pointer to its data section.  The offset of the pointer will
+       be recored in *bcp. */
+    pointer_offset_for_virtual_base_class(lob, bcp);
+    tp = base_class->type; 
+    if (tp->variant.class_struct_union.any_virtual_base_classes) {
+      /* Next go through the base class's own direct virtual base classes,
+         looking for any that require special handling. */
+      bcp = tp->variant.class_struct_union.extra_info->base_classes;
+      check_direct_virtual_base_classes_for_special_case(lob, bcp,
+                                                         !use_decl_order,
+                                                         base_class);
+      /* Finally, make another pass over the base classes list.  All base
+         classes for which pointers must be allocated should be taken care
+         of now. */
+      bcp = tp->variant.class_struct_union.extra_info->base_classes;
+      set_pointer_offsets_for_corresponding_virtual_base_classes(
+                                         lob, bcp, use_decl_order, base_class);
+    }  /* if */
+  }  /* if */
+}  /* set_pointer_offsets_for_direct_virtual_base_class */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+
+
+static void set_offsets_for_virtual_base_class_pointers(a_layout_block_ptr lob)
+/*
+Set the pointer_offset fields in direct virtual base classes where the pointer
+is not shared (i.e., where the pointer from a base class is not used).
+*/
+{
+  a_base_class_ptr   bcp;
+  
+  db_enter(4, "set_offsets_for_virtual_base_class_pointers");
+
+  if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
+    bcp = lob->class_type->variant.class_struct_union.extra_info->base_classes;
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+    /* In cfront compatibility mode we go through the base classes list
+       twice.  First we look at direct virtual base classes with a NULL pointer
+       base class field and for which at least one of its own base classes
+       has a NULL pointer base class field.  These get special treatment and
+       are put out in declaration order. */
+
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct && bcp->is_virtual && bcp->pointer_base_class == NULL &&
+          has_virtual_base_class_with_null_pointer_base_class(
+                                                    bcp, lob->class_type)) {
+        set_pointer_offset_for_direct_virtual_base_class(
+                                          lob, bcp, /*use_decl_order=*/TRUE);
+      }  /* if */
+    }  /* for */
+    /* Next we through the base classes list again to look for pointers that
+       are still unaccounted for (i.e., have a NULL pointer base class and
+       and still have a zero pointer offset).  Direct virtual base classes are
+       put out in reverse declaration order, direct virtual base classes of
+       direct virtual bases are put out in declaration order, etc.; in other
+       words, if the number of levels of derivation is odd, they are put out in
+       reverse order; if it is even, they are put out in the same order as they
+       were declared.  Thus we use a recursive loop, and each time we go down
+       a level we reverse the value of use_decl_order. */
+    bcp = lob->class_type->variant.class_struct_union.extra_info->base_classes;
+    set_pointer_offsets_for_corresponding_virtual_base_classes(
+                                            lob, bcp, /*use_decl_order=*/FALSE,
+                                            (a_base_class_ptr)NULL);
+
+#else /* i.e., #if !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+    /* In normal layout mode we traverse the base classes list only once.
+       The pointers are put out (when needed -- i.e., when the pointer base
+       class is NULL) in base classes order. */
+
+    for (; bcp != NULL; bcp = bcp->next) {
+      /* For virtual base classes we only reserve enough space for a pointer
+         to the actual data section.  The latter is added at the end of the
+         storage. */
+      /* Only pointers to direct virtual base classes need space reserved --
+         and only when the pointer is not shared, i.e., not already present in
+         the data section of another base class, as indicated by the
+         pointer_base_class field. */
+      if (bcp->is_virtual && bcp->pointer_base_class == NULL) {
+        pointer_offset_for_virtual_base_class(lob, bcp);
+      }  /* if */
+    }  /* for */
+#endif /* !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+  }  /* if */
+  db_exit();
+}  /* set_offsets_for_virtual_base_class_pointers */
+
+
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+static void set_offsets_for_corresponding_virtual_base_classes(
+                                             a_layout_block_ptr lob,
+                                             a_base_class_ptr   base_class,
+                                             a_boolean          use_decl_order)
+/*
+*/
+{
+  a_base_class_ptr  bcp;
+
+  db_enter(4, "set_offsets_for_corresponding_virtual_base_classes");
+  for (; base_class != NULL; base_class = base_class->next) {
+    if (base_class->is_virtual && base_class->direct &&
+        base_class->data_section_base_class == NULL) {
+      if (!use_decl_order) {
+        set_offsets_for_corresponding_virtual_base_classes(
+                                        lob, base_class->next, use_decl_order);
+      }  /* if */
+      bcp = corresponding_base_class(base_class, /*old_type=*/(a_type_ptr)NULL,
+                                     lob->class_type);
+      if (bcp->data_section_base_class == NULL && bcp->offset == 0 &&
+          !lob->any_overflow) {
+#if CHECKING
+        /* All virtual base classes should be marked as "complete
+           subobjects". */
+        if (!bcp->complete_subobject) {
+          internal_error("set_offsets_for_corresp...: not complete subobj");
+        }  /* if */
+        if (lob->byte_offset == 0 && lob->bit_offset == 0) {
+          internal_error("set_offsets_for_corresp...: zero offset");
+        }  /* if */
+#endif /* CHECKING */
+        bcp->offset = set_offset_and_alignment(lob, bcp->type->size,
+                                               bcp->type->alignment);
+      }  /* if */
+      if (!use_decl_order) break;
+    }  /* if */
+  }  /* for */
+  db_exit();
+}  /* set_offsets_for_corresponding_virtual_base_classes */
+
+
+static void cfc_set_offsets_for_virtual_base_classes(
+                                             a_layout_block_ptr lob,
+                                             a_base_class_ptr   base_class,
+                                             a_boolean          use_decl_order)
+/*
+base_class is a direct or indirect base class of class_type for which
+the complete_subobject flag is FALSE and whose virtual base classes, therefore,
+may space reserved in the compete derived class.  Examine the direct
+virtual base classes of base_class, find the corresponding indirect virtual
+base class of class_type, and allocate space for the latter.
+*/
+{
+  a_base_class_ptr  base_class_list, bcp;
+
+  db_enter(4, "cfc_set_offsets_for_virtual_base_classes");
+  if (base_class == NULL) {
+    base_class_list = lob->class_type->
+                           variant.class_struct_union.extra_info->base_classes;
+    for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct && bcp->is_virtual &&
+          bcp->type->variant.class_struct_union.any_virtual_base_classes) {
+        /* Record the current offset in the data_section_offset of the
+           virtual base class entry.  This allows for direct access of
+           its fields (rather than through a pointer) as an optimization
+           under certain circumstances. */
+        bcp->offset = set_offset_and_alignment(lob, bcp->type->size,
+                                               bcp->type->alignment);
+      }  /* if */
+    }  /* for */
+  } else {
+    base_class_list = base_class->type->
+                           variant.class_struct_union.extra_info->base_classes;
+  }  /* if */
+  if (use_decl_order) {
+    set_offsets_for_corresponding_virtual_base_classes(lob, base_class_list,
+                                                       use_decl_order);
+  }  /* if */
+  for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct && !bcp->complete_subobject) {
+      cfc_set_offsets_for_virtual_base_classes(lob, bcp, !use_decl_order);
+      break;
+    }  /* if */
+  }  /* for */
+  if (!use_decl_order) {
+    set_offsets_for_corresponding_virtual_base_classes(lob, base_class_list,
+                                                       use_decl_order);
+  }  /* if */
+  db_exit();
+}  /* cfc_set_offsets_for_virtual_base_classes */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+
+
+static void set_offsets_for_virtual_base_classes(a_layout_block_ptr  lob)
+/*
+Reserve space at the end of the class object for virtual base classes.
+*/
+{
+  a_class_type_supplement_ptr	ctsp;
+  int                           zero = 0;
+  
+  db_enter(4, "set_offsets_for_virtual_base_classes");
+
+  ctsp = lob->class_type->variant.class_struct_union.extra_info;
+  /* Record the size and alignment of the class before space is added for
+     virtual base classes. */
+  if (lob->bit_offset > 0) {
+    /* If the last data field was a bit field, bump the byte count by one
+       before setting the size-without-virtual-base-classes value. */
+    if (!increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
+                                 (a_targ_size_t)1, 0)) {
+      if (!lob->any_overflow) {
+        error(ec_struct_too_large);
+        lob->any_overflow = TRUE;
+      }  /* if */
+    }  /* if */
+    lob->bit_offset = 0;
+  }  /* if */
+#if CHECKING
+  if (lob->byte_offset == 0) {
+    /* The size should never be zero if there are any virtual base classes,
+       since at the very least a virtual base class pointer will have been
+       allocated. */
+    if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
+      internal_error("set_offsets_for_virtual_base_classes: offset is zero");
+    }  /* if */
+  }  /* if */
+#endif /* CHECKING */
+  ctsp->size_without_virtual_base_classes = lob->byte_offset;
+  ctsp->alignment_without_virtual_base_classes = lob->alignment;
+  /* Note that the current size may not be consistent (according to the rules
+     for C structs) with the current alignment.  Modify size-without-virtual-
+     base-classes in such a case, but without changing lob->byte_offset (i.e.,
+     without introducing unwanted padding in the current class before
+     the data sections for the virtual base classes are put out.  This
+     assures that size-without-virtual-base-classes will correspond to the
+     the actual size of an incomplete subobject. */
+  if (!do_alignment(&ctsp->size_without_virtual_base_classes, &zero,
+                    ctsp->alignment_without_virtual_base_classes)) {
+    if (!lob->any_overflow) {
+      error(ec_struct_too_large);
+      lob->any_overflow = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Now see if there are any virtual base class data sections that need to
+     be added to the layout for the current class. */
+  if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+    /* In cfront compatibility layout mode all virtual base classes that
+       are not embedded in another class have space reserved for them.  The
+       order in which cfront puts them out is emulated. */
+    cfc_set_offsets_for_virtual_base_classes(lob, (a_base_class_ptr)NULL,
+                                             /*use_decl_order=*/FALSE);
+#else
+    /* In normal layout mode all virtual base classes have space reserved at
+       this point in the layout.  The order in which they are put out is
+       the order of their appearance in the base classes list, which
+       corresponds to a depth-first left-to-right traversal of the the base
+       classes represented in a directed acyclic graph (see ARM 12.6.2). */
+    a_base_class_ptr   bcp = ctsp->base_classes;
+    a_targ_size_t      size;
+    a_targ_alignment   alignment;
+
+    if (bcp != NULL) {
+      /* Now add the virtual base classes to the storage.  This is done
+         almost exactly as for nonvirtual base classes. */
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (bcp->is_virtual) {
+          /* Record the current offset in the data_section_offset of the
+             virtual base class entry.  This allows for direct access of
+             its fields (rather than through a pointer) as an optimization
+             under certain circumstances. */
+          size = bcp->type->variant.class_struct_union.extra_info->
+                                             size_without_virtual_base_classes;
+          alignment = bcp->type->variant.class_struct_union.extra_info->
+                                        alignment_without_virtual_base_classes;
+          bcp->offset = set_offset_and_alignment(lob, size, alignment);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+  }  /* if */
+  db_exit();
+}  /* set_offsets_for_virtual_base_classes */
 
 
 static void set_base_class_offsets(a_base_class_ptr       proximate_derivation,
@@ -1480,6 +1551,97 @@ addressed to indirect base classes.
 }  /* set_offsets_for_indirect_base_classes */
 
 
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+static void set_embedded_virtual_base_class_offset(a_base_class_ptr base_class,
+                                                   a_type_ptr       class_type)
+/*
+base_class is a direct or indirect virtual base class of class_type.  If
+it is allocated inside another base class, compute its offset within the layout
+for class_type.  Then do the same check for its own direct virtual base
+classes.
+*/
+{
+  a_base_class_ptr  data_section_bcp, bcp;
+
+  if (base_class->offset == 0) {
+    /* Offset has not yet been set. */
+    data_section_bcp = base_class->data_section_base_class;
+    if (data_section_bcp != NULL) {
+      if (data_section_bcp->is_virtual &&
+          data_section_bcp->data_section_base_class != NULL &&
+          data_section_bcp->offset == 0) {
+        set_embedded_virtual_base_class_offset(data_section_bcp, class_type);
+      }  /* if */
+      /* Look for the corresponding virtual base class. */
+      bcp = corresponding_base_class(base_class, class_type,
+                                     data_section_bcp->type);
+      /* The pointer_offset value in the context of the derived class
+         is the offset of the pointer base class plus the offset of the
+         virtual base class pointer within the latter. */
+      base_class->offset = bcp->offset + data_section_bcp->offset;
+    }  /* if */
+  }  /* if */
+  /* Apply the check recursively. */
+  bcp = base_class->type->variant.class_struct_union.extra_info->base_classes;
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->is_virtual && bcp->direct) {
+      set_embedded_virtual_base_class_offset(
+                  corresponding_base_class(bcp, base_class->type, class_type),
+                  class_type);
+    }  /* if */
+  }  /* for */
+}  /* set_embedded_virtual_base_class_offset */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+
+
+static void fixup_shared_virtual_base_class_offsets(a_type_ptr  class_type)
+/*
+Set the pointer_offset fields in direct virtual base classes where the
+virtual base class pointer is shared with some other base class.
+*/
+{
+  a_base_class_ptr             virtual_base_class;
+  a_base_class_ptr             pointer_base_class;
+  a_base_class_ptr             bcp;
+
+  /* Make a pass over all the base classes for the current derived class and
+     check each virtual base class. */
+  for (virtual_base_class = class_type->variant.
+                                  class_struct_union.extra_info->base_classes;
+       virtual_base_class != NULL;
+       virtual_base_class = virtual_base_class->next) {
+    if (virtual_base_class->is_virtual) {
+#if !CFRONT_CLASS_LAYOUT_COMPATIBILITY
+      if (!virtual_base_class->direct) {
+        /* Pointer base class is defined only for direct virtual base classes,
+           but it may have been set tentatively before we knew it was not a
+           direct base class. */
+        virtual_base_class->pointer_base_class = NULL;
+        continue;
+      }  /* if */
+#endif /* !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+      /* If the pointer_base_class field is non-NULL, the virtual base class
+         pointer for the derived class is the same as the pointer to the
+         corresponding virtual base class for pointer_base_class. */
+      pointer_base_class = virtual_base_class->pointer_base_class;
+      if (pointer_base_class != NULL) {
+        /* Look for the corresponding virtual base class. */
+        bcp = corresponding_base_class(virtual_base_class, class_type,
+                                       pointer_base_class->type);
+        /* The pointer_offset value in the context of the derived class
+           is the offset of the pointer base class plus the offset of the
+           virtual base class pointer within the latter. */
+        virtual_base_class->pointer_offset = bcp->pointer_offset +
+                                                  pointer_base_class->offset;
+      }  /* if */
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+      set_embedded_virtual_base_class_offset(virtual_base_class, class_type);
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+    }  /* if */
+  }  /* for */
+}  /* fixup_shared_virtual_base_class_offsets */
+
+
 void finish_laying_out_class(a_layout_block_ptr  lob)
 /*
 Complete laying out the object specified by the layout block's class_type.
@@ -1502,16 +1664,8 @@ the layout.
        fields. */
     set_offsets_for_remaining_fields(lob);
 #endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
-    set_offsets_for_virtual_base_class_pointers(lob, (a_base_class_ptr)NULL,
-                                                /*use_decl_order=*/FALSE);
-#if 0
-    base_class_list = class_type->
-                          variant.class_struct_union.extra_info->base_classes;
-    set_offsets_for_virtual_base_class_pointers(base_class_list, &byte_offset,
-                                                &bit_offset, &alignment,
-                                                &any_overflow);
-#endif /* if 0 */
     set_offset_for_virtual_function_info(lob);
+    set_offsets_for_virtual_base_class_pointers(lob);
     set_offsets_for_virtual_base_classes(lob);
   }  /* if */
   if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment)) {
