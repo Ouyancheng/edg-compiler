@@ -1220,6 +1220,17 @@ Return TRUE if the given expression is a "throw".
 }  /* is_throw_expr */
 
 
+/*
+Return TRUE if this block statement is bound to an object lifetime and
+must therefore be a cfront dependent statement (a dependent statement for
+which no scope is created).  Note: this test is only reliable between
+while the corresponding structured statement is on the structured statement
+stack -- i.e., between calls of push_stmt_stack and pop_stmt_stack.
+*/
+#define block_stmt_is_cfront_dependent_stmt(sp)                        \
+  ((sp)->variant.block.extra_info->lifetime != NULL)
+
+
 a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
                                           a_source_position  *stmt_pos)
 /*
@@ -1329,7 +1340,7 @@ the current statement sequence.
        statement is a block), that block is used. */
     if ((*head_ptr)->kind == (a_statement_kind)stmk_block &&
         (*head_ptr)->variant.block.extra_info->assoc_scope == NULL &&
-        !(*head_ptr)->dependent_statement) {
+        !block_stmt_is_cfront_dependent_stmt(*head_ptr)) {
       /* There is an existing block from a source construct.  Find the 
          end of its statement list, and add there.  Note that blocks that
          contain declarations are ruled out: we don't want to add a
@@ -1870,7 +1881,7 @@ current structured statement.
     db_ssse_with_indentation(kind, "pushing ");
   }  /* if */
 #endif /* DEBUG */
-  if (kind == ssk_compound && !sp->dependent_statement) {
+  if (kind == ssk_compound && !block_stmt_is_cfront_dependent_stmt(sp)) {
     sssep->depth_of_assoc_scope = depth_scope_stack;
   } else {
     /* For statements other than blocks, copy down the any_exec_statement_seen
@@ -1996,7 +2007,6 @@ Do final processing on the object lifetime -- that is, if it is going to be
 retained in the IL, bind it to an IL entity.
 */
 {
-  a_statement_ptr         sp;
   an_object_lifetime_ptr  olp;
 
   /* Set olp to point to the object lifetime that is currently active for
@@ -2007,41 +2017,25 @@ retained in the IL, bind it to an IL entity.
     /* olp is still unbound but it has a destructions list.  It will be
        retained in the IL, so it needs to be bound to an IL entry -- either a
        scope or a block. */
+#if CHECKING
+    a_statement_ptr  sp = sssep->statement;
+
     check_assertion_str2(olp == curr_object_lifetime,
                          "terminate_curr_block_object_lifetime:",
                          "not at top of lifetime stack");
-    sp = sssep->statement;
-    check_assertion(sp->kind == (a_statement_kind)stmk_block);
-    if (!sp->dependent_statement) {
-      /* There is a scope associated with this block; bind the lifetime
-         directly to it. */
-      (void)ensure_il_scope_exists(&scope_stack[depth_scope_stack]);
-      check_assertion_str2(olp->entity.ptr != NULL,
-                           "terminate_curr_block_object_lifetime:",
-                           "scope stack out of sync with struct stmt stack");
-    } else {
-      /* This is a cfront dependent statement and no scope was pushed for the
-         block; bind the object lifetime to the block entry itself. */
-      bind_object_lifetime(olp, (an_il_entry_kind)iek_block,
-                           (char *)sp->variant.block.extra_info);
-    }  /* if */
-#if 0
-    if (sssep->depth_of_assoc_scope != NO_SCOPE_DEPTH) {
-      /* This is the original object lifetime and there is a scope associated
-         with this block.  Bind the lifetime directly to the scope. */
-      (void)ensure_il_scope_exists(&scope_stack[sssep->depth_of_assoc_scope]);
-    } else {
-      /* This is the original object lifetime but there is no scope
-         associated with this block -- this must be a cfront dependent
-         statement.  Bind the lifetime to the block statement. */
-      block_stmt = sssep->statement;
-      check_assertion(block_stmt->kind == (a_statement_kind)stmk_block &&
-                      block_stmt->dependent_statement);
-      /* Now bind the block entry and the object lifetime. */
-      bind_object_lifetime(olp, (an_il_entry_kind)iek_block,
-                           (char *)block_stmt->variant.block.extra_info);
-    }  /* if */
-#endif /* if 0 */
+    check_assertion_str2(sp->kind == (a_statement_kind)stmk_block,
+                         "terminate_curr_block_object_lifetime:",
+                         "expected a block statement");
+    check_assertion_str2(!block_stmt_is_cfront_dependent_stmt(sp),
+                         "terminate_curr_block_object_lifetime:",
+                         "cfront dependent statement not expected");
+#endif /* CHECKING */
+    /* There is a scope associated with this block; bind the lifetime
+       directly to it. */
+    (void)ensure_il_scope_exists(&scope_stack[depth_scope_stack]);
+    check_assertion_str2(olp->entity.ptr != NULL,
+                         "terminate_curr_block_object_lifetime:",
+                         "scope stack out of sync with struct stmt stack");
   }  /* if */
 }  /* terminate_curr_block_object_lifetime */
 
@@ -2137,7 +2131,7 @@ a structured statement has ended.
   }  /* if */
   /* If the statement just exited is a non-block, propagate the
      any_exec_statement_seen flag upwards. */
-  if (kind != ssk_compound || sp->dependent_statement) {
+  if (kind != ssk_compound || block_stmt_is_cfront_dependent_stmt(sp)) {
     sssep[-1].any_exec_statement_seen = sssep->any_exec_statement_seen;
   }  /* if */
   if (kind == ssk_compound) {
@@ -2255,13 +2249,12 @@ being created to surround a dependent statement in C++.
     /* This is a dependent statement with no surrounding braces.  Any pragmas
        that are current will bind to the statement (not to the block), so
        don't process them yet. */
-    cfront_dependent_statement = any_cfront_mode();
-    if (cfront_dependent_statement) {
+    if (any_cfront_mode()) {
       /* This is a dependent statement in cfront mode, which is special in
          that no scope is created for it, but it nevertheless has an
          associated object lifetime: anything constructed within the statement
          must also be destroyed therein. */
-      block_stmt->dependent_statement = TRUE;
+      cfront_dependent_statement = TRUE;
       push_object_lifetime(iek_block, (char *)block, 
                            (an_object_lifetime_kind)olk_block);
       olp = curr_object_lifetime;
@@ -2302,7 +2295,7 @@ the block statement.
   /* Remember whether or not the end of the block is reachable.  This
      is helpful in IL lowering. */
   block->end_of_block_reachable = curr_reachability.reachable;
-  if (block_stmt->dependent_statement) {
+  if (block_stmt_is_cfront_dependent_stmt(block_stmt)) {
     /* cfront mode dependent statement. */
     /* Pop the statement stack. */
     pop_stmt_stack();

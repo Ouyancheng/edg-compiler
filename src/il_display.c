@@ -1998,9 +1998,6 @@ Display the indicated statement.
                             "position.column",
                             ptr->position);
   disp_ptr("next", (char *)ptr->next, iek_statement);
-  if (ptr->dependent_statement) {
-    disp_boolean("dependent_statement", TRUE);
-  }  /* if */
   if (ptr->has_associated_pragma) {
     disp_boolean("has_associated_pragma",
                  (a_boolean)ptr->has_associated_pragma);
