@@ -560,8 +560,8 @@ error code.
     case ec_pointer_outside_base_object:
       m = "pointer points outside of underlying object";
       break;
-    case ec_bad_pointer_cast:
-      m = "invalid pointer cast";
+    case ec_bad_cast:
+      m = "invalid type conversion";
       break;
     case ec_linkage_conflict:
       m = "external/internal linkage conflict with previous declaration";
@@ -957,7 +957,7 @@ error code.
       m = "invalid union member -- disallowed member function in class \"%s\"";
       break;
     case ec_overloaded_function_types_too_similar:
-      m = "overloaded function type is too similar to previous function type";
+      m = "cannot overload functions -- parameter types are too similar";
       break;
     case ec_bad_rvalue_array:
       m = "invalid use of non-lvalue array";
@@ -997,13 +997,17 @@ error code.
       m = "redefinition of default argument";
       break;
     case ec_ambiguous_overloaded_function:
-      m = "ambiguous overloaded function call";
+      m =
+       "more than one overloaded function instance matches this argument list";
       break;
     case ec_ambiguous_constructor:
       m = "more than one constructor matches this argument list";
       break;
     case ec_bad_default_arg_type:
       m = "default argument expression is incompatible with parameter";
+      break;
+    case ec_return_type_cannot_distinguish_functions:
+      m = "cannot overload functions distinguished by return type alone";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:

@@ -207,7 +207,7 @@ typedef enum /*an_error_code*/ {
   ec_function_type_not_allowed,
   ec_exp_declaration,
   ec_pointer_outside_base_object,
-  ec_bad_pointer_cast,
+  ec_bad_cast,
   ec_linkage_conflict,
   ec_float_to_integer_conversion,
   ec_expr_has_no_effect,
@@ -356,7 +356,8 @@ typedef enum /*an_error_code*/ {
   ec_default_arg_already_defined,
   ec_ambiguous_overloaded_function,
   ec_ambiguous_constructor,
-  ec_bad_default_arg_type
+  ec_bad_default_arg_type,
+  ec_return_type_cannot_distinguish_functions
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
