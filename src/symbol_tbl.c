@@ -4354,8 +4354,7 @@ check_routine:
       /* Label. */
       if (sym->variant.label->variant.exec_stmt == NULL) {
         /* A label that was used but never defined. */
-        pos_st_error(ec_label_never_defined, &sym->decl_position,
-                     sym->header->identifier);
+        pos_sy_error(ec_label_never_defined, &sym->decl_position, sym);
       } else if (!sym->referenced) {
         /* An unreferenced label. */
         warning_code = ec_label_declared_but_not_referenced;
@@ -4457,11 +4456,9 @@ check_routine:
        in an include file. */
     if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
         seq_is_in_include_file(sym->decl_position.seq)) {
-      pos_st_remark(warning_code, &sym->decl_position,
-                    sym->header->identifier);
+      pos_sy_remark(warning_code, &sym->decl_position, sym);
     } else {
-      pos_st_warning(warning_code, &sym->decl_position,
-                     sym->header->identifier);
+      pos_sy_warning(warning_code, &sym->decl_position, sym);
     }  /* if */
   }  /* if */
 #if CHECKING

@@ -1746,7 +1746,8 @@ rescan_statement:
         label = scan_label(/*is_definition=*/TRUE);
         /* See if the label has already been declared. */
         if (label->variant.exec_stmt != NULL) {
-          str_error(ec_label_already_defined, label->source_corresp.name);
+          sym_error(ec_label_already_defined,
+                    (a_symbol_ptr)label->source_corresp.assoc_info);
           code_reachable = rc_reachable;
         } else {
           /* The label has not previously been declared, so put out the

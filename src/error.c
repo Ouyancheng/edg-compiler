@@ -412,10 +412,10 @@ error code.
       m = "expected \"while\"";
       break;
     case ec_label_already_defined:
-      m = "label \"%s\" has already been defined";
+      m = "label %n has already been defined";
       break;
     case ec_label_never_defined:
-      m = "label \"%s\" was referenced but not defined";
+      m = "label %n was referenced but not defined";
       break;
     case ec_continue_must_be_in_loop:
       m = "a continue statement may only be used within a loop";
@@ -612,13 +612,13 @@ error code.
       m = "constant string subscript out of range";
       break;
     case ec_variable_declared_but_not_referenced:
-      m = "variable \"%s\" declared and never referenced";
+      m = "variable %n declared and never referenced";
       break;
     case ec_routine_declared_but_not_referenced:
-      m = "routine \"%s\" declared and never referenced";
+      m = "routine %n declared and never referenced";
       break;
     case ec_label_declared_but_not_referenced:
-      m = "label \"%s\" declared and never referenced";
+      m = "label %n declared and never referenced";
       break;
     case ec_pcc_address_of_array:
       m = "\"&\" applied to an array has no effect";
@@ -630,7 +630,7 @@ error code.
       m = "argument is incompatible with formal parameter";
       break;
     case ec_parameter_declared_but_not_referenced:
-      m = "parameter \"%s\" declared and never referenced";
+      m = "parameter %n declared and never referenced";
       break;
     case ec_printf_arg_mismatch:
       m = "invalid argument type for format string conversion";
