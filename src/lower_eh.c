@@ -2423,7 +2423,7 @@ the context for the try block.  Any code generated is inserted at
 *insert_location.
 */
 {
-  pop_eh_stack_frame(ehsek_function, context_ptr->try_frame, insert_location);
+  pop_eh_stack_frame(ehsek_try_block, context_ptr->try_frame, insert_location);
 }  /* cleanup_on_exit_from_try_block */
 
 
