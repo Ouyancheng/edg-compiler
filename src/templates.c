@@ -364,13 +364,6 @@ static a_boolean
 #endif /* CHECKING */
 
 static a_symbol_list_entry_ptr
-		exported_templates_list;
-			/* List of exported templates whose definitions
-			   were provided in this compilation.  This list
-			   includes only functions and static data members
-			   (i.e., not classes). */
-
-static a_symbol_list_entry_ptr
 		exported_templates_tail;
 			/* The end of the exported templates list. */
 
@@ -12323,16 +12316,6 @@ of exported templates for this translation unit.
 }  /* add_to_exported_templates_list */
 
 
-a_boolean any_exported_templates(void)
-/*
-Return TRUE if there have been any exported templates defined in the current
-translation unit.
-*/
-{
-  return exported_templates_list != NULL;
-}  /* any_exported_templates */
-
-
 #if RECORD_TEMPLATE_STRINGS
 
 static void select_caches_and_make_template_string(
@@ -15390,21 +15373,12 @@ data member is a member of an unnamed namespace.
 {
   a_boolean     result = FALSE;
   a_symbol_ptr	sym = tip->instance_sym;
-  a_boolean	exported_templates_present;
 
-  exported_templates_present = any_exported_templates();
   if (is_inline_template_function(tip)) {
-    /* In the presence of exported templates, static inline template functions
-       must be treated as external because they can be referenced from
-       exported templates instantiated elsewhere. */
-    a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
-    result = !exported_templates_present ||
-             rout->storage_class != (a_storage_class)sc_static;
-  } else if (exported_templates_present) {
-    /* When exported templates are present all static templates are promoted
-       to external entities with unique names.  This is necessary because
-       the exported templates may reference a static instantiation even though
-       they are instantiated in other files. */
+    result = TRUE;
+  } else if (any_exported_templates()) {
+    /* In the presence of exported templates we cannot assume that any
+       template instance is referenced only from this translation unit. */
     result = FALSE;
   } else if (sym->kind != (a_symbol_kind)sk_static_data_member &&
              (sym->variant.routine.ptr->storage_class ==
@@ -18416,7 +18390,12 @@ are instantiated using a mechanism like the template instantiation mechanism.
   if (instantiate_extern_inline) {
     a_routine_list_entry_ptr	rlep;
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
-      set_body_needed_flag_for_inline_function(rlep->routine);
+      if (rlep->routine->storage_class != (a_storage_class)sc_static ||
+          any_exported_templates()) {
+        /* In the presence of exported templates, static inlines are made
+           external. */
+        set_body_needed_flag_for_inline_function(rlep->routine);
+      }  /* if */
     }  /* for */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (any_instantiations_required() && use_template_info_file &&
@@ -18555,13 +18534,18 @@ are instantiated using a mechanism like the template instantiation mechanism.
     a_routine_list_entry_ptr	rlep;
 
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
-      create_instantiation_flags_for_inline_function(rlep->routine);
+      if (rlep->routine->storage_class != (a_storage_class)sc_static ||
+          any_exported_templates()) {
+        /* In the presence of exported templates, static inlines are made
+           external. */
+        create_instantiation_flags_for_inline_function(rlep->routine);
 #if ONE_INSTANTIATION_PER_OBJECT
-      /* If we are using one instantiation per object mode, write the
-         name of the instantiation object file to the template information
-         file. */
-      write_instantiation_file_name_for_inline_function(rlep->routine);
+        /* If we are using one instantiation per object mode, write the
+           name of the instantiation object file to the template information
+           file. */
+        write_instantiation_file_name_for_inline_function(rlep->routine);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+      }  /* if */
     }  /* for */
   }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */

@@ -423,8 +423,6 @@ extern void record_cache_checksum(
 	       a_template_symbol_supplement_ptr	tssp,
 	       a_token_cache			*p_template_body_cache);
 
-extern a_boolean any_exported_templates(void);
-
 extern void add_to_inline_function_list(a_routine_ptr	rout_ptr);
 
 extern
@@ -459,6 +457,13 @@ EXTERN unsigned long
 			   deferred when pending_class_definitions is
 			   nonzero. */
 
+EXTERN a_symbol_list_entry_ptr
+		exported_templates_list;
+			/* List of exported templates whose definitions
+			   were provided in this compilation.  This list
+			   includes only functions and static data members
+			   (i.e., not classes). */
+
 /* tp is a class type.  If it is incomplete, see if it is a template class in
    need of instantiation and, if so, instantiate it. */
 #define instantiate_template_class(tp)                                  \
@@ -467,6 +472,14 @@ EXTERN unsigned long
     f_instantiate_template_class(tp);					\
   }  /* if */							        \
 }
+
+/*
+Return TRUE if there have been any exported templates defined in the current
+translation unit.
+*/
+#define any_exported_templates()					\
+  (exported_templates_list != NULL)
+
 
 extern a_boolean is_nontemplate_routine_from_exported_trans_unit(
 						a_routine_ptr rout_ptr);
