@@ -37,8 +37,10 @@ predicates.
 /* Object types are non-function types that have sizes. */
 #define is_object(tp) (!is_function(tp) && (tp)->size != 0)
 
-/* Incomplete types are non-function types that have no size. */
-#define is_incomplete(tp) (!is_function(tp) && (tp)->size == 0)
+/* Incomplete types are types that have no size and are neither functions
+   nor references. */
+#define is_incomplete(tp) \
+  (!is_function(tp) && !is_reference(tp) && (tp)->size == 0)
 
 /* The void type is simply the void type. */
 #define is_void(tp) ((tp)->kind == (a_type_kind)tk_void)
@@ -62,6 +64,9 @@ predicates.
 
 /* The pointer type is simply the pointer type. */
 #define is_pointer(tp) ((tp)->kind == (a_type_kind)tk_pointer)
+
+/* The reference type is simply the reference type. */
+#define is_reference(tp) ((tp)->kind == (a_type_kind)tk_reference)
 
 /* Scalar types are the arithmetic types plus the pointer types. */
 #define is_scalar(tp) (is_arithmetic(tp) || is_pointer(tp))
@@ -285,6 +290,16 @@ Return TRUE if the given type is a pointer type (3.1.2.5).
   tp = skip_typerefs(tp);
   return(is_pointer(tp));
 }  /* is_pointer_type */
+
+
+a_boolean is_reference_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a reference type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return(is_reference(tp));
+}  /* is_reference_type */
 
 
 a_boolean is_scalar_type(a_type_ptr tp)
@@ -623,6 +638,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_void:
       case tk_routine:
       case tk_typeref:
+      case tk_reference:
         /* These stay zero; they have no size directly. */
         break;
       case tk_integer:
@@ -904,7 +920,9 @@ does the initial test for exact pointer equality.
                        type_2->variant.float_kind);
           break;
         case tk_pointer:
-          /* For pointers, they must point to identical types. */
+        case tk_reference:
+          /* For pointers and references, they must point to identical
+	     types. */
           identical = identical_types(
                            type_1->variant.pointer_type_pointed_to,
                            type_2->variant.pointer_type_pointed_to);
@@ -1035,7 +1053,9 @@ types_are_compatible, which does the initial test for exact pointer equality.
           compat = (type_1->variant.float_kind == type_2->variant.float_kind);
           break;
         case tk_pointer:
-          /* For pointers, they must point to compatible types. */
+        case tk_reference:
+          /* For pointers and references, they must point to compatible
+             types. */
           compat = types_are_compatible(
                            type_1->variant.pointer_type_pointed_to,
                            type_2->variant.pointer_type_pointed_to);
@@ -1221,8 +1241,9 @@ and arguments of old-style calls.
                 ikind2 == (an_integer_kind)ik_long)) {
       interch = TRUE;
     }  /* if */
-  } else if (type_1->kind == (a_type_kind)tk_pointer) {
-    /* Pointer types.  Get the underlying types. */
+  } else if (type_1->kind == (a_type_kind)tk_pointer ||
+             type_1->kind == (a_type_kind)tk_reference) {
+    /* Pointer and reference types.  Get the underlying types. */
     ptr_type1 = skip_typerefs(type_1->variant.pointer_type_pointed_to);
     ptr_type2 = skip_typerefs(type_2->variant.pointer_type_pointed_to);
     if (ptr_type1 == ptr_type2 ||  /* This test for speed. */
@@ -1362,8 +1383,9 @@ is allocated, it is allocated in the file scope.
           comp_type = base_type_1;
           break;
         case tk_pointer:
-          /* Pointer types.  The composite type is a pointer to the
-             composite of the types pointed to. */
+        case tk_reference:
+          /* Pointer and reference types.  The composite type is a pointer
+	     or reference to the composite of the types pointed to. */
           comp_elem = composite_type(
                         base_type_1->variant.pointer_type_pointed_to,
                         base_type_2->variant.pointer_type_pointed_to);
@@ -1375,7 +1397,11 @@ is allocated, it is allocated in the file scope.
                      base_type_2->variant.pointer_type_pointed_to) {
             comp_type = base_type_2;
           } else {
-            comp_type = make_pointer_type(comp_elem);
+	    if (base_type_1->kind == tk_pointer) {
+              comp_type = make_pointer_type(comp_elem);
+	    } else {
+              comp_type = make_reference_type(comp_elem);
+	    }  /* if */
           }  /* if */
           break;
         case tk_array:
@@ -1733,6 +1759,7 @@ so far, to avoid repeating work or getting into infinite loops.
         new_type->variant.integer.enum_constant_list = new_ec_list;
         break;
       case tk_pointer:
+      case tk_reference:
         new_type->variant.pointer_type_pointed_to =
           file_scope_type(old_type->variant.pointer_type_pointed_to, &history);
         break;
