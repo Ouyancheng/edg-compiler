@@ -259,9 +259,9 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
 }  /* instantiate_template_function */
 
 
-static a_boolean equiv_template_arg_lists(a_template_arg_ptr  list1,
-                                          a_template_arg_ptr  list2,
-                                          a_boolean           is_func_template)
+a_boolean equiv_template_arg_lists(a_template_arg_ptr  list1,
+                                   a_template_arg_ptr  list2,
+                                   a_boolean           is_func_template)
 /*
 Return TRUE if the two linked lists of template arguments for a given template
 class or template function are equivalent -- that is, if corresponding type

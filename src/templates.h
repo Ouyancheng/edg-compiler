@@ -47,6 +47,10 @@ extern void instantiate_template_class(a_type_ptr  type);
 extern void instantiate_template_function(
                                     a_function_instantiation_entry_ptr  fiep);
 
+extern a_boolean equiv_template_arg_lists(a_template_arg_ptr list1,
+                                          a_template_arg_ptr list2,
+                                          a_boolean          is_func_template);
+
 /* Macro to call instantiate_template_class if tp is plausibly a class
    in need of instantiation or an array whose underlying element type is such
    a class.  Most of the checking is left to the function. */
