@@ -203,6 +203,8 @@ void db_name(a_source_correspondence *sc)
 Dump the name from a source correspondence (if any).
 */
 {
+  char *name;
+
   if (sc->is_class_member) {
     db_type_name(sc->parent.class_type);
     fputs("::", f_debug);
@@ -210,8 +212,16 @@ Dump the name from a source correspondence (if any).
     db_name(&sc->parent.namespace_ptr->source_corresp);
     fputs("::", f_debug);
   }  /* if */
-  if (sc->name != NULL) {
-    fputs(unmangled_name_of(sc), f_debug);
+  if (sc->name == NULL) {
+    name = NULL;
+  } else {
+    name = unmangled_name_of(sc);
+    /* Note that some mangled names (e.g., names of virtual function tables)
+       have no unmangled version, so we dump whatever is in the name field. */
+    if (name == NULL) name = sc->name;
+  }  /* if */
+  if (name != NULL) {
+    fputs(name, f_debug);
   } else {
     fprintf(f_debug, "<NULL>@%lx", (unsigned long)sc);
   }  /* if */
@@ -9338,8 +9348,19 @@ dependent on it.  The routine entry itself is dealt with later.
     } else {
       sp = il_header.region_scope_entry[n];
       check_assertion(sp->kind == (a_scope_kind)sck_function);
-      rp = sp->variant.routine.ptr;
-      if (!rp->source_corresp.needed) {
+      if (il_entry_prefix_of(sp).keep_in_il) {
+#if CHECKING
+        /* Not to be removed: either the needed flag has been set for the
+           routine or else it is a virtual function of a class that, though
+           "unneeded", still must be kept in the IL (e.g., because it is
+           nested within a needed class). */
+        rp = sp->variant.routine.ptr;
+        check_assertion_str2(!rp->source_corresp.needed || rp->is_virtual,
+                             "eliminate_bodies_of_needed_functions",
+                             "mismatch between needed and keep-in-il flags");
+#endif /* CHECKING */
+      } else {
+        rp = sp->variant.routine.ptr;
         /* An unneeded routine definition. */
 #if DEBUG
         if (debug_level >= 3) {
