@@ -219,7 +219,6 @@ constructor initializer is present, a colon.
   a_token_cache_ptr         token_cache;
   a_stop_token_array        save_stop_token_array;
   a_boolean                 success = FALSE;
-  a_token_kind              save_curr_token;
 
   db_enter(3, "prescan_function_definition");
 
@@ -255,10 +254,7 @@ constructor initializer is present, a colon.
   }  /* if */
   /* Add an end-of-source token to the end of the token cache.  This assures
      that we won't scan past the end of the cache in the actual scan. */
-  save_curr_token = curr_token;
-  curr_token = tok_end_of_source;
-  cache_curr_token(token_cache);
-  curr_token = save_curr_token;
+  terminate_token_cache(token_cache);
   /* Restore the original stop token state. */
   copy_stop_tokens(save_stop_token_array, stop_token_array);
   db_exit();
@@ -274,7 +270,6 @@ await actual processing at a later point.
 {
   a_def_arg_expr_fixup_ptr  new_daefp, daefp;
   a_stop_token_array        save_stop_token_array;
-  a_token_kind              save_curr_token;
 
   db_enter(3, "prescan_default_arg_expr");
   /* Allocate a default arg expr fixup entry.  The subroutine performs a clear
@@ -298,10 +293,7 @@ await actual processing at a later point.
      the cache. */
   /* Add an end-of-source token to the end of the token cache.  This assures
      that we won't scan past the end of the cache in the actual scan. */
-  save_curr_token = curr_token;
-  curr_token = tok_end_of_source;
-  cache_curr_token(&new_daefp->token_cache);
-  curr_token = save_curr_token;
+  terminate_token_cache(&new_daefp->token_cache);
   /* Restore the original stop token state. */
   copy_stop_tokens(save_stop_token_array, stop_token_array);
   /* Add the entry to the end of the list of default arg expr fixup entries
