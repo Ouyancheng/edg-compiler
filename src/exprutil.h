@@ -23,6 +23,10 @@ exprutil.h -- Declarations related to expression parsing.
 #ifndef ERROR_H
 #include "error.h"
 #endif /* ifndef ERROR_H */
+#ifndef SYMBOL_TBL_H
+#include "symbol_tbl.h"
+#endif /* ifndef SYMBOL_TBL_H */
+
 
 /* Define the categories of expressions that are allowed. */
 enum an_expression_kind_tag {
