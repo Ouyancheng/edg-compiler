@@ -1,5 +1,20 @@
 Version 3.0
 
+3/18/02  Sun compatibility: abort on extern "C" static function
+
+The front end used to abort in Sun mode when a declaration of an extern "C"
+static function was followed by another declaration that is also a definition.
+For example:
+
+  extern "C" {
+    namespace N {
+      static void f();
+      static void f() {}
+    }
+  }
+
+This is now fixed.
+
 3/17/02  rvalue_expr.reference_field should produce an lvalue
 
 A field selection that selects a field of reference type from

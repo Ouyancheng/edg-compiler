@@ -5419,7 +5419,7 @@ skip_overloading:;
     if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
         !prototype_instantiations_in_il) {
       scope_depth = NO_SCOPE_DEPTH;
-    } else if (linkage == idl_external &&
+    } else if ((linkage == idl_external || sun_mode) &&
                scope_stack[depth_scope_stack].default_name_linkage ==
                                           (a_name_linkage_kind)nlk_external) {
       scope_depth = DEPTH_OF_FILE_SCOPE;
