@@ -1678,7 +1678,8 @@ error code.
       m = "%n1 is not used in declaring the argument types of %n2";
       break;
     case ec_cfront_multiple_nested_types:
-      m = "two nested types have the same name: %no1 and %nod2 (cfront compatibility)";
+      m =
+  "two nested types have the same name: %no1 and %nod2 (cfront compatibility)";
       break;
     case ec_cfront_global_defined_after_nested_type:
       m = "global %no1 was declared after nested %nod2 (cfront compatibility)";
@@ -2179,6 +2180,13 @@ error code.
       break;
     case ec_pragma_may_not_be_used_here:
       m = "this kind of pragma may not be used here";
+      break;
+    case ec_nonoverriding_function_decl:
+      m = "%nf matches no base class virtual function -- override intended?";
+      break;
+    case ec_partial_override:
+      m =
+        "overloaded virtual function %no1 is only partially overridden in %n2";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
@@ -5916,7 +5924,6 @@ position and symbol fill-in.
 }  /* pos_sy_start_warning */
 
 
-#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
 void pos_sy2_warning(an_error_code     error_code,
                      a_source_position *error_pos,
                      struct a_symbol   *symbol1,
@@ -5931,7 +5938,6 @@ indicated position.
   error_msg_syms[2] = symbol2;
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_sy2_warning */
-#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
 
 void sym_add_diag_info(an_error_code error_code,

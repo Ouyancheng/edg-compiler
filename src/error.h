@@ -654,7 +654,9 @@ typedef enum /*an_error_code*/ {
   ec_pragma_must_precede_declaration,
   ec_pragma_must_precede_statement,
   ec_pragma_must_precede_decl_or_stmt,
-  ec_pragma_may_not_be_used_here
+  ec_pragma_may_not_be_used_here,
+  ec_nonoverriding_function_decl,
+  ec_partial_override
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
