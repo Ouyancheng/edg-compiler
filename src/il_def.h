@@ -222,11 +222,11 @@ enum a_constant_repr_kind_tag {
   ck_address,           /* Address. */
   ck_dynamic_init,	/* Dynamic initialization.  Indicates the location of
 			   a non-constant part of an aggregate initialization,
-			   one that requires code. */
+			   one that requires code.  Only used in C++. */
 #endif /* ifdef CIL */
   ck_aggregate,         /* For list of constants in initialization. */
   ck_init_repeat,       /* Used to specify a repeated initialization constant
-                           in an array. */
+                           in an array.  Only used in C++. */
 #ifdef FIL
   ck_init_position,     /* Used to specify an explicit initialization position
                            in an aggregate. */
@@ -2668,7 +2668,7 @@ typedef struct a_scope {
 			/* List of dynamic initializations to be done in the
 			   scope, in the order they should be done.  May
 			   appear in a file (C++ only), function, or block
-			   scope. Note that since in C++ function or block
+			   scope.  Note that since in C++ function or block
 			   scope initializations are not necessarily done at
 			   the start of the scope, stmk_init statements will
 			   appear to indicate the points within the code where
