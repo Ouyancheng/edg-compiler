@@ -9275,7 +9275,7 @@ entry into one representing a nondefining declaration.
   a_source_sequence_entry_ptr   ssep;
   a_src_seq_secondary_decl_ptr  sssdp;
 
-  /* The source sequence entry pointed to the class_type should be changed to
+  /* The source sequence entry pointing to the class_type should be changed to
      a secondary source sequence entry, since only definitions have primary
      source sequence entries. */
   ssep = class_type->source_corresp.source_sequence_entry;
@@ -9472,6 +9472,135 @@ dependent on it.  The routine entry itself is dealt with later.
   db_exit();
 }  /* eliminate_bodies_of_unneeded_functions */
 
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+
+static void eliminate_unneeded_scope_orphaned_list_entries(void)
+/*
+*/
+{
+  /* Remove scope-orphaned-list headers that are associated with routines
+     whose bodies have been eliminated. */
+  a_scope_orphaned_list_header_ptr  solhp, prev_solhp, next_solhp;
+  a_routine_ptr    rp;
+  a_variable_ptr   vp, prev_vp, next_vp;
+  a_type_ptr       tp, prev_tp, next_tp;
+
+  prev_solhp = NULL;
+  for (solhp = il_header.scope_orphaned_list_headers;
+       solhp != NULL;
+       solhp = next_solhp) {
+    next_solhp = solhp->next;
+    rp = solhp->assoc_routine;
+    if (rp->defined) {
+      /* The "defined" flag has not been reset to FALSE so the body of this
+         routine has not been eliminated. */
+      prev_solhp = solhp;
+    } else {
+      /* This one has.  First traverse the variables list.  If any
+         variables on the orphaned list are marked "keep_in_il", the
+         orphaned-list header itself has to be kept, too. */
+      prev_vp = NULL;
+      for (vp = solhp->orphaned_variables; vp != NULL; vp = next_vp) {
+        next_vp = vp->next;
+#if DEBUG
+        if (debug_level >= 3) {
+          fprintf(f_debug, "%semoving orphaned variable ",
+                  il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
+          db_name(&vp->source_corresp);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
+        if (!il_entry_prefix_of(vp).keep_in_il) {
+          /* Remove it from the variables list by linking around it. */
+          if (prev_vp == NULL) {
+            solhp->orphaned_variables = vp->next;
+          } else {
+            prev_vp->next = vp->next;
+          }  /* if */
+          vp->next = NULL;
+        } else {
+          prev_vp = vp;
+        }  /* if */
+      }  /* for */
+      /* Traverse the types list. */
+      prev_tp = NULL;
+      for (tp = solhp->orphaned_types; tp != NULL; tp = next_tp) {
+        next_tp = tp->next;
+#if DEBUG
+        if (debug_level >= 3) {
+          fprintf(f_debug, "%semoving orphaned type ",
+                  il_entry_prefix_of(tp).keep_in_il ? "Not r" : "R");
+          db_abbreviated_type(tp);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
+        if (!il_entry_prefix_of(tp).keep_in_il) {
+          /* Remove it from the types list by linking around it. */
+          if (prev_tp == NULL) {
+            solhp->orphaned_types = tp->next;
+          } else {
+            prev_tp->next = tp->next;
+          }  /* if */
+          tp->next = NULL;
+        } else {
+          prev_tp = tp;
+        }  /* if */
+      }  /* for */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (solhp->orphaned_src_seq_sublists != NULL) {
+        /* Whether or not the header itself remains in the IL, the
+           source sequence information associated with the function body
+           is unneeded.  First go through all the source sequence entries
+           and clear out pointers from IL entries back to them. */
+        a_source_sequence_entry_ptr  ssep;
+        a_src_seq_sublist_ptr        sublist;
+        a_source_correspondence      *scp;
+
+        for (sublist = solhp->orphaned_src_seq_sublists;
+             sublist != NULL;
+             sublist = sublist->next) {
+          for (ssep = sublist->source_sequence_list;
+               ssep != NULL;
+               ssep = ssep->next) {
+            scp = source_corresp_for_il_entry(ssep->entity.ptr,
+                                              (an_il_entry_kind)ssep->
+                                                            entity.kind);
+            if (scp != NULL) {
+              check_assertion(scp->source_sequence_entry == ssep ||
+                              scp->source_sequence_entry == NULL);
+              scp->source_sequence_entry = NULL;
+            }  /* if */
+          }  /* for */
+        }  /* for */
+        /* Now throw away the list. */
+        solhp->orphaned_src_seq_sublists = NULL;
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      /* Only retain scope-orphaned-list headers for which non-NULL lists
+         remain. */
+      if (solhp->orphaned_variables != NULL ||
+          solhp->orphaned_types != NULL) {
+        prev_solhp = solhp;
+        /* The scope-orphaned-list header is being retained in the IL, and
+           it points to the routine, so be sure the routine entry is kept,
+           too. */
+        if (!il_entry_prefix_of(rp).keep_in_il) {
+          mark_to_keep_in_il((char *)rp, (an_il_entry_kind)iek_routine);
+        }  /* if */
+      } else {
+        /* Unlink it. */
+        if (prev_solhp == NULL) {
+          il_header.scope_orphaned_list_headers = next_solhp;
+        } else {
+          prev_solhp->next = next_solhp;
+        }  /* if */
+        solhp->next = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* eliminate_unneeded_scope_orphaned_list_entries */
+
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
 void eliminate_unneeded_il_entries(a_scope_ptr scope)
 /*
@@ -9557,122 +9686,7 @@ eliminated, if appropriate.
   }  /* for */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   if (scope->kind == (a_scope_kind)sck_file) {
-    /* Remove scope-orphaned-list headers that are associated with routines
-       whose bodies have been eliminated. */
-    a_scope_orphaned_list_header_ptr  solhp, prev_solhp, next_solhp;
-    prev_solhp = NULL;
-    for (solhp = il_header.scope_orphaned_list_headers;
-         solhp != NULL;
-         solhp = next_solhp) {
-      next_solhp = solhp->next;
-      rp = solhp->assoc_routine;
-      if (rp->defined) {
-        /* The "defined" flag has not been reset to FALSE so the body of this
-           routine has not been eliminated. */
-        prev_solhp = solhp;
-      } else {
-        /* This one has.  First traverse the variables list.  If any
-           variables on the orphaned list are marked "keep_in_il", the
-           orphaned-list header itself has to be kept, too. */
-        prev_vp = NULL;
-        for (vp = solhp->orphaned_variables; vp != NULL; vp = next_vp) {
-          next_vp = vp->next;
-#if DEBUG
-          if (debug_level >= 3) {
-            fprintf(f_debug, "%semoving orphaned variable ",
-                    il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
-            db_name(&vp->source_corresp);
-            fputc('\n', f_debug);
-          }  /* if */
-#endif /* DEBUG */
-          if (!il_entry_prefix_of(vp).keep_in_il) {
-            /* Remove it from the variables list by linking around it. */
-            if (prev_vp == NULL) {
-              solhp->orphaned_variables = vp->next;
-            } else {
-              prev_vp->next = vp->next;
-            }  /* if */
-            vp->next = NULL;
-          } else {
-            prev_vp = vp;
-          }  /* if */
-        }  /* for */
-        /* Traverse the types list. */
-        prev_tp = NULL;
-        for (tp = solhp->orphaned_types; tp != NULL; tp = next_tp) {
-          next_tp = tp->next;
-#if DEBUG
-          if (debug_level >= 3) {
-            fprintf(f_debug, "%semoving orphaned type ",
-                    il_entry_prefix_of(tp).keep_in_il ? "Not r" : "R");
-            db_abbreviated_type(tp);
-            fputc('\n', f_debug);
-          }  /* if */
-#endif /* DEBUG */
-          if (!il_entry_prefix_of(tp).keep_in_il) {
-            /* Remove it from the types list by linking around it. */
-            if (prev_tp == NULL) {
-              solhp->orphaned_types = tp->next;
-            } else {
-              prev_tp->next = tp->next;
-            }  /* if */
-            tp->next = NULL;
-          } else {
-            prev_tp = tp;
-          }  /* if */
-        }  /* for */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        if (solhp->orphaned_src_seq_sublists != NULL) {
-          /* Whether or not the header itself remains in the IL, the
-             source sequence information associated with the function body
-             is unneeded.  First go through all the source sequence entries
-             and clear out pointers from IL entries back to them. */
-          a_source_sequence_entry_ptr  ssep;
-          a_src_seq_sublist_ptr        sublist;
-          a_source_correspondence      *scp;
-
-          for (sublist = solhp->orphaned_src_seq_sublists;
-               sublist != NULL;
-               sublist = sublist->next) {
-            for (ssep = sublist->source_sequence_list;
-                 ssep != NULL;
-                 ssep = ssep->next) {
-              scp = source_corresp_for_il_entry(ssep->entity.ptr,
-                                                (an_il_entry_kind)ssep->
-                                                              entity.kind);
-              if (scp != NULL) {
-                check_assertion(scp->source_sequence_entry == ssep ||
-                                scp->source_sequence_entry == NULL);
-                scp->source_sequence_entry = NULL;
-              }  /* if */
-            }  /* for */
-          }  /* for */
-          /* Now throw away the list. */
-          solhp->orphaned_src_seq_sublists = NULL;
-        }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        /* Only retain scope-orphaned-list headers for which non-NULL lists
-           remain. */
-        if (solhp->orphaned_variables != NULL ||
-            solhp->orphaned_types != NULL) {
-          prev_solhp = solhp;
-          /* The scope-orphaned-list header is being retained in the IL, and
-             it points to the routine, so be sure the routine entry is kept,
-             too. */
-          if (!il_entry_prefix_of(rp).keep_in_il) {
-            mark_to_keep_in_il((char *)rp, (an_il_entry_kind)iek_routine);
-          }  /* if */
-        } else {
-          /* Unlink it. */
-          if (prev_solhp == NULL) {
-            il_header.scope_orphaned_list_headers = next_solhp;
-          } else {
-            prev_solhp->next = next_solhp;
-          }  /* if */
-          solhp->next = NULL;
-        }  /* if */
-      }  /* if */
-    }  /* for */
+    eliminate_unneeded_scope_orphaned_list_entries();
   }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   prev_rp = NULL;
