@@ -4197,6 +4197,7 @@ for the function scope case; it must be NULL in other cases.
   ssep->last_nonstatic_variable  = NULL;
   ssep->last_label               = NULL;
   ssep->last_routine             = NULL;
+  ssep->last_asm_entry           = NULL;
   ssep->first_scope              = NULL;
   ssep->last_scope               = NULL;
   ssep->last_dynamic_init        = NULL;

@@ -902,6 +902,10 @@ typedef struct a_scope_stack_entry {
 			   if none.  Includes both routines with definitions
 			   and those that are just declarations of interfaces
 			   to external routines. */
+  an_asm_entry_ptr
+		last_asm_entry;
+			/* End of list of asm entries of this scope, NULL if
+			   none. */
   a_scope_ptr	first_scope,
 		last_scope;
 			/* Start and end of list of local scopes (those
