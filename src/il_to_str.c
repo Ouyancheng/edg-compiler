@@ -676,24 +676,24 @@ directly under a type that uses a left-side declarator, e.g., a pointer type.
 If need_trailing_space is TRUE, put a space at the end of the specifiers
 part (needed if the declarator part is not empty, because it contains a
 name or a derived type).  options contains options as bits in a set:
-If FT_ADD_CONST is TRUE, add an extra "const" on top of the type.
-If FT_SUPPRESS_CONST is TRUE, suppress generation of top-level "const".
+If FTO_ADD_CONST is TRUE, add an extra "const" on top of the type.
+If FTO_SUPPRESS_CONST is TRUE, suppress generation of top-level "const".
 Do the output in the way described by octl.
 */
 #if MICROSOFT_KEYWORDS_ALLOWED
 /*
-FT_SUPPRESS_MICROSOFT_QUALIFIERS is TRUE to suppress the Microsoft
+FTO_SUPPRESS_MICROSOFT_QUALIFIERS is TRUE to suppress the Microsoft
 qualifiers like __cdecl.
 */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 {
   a_type_kind kind;
-  a_boolean   suppress_const = (options & FT_SUPPRESS_CONST) != 0;
+  a_boolean   suppress_const = (options & FTO_SUPPRESS_CONST) != 0;
 #ifdef CFE
   a_type_qualifier_set
               qualifiers = TQ_NONE;
   a_form_type_options_set
-              pointer_options = FT_NO_OPTIONS, array_options;
+              pointer_options = FTO_NO_OPTIONS, array_options;
 #if MICROSOFT_KEYWORDS_ALLOWED
   a_type_qualifier_set
               microsoft_qualifiers,
@@ -721,11 +721,11 @@ qualifiers like __cdecl.
     type = type->variant.typeref.type;
   }  /* while */
   /* Add top-level "const" if told to. */
-  if (options & FT_ADD_CONST) qualifiers |= TQ_CONST;
+  if (options & FTO_ADD_CONST) qualifiers |= TQ_CONST;
 #if MICROSOFT_KEYWORDS_ALLOWED
   /* Split the qualifiers into Microsoft and non-Microsoft qualifiers. */
   /* Ignore Microsoft qualifiers if told to. */
-  if (options & FT_SUPPRESS_MICROSOFT_QUALIFIERS) {
+  if (options & FTO_SUPPRESS_MICROSOFT_QUALIFIERS) {
     microsoft_qualifiers = TQ_NONE;
   } else {
     microsoft_qualifiers = (qualifiers & TQ_ALL_MICROSOFT_QUALIFIERS);
@@ -733,7 +733,7 @@ qualifiers like __cdecl.
   qualifiers &= ~TQ_ALL_MICROSOFT_QUALIFIERS;
   /* When processing pointers, suppress processing of Microsoft qualifiers
      under the pointer because they are processed at this level. */
-  pointer_options = FT_SUPPRESS_MICROSOFT_QUALIFIERS;
+  pointer_options = FTO_SUPPRESS_MICROSOFT_QUALIFIERS;
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #endif /* ifdef CFE */
   kind = type->kind;
@@ -800,7 +800,7 @@ qualifiers like __cdecl.
     form_type_first_part(type->variant.routine.return_type,
                          /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/TRUE,
-                         FT_NO_OPTIONS,
+                         FTO_NO_OPTIONS,
                          octl);
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
@@ -811,12 +811,12 @@ qualifiers like __cdecl.
     /* A qualifier on an array type shouldn't be possible, period. */
     check_assertion_str(qualifiers == TQ_NONE,
                         "form_type_first_part: qualifier on array type");
-    array_options = FT_NO_OPTIONS;
-    if (suppress_const) array_options |= FT_SUPPRESS_CONST;
+    array_options = FTO_NO_OPTIONS;
+    if (suppress_const) array_options |= FTO_SUPPRESS_CONST;
 #if MICROSOFT_KEYWORDS_ALLOWED
     /* Microsoft qualifiers under the array type were already handled at
        this level in C++ (because they're seen by get_type_qualifiers). */
-    if (!C_mode()) array_options |= FT_SUPPRESS_MICROSOFT_QUALIFIERS,
+    if (!C_mode()) array_options |= FTO_SUPPRESS_MICROSOFT_QUALIFIERS,
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
     form_type_first_part(type->variant.array.element_type,
                          /*under_lhs_declarator=*/FALSE,
@@ -955,12 +955,12 @@ Output the second part of a type reference, the part of the declarator
 that follows the name.  If under_lhs_declarator is TRUE, this type is
 directly under a type that uses a left-side declarator, e.g., a pointer type.
 (That's used to control use of parentheses around parts of the declarator.)
-If options contains FT_SUPPRESS_CONST, suppress generation of top-level
+If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
 "const".  Do the output in the way described by octl.
 */
 {
   a_type_kind kind;
-  a_boolean   suppress_const = (options & FT_SUPPRESS_CONST) != 0;
+  a_boolean   suppress_const = (options & FTO_SUPPRESS_CONST) != 0;
 #ifdef CFE
   a_type_qualifier_set
               qualifiers = TQ_NONE;
@@ -991,14 +991,14 @@ If options contains FT_SUPPRESS_CONST, suppress generation of top-level
     /* Pointer or reference type. */
     form_type_second_part(type->variant.pointer.type,
                           /*under_lhs_declarator=*/TRUE,
-                          FT_NO_OPTIONS,
+                          FTO_NO_OPTIONS,
                           octl);
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     form_type_second_part(type->variant.ptr_to_member.type,
                           /*under_lhs_declarator=*/TRUE,
-                          FT_NO_OPTIONS,
+                          FTO_NO_OPTIONS,
                           octl);
 #endif /* ifdef CFE */
   } else if (kind == (a_type_kind)tk_routine) {
@@ -1009,7 +1009,7 @@ If options contains FT_SUPPRESS_CONST, suppress generation of top-level
     form_function_declarator(type, octl);
     form_type_second_part(type->variant.routine.return_type,
                           /*under_lhs_declarator=*/FALSE,
-                          FT_NO_OPTIONS,
+                          FTO_NO_OPTIONS,
                           octl);
 #ifdef CFE
   } else if (kind == (a_type_kind)tk_array) {
@@ -1020,7 +1020,7 @@ If options contains FT_SUPPRESS_CONST, suppress generation of top-level
     form_array_declarator(type, octl);
     form_type_second_part(type->variant.array.element_type,
                           /*under_lhs_declarator=*/FALSE,
-                          FT_NO_OPTIONS,
+                          FTO_NO_OPTIONS,
                           octl);
 #endif /* ifdef CFE */
   }  /* if */
@@ -1040,10 +1040,10 @@ Output a string for a type.  Do the output in the way described by octl.
     /* Write the specifiers and the first part of the declarator. */
     form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/FALSE,
-                         FT_NO_OPTIONS, octl);
+                         FTO_NO_OPTIONS, octl);
     /* Write the second part of the declarator. */
     form_type_second_part(type, /*under_lhs_declarator=*/FALSE,
-                          FT_NO_OPTIONS, octl);
+                          FTO_NO_OPTIONS, octl);
   }  /* if */
 }  /* form_type */
 

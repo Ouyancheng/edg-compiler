@@ -1346,9 +1346,9 @@ is to be generated.  If suppress_const is TRUE, suppress generation
 of top-level "const" in ANSI C mode.
 */
 {
-  a_form_type_options_set options = FT_NO_OPTIONS;
+  a_form_type_options_set options = FTO_NO_OPTIONS;
 
-  if (suppress_const) options = FT_SUPPRESS_CONST;
+  if (suppress_const) options = FTO_SUPPRESS_CONST;
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL || temp != NULL),
@@ -1394,14 +1394,14 @@ Output a reference to a type.  If add_pointer_to is TRUE, add an extra
 {
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/add_pointer_to,
-                       /*need_trailing_space=*/FALSE, FT_NO_OPTIONS,
+                       /*need_trailing_space=*/FALSE, FTO_NO_OPTIONS,
                        &octl);
   /* The "name" in the type declarator is null.  For the add_pointer_to
      case, add an extra "*". */
   if (add_pointer_to) write_tok_ch('*');
   /* Write the second part of the declarator. */
   form_type_second_part(type, /*under_lhs_declarator=*/add_pointer_to,
-                        FT_NO_OPTIONS, &octl);
+                        FTO_NO_OPTIONS, &octl);
 }  /* dump_type */
 
 
@@ -4692,7 +4692,7 @@ for the definition of the indicated routine.  scope is the associated scope.
   /* The storage class and similar preamble have already been written. */
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
-                       /*need_trailing_space=*/TRUE, FT_NO_OPTIONS,
+                       /*need_trailing_space=*/TRUE, FTO_NO_OPTIONS,
                        &octl);
   /* Write the name. */
   dump_routine_name(rout);
@@ -4700,7 +4700,7 @@ for the definition of the indicated routine.  scope is the associated scope.
   dump_function_declarator_with_scope(type, scope);
   form_type_second_part(type->variant.routine.return_type,
                         /*under_lhs_declarator=*/FALSE,
-                        FT_NO_OPTIONS, &octl);
+                        FTO_NO_OPTIONS, &octl);
 #if C_GEN_BE_GENERATES_ANSI_C
   /* For an old-style function, declare the parameters. */
   /* Note that this does not use the "prototyped" flag, which is inaccurate

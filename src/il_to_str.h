@@ -96,13 +96,13 @@ typedef struct an_il_to_str_output_control_block {
 Options for form_type_first_part/form_type_second_part, in bit set form.
 */
 typedef int a_form_type_options_set;
-#define FT_NO_OPTIONS 0
-#define FT_ADD_CONST 0x1
+#define FTO_NO_OPTIONS 0
+#define FTO_ADD_CONST 0x1
 			/* Add an extra "const" over the type. */
-#define FT_SUPPRESS_CONST 0x2
+#define FTO_SUPPRESS_CONST 0x2
 			/* Suppress top-level "const" on the type. */
 #if MICROSOFT_KEYWORDS_ALLOWED
-#define FT_SUPPRESS_MICROSOFT_QUALIFIERS 0x4
+#define FTO_SUPPRESS_MICROSOFT_QUALIFIERS 0x4
 			/* Suppress the Microsoft qualifiers like __cdecl. */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 

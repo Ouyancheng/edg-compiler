@@ -792,7 +792,7 @@ symbol_name:
         form_type_first_part(type,
                              /*under_lhs_declarator=*/FALSE,
                              /*need_trailing_space=*/TRUE,
-                             FT_NO_OPTIONS,
+                             FTO_NO_OPTIONS,
                              &octl);
       }  /* if */
       /* Put out the name, including the class qualifier if any. */
@@ -810,7 +810,7 @@ symbol_name:
         } else {
           /* Normal case -- put out the complete second part of the type. */
           form_type_second_part(type, /*under_lhs_declarator=*/FALSE,
-                                FT_NO_OPTIONS, &octl);
+                                FTO_NO_OPTIONS, &octl);
         }  /* if */
       }  /* if */
       break;
