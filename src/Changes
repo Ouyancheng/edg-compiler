@@ -69,6 +69,14 @@ For example:
 
 This is now fixed.
 
+12/7/00  Problems in lowering designated initializers for unions
+
+The lowering of designated initializers sometimes got confused when
+lowering unions where a scalar member is initialized and then
+an aggregate member is initialized (which is pointless, because only
+the last initialization is retained).  This could result in various
+kinds of problems, including aborts.
+
 12/7/00  Microsoft mode: errors in #pragma pack parentheses
 
 In Microsoft mode, missing opening or closing parentheses in a
