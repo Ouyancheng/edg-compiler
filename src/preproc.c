@@ -946,7 +946,7 @@ string is copied there.
   il_string[pos_in_buffer] = '\0';
   ppp->pragma_text = il_string;
 #if DEBUG
-  if (debug_level >= 0) {
+  if (debug_level >= 5) {
     fprintf(f_debug, "Saved pragma string: '%s'\n", il_string);
   }  /* if */
 #endif /* DEBUG */
