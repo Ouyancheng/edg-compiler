@@ -1,5 +1,18 @@
 Version 2.22
 
+1/14/94  Dummy version of virtual_dtor_should_be_generated_for_class
+
+When IL lowering is configured out, a dummy version of
+virtual_dtor_should_be_generated_for_class is now generated, which always
+returns TRUE.  Formerly, one would get a link-time error because the
+routine was missing.  That was intentional, as it forced one to think
+about what the right answer is in one's application, but it tended to
+cause panic.  Now, one will not get an error, but one may still want to
+decide whether the answer TRUE is the most appropriate one.  It's
+the answer that causes the most error checking (because the virtual
+destructor will always be generated, so any errors in generating
+it will be detected in every compilation).
+
 1/13/94  Change in handling of the source line index used for error processing
 
 The error handling routines maintain, for each input file, a table of
