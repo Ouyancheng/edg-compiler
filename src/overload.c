@@ -6631,6 +6631,12 @@ or NULL otherwise (e.g., for a call through a pointer to function).
     arg_block->varargs_count = extra_info->lint_varargs_count;
 #if GNU_EXTENSIONS_ALLOWED
     arg_block->fmt_arg = extra_info->fmt_arg;
+    if (extra_info->this_class != NULL) {
+      /* For nonstatic member functions, the "this" parameter is number one.
+         Since the corresponding argument is not counted, we must compensate
+         the count here. */
+      --arg_block->fmt_arg;
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* start_call_argument_processing */

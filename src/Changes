@@ -1,5 +1,20 @@
 Version 3.5
 
+10/14/04 GNU C++ mode: "format" attribute handled incorrectly on member calls
+
+In GNU C++ mode, the front end did not correctly check the arguments of calls
+to member functions with the "format" attribute.  This could lead to spurious
+warnings on such calls.  For example:
+
+  struct S {
+    void f(char const *fmt, ...) __attribute__((format(printf, 2, 3)));
+  };
+  void f(S &s) {
+    s.f("%s %d", "x", 3);  // Triggered spurious warning.
+  }
+
+This is now fixed.
+
 10/14/04 Member function qualifiers displayed by db_symbol_name
 
 db_symbol_name, which is used for things like instantiation debug output,
