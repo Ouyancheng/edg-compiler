@@ -1469,6 +1469,9 @@ the way described by octl.
     }  /* if */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   } else if (type->variant.array.bound_constant != NULL) {
+    /* Use the recorded a_constant entry rather than a plain integer.  This
+       allows the output to be closer to the original bound expression when
+       the bound is more than just a literal (e.g., "2*2" instead of "4"). */
     form_constant(type->variant.array.bound_constant,
                   /*need_parens=*/FALSE, octl);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -2781,6 +2784,8 @@ confusion.  Do the output in the way described by octl.
 #endif /* CHECKING */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   } else if (constant->expr != NULL && octl->output_expression != NULL) {
+    /* An expression was recorded for this constant.  Output that expression
+       rather than the folded constant. */
     octl->output_expression(constant->expr);
     goto done;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -3181,7 +3186,9 @@ name_cases:
   }  /* switch */
   if (need_reinterpret_cast) octl->output_str(")");
   if (need_cast_close_paren) octl->output_str(")");
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 done:
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 }  /* form_constant */
 
 
