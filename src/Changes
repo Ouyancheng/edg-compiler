@@ -82,6 +82,14 @@ When IL lowering rewrites some statements (in particular, stmk_init
 statements), it replaces the statement with an empty block statement.
 Now, the empty block statements are optimized out in most cases.
 
+5/18/94  Global qualifier on parameter type
+
+Under certain circumstances a globally qualified type name on a parameter
+was parsed incorrectly -- e.g.,
+
+  typedef int I;
+  void f(::I);          // Now parsed correctly
+
 5/18/94  Destruction of expression temporaries on goto/at label
 
 IL lowering has always destroyed expression temporaries at labels.
@@ -127,6 +135,28 @@ to set the instantiation required flag.  This has been corrected.
   }
   template <class T> void f(T);
 
+5/17/94 Diagnostics when a declarator is missing
+
+In some cases a missing declarator provoked the message, "declaration does
+not declare anything", and in others "declaration requires an object name"
+was used.  Now the latter message has been eliminated altogether.  Also,
+the distinction between a vacuous declaration and a reference with a
+missing declarator has been made more carefully, e.g.,
+
+  struct A { };
+  struct A;               // vacuous declaration of A -- no diagnostic
+  static struct A;        // reference to A in declaring ??? -- warning
+  struct A const;         // reference to A in declaring ??? -- warning
+
+5/16/94 Unnamed bit field
+
+An unnamed zero-length bit field is now recognized and parsed correctly
+even if the type is not explicitly specified.  For example, we used to
+report a syntax error on the following:
+
+  struct A {
+    const :0;             // Now accepted
+  };
 
 5/15/94 Elimination of extra parentheses in type output
 
@@ -144,11 +174,67 @@ of code are in
 In the error.c case, the output was already close to right, but the
 code has been changed to use the same techniques as in the other files.
 
+5/12/94 select_curr_construct_pragmas and process_curr_construct_pragmas
+
+Calls to these routines have been added throughout declaration and
+statement processing.  They are important to mention because of their role
+in the automatic handling of "bind-to-next" pragmas (those that have a
+specific effect on the construct that immediately follows in the source).
+select_curr_construct_pragmas is called at the very start of the
+declaration or statement; it fetches the currently pending pragmas and puts
+them on a list for the current construct.  process_curr_construct_pragmas
+handles each pragma on that list by calling the implementation-defined
+processing function (of type a_next_construct_pragma_function) that is
+recorded in the corresponding a_pragma_description entry.  The point at
+which process_curr_construct_pragmas is called is critical for this style
+of pragma use:
+
+  o for statements it is called right after the statement entry is
+    allocated (i.e., before subsequent processing, if any, is done);
+
+  o for declarations it is called right after the symbol is bound to the IL
+    entity it corresponds to -- even if (as with a class definition or
+    variable that has an initializer) more processing remains to be done.
+
+A prototype for this style of pragma use is provided by pk_printf_args and
+pk_scanf_args (which implement the __printf_args and __scanf_args pragmas).
+The processing function for both is named record_arg_pragma and is called
+automatically by process_curr_construct_pragmas.
+
+5/11/94 Source-sequence entries for access declarations
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE source-sequence entries are
+now put out for access declarations.
+
+5/11/94 IL CHANGE: an_arg_pragma_kind eliminated
+
+The enumeration an_arg_pragma_kind has been eliminated, and the field
+arg_pragma in a_routine_type_supplement now records a value of type
+a_pragma_kind.
+
 5/11/94 IL CHANGE: compiler_generated added to a_constructor_init
 
 The flag compiler_generated has been added to a_constructor_init to
 distinguish constructor calls that are inserted by the compiler from those
 that are explicitly invoked by the source code.
+
+5/10/94 Source-sequence entries for asm declarations
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE source-sequence entries are
+now put out for asm declarations.
+
+5/5/94  Support for lint "ARGSUSED", "VARARGS n", and "NOTREACHED" comments
+
+Support for these has been integrated with the new pragma support -- the
+global variables (maintained in lexical.c and elsewhere) that indicated
+current state have been eliminated, and corresponding pragma kinds have
+been added.  As a result several bugs have been fixed and diagnostics may
+now be issued, at the option of the implementation.  The routines that
+process the pragmas are record_lint_argsused_and_varargs_state (in decls.c)
+and check_lint_notreached_state (in statements.c); they provide a prototype
+for one style of using pragmas -- at a particular point in the front end to
+check whether a given pragma kind is currently active and if so to do the
+appropriate processing.
 
 5/4/94  IL CHANGE: is_partially_initialized added to a_variable
 
@@ -164,21 +250,21 @@ a_pragma has been added to the IL.  Such entries appear on a linked list
 pointed to by the new pragmas field in a_scope.  When a pragma is bound to
 a particular statement or declarative entity, it will point to it, and (in
 lieu of a back-pointer) the new has_associated_pragma flag in a_statement
-and a_source_correspondence will be set. The precise location of the
-pragma in the source is represented when GENERATE_SOURCE_SEQUENCE_LISTS is
-TRUE -- a pragma bound to a particular declaration, for example, has its
-own source-sequence entry immediately preceding the source-sequence entry
+and a_source_correspondence will be set. The precise location of the pragma
+in the source is represented when GENERATE_SOURCE_SEQUENCE_LISTS is TRUE --
+a pragma bound to a particular declaration, for example, has its own
+source-sequence entry immediately preceding the source-sequence entry
 representing the declaration.
 
 Pragma support has been designed to be easily extensible.  A set of pragma
 kinds (see a_pragma_kind) is provided, and variant fields may be added to
 a_pragma to support new pragma kinds.  The pragma kind may specified so
 that automatic processing is done in the front end, or the pragma may be
-passed through to the back end in textual form.  The pragma may be bound
-to a particular declaration or statement or be of general effect within a
+passed through to the back end in textual form.  The pragma may be bound to
+a particular declaration or statement or be of general effect within a
 given scope.  Front-end processing, if any, may be immediate or delayed.
-The front end may be configured either to reject unrecognized pragmas or
-to pass them though in the IL; see INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL.
+The front end may be configured either to reject unrecognized pragmas or to
+pass them though in the IL; see INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL.
 Detailed guidance on extending pragma support is given in the Pragmas
 chapter of the internal documentation.
 
@@ -271,7 +357,7 @@ ANSI mode (-A) an error continues to be put out.  For example:
   L3:;
   }
 
-This policy is implemented for both gotos and branches to case labels.
+This policy is implemented both for gotos and for branches to case labels.
 
 4/28/94  Qualified name on member function declarations
 
