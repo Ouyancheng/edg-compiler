@@ -1962,6 +1962,32 @@ templates being ordered are class template partial specializations.
       new_is_more_specialized = result == 1;
       curr_is_more_specialized = result == -1;
     }  /* if */
+#if DEBUG
+    if (db_flag_is_set("atpocl")) {
+      fprintf(f_debug, "atpocl: comparing\n  sym_1:");
+      db_symbol_name(fund_curr_sym);
+      if (fund_curr_sym->kind == (a_symbol_kind)sk_class_template) {
+        db_template_arg_list(fund_curr_sym->variant.template_info->
+                             variant.class_template.prototype_instantiation->
+                             variant.class_struct_union.type->
+                             variant.class_struct_union.extra_info->
+                             template_arg_list);
+      }  /* if */
+      fprintf(f_debug, "\n  sym_2:");
+      db_symbol_name(fund_new_sym);
+      if (fund_new_sym->kind == (a_symbol_kind)sk_class_template) {
+        db_template_arg_list(fund_new_sym->variant.template_info->
+                             variant.class_template.prototype_instantiation->
+                             variant.class_struct_union.type->
+                             variant.class_struct_union.extra_info->
+                             template_arg_list);
+      }  /* if */
+      fprintf(f_debug, "\n  sym_1 more specialized: %d\n",
+              curr_is_more_specialized);
+      fprintf(f_debug, "  sym_2 more specialized: %d\n",
+              new_is_more_specialized);
+    }  /* if */
+#endif /* DEBUG */
     if (new_is_more_specialized && !curr_is_more_specialized) {
       /* The new entry is more specialized than the one already on the
          list.  Remove the entry from the list.
