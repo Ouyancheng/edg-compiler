@@ -7650,7 +7650,7 @@ body.  Only called in C++ mode.
           rp->assoc_scope == NULL_region_number &&
           (is_function_local || rp->is_inline)) {
         /* Referenced but never defined. */
-        if (rp->compiler_generated || rp->is_virtual) {
+        if (rp->compiler_generated || (rp->is_virtual && !rp->pure_virtual)) {
           /* These cases are handled elsewhere. */
         } else {
           sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
