@@ -3911,6 +3911,8 @@ the base class.
          from the derived class to the base class.  */
       primary_bcp =
         tp->variant.class_struct_union.extra_info->primary_base_class; 
+      /* Walk down the chain of primary bases, making sure that the
+         shares_virtual_function_info is TRUE for each. */
       while (primary_bcp != NULL) {
         if (base_class != NULL) {
           disambiguator = find_disambiguator(base_class, primary_bcp);
@@ -3918,12 +3920,12 @@ the base class.
                                                  disambiguator);
         }  /* if */
         if (primary_bcp == bcp) break;
-        if (needs_virtual_function_table(primary_bcp->type)) {
-          primary_bcp->shares_virtual_function_info = TRUE;
-        }  /* if */
         base_class = primary_bcp;
-        primary_bcp = base_class->type->variant.class_struct_union.
-          extra_info->primary_base_class;
+        primary_bcp = base_class->type->variant.class_struct_union.extra_info
+                                      ->primary_base_class;
+        if (primary_bcp != NULL) {
+          base_class->shares_virtual_function_info = TRUE;
+        }  /* if */
       }  /* while */
 #endif /* !IA64_ABI */
     }  /* if */
@@ -4361,8 +4363,12 @@ as defined in the IA64 ABI.
          fp != NULL;
          fp = fp->next) {
       if ((!fp->is_bit_field || fp->bit_size != 0) &&
-          !(fp->compiler_generated && has_name(fp) &&
-            strcmp(fp->source_corresp.name, "__vptr") == 0)) {
+          !(fp->compiler_generated && has_name(fp))) {
+        /* Named compiler generated fields are virtual table pointers and
+           prelowered bases, which may appear in nearly empty base classes
+           (the base class case will be checked more closely below, however).
+           Unnamed compiler generated fields correspond to anonymous union
+           parent fields: They cannot appear in nearly empty base classes. */
         nearly_empty = FALSE;
         break;
       }  /* if */
