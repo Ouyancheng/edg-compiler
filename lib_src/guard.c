@@ -34,29 +34,28 @@ IA64_ABI_USE_GUARD_ACQUIRE_RELEASE is TRUE.
 EXTERN_C int ABI_NAMESPACE::__cxa_guard_acquire(a_guard_ptr guard)
 /*
 If the guard variable indicates that the guarded variable has already
-been initialized, return 0.  Otherwise, mark the guard variable as
-initialized and return 1.
+been initialized, return 0.  Otherwise, return 1.
 */
 {
   char *first_byte = (char *)guard;
   int  initialize = FALSE;
 
   if (*first_byte == 0) {
-    *first_byte = 1;
     initialize = TRUE;
   }  /* if */
   return initialize;
 }  /* __cxa_guard_acquire */
 
 
-EXTERN_C void ABI_NAMESPACE::__cxa_guard_release(a_guard_ptr)
+EXTERN_C void ABI_NAMESPACE::__cxa_guard_release(a_guard_ptr guard)
 /*
 Called when the initialization of the guarded object is complete.
 */
 {
-  /* In a multi-threaded implementation, this function would release a
-     lock, but in a single-threaded implementation there is nothing to
-     do. */
+  /* Set the guard variable to indicate that the initialization is complete.
+     A multi-threaded implementation would then release the lock. */
+  char *first_byte = (char *)guard;
+  *first_byte = 1;
 }  /* __cxa_guard_release */
 
 
