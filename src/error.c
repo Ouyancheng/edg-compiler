@@ -2480,7 +2480,16 @@ Add the first of possibly two parts of a type reference.
 {
   a_type_ptr local_type, unqualified_type;
 
-  unqualified_type = make_unqualified_type(type);
+  /* Don't use make_qualified_type or is_qualified_type here -- there are
+     problems when compiling it in standalone mode. */
+  unqualified_type = type;
+  while (unqualified_type->kind == (a_type_kind)tk_typeref) {
+    if (unqualified_type->variant.typeref.is_const ||
+        unqualified_type->variant.typeref.is_volatile) {
+      /* Keep looping. */
+      unqualified_type = unqualified_type->variant.typeref.type;
+    }  /* if */
+  }  /* while */
   /* For the pointer case, ignore any typerefs that provide qualifiers
      on the indirection. */
   if (unqualified_type->kind == (a_type_kind)tk_pointer) {
@@ -2492,7 +2501,7 @@ Add the first of possibly two parts of a type reference.
                             local_type->kind != (a_type_kind)tk_pointer,
                          seg_ptr);
     /* Print out the star for this indirection. */
-    if (is_reference_type(unqualified_type)) {
+    if (unqualified_type->variant.pointer.is_reference) {
       /* This is a C++ reference type */
       add_string_to_segment("&", seg_ptr);
     } else {
