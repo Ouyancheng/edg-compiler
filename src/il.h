@@ -362,9 +362,9 @@ extern void add_to_routines_list(a_routine_ptr rout_ptr,
 
 extern an_asm_entry_ptr alloc_asm_entry(void);
 
-#if ASM_FUNCTION_ALLOWED
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 extern char *alloc_asm_function_body(sizeof_t  len);
-#endif /* ASM_FUNCTION_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void add_to_asm_entries_list(an_asm_entry_ptr asm_entry_ptr);
 
