@@ -10080,6 +10080,33 @@ the new declaration.
 }  /* create_member_using_declaration */
 
 
+static a_boolean in_overload_set(a_symbol_ptr  member,
+                                 a_symbol_ptr  set)
+/*
+Return TRUE if and only if the routine represented by member is listed in
+the overload set represented by set.  This routine also searches nested
+sets.
+*/
+{
+  a_boolean  result = FALSE;
+
+  member = fundamental_symbol_of(member);
+  set = fundamental_symbol_of(set);
+  check_assertion(set->kind == (a_symbol_kind)sk_overloaded_function);
+  set = set->variant.overloaded_function.symbols;
+  for (; set != NULL; set = set->next) {
+    a_symbol_ptr  fund_sym = fundamental_symbol_of(set);
+    if (fund_sym == member ||
+        (fund_sym->kind == (a_symbol_kind)sk_overloaded_function &&
+         in_overload_set(member, fund_sym))) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* in_overload_set */
+
+
 static void check_member_using_visibility(a_type_ptr    class_type,
                                           a_symbol_ptr  fund_sym,
                                           a_boolean     *err)
@@ -10091,27 +10118,32 @@ direct base class of the class in which the using-declaration appears.
   a_base_class_ptr  direct_bcp = base_classes_of(class_type);
   a_symbol_locator  locator;
 
-  for (; direct_bcp != NULL; direct_bcp = direct_bcp->next) {
-    if (direct_bcp->direct) {
-      a_symbol_ptr  visible_sym;
-      clear_locator(&locator, &locator_for_curr_id.source_position);
-      locator.symbol_header = locator_for_curr_id.symbol_header;
-      visible_sym = class_qualified_id_lookup(&locator, direct_bcp->type,
-                                              IDL_NO_OPTIONS);
-      if (visible_sym == NULL) {
-        /* Nothing to be done. */
-      } else if (visible_sym == fund_sym) {
-        goto search_done;
-      } else if (visible_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-        visible_sym = visible_sym->variant.overloaded_function.symbols;
-        while (visible_sym != NULL) {
-          if (fundamental_symbol_of(visible_sym) == fund_sym) {
-            goto search_done;
-          }  /* if */
-          visible_sym = visible_sym->next;
-        }  /* while */
+  if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    /* Treat each member of the overload set separately. */
+    fund_sym = fund_sym->variant.overloaded_function.symbols;
+    for (; fund_sym != NULL; fund_sym = fund_sym->next) {
+      check_member_using_visibility(class_type,
+                                    fundamental_symbol_of(fund_sym), err);
+    }  /* for */
+  } else {
+    for (; direct_bcp != NULL; direct_bcp = direct_bcp->next) {
+      if (direct_bcp->direct) {
+        a_symbol_ptr  visible_sym;
+        clear_locator(&locator, &locator_for_curr_id.source_position);
+        locator.symbol_header = locator_for_curr_id.symbol_header;
+        visible_sym = class_qualified_id_lookup(&locator, direct_bcp->type,
+                                                IDL_NO_OPTIONS);
+        if (visible_sym == NULL) {
+          /* Nothing to be done. */
+        } else if (visible_sym == fund_sym) {
+          goto search_done;
+        } else if (visible_sym->kind ==
+                                      (a_symbol_kind)sk_overloaded_function &&
+                   in_overload_set(fund_sym, visible_sym)) {
+          goto search_done;
+        }  /* if */
       }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* for */
 search_done:
   if (direct_bcp == NULL) {

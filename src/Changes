@@ -1,5 +1,25 @@
 Version 3.1
 
+8/21/02   Spurious error on member using-declarations
+
+Member using-declarations must refer to declarations that are visible in a
+direct base class.  The front end used to interpret this rule too strictly
+when the using-declaration refers to an overloaded function that is made
+visible in a direct base class through another using-declaration.
+
+  struct A {
+    void foo (int) {}
+    void foo (float) {}
+  }; 
+  struct B: public A {
+    using A::foo;
+  }; 
+  struct C: public B {
+    using A::foo;  // Used to trigger an error; now accepted.
+  };
+
+This is now fixed.
+
 8/21/02   Abort using precompiled headers on invalid input file
 
 Certain invalid input files (e.g., a file that contains only the string
