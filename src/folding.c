@@ -566,6 +566,40 @@ expressions in statements and the ?:, &&, and || operators.
 }  /* is_zero_constant */
 
 
+a_boolean is_null_pointer_constant(a_constant *constant)
+/*
+Return TRUE if the given constant is a null pointer constant.
+*/
+{
+  a_boolean  is_null_pointer = FALSE;
+  a_type_ptr ptr_type;
+
+  if (constant->kind == (a_constant_repr_kind)ck_integer) {
+    if (constant->variant.integer_value == 0L) {
+      if (constant->implicit_cast) {
+        /* Must be cast to (void *) to be a null pointer constant.
+           Qualifiers are not allowed on the pointer or the void type
+           pointed to (see 3.2.2.3; it says "void *" without mentioning
+           the possibility of qualifiers). */
+        if (is_pointer_type(constant->type) &&
+            !is_qualified_type(constant->type)) {
+          ptr_type = pointer_referenced_type(constant->type);
+	  if (is_void_type(ptr_type) && !is_qualified_type(ptr_type)) {
+	    is_null_pointer = TRUE;
+	  }  /* if */
+	}  /* if */
+      } else {
+	/* If not implicitly cast, it's just a plain integer zero, which is
+           also a null pointer constant. */
+	is_null_pointer = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+
+  return is_null_pointer;
+}  /* is_null_pointer_constant */
+
+
 #if DEBUG
 static void db_unary_operation(char          *operation,
 			       a_constant    *operand,
