@@ -104,7 +104,7 @@ be thrown that the object assigned to does not allow.  For example:
   void f1();                  // allows anything to be thrown
   void f2() throw();          // allows nothing to be thrown
   void (*pf)() throw(int);    // *pf only allows an int to be thrown
-  main() {
+  int main() {
     pf = f1;                  // Error -- *pf is too restrictive for f1
     pf = f2;                  // Okay
   }
