@@ -1,5 +1,20 @@
 Version 3.6
 
+3/17/05  GNU C compatibility: Initialization of flexible array members
+
+GNU C mode allows a flexible array member to be initialized using an
+aggregate initializer if the flexible array member is a direct member of
+the top-level type of the variable being initialized.  Now, non-top-level
+flexible array members can also be initialized with an empty initializer
+list.  For example:
+
+  struct F { int n; int a[]; };
+  struct T { struct F f; };
+  T x1 = { { 1, {} } };     // Okay in GNU C mode: non-top-level but empty.
+  T x2 = { { 1, { 2 } } };  // Still an error.
+
+(See also the Changes entry of 9/1/04.)
+
 3/17/05  GNU C++ compatibility: Nonstandard anonymous union fields
 
 GNU C++ compilers impose the same constraints on the fields of nonstandard

@@ -2045,12 +2045,11 @@ this function points to a tree that includes a dynamic-init entry.
           if (skip_typerefs(member_type)->size == 0) {
             /* Members of unions or aggregates cannot have size zero (which
                either indicates an incomplete type or a zero-length array in
-               some modes). */
+               some modes)... */
             if (is_array_type(member_type) && curr_field->next == NULL) {
               /* ... except that in several modes it's okay to declare a field
                  of zero-sized array type when it's the last field in the
-                 struct (but only when the struct is the top-level object
-                 type).  (See also: check_field_type.)  Only in Microsoft and
+                 struct.  (See also: check_field_type.)  Only in Microsoft and
                  GNU modes can such a field be initialized. */
               if (microsoft_mode || gcc_mode) {
                 a_type_ptr  element_type =
@@ -2064,7 +2063,17 @@ this function points to a tree that includes a dynamic-init entry.
                        nontrivial destructors. */
                     error(ec_cannot_initialize_destructible_flexible_array);
                   }  /* if */
-                } else if (gcc_mode && !top_level) {
+                } else if (gcc_mode && !top_level &&
+                           !(curr_token == tok_lbrace &&
+                             next_token() == tok_rbrace)) {
+                  /* GNU C does not allow flexible array member initializers
+                     that are not at the top level, except if the initializer
+                     is empty.  For example:
+                       struct F { int n; int a[]; };
+                       struct T { struct F f; };
+                       T x1 = { { 1, {} } };  // Okay: non-top-level but empty.
+                       T x2 = { { 1, { 2 } } };  // Error.
+                  */
                   error(ec_cannot_initialize_indirect_flexible_array);
                 }  /* if */
                 init_info->has_flexible_array_initializer = TRUE;
