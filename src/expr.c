@@ -2194,7 +2194,7 @@ bound with the function in *bound_function_selector.
           orig_class_struct_union_type->source_corresp.referenced = TRUE;
         }  /* if */
       }  /* if */
-      if (member_sym == NULL && !is_vacuous_destructor_reference) {
+      if (member_sym == NULL && !err && !is_vacuous_destructor_reference) {
         /* The identifier is not a member of the operand_1 class, struct,
            or union. */
         if (!operand_1_is_complete_class) {
