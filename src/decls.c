@@ -4359,8 +4359,10 @@ to indicate whether an enumeration is actually defined.
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
        should be set based on the access recorded in the current scope stack
-       entry. */
+       entry and its parent class should be recorded. */
     enum_type->source_corresp.access = access;
+    enum_type->source_corresp.class_of_which_a_member =
+                                                class_of_which_a_member;
   } else {
     /* Using an existing type.  Fetch the enumerated type pointer from it. */
     enum_type = tag_sym->variant.type;
@@ -4477,7 +4479,8 @@ to indicate whether an enumeration is actually defined.
         enum_con->type = enum_con_type;
         enum_con->variant.integer_value = curr_value;
         /* Specify membership and access. */
-        enum_sym->class_of_which_a_member = class_of_which_a_member;
+        enum_con->source_corresp.class_of_which_a_member =
+                enum_sym->class_of_which_a_member = class_of_which_a_member;
         enum_con->source_corresp.access = access;
         /* Add the enumeration constant to the list under the enumerated
            type. */
