@@ -3016,6 +3016,30 @@ Make sure a given file name was not specified more than once.
 
 #endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
 
+static set_default_message_severities(void)
+/*
+Some messages are given different severities by default.  This routine
+assigns those severities.
+*/
+{
+  /* Unless requested otherwise (using a command-line option or a pragma),
+     ILP64 porting diagnostics should be remarks. */
+  (void)set_severity_for_error_number((int)ec_ilp64_will_narrow, es_remark,
+                                      /*make_default=*/TRUE);
+  /* Certain warnings related to 64-bit porting should be disabled
+     by default. */
+  (void)set_severity_for_error_number((int)ec_impl_narrowing_64_bit_int,
+                                      es_none,
+                                      /*make_default=*/TRUE);
+  (void)set_severity_for_error_number((int)ec_expl_narrowing_64_bit_int,
+                                      es_none,
+                                      /*make_default=*/TRUE);
+  (void)set_severity_for_error_number(
+                                   (int)ec_pointer_conversion_to_same_size_int,
+                                      es_none,
+                                      /*make_default=*/TRUE);
+}  /* set_default_message_severities */
+
 void proc_command_line(int argc, char *argv[])
 /*
 Process the arguments on the command line that invoked the compiler.
@@ -4432,6 +4456,9 @@ enable_microsoft_mode:
      generating back end is tied to the source language selection. */
   select_cp_gen_be_target_dialect();
 #endif /* BACK_END_IS_CP_GEN_BE */
+  /* Some messages have their severity overridden by default.  Set those
+     values now. */
+  set_default_message_severities();
 }  /* proc_command_line */
 
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
@@ -4815,22 +4842,6 @@ This is done before command line processing.
 */
 {
   cmd_line_static_var_init();
-  /* Unless requested otherwise (using a command-line option or a pragma),
-     ILP64 porting diagnostics should be remarks. */
-  (void)set_severity_for_error_number((int)ec_ilp64_will_narrow, es_remark,
-                                      /*make_default=*/TRUE);
-  /* Certain warnings related to 64-bit porting should be disabled
-     by default. */
-  (void)set_severity_for_error_number((int)ec_impl_narrowing_64_bit_int,
-                                      es_none,
-                                      /*make_default=*/TRUE);
-  (void)set_severity_for_error_number((int)ec_expl_narrowing_64_bit_int,
-                                      es_none,
-                                      /*make_default=*/TRUE);
-  (void)set_severity_for_error_number(
-                                   (int)ec_pointer_conversion_to_same_size_int,
-                                      es_none,
-                                      /*make_default=*/TRUE);
   memzero((char*)predef_macro_mode_values, sizeof(predef_macro_mode_values));
 }  /* cmd_line_early_init */
 
