@@ -1,9 +1,22 @@
 Version 3.2
+	
+3/19/03  dynamic_cast problem in both IA-64 and cfront ABI
 
-3/19/03  dynamic_cast problem in IA-64 runtime
+A problem in the runtime for dynamic_cast produced the incorrect
+result when casting from an inaccessible base class.  This has been
+fixed.
 
-A problem in the IA-64 version of find_base_class_at_addr could result
-in dynamic_cast producing an incorrect result.  This has been fixed.
+  extern "C" int printf(const char *, ...);
+  struct A { virtual void f(){} };
+  struct B : protected A {
+    friend int main();
+  };
+  B b;
+  int main() {
+    A* a = &b;
+    B* p = dynamic_cast<B*>(a);
+    printf("%p\n", p);  // p should be NULL
+  }
 
 3/19/03  Incorrect test of base class flags in IA-64 runtime
 
