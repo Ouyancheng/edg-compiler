@@ -1,5 +1,27 @@
 Version 2.38
 
+11/12/97  extern "C" declaration inhibits generation of PCH file
+
+When the last declaration in a header file had an explicit linkage
+specification, the generation of a precompiled header file was incorrectly
+inhibited.  This has been fixed.  For instance, xxx.pch is now generated
+for the following:
+
+  // header file xxx.h
+  // Lots of declarations...
+  extern "C" void f();
+
+  // file xxx.C
+  #include xxx.h
+  main() { ... }
+
+Note that the problem only occurred when the linkage specification was
+written without braces.  If the last line of xxx.h had been
+
+  extern "C" { void f(); }
+
+the PCH file would have been generated correctly.  Now both forms work.
+
 11/3/97   Abort scanning invalid template argument list
 
 Certain unusual invalid template argument lists could result in an
