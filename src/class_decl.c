@@ -3079,9 +3079,9 @@ such member functions are present.
 }  /* is_valid_union_field */
 
 
-static void check_anonymous_union_symbols(a_type_ptr     class_type,
-                                          a_field_ptr    assoc_field_object,
-                                          a_variable_ptr assoc_var_object)
+void check_anonymous_union_symbols(a_type_ptr     class_type,
+                                   a_field_ptr    assoc_field_object,
+                                   a_variable_ptr assoc_var_object)
 /*
 
 Do processing for an anonymous union that is declared within a class (when

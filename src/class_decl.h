@@ -49,6 +49,10 @@ extern a_boolean class_specifier(a_boolean  first_specifier,
                                  a_boolean  *declares_something,
                                  a_boolean  *defines_something);
 
+extern void check_anonymous_union_symbols(a_type_ptr     class_type,
+                                          a_field_ptr    assoc_field_object,
+                                          a_variable_ptr assoc_var_object);
+
 extern a_boolean is_copy_constructor(a_routine_ptr  ctor_rout,
                                      a_type_ptr     class_of_which_a_member,
                                      a_boolean      *const_object_okay,
