@@ -5598,10 +5598,14 @@ only in C++ mode.
           sym->kind == (a_symbol_kind)sk_type &&
           is_class_symbol(sym)) {
         a_symbol_ptr		type_sym;
+        a_type_ptr		tp;
         a_source_position	saved_position;
         saved_position = locator_for_curr_id.source_position;
+        /* If the template parameter refers to a typedef, skip to the
+           underlying type. */
+        tp = skip_typerefs(sym->variant.type);
         /* Get the symbol pointer associated with the type pointed to. */
-        type_sym = (a_symbol_ptr)sym->variant.type->source_corresp.assoc_info;
+        type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
         make_locator_for_symbol(type_sym, &locator_for_curr_id);
         locator_for_curr_id.source_position = saved_position;
       } else {

@@ -1,5 +1,28 @@
 Version 2.26
 
+9/8/94   Explicit destructor calls using template parameters that
+         refer to typedefs
+
+It is now possible to do an explicit destructor call using a template
+parameter whose type refers to a typedef as in the following example.
+
+  struct C {};
+  template <class T> struct A {
+    typedef C B;
+  };
+
+  template <class T> void f(T* t)
+  {
+    t->~T();
+  }
+  
+  int main()
+  {
+    A<int>::B ab;
+    f(&ab);
+  }
+
+
 9/8/94   Using processing_C_code_in_pragma without expand_macros
 
 It is now possible to set processing_C_code_in_pragma to TRUE
