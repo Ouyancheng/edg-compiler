@@ -2052,6 +2052,9 @@ error code.
     case ec_bad_access_decl_ambiguous_name:
       m = "invalid access declaration -- inherited name %sq is ambiguous";
       break;
+    case ec_bad_member_type_in_ptr_to_member:
+      m = "pointer to member of type %t is not allowed";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
