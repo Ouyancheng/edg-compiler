@@ -10923,40 +10923,49 @@ constructor scope.
     a_constant         null_constant;
     a_class_type_supplement_ptr
                        ctsp;
+    a_routine_ptr      new_routine;
 
     /* Make "new-rout(size)". */
     class_type = ctor_routine->source_corresp.class_of_which_a_member;
     ctsp = class_type->variant.class_struct_union.extra_info;
-    size_node = node_for_integer_constant((long)class_type->size,
+    new_routine = ctsp->assoc_operator_new_routine;
+    /* If there is no default new routine for the class, do not put out
+       the code.  This happens if the class has a class-specific new but
+       not one that takes a single argument. */
+    if (new_routine != NULL) {
+      size_node = node_for_integer_constant((long)class_type->size,
                                         (an_integer_kind)TARG_SIZE_T_INT_KIND);
-    call_node = make_call_node(ctsp->assoc_operator_new_routine,
-                               size_node);
-    /* Make "this = new_rout(size)". */
-    call_node = add_cast_if_necessary(call_node, this_param_var->type);
-    this_param_node = var_lvalue_expr(this_param_var);
-    this_param_node->next = call_node;
-    assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
-                                     call_node->type, this_param_node);
-    /* Make "(this = new_rout(size)) != NULL". */
-    make_zero_of_proper_type(this_param_var->type, &null_constant);
-    null_constant_node = alloc_node_for_constant(&null_constant);
-    assign_node->next = null_constant_node;
-    int_type = integer_type((an_integer_kind)ik_int);
-    new_compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
-                                         int_type, assign_node);
-    /* Make "this != NULL || (this = new-rout(size)) != NULL". */
-    this_param_node = var_rvalue_expr(this_param_var);
-    make_zero_of_proper_type(this_param_var->type, &null_constant);
-    null_constant_node = alloc_node_for_constant(&null_constant);
-    this_param_node->next = null_constant_node;
-    this_compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
-                                           int_type, this_param_node);
-    this_compare_node->next = new_compare_node;
-    if_node = make_operator_node((an_expr_operator_kind)eok_lor,
-                                 int_type, this_compare_node);
-    /* Make "if (this != NULL || (this = new-rout(size)) != NULL)". */
-    enclose_routine_in_if(scope, if_node, &block_stmt, this_param_var);
-    set_block_start_insert_location(block_stmt, &insert_location);
+      call_node = make_call_node(new_routine, size_node);
+      /* Make "this = new_rout(size)". */
+      call_node = add_cast_if_necessary(call_node, this_param_var->type);
+      this_param_node = var_lvalue_expr(this_param_var);
+      this_param_node->next = call_node;
+      assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
+                                       call_node->type, this_param_node);
+      /* Make "(this = new_rout(size)) != NULL". */
+      make_zero_of_proper_type(this_param_var->type, &null_constant);
+      null_constant_node = alloc_node_for_constant(&null_constant);
+      assign_node->next = null_constant_node;
+      int_type = integer_type((an_integer_kind)ik_int);
+      new_compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+                                            int_type, assign_node);
+      /* Make "this != NULL || (this = new-rout(size)) != NULL". */
+      this_param_node = var_rvalue_expr(this_param_var);
+      make_zero_of_proper_type(this_param_var->type, &null_constant);
+      null_constant_node = alloc_node_for_constant(&null_constant);
+      this_param_node->next = null_constant_node;
+      this_compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+                                             int_type, this_param_node);
+      this_compare_node->next = new_compare_node;
+      if_node = make_operator_node((an_expr_operator_kind)eok_lor,
+                                   int_type, this_compare_node);
+      /* Make "if (this != NULL || (this = new-rout(size)) != NULL)". */
+      enclose_routine_in_if(scope, if_node, &block_stmt, this_param_var);
+      set_block_start_insert_location(block_stmt, &insert_location);
+    } else {
+      /* No default operator new. */
+      set_block_start_insert_location(scope->assoc_block, &insert_location);
+    }  /* if */
 #else /* !NEW_CAN_BE_FOLDED_INTO_CTOR */
     set_block_start_insert_location(scope->assoc_block, &insert_location);
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
@@ -11314,6 +11323,7 @@ destructor scope.
     /* If the delete routine takes two arguments, add a second argument
        of type size_t that gives the size of the class. */
     delete_routine = ctsp->assoc_operator_delete_routine;
+    check_assertion(delete_routine != NULL);
     delete_routine_rtsp = f_skip_typerefs(delete_routine->type)->
                                                     variant.routine.extra_info;
     param1 = delete_routine_rtsp->param_type_list;
