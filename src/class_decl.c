@@ -9417,23 +9417,29 @@ next_declaration:
         /* Restore the scope stack to its original state. */
         pop_class_reactivation_scope();
       }  /* if */
+      /* Put out a nested-class-definition placeholder, if necessary. */
       if (class_state.is_nonreal_instantiation) {
         /* Ignore prototype (and other non-real) instantiations. */
       } else if (class_type->variant.class_struct_union.
                     referenced_by_class_instantiation_placeholder_typeref) {
-        /* A class-instantiation placeholder may also be put out for
-           nontemplate classes that are nested within template class
-           instantiations (see add_to_types_list). */
+        /* If a class-instantiation placeholder has been put out, a
+           nested-class-definition placeholder is not needed.  (Note that
+           this applies both to member templates and to nontemplate classes
+           that are nested within template class instantiations.) */
       } else if (is_template_instantiation &&
                  class_type->source_corresp.parent.class_type->
                      variant.class_struct_union.extra_info->
                      assoc_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
-        /* Another case involving a nontemplate class nested in a template
-           class -- its parent class is still on the scope stack.  That can
-           happen when a nested class of a template class (which is not
-           instantiated immediately when it is encountered in the parent
-           class) ends up being instantiated before the parent class
-           definition is completed.  Here's an example:
+        /* Don't put out the nested-class-definition placeholder for a delayed
+           definition if the parent class is still on the stack. This may be
+           needed both for a member template -- e.g.,
+             struct S {
+               template <class T> class X { ... };
+               X<int> x;
+             };
+           -- and for a nontemplate class nested in a template class (since
+           in that case the nested class is not instantiated immediately when
+           it is encountered) -- e.g., 
              template <class T> class A {
                class B { ... };
                B b;
