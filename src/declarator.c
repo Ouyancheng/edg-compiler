@@ -2408,6 +2408,7 @@ to FALSE if the entity being declared is not initializable.
         }  /* if */
       } else {
         a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+        if (ssep->kind == (a_scope_kind)sck_template_declaration) ssep--;
         if ((ssep->kind == (a_scope_kind)sck_namespace ||
              ssep->kind == (a_scope_kind)sck_namespace_extension) &&
             ssep->il_scope->variant.assoc_namespace ==
@@ -2417,6 +2418,10 @@ to FALSE if the entity being declared is not initializable.
                          ec_qualified_name_not_allowed, &pos_curr_token);
           /* Reset the fields in the locator to make it appear as if the
              qualifier were not present. */
+          clear_qualifier_from_locator(&locator_for_curr_id);
+        } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+          /* Error has already been issued on the template declaration.
+             Just skip over it here on the instantiation. */
           clear_qualifier_from_locator(&locator_for_curr_id);
         }  /* if */
       }  /* if */
