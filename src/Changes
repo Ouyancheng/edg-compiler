@@ -131,7 +131,7 @@ warning (this turns out to be needed for the OSF source):
 
 12/7/92  Error on odd pointer "-" case
 
-An error is now issued for the following case.  It'd odd in that in C
+An error is now issued for the following case.  It's odd in that in C
 the types pointed to are compatible even though the second one is
 an incomplete type.
 
