@@ -957,7 +957,7 @@ check_for_seq_number:
           curr_segment->sequence_no = 1;
           if (isdigit((unsigned char)*msg_ptr)) {
             i = (unsigned)*msg_ptr - (unsigned)'0';
-            if (i > 0 && i <= INCR_MSG_SEGMENT_SIZE) {
+            if (i > 0 && i <= MAX_ERR_SEG_KIND_PER_MSG) {
               curr_segment->sequence_no = i;
               msg_ptr++;
             }  /* if */
