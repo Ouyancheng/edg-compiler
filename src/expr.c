@@ -1627,9 +1627,7 @@ Syntax:
       /* We can use an indefinite function operand whether the operator()
          function is overloaded or not. */
       make_indefinite_function_operand(member_function_symbol,
-                                       /*is_qualified_name=*/FALSE,
-                                       /*is_template_id=*/FALSE,
-                                       (a_template_arg_ptr)NULL,
+                                       /*curr_id=*/FALSE,
                                        operand);
       bind_member_function_operand_to_selector(operand,
                                                bound_function_selector);
@@ -1740,11 +1738,14 @@ Syntax:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (overloaded_function_case) {
+    a_source_position id_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Save the end position for later restoration. */
     a_source_position end_function_position;
     end_function_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    check_assertion(is_indefinite_function_operand(operand));
+    id_position = operand->id_position;
     /* Choose the proper function out of a set of overloaded functions based
        on the argument types. */
     function_symbol = select_and_prepare_to_call_overloaded_function(
@@ -1762,6 +1763,7 @@ Syntax:
                                                subroutines. */
                                             &call_position,
                                             &function_position,
+                                            &id_position,
                                             operand,
                                             &argument_list);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -1821,7 +1823,7 @@ Syntax:
   } else {
     /* Build the call node and an operand for it. */
     assemble_function_call(operand, bound_function_selector, argument_list,
-                           result);
+                           &call_position, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
@@ -2120,43 +2122,6 @@ member.
   }  /* if */
   return !err;
 }  /* is_valid_op_arrow_return_type */
-
-
-static void do_member_function_selection_operation(
-                                     an_operand       *operand_1,
-                                     a_symbol_ptr     routine_sym,
-                                     a_symbol_locator *locator,
-                                     a_ref_entry_ptr  rep,
-                                     an_operand       *result,
-                                     an_operand       *bound_function_selector)
-/*
-Generate the operand for a nonstatic member function selection operation.
-operand_1 is the left operand of the selection (the object).
-routine_sym points to the member function symbol entry (possibly overloaded).
-*locator is a locator for the member function symbol (needed to get the
-projection symbol for the member and to know if a qualified name was used).
-rep points to an associated reference entry, or is NULL if none is needed.
-The operand is constructed in *result, and the bound function selector
-object (usually, a copy of operand_1) is placed in *bound_function_selector.
-*/
-{
-  if (routine_sym->kind == (a_symbol_kind)sk_overloaded_function ||
-      routine_sym->kind == (a_symbol_kind)sk_function_template) {
-    /* Overloaded function or member template. */
-    make_indefinite_function_operand(locator->specific_symbol,
-                                     (a_boolean)locator->is_qualified_name,
-                                     (a_boolean)locator->is_template_id,
-                                     locator->template_arg_list,
-                                     result);
-  } else {
-    /* Non-overloaded function. */
-    make_function_designator_operand(routine_sym,
-                                     (a_boolean)locator->is_qualified_name,
-                                     &locator->source_position, rep, result);
-  }  /* if */
-  copy_operand(operand_1, bound_function_selector);
-  bind_member_function_operand_to_selector(result, bound_function_selector);
-}  /* do_member_function_selection_operation */
 
 
 static void scan_field_selection_operator
@@ -2690,12 +2655,26 @@ nonstatic_member_function:
               }  /* if */
               /* Make an operand for the function with the selector bound
                  to it. */
-              do_member_function_selection_operation(operand_1,
-                                                     member_sym,
-                                                     &locator_for_curr_id,
-                                                     rep,
-                                                     result,
-                                                     bound_function_selector);
+              if (member_sym->kind == (a_symbol_kind)sk_overloaded_function ||
+                  member_sym->kind == (a_symbol_kind)sk_function_template) {
+                /* Overloaded function or member template. */
+                make_indefinite_function_operand(locator_for_curr_id.
+                                                               specific_symbol,
+                                                 /*curr_id=*/TRUE,
+                                                 result);
+              } else {
+                /* Non-overloaded function. */
+                make_function_designator_operand(member_sym,
+                                                (a_boolean)locator_for_curr_id.
+                                                             is_qualified_name,
+                                                 &locator_for_curr_id.
+                                                               source_position,
+                                                 rep,
+                                                 result);
+              }  /* if */
+              copy_operand(operand_1, bound_function_selector);
+              bind_member_function_operand_to_selector(result,
+                                                      bound_function_selector);
             }  /* if */
           } else {
             /* Static member function.  Discard the left operand. */
@@ -5634,6 +5613,7 @@ specification allow a variable-sized array as the top type.
     overloaded_function_catch_up(proj_function_symbol,
                                  operator_new_symbol,
                                  /*is_qualified_name=*/FALSE,
+                                 &new_position,
                                  &new_position,
                                  /*elided_reference=*/(new_routine==NULL),
                                  /*address_taken=*/FALSE,
@@ -10738,12 +10718,7 @@ normal_function:
                generate it at the other end of the overload resolution
                when we know for sure whether or not we need it. */
             make_indefinite_function_operand(projection_sym_ptr,
-                                             (a_boolean)locator_for_curr_id.
-                                                             is_qualified_name,
-                                             (a_boolean)locator_for_curr_id.
-                                                             is_template_id,
-                                             locator_for_curr_id.
-                                                             template_arg_list,
+                                             /*curr_id=*/TRUE,
                                              result);
           }  /* if */
           break;
@@ -10755,12 +10730,7 @@ normal_function:
             /* No need to call change_refs_to_error; rep is NULL. */
           } else {
             make_indefinite_function_operand(projection_sym_ptr,
-                                             (a_boolean)locator_for_curr_id.
-                                                             is_qualified_name,
-                                             (a_boolean)locator_for_curr_id.
-                                                             is_template_id,
-                                             locator_for_curr_id.
-                                                             template_arg_list,
+                                             /*curr_id=*/TRUE,
                                              result);
           }  /* if */
           break;

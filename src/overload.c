@@ -3540,7 +3540,8 @@ Bind the operand for a function to an associated selector object.
 void overloaded_function_catch_up(a_symbol_ptr      function_symbol,
                                   a_symbol_ptr      overloaded_function_symbol,
                                   a_boolean         is_qualified_name,
-                                  a_source_position *call_position,
+                                  a_source_position *function_position,
+                                  a_source_position *id_position,
                                   a_boolean         elided_reference,
                                   a_boolean         address_taken,
                                   an_operand        *operand,
@@ -3561,8 +3562,10 @@ overloaded_function_symbol is typically an sk_overloaded_function
 containing function_symbol, it may be the same as function_symbol, or it
 may be a projection symbol for one of those, or it might be an
 sk_function_template symbol.  Generate an operand for a pointer
-to the specific function in *operand.  call_position is used as
-the source position for that operand.  is_qualified_name is TRUE if a
+to the specific function in *operand.  function_position is used as
+the source position for that operand.  id_position is the position of
+the function name identifier in the call (e.g., if the name is "X::f",
+id_position gives the position of the "f").  is_qualified_name is TRUE if a
 qualified name was used to name the function (that suppresses the
 virtual-ness of the function).  Access control and ambiguity checking are
 always done, even if the overloaded_function_symbol is a non-overloaded
@@ -3603,7 +3606,7 @@ checking error was detected and reported.
        overloaded function symbol rather than to the specific function
        symbol.  Templates are also treated like overloaded functions. */
     make_locator_for_symbol(function_symbol, &function_symbol_locator);
-    function_symbol_locator.source_position = *call_position;
+    function_symbol_locator.source_position = *id_position;
     overload_check_ambiguity_and_verify_access(&function_symbol_locator,
                                                overloaded_function_symbol);
   } else {
@@ -3612,7 +3615,7 @@ checking error was detected and reported.
        or is a projection symbol for it. */
     make_locator_for_symbol(overloaded_function_symbol,
                             &function_symbol_locator);
-    function_symbol_locator.source_position = *call_position;
+    function_symbol_locator.source_position = *id_position;
     check_ambiguity_and_verify_access(&function_symbol_locator);
   }  /* if */
   *access_error_reported =
@@ -3621,7 +3624,7 @@ checking error was detected and reported.
     /* An error locator is returned for an ambiguous case. */
     if (operand != NULL) {
       make_error_operand(operand);
-      operand->position = *call_position;
+      operand->position = *function_position;
     }  /* if */
   } else {
     if (elided_reference) {
@@ -3632,7 +3635,7 @@ checking error was detected and reported.
       /* Note that address_taken does not affect the kind of reference.
          That's intentional, since this is not a "real" reference. */
       record_symbol_reference(SRK_REFERENCE, base_function_symbol,
-                              call_position, /*update_il_entry=*/FALSE);
+                              id_position, /*update_il_entry=*/FALSE);
     } else {
       /* The reference is not elided. */
       if (operand == NULL) {
@@ -3643,7 +3646,7 @@ checking error was detected and reported.
            that the reference is to exactly that function. */
         record_symbol_reference(SRK_REFERENCE |
                                   (address_taken ? SRK_ADDRESS_TAKEN : 0),
-                                base_function_symbol, call_position,
+                                base_function_symbol, id_position,
                                 /*update_il_entry=*/FALSE);
         if_evaluating_mark_routine_referenced(base_function_symbol->
                                                          variant.routine.ptr);
@@ -3651,10 +3654,10 @@ checking error was detected and reported.
         /* Normal case: build an operand for the function. */
         /* Record that the function was referenced, for cross-reference (etc.)
            purposes. */
-        rep = ref_entry(base_function_symbol, call_position);
+        rep = ref_entry(base_function_symbol, id_position);
         make_function_designator_operand(base_function_symbol,
                                          is_qualified_name,
-                                         call_position, rep, operand);
+                                         function_position, rep, operand);
         /* Convert the operand to a function pointer. */
         conv_function_designator_to_ptr_to_function(operand,
                                                     /*allow_ctor=*/FALSE);
@@ -3947,7 +3950,8 @@ static void make_resolved_overloaded_function_operand(
                                  a_boolean          *have_selector,
                                  an_operand         *bound_function_selector,
                                  a_boolean          is_qualified_name,
-                                 a_source_position  *call_position,
+                                 a_source_position  *function_position,
+                                 a_source_position  *id_position,
                                  an_operand         *function_operand)
 /*
 Overload resolution has been done, and it has been decided that, of the
@@ -3961,7 +3965,9 @@ bound_function_selector gives the object, and function_operand is bound to
 that object.  Even when *have_selector is FALSE going in,
 bound_function_selector must point at an operand that can be filled in
 if an implicit selector is generated (*have_selector is set to TRUE for that
-case).  call_position gives the source position of the call.
+case).  function_position gives the source position of the function
+in the call.  id_position gives the source position of the function name 
+identifier in the call.
 */
 {
   a_symbol_ptr base_function_symbol = fundamental_symbol_of(function_symbol);
@@ -3974,7 +3980,8 @@ case).  call_position gives the source position of the call.
   overloaded_function_catch_up(function_symbol,
                                overloaded_function_symbol,
                                is_qualified_name,
-                               call_position,
+                               function_position,
+                               id_position,
                                /*elided_reference=*/FALSE,
                                /*address_taken=*/FALSE,
                                function_operand,
@@ -4017,7 +4024,7 @@ case).  call_position gives the source position of the call.
           sym = namespace_projection_fundamental_symbol(sym);
         }  /* while */
       }  /* if */
-      if (make_this_pointer_operand(sym, call_position,
+      if (make_this_pointer_operand(sym, function_position,
                                     /*check_cast_access=*/
                                        !function_operand->
                                          access_control_error_reported,
@@ -4029,16 +4036,18 @@ case).  call_position gives the source position of the call.
       }  /* if */
       *have_selector = TRUE;
     } else {
+      a_source_position selector_position;
       /* We have a selector. */
       /* Cast the selector to the class of the member symbol. */
       /* Also do the ARM 11.5 access checking for the type of selector used
          to access a protected member. */
+      selector_position = bound_function_selector->position;
       cast_pointer_for_field_selection(bound_function_selector,
                                        &is_arrow_operator,
                                        function_symbol,
                                        overloaded_function_symbol,
                                        access_error_reported,
-                                       call_position);
+                                       &selector_position);
     }  /* if */
     /* Bind the function to the selector. */
     bind_member_function_operand_to_selector(function_operand,
@@ -4277,6 +4286,7 @@ a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                            an_error_code            err_ambiguous,
                            a_source_position        *call_position,
                            a_source_position        *function_position,
+                           a_source_position        *id_position,
                            an_operand               *function_operand,
                            an_expr_node_ptr         *arg_expr_list)
 /*
@@ -4306,8 +4316,9 @@ argument list is built and returned in *arg_expr_list (with the
 arguments cast to the proper types), and the symbol selected is
 returned.  (The symbol returned is never a projection symbol.)
 function_position is the position of the function name or equivalent
-in the call, usually the same as call_position.  This routine is
-called only in C++ mode.
+in the call, usually the same as call_position.  id_position is
+the source position of the function name identifier in the
+call.  This routine is called only in C++ mode.
 */
 {
   an_arg_match_summary_ptr arg_match_list;
@@ -4338,6 +4349,7 @@ called only in C++ mode.
                                               bound_function_selector,
                                               is_qualified_name,
                                               function_position,
+                                              id_position,
                                               function_operand);
   }  /* if */
   /* Build an expression-form argument list.  Convert the arguments on
@@ -6327,11 +6339,12 @@ functions could still apply).
                                                  bound_function_selector,
                                                  /*is_qualified_name=*/FALSE,
                                                  operator_position,
+                                                 operator_position,
                                                  &function_operand);
               /* Make the call node and an operand for it. */
               assemble_function_call(&function_operand,
                                      bound_function_selector,
-                                     arg_expr_list, result);
+                                     arg_expr_list, operator_position, result);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -8487,6 +8500,7 @@ to be acceptable, and *conversion describes it.
                                    source_operand->variant.symbol,
                                    (a_boolean)
                                              source_operand->is_qualified_name,
+                                   &orig_operand.position,
                                    &orig_operand.position,
                                    /*elided_reference=*/FALSE,
                                    /*address_taken=*/TRUE,

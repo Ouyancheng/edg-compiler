@@ -370,7 +370,8 @@ extern void overloaded_function_catch_up(
                                   a_symbol_ptr      function_symbol,
                                   a_symbol_ptr      overloaded_function_symbol,
                                   a_boolean         is_qualified_name,
-                                  a_source_position *call_position,
+                                  a_source_position *function_position,
+                                  a_source_position *id_position,
                                   a_boolean         elided_reference,
                                   a_boolean         address_taken,
                                   an_operand        *operand,
@@ -423,6 +424,7 @@ extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                                  an_error_code      err_ambiguous,
                                  a_source_position  *call_position,
                                  a_source_position  *function_position,
+                                 a_source_position  *id_position,
                                  an_operand         *function_operand,
                                  an_expr_node_ptr   *arg_expr_list);
 

@@ -253,6 +253,13 @@ typedef struct an_operand {
 		template_arg_list;
 			/* When is_template_id is TRUE, a template argument
 			   list to be applied to variant.symbol. */
+  a_source_position
+  		id_position;
+			/* Extra source position for an identifier, used
+			   for ok_indefinite_function.  If the name is
+			   "X::f", this gives the position of "f", where
+			   the field position above gives the position
+			   of the "X". */
   union {
     /* When kind == ok_error, no variant fields. */
     /* When kind == ok_expression: */
@@ -817,10 +824,11 @@ extern void make_function_call(an_expr_node_ptr  function_node,
                                a_source_position *call_pos,
                                an_operand        *result);
 
-extern void assemble_function_call(an_operand       *function_operand,
-                                   an_operand       *bound_function_selector,
-                                   an_expr_node_ptr argument_list,
-                                   an_operand       *result);
+extern void assemble_function_call(an_operand        *function_operand,
+                                   an_operand        *bound_function_selector,
+                                   an_expr_node_ptr  argument_list,
+                                   a_source_position *call_position,
+                                   an_operand        *result);
 
 extern a_statement_ptr make_call_assignment_statement(
                                                a_routine_ptr     rout,
@@ -835,12 +843,9 @@ extern void make_expression_operand(an_expr_node_ptr node,
                                     a_type_ptr       type,
 			            an_operand       *operand);
 
-extern void make_indefinite_function_operand(
-                                      a_symbol_ptr       routine_sym,
-                                      a_boolean          is_qualified_name,
-                                      a_boolean          is_template_id,
-                                      a_template_arg_ptr template_arg_list,
-                                      an_operand         *operand);
+extern void make_indefinite_function_operand(a_symbol_ptr routine_sym,
+                                             a_boolean    curr_id,
+                                             an_operand   *operand);
 
 extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
                                         a_boolean       is_qualified_name,

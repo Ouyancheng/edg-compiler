@@ -1,5 +1,16 @@
 Version 2.40
 
+11/20/98  Incorrect cross-reference position on call of overloaded function
+
+The cross-reference position for "S::f" pointed to the "S" while it should
+have pointed to the "f".  This has been fixed.
+
+  struct S {
+    static void f();
+    static void f(int);
+  };
+  void g() { S::f(); }
+
 11/20/98  C++-generating back end: static and nonstatic members of enum
           type erroneously merged into single declaration
 

@@ -1290,6 +1290,7 @@ values.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   operand->ref_entries_list = NULL;
   operand->template_arg_list = NULL;
+  operand->id_position = null_source_position;
   set_operand_kind(operand, kind);
 }  /* clear_operand */
 
@@ -1786,29 +1787,30 @@ operand position.
 }  /* make_expression_operand */
 
 
-void make_indefinite_function_operand(a_symbol_ptr       routine_sym,
-                                      a_boolean          is_qualified_name,
-                                      a_boolean          is_template_id,
-                                      a_template_arg_ptr template_arg_list,
-                                      an_operand         *operand)
+void make_indefinite_function_operand(a_symbol_ptr routine_sym,
+                                      a_boolean    curr_id,
+                                      an_operand   *operand)
 /*
 Make an operand for a C++ overloaded function symbol.  routine_sym points
 to the symbol entry for the function (possibly a projection symbol).
-is_qualified_name is TRUE if the function was named by a qualified name
-(e.g., "A::f").  is_template_id is TRUE if routine_sym has an associated
-template argument list (for explicit specification of function templates);
-template_arg_list is the template argument list.  The operand is put into
-*operand and is a function designator.
+If curr_id is TRUE, locator_for_curr_id is used for additional information.
+The current token position is used for the overall operand position.
+The operand is put into *operand and is a function designator.
 */
 {
   clear_operand((an_operand_kind)ok_indefinite_function, operand);
   operand->state = (an_operand_state)os_function_designator;
   operand->type = unknown_type();
-  operand->is_qualified_name = is_qualified_name;
-  operand->is_template_id = is_template_id;
   operand->variant.symbol = routine_sym;
-  operand->template_arg_list = template_arg_list;
   set_operand_position_to_pos_curr_token(operand);
+  if (curr_id) {
+    operand->is_qualified_name = locator_for_curr_id.is_qualified_name;
+    operand->is_template_id = locator_for_curr_id.is_template_id;
+    operand->template_arg_list = locator_for_curr_id.template_arg_list;
+    operand->id_position = locator_for_curr_id.source_position;
+  } else {
+    operand->id_position = operand->position;
+  }  /* if */
 }  /* make_indefinite_function_operand */
 
 
@@ -2441,6 +2443,7 @@ user-defined conversions.
                                          overloaded_function_symbol,
                                          (a_boolean)operand->is_qualified_name,
                                          &operand->position,
+                                         &operand->id_position,
                                          /*elided_reference=*/FALSE,
                                          /*address_taken=*/TRUE,
                                          (an_operand *)NULL,
@@ -2476,6 +2479,7 @@ user-defined conversions.
                                          overloaded_function_symbol,
                                          (a_boolean)operand->is_qualified_name,
                                          &orig_operand.position,
+                                         &orig_operand.id_position,
                                          /*elided_reference=*/FALSE,
                                          /*address_taken=*/TRUE,
                                          operand,
@@ -4741,15 +4745,17 @@ on function_type.  *call_pos gives the source position of the call.
 }  /* make_function_call */
 
 
-void assemble_function_call(an_operand       *function_operand,
-                            an_operand       *bound_function_selector,
-                            an_expr_node_ptr argument_list,
-                            an_operand       *result)
+void assemble_function_call(an_operand        *function_operand,
+                            an_operand        *bound_function_selector,
+                            an_expr_node_ptr  argument_list,
+                            a_source_position *call_position,
+                            an_operand        *result)
 /*
 Assemble a function call from the various pieces.  *function_operand
 identifies the function to be called.  If a selector object is needed,
 it is provided by *bound_function_selector.  argument_list points to the
-(explicit) argument list.  An operand for the overall call is constructed
+(explicit) argument list.  call_position gives the source position
+of the call.  An operand for the overall call is constructed
 in *result.
 */
 {
@@ -4798,9 +4804,9 @@ in *result.
     make_function_call(function_node, function_type,
                        (a_boolean)function_operand->virtual_function, 
                        (a_boolean)function_operand->is_qualified_name,
-                       &function_operand->position, result);
+                       call_position, result);
   }  /* if */
-  result->position = function_operand->position;
+  result->position = *call_position;
 }  /* assemble_function_call */
 
 
@@ -5997,10 +6003,12 @@ is non-NULL (and *put_operand gives the value to be put); the access
 is a "get" if put_operand is NULL.
 */
 {
-  an_expr_node_ptr object_expr = operand->variant.property_ref.object;
-  a_field_ptr      field = operand->variant.property_ref.field;
-  char             *getput_property_name;
+  an_expr_node_ptr  object_expr = operand->variant.property_ref.object;
+  a_field_ptr       field = operand->variant.property_ref.field;
+  char              *getput_property_name;
+  a_source_position operand_position;
 
+  operand_position = operand->position;
   /* Get the "get" or "put" function name from the field. */
   getput_property_name = (put_operand != NULL) ? field->put_property_name :
                                                  field->get_property_name;
@@ -6083,6 +6091,7 @@ is a "get" if put_operand is NULL.
                                             ec_ambiguous_overloaded_function,
                                             &locator.source_position,
                                             &locator.source_position,
+                                            &locator.source_position,
                                             &function_operand,
                                             &argument_list);
         if (getput_sym == NULL) {
@@ -6091,7 +6100,7 @@ is a "get" if put_operand is NULL.
         } else {
           /* Create the function call. */
           assemble_function_call(&function_operand, &bound_function_selector,
-                                 argument_list, operand);
+                                 argument_list, &operand_position, operand);
           /* Convert lvalue to rvalue, etc. */
           do_operand_transformations(operand, TOPT_NO_OPTIONS);
         }  /* if */
