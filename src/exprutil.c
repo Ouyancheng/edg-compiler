@@ -2861,7 +2861,7 @@ the offsetof macro).  This routine is only used in C++ mode.
          have the cast in the IL (the constant form has only an offset,
          and loses the sequence of casts). */
       fold_base_class_cast(&operand->variant.constant, bcp,
-                           &temp_con, check_cast_access,
+                           &temp_con, check_cast_access, is_implicit_cast,
                            is_object_pointer, &did_not_fold,
                            &orig_operand.position);
     }  /* if */

@@ -85,6 +85,7 @@ extern void fold_base_class_cast(a_constant        *constant_1,
                                  a_base_class      *bcp,
                                  a_constant        *result,
                                  a_boolean         check_cast_access,
+                                 a_boolean         is_implicit_cast,
                                  a_boolean         is_object_pointer,
                                  a_boolean         *did_not_fold,
                                  a_source_position *err_pos);

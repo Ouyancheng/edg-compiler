@@ -85,6 +85,30 @@ to TRUE if the cast actually appeared in the source.
 }  /* make_template_param_cast_constant */
 
 
+static void implicit_or_explicit_cast(a_constant_ptr cp,
+                                      a_type_ptr     new_type,
+                                      a_boolean      is_implicit_cast)
+/*
+Set the implicit_cast flag to indicate a type change of the indicated
+constant to the indicated new type.  No representation change is implied.
+This is used for casting one pointer type to another and casting integer
+constants to pointer types.  The cast is implicit if is_implicit_cast is
+TRUE.
+*/
+{
+  cp->type = new_type;
+  cp->implicit_cast = TRUE;
+  if (!is_implicit_cast) {
+    /* Note that the TRUE setting of explicit_cast_applied is sticky. */
+    cp->explicit_cast_applied = TRUE;
+  }  /* if */
+  /* Clear the source correspondence information.  If this was a named
+     constant, the new constant should no longer be
+     associated with the original constant. */
+  break_source_corresp(&cp->source_corresp);
+}  /* implicit_or_explicit_cast */
+
+
 void implicit_cast(a_constant_ptr cp,
                    a_type_ptr     new_type)
 /*
@@ -93,12 +117,7 @@ No representation change is implied.  This is used for casting one
 pointer type to another and casting integer constants to pointer types.
 */
 {
-  cp->type = new_type;
-  cp->implicit_cast = TRUE;
-  /* Clear the source correspondence information.  If this was a named
-     constant, the new constant should no longer be
-     associated with the original constant. */
-  break_source_corresp(&cp->source_corresp);
+  implicit_or_explicit_cast(cp, new_type, /*is_implicit_cast=*/TRUE);
 }  /* implicit_cast */
 
 
@@ -698,6 +717,7 @@ void fold_base_class_cast(a_constant        *constant_1,
                           a_base_class      *bcp,
                           a_constant        *result,
                           a_boolean         check_cast_access,
+                          a_boolean         is_implicit_cast,
                           a_boolean         is_object_pointer,
                           a_boolean         *did_not_fold,
                           a_source_position *err_pos)
@@ -706,10 +726,10 @@ Fold a C++ cast of a class pointer to a base class pointer.  constant_1 is
 an address of a class object.  It is converted to a pointer to the base
 class indicated by bcp and the new constant is returned in *result.
 Do access control on the cast if check_cast_access is TRUE.  The
-pointer is known to point to an object if is_object_pointer is TRUE.
-If the operation cannot be folded, *did_not_fold is returned TRUE.
-If there is an error, issue it at *err_pos.  result->type need not be
-set on entry.
+cast is implicit if is_implicit_cast is TRUE.  The pointer is known
+to point to an object if is_object_pointer is TRUE.  If the operation
+cannot be folded, *did_not_fold is returned TRUE.  If there is an
+error, issue it at *err_pos.  result->type need not be set on entry.
 */
 {
   a_boolean             access_okay, err;
@@ -794,7 +814,8 @@ set on entry.
     /* Set the constant type.  It includes all the type qualifiers from the
        original pointer. */
     new_type = make_identically_qualified_type(curr_type, orig_type);
-    implicit_cast(result, make_pointer_type(new_type));
+    implicit_or_explicit_cast(result, make_pointer_type(new_type),
+                              is_implicit_cast);
   }  /* if */
 }  /* fold_base_class_cast */
 
@@ -853,7 +874,7 @@ desired derived type.  If there is an error, it is issued at *err_pos.
          class has to be within the underlying object. */
       set_pointer_offset(result, &offset, &err);
     }  /* if */
-    implicit_cast(result, new_type);
+    implicit_or_explicit_cast(result, new_type, /*is_implicit_cast=*/FALSE);
   }  /* if */
 }  /* fold_derived_class_cast */
 
@@ -940,6 +961,7 @@ type.
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
       fold_base_class_cast(old_constant, bcp, new_constant, is_implicit_cast,
+                           is_implicit_cast,
                            /*is_object_pointer=*/FALSE, did_not_fold, err_pos);
     } else {
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
@@ -950,7 +972,7 @@ type.
     if (!*did_not_fold && 
         !is_error_type(new_constant->type) &&
         !identical_types(new_constant->type, new_type)) {
-      implicit_cast(new_constant, new_type);
+      implicit_or_explicit_cast(new_constant, new_type, is_implicit_cast);
     }  /* if */
   }  /* if */
   /* Do the cast (by calling implicit_cast) unless there was an error or
@@ -958,7 +980,7 @@ type.
   if (!conversion_handled && !*did_not_fold &&
       (*err_code == ec_no_error || *err_severity != es_error)) {
     copy_constant(old_constant, new_constant);
-    implicit_cast(new_constant, new_type);
+    implicit_or_explicit_cast(new_constant, new_type, is_implicit_cast);
   }  /* if */
 }  /* conv_pointer_to_whatever */
 
@@ -1000,13 +1022,15 @@ of which the underlying member is a member.
 static void set_pm_cast_base_class(a_constant_ptr   constant, 
                                    a_type_ptr       new_type,
                                    a_base_class_ptr bcp,
-                                   a_boolean        cast_to_base)
+                                   a_boolean        cast_to_base,
+                                   a_boolean        is_implicit_cast)
 /*
 constant is a pointer-to-member constant.  Cast it to new_type, which is
 a pointer to member of the class indicated by bcp.  If cast_to_base is TRUE,
 this cast is toward a base class; otherwise, it is toward a derived class
 (in which case bcp gives the base class entry for the current class as
-a base class of the derived class).
+a base class of the derived class).  is_implicit_cast is TRUE if the
+cast is implicit.
 */
 {
   a_type_ptr       member_class, new_class;
@@ -1016,7 +1040,7 @@ a base class of the derived class).
   if (pm_constant_is_null(constant)) {
     /* A NULL pointer-to-member keeps a NULL casting_base_class even
        when cast to another type. */
-    implicit_cast(constant, new_type);
+    implicit_or_explicit_cast(constant, new_type, is_implicit_cast);
   } else {
     /* Determine the class type we're casting to. */
     if (cast_to_base) {
@@ -1077,7 +1101,7 @@ a base class of the derived class).
       internal_error("set_pm_cast_base_class: could not find base class");
 #endif /* CHECKING */
 have_base_class:
-      implicit_cast(constant, new_type);
+      implicit_or_explicit_cast(constant, new_type, is_implicit_cast);
     }  /* if */
     constant->variant.ptr_to_member.casting_base_class = casting_base_class;
     constant->variant.ptr_to_member.cast_to_base = cast_to_base;
@@ -1115,7 +1139,8 @@ explicit casts, so checking for accessibility of base classes is not necessary.
   } else {
     copy_constant(constant_1, result);
     /* Set the constant to indicate the cast. */
-    set_pm_cast_base_class(result, new_type, bcp, /*cast_to_base=*/TRUE);
+    set_pm_cast_base_class(result, new_type, bcp, /*cast_to_base=*/TRUE,
+                           /*is_implicit_cast=*/FALSE);
   }  /* if */
 }  /* fold_pm_base_class_cast */
 
@@ -1123,22 +1148,23 @@ explicit casts, so checking for accessibility of base classes is not necessary.
 static void fold_pm_derived_class_cast(a_constant        *constant_1,
                                        a_base_class      *bcp,
                                        a_constant        *result,
-                                       a_boolean         check_cast_access,
+                                       a_boolean         is_implicit_cast,
                                        a_source_position *err_pos)
 /*
 Fold a C++ cast of a pointer to a member of a class to pointer to member
 of a derived class.  constant_1 is a pointer-to-member constant.  It is
 converted to a pointer-to-member for the derived class (given by
-result->type) and the new constant is returned in *result.  Do access
-control on the cast if check_cast_access is TRUE.  bcp points to the base
-class entry for the current type relative to the desired derived type.
-If there is an error, it is issued at *err_pos.
+result->type) and the new constant is returned in *result.  The cast
+is implicit (and access checking must be done) if is_implicit_cast is
+TRUE.  bcp points to the base class entry for the current type relative
+to the desired derived type.  If there is an error, it is issued at *err_pos.
 */
 {
   a_type_ptr            new_type = result->type, curr_type;
   a_type_ptr            derived_class_type;
   a_derivation_step_ptr dsp;
   a_base_class_ptr      base_class;
+  a_boolean             check_cast_access = is_implicit_cast;
 
   /* The code here looks like add_pm_derived_class_casts. */
   derived_class_type = pm_class_type(new_type);
@@ -1174,7 +1200,8 @@ If there is an error, it is issued at *err_pos.
     }  /* if */
     copy_constant(constant_1, result);
     /* Set the constant to indicate the cast. */
-    set_pm_cast_base_class(result, new_type, bcp, /*cast_to_base=*/FALSE);
+    set_pm_cast_base_class(result, new_type, bcp, /*cast_to_base=*/FALSE,
+                           is_implicit_cast);
   }  /* if */
 }  /* fold_pm_derived_class_cast */
 
@@ -1214,7 +1241,7 @@ since such casts on pointer-to-member types are not "constant operations".
        pointer-to-member types are the same; the member type may be
        changing. */
     copy_constant(old_constant, new_constant);
-    implicit_cast(new_constant, new_type);
+    implicit_or_explicit_cast(new_constant, new_type, is_implicit_cast);
   } else if ((bcp = find_base_class_of(old_class, new_class)) != NULL) {
     /* Derived --> base (allowed only as an explicit cast).  Valid unless
        the cast is ambiguous. */
@@ -1258,7 +1285,7 @@ Convert an integer constant to a pointer constant of type as specified by
   /* Make a new constant that is the old constant implicitly cast to the
      pointer type. */
   copy_constant(old_constant, new_constant);
-  implicit_cast(new_constant, new_type);
+  implicit_or_explicit_cast(new_constant, new_type, is_implicit_cast);
   /* Mask the integer down to the size of pointer. */
 #if CHECKING
   if (new_constant->kind != (a_constant_repr_kind)ck_integer) {
@@ -1275,9 +1302,11 @@ Convert an integer constant to a pointer constant of type as specified by
 /*ARGSUSED*/ /* <-- old_constant is not used if CHECKING is FALSE. */
 #endif /* !CHECKING */
 static void conv_integer_to_ptr_to_member(a_constant *old_constant,
-                                          a_constant *new_constant)
+                                          a_constant *new_constant,
+                                          a_boolean  is_implicit_cast)
 /*
-Convert an integer constant to a pointer to member.
+Convert an integer constant to a pointer to member.  is_implicit_cast
+is TRUE if the cast is implicit.
 */
 {
   a_type_ptr new_type = new_constant->type;
@@ -1300,7 +1329,7 @@ Convert an integer constant to a pointer to member.
   } else {
     new_constant->variant.ptr_to_member.variant.field = NULL;
   }  /* if */
-  implicit_cast(new_constant, new_type);
+  implicit_or_explicit_cast(new_constant, new_type, is_implicit_cast);
 }  /* conv_integer_to_ptr_to_member */
 
 
@@ -1492,7 +1521,8 @@ to the constant is maintained, by adding a cast if necessary.
           break;
         case tk_ptr_to_member:
           /* Converting integer to pointer-to-member. */
-          conv_integer_to_ptr_to_member(constant, &new_constant);
+          conv_integer_to_ptr_to_member(constant, &new_constant,
+                                        is_implicit_cast);
           break;
         default:
           unexpected_condition_str(

@@ -1,5 +1,12 @@
 Version 3.0
 
+4/4/02   explicit_cast_applied field in constant entry now set always
+
+The explicit_cast_applied field in the IL a_constant entry is now set in
+all cases (formerly, it was set only for tpck_cast constants).  It is
+also now used by the C++-generating back end to eliminate certain
+implicit casts in the generated code.
+
 4/4/02   GNU C mode: Warning only on invalid uses of "inline"
 
 In GNU C mode, declaring a variable "inline" causes the front end to only
