@@ -3764,9 +3764,7 @@ modes accept:
    struct X; struct Y { X(); };
 and take Y::X to be an ordinary member function returning int.
 Note that Microsoft will not accept such function declarations if they take
-any parameters.  Cfront will, but at the cost of not being able to parse:
-   struct X; struct Y { X(*p)(); };
-and hence that behavior is not imitated here.
+any parameters.  Cfront will, but that behavior is not imitated here.
 */
 {
   a_boolean    result;
