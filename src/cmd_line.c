@@ -43,54 +43,54 @@ extern long gethostid(void);
 List of possible option kinds.
 */
 typedef enum /*an_option_kind*/ {
-  ok_strict_ansi_error,
-  ok_strict_ansi_warning,
-  ok_preprocess_only_no_line_dirs,
-  ok_preprocess_only_emit_line_dirs,
-  ok_keep_comments_in_pp_output,
-  ok_C_dialect_pcc,
-  ok_list_makefile_dependencies,
-  ok_list_include_files,
+  optk_strict_ansi_error,
+  optk_strict_ansi_warning,
+  optk_preprocess_only_no_line_dirs,
+  optk_preprocess_only_emit_line_dirs,
+  optk_keep_comments_in_pp_output,
+  optk_C_dialect_pcc,
+  optk_list_makefile_dependencies,
+  optk_list_include_files,
 #if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
-  ok_write_unlowered_il,
+  optk_write_unlowered_il,
 #endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
-  ok_cplusplus_anachronisms,
-  ok_cfront_2_1_mode,
-  ok_cfront_3_0_mode,
-  ok_front_end_only,
-  ok_use_signed_chars,
-  ok_template_instantiation_mode,
+  optk_cplusplus_anachronisms,
+  optk_cfront_2_1_mode,
+  optk_cfront_3_0_mode,
+  optk_front_end_only,
+  optk_use_signed_chars,
+  optk_template_instantiation_mode,
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  ok_automatic_template_instantiation,
+  optk_automatic_template_instantiation,
 #endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-  ok_implicit_template_inclusion,
+  optk_implicit_template_inclusion,
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-  ok_suppress_virtual_function_table_definition,
-  ok_allow_dollar_in_id_chars,
-  ok_display_compilation_time,
-  ok_display_compiler_version,
-  ok_suppress_warnings,
-  ok_enable_remarks,
-  ok_C_dialect_ANSI,
-  ok_C_dialect_cplusplus,
-  ok_exception_handling,
-  ok_suppress_used_before_set_warnings,
-  ok_include_directory,
-  ok_define_macro,
-  ok_undefine_macro,
-  ok_set_error_limit,
-  ok_generate_raw_listing,
-  ok_generate_cross_reference,
-  ok_stderr_file_name,
-  ok_output_file_name,
+  optk_suppress_virtual_function_table_definition,
+  optk_allow_dollar_in_id_chars,
+  optk_display_compilation_time,
+  optk_display_compiler_version,
+  optk_suppress_warnings,
+  optk_enable_remarks,
+  optk_C_dialect_ANSI,
+  optk_C_dialect_cplusplus,
+  optk_exception_handling,
+  optk_suppress_used_before_set_warnings,
+  optk_include_directory,
+  optk_define_macro,
+  optk_undefine_macro,
+  optk_set_error_limit,
+  optk_generate_raw_listing,
+  optk_generate_cross_reference,
+  optk_stderr_file_name,
+  optk_output_file_name,
 #if BACK_END_IS_C_GEN_BE
-  ok_module_list_for_union_init,
+  optk_module_list_for_union_init,
 #endif /* !BACK_END_IS_C_GEN_BE */
 #if DEBUG
-  ok_debug,
+  optk_debug,
 #endif /* DEBUG */
-  ok_last		/* Must be last. */
+  optk_last		/* Must be last. */
 } an_option_kind;
 
 
@@ -131,7 +131,7 @@ static an_option_description_ptr
 			/* Pointer to a linked list of option descriptions. */
 
 static a_byte_boolean
-		option_kind_used[(int)ok_last+1];
+		option_kind_used[(int)optk_last+1];
 			/* An array indexed by option kind that indicates
 			   whether the option kind has been specified in
 			   the command line.  Initialized to zero by
@@ -179,105 +179,105 @@ void initialize_option_descriptions(void)
 Initialize the option information table.
 */
 {
-  add_option_description(ok_strict_ansi_error, "strict", 'A',
+  add_option_description(optk_strict_ansi_error, "strict", 'A',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_strict_ansi_warning, "strict_warnings", 'a',
+  add_option_description(optk_strict_ansi_warning, "strict_warnings", 'a',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_preprocess_only_no_line_dirs, "no_line_commands",
+  add_option_description(optk_preprocess_only_no_line_dirs, "no_line_commands",
                          'P', /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_preprocess_only_emit_line_dirs, "preprocess", 'E',
+  add_option_description(optk_preprocess_only_emit_line_dirs, "preprocess",
+                         'E', /*value=*/TRUE, /*arg_required=*/FALSE);
+  add_option_description(optk_keep_comments_in_pp_output, "comments", 'C',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_keep_comments_in_pp_output, "comments", 'C',
+  add_option_description(optk_C_dialect_pcc, "old_c", 'K',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_C_dialect_pcc, "old_c", 'K',
+  add_option_description(optk_list_makefile_dependencies, "dependencies", 'M',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_list_makefile_dependencies, "dependencies", 'M',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_list_include_files, "trace_includes", 'H',
+  add_option_description(optk_list_include_files, "trace_includes", 'H',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
 #if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
-  add_option_description(ok_write_unlowered_il, "no_il_lowering", 'N',
+  add_option_description(optk_write_unlowered_il, "no_il_lowering", 'N',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
 #endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
-  add_option_description(ok_cplusplus_anachronisms, "anachronisms", '\0',
+  add_option_description(optk_cplusplus_anachronisms, "anachronisms", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_cplusplus_anachronisms, "no_anachronisms", '\0',
+  add_option_description(optk_cplusplus_anachronisms, "no_anachronisms", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE);
-  add_option_description(ok_cfront_2_1_mode, "cfront_2.1", 'b',
+  add_option_description(optk_cfront_2_1_mode, "cfront_2.1", 'b',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_cfront_3_0_mode, "cfront_3.0", '\0',
+  add_option_description(optk_cfront_3_0_mode, "cfront_3.0", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_front_end_only, "no_code_gen", 'n',
+  add_option_description(optk_front_end_only, "no_code_gen", 'n',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_use_signed_chars, "signed_chars", 's',
+  add_option_description(optk_use_signed_chars, "signed_chars", 's',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_use_signed_chars, "unsigned_chars", 'u',
+  add_option_description(optk_use_signed_chars, "unsigned_chars", 'u',
                          /*value=*/FALSE, /*arg_required=*/FALSE);
-  add_option_description(ok_template_instantiation_mode, "instantiate", 't',
+  add_option_description(optk_template_instantiation_mode, "instantiate", 't',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  add_option_description(ok_automatic_template_instantiation,
+  add_option_description(optk_automatic_template_instantiation,
                          "auto_instantiation", 'T',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_automatic_template_instantiation,
+  add_option_description(optk_automatic_template_instantiation,
                          "no_auto_instantiation", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE);
 #endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-  add_option_description(ok_implicit_template_inclusion,
+  add_option_description(optk_implicit_template_inclusion,
                          "implicit_include", 'B',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_implicit_template_inclusion,
+  add_option_description(optk_implicit_template_inclusion,
                          "no_implicit_include", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-  add_option_description(ok_suppress_virtual_function_table_definition,
+  add_option_description(optk_suppress_virtual_function_table_definition,
                          "suppress_vtbl", 'V',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_allow_dollar_in_id_chars,
+  add_option_description(optk_allow_dollar_in_id_chars,
                          "dollar", '$',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_display_compilation_time, "timing", '#',
+  add_option_description(optk_display_compilation_time, "timing", '#',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_display_compiler_version, "version", 'v',
+  add_option_description(optk_display_compiler_version, "version", 'v',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_suppress_warnings, "no_warnings", 'w',
+  add_option_description(optk_suppress_warnings, "no_warnings", 'w',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_enable_remarks, "remarks", 'r',
+  add_option_description(optk_enable_remarks, "remarks", 'r',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_C_dialect_ANSI, "c", 'm',
+  add_option_description(optk_C_dialect_ANSI, "c", 'm',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_C_dialect_cplusplus, "c++", 'p',
+  add_option_description(optk_C_dialect_cplusplus, "c++", 'p',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_exception_handling, "exceptions", 'x',
+  add_option_description(optk_exception_handling, "exceptions", 'x',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_exception_handling, "no_exceptions", '\0',
+  add_option_description(optk_exception_handling, "no_exceptions", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE);
-  add_option_description(ok_suppress_used_before_set_warnings,
+  add_option_description(optk_suppress_used_before_set_warnings,
                          "no_use_before_set_warnings", 'j',
                          /*value=*/TRUE, /*arg_required=*/FALSE);
-  add_option_description(ok_include_directory, "include_directory", 'I',
+  add_option_description(optk_include_directory, "include_directory", 'I',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
-  add_option_description(ok_define_macro, "define_macro", 'D',
+  add_option_description(optk_define_macro, "define_macro", 'D',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
-  add_option_description(ok_undefine_macro, "undefine_macro", 'U',
+  add_option_description(optk_undefine_macro, "undefine_macro", 'U',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
-  add_option_description(ok_set_error_limit, "error_limit", 'e',
+  add_option_description(optk_set_error_limit, "error_limit", 'e',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
-  add_option_description(ok_generate_raw_listing, "list", 'L',
+  add_option_description(optk_generate_raw_listing, "list", 'L',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
-  add_option_description(ok_generate_cross_reference, "xref", 'X',
+  add_option_description(optk_generate_cross_reference, "xref", 'X',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
-  add_option_description(ok_stderr_file_name, "error_output", '\0',
+  add_option_description(optk_stderr_file_name, "error_output", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
-  add_option_description(ok_output_file_name, "output", 'o',
+  add_option_description(optk_output_file_name, "output", 'o',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
 #if BACK_END_IS_C_GEN_BE
-  add_option_description(ok_module_list_for_union_init, "module_init", 'i',
+  add_option_description(optk_module_list_for_union_init, "module_init", 'i',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
 #endif /* !BACK_END_IS_C_GEN_BE */
 #if DEBUG
-  add_option_description(ok_debug, "db", 'd',
+  add_option_description(optk_debug, "db", 'd',
                          /*value=*/TRUE, /*arg_required=*/TRUE);
 #endif /* DEBUG */
 }  /* initialize_option_descriptions */
@@ -584,24 +584,24 @@ Process the arguments on the command line that invoked the compiler.
     an_option_kind	kind = odp->kind;
     a_boolean		opt_value = odp->value;
     switch (kind) {
-      case ok_strict_ansi_error:
-      case ok_strict_ansi_warning:
+      case optk_strict_ansi_error:
+      case optk_strict_ansi_warning:
         /* Warn on non-ANSI features, disable features that conflict
            with ANSI.  Note that "ANSI" means ANSI C or ANSI C++, depending
            on the C_dialect setting. */
         check_assertion(opt_value == TRUE);
         strict_ansi_mode = TRUE;
         strict_ansi_error_severity =
-                      (kind == ok_strict_ansi_error) ? es_error : es_warning;
+                      (kind == optk_strict_ansi_error) ? es_error : es_warning;
         break;
-      case ok_preprocess_only_emit_line_dirs:
+      case optk_preprocess_only_emit_line_dirs:
         /* Do preprocessing only, output to stdout, with #line information. */
         check_assertion(opt_value == TRUE);
         do_preprocessing_only = TRUE;
         generate_pp_output = TRUE;
         gen_line_info_in_pp_output = TRUE;
         break;
-      case ok_preprocess_only_no_line_dirs:
+      case optk_preprocess_only_no_line_dirs:
         /* Do preprocessing only, output to stdout (driver remaps to .i file),
            without #line information. */
         check_assertion(opt_value == TRUE);
@@ -609,17 +609,17 @@ Process the arguments on the command line that invoked the compiler.
         generate_pp_output = TRUE;
         gen_line_info_in_pp_output = FALSE;
         break;
-      case ok_keep_comments_in_pp_output:
+      case optk_keep_comments_in_pp_output:
         /* Keep comments in preprocessing output. */
         check_assertion(opt_value == TRUE);
         keep_comments_in_pp_output = TRUE;
         break;
-      case ok_C_dialect_pcc:
+      case optk_C_dialect_pcc:
         /* Compile K&R/pcc dialect of C. */
         check_assertion(opt_value == TRUE);
         C_dialect = C_dialect_pcc;
         break;
-      case ok_list_makefile_dependencies:
+      case optk_list_makefile_dependencies:
         /* Generate makefile dependency lines for #include files encountered,
            but do not compile. */
         check_assertion(opt_value == TRUE);
@@ -629,7 +629,7 @@ Process the arguments on the command line that invoked the compiler.
         list_makefile_dependencies = TRUE;
         error_threshold = es_error;
         break;
-      case ok_list_include_files:
+      case optk_list_include_files:
         /* Generate on stdout a list of the names of the #include files
            processed, but do not compile. */
         check_assertion(opt_value == TRUE);
@@ -640,7 +640,7 @@ Process the arguments on the command line that invoked the compiler.
         error_threshold = es_error;
         break;
 #if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
-      case ok_write_unlowered_il:
+      case optk_write_unlowered_il:
 	/* Suppress IL lowering and write an unlowered IL file. */
         check_assertion(opt_value == TRUE);
 	suppress_il_lowering = TRUE;
@@ -648,11 +648,11 @@ Process the arguments on the command line that invoked the compiler.
         /* Note that suppress_il_file_write is not set. */
 	break;
 #endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
-      case ok_cplusplus_anachronisms:
+      case optk_cplusplus_anachronisms:
         /* Enable or disable acceptance of anachronisms. */
         allow_anachronisms = opt_value;
         break;
-      case ok_cfront_2_1_mode:
+      case optk_cfront_2_1_mode:
         /* cfront 2.1 compatibility mode.  If both 2.1 and 3.0 modes are
            selected, only the most recent applies. */
         check_assertion(opt_value == TRUE);
@@ -662,7 +662,7 @@ Process the arguments on the command line that invoked the compiler.
         C_dialect = C_dialect_cplusplus;
         allow_anachronisms = TRUE;
         break;
-      case ok_cfront_3_0_mode:
+      case optk_cfront_3_0_mode:
         /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
            selected, only the most recent applies. */
         check_assertion(opt_value == TRUE);
@@ -672,7 +672,7 @@ Process the arguments on the command line that invoked the compiler.
         C_dialect = C_dialect_cplusplus;
         allow_anachronisms = TRUE;
         break;
-      case ok_front_end_only:
+      case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
            end. */
         check_assertion(opt_value == TRUE);
@@ -684,11 +684,11 @@ Process the arguments on the command line that invoked the compiler.
 	suppress_il_lowering = TRUE;
 #endif /* DO_IL_LOWERING */
         break;
-      case ok_use_signed_chars:
+      case optk_use_signed_chars:
         /* Use signed or unsigned chars. */
         targ_has_signed_chars = opt_value;
         break;
-      case ok_template_instantiation_mode:
+      case optk_template_instantiation_mode:
         /* Template instantiation mode. */
         instantiation_mode_string = optarg;
         /* Determine the template instantiation mode to be used. */
@@ -708,35 +708,35 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         break;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-      case ok_automatic_template_instantiation:
+      case optk_automatic_template_instantiation:
         /* Enable or disable automatic instantiation processing. */
         automatic_instantiation_mode = opt_value;
         break;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      case ok_implicit_template_inclusion:
+      case optk_implicit_template_inclusion:
         /* Enable or disable implicit inclusion of template definition source
            files. */
         implicit_template_inclusion_mode = opt_value;
         break;
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-      case ok_suppress_virtual_function_table_definition:
+      case optk_suppress_virtual_function_table_definition:
         /* Suppress generation of a virtual function table if unable to
 	   determine absolute means to avoid duplicate virtual function 
 	   table entries in separate compilations. */
         check_assertion(opt_value == TRUE);
 	suppress_virtual_function_table_definition = TRUE;
 	break;
-      case ok_allow_dollar_in_id_chars:
+      case optk_allow_dollar_in_id_chars:
         /* Determines whether dollar signs are accepted in identifiers. */
         allow_dollar_in_id_chars = opt_value;
         break;
-      case ok_display_compilation_time:
+      case optk_display_compilation_time:
         /* Generate compilation timing information. */
         check_assertion(opt_value == TRUE);
         display_compilation_time = TRUE;
         break;
-      case ok_display_compiler_version:
+      case optk_display_compiler_version:
         /* Print out compiler version. */
         check_assertion(opt_value == TRUE);
         fprintf(stderr, "Edison Design Group C/C++ Front End, version %s\n",
@@ -747,36 +747,36 @@ Process the arguments on the command line that invoked the compiler.
 #endif /* ifdef DEMO_VERSION_ID */
         fputc('\n', stderr);
         break;
-      case ok_suppress_warnings:
+      case optk_suppress_warnings:
         /* Suppress warnings. */
         check_assertion(opt_value == TRUE);
         error_threshold = es_error;
         break;
-      case ok_enable_remarks:
+      case optk_enable_remarks:
         /* Enable remarks. */
         check_assertion(opt_value == TRUE);
         error_threshold = es_remark;
         break;
-      case ok_C_dialect_ANSI:
+      case optk_C_dialect_ANSI:
         /* Compile ANSI C. */
         check_assertion(opt_value == TRUE);
         C_dialect = C_dialect_ANSI;
         break;
-      case ok_C_dialect_cplusplus:
+      case optk_C_dialect_cplusplus:
         /* Compile C++. */
         check_assertion(opt_value == TRUE);
         C_dialect = C_dialect_cplusplus;
         break;
-      case ok_exception_handling:
+      case optk_exception_handling:
         /* Enables or disables support for exceptions. */
         exceptions_enabled = opt_value;
         break;
-      case ok_suppress_used_before_set_warnings:
+      case optk_suppress_used_before_set_warnings:
         /* Suppress used-before-set warnings. */
         check_assertion(opt_value == TRUE);
         suppress_used_before_set_warnings = TRUE;
         break;
-      case ok_include_directory:
+      case optk_include_directory:
         /* Include file directory, add to list. */
         if (*optarg == '-') {
           /* Directory name was probably omitted; next option was taken
@@ -785,17 +785,17 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         add_to_include_search_path(optarg);
         break;
-      case ok_define_macro:
+      case optk_define_macro:
         /* Define a macro symbol.  Just save the string for later
            processing. */
         add_to_def_undef_list(optarg, &defs_from_cmd_line);
         break;
-      case ok_undefine_macro:
+      case optk_undefine_macro:
         /* Undefine a macro symbol.  Just save the string for later
            processing. */
         add_to_def_undef_list(optarg, &undefs_from_cmd_line);
         break;
-      case ok_set_error_limit:
+      case optk_set_error_limit:
         /* Set error limit (numbers of errors at which to give up on
            compilation). */
         error_limit = scan_optarg_number(optarg);
@@ -803,7 +803,7 @@ Process the arguments on the command line that invoked the compiler.
           str_command_line_error(ec_cl_invalid_error_limit, optarg);
         }  /* if */
         break;
-      case ok_generate_raw_listing:
+      case optk_generate_raw_listing:
         /* Generate a file of raw listing information (source lines,
            file/line information, and indications of which lines are which,
            to be read later by a program that will generate an
@@ -819,7 +819,7 @@ Process the arguments on the command line that invoked the compiler.
                                  optarg);
         }  /* if */
         break;
-      case ok_generate_cross_reference:
+      case optk_generate_cross_reference:
         /* Generate a file of cross-reference information (locations and
 	   kinds of references to symbols) */
         f_xref_info = open_output_file(optarg, /*binary_file=*/FALSE,
@@ -833,7 +833,7 @@ Process the arguments on the command line that invoked the compiler.
                                  optarg);
         }  /* if */
         break;
-      case ok_stderr_file_name:
+      case optk_stderr_file_name:
         /* Redirect stderr to a file.  This is useful on systems where
            redirection is not well supported. */
         reopen_error_output_file(optarg, &cannot_open, &bad_name);
@@ -845,12 +845,12 @@ Process the arguments on the command line that invoked the compiler.
                                  optarg);
         }  /* if */
         break;
-      case ok_output_file_name:
+      case optk_output_file_name:
         /* Specify output file for preprocessing output or IL. */
         ofile_name = optarg;
         break;
 #if BACK_END_IS_C_GEN_BE
-      case ok_module_list_for_union_init:
+      case optk_module_list_for_union_init:
         /* Save a string of comma-separated module names that will be linked
            with this one.  This is used by c_gen_be to generate calls
            to file-scope initialization routines that handle union
@@ -860,7 +860,7 @@ Process the arguments on the command line that invoked the compiler.
         break;
 #endif /* BACK_END_IS_C_GEN_BE */
 #if DEBUG
-      case ok_debug:
+      case optk_debug:
         /* Set debug level. */
         if (proc_debug_option(optarg)) {
 	  command_line_error(ec_cl_error_in_debug_option_argument);
@@ -876,26 +876,27 @@ Process the arguments on the command line that invoked the compiler.
   /* Check for the use of C++ options when the dialect being compiled
      is not C++. */
   if (C_dialect != C_dialect_cplusplus) {
-    if (option_kind_used[(int)ok_cplusplus_anachronisms]) {
+    if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
       command_line_error(ec_cl_anachronism_option_only_in_cplusplus);
     }  /* if */
-    if (option_kind_used[(int)ok_suppress_virtual_function_table_definition]) {
+    if (option_kind_used
+                     [(int)optk_suppress_virtual_function_table_definition]) {
       command_line_error(ec_cl_vtbl_option_only_in_cplusplus);
     }  /* if */
-    if (option_kind_used[(int)ok_template_instantiation_mode]) {
+    if (option_kind_used[(int)optk_template_instantiation_mode]) {
       command_line_error(ec_cl_instantiation_option_only_in_cplusplus);
     }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (option_kind_used[(int)ok_automatic_template_instantiation]) {
+    if (option_kind_used[(int)optk_automatic_template_instantiation]) {
       command_line_error(ec_cl_auto_instantiation_option_only_in_cplusplus);
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (option_kind_used[(int)ok_implicit_template_inclusion]) {
+    if (option_kind_used[(int)optk_implicit_template_inclusion]) {
       command_line_error(ec_cl_implicit_inclusion_option_only_in_cplusplus);
     }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-    if (option_kind_used[(int)ok_exception_handling]) {
+    if (option_kind_used[(int)optk_exception_handling]) {
       command_line_error(ec_cl_exceptions_option_only_in_cplusplus);
     }  /* if */
   }  /* if */
@@ -912,7 +913,7 @@ Process the arguments on the command line that invoked the compiler.
        give an error if allow anachronisms is the default -- quietly
        set the flag to not allow anachronisms. */
     if (allow_anachronisms) {
-      if (option_kind_used[(int)ok_cplusplus_anachronisms]) {
+      if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
         /* Anachronisms were enabled by a command line option. */
         command_line_error(ec_cl_strict_ansi_incompatible_with_anachronisms);
       } else {
