@@ -104,6 +104,7 @@ cast.
   a_symbol_ptr     sym, proj_sym, match_sym = NULL;
   unsigned long    number_of_matches = 0;
   a_std_conv_descr std_conversion;
+  a_boolean        exception_spec_checked = FALSE;
 
   db_enter(4, "find_addr_of_overloaded_function_match");
   clear_std_conv_descr(std_conv);
@@ -318,6 +319,7 @@ cast.
             *match_level = aml_std_conversion;
             *std_conv = std_conversion;
             number_of_matches++;
+            exception_spec_checked = TRUE;
           }  /* if */
         }  /* if */
       }  /* for */
@@ -335,6 +337,14 @@ is_ambiguous:
        The flag might also have been set by the call of
        impl_conversion_possible. */
     if (dest_type_has_type_qualifiers) std_conv->type_qualifiers_added = TRUE;
+    if (!exception_spec_checked) {
+      routine_type = routine_symbol_type(match_sym);
+      if (!exception_spec_conversion_possible(routine_type,
+                                              dest_underlying_type)) {
+        /* The exception specifications can't be converted. */
+        std_conv->exception_spec_incompatibility = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -382,7 +392,8 @@ is TRUE, template_arg_list is a set of explicit template arguments for sym.
                                                    &unknown_dependent_function,
                                                    &ambiguous);
   if (func_sym == NULL ||
-      !conversion_allowed_for_nontype_template_argument(&std_conversion)) {
+      !conversion_allowed_for_nontype_template_argument(&std_conversion) ||
+      std_conversion.exception_spec_incompatibility) {
     *err = TRUE;
   } else {
     /* Build a pointer-to-function or pointer-to-member constant. */
@@ -9298,6 +9309,12 @@ rewritten) for use in error messages.
                                            &unknown_dependent_function,
                                            &ambiguous) != NULL) {
         okay = TRUE;
+        if (conversion->std.exception_spec_incompatibility) {
+          /* In assignments and initializations, exception specifications
+             under pointers-to-functions and pointers-to-member-functions
+             must obey certain rules, but they don't in this case. */
+          pos_error(ec_incompatible_exception_specs, err_pos);
+        }  /* if */
       } else if (unknown_dependent_function) {
         okay = TRUE;
         conversion->unknown_dependent_conversion = TRUE;
@@ -9335,6 +9352,12 @@ rewritten) for use in error messages.
       /* An implicit conversion is legal. */
       okay = TRUE;
       conversion->std = std_conv;
+      if (std_conv.exception_spec_incompatibility) {
+        /* In assignments and initializations, exception specifications
+           under pointers-to-functions and pointers-to-member-functions
+           must obey certain rules, but they don't in this case. */
+        pos_error(ec_incompatible_exception_specs, err_pos);
+      }  /* if */
       /* Warn on oddball conversions. */
       if (std_conv.warning_suggested != ec_no_error) {
         /* The "opt_ty2" routine puts in the types if the specific error
@@ -9345,16 +9368,10 @@ rewritten) for use in error messages.
       }  /* if */
     } else {
       /* The conversion is not legal. */
-      if (std_conv.conv_failed_because_of_exception_specifications) {
-        /* Special message for a conversion that failed because of
-           a difference in exception specifications. */
-        pos_error(ec_incompatible_exception_specs, err_pos);
-      } else {
-        /* The "opt_ty2" routine puts in the types if the specific error
-           message has fill-ins for them, and otherwise ignores the types. */
-        pos_opt_ty2_error(incompatible_err, err_pos,
-                          source_type, orig_dest_type);
-      }  /* if */
+      /* The "opt_ty2" routine puts in the types if the specific error
+         message has fill-ins for them, and otherwise ignores the types. */
+      pos_opt_ty2_error(incompatible_err, err_pos,
+                        source_type, orig_dest_type);
       conv_to_error_operand(source_operand);
     }  /* if */
   }  /* if */

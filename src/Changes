@@ -1,5 +1,20 @@
 Version 2.46
 
+6/27/01  Exception specifications and address of overloaded function
+
+The front end failed to diagnose an incompatibility in exception
+specifications when the address of an overloaded function is taken
+(and one function is selected from that overload set according
+to the required destination type).  The error is now issued.
+
+  struct S {
+    S& operator++();
+    S operator++(int);
+  };
+  int main() {
+    S& (S::*pf)() throw () = &S::operator++;  // Error now issued
+  }
+
 6/27/01  C++-generating back end: bad rendering of variadic macro parameter
 
 The text rendering of macros used to systematically substitute "__VA_ARGS__"

@@ -3208,7 +3208,7 @@ Clear a standard conversion description to default values.
   std_conv->nontrivial_conversion = FALSE;
   std_conv->promotion = FALSE;
   std_conv->ptr_or_pm_to_bool = FALSE;
-  std_conv->conv_failed_because_of_exception_specifications = FALSE;
+  std_conv->exception_spec_incompatibility = FALSE;
   std_conv->conv_of_string_literal_to_ptr_to_nonconst = FALSE;
   std_conv->warning_suggested = ec_no_error;
 }  /* clear_std_conv_descr */
@@ -3548,6 +3548,30 @@ Otherwise, return FALSE.
 }  /* same_exception_spec_on_return_and_param_type */
 
 
+a_boolean exception_spec_conversion_possible(a_type_ptr source_type,
+                                             a_type_ptr dest_type)
+/*
+Return TRUE if the exception specifications of source_type and dest_type
+(two function types) are such that a pointer to source_type can be converted
+to a pointer to dest_type.
+*/
+{
+  a_boolean okay = TRUE;
+
+  if (exceptions_enabled) {
+    source_type = skip_typerefs(source_type);
+    dest_type = skip_typerefs(dest_type);
+    if (is_function(source_type) && is_function(dest_type) &&
+        (exception_spec_is_less_restrictive(source_type, dest_type) ||
+         !same_exception_spec_on_return_and_param_type(source_type,
+                                                       dest_type))) {
+      okay = FALSE;
+    }  /* if */
+  }  /* if */
+  return okay;
+}  /* exception_spec_conversion_possible */
+
+
 a_boolean qualification_conversion_possible(a_type_ptr source_type,
 					    a_type_ptr dest_type,
 					    a_boolean  *p_qualifiers_added,
@@ -3796,25 +3820,22 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     if (types_are_compatible_for_impl_conversion(
                                             unqual_source_type_pointed_to,
                                             unqual_dest_type_pointed_to)) {
-      if (exceptions_enabled && !allow_qualifier_or_eh_mismatch &&
+      /* The types pointed to are compatible, ignoring the type qualifiers.
+         ANSI C 3.3.6 (pointer - pointer: caller will check that types are
+         object types); ANSI C 3.3.8 (relational operators: caller will check
+         that types are both object or both incomplete); ANSI C 3.3.9
+         (equality operators); ANSI C 3.3.15 (?: operator); ANSI C 3.3.16.1
+         (assignment: preservation of qualifiers is tested below). */
+      okay = TRUE;
+      std_conv->nontrivial_conversion = FALSE;
+      if (!allow_qualifier_or_eh_mismatch &&
           is_function(unqual_dest_type_pointed_to) &&
-          (exception_spec_is_less_restrictive(unqual_source_type_pointed_to,
-                                             unqual_dest_type_pointed_to) ||
-           !same_exception_spec_on_return_and_param_type(
-               unqual_source_type_pointed_to, unqual_dest_type_pointed_to))) {
+          !exception_spec_conversion_possible(unqual_source_type_pointed_to,
+                                              unqual_dest_type_pointed_to)) {
         /* In pointer-to-function assignment and initialization, any exception
            allowed by the source type must be allowed by the destination
-           type; but that's not the case here, so return FALSE. */
-        std_conv->conv_failed_because_of_exception_specifications = TRUE;
-      } else {
-        /* The types pointed to are compatible, ignoring the type qualifiers.
-           ANSI C 3.3.6 (pointer - pointer: caller will check that types are
-           object types); ANSI C 3.3.8 (relational operators: caller will check
-           that types are both object or both incomplete); ANSI C 3.3.9
-           (equality operators); ANSI C 3.3.15 (?: operator); ANSI C 3.3.16.1
-           (assignment: preservation of qualifiers is tested below). */
-        okay = TRUE;
-        std_conv->nontrivial_conversion = FALSE;
+           type; but that's not the case here, so return a flag. */
+        std_conv->exception_spec_incompatibility = TRUE;
       }  /* if */
     } else if (is_error(unqual_dest_type_pointed_to) ||
                is_error(unqual_source_type_pointed_to)) {
@@ -4257,20 +4278,17 @@ pointers to members).
                                   &qualifiers_added)) {
         std_conv->type_qualifiers_added = qualifiers_added;
         okay = TRUE;
-        /* If the pointer-to-member types otherwise match, be sure, if the
-           member type is a function type, that the exception specifications
-           are compatible. */
-        if (okay && exceptions_enabled && !allow_qualifier_or_eh_mismatch &&
+        if (!allow_qualifier_or_eh_mismatch &&
             is_function_type(dest_type_pointed_to) &&
-            (exception_spec_is_less_restrictive(source_type_pointed_to,
-                                                dest_type_pointed_to) ||
-             !same_exception_spec_on_return_and_param_type(
-                              source_type_pointed_to, dest_type_pointed_to))) {
-          okay = FALSE;
-          clear_std_conv_descr(std_conv);
-          std_conv->conv_failed_because_of_exception_specifications = TRUE;
+            !exception_spec_conversion_possible(source_type_pointed_to,
+                                                dest_type_pointed_to)) {
+          /* In pointer-to-member-function assignment and initialization, any
+             exception allowed by the source type must be allowed by the
+             destination type; but that's not the case here, so return
+             a flag. */
+          std_conv->exception_spec_incompatibility = TRUE;
         }  /* if */
-        if (okay && !allow_qualifier_or_eh_mismatch) {
+        if (!allow_qualifier_or_eh_mismatch) {
           /* The types pointed to must be such that the type pointed to by the
              left has all the qualifiers of the type pointed to by the right.
              It might have additional qualifiers. */

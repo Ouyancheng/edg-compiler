@@ -491,6 +491,10 @@ extern a_boolean same_type_with_added_qualifiers
 				     a_boolean  *p_qualifiers_added);
 
 extern
+a_boolean exception_spec_conversion_possible(a_type_ptr source_type,
+                                             a_type_ptr dest_type);
+
+extern
 a_boolean qualification_conversion_possible(a_type_ptr source_type,
 					    a_type_ptr dest_type,
 					    a_boolean  *p_qualifiers_added,
@@ -540,10 +544,11 @@ typedef struct a_std_conv_descr {
 			/* TRUE if this conversion is from a pointer or
 			   pointer to member to bool. */
   a_byte_boolean
-		conv_failed_because_of_exception_specifications;
-			/* TRUE if the conversion could not be done because
-			   of an incompatibility of exception
-			   specifications. */
+		exception_spec_incompatibility;
+			/* TRUE if the conversion involves converting to
+			   a function type with a more restrictive exception
+			   specification, which is disallowed in
+			   initializations and assignments. */
   a_byte_boolean
 		conv_of_string_literal_to_ptr_to_nonconst;
 			/* TRUE if the conversion is the deprecated conversion
