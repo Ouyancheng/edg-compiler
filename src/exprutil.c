@@ -3698,6 +3698,7 @@ associated reference entry, or is NULL if none is needed.
   /* Remember whether or not the routine is virtual.  Use of a qualified
      name suppresses the virtual-ness of the function (ARM 10.2). */
   result->virtual_function = routine->is_virtual && !is_qualified_name;
+  result->is_qualified_name = is_qualified_name;
   result->position = *position;
   /* Start a list of reference entries related to the operand. */
   result->ref_entries_list = rep;
@@ -3879,6 +3880,7 @@ under the enk_temp_init node.  The value of the enk_temp_init is the address
 static an_expr_node_ptr func_call_expr(an_expr_node_ptr  function_node,
                                        a_type_ptr        function_type,
                                        a_boolean         is_virtual,
+                                       a_boolean         virtual_suppressed,
                                        a_source_position *err_pos)
 /*
 Make an expression for a call of the function indicated by function_node,
@@ -3889,6 +3891,10 @@ attached to function_node.  A skip_typerefs need not have been done
 on function_type.  Return a pointer to the call node.  *err_pos
 gives an error position for the case where the function return type is
 invalid (i.e., incomplete); an error node is returned for that case.
+If virtual_suppressed is TRUE, the function was named via a qualified name
+and that has suppressed calling it as virtual; that's also reflected in
+is_virtual, but knowing that the user did it explicitly controls whether
+a diagnostic is put out in some cases.
 */
 {
   an_expr_operator_kind         op;
@@ -3936,8 +3942,9 @@ invalid (i.e., incomplete); an error node is returned for that case.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (rp->pure_virtual && !is_virtual) {
-        /* Non-virtual call of a pure virtual function. */
+      if (rp->pure_virtual && !is_virtual && !virtual_suppressed) {
+        /* Non-virtual call of a pure virtual function, and not written
+           explicitly to suppress virtualness. */
         pos_warning(ec_call_of_pure_virtual, err_pos);
       }  /* if */
     }  /* if */
@@ -3982,6 +3989,7 @@ done:
 void make_function_call(an_expr_node_ptr  function_node,
                         a_type_ptr        function_type,
                         a_boolean         is_virtual,
+                        a_boolean         virtual_suppressed,
                         a_source_position *call_pos,
                         an_operand        *result)
 /*
@@ -3998,7 +4006,7 @@ on function_type.  *call_pos gives the source position of the call.
 
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
-                             call_pos);
+                             virtual_suppressed, call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
@@ -4058,6 +4066,7 @@ in *result.
     /* Make the call node. */
     make_function_call(function_node, function_type,
                        (a_boolean)function_operand->virtual_function, 
+                       (a_boolean)function_operand->is_qualified_name,
                        &function_operand->position, result);
   }  /* if */
   result->position = function_operand->position;
@@ -4095,6 +4104,7 @@ for errors (e.g., the function has an invalid return type).
   /* Make the call node. */
   node = func_call_expr(func_addr_node, rout->type,
                         (a_boolean)rout->is_virtual,
+                        /*virtual_suppressed=*/FALSE,
                         err_pos);
   /* Allocate the statement. */
   stmt = alloc_expr_statement(node);

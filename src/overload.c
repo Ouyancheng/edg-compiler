@@ -5556,6 +5556,7 @@ be a constructor call.
     /* Make an operand for the call. */
     make_function_call(rout_node, conversion_routine->type,
                        (a_boolean)conversion_routine->is_virtual,
+                       /*virtual_suppressed=*/FALSE,
                        &orig_operand.position, operand);
     if (!conversion->result_is_an_lvalue || 
         conversion->std.nontrivial_conversion) {

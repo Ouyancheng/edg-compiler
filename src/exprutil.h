@@ -646,6 +646,7 @@ extern an_expr_node_ptr create_expr_temporary(a_type_ptr        temp_type,
 extern void make_function_call(an_expr_node_ptr  function_node,
                                a_type_ptr        function_type,
                                a_boolean         is_virtual,
+                               a_boolean         virtual_suppressed,
                                a_source_position *call_pos,
                                an_operand        *result);
 
