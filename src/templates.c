@@ -3854,7 +3854,6 @@ the function instantiation entry and set all the pointers.
   a_template_instance_ptr           tip;
   a_type_ptr                        tp;
   a_template_arg_ptr                templ_arg_list;
-  a_boolean			    linkage_mismatch = FALSE;
 
   db_enter(3, "record_predeclared_template_function");
   tip = rout_sym->variant.routine.instance_ptr;
@@ -3916,14 +3915,12 @@ the function instantiation entry and set all the pointers.
           sym_warning(ec_template_and_instance_linkage_conflict, rout_sym);
           rp->storage_class = (a_storage_class)sc_static;
           rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
-          linkage_mismatch = TRUE;
         }  /* if */
       } if (rp->storage_class == (a_storage_class)sc_static) {
         sym_warning(ec_template_and_instance_linkage_conflict, rout_sym);
         rp->storage_class = (a_storage_class)sc_unspecified;
         rp->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_cplusplus_external;
-        linkage_mismatch = TRUE;
       }  /* if */
       if (templ_rp->is_inline) {
         if (rp->called) {
