@@ -270,9 +270,9 @@ demangled.
   p = demangle_type(p);
   suppress_id_output--;
   /* The next thing has one of the following forms:
-       3abc        Address of "abc"
+       3abc        Address of "abc".
        L211        Literal constant; length ("2") followed by the characters of
-                   the constant ("11")
+                   the constant ("11").
        LM0_L2n1_1j Pointer-to-member-function constant; the three parts
                    correspond to the triplet of values in the __mptr
                    data structure.
@@ -293,7 +293,7 @@ demangled.
                        d --> .
             ^------- Length of constant.
          Output is
-          (type)constant
+           (type)constant
          That is, the literal constant preceded by a cast to the right type.
       */
       p++;
