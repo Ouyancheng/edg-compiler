@@ -1,5 +1,22 @@
 Version 2.24
 
+6/11/94 IL CHANGE: some name hiding is recorded in the IL
+
+When a new configuration flag RECORD_HIDDEN_NAMES_IN_IL is TRUE, certain
+hidden names are recorded in a list of entries of type a_hidden_name,
+pointed to from an IL scope entry.  The information is intended for use by
+the C++-generating back end, so it knows when it has to use global
+qualification or an elaborated type specifier to generate accurate code.
+Here are cases in which the entries are created:
+
+  class A { int i; };
+  int A = 0;             // class A is hidden by the variable declaration
+                         //   but can be unhidden if an elaborated type
+                         //   specifier is used.
+  void f() {
+    int A;               // file scope variable A is hidden but can be
+  }                      //   unhidden if a leading "::" is used.
+
 6/11/94 Change in STAT_FIRST_PARAM_IS_CONST and GETOPT_PARAMS_ARE_NOT_CONST
 
 Formerly these flags were tested using #ifdef tests, so the value to
