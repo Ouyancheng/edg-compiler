@@ -53,8 +53,6 @@ EXTERN unsigned long
 		num_compressible_string_pos_allocated;
 #endif /* DEBUG */
 
-extern void give_unnamed_namespace_a_name(a_namespace_ptr nsp);
-
 #if TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED
 extern char *get_mangled_function_name(a_routine_ptr routine);
 #endif /* TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED */
@@ -72,10 +70,6 @@ extern char *mangled_class_name(a_type_ptr type);
 extern char *mangled_typeinfo_name(a_type_ptr type);
 
 extern char *mangled_id_object_name(a_type_ptr type);
-
-extern void mangle_function_name(a_routine_ptr routine);
-
-extern void mangle_member_variable_name(a_variable_ptr variable);
 
 #if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE

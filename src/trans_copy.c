@@ -33,7 +33,6 @@ trans_copy.c -- Copy IL from secondary translation units to the
 #include "templates.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
-#include "lower_name.h"
 #endif /* DO_IL_LOWERING */
 
 
@@ -997,12 +996,6 @@ do any necessary processing, e.g., externalizing it if it is static.
           variable->storage_class == (a_storage_class)sc_static) {
         /* A static variable referenced from a template is changed to an
            external declaration and copied over. */
-        /* The name must be processed now because we want to use
-           the module id from the secondary translation unit. */
-        if (variable->source_corresp.is_class_member ||
-            variable->source_corresp.parent.namespace_ptr != NULL) {
-          mangle_member_variable_name(variable);
-        }  /* if */
         externalize_source_correspondence(&variable->source_corresp,
                                           /*is_variable=*/TRUE);
         variable->storage_class = (a_storage_class)sc_extern;
@@ -1033,9 +1026,6 @@ do any necessary processing, e.g., externalizing it if it is static.
           routine->storage_class == (a_storage_class)sc_static) {
         /* A static function referenced from a template is changed to an
            external declaration and copied over. */
-        /* The name must be processed now because we want to use
-           the module id from the secondary translation unit. */
-        mangle_function_name(routine);
         externalize_source_correspondence(&routine->source_corresp,
                                           /*is_variable=*/FALSE);
         if (routine->assoc_scope == NULL_region_number) {
@@ -1455,13 +1445,6 @@ the lists.
     if (!nsp->is_namespace_alias) {
       keep_on_list = prepare_for_trans_unit_copy(nsp->variant.assoc_scope,
                                                  any_removed_function_bodies);
-#if DO_IL_LOWERING
-      if (keep_on_list && !has_name(nsp)) {
-        /* Give an unnamed namespace a mangled name now, so that it uses
-           the module id from the secondary translation unit. */
-        give_unnamed_namespace_a_name(nsp);
-      }  /* if */
-#endif /* DO_IL_LOWERING */
     } else {
       /* A namespace alias.  Keep it only if there's not already a copy in
          the primary IL. */

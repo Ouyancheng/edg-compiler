@@ -1161,7 +1161,7 @@ If the indicated class type is unnamed, give it a name.
 }  /* give_unnamed_class_a_name */
 
 
-void give_unnamed_namespace_a_name(a_namespace_ptr nsp)
+static void give_unnamed_namespace_a_name(a_namespace_ptr nsp)
 /*
 If the indicated namespace is unnamed, give it a name.
 */
@@ -2848,9 +2848,11 @@ thereunder.
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
 #if DO_IL_LOWERING
-      /* Make sure the type-as-subobject for a class gets the class name
-         before it is changed, if it is a nested class name. */
-      prelower_class_type(type);
+      if (is_primary_translation_unit) {
+        /* Make sure the type-as-subobject for a class gets the class name
+           before it is changed, if it is a nested class name. */
+        prelower_class_type(type);
+      }  /* if */
 #endif /* DO_IL_LOWERING */
       class_scope = ctsp->assoc_scope;
       if (class_scope != NULL) {
@@ -2878,7 +2880,7 @@ thereunder.
 }  /* do_type_list_other_name_mangling */
 
 
-void mangle_function_name(a_routine_ptr routine)
+static void mangle_function_name(a_routine_ptr routine)
 /*
 Mangle the name of the indicated function, if necessary.
 */
@@ -2904,7 +2906,7 @@ Mangle the name of the indicated function, if necessary.
 }  /* mangle_function_name */
 
 
-void mangle_member_variable_name(a_variable_ptr variable)
+static void mangle_member_variable_name(a_variable_ptr variable)
 /*
 Mangle the name of the indicated static data member or namespace member
 variable.
@@ -3139,8 +3141,11 @@ orphan lists).
   do_class_name_mangling();
   /* Do function, namespace, and static data member name mangling. */
   do_scope_other_name_mangling(il_header.primary_scope);
-  /* Do final mangling on type names. */
-  do_final_type_name_mangling();
+  /* Do final mangling on type names, but only in the primary
+     translation unit. */
+  if (is_primary_translation_unit) {
+    do_final_type_name_mangling();
+  }  /* if */
 }  /* do_all_name_mangling */
 
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -3487,9 +3492,11 @@ name if necessary.  If is_type is TRUE, the entity is a type.
     /* The encoding is the original name, followed by "__Lnn", where "nn"
        is the scope number within the function, followed by two underscores,
        followed by the mangled name of the routine.  Note that the routine
-       name has not been mangled yet, but the entity's name has been (if
+       name has not been mangled yet (except when it has been copied from
+       a secondary translation unit), but the entity's name has been (if
        it needs mangling). */
-    check_assertion(!routine->source_corresp.name_has_been_mangled);
+    check_assertion(!routine->source_corresp.name_has_been_mangled ||
+                    routine->source_corresp.copied_from_secondary_trans_unit);
     /* Develop a scope number for the scope in which the entity appears.
        This number must be relative to the function rather than to the
        whole compilation so that if a given function (e.g., an extern inline
@@ -3847,7 +3854,12 @@ Do one-time initialization of variables related to name mangling.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
-}  /* eh_lower_one_time_init */
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(unnamed_class_name_seed);
+  register_trans_unit_variable(unnamed_enum_name_seed);
+  register_trans_unit_variable(unnamed_member_variable_name_seed);
+}  /* name_lower_one_time_init */
 
 
 void name_lower_init(void)

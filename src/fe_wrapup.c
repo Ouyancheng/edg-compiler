@@ -33,6 +33,7 @@ fe_wrapup.c - End of front end processing.
 #include "trans_copy.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
+#include "lower_name.h"
 #endif /* DO_IL_LOWERING */
 #if DEBUG
 #include "exprutil.h"
@@ -291,6 +292,13 @@ already been copied over.
     /* Lower the file scope. */
     lower_il_memory_region(file_scope_region_number);
 #endif /* DO_IL_LOWERING */
+  } else {
+    /* A secondary translation unit. */
+#if DO_IL_LOWERING
+    if (il_lowering_needed()) {
+      do_all_name_mangling();
+    }  /* if */
+#endif /* DO_IL_LOWERING */
   }  /* if */
 
   /* Clear out the shareable constants table for the file scope. */
@@ -364,7 +372,7 @@ already been copied over.
     }  /* if */
   }  /* if */
   check_for_done_with_memory_region(file_scope_region_number);
-}  /* file_scope_il_wrapup_part_3 */
+}  /* file_scope_il_wrapup_part_4 */
 
 
 static void wrap_up_file_scopes(void)

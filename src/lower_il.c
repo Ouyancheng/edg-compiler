@@ -187,7 +187,9 @@ This is used for names added or replaced (e.g., mangled names) during
 IL lowering.
 */
 {
-  char *ptr = alloc_il(size);
+  /* Force allocation in primary IL when used for name mangling in secondary
+     translation units. */
+  char *ptr = alloc_primary_file_scope_il(size);
 #if DEBUG && DO_IL_LOWERING
   allocated_name_string_length += size;
 #endif /* DEBUG && DO_IL_LOWERING */
