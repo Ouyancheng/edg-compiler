@@ -3999,7 +3999,7 @@ specifier is restored.
        precompiled header processing on the state maintained in
        def_external_linage. */
     def_external_linkage = saved_linkage;
-    /* Check for the final right brace of the the linkage specification block,
+    /* Check for the final right brace of the linkage specification block,
        but don't advance past it -- that is handled in translation_unit. */
     remove_stop_token(tok_rbrace);
     if (curr_token != tok_rbrace) {
