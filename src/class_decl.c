@@ -6677,9 +6677,12 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       /* The integral type is "plain" (i.e., plain "int", "char", "short",
          "long", or "long long") -- it's not explicitly signed or unsigned and
          it's not an enum type. */
-      if (C_dialect == C_dialect_pcc) {
-        /* In pcc mode the bit field is always regarded as unsigned.  Change
-           the underlying type to reflect that. */
+      if (C_dialect == C_dialect_pcc &&
+          targ_plain_int_bit_field_is_unsigned) {
+        /* In pcc mode when the environment expects plain-int bit fields to
+           be unsigned, change the underlying type to reflect that -- this
+           produces more accurate IL for expressions in which integral
+           promotion is not done. */
         int_kind = unsigned_int_kind_of[int_kind];
         bit_field_type = integer_type(int_kind);
         is_signed = FALSE;
