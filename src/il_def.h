@@ -7474,10 +7474,11 @@ typedef struct an_asm_entry {
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	gnu_asm_form:1;
 			/* The asm declaration used the extended GNU syntax
-			   in which the asm string is following by a colon.
-			   This matters even when operands and clobbers list
-			   is empty because the meaning of the asm string may
-			   be subtly different if this flag is TRUE. */
+			   in which the asm string is followed by a colon.
+			   This matters even when the operands and clobbers
+			   lists are empty because the meaning of the asm
+			   string may be subtly different if this flag is
+			   TRUE. */
   a_bit_field	is_volatile:1;
 			/* asm is marked volatile (not to be reordered). */
   an_asm_operand_ptr
