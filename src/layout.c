@@ -3115,9 +3115,9 @@ the base class in class_type that corresponds to derived_bcp is on a
 derivation path of the base class in class_type that corresponds to bcp.
 */
 {
-  a_boolean                 is_best_path;
+  a_boolean                    is_best_path;
   a_base_class_derivation_ptr  bcdp;
-  a_derivation_step_ptr     step;
+  a_derivation_step_ptr        step;
 
   if (derived_bcp == NULL) {
 #if CHECKING
