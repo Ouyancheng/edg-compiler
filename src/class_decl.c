@@ -3475,9 +3475,16 @@ or struct definition.  The syntax is
             goto skip_base_class;
           }  /* if */
         }  /* if */
-        if (bcp_cssp->is_nonreal_class &&
-            !cssp->is_prototype_instantiation) {
-          /* Error case.  Ignore the base class. */
+        if (bcp_cssp->is_nonreal_class && !cssp->is_nonreal_class) {
+          /* A nonreal base class of a real derived class, which cannot happen
+             in a well-formed program.  Here's how it might happen:
+               template <class T> class X;
+               template <class T> const class Y : X<T> { } ...
+             In this case, Y is not recognized as a class template; rather,
+             it is assumed to be a real class that is defined within the
+             declaration of a template function, etc.  Issue a vague error
+             and skip the base class, to avoid error recovery problems down
+             the line. */
           error(ec_bad_base_class);
           goto skip_base_class;
         }  /* if */
@@ -9406,6 +9413,13 @@ nested classes when their definition appears outside of the class template.
            is a prototype and/or nonreal class.  If so, copy the information
            to the current class. */
         check_nonreal_nested_class(tag_sym, class_tssp);
+      }  /* if */
+    } else if (is_template_instantiation && tag_sym->is_class_member) {
+      /* An instance of a member template.  Mark it as nonreal if the
+         instantiation is being triggered inside a prototype instantiation. */
+      if (symbol_supplement_for_class(tag_sym->parent.class_type)->
+                                                        is_nonreal_class) {
+        class_state.is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
       }  /* if */
     }  /* if */
     /* Find the prototype instantiation symbol associated with this
