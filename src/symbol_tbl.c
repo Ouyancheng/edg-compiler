@@ -1336,6 +1336,7 @@ to the indicated kind (and the associated variant fields to safe values).
   sym_ptr->explicit_linkage_specifier     = FALSE;
   sym_ptr->reentered_from_prototype_scope = FALSE;
   sym_ptr->is_error                       = FALSE;
+  sym_ptr->is_template_param              = FALSE;
   set_symbol_kind(sym_ptr, kind);
 
   db_exit();

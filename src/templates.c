@@ -2504,6 +2504,18 @@ that make up the declaration and do a prototype instantiation.
           reconcile_template_param_lists(templ_params, sym,
                                          &locator.source_position);
         }  /* if */
+      } else if (sym->is_template_param) {
+        /* The class being declared has the same name as one of its
+           template parameters. */
+        if (is_definition) {
+          /* This is only an error on a class template definition, not
+             on a simple declaration in which the names are
+             never used again. */
+          pos_error(ec_class_template_same_name_as_templ_param,
+                    &locator.source_position);
+        }  /* if */
+        suppress_redecl_error = TRUE;
+        sym = NULL;
       } else {
         /* Force the call to enter symbol, which will report the name clash. */
         sym = NULL;
@@ -2856,6 +2868,7 @@ to represent the template parameters.
         sym->variant.constant->variant.list_position = template_param_list_pos;
       }  /* if */
     }  /* if */
+    sym->is_template_param = TRUE;
     /* Allocate a template parameter and set its fields based on sym. */
     template_param = alloc_template_param(sym);
     if (const_type_involves_template_param) {

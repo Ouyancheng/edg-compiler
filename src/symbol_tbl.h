@@ -990,6 +990,9 @@ typedef struct a_symbol {
 			/* TRUE if the symbol represents an identifier for
 			   which an error has been diagnosed and which should
 			   not be entered into the symbol table. */
+  unsigned int	is_template_param:1;
+			/* TRUE if the symbol represent a template
+			   parameter. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
