@@ -3319,8 +3319,7 @@ or not the parameter should be passed using a copy constructor.
       if (is_incomplete_type(param_type)) {
         /* Delay setting the flag till the class is defined -- add it to the
            fixup list. */
-        (void)add_if_necessary_to_dependent_type_fixup_list((a_type_ptr)NULL,
-                                                            ptp);
+        add_to_dependent_type_fixup_list(param_type, (a_type_ptr)NULL, ptp);
       } else if (!symbol_supplement_for_class(param_type)->
                                         construction_by_bitwise_copy_allowed) {
         /* Yes. */
@@ -4599,7 +4598,7 @@ Copy the type entry "from" to "to".
 {
   a_type_kind                   from_kind;
   a_routine_type_supplement_ptr extra_info;
-  a_type_ptr                    next_ptr;
+  a_type_ptr                    next_ptr, tp;
 
   from_kind = from->kind;
   if (from_kind == (a_type_kind)tk_routine) {
@@ -4619,12 +4618,17 @@ Copy the type entry "from" to "to".
       /* For a routine type, the type supplement must also be copied. */
       *extra_info = *from->variant.routine.extra_info;
       to->variant.routine.extra_info = extra_info;
+      tp = skip_typerefs(to->variant.routine.return_type);
+    } else {
+      tp = skip_typerefs(underlying_array_element_type(to));
     }  /* if */
-    /* An array type is placed on a fixup list if the underlying element type
-       is an incomplete class type (allowed by extension), and a routine type
-       is placed on the list if its return type is an incomplete class type. */
-    (void)add_if_necessary_to_dependent_type_fixup_list(to,
-                                                        (a_param_type *)NULL);
+    if (is_incomplete_type(tp) && is_immediate_class_type(tp)) {
+      /* An array type is placed on a fixup list if the underlying element
+         type is an incomplete class type (allowed by extension), and a
+         routine type is placed on the list if its return type is an
+         incomplete class type. */
+      add_to_dependent_type_fixup_list(tp, to, (a_param_type *)NULL);
+    }  /* if */
   }  /* if */
 }  /* copy_type */
 
@@ -6026,8 +6030,8 @@ at the point of definition.
       return_type = skip_typerefs(routine_type->variant.routine.return_type);
       if (is_immediate_class_type(return_type)) {
         if (is_incomplete_type(return_type)) {
-          (void)add_if_necessary_to_dependent_type_fixup_list(routine_type,
-                                                        (a_param_type *)NULL);
+          (void)add_to_dependent_type_fixup_list(return_type, routine_type,
+                                                 (a_param_type *)NULL);
         } else if (!symbol_supplement_for_class(return_type)->
                                         construction_by_bitwise_copy_allowed) {
           rtsp->value_returned_by_cctor = TRUE;

@@ -8350,77 +8350,58 @@ Clear the fields of a function information block to default values.
 }  /* clear_func_info */
 
 
-a_boolean add_if_necessary_to_dependent_type_fixup_list(a_type_ptr        type,
-                                                        a_param_type_ptr  ptp)
+void add_to_dependent_type_fixup_list(a_type_ptr        class_type,
+                                      a_type_ptr        type,
+                                      a_param_type_ptr  param_type)
 /*
-If it involves a dependency upon an incomplete class type, add type or
-ptp to the fixup list of the class type.  Either type or ptp (but not both)
-is non-NULL.  If type is non-NULL, it is either an array type or a routine
-type.  If the former, a fixup is required if the underlying element type is
-If the underlying element type of array_type is an incomplete class type
-(allowed as an extension), add a fixup pointer to the class type's list of
-dependent types.  If type is NULL, then ptp points to a param type entry that
-needs similar treatment if its type is an incomplete class type.
+class_type is a pointer an incomplete class/struct/union type, and type or
+param_type is dependent on it, so an entry is created so that type or
+param_type can be fixed up appropriately when the class type is finally
+defined.  Either type or param_type (but not both) is non-NULL.
 */
 {
-  a_boolean                      added_to_list = FALSE;
-  a_boolean                      is_param_type;
-  a_type_ptr                     tp;
   a_dependent_type_fixup_ptr     dtfp;
   a_class_symbol_supplement_ptr  cssp;
 
-  db_enter(5, "add_if_necessary_to_dependent_type_fixup_list");
-  /* One or the other of type and ptp, but not both, should be non-NULL. */
-  check_assertion((type == NULL) != (ptp == NULL));
-  if (type != NULL) {
-    is_param_type = FALSE;
-    if (is_array_type(type)) {
-      /* Drop any number of array types. */
-      tp = skip_typerefs(underlying_array_element_type(type));
-    } else {
-      check_assertion(is_function_type(type));
-      tp = skip_typerefs((skip_typerefs(type))->variant.routine.return_type);
-    }  /* if */
+  db_enter(5, "add_to_dependent_type_fixup_list");
+  /* One or the other of type and param_type, but not both, should be
+     non-NULL. */
+  check_assertion((type == NULL) != (param_type == NULL));
+  /* A dependent type fixup entry is required for the type or param type. */
+  if (avail_dependent_type_fixups != NULL) {
+    /* Reuse a previously freed entry. */
+    dtfp = avail_dependent_type_fixups;
+    avail_dependent_type_fixups = avail_dependent_type_fixups->next;
   } else {
-    is_param_type = TRUE;
-    tp = skip_typerefs(ptp->type);
-  }  /* if */
-  /* Check whether tp is an incomplete class type. */
-  if (is_incomplete_type(tp) && is_immediate_class_type(tp)) {
-    /* It is.  A dependent type fixup entry is required for the type or
-       param type. */
-    if (avail_dependent_type_fixups != NULL) {
-      /* Reuse a previously freed entry. */
-      dtfp = avail_dependent_type_fixups;
-      avail_dependent_type_fixups = avail_dependent_type_fixups->next;
-    } else {
-      /* Allocate a new entry. */
-      dtfp = (a_dependent_type_fixup_ptr)alloc_fe(
+    /* Allocate a new entry. */
+    dtfp = (a_dependent_type_fixup_ptr)alloc_fe(
                                             sizeof(a_dependent_type_fixup));
 #if DEBUG
-      num_dependent_type_fixups_allocated++;
+    num_dependent_type_fixups_allocated++;
 #endif /* DEBUG */
-    }  /* if */
-    dtfp->is_param_type = is_param_type;
-    if (is_param_type) {
-      dtfp->variant.param_type = ptp;
-    } else {
-      dtfp->variant.type = type;
-    }  /* if */
-    /* Add a fixup entry to the list associated with the class.  It can be
-       put on the front of the list, since the order is unimportant. */
-    cssp = symbol_supplement_for_class(tp);
-    dtfp->next = cssp->dependent_type_fixup_list;
-    cssp->dependent_type_fixup_list = dtfp;
-    added_to_list = TRUE;
   }  /* if */
+  if (type == NULL) {
+    dtfp->is_param_type = TRUE;
+    dtfp->variant.param_type = param_type;
+  } else {
+    dtfp->is_param_type = FALSE;
+    dtfp->variant.type = type;
+  }  /* if */
+  /* Add a fixup entry to the list associated with the class.  It can be
+     put on the front of the list, since the order is unimportant. */
+  cssp = symbol_supplement_for_class(class_type);
+  dtfp->next = cssp->dependent_type_fixup_list;
+  cssp->dependent_type_fixup_list = dtfp;
   db_exit();
-  return added_to_list;
-}  /* add_if_necessary_to_dependent_type_fixup_list */
+}  /* add_to_dependent_type_fixup_list */
 
 
 void check_dependent_type_fixup_list(a_type_ptr  class_type)
 /*
+Go through the entries on the dependent-type-fixup list for class_type.  The
+list is a registry of entities that depend on class_type but were declared
+before class_type was defined.  Now that the definition is there, the rest
+of the declaration can be completed for the dependent types, too.
 */
 {
   a_dependent_type_fixup_ptr     dtfp, next_dtfp;
@@ -8429,15 +8410,21 @@ void check_dependent_type_fixup_list(a_type_ptr  class_type)
   cssp =  symbol_supplement_for_class(class_type);
   dtfp = cssp->dependent_type_fixup_list;
   if (dtfp != NULL) {
-    cssp->dependent_type_fixup_list = NULL;
+    /* Traverse the list. */
     do {
       if (dtfp->is_param_type) {
+        /* A parameter of class type.  Set the flag indicating whether passing
+           it requires a copy constructor call. */
         set_arg_transfer_method_flag(dtfp->variant.param_type);
       } else {
         a_type_ptr  tp = dtfp->variant.type;
         if (is_array_type(tp)) {
+          /* An array of elements of class type.  Now the array's size can be
+             computed. */
           set_type_size(tp);
         } else {
+          /* A function returning a class type.  Set the flag indicating
+             whether the return involves a copy constructor. */
           set_routine_calling_method_flag(tp);
         }  /* if */
       }  /* if */
@@ -8445,8 +8432,11 @@ void check_dependent_type_fixup_list(a_type_ptr  class_type)
       next_dtfp = dtfp->next;
       dtfp->next = avail_dependent_type_fixups;
       avail_dependent_type_fixups = dtfp;
+      /* Continue processing the list. */
       dtfp = next_dtfp;
     } while (dtfp != NULL);
+    /* Null out the list pointer before returning. */
+    cssp->dependent_type_fixup_list = NULL;
   }  /* if */
 }  /* check_dependent_type_fixup_list */
 

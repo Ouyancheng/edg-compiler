@@ -1122,12 +1122,15 @@ array_type.
   register a_type_ptr    elem_type;
 
   db_enter(5, "set_array_type_size");
-  if (add_if_necessary_to_dependent_type_fixup_list(array_type,
-                                                    (a_param_type_ptr)NULL)) {
+
+  elem_type = skip_typerefs(underlying_array_element_type(array_type));
+  if (is_incomplete_type(elem_type) && is_immediate_class_type(elem_type)) {
     /* This is an array whose element type (directly or indirectly) is
        an incomplete struct or union.  The size cannot be determined now.
-       The type was put type on a list so it can be fixed later if the struct
+       The type is put type on a list so it can be fixed later if the struct
        or union type is defined. */
+    add_to_dependent_type_fixup_list(elem_type, array_type,
+                                     (a_param_type_ptr)NULL);
   } else {
     /* Get the number of elements.  Note that this is zero for an incomplete
        type like int a[]. */
