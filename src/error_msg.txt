@@ -766,6 +766,7 @@ ec_based_not_followed_by_star;;"__based does not precede a pointer operator, __b
 ec_based_var_must_be_ptr;;"variable in __based modifier must have pointer type"
 ec_bad_const_cast_type;;"the type in a const_cast must be a pointer, reference, or pointer to member to an object type"
 ec_bad_const_cast;;"a const_cast can only adjust type qualifiers; it cannot change the underlying type"
+ec_mutable_not_allowed;;"mutable is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
