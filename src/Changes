@@ -1,5 +1,37 @@
 Version 2.21
 
+11/17/93 Disallow default argument in a #pragma function declaration
+
+An error is now issued if a default argument appears on a function
+declaration within a #pragma, e.g.,
+
+  template <class T> void f(T) {}
+  #pragma instantiate void f(int = -59)                 // Error
+  template <class T> class X {
+    void f(int);
+  };
+  #pragma do_not_instantiate void X<int>::f(int = -31)  // Error
+
+11/17/93 Friend class declaration with typedef name
+
+An internal error has been fixed for the case in which a (nonstandard)
+friend class declaration uses a typedef name rather than the actual class
+name.  For example:
+
+  class A;
+  typedef A TA;
+  class B {
+    friend TA;       // Nonstandard friend declaration accepted
+  };
+
+However, an error is issued if the typedef name refers to a cv-qualified
+class type.
+
+11/17/93 Constructor for member in mem-initializer-list
+
+An internal error has been fixed in an obscure case involving constructor
+initialization of a class member specified in a mem-initializer-list.
+
 11/17/93 Diagnostic when instantiating a member of a class specialization
 
 An error should have be issued when an attempt is made to instantiate a
