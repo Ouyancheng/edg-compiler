@@ -91,30 +91,31 @@ The access_flags string was retained for backward compatibility.
       } else {
         /* The base is accessible if it is public and not ambiguous. */
         is_accessible = ((bcsp->flags & BCS_PUBLIC) != 0);
-      }  /* if */
-      if (is_accessible &&
-	  matching_type_info(test_info, base_info)) {
-        /* We have found a match.  If the base class is ambiguous, stop
-	   the search but don't consider the conversion "successful".
-           The BCS_AMBIGUOUS flag is only used with ABI versions >= 2.29.
-           In previous versions of the ABI, ambiguous bases were indicated
-           by marking all instances of the base as inaccessible in the
-	   access string. */
         is_ambiguous = ((bcsp->flags & BCS_AMBIGUOUS) != 0);
-        result = !is_ambiguous;
-        if (ptr != NULL) {
-          if (bcsp->flags & BCS_VIRTUAL) {
-            /* If this is a virtual base class then the offset provides the
-               location of a pointer to the base class.  Dereference the
-               pointer and return that value. */
-            *p_new_ptr = *((void **)new_ptr);
-          } else {
-	    /* A nonvirtual base class.  new_ptr has already been adjusted to
-	       point to the start of the base class.  Return this value
-	       to the caller. */
-	    *p_new_ptr = new_ptr;
-	  }  /* if */
-	}  /* if */
+      }  /* if */
+      if (!is_ambiguous) {
+        /* If the base class is ambiguous, stop the search but don't
+           consider the conversion "successful".  The BCS_AMBIGUOUS flag is
+           only used with ABI versions >= 2.29.  In previous versions of
+           the ABI, ambiguous bases were indicated by marking all
+           instances of the base as inaccessible in the access
+           string. */
+        if (is_accessible && matching_type_info(test_info, base_info)) {
+          result = TRUE;
+          if (ptr != NULL) {
+            if (bcsp->flags & BCS_VIRTUAL) {
+              /* If this is a virtual base class then the offset provides the
+                 location of a pointer to the base class.  Dereference the
+                 pointer and return that value. */
+              *p_new_ptr = *((void **)new_ptr);
+            } else {
+              /* A nonvirtual base class.  new_ptr has already been adjusted to
+                 point to the start of the base class.  Return this value
+                 to the caller. */
+              *p_new_ptr = new_ptr;
+            }  /* if */
+          }  /* if */
+        }  /* if */
       }  /* if */
       /* The last entry in the array will have the BCS_LAST flag set. */
       done = bcsp->flags & BCS_LAST || result || is_ambiguous;
