@@ -32,16 +32,18 @@ static a_boolean has_constructor(a_type_ptr  tp)
   a_boolean      found = FALSE;
   a_routine_ptr  rp;
 
-  if (C_dialect == C_dialect_cplusplus && is_class_struct_union_type(tp)) {
+  if (C_dialect == C_dialect_cplusplus) {
     skip_typerefs(tp);
-    for (rp = tp->variant.class_struct_union.extra_info->assoc_scope->routines;
-         rp != NULL;
-         rp = rp->next) {
-      if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
-        found = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
+    if (tp->kind == (a_type_kind)tk_struct ||
+        tp->kind == (a_type_kind)tk_class) {
+      rp = tp->variant.class_struct_union.extra_info->assoc_scope->routines;
+      for (;rp != NULL; rp = rp->next) {
+        if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
+          found = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return found;
 }  /* has_constructor */
@@ -608,7 +610,7 @@ The syntax is:
   a_boolean             put_init_in_variable;
   a_variable_ptr        vp = NULL;
   a_type_ptr            vp_type = NULL;
-  a_boolean             brace_flag;
+  a_boolean             brace_flag = FALSE;
   a_boolean             is_constant;
   an_expr_node_ptr      expression;
   a_constant            constant;
@@ -622,6 +624,7 @@ The syntax is:
 
   db_enter(3, "initializer");
 
+  if (paren_flag) add_stop_token(tok_rparen);
   if (is_parameter) {
     /* Parameter declarations cannot contain an initializer. */
     error(ec_initializer_in_param);
@@ -691,6 +694,11 @@ The syntax is:
 #endif /* if 0 */
     }  /* if */
   } else if (is_aggregate_or_union_type(vp_type)) {
+#if CHECKING
+    if (paren_flag) {
+      internal_error("initializer: parenthesized initializer for aggregate");
+    }  /* if */
+#endif /* CHECKING */
     di_list = end_of_di_list = NULL;
     cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
                          /*top_level=*/TRUE);
@@ -716,7 +724,7 @@ The syntax is:
       err = TRUE;
     }  /* if */
   } else {
-    check_for_opening_brace(&brace_flag);
+    if (!paren_flag) check_for_opening_brace(&brace_flag);
     if (C_dialect == C_dialect_cplusplus ||
         (vp != NULL && has_static_storage_duration(vp->storage_class))) {
       /* Scan a potentially non-constant initializer expression.  The result
@@ -779,6 +787,10 @@ The syntax is:
       vp->init_kind = (an_init_kind)initk_static;
       vp->initializer.constant = cp;
     }  /* if */
+  }  /* if */
+  if (paren_flag) {
+    remove_stop_token(tok_rparen);
+    required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
   db_exit();
 }  /* initializer */
