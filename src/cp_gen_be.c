@@ -1594,6 +1594,50 @@ a name.  Never generate a qualified name.
 }  /* gen_bare_name */
 
 
+static a_template_arg_ptr template_arguments_for_name(
+                                        a_source_correspondence *scp,
+                                        an_il_entry_kind        entry_kind,
+                                        a_boolean               *insert_space)
+/*
+Return the list of explicit template arguments that should be added onto the
+bare name of the entity of kind entry_kind with source correspondence data
+scp.  If insert_space is non-null, *insert_space will be set to TRUE if a
+space should be inserted between the bare name and the explicit template
+argument list and to FALSE otherwise.
+*/
+{
+  a_template_arg_ptr tap = NULL;
+
+  if (insert_space != NULL) {
+    *insert_space = FALSE;
+  }  /* if */
+  if (entry_kind == iek_type) {
+    /* Check for template arguments on a class name. */
+    a_type_ptr type = (a_type_ptr)scp;
+    if (is_class_type_kind(type->kind)) {
+      tap = type->variant.class_struct_union.extra_info->template_arg_list;
+    }  /* if */
+  } else if (entry_kind == iek_routine) {
+    /* Check for template arguments on a routine, but put them out only if
+       explicit template arguments (e.g., f<int>) were used with the name
+       at some point in the program. */
+    a_routine_ptr rout = (a_routine_ptr)scp;
+    if (rout->expl_template_arg_list_used) {
+      tap = rout->template_arg_list;
+      if (insert_space != NULL && tap != NULL &&
+          rout->special_kind == (a_special_function_kind)sfk_operator) {
+        /* For operator functions with a template argument list, put a space
+           between the operator and the "<" of the template arguments.
+           This is necessary for operator< and operator<<, to avoid
+           mis-tokenizing the operator. */
+        *insert_space = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return tap;
+}  /* template_arguments_for_name */
+
+
 static void gen_unqualified_name(a_source_correspondence *scp,
                                  an_il_entry_kind        entry_kind)
 /*
@@ -1606,31 +1650,11 @@ entity is a template class, add the template arguments.
   /* The bare name is the unqualified name without the template arguments: */
   gen_bare_name(scp, entry_kind);
   if (il_header.source_language == sl_Cplusplus) {
-    a_template_arg_ptr tap = NULL;
-    if (entry_kind == iek_type) {
-      /* Check for template arguments on a class name. */
-      a_type_ptr type = (a_type_ptr)scp;
-      if (is_class_type_kind(type->kind)) {
-        tap = type->variant.class_struct_union.extra_info->template_arg_list;
-      }  /* if */
-    } else if (entry_kind == iek_routine) {
-      /* Check for template arguments on a routine, but put them out only if
-         explicit template arguments (e.g., f<int>) were used with the name
-         at some point in the program. */
-      a_routine_ptr rout = (a_routine_ptr)scp;
-      if (rout->expl_template_arg_list_used) {
-        tap = rout->template_arg_list;
-        if (tap != NULL &&
-            rout->special_kind == (a_special_function_kind)sfk_operator) {
-          /* For operator functions with a template argument list, put a space
-             between the operator and the "<" of the template arguments.
-             This is necessary for operator< and operator<<, to avoid
-             mis-tokenizing the operator. */
-          write_space();
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    a_boolean          insert_space;
+    a_template_arg_ptr tap = template_arguments_for_name(scp, entry_kind,
+                                                         &insert_space);
     if (tap != NULL) {
+      if (insert_space) write_space();
       /* Put out the template argument list, e.g., "<int, float>". */
       form_template_args(tap, &octl);
     }  /* if */
@@ -1745,6 +1769,11 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         gen_class_qualifier(class_type,
                             options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                             need_closing_paren);
+        if (class_type->variant.class_struct_union.is_nonreal_class &&
+            template_arguments_for_name(scp, entry_kind,
+                                        /*insert_space=*/NULL) != NULL) {
+          write_tok_str("template ");
+        }  /* if */
       }  /* if */
     } else if (scp->parent.namespace_ptr != NULL) {
       /* The entity is a member of a namespace. */
@@ -1798,7 +1827,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 #define gen_type_name(type)                                           \
   gen_name(&(type)->source_corresp, iek_type,                         \
-           !C_mode() && is_or_contains_template_param(type) ?         \
+           is_or_contains_template_param(type) ?                      \
                                      GN_DEPENDENT : GN_NO_OPTIONS,    \
            (a_boolean *)NULL)
 #else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -3398,8 +3427,9 @@ is the one associated with the definition of the class.
   }  /* if */
   /* Go through the source sequence list and generate the members of the
      class. */
-  while (ss_entry_kind(curr_source_sequence_entry) !=
-                                                iek_src_seq_end_of_construct) {
+  while (curr_source_sequence_entry != NULL &&
+         ss_entry_kind(curr_source_sequence_entry) !=
+                                               iek_src_seq_end_of_construct) {
     gen_declaration(/*for_init=*/FALSE);
   }  /* while */
   /* This should be the end-of-construct marker for the class. */
@@ -4666,9 +4696,30 @@ reinterpret_cast is put out when is_reinterpret_cast is TRUE.
 }  /* gen_full_cast */
 
 
-static void gen_argument_list(an_expr_node_ptr arg,
-                              a_type_ptr       rout_type,
-                              int              skip_num)
+void gen_untyped_argument_list(an_expr_node_ptr args,
+                               int              skip_num)
+/*
+Output an argument list args for which the corresponding parameter types are
+not known (presumably because this is part of a prototype instantiation).
+If skip_num is positive, ignore the first skip_num arguments.
+*/
+{
+  an_expr_node_ptr arg = args;
+
+  write_tok_ch('(');
+  for (; arg != NULL && skip_num > 0; arg = arg->next, --skip_num);
+  check_assertion(skip_num == 0);
+  for (; arg != NULL; arg = arg->next) {
+    if (arg != args) write_tok_str(", ");
+    gen_expr_with_parens(arg);
+  }  /* for */
+  write_tok_ch(')');
+}  /* gen_untyped_argument_list */
+
+
+static void gen_typed_argument_list(an_expr_node_ptr arg,
+                                    a_type_ptr       rout_type,
+                                    int              skip_num)
 /*
 Write out an argument list with surrounding parentheses.  rout_type is the
 type of the routine being called.  If skip_num is non-zero, it indicates
@@ -4703,8 +4754,9 @@ put out for them).
       if (param != NULL && param->passed_via_copy_constructor) {
         /* For an argument passed using a copy constructor, optimize out
            the copy constructor reference. */
-        check_assertion_str(arg->kind == (an_expr_node_kind)enk_temp_init,
-                            "gen_argument_list: cctor arg not enk_temp_init");
+        check_assertion_str(
+                      arg->kind == (an_expr_node_kind)enk_temp_init,
+                      "gen_typed_argument_list: cctor arg not enk_temp_init");
         gen_dynamic_init(arg->variant.init.dynamic_init, param->type,
                          /*parenthesized_init=*/FALSE,
                          /*force_parens=*/FALSE);
@@ -4720,6 +4772,27 @@ put out for them).
     if (param != NULL) param = param->next;
   }  /* for */
   write_tok_ch(')');
+}  /* gen_typed_argument_list */
+
+
+static void gen_argument_list(an_expr_node_ptr arg,
+                              a_type_ptr       rout_type,
+                              int              skip_num)
+/*
+Write out an argument list with surrounding parentheses.  If rout_type is non-
+NULL, it is the type of the routine being called and that information is used
+e.g. to elide constructor calls.  If rout_type is NULL, the argument
+expressions are put out "as is".  If skip_num is non-zero, it indicates the
+number of leading argument expressions not to put out (they're on the arg list
+and the parameter list, and they're passed over, but nothing is put out for
+them).
+*/
+{
+  if (rout_type != NULL) {
+    gen_typed_argument_list(arg, rout_type, skip_num);
+  } else {
+    gen_untyped_argument_list(arg, skip_num);
+  }  /* if */
 }  /* gen_argument_list */
 
 
@@ -4783,6 +4856,11 @@ Generate code for a new or delete operation.
 
   unqual_type = skip_typerefs(type);
   /* See if a global specifier "::" is needed on the new or delete. */
+#if 1 /* FIXME */
+  if (ndsp->global_new_or_delete) {
+    write_tok_str("::");
+  }  /* if */
+#else
   if (is_class_type_kind(unqual_type->kind) &&
       /* Watch out for the case where the new/delete is folded into the
          constructor/destructor. */
@@ -4790,6 +4868,7 @@ Generate code for a new or delete operation.
     /* Not a class-specific new or delete routine, so put out "::". */
     write_tok_str("::");
   }  /* if */
+#endif
   if (ndsp->is_new) {
     /* New.  The general form is
          :: new (arg2, arg3, ...) type(initializer)
@@ -4797,7 +4876,12 @@ Generate code for a new or delete operation.
     write_tok_str("new ");
     if (ndsp->placement_new) {
       /* A "placement" new.  Put out arguments 2-n inside parentheses. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      gen_argument_list(arg, (routine == NULL) ? NULL : routine->type,
+                        /*skip_num=*/1);
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
       gen_argument_list(arg, routine->type, /*skip_num=*/1);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       write_space();
     }  /* if */
     /* The syntax for types here is limited; to get the full range of
@@ -5472,7 +5556,9 @@ finish_new_style_cast:
             gen_expr_with_parens(operand_1);
           }  /* if */
           /* Put out the arguments. */
-          gen_argument_list(args, type_pointed_to(operand_1->type),
+          gen_argument_list(args,
+                            is_template_param_type(operand_1->type) ?
+                                      NULL : type_pointed_to(operand_1->type),
                             /*skip_num=*/0);
           goto done_with_operation;
         case eok_virtual_call:
@@ -7157,21 +7243,8 @@ TRUE, "()" is put out.
             }  /* if */
             /* Put out the argument list in parentheses. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-            if (ctor != NULL) {
-              gen_argument_list(args, ctor->type, /*skip_num=*/0);
-            } else {
-              /* In the template case we might not know which constructor is
-                 being referred. Hence we simply list the arguments. */
-              an_expr_node_ptr  arg = args;
-              write_tok_ch('(');
-              for (arg = args; arg != NULL; arg = arg->next) {
-                if (arg != args) write_tok_str(", ");
-                gen_expr_with_parens(arg);
-              }  /* for */
-              write_tok_ch(')');
-            }  /* if */
-#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
-            gen_argument_list(args, ctor->type, /*skip_num=*/0);
+            gen_argument_list(args, (ctor == NULL)? NULL : ctor->type,
+                              /*skip_num=*/0);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           }  /* if */
         }  /* if */
