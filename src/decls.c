@@ -7165,6 +7165,12 @@ explicitly specified (rather than defaulted to "int").
           declaration(/*function_definition_allowed=*/FALSE, 
                       /*extern_implied=*/FALSE, func_info->param_id_list);
         }  /* while */
+        /* Parameter symbols are not actually entered in the function
+           prototype scope, but other symbols (usually in consequence of an
+           error) may be.  Record them so that they can be transferred to
+           the function scope later. */
+        func_info->prototype_scope_symbols =
+                                      scope_stack[depth_scope_stack].symbols;
         in_old_style_param_decl_list = FALSE;
         /* Scan the list of identifiers, assigning types to any that remain
            undeclared, and create the param type entries. */
@@ -7197,6 +7203,7 @@ explicitly specified (rather than defaulted to "int").
         extra_info->prototyped = FALSE;
       }  /* if */
       extra_info->old_style_params_scanned = TRUE;
+      /* Pop the function prototype scope. */
       pop_scope();
     }  /* if */
     decl_var_or_routine(locator, storage_class, rout_type,
@@ -7820,8 +7827,6 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean         need_assign_remove_stop_token    = FALSE;
   a_boolean         need_lbrace_remove_stop_token    = FALSE;
   an_expr_node_ptr  dim_expr_ptr;
-  a_memory_region_number
-                    region_to_switch_back_to;
   a_boolean         is_definition, incomplete_type_error_reported;
 #if ASM_FUNCTION_ALLOWED
   a_boolean         is_asm_function = FALSE;
@@ -8400,25 +8405,22 @@ continue_with_declaration:
            changed when reconciled with the original declaration. */
         local_type_ptr = symbol_ptr->variant.variable->type;
       } else {
-        if (is_parameter) {
-          /* We are in an old-style param declaration but a name was found
-             that was not on the param id list.  Switch (back) to the function
-             scope memory region so that the variable will be treated like
-             an ordinary automatic variable. */
-          switch_to_function_scope_region(&region_to_switch_back_to);
-        }  /* if */
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             /*is_implicit_function=*/FALSE,
                             /*is_function_def_with_body=*/FALSE,
                             inline_specified, is_main_function, &symbol_ptr,
                             &linkage, &old_type, &ext_sym);
-        if (is_parameter) {
-          switch_back_to_original_region(region_to_switch_back_to);
-        }  /* if */
         /* Fetch the storage class again, which might have been changed if
            this is a file scope redeclaration of an extern const variable. */
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
           local_storage_class = symbol_ptr->variant.variable->storage_class;
+        }  /* if */
+        if (is_parameter) {
+          /* A variable has been entered for a name that appears in an
+             old-style param declaration but for which no corresponding
+             param-id was created.  Mark the symbol referenced, to suppress
+             subsequent "declared and not referenced" warnings. */
+          symbol_ptr->referenced = TRUE;
         }  /* if */
       }  /* if */
       /* Look for optional initializer. */
