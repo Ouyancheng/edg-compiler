@@ -1797,6 +1797,7 @@ directory.  Return TRUE if an applicable PCH was found.
   a_source_position	best_result_so_far;
   a_boolean		is_applicable;
   a_boolean		result = FALSE;
+  a_boolean		skip_remaining_entries = FALSE;
 
   db_enter(3, "find_applicable_pch");
 #if DEBUG
@@ -1815,6 +1816,10 @@ directory.  Return TRUE if an applicable PCH was found.
                                        curr_dir_name);
     /* A NULL pointer indicates there are no more matching file names. */
     if (file_name == NULL) break;
+    /* If we've found an optimal PCH file, don't bother looking at more
+       entries.  We still read the directory entries so that the
+       directory will be closed after all entries have been read. */
+    if (skip_remaining_entries) continue;
     /* Append the PCH directory name to the file name. */
     file_name = build_pch_file_name(file_name);
     /* The open routine will also make sure that it is a regular file. */
@@ -1827,6 +1832,7 @@ directory.  Return TRUE if an applicable PCH was found.
 #endif /* DEBUG */
     /* See if this PCH file can be used. */
     last_matching_event = pch_is_applicable();
+    (void)fclose(f_pch_input);
     is_applicable = last_matching_event != NULL;
     if (is_applicable) result = TRUE;
 #if DEBUG
@@ -1856,9 +1862,11 @@ directory.  Return TRUE if an applicable PCH was found.
            the new file name. */
         ensure_file_name_buffer_space(file_name_buffer, file_name_length+1);
         (void)strcpy(file_name_buffer.name, file_name);
+        /* If this file provides all possible events, don't bother
+           inspecting any other files. */
+        skip_remaining_entries = last_matching_event == pch_event_list_tail;
       }  /* if */
     }  /* if */
-    (void)fclose(f_pch_input);
   }  /* for */
   if (result) {
     /* Save a copy of the precompiled header file name to be used. */
