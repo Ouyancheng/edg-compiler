@@ -18,7 +18,9 @@ injected class name of a nested class.  This has been fixed.
 A new command-line options --db_name can be used to specify a
 name to be traced during processing.  The tracing code uses the
 db_has_traced_name macro to test whether extra information should
-be generated about an entity.
+be generated about an entity.  There is also a new db_trace, which
+combines the functionality of db_flag_is_set and db_has_traced_name,
+and symbol versions db_sym_has_traced_name and db_sym_trace.
 
 10/14/01 Microsoft compatibility: template name used in base class specifier
 
