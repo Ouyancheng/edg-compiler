@@ -46,7 +46,9 @@ the release should contain no defines.
 #define INCLUDE_EDG_TEST_PRAGMAS 1
 #define RECORD_HIDDEN_NAMES_IN_IL 1
 #define RECORD_TEMPLATES_IN_IL 1
+#ifndef BACK_END_IS_CP_GEN_BE
 #define RECORD_MACROS_IN_IL 1
+#endif /* ifndef BACK_END_IS_CP_GEN_BE */
 #define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS 1
 
 #endif /* !defined(OPTIMIZED_VERSION) */
