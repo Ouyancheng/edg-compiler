@@ -501,6 +501,14 @@ Initialize the option information table.
                          "no_namespaces", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_implicit_using_std,
+                         "using_std", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_implicit_using_std,
+                         "no_using_std", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1407,6 +1415,10 @@ common_cfront_mode_settings:
       case optk_namespaces:
         /* Enable/disable namespaces. */
         namespaces_enabled = opt_value;
+        break;
+      case optk_implicit_using_std:
+        /* Enable/disable implicit use of the std namespace by the runtime. */
+        implicit_using_std = opt_value;
         break;
       default:
         /* It should not be possible to get here. */

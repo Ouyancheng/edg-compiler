@@ -3724,6 +3724,11 @@ command line -D options.
     (void)enter_predef_macro("1", MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES,
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
+    if (implicit_using_std) {
+      (void)enter_predef_macro("1", MACRO_DEFINED_WHEN_IMPLICITLY_USING_STD,
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
 #endif /* RUNTIME_USES_NAMESPACES */
   }  /* if */
   /* Enter a predefined macro that can be used to determine that the

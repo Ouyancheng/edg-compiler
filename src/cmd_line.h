@@ -126,6 +126,7 @@ typedef enum /*an_option_kind*/ {
   optk_bool_is_keyword,
   optk_array_new_and_delete,
   optk_namespaces,
+  optk_implicit_using_std,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -307,6 +308,15 @@ EXTERN a_boolean
                                                                ;
 			/* TRUE if support for namespaces is enabled.
 			   Significant only in C++ mode. */
+EXTERN a_boolean
+		implicit_using_std
+#if VAR_INITIALIZERS
+                                   = DEFAULT_IMPLICIT_USING_STD
+#endif /* VAR_INITIALIZERS */
+                                                                ;
+			/* TRUE if the runtime should implicitly do a
+			   "using namespace std".  Significant only in
+			    C++ mode. */
 EXTERN an_integer_kind
 		plain_char_int_kind;
 			/* Integer kind for a "plain" char, dependent on

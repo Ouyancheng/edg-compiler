@@ -233,6 +233,17 @@ modified by the "--namespaces" or "--no_namespaces" command-line options.
 #endif /* ifndef DEFAULT_NAMESPACES_ENABLED */
 
 /*
+Flag that is TRUE if, in C++, when the runtime uses namespaces, the runtime
+should implicitly do a "using namespace std" to make names in the std
+namespace visible without qualification.  This is the default value of
+the variable implicit_using_std, which can be modified by the "--using_std"
+or "--no_using_std" command-line options.
+*/
+#ifndef DEFAULT_IMPLICIT_USING_STD
+#define DEFAULT_IMPLICIT_USING_STD FALSE
+#endif /* ifndef DEFAULT_IMPLICIT_USING_STD */
+
+/*
 Flag that is TRUE to enable automatic instantiation support for templates.
 This flag determines whether the code for automatic instantiation is
 to be compiled.

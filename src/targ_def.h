@@ -1017,14 +1017,23 @@ for the same purpose.
 #endif /* ABI_COMPATIBILITY_VERSION < 230 || CFRONT_... */
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
 
+#if RUNTIME_USES_NAMESPACES
 /*
 The name of the macro to be defined when the runtime uses namespaces.
 This is only used when RUNTIME_USES_NAMESPACES is TRUE.
 */
-#if RUNTIME_USES_NAMESPACES
 #ifndef MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES
 #define MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES "__EDG_RUNTIME_USES_NAMESPACES"
 #endif /* ifndef MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES */
+
+/*
+The name of the macro to be defined when the runtime should implicitly
+do a "using namespace std".  This is only used when RUNTIME_USES_NAMESPACES
+is TRUE.
+*/
+#ifndef MACRO_DEFINED_WHEN_IMPLICITLY_USING_STD
+#define MACRO_DEFINED_WHEN_IMPLICITLY_USING_STD "__EDG_IMPLICIT_USING_STD"
+#endif /* ifndef MACRO_DEFINED_WHEN_IMPLICITLY_USING_STD */
 #endif /* RUNTIME_USES_NAMESPACES */
 
 #if BACK_END_IS_C_GEN_BE
