@@ -1662,6 +1662,8 @@ Put out the definition for the indicated label.  If label == NULL, do nothing.
   db_enter(4, "define_label");
   if (label != NULL) {
     label->reachable_by_fall_through = curr_reachability.reachable;
+    label->num_microsoft_trys_inside_of =
+              struct_stmt_stack[depth_stmt_stack].num_microsoft_trys_inside_of;
     sp = add_statement((a_statement_kind)stmk_label);
     label->variant.exec_stmt = sp;
     sp->variant.label.ptr = label;
@@ -1907,6 +1909,15 @@ current structured statement.
   sssep->switch_selector_type = NULL;
   sssep->curr_block_object_lifetime  = olp;
   sssep->depth_of_assoc_scope        = NO_SCOPE_DEPTH;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (depth_stmt_stack == 0) {
+    sssep->num_microsoft_trys_inside_of = 0;
+  } else {
+    sssep->num_microsoft_trys_inside_of =
+                                       (sssep-1)->num_microsoft_trys_inside_of;
+  }  /* if */
+  if (kind == ssk_microsoft_try) sssep->num_microsoft_trys_inside_of++;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (db_flag_is_set("dump_control_flow")) {
     db_ssse_with_indentation(kind, "pushing ");
@@ -2856,6 +2867,60 @@ statement.  Its form is
 }  /* microsoft_try_statement */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static add_goto_to_continue_label(a_struct_stmt_stack_entry_ptr sssep,
+                                  a_boolean                     is_leave)
+/*
+Generate a goto to the "continue" label for the indicated structured
+statement.  Generate the label if it has not been generated yet.
+sssep == NULL to indicate an error.  is_leave is TRUE to indicate a
+__leave instead of a continue.
+*/
+{
+  a_label_ptr              dest_label = sssep->continue_label;
+  a_statement_ptr          sp;
+  a_control_flow_descr_ptr cfdp;
+
+  if (sssep == NULL) {
+    /* Error. */
+    /* Discard any pragmas that are bound to the current statement. */
+    discard_curr_construct_pragmas();
+  } else {
+    dest_label = sssep->continue_label;
+    if (dest_label == NULL) {
+      /* The continue label has not previously been used, so generate it. */
+      dest_label = sssep->continue_label = alloc_temp_label();
+      if (is_leave) {
+        dest_label->leave_label = TRUE;
+      } else {
+        dest_label->continue_label = TRUE;
+      }  /* if */
+    }  /* if */
+    /* Allocate the goto statement. */
+    sp = add_statement((a_statement_kind)stmk_goto);
+    stmt_update_source_sequence_list(sp);
+    /* Put the destination label into the goto. */
+    sp->variant.label.ptr = dest_label;
+    if (!C_mode()) {
+      /* Set the object lifetime.  It is a provisional setting and may be
+         changed based on the lifetime of the continue label itself. */
+      sp->variant.label.lifetime =
+                         innermost_block_object_lifetime(curr_object_lifetime);
+      /* Allocate and fill in a goto entry.  This is done in C++ mode only
+         because it's only needed for object lifetime management. */
+      cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
+      cfdp->source_pos = pos_curr_token;
+      cfdp->variant.goto_statement.ptr = sp;
+      add_to_control_flow_descr_list(cfdp);
+      cfdp->variant.goto_statement.prev_goto = sssep->continue_statements;
+      sssep->continue_statements = cfdp;
+    }  /* if */
+    /* Do processing required for any pragmas that are bound to the current
+       statement. */
+    process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
+  }  /* if */
+}  /* add_goto_to_continue_label */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void leave_statement(void)
@@ -2868,10 +2933,7 @@ The syntax is:
 
 */
 {
-  register a_statement_ptr      sp;
   a_struct_stmt_stack_entry_ptr sssep;
-  a_label_ptr                   dest_label;
-  a_control_flow_descr_ptr      cfdp;
 
   db_enter(3, "leave_statement");
   check_for_unreachable_code();
@@ -2886,44 +2948,11 @@ The syntax is:
     sssep--;
   }  /* while */
   /* No structured statement matching the criteria was found. */
+  error(ec_leave_must_be_in_try);
   sssep = NULL;
 found:
-  if (sssep == NULL) {
-    /* No appropriate structured statement was found. */
-    error(ec_leave_must_be_in_try);
-    /* Discard any pragmas that are bound to the current statement. */
-    discard_curr_construct_pragmas();
-  } else {
-    /* Found the __try that this __leave statement should exit. */
-    dest_label = sssep->continue_label;
-    if (dest_label == NULL) {
-      /* The continue label has not previously been used, so generate it. */
-      dest_label = sssep->continue_label = alloc_temp_label();
-      dest_label->leave_label = TRUE;
-    }  /* if */
-    /* Allocate the goto statement. */
-    sp = add_statement((a_statement_kind)stmk_goto);
-    stmt_update_source_sequence_list(sp);
-    /* Put the destination label into the goto. */
-    sp->variant.label.ptr = dest_label;
-    if (!C_mode()) {
-      /* Set the object lifetime.  It is a provisional setting and may be
-         changed based on the lifetime of the continue label itself. */
-      sp->variant.label.lifetime =
-                        innermost_block_object_lifetime(curr_object_lifetime);
-      /* Allocate and fill in a goto entry.  This is done in C++ mode only
-         because it's only needed for object lifetime management. */
-      cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
-      cfdp->source_pos = pos_curr_token;
-      cfdp->variant.goto_statement.ptr = sp;
-      add_to_control_flow_descr_list(cfdp);
-      cfdp->variant.goto_statement.prev_goto = sssep->continue_statements;
-      sssep->continue_statements = cfdp;
-    }  /* if */
-    /* Do processing required for any pragmas that are bound to the current
-       statement. */
-    process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
-  }  /* if */
+  /* Add a "goto" to the continue label for the __try. */
+  add_goto_to_continue_label(sssep, /*is_leave=*/TRUE);
   /* Ignore the initial "__leave". */
 #if CHECKING
   if (curr_token != tok_leave) {
@@ -3500,10 +3529,7 @@ The syntax is:
 See also 3.6.6.2.
 */
 {
-  register a_statement_ptr      sp;
   a_struct_stmt_stack_entry_ptr sssep;
-  a_label_ptr                   dest_label;
-  a_control_flow_descr_ptr      cfdp;
 
   db_enter(3, "continue_statement");
   check_for_unreachable_code();
@@ -3514,39 +3540,9 @@ See also 3.6.6.2.
   if (sssep == NULL) {
     /* No appropriate structured statement was found. */
     error(ec_continue_must_be_in_loop);
-    /* Discard any pragmas that are bound to the current statement. */
-    discard_curr_construct_pragmas();
-  } else {
-    /* Found the loop that this continue statement should exit. */
-    dest_label = sssep->continue_label;
-    if (dest_label == NULL) {
-      /* The continue label has not previously been used, so generate it. */
-      dest_label = sssep->continue_label = alloc_temp_label();
-      dest_label->continue_label = TRUE;
-    }  /* if */
-    /* Allocate the goto statement. */
-    sp = add_statement((a_statement_kind)stmk_goto);
-    stmt_update_source_sequence_list(sp);
-    /* Put the destination label into the goto. */
-    sp->variant.label.ptr = dest_label;
-    if (!C_mode()) {
-      /* Set the object lifetime.  It is a provisional setting and may be
-         changed based on the lifetime of the continue label itself. */
-      sp->variant.label.lifetime =
-                        innermost_block_object_lifetime(curr_object_lifetime);
-      /* Allocate and fill in a goto entry.  This is done in C++ mode only
-         because it's only needed for object lifetime management. */
-      cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
-      cfdp->source_pos = pos_curr_token;
-      cfdp->variant.goto_statement.ptr = sp;
-      add_to_control_flow_descr_list(cfdp);
-      cfdp->variant.goto_statement.prev_goto = sssep->continue_statements;
-      sssep->continue_statements = cfdp;
-    }  /* if */
-    /* Do processing required for any pragmas that are bound to the current
-       statement. */
-    process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   }  /* if */
+  /* Add a "goto" to the continue label. */
+  add_goto_to_continue_label(sssep, /*is_leave=*/FALSE);
   /* Ignore the initial "continue". */
 #if CHECKING
   if (curr_token != tok_continue) {

@@ -321,6 +321,11 @@ typedef struct a_struct_stmt_stack_entry {
 			   was pushed in conjunction with this structured
 			   statement stack entry, the depth of the former in
 			   the scope stack; NO_SCOPE_DEPTH otherwise. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  unsigned long	num_microsoft_trys_inside_of;
+			/* Number of Microsoft try-finally or try-except
+			   statements currently on the stack. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_struct_stmt_stack_entry;
 
 EXTERN a_struct_stmt_stack_entry_ptr
