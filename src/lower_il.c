@@ -2922,6 +2922,22 @@ Do IL lowering of the indicated source correspondence.
                                  (a_name_linkage_kind)nlk_cplusplus_external) {
     source_corresp->name_linkage = (a_name_linkage_kind)nlk_external;
   }  /* if */
+#if REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
+  if (il_header.UCN_identifiers_used) {
+    /* Rewrite the escape character in UCNs. */
+    char *p;
+    if (source_corresp->name != NULL) {
+      while ((p = strchr(source_corresp->name, '\\')) != NULL) {
+        *p = UCN_ESCAPE_REWRITE_CHAR;
+      }  /* while */
+    }  /* if */
+    if (source_corresp->unmangled_name != NULL) {
+      while ((p = strchr(source_corresp->unmangled_name, '\\')) != NULL) {
+        *p = UCN_ESCAPE_REWRITE_CHAR;
+      }  /* while */
+    }  /* if */
+  }  /* if */
+#endif /* REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
 }  /* lower_source_correspondence */
 
 

@@ -1903,6 +1903,27 @@ when they are modified.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 /*
+This switch can be set to enable the rewriting of the escape character
+in universal character names (UCNs), i.e., "\", where it appears in
+identifier names, to a single other character.  Note that this is not
+a complete solution if the character to which the escape is changed
+is a character that is valid in identifiers, because it would then
+be possible (if unlikely) that a user might write an identifier that
+would match an identifier with a rewritten UCN escape character (for
+example, with a rewrite to "_", "x\u00d6" would be rewritten as
+"x_u00d6").  A better choice is a character accepted by the linker
+but not valid as an identifier character in C.  If there is no
+such character, a character like "_" will provide a "good enough"
+implementation.
+*/
+#ifndef REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
+#define REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING TRUE
+#ifndef UCN_ESCAPE_REWRITE_CHAR
+#define UCN_ESCAPE_REWRITE_CHAR '_' /* Incomplete solution, see above. */
+#endif /* ifndef UCN_ESCAPE_REWRITE_CHAR */
+#endif /* ifndef REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
+
+/*
 Integer kind to use for an offset into a class.  This is used for delta
 fields in pointers to member functions, etc., but not for pointers to
 data members.
