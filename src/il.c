@@ -2227,6 +2227,7 @@ to default values.
       rtsp->prototyped               = FALSE;
       rtsp->has_ellipsis             = FALSE;
       rtsp->lint_argsused_flag       = FALSE;
+      rtsp->constructor_or_destructor= FALSE;
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (an_arg_pragma_kind)apk_none;
       break;
