@@ -11305,7 +11305,7 @@ update_instantiation_required_flag to do the appropriate processing.
 }  /* process_deferred_instantiation_requests */
 
 
-static a_boolean f_can_be_instantiated(a_template_instance_ptr tip)
+static a_boolean f_entity_can_be_instantiated(a_template_instance_ptr tip)
 /*
 Determines whether this compilation is capable of generating an
 instantiation of a given template instance.
@@ -11356,17 +11356,17 @@ instantiation of a given template instance.
            !tip->suppress_instantiation && !tip->explicit_do_not_instantiate;
   tip->can_be_instantiated = result;
   return result;
-}  /* f_can_be_instantiated */
+}  /* f_entity_can_be_instantiated */
 
 
 /*
-Macro that calls f_can_be_instantiated.  If we have already determined
+Macro that calls f_entity_can_be_instantiated.  If we have already determined
 that the entity can be instantiated, the call is suppressed and the
 previously computed value is returned.
 */
-#define can_be_instantiated(tip)					\
+#define entity_can_be_instantiated(tip)					\
   ((tip)->can_be_instantiated ? (tip)->can_be_instantiated	\
-                                         : f_can_be_instantiated(tip))
+                              : f_entity_can_be_instantiated(tip))
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 void update_auto_instantiation_flags(void)
@@ -11409,7 +11409,8 @@ and "do not instantiate" flags are set here.
       is_static_data_member = FALSE;
       routine = instance_sym->variant.routine.ptr;
     }  /* if */
-    can_instantiate = tip->already_instantiated || can_be_instantiated(tip);
+    can_instantiate = tip->already_instantiated ||
+                      entity_can_be_instantiated(tip);
 #if DEBUG
     if (debug_level >= 4) {
       db_name(is_static_data_member ?
@@ -11551,7 +11552,7 @@ that might be required.
          should_be_instantiated is called because the tests done by
          should_be_instantiated can result the generation of diagnostics
          that are required even if the entity can't be instantiated. */
-      (void)can_be_instantiated(tip);
+      (void)entity_can_be_instantiated(tip);
       if ((instantiation_mode == tim_all || tip->instantiation_required) &&
           !tip->already_instantiated) {
         if (should_be_instantiated(tip, /*implicit_inclusion_ok=*/TRUE)) {
@@ -11561,7 +11562,7 @@ that might be required.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
       /* See if the entity should be instantiated as a result of an
          assignment by the automatic instantiation mechanism. */
-      if (can_be_instantiated(tip) &&
+      if (entity_can_be_instantiated(tip) &&
           any_instantiations_assigned_to_this_translation_unit &&
           tip->automatically_instantiated && !tip->already_instantiated) {
         do_automatic_instantiation_of_entity(tip);
