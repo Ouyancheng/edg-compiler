@@ -442,6 +442,10 @@ Do the output in the way described by octl.
     output_qualifier(TQ_RESTRICT, "restrict");
 #endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+    /* Suppress "__unaligned" in generated compilable code. */
+    if (octl->gen_compilable_code) qualifiers &= ~TQ_UNALIGNED;
+#endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
     output_qualifier(TQ_UNALIGNED, "__unaligned");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Put out a trailing space if required. */
