@@ -1,5 +1,15 @@
 Version 3.3
 
+6/25/03  GNU C++ mode: Accessibility check for friend function declarations
+
+In GNU C++ mode, the front end no longer checks the accessibility of the
+name of a function specified in a friend function declaration.  For example:
+
+  class X { void priv(); };
+  class Z {
+    friend void X::priv();  // No longer triggers an accessibility error.
+  };
+
 6/25/03  Spurious error error caused by using-declaration referring to a
          dependent base
 

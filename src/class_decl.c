@@ -5751,8 +5751,10 @@ of the function, and again overloading is a possibility.
     }  /* if */
   }  /* if */
   if (!is_error_locator(*locator)) {
-    if (!(microsoft_mode || any_cfront_mode()) ||
+    if (!(microsoft_mode || gpp_mode || any_cfront_mode()) ||
         (sym != NULL && sym->ambiguous)) {
+      /* Many compilers (Microsoft, GNU, ...) do not check access for the
+         declarator-id of a friend declaration. */
       check_ambiguity_and_verify_access(locator);
     }  /* if */
     srk_flags = SRK_DECLARATION | SRK_FRIEND;
