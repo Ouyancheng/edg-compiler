@@ -511,7 +511,7 @@ called routine (op@) are rout_name and xop_routine, respectively.
   assignment =  make_operator_node(which_binary_operator(tok_assign, 
                                                          expr->type),
                                    expr->type, lhs);
-  /* Rewrite eok_sassign as eok_xassign. */
+  /* Rewrite eok_xassign as eok_sassign. */
   lower_c99_operator(assignment);
   if (lhs_for_init != NULL) {
     /* Add a comma expression to force the initialization of the temporary
